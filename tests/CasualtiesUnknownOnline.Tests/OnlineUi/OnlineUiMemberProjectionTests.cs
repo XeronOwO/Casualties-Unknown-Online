@@ -685,8 +685,8 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localMayWatch: true);
-
+			localAlive: false,
+			sessionActive: true);
 		Assert.False(rows.Single(r => r.SteamId == Local).CanSpectate);
 		Assert.True(rows.Single(r => r.SteamId == Remote).CanSpectate);
 	}
@@ -699,8 +699,8 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localMayWatch: false);
-
+			localAlive: true,
+			sessionActive: true);
 		Assert.False(rows.Single(r => r.SteamId == Remote).CanSpectate);
 	}
 
@@ -712,7 +712,8 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localMayWatch: true,
+			localAlive: false,
+			sessionActive: true,
 			watchingSteamId: Remote);
 
 		Assert.True(rows.Single(r => r.SteamId == Remote).IsWatched);
@@ -727,8 +728,8 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localMayWatch: true);
-
+			localAlive: false,
+			sessionActive: true);
 		Assert.DoesNotContain(rows, r => r.IsWatched);
 	}
 
@@ -740,7 +741,8 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localMayWatch: true,
+			localAlive: false,
+			sessionActive: true,
 			getVitals: id => id == Remote ? DeadVitals() : null);
 
 		Assert.False(rows.Single(r => r.SteamId == Remote).CanSpectate);
@@ -767,7 +769,10 @@ public sealed class OnlineUiMemberProjectionTests
 		Func<ulong, bool>? hasLineOfSight = null,
 		Func<ulong, string>? displayName = null,
 		Func<ulong, PlayerColorValue>? getColor = null,
-		bool localMayWatch = false,
+		bool localAlive = true,
+		bool localConscious = true,
+		bool spectateWhileUnconscious = false,
+		bool sessionActive = false,
 		ulong watchingSteamId = 0)
 	{
 		return OnlineUiMemberProjection.Build(
@@ -789,7 +794,10 @@ public sealed class OnlineUiMemberProjectionTests
 			permadeath: permadeath,
 			hasLineOfSight: hasLineOfSight,
 			getColor: getColor,
-			localMayWatch: localMayWatch,
+			localAlive: localAlive,
+			localConscious: localConscious,
+			spectateWhileUnconscious: spectateWhileUnconscious,
+			sessionActive: sessionActive,
 			watchingSteamId: watchingSteamId);
 	}
 

@@ -6,6 +6,8 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
+using CasualtiesUnknownOnline.Runtime.Session.World;
+
 namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 
 /// <summary>
@@ -39,7 +41,10 @@ public static class OnlineUiMemberProjection
 		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
 		Func<ulong, PlayerColorValue>? getColor = null,
-		bool localMayWatch = false,
+		bool localAlive = true,
+		bool localConscious = true,
+		bool spectateWhileUnconscious = false,
+		bool sessionActive = false,
 		ulong watchingSteamId = 0)
 	{
 		var memberMap = members.ToDictionary(m => m.SteamId, m => m);
@@ -173,7 +178,8 @@ public static class OnlineUiMemberProjection
 				CanViewMedical = canViewMedical,
 				IsDead = vitals is not null && !vitals.Alive,
 				IsWatched = memberId == watchingSteamId,
-				CanSpectate = localMayWatch && !isLocal && member is { InWorld: true } && (vitals is null || vitals.Alive),
+				CanSpectate = SpectatorPolicy.MayWatch(localAlive, localConscious, spectateWhileUnconscious, sessionActive)
+					&& !isLocal && member is { InWorld: true } && (vitals is null || vitals.Alive),
 				IsUnconscious = vitals is not null && vitals.Alive && !vitals.Conscious,
 				IsCarryingSomeone = isCarryingSomeone,
 				IsCarried = isAlreadyCarried,

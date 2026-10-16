@@ -197,3 +197,16 @@ it from the session). Five unit cases now pin the projection's two new facts.
 Still open and named rather than assumed: the target's body being present on this client is an adapter-only fact
 the card cannot mirror, the right-click menu builds its own action list and now carries the same two entries,
 and the whole of it still needs the two-client run of required work 5.
+## The shared rule landed (2026-10-17)
+
+Both readers of "who may watch" now call one predicate, `SpectatorPolicy.MayWatch`, in the Runtime: the camera,
+which enforces it, and the member card, which decides whether to offer the button. The previous cycle left them
+as two copies of the same two terms, which is exactly how the card had stopped reading the host's unconscious
+switch without anything failing. Four unit cases pin the rule's own four states (dead, alive, unconscious with
+the switch off, unconscious with it on) and a fifth pins that no session means nobody watches.
+
+**What still has to be written, and the only reason this ticket is not in `review/`:** the card cannot tell
+whether the target's body exists on THIS client — that fact lives in the adapter — so a click can be refused
+with nothing on screen saying so. The console reports its refusals; the card has nowhere to. That needs a place
+for the answer to land (the Online UI's own status line, or the same line the console prints) before the ticket
+is done.

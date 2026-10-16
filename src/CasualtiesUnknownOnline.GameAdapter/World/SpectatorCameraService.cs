@@ -173,18 +173,19 @@ internal sealed class SpectatorCameraService(
 	}
 
 	/// <summary>
-	/// Whether this client's local character is in a state that may watch. The rule decides the unconscious case:
-	/// an unconscious body is still its owner's to act on, so watching then changes a live player's client.
+	/// Whether this client's local character is in a state that may watch. The terms are the SHARED rule's
+	/// (<see cref="SpectatorPolicy"/>), which the member card reads too: a client-side copy of them is how the
+	/// card once stopped reading the host's unconscious switch without anything failing.
 	/// </summary>
 	private bool MayWatch(out Body? localBody)
 	{
 		localBody = run.LocalBody;
-		if (localBody == null || !session.SessionActive) // Unity object — ==
+		if (localBody == null) // Unity object — ==
 		{
 			return false;
 		}
 
-		return !localBody.alive || (hostRules.SpectateWhileUnconscious && !localBody.conscious);
+		return SpectatorPolicy.MayWatch(localBody.alive, localBody.conscious, hostRules.SpectateWhileUnconscious, session.SessionActive);
 	}
 
 	/// <summary>

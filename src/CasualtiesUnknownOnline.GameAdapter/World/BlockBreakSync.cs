@@ -309,7 +309,7 @@ internal sealed class BlockBreakSync(
 						sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current, standingBlock, out var destroyedBlock);
 					if (verdict == Verdict.Refused || (verdict == Verdict.Fresh && !blockIsAir))
 					{
-						_dropJudge.RefuseAll(sender, cell, "the cell's break belongs to another writer", drops, buildingDrops);
+						_dropJudge.RefuseAll(sender, cell, "the cell's break is not this sender's first-writer claim", drops, buildingDrops);
 						return;
 					}
 

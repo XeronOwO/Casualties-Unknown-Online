@@ -22,8 +22,8 @@
   for it while the item is right there in the entry.
 - The run's own readings: `c5-guest-item-census.json` answered `count: 0` for a fresh body (which is a true
   answer — a new body in this game starts empty), and after `item-provide mode=create type=bandage` put one
-  in slot 0 the census's row for it still read no id, while `d11-guest-item-create.json` returned
-  `instanceId: "5197989525"` for the same item in the same session. `d16`/`d18`/`d32` (the run's
+  in slot 0 the census's row for it still read no id, while `d12-guest-item-find.json`, seven seconds later, returned
+  `instanceId: "5197989525"` for the same item in the same session — `d11`, the create itself, answers `0`, which is the timing this ticket's 2026-10-17 section records. `d16`/`d18`/`d32` (the run's
   local-condition reads) consequently answered `unread`, so the "nothing was applied" half of that ticket's
   row 2 had to be read from the next write's own before-value instead.
 - The recipe's header advertises a `returns:` field no mode emits: `ids[]`. `mode=body` emits `items[]`, and
@@ -42,6 +42,37 @@
    the id it reports for that entry equals the id `item-provide` returned for the same item in the same
    session — the two are read from different components today, which is exactly why they must be compared
    once on a running client.
+
+## What the machine said (2026-10-17, batch `20261017-c`)
+
+**Required work 1 and 2 are DONE, and required work 3 is read on the machine in its two-client form.**
+`mode=body` now reads each entry's id from the component that CARRIES it — the local `ItemInstanceId`
+(whose id is a property, whose setter registers the object in the runtime index) for a live object, the
+remote marker (a field) for a display proxy — every entry carries `idSource`, and the header's `returns:`
+line no longer advertises `ids[]`, `localSteamId` or `combineablePairs`, which no mode emits.
+
+Two clients in one session, read 65 s after the world-entry read: the member answers
+`id='bandage' origin='slot0' instanceId='9492956821' idSource='local'` for the item it had just created, and
+the host answers `id='bandage' origin='proxy' instanceId='9492956821' idSource='proxy'` for that same item —
+one id, two carriers, each row naming its own. All three `idSource` values occur in that run.
+
+**What this row is really about is TIMING, and the first form of the run read too early.** Eleven seconds
+after the world-entry read the same member row answered `idSource='none'` while the host already showed the
+id: `inWorld` is `IsInWorldOrGenerating`, and `ItemIdAllocator.EnsureId` returns `0` while
+`HarmonyTraverse.IsGenerating()`. `docs/acceptance/lessons.md` already carries both halves (2026-10-11: wait
+for the restore's own completion line, because no id can be allocated while the world is still generating;
+2026-10-08: a host's own supplies carry no id until they enter the domain). What stamps a member's item is
+that member's own carried-inventory report — `CarriedInventoryReporter` asks
+`ItemIdAllocator.EnsureId` for every carried item once the world is no longer generating — so a recipe that
+needs an id lets the world settle first, and a HOST's own supply has none at all because no such pass runs
+there (the census reports that as `none`, not as a failure).
+
+The paths that call `ItemIdAllocator.EnsureId` (`src/CasualtiesUnknownOnline.GameAdapter/Items/`):
+`PickupSync`, `ContainerItemSync`, `ItemSlotSync`, `CraftingSync`, `ItemWorldSync`,
+`CarriedInventoryReporter`, `ItemUseSync` and `HeaterCookSync`. Item creation is not among them, and an id is
+also attached directly where a row comes IN on the wire or from a save (`ItemStateCodec`,
+`WearableRestorer`, `LimbItemTransform`). The evidence is
+`docs/evidence/acceptance/item-census-instance-id-20261017-c.md`.
 
 ## Non-goals
 

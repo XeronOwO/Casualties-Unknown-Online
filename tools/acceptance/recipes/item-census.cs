@@ -3,7 +3,12 @@
 // serves: remote-inventory-native-parity-rework row 7 (the combineable pair, the battery tag and the
 //         receiver whose slot is empty are ASSET facts, so the fixture is read from the game's own
 //         item table instead of guessed)
-// returns: ok, mode, localSteamId, count, items[], ids[], id, present, combineablePairs, error, detail
+// returns: mode=body → ok, mode, count, items[] (each entry: id, instanceId, idSource, owner, proxy,
+//          origin, condition, …); mode=combineable | mode=tag:<t> → ok, mode, registrySize, count,
+//          items[]; mode=info:<id> → ok, mode, id, present, loads, statsType, …; on failure
+//          ok, error (plus `detail` where the code carries one). There is NO `ids[]`, no `localSteamId` and no `combineablePairs` — those
+//          three used to be advertised here and are emitted by no mode, which is exactly what let a run
+//          plan against a field that never arrives.
 //
 // Reads the facts a native inventory branch decides on, where they live:
 //
@@ -40,9 +45,17 @@
 	});
 	var proxyType = findType("CasualtiesUnknownOnline.GameAdapter.Character.RemoteCloneRender");
 	var markerType = findType("CasualtiesUnknownOnline.GameAdapter.Character.RemoteInventoryItemId");
+	var instanceIdType = findType("CasualtiesUnknownOnline.GameAdapter.Items.ItemInstanceId");
 	var fieldOf = new System.Func<UnityEngine.Component, string, ulong>((component, name) => {
 		var field = component.GetType().GetField(name, instanceFlags);
 		return field == null ? 0UL : System.Convert.ToUInt64(field.GetValue(component));
+	});
+	// The local component carries its id as a PROPERTY (assigning it registers the object in the runtime
+	// index), the remote marker as a FIELD. They are read differently on purpose, and every entry says
+	// which one answered it.
+	var propertyOf = new System.Func<UnityEngine.Component, string, ulong>((component, name) => {
+		var property = component.GetType().GetProperty(name, instanceFlags);
+		return property == null ? 0UL : System.Convert.ToUInt64(property.GetValue(component));
 	});
 	var markerOf = new System.Func<System.Type, Item, UnityEngine.Component>((wanted, item) => {
 		if (wanted == null) { return null; }
@@ -113,11 +126,20 @@
 		var entries = new System.Collections.Generic.List<string>();
 		for (var i = 0; i < items.Count; i++) {
 			var item = items[i];
+			// The id a WRITE target asks for: a live object answers from ItemInstanceId (attached by the
+			// game's own Item.Start hook to a runtime-generated item), a display proxy from
+			// RemoteInventoryItemId — and `idSource` says which one answered, so a proxy and a live item
+			// never become indistinguishable in a field a scenario then acts on.
+			var localMarker = markerOf(instanceIdType, item);
 			var marker = markerOf(markerType, item);
+			var localId = localMarker == null ? 0UL : propertyOf(localMarker, "Id");
+			var remoteId = marker == null ? 0UL : fieldOf(marker, "Id");
+			var instanceId = localId != 0UL ? localId : remoteId;
 			var container = item.GetComponent<Container>();
 			entries.Add("{" + statFlags(item)
 				+ ",\"origin\":\"" + origins[i] + "\""
-				+ ",\"instanceId\":" + (marker == null ? "0" : fieldOf(marker, "Id").ToString(culture))
+				+ ",\"instanceId\":" + instanceId.ToString(culture)
+				+ ",\"idSource\":\"" + (localId != 0UL ? "local" : (remoteId != 0UL ? "proxy" : "none")) + "\""
 				+ ",\"owner\":" + (marker == null ? "0" : fieldOf(marker, "OwnerSteamId").ToString(culture))
 				+ ",\"proxy\":" + (isProxy(proxyType, item) ? "true" : "false")
 				+ ",\"parent\":\"" + (item.transform.parent == null ? "none" : item.transform.parent.name) + "\""

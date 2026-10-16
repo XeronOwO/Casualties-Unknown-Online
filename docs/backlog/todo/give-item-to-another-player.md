@@ -163,13 +163,16 @@ Everything the classification half needs was located, and one gap was found. In 
    false = refused) and gains the two operands, so the refusal line stays where it is and the caller only decides
    whether to clear the drag. The seam is pinned as a whole-string census in
    `PatchBridgePortShapeGateTests`, so the interface, the bridge's forwarding member and that pin move together.
-3. **The giver's own item instance id is the open question.** The proxies' ids come from a marker component
-   (`RemoteDragProxyQuery.InstanceId` reads `RemoteInventoryItemId`), and a LOCAL item has no such marker — so in
-   this same release branch, where `dragItem` is deliberately the local item (that is the whole point of the
-   branch), that query returns 0. The kernel already holds the identity the intent needs (the same id the
-   take-direction intents carry), so the task is to find the existing call that maps a local `Item` to its
-   instance id rather than inventing one — that call is what the dispatch line needs, and it is the one thing
-   this survey could not finish.
+3. **The giver's own item instance id is reachable, and it is NOT the proxy query.** The proxies' ids come from a
+   marker component (`RemoteDragProxyQuery.InstanceId` reads `RemoteInventoryItemId`), which a LOCAL item does
+   not carry — so in this branch, where `dragItem` is deliberately the local item, that query answers 0. The
+   right call is `OperationTrace.IdOf(item)`: the tracing helper reads the item's OWN `ItemInstanceId` component
+   and returns 0 only when the item genuinely has none. That 0 is exactly the refusal condition this family
+   already uses for an unoperable item, so classification reads: a resolvable id, a target owner that is not this
+   client, and a destination that is a slot index or an item id. Anything else keeps today's refusal line, which
+   is what the acceptance table's row 3 reads.
 4. **Then the three halves land together** (the kind at 16, the host validation mirroring
    `HandleRemoteBackpackTransferToBody` with the ownership read the other way round, and the receiving client's
    branch in `RemoteIntentApplier`), because a new kind with no dispatcher is a dead mechanism no gate can see.
+
+**A note the first survey got wrong, corrected above**: the giver's item id was recorded as an open question. It is not — the tracing helper already answers it, and the answer's zero case is the refusal this family already makes. The remaining work is written in the four steps above.

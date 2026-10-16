@@ -4,10 +4,12 @@
   deferred); the old ticket stays as the inventory behind it. S1a and S1b landed 2026-10-14, S2a
   landed 2026-10-16 **and its acceptance rows are read for the block family**
   (`docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md`: rows 1, 2 and 6's new half, on a
-  deployed artifact), and S2b landed 2026-10-16 as CODE AND TESTS — the entity-death half's acceptance rows
-  are OWED, not read: this cycle's batch has to read them and its record is
-  `docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`, which lands with that run (the
-  delivery checklist's release-cycle line stays unchecked until it does). S3 (the state
+  deployed artifact), and S2b landed 2026-10-16 as CODE AND TESTS, with its acceptance row 1 read on the
+  machine for the building half (`docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`:
+  a forged building drop refused by name, nothing registered or relayed, the breaker answered) — the
+  captured-rows half of that row and the ordinary support-loss reading stay OWED, because this map carries no
+  `requireGround` building in the area the batch could reach (the record and the paragraph below say exactly
+  what is left). S3 (the state
   preconditions) is the open stage, and the surfaces this ticket does NOT close are the census rows of
   `docs/architecture/member-report-validation.md` marked `unbounded:` — they carry their own evidence in
   `todo/member-report-bounds.md`, opened by the same cycle at the user's direction that report validation
@@ -197,20 +199,17 @@
    fourth judge case, `..._ALegitimateSet_ComesBackWholeWithNoAnswer`, stays green, which is what makes the
    count six and not seven); with the guaranteed-roll loop disabled, exactly ONE goes red
    (`TheGuaranteedRolls_AreOneRowEach_OverEveryNamedCategorysPool`) and the other 28 stay green.
-   **What this stage's batch must read (OWED as of the commit; the record is
-   `docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`).** Three rows, plus the probe
-   shape they need — written here so the run does not re-derive it. (0) The map may carry NO `requireGround`
-   building at all (the game registers `CheckSeating` only for those, so the population is knowable but not
-   assumed): the batch asks that first, with a census over the loaded scene. (1) If the map HAS one: break
-   its support block from the sandboxed member and read the host's `[BuildingSupport] captured N drop
-   row(s)` line (the capture ran), the ordinary building drop being registered and relayed, and no refusal
-   line anywhere. (2) If the map has none, the batch CREATES the case rather than skipping it:
-   `building-template-inject.cs` injects a custom building template whose declaration sets `RequireGround`
-   and `DropOnDestroy`, and a placed instance gives both peers the same population. (3) Either way, one
-   FORGED row from the member's own send path (the `block-drop-forge.cs` shape, extended to carry a
-   `TrapDropEntryMsg`): a building drop at a cell where this host marked nothing must come back refused by
-   name, with nothing registered and nothing relayed, and the breaker's local copy destroyed. Row 6's half
-   is the same run's ordinary session: no bound refusal at all.
+   **What the machine has read, and what is still owed**
+   (`docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`, batch `20261016-b` run 9 on the
+   deployed `0.1.0+9124a859…`). READ: the host refuses a forged building-death drop BY NAME, registers and
+   relays NOTHING of it (`0 block drop(s) + 0 building drop(s) registered + relayed`), the member is answered
+   once per drop and destroys its own copy, and the run's other refusals are only the ones it provoked. OWED,
+   and the run says why: the "rows exist" shape — a break whose cell really has buildings losing support, so
+   the reported drop is judged against their captured tables. The probe forged across a 5×4 grid and the host
+   never logged a capture, so this map carries no `requireGround` building in the loaded area; that shape has
+   to be CREATED, with `building-template-inject.cs` (a custom template whose declaration sets `RequireGround`
+   and `DropOnDestroy`) so both peers get the same population to lose. Until then the captured-rows half is
+   verified by the suite and not on the machine, and this line says so rather than implying it.
    **Limits S2b carries.** Two, and both are the same missing fact — the drop does not name the support cell
    it came from — seen from the two sides of the report.
 
@@ -318,12 +317,12 @@ parent and children. Rows 1 and 2 are READ on the machine for a BLOCK break
 account for is refused by name on the host, nothing of it is registered or relayed, the breaker is answered
 and destroys its local copy; a table-legal drop — including the game's own roll, and an authored window's own
 edge — is accepted; one table row accounts for exactly one drop; and the run's ordinary breaks produced no
-refusal line at all. Rows 1 and 2 are OWED for the ENTITY death half by this cycle's batch, whose record
-will be `docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`: it must read a
-support-loss break whose building drop no row of the dying building's own table can produce refused by name
-on the host with nothing registered or relayed while the table-legal drop of the same break goes through,
-and no refusal in an ordinary support-loss death. Until that run lands, the entity half is UNVERIFIED —
-this paragraph claims no reading for it. Row 5 is the
+refusal line at all. Rows 1 and 2's ENTITY half is read for the shape this map can produce, batch
+`20261016-b` run 9 (`docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`): a forged
+building drop is refused by name on the host with NOTHING registered or relayed, the breaker is answered and
+destroys its own copy, and no other refusal appears. The half that needs a building to really lose its
+support — the captured rows judged against a real table — is OWED: the same run proved this map has no
+`requireGround` building in the loaded area, so the case has to be created with a custom template. Row 5 is the
 creation-before-operation invariant that already runs above the seam. Row 6 is the batch, and it has TWO halves
 to read rather than one: the authority half refuses only kinds no member sender emits (kept true by
 `WireCommandSenderAuthorityGateTests`), and the eligibility half refuses only report shapes a member's own

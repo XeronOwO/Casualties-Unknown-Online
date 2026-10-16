@@ -6,7 +6,9 @@
   population, the capture point, the breaker's own roll judged against the captured table, and one forged
   report split per drop) on artifact `0.1.0+32e4b857cd33b7905313f88269287e5621d59712`. Both
   `tools/verify-deploy.ps1` exit 0, "Deployment matches this tree's build output" (each batch's
-  `*-verify-deploy.txt`).
+  `*-verify-deploy.txt`). The tree has moved since batch `20261016-c` read it — a comment added to the census
+  recipe and this record — so a later `verify-deploy.ps1` reports a newer product version; the delta above
+  `32e4b857` is a recipe comment and documentation only, with no source change.
 - Covers: `docs/backlog/todo/validation-and-source-checks.md` S2b — acceptance row 1's building half in BOTH
   shapes (a building-death drop the host's own knowledge cannot account for is refused by name, nothing
   registered or relayed, the breaker answered and its copy destroyed; and a break whose cell really has a

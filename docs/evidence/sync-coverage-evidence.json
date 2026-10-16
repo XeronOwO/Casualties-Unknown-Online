@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1062,
+  "count": 1066,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -4814,7 +4814,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs",
-      "quote": "_world.SendBlockPlacedCorrection(sender, x, y, WorldGeneration.world.GetBlock(pos));"
+      "quote": "_world.SendBlockPlacedCorrection(sender, x, y, standingBlock);"
     },
     {
       "cluster": "inline",
@@ -4844,7 +4844,31 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "var verdict = _arbitration.TryAccept(sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current);"
+      "quote": "generation == WorldGenerationRelation.Current, standingBlock, out var destroyedBlock);"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockBreakArbitration.cs",
+      "quote": "internal void RecordAppliedAirWrite(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock) =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockDropBoundJudge.cs",
+      "quote": "internal IReadOnlyList<BlockDropEntryMsg>? Bound(ulong sender, Vector2Int cell, ushort destroyedBlock, IReadOnlyList<BlockDropEntryMsg>? drops)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDropBoundPolicy.cs",
+      "quote": "internal static Outcome Judge(IReadOnlyList<BlockDropBound> bounds, IReadOnlyList<BlockDropEntryMsg>? drops)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDropTable.cs",
+      "quote": "internal static IReadOnlyList<BlockDropBound> ForVanilla(ushort block) => block switch"
     },
     {
       "cluster": "inline",
@@ -5342,7 +5366,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockBreakArbitration.cs",
-      "quote": "internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified)"
+      "quote": "internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified, ushort standingBlock, out ushort destroyedBlock)"
     },
     {
       "cluster": "inline",
@@ -5402,7 +5426,7 @@
       "cluster": "world-blocks",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockBreakArbitration.cs",
-      "quote": "return generationVerified && !cellIsAir ? Verdict.LostAirWrite : Verdict.Refused;"
+      "quote": "return Verdict.LostAirWrite;"
     },
     {
       "cluster": "world-blocks",

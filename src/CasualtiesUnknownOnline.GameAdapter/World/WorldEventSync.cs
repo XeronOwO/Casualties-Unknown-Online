@@ -288,7 +288,8 @@ internal sealed partial class WorldEventSync(
 	/// applies it directly. An APPLIED air write also records the sender's
 	/// break for the drops arbitration: when that sender's BlockDamaged report
 	/// (the drops carrier) arrives later, the record proves the break was the
-	/// first writer (see _recentBroken).
+	/// first writer (see _recentBroken) and carries the block this side's world
+	/// held there, which is what that report's drops are bounded against.
 	/// <para>
 	/// The WRITE ITSELF goes through <see cref="RemoteBlockWrite"/>: an air write
 	/// the message marks as a player's break is applied with the game's OWN damage
@@ -328,11 +329,16 @@ internal sealed partial class WorldEventSync(
 			var pos = new Vector2Int(x, y);
 			if (IsHostMode)
 			{
-				if ((block == 0) == (WorldGeneration.world.GetBlock(pos) == 0))
+				// Read ONCE, before anything is applied: this is the host's own
+				// statement of what the cell held, and for an air write it is the
+				// block the break destroyed — the fact the drops report is later
+				// bounded against, since the cell is air by the time that arrives.
+				var standingBlock = WorldGeneration.world.GetBlock(pos);
+				if ((block == 0) == (standingBlock == 0))
 				{
 					// First-writer-wins: the host's cell stands. Answer the reporter with
 					// it — its pending report is acknowledged and it converges.
-					_world.SendBlockPlacedCorrection(sender, x, y, WorldGeneration.world.GetBlock(pos));
+					_world.SendBlockPlacedCorrection(sender, x, y, standingBlock);
 					return;
 				}
 
@@ -345,7 +351,7 @@ internal sealed partial class WorldEventSync(
 					// A player break (its BlockDamaged report follows) — or a
 					// quake/environment write (expires unused in BlockBreakSync).
 					_blockBreaks.OnBlockAirWrite(pos);
-					_blockBreaks.OnRemoteAirWriteApplied(sender, pos);
+					_blockBreaks.OnRemoteAirWriteApplied(sender, pos, standingBlock);
 					_buildingEntities.MarkSupportLossRemote(pos);
 				}
 			}

@@ -70,7 +70,7 @@ public class GuestBreakDropRecoveryTests
 				// a break's drops are rolled back with it.
 				var verdict = generation == WorldGenerationRelation.Stale
 					? Verdict.Refused
-					: Arbitration.TryAccept(sender, cellX, cellY, cellIsAir: !StandingBlocks.Contains((cellX, cellY)), generationVerified: generation == WorldGenerationRelation.Current);
+					: Arbitration.TryAccept(sender, cellX, cellY, cellIsAir: !StandingBlocks.Contains((cellX, cellY)), generationVerified: generation == WorldGenerationRelation.Current, standingBlock: 0, out _);
 				if (verdict == Verdict.Refused)
 				{
 					foreach (var drop in drops ?? [])
@@ -91,7 +91,7 @@ public class GuestBreakDropRecoveryTests
 				// The host's copy of the cell is air from here on (a standing-block
 				// report applies its own break, a fresh one consumed the air write).
 				StandingBlocks.Remove((cellX, cellY));
-				Arbitration.RecordAccepted(sender, cellX, cellY, now: _w.Driver.NowMs / 1000f);
+				Arbitration.RecordAccepted(sender, cellX, cellY, now: _w.Driver.NowMs / 1000f, destroyedBlock: 1);
 
 				foreach (var drop in drops ?? [])
 				{
@@ -111,7 +111,7 @@ public class GuestBreakDropRecoveryTests
 
 		/// <summary>The host applied the sender's air write (its BlockPlaced report landed).</summary>
 		internal void AirWriteLanded(ulong sender, int cellX, int cellY) =>
-			Arbitration.RecordAppliedAirWrite(sender, cellX, cellY, now: _w.Driver.NowMs / 1000f);
+			Arbitration.RecordAppliedAirWrite(sender, cellX, cellY, now: _w.Driver.NowMs / 1000f, destroyedBlock: 1);
 	}
 
 	/// <summary>The guest executor contract double: the production BlockBreakSync guest branch — the relay naming this break's drops answers the pending report (the cell comes from the same conversion the adapter makes).</summary>
@@ -394,7 +394,7 @@ public class GuestBreakDropRecoveryTests
 		// The host already accepted this guest's break for the cell (its air write
 		// landed and was consumed by the earlier report), so the cell is air and the
 		// break is attributed — only the drops report is lost now.
-		host.Arbitration.RecordAccepted(w.G1.SteamId, CellX, CellY, now: 0f);
+		host.Arbitration.RecordAccepted(w.G1.SteamId, CellX, CellY, now: 0f, destroyedBlock: 1);
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
 		BreakBlock(w, w.G1, CellX, CellY, [Drop(79)]);
 		w.Driver.Tick(33);

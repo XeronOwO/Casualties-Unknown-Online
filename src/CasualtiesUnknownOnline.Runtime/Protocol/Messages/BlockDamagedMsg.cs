@@ -9,7 +9,12 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// block — the break and its drops are ONE message, so the host's arbitration
 /// gives them one verdict: first-writer-wins (the accepted report's drops
 /// register and materialize everywhere; the rejected report's drops are rolled
-/// back on the breaker via ItemReject).
+/// back on the breaker via ItemReject). A drop the destroyed block's own table
+/// cannot produce is refused ON ITS OWN while the rest of the set is relayed:
+/// the drops are the breaker's local roll, the host cannot re-derive that roll
+/// (its randomness is the process-global unseeded <c>UnityEngine.Random</c>), so
+/// the host bounds the report against the block's table instead of recomputing
+/// it.
 /// <para>
 /// The key is the block CELL, not a world position: the cell is the identity
 /// both sides agree on (they simulate the same layer, and the stamp below names

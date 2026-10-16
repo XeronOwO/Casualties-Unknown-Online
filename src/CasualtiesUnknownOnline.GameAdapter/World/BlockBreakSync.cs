@@ -17,9 +17,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// first-writer-wins (the record of the sender's APPLIED air-write — a GetBlock
 /// check is useless, the block is air for the loser too) and the accepted relay
 /// materializes the drops on the other sides. One deep module: the report hold,
-/// the arbitration record, the flush, the drops' fate (register/refuse) and the
-/// partial block-damage snapshot (host record + guest absolute apply) live here
-/// — the DamageBlock/SetBlock patches and the world domain are thin adapters.
+/// the arbitration record, the flush, the relay and the partial block-damage
+/// snapshot (host record + guest absolute apply) live here — the
+/// DamageBlock/SetBlock patches and the world domain are thin adapters, and the
+/// drops' own fate (bounded against the destroyed block's table, or refused
+/// whole) is <see cref="BlockDropBoundJudge"/>'s.
 /// </summary>
 internal sealed class BlockBreakSync(
 	ISessionControl session,
@@ -27,6 +29,7 @@ internal sealed class BlockBreakSync(
 	IItemControl items,
 	BlockBreakPendingState breakState,
 	WorldBuildingEntitySync buildingEntities,
+	BlockDropBoundJudge dropJudge,
 	OperationTrace trace,
 	ILogger<BlockBreakSync> log)
 {
@@ -35,6 +38,7 @@ internal sealed class BlockBreakSync(
 	private readonly IItemControl _items = items;
 	private readonly WorldBuildingEntitySync _buildingEntities = buildingEntities;
 	private readonly BlockBreakPendingState _breakState = breakState;
+	private readonly BlockDropBoundJudge _dropJudge = dropJudge;
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<BlockBreakSync> _log = log;
 
@@ -218,10 +222,12 @@ internal sealed class BlockBreakSync(
 	/// attributes to THIS world settles it as the lost air write.
 	/// Accepted → the drops register + materialize + relay to EVERY member, the
 	/// reporter included (that echo is the acknowledgement of its pending
-	/// report). Refused → every drop gets an ItemReject and the breaker destroys
-	/// its local copy. A damage-only report applies the damage and relays while
-	/// the block still stands; the host then records its post-apply absolute
-	/// damage for the snapshot.
+	/// report), after the destroyed block's own table has bounded them: a drop no
+	/// roll for that block could produce is refused on its own and the rest of the
+	/// set still goes out (<see cref="BlockDropBoundJudge.Bound"/>). Refused → every drop gets an
+	/// ItemReject and the breaker destroys its local copy. A damage-only report
+	/// applies the damage and relays while the block still stands; the host then
+	/// records its post-apply absolute damage for the snapshot.
 	/// Guest: the host's broadcast — apply the damage; a break's drops
 	/// materialize. No side ever rolls: the drops are the breaker's local
 	/// compute, carried by the message. MetalBonus rides raw on both sides so
@@ -251,9 +257,8 @@ internal sealed class BlockBreakSync(
 			// materialize — answering the host with an ItemReject would be wrong.
 			if (IsHostMode)
 			{
-				_log.LogWarning("[BlockBreak] {Sender}'s report at ({X},{Y}) belongs to another world generation — not applied; {BlockCount} block drop(s) + {BuildingCount} building drop(s) rejected.",
-					sender, x, y, drops?.Count ?? 0, buildingDrops?.Count ?? 0);
-				RejectBreakDrops(sender, drops, buildingDrops);
+				_log.LogWarning("[BlockBreak] {Sender}'s report at ({X},{Y}) belongs to another world generation — not applied; its drops are refused with it.", sender, x, y);
+				_dropJudge.RefuseAll(sender, new Vector2Int(x, y), "the report belongs to another world generation", drops, buildingDrops);
 			}
 			else
 			{
@@ -266,9 +271,13 @@ internal sealed class BlockBreakSync(
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			// The message carries the CELL itself (protocol 32): both sides name the
-			// same block, and the partial-damage accounting is keyed by it.
+			// same block, and the partial-damage accounting is keyed by it. The block
+			// is read ONCE: it is the host's own statement of what this cell held
+			// before the break, which is both the air test and the input the reported
+			// drops are bounded against.
 			var cell = new Vector2Int(x, y);
-			var blockIsAir = world.GetBlock(cell) == 0;
+			var standingBlock = world.GetBlock(cell);
+			var blockIsAir = standingBlock == 0;
 			var hasDropPayload = (drops is { Count: > 0 }) || (buildingDrops is { Count: > 0 });
 			if (IsHostMode)
 			{
@@ -296,15 +305,16 @@ internal sealed class BlockBreakSync(
 					// a stale previous-layer report looked exactly like it and would
 					// have broken a freshly generated block — and the stamp is what
 					// tells the two apart (see BlockBreakArbitration.TryAccept).
-					var verdict = _arbitration.TryAccept(sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current);
+					var verdict = _arbitration.TryAccept(
+						sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current, standingBlock, out var destroyedBlock);
 					if (verdict == Verdict.Refused || (verdict == Verdict.Fresh && !blockIsAir))
 					{
-						RejectBreakDrops(sender, drops, buildingDrops);
+						_dropJudge.RefuseAll(sender, cell, "the cell's break belongs to another writer", drops, buildingDrops);
 						return;
 					}
 
-					_arbitration.RecordAccepted(sender, cell.x, cell.y, Time.unscaledTime);
-					AcceptBreak(sender, cell, dmg, metalBonus, drops, buildingDrops, verdict);
+					_arbitration.RecordAccepted(sender, cell.x, cell.y, Time.unscaledTime, destroyedBlock);
+					AcceptBreak(sender, cell, dmg, metalBonus, _dropJudge.Bound(sender, cell, destroyedBlock, drops), buildingDrops, verdict);
 					OnRemoteDamageBrokeBlock(sender, cell);
 					return;
 				}
@@ -400,37 +410,17 @@ internal sealed class BlockBreakSync(
 			drops?.Count ?? 0, buildingDrops?.Count ?? 0);
 	}
 
-	/// <summary>Host: the break lost first-writer-wins — every drop goes back to the breaker, which destroys its local copy (the drops were never picked up, there is no ground position to roll back to).</summary>
-	private void RejectBreakDrops(ulong sender, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
-	{
-		if (drops is not null)
-		{
-			foreach (var drop in drops)
-			{
-				_items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
-			}
-		}
-
-		if (buildingDrops is not null)
-		{
-			foreach (var drop in buildingDrops)
-			{
-				_items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
-			}
-		}
-
-		_log.LogInformation("[BlockBreak] {Sender}'s break report refused (the cell's break belongs to another writer) — {BlockCount} block drop(s) + {BuildingCount} building drop(s) rejected.",
-			sender, drops?.Count ?? 0, buildingDrops?.Count ?? 0);
-	}
-
 	/// <summary>
 	/// Host: the world domain applied a guest's air-write (its SetBlock(0)
 	/// report) — record the sender's break for the drops arbitration: when that
 	/// sender's BlockDamaged report (the drops carrier) arrives later, the
-	/// record proves the break was the first writer.
+	/// record proves the break was the first writer AND carries what it
+	/// destroyed (<paramref name="destroyedBlock"/> is the block this side's world
+	/// held before the write was applied, read by the applier), which is what the
+	/// reported drops are bounded against.
 	/// </summary>
-	internal void OnRemoteAirWriteApplied(ulong sender, Vector2Int cell) =>
-		_arbitration.RecordAppliedAirWrite(sender, cell.x, cell.y, Time.unscaledTime);
+	internal void OnRemoteAirWriteApplied(ulong sender, Vector2Int cell, ushort destroyedBlock) =>
+		_arbitration.RecordAppliedAirWrite(sender, cell.x, cell.y, Time.unscaledTime, destroyedBlock);
 
 	/// <summary>
 	/// Any applied air write (local or remote) invalidates the cell's partial

@@ -34,20 +34,30 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// </summary>
 internal sealed class BlockBreakArbitration
 {
-	private readonly Dictionary<(ulong Sender, int CellX, int CellY), float> _recentBroken = [];
+	private readonly Dictionary<(ulong Sender, int CellX, int CellY), (float Now, ushort DestroyedBlock)> _recentBroken = [];
 
-	/// <summary>The cells a break was already accepted for: the accepting sender and when. A same-sender report inside the window is a repeat (its relay was lost); a different sender is a second breaker.</summary>
-	private readonly Dictionary<(int CellX, int CellY), (ulong Sender, float Now)> _accepted = [];
+	/// <summary>The cells a break was already accepted for: the accepting sender, when, and which block that break destroyed. A same-sender report inside the window is a repeat (its relay was lost); a different sender is a second breaker.</summary>
+	private readonly Dictionary<(int CellX, int CellY), (ulong Sender, float Now, ushort DestroyedBlock)> _accepted = [];
 
 	internal int Count => _recentBroken.Count;
 
 	/// <summary>The accepted-break records (the re-report window's table) — observable for the purge test and the diagnostics path.</summary>
 	internal int AcceptedCount => _accepted.Count;
 
-	/// <summary>The host applied the sender's air-write — record it for the drops
-	/// arbitration (a repeat air-write overwrites, still one break to accept).</summary>
-	internal void RecordAppliedAirWrite(ulong sender, int cellX, int cellY, float now) =>
-		_recentBroken[(sender, cellX, cellY)] = now;
+	/// <summary>
+	/// The host applied the sender's air-write — record it for the drops
+	/// arbitration (a repeat air-write overwrites, still one break to accept).
+	/// <paramref name="destroyedBlock"/> is the block the host's OWN world held at
+	/// that cell when the write landed (read before the write was applied), and it
+	/// is what the drops report is later bounded against: the cell is air by then,
+	/// so this record is the only surviving statement of what was destroyed — and
+	/// it is the host's own read, never the reporter's claim. The parameter is
+	/// REQUIRED: 0 is a real block id (air), which the drop table reads as
+	/// "produces nothing", so a default here would turn a caller that forgot it
+	/// into a host that refuses every drop in silence.
+	/// </summary>
+	internal void RecordAppliedAirWrite(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock) =>
+		_recentBroken[(sender, cellX, cellY)] = (now, destroyedBlock);
 
 	/// <summary>
 	/// First-writer-wins: the sender's unconsumed air-write record for this cell
@@ -78,20 +88,38 @@ internal sealed class BlockBreakArbitration
 	/// in the record's short window) stays refused, and a different sender on an
 	/// accepted cell stays refused whatever the cell looks like — first-writer-wins
 	/// is unchanged.
+	///
+	/// <paramref name="destroyedBlock"/> answers what the accepted break destroyed,
+	/// on every accepting verdict — the host's own read before its air write was
+	/// applied (Fresh), the block the running record was created with (Repeat), or
+	/// this side's live cell for the standing shape (LostAirWrite). It is 0 on a
+	/// refusal, where nothing gets judged against it.
 	/// </summary>
-	internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified)
+	internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified, ushort standingBlock, out ushort destroyedBlock)
 	{
-		if (_recentBroken.Remove((sender, cellX, cellY)))
+		if (_recentBroken.TryGetValue((sender, cellX, cellY), out var recorded))
 		{
+			// Consumed: TryGetValue + Remove rather than Remove(key, out value) —
+			// that overload is netstandard-2.1, and this tree targets net48.
+			_recentBroken.Remove((sender, cellX, cellY));
+			destroyedBlock = recorded.DestroyedBlock;
 			return Verdict.Fresh;
 		}
 
 		if (_accepted.TryGetValue((cellX, cellY), out var accepted))
 		{
+			destroyedBlock = accepted.DestroyedBlock;
 			return accepted.Sender == sender ? Verdict.Repeat : Verdict.Refused;
 		}
 
-		return generationVerified && !cellIsAir ? Verdict.LostAirWrite : Verdict.Refused;
+		if (generationVerified && !cellIsAir)
+		{
+			destroyedBlock = standingBlock;
+			return Verdict.LostAirWrite;
+		}
+
+		destroyedBlock = 0;
+		return Verdict.Refused;
 	}
 
 	/// <summary>
@@ -103,9 +131,13 @@ internal sealed class BlockBreakArbitration
 	/// window. A repeat REFRESHES the entry's clock: the guest's fallback may
 	/// re-report for as long as it stays unanswered, so the window
 	/// measures time since the last report rather than since the first.
+	/// <paramref name="destroyedBlock"/> is carried with the record for the same
+	/// reason the air-write record carries it: a repeat arrives with the SAME
+	/// drop set, and bounding it needs the block that break destroyed — the cell
+	/// itself stopped saying so the moment the break landed.
 	/// </summary>
-	internal void RecordAccepted(ulong sender, int cellX, int cellY, float now) =>
-		_accepted[(cellX, cellY)] = (sender, now);
+	internal void RecordAccepted(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock) =>
+		_accepted[(cellX, cellY)] = (sender, now, destroyedBlock);
 
 	/// <summary>
 	/// The world/layer these records describe is gone (a descent regenerates
@@ -130,7 +162,7 @@ internal sealed class BlockBreakArbitration
 	/// </summary>
 	internal void PurgeStale(float now, float ttl, float acceptedTtl)
 	{
-		foreach (var stale in _recentBroken.Where(kv => now - kv.Value > ttl).ToList())
+		foreach (var stale in _recentBroken.Where(kv => now - kv.Value.Now > ttl).ToList())
 		{
 			_recentBroken.Remove(stale.Key);
 		}

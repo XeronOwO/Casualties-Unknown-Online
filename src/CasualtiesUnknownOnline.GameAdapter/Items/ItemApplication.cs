@@ -206,9 +206,12 @@ internal sealed class ItemApplication
 	/// <summary>
 	/// The host refused an item arbitration: UnknownItem — our pickup lost a
 	/// race, take the item back out of the inventory to where it was picked up;
-	/// BlockAlreadyBroken — our block break's drops were refused (another report
-	/// of the same break won first-writer-wins), destroy the local drops: they
-	/// were never picked up, there is no ground position to roll back to.
+	/// BlockAlreadyBroken — a block-break drop of ours was refused (another
+	/// report of the same break won first-writer-wins, or the block that break
+	/// destroyed cannot produce that drop at all), destroy the local drops: they
+	/// were never picked up, there is no ground position to roll back to. The
+	/// second shape is refused PER DROP, so the rest of the break's set keeps its
+	/// normal fate.
 	/// </summary>
 	private void OnItemRejected(ulong itemId, ItemRejectMsg.Reason reason)
 	{

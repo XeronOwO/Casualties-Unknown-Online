@@ -413,9 +413,23 @@ player status, the carry relation, the enemy table, the fluid regions and the it
 `HostOnly` because the host's own simulation authors them and no member sender emits them. A member's
 submission of one of those is therefore refused by name at the seam instead of reaching its domain, and
 `WireCommandSenderAuthorityGateTests` keeps that table and the `SendCommand` call sites under `src/` one
-list in both directions, so neither drift can pass unnoticed. The remaining half of the ticket — a
-CONSOLE command's own identifiable wire path, so a host rule can admit or refuse it separately from a
-native item use — is still open (`todo/validation-and-source-checks.md`).
+list in both directions, so neither drift can pass unnoticed. A console verb has an identifiable wire path
+of its own (`WireCommandKind.ItemDataWrite`), which is what lets the host judge the VERB rather than only the
+state it carries: `HostRules.AllowMemberItemDataWrite` (off) reaches the seam through `IMemberCommandRules`,
+and a refusal settles the value the writer had already applied to its own object back onto the session's
+record (`ItemDataWriteSettlement`), keyed by the kind the answer names (`WireCommand.RefusedKind`).
+
+The seam is not the only place a member's report is judged, and the second one sits in the Game Adapter
+because the fact it needs is the game's own: a destruction report's drops are bounded against the block that
+break destroyed (`BlockDropBoundPolicy` judges, `GameBlockDropTable` carries the game's switch and a custom
+tile's authored drops, `BlockDropBoundJudge` is the host-side user). The roll itself is NOT reproducible —
+the game draws it from the process-global unseeded `UnityEngine.Random` — so the host bounds instead of
+re-rolling: the destroyed block id is its OWN read from before it applied the air write
+(`BlockBreakArbitration` carries it through the fresh, repeat and lost-air-write verdicts), the report's
+drops are matched as a set against that block's table (a drop no assignment of the report to the table's rows
+can account for is refused by name, and only those drops — the rest keeps its normal fate), and the stages
+that remain open (the entity death drops, the state preconditions) are
+`todo/validation-and-source-checks.md`'s.
 
 ### 7.2 Guest prediction model (not implemented in current code)
 

@@ -311,7 +311,8 @@ internal sealed class GameAdapterDomains
 		LayerModifierApplyPatch.ReportLocalDecision = LayerModifierSync.OnLocalDecision; // the guest's local replay — the adapter defers Initialize until the generation finished
 		MineScriptPatches.ShouldShieldItems = () => Session.Role == SessionRole.Guest; // a locally simulated item must not trip a mine on the guest side (the trigger checks only !isKinematic)
 		var buildingEntities = new WorldBuildingEntitySync(session, world, OperationTrace, loggerFactory.CreateLogger<WorldEventSync>());
-		BlockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, buildingEntities, OperationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
+		var dropBoundJudge = new BlockDropBoundJudge(items, tileContent, loggerFactory.CreateLogger<BlockDropBoundJudge>());
+		BlockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, buildingEntities, dropBoundJudge, OperationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
 		// The restored-world replay is wired BEFORE the world-event domain: the
 		// world-entry seam it hangs off is WorldEventSync's baseline capture, and
 		// the values it writes come from the Runtime's world-fact tables plus the

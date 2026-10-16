@@ -69,6 +69,7 @@ public static class GameAdapterComposition
 		services.AddSingleton<ILocalHealItemQuery>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ITraderRecruitRequest>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<INativeInputBlocker>(p => p.GetRequiredService<GameAdapter>());
+		services.AddSingleton<ISpectatorControl>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IRemoteInventoryPresentation>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IRemoteMedicalPresentation>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IPlayerAnchorQuery>(p => p.GetRequiredService<GameAdapter>());

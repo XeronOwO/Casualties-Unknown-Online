@@ -1,5 +1,7 @@
 using System;
 
+using CasualtiesUnknownOnline.Runtime.Session.World;
+
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
@@ -36,6 +38,7 @@ public interface IGameAdapter :
 	INativeInputBlocker,
 	IRemoteInventoryPresentation,
 	IRemoteMedicalPresentation,
+	ISpectatorControl,
 	IPlayerAnchorQuery,
 	IJoinFlowPresentation,
 	ICarryPresentationPump,

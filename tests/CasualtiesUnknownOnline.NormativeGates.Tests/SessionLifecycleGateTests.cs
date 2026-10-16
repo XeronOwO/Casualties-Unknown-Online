@@ -60,8 +60,8 @@ public class SessionLifecycleGateTests
 	/// <summary>Census floor: the scanned framework layers carry 94 session-lifecycle subscriptions (measured 2026-09-22: Runtime 66, Application 2, Game Adapter 26); the floor is about 70 % of that surface.</summary>
 	private const int FrameworkSubscriptionFloor = 66;
 
-	/// <summary>Declared census: the Game Adapter's session-end subscribers (its session binding plus the three domains that bind the edge themselves); its domains are torn down by the binding, so the number is a review decision, not a scan artifact.</summary>
-	private const int GameAdapterSessionEndCensus = 4;
+	/// <summary>Declared census: the Game Adapter's session-end subscribers (its session binding plus the domains that bind the edge themselves); its domains are torn down by the binding, so the number is a review decision, not a scan artifact. The spectator camera is the fifth: it owns which member a dead player was watching, which belongs to the session and must not survive it.</summary>
+	private const int GameAdapterSessionEndCensus = 5;
 
 	/// <summary>Census floor: Runtime + Application declare 32 methods named <c>ResetSessionState</c> (measured 2026-09-22: Runtime 29 — the interface's own declaration included — Application 3); the floor is about 70 %.</summary>
 	private const int ResetMethodFloor = 22;

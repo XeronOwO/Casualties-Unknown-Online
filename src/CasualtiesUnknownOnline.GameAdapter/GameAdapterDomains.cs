@@ -121,6 +121,9 @@ internal sealed class GameAdapterDomains
 	internal readonly EntitySpawnSync EntitySpawnSync;
 	internal readonly GeyserStateSync GeyserStateSync;
 	internal readonly RadiationLineSync RadiationLineSync;
+
+	/// <summary>This client's own spectator camera: which member a dead player is watching, and the native camera fields that make it follow them.</summary>
+	internal readonly SpectatorCameraService Spectator;
 	internal readonly FluidWorldSync FluidSync;
 	internal readonly TradeStateSync TradeSync;
 	internal readonly TraderSwingSync TraderSwingSync;
@@ -375,6 +378,9 @@ internal sealed class GameAdapterDomains
 		WorldParams = new WorldParamsService(world, NativeWorldFacts, RunClockFacts, loggerFactory.CreateLogger<WorldParamsService>());
 		MenuReturn = new RunMenuReturnCoordinator(loggerFactory.CreateLogger<RunMenuReturnCoordinator>());
 		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, StartingSupplies, MenuReturn, loggerFactory.CreateLogger<RunCoordinator>());
+		// Built after the run: the spectator camera reads the run's own local body, this client's clone
+		// renderer and the rule surface, and the run is constructed here.
+		Spectator = new SpectatorCameraService(Run, Renderer, HostRules, session, entities, loggerFactory.CreateLogger<SpectatorCameraService>());
 		// The frame-end cut seam is the LAST domain of the pump: it is where every
 		// cut trigger is taken (the armed /save request and the deliberate menu
 		// return of a host or a solo player), after every domain has finished this

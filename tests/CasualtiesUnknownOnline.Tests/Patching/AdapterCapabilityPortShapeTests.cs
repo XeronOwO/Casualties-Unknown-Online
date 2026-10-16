@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -40,6 +41,7 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(ICarryPresentationPump), ["PinCarriedPresentation"]),
 		(typeof(IOnlineUiNativeFactsQuery), ["Capture"]),
 		(typeof(IOnlineUiSurface), ["Push", "TryDequeueIntent"]),
+		(typeof(ISpectatorControl), ["IsWatching", "StopWatching", "TrySetFreeFly", "TryWatch"]),
 	];
 
 	/// <summary>Where the ports must be registered from the one adapter singleton (checked as source, because the tests load the adapter reflectively and cannot resolve its container).</summary>
@@ -76,8 +78,8 @@ public class AdapterCapabilityPortShapeTests
 	}
 
 	[Fact]
-	public void Composition_CarriesExactlyNineteenMembers() =>
-		Assert.Equal(19, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+	public void Composition_CarriesExactlyTwentyThreeMembers() =>
+		Assert.Equal(23, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

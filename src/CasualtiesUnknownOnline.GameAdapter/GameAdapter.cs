@@ -240,6 +240,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		}
 		_domains.GeyserStateSync.Update(); // host/solo: capture + broadcast the geysers' liquid types once the generation finished
 		_domains.RadiationLineSync.Update(); // host: publish the authoritative radiation-line state (active + timeGone)
+		_domains.Spectator.Update(); // every client: a dead player's own camera, from this client's own facts
 		_domains.EntitySpawnSync.Update(); // the creation channel's deferred reports (a geyser's type, after its child Start) and carried-data applications
 		using (_latency.Measure("Fluid"))
 		{
@@ -361,6 +362,14 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	void INativeInputBlocker.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
 
 	bool INativeInputBlocker.IsTheGamesOwnTextInputFocused => OnlineUiKeyboardFacts.IsATextFieldFocused();
+
+	bool ISpectatorControl.IsWatching => _domains.Spectator.IsWatching;
+
+	bool ISpectatorControl.TryWatch(ulong steamId) => _domains.Spectator.TryWatch(steamId);
+
+	void ISpectatorControl.StopWatching() => _domains.Spectator.StopWatching();
+
+	bool ISpectatorControl.TrySetFreeFly(bool wanted) => _domains.Spectator.TrySetFreeFly(wanted);
 
 	void INativeInputBlocker.SetOnlineUiEscapeSurfaceVisible(bool visible) =>
 		_domains.MenuInput.SetNonModalEscapeSurfaceVisible(visible);

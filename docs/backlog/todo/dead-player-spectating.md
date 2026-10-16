@@ -124,3 +124,52 @@ menu-return cut) each clearing the follow target, and the two-client verificatio
 → 2462 bytes across this cycle's two rule additions, and only TWO of these three fields are on the wire — a
 value equal to the wire format's own default is not written, so three booleans cost two bytes. The assertion in
 `EntryRepairConvergenceTests` and both evidence documents moved with it.
+## Steps 2 and 3 landed (2026-10-17): the camera and the keyboard chooser
+
+The camera uses the game's own mechanisms and nothing else, which is required work 2: `PlayerCamera.following` is
+the follow target, `PlayerCamera.isFreecam` the free camera, and the death screen is hidden and restored through
+`PlayerCamera.endScreen` with `didDeathScreen` respected. All four are public fields on the game's own camera, so
+there is no CUO camera, no CUO death screen and no new window. `/spectate <selector>`, `/spectate off` and
+`/spectate freefly on|off` are the keyboard path; the runtime port is `ISpectatorControl` and the adapter answers
+it, so the console layer never touches a game type.
+
+**An adversarial review ran against the frozen tree before the commit and found 1 blocker, 6 major, 9 minor and
+3 nits.** The three that would have been felt in play are fixed here:
+
+- **The followed teammate's death did not move the camera.** The check asked the member's render clone whether it
+  was alive, and that clone's `alive` is its own brain health, which CUO never writes — so a dead teammate kept
+  answering "alive" and the camera stayed on the corpse with the death screen hidden. This is precisely the case
+  the ticket says must not be left open. The liveness now comes from the `PlayerEntity` the session publishes.
+- **The free camera was cleared on every frame of every session**, including for players who never spectated —
+  and `isFreecam` has a second owner in the game's own `/freecam` console command, so CUO would have switched
+  that command off. The camera now gives back only what it took.
+- **Turning the free camera on dropped the followed body** and jumped the view to whatever `freecamPos` last
+  held, because nothing seeded it. It is now seeded from the camera's own position, the way the game does it.
+
+The contracts the review also caught are fixed: the service implements the session-teardown contract every other
+session-scoped service implements (a session ending mid-watch no longer leaves the state alive for the next one);
+the port is registered on the aggregate and pinned in `AdapterCapabilityPortShapeTests`, so deleting its wiring
+can no longer pass every gate; the free-fly sub-command requires its own operand instead of silently choosing
+"off"; it is refused while nobody is being watched; and one property with no reader was deleted rather than kept.
+
+Seven unit cases cover the half that is testable without the game: the command's answers and every refusal path.
+
+## Limits this cycle names
+
+- **The member-list chooser is not built.** Required work 3 names two choosers and this cycle built the keyboard
+  one; the Online UI's member list is still the natural place for the other, and the target-cycle row of required
+  work 5 has no mechanism to exercise until it exists. The only way out of the watch is the command.
+- **The camera half has no test and no runtime reading.** Everything touching `PlayerCamera`, the clone renderer
+  or the local body needs a running client. The judgement itself (local liveness, the session flag, the three
+  rules, the member's published liveness) is pure enough to be extracted into the Runtime and unit-tested; the
+  review named that extraction as the place this defect class would have been caught, and this cycle did not do
+  it.
+- **`SpectateWhileWaitingToJoin` still has no reader**, and `MayWatch` hard-refuses the state it governs. It is a
+  switch that cannot take effect until a later step gives the late-join path a way to watch.
+- **The non-goal about not seeing more than was sent holds for FOLLOWING and not for the free camera**: a free
+  camera moves this client's own view around a layer it already renders, which is why the host owns the rule.
+- **The death screen's own receipt is interrupted while watching** (its statistics animation waits for a click on
+  a panel that is hidden), and a single-frame flash of it is possible on revive depending on script order. Both
+  are screen-only and unverified.
+- **The free-fly rule is read from the announced rules**, so between a host's change and its arrival a member
+  still reads its own configuration.

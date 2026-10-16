@@ -32,6 +32,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.EntitySpawnSync.BindToSession();
 		domains.GeyserStateSync.BindToSession();
 		domains.RadiationLineSync.BindToSession();
+		domains.Spectator.BindToSession();
 		domains.RunClockFacts.BindToSession();
 		domains.StartingSupplies.BindToSession();
 		domains.FluidSync.BindToSession();
@@ -90,6 +91,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.EntitySpawnSync.Unbind();
 		domains.GeyserStateSync.Unbind();
 		domains.RadiationLineSync.Unbind();
+		domains.Spectator.Unbind();
 		domains.RunClockFacts.Unbind(); // the last published clock belongs to the dead session
 		domains.StartingSupplies.Unbind(); // releases the entry-group subscriptions at adapter teardown; the per-entry re-arm is the local scene report
 		domains.FluidSync.Unbind();

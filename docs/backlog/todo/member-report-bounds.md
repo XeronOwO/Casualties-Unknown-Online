@@ -3,6 +3,8 @@
 - Status: Todo — opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
   drops; this ticket is the rest of the same question, one surface per row, each with its own evidence.
+  Section A (the reports that name another member's identity) CLOSED 2026-10-17 — its five surfaces now
+  compare against the transport sender, and the census rows say so. Sections B and C remain open.
 - Priority: Medium-High
 - Category: Security / report validation
 - Source: the user's 2026-10-14 request (basic checks from the game's own mechanics, never an anti-cheat)
@@ -18,38 +20,52 @@ Three shapes, and the fix direction is the same within each: an identity that is
 host, replaced by the payload's claim; a number the host could derive, taken from the report; and a claim
 with no anchor at all, which needs a design decision rather than a check.
 
-## A. A report that names another member's own body or hands
+## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
-The transport sender is the trusted fact, and this tree already knows the pattern
-(`CraftSyncService`: `msg.OwnerSteamId = sender; // the transport sender is the trusted fact`). Four
-surfaces still key a write on the payload's own identity:
+LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The
+admission seam judges a pickup's destination and the enemy-combat victim BEFORE its item rules, because
+neither needs a fact the host has to look up (`KernelCommandGateway.AdmitMemberSubmission`, pinned by
+`KernelMemberIdentityReportTests`), and three handlers compare HOST-SIDE only, since the host's own relay
+legitimately names a third member (`LimbStateEventHandler`, `SceneStateHandler`, `SpeechHandler`; pinned
+by `SceneStateReportIdentityTests`, `LimbStateSyncTests`, `SpeechChannelTests`). The scene handler's
+`msg.SteamId != 0 ? msg.SteamId : sender` fallback is gone: the payload no longer decides whose state it
+is. Verdict shape, per the family: IGNORED with no answer in the seam and dropped at the handler —
+nothing durable written, nothing relayed.
+
+What did NOT move: magnitudes, distances and rates — the affected member's own report still carries them,
+which is the design intent quoted below. What the direction leaves open, named rather than implied: the
+three handler shapes are `Bidirectional`, so a forged frame addressed straight at a GUEST (rather than at
+the host) is still applied there — a limb latch into its clone fact table, a scene row into its presence
+table, a bubble on the named clone. That is presentation-only on that client, overwritten by the owner's
+own next report or keyframe, with no durable record and no host write; bounding it would need a
+guest-side identity rule the star topology has no anchor for. The pickup verdict's cost is the
+reconciliation budget rather than silence: a refused pickup kind is RE-REPORTED
+(`GuestCommandReconciliation`, `IntervalMs = 5_000`, `MaxReports = 12`), so one forged report is up to
+thirteen host audit lines over about a minute, while the three enemy kinds are single-shot.
+
+The five surfaces the census recorded, with the account this section opened with — each now bound as
+described above:
 
 - **`WireCommandKind.ItemPickup`** — the domain commits `ItemLocation.Carried(command.NewOwner)` with no
-  comparison against the sender (`ItemDomainModule.DecidePickup`), and the seam's eligibility family covers
-  a destroy report, a state report and a container sync but not this one
-  (`KernelCommandGateway`: `command is DestroyItemCommand destroy && !MayReportOn(...)` /
-  `command is UpdateItemStateCommand state && !MayReportOn(...)`). A report can therefore put a world item
-  into another member's hands. The fix belongs in the same eligibility family the S1a stage built, so the
-  verdict shape (ignore, answer nothing, let the item snapshot converge the reporter) is already decided.
-- **`NetMsg.LimbStateEvent`** — the write is keyed by the body the payload names
-  (`CharacterDataStore.ApplyLimbStateEvent`: `if (_savedCharacters.TryGetValue(msg.OwnerSteamId, out var data))`)
-  with no sender comparison in the handler, so a report can latch another member's limb.
+  comparison against the sender (`ItemDomainModule.DecidePickup`), and the seam's eligibility family
+  covered a destroy report, a state report and a container sync but not this one, so a report could put a
+  world item into another member's hands. NOW: the destination must be the sender, in the same
+  eligibility family the S1a stage built.
+- **`NetMsg.LimbStateEvent`** — the stored write was keyed by the body the payload names
+  (`CharacterDataStore.ApplyLimbStateEvent`), with no sender comparison in the handler, so a report could
+  latch another member's limb. NOW: on the host an inbound frame must name the sender.
 - **`WireCommandKind.RecordEnemyBite` / `RecordEnemyLunge` / `RecordEnemyEffect`** — the entity domain
-  accepts all three outright (`EnemyDomainModule`: `RecordEnemyBiteCommand c => DomainDecision.Accept(new
-  EnemyBiteResultEvent(c.VictimSteamId, c.Limb, c.VenomTotal, c.Adrenaline, c.Happiness))`), so the victim,
-  the limb and the effect magnitudes are the reporter's own. The design intent is that the AFFECTED side's
-  client is the judge (`todo/health-simulation-and-host-authority.md`), which is exactly why the victim
-  identity has to be the sender rather than a field.
-- **`NetMsg.SpeechMsg`** — the bubble is replayed under the speaker the payload names
-  (`if (msg.SpeakerSteamId == 0) { ReplayOnTrader(msg); return; } ReplayOnClone(msg.SpeakerSteamId, msg.Text);`)
-  with no sender comparison and no length cap.
-- **`NetMsg.SceneState`** — the reporter is the body the payload names
-  (`var reporter = msg.SteamId != 0 ? msg.SteamId : sender;` in `SceneStateHandler.Handle`), and the
-  membership table is the only check: a report can move ANOTHER member's scene state and have the host send
-  that member the whole entry fanout. The relay case the comment describes (the host re-sending another
-  member's change) is the reason the field exists, so the fix is a direction-scoped comparison — on the host,
-  an inbound frame the local member did not send is the member's own report and must name itself.
-
+  accepted all three outright (`EnemyDomainModule`), so the victim, the limb and the effect magnitudes
+  were the reporter's own. NOW: the victim must be the sender, which is what the design intent requires —
+  the AFFECTED side's client is the judge (`todo/health-simulation-and-host-authority.md`).
+- **`NetMsg.SpeechMsg`** — the bubble was replayed under the speaker the payload named, with no sender
+  comparison and no length cap. NOW: on the host an inbound frame must name the sender. The length cap is
+  still open: it belongs with the abuse bound the chat handler's own rate cap is waiting for, and no
+  reading of a native bubble's length exists to bound it with.
+- **`NetMsg.SceneState`** — the reporter was `msg.SteamId != 0 ? msg.SteamId : sender` and the membership
+  table was the only check, so a report could move ANOTHER member's scene state and have the host send
+  that member the whole entry fanout. NOW: on the host the claim must name the sender, and the fallback is
+  deleted rather than kept as a second path.
 ## B. A number the host could derive, taken from the report
 
 - **`NetMsg.BuildingEntityDamaged` (51)** — the only check is that an entity stands at the position;

@@ -38,6 +38,26 @@ public class SpeechChannelTests
 	}
 
 	[Fact]
+	public void PlayerBubbleClaimingAnotherSpeaker_IsDroppedAtTheHost()
+	{
+		// The speaker key is a CLAIM: the bubble is replayed on the clone of the
+		// member the payload names, so a report naming somebody else's mouth is the
+		// same spoof a chat line claiming another author already has refused. The
+		// bubble is presentation and nothing durable rides it, so the host drops it
+		// and answers nothing — the named member's own client speaks for itself.
+		var w = EntityEventSimWorld.Create();
+		var hostBubbles = new List<SpeechMsg>();
+		var g2Bubbles = new List<SpeechMsg>();
+		w.Host.Services.GetRequiredService<IWorldControl>().SpeechReceived += (_, msg) => hostBubbles.Add(msg);
+		w.G2.Services.GetRequiredService<IWorldControl>().SpeechReceived += (_, msg) => g2Bubbles.Add(msg);
+
+		w.G1.Services.GetRequiredService<IWorldControl>().SendSpeech(new SpeechMsg { SpeakerSteamId = w.G2.SteamId, Text = "not mine" });
+
+		Assert.Empty(hostBubbles);
+		Assert.Empty(g2Bubbles);
+	}
+
+	[Fact]
 	public void TraderBubble_BroadcastsToEveryMember()
 	{
 		var w = EntityEventSimWorld.Create();

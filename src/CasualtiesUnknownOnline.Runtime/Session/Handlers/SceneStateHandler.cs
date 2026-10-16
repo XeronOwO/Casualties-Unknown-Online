@@ -22,10 +22,23 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntry
 	protected override void Handle(ulong sender, SceneStateMsg msg, ISceneHandlerContext ctx)
 	{
 		var session = ctx.Session;
-		// The reporter is msg.SteamId when the host relays another member's
-		// change; the sender itself otherwise (msg.SteamId is stamped by the
-		// reporter in SessionService.ReportSceneState).
-		var reporter = msg.SteamId != 0 ? msg.SteamId : sender;
+		// The reporter is the id the payload carries — and that id is a claim. On a
+		// guest the claim is legitimate: the host relays ANOTHER member's change, so
+		// the payload names that member while the transport sender is the host, and a
+		// guest must not judge it. On the HOST an inbound frame is a member's own
+		// report (SessionService.SendSceneState stamps the reporter's own id, the
+		// local id never enters the presence table, and the host never relays a
+		// member's change back to itself), so a claim naming somebody else is dropped
+		// before it can move that member's scene state or earn it the whole entry
+		// fan-out. The old fallback (`msg.SteamId != 0 ? msg.SteamId : sender`) took
+		// the payload's word for whose state this is.
+		var reporter = msg.SteamId;
+		if (session.Role == SessionRole.Host && reporter != sender)
+		{
+			_log.LogWarning("Scene state dropped: transport={Transport} claimed={Claimed}.", sender, reporter);
+			return;
+		}
+
 		if (!session.TryGetMember(reporter, out var member))
 		{
 			return;

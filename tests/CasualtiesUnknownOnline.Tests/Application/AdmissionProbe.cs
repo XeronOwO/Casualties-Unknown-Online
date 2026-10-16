@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 
@@ -55,6 +56,12 @@ internal static class AdmissionProbe
 		SyncContainerItemsCommand => WireCommandKind.ItemContainerSync,
 		ApplyLimbItemCommand => WireCommandKind.ItemApplyLimb,
 		RemoveLimbItemCommand => WireCommandKind.ItemRemoveLimb,
+		// The enemy-combat results ARE a member's own report (the affected client
+		// judges its own body), so they submit under their own kinds like any other
+		// member-authored fact.
+		RecordEnemyBiteCommand => WireCommandKind.RecordEnemyBite,
+		RecordEnemyLungeCommand => WireCommandKind.RecordEnemyLunge,
+		RecordEnemyEffectCommand => WireCommandKind.RecordEnemyEffect,
 		_ => WireCommandKind.ItemUpdateState,
 	};
 }

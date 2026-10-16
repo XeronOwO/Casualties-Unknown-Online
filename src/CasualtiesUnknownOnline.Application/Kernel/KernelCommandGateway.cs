@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using Microsoft.Extensions.Logging;
@@ -54,6 +55,11 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// session's decision rather than the build's (<see cref="IMemberCommandRules"/>).
 /// The rule is read per submission, so a host that closes it mid-session refuses
 /// the next write and leaves the ones already committed alone;</item>
+/// <item>a report that puts an item into another member's hands, or writes enemy
+/// damage onto another member's body, must name the SENDER as that member: the
+/// pickup destination and the enemy-combat victim are judged against the transport
+/// sender — the trusted fact — before the item rules below, because neither needs a
+/// fact this seam has to look up;</item>
 /// <item>the item a report NAMES must be one this member may speak for — the
 /// shared rule (<see cref="MayReportOn"/>) behind a destroy report, a state
 /// report and a container sync's parent: world content (the item lies on the
@@ -124,6 +130,31 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 			// receipt (ItemDataWriteSettlement).
 			return Refuse(sender, command, RejectionReason.HostRuleDenied,
 				"the host's rule does not open the item-data write verbs to members");
+		}
+
+		// A report that puts an item into another member's hands, or writes enemy
+		// damage onto another member's body, is the same family as the item rules
+		// below and is judged FIRST because it needs no fact this seam has to look
+		// up: the TRANSPORT SENDER is the trusted fact (the rule CraftSyncService
+		// already writes down), and the identity the payload carries is a claim.
+		// Both shapes were the census's unbounded rows, and both are decided by the
+		// record this seam already holds — nothing about distance, reach, sequence
+		// or magnitude is judged here, and every magnitude still reaches the kernel
+		// as the reporter's own once the body is its own.
+		if (command is PickUpItemCommand pickup && pickup.NewOwner.Value != sender)
+		{
+			return Ignore(sender, command, RejectionReason.NotAuthorized,
+				$"item {pickup.InstanceId} is handed to {pickup.NewOwner.Value} instead of the sender");
+		}
+
+		if (ForeignVictimDetail(sender, command) is { } victimDetail)
+		{
+			// The AFFECTED member's client is the judge of its own body
+			// (todo/health-simulation-and-host-authority.md), and every production
+			// sender names itself — EnemyCombatReplay and EnemyProximitySync both set
+			// msg.VictimSteamId = _session.LocalSteamId — so a report naming somebody
+			// else is not a report this host can place.
+			return Ignore(sender, command, RejectionReason.NotAuthorized, victimDetail);
 		}
 
 		if (command is DestroyItemCommand destroy && !MayReportOn(sender, destroy.InstanceId))
@@ -335,6 +366,26 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 			_ => false,
 		};
 	}
+
+	/// <summary>
+	/// The enemy-combat family's own identity rule: the victim a bite, a lunge or an
+	/// effect names must be the member that reported it. The three kinds are one
+	/// answer because the affected side's client judges its own body — the limb, the
+	/// venom, the adrenaline and the effect magnitudes are all its own reading — so
+	/// the victim identity is the one part of the report that can never be a field.
+	/// The detail names the kind by its own message so the audit line says WHICH
+	/// report claimed a foreign body.
+	/// </summary>
+	private static string? ForeignVictimDetail(ulong sender, GameCommand command) => command switch
+	{
+		RecordEnemyBiteCommand bite when bite.VictimSteamId != sender =>
+			$"the bite names victim {bite.VictimSteamId} instead of the sender",
+		RecordEnemyLungeCommand lunge when lunge.VictimSteamId != sender =>
+			$"the lunge names victim {lunge.VictimSteamId} instead of the sender",
+		RecordEnemyEffectCommand effect when effect.VictimSteamId != sender =>
+			$"the effect names victim {effect.VictimSteamId} instead of the sender",
+		_ => null,
+	};
 
 	private CommandAdmission Refuse(ulong sender, GameCommand command, RejectionReason reason, string detail)
 	{

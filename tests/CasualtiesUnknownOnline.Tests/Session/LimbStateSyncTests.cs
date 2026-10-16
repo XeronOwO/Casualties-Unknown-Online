@@ -126,6 +126,26 @@ public class LimbStateSyncTests
 	}
 
 	[Fact]
+	public void LimbReportNamingAnotherMembersBody_IsDroppedAtTheHost()
+	{
+		// The payload's OwnerSteamId is a CLAIM, not the fact: the body belongs to
+		// the reporter's own local simulation, so a report naming somebody else's
+		// body is not a report this host can place. Nothing durable changes and
+		// nothing is relayed — the member the report names is the judge of its own
+		// limbs, and its own report is what moves them.
+		using var w = ItemSimWorld.Create();
+		var hostStore = w.Host.Services.GetRequiredService<CharacterDataStore>();
+		var applied = 0;
+		hostStore.LimbStateEventReceived += (_, _) => applied++;
+
+		w.G1.Services.GetRequiredService<CharacterDataStore>().SendLimbStateEvent(LimbEvent(w.G2.SteamId));
+		w.Driver.Tick(33);
+
+		Assert.True(applied == 0, "the host must not adopt a latch another member's body never reported");
+		Assert.True(w.ReceivedCount(w.G2, NetMsg.LimbStateEvent) == 0, "and it must not relay the claim to the member it names");
+	}
+
+	[Fact]
 	public void HostReport_MergesTheFullStateIntoTheSavedCharacterImmediately()
 	{
 		using var w = ItemSimWorld.Create();

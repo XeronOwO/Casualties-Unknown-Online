@@ -1,6 +1,6 @@
 # A dead player can watch the run by spectating a teammate
 
-- Status: Todo
+- Status: Review — implemented and gated on both choosers; the two-client run is what is left.
 - Priority: Medium
 - Category: Player interaction / presentation / KrokMP parity
 - Source: the user's 2026-10-13 backlog request, in their own words: "操控的角色死亡后，能观战他人，参考
@@ -205,8 +205,7 @@ as two copies of the same two terms, which is exactly how the card had stopped r
 switch without anything failing. Four unit cases pin the rule's own four states (dead, alive, unconscious with
 the switch off, unconscious with it on) and a fifth pins that no session means nobody watches.
 
-**What still has to be written, and the only reason this ticket is not in `review/`:** the card cannot tell
-whether the target's body exists on THIS client — that fact lives in the adapter — so a click can be refused
-with nothing on screen saying so. The console reports its refusals; the card has nowhere to. That needs a place
-for the answer to land (the Online UI's own status line, or the same line the console prints) before the ticket
-is done.
+**The last gap closed in the same cycle.** A refused card click now says so: the card answers the watcher's
+side of the rule and the camera answers the target's, so a click it refuses is reported through the surface
+line the Online UI already uses for its own notices, in both languages. That was the last thing this ticket
+owed, which is why it moves to `review/`: what is left is the two-client run, not code.

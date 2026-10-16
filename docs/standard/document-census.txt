@@ -284,7 +284,7 @@ docs/backlog/done/block-break-log-names-the-wrong-shape.md | keep | index | docs
 docs/backlog/todo/container-content-event-gap-on-repick.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/dead-player-spectating.md | keep | index | docs/backlog/README.md
+docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/review/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/review/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md

@@ -125,6 +125,9 @@ internal sealed class OnlineUiContext
 	/// <summary>Stops watching and returns to the game's death screen.</summary>
 	internal Func<bool>? StopWatching;
 
+	/// <summary>One line the player reads, for an action that was refused: the card cannot answer every term the camera checks, so it has to say when it was wrong.</summary>
+	internal Action<string>? Notify;
+
 	/// <summary>The member this client is watching right now, or 0. The member list renders it as the stop button.</summary>
 	internal ulong WatchingSteamId;
 

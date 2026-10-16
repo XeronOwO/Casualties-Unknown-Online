@@ -78,10 +78,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Single-file package for the core plugin](todo/single-file-plugin-package.md) — **Low-Medium** — extensions stay separate.
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
-- [A dead player can watch the run by spectating a teammate](todo/dead-player-spectating.md) — **Medium** — follow a teammate; free-fly if allowed.
 ### In progress
 
 ### Review
+- [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [Enter opens the console as plain chat](review/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [The off-screen arrow's label escapes the screen edge](review/offscreen-arrow-label-clipping.md) — **Low** — awaiting the frames.
 - [Paired controls and page scroll](review/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — four look defects pass; the frame awaits an eye.

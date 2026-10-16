@@ -359,6 +359,7 @@ internal sealed class OnlineUiHost
 		HealRemote = _onlineUi.HealRemote,
 		WatchMember = _onlineUi.WatchMember,
 		StopWatching = _onlineUi.StopWatching,
+		Notify = _onlineUi.Notify,
 		WatchingSteamId = _onlineUi.WatchingSteamId,
 		HealWithItem = _onlineUi.HealWithItem,
 		PushRemote = _onlineUi.PushRemote,

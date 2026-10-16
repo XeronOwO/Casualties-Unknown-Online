@@ -179,7 +179,19 @@ internal static class OnlineUiMemberListDrawer
 		}
 		else if (row.CanSpectate)
 		{
-			actions.Add(new OnlineUiMemberAction($"member.watch.{steamId:X}", ctx.T("member.watch"), 70f, () => ctx.WatchMember?.Invoke(steamId)));
+			actions.Add(new OnlineUiMemberAction(
+				$"member.watch.{steamId:X}",
+				ctx.T("member.watch"),
+				70f,
+				() =>
+				{
+					// The camera checks one thing this card cannot (whether that member's body exists on THIS
+					// client), so a refusal is possible and has to be said rather than swallowed.
+					if (ctx.WatchMember?.Invoke(steamId) == false)
+					{
+						ctx.Notify?.Invoke(ctx.T("member.watch.refused"));
+					}
+				}));
 		}
 
 		if (row.CanCarry)

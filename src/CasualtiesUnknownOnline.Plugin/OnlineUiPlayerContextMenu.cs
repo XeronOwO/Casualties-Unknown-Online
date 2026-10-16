@@ -287,7 +287,13 @@ internal sealed class OnlineUiPlayerContextMenu
 			}
 			else if (row.CanSpectate)
 			{
-				actions.Add(new MenuAction(ctx.T("member.watch"), () => ctx.WatchMember?.Invoke(row.SteamId)));
+				actions.Add(new MenuAction(ctx.T("member.watch"), () =>
+				{
+					if (ctx.WatchMember?.Invoke(row.SteamId) == false)
+					{
+						ctx.Notify?.Invoke(ctx.T("member.watch.refused"));
+					}
+				}));
 			}
 		}
 

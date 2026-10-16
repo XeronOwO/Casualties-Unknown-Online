@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 /// </para>
 ///
 /// <para>
-/// The answer today is <see cref="Audience.Members"/> for all twelve, and the reason
+/// The answer today is <see cref="Audience.Members"/> for all thirteen, and the reason
 /// is the member's own Admin page: its read-only branch renders every rule
 /// (<c>OnlineUiAdminDrawer</c>), so a rule's value IS read on a member's screen. Three
 /// of them are read by behaviour as well — <see cref="HostRuleId.AllowRemoteInventoryTake"/>
@@ -61,6 +61,7 @@ public static class HostRuleCensus
 		new(HostRuleId.ReviveFromTrader, Audience.Members, HostRuleKind.Boolean, "admin.rule_revive_trader"),
 		new(HostRuleId.ReviveOnNextLevel, Audience.Members, HostRuleKind.Boolean, "admin.rule_revive_next_level"),
 		new(HostRuleId.Permadeath, Audience.Members, HostRuleKind.Boolean, "admin.rule_permadeath"),
+		new(HostRuleId.RadiationLineStopsAboveTheFloor, Audience.Members, HostRuleKind.Boolean, "admin.rule_radiation_line_floor"),
 	];
 
 	/// <summary>The rows a MEMBER's client renders and acts on — the set the announcement carries.</summary>

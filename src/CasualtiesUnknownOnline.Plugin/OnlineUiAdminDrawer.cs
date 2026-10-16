@@ -48,6 +48,7 @@ internal static class OnlineUiAdminDrawer
 			BuildEditableRule(ctx, page, "admin.rule_revive_trader", rules.ReviveFromTrader, editor.SetReviveFromTrader);
 			BuildEditableRule(ctx, page, "admin.rule_revive_next_level", rules.ReviveOnNextLevel, editor.SetReviveOnNextLevel);
 			BuildEditableRule(ctx, page, "admin.rule_permadeath", rules.Permadeath, editor.SetPermadeath);
+			BuildEditableRule(ctx, page, "admin.rule_radiation_line_floor", rules.RadiationLineStopsAboveTheFloor, editor.SetRadiationLineStopsAboveTheFloor);
 		}
 		else
 		{

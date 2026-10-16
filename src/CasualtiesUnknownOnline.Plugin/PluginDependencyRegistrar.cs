@@ -97,6 +97,8 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription(
 				"Host-only: how a member's declared native binding is judged when it differs from the host's own for a mod both sides list. allow = no check; warn = admit the member and record the mismatch in the host's log (default); require = refuse the member.",
 				new AcceptableValueList<string>("allow", "warn", "require")));
+		var radiationLineStopsAboveTheFloor = config.Bind("HostRules", "RadiationLineStopsAboveTheFloor", true,
+			new ConfigDescription("True = the radiation line stops a margin above the layer floor instead of descending past it, so the bottom of a layer stays livable and a group can share supplies and rest. False = the game's own uncapped descent."));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
 			new BepInExOptionsMonitor<HostRulesOptions>(
 				config,
@@ -107,6 +109,7 @@ internal static class PluginDependencyRegistrar
 					AllowLateJoin = allowLateJoin.Value,
 					AllowRemoteInventoryTake = allowRemoteInventoryTake.Value,
 					AllowMemberItemDataWrite = allowMemberItemDataWrite.Value,
+					RadiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor.Value,
 					WidenRunSettings = widenRunSettings.Value,
 					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
 					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value),
@@ -115,6 +118,7 @@ internal static class PluginDependencyRegistrar
 				allowRemoteInventoryTake.Definition,
 				allowMemberItemDataWrite.Definition,
 				widenRunSettings.Definition, piggybackWeight.Definition,
+				radiationLineStopsAboveTheFloor.Definition,
 				nativeBindingParity.Definition)));
 
 		// World archive policy (S4.4, decision 25): the interval autosave and the backup
@@ -184,7 +188,8 @@ internal static class PluginDependencyRegistrar
 			reviveFromTrader,
 			reviveOnNextLevel,
 			keepInventory,
-			keepSkills));
+			keepSkills,
+			radiationLineStopsAboveTheFloor));
 		// The console's JSON host-rule command writes through this editor; the
 		// Runtime default is a disabled no-op so the Runtime-only composition
 		// still resolves the same interface.

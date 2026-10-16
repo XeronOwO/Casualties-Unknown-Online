@@ -56,4 +56,7 @@ public interface IHostRules
 
 	/// <summary>Death is terminal (from <see cref="RespawnOptions"/>).</summary>
 	bool Permadeath { get; }
+
+	/// <summary>Host-only: the radiation line stops a margin above the layer floor and stays there, so the bottom of a layer is livable and a group can share supplies and rest. On by default.</summary>
+	bool RadiationLineStopsAboveTheFloor { get; }
 }

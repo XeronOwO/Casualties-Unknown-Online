@@ -300,6 +300,14 @@ internal interface IPatchBridge
 	/// <summary>True when this side is the session host (earthquake authority, host-only drops).</summary>
 	bool IsHostMode { get; }
 
+	/// <summary>
+	/// The highest the radiation line's own descent may reach on this client, or null when this client should
+	/// leave the game's uncapped descent alone. Only the HOST answers with a value: a member's line follows the
+	/// host's absolute state instead, because a member that clamped on its own would also do it while it holds
+	/// no announced rule set - a local safe zone the host does not have and cannot correct.
+	/// </summary>
+	float? RadiationLineCeiling { get; }
+
 	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
 	void OnEarthquakeStarted(float duration, float nextDelay);
 

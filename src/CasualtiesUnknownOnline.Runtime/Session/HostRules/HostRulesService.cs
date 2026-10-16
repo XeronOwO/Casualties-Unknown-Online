@@ -68,4 +68,7 @@ public sealed class HostRulesService(
 	public bool ReviveOnNextLevel => Current.ReviveOnNextLevel;
 
 	public bool Permadeath => Current.Permadeath;
+
+	/// <inheritdoc />
+	public bool RadiationLineStopsAboveTheFloor => Current.RadiationLineStopsAboveTheFloor;
 }

@@ -27,6 +27,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _reviveOnNextLevel;
 	private readonly ConfigEntry<bool> _keepInventory;
 	private readonly ConfigEntry<bool> _keepSkills;
+	private readonly ConfigEntry<bool> _radiationLineStopsAboveTheFloor;
 
 	internal HostRulesConfigEditor(
 		ConfigFile config,
@@ -42,7 +43,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> reviveFromTrader,
 		ConfigEntry<bool> reviveOnNextLevel,
 		ConfigEntry<bool> keepInventory,
-		ConfigEntry<bool> keepSkills)
+		ConfigEntry<bool> keepSkills,
+		ConfigEntry<bool> radiationLineStopsAboveTheFloor)
 	{
 		_config = config;
 		_pvp = pvp;
@@ -58,6 +60,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_reviveOnNextLevel = reviveOnNextLevel;
 		_keepInventory = keepInventory;
 		_keepSkills = keepSkills;
+		_radiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor;
 	}
 
 	internal void SetPvpEnabled(bool value) => Set(_pvp, value);
@@ -85,6 +88,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	internal void SetKeepInventory(bool value) => Set(_keepInventory, value);
 
 	internal void SetKeepSkills(bool value) => Set(_keepSkills, value);
+
+	internal void SetRadiationLineStopsAboveTheFloor(bool value) => Set(_radiationLineStopsAboveTheFloor, value);
 
 	public bool TrySet(string property, string value, out string? error)
 	{
@@ -114,6 +119,9 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 				return TrySetBool(_reviveOnNextLevel, value, out error);
 			case "keepinventory":
 				return TrySetBool(_keepInventory, value, out error);
+			case "radiationlinestopsabovethefloor":
+				return TrySetBool(_radiationLineStopsAboveTheFloor, value, out error);
+
 			case "keepskills":
 				return TrySetBool(_keepSkills, value, out error);
 			default:

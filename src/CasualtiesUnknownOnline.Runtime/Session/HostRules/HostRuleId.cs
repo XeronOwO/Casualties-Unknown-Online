@@ -27,4 +27,7 @@ public enum HostRuleId
 	ReviveFromTrader,
 	ReviveOnNextLevel,
 	Permadeath,
+
+	/// <summary>The radiation line stops a margin above the layer floor instead of descending past it (the host rule the user asked to align with).</summary>
+	RadiationLineStopsAboveTheFloor,
 }

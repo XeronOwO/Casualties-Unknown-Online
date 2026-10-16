@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -46,6 +47,29 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool IsSessionActive => domains.Session.SessionActive;
 
 	public bool IsHostMode => domains.Session.Role == SessionRole.Host && domains.Session.SessionActive;
+
+	/// <inheritdoc />
+	public float? RadiationLineCeiling
+	{
+		get
+		{
+			// The HOST's clamp, deliberately not a member's: a member's line follows the host's absolute state
+			// (RadiationLineStateMsg at 5 Hz), and a member that clamped on its own would also do it while it holds
+			// NO announced rule set - reading its own config - which is a local safe zone the host does not have and
+			// cannot correct. A member's own descent between two broadcasts is a few tenths of a unit and is what the
+			// host's next broadcast already corrects.
+			if (!IsHostMode || !domains.HostRules.RadiationLineStopsAboveTheFloor)
+			{
+				return null;
+			}
+
+			// The line's position is halfHeight - timeGone (RadiationLine.cs), so a cap of
+			// height - margin parks it margin world units above the layer floor - the behaviour the
+			// host rule asks for, and the same number KrokMP uses.
+			var world = WorldGeneration.world;
+			return world != null ? world.height - RadiationLineTable.FloorMarginUnits : null;
+		}
+	}
 
 	public bool IsReplayingLifePodSound => domains.LifePod.IsReplayingSound;
 

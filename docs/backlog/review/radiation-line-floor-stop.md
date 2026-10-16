@@ -1,6 +1,6 @@
 # The radiation line should stop above the layer floor, leaving a shared margin
 
-- Status: Todo
+- Status: Review — implemented and gated; the run that reads the parked height on three clients is what is left.
 - Priority: Medium
 - Category: World hazard / layer progression / host rules
 - Source: the user's 2026-10-07 backlog request — KrokMP's radiation line does not descend all the way to
@@ -89,3 +89,27 @@ Read: `reversing/Assembly-CSharp/Assembly-CSharp/RadiationLine.cs` (the whole ty
    freezes the line's share of that statistic at the clamped depth and moves the hazard boundary, and it
    neither gates nor delays the end of a layer. Both readers read the SAME native value through the same pure
    formula, so they agree on every side for free — which is also why the clamp needs no new wire field.
+## Progress (2026-10-17) — implemented, awaiting the run
+
+- **The switch works end to end, and travels.** `HostRuleId.RadiationLineStopsAboveTheFloor` with a census row,
+  a field on `HostRuleSet` and on `HostRulesMsg` (`ProtoMember(13)` — recorded by this commit and ticket rather
+  than by a version bump, decision 241), the option on `HostRulesOptions` **defaulting to on**, the service
+  property, an Admin-page row, the console's own `TrySet` case so the host's host-rules command can write it,
+  both language labels, the config bind inside the monitor's WATCHED set (a rule outside it never changes in a
+  running session — the review's blocker), and both human configuration pages.
+- **The clamp is the HOST's, on purpose.** `RadiationLineFloorStopPatch` caps `timeGone` at
+  `world.height - 8` and rewrites the position with the game's own formula, character for character (the wave
+  term included). It deliberately does NOT clamp on a member: a member's line follows the host's absolute
+  `RadiationLineStateMsg`, and a member that clamped on its own would also do it while it holds no announced
+  rule set — reading its own default-on config — which is a local safe zone the host does not have and cannot
+  correct. The few tenths of a unit a member descends between the 5 Hz broadcasts are what the next broadcast
+  already corrects.
+- **What a run still owes** (this ticket's required work 4): three clients reading the same parked height; the
+  switch's off position restoring the uncapped descent in the same session; and the two edges nobody has seen —
+  turning the rule ON mid-descent SNAPS the line up in one frame, and a parked line's clearance is
+  `8 +/- 3` units because the native wave freezes with it. The margin itself (8 units, KrokMP's number) is
+  still a starting number rather than a measured one for this game's layer heights and body sizes. A solo
+  world with no session also clamps, because the rule is the host's own switch — that is consistent with the
+  other `[HostRules]`/`[Respawn]` values and belongs in the run's rows.
+- **Named, not fixed**: the patch logs nothing, so the clamp's first bite is invisible in a log while both
+  neighbours print the value they act on. The next change to this path adds the one-shot Debug line.

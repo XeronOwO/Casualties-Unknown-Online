@@ -21,6 +21,15 @@ internal static class RadiationLineTable
 	/// <summary>The live line, or null before the world object exists (Unity object — ==).</summary>
 	internal static RadiationLine? Live => RadiationLine.line;
 
+	/// <summary>
+	/// How far above the layer floor the host rule parks the line, in world units: the line's position is
+	/// <c>halfHeight - timeGone</c>, so a ceiling of <c>height - this</c> leaves this much room at the
+	/// bottom of a layer, give or take the native wave term (<c>sin(timeGone * 0.66) * 3</c>, so the real
+	/// clearance is this +/- 3 units). It lives here because this type already owns the line's private descent
+	/// value, and a constant on the patch bridge would be a member that bridge does not serve.
+	/// </summary>
+	internal const float FloorMarginUnits = 8f;
+
 	/// <summary>The line's descent is a private field (<c>RadiationLine.cs</c>) — read through Traverse with the exact float type.</summary>
 	internal static float ReadTimeGone(RadiationLine line) =>
 		Traverse.Create(line).Field("timeGone").GetValue<float>();

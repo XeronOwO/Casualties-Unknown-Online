@@ -63,6 +63,9 @@ internal static class AdapterCapabilityCatalog
 				typeof(ExplosionBuildingSyncPatch), typeof(FluidSimulationPatch), typeof(FluidDrinkPatch),
 				typeof(BuildingEntityUpdatePatch), typeof(BuildingEntityStartPatch), typeof(OilPipePatch), typeof(LifepodPumpPatch),
 				typeof(OpenablePatches), typeof(LockpingSoundPatches),
+				// The host rule that parks the radiation line above the layer floor: the line is world state,
+				// and its clamp touches neither a damage rule nor layer progression.
+				typeof(RadiationLineFloorStopPatch),
 				// The layer-modifier determinism patch lives in the WorldGen namespace, not
 				// in Patches (it is a world-generation boundary, not a gameplay hook).
 				typeof(LayerModifierApplyPatch),

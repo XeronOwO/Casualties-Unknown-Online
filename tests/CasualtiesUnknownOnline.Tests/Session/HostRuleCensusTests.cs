@@ -151,7 +151,8 @@ public class HostRuleCensusTests
 		SaveInventory: false,
 		ReviveFromTrader: false,
 		ReviveOnNextLevel: false,
-		Permadeath: true);
+		Permadeath: true,
+		RadiationLineStopsAboveTheFloor: false);
 
 	private static IReadOnlyList<PropertyInfo> Properties<T>() =>
 		[.. typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(property => property.GetIndexParameters().Length == 0)];

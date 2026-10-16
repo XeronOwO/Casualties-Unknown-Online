@@ -149,6 +149,7 @@ public class PatchBridgePortShapeGateTests
 		"OnWorldItemImpact",
 		"OnWorldJoinRequested",
 		"OnXalorisSepticTick",
+		"RadiationLineCeiling",
 		"ResetGenStreamToBaseline",
 		"SessionSurface",
 		"ShouldApplyQuakeBreak",

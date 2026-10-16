@@ -61,6 +61,7 @@
 | `WidenRunSettings` | `true` | | 仅主机：在联机时放宽游戏自带的自定义开局设置滑块，好让这一局按真实大厅人数调整。数值仍然走既有的世界初始参数。 |
 | `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | 仅主机：背负关系生效期间，被背一方全部负重加到背负者身上的比例。`0` 关闭这项移动惩罚。读它的是背人的那一方自己的客户端，所以成员背人时用的是主机的值。 |
 | `NativeBindingParity` | `warn` | `allow`、`warn`、`require` | 仅主机：当双方都列出的某个模组，客机声明的[原生绑定](glossary.md)与主机自己的不同时怎么判。`allow` = 不检查；`warn` = 准入并把不一致记进主机的日志；`require` = 拒绝该成员。 |
+| `RadiationLineStopsAboveTheFloor` | `true` | `true`、`false` | 仅主机：辐射线停在地板上方一段距离、不再继续下探，于是层底仍然可住，一队人可以在那里分补给、歇一歇。`false` = 游戏原本不封顶的下探。 |
 
 ## `[Save]`
 

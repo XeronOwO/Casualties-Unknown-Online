@@ -84,4 +84,12 @@ public sealed class HostRulesOptions
 	/// refused by default would lock out every session whose host updated first.
 	/// </summary>
 	public NativeBindingParity NativeBindingParity { get; set; } = NativeBindingParity.Warn;
+
+	/// <summary>
+	/// Host-only: the radiation line stops a margin above the layer floor instead of
+	/// descending past it, so the bottom of a layer stays livable and a group can share
+	/// supplies and rest there. ON by default, which is the behaviour the user asked to
+	/// align with; turning it off restores the game's own uncapped descent.
+	/// </summary>
+	public bool RadiationLineStopsAboveTheFloor { get; set; } = true;
 }

@@ -65,6 +65,9 @@ public sealed class HostRulesMsg
 	[ProtoMember(12)]
 	public bool Permadeath { get; set; }
 
+	[ProtoMember(13)]
+	public bool RadiationLineStopsAboveTheFloor { get; set; }
+
 	/// <summary>The wire form of one rule set (the sender's mapping).</summary>
 	public static HostRulesMsg From(HostRuleSet set) => new()
 	{
@@ -80,6 +83,7 @@ public sealed class HostRulesMsg
 		ReviveFromTrader = set.ReviveFromTrader,
 		ReviveOnNextLevel = set.ReviveOnNextLevel,
 		Permadeath = set.Permadeath,
+		RadiationLineStopsAboveTheFloor = set.RadiationLineStopsAboveTheFloor,
 	};
 
 	/// <summary>The rule set this message carries (the receiver's mapping).</summary>
@@ -95,7 +99,8 @@ public sealed class HostRulesMsg
 		SaveInventory,
 		ReviveFromTrader,
 		ReviveOnNextLevel,
-		Permadeath);
+		Permadeath,
+		RadiationLineStopsAboveTheFloor);
 
 	/// <summary>
 	/// Why this announcement cannot be applied, or null when it is well formed. The one

@@ -18,7 +18,9 @@
 //           that carries an id the product does not stamp)
 //   speech  IWorldControl.SendSpeech, SpeakerSteamId = the other member
 // GUEST-ONLY: every one of these report paths is the member's, so on a host this recipe refuses with
-// not-guest instead of answering a false ok. One eval.
+// not-guest instead of answering a false ok. `victim` is another member's decimal SteamId — read it
+// from THAT member's own `item-census` (`localSteamId`), never derived here: the identity has to be a
+// member the host keeps a record for, and the host keeps no presence row for itself. One eval.
 ((System.Func<string>)(() => {
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var surface = {{s:surface}};
@@ -33,7 +35,7 @@
 	}
 	var victim = 0UL;
 	if (!ulong.TryParse(rawVictim, System.Globalization.NumberStyles.None, inv, out victim) || victim == 0UL) {
-		return "{\"ok\":false,\"error\":\"bad-victim\",\"detail\":\"victim must be the other member's non-zero decimal SteamId\"}";
+		return "{\"ok\":false,\"error\":\"bad-victim\",\"detail\":\"victim must be the OTHER member's non-zero decimal SteamId — read it from that member's own item-census localSteamId\"}";
 	}
 	if (victim == session.LocalSteamId) {
 		return "{\"ok\":false,\"error\":\"victim-is-self\",\"detail\":\"a report naming its own sender is the ordinary shape — this run would prove nothing\"}";
@@ -46,7 +48,7 @@
 	try {
 		if (surface == "pickup") {
 			if (item == 0UL) { return "{\"ok\":false,\"error\":\"item-required\",\"detail\":\"the pickup shape needs item=<an id the host has already judged>\"}"; }
-			var kernel = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Items.IKernelProtocolControl)) as CasualtiesUnknownOnline.Runtime.Session.Items.IKernelProtocolControl;
+			var kernel = services.GetService(typeof(CasualtiesUnknownOnline.Application.Kernel.IKernelProtocolControl)) as CasualtiesUnknownOnline.Application.Kernel.IKernelProtocolControl;
 			if (kernel == null) { return "{\"ok\":false,\"error\":\"no-kernel-protocol\"}"; }
 			var command = new CasualtiesUnknownOnline.Protocol.Wire.WireCommand();
 			command.Kind = CasualtiesUnknownOnline.Protocol.Wire.WireCommandKind.ItemPickup;
@@ -75,7 +77,7 @@
 			} else {
 				var effect = new CasualtiesUnknownOnline.Runtime.Protocol.Messages.EnemyEffectMsg();
 				effect.VictimSteamId = victim;
-				effect.Kind = CasualtiesUnknownOnline.Runtime.Protocol.Messages.EnemyEffectKind.GrabberGrabbed;
+				effect.Kind = CasualtiesUnknownOnline.Runtime.Protocol.EnemyEffectKind.GrabberGrabbed;
 				effect.Shock = 1f;
 				enemies.SendEnemyEffect(effect);
 			}

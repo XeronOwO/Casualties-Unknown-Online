@@ -32,6 +32,8 @@ by `SceneStateReportIdentityTests`, `LimbStateSyncTests`, `SpeechChannelTests`).
 is. Verdict shape, per the family: IGNORED with no answer in the seam and dropped at the handler —
 nothing durable written, nothing relayed.
 
+The machine reading is `docs/evidence/acceptance/member-report-bounds-a-20261017.md` (batch `20261017-a`, three clients): each of the seven wire members read a by-name refusal on the host, and an unmodified stretch of the same session read none.
+
 What did NOT move: magnitudes, distances and rates — the affected member's own report still carries them,
 which is the design intent quoted below. What the direction leaves open, named rather than implied: the
 three handler shapes are `Bidirectional`, so a forged frame addressed straight at a GUEST (rather than at

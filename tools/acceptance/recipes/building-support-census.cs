@@ -22,7 +22,11 @@
 // a table" from one call. Which ROWS a table yields is still the bound's own rule (GameBuildingDropTable),
 // confirmed by the host's capture line rather than re-derived here. Run it on the client whose world is
 // judged (the host) and on the one that breaks (the member) — two lists naming the same cells is also the
-// reading that the population itself is shared. Read-only.
+// reading that the population itself is shared. Read it AFTER the world has SETTLED: a client's `inWorld`
+// flips long before its scene is materialized, and a census taken in that window lists a partial population
+// (batch 20261016-c: the same client role read 289 building entities with 0 requireGround 7 s after entry,
+// then 1904 entities with 1365 requireGround — equal to the host's own read — at 25 s and again at 50 s).
+// Read-only.
 ((System.Func<string>)(() => {
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var limit = (int)({{n:limit}});

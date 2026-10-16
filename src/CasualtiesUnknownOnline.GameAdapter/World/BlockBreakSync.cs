@@ -328,7 +328,7 @@ internal sealed class BlockBreakSync(
 						_dropJudge.Bound(sender, cell, destroyedBlock, drops),
 						_dropJudge.BoundBuildingDrops(sender, cell, buildingRows, buildingDrops),
 						verdict);
-					OnRemoteDamageBrokeBlock(sender, cell);
+					OnRemoteDamageBrokeBlock(sender, cell, verdict);
 					return;
 				}
 
@@ -352,7 +352,7 @@ internal sealed class BlockBreakSync(
 				}
 				else
 				{
-					OnRemoteDamageBrokeBlock(sender, cell);
+					OnRemoteDamageBrokeBlock(sender, cell, null);
 				}
 
 				return;
@@ -421,7 +421,8 @@ internal sealed class BlockBreakSync(
 			{
 				Verdict.Fresh => "accepted",
 				Verdict.LostAirWrite => "accepted as this generation's lost air write",
-				_ => "re-accepted (repeat report)",
+				Verdict.Repeat => "re-accepted (repeat report)",
+			_ => "judged " + verdict,
 			},
 			drops?.Count ?? 0, buildingDrops?.Count ?? 0);
 	}
@@ -545,8 +546,8 @@ internal sealed class BlockBreakSync(
 	/// report; the relay INCLUDES the reporter — it already has the cell air
 	/// locally, so the same-value echo is a no-op that acknowledges its pending
 	/// air-write report. A report that carried the break's drops has already had
-	/// them registered and relayed by <see cref="AcceptBreak"/> (the case where
-	/// the air-write message was lost with it), so this only converges the STATE.
+	/// them registered and relayed by <see cref="AcceptBreak"/> — on every accepting verdict, the
+	/// lost-air-write one included — so this only converges the STATE.
 	/// <para>
 	/// The block itself goes through <see cref="RemoteBlockWrite"/>: when it still
 	/// stands here — the lost-air-write shape, where the breaker's air write never
@@ -556,7 +557,7 @@ internal sealed class BlockBreakSync(
 	/// downstream. A cell already air is only written.
 	/// </para>
 	/// </summary>
-	private void OnRemoteDamageBrokeBlock(ulong sender, Vector2Int cell)
+	private void OnRemoteDamageBrokeBlock(ulong sender, Vector2Int cell, Verdict? verdict)
 	{
 		// The break is real, so this side's block must go — and when it still
 		// STANDS here (the accepted report arrived without its air write: the
@@ -574,7 +575,20 @@ internal sealed class BlockBreakSync(
 		_world.BroadcastBlockPlaced(0, cell.x, cell.y, 0, playerBreak: true); // everyone, the reporter included — its echo acknowledges the pending air-write report (same-value SetBlock(0) is a no-op locally), and the break claim lets every side downstream present it
 		OnBlockAirWrite(cell);
 		_buildingEntities.MarkSupportLossRemote(cell);
-		_log.LogInformation("[BlockBreak] {Sender}'s remote damage broke the block at ({X},{Y}) without an air-write report — the block went through the game's own roll when it still stood here (see the applier's Debug line for which of the two shapes ran), the block-state difference was recorded and the break relayed with its claim.",
-			sender, cell.x, cell.y);
+		// The headline names the shape the JUDGEMENT reached instead of guessing it from the cell's own state
+		// afterwards. The old sentence asserted "without an air-write report" on EVERY accepted break, and on
+		// a Fresh verdict IS the record of that sender's applied air write, and a Repeat is the cell's earlier accepted claim — so the one line a reader opens
+		// to learn which shape ran answered "no air write" on the path nearly every member break takes.
+		// `null` is the damage-only edge below, which no verdict judged.
+		var shape = verdict switch
+		{
+			Verdict.LostAirWrite => "the accepted report arrived without its air write (the lost-air-write shape), so the block went through the game's own roll here",
+			Verdict.Fresh => "its air write had already landed here (the fresh first-writer claim)",
+			Verdict.Repeat => "this was a repeat of its own earlier claim for the cell",
+			null => "the report carried no drop payload, so this side cannot tell a damage-only hit from a break whose roll was empty — the applied damage broke the block here",
+			_ => "the judgement reached " + verdict,
+		};
+		_log.LogInformation("[BlockBreak] {Sender}'s remote damage broke the block at ({X},{Y}) — {Shape}; the block-state difference was recorded and the break relayed with its claim.",
+			sender, cell.x, cell.y, shape);
 	}
 }

@@ -280,7 +280,7 @@ docs/backlog/review/turret-stray-fire-after-reload.md | keep | index | docs/back
 docs/backlog/review/unhooked-damage-block-callers.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unhooked-item-and-body-sound-families.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unified-remote-display-projection-rework.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
+docs/backlog/review/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/container-content-event-gap-on-repick.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md

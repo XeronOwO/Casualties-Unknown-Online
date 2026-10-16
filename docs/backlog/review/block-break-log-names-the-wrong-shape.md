@@ -1,6 +1,6 @@
 # A block-break log line names the lost-air-write shape on every accepted break
 
-- Status: Todo — found by batch `20261016-c` run 2 while reading the S2b captured-rows half; what it distorts
+- Status: Review — the line now carries the judgement; its wording awaits a run (nothing has seen the new sentence yet). Found by batch `20261016-c` run 2 while reading the S2b captured-rows half; what it distorts
   is not the bound but the diagnosis of which shape ran.
 - Priority: Low
 - Category: Diagnostics / world
@@ -30,3 +30,19 @@ This is the line a reader opens when asking "which of the two shapes ran", and o
 already knows the difference (`Verdict` is in hand where the call is made), so the fix is to carry it into the
 message — or to log the lost-air-write sentence only on that verdict — rather than inferring it from the
 cell's own state after the fact.
+## What landed (2026-10-17)
+
+The headline now carries the JUDGEMENT instead of guessing it from the cell's state afterwards:
+`LostAirWrite` keeps the lost-air-write reading, `Fresh` says the air write is what accepted the report,
+`Repeat` says it is the cell's earlier accepted claim, and the damage-only edge is worded for what it can
+actually establish — that the report carried no drop payload, so a plain hit and a break whose roll was
+empty are indistinguishable there. The method's own doc no longer calls a drops-carrying report "the case
+where the air-write message was lost with it", and the two sibling `[BuildingSupport]` lines on the same path
+stopped naming one write from seven call sites and a judging purpose on clients that never judge. `AcceptBreak`'s
+own verdict wording gained an explicit `Repeat` arm and a neutral catch-all so the same defect has no copy
+left in this file.
+
+**UNVERIFIED on the machine**: no run has seen the new sentence, which is why this ticket is in `review/`.
+The red is the recorded window above; the fix's own reading is the next batch's break step.
+**The next edit splits it**: `BlockBreakSync.cs` is 594 lines after this change — six under the architecture
+gate — so the next change that is not a wording tweak splits the class first instead of tripping the gate.

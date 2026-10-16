@@ -83,10 +83,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The version shows the build's commit](todo/version-string-build-suffix.md) — **Low** — in the log and the UI.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [A dead player can watch the run by spectating a teammate](todo/dead-player-spectating.md) — **Medium** — follow a teammate; free-fly if allowed.
-- [A break log line names the wrong shape](todo/block-break-log-names-the-wrong-shape.md) — **Low** — "no air write" on the path every break takes.
 ### In progress
 
 ### Review
+- [A break log line names the wrong shape](review/block-break-log-names-the-wrong-shape.md) — **Low** — the wording awaits a run.
 - [Paired controls and page scroll](review/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — four look defects pass; the frame awaits an eye.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the strip fits; the rows left need setups.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.

@@ -301,7 +301,7 @@ internal sealed class WorldBuildingEntitySync(
 			marked++;
 			rows ??= [];
 			rows.AddRange(GameBuildingDropTable.ForEntity(building));
-			_log.LogInformation("[BuildingSupport] marked remote death for requireGround building at ({X},{Y}) after remote air-write.",
+			_log.LogInformation("[BuildingSupport] marked remote death for requireGround building at ({X},{Y}) — whichever write brought the cell here, this client's own line says which.",
 				building.transform.position.x, building.transform.position.y);
 		}
 
@@ -310,7 +310,7 @@ internal sealed class WorldBuildingEntitySync(
 			return [];
 		}
 
-		_log.LogInformation("[BuildingSupport] captured {RowCount} drop row(s) from {Count} building(s) losing support at cell ({CellX},{CellY}) — the table a break report for that cell is judged against.",
+		_log.LogInformation("[BuildingSupport] captured {RowCount} drop row(s) from {Count} building(s) losing support at cell ({CellX},{CellY}) — this client's own capture; the host judges a break report for that cell against its own.",
 			rows!.Count, marked, blockCell.x, blockCell.y);
 		return rows;
 	}

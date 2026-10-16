@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1066,
+  "count": 1068,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -4844,13 +4844,13 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
-      "quote": "generation == WorldGenerationRelation.Current, standingBlock, out var destroyedBlock);"
+      "quote": "sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current, standingBlock, out var destroyedBlock, out var recordedBuildingRows);"
     },
     {
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockBreakArbitration.cs",
-      "quote": "internal void RecordAppliedAirWrite(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock) =>"
+      "quote": "internal void RecordAppliedAirWrite(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock, IReadOnlyList<DropBound> buildingRows) =>"
     },
     {
       "cluster": "inline",
@@ -4861,14 +4861,26 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDropBoundPolicy.cs",
-      "quote": "internal static Outcome Judge(IReadOnlyList<BlockDropBound> bounds, IReadOnlyList<BlockDropEntryMsg>? drops)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/DropBoundPolicy.cs",
+      "quote": "internal static Outcome<BlockDropEntryMsg> Judge(IReadOnlyList<DropBound> bounds, IReadOnlyList<BlockDropEntryMsg>? drops) =>"
     },
     {
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDropTable.cs",
-      "quote": "internal static IReadOnlyList<BlockDropBound> ForVanilla(ushort block) => block switch"
+      "quote": "internal static IReadOnlyList<DropBound> ForVanilla(ushort block) => block switch"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBuildingDropTable.cs",
+      "quote": "internal static IReadOnlyList<DropBound> ForEntity(BuildingEntity entity) =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBuildingEntitySync.cs",
+      "quote": "internal IReadOnlyList<DropBound> MarkSupportLossRemote(Vector2Int blockCell)"
     },
     {
       "cluster": "inline",
@@ -5366,7 +5378,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockBreakArbitration.cs",
-      "quote": "internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified, ushort standingBlock, out ushort destroyedBlock)"
+      "quote": "internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified, ushort standingBlock, out ushort destroyedBlock, out IReadOnlyList<DropBound> buildingRows)"
     },
     {
       "cluster": "inline",

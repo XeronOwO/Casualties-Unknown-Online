@@ -6,8 +6,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <summary>
 /// One row of a destroyed thing's OWN drop table — the unit a reported drop is
 /// bounded against, whichever table it came from: the game's block roll
-/// (<c>WorldGeneration.DamageBlock</c>, one switch arm per block id) or a CUO
-/// custom tile's authored drops (<c>IModTileDefinition.Drops</c>).
+/// (<c>WorldGeneration.DamageBlock</c>, one switch arm per block id), a CUO
+/// custom tile's authored drops (<c>IModTileDefinition.Drops</c>), or a building
+/// entity's own prefab data (<c>BuildingEntity.itemsDropOnDestroy</c> /
+/// <c>alwaysDrop</c> / <c>guaranteedDropAmount</c>).
 /// <para>
 /// A row is one ROLL. The game rolls each row at most once — a chance-gated row
 /// (<c>Random.value &lt; 0.5f</c>) produces 0 or 1 item, an ungated one exactly 1
@@ -25,7 +27,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// none: nothing about that condition is verifiable, so nothing is checked.
 /// </para>
 /// </summary>
-internal sealed record BlockDropBound(IReadOnlyList<string> ItemIds, float? MinCondition = null, float? MaxCondition = null)
+internal sealed record DropBound(IReadOnlyList<string> ItemIds, float? MinCondition = null, float? MaxCondition = null)
 {
 	/// <summary>True when this row's single roll can produce exactly this item at exactly this condition.</summary>
 	internal bool AccountsFor(string itemId, float condition, float slack) =>

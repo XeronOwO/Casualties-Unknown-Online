@@ -259,12 +259,30 @@ internal sealed class WorldBuildingEntitySync(
 	/// through a REMOTE air-write as a remote death. This side must not roll
 	/// its own drop set: the breaker's side is the single drop owner and the
 	/// building-death drops ride that side's <see cref="BlockDamagedMsg"/>.
+	/// <para>
+	/// The RETURN is what lets the HOST bound those reported drops. The table is
+	/// per-prefab Inspector data on a live component and the entity is destroyed by
+	/// its own next <c>Update</c>, so this call — made while the entity still
+	/// exists, from whichever path first learns the support block is gone — is the
+	/// capture point; the caller records what it returns beside the break it belongs
+	/// to. An entity already marked is skipped, so a second call for the same cell
+	/// captures nothing and cannot overwrite what the first one read.
+	/// </para>
+	/// <para>
+	/// The rows are the UNION over the entities that lost support here, not one set
+	/// per entity: the report does not say which of them dropped what (a drop is
+	/// position-keyed by a transform position, which is not an identity two peers
+	/// agree on), so per-entity attribution would need a key the message does not
+	/// carry. A GUEST ignores the return — it never judges a report.
+	/// </para>
 	/// </summary>
-	internal void MarkSupportLossRemote(Vector2Int blockCell)
+	internal IReadOnlyList<DropBound> MarkSupportLossRemote(Vector2Int blockCell)
 	{
+		List<DropBound>? rows = null;
+		var marked = 0;
 		if (WorldGeneration.world == null) // Unity object — ==
 		{
-			return;
+			return [];
 		}
 
 		foreach (var building in Object.FindObjectsOfType<BuildingEntity>())
@@ -280,9 +298,21 @@ internal sealed class WorldBuildingEntitySync(
 			}
 
 			RemoteEntityDeath.Mark(building, replayAnimalDeath: false);
+			marked++;
+			rows ??= [];
+			rows.AddRange(GameBuildingDropTable.ForEntity(building));
 			_log.LogInformation("[BuildingSupport] marked remote death for requireGround building at ({X},{Y}) after remote air-write.",
 				building.transform.position.x, building.transform.position.y);
 		}
+
+		if (marked == 0)
+		{
+			return [];
+		}
+
+		_log.LogInformation("[BuildingSupport] captured {RowCount} drop row(s) from {Count} building(s) losing support at cell ({CellX},{CellY}) — the table a break report for that cell is judged against.",
+			rows!.Count, marked, blockCell.x, blockCell.y);
+		return rows;
 	}
 
 }

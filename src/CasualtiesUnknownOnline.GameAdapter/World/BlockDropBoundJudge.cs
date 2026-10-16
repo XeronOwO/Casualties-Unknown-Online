@@ -21,14 +21,20 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// (<see cref="Bound"/>) — the rest of the set is registered and relayed
 /// normally, because the bound exists to stop an item no local roll can create,
 /// not to punish the breaker for a roll the table misreads;</item>
+/// <item>the building-death drops riding the same report are refused the same way
+/// against the dying entities' own tables
+/// (<see cref="BoundBuildingDrops"/>) — a break that took a building's support
+/// block rolls that building's drops on the breaker's side, and they share the
+/// break's one message and one verdict;</item>
 /// <item>a break that lost first-writer-wins is refused WHOLE
 /// (<see cref="RefuseAll"/>) — none of its drops were ever this cell's.</item>
 /// </list>
 /// <para>
 /// The bound's own evidence — why the host bounds a roll instead of re-deriving
-/// it — is <see cref="BlockDropBoundPolicy"/>'s, and the tables it bounds
-/// against are <see cref="GameBlockDropTable"/>'s: the game's own loot switch
-/// for a vanilla id, a custom tile's authored drops for a CUO tile index.
+/// it — is <see cref="DropBoundPolicy"/>'s, and the tables it bounds against are
+/// <see cref="GameBlockDropTable"/>'s (the game's own loot switch for a vanilla
+/// id, a custom tile's authored drops for a CUO tile index) and
+/// <see cref="GameBuildingDropTable"/>'s (a dying entity's own prefab data).
 /// </para>
 /// </summary>
 internal sealed class BlockDropBoundJudge(
@@ -65,7 +71,7 @@ internal sealed class BlockDropBoundJudge(
 		}
 
 		var bounds = ResolveBounds(destroyedBlock, out var table);
-		var outcome = BlockDropBoundPolicy.Judge(bounds, drops);
+		var outcome = DropBoundPolicy.Judge(bounds, drops);
 		if (!outcome.AnyRefused)
 		{
 			return drops;
@@ -79,6 +85,56 @@ internal sealed class BlockDropBoundJudge(
 		_log.LogWarning(
 			"[BlockBreak] {Sender}'s break at ({X},{Y}) claimed {RefusedCount} drop(s) {Table} cannot produce — refused by name ({Refused}), {AcceptedCount} drop(s) accepted and relayed.",
 			sender, cell.x, cell.y, outcome.Refused.Count, table, Describe(outcome.Refused), outcome.Accepted.Count);
+		return outcome.Accepted;
+	}
+
+	/// <summary>
+	/// Host: bound the BUILDING-DEATH drops that ride the same break report — the
+	/// other half of the same judgement, over the other table. Their rows are the
+	/// dying entities' own prefab data (<see cref="GameBuildingDropTable"/>),
+	/// captured by this host while those entities were still alive, because the
+	/// entity is destroyed by its own <c>Update</c> before the report arrives;
+	/// see <c>BlockBreakSync.OnRemoteBlockDamaged</c> for where the rows come from
+	/// and why one cell's rows are the union over the buildings that lost support
+	/// there.
+	/// <para>
+	/// An EMPTY row set refuses every building drop the report carries, and that is
+	/// the intended direction: this side knows of no building that lost support at
+	/// the cell, so no roll for one could have produced them. The line names which
+	/// of the two shapes ran (no mark at all, or marks that can produce nothing),
+	/// because that difference is what makes a population drift between the two
+	/// sides diagnosable rather than a silent loss.
+	/// </para>
+	/// </summary>
+	internal IReadOnlyList<TrapDropEntryMsg>? BoundBuildingDrops(ulong sender, Vector2Int cell, IReadOnlyList<DropBound> bounds, IReadOnlyList<TrapDropEntryMsg>? drops)
+	{
+		if (drops is not { Count: > 0 })
+		{
+			return drops;
+		}
+
+		var outcome = DropBoundPolicy.JudgeBuildingDrops(bounds, drops);
+		if (!outcome.AnyRefused)
+		{
+			return drops;
+		}
+
+		foreach (var refused in outcome.Refused)
+		{
+			_items.SendItemReject(sender, refused.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+		}
+
+		if (bounds.Count == 0)
+		{
+			_log.LogWarning(
+				"[BlockBreak] {Sender}'s break at ({X},{Y}) claimed {RefusedCount} building drop(s), but this side marked NO building as losing support at that cell — all refused by name ({Refused}); a member's report cannot introduce a building's drops where this host has no dying building.",
+				sender, cell.x, cell.y, outcome.Refused.Count, Describe(outcome.Refused));
+			return outcome.Accepted;
+		}
+
+		_log.LogWarning(
+			"[BlockBreak] {Sender}'s break at ({X},{Y}) claimed {RefusedCount} building drop(s) the {RowCount} row(s) of the building(s) that lost support there cannot produce — refused by name ({Refused}), {AcceptedCount} drop(s) accepted and relayed.",
+			sender, cell.x, cell.y, outcome.Refused.Count, bounds.Count, Describe(outcome.Refused), outcome.Accepted.Count);
 		return outcome.Accepted;
 	}
 
@@ -112,7 +168,7 @@ internal sealed class BlockDropBoundJudge(
 	}
 
 	/// <summary>The destroyed block's own table: a CUO custom tile index has its authored drops, every other id the game's own loot switch (which yields no rows for a block that drops nothing).</summary>
-	private IReadOnlyList<BlockDropBound> ResolveBounds(ushort destroyedBlock, out string table)
+	private IReadOnlyList<DropBound> ResolveBounds(ushort destroyedBlock, out string table)
 	{
 		if (_tileContent.TryGetDefinitionByIndex(destroyedBlock, out var definition))
 		{
@@ -125,6 +181,17 @@ internal sealed class BlockDropBoundJudge(
 	}
 
 	private static string Describe(IReadOnlyList<BlockDropEntryMsg> drops)
+	{
+		var parts = new List<string>(drops.Count);
+		foreach (var drop in drops)
+		{
+			parts.Add(drop.Item is { } item ? $"{item.ItemId}@{item.Condition:F2}" : "a drop with no item state");
+		}
+
+		return string.Join(", ", parts);
+	}
+
+	private static string Describe(IReadOnlyList<TrapDropEntryMsg> drops)
 	{
 		var parts = new List<string>(drops.Count);
 		foreach (var drop in drops)

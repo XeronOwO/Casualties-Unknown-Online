@@ -1,17 +1,26 @@
 # Source, permission and data checks on what a member reports
 
 - Status: Todo — the user promoted this on 2026-10-14 (it was `future/strict-validation-anti-cheat.md`,
-  deferred); the old ticket stays as the inventory behind it. S1a and S1b landed 2026-10-14 and S2a
+  deferred); the old ticket stays as the inventory behind it. S1a and S1b landed 2026-10-14, S2a
   landed 2026-10-16 **and its acceptance rows are read for the block family**
   (`docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md`: rows 1, 2 and 6's new half, on a
-  deployed artifact); S2b (the entity death drops) and S3 (the state preconditions) are the open stages.
+  deployed artifact), and S2b landed 2026-10-16 as CODE AND TESTS — the entity-death half's acceptance rows
+  are OWED, not read: this cycle's batch has to read them and its record is
+  `docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`, which lands with that run (the
+  delivery checklist's release-cycle line stays unchecked until it does). S3 (the state
+  preconditions) is the open stage, and the surfaces this ticket does NOT close are the census rows of
+  `docs/architecture/member-report-validation.md` marked `unbounded:` — they carry their own evidence in
+  `todo/member-report-bounds.md`, opened by the same cycle at the user's direction that report validation
+  become a general development standard.
 - Priority: Medium-High
 - Category: Security / report validation / host rules
 - Source: the user's 2026-10-14 request: no advanced anti-cheat, but BASIC checks from the game's own
   mechanics — a destruction report carries its source and must match the drop table (kinds, counts, the
   probability window for a non-integer roll), a command's report needs the sender to hold the cheat
   permission, an item use needs the item to exist in a state that allows it.
-- Related: `future/strict-validation-anti-cheat.md` (the inventory this ticket works from — its
+- Related: `docs/architecture/member-report-validation.md` (the rule and the per-wire-member census this
+  ticket's stages produced), `todo/member-report-bounds.md` (the surfaces that census leaves unbounded),
+  `future/strict-validation-anti-cheat.md` (the inventory this ticket works from — its
   authority-declaration half is closed by S1a below; the console command's own path, the drop table and the
   state preconditions are what remains of it),
   `todo/health-simulation-and-host-authority.md` (the continuous-value half of the same conversation),
@@ -116,7 +125,7 @@
 
    **S2a — landed 2026-10-16.** The host bounds a member's break report against the block that break
    destroyed and relays only the drops some row of that table can account for
-   (`BlockDropBoundPolicy` judges, `GameBlockDropTable` carries the two tables, `BlockDropBoundJudge` is
+   (`DropBoundPolicy` judges, `GameBlockDropTable` carries the two tables, `BlockDropBoundJudge` is
    the GameAdapter's host-side user). Four decisions worth naming. (a) The destroyed block is the HOST's own
    read, never the reporter's claim: the block is air by the time the drops arrive, so the id is captured as
    the block that stood before the air write was applied (`WorldEventSync.OnRemoteBlockPlaced` reads it,
@@ -137,7 +146,7 @@
    table and each refused drop, so the two shapes are told apart where the judgement is made instead of by a
    second vocabulary the receiving side would treat the same way.
 
-   Evidence: the new `BlockDropBoundPolicyTests` (twelve cases over the judgement: a wrong kind, a condition
+   Evidence: the new `DropBoundPolicyTests` (fourteen cases when this stage landed, sixteen once S2b added the building-death shape: a wrong kind, a condition
    outside the declared window, both window edges, the float slack, one row = one roll, the wood arm, a row
    with no window, an empty table, a missing drop, a drop with no item state, and the partition of the
    report) and the new `GameBlockDropTableTests` (six cases over the REAL adapter assembly: each arm of the
@@ -148,19 +157,77 @@
    failed, and with the condition window's slack opened exactly the four window cases failed (2 and 4 of 18,
    the other cases green both times).
 
-   **S2b — open, and it needs a design decision rather than the same treatment.** The building/entity death
-   drops (`TrapDropEntryMsg`, riding the same `BlockDamagedMsg`) are not bounded. Their table is not code but
-   per-prefab inspector DATA on a live `BuildingEntity`: `itemsDropOnDestroy` (each entry with `chance`,
-   `conditionMin`, `conditionMax`), `guaranteedDropAmount` rolls over `ItemLootPool.pool[category]` for a
-   random entry of `itemCategoriesToAdd`, `alwaysDrop`, and a `dropChanceMultiplier`
-   (`reversing/Assembly-CSharp/Assembly-CSharp/BuildingEntity.cs:74-120`). Two things block the same
-   approach: the entity is GONE before the report arrives (a remote air write only MARKS it for death,
-   `WorldBuildingEntitySync.MarkSupportLossRemote`, and the entity's own next `Update` destroys the object —
-   so the host has no table to read at judgement time), and the message carries no identity to key the drops
-   to that entity (the drop's `BuildingDeathDropOrigin.SpawnPosition` is the entity's own transform position,
-   which is not an identity two peers agree on). The capture point that would work is the marking itself
-   (record the dying entity's own table beside the death mark) and the key needs to be a real one; that is
-   the design this stage owns.
+   **S2b — landed 2026-10-16, and it is the stage that needed a design decision rather than the same
+   treatment.** The building-death drops riding the same `BlockDamagedMsg` are now bounded too. Their table
+   is not code but per-prefab inspector DATA on a live `BuildingEntity` (`itemsDropOnDestroy` with its
+   `chance`/`conditionMin`/`conditionMax`, `guaranteedDropAmount` rolls over `ItemLootPool.pool[category]`
+   for a random entry of `itemCategoriesToAdd`, `alwaysDrop`, and a `dropChanceMultiplier` —
+   `reversing/Assembly-CSharp/Assembly-CSharp/BuildingEntity.cs:74-120`), which is what made both of the
+   stage's questions real: the entity is destroyed by its own next `Update`, so no table exists at judgement
+   time, and the drops carry no identity to key to that entity. The design answers both with what the host
+   already holds. (a) The CAPTURE POINT is the support-loss MARK — the one moment the components still
+   exist: `WorldBuildingEntitySync.MarkSupportLossRemote` reads each dying entity's own table and returns
+   the rows, and the air-write path records them beside the destroyed block inside `BlockBreakArbitration`,
+   so they live exactly as long as the break claim they belong to and a repeat is judged identically.
+   (b) The KEY is the CELL the report already carries: `blockPlacedOn` is the association the host itself
+   uses to decide which buildings lose support, so no new wire field and no invented identity was needed —
+   and the rows are the UNION over the entities that died there rather than one set per entity, because the
+   message cannot say which of them dropped what. (c) The table is `GameBuildingDropTable`: one row per
+   chance-gated `itemsDropOnDestroy` entry whose gate the multiplier can still pass, one per `alwaysDrop`
+   entry (the game reads no chance there), and one row per guaranteed roll naming the union of every named
+   category's pool at the exactly-1 condition the game writes. The judgement is the S2a rule unchanged —
+   the same set matching in `DropBoundPolicy`, a per-drop refusal by name with the same `BlockAlreadyBroken`
+   answer — and an EMPTY row set refuses every building drop the report carries, which is the safe
+   direction (this host knows of no building that died there) and carries its own log line, so a population
+   drift between the two sides is diagnosable instead of a silent loss.
+
+   Evidence: the new `GameBuildingDropTableTests` (six cases over the REAL adapter assembly: the
+   chance-gated bucket and its multiplier gate, the always-drop bucket, the guaranteed rolls as one row per
+   roll over the category union, what the pool cannot name, a negative amount, and the rows feeding the
+   bound), two new `DropBoundPolicyTests` cases for the building-death message shape, four new
+   `BlockDropBoundJudgeTests` cases driving `BoundBuildingDrops` over the real `IItemControl` (a table-legal
+   drop kept, a drop no row can produce refused AND answered, an empty row set answering every drop, one row
+   accounting for one drop), and three new `BlockBreakArbitrationTests` cases pinning that the rows ride the
+   air-write and accepted records, answer identically through a repeat, and come back empty on the standing
+   shape and on a refusal. Two mutation controls were run over the three drop-bound classes together (29
+   cases under the filter `FullyQualifiedName~BlockDropBoundJudge|FullyQualifiedName~DropBoundPolicy|FullyQualifiedName~GameBuildingDrop`),
+   each with that mechanism alone turned off: with the building-death matcher accepting everything, SIX cases
+   go red — the three `BlockDropBoundJudgeTests` cases that pin a refusal, the two `DropBoundPolicyTests`
+   building-shape cases, and `GameBuildingDropTableTests.TheRows_AreWhatTheBoundJudgesADeathReportOver` (the
+   fourth judge case, `..._ALegitimateSet_ComesBackWholeWithNoAnswer`, stays green, which is what makes the
+   count six and not seven); with the guaranteed-roll loop disabled, exactly ONE goes red
+   (`TheGuaranteedRolls_AreOneRowEach_OverEveryNamedCategorysPool`) and the other 28 stay green.
+   **Limits S2b carries.** Two, and both are the same missing fact — the drop does not name the support
+   cell it came from — seen from the two sides of the report.
+
+   - **The reporter's side pairs a drop with a break by TIME, not by identity.** The pending-break machine
+     holds ONE break (`BlockBreakPendingState.EnterBreak` overwrites it) and `TryAddBuildingDrop` folds
+     EVERY building death that appears while one is pending into that break, with no check that the dying
+     building's own support cell is the pending cell. A building that dies inside the break's one-to-two
+     frame window of an unrelated break therefore rides that break's report, and the host — whose rows are
+     the tables of the buildings that lost support at ITS cell — refuses the whole building set by name
+     while the breaker destroys drops it really rolled. Before this stage those drops were registered and
+     relayed, so this is the one shape where the new bound costs a legitimate item; it is rare (two breaks in
+     one frame, or a support loss landing in another break's window) and it never diverges — the host relays
+     none of them, so both sides agree on "no drops". The message cannot supply the association the reporter
+     would need to check instead: a drop is position-keyed by a transform position and the entity is
+     destroyed before its `Item.Start` runs. The fix is therefore a design one, carried by
+     `todo/member-report-bounds.md`: read the dying entity's own `blockPlacedOn` while it still exists and
+     carry it on the drop marker (the death scope already wraps the roll), then fold a drop only into the
+     break for that cell.
+   - **An entity already marked for a remote death contributes no rows.** `MarkSupportLossRemote` skips an
+     entity that already carries `RemoteEntityDeath` — the marker is what stops the other paths from rolling a
+     second set — and the skip sits BEFORE the capture, so an entity marked earlier in the same frame by a
+     different path (a relayed attack whose damage took its health to zero, an opened lock, a restored
+     health row) adds no rows and leaves the cell's row set empty: every building drop that report carries is
+     refused, although the reporter's own copy was never marked and rolled them legitimately. The same fix
+     covers it, and it is filed in the same ticket.
+
+   **Reused refusal by name, not by vocabulary.** A refused building drop is answered with
+   `ItemRejectMsg.Reason.BlockAlreadyBroken`, the same reason the block half uses, because the breaker's
+   action is identical (forget the drop, destroy the local copy) and the host's own line names the case; the
+   cost is that the member's console says "block" for a building's drop, which is recorded here rather than
+   papered over with a second reason whose round trip would collapse to the same value.
 3. **S3 — state preconditions.** An item use must name an item the host records, in a state that permits that
    use; today the use report's digest is compared with the record and the client is CORRECTED when they
    disagree (`ItemArbitration`) — "wrong but equal-shaped" heals, "not allowed at all" passes. Turning the
@@ -228,7 +295,7 @@ A two-client session where one client is modified by hand or by a test harness t
 | 5 | A report arriving before its creation | Accepted in the documented order, not refused |
 | 6 | An ordinary session, unmodified clients | Nothing changes: no new refusals, no new logs at Warn |
 
-Where the rows stand after S1a, S1b and S2a: row 3 is answered on both halves — a kind only the host authors is
+Where the rows stand after S1a, S1b, S2a and S2b: row 3 is answered on both halves — a kind only the host authors is
 refused by name, and a member's console write is refused unless the host's `AllowMemberItemDataWrite` rule
 grants the verb, with the refusal answered and the writer settling its own local value back. Row 4 is answered
 by the eligibility rule, which reads a carried, installed OR contained row, and by the container sync's own
@@ -237,7 +304,12 @@ parent and children. Rows 1 and 2 are READ on the machine for a BLOCK break
 account for is refused by name on the host, nothing of it is registered or relayed, the breaker is answered
 and destroys its local copy; a table-legal drop — including the game's own roll, and an authored window's own
 edge — is accepted; one table row accounts for exactly one drop; and the run's ordinary breaks produced no
-refusal line at all. The ENTITY death drops (S2b) stay outside those rows until that stage lands. Row 5 is the
+refusal line at all. Rows 1 and 2 are OWED for the ENTITY death half by this cycle's batch, whose record
+will be `docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`: it must read a
+support-loss break whose building drop no row of the dying building's own table can produce refused by name
+on the host with nothing registered or relayed while the table-legal drop of the same break goes through,
+and no refusal in an ordinary support-loss death. Until that run lands, the entity half is UNVERIFIED —
+this paragraph claims no reading for it. Row 5 is the
 creation-before-operation invariant that already runs above the seam. Row 6 is the batch, and it has TWO halves
 to read rather than one: the authority half refuses only kinds no member sender emits (kept true by
 `WireCommandSenderAuthorityGateTests`), and the eligibility half refuses only report shapes a member's own

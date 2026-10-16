@@ -350,9 +350,13 @@ internal sealed partial class WorldEventSync(
 				{
 					// A player break (its BlockDamaged report follows) — or a
 					// quake/environment write (expires unused in BlockBreakSync).
+					// The dying buildings' own drop tables are read HERE: those
+					// entities are destroyed by their own next Update, so this is the
+					// only moment their tables exist. They ride the same record as the
+					// destroyed block, which is what later judges the report's drops.
+					var buildingRows = _buildingEntities.MarkSupportLossRemote(pos);
 					_blockBreaks.OnBlockAirWrite(pos);
-					_blockBreaks.OnRemoteAirWriteApplied(sender, pos, standingBlock);
-					_buildingEntities.MarkSupportLossRemote(pos);
+					_blockBreaks.OnRemoteAirWriteApplied(sender, pos, standingBlock, buildingRows);
 				}
 			}
 			else

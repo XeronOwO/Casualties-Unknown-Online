@@ -48,6 +48,14 @@ Adversarially verify:
   names no limb) with the limb resolved to the target's most-injured one, and this section exists
   because the review of that cycle was scoped to attack the implementation and could not see the wrong
   premise. Ask the same three questions of the change in front of you.
+- **A1. Report validation — for every fact the change has a member REPORT rather than request.** Name,
+  yourself, what the receiving side checks that claim against: the record it holds, the table it can read,
+  the announcement it made. A fact taken on the reporter's word is a finding unless the census declares it
+  `unbounded:` with the anchor it would need and a ticket
+  (`docs/architecture/member-report-validation.md`); a bound that re-derives something the receiver cannot
+  reproduce (an unseeded roll, another client's frame) is a finding too, and so is a report that names an
+  identity the message cannot carry. Ask the other two halves as well: is a refusal ANSWERED so both sides
+  end up agreeing, and can an unmodified client meet this refusal in ordinary play?
 - **A. Every copied claim.** The change restates facts carried over from tickets, handoffs, or older
   documents. For each one, open the code or test it names and confirm the CURRENT state. A stale
   restatement is a finding even when the original document was correct when it was written — this is

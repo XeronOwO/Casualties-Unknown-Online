@@ -33,11 +33,11 @@ public class BlockBreakArbitrationTests
 	public void AirWrite_ThenBreak_AcceptedOnce()
 	{
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0.5f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0.5f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
@@ -45,7 +45,7 @@ public class BlockBreakArbitrationTests
 	{
 		var arbitration = new BlockBreakArbitration();
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
@@ -58,7 +58,7 @@ public class BlockBreakArbitrationTests
 		// and no attribution is left behind.
 		var arbitration = new BlockBreakArbitration();
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: false, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: false, generationVerified: false, standingBlock: 0, out _, out _));
 		Assert.Equal(0, arbitration.AcceptedCount);
 		Assert.Equal(0, arbitration.Count);
 	}
@@ -73,7 +73,7 @@ public class BlockBreakArbitrationTests
 		// is accepted (the adapter then commits it and applies the air transition).
 		var arbitration = new BlockBreakArbitration();
 
-		Assert.Equal(Verdict.LostAirWrite, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: false, generationVerified: true, standingBlock: 0, out _));
+		Assert.Equal(Verdict.LostAirWrite, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: false, generationVerified: true, standingBlock: 0, out _, out _));
 		// The verdict alone attributes nothing: the commit is the adapter's, once
 		// the break is real.
 		Assert.Equal(0, arbitration.AcceptedCount);
@@ -88,7 +88,7 @@ public class BlockBreakArbitrationTests
 		// that the report is current, never that this sender was the first writer.
 		var arbitration = new BlockBreakArbitration();
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: true, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: true, standingBlock: 0, out _, out _));
 		Assert.Equal(0, arbitration.AcceptedCount);
 	}
 
@@ -100,21 +100,21 @@ public class BlockBreakArbitrationTests
 		// with a verified generation and a standing cell, the two inputs that
 		// accept the lost-air-write shape for the break's OWN sender.
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: false, generationVerified: true, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: false, generationVerified: true, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
 	public void OtherSender_NotAccepted_BySomeoneElsesRecord()
 	{
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
@@ -124,51 +124,51 @@ public class BlockBreakArbitrationTests
 		// so it has no record — and the accepted record belongs to the first
 		// breaker, never to it.
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
 	public void OtherCell_NotAccepted_ByAdjacentRecord()
 	{
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY + 1, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY + 1, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
 	public void RepeatedAirWrite_StillOneBreakToAccept()
 	{
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 1f, destroyedBlock: AnyBlock); // a repeat air-write overwrites
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 1f, destroyedBlock: AnyBlock, buildingRows: []); // a repeat air-write overwrites
 
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 1.1f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 1.1f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
 	public void RepeatedReport_InsideTheAcceptedWindow_IsARepeat()
 	{
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
 		// The guest's 60 s fallback re-sends the break (its relay was the lost
 		// message): the accepted record still holds, so the host re-relays instead
 		// of refusing the drops the breaker still holds locally.
-		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 
 		// Past the window the record is gone and the report is refused like any
 		// unattributed break: the host cannot prove whose break this is anymore.
 		arbitration.PurgeStale(now: 100f, ttl: Ttl, acceptedTtl: AcceptedTtl);
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
@@ -179,48 +179,48 @@ public class BlockBreakArbitrationTests
 		// the LAST report rather than since the first — otherwise the third window
 		// would be attributed by nobody and a still-valid drop would be destroyed.
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
 		arbitration.PurgeStale(now: 65f, ttl: Ttl, acceptedTtl: AcceptedTtl);
-		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 65f, destroyedBlock: AnyBlock); // the repeat refreshes
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 65f, destroyedBlock: AnyBlock, buildingRows: []); // the repeat refreshes
 
 		// 120 s after the ORIGINAL break, the refreshed record is still inside its
 		// own window — the fallback's next re-report is attributed, not refused.
 		arbitration.PurgeStale(now: 120f, ttl: Ttl, acceptedTtl: AcceptedTtl);
-		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
 	public void PurgeStale_RemovesExpired_KeepsFresh()
 	{
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		arbitration.RecordAppliedAirWrite(GuestB, CellX + 1, CellY, now: 2f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		arbitration.RecordAppliedAirWrite(GuestB, CellX + 1, CellY, now: 2f, destroyedBlock: AnyBlock, buildingRows: []);
 
 		arbitration.PurgeStale(now: 3f, ttl: Ttl, acceptedTtl: AcceptedTtl); // A: 3 > 3? no — the boundary is exclusive
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 3f, destroyedBlock: AnyBlock);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 3f, destroyedBlock: AnyBlock, buildingRows: []);
 
 		arbitration.PurgeStale(now: 6.01f, ttl: Ttl, acceptedTtl: AcceptedTtl); // A's accepted record (now 3) is well inside its window; B's air-write is gone with it
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX + 1, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX + 1, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
 	public void PurgeStale_KeepsTheAcceptedRecordForTheReReportWindow()
 	{
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
 		arbitration.PurgeStale(now: 61f, ttl: Ttl, acceptedTtl: AcceptedTtl);
 
 		Assert.Equal(1, arbitration.AcceptedCount);
-		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
@@ -240,13 +240,13 @@ public class BlockBreakArbitrationTests
 		var arbitration = new BlockBreakArbitration();
 
 		// GuestA breaks the cell first (its air-write applied and consumed).
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
 		// GuestB's break of the SAME cell arrives with its own record? It has
 		// none (its air-write was refused as already-broken) — refused.
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
@@ -257,17 +257,17 @@ public class BlockBreakArbitrationTests
 		// re-report of the OLD layer's break match a freshly generated block
 		// (no air-write record is needed for a repeat) and be acknowledged against it.
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestB, CellX, CellY, now: 0f, destroyedBlock: AnyBlock);
-		arbitration.RecordAppliedAirWrite(GuestA, CellX + 1, CellY, now: 0f, destroyedBlock: AnyBlock);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestB, CellX, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX + 1, CellY, now: 0f, destroyedBlock: AnyBlock, buildingRows: []);
 
 		arbitration.Reset();
 
 		Assert.Equal(0, arbitration.Count);
 		Assert.Equal(0, arbitration.AcceptedCount);
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX + 1, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX + 1, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
@@ -277,10 +277,10 @@ public class BlockBreakArbitrationTests
 		// real. An uncommitted verdict must not refuse a genuine second breaker.
 		var arbitration = new BlockBreakArbitration();
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 		Assert.Equal(0, arbitration.AcceptedCount);
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestB, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
 	}
 
 	[Fact]
@@ -290,9 +290,9 @@ public class BlockBreakArbitrationTests
 		// bounded against is the host's OWN read from the moment its air write was
 		// applied — carried with the record, never taken from the reporter.
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: 11);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: 11, buildingRows: []);
 
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out var destroyedBlock));
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out var destroyedBlock, out _));
 		Assert.Equal((ushort)11, destroyedBlock);
 	}
 
@@ -303,11 +303,11 @@ public class BlockBreakArbitrationTests
 		// it has to answer with the same destroyed block, or the re-report would be
 		// bounded against nothing.
 		var arbitration = new BlockBreakArbitration();
-		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: 24);
-		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _));
-		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: 24);
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: 24, buildingRows: []);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: 24, buildingRows: []);
 
-		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out var destroyedBlock));
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out var destroyedBlock, out _));
 		Assert.Equal((ushort)24, destroyedBlock);
 	}
 
@@ -319,7 +319,7 @@ public class BlockBreakArbitrationTests
 		// bounded against.
 		var arbitration = new BlockBreakArbitration();
 
-		Assert.Equal(Verdict.LostAirWrite, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: false, generationVerified: true, standingBlock: 35, out var destroyedBlock));
+		Assert.Equal(Verdict.LostAirWrite, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: false, generationVerified: true, standingBlock: 35, out var destroyedBlock, out _));
 		Assert.Equal((ushort)35, destroyedBlock);
 	}
 
@@ -330,7 +330,53 @@ public class BlockBreakArbitrationTests
 		// no destroyed block to judge anything against.
 		var arbitration = new BlockBreakArbitration();
 
-		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 35, out var destroyedBlock));
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 35, out var destroyedBlock, out _));
 		Assert.Equal((ushort)0, destroyedBlock);
 	}
+
+	[Fact]
+	public void TheAppliedAirWrite_CarriesTheDyingBuildingsOwnTable()
+	{
+		// The buildings that lose their support block die with the break, so the host
+		// reads their tables at THAT moment; the report that carries their drops
+		// arrives a frame later, and this record is what it is judged against.
+		var arbitration = new BlockBreakArbitration();
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: 11, buildingRows: [BuildingRow]);
+
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out var buildingRows));
+		Assert.Equal([BuildingRow], buildingRows);
+	}
+
+	[Fact]
+	public void TheAcceptedRecord_CarriesThemThroughARepeat()
+	{
+		// A repeat re-reports the SAME drop set and is acknowledged idempotently: the
+		// entities are destroyed by then, so a re-read of the world would find nothing
+		// and refuse building drops this host already registered and relayed.
+		var arbitration = new BlockBreakArbitration();
+		arbitration.RecordAppliedAirWrite(GuestA, CellX, CellY, now: 0f, destroyedBlock: 11, buildingRows: [BuildingRow]);
+		Assert.Equal(Verdict.Fresh, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _));
+		arbitration.RecordAccepted(GuestA, CellX, CellY, now: 0f, destroyedBlock: 11, buildingRows: [BuildingRow]);
+
+		Assert.Equal(Verdict.Repeat, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out var buildingRows));
+		Assert.Equal([BuildingRow], buildingRows);
+	}
+
+	[Fact]
+	public void TheStandingShapeAndARefusal_AnswerWithNoRows()
+	{
+		// Empty means "this machine holds no answer", not "nothing can drop": on the
+		// standing shape no air write ever captured a table, and the caller — which
+		// runs while the entities still exist — is the side that reads the live ones.
+		var arbitration = new BlockBreakArbitration();
+
+		Assert.Equal(Verdict.LostAirWrite, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: false, generationVerified: true, standingBlock: 35, out _, out var standingRows));
+		Assert.Empty(standingRows);
+
+		Assert.Equal(Verdict.Refused, arbitration.TryAccept(GuestA, CellX, CellY, cellIsAir: true, generationVerified: false, standingBlock: 35, out _, out var refusedRows));
+		Assert.Empty(refusedRows);
+	}
+
+	/// <summary>One row of a dying building's own table, for the cases that pin that the rows ride the record. One instance is shared deliberately: <see cref="DropBound"/> is a record over a list, so value equality would compare the list by reference anyway.</summary>
+	private static readonly DropBound BuildingRow = new(["scrapmetal"], 0.5f, 1f);
 }

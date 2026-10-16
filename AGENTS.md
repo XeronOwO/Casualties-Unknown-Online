@@ -150,6 +150,14 @@ not the goal.
     (`docs/en/reference/modification-policy.md`; the adversarial pass asks them too,
     `docs/development/review-prompt.md`), and the sweep's three tickets have all landed, so the
     contract carries none of that debt.
+16. `[RULE]` **Member reports are bounded, or the gap is named**: a state a member REPORTS (rather than
+    requests) is a claim, so the receiving side checks it against what it can establish on its own, refuses
+    what contradicts that BY NAME, and answers the refusal so both sides end up agreeing. Never re-derive
+    what the receiver cannot reproduce (an unseeded roll, another client's frame) and never invent an
+    identity the message cannot carry. A surface with no anchor declares the anchor it would need and files
+    the ticket. The census that makes this answerable per wire member is
+    `docs/architecture/member-report-validation.md`, enforced by `ReportValidationCensusGateTests`, and the
+    adversarial review asks it (`docs/development/review-prompt.md`).
 
 ## Development Workflow (binding)
 

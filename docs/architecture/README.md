@@ -46,6 +46,7 @@ own typed model and invariants.
 | [status.md](evolution/status.md) | Completed phase tracker and handoff state. |
 | [session-workflow.md](evolution/session-workflow.md) | Historical process rules for independent phase sessions. |
 | [architecture-guards.md](guards.md) | Active architecture guard list and landed guard automation. |
+| [member-report-validation.md](member-report-validation.md) | **Active** rule for what a member reports and what the host bounds it against, plus the per-wire-member census. |
 | [glossary.md](glossary.md) | Stable vocabulary used across phase docs and current design. |
 | [templates/phase-session.md](evolution/templates/phase-session.md) | Reusable historical phase-session template. |
 | [phase-a-shadow-kernel.md](evolution/phase-a-shadow-kernel.md) | Phase A history. |

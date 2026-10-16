@@ -306,15 +306,28 @@ internal sealed class BlockBreakSync(
 					// have broken a freshly generated block — and the stamp is what
 					// tells the two apart (see BlockBreakArbitration.TryAccept).
 					var verdict = _arbitration.TryAccept(
-						sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current, standingBlock, out var destroyedBlock);
+						sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current, standingBlock, out var destroyedBlock, out var recordedBuildingRows);
 					if (verdict == Verdict.Refused || (verdict == Verdict.Fresh && !blockIsAir))
 					{
 						_dropJudge.RefuseAll(sender, cell, "the cell's break is not this sender's first-writer claim", drops, buildingDrops);
 						return;
 					}
 
-					_arbitration.RecordAccepted(sender, cell.x, cell.y, Time.unscaledTime, destroyedBlock);
-					AcceptBreak(sender, cell, dmg, metalBonus, _dropJudge.Bound(sender, cell, destroyedBlock, drops), buildingDrops, verdict);
+					// The support loss is marked BEFORE the drops are judged, because
+					// the entities that lose a support block here are destroyed by
+					// their own next Update: this call is the host's only chance to
+					// read their drop tables. On the recorded shapes it finds them
+					// already marked and captures nothing (the air write took their
+					// rows); on the standing shape no air write ever landed here, so
+					// this mark is what captures them.
+					var liveBuildingRows = _buildingEntities.MarkSupportLossRemote(cell);
+					var buildingRows = recordedBuildingRows.Count > 0 ? recordedBuildingRows : liveBuildingRows;
+					_arbitration.RecordAccepted(sender, cell.x, cell.y, Time.unscaledTime, destroyedBlock, buildingRows);
+					AcceptBreak(
+						sender, cell, dmg, metalBonus,
+						_dropJudge.Bound(sender, cell, destroyedBlock, drops),
+						_dropJudge.BoundBuildingDrops(sender, cell, buildingRows, buildingDrops),
+						verdict);
 					OnRemoteDamageBrokeBlock(sender, cell);
 					return;
 				}
@@ -392,10 +405,13 @@ internal sealed class BlockBreakSync(
 	/// break to EVERY member, the reporter included (its relay echo is the
 	/// acknowledgement that clears its pending drop report; the materialization
 	/// and registration are idempotent per item id, so a repeat is harmless).
+	/// Both drop sets arrive already bounded against the tables their own roll
+	/// answers to. The support loss was marked by the caller BEFORE these drops
+	/// were judged, because the mark is also the capture point for the dying
+	/// buildings' tables (<see cref="WorldBuildingEntitySync.MarkSupportLossRemote"/>).
 	/// </summary>
 	private void AcceptBreak(ulong sender, Vector2Int cell, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, Verdict verdict)
 	{
-		_buildingEntities.MarkSupportLossRemote(cell);
 		_items.FireBlockDropsReceived(sender, drops ?? []);
 		_items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
 		_world.BroadcastBlockDamaged(0, cell.x, cell.y, dmg, metalBonus, drops, buildingDrops);
@@ -418,9 +434,16 @@ internal sealed class BlockBreakSync(
 	/// destroyed (<paramref name="destroyedBlock"/> is the block this side's world
 	/// held before the write was applied, read by the applier), which is what the
 	/// reported drops are bounded against.
+	/// <para>
+	/// <paramref name="buildingRows"/> is the second table the same report is
+	/// judged against: the drops of the buildings that lost their support block in
+	/// this write. The caller reads them off the live entities at this moment (the
+	/// only moment they exist) and hands them over here so they live exactly as long
+	/// as the break claim they belong to.
+	/// </para>
 	/// </summary>
-	internal void OnRemoteAirWriteApplied(ulong sender, Vector2Int cell, ushort destroyedBlock) =>
-		_arbitration.RecordAppliedAirWrite(sender, cell.x, cell.y, Time.unscaledTime, destroyedBlock);
+	internal void OnRemoteAirWriteApplied(ulong sender, Vector2Int cell, ushort destroyedBlock, IReadOnlyList<DropBound> buildingRows) =>
+		_arbitration.RecordAppliedAirWrite(sender, cell.x, cell.y, Time.unscaledTime, destroyedBlock, buildingRows);
 
 	/// <summary>
 	/// Any applied air write (local or remote) invalidates the cell's partial

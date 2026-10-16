@@ -57,7 +57,7 @@ public class GameBlockDropTableTests
 			Assert.Null(row.MaxCondition);
 		}
 
-		var outcome = BlockDropBoundPolicy.Judge(ForVanilla(11), [Drop("woodscraps"), Drop("stick")]);
+		var outcome = DropBoundPolicy.Judge(ForVanilla(11), [Drop("woodscraps"), Drop("stick")]);
 		Assert.Single(outcome.Accepted);
 		Assert.Single(outcome.Refused);
 	}
@@ -73,7 +73,7 @@ public class GameBlockDropTableTests
 			Assert.Empty(ForVanilla(block));
 		}
 
-		Assert.Single(BlockDropBoundPolicy.Judge(ForVanilla(1), [Drop("rawcopper")]).Refused);
+		Assert.Single(DropBoundPolicy.Judge(ForVanilla(1), [Drop("rawcopper")]).Refused);
 	}
 
 	[Fact]
@@ -81,19 +81,19 @@ public class GameBlockDropTableTests
 	{
 		// Block 3's arm is Random.Range(0.05f, 0.2f): both ends are legitimate rolls.
 		var lowCondition = ForVanilla(3);
-		Assert.Single(BlockDropBoundPolicy.Judge(lowCondition, [Drop("scrapmetal", 0.05f)]).Accepted);
-		Assert.Single(BlockDropBoundPolicy.Judge(lowCondition, [Drop("scrapmetal", 0.2f)]).Accepted);
-		Assert.Single(BlockDropBoundPolicy.Judge(lowCondition, [Drop("scrapmetal", 0.9f)]).Refused);
+		Assert.Single(DropBoundPolicy.Judge(lowCondition, [Drop("scrapmetal", 0.05f)]).Accepted);
+		Assert.Single(DropBoundPolicy.Judge(lowCondition, [Drop("scrapmetal", 0.2f)]).Accepted);
+		Assert.Single(DropBoundPolicy.Judge(lowCondition, [Drop("scrapmetal", 0.9f)]).Refused);
 
 		// Block 6's arm is Random.Range(0.5f, 1f) — the same id, a different window,
 		// which is why the window belongs to the ROW and not to the item id.
-		Assert.Single(BlockDropBoundPolicy.Judge(ForVanilla(6), [Drop("scrapmetal", 0.6f)]).Accepted);
-		Assert.Single(BlockDropBoundPolicy.Judge(ForVanilla(6), [Drop("scrapmetal", 0.2f)]).Refused);
+		Assert.Single(DropBoundPolicy.Judge(ForVanilla(6), [Drop("scrapmetal", 0.6f)]).Accepted);
+		Assert.Single(DropBoundPolicy.Judge(ForVanilla(6), [Drop("scrapmetal", 0.2f)]).Refused);
 
 		// No window declared (the arm leaves the item's own default standing): the
 		// condition says nothing, so nothing is refused on it.
-		Assert.Single(BlockDropBoundPolicy.Judge(ForVanilla(7), [Drop("glassshards", 0f)]).Accepted);
-		Assert.Single(BlockDropBoundPolicy.Judge(ForVanilla(7), [Drop("glassshards", 1f)]).Accepted);
+		Assert.Single(DropBoundPolicy.Judge(ForVanilla(7), [Drop("glassshards", 0f)]).Accepted);
+		Assert.Single(DropBoundPolicy.Judge(ForVanilla(7), [Drop("glassshards", 1f)]).Accepted);
 	}
 
 	[Fact]
@@ -119,10 +119,10 @@ public class GameBlockDropTableTests
 		Assert.Equal(0.4f, row.MaxCondition);
 
 		// The window is the spawner's own clamping: Clamp(Random.Range(0f, 1f), min, max).
-		Assert.Single(BlockDropBoundPolicy.Judge(rows, [Drop("scrapmetal", 0.3f)]).Accepted);
-		Assert.Single(BlockDropBoundPolicy.Judge(rows, [Drop("scrapmetal", 0.5f)]).Refused);
-		Assert.Single(BlockDropBoundPolicy.Judge(rows, [Drop("never", 0.5f)]).Refused);
-		Assert.Single(BlockDropBoundPolicy.Judge(rows, [Drop("stick", 0.3f)]).Refused);
+		Assert.Single(DropBoundPolicy.Judge(rows, [Drop("scrapmetal", 0.3f)]).Accepted);
+		Assert.Single(DropBoundPolicy.Judge(rows, [Drop("scrapmetal", 0.5f)]).Refused);
+		Assert.Single(DropBoundPolicy.Judge(rows, [Drop("never", 0.5f)]).Refused);
+		Assert.Single(DropBoundPolicy.Judge(rows, [Drop("stick", 0.3f)]).Refused);
 	}
 
 	[Fact]
@@ -139,13 +139,13 @@ public class GameBlockDropTableTests
 		TableType().GetMethod(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
 		?? throw new InvalidOperationException($"GameBlockDropTable.{name} not found.");
 
-	private static IReadOnlyList<BlockDropBound> ForVanilla(ushort block) =>
-		(IReadOnlyList<BlockDropBound>)TableMethod("ForVanilla").Invoke(null, [block])!;
+	private static IReadOnlyList<DropBound> ForVanilla(ushort block) =>
+		(IReadOnlyList<DropBound>)TableMethod("ForVanilla").Invoke(null, [block])!;
 
-	private static IReadOnlyList<BlockDropBound> ForTile(IModTileDefinition definition) =>
-		(IReadOnlyList<BlockDropBound>)TableMethod("ForTile").Invoke(null, [definition])!;
+	private static IReadOnlyList<DropBound> ForTile(IModTileDefinition definition) =>
+		(IReadOnlyList<DropBound>)TableMethod("ForTile").Invoke(null, [definition])!;
 
-	private static void AssertRows(IReadOnlyList<BlockDropBound> rows, params (string ItemId, float? Min, float? Max)[] expected)
+	private static void AssertRows(IReadOnlyList<DropBound> rows, params (string ItemId, float? Min, float? Max)[] expected)
 	{
 		Assert.Equal(expected.Length, rows.Count);
 		for (var i = 0; i < expected.Length; i++)

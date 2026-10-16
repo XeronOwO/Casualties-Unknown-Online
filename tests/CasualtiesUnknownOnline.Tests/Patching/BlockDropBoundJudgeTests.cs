@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -84,6 +85,74 @@ public class BlockDropBoundJudgeTests
 		Assert.Equal([41ul, 42ul], rejects);
 	}
 
+	// ---- the building-death half: the same report, the dying entities' own tables ----
+
+	[Fact]
+	public void BoundBuildingDrops_KeepsWhatTheDyingBuildingCanProduce_AndAnswersTheRest()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var rejects = new List<ulong>();
+		guest.Services.GetRequiredService<IItemControl>().ItemRejected += (itemId, _) => rejects.Add(itemId);
+		var judge = CreateJudge(host.Services.GetRequiredService<IItemControl>());
+
+		// The buildings that lost support at this cell drop scrapmetal between 0.5
+		// and 1: the scrapmetal is a real roll, the ilmenitechunk no row can produce.
+		var accepted = BoundBuilding(judge, [Row("scrapmetal", 0.5f, 1f)], [TrapDrop(11, "scrapmetal", 0.7f), TrapDrop(12, "ilmenitechunk")]);
+
+		var kept = Assert.Single(accepted);
+		Assert.Equal(11ul, kept.ItemId);
+		Assert.Equal([12ul], rejects);
+	}
+
+	[Fact]
+	public void BoundBuildingDrops_ALegitimateSet_ComesBackWholeWithNoAnswer()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var rejects = new List<ulong>();
+		guest.Services.GetRequiredService<IItemControl>().ItemRejected += (itemId, _) => rejects.Add(itemId);
+		var judge = CreateJudge(host.Services.GetRequiredService<IItemControl>());
+
+		// The window's own edge is a legitimate roll (Random.Range is inclusive), so
+		// an ordinary support-loss death must pass untouched.
+		var accepted = BoundBuilding(judge, [Row("scrapmetal", 0.5f, 1f)], [TrapDrop(21, "scrapmetal", 0.5f)]);
+
+		Assert.Equal([21ul], accepted.Select(drop => drop.ItemId));
+		Assert.Empty(rejects);
+	}
+
+	[Fact]
+	public void BoundBuildingDrops_NoBuildingLostSupportHere_AnswersEveryDrop()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var rejects = new List<ulong>();
+		guest.Services.GetRequiredService<IItemControl>().ItemRejected += (itemId, _) => rejects.Add(itemId);
+		var judge = CreateJudge(host.Services.GetRequiredService<IItemControl>());
+
+		// This host marked no building as losing support at the cell, so no roll for
+		// one can have produced these: the safe direction is to refuse them, because
+		// a report must not introduce a building's drops where no building died.
+		var accepted = BoundBuilding(judge, [], [TrapDrop(31, "scrapmetal", 0.7f), TrapDrop(32, "woodpanel")]);
+
+		Assert.Empty(accepted);
+		Assert.Equal([31ul, 32ul], rejects);
+	}
+
+	[Fact]
+	public void BoundBuildingDrops_OneRowAccountsForOneDrop()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var rejects = new List<ulong>();
+		guest.Services.GetRequiredService<IItemControl>().ItemRejected += (itemId, _) => rejects.Add(itemId);
+		var judge = CreateJudge(host.Services.GetRequiredService<IItemControl>());
+
+		// One guaranteed roll is one row: a single row over three pool ids still
+		// produces ONE item, so a report claiming two of them loses the second.
+		var accepted = BoundBuilding(judge, [Row("woodscraps", "stick", "woodpanel")], [TrapDrop(41, "stick"), TrapDrop(42, "woodpanel")]);
+
+		Assert.Single(accepted);
+		Assert.Single(rejects);
+	}
+
 	// ---- the adapter type (reflection: the test project never compile-references the adapter assembly) ----
 
 	private static object CreateJudge(IItemControl items)
@@ -118,4 +187,22 @@ public class BlockDropBoundJudgeTests
 
 	private static BlockDropEntryMsg Drop(ulong instanceId, string itemId, float condition = 1f) =>
 		new() { ItemId = instanceId, Item = new CharacterItemMsg { ItemId = itemId, Condition = condition } };
+
+	private static TrapDropEntryMsg TrapDrop(ulong instanceId, string itemId, float condition = 1f) =>
+		new() { ItemId = instanceId, Item = new CharacterItemMsg { ItemId = itemId, Condition = condition } };
+
+	private static DropBound Row(params string[] itemIds) => new(itemIds);
+
+	private static DropBound Row(string itemId, float min, float max) => new([itemId], min, max);
+
+	private static IReadOnlyList<TrapDropEntryMsg> BoundBuilding(object judge, IReadOnlyList<DropBound> bounds, List<TrapDropEntryMsg> drops)
+	{
+		var cell = Activator.CreateInstance(
+			GameAssemblyHost.ResolveType("UnityEngine.Vector2Int") ?? throw new InvalidOperationException("UnityEngine.Vector2Int not found."),
+			6, 6)!;
+		var method = judge.GetType().GetMethod("BoundBuildingDrops", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("BlockDropBoundJudge.BoundBuildingDrops not found.");
+
+		return (IReadOnlyList<TrapDropEntryMsg>)method.Invoke(judge, [GuestId, cell, bounds, drops])!;
+	}
 }

@@ -38,6 +38,7 @@ docs/architecture/evolution/status.md | keep | spec | docs/architecture/evolutio
 docs/architecture/evolution/templates/phase-session.md | keep | spec | docs/evidence/selfchecks/documentation/legacy-tree-migration-selfcheck.md
 docs/architecture/glossary.md | keep | index | docs/architecture/README.md
 docs/architecture/guards.md | keep | spec | docs/architecture/current.md
+docs/architecture/member-report-validation.md | keep | spec | docs/architecture/guards.md
 docs/architecture/mod-status-domain.md | keep | spec | docs/en/contributing/repository-map-and-pitfalls.md
 docs/architecture/projection-framework.md | keep | spec | docs/architecture/remote-inventory-native-parity.md
 docs/architecture/protocol.md | keep | spec | docs/backlog/review/bilingual-human-docs.md
@@ -308,6 +309,7 @@ docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md | keep | index 
 docs/backlog/todo/radiation-line-floor-stop.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/member-report-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/single-file-plugin-package.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md

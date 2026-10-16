@@ -24,6 +24,9 @@ currently covered by tests/processes and remain aspirational for tooling.
    state are prohibited.
 10. **No silent legacy**: `Legacy`/double-write code must carry a deletion milestone and
     must be zero before Phase E ends.
+11. **Report validation completeness**: every wire member a member's own client can author
+    must declare what the HOST bounds that report against, or the anchor it lacks and the
+    ticket that carries the gap ([member-report-validation.md](member-report-validation.md)).
 
 ## Automation status
 
@@ -39,6 +42,7 @@ currently covered by tests/processes and remain aspirational for tooling.
 | 8 Invariant suites | ❌ not automated; test coverage |
 | 9 No generic core state | ✅ `SourceShapeGateTests.KernelShape_NoStringKeyedStateOrHashtable` |
 | 10 No silent legacy | ✅ `SourceShapeGateTests.NoLegacy_NoRemovedDualArchitectureMarkers` |
+| 11 Report validation completeness | ✅ `ReportValidationCensusGateTests` (reach derived from the packet handlers and the authority policy) |
 
 ## Suggested tooling shape
 
@@ -116,6 +120,17 @@ Application assembly's reference set contains no Runtime, GameAdapter, Plugin or
 Runtime still references the layer, and the two types that deliberately stayed
 (`KernelBatchItemProjection`, `KernelEnvelopeHandler`) are named with their blocker — so moving one
 later is an edit to a recorded list, not silent drift.
+
+Member-report addendum (2026-10-16):
+`ReportValidationCensusGateTests` enforces guard 11 over
+[member-report-validation.md](member-report-validation.md). Its REACH is derived rather than declared: it
+reads the packet handlers' own `NetMessageDirection` (every `GuestToHost` and `Bidirectional` member) and
+the kernel's `WireCommandAuthorityPolicy` (every kind the policy does not declare `HostOnly`), so a new
+member-authored wire member fails the gate until it has a census row. Each row must carry a class
+(`Request` / `Fact` / `Presentation`) and a verdict (`bound:` / `unbounded:` / `n/a:`), and an `unbounded:`
+row must name an existing ticket under `docs/backlog/`, so a gap cannot be parked in silence. Its matchers
+are pinned by synthetic rows (a stale member, a bad class, a missing verdict, a ticketless gap, a truncated
+table) and by reading the real authority table and the real handler set.
 
 Adapter-seam addendum:
 `AdapterCapabilityPortShapeTests` freezes the Game Adapter seam. It asserts that `IGameAdapter`

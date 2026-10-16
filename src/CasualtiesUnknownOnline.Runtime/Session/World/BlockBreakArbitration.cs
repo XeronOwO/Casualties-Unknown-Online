@@ -34,10 +34,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// </summary>
 internal sealed class BlockBreakArbitration
 {
-	private readonly Dictionary<(ulong Sender, int CellX, int CellY), (float Now, ushort DestroyedBlock)> _recentBroken = [];
+	private readonly Dictionary<(ulong Sender, int CellX, int CellY), (float Now, ushort DestroyedBlock, IReadOnlyList<DropBound> BuildingRows)> _recentBroken = [];
 
-	/// <summary>The cells a break was already accepted for: the accepting sender, when, and which block that break destroyed. A same-sender report inside the window is a repeat (its relay was lost); a different sender is a second breaker.</summary>
-	private readonly Dictionary<(int CellX, int CellY), (ulong Sender, float Now, ushort DestroyedBlock)> _accepted = [];
+	/// <summary>The cells a break was already accepted for: the accepting sender, when, which block that break destroyed, and what the buildings losing support there could drop. A same-sender report inside the window is a repeat (its relay was lost); a different sender is a second breaker.</summary>
+	private readonly Dictionary<(int CellX, int CellY), (ulong Sender, float Now, ushort DestroyedBlock, IReadOnlyList<DropBound> BuildingRows)> _accepted = [];
 
 	internal int Count => _recentBroken.Count;
 
@@ -55,9 +55,18 @@ internal sealed class BlockBreakArbitration
 	/// REQUIRED: 0 is a real block id (air), which the drop table reads as
 	/// "produces nothing", so a default here would turn a caller that forgot it
 	/// into a host that refuses every drop in silence.
+	/// <para>
+	/// <paramref name="buildingRows"/> is the same fact one level up: the drop
+	/// tables of the buildings that lost their support block in THIS break, read
+	/// off the live entities by the caller at the only moment they still exist.
+	/// It rides this record for the same reason <paramref name="destroyedBlock"/>
+	/// does — the judgement happens after they are gone — and it is required for
+	/// the same reason, so a caller that forgets it refuses the report's building
+	/// drops instead of judging them.
+	/// </para>
 	/// </summary>
-	internal void RecordAppliedAirWrite(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock) =>
-		_recentBroken[(sender, cellX, cellY)] = (now, destroyedBlock);
+	internal void RecordAppliedAirWrite(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock, IReadOnlyList<DropBound> buildingRows) =>
+		_recentBroken[(sender, cellX, cellY)] = (now, destroyedBlock, buildingRows);
 
 	/// <summary>
 	/// First-writer-wins: the sender's unconsumed air-write record for this cell
@@ -94,8 +103,15 @@ internal sealed class BlockBreakArbitration
 	/// applied (Fresh), the block the running record was created with (Repeat), or
 	/// this side's live cell for the standing shape (LostAirWrite). It is 0 on a
 	/// refusal, where nothing gets judged against it.
+	///
+	/// <paramref name="buildingRows"/> answers the same question for the buildings
+	/// that lost their support block in that break, and its EMPTY value is not
+	/// "nothing can drop" but "this machine holds no answer": on the standing shape
+	/// no air-write record exists to have captured one, and the caller — which runs
+	/// before the entities are destroyed — is the side that supplies it. A refusal
+	/// leaves it empty too.
 	/// </summary>
-	internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified, ushort standingBlock, out ushort destroyedBlock)
+	internal Verdict TryAccept(ulong sender, int cellX, int cellY, bool cellIsAir, bool generationVerified, ushort standingBlock, out ushort destroyedBlock, out IReadOnlyList<DropBound> buildingRows)
 	{
 		if (_recentBroken.TryGetValue((sender, cellX, cellY), out var recorded))
 		{
@@ -103,22 +119,26 @@ internal sealed class BlockBreakArbitration
 			// that overload is netstandard-2.1, and this tree targets net48.
 			_recentBroken.Remove((sender, cellX, cellY));
 			destroyedBlock = recorded.DestroyedBlock;
+			buildingRows = recorded.BuildingRows;
 			return Verdict.Fresh;
 		}
 
 		if (_accepted.TryGetValue((cellX, cellY), out var accepted))
 		{
 			destroyedBlock = accepted.DestroyedBlock;
+			buildingRows = accepted.BuildingRows;
 			return accepted.Sender == sender ? Verdict.Repeat : Verdict.Refused;
 		}
 
 		if (generationVerified && !cellIsAir)
 		{
 			destroyedBlock = standingBlock;
+			buildingRows = NoBuildingRows;
 			return Verdict.LostAirWrite;
 		}
 
 		destroyedBlock = 0;
+		buildingRows = NoBuildingRows;
 		return Verdict.Refused;
 	}
 
@@ -135,9 +155,17 @@ internal sealed class BlockBreakArbitration
 	/// reason the air-write record carries it: a repeat arrives with the SAME
 	/// drop set, and bounding it needs the block that break destroyed — the cell
 	/// itself stopped saying so the moment the break landed.
+	/// <paramref name="buildingRows"/> is carried for exactly that reason too, and
+	/// it is the one that makes a repeat judge its building drops EXACTLY as the
+	/// first report did: the entities are long destroyed by then, so a repeat that
+	/// re-read the world would find nothing and refuse drops this host already
+	/// registered and relayed.
 	/// </summary>
-	internal void RecordAccepted(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock) =>
-		_accepted[(cellX, cellY)] = (sender, now, destroyedBlock);
+	internal void RecordAccepted(ulong sender, int cellX, int cellY, float now, ushort destroyedBlock, IReadOnlyList<DropBound> buildingRows) =>
+		_accepted[(cellX, cellY)] = (sender, now, destroyedBlock, buildingRows);
+
+	/// <summary>The answer this machine has when it captured nothing: no building's rows, which callers read as "no table here" rather than "a table of no rows".</summary>
+	private static readonly IReadOnlyList<DropBound> NoBuildingRows = [];
 
 	/// <summary>
 	/// The world/layer these records describe is gone (a descent regenerates

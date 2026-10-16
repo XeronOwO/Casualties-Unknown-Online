@@ -82,7 +82,7 @@ public class BlockBreakSimulationTests
 			// the only cell model it has, so the standing-block shape cannot arise
 			// here (GuestBreakDropRecoveryTests covers it with a real cell state and
 			// a real generation stamp).
-			var verdict = arbitration.TryAccept(sender, cellX, cellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _);
+			var verdict = arbitration.TryAccept(sender, cellX, cellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _);
 			if (verdict == Verdict.Refused)
 			{
 				if (drops is not null)
@@ -104,7 +104,7 @@ public class BlockBreakSimulationTests
 				return;
 			}
 
-			arbitration.RecordAccepted(sender, cellX, cellY, now: 0f, destroyedBlock: 1); // the break is real
+			arbitration.RecordAccepted(sender, cellX, cellY, now: 0f, destroyedBlock: 1, buildingRows: []); // the break is real
 			accepted.Value++;
 			relays.Value++;
 			if (sender == G2Id)
@@ -141,7 +141,7 @@ public class BlockBreakSimulationTests
 
 		// The breaker's air-write was applied (BlockPlaced precedes BlockDamaged —
 		// both reliable, same source).
-		w.Arbitration.RecordAppliedAirWrite(G1Id, 5, 7, now: 0, destroyedBlock: 1);
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 5, 7, now: 0, destroyedBlock: 1, buildingRows: []);
 
 		ReportBreak(w.G1, 5, 7);
 		w.Driver.Tick(33);
@@ -168,7 +168,7 @@ public class BlockBreakSimulationTests
 		var w = CreateWorld();
 
 		// G1's air-write applied and its break was accepted: the cell is G1's.
-		w.Arbitration.RecordAppliedAirWrite(G1Id, 5, 7, now: 0, destroyedBlock: 1);
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 5, 7, now: 0, destroyedBlock: 1, buildingRows: []);
 		ReportBreak(w.G1, 5, 7, drops: [new BlockDropEntryMsg { ItemId = 77 }]);
 		w.Driver.Tick(33);
 		Assert.True(w.AcceptedBreaks.Value == 1, "the first break is accepted");
@@ -203,7 +203,7 @@ public class BlockBreakSimulationTests
 	public void DropsRideTheAcceptedBreak()
 	{
 		var w = CreateWorld();
-		w.Arbitration.RecordAppliedAirWrite(G1Id, 3, 4, now: 0, destroyedBlock: 1);
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 3, 4, now: 0, destroyedBlock: 1, buildingRows: []);
 
 		ReportBreak(w.G1, 3, 4, drops: [new BlockDropEntryMsg { ItemId = 77 }]);
 		w.Driver.Tick(33);
@@ -217,7 +217,7 @@ public class BlockBreakSimulationTests
 	public void BuildingDropsRideTheAcceptedBreakRelay()
 	{
 		var w = CreateWorld();
-		w.Arbitration.RecordAppliedAirWrite(G1Id, 3, 4, now: 0, destroyedBlock: 1);
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 3, 4, now: 0, destroyedBlock: 1, buildingRows: []);
 
 		ReportBreak(w.G1, 3, 4,
 			buildingDrops:
@@ -249,7 +249,7 @@ public class BlockBreakSimulationTests
 	public void MetalBonus_RidesTheAcceptedBreakRelay()
 	{
 		var w = CreateWorld();
-		w.Arbitration.RecordAppliedAirWrite(G1Id, 4, 4, now: 0, destroyedBlock: 1);
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 4, 4, now: 0, destroyedBlock: 1, buildingRows: []);
 
 		ReportBreak(w.G1, 4, 4, drops: [new BlockDropEntryMsg { ItemId = 78 }], metalBonus: true);
 		w.Driver.Tick(33);
@@ -271,7 +271,7 @@ public class BlockBreakSimulationTests
 		// G1's air-write applied first — the host's OnRemoteBlockPlaced refuses
 		// G2's same-cell air-write as already-broken, so only G1 has the
 		// first-writer record. Both breaks then arrive in the same tick.
-		w.Arbitration.RecordAppliedAirWrite(G1Id, 5, 7, now: 0, destroyedBlock: 1);
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 5, 7, now: 0, destroyedBlock: 1, buildingRows: []);
 		ReportBreak(w.G1, 5, 7, drops: [new BlockDropEntryMsg { ItemId = 77 }]);
 		ReportBreak(w.G2, 5, 7, drops: [new BlockDropEntryMsg { ItemId = 88 }]);
 		w.Driver.Tick(33);
@@ -303,7 +303,7 @@ public class BlockBreakSimulationTests
 			if (rng.NextDouble() < 0.6)
 			{
 				// The air-write landed (60 %) — the break may be accepted.
-				w.Arbitration.RecordAppliedAirWrite(breaker.SteamId, cellX, cellY, now: 0, destroyedBlock: 1);
+				w.Arbitration.RecordAppliedAirWrite(breaker.SteamId, cellX, cellY, now: 0, destroyedBlock: 1, buildingRows: []);
 			}
 
 			ReportBreak(breaker, cellX, cellY);

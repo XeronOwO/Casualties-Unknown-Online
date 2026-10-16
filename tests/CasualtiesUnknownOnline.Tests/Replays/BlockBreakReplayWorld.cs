@@ -135,7 +135,7 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 			// The replay carries no run baseline, so every report compares as
 			// UNKNOWN and no report can take the generation-verified branch: a
 			// recorded air write (the sim's only cell model) is what accepts a break.
-			var verdict = world._arbitration.TryAccept(sender, cellX, cellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _);
+			var verdict = world._arbitration.TryAccept(sender, cellX, cellY, cellIsAir: true, generationVerified: false, standingBlock: 0, out _, out _);
 			if (verdict == Verdict.Refused)
 			{
 				if (drops is not null)
@@ -167,9 +167,9 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 		return world;
 	}
 
-	/// <summary>The host applied the sender's air-write (its BlockPlaced / SetBlock(0) report) — the first-writer record for the break arbitration.</summary>
+	/// <summary>The host applied the sender's air-write (its BlockPlaced / SetBlock(0) report) — the first-writer record for the break arbitration. The cell model carries no building entities, so the building-drop table of the dying ones is the empty set: this replay exercises the block half of the verdict, and the drops it replays are materialized as the message carries them.</summary>
 	internal void AirWrite(TestNode node, int cellX, int cellY) =>
-		_arbitration.RecordAppliedAirWrite(node.SteamId, cellX, cellY, now: Driver.NowMs / 1000f, destroyedBlock: 1);
+		_arbitration.RecordAppliedAirWrite(node.SteamId, cellX, cellY, now: Driver.NowMs / 1000f, destroyedBlock: 1, buildingRows: []);
 
 	/// <summary>One break report (break + drops = ONE message, one verdict) from a guest.</summary>
 	internal void Break(TestNode guest, int cellX, int cellY, IReadOnlyList<BlockDropEntryMsg> drops, bool metalBonus)

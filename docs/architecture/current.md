@@ -420,16 +420,19 @@ and a refusal settles the value the writer had already applied to its own object
 record (`ItemDataWriteSettlement`), keyed by the kind the answer names (`WireCommand.RefusedKind`).
 
 The seam is not the only place a member's report is judged, and the second one sits in the Game Adapter
-because the fact it needs is the game's own: a destruction report's drops are bounded against the block that
-break destroyed (`BlockDropBoundPolicy` judges, `GameBlockDropTable` carries the game's switch and a custom
-tile's authored drops, `BlockDropBoundJudge` is the host-side user). The roll itself is NOT reproducible —
-the game draws it from the process-global unseeded `UnityEngine.Random` — so the host bounds instead of
-re-rolling: the destroyed block id is its OWN read from before it applied the air write
-(`BlockBreakArbitration` carries it through the fresh, repeat and lost-air-write verdicts), the report's
-drops are matched as a set against that block's table (a drop no assignment of the report to the table's rows
-can account for is refused by name, and only those drops — the rest keeps its normal fate), and the stages
-that remain open (the entity death drops, the state preconditions) are
-`todo/validation-and-source-checks.md`'s.
+because the fact it needs is the game's own: a destruction report's drops are bounded against the thing that
+break destroyed (`DropBoundPolicy` judges, `GameBlockDropTable` carries the game's switch and a custom
+tile's authored drops, `GameBuildingDropTable` a dying building's own prefab data, `BlockDropBoundJudge` is
+the host-side user). The roll itself is NOT reproducible — the game draws it from the process-global
+unseeded `UnityEngine.Random` — so the host bounds instead of re-rolling: the destroyed block id is its OWN
+read from before it applied the air write (`BlockBreakArbitration` carries it through the fresh, repeat and
+lost-air-write verdicts), the report's drops are matched as a set against that block's table (a drop no
+assignment of the report to the table's rows can account for is refused by name, and only those drops — the
+rest keeps its normal fate), and the buildings that lost their support block in that break have their own
+tables read at the MARK, the one moment their components still exist, keyed by the cell the report already
+carries. What every other member-authored wire member is bounded against — or the anchor it lacks — is the
+census in [member-report-validation.md](member-report-validation.md); the stages still open are
+`todo/validation-and-source-checks.md`'s and `todo/member-report-bounds.md`'s.
 
 ### 7.2 Guest prediction model (not implemented in current code)
 
@@ -515,6 +518,9 @@ five guards currently automated in `SourceShapeGateTests` are:
 Other aspirational guards — event reducer/serialization registration, checkpoint
 round-trip enforcement, and invariant-suite registration — are currently covered by
 tests/processes but are **not** automated by the C# source-shape gates today.
+Report-validation completeness (guard 11) is automated outside `SourceShapeGateTests`,
+by `ReportValidationCensusGateTests` over
+[member-report-validation.md](member-report-validation.md).
 
 ## 17. Explicit non-goals
 

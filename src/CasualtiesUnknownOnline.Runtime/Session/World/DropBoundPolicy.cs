@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -7,12 +8,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// The host's bound on what a member's destruction report may carry as drops.
 /// <para>
 /// The roll itself is NOT reproducible on the host, and that is the evidence
-/// this stage turned on: the game rolls its block drops with
-/// <c>UnityEngine.Random</c> inside <c>WorldGeneration.DamageBlock</c>
+/// this stage turned on: the game rolls its drops with <c>UnityEngine.Random</c>
+/// — inside <c>WorldGeneration.DamageBlock</c> for a block
 /// (<c>reversing/Assembly-CSharp/Assembly-CSharp/WorldGeneration.cs:751-837</c>)
-/// — a process-global, UNSEEDED stream that everything else in that process
+/// and inside <c>BuildingEntity.Update</c> for a dying entity
+/// (<c>reversing/Assembly-CSharp/Assembly-CSharp/BuildingEntity.cs:74-120</c>) —
+/// a process-global, UNSEEDED stream that everything else in that process
 /// advances (sky colour, footsteps, world generation, earthquakes). The host
-/// cannot know where the breaker's stream stood, so which item, how many and
+/// cannot know where the reporter's stream stood, so which item, how many and
 /// which condition a legitimate roll produced cannot be re-derived. A check that
 /// re-rolled would refuse ordinary play.
 /// </para>
@@ -25,13 +28,20 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// on any side.
 /// </para>
 /// <para>
-/// The rule is deliberately one-sided: a MISSING drop is the breaker's own loss
+/// The rule is deliberately one-sided: a MISSING drop is the reporter's own loss
 /// and is never refused, while an ADDED one is the injection this exists to
 /// stop. A report claiming fewer drops than the table allows therefore passes,
 /// and that is the intended failure direction.
 /// </para>
+/// <para>
+/// TWO message shapes carry the same claim — a block break's own drops
+/// (<see cref="BlockDropEntryMsg"/>) and the building-death drops that ride the
+/// same report (<see cref="TrapDropEntryMsg"/>) — and they answer to one rule,
+/// so both go through the same <see cref="Partition{TDrop}"/> rather than two
+/// matchers that could drift apart.
+/// </para>
 /// </summary>
-internal static class BlockDropBoundPolicy
+internal static class DropBoundPolicy
 {
 	/// <summary>
 	/// The float slack a condition window comparison allows. The value crosses one
@@ -44,10 +54,18 @@ internal static class BlockDropBoundPolicy
 	private const float ConditionSlack = 1e-3f;
 
 	/// <summary>One report's drops, split by whether a table row can account for each.</summary>
-	internal readonly record struct Outcome(IReadOnlyList<BlockDropEntryMsg> Accepted, IReadOnlyList<BlockDropEntryMsg> Refused)
+	internal readonly record struct Outcome<TDrop>(IReadOnlyList<TDrop> Accepted, IReadOnlyList<TDrop> Refused)
 	{
 		internal bool AnyRefused => Refused.Count > 0;
 	}
+
+	/// <summary>The destroyed BLOCK's own table, against the drops a break report carries.</summary>
+	internal static Outcome<BlockDropEntryMsg> Judge(IReadOnlyList<DropBound> bounds, IReadOnlyList<BlockDropEntryMsg>? drops) =>
+		Partition(bounds, drops, static drop => new DropClaim(drop.Item?.ItemId, drop.Item?.Condition ?? 0f));
+
+	/// <summary>The same judgement over the same rule, for the building-death drops that ride a break report: their table is the dying entity's own prefab data, read while the entity was still alive.</summary>
+	internal static Outcome<TrapDropEntryMsg> JudgeBuildingDrops(IReadOnlyList<DropBound> bounds, IReadOnlyList<TrapDropEntryMsg>? drops) =>
+		Partition(bounds, drops, static drop => new DropClaim(drop.Item?.ItemId, drop.Item?.Condition ?? 0f));
 
 	/// <summary>
 	/// Split <paramref name="drops"/> against <paramref name="bounds"/>, each row
@@ -61,14 +79,27 @@ internal static class BlockDropBoundPolicy
 	/// the order that puts the wide row first. An augmenting path moves the earlier
 	/// drop to another row when that is what makes room, so a drop is refused only
 	/// when NO assignment of the whole report to the table's rows can account for
-	/// it, and a report never loses more drops than it must.
+	/// it, and a report never loses more drops than it must. The COUNT of refusals
+	/// is what is minimal, not the choice among equals: when several drops could
+	/// only have come from the same rows, which one loses out follows report
+	/// order, so a refusal names a drop no row can account for without claiming
+	/// that THAT one specifically was forged.
 	/// </para>
 	/// </summary>
-	internal static Outcome Judge(IReadOnlyList<BlockDropBound> bounds, IReadOnlyList<BlockDropEntryMsg>? drops)
+	private static Outcome<TDrop> Partition<TDrop>(IReadOnlyList<DropBound> bounds, IReadOnlyList<TDrop>? drops, Func<TDrop, DropClaim> claim)
 	{
 		if (drops is not { Count: > 0 })
 		{
-			return new Outcome([], []);
+			return new Outcome<TDrop>([], []);
+		}
+
+		// The claim is read ONCE per drop: the matcher walks the same drops several
+		// times (one augmenting path per root drop), and a projection that re-read
+		// the message each time would read state a receiver may have rewritten.
+		var claims = new DropClaim[drops.Count];
+		for (var drop = 0; drop < claims.Length; drop++)
+		{
+			claims[drop] = claim(drops[drop]);
 		}
 
 		var rowOwner = new int[bounds.Count];
@@ -76,11 +107,11 @@ internal static class BlockDropBoundPolicy
 		{
 			rowOwner[row] = -1; // 0 is a drop index, so "no owner" needs its own value
 		}
-		var accepted = new List<BlockDropEntryMsg>(drops.Count);
-		var refused = new List<BlockDropEntryMsg>();
-		for (var drop = 0; drop < drops.Count; drop++)
+		var accepted = new List<TDrop>(drops.Count);
+		var refused = new List<TDrop>();
+		for (var drop = 0; drop < claims.Length; drop++)
 		{
-			if (Assign(bounds, drops, drop, new bool[bounds.Count], rowOwner))
+			if (Assign(bounds, claims, drop, new bool[bounds.Count], rowOwner))
 			{
 				accepted.Add(drops[drop]);
 				continue;
@@ -89,7 +120,7 @@ internal static class BlockDropBoundPolicy
 			refused.Add(drops[drop]);
 		}
 
-		return new Outcome(accepted, refused);
+		return new Outcome<TDrop>(accepted, refused);
 	}
 
 	/// <summary>
@@ -99,7 +130,7 @@ internal static class BlockDropBoundPolicy
 	/// <paramref name="seen"/> is per root drop, which is what keeps the walk from
 	/// revisiting a row it already tried.
 	/// </summary>
-	private static bool Assign(IReadOnlyList<BlockDropBound> bounds, IReadOnlyList<BlockDropEntryMsg> drops, int drop, bool[] seen, int[] rowOwner)
+	private static bool Assign(IReadOnlyList<DropBound> bounds, IReadOnlyList<DropClaim> drops, int drop, bool[] seen, int[] rowOwner)
 	{
 		for (var row = 0; row < bounds.Count; row++)
 		{
@@ -119,8 +150,10 @@ internal static class BlockDropBoundPolicy
 		return false;
 	}
 
-	private static bool CanAccountFor(BlockDropBound bound, BlockDropEntryMsg drop) =>
-		drop.Item is { } item
-		&& !string.IsNullOrEmpty(item.ItemId)
-		&& bound.AccountsFor(item.ItemId, item.Condition, ConditionSlack);
+	private static bool CanAccountFor(DropBound bound, DropClaim drop) =>
+		drop.ItemId is { Length: > 0 } itemId
+		&& bound.AccountsFor(itemId, drop.Condition, ConditionSlack);
+
+	/// <summary>What a reported drop claims about itself: the two facts a table row can answer for.</summary>
+	private readonly record struct DropClaim(string? ItemId, float Condition);
 }

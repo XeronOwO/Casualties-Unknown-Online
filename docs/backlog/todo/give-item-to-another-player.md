@@ -77,3 +77,53 @@ A three-client run (operator = the giver, owner = the receiver, third peer = a w
 - Not a change to the receiver-initiated take (`TransferToBody`), which stays as it is.
 - Not the access policy itself: the three-way host rule that must gate this gesture is
   `todo/remote-backpack-access-policy.md`, and it lands separately (this ticket obeys whatever that rule says).
+## Design decided (2026-10-17 — the two questions above, answered by the user)
+
+The gesture and the presentation were the user's call because this gesture has no native counterpart to
+inherit. Both were answered:
+
+1. **Which release means "give"**: BOTH of the displayed backpack's own targets — a ring slot of the displayed
+   backpack (the item goes to the receiver's body) and an item shown in it (the item goes into that container,
+   when the receiver's own container rules allow it). This is exactly the mirror of what the receiver-initiated
+   half already does, so both directions of one hand-over read the same way and a player learns one gesture.
+2. **What the receiver sees and hears**: entirely native — the item simply appears in a slot the receiver's own
+   rules accepted, with the native pickup feedback. No new presentation is built: the project's existing target
+   for this family ("indistinguishable from operating your own inventory") is what applies, and the game has no
+   hand-over animation to reuse.
+
+Question 3 of that list (a full or refusing destination) is already answered by the family's own rule and needs
+no decision: the receiver's native rules refuse it, with the native feedback and one observable line.
+
+## Where the change lands (surveyed 2026-10-17, so the next session starts from here)
+
+- **The intent vocabulary**: `RemoteInventoryIntentKind` holds `TransferToBody = 7`, which is the
+  receiver-initiated half this gesture mirrors; the new kind takes the next free number, and the wire change
+  rides this commit and this ticket (decision 241 — the pre-release baseline stays frozen).
+- **The release seam that refuses it today**: `PlayerCameraDragUsePatch` calls
+  `bridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description)` where the drag item
+  belongs to THIS client and the target belongs to the other player. That call is the entry point: it becomes a
+  classification instead of an unconditional refusal.
+- **The classification half**: `RemoteDragIntentCapture` already turns a release onto a proxy into the frozen
+  vocabulary (its `CapturePickUp` adds `TransferToBody` with `LocalSteamId` as the destination body). The new
+  kind's operands are the item, the DESTINATION player's SteamId and the destination slot or container id — the
+  mirror image of that line, where the item's owner is the actor rather than the destination.
+- **The host's native-intent half to mirror**: `PlayerInventoryTakeService.HandleRemoteBackpackTransferToBody`
+  ("the requester's own ..."), dispatched from `PlayerRemoteInventoryIntentService`'s switch. The new kind's
+  host half validates that the item is the REQUESTER's, that the destination body is NOT the requester's, that
+  the destination player is a member, and the access policy — then arbitrates the item first-writer-wins and
+  records the fact. It still never models inventory contents.
+- **The receiving client's branch**: `RemoteIntentApplier`'s switch is where a receiving client runs the native
+  operation on its own body. The new kind's branch is the same shape as `TransferToBody`'s — the receiver runs
+  the native pickup so its own slot, weight and tag rules decide — with the ownership read from the other side.
+- **The refusal that must stay observable**: today's one Warning line is what a run reads in row 3 of the
+  acceptance table. If the gesture is refused (unwatching receiver, policy deny, missing membership), the line
+  must still be there and name which check refused it.
+
+## What this ticket still owes, and what it does not
+
+- It obeys the access policy of `todo/remote-backpack-access-policy.md`; that ticket lands separately and this
+  one does not build the policy.
+- The receiver-initiated half (`TransferToBody`) is not touched.
+- A new intent kind with a client half on both sides is the largest shape this family has, so it carries the
+  whole acceptance table above: six rows, three clients, including the local control (row 5) that proves the
+  same release onto the giver's OWN backpack still runs the native move.

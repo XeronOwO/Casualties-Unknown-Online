@@ -5624,7 +5624,7 @@
       "cluster": "inline",
       "row": "I6",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs",
-      "quote": "FireRecipeUnlockReceived(sender, index);"
+      "quote": "TryApplyReportedUnlock(sender, index)"
     },
     {
       "cluster": "inline",

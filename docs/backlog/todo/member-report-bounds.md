@@ -68,7 +68,7 @@ described above:
   table was the only check, so a report could move ANOTHER member's scene state and have the host send
   that member the whole entry fanout. NOW: on the host the claim must name the sender, and the fallback is
   deleted rather than kept as a second path.
-## B. A number the host could derive, taken from the report
+## B. A number the host could derive, taken from the report (one row closed 2026-10-17)
 
 - **`NetMsg.BuildingEntityDamaged` (51)** — the only check is that an entity stands at the position;
   `entity.health -= damage;` takes the magnitude as reported, so one report destroys any building. The
@@ -83,8 +83,12 @@ described above:
   offsets and the flags ride the payload. The host holds the trader's own state, so the action can be
   re-priced host-side instead of trusted.
 - **`NetMsg.RecipeUnlock` (77)** — `RecipeUnlockReceived?.Invoke(recipeIndex);` applies and the handler then
-  relays, with no range check against the host's own recipe table (the SNAPSHOT path does check it:
-  `if (!known.Add(index)) { continue; }` behind `CaptureUnlockedRecipes()`).
+  relays, with no range check against the host's own recipe table (the SNAPSHOT path's `known` set answers a
+  different question — whether the host had already LEARNED the index, never whether its table HAS one).
+  index must be one entry of THIS host's table (`CraftSyncService.MayApplyReportedUnlock`, pinned by
+  `RecipeUnlockBackfillTests`); an index it has no recipe for is refused by name — nothing applied here,
+  nothing relayed — while the host's own unlock, every guest-side apply and a read that FAILED keep the
+  behaviour they had.
 - **`NetMsg.BlockPlaced` — an air write, the break carrier's cell (found by batch `20261016-c`)** — the census
   row's own bound (`the generation stamp + the first-writer cell rule`) covers the layer and the cell's state,
   never the REPORTER: `WorldEventSync.OnRemoteBlockPlaced` reads the host's own cell

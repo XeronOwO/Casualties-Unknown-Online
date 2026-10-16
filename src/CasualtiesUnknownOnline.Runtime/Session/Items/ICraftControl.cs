@@ -50,7 +50,7 @@ public interface ICraftControl
 	/// <summary>A craft report arrived: the host classifies per entry against its tables, applies, stamps the relay routing and relays (source excluded); a guest applies the relay positionally (scene removals + stamped corrections + product fact-table updates).</summary>
 	void FireCraftReportReceived(ulong sender, CraftReportMsg msg);
 
-	/// <summary>A recipe-unlock report arrived: every side raises the apply event (the adapter sets the static INT); the host additionally relays (source excluded).</summary>
+	/// <summary>A recipe-unlock report arrived: every side raises the apply event (the adapter sets the static INT); the host additionally relays (source excluded). On the HOST a member's index must be one entry of this host's OWN recipe table — an index it has no recipe for is refused by name, applied nowhere and relayed nowhere.</summary>
 	void FireRecipeUnlockReceived(ulong sender, int recipeIndex);
 
 	/// <summary>

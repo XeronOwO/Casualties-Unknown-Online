@@ -253,8 +253,21 @@ public sealed class CraftSyncService(
 		}
 	}
 
-	public void FireRecipeUnlockReceived(ulong sender, int recipeIndex)
+	public void FireRecipeUnlockReceived(ulong sender, int recipeIndex) => TryApplyReportedUnlock(sender, recipeIndex);
+
+	/// <summary>
+	/// The one apply path for an unlock: judge the report, apply it here (every side sets its own
+	/// static) and, on the host, relay it. Returns whether it was APPLIED — a refused index is not,
+	/// which is the count the set merge reports and the reason the two callers read one verdict
+	/// instead of counting a refusal as learned.
+	/// </summary>
+	private bool TryApplyReportedUnlock(ulong sender, int recipeIndex)
 	{
+		if (!MayApplyReportedUnlock(sender, recipeIndex))
+		{
+			return false; // refused by name in the log: nothing applied here, nothing relayed
+		}
+
 		RecipeUnlockReceived?.Invoke(recipeIndex); // every side applies its own static
 		if (_session.Role == SessionRole.Host)
 		{
@@ -267,10 +280,54 @@ public sealed class CraftSyncService(
 				_session.BroadcastExcept(sender, NetMsg.RecipeUnlock, new RecipeUnlockMsg { RecipeIndex = recipeIndex });
 			}
 		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Host: may this reported index be applied at all? The unlock is irreversible and
+	/// every side writes <c>Recipes.recipes[index].INT = 0</c> onto its OWN table, so an
+	/// index this host's table does not have is a latch no side can serve — the census
+	/// row's gap was that the live report path compared it with nothing (the snapshot
+	/// merge at least unioned against the host's known set). The anchor is the HOST's
+	/// own recipe table, entry by entry, which is the very table every other side is
+	/// then asked to write.
+	///
+	/// The host's own unlock and every guest-side apply are not this rule's business.
+	/// A read that FAILED (no live world yet, or no reader registered in this
+	/// composition) is NOT a refusal: the report applies as before and the reason is
+	/// named, because a build without a native-fact reader would otherwise lose every
+	/// member's unlock.
+	/// </summary>
+	private bool MayApplyReportedUnlock(ulong sender, int recipeIndex)
+	{
+		if (_session.Role != SessionRole.Host || sender == _session.LocalSteamId)
+		{
+			return true;
+		}
+
+		var fields = _nativeWorldFacts?.CaptureRunFields();
+		if (fields is null || fields.Value.Failure is not null)
+		{
+			_log.LogWarning("[Crafting] {Sender} reported recipe {Index} unlocked, but this host has no live recipe table to judge it against ({Reason}) — the report is applied as before.",
+				sender, recipeIndex, fields?.Failure ?? "no native-fact reader is registered");
+			return true;
+		}
+
+		foreach (var row in fields.Value.Recipes)
+		{
+			if (row.Index == recipeIndex)
+			{
+				return true;
+			}
+		}
+
+		_log.LogWarning("[Crafting] refused {Sender}'s recipe {Index}: this host's table has no such recipe ({Count} entries) — nothing applied, nothing relayed.",
+			sender, recipeIndex, fields.Value.Recipes.Count);
+		return false;
 	}
 
 	// ===== The absolute unlock set (I6): the host's backfill and the guest's re-report =====
-
 	public void SendRecipeUnlockSnapshot(ulong targetSteamId)
 	{
 		if (_session.Role != SessionRole.Host || targetSteamId == 0)
@@ -339,7 +396,7 @@ public sealed class CraftSyncService(
 			if (spent > MaxRecipeSetReports)
 			{
 				_uncarriedRecipes.Remove(index);
-				_log.LogWarning("[Crafting] recipe {Index} is still not carried by the host's set after {Attempts} re-report(s) — the re-report stops for it (this host's recipe table holds no such recipe, so its set can never carry it).",
+				_log.LogWarning("[Crafting] recipe {Index} is still not carried by the host's set after {Attempts} re-report(s) — the re-report stops for it (this host's set never carried it, so the windows spent on it cannot converge).",
 					index, MaxRecipeSetReports);
 				continue;
 			}
@@ -430,8 +487,8 @@ public sealed class CraftSyncService(
 	/// adapter's write, with the alert only on a real learn) and relay to the
 	/// other members, source excluded — so the merge adds no second apply path, a
 	/// repeated set costs one comparison, and an index whose recipe this host does
-	/// not have is refused by the same apply the live report uses (named in the
-	/// log on every side). A set that cannot be compared (no live table) is NOT
+	/// not have is refused BY NAME before the apply the live report uses, so
+	/// nothing is applied and nothing is relayed for it. A set that cannot be compared (no live table) is NOT
 	/// applied blindly: the reporter's entry stays pending on its side and comes
 	/// back on the next cycle.
 	/// </summary>
@@ -458,8 +515,10 @@ public sealed class CraftSyncService(
 				continue; // this host already holds it — the merge is a union, never a re-lock
 			}
 
-			FireRecipeUnlockReceived(sender, index);
-			learned++;
+			if (TryApplyReportedUnlock(sender, index))
+			{
+				learned++;
+			}
 		}
 
 		_log.LogInformation("[Crafting] {Sender}'s unlock set: {Total} reported, {Learned} this host had not learned.", sender, recipeIndexes.Count, learned);

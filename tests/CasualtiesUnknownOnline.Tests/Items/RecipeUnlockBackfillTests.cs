@@ -54,6 +54,17 @@ public class RecipeUnlockBackfillTests
 			if (!_byNode.TryGetValue(steamId, out var table))
 			{
 				table = new FakeNativeWorldFacts();
+				// A live recipe table is never EMPTY, and the difference matters to the host's
+				// identity check on a reported unlock: seed the small table these cases read
+				// indices from (0..19), so "this host's table has no such recipe" is a statement
+				// about a table rather than about a fake nobody filled in.
+				var rows = new List<Runtime.Persistence.SaveRecipeUnlockRow>();
+				for (var index = 0; index < 20; index++)
+				{
+					rows.Add(new Runtime.Persistence.SaveRecipeUnlockRow { Index = index, MadeBefore = false, IntValue = 5 });
+				}
+
+				table.SeedRunFields(1f, 1f, 0f, [.. rows]);
 				_byNode[steamId] = table;
 			}
 
@@ -341,5 +352,70 @@ public class RecipeUnlockBackfillTests
 		// nothing is relayed (the reporter's set comes back on the next cycle).
 		Assert.Empty(hostLearned);
 		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.RecipeUnlock));
+	}
+
+	/// <summary>
+	/// The census row's gap: the live report path applied AND RELAYED an index with no
+	/// comparison against the HOST's own recipe table. What a RECEIVER did with it was
+	/// already its own business — <c>RecipeUnlockApply</c> refuses an index its own table
+	/// lacks — so what the bound removes is the host's missing decision and a relay every
+	/// receiver drops, plus the one case where a receiver's table IS longer (two tables of
+	/// different length in an admitted session).
+	/// </summary>
+	[Fact]
+	public void AGuestReportingAnIndexThisHostsTableHasNot_IsRefusedAndNotRelayed()
+	{
+		var tables = new NodeRecipeTables();
+		using var w = Create(tables);
+		var hostLearned = new List<int>();
+		var g2Learned = new List<int>();
+		w.Host.Services.GetRequiredService<ICraftControl>().RecipeUnlockReceived += index => hostLearned.Add(index);
+		w.G2.Services.GetRequiredService<ICraftControl>().RecipeUnlockReceived += index => g2Learned.Add(index);
+
+		GuestUnlocks(w.G1, 999);
+		w.Driver.Tick(33);
+
+		Assert.Empty(hostLearned);
+		Assert.Empty(g2Learned);
+		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.RecipeUnlock));
+	}
+
+	/// <summary>The control: the same path with an index the host's table DOES have is untouched.</summary>
+	[Fact]
+	public void AGuestReportingAnIndexThisHostsTableHas_IsAppliedAndRelayed()
+	{
+		var tables = new NodeRecipeTables();
+		using var w = Create(tables);
+		var hostLearned = new List<int>();
+		w.Host.Services.GetRequiredService<ICraftControl>().RecipeUnlockReceived += index => hostLearned.Add(index);
+
+		GuestUnlocks(w.G1, 7);
+		w.Driver.Tick(33);
+
+		Assert.Equal<int>([7], hostLearned);
+		Assert.Equal(1, w.ReceivedCount(w.G2, NetMsg.RecipeUnlock));
+	}
+
+	/// <summary>
+	/// The other half of the bound, and the reason it is written as a guard rather than a
+	/// blanket refusal: a read that FAILED is not a refusal. A composition whose reader
+	/// reports no live world (or registers no reader at all — <c>ItemSimWorld.Create()</c>'s
+	/// default) keeps applying and relaying a member's unlock, and says why, because one
+	/// failed read must not cost every member its unlock.
+	/// </summary>
+	[Fact]
+	public void AFailedTableRead_AppliesTheReportRatherThanRefusingIt()
+	{
+		var tables = new NodeRecipeTables();
+		using var w = Create(tables);
+		tables.Table(w.Host.SteamId).CaptureRunFieldsFailure = "no live world is present";
+		var hostLearned = new List<int>();
+		w.Host.Services.GetRequiredService<ICraftControl>().RecipeUnlockReceived += index => hostLearned.Add(index);
+
+		GuestUnlocks(w.G1, 11);
+		w.Driver.Tick(33);
+
+		Assert.Equal<int>([11], hostLearned);
+		Assert.Equal(1, w.ReceivedCount(w.G2, NetMsg.RecipeUnlock));
 	}
 }

@@ -5,7 +5,9 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>
-/// A blueprint was used: the recipe at RecipeIndex is unlocked on every side
+/// A blueprint was used: the recipe at RecipeIndex is unlocked on every side — on the HOST only when
+/// that index is one entry of this host's OWN recipe table (the refusal, and why, live in
+/// <c>CraftSyncService.MayApplyReportedUnlock</c>)
 /// (the static recipe table is per-process — the unlock would otherwise exist
 /// only on the user's side). Guest → host report; host → guest broadcast relay
 /// (source excluded). Every side raises the apply event (the adapter sets

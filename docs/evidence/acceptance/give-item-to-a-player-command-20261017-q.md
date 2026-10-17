@@ -56,6 +56,29 @@ This is a product defect, and the ticket moves back to `todo/`; the fix (capture
 one) is ordinary development work and belongs to the next cycle, together with the final-pass review's
 findings recorded on the ticket.
 
+## The row-2 re-run after the fix (2026-10-17 22:04, artifact `0.1.0+02bc1f6a`)
+
+The exception is gone and the verb answers again, but the row's 500 ml expectation is NOT reached: the
+give creates the waterbottle and the property application then refuses, by name, because the created fact
+carries no water stack.
+
+- `e6-host-give-liquid.json`: `Refused: #1241566529475 carries no 'water' — its liquids are: none (an item
+  with no liquid container reads the same way).`
+- the host's log (`r3-host-log.txt`): `[Give] prepared waterbottle (id 1241566529475) from its prefab.` and
+  then the refusal — no exception, one created-then-refused give, nothing delivered.
+
+This is the SHARED grammar's own semantics, not a new give defect: `ItemDataWriteValues.ApplyLiquid` sets the
+amount of an EXISTING stack and refuses when none matches, and its comment says the capture cannot tell "no
+liquid container" from "an empty container" (both capture as no stacks — `e7-waterbottle-info.json` shows the
+definition is a `LiquidItemInfo` that loads). So a fresh, empty container cannot be filled by
+`/give … liquid water 500` under the landed grammar; the row as written asks for a capability the property
+vocabulary does not have. Whether that capability should exist (a container flag in the save shape plus an
+add-a-stack semantic, shared with `/data set`) is a design question the run hands to the user rather than
+deciding itself.
+
+The row-2 DEFECT the batch rejected (the exception) is fixed and its re-run evidence is above; the row's
+expectation is what needs re-deriving.
+
 ## What else the run shows
 
 - **The user's destination ladder (2026-10-17) supersedes rows 4 and 5's expectation.** The user ruled, after

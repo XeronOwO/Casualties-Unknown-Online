@@ -274,6 +274,16 @@ What this cycle does NOT do: the destination ladder. The ladder is the next unit
 path (rungs 2-4), the answer wording, the rows 4/5/11 and the slot resolver's contract, and it deserves its
 own cycle rather than half of this one.
 
+**The re-run's finding (2026-10-17 22:04, artifact `0.1.0+02bc1f6a`) — an OPEN QUESTION for the user.** The
+exception is gone and the give answers, but row 2's 500 ml is still not reached: `/give @p waterbottle liquid
+water 500` creates the waterbottle and then refuses with `carries no 'water' — its liquids are: none (an item
+with no liquid container reads the same way)`. That is the SHARED grammar's own rule
+(`ItemDataWriteValues.ApplyLiquid` sets an EXISTING stack's amount; the capture cannot tell "no container"
+from "empty container"), not a new give defect: a fresh empty container cannot be filled by the property
+vocabulary. Whether it should be able to — a container flag in the save shape plus an add-a-stack semantic,
+shared with `/data set` — is a user ruling this ticket does not take on its own; the row's expectation is
+re-derived once that ruling is in.
+
 ## The destination ladder (the user's ruling, 2026-10-17)
 
 The user's direction, in its own words: "give 命令的设计,应当是优先玩家身上的空位,其次是身上有足够重量余量的

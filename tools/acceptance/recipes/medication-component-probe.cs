@@ -125,6 +125,24 @@
 		return "{\"ok\":true,\"mode\":\"clear-local\"," + state + "}";
 	}
 
+	if (mode == "vignette") {
+		// The hollow component INSTALLS a full-screen overlay on the player's main canvas and nothing in the game
+		// ever destroys it, so "the component is gone" is not the same reading as "the screen is clear". This
+		// counts the overlay objects by name so the two can be told apart.
+		var cam = PlayerCamera.main;
+		var canvas = cam == null ? null : cam.mainCanvas;
+		var found = new System.Collections.Generic.List<string>();
+		if (canvas != null) {
+			var parent = canvas.transform;
+			for (var i = 0; i < parent.childCount; i++) {
+				var child = parent.GetChild(i);
+				if (child != null && child.name.Contains("Mindwipe")) { found.Add(child.name); }
+			}
+		}
+		return "{\"ok\":true,\"mode\":\"vignette\",\"canvas\":" + (canvas != null ? "true" : "false")
+			+ ",\"count\":" + found.Count.ToString()
+			+ ",\"names\":[\"" + string.Join("\",\"", found.ToArray()) + "\"]}";
+	}
 	if (mode == "limb") {
 		// The list of limbs with the name the game's own `amputate` command resolves (`Body.LimbByName`) and the
 		// flags a restore has to change, so a run picks a REAL limb name instead of guessing one.

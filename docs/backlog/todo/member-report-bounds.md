@@ -225,6 +225,25 @@ Two candidate anchors, both DATA, to choose between when this row is built:
 
 The open row for the OPEN report has the same shape one level simpler: the lockpick item is the gesture's tool and there
 is no damage arithmetic, so it is the one to land first.
+### The open's tool identity is blocked on ONE mapping, not on the wire (2026-10-18)
+
+Attempted and reverted the same way. What is now known, so the next attempt starts at the gap instead of the field:
+
+- The wire is not the problem: `BuildingEntityOpenedMsg` takes a `ToolItemInstanceId` and `SendBuildingEntityOpened(pos,
+  toolItemInstanceId = 0)` carries it in one line, through `WorldService` and `WorldStateMessageService`.
+- The host check is not the problem either: `IKernelItemFacts.FindItem(ulong instanceId)` returns the `ItemState`, whose
+  `Location` is an `ItemLocation` with `Carried(ActorId owner)` and friends, so "the reporter really carries that item"
+  is a comparison the host can make against data it already holds.
+- **The gap is the client side: the game's `Item` carries no instance id, and CUO has no accessor that turns a live game
+  `Item` into the replicated instance id.** `reversing/.../Item.cs` has no instance-id member at all, and the mapping
+  lives inside the domain modules that build commands from messages (`PlayerDomainModule` reads `c.ItemInstanceId` off a
+  message), not as a lookup an adapter patch can call.
+
+So the next step is one small Runtime/Adapter addition with a real consumer: an accessor that answers "what is the
+replicated instance id of this live game item" (or the inverse map maintained where items are adopted). With it, the
+open patch names `Minigame.game.currentItem` — the lockpick, per
+`reversing/.../LockpingMinigame.cs` (`NeedsItem() => this.pickLevel >= 0`, `Minigame.game.currentItem`) — and the host
+check above becomes possible. Until then the open report has no data anchor and the row stays open, honestly.
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

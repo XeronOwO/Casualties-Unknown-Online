@@ -138,6 +138,21 @@ described above:
   the reach constant is chosen once and shared with the `BuildingEntityOpened` row below, so a hand that can pick a
   lock is also a hand that can break the wall beside it.
 
+  **One correction to the reasoning above, and one dependency the check needs (2026-10-18).** The quake's breaks
+  are NOT host-only: `WorldEventSync`'s own quake comment records that "every side shakes together and breaks its
+  own nearby region; the regions union via the air-write relay". So a quake break IS a member report — and it is
+  exactly why the `playerBreak` flag is the right split rather than a special case: a player break is reported with
+  `playerBreak: true` (`BlockBreakSync` applies and broadcasts it that way), while a recovery replay states
+  `PlayerBreak = false` and the pending-report record defaults to false. Quake and environment writes therefore
+  never enter the branch this bound adds, which is what the user's decision rests on.
+
+  **What blocks the implementation is one dependency, not the design**: `WorldEventSync` holds only
+  `ISessionControl`, `IWorldControl`, `BlockBreakSync`, `RestoredWorldFactReplay`, `OperationTrace`,
+  `WorldEntityKernelProjection`, `WorldEntryFanout` and the logger — no position source. The reach check needs the
+  sender's body position (`PlayerInteractionVisibility` gets it from the entity stream), so this cycle is: add that
+  narrow port to `WorldEventSync`'s constructor and its DI registration, then the check itself, then the
+  `BuildingEntityOpened` row on the same constant.
+
 ## C. A claim with no anchor (a design decision, not a check)
 
 - **`WireCommandKind.ItemSpawn`** — the item-creation half named in S2a's own limits: the report names an

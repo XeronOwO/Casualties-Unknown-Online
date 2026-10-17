@@ -160,6 +160,15 @@ described above:
   shape `Fluid`/`LayerAdvance`/`Wearable` already use. Adding it will also ask those two gates to be told about the
   new port, which is the first thing to check when that cycle starts.
 
+  **Attempted and REVERTED 2026-10-18 — the port route costs more than it looks.** The port itself is four small
+  edits and the bridge compiles, but the shape gate's port table ALSO feeds the aggregate census: registering the
+  new port there makes `Aggregate_DeclaresExactlyTheFrozenCensus` expect the port's member among the AGGREGATE's
+  members, which the aggregate deliberately does not have. That is a gate-shape question (a port's member has to
+  stay out of the aggregate's pin), not a product question, and answering it must not be smuggled into an
+  acceptance-lever cycle. Reverted to `f521e633` with the tree green; the work is parked here. **The cheap second
+  road is still open and is what the next attempt should take first**: an acceptance-only console verb that reports
+  one block write, which touches no interop seam at all.
+
   **One correction to the reasoning above, and one dependency the check needs (2026-10-18).** The quake's breaks
   are NOT host-only: `WorldEventSync`'s own quake comment records that "every side shakes together and breaks its
   own nearby region; the regions union via the air-write relay". So a quake break IS a member report — and it is

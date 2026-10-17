@@ -320,3 +320,28 @@ exist and which object is it" in one step and removes the search as a source of 
 type, so the probe has to reach it by name through reflection — which this repository's recipes already do
 elsewhere, and which the previous attempt learned the hard way when referencing the type directly made the whole
 recipe fail to compile.
+## The owed row is taken: the removal direction works on the side that follows (2026-10-18)
+
+Two clients, the HOST inspecting the MEMBER through the native medical view, sampling the display body that
+follows the member's reported state (`.acceptance/20261018-f/run7.log`):
+
+```
+2. clone as it starts          [display/read] sleepingPills=false
+3. the member takes the state  [local/plant-sleepingpills] …   then  [display/read] sleepingPills=true
+4. the member clears it        [local/clear-local] …           then  [display/read] sleepingPills=false
+```
+
+So the clone picked up the state the member reported and then **lost it** when the member cleared it. That is
+the direction the fix added: before it, the apply side only ever added, so the clone would have kept
+`sleepingPills=true` for good. **This closes the gap the adversarial review called major** — that nothing in the
+suite would fail if the removal arms were deleted — with a runtime reading instead of an argument.
+
+What the row needed, in the end, was not another guessed name but the right object: the coordinator adds its
+marker to the instantiated ROOT while the body comes from `GetComponentInChildren`, so both a name match and a
+marker match keyed on the BODY's own GameObject found nothing, and the listing that finally settled it showed a
+third, inactive body named plain `Body` — which is exactly what a child of the deactivated, renamed root looks
+like. Five runs went into that, and the four that failed each failed on a fact about the SCENE that could have
+been read from the source first.
+
+Still owed on this ticket: the heal itself (limb restoration and the hollow clear). The prerequisite and its
+proof are now both in place.

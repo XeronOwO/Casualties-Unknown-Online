@@ -7,7 +7,6 @@ using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// The item-data command group (<c>/data</c>): an operator's read AND write of what
 /// CUO records about one item — condition, favourited, liquid stacks, the typed
 /// component fields and the container contents — addressed by a player selector,
-/// a body slot or a CUO instance id.
+/// a body slot, the pointer or a CUO instance id.
 ///
 /// The READ reads the KERNEL fact, not the local scene: the kernel row is the same on
 /// every peer (the host's authority, a guest's replay of the committed batches), it
@@ -54,11 +53,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 internal sealed class ItemDataCommands(
 	IKernelItemFacts items,
 	ISessionControl session,
-	IEntitySyncControl entities,
 	ILocalItemAccess localItems,
 	IItemControl itemControl,
 	ILogger log,
-	AnnouncedHostRules hostRules)
+	AnnouncedHostRules hostRules,
+	ItemDataTargets targets)
 {
 	/// <summary>The verb list a caller reads before it knows which usage line it needs: an operator typing a bare <c>/data</c> has to learn that merge and remove exist.</summary>
 	private const string Verbs = "/data get | /data set | /data merge | /data remove";
@@ -76,11 +75,11 @@ internal sealed class ItemDataCommands(
 
 	private readonly IKernelItemFacts _items = items;
 	private readonly ISessionControl _session = session;
-	private readonly IEntitySyncControl _entities = entities;
 	private readonly ILocalItemAccess _localItems = localItems;
 	private readonly IItemControl _itemControl = itemControl;
 	private readonly ILogger _log = log;
 	private readonly AnnouncedHostRules _hostRules = hostRules;
+	private readonly ItemDataTargets _targets = targets;
 
 	[ConsoleCommand("data", "Read or write one item's recorded state: condition, liquids, component fields and contents.", CommandPermission.Anyone, Verbs + " | " + ItemDataQueryParser.Usage + " | " + ItemDataWriteParser.Usage, CommandArgumentKind.Text)]
 	internal string Data(IReadOnlyList<string> args)
@@ -130,8 +129,9 @@ internal sealed class ItemDataCommands(
 		var all = new List<ItemState>(rows.Values);
 		return query.Kind switch
 		{
-			ItemDataQueryKind.InstanceId => ReadOne(rows, query.InstanceId),
+			ItemDataQueryKind.InstanceId => ReadOne(rows, query.InstanceId, "id"),
 			ItemDataQueryKind.Slot => ReadSlot(all, query),
+			ItemDataQueryKind.Cursor => ReadCursor(rows),
 			_ => ReadBodies(all, query),
 		};
 	}
@@ -147,20 +147,37 @@ internal sealed class ItemDataCommands(
 		return tail;
 	}
 
-	private string ReadOne(IReadOnlyDictionary<ulong, ItemState> rows, ulong instanceId)
+	private string ReadOne(IReadOnlyDictionary<ulong, ItemState> rows, ulong instanceId, string target)
 	{
 		if (!rows.TryGetValue(instanceId, out var item))
 		{
 			return $"No item #{instanceId} is recorded in this session.";
 		}
 
-		_log.LogInformation("[Command] /data get id {InstanceId} ({Definition}).", instanceId, item.Identity.DefinitionId);
+		_log.LogInformation("[Command] /data get {Target} read #{InstanceId} ({Definition}).", target, instanceId, item.Identity.DefinitionId);
 		return ItemDataRenderer.One(item, [.. rows.Values]);
+	}
+
+	/// <summary>
+	/// The item the pointer names: the local scene answers what is under the mouse, and
+	/// the record answers what is known about it. The two refusals differ — the scene
+	/// could not name an item at all, or it named one this session does not record — so
+	/// each keeps its own sentence.
+	/// </summary>
+	private string ReadCursor(IReadOnlyDictionary<ulong, ItemState> rows)
+	{
+		if (!_targets.TryResolveCursor(out var instanceId, out var refusal))
+		{
+			_log.LogWarning("[Command] /data get cursor refused: {Reason}", refusal);
+			return refusal!;
+		}
+
+		return ReadOne(rows, instanceId, "cursor");
 	}
 
 	private string ReadBodies(IReadOnlyList<ItemState> all, ItemDataQuery query)
 	{
-		var owners = ResolveOwners(query.Selector, out var refusal);
+		var owners = _targets.ResolveOwners(query.Selector, out var refusal);
 		if (refusal is not null)
 		{
 			return refusal;
@@ -190,7 +207,7 @@ internal sealed class ItemDataCommands(
 
 	private string ReadSlot(IReadOnlyList<ItemState> all, ItemDataQuery query)
 	{
-		var owners = ResolveOwners(query.Selector, out var refusal);
+		var owners = _targets.ResolveOwners(query.Selector, out var refusal);
 		if (refusal is not null)
 		{
 			return refusal;
@@ -199,7 +216,7 @@ internal sealed class ItemDataCommands(
 		if (owners.Count > 1)
 		{
 			_log.LogWarning("[Command] /data get slot {Slot} refused: the selector '{Selector}' matched {Count} bodies ({Owners}).",
-				query.Slot, query.Selector, owners.Count, Owners(owners));
+				query.Slot, query.Selector, owners.Count, ItemDataTargets.Owners(owners));
 			return RefuseAmbiguousBody(owners);
 		}
 
@@ -208,7 +225,7 @@ internal sealed class ItemDataCommands(
 		var listed = 0;
 		foreach (var owner in owners)
 		{
-			var item = SlotItem(all, owner, query.Slot);
+			var item = ItemDataTargets.SlotItem(all, owner, query.Slot);
 			if (item is null)
 			{
 				empty.Add(owner);
@@ -260,7 +277,7 @@ internal sealed class ItemDataCommands(
 		}
 
 		var all = new List<ItemState>(_items.QueryItems().Values);
-		if (!TryResolveWriteTarget(writes[0].Target, all, out var instanceId, out var refusal))
+		if (!_targets.TryResolveWrite(writes[0].Target, all, out var instanceId, out var refusal))
 		{
 			_log.LogWarning("[Command] /data {Verb} refused: {Reason}", verb, refusal);
 			return refusal!;
@@ -315,63 +332,6 @@ internal sealed class ItemDataCommands(
 		_log.LogInformation("[Command] /data {Verb} wrote #{InstanceId} ({Definition}): {Changes}; reported as this client's own item state.",
 			verb, instanceId, local.ItemId, string.Join("; ", described));
 		return ItemDataRenderer.WroteMany(local, writes, changes, awaitingHost: false);
-	}
-
-	/// <summary>
-	/// The ONE item a write names. The read half's grammar is admitted unchanged —
-	/// the verdict is taken here, on the resolved set (user ruling 2026-10-14) — but
-	/// the listing shape has no meaning for a write, and a body that is not the
-	/// caller's own has no local object to write into.
-	/// </summary>
-	private bool TryResolveWriteTarget(ItemDataQuery target, IReadOnlyList<ItemState> all, out ulong instanceId, out string? refusal)
-	{
-		instanceId = 0;
-		refusal = null;
-		switch (target.Kind)
-		{
-			case ItemDataQueryKind.InstanceId:
-				if (_items.FindItem(target.InstanceId) is null)
-				{
-					refusal = $"No item #{target.InstanceId} is recorded in this session.";
-					return false;
-				}
-
-				instanceId = target.InstanceId;
-				return true;
-
-			case ItemDataQueryKind.Slot:
-				var owners = ResolveOwners(target.Selector, out refusal);
-				if (refusal is not null)
-				{
-					return false;
-				}
-
-				if (owners.Count > 1)
-				{
-					refusal = $"That selector matched {owners.Count} bodies ({Owners(owners)}) — a write names ONE item, so name one body: @p, a selector with [limit=1], or the item's own id.";
-					return false;
-				}
-
-				if (owners[0] != _session.LocalSteamId)
-				{
-					refusal = $"That item is carried by {owners[0]} — a write is the holder's own act, and no route edits another player's carried item yet.";
-					return false;
-				}
-
-				var item = SlotItem(all, owners[0], target.Slot);
-				if (item is null)
-				{
-					refusal = $"No item is recorded for {owners[0]} in slot {target.Slot} yet — a carried item joins the record on the holding client's first report of it (a use, a move or a drop).";
-					return false;
-				}
-
-				instanceId = item.Value.Identity.InstanceId;
-				return true;
-
-			default:
-				refusal = $"That target names every item the body carries — a write names ONE item: add 'slot <n>', or use 'id <n>'. Usage: {ItemDataWriteParser.Usage}";
-				return false;
-		}
 	}
 
 	/// <summary>
@@ -436,7 +396,7 @@ internal sealed class ItemDataCommands(
 	/// </para>
 	/// </summary>
 	private static string RefuseAmbiguousBody(IReadOnlyList<ulong> owners) =>
-		$"That selector matched {owners.Count} bodies ({Owners(owners)}) — a slot read names ONE item, so name one body: @p, a selector with [limit=1], or the item's own id.";
+		$"That selector matched {owners.Count} bodies ({ItemDataTargets.Owners(owners)}) — a slot read names ONE item, so name one body: @p, a selector with [limit=1], or the item's own id.";
 
 	/// <summary>
 	/// What an empty answer says. The caller's own body is the one case where an
@@ -451,27 +411,9 @@ internal sealed class ItemDataCommands(
 			: "No item is recorded for {0}.";
 
 	/// <summary>
-	/// Every body a target names. A selector that matches nobody is refused by
-	/// name rather than answered with an empty list, because "no such player" and
-	/// "that player carries nothing" are different facts to the operator.
+	/// Every body a target names is resolved by <see cref="ItemDataTargets"/>; this
+	/// class only words its answers.
 	/// </summary>
-	private IReadOnlyList<ulong> ResolveOwners(string? selector, out string? refusal)
-	{
-		refusal = null;
-		if (selector is null)
-		{
-			return [_session.LocalSteamId];
-		}
-
-		var owners = CommandPlayerTargets.Resolve(_session, _entities, selector);
-		if (owners.Count == 0)
-		{
-			refusal = $"No players match selector '{selector}'.";
-		}
-
-		return owners;
-	}
-
 	private static List<ItemState> Held(IReadOnlyList<ItemState> all, ulong owner)
 	{
 		var held = new List<ItemState>();
@@ -495,21 +437,6 @@ internal sealed class ItemDataCommands(
 		_ => AppliedOrderBase * 2,
 	};
 
-	private static ItemState? SlotItem(IReadOnlyList<ItemState> all, ulong owner, int slot)
-	{
-		foreach (var item in all)
-		{
-			if (item.Location.Kind == ItemLocationKind.Carried
-				&& item.Location.Owner.Value == owner
-				&& item.Data.SlotIndex == slot)
-			{
-				return item;
-			}
-		}
-
-		return null;
-	}
-
 	private static void Append(StringBuilder builder, string block)
 	{
 		if (builder.Length > 0)
@@ -528,22 +455,6 @@ internal sealed class ItemDataCommands(
 			return;
 		}
 
-		Append(builder, string.Format(CultureInfo.InvariantCulture, format, Owners(empty)));
-	}
-
-	private static string Owners(IReadOnlyList<ulong> owners)
-	{
-		var builder = new StringBuilder();
-		foreach (var owner in owners)
-		{
-			if (builder.Length > 0)
-			{
-				builder.Append(", ");
-			}
-
-			builder.Append(owner.ToString(CultureInfo.InvariantCulture));
-		}
-
-		return builder.ToString();
+		Append(builder, string.Format(CultureInfo.InvariantCulture, format, ItemDataTargets.Owners(empty)));
 	}
 }

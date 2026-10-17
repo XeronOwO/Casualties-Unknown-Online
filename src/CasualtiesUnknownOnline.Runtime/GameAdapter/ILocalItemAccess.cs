@@ -3,8 +3,9 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
-/// The local scene as the item-data write family sees it: the item THIS client
-/// really holds under an instance id, and one save-shaped state written into it.
+/// The local scene as the item-data family sees it: the item THIS client really
+/// holds under an instance id, one save-shaped state written into it, and the item
+/// the pointer names.
 /// The read half of the family reads the kernel record — the host's authority, a
 /// member's replay of the committed batches — and a write cannot go that way: a
 /// carried item's state is its HOLDER's own report, so the write lands on the local
@@ -44,4 +45,19 @@ public interface ILocalItemAccess
 	/// save-shaped properties, and where the item sits is not one of them.
 	/// </summary>
 	LocalItemWriteResult WriteLocalItem(ulong instanceId, CharacterItemMsg desired);
+
+	/// <summary>
+	/// The item the pointer is over, in the same scene an instance id names — what the
+	/// command family's <c>cursor</c> target reads. The answer classifies what the
+	/// pointer holds rather than collapsing it to an id, because the ways there is no
+	/// id to name have different remedies (move the pointer, or wait for the id the host
+	/// assigns when the item enters the item domain). <paramref name="instanceId"/>
+	/// carries the id only when the answer is <see cref="LocalCursorItemKind.Resolved"/>;
+	/// it is zero otherwise.
+	/// </summary>
+	/// <remarks>
+	/// The pointer here is the one the game's own pickup query reads — the mouse,
+	/// resolved into the world — not the console's text caret.
+	/// </remarks>
+	LocalCursorItemKind ResolveCursorItem(out ulong instanceId);
 }

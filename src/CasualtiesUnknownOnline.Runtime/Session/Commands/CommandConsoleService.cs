@@ -108,7 +108,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new SpectatorCommands(session, entities, spectator, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
-		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, entities, localItems, itemControl, log, _hostRules));
+		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, localItems, itemControl, log, _hostRules, new ItemDataTargets(kernelItems, session, entities, localItems)));
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 

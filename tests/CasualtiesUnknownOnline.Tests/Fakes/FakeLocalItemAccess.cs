@@ -18,6 +18,12 @@ internal sealed class FakeLocalItemAccess : ILocalItemAccess
 	/// <summary>What the next write answers, when a test needs a scene-side refusal; cleared once used.</summary>
 	internal LocalItemWriteResult? NextResult { get; set; }
 
+	/// <summary>What the pointer names for a <c>cursor</c> target: nothing, an id-less item, or the staged id.</summary>
+	internal LocalCursorItemKind Cursor { get; set; }
+
+	/// <summary>The id the pointer names when <see cref="Cursor"/> is <see cref="LocalCursorItemKind.Resolved"/>.</summary>
+	internal ulong CursorInstanceId { get; set; }
+
 	/// <summary>Every state this "scene" was asked to write, in order.</summary>
 	internal List<CharacterItemMsg> Written { get; } = [];
 
@@ -27,6 +33,13 @@ internal sealed class FakeLocalItemAccess : ILocalItemAccess
 	/// <summary>What the scene holds now, after any writes.</summary>
 	internal CharacterItemMsg? Held(ulong instanceId) =>
 		_held.TryGetValue(instanceId, out var item) ? Copy(item) : null;
+
+	/// <summary>The pointer's answer, in the scene's own shape: the id only when the answer is resolved.</summary>
+	public LocalCursorItemKind ResolveCursorItem(out ulong instanceId)
+	{
+		instanceId = Cursor == LocalCursorItemKind.Resolved ? CursorInstanceId : 0;
+		return Cursor;
+	}
 
 	public CharacterItemMsg? ReadLocalItem(ulong instanceId) =>
 		_held.TryGetValue(instanceId, out var item) ? Copy(item) : null;

@@ -9,7 +9,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// apply its own item immediately (local compute). Attached by the Item.Start
 /// hook when a runtime-generated item appears; remote applications attach it
 /// first, which is how the hook recognizes them and does not re-report.
-/// Generation-time items never carry one — world-gen determinism covers them.
+/// Generation-time items get theirs from the host's publish at the end of a
+/// world generation (`GeneratedItemAuthority`), and a guest binds its copies
+/// with the host's item snapshot.
 /// </summary>
 public sealed class ItemInstanceId : MonoBehaviour
 {

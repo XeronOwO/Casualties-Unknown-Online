@@ -66,6 +66,23 @@ public class ItemDataQueryParserTests
 		Assert.Equal(4101UL, query.InstanceId);
 	}
 
+	[Fact]
+	public void Cursor_AddressesTheItemUnderThePointer()
+	{
+		Assert.True(ItemDataQueryParser.TryParse(["cursor"], out var query, out var error));
+
+		Assert.Null(error);
+		Assert.Equal(ItemDataQueryKind.Cursor, query.Kind);
+	}
+
+	[Fact]
+	public void CursorKeyword_IsCaseInsensitive()
+	{
+		Assert.True(ItemDataQueryParser.TryParse(["Cursor"], out var query, out _));
+
+		Assert.Equal(ItemDataQueryKind.Cursor, query.Kind);
+	}
+
 	[Theory]
 	[InlineData("ID")]
 	[InlineData("Id")]
@@ -103,6 +120,8 @@ public class ItemDataQueryParserTests
 	[InlineData("slot 1 2")]
 	[InlineData("4101")]
 	[InlineData("bandage")]
+	[InlineData("cursor 5")]
+	[InlineData("@a cursor")]
 	[InlineData("@a slot")]
 	[InlineData("@a slot x")]
 	[InlineData("@a extra")]

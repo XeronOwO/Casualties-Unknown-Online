@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// Minecraft-style selector vocabulary (<see cref="CommandSelectorResolver"/>);</item>
 /// <item><c>slot &lt;n&gt;</c>, or <c>&lt;selector&gt; slot &lt;n&gt;</c> — the
 /// item the body carries in that slot;</item>
+/// <item><c>cursor</c> — the item the pointer is over on this client's own scene;</item>
 /// <item><c>id &lt;n&gt;</c> — one item by its CUO instance id, wherever it is.</item>
 /// </list>
 /// A target is parsed, never guessed: a token that is neither a keyword nor a
@@ -27,11 +28,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 internal static class ItemDataQueryParser
 {
-	internal const string Usage = "/data get [<selector> | slot <n> | id <n>]";
+	internal const string Usage = "/data get [<selector> | slot <n> | cursor | id <n>]";
 
 	private const string IdKeyword = "id";
 
 	private const string SlotKeyword = "slot";
+
+	private const string CursorKeyword = "cursor";
 
 	/// <summary>Parses the tokens that follow the verb, or reports why they are not a target. The whole list must be the target.</summary>
 	internal static bool TryParse(IReadOnlyList<string> target, out ItemDataQuery query, out string? error)
@@ -75,6 +78,11 @@ internal static class ItemDataQueryParser
 			return remaining >= 2 && TryParseSlot(tokens[start + 1], out var slot)
 				? Accept(new ItemDataQuery(ItemDataQueryKind.Slot, null, slot, 0), start + 2, out query, out next, out error)
 				: Refuse($"Usage: {Usage}", out query, out next, out error);
+		}
+
+		if (IsKeyword(first, CursorKeyword))
+		{
+			return Accept(new ItemDataQuery(ItemDataQueryKind.Cursor, null, -1, 0), start + 1, out query, out next, out error);
 		}
 
 		if (first.Length < 2 || !first.StartsWith("@", StringComparison.Ordinal))

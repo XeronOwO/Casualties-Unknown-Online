@@ -1,12 +1,14 @@
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
-/// The local scene behind the item-data write verb: the ONE live object an instance
-/// id names on this client, its captured save-shaped state, and one write into it.
+/// The local scene behind the item-data family: the ONE live object an instance id
+/// names on this client, its captured save-shaped state, one write into it, and the
+/// item the pointer is over.
 ///
 /// <para>
 /// The lookup is the id's own O(1) index (<see cref="ItemInstanceId"/>), which is
@@ -31,6 +33,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// </summary>
 internal sealed class LocalItemAccess(ILogger<LocalItemAccess> log) : ILocalItemAccess
 {
+	/// <summary>The layer the game's own pickup query reads; the pointer target asks the same question.</summary>
+	private const string CursorItemLayer = "Item";
+
 	private readonly ILogger<LocalItemAccess> _log = log;
 
 	/// <summary>The local item's captured state, or null when this client holds no object under that id.</summary>
@@ -67,6 +72,61 @@ internal sealed class LocalItemAccess(ILogger<LocalItemAccess> log) : ILocalItem
 		_log.LogInformation("[ItemWrite] #{InstanceId} ({Definition}) written: condition {Condition}, favourited {Favourited}, {Liquids} liquid stack(s), {Components} component state(s).",
 			instanceId, item.id, desired.Condition, desired.Favourited, desired.Liquids.Count, desired.Components.Count);
 		return LocalItemWriteResult.Applied;
+	}
+
+	/// <summary>
+	/// The item the pointer is over, resolved by the game's own query: the single
+	/// <c>Item</c>-layer collider under
+	/// <c>Camera.main.ScreenToWorldPoint(Input.mousePosition)</c> — the call
+	/// <c>PlayerCamera.TryPickupFromWorld</c> makes for its world half, so the pointer
+	/// selects what the game's own pickup query selects rather than a selection CUO
+	/// invented.
+	///
+	/// <para>
+	/// Two local forms of an item are deliberately NOT selectable this way, and that is
+	/// what keeps this answer honest without a classification for them: another
+	/// member's item rendered here is a display proxy (physics off, its collider
+	/// disabled — <c>CloneInventoryRenderer</c>) and the cross-player use's standing
+	/// incarnation is inert by construction (<c>StandingItemRecipe.MakeInert</c>
+	/// disables every collider), so the pointer query cannot return either. Both DO
+	/// carry an id in their own holder's shape (<c>RemoteInventoryItemId</c>, or the
+	/// authoritative <see cref="ItemInstanceId"/>), which is why they are reached by
+	/// <c>id</c>/slot and never by pointing.
+	/// </para>
+	///
+	/// <para>
+	/// The one id-less answer left is real: a world item this client has not yet been
+	/// given an id for — the host assigns one to every generation-time item when the
+	/// generation finishes, its item snapshot carries them to a guest, and a runtime
+	/// item gets one as it enters the item domain. Until then the pointer names the
+	/// object but nothing the record can address.
+	/// </para>
+	/// </summary>
+	public LocalCursorItemKind ResolveCursorItem(out ulong instanceId)
+	{
+		instanceId = 0;
+		var camera = Camera.main;
+		if (camera == null) // Unity object — ==
+		{
+			return LocalCursorItemKind.None;
+		}
+
+		var collider = Physics2D.OverlapPoint(camera.ScreenToWorldPoint(Input.mousePosition), LayerMask.GetMask(CursorItemLayer));
+		if (collider == null || !collider.TryGetComponent<Item>(out var item) || item == null) // Unity objects — ==
+		{
+			return LocalCursorItemKind.None;
+		}
+
+		var id = item.GetComponent<ItemInstanceId>();
+		if (id == null || id.Id == 0) // Unity object — ==
+		{
+			_log.LogInformation("[ItemCursor] the pointer is over an item with no id yet ({Definition}) — this client has not been given one.", item.id);
+			return LocalCursorItemKind.NoInstanceId;
+		}
+
+		instanceId = id.Id;
+		_log.LogInformation("[ItemCursor] the pointer names #{InstanceId} ({Definition}).", instanceId, item.id);
+		return LocalCursorItemKind.Resolved;
 	}
 
 	/// <summary>

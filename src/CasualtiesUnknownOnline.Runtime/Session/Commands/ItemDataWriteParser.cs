@@ -31,11 +31,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 internal static class ItemDataWriteParser
 {
-	internal const string Usage = "/data set [<selector>] slot <n> | id <n> — condition <n> | favourited <bool> | liquid <liquidId> <ml> | component <TypeName> <field> <value>";
+	internal const string Usage = "/data set [<selector>] slot <n> | cursor | id <n> — condition <n> | favourited <bool> | liquid <liquidId> <ml> | component <TypeName> <field> <value>";
 
-	internal const string MergeUsage = "/data merge [<selector>] slot <n> | id <n> — one or more of: condition <n> | favourited <bool> | liquid <liquidId> <ml> | component <TypeName> <field> <value>";
+	internal const string MergeUsage = "/data merge [<selector>] slot <n> | cursor | id <n> — one or more of: condition <n> | favourited <bool> | liquid <liquidId> <ml> | component <TypeName> <field> <value>";
 
-	internal const string RemoveUsage = "/data remove [<selector>] slot <n> | id <n> — one or more of: liquid <liquidId> | component <TypeName> <field>";
+	internal const string RemoveUsage = "/data remove [<selector>] slot <n> | cursor | id <n> — one or more of: liquid <liquidId> | component <TypeName> <field>";
 
 	private const string ConditionKeyword = "condition";
 

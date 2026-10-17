@@ -1,8 +1,9 @@
 # Item and entity data commands: give, spawn and a property editor
 
 - Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
-  verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; the
-  stages below are what remains.
+  verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
+  `remove` landed 2026-10-17, and the cursor target 2026-10-18, both in this ticket. The stages below are what
+  remains.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
 - Source: the user's 2026-10-07 backlog request — a Minecraft-style command family for CUO: item-specific
@@ -54,7 +55,8 @@ conclusions every stage below depends on:
   the kernel keeps one revision per item, and a command write is expected to take the identical path rather
   than a second one beside it.
 
-Two gaps the read half found and deliberately did NOT close, both of which stage B meets first:
+The read half left two questions behind: the gap this stage still owns, and the cursor, which landed on
+2026-10-18 as the same family's target:
 
 - **The host's own untouched carried items are not in the record — and have no instance id at all.** A member's
   client registers its carried inventory (starting supplies and worn items included) at the generation-finished
@@ -63,9 +65,11 @@ Two gaps the read half found and deliberately did NOT close, both of which stage
   addresses an instance id, so the gap has to be settled before a write or the cursor target can reach an item
   the player is actually holding at world entry: either the host registers its own carried inventory the way a
   member does, or the family gains a read that can name an item before it has an id.
-- **No verb can address the cursor.** The console reads the kernel, which has no cursor, so "the item nearest
-  the mouse" needs a new GameAdapter capability port. It belongs with stage B because the write half needs
-  local-scene access anyway.
+- **The cursor is addressable now (2026-10-18).** The console still reads the kernel, which has no cursor, so
+  the pointer is a Game Adapter answer (`ILocalItemAccess.ResolveCursorItem`, the game's own pickup query) and
+  the target is `cursor`; see *The cursor target landed* below for the mapping, the id rule and what the
+  acceptance batch owes. It does not close the gap above: an item the record has no id for is still refused by
+  name, whichever way the operator named it.
 
 Still open, and belonging to the stage that meets it: whether a command-written property survives a
 reconnect the way a played one does (stage B's acceptance), and whether a command-spawned entity can reuse the
@@ -87,8 +91,9 @@ accepted-creation path unchanged or needs its own admission, including what a la
    the item THIS client holds, plus the port (`ILocalItemAccess`) and the report route that makes the row the
    game's own — `done/item-data-write-commands.md` carries its rows and its limits.
    **Landed with them 2026-10-17:** `merge` and `remove` (the landing section below carries what they do and
-   what they still owe). **Still open in this stage:** the cursor target (which owns the id-less
-   generation-time ground item question); and the first gap above — the host's own untouched carried items
+   what they still owe). **Landed 2026-10-18:** the cursor target, on the port the write added — the section
+   *The cursor target landed* below carries its mapping, its evidence and its limits. **Still open in this
+   stage:** the first gap above — the host's own untouched carried items
    still have no id and no row, so no verb can name them until the host registers its carried inventory at the
    generation-finished edge the way a member's client does (a cross-player change: those ids ride the 1 Hz
    character snapshot, so the members' clones, their remote inventory view and the divergence monitor all begin
@@ -138,9 +143,10 @@ yet", so the two verbs are additive work on a path that exists rather than a new
   announced rule forbids it. The ticket's own line is that "a new verb does not need a new gate, and it must not
   grow one", so `merge` and `remove` ride the landed rule and add no flag.
 
-**What is left after the two verbs**, unchanged from the stage text above: the cursor target and the host's own
-id-less carried items (both named as their own work), Stage C's `give` (which faces the same missing carrier the
-give gesture ticket found) and Stage D's `spawn` (which owes the late-joiner answer first).
+**What is left after the two verbs**, unchanged from the stage text above: the host's own id-less carried items
+(named as its own work), Stage C's `give` (which faces the same missing carrier the give gesture ticket found)
+and Stage D's `spawn` (which owes the late-joiner answer first). The cursor target that used to head this list
+landed 2026-10-18 (the last section).
 
 ## Non-goals
 
@@ -200,3 +206,96 @@ mistake: a step that reported an absence from a reading it had not established i
 
 - **Since then:** the duplicated `<summary>` on the write method is deleted. Two nits remain unfixed and are
   recorded rather than forgotten: `WroteMany` takes two index-aligned lists, and it assumes a non-empty one.
+
+## The cursor target landed (2026-10-18)
+
+`cursor` is a target shape now: `/data get cursor` reads the item the pointer is over, and `/data set|merge|remove
+cursor …` writes it. The read still answers from the kernel row — the scene contributes only the ID, which is the
+one thing a command cannot get from the record.
+
+**Entry mapping.** The CUO target is the item the game's own pickup QUERY selects:
+`Physics2D.OverlapPoint(Camera.main.ScreenToWorldPoint(Input.mousePosition), LayerMask.GetMask(new string[] { "Item" }))`
+and then `TryGetComponent<Item>` — `PlayerCamera.TryPickupFromWorld`, `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:1423`
+and `:1437`. The wider hover query (`:1997`, masks `Item`, `Ground`, `Descriptor`, `Limb`) is deliberately NOT
+the mapping: it answers blocks and limbs too, so it is the hover machinery's question, not "which item". The
+pickup GESTURE's own gates are not mirrored either — it runs only while unpaused, conscious and allowed to use an
+item, within ten units (`:1355`, `Body.cs:1364`-`:1375`) — because those gates judge the holding player's action,
+not "which item is under the pointer"; a target that reproduced them would refuse to name an item the operator
+can plainly see. The gesture carries the pointer and nothing else; where the pointer cannot carry an identity the
+request is refused BY NAME — no fallback supplies a nearby item.
+
+**Mechanism inventory.**
+
+| # | Mechanism | Evidence |
+|---|---|---|
+| 1 | The pointer → item query | `PlayerCamera.cs:1423` (the `Item` layer) and `:1437` (`TryGetComponent<Item>`); replicated in `LocalItemAccess.ResolveCursorItem` with the same call and the same mask |
+| 2 | Instance identity | `ItemInstanceId` is READ, never minted. The current rule: the host assigns an id to every generation-time item when a generation finishes (`GeneratedItemAuthority`'s class doc; `Publish()`'s "every standalone world item without an id is a generation-time item"), its item snapshot carries them to a guest, and a runtime item gets one as it enters (`ItemIdAllocator.EnsureId`: "dropped from an inventory, unloaded from a container, picked up from the ground"). The `ItemInstanceId` comment that said generation-time items "never carry one" was stale and is corrected in this change |
+| 3 | Another member's item is NOT pointer-addressable | its local forms are non-physical by construction: `CloneInventoryRenderer` (`item.rb.simulated = false; // pure display`, `col.enabled = false; // never pickable/blocking`) and `StandingItemRecipe.MakeInert` (`collider.enabled = false`). Both carry an id in their own shape (`RemoteInventoryItemId`, and the authoritative `ItemInstanceId` in the standing recipe), which is why `id`/slot name them and the pointer query never returns either |
+| 4 | The port | `ILocalItemAccess.ResolveCursorItem` answers a classification and the ID only when it is `Resolved`; `UnavailableLocalItemAccess` answers `None`, so a build with no adapter answers the verb rather than throwing |
+| 5 | The grammar | One grammar serves both halves: `ItemDataQueryParser` adds the `cursor` keyword and `ItemDataWriteParser` admits it unchanged, so a target cannot reach one verb and miss the other |
+| 6 | The one-item verdict | Moved out of `ItemDataCommands` into `ItemDataTargets` (that class was at 549 lines; "which item did the operator mean" is its own responsibility) and the cursor joins the same verdict the `id` and `slot` targets take |
+| 7 | The report route | Unchanged: the write still applies through `ILocalItemAccess.WriteLocalItem` and reports through the same two calls, so the cursor changes only HOW the ID was found |
+| 8 | No wire change (a fact, not a design input) | No kind, field or protocol number moved; the cursor target rides the landed `ItemDataWrite` kind and the inherited host rule |
+
+**Self-check table.**
+
+| # | Claim | Evidence |
+|---|---|---|
+| 1 | The pointer names the item the game's own pickup query selects | `Get_Cursor_ReadsTheRecordedRowNotTheLocalCapture` stages a world row (the only shape the query can return) and the call and mask are the cited `:1423`/`:1437` |
+| 2 | The READ answers the record, not the scene | the same case: the local capture says `condition 0.4` while the row says `0.8`, and the answer prints the row's value |
+| 3 | An item with no id yet is refused, not given an invented id | `Get_Cursor_OnAnIdlessItem_IsRefusedByName`; the answer names the current mechanism (the host's publish / item snapshot) and no allocator is called |
+| 4 | Nothing under the pointer is answered, and a write writes nothing | `Get_Cursor_OnNothingUnderThePointer_IsRefusedByName`, `Set_Cursor_OnNothingUnderThePointer_IsRefusedWithoutWriting` (the local capture, `Written` and the kernel row all unchanged) |
+| 5 | The write takes the same path the `id` target takes | `Set_Cursor_WritesAWorldItemThroughTheCorrectionRoute` asserts the local capture, the kernel row, the world-correction route AND the absence of a carried report; `Merge_Cursor_ChangesEveryPropertyItNames` pins the multi-property tap |
+| 6 | An id the pointer names that the record has no row for is refused by name | `Set_Cursor_OnAnIdTheRecordDoesNotName_IsRefusedByName` (nothing written, the capture unchanged) |
+| 7 | The grammar is one grammar | `ItemDataQueryParserTests.Cursor_AddressesTheItemUnderThePointer`, `CursorKeyword_IsCaseInsensitive`, the `cursor 5` / `@a cursor` refusals, `ItemDataWriteParserTests.CursorTarget_IsAdmittedLikeEveryOtherTarget`, `Merge_WithACursorTarget_ParsesEveryProperty` |
+| 8 | Every pointer refusal is a named answer, never a silent no-op | the five refusal cases (read: nothing / no id / not recorded; write: nothing / not recorded), each asserting the sentence it prints |
+| 9 | What did not change | the write's wire kind, the host rule (`AllowMemberItemDataWrite`), the report routes and the protocol number; the verdict's move shrank `ItemDataCommands` 549 → 460 lines and `ItemDataTargets` is new at 204, both under the 600-line gate |
+| 10 | Not covered here | the real pointer under a real mouse — the acceptance batch's rows below; the driver's ban on pointer input (decision 237) is why it cannot be driven from a test |
+
+**Whole-family audit.** The family is every item-data target (selector, slot, cursor, id). What moved is the
+one-item verdict and the body/slot resolution (`ItemDataTargets`, shared by the read's slot path and the write's
+verdict); the REPORT routes (`ItemDataCommands.Report`'s world-versus-carried choice), the read refusals
+(`RefuseNotHeld`, `RefuseWrite`, `RefuseAmbiguousBody`, `EmptyBodyAnswer`) and the renderer stay where they were,
+so the cursor can only reach the same verdict and the same routes — and the world-row case now proves it takes
+the correction route the row's location chooses. The other pointer-driven CUO gesture, the cross-player drag
+use, resolves PLAYERS by world-space geometry of its own (`CrossPlayerDragUse`) rather than the item layer, so it
+shares nothing with this query and was checked rather than aligned.
+
+**What the acceptance batch owes.**
+
+1. The host drops an item (so it has an id), points at it and runs `/data get cursor` — the row of the item
+   under the pointer, not a neighbour's.
+2. `/data set cursor …` on that WORLD item, read back with `/data get id <id>` on BOTH peers — the world
+   correction route, and the record agrees on both sides. A world row is the pointer's own shape: a carried
+   item's world object stops simulating when it is picked up.
+3. An id the pointer names but the record has no row for (a guest's just-dropped item) — the named refusal and
+   nothing written.
+4. The pointer over ground, a body or a building — "nothing is under the pointer", and nothing is written.
+5. The id-less row: a guest in the window between world entry and the host's item snapshot, pointing at a
+   generation-time ground item — the named refusal. This is the row most likely to need a held window; if it
+   cannot be held, the batch records it `unproven` rather than weakening the check.
+
+The pointer's world position is readable from the client (`Camera.main.ScreenToWorldPoint(Input.mousePosition)`),
+so an item can be staged UNDER wherever the pointer already is instead of asking the run to move it; a pointer
+left outside the client window makes the rows unstageable, and then the batch names that dependency rather than
+replacing the check.
+
+**Limits, recorded rather than hidden.**
+
+- Two overlapping items answer what the game's own single-collider `OverlapPoint` answers. CUO does not
+  disambiguate further: the native query has the same shape, and a second rule here would name a different item
+  than the game's own hover shows.
+- The pickup gesture's gates are not mirrored (paused, conscious, allowed to use an item, ten units): the pointer
+  names what the query selects, which is the operator's question rather than the pickup action's.
+- Another member's item cannot be named by the pointer at all — its local forms are non-physical — so `id` and
+  the holder's slot remain the way to reach it. This is not a refusal the target prints; the pointer simply never
+  returns one.
+- An item this client has no id for yet stays unaddressable by the pointer until the id arrives (the host's
+  generation publish, its item snapshot on a guest, a runtime item's entry). Minting one on a write would be an
+  identity nothing reports.
+- The pointer is read when the command runs, so the answer belongs to that moment; nothing remembers a previous
+  pointer position.
+- The read answers the record: the pointer can name an item whose row has not arrived yet, and then the answer
+  is the record's ("no item recorded"), not the scene's.
+- No tab completion for the target keywords — the verb still declares one free-text argument, exactly as the
+  read half recorded.

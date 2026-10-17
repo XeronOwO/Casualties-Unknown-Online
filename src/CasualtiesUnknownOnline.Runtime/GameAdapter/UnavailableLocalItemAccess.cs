@@ -3,11 +3,11 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
-/// The item-data write family without a Game Adapter: there is no local scene to
-/// reach, so a read answers "not held" and a write is refused as not held too. The
-/// Runtime's console composition registers this and the adapter replaces it — the
-/// same shape the other adapter seams use — so a build with no adapter answers the
-/// verb instead of throwing.
+/// The item-data family without a Game Adapter: there is no local scene to reach, so
+/// a read answers "not held", a write is refused as not held, and the pointer names
+/// nothing. The Runtime's console composition registers this and the adapter replaces
+/// it — the same shape the other adapter seams use — so a build with no adapter answers
+/// the verb instead of throwing.
 ///
 /// <para>
 /// The operator's answer is the one an EMPTY scene would give, and that is recorded
@@ -23,4 +23,11 @@ public sealed class UnavailableLocalItemAccess : ILocalItemAccess
 
 	/// <summary>No local scene: nothing can be written.</summary>
 	public LocalItemWriteResult WriteLocalItem(ulong instanceId, CharacterItemMsg desired) => LocalItemWriteResult.NotHeld;
+
+	/// <summary>No local scene: the pointer names nothing.</summary>
+	public LocalCursorItemKind ResolveCursorItem(out ulong instanceId)
+	{
+		instanceId = 0;
+		return LocalCursorItemKind.None;
+	}
 }

@@ -43,6 +43,27 @@ public class ItemDataWriteParserTests
 	}
 
 	[Fact]
+	public void CursorTarget_IsAdmittedLikeEveryOtherTarget()
+	{
+		Assert.True(ItemDataWriteParser.TryParse(["cursor", "condition", "0.5"], out var write, out var error));
+
+		Assert.Null(error);
+		Assert.Equal(ItemDataQueryKind.Cursor, write.Target.Kind);
+		Assert.Equal(ItemDataProperty.Condition, write.Property);
+		Assert.Equal(0.5f, write.Number);
+	}
+
+	[Fact]
+	public void Merge_WithACursorTarget_ParsesEveryProperty()
+	{
+		Assert.True(ItemDataWriteParser.TryParseMany(["cursor", "condition", "0.5", "favourited", "yes"], out var writes, out var error));
+
+		Assert.Null(error);
+		Assert.Equal(2, writes.Count);
+		Assert.All(writes, write => Assert.Equal(ItemDataQueryKind.Cursor, write.Target.Kind));
+	}
+
+	[Fact]
 	public void Liquid_NamesTheStackAndItsMillilitres()
 	{
 		Assert.True(ItemDataWriteParser.TryParse(["@a", "slot", "2", "liquid", "water", "250"], out var write, out _));

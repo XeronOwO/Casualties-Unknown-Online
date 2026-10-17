@@ -23,7 +23,7 @@ item is" without touching who may write what.
 |---|---|
 | `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataCommands.cs` | The command group: target resolution, the kernel query, the refusals, the audit lines |
 | `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataQueryParser.cs` | The target grammar, parsed with no session so the vocabulary is pinned by unit tests |
-| `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataQuery.cs` + `ItemDataQueryKind.cs` | One parsed target (bodies, a slot of those bodies, or one instance id) |
+| `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataQuery.cs` + `ItemDataQueryKind.cs` | One parsed target (bodies, a slot of those bodies, the pointer, or one instance id — the pointer shape landed with the write half's port) |
 | `src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataRenderer.cs` | The wording: one line per item when listing, one property per line when reading |
 | `src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandPlayerTargets.cs` | The one selector expansion both selector-consuming command groups now share |
 | `src/CasualtiesUnknownOnline.Application/Kernel/IKernelItemFacts.cs` | The read model gained `QueryItems()` — the same rows `FindItem` answers one at a time, for a listing |
@@ -92,7 +92,7 @@ and stands: several bodies are answered separately, each block its own answer.
 |---|---|---|
 | The kernel item read model | `IKernelItemFacts.QueryItems()` added; the authority already implemented it, so no behaviour moved | the interface's implementors: the authority resolves it, the admission seam's test fake gained the member in the same change |
 | The console's selector expansion | one expansion extracted (`CommandPlayerTargets`); `/heal` now calls it instead of its own copy | the parse/resolve path is unchanged for `/heal` — the family's existing selector cases stay green |
-| The target grammar | a pure parser: 5 accepted shapes, 15 refused ones | `ItemDataQueryParserTests` — 15 refusal cases plus the accepted shapes |
+| The target grammar | a pure parser: the shapes it accepts, and every shape it refuses | `ItemDataQueryParserTests` — the refusal cases plus the accepted shapes |
 | The wording | a pure renderer: every property, every component field kind, every location family | `ItemDataRendererTests` — including the container-contents case and the enum/string/string-list field kinds |
 | The wiring | console → kernel → render, plus every refusal | `CommandConsoleItemDataTests` — 19 integration cases through the real console and the real kernel |
 
@@ -116,9 +116,10 @@ One two-client session, host and guest both in a world:
   authority model is the finding above, not a detail to be improvised.
 - **`slot` is a body slot.** The negative encodings the wire uses for worn items are a transport detail and are
   not accepted; a limb-installed item is reached through the body listing and read by its id.
-- **No cursor target yet.** The user asked for a Minecraft-style selector including "the item nearest the
-  mouse"; that needs a new GameAdapter capability port (the console reads the kernel, which has no cursor), and
-  it lands with the write half, which needs local-scene access anyway.
+- **The cursor target has landed (2026-10-18), in the umbrella ticket.** The user asked for a Minecraft-style
+  selector including "the item nearest the mouse"; that needed a new GameAdapter capability port (the console
+  reads the kernel, which has no cursor), and it landed with the write half's port rather than here
+  (`todo/item-and-entity-data-commands.md`, *The cursor target landed*). This ticket's rows do not read it.
 - **Reads the session's record, not the local scene — and having no record is a real answer.** The verb
   answers what CUO records, and the record is filled by the holding client's report. A member's client registers
   its carried inventory (starting supplies and worn items included) at the generation-finished edge, so a guest's

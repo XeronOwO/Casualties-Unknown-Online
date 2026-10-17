@@ -56,3 +56,27 @@ A run on the deployed artifact: ampute a limb on a member, run the heal the user
 state survives a save and a reconnect. The `medication-component-probe` recipe's shape (a mode that reads the
 local body, plus the display-body target for the inspecting side) is the pattern to extend — it already proves
 the two sides can be read independently.
+## First implementation, and what a review found in it (2026-10-18)
+
+The restore is implemented (`Character/LimbRestore.cs`, called by the native-heal wrapper before the hollow
+clear) and is deliberately SMALLER than the reference: dismembering only sets `limb.dismembered = true` and
+`limb.gameObject.SetActive(false)` — the object is never destroyed, so its hinge, its local transform and its
+connected body all survive, and the geometry rebuild the reference performs exists because it rebuilds the body
+from scratch. What the implementation does is clear the flag, re-activate, and re-apply the limb-versus-body
+collision ignores (`FindObjectsOfType<Body>` rather than the reference's `NetBody.all_instances`, whose registry
+is in an assembly this project does not reference; the sets differ only by the extra bodies the scene search
+adds, which `BodyPatches.BodyStartPatch` already ignores with the same call).
+
+An adversarial review found no blocker and three majors. One is fixed in the same commit — the comment claimed
+the game's `OnEnable` reads the flag, and the game implements no `OnEnable` at all; the real reader is
+`Limb.Start`, and the comment now says so. **The other two are owed:**
+
+- **The restore flips the latch without firing the latch event.** Writing `dismembered = false` directly means
+  no `LimbStateEventMsg` is sent, so peers converge only on the next 1 Hz snapshot (up to a second of a clone
+  showing a severed limb) — and worse, `CloneFactTable.WarnOnDivergence` compares the latch against the
+  event-built fact table, which the amputation already set, so every receiver logs
+  `[CharSync] divergence … dismembered True → False — a dismember without an event sync`. That is the project's
+  own watchdog firing on an intended operation. The fix is the one every other latch edge uses: report a
+  limb-state event after the restore, through the existing limb-state patch path.
+- **Nothing fails if this change is deleted** — no test names it. The acceptance row below is the proof, and it
+  has not been taken.

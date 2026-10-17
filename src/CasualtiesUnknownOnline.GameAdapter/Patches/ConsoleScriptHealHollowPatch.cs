@@ -64,6 +64,11 @@ internal static class ConsoleScriptHealHollowPatch
 				// player still hollow.
 				var camera = PlayerCamera.main;
 				var body = camera == null ? null : camera.body; // Unity objects — ==
+				if (body != null && LimbRestore.Apply(body))
+				{
+					Report("Restored the severed limbs.");
+				}
+
 				if (body != null && HollowClear.Apply(body))
 				{
 					Report("Cleared the hollow.");

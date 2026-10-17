@@ -3,9 +3,10 @@
 - Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
   `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
-  registration — 2026-10-18, so **stage B is complete**. Stage C's `give` is surveyed and its permission settled
-  (host-only first; the member-side whitelist is `todo/cheat-permission-and-op-commands.md`); Stage C and Stage D
-  (`spawn`) are what remains.
+  registration — 2026-10-18, so **stage B is complete**. Stage C's `give` is surveyed; its permission is the
+  combined ruling: it ships for BOTH roles together with `todo/cheat-permission-and-op-commands.md`, every cheat
+  verb checked on both sides (the client refuses locally, the host arbitrates). Stage C and Stage D (`spawn`) are
+  what remains.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
 - Source: the user's 2026-10-07 backlog request — a Minecraft-style command family for CUO: item-specific
@@ -98,8 +99,9 @@ accepted-creation path unchanged or needs its own admission, including what a la
    missing half is materialization on the receiving side — today an item reaches another player only by the
    receiver taking it or by dropping it for a pickup — so this stage owns that carrier, and it shares the
    finding with `review/give-item-to-another-player.md`. **Designed 2026-10-18** — the carrier turned out to be
-   the giver-initiated push the give ticket landed, and the user ruled the verb HOST-ONLY first: see
-   *Stage C's design, surveyed* below for the carrier, the open pieces and the permission ruling.
+   the giver-initiated push the give ticket landed, and the user's combined ruling ships the verb for BOTH roles
+   together with `todo/cheat-permission-and-op-commands.md`: see *Stage C's design, surveyed* below for the
+   carrier, the open pieces and the two-sided permission check.
 3. **Stage D — `spawn`**: create an entity in the world through the accepted-creation path, with the
    late-joiner question answered before the verb lands.
 4. **The permission story, inside every stage.** Reads are `Anyone` today (the read half's own reasoning is in
@@ -368,10 +370,13 @@ it adds that a member's client cannot state is the host's own authority rows; no
 `/give` creates one item in another player's inventory with its properties already set. Two things are settled and
 some are open; the next cycle implements it.
 
-**Who may run it: HOST-ONLY, by the user's ruling of 2026-10-18** (`CommandPermission.HostOnly`). Opening it to
-members is its own ticket — `todo/cheat-permission-and-op-commands.md` — because a created item is not a property
-write of an existing row, so `AllowMemberItemDataWrite` is the wrong gate, and the user wants a `/op`/`/deop`
-whitelist (Steam ID plus the IP-direct identity question) rather than a ride on an existing rule.
+**Who may run it: the host AND its members, gated by the cheat permission** — the user's 2026-10-18 combined
+ruling (`todo/cheat-permission-and-op-commands.md`, *The combined ruling*), which SUPERSEDES the earlier "host-only
+first" answer recorded here. The verb therefore ships TOGETHER with that ticket's `/op`/`/deop` whitelist and its
+two-sided check: the acting client refuses a `/give` locally, by name, when it holds the announced permission and
+its own entry is not on it (front end = the game instance), and the host judges every request that does reach it
+against its own authoritative list and answers a refusal (back end = the host's arbitration). The same two-sided
+shape applies to the rest of the cheat family (`/data`'s write verbs, `/spawn` when it lands, `/heal`).
 
 **The delivery carrier already exists**: the giver-initiated push landed in
 `review/give-item-to-another-player.md`. The host writes the destination's character snapshot and publishes ONE
@@ -397,5 +402,6 @@ body (`PlayerInteractionApply.OnPlayerInventoryTransfer`: `ToSteamId == local` �
 
 **Limits this verb will inherit, to be recorded rather than hidden**: the receiving client's native slot, weight
 and tag rules do not currently decide placement (the give ticket's open gap — the host computes the destination);
-a definition the game does not know; a target with no free slot; and the IP-direct/no-Steam question does not
-arise for `/give` itself because it is host-only.
+a definition the game does not know; a target with no free slot; and a member's `/give` is only as trustworthy as
+the permission list that admitted it — the host still arbitrates every request, and an IP-direct peer's identity
+is the permission ticket's open question, not this verb's.

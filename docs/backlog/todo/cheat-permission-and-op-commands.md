@@ -1,19 +1,41 @@
 # Cheat permission, `/op` and `/deop`: who may run the cheat verbs
 
 - Status: Todo — **filed 2026-10-18** from the user's ruling on the `/give` verb's authority question (stage C of
-  `docs/backlog/todo/item-and-entity-data-commands.md`). The ruling in the user's own words: `/give` is made
-  HOST-ONLY first, and a command-permission system is then required — "`/op` `/deop` 这种命令能给他人授权或剥夺作弊
-  权限(拓展:将某人加入作弊权限白名单,需要同时考虑 Steam ID 与 IP 直连场景,对于 IP 直连场景可能需要额外评估玩家名
-  伪造问题),主机的作弊权限通过联机开关控制,授权与剥夺只允许主机对其余客机执行".
-- Priority: Medium
+  `docs/backlog/todo/item-and-entity-data-commands.md`), and **widened the same day** by the user's combined
+  direction (below), which supersedes the "`/give` host-only first" step. The first ruling in the user's own
+  words: "`/op` `/deop` 这种命令能给他人授权或剥夺作弊权限(拓展:将某人加入作弊权限白名单,需要同时考虑 Steam ID 与
+  IP 直连场景,对于 IP 直连场景可能需要额外评估玩家名伪造问题),主机的作弊权限通过联机开关控制,授权与剥夺只允许主
+  机对其余客机执行".
+- Priority: Medium-High — it now ships WITH `/give` and the two-sided check for the cheat family, so it queues
+  ahead of the rest of the item-data ticket's stage C.
 - Category: Command surface / session authority / permissions
-- Related: `docs/backlog/todo/item-and-entity-data-commands.md` (the cheat verb family this gates — `give` now,
-  `spawn` next), `docs/backlog/done/host-rules-replication.md` (the announcement pattern a member's client reads
-  to refuse a closed rule locally), `docs/backlog/todo/remote-backpack-access-policy.md` (a host policy that gates
-  a gesture, the same shape one level down), `docs/en/internals/permissions-and-security.md` (the admission seam
-  and what a console verb may assume), `docs/decisions/active.md` decision 262 (a member's report is bounded by
-  data; a permission list is a host ruling, not a client-enforced boundary)
-- Source: the user's 2026-10-18 ruling (above), given as the answer to "who may run `/give`".
+- Related: `docs/backlog/todo/item-and-entity-data-commands.md` (the cheat verb family this gates — `/give` ships
+  with this ticket now, `spawn` next), `docs/backlog/done/host-rules-replication.md` (the announcement pattern a
+  member's client reads to refuse a closed rule locally), `docs/backlog/todo/remote-backpack-access-policy.md` (a
+  host policy that gates a gesture, the same shape one level down), `docs/en/internals/permissions-and-security.md`
+  (the admission seam and what a console verb may assume), `docs/decisions/active.md` decision 262 (a member's
+  report is bounded by data; a permission list is a host ruling, not a client-enforced boundary)
+- Source: the user's two rulings of 2026-10-18 (quoted above and in *The combined ruling* below).
+
+## The combined ruling (2026-10-18 — supersedes "`/give` host-only first")
+
+The user's later direction the same day: "要不一起做了吧,既然要做基础的权限管理系统了,那顺带把主机与客机的 `/give`
+都支持了吧,包括其它的作弊命令一起都要做前后端校验,前端指游戏实例,后端指主机的仲裁机制". So the first answer's
+"`/give` ships HOST-ONLY first" step is **SUPERSEDED**: `/give` ships for the HOST and for GUESTS together with this
+permission, and every cheat verb carries a TWO-SIDED check:
+
+- **Front end = the game instance (the acting client).** It refuses a cheat verb locally, by name, when it holds
+  the announced permission list and its own entry is not on it — the shape `host-rules-replication` gave
+  `AllowMemberItemDataWrite`: a closed permission costs no round trip, and the operator reads the reason where they
+  typed the verb.
+- **Back end = the host's arbitration.** The host's own list is authoritative and is judged for every request that
+  arrives (the admission seam for wire commands, the verb's own seam for the host's local console); the client's
+  copy is only a prediction, never the verdict. A refusal is ANSWERED so both sides end up agreeing (the item-data
+  write's way back is the precedent).
+- **The family** is the verbs that change the world or another player beyond the player's own legitimate actions:
+  `/data`'s write verbs, `/give`, `/spawn` when it lands, and `/heal`. The host-admin verbs (`/hostrules`,
+  `/kick`, `/ban`, `/unban`) keep `HostOnly` and need no two-sided check — only the host can run them, so there is
+  no member request to arbitrate; the item-data READ (`/data get`) stays `Anyone`.
 
 ## What is asked
 
@@ -50,5 +72,5 @@
 
 - Not an anti-cheat mechanism (above); not a replacement for the host's per-verb rules (`HostRulesOptions`).
 - Not a general account system: no persistence outside what the host explicitly saves, no remote administration.
-- Not the `/give` implementation itself: that verb ships HOST-ONLY first, and this ticket opens it to the
-  whitelist when it lands.
+- Not `/give` itself: that verb ships TOGETHER with this ticket (both roles), and this ticket owns the permission
+  and the two-sided check it runs through; the verb's creation/delivery mechanics stay in the item-data ticket.

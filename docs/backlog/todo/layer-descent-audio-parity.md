@@ -48,3 +48,41 @@ Answer the user's two questions with evidence, then fix what the answer shows:
 - Not an audio rework: this is one transition's parity.
 - Not a claim about head-feel: "sounds right" is the user's call, and the machine half (which clip, which
   moment, which clients) is what this ticket can prove.
+## Located: the descent sound is a first-layer-only CODE BRANCH (2026-10-18)
+
+The user's memory is right, and the reason is one condition in the game's own code rather than a scene object.
+
+`WorldGeneration.cs` has `this.caveAudio = base.GetComponent<AudioSource>();` and, in `Update`, plays a second
+source under an explicit depth test:
+
+```
+if (this.generatingWorld || this.instantiatingWorld)
+{
+    bool flag = this.biomeDepth == 0 && this.biomeOverride == WorldGeneration.OverrideSceneType.None;
+    if (flag)
+    {
+        …
+        if (!this.genPodSource.isPlaying)
+        {
+            this.genPodSource.Play();
+        }
+    }
+    for (int j = 0; j < this.genRects.Length; j++) { … this.genRects[j].GetComponent<Image>().enabled = flag; }
+```
+
+So the descent/landing whoosh is gated on **`biomeDepth == 0`** — the first layer — and on there being no scene
+override. The same flag drives the generation RECTS (`genRects[5]` is enabled exactly when it is false), so the
+whole "pod descent" presentation is first-layer-only, not just its audio. That answers the ticket's first
+question: **it is a code branch, not a scene or prefab object, and it is deliberately first-layer-only.** Deeper
+layers are supposed to be quiet, so there is no parity to add for them.
+
+It also answers the second question's mechanism. The sound is played **locally, by whichever client is running
+its own generation**, for as long as `generatingWorld || instantiatingWorld` holds. It is not sent, and nothing
+about it is host-driven — so a member that generates layer 1 itself plays it itself. The remaining question is
+not "does the wire carry it" but "does a member reach that branch at all": CUO regenerates the layer on every
+client (the sibling ticket `layer-descent-spawn-separation` records that each client generates and places only
+its own body), which is exactly the condition this branch needs. **What the run has to confirm** is that a
+member's layer-1 generation really does pass through `generatingWorld`/`instantiatingWorld` with `biomeDepth`
+still 0 at that moment, and that its own `genPodSource` is audible when it does — a member's generation may be
+driven by the host's state rather than by the member's own start, and that is the one way this could still be
+silent.

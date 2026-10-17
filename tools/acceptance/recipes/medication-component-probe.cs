@@ -1,5 +1,7 @@
 // recipe: medication-component-probe
-// args: mode=s (plant-sleepingpills | plant-mindwipe | read | clear-local)
+// args: mode=s
+//        mode is one of: plant-sleepingpills, plant-mindwipe, read, clear-local. Each token on the args
+//        line above must be <key>=s or <key>=n, so the allowed values are named here instead.
 // serves: todo/heal-command-limb-and-hollow-restore.md — the owed runtime row for the removal direction:
 //         an apply path that only ADDED left every receiver's stale copy standing, and nothing in the suite
 //         would fail if the destroy arms were deleted, so this is what proves it over the real wire.

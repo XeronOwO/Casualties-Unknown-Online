@@ -64,3 +64,32 @@ stays unproven on this gesture set; the next attempt should either widen it (a c
 gesture this run could not drive — the expansion kind is blocked for the driver, see
 `done/container-move-snapshot-only-sync.md`) or answer the question from the native call sites, as the
 section above suggests.
+## Read in the code: the location or data decision, and the one fix this shares (2026-10-18)
+
+The mechanism is one literal in `ItemService.SendItemCarriedSync`:
+
+```
+if (item.Contents.Count > 0) { _kernelAuthority.TrySyncContainerFacts(ownerSteamId, item, out _, out _); }
+else { … FindItem(…) → TrySpawnCarried(…) or TryUpdateState(…) }
+```
+
+**A report carries the item's PLACE only when the item has contents of its own.** A leaf item being re-homed out
+of a container into a slot has none, so its report takes `TryUpdateState` — the kernel learns the data and keeps
+the location it already had, which is `Contained` under the old parent. That is this ticket, exactly.
+
+The kernel offers only two location-taking entries (`TrySpawnCarried` for a top-level arrival, and
+`TrySyncContainerFacts` for a parent together with its contents), so there is no "move this one item out" call to
+make. The move has to be stated by the PARENT.
+
+**Which makes this ticket and `container-content-event-gap-on-repick.md` the same defect seen from two sides.**
+That ticket is the peers' view (the container's fact never leaves this client, so their fact table learns it from
+the 1 Hz snapshot and warns); this one is the kernel's view (the old parent keeps the child). One report fixes
+both: when an item is re-homed out of a container into a slot, the owner sends the OLD PARENT's updated contents —
+the parent no longer holds the child, which states the departure and relocates the child in the kernel — instead
+of (or in addition to) the data-only carried report.
+
+Two things to settle when it is implemented, both already named by the sibling ticket: the report must be
+idempotent (the snapshot carries the same fact), and the take-out-into-the-world path must keep reporting its own
+departure rather than gaining a second one. And the two tickets should be done in ONE change, since doing either
+alone leaves the other's symptom standing while adding a second carrier for the same fact — which is the failure
+mode this repository calls "a fact with two owners".

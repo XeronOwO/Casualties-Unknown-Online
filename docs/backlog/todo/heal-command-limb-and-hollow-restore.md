@@ -169,3 +169,26 @@ was never written.
 - Which surface: the vanilla console command (item-free) or CUO's own `/heal`.
 - How much of KrokMP's ~40 extra body fields parity wants — that author's composition, not the game's own idea
   of "fully heals", and each one has to replicate and survive a save to be worth having.
+## The prerequisite is fixed (2026-10-18), and what a review changed in it
+
+The removal direction now exists in both helpers. `MedicationComponentPolicy` maps the wire values to
+`Absent` / `Inactive` / `Active` (pure, so the rule is a case rather than an `if` arm somebody has to notice is
+missing), and `MedicationComponentsSync.Apply` / `PainkillersSync.Apply` destroy the component when the sender
+has none instead of doing nothing. Five cases pin the rule.
+
+**The review found no blocker and three things worth carrying:**
+
+- **The removal arms have no case that fails without them.** The five cases drive the pure policy, and the two
+  existing test classes for these helpers assert only their reflective SHAPE (parameter count, static), so
+  deleting every `Object.Destroy` would leave the suite green. What would prove it is a two-client row: let a
+  dose decay to zero on one client and read `GetComponent<Painkillers>() == null` plus a happiness reading on
+  the other. **That row is owed.**
+- **Destroying the component is not enough on its own** (fixed here): the body caches it in `mindWipe` and
+  refreshes that handle on its own half-second pass, so without clearing the handle the body keeps multiplying
+  effective happiness by zero. `Apply` now clears it, which is what `RemoteCharacterDisplayProjection` already
+  did by hand — that arm is now redundant and is the next cleanup.
+- **A behaviour change nobody asked for, recorded rather than hidden**: `TraderRecruitPolicy.PrepareRevive`
+  hand-builds a health message with every medication field zeroed, and it reaches `Apply`. So revive and
+  next-level respawn now clear medication where they previously left it standing. Death clearing medication is
+  the intended end state and both entry points require `Alive == false`, but it is a change inside a fix whose
+  subject was the heal, so it is named here.

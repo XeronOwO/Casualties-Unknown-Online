@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -39,9 +40,11 @@ internal static class MedicationComponentsSync
 	}
 
 	/// <summary>
-	/// Applies host-authoritative medication component state to the LOCAL body.
-	/// Components are created only when non-zero/non-empty state arrives; the
-	/// game's own Update methods then evolve/self-destroy them.
+	/// Applies host-authoritative medication component state to the LOCAL body, in BOTH
+	/// directions: a component is created or updated when the owner carries state, and
+	/// REMOVED when the owner does not. Removing matters for all three — a dose that decayed
+	/// away on the owner used to leave the receiver's copy standing, and a mindwipe the owner
+	/// cleared could not be cleared here at all, which is what the heal's hollow half needs.
 	/// </summary>
 	internal static void Apply(Body body, CharacterHealthMsg? health)
 	{
@@ -50,9 +53,16 @@ internal static class MedicationComponentsSync
 			return;
 		}
 
-		if (health.SleepingPillsAmount != 0f)
+		var sleeping = body.GetComponent<SleepingPills>();
+		if (MedicationComponentPolicy.ForSleepingPills(health.SleepingPillsAmount) == MedicationComponentPresence.Absent)
 		{
-			var sleeping = body.GetComponent<SleepingPills>();
+			if (sleeping != null) // Unity object — ==
+			{
+				Object.Destroy(sleeping);
+			}
+		}
+		else
+		{
 			if (sleeping == null) // Unity object — ==
 			{
 				sleeping = body.gameObject.AddComponent<SleepingPills>();
@@ -61,9 +71,16 @@ internal static class MedicationComponentsSync
 			sleeping.amount = health.SleepingPillsAmount;
 		}
 
-		if (health.AntidepressantsAmount != 0f || health.AntidepressantsCurrentAmount != 0f)
+		var antidepressants = body.GetComponent<Antidepressants>();
+		if (MedicationComponentPolicy.ForAntidepressants(health.AntidepressantsAmount, health.AntidepressantsCurrentAmount) == MedicationComponentPresence.Absent)
 		{
-			var antidepressants = body.GetComponent<Antidepressants>();
+			if (antidepressants != null) // Unity object — ==
+			{
+				Object.Destroy(antidepressants);
+			}
+		}
+		else
+		{
 			if (antidepressants == null) // Unity object — ==
 			{
 				antidepressants = body.gameObject.AddComponent<Antidepressants>();
@@ -73,15 +90,30 @@ internal static class MedicationComponentsSync
 			antidepressants.currentAmount = health.AntidepressantsCurrentAmount;
 		}
 
-		if (health.MindwipeScriptPresent)
+		var mindwipe = body.GetComponent<MindwipeScript>();
+		switch (MedicationComponentPolicy.ForMindwipe(health.MindwipeScriptPresent, health.MindwipeScriptActive))
 		{
-			var mindwipe = body.GetComponent<MindwipeScript>();
-			if (mindwipe == null) // Unity object — ==
-			{
-				mindwipe = body.gameObject.AddComponent<MindwipeScript>();
-			}
+			case MedicationComponentPresence.Absent:
+				if (mindwipe != null) // Unity object — ==
+				{
+					Object.Destroy(mindwipe);
+				}
 
-			mindwipe.active = health.MindwipeScriptActive;
+				// The body CACHES this component in `mindWipe` and refreshes that handle on its own
+				// half-second pass, so destroying the component is not enough by itself: until the next
+				// pass the body still multiplies effective happiness by zero. The display projection
+				// already clears the handle by hand for the same reason.
+				body.mindWipe = null;
+				break;
+			case MedicationComponentPresence.Inactive:
+			case MedicationComponentPresence.Active:
+				if (mindwipe == null) // Unity object — ==
+				{
+					mindwipe = body.gameObject.AddComponent<MindwipeScript>();
+				}
+
+				mindwipe.active = health.MindwipeScriptActive;
+				break;
 		}
 	}
 }

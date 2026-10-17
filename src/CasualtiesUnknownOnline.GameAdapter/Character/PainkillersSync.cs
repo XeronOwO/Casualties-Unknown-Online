@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -30,10 +31,14 @@ internal static class PainkillersSync
 	}
 
 	/// <summary>
-	/// Applies host-authoritative painkiller component state to the LOCAL body.
-	/// The component is created only when a non-zero state arrives; the game's
-	/// own <see cref="Painkillers.Update"/> then evolves tolerance/reception and
-	/// self-destroys when the opiate clears.
+	/// Applies host-authoritative painkiller component state to the LOCAL body, in BOTH
+	/// directions: the component is created or updated when the owner carries state, and
+	/// REMOVED when the owner does not. The game's own <see cref="Painkillers.Update"/> then
+	/// evolves tolerance/reception and self-destroys when the opiate clears — so removing a
+	/// copy the owner no longer has reaches the state the sender is already in, where the
+	/// old code left the receiver's stale tolerance standing. One residual the removal does not
+	/// reproduce: the sender zeroes <c>body.opiateHappiness</c> on its way out, and the receiver
+	/// carries the sender's happiness on the wire anyway, so that additive term clears on its own.
 	/// </summary>
 	internal static void Apply(Body body, CharacterHealthMsg? health)
 	{
@@ -42,17 +47,24 @@ internal static class PainkillersSync
 			return;
 		}
 
-		var hasState = health.OpiateAmount != 0f
-			|| health.OpiateTolerance != 0f
-			|| health.OpiateReception != 0f
-			|| health.AntagonistAmount != 0f
-			|| health.ActualOpiateReception != 0f;
-		if (!hasState)
+		var presence = MedicationComponentPolicy.ForPainkillers(
+			health.OpiateAmount,
+			health.OpiateTolerance,
+			health.OpiateReception,
+			health.AntagonistAmount,
+			health.ActualOpiateReception);
+
+		var painkillers = body.GetComponent<Painkillers>();
+		if (presence == MedicationComponentPresence.Absent)
 		{
+			if (painkillers != null) // Unity object — ==
+			{
+				Object.Destroy(painkillers);
+			}
+
 			return;
 		}
 
-		var painkillers = body.GetComponent<Painkillers>();
 		if (painkillers == null) // Unity object — ==
 		{
 			painkillers = body.gameObject.AddComponent<Painkillers>();

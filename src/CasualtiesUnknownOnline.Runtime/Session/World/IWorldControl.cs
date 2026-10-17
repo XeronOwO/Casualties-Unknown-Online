@@ -160,7 +160,15 @@ public interface IWorldControl
 	/// </summary>
 	void SendBuildingEntityOpened(NetVector2 pos);
 
-	void FireBuildingEntityOpenedReceived(NetVector2 pos);
+	/// <summary>
+	/// Deliver a reported open to the admission seam and, when admitted, the apply event. The return is the ADMISSION
+	/// verdict, not a statement that the host's world holds the open: the apply event is void and its subscribers are
+	/// unchecked, and a true return with no entity at that position still relays.
+	/// </summary>
+	bool FireBuildingEntityOpenedReceived(ulong sender, NetVector2 pos);
+
+	/// <summary>Host side: the single admission seam for a reported OPEN — asked BEFORE anything is applied or recorded, so a refusal leaves no fact behind. Set once at bind; a null seam admits (no adapter, e.g. a test).</summary>
+	void SetBuildingEntityOpenedAdmission(Func<ulong, NetVector2, bool>? admission);
 
 	/// <summary>A lockable entity was opened — apply the open (health = 0) to the entity at Pos.</summary>
 	event Action<NetVector2>? BuildingEntityOpenedReceived;

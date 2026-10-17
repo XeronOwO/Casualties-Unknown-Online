@@ -511,7 +511,7 @@ public class WorldSnapshotWorldFactsTests
 		var facts = world.Host.Services.GetRequiredService<IWorldFactSource>();
 		var kernel = world.Host.Services.GetRequiredService<ItemKernelAuthority>();
 
-		control.FireBuildingEntityOpenedReceived(new NetVector2(5f, 6f));
+		control.FireBuildingEntityOpenedReceived(0, new NetVector2(5f, 6f));
 		Assert.Single(kernel.CreateCheckpoint().WorldEntities!.OpenedEntities);
 
 		// A live table with content, so the restore's reset really has work to do.

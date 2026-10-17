@@ -56,6 +56,14 @@ Adversarially verify:
   reproduce (an unseeded roll, another client's frame) is a finding too, and so is a report that names an
   identity the message cannot carry. Ask the other two halves as well: is a refusal ANSWERED so both sides
   end up agreeing, and can an unmodified client meet this refusal in ordinary play?
+- **A1b. Data or behaviour?** Ask of every check this change adds: does it compare the claim with a fact
+  the receiver ALREADY HOLDS (an identity, a value it computed, a table it owns), or does it model what the
+  player was physically ABLE to do? The second kind — reach, aim, timing, cooldown, input rate, "could this
+  gesture have happened" — is anti-cheat, which decision 262 rules out: it duplicates the game's rules in a
+  second, weaker implementation and refuses legitimate play when the two disagree. It is a BLOCKER even when
+  it looks like a tidy bound, and it is a blocker when the "fix" for an unbounded row is a distance check
+  rather than the wire identity the row actually needs. Also ask whether the new bound can be exercised at
+  all: a check whose only proof is an acceptance verb sharing its own conversion proves nothing.
 - **A. Every copied claim.** The change restates facts carried over from tickets, handoffs, or older
   documents. For each one, open the code or test it names and confirm the CURRENT state. A stale
   restatement is a finding even when the original document was correct when it was written — this is

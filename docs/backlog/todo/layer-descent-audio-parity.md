@@ -86,3 +86,27 @@ member's layer-1 generation really does pass through `generatingWorld`/`instanti
 still 0 at that moment, and that its own `genPodSource` is audible when it does — a member's generation may be
 driven by the host's state rather than by the member's own start, and that is the one way this could still be
 silent.
+## Read on the machine: a member reaches the branch, and its clip runs (2026-10-18)
+
+Two clients on the deployed artifact, sampling the member's OWN live `WorldGeneration` while it loaded
+(`.acceptance/20261018-e/run1.log`). Three samples, and the middle two are the answer:
+
+```
+[member] gen=true  inst=false depth=0 override=None genTime=1.342 podPlaying=true podTime=1.131
+[member] gen=true  inst=false depth=0 override=None genTime=4.683 podPlaying=true podTime=5.611
+[member] gen=false inst=false depth=0 override=None genTime=0     podPlaying=false podTime=0
+```
+
+So a member's own generation runs with `biomeDepth == 0`, no override, `genTimePassed` accumulating (it only
+accumulates INSIDE the first-layer branch) and its own `genPodSource` playing with real elapsed source time.
+The third sample shows the same fields cleared once the layer is up, which is the branch's own exit.
+
+**Both of the ticket's questions are therefore answered.** The descent whoosh is a first-layer-only code branch,
+and a member hears it because it is played locally by whichever client generates — the member does, and the
+reading shows the clip actually running rather than the code merely reaching the line.
+
+**There is no difference to fix**, which is this ticket's third required work: the located condition says the
+deeper layers are silent by design, so "parity" for them would be adding a behaviour the game does not have.
+That also means the three-client descent in the ticket's step 4 would only confirm a negative, and the non-goal
+"not an audio rework" already excludes inventing one. What a headset would add over this reading is the user's
+own half — "sounds right" is their call, not the machine's.

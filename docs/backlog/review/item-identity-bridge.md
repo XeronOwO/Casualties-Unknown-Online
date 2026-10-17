@@ -1,7 +1,7 @@
 # Item identity bridge: a live game `Item` cannot be named by its replicated instance id
 
-- Status: Todo
-- Priority: High for the report bounds it unblocks; a prerequisite rather than a bound
+- Status: Review
+- Priority: Low — resolved without code
 **Found:** 2026-10-18, while trying to give the building-open report a data anchor.
 
 ## The gap
@@ -42,3 +42,21 @@ for exactly the cases that matter (a tool inside a container, an item restored f
 - `docs/backlog/todo/member-report-bounds.md` — the rows waiting on it, and the ruling that behaviour bounds are out of
   scope (`docs/decisions/active.md`, decision 262).
 - `docs/architecture/member-report-validation.md` — the census that names these rows `unbounded`.
+## Resolution 2026-10-18: no subsystem is needed, and its only consumer turned out to have no anchor
+
+The premise above ("the mapping has to be maintained across the whole item lifecycle") was checked by the independent
+review of an attempt that used it, and it is wrong:
+
+- The index already exists in BOTH directions once one member is added. `ItemInstanceId` holds `ById` (id → component)
+  and `Register()`/`Unregister()` run on the live object, so a reverse `TryFindId(Item, out ulong)` is a dictionary
+  entry, not a lifecycle subsystem. The review confirmed the registration order is safe: every path that creates a
+  replicated item (`ItemStateCodec`, `StandingItemRecipe`, `ItemIdAllocator.Allocate`, `CarriedInventoryReporter`'s
+  `Ids.EnsureId`) has the `Item` component on the object BEFORE the id is assigned, so "item created before it has an
+  id" does not leave a hole.
+- Its only consumer was the open report's tool claim, and that claim has just been concluded unanchorable for a reason
+  that has nothing to do with identity: empty-handed opening is legal gameplay, so a zero id must be accepted and the
+  claim cannot be falsified (`docs/backlog/todo/member-report-bounds.md`, third attempt).
+
+So there is no code to develop here. If a future consumer needs "name this live item", the one-line reverse lookup is
+the whole change; nothing has to be built or maintained ahead of it. Recorded rather than kept as a pending ticket so
+nobody builds a subsystem for a consumer that does not exist.

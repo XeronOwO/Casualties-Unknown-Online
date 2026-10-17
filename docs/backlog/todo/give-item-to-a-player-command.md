@@ -22,10 +22,45 @@
 
 ## What was asked
 
-Put ONE item into a player's inventory with its properties already set, from the console:
-`/give [<selector>] <itemId> [slot <n>] [<property> ...]`. The item is created — nothing is taken from anyone —
-so the verb owns both the definition lookup and the delivery, and a member's verb is a request because only the
-host owns the definition table, the prefab capture and the instance-id space.
+Put ONE item into a player's inventory with its properties already set, from the console. The item is created
+— nothing is taken from anyone — so the verb owns both the definition lookup and the delivery, and a member's
+verb is a request because only the host owns the definition table, the prefab capture and the instance-id
+space.
+
+## The syntax decision (2026-10-17, decision 264)
+
+The verb's syntax is **the item id with its state attached as SNBT** — the same language the data model uses,
+the shape the game's own save carries, and the shape Minecraft's item argument has:
+
+```text
+/give @p waterbottle{Liquids:[{LiquidId:"water",Amount:500}],Condition:0.8}
+/give @p bandage
+/give @p largebattery{Condition:0.5,Components:{BatteryItem:{charge:0.9,on:true}}}
+```
+
+The `condition` / `favourited` / `liquid` / `component` token vocabulary the verb shipped with is
+**superseded** (decision 264) and must not grow: it could not express nesting, several liquids, contents or a
+second field of the same component, and it forced the Runtime to know which properties exist. Under the new
+syntax:
+
+- **One language across the family**: `/data get` prints this same SNBT, `/data merge` and `/data modify` take
+  it, so an operator reads an item back and edits what they read.
+- **The Runtime** owns the SNBT parse, the path resolution and the sentence the operator reads. It judges
+  SHAPE only: malformed SNBT, an unknown top-level key, a value that is not the kind the key takes.
+- **The adapter** owns the SCHEMA and the legality: which keys this definition's state carries (the item's
+  own fields, the component type names and their fields, whether it is a liquid container). A give is refused
+  BY NAME before anything is created when the state names a key the definition does not carry — and no game
+  rule (capacity, container rules) and no definition constant enters the Runtime or the wire.
+- **Completion is part of the ticket**: the console's suggestion machinery completes INSIDE the SNBT — the
+  top-level keys, the component type names of the item at hand, their fields, and the enumerated values — from
+  the adapter's schema for the item or definition being edited, never from a hand-kept list in the console.
+- **The parser, the writer, the path resolver and the completion are their own ticket** (`todo/…`, filed by
+  the implementing cycle); this ticket carries the give half: the item id, the attached state, the schema
+  query it needs, the delivery and the answer.
+
+The acceptance rows below still show the OLD token syntax as the record of what was judged; the implementing
+cycle re-derives them in the SNBT form (row 2 becomes
+`/give @p waterbottle{Liquids:[{LiquidId:"water",Amount:500}]}`).
 
 ## Entry mapping
 
@@ -57,11 +92,11 @@ no rung is skipped without being the answer's own sentence.
   `Item.GlobalItems` and resolves the prefab (`ItemPrefabResolver`), refusing by name an id the game does not
   know or a prefab that cannot load — before the item is created, rather than after the receiver's failed
   instantiation.
-- **The properties are the write verbs' own grammar, applied before delivery.** `ItemGiveParser` delegates to
-  `ItemDataWriteParser.TryParseProperties`, so `condition`, `favourited`, `liquid` and `component` mean exactly
-  what `/data set` means. The host creates the fact, applies every property to its OWN capture of the
-  definition, and only then delivers — a property that does not apply refuses the whole give, the merge's
-  atomicity rule applied one step earlier.
+- **The properties are the item's own state, applied before delivery — SUPERSEDED syntax, decision 264.**
+  The shipped token grammar (`condition`, `favourited`, `liquid`, `component`) is replaced by the item id with
+  its SNBT state attached; the mechanics stand: the host creates the fact from its OWN capture of the
+  definition, applies the state, and only then delivers, so a state the definition does not carry refuses the
+  whole give before anything exists (the merge's atomicity rule, one step earlier). See *The syntax decision*.
 - **The destination is a LADDER, ruled by the user on 2026-10-17**: (1) a free slot on the player's own
   body; (2) a container the body carries that has enough remaining weight capacity; (3) the equipment
   inside a container the body WEARS; (4) a drop at the player's own position. A selector that names several

@@ -39,6 +39,33 @@ The user's own examples of "properties" are the ones the game already stores per
 container's liquid and its millilitres, and condition/durability. The stated intent is open-ended 鈥?an
 operator or a mod author should reach the properties the game itself keeps, not a curated subset.
 
+## The data family's syntax (2026-10-17, decision 264)
+
+The family speaks ONE language: the item's own state as **SNBT**, and Minecraft's four `/data` verbs over a
+PATH language. The `set` / `merge` / `remove` token vocabulary (`condition <n>`, `liquid <id> <ml>`,
+`component <Type> <field> <value>`) is superseded and must not grow — it could not express nesting, several
+liquids, contents or two fields of one component, and it made the Runtime know which properties exist.
+
+```text
+/data get  <target> [<path>]                     # whole item or one path, printed as SNBT
+/data merge <target> <snbt>                      # merge keys into the item's state
+/data modify <target> <path> <set|merge|append|prepend|insert <n>> <snbt>
+/data remove <target> <path>
+```
+
+`<target>` stays the family's own: `id <n>`, `slot <n>`, `cursor`, or a player selector. `<path>` is dotted
+keys with list indices (`Liquids[0].Amount`, `Components.BatteryItem.charge`, `Contents[1].Condition`).
+
+Layer split, the same rule as everywhere else in this family: the Runtime owns the SNBT parse, the path
+resolution and the sentence the operator reads; the ADAPTER owns the SCHEMA (which keys this item's state
+carries, which component types and fields its capture has, whether it is a liquid container) and the legality
+of the values. So no game rule and no definition constant ever enters the Runtime or the wire shape.
+
+The parser, the writer, the path resolver and the console's SNBT-aware completion (keys, component types,
+fields, enumerated values, from the adapter's schema) are their own ticket; the read and write halves' rows,
+and every existing `/data` acceptance row, are re-derived in this syntax when it lands. `spawn` (stage D)
+inherits the same language for its own state argument.
+
 ## What the attribute answered (it came first, as this ticket required)
 
 `review/item-data-read-commands.md` is the read half, and the property-by-property survey lives there. The three

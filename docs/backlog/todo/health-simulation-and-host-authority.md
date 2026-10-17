@@ -1,19 +1,75 @@
 # Health on every client, reconciled to the host's value
 
-- Status: Todo — designed with the user on 2026-10-14; not started.
+- Status: Todo — designed with the user on 2026-10-14; not started. **Reopened 2026-10-18** by the user's
+  authority question below: whether the VALUE moves to the host (the client only presenting, with a rollback on
+  divergence), which would strengthen this ticket's model and re-decide its (a)/(b) recommendation at kickoff.
 - Priority: Medium-High
 - Category: Player state / cross-player sync / authority
 - Source: the user's 2026-10-14 request while the validation family was being discussed: health should be
   simulated on EVERY client so each player's own state stays continuous (native feel), reported to the host
   periodically, and reconciled to the host's value — the host is the final result, which is also what makes
-  the state authoritative.
+  the state authoritative. The 2026-10-18 question (below) asks whether the host should be the SOURCE of the
+  value rather than the reconciler of a client-stated one.
 - Related: `done/validation-and-source-checks.md` (the same conversation's other half: source, permission and
   data checks — this ticket owns the continuous-value half), `docs/backlog/future/generic-prediction-runtime.md`
   (this is a NARROW slice of it: one known family, one model), `docs/decisions/active.md` 184 (the design
   principle this must not break: experience judged locally, conflict arbitration on the host, latency is never
-  a decision parameter), `docs/development/agent-reference.md` (the sync model), `docs/architecture/current.md`
-  §7.1 (the authority inventory), `done/item-data-write-commands.md` (the same "who may state what" question
-  on the item side)
+  a decision parameter — the 2026-10-18 question may supersede it FOR PLAYER STATE, which is a ruling, not an
+  implementation detail), `docs/backlog/todo/cheat-permission-and-op-commands.md` (the cheat verbs' two-sided
+  check: `/heal` is in that family, and the two tickets meet at a self-targeted verb's authority),
+  `docs/development/agent-reference.md` (the sync model), `docs/architecture/current.md` §7.1 (the authority
+  inventory), `done/item-data-write-commands.md` (the same "who may state what" question on the item side)
+
+## The user's authority question (2026-10-18) — is the value the HOST's, or the player's own report?
+
+In the user's own words: "当前玩家的健康状态计算是以对应玩家的本地实例为准的吧?那会出现本地玩家可以肆意修改自己状态
+的情况吧,例如使用控制台的 `heal` 等命令。是否有可能把状态的权威值挪到主机上,客机跟其他人一样也只是个类似本地播放
+的形式,只是利用本地计算让玩家看起来像是完全本地计算的一样,实际还是应当走上报主机仲裁回退这条路。可行吗?"
+
+So the question is not the framing above (reconcile the client's stated value); it is whether the host should be
+the SOURCE of a player's own state, with that player's client a local presentation/prediction over it: the client
+computes locally for feel, reports, the host arbitrates, and a divergence ROLLS BACK. Feasibility is to be
+established and the decisions taken at kickoff, not now.
+
+**What this changes relative to the model above**: this ticket's 2026-10-14 model has EVENTS judged by the side the
+existing rulings give them to (the affected client judges its own injury and medical actions — decision 184) and
+only continuous values reconciled to the host, with the reported value kept as the fact when it is plausible. The
+user's question is what the *hard question* below calls (b) pushed all the way: the host COMPUTES/states the value
+and the client predicts. That reverses who is the source for a player's own body, so decision 184's ownership rule
+must be revisited for player state — with the user, as a ruling.
+
+**What is already in place, so the work is bounded**:
+
+- the 1 Hz self-report and its reconcile rule (`CharacterDataSync.ReportCharacterData`, the host value wins and an
+  alignment is immediate — the 2026-10-14 decision accepts the jump);
+- the divergence monitor that makes a missed change observable (`CloneFactTable.WarnOnDivergence`);
+- the heal request is already guest → host (`NetMsg.PlayerHealRequest` = "guest → host: use a carried medical item
+  on another in-world player", handled by `PlayerHealRequestHandler` → `HandleHealRequest`), so a member's
+  `/heal` is not a purely local effect — but the player's own CONTINUOUS state and its events are still produced
+  by that player's client, which is the surface the question names.
+
+**What research must answer before a design is chosen**:
+
+1. **What the host has to run to be the source** — the injury model is game code in client-side limb scripts; the
+   host would have to compute it for every body it does not render (the hard question's option (b)), including the
+   frame-cost measurement this ticket already demands.
+2. **What rolls back, and how the player sees it** — the 2026-10-14 decision accepts a visible jump for a
+   continuous value; a rollback of a whole state on a divergence may be more visible, and whether it is presented
+   as the host's value or as an explicit "corrected" moment is a user ruling.
+3. **Which events stay locally judged** — decision 184 covers injury, interaction gates and action initiation.
+   Moving the player's own STATE to the host does not move those automatically; the split has to be named, and the
+   seat of "the affected side judges its own experience" restated for the cases that keep it.
+4. **What a self-targeted cheat verb becomes** — under a host-stated value, `/heal`'s own-body effect is no longer
+   the client's to apply; it becomes a request the host judges (the permission ticket's family row), which is where
+   the two tickets meet.
+5. **Which line this crosses** — the MVP excludes generic client prediction, and this asks for a narrow form of it
+   for one family. `future/generic-prediction-runtime.md` stays deferred, and the ticket must say what makes this
+   slice narrow (one model, one family, no movement/animation).
+
+**The decision the user will be asked at kickoff** (recorded here so it is not re-derived): does the host become
+the source of a player's own health — superseding this ticket's (a)-first recommendation and, for this family,
+decision 184's ownership — and on a divergence does the client present the host's value as a jump, or as an
+explicit correction?
 
 ## What the user decided (2026-10-14)
 

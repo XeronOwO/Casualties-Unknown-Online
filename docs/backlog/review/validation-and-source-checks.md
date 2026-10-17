@@ -21,8 +21,9 @@
   the recorded one, the host's own row does not move, a control forged use of a `painkillers` (whose data
   marks it usable) is ADMITTED, an ordinary native use still passes, and the whole session carries exactly
   the two forged refusals. The ticket stays in `review/` for row 5 alone — its refusal half was read in batch
-  `20261017-c`, and its accepted half (the pre-statement window) was not staged and is named `unproven` in
-  the record. The same batch also read part of S2b's owed capture-loop row (the multi-building population
+  `20261017-c`, its accepted half was not staged, and the batch found WHY it is the hard half: the window it
+  lives in closes at the generation-finished edge, before any in-process probe can run (the rejoin edge is
+  the avenue the next batch takes; see the acceptance section). The same batch also read part of S2b's owed capture-loop row (the multi-building population
   half; the already-marked half stays `unproven`, see that section). The surfaces this ticket does NOT
   close are the census rows of
   `docs/architecture/member-report-validation.md` marked `unbounded:` — they carry their own evidence in
@@ -663,8 +664,16 @@ are the two forged reports the batch sent.
 **Rows 1–6 after the 2026-10-17 batch.** Row 5 is the one the ticket still holds open, and it is the only
 remaining row: its refusal half (the creation-before-operation invariant) was read in batch `20261017-c`,
 and its accepted half — a report arriving before the creation it depends on, materialized instead of
-refused — was NOT staged, because the window it lives in is now spent by the member's carried-set statement
-at world entry. It is `unproven` in batch `20261017-o`'s record, not passed.
+refused — was NOT staged. The batch's own reading of why is sharper than "not attempted": the window it
+lives in is spent by the member's carried-set statement at the generation-finished edge
+(`CarriedInventoryReporter.Update` opens the window on that edge and the next frame sends the statement),
+which is BEFORE any in-process probe can run, so a freshly entered client already carries a judged
+statement by the time a recipe can send anything. The one avenue left is the JOIN/RECONNECT edge, where the
+host's id-watermark grant re-opens the window under a session that is already connected — a report driven
+inside that edge is the way to read it, and the next batch should try it there. If that edge cannot be won
+either, the row becomes a judgement for the user (whether the invariant plus its unit case
+`..._BeforeTheCarriedSetWasStated_IsStillMaterialized` is the acceptance), not a self-issued pass. Its
+verdict in batch `20261017-o`'s record is `unproven`.
 
 **Read on the real machine 2026-10-14, batch `20261014-a`**
 (`docs/evidence/acceptance/validation-and-source-checks-20261014-a.md`): rows 3 and 4 pass in full — a

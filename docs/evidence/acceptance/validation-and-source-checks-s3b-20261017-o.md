@@ -63,10 +63,13 @@ Judged from this run's own readings against the deployed artifact named above.
   invariant, which is what the ticket's own gloss names — was read on the machine in batch `20261017-c`
   (`docs/evidence/acceptance/validation-and-source-checks-s3a-20261017-c.md`, row 1: a use report for an id
   the host never judged, refused by name and answered; the same invariant covers the use kind via
-  `IsItemOperation`). Its ACCEPTED half — the pre-statement window, where such a report is materialized
-  instead — was NOT staged: the window is now spent by the carried-set statement at world entry, so staging
-  it is a race against the member's first statement, and this run did not attempt it. Verdict: **unproven**,
-  and the ticket stays in `review/` for it.
+  `IsItemOperation`). Its ACCEPTED half was not staged, and this run's reading of WHY is the finding: the
+  window it lives in is spent by the member's carried-set statement at the generation-finished edge
+  (`CarriedInventoryReporter.Update` opens the window there and the next frame sends the statement), which
+  is before any in-process probe can run, so a freshly entered client already carries a judged statement by
+  the time a recipe can send anything. The avenue left is the join/reconnect edge, where the host's
+  id-watermark grant re-opens the window on an already-connected session; the ticket names it for the next
+  batch. Verdict: **unproven**, and the ticket stays in `review/` for it.
 - **The S2b owed machine read (the host's support-loss capture loop).** Read, but only its population half:
   `building-support-cells` found 40 cells carrying more than one `requireGround` building (one with three;
   host and member agree on 1902 entities / 1357 `requireGround` / 40 cells, `r28`, `r29`), and breaking the

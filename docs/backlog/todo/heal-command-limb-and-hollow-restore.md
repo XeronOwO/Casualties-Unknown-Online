@@ -289,3 +289,34 @@ Three facts, each read rather than assumed:
 the source, and referencing an adapter-internal type from an in-process eval — the second made the WHOLE recipe
 fail to compile, which surfaced as "every mode stopped answering", including the one that had been working. The
 listing now reports each body's component names, so the next unexpected shape is visible instead of inferred.
+## The contradiction, read in the source (2026-10-18)
+
+Reading `TryCreateDisplayBody` instead of running again produced the thing four runs could not: the creation
+path and the listing cannot both be right, and both were read.
+
+What the coordinator does when the view opens:
+
+- finds the `Experiment` template by name and **warns and returns false** if it is missing;
+- `Instantiate`s it, sets `go.name = $"MedicalDisplay_{steamId:X}"`, adds `RemoteMedicalDisplayBody`, then
+  `go.SetActive(false)`;
+- resolves `Body` with `GetComponentInChildren<Body>()`, **destroys the copy and warns** if there is none;
+- applies the snapshot and hands the body back.
+
+The log from the run that reached this point carries `[MedicalView] opened native medical view for <member>`,
+which the coordinator emits only AFTER that method returned true — so the body **was** created, named and
+marked. And the scene listing taken seconds later says three bodies exist, all named plain `Body`, and **none**
+carries `RemoteMedicalDisplayBody`.
+
+So one of these is true and the reading does not yet say which: the display body is destroyed between the open
+and the read; or `Resources.FindObjectsOfTypeAll` does not return an instantiated object under an inactive
+hierarchy the way this probe assumed; or the marker is on a different object than the one holding `Body` (the
+coordinator adds it to the instantiated ROOT while the body comes from `GetComponentInChildren`, so a template
+whose `Body` sits on a CHILD would put the two on different GameObjects — and the probe keys on the `Body`'s own
+object).
+
+**The next probe should not search the scene at all.** CUO keeps the handle: `RemoteMedicalView.DisplayBody` is
+the field the wound view and the injection handler read, so asking the code for its own body answers "does it
+exist and which object is it" in one step and removes the search as a source of doubt. It is an adapter-internal
+type, so the probe has to reach it by name through reflection — which this repository's recipes already do
+elsewhere, and which the previous attempt learned the hard way when referencing the type directly made the whole
+recipe fail to compile.

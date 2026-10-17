@@ -80,3 +80,22 @@ the game's `OnEnable` reads the flag, and the game implements no `OnEnable` at a
   limb-state event after the restore, through the existing limb-state patch path.
 - **Nothing fails if this change is deleted** — no test names it. The acceptance row below is the proof, and it
   has not been taken.
+## The acceptance row is being built, and what it has learned so far (2026-10-18)
+
+The probe can now list a body's limbs (`mode=limb`), and the listing is the row's foundation rather than a
+convenience: a run has to name a REAL limb because the game's own `amputate` resolves it through
+`Body.LimbByName`, and a guessed spelling throws "is not a valid limb" — which would read as a missing feature.
+
+Three things the attempt established, each read rather than assumed:
+
+- **A body has fifteen limbs** and they read as `头部`, `胸部`, `腹部`, then arms and legs. The names are the
+  game's own LOCALIZED ones, so picking by a spelling (`Arm`, `Leg`) finds nothing: the pick is by layout, and
+  it starts at index 3 because 0/1/2 are head, chest and abdomen and amputating one of those kills the player.
+- **`fullName` is not the name `LimbByName` resolves.** Passing the localized display name makes the command
+  throw, so the listing now reports the object's own name beside it and a run must pass THAT.
+- The body reads `standing=true shock=0` with every limb intact before anything is cut, which is the baseline
+  the row compares against.
+
+The row itself is still owed: cut a limb, read it severed, run the game's `heal`, read it back on the body and
+still standing. The other views (a second client reading this body), the save/reconnect survival and the
+limb-state event remain owed with it.

@@ -121,6 +121,9 @@
 			if (limb == null) { parts.Add("{\"i\":" + i + ",\"name\":\"<destroyed>\"}"); continue; }
 			parts.Add("{\"i\":" + i
 				+ ",\"name\":\"" + limb.fullName + "\""
+				// The name `Body.LimbByName` resolves is the object's own, not the localized display name: passing
+				// `fullName` to the game's `amputate` throws "is not a valid limb" and reads as a missing feature.
+				+ ",\"objectName\":\"" + limb.gameObject.name + "\""
 				+ ",\"dismembered\":" + (limb.dismembered ? "true" : "false")
 				+ ",\"active\":" + (limb.gameObject.activeSelf ? "true" : "false")
 				+ ",\"muscle\":" + limb.muscleHealth.ToString("0.#", culture) + "}");

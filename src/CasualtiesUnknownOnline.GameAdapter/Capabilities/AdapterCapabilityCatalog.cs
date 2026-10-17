@@ -162,6 +162,9 @@ internal static class AdapterCapabilityCatalog
 				typeof(MedicalSoundPatches), typeof(WorldDrinkSoundPatches), typeof(InventoryGestureSoundPatches),
 				typeof(BodySoundPatches), typeof(BandageMinigameSoundPatches),
 				typeof(AmputationMinigameSoundPatch), typeof(ShrapnelMinigameSoundPatch),
+				// The native heal command's extension: it clears the hollow debuff on the LOCAL body, which is
+				// the body's own state rather than the console surface the command happens to be typed into.
+				typeof(ConsoleScriptHealHollowPatch),
 			],
 			[],
 			[],

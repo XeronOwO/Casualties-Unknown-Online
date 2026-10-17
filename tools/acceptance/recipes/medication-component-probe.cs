@@ -31,10 +31,19 @@
 			// in-process eval cannot reference it - naming it made the whole recipe fail to compile, which
 			// reads as "every mode stopped answering" rather than as one broken mode.
 			if (candidate == null) { continue; }
-			var parts = candidate.GetComponents<UnityEngine.Component>();
-			for (var c = 0; c < parts.Length; c++) {
-				var part = parts[c];
-				if (part != null && part.GetType().Name == "RemoteMedicalDisplayBody") { body = candidate; break; }
+			// The marker goes on the instantiated ROOT while the Body comes from GetComponentInChildren, so
+			// when the template keeps its Body on a child the two sit on DIFFERENT GameObjects - which is
+			// precisely what a search keyed on the Body's own object misses, and both the earlier name match
+			// and the marker match made that mistake. Walk the ancestor chain instead.
+			var node = candidate.transform;
+			while (node != null) {
+				var parts = node.GetComponents<UnityEngine.Component>();
+				for (var c = 0; c < parts.Length; c++) {
+					var part = parts[c];
+					if (part != null && part.GetType().Name == "RemoteMedicalDisplayBody") { body = candidate; break; }
+				}
+				if (body != null) { break; }
+				node = node.parent;
 			}
 			if (body != null) { break; }
 		}

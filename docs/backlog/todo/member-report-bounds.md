@@ -99,6 +99,44 @@ conversion and a red test that FAILS today with the real cell → (2) the quake 
 same verdict plumbing, with the explosion channel excluded by the host's own explosion record rather than by the
 reporter's claim.
 
+### Second review of the verdict plumbing (2026-10-18) — attempted, REVERTED, findings recorded in full
+
+A first attempt at step (3) made the fire calls return a `bool` and relay only on true. The independent review found
+two blockers and six majors, so it was reverted uncommitted rather than shipped. The findings ARE the spec for the
+next attempt:
+
+1. **BLOCKER — a refused open was still recorded as a durable host-side fact.** `FireBuildingEntityOpenedReceived`
+   called `_eventChannel.ReportOpenedEntity(pos.X, pos.Y)` BEFORE invoking the handlers, and that record is durable:
+   `OpenedEntityRegistry.Report` → `_kernelAuthority.TryRecordOpenedEntity(...)` → `WorldEntities.OpenedEntities`,
+   written into every save (`WorldSnapshotEncoder`: `state.OpenedEntities.Select(SaveWorldEntityRow.OfOpenedEntity)`)
+   and replayed for a late joiner (`WorldEntityKernelProjection`), where the adapter applies `entity.health = 0f`. So
+   both new refusal cases left the kernel claiming the entity was opened and the log's "nothing applied" was false.
+   **Fix**: invoke first, record only when the verdict is true.
+2. **BLOCKER — the verdict rode a multicast `Func`, where only the LAST subscriber's answer survives.** A subscriber
+   added after `WorldEventSync.BindToSession` could resurrect a refused open or mute a legitimate one, the adapter
+   applies inside its own subscriber (so `true` never meant "may I apply"), and `?? true` failed open when nothing was
+   bound. **Fix**: a single-consumer admission seam consulted BEFORE the apply event; keep the apply event `void`.
+3. **MAJOR — the damage verdict was a constant.** `return true; // applied (or nothing stood there)` gated a handler
+   that could never close, and the threaded `sender` was read by nobody — a mechanism with no consumer.
+4. **MAJOR — a refusal was never answered.** The reporting guest had already opened the entity on its own copy
+   natively, so refusing with no message left it open for the reporter and locked for everyone else — a permanent
+   divergence, and the report rule requires an answer (the block path answers with `SendBlockPlacedCorrection`).
+5. **MAJOR — "no entity there" silently stopped the relay** while that method's own summary said the relay ignores
+   the value: two different refusals collapsed into one `bool`.
+6. **MAJOR — the census would have contradicted the code**: `member-report-validation.md`'s `BuildingEntityOpened`
+   row still said the bound "could not suppress the handler's relay", which the change made false; the gate cannot
+   catch a stale sentence, so the page has to be rewritten in the same change.
+7. **MAJOR — `WorldEventSync` landed at exactly 600 lines** with no debt entry, one line short of the gate; the fix
+   is extracting the building-entity relay into its own type, not recording the debt again.
+8. **MAJOR — the one new Runtime branch had no test**: every adapted subscriber returned `true`, and nothing
+   subscribed to `BuildingEntityOpenedReceived` at all. **Fix**: host subscribes a `false` verdict, G1 sends, assert
+   G2 received nothing (and that the host's checkpoint has no opened row); a `true` case asserts the relay.
+
+Also noted clean by that review: the sender really is the reporter on the host and the host on a guest (so the
+`Role == Host` gate is right), and the open path's coordinates are world-space on both sides — but `InteractionReach`
+must be renamed to say world units, because a constant named "cells" compared against world coordinates is exactly
+how the withdrawn block bound went wrong.
+
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

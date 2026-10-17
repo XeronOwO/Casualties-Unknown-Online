@@ -138,6 +138,19 @@ described above:
   the reach constant is chosen once and shared with the `BuildingEntityOpened` row below, so a hand that can pick a
   lock is also a hand that can break the wall beside it.
 
+  **LANDED 2026-10-18** (`6bdf1e36`, deployed and verified `+6bdf1e36`): `InteractionReach.Cells` holds the one
+  number, `WorldEventSync` takes `IEntitySyncControl` for the reporter's position, and a `playerBreak` air write
+  further than that reach is refused before anything is applied, recorded or relayed. An absent position is not a
+  refusal. Gates 668 and the behaviour suite are green; quake and environment writes carry `playerBreak: false` and
+  never enter the branch.
+
+  **The live row is the only thing left, and it is one lever short**: driving it needs a client to send
+  `NetMsg.BlockPlaced` for a far cell, and the acceptance vocabulary has no way to reach it — `PatchBridge` exposes
+  no world control (`Impl`, `ModContent`, `SessionSurface`, the patch ports only), and the send lives on
+  `IWorldControl.SendBlockPlacedReport(x, y, block, playerBreak)`. So the next run needs ONE of: a world-control
+  accessor on the bridge for a recipe, or a console verb that reports a break. Until then the row is
+  implemented-but-unverified and the ticket stays in `todo/`.
+
   **One correction to the reasoning above, and one dependency the check needs (2026-10-18).** The quake's breaks
   are NOT host-only: `WorldEventSync`'s own quake comment records that "every side shakes together and breaks its
   own nearby region; the regions union via the air-write relay". So a quake break IS a member report — and it is

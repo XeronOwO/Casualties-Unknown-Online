@@ -259,3 +259,33 @@ One more thing this run showed about the probe itself: its answer is assembled B
 `plant-*` call reports the state it found rather than the state it made. The fourth step's `clear-local` reading
 (`sleepingPills=true`) is what proves the planting worked. That ordering should be fixed when the probe is next
 touched — a fixture whose answer describes the wrong moment is how a run gets read backwards.
+## Third attempt: the scene holds three bodies and none is the display body (2026-10-18)
+
+The listing tool earned its place immediately. After the host's click the log confirms the native view opened
+(`[MedicalView] opened native medical view for <member>`) and the member list control was discovered, not
+hardcoded — but the probe's answer is:
+
+```
+bodiesFound: 3
+  Body(inactive) [Transform,Body,BoxCollider2D,Rigidbody2D,Talker,SelfHarmer,Vomiter,PantSound,AudioSource,LiquidAffect,…]
+  Body           [Transform,Body,BoxCollider2D,Rigidbody2D,Talker,SelfHarmer,Vomiter,PantSound,AudioSource,LiquidAffect,…,RemoteBodyDriver,…]
+  Body           [Transform,Body,BoxCollider2D,Rigidbody2D,Talker,SelfHarmer,Vomiter,PantSound,AudioSource,LiquidAffect,…]
+```
+
+Three facts, each read rather than assumed:
+
+- **The name the coordinator sets does not survive.** It writes `go.name = $"MedicalDisplay_{steamId:X}"`, and
+  every body in the scene is named plain `Body`, so something in the game resets it. A name match was never
+  going to work, and it failed silently — which is exactly how the previous attempt read as "no display body
+  exists" while the log said the view had opened.
+- **No body carries the marker** the coordinator adds (`RemoteMedicalDisplayBody`) — one of the three carries
+  `RemoteBodyDriver`, which is the in-world remote clone, not the inspected one.
+- So the display body either does not exist at that moment, is created later in the view's own flow, or is
+  destroyed between the click and the read. Nothing here distinguishes those, and the next attempt should read
+  the coordinator's own creation line beside the click (it logs when it opens the view; whether it logs the
+  body's creation has not been checked).
+
+**Two fixture faults this cost, both worth keeping**: matching on a name taken from a review rather than read in
+the source, and referencing an adapter-internal type from an in-process eval — the second made the WHOLE recipe
+fail to compile, which surfaced as "every mode stopped answering", including the one that had been working. The
+listing now reports each body's component names, so the next unexpected shape is visible instead of inferred.

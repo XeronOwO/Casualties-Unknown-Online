@@ -74,6 +74,17 @@ described above:
   `entity.health -= damage;` takes the magnitude as reported, so one report destroys any building. The
   anchor is the damaging item's own identity and its damage table (`Body.Attack`'s melee write is the
   native call site), which the message does not carry today.
+
+  **The WHERE half landed and read (2026-10-18, `1a651ddc`, deployed `+1a651ddc`)**: the sender now travels the whole
+  path — packet handler → world event → service passthrough → relay → `WorldBuildingEntitySync` — and a damage report
+  further than the shared reach from the reporter's own body is refused before anything is applied or relayed.
+  Driven from the member client: `/entitydamage 400 0 50` produced
+  `[EntitySync] <member>'s damage report at (400,508) is further than 8 cells from its own body — refused: nothing
+  applied, nothing relayed`, and `/entitydamage 2 0 5` added no refusal line.
+
+  **The HOW MUCH half is still open, and deliberately not faked**: the magnitude's anchor is the weapon's own damage
+  table, which the message does not carry. A host-side cap would be a second rule for a number the game already
+  computes, so it waits for the wire to carry the damaging item — the same shape the trader-give row above settled.
 - **`NetMsg.BuildingEntityOpened` (52)** — same shape: `entity.health = 0f;` after a presence test only. The
   lockpick and keypad minigames run on the opener's own client, so the open is its result. Half the anchor
   already exists host-side: the keypad code is the host's (`NetMsg.KeypadCode` = 57), and the entity's own

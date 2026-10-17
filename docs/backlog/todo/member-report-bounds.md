@@ -169,6 +169,16 @@ described above:
   road is still open and is what the next attempt should take first**: an acceptance-only console verb that reports
   one block write, which touches no interop seam at all.
 
+  **The console road, surveyed (2026-10-18)** so the next attempt starts on it: registration is attribute-based —
+  `ConsoleCommandRegistry.AddBuiltIns(owner)` scans the owner's methods for `ConsoleCommandAttribute` and registers
+  them — so the verb is ONE method on whichever class already owns the built-ins, calling
+  `IWorldControl.SendBlockPlacedReport(x, y, block, playerBreak)`. The one question to answer before writing it is
+  the PERMISSION: the verb has to run on a MEMBER client (that is the reporter side under test), and a member-side
+  verb that writes world state is exactly what the member-write policy (`AllowMemberItemDataWrite`, `Forbids`) has
+  an opinion about. Decide that first — either the verb is admitted for members because it only publishes a report
+  that the host still bounds, or it is host-only and the reading has to be taken with the HOST as the reporter,
+  which changes what the row proves.
+
   **One correction to the reasoning above, and one dependency the check needs (2026-10-18).** The quake's breaks
   are NOT host-only: `WorldEventSync`'s own quake comment records that "every side shakes together and breaks its
   own nearby region; the regions union via the air-write relay". So a quake break IS a member report — and it is

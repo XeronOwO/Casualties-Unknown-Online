@@ -31,7 +31,11 @@ public sealed class PlayerInventoryGiveResultMsg
 	[ProtoMember(3)]
 	public ulong ItemInstanceId { get; set; }
 
-	/// <summary>The slot the item was placed in, or -1 when nothing was placed.</summary>
+	/// <summary>
+	/// The body slot or the container's own slot the item landed on, or -1 when nothing is carried: a refusal,
+	/// and the ladder's drop rung (an applied give whose item went to the world instead of the body). The
+	/// operator-facing sentence is <see cref="Answer"/>; this field is the machine shape of the same fact.
+	/// </summary>
 	[ProtoMember(4)]
 	public int SlotIndex { get; set; } = -1;
 

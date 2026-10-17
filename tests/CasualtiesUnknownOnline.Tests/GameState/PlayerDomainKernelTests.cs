@@ -589,13 +589,34 @@ public class PlayerDomainKernelTests
 		var source = new GameStateKernel(Epoch);
 		var item = new PlayerInteractionItem(new ItemIdentity(42, "waterbottle"), ItemData.Empty);
 		var batch = source.Execute(
-			new RecordPlayerInventoryTransferCommand(new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2001, item, 500UL),
+			new RecordPlayerInventoryTransferCommand(new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2001, item, 500UL, PlayerInventoryDestination.Container),
 			new CommandContext(Epoch, Host)).Batch!;
 
 		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
 
 		var @event = Assert.IsType<PlayerInventoryTransferEvent>(Assert.Single(restored.Events));
 		Assert.Equal(500UL, @event.TargetParentItemId);
+		Assert.Equal(PlayerInventoryDestination.Container, @event.Destination);
+	}
+
+	/// <summary>
+	/// The give ladder's last rung rides the same transfer fact: a drop names no parent and no slot, and the
+	/// destination survives the wire so the receiving client drops the item instead of placing it.
+	/// </summary>
+	[Fact]
+	public void WireBatchRoundTrip_PreservesDropDestinationOnTransferEvent()
+	{
+		var source = new GameStateKernel(Epoch);
+		var item = new PlayerInteractionItem(new ItemIdentity(42, "bandage"), ItemData.Empty);
+		var batch = source.Execute(
+			new RecordPlayerInventoryTransferCommand(new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2002, item, 0UL, PlayerInventoryDestination.Drop),
+			new CommandContext(Epoch, Host)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerInventoryTransferEvent>(Assert.Single(restored.Events));
+		Assert.Equal(PlayerInventoryDestination.Drop, @event.Destination);
+		Assert.Equal(0UL, @event.TargetParentItemId);
 	}
 
 	[Fact]

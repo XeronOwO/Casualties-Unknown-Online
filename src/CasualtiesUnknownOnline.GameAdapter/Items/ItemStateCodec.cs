@@ -496,6 +496,17 @@ internal static class ItemStateCodec
 		}
 
 		container.LoadItem(child);
+		if (child.transform.parent != container.transform) // Unity object — ==
+		{
+			// LoadItem can refuse AFTER CanHoldItem (its own stacking rule and the distance gate) and it does so
+			// silently: a child that did not land is carried by nobody, named by no report, and swept away by the
+			// next snapshot. Answer the refusal here so the caller can place the item another way.
+			_log?.LogWarning("Restore: {ItemId} (id {InstanceId}) did not land in {Container} despite CanHoldItem — refused by the container's own load.",
+				childData.ItemId, childData.InstanceId, container.name);
+			Object.Destroy(child.gameObject);
+			return null;
+		}
+
 		return child;
 	}
 }

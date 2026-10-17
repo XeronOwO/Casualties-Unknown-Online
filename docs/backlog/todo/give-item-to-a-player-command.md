@@ -1,8 +1,9 @@
 # The `/give` command: create one item in a player's inventory
 
 - Status: Todo — batch `20261018-q` re-judged the re-derived SNBT rows on `0.1.0+30dbb252`: rows 1, 2 (the
-  liquid give, the row that rejected the previous build), 3, 6, 7, 8, 10 and 12 pass. The destination ladder's
-  rows 4, 5 and 11 are the remaining work, and row 9 was not re-run. The record is
+  liquid give, the row that rejected the previous build), 3, 6, 7, 8, 10 and 12 pass. **The destination ladder
+  landed after that batch** (section *The ladder, as landed* below), so rows 4, 5 and 11 await the next
+  acceptance run, and row 9 was not re-run. The record is
   `docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md`. Split out of
   `todo/item-and-entity-data-commands.md`'s stage C, which this ticket completes; the umbrella keeps stage D
   (`spawn`).
@@ -146,7 +147,7 @@ no rung is skipped without being the answer's own sentence.
 | 1 | The host creates, writes the recipient's snapshot and the ledger, and the row reaches the member's kernel | `CommandConsoleItemGiveTests.Host_GivesToAGuest_WritesTheSnapshotTheLedgerAndTheKernelRow` |
 | 2 | The host's own body is a valid destination | `.Host_GivesToItself_WritesItsOwnSnapshot` |
 | 3 | A named slot is used when free, and an occupied one falls back with the answer naming the real slot | `.Host_GivesInTheNamedSlot`, `.Host_GivesIntoAnOccupiedSlot_FallsBackAndSaysWhereItWent` |
-| 4 | A full body is refused by name and nothing is delivered | `.Host_GivesToATargetWithNoFreeSlot_IsRefusedByName` |
+| 4 | A full body answers the ladder's next rung, never a refusal: a carried container with room takes the item, else a worn one, else the world drop — and the answer names the rung | `.Host_GivesToAFullBodyWithACarriedContainer_PlacesItInsideAndSaysSo`, `.Host_GivesToAWornContainer_CarriedCandidatesAreOfferedFirst`, `.Host_GivesToATargetWithNoRoom_DropsAtItsPositionAndSaysSo` |
 | 5 | The state is bound BEFORE delivery | `.Host_GivesWithAProperty_AppliesItBeforeDelivery`, `.Host_GivesWithALiquidAndAComponent_AppliesBoth` |
 | 6 | A state the definition does not carry refuses the whole give | `.Host_GivesWithAStateTheDefinitionDoesNotCarry_IsRefusedByTheCreationPort` |
 | 7 | An unknown definition is refused by name and nothing is created | `.Host_GivesADefinitionTheBuildDoesNotKnow_IsRefusedByName` |
@@ -158,7 +159,11 @@ no rung is skipped without being the answer's own sentence.
 | 13 | With nothing announced the host judges and answers, and the refusal prints | `.Member_Gives_WhenNoRosterWasAnnounced_IsSettledByTheHostsOwnRefusal` |
 | 14 | A member's unknown definition is answered by the host, not created locally | `.Member_GivesAnUnknownDefinition_IsAnsweredByTheHost` |
 | 15 | The two new frames are direction-classified and the member-authored one is in the report census | `GuestToHostDirectionTests`/`HostToGuestDirectionTests` rows, `docs/architecture/member-report-validation.md`, sync-coverage row I11 with 5 anchors |
-| 16 | Not covered here | the live two-client run (the rows below); the real prefab capture and the real id allocator are the adapter's, and a test host has no game assembly |
+| 16 | The ladder's rungs are ordered as ruled, and the container rungs are answered by the game's own capacity rule | `FakeItemContainerFit.Offered` pins the carried-then-worn offer order; `ItemContainerFit` mirrors `Container.CanHoldItem` (per-item limit, total limit, tags) plus `Awake`'s +0.001 and `LoadItem`'s container-stacking refusal |
+| 17 | The drop rung is wired end to end: the host sends the destination, the receiving client creates the world object with the host's id and REPORTS the creation | `SourceShapeGateTests.GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport`, `.GiveLadderContainerRefusal_FallsToTheDropOnlyForACreatedItem`; the live half is acceptance row 11 |
+| 18 | The destination survives the kernel wire and the transfer message | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesDropDestinationOnTransferEvent`, `.WireBatchRoundTrip_PreservesContainerMoveParentOnTransferEvent` |
+| 19 | The container seam is standalone, like the creation seam, so it cannot reintroduce the startup cycle | `AdapterCapabilityPortShapeTests.GiveContainerFitSeam_IsStandalone` |
+| 20 | Not covered here | the live two-client run (the rows below); the real prefab capture, the real capacity values and the receiving client's drop report are the adapter's, and a test host has no game assembly |
 
 ## Whole-family audit
 
@@ -220,10 +225,24 @@ are the ladder's and stay unproven until it lands; row 9 was not re-run.
 
 ## Limits, recorded rather than hidden
 
-- **The receiving client's own slot rules do not decide placement.** The host picks the destination rung from
-  the recipient's last snapshot and the receiving client applies it (a body slot, a container's contents, or
-  the world drop the last rung names); a live body that has filled up since the snapshot is exactly what the
-  ladder's later rungs are for, and the answer states which rung settled it.
+- **The receiving client's own slot rules do not decide placement — but its LIVE container is the final
+  judge.** The host picks the destination rung from the recipient's last snapshot and the receiving client
+  applies it (a body slot, a container's contents, or the world drop the last rung names). A live change the
+  snapshot cannot see is the window this leaves: if the container the host named refuses the item (its live
+  contents grew, or its own rules refuse it), a GIVE answers with the ladder's drop rung there and reports
+  that, instead of a silent different slot; the answer already said "inside" and the operator reads the truth
+  back with `/data get`. A source transfer keeps its slot fallback. No rung is skipped silently.
+- **The capacity prediction is the adapter's, from definition facts.** `Container.CanHoldItem`'s three
+  clauses are mirrored plus `Awake`'s +0.001 adjustment and `LoadItem`'s container-stacking refusal; the
+  current holding weight is summed from the snapshot's contents' definition weights. A container nested
+  inside another is never a candidate (the game's own `LoadItem` refuses such a destination). The rule has
+  no test host — the acceptance rows 4 and 5 are its runtime proof.
+- **A dropped item is a world row, not a carried one.** The receiving client creates the object with the
+  host's instance id and reports the creation through the item domain, so the host's kernel and both peers
+  learn it; until that report arrives the operator's `/data get` answers from the old record. The drop
+  lands at the recipient's own position and time — the host's answer says where, not when.
+- **A named slot in a full body is not logged as a substitution.** The substitution line is written only when
+  a free fallback slot exists; with none, the ladder's own answer carries the real destination.
 - **The ladder is the ruled design, not a fallback.** A named slot is the operator's preference only: an
   occupied or out-of-range named slot falls back to the first free one and the answer names the real slot;
   the rungs below a full body are the user's 2026-10-17 ruling, and no rung is silent.
@@ -395,6 +414,24 @@ The verb's answer names the rung that settled it, so the operator always reads w
 The ladder is the acceptance rows 4, 5 and 11's expectation (the old "no free slot is a named refusal" is
 gone — a full body is simply rung 2's question).
 
+## The ladder, as landed (2026-10-18)
+
+**Mechanism inventory.**
+
+| # | Mechanism | Evidence |
+|---|---|---|
+| 1 | The rung order | `PlayerInventoryTakeService.DeliverCreatedItem`: the named-or-first free slot, then ONE `IItemContainerFit` call over the carried candidates followed by the worn ones, then `Drop` |
+| 2 | The capacity answer | `IItemContainerFit` (Runtime port) / `ItemContainerFit` (adapter): `Container.CanHoldItem`'s per-item, total and tag clauses, `Awake`'s +0.001 adjustment, `LoadItem`'s container-stacking refusal, and the item table's own weights |
+| 3 | The destination's wire | `PlayerInventoryDestination` on the kernel event and command, `WirePlayerInteraction` (ProtoMember 26) and `PlayerInventoryTransferMsg`; the receive side reads only a defined value |
+| 4 | The container application | the landed `TargetParentItemId` branch; a give whose LIVE container refuses falls to the drop instead of a silent slot swap (`PlayerInventoryPlacement.AddCarriedItemToLocalContainer`) |
+| 5 | The drop | `PlayerInventoryPlacement.DropCreatedItemAtLocalBody`: create at the body, stamp the host's id, apply the state, then `IItemControl.SendItemSpawned` — the report IS the row |
+| 6 | The answer | `PlayerItemGiveService.Where`: the slot, the carried-or-worn container (definition and id), or the drop; the same helper feeds the log |
+| 7 | The receiving client's load check | `ItemStateCodec.RestoreContent` verifies `Container.LoadItem` landed (`transform.parent`) instead of returning a child the container refused |
+| 8 | No protocol bump (a fact, not a design input) | one field on an existing event; no `NetMsg` member added |
+
+**What this section does not do.** The ladder is implemented and unit-pinned; rows 4, 5 and 11 of *What the
+acceptance batch owes* are its runtime proof and are the next batch's job.
+
 ## The startup cycle the batch found (2026-10-17)
 
 The first acceptance run against this commit never reached its first row: `7b10e6ca` deploys and then the
@@ -434,3 +471,34 @@ against the fix's commit once it lands, and that run's record — plus the lesso
 `docs/acceptance/lessons.md` (a green suite is not a start, because the acceptance prelude is the only thing
 that composes the real adapter) — is what closes this paragraph. Until then this states the plan, not a
 completed run.
+
+## Adversarial review of the ladder (2026-10-18, before the commit)
+
+Independent, fresh context, read-only over the frozen working tree, following `docs/development/review-prompt.md`
+(FULL tier), with the game's own code and the landed take path as ground truth. **Verdict: not approvable as
+frozen — 3 blocker, 4 major, 5 minor, 5 nit.** Every finding and its disposition is below; all are fixed in
+the same commit unless the disposition says otherwise.
+
+| ID | Severity | Finding | Disposition |
+|---|---|---|---|
+| F1 | blocker | The drop rung created the world item with the host's id and never reported it: `ItemWorldSync.OnItemInstantiated` skips an item that already carries `ItemInstanceId` (`"Skipped", "AlreadySynced"`), and the host's kernel therefore never got a row — a phantom the world-item keyframe kills (or, with an empty table, an object nobody knows). The test pinned the defect. | fixed: the placement calls `IItemControl.SendItemSpawned` with the created item's capture after stamping the id; `SourceShapeGateTests.GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport` pins the wiring, and the drop row's kernel row is now the receiving client's report (acceptance row 11 is its runtime proof) |
+| F2 | blocker | `FullyQualifiedNameGateTests` failed on `System.StringComparison.Ordinal` in the new adapter file. | fixed: `using System;` and the plain name |
+| F3 | blocker | `SourceShapeGateTests` failed: `PlayerInteractionApply` grew to 645 aggregate lines. | fixed: the placement half (`RemoveCarriedItemFromLocalBody`, the container/body placement, the same-owner re-home, the drop) moved to `PlayerInventoryPlacement`; the file is 484 lines and the collaborator 243 |
+| F4 | major | When the LIVE container refused, the receiving client silently fell back to a body slot (or discarded the item), while the answer and two message docs claimed the placement agreed; `RestoreContent` returned success even when `LoadItem` refused. | fixed: a give answers that refusal with the drop rung and reports it (`AddCarriedItemToLocalContainer`'s `dropWhenRefused`), `RestoreContent` verifies the load landed and destroys the refused child, both docs and the ticket's Limits state the live-change window |
+| F5 | major | The new standalone seam had no shape pin, so a future change could route it through the aggregate and reintroduce the startup cycle the give seam already tripped. | fixed: `AdapterCapabilityPortShapeTests.GiveContainerFitSeam_IsStandalone` pins zero `AddSingleton<IItemContainerFit>`, one `Replace`, and the standalone registration |
+| F6 | major | The contract records the change falsified were not updated: sync-coverage P7 and I11, the evidence quote, and the ticket's self-check row that named a deleted test. | fixed: P7 and I11 updated, the I11 evidence quote re-pointed, the self-check table rebuilt with the ladder rows and the index line updated |
+| F7 | major | The tests pin the Runtime's order and the answer, not the adapter's rule or the receiving apply; two mutations (drop the per-item guard, drop the apply call) survived the suite. | partly fixed: the wiring is pinned by the two source-shape cases above; the capacity arithmetic stays acceptance-proven (rows 4/5) because the behaviour project cannot host the game assembly — recorded in the Limits |
+| F8 | minor | Rungs 2 and 3 shared one enum value and one sentence, so the answer never said which rung settled it. | fixed: the answer and the log name "the carried container" or "the worn container" (the container's own slot sign decides) |
+| F9 | minor | The drop sentence asserted "no free slot and no container with room" as a live fact, false in a build with the unavailable default. | fixed: it says "dropped at its position (the ladder's last rung)"; the fall-through detail is in the log |
+| F10 | minor | The prediction mirrored `CanHoldItem` but not `LoadItem`'s container-stacking refusal, so an item that is itself a loaded container was predicted to fit. | fixed: a fact carrying children is never predicted into a container, with the game's own refusal cited |
+| F11 | minor | `PlayerInventoryGiveResultMsg.SlotIndex`'s doc was wrong for both new rungs. | fixed: it now states the container's own slot and the drop's -1 |
+| F12 | minor | The world-creation path duplicated the materialization and sat outside the item domain's carrier set. | fixed with F1: one materialization site (`PlayerInventoryPlacement`), and the report goes through the item domain's own spawn path |
+| F13 | nit | `Where` and `Describe` duplicated the same clauses. | fixed: one `Where` helper feeds both |
+| F14 | nit | The wire field's cast was unchecked. | fixed: an undefined value reads as the body-slot default, documented on the field |
+| F15 | nit | A defensive `throw` in a console/network path. | fixed: a missing container in the clone answers the drop rung with a warning |
+| F16 | nit | The pages listing the adapter's standalone seams did not name the new one. | fixed: `docs/architecture/current.md` and both language blocks' `internals/adapter-and-updates.md` |
+| F17 | nit | The delivery doc claimed the slot substitution is always logged. | fixed: logged when a free fallback exists; the answer carries the real destination |
+
+The review's "could not check" list — the live container's prefab values, `Item.Start` frame ordering, the
+keyframe actually killing a drop, the two-client rows, the custom-template `Awake` question, `ItemInfo.SetTags`
+population and the live wire delivery — is exactly the next acceptance batch's scope.

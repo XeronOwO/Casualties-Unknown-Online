@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -26,6 +28,7 @@ internal sealed class PlayerInventoryTakeService(
 	IPlayerInteractionVisibility visibility,
 	ItemKernelAuthority kernelAuthority,
 	PlayerInteractionResultAuthority resultAuthority,
+	IItemContainerFit containerFit,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -36,6 +39,7 @@ internal sealed class PlayerInventoryTakeService(
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
+	private readonly IItemContainerFit _containerFit = containerFit;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
@@ -236,60 +240,137 @@ internal sealed class PlayerInventoryTakeService(
 			ToSteamId = to,
 			Item = transferred,
 			TargetParentItemId = requestedContainerId,
+			Destination = requestedContainerId != 0 ? PlayerInventoryDestination.Container : PlayerInventoryDestination.BodySlot,
 		});
 
 		return null; // applied
 	}
 
 	/// <summary>
-	/// Host only: deliver a CREATED item into one player's carried inventory — the tail of
-	/// <see cref="HandleTakeCore"/> with no source body. The console <c>/give</c> verb creates the fact
-	/// (definition, instance id and properties) and calls this; everything from here on is the custody
-	/// path a cross-player transfer already takes: the destination's character snapshot, the recipient's
-	/// ledger entry (or the host's own item authority), and ONE published transfer whose receiving client
-	/// materializes it through its own slot rules.
+	/// Host only: deliver a CREATED item to one player — the tail of <see cref="HandleTakeCore"/> with no
+	/// source body. The console <c>/give</c> verb creates the fact (definition, instance id and properties)
+	/// and calls this; everything from here on is the custody path a cross-player transfer already takes:
+	/// the destination's character snapshot, the recipient's ledger entry (or the host's own item
+	/// authority), and ONE published transfer whose receiving client applies the rung this chose.
+	///
+	/// <para>
+	/// The destination is the LADDER the user ruled on 2026-10-17: (1) a free slot on the player's own body,
+	/// (2) a container the body CARRIES with enough remaining weight, (3) a container the body WEARS, and
+	/// (4) a world drop at the player's own position. The operator's named slot is a preference only: an
+	/// occupied or out-of-range one falls back to the first free slot, with the substitution logged WHEN a
+	/// free slot exists — with none, the ladder's next rungs answer and the delivery's own sentence carries
+	/// the truth. The
+	/// container rungs are answered by <see cref="IItemContainerFit"/> — the container's weight rule is the
+	/// game's own — and the same id travels in the transfer so the receiving client loads the item into THAT
+	/// container. A drop is not a carried item: the recipient's snapshot and transfer table are left alone,
+	/// and its own client materializes the item into the world where it stands.
+	/// </para>
 	///
 	/// <para>
 	/// The published transfer names NO source (<c>FromSteamId = 0</c>) because no body gave the item up:
-	/// nothing is removed on any client, and only the recipient's projection fires. Null means delivered;
-	/// otherwise the sentence is the refusal the operator reads.
+	/// nothing is removed on any client, and only the recipient's projection fires.
 	/// </para>
 	/// </summary>
-	internal string? DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)
+	internal ItemDelivery DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
-			return "This client is not the host of a live session world, so it cannot deliver a created item.";
+			return ItemDelivery.Refused("This client is not the host of a live session world, so it cannot deliver a created item.");
 		}
 
 		if (to == 0 || item.InstanceId == 0)
 		{
-			return $"malformed give (target {to}, item id {item.InstanceId}).";
+			return ItemDelivery.Refused($"malformed give (target {to}, item id {item.InstanceId}).");
 		}
 
 		if (!_characters.IsInWorld(to))
 		{
-			return $"{to} is not in-world, so /give cannot reach its inventory.";
+			return ItemDelivery.Refused($"{to} is not in-world, so /give cannot reach its inventory.");
 		}
 
 		var target = _characters.GetCharacterData(to);
 		if (target is null)
 		{
-			return $"No character snapshot for {to}, so /give cannot place an item on it.";
+			return ItemDelivery.Refused($"No character snapshot for {to}, so /give cannot place an item on it.");
 		}
 
-		var targetSlot = ResolveDestinationSlot(target, to, requestedSlot, "[Give]");
-		if (targetSlot < 0)
-		{
-			return $"{to} has no empty inventory slot.";
-		}
-
-		item.SlotIndex = targetSlot;
 		var newTarget = PlayerCharacterAccess.CloneCharacter(target);
-		newTarget.Items.Add(item);
+
+		// Rung 1: a free slot on the body (the named one when the operator's preference is usable).
+		var slot = ResolveDestinationSlot(target, to, requestedSlot, "[Give]");
+		if (slot >= 0)
+		{
+			item.SlotIndex = slot;
+			newTarget.Items.Add(item);
+			return Carry(to, newTarget, item, PlayerInventoryDestination.BodySlot, slot, 0, null, requestedSlot);
+		}
+
+		// Rungs 2 and 3: a container the body carries, then one it wears. The candidates are top-level
+		// snapshot items in that order; which of them is a container and how much room it has is the
+		// adapter's answer, because it is the game's own rule.
+		var candidates = ContainerCandidates(target);
+		if (candidates.Count > 0 && _containerFit.TryFindContainer(candidates, item, out var containerId))
+		{
+			var container = FindCarriedItem(newTarget.Items, containerId);
+			if (container is null)
+			{
+				// The clone carries the same tree the candidates came from; an id the port answered that is not in
+				// it is a broken answer, and the honest response is the ladder's last rung rather than a throw
+				// inside a console/network path.
+				_log.LogWarning("[Give] the container port answered {ContainerId}, which the recipient's own clone does not carry — answering the drop rung.", containerId);
+				return Drop(to, item);
+			}
+
+			item.SlotIndex = container.SlotIndex; // a container child carries its PARENT's slot
+			container.Contents.Add(item);
+			return Carry(to, newTarget, item, PlayerInventoryDestination.Container, container.SlotIndex, containerId, container.ItemId, requestedSlot);
+		}
+
+		return Drop(to, item);
+	}
+
+	/// <summary>The ladder's last rung: the item is not carried — no snapshot row, no table row — and the recipient's client drops and reports it.</summary>
+	private ItemDelivery Drop(ulong to, CharacterItemMsg item)
+	{
+		item.SlotIndex = -1;
+		_log.LogInformation("[Give] {To} receives created {ItemId} (id {InstanceId}) as a world drop at its own position (the ladder's last rung).",
+			to, item.ItemId, item.InstanceId);
+		PublishTransfer(new PlayerInventoryTransferMsg
+		{
+			FromSteamId = 0,
+			ToSteamId = to,
+			Item = item,
+			Destination = PlayerInventoryDestination.Drop,
+		});
+		return new ItemDelivery(true, null, PlayerInventoryDestination.Drop, -1, 0, null);
+	}
+
+	/// <summary>
+	/// The carried half of the ladder: write the recipient's snapshot, record the ledger entry (or the
+	/// host's own authority row) and publish the one transfer that names this rung.
+	/// </summary>
+	private ItemDelivery Carry(
+		ulong to,
+		CharacterDataMsg newTarget,
+		CharacterItemMsg item,
+		PlayerInventoryDestination destination,
+		int slot,
+		ulong containerId,
+		string? containerDefinitionId,
+		int requestedSlot)
+	{
 		_characters.SaveCharacterData(to, newTarget);
 
 		var ledger = PlayerCharacterAccess.CloneItem(item);
+		if (destination == PlayerInventoryDestination.Container)
+		{
+			// A container child carries its parent's slot in the snapshot, while the transfer table and
+			// the kernel read -1 as "carried, no slot of its own" — an entry that claimed a slot would put
+			// the item in that slot on every clone and in the kernel's own view, competing with the
+			// container for one slot.
+			ledger.SlotIndex = -1;
+		}
+
 		if (to != _session.LocalSteamId)
 		{
 			_items.AdoptTransferredItem(to, item.InstanceId, ledger);
@@ -299,16 +380,52 @@ internal sealed class PlayerInventoryTakeService(
 			CommitCarriedToHost(item.InstanceId, ledger);
 		}
 
-		_log.LogInformation("[Give] {To} receives created {ItemId} (id {InstanceId}) in slot {Slot} (requested {Requested}).",
-			to, item.ItemId, item.InstanceId, targetSlot, requestedSlot);
+		_log.LogInformation(
+			"[Give] {To} receives created {ItemId} (id {InstanceId}) {Where} (requested slot {Requested}).",
+			to, item.ItemId, item.InstanceId, Describe(destination, slot, containerId), requestedSlot);
 		PublishTransfer(new PlayerInventoryTransferMsg
 		{
 			FromSteamId = 0,
 			ToSteamId = to,
 			Item = item,
+			TargetParentItemId = containerId,
+			Destination = destination,
 		});
 
-		return null;
+		return new ItemDelivery(true, null, destination, slot, containerId, containerDefinitionId);
+	}
+
+	/// <summary>The placement a log line names: a body slot, or the container's id.</summary>
+	private static string Describe(PlayerInventoryDestination destination, int slot, ulong containerId) =>
+		destination == PlayerInventoryDestination.Container
+			? $"inside container {containerId} (parent slot {slot})"
+			: $"in slot {slot}";
+
+	/// <summary>
+	/// The ladder's candidates in rung order: the body's carried containers first (a slot of their own),
+	/// then the worn ones. The adapter filters them to containers that can hold the item; the order is the
+	/// ladder's, so the first fit is the rung the answer names.
+	/// </summary>
+	private static List<CharacterItemMsg> ContainerCandidates(CharacterDataMsg target)
+	{
+		var candidates = new List<CharacterItemMsg>(target.Items.Count);
+		foreach (var item in target.Items)
+		{
+			if (item.SlotIndex >= 0)
+			{
+				candidates.Add(item);
+			}
+		}
+
+		foreach (var item in target.Items)
+		{
+			if (item.SlotIndex < 0)
+			{
+				candidates.Add(item);
+			}
+		}
+
+		return candidates;
 	}
 
 	/// <summary>
@@ -359,7 +476,7 @@ internal sealed class PlayerInventoryTakeService(
 		}
 
 		var fallback = PlayerCharacterAccess.FirstEmptySlot(target);
-		if (requestedSlot >= 0)
+		if (requestedSlot >= 0 && fallback >= 0)
 		{
 			_log.LogInformation("{Tag} destination slot {Slot} is not free for {To}; using slot {Fallback} instead.",
 				logTag, requestedSlot, recipient, fallback);
@@ -445,6 +562,7 @@ internal sealed class PlayerInventoryTakeService(
 			msg.ToSteamId,
 			PlayerInteractionKernelCodec.FromCharacterItem(msg.Item!),
 			msg.TargetParentItemId,
+			msg.Destination,
 			out _,
 			out var rejection))
 		{

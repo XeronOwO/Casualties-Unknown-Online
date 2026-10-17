@@ -123,4 +123,15 @@ public sealed class WirePlayerInteraction
 	/// </summary>
 	[ProtoMember(25)]
 	public bool TargetRunsLimbAction { get; set; }
+
+	/// <summary>
+	/// The inventory transfer's destination rung, as
+	/// <c>PlayerInventoryDestination</c> (0 body slot, 1 container, 2 drop). The host chose it
+	/// from the recipient's snapshot; the recipient applies THAT rung, so a full body or a
+	/// container that changed its mind is not re-decided here. Meaningful only for the
+	/// transfer event; 0 for every other family and for every older producer, and an undefined
+	/// value is read as 0 rather than as a different rung.
+	/// </summary>
+	[ProtoMember(26)]
+	public int Destination { get; set; }
 }

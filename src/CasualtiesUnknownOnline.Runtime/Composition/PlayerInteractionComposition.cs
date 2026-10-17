@@ -60,6 +60,11 @@ internal static class PlayerInteractionComposition
 		// cannot create anything and says so. The plugin replaces this with the Game
 		// Adapter's implementation (the same shape as the three seams above).
 		services.AddSingleton<IItemGrantSource>(new UnavailableItemGrantSource());
+		// The container half of the give ladder: a container's weight rule is the game's own
+		// fact, so the base root can only answer "none of them can take it" and the ladder falls
+		// through to its drop rung. The plugin replaces this with the Game Adapter's
+		// implementation (the same shape as the creation port above).
+		services.AddSingleton<IItemContainerFit>(new UnavailableItemContainerFit());
 		// Remote medical operation session domain: generic start/update/end/cancel
 		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
 		// it for real-time injection; later stages reuse the same session envelope.

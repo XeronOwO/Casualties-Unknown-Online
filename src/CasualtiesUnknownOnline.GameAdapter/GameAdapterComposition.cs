@@ -201,6 +201,13 @@ public static class GameAdapterComposition
 		services.AddSingleton<ItemGrantSource>();
 		services.Replace(ServiceDescriptor.Singleton<IItemGrantSource>(
 			p => p.GetRequiredService<ItemGrantSource>()));
+		// The container half of the give ladder: the same standalone seam shape and the same
+		// cycle reason as the creation port above (the take service that consumes it is built
+		// before the aggregate). It reads the prefab's serialized Container and the item
+		// table's own weights, so it needs nothing the adapter's domain graph owns.
+		services.AddSingleton<ItemContainerFit>();
+		services.Replace(ServiceDescriptor.Singleton<IItemContainerFit>(
+			p => p.GetRequiredService<ItemContainerFit>()));
 		// The game's own line-of-sight oracle is a standalone lightweight
 		// GameAdapter service. It must NOT be registered through GameAdapter:
 		// GameAdapter depends on IPlayerInteractionControl, and

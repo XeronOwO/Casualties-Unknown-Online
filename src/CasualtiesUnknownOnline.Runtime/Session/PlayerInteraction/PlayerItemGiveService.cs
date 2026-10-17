@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Text;
 using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -162,11 +163,12 @@ internal sealed class PlayerItemGiveService(
 			return Refused(reason);
 		}
 
-		var deliveryRefusal = _take.DeliverCreatedItem(targetSteamId, item, slot);
-		if (deliveryRefusal is not null)
+		var delivery = _take.DeliverCreatedItem(targetSteamId, item, slot);
+		if (!delivery.Delivered)
 		{
-			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, deliveryRefusal);
-			return Refused(deliveryRefusal);
+			var reason = delivery.Refusal ?? $"the item could not be delivered to {targetSteamId}.";
+			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, reason);
+			return Refused(reason);
 		}
 
 		// The answer names the state the item REALLY carries: the creation port binds the
@@ -179,23 +181,38 @@ internal sealed class PlayerItemGiveService(
 			answered = SnbtWriter.Write(boundState);
 		}
 
-		_log.LogInformation("[Give] {Actor} gave {Definition} (#{InstanceId}) to {Target} in slot {Slot}{State}.",
-			actor, item.ItemId, item.InstanceId, targetSteamId, item.SlotIndex,
+		_log.LogInformation("[Give] {Actor} gave {Definition} (#{InstanceId}) to {Target}{Where}{State}.",
+			actor, item.ItemId, item.InstanceId, targetSteamId, Where(delivery),
 			answered.Length == 0 ? "" : " with state " + answered);
-		return new GiveOutcome(true, Describe(item, targetSteamId, answered), item.InstanceId, item.SlotIndex);
+		return new GiveOutcome(true, Describe(item, targetSteamId, answered, delivery), item.InstanceId, delivery.SlotIndex);
 	}
 
 	/// <summary>
-	/// The one sentence both ends print: the item it created, the id its record carries, where
-	/// it landed, and the state it was given (the operator's own, canonical form).
+	/// The answer's clause for the rung that settled the item — always named, never implied: the slot, the
+	/// carried or worn container (its definition and id), or the drop. One helper serves the answer and the
+	/// log, so the two can never say different things.
 	/// </summary>
-	private static string Describe(CharacterItemMsg item, ulong targetSteamId, string state)
+	private static string Where(ItemDelivery delivery) => delivery.Destination switch
+	{
+		PlayerInventoryDestination.Container =>
+			$" inside the {(delivery.SlotIndex < 0 ? "worn" : "carried")} container {delivery.ContainerDefinitionId ?? "container"} (#{delivery.ContainerId})",
+		PlayerInventoryDestination.Drop => ", dropped at its position (the ladder's last rung)",
+		_ => $" in slot {delivery.SlotIndex}",
+	};
+
+	/// <summary>
+	/// The one sentence both ends print: the item it created, the id its record carries, where
+	/// it landed (the ladder rung that settled it), and the state it was given (the operator's own,
+	/// canonical form).
+	/// </summary>
+	private static string Describe(CharacterItemMsg item, ulong targetSteamId, string state, ItemDelivery delivery)
 	{
 		var builder = new StringBuilder();
 		builder.Append("Gave ").Append(item.ItemId)
 			.Append(" (#").Append(item.InstanceId.ToString(CultureInfo.InvariantCulture)).Append(") to ")
 			.Append(targetSteamId.ToString(CultureInfo.InvariantCulture))
-			.Append(" in slot ").Append(item.SlotIndex.ToString(CultureInfo.InvariantCulture));
+			.Append(Where(delivery));
+
 		if (state.Length > 0)
 		{
 			builder.Append(" with state ").Append(state);

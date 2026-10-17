@@ -6374,7 +6374,7 @@
       "cluster": "items",
       "row": "I11",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInventoryTakeService.cs",
-      "quote": "internal string? DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)"
+      "quote": "internal ItemDelivery DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)"
     },
     {
       "cluster": "items",

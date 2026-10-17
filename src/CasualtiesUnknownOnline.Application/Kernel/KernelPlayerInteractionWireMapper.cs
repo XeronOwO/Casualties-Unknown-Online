@@ -24,6 +24,7 @@ public static class KernelPlayerInteractionWireMapper
 			ItemData = ToWireData(e.Item.Data),
 			ItemContents = [.. e.Item.Children.Select(ToWireItem)],
 			TargetParentItemId = e.TargetParentItemId,
+			Destination = (int)e.Destination,
 		};
 
 	public static WirePlayerInteraction ToWire(PlayerHealResultEvent e) =>
@@ -86,7 +87,12 @@ public static class KernelPlayerInteractionWireMapper
 			p.FromSteamId,
 			p.ToSteamId,
 			FromWireItem(p.ItemIdentity, p.ItemData, p.ItemContents) ?? throw new InvalidOperationException("inventory transfer event lacks item payload"),
-			p.TargetParentItemId);
+			p.TargetParentItemId,
+			// An undefined value reads as the pre-existing body-slot destination: the safe default every older
+			// producer's zero already means, rather than a silently different rung.
+			Enum.IsDefined(typeof(PlayerInventoryDestination), p.Destination)
+				? (PlayerInventoryDestination)p.Destination
+				: PlayerInventoryDestination.BodySlot);
 
 	public static PlayerHealResultEvent FromWireHealResult(WirePlayerInteraction p) =>
 		new(

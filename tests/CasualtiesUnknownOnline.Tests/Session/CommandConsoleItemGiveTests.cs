@@ -1,5 +1,6 @@
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -101,18 +102,90 @@ public class CommandConsoleItemGiveTests
 		Assert.Contains(Characters(host).GetSavedCharacter(GuestId)!.Items, item => item.InstanceId == creation.Created[0].InstanceId && item.SlotIndex == 0);
 	}
 
+	/// <summary>
+	/// The ladder's last rung: a body with no free slot and no container that can take the item. The item is
+	/// not carried — no snapshot row, no transfer-table entry, no kernel carried row — and the published
+	/// transfer carries the DROP destination, which is what makes the receiving client drop it where it
+	/// stands. The answer says so instead of claiming a slot.
+	/// </summary>
 	[Fact]
-	public void Host_GivesToATargetWithNoFreeSlot_IsRefusedByName()
+	public void Host_GivesToATargetWithNoRoom_DropsAtItsPositionAndSaysSo()
 	{
-		var (host, _, creation) = CreateGiveSession();
+		var (host, guest, creation) = CreateGiveSession();
 		Characters(host).SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true,
 			Item(4100, "backpack", slot: 0), Item(4101, "bandage", slot: 1), Item(4102, "knife", slot: 2)));
+		PlayerInventoryTransferMsg? transfer = null;
+		guest.Services.GetRequiredService<IPlayerInteractionControl>().TransferReceived += message => transfer = message;
 
 		var answer = Run(host, "/give @p bandage");
 
-		Assert.Contains($"{GuestId} has no empty inventory slot.", answer);
+		var item = Assert.Single(creation.Created);
+		Assert.Equal($"Gave bandage (#{item.InstanceId}) to {GuestId}, dropped at its position (the ladder's last rung).", answer);
 		Assert.Equal(3, Characters(host).GetSavedCharacter(GuestId)!.Items.Count);
 		Assert.Empty(Items(host).GetTransferredItems(GuestId));
+		// The host writes no row here: a drop is not a carried item, and the world row is the RECEIVING client's
+		// own creation report (the adapter's half — the acceptance batch reads the row on both peers).
+		Assert.Null(Kernel(host).FindItem(item.InstanceId));
+		Assert.NotNull(transfer);
+		Assert.Equal(PlayerInventoryDestination.Drop, transfer!.Destination);
+		Assert.Equal(0UL, transfer.TargetParentItemId);
+		Assert.Equal(item.InstanceId, transfer.Item!.InstanceId);
+	}
+
+	/// <summary>
+	/// Rung 2: a full body whose carried container can take the item. The item lands INSIDE that container
+	/// (the snapshot's parent-slot convention), the transfer names the container, and the answer names it —
+	/// the ladder's order is the Runtime's, the room is the fixture's.
+	/// </summary>
+	[Fact]
+	public void Host_GivesToAFullBodyWithACarriedContainer_PlacesItInsideAndSaysSo()
+	{
+		var containers = new FakeItemContainerFit { Fits = 4100 };
+		var (host, guest, creation) = CreateGiveSession(containers: containers);
+		var backpack = Item(4100, "backpack", slot: 0);
+		Characters(host).SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true,
+			backpack, Item(4101, "bandage", slot: 1), Item(4102, "knife", slot: 2)));
+		PlayerInventoryTransferMsg? transfer = null;
+		guest.Services.GetRequiredService<IPlayerInteractionControl>().TransferReceived += message => transfer = message;
+
+		var answer = Run(host, "/give @p bandage");
+
+		var item = Assert.Single(creation.Created);
+		Assert.Equal($"Gave bandage (#{item.InstanceId}) to {GuestId} inside the carried container backpack (#4100).", answer);
+		var saved = Characters(host).GetSavedCharacter(GuestId)!;
+		var parent = saved.Items.Single(candidate => candidate.InstanceId == 4100);
+		var child = Assert.Single(parent.Contents);
+		Assert.Equal(item.InstanceId, child.InstanceId);
+		Assert.Equal(0, child.SlotIndex); // a container child carries its parent's slot
+		Assert.DoesNotContain(saved.Items, candidate => candidate.InstanceId == item.InstanceId);
+		var ledger = Assert.Single(Items(host).GetTransferredItems(GuestId));
+		Assert.Equal(-1, ledger.Item.SlotIndex); // "carried, no slot of its own" — the container owns the slot
+		Assert.Equal(GuestId, Kernel(host).FindItem(item.InstanceId)!.Value.Location.Owner.Value);
+		Assert.NotNull(transfer);
+		Assert.Equal(PlayerInventoryDestination.Container, transfer!.Destination);
+		Assert.Equal(4100UL, transfer.TargetParentItemId);
+	}
+
+	/// <summary>
+	/// Rungs 2 then 3: the carried candidates are offered before the worn ones, and the worn container is
+	/// what answers when no carried one can take the item — the ladder's own order, read from the fixture.
+	/// </summary>
+	[Fact]
+	public void Host_GivesToAWornContainer_CarriedCandidatesAreOfferedFirst()
+	{
+		var containers = new FakeItemContainerFit { Fits = 4200 };
+		var (host, _, creation) = CreateGiveSession(containers: containers);
+		Characters(host).SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true,
+			Item(4100, "backpack", slot: 0), Item(4101, "bandage", slot: 1), Item(4102, "knife", slot: 2),
+			Item(4200, "pants", slot: -3)));
+
+		var answer = Run(host, "/give @p bandage");
+
+		var item = Assert.Single(creation.Created);
+		Assert.Contains($"inside the worn container pants (#4200)", answer);
+		Assert.Equal(new ulong[] { 4100, 4101, 4102, 4200 }, containers.Offered); // the whole carried set, then the worn one
+		var saved = Characters(host).GetSavedCharacter(GuestId)!;
+		Assert.Equal(item.InstanceId, Assert.Single(saved.Items.Single(candidate => candidate.InstanceId == 4200).Contents).InstanceId);
 	}
 
 	[Fact]
@@ -278,15 +351,17 @@ public class CommandConsoleItemGiveTests
 	/// when the case is about a member (`grant: true`), because the host's own cases
 	/// must not depend on it.
 	/// </summary>
-	private static (TestNode Host, TestNode Guest, FakeItemGrantSource Creation) CreateGiveSession(bool memberCheatSwitch = false, bool grant = false, bool announceRoster = true)
+	private static (TestNode Host, TestNode Guest, FakeItemGrantSource Creation) CreateGiveSession(bool memberCheatSwitch = false, bool grant = false, bool announceRoster = true, FakeItemContainerFit? containers = null)
 	{
 		var creation = new FakeItemGrantSource();
+		var containerFit = containers ?? new FakeItemContainerFit();
 		var rules = new MutableOptionsMonitor<HostRulesOptions>(
 			new HostRulesOptions { AllowMemberCheatVerbs = memberCheatSwitch });
 		var (host, guest) = CreateSession(
 			services =>
 			{
 				services.Replace(ServiceDescriptor.Singleton<IItemGrantSource>(creation));
+				services.Replace(ServiceDescriptor.Singleton<IItemContainerFit>(containerFit));
 				services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules));
 			},
 			swallowHostToGuest: announceRoster ? null : NetMsg.CheatPermissions);

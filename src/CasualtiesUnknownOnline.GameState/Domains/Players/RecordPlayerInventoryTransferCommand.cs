@@ -14,4 +14,5 @@ public sealed record RecordPlayerInventoryTransferCommand(
 	ulong FromSteamId,
 	ulong ToSteamId,
 	PlayerInteractionItem Item,
-	ulong TargetParentItemId = 0) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);
+	ulong TargetParentItemId = 0,
+	PlayerInventoryDestination Destination = PlayerInventoryDestination.BodySlot) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);

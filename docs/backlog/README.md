@@ -62,7 +62,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — the spawn stage; the read and write halves and give landed.
-- [The `/give` command](todo/give-item-to-a-player-command.md) — **Medium-High** — its SNBT rows pass on batch `20261018-q`; the destination ladder is next.
+- [The `/give` command](todo/give-item-to-a-player-command.md) — **Medium-High** — its SNBT rows pass; the destination ladder awaits acceptance.
 - [Health on every client, reconciled to the host](todo/health-simulation-and-host-authority.md) — **Medium-High** — everyone simulates; the host wins at once.
 - [The member reports that still have no bound](todo/member-report-bounds.md) — **Medium-High** — the census rows with no anchor.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.

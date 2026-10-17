@@ -160,9 +160,9 @@ fails when a member is declared back on the aggregate, when a port's member cens
 port is left unregistered. A seam consumed INSIDE the adapter's own constructor graph cannot be a port
 here: `GameAdapter` depends on `IPlayerInteractionControl`, so a seam that service (or anything resolved
 under it) consumes would be built from the adapter that is still being built — the console give's
-`IItemGrantSource` and the visibility oracle are standalone adapter services for that reason, and the
-local-body capture with them; the local item access is standalone for the simpler one, that it needs
-nothing the domain graph owns. The give seam allocates through the container's ONE `ItemIdAllocator` —
+`IItemGrantSource`, the give ladder's container fit (`IItemContainerFit`) and the visibility oracle are
+standalone adapter services for that reason, and the local-body capture with them; the local item access is
+standalone for the simpler one, that it needs nothing the domain graph owns. The give seam allocates through the container's ONE `ItemIdAllocator` —
 two would be two counters. The patch lifecycle itself (probe/install/uninstall) is driven by
 `ICuoService` on the same instance and is not a consumer port, and the members no call site reached
 (`CaptureWorldParams`, `ApplyWorldParams`, `CloseRemoteBackpack`, `CloseRemoteMedical`) were removed

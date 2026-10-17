@@ -131,6 +131,27 @@ public class AdapterCapabilityPortShapeTests
 		Assert.Equal(1, CountCodeOccurrences(code, "AddSingleton<ItemIdAllocator>()"));
 	}
 
+	/// <summary>
+	/// The container half of the give ladder is the SECOND standalone seam, for the same hard reason: the take
+	/// service that consumes it is built inside <c>PlayerInteractionService</c>, which the aggregate's own
+	/// constructor depends on, so routing it through <c>GameAdapter</c> would close the same cycle the give seam
+	/// already tripped in batch <c>20261017-q</c>. The pin exists so a later change that registers it on the
+	/// aggregate fails a test instead of the startup.
+	/// </summary>
+	[Fact]
+	public void GiveContainerFitSeam_IsStandalone()
+	{
+		Assert.True(File.Exists(CompositionPath), $"composition root not found at {CompositionPath}");
+
+		var code = string.Join("\n", File.ReadAllLines(CompositionPath)
+			.Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+
+		Assert.Equal(0, CountCodeOccurrences(code, "AddSingleton<IItemContainerFit>"));
+		Assert.Equal(1, CountCodeOccurrences(code, "Replace(ServiceDescriptor.Singleton<IItemContainerFit>"));
+		Assert.Equal(1, CountCodeOccurrences(code, "GetRequiredService<ItemContainerFit>())"));
+		Assert.Equal(1, CountCodeOccurrences(code, "AddSingleton<ItemContainerFit>()"));
+	}
+
 	[Fact]
 	public void ItemStateLanguageSeam_ReplacesTheRuntimeDefault()
 	{

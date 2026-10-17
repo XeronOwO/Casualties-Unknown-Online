@@ -774,4 +774,38 @@ public class SourceShapeGateTests
 		var raw = JsonSerializer.Deserialize<Dictionary<string, ArchitectureDebtEntry>>(File.ReadAllText(path));
 		return raw ?? [];
 	}
+
+	/// <summary>
+	/// The give ladder's drop half is two calls that must stay wired together: the transfer's Drop branch drops
+	/// the item on the receiving body, and that placement REPORTS the created world item through the item
+	/// domain. A created object nobody reported is invisible to the host's kernel and killed by the next
+	/// world-item keyframe — the defect the independent review found — and the behaviour suites cannot host the
+	/// adapter, so the wiring is pinned here by source.
+	/// </summary>
+	[Fact]
+	public void GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport()
+	{
+		var apply = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs"));
+		var placement = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInventoryPlacement.cs"));
+
+		Assert.Contains("msg.Destination == PlayerInventoryDestination.Drop", apply);
+		Assert.Contains("_placement.DropCreatedItemAtLocalBody(body, dropped)", apply);
+		Assert.Contains("_domains.Items.SendItemSpawned(", placement);
+		Assert.Contains("ItemStateCodec.CaptureItem(created, -1)", placement);
+	}
+
+	/// <summary>
+	/// A give's container rung is the only transfer that answers a live container refusal with the drop: its
+	/// answer already named the container, and its item has no source body to fall back to. The flag is passed
+	/// from the transfer's own facts, not hard-coded, so a source transfer keeps its slot fallback.
+	/// </summary>
+	[Fact]
+	public void GiveLadderContainerRefusal_FallsToTheDropOnlyForACreatedItem()
+	{
+		var apply = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs"));
+		var placement = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInventoryPlacement.cs"));
+
+		Assert.Contains("dropWhenRefused: msg.FromSteamId == 0 && msg.Destination == PlayerInventoryDestination.Container", apply);
+		Assert.Contains("DropCreatedItemAtLocalBody(body, item);", placement);
+	}
 }

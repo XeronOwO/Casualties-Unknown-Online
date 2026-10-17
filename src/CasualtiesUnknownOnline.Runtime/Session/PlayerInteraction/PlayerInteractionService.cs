@@ -107,6 +107,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		IItemGrantSource itemCreation,
 		IItemStateLanguage itemStateLanguage,
 		IMemberCommandRules memberCommandRules,
+		IItemContainerFit itemContainerFit,
 
 		ILogger<PlayerInteractionService> log)
 	{
@@ -114,7 +115,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
-		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
+		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, itemContainerFit, log);
 		_give = new PlayerItemGiveService(session, sender, _take, itemCreation, itemStateLanguage, memberCommandRules, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, kernelAuthority, resultAuthority, log);
 		_itemUse.BindToSession(); // the admitted-eat table is session-scoped

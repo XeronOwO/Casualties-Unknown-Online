@@ -20,6 +20,7 @@ internal sealed class PlayerInteractionResultAuthority(ItemKernelAuthority kerne
 		ulong toSteamId,
 		PlayerInteractionItem item,
 		ulong targetParentItemId,
+		PlayerInventoryDestination destination,
 		out CommittedBatch? batch,
 		out Rejection? rejection) =>
 		TryExecute(
@@ -31,7 +32,8 @@ internal sealed class PlayerInteractionResultAuthority(ItemKernelAuthority kerne
 				fromSteamId,
 				toSteamId,
 				item,
-				targetParentItemId),
+				targetParentItemId,
+				destination),
 			actor,
 			"record-player-inventory-transfer",
 			out batch,

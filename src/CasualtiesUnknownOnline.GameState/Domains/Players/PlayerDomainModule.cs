@@ -35,7 +35,7 @@ internal sealed class PlayerDomainModule : IDomainModule
 			UpdatePlayerStatusCommand c => DomainDecision.Accept(new PlayerStatusUpdatedEvent(c.State)),
 			SetPlayerCarryCommand c => DecideSetCarry(c, state),
 			ClearPlayerCarryCommand c => DomainDecision.Accept(new PlayerCarryClearedEvent(c.CarrierSteamId, c.CarriedSteamId)),
-			RecordPlayerInventoryTransferCommand c => DomainDecision.Accept(new PlayerInventoryTransferEvent(c.FromSteamId, c.ToSteamId, c.Item, c.TargetParentItemId)),
+			RecordPlayerInventoryTransferCommand c => DomainDecision.Accept(new PlayerInventoryTransferEvent(c.FromSteamId, c.ToSteamId, c.Item, c.TargetParentItemId, c.Destination)),
 			RecordPlayerHealResultCommand c => DomainDecision.Accept(new PlayerHealResultEvent(
 				c.HealerSteamId,
 				c.TargetSteamId,

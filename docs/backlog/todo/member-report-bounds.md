@@ -151,6 +151,15 @@ described above:
   accessor on the bridge for a recipe, or a console verb that reports a break. Until then the row is
   implemented-but-unverified and the ticket stays in `todo/`.
 
+  **The accessor cannot be a plain bridge member** — found by reading the interface's own contract before editing
+  it: `IPatchBridge`'s doc states that a domain-specific member belongs on its OWN port ("declares a per-domain
+  port instead — `IFluidPatchPort` is the first …") because the shape gate *"fails on a member added here or on
+  the implementation"* (`PatchBridgePortShapeGateTests` plus the reflective `PatchBridgePortContractTests`). So the
+  lever is a new narrow port — one member, `SendBlockPlacedReport`, implemented by
+  `GameAdapterBridge` and surfaced as `PatchBridge.WorldReports => _bound as IWorldReportPatchPort` — exactly the
+  shape `Fluid`/`LayerAdvance`/`Wearable` already use. Adding it will also ask those two gates to be told about the
+  new port, which is the first thing to check when that cycle starts.
+
   **One correction to the reasoning above, and one dependency the check needs (2026-10-18).** The quake's breaks
   are NOT host-only: `WorldEventSync`'s own quake comment records that "every side shakes together and breaks its
   own nearby region; the regions union via the air-write relay". So a quake break IS a member report — and it is

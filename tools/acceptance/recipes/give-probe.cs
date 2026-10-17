@@ -42,20 +42,11 @@
 	if (impl == null) { return "{\"ok\":false,\"error\":\"bridge-not-bound\"}"; }
 	trace.Add("bridge:" + impl.GetType().Name);
 
-	// The session, reached through the bridge's own private domains handle — the same object the dispatcher reads
-	// its local id from, so what this reports is the identity the intent will really carry.
+	// The bridge exposes the identity itself (LocalSteamId), which is the same value the dispatcher reads.
+	// Reaching it through the primary constructor's captured parameter does not work: that parameter is not a field.
 	ulong localSteamId = 0;
-	var domainsField = impl.GetType().GetField("domains", anyInstance) ?? impl.GetType().GetField("Domains", anyInstance);
-	if (domainsField != null) {
-		var domains = domainsField.GetValue(impl);
-		var sessionField = domains == null ? null : domains.GetType().GetField("Session", anyInstance);
-		var session = sessionField == null ? null : sessionField.GetValue(domains);
-		if (session != null) {
-			var local = session.GetType().GetProperty("LocalSteamId", anyInstance);
-			if (local != null) { localSteamId = System.Convert.ToUInt64(local.GetValue(session)); }
-			trace.Add("session");
-		}
-	}
+	var localProperty = impl.GetType().GetProperty("LocalSteamId", anyInstance);
+	if (localProperty != null) { localSteamId = System.Convert.ToUInt64(localProperty.GetValue(impl)); trace.Add("localSteamId"); }
 
 	ulong target = 0;
 	if (!string.IsNullOrEmpty(targetText) && targetText != "none") { target = System.Convert.ToUInt64(targetText); }

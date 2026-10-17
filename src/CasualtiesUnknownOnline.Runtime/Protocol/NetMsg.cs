@@ -360,4 +360,10 @@ public enum NetMsg : byte
 	// member's belief can be stale, lost or forged.
 	HostRules = 144, // host → member: the host's host-rule values, absolute (admission, world entry, repair cycle, and every change while the session runs)
 
+	// An inventory intent the host refused, answered to the client that performed the gesture. Without it the actor's
+	// experience of every refused gesture is identical to a gesture that silently did nothing: the item stays put and
+	// no explanation appears anywhere that player can see. One refusal per gesture, and never for a refusal the
+	// actor's own client already made.
+	InventoryIntentRefused = 145, // host → requester: the intent sent was refused, and the host's own reason
+
 }

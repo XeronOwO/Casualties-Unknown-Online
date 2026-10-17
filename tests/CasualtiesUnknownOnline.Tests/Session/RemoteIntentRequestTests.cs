@@ -264,6 +264,34 @@ public class RemoteIntentRequestTests
 	}
 
 	[Fact]
+	public void ARefusedIntent_IsAnsweredToTheClientThatPerformedIt()
+	{
+		// A gesture whose only referee is the host leaves the actor's screen identical to one that silently did
+		// nothing, unless the refusal travels back. The host's own reason travels with it, so the two ends cannot
+		// drift into two wordings for one refusal.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = GuestId, // refused: a hand-over to oneself
+				TargetSlotIndex = 1,
+			});
+
+		var answer = received.Single(r => r.Msg == NetMsg.InventoryIntentRefused);
+		var refused = NetPacket.DecodePayload<PlayerInventoryIntentRefusedMsg>(answer.Frame);
+		Assert.Equal((int)RemoteInventoryIntentKind.GiveToBody, refused.Kind);
+		Assert.Equal(42UL, refused.ItemInstanceId);
+		Assert.False(string.IsNullOrWhiteSpace(refused.Reason));
+	}
+
+	[Fact]
 	public void Guest_TransferToBody_MovesConsciousHostItemToTheNamedSlot()
 	{
 		var (host, guest, received) = CreateSession();

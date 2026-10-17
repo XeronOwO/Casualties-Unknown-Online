@@ -75,6 +75,28 @@ internal sealed class PlayerRemoteInventoryIntentService(
 		_sender.Send(_session.HostSteamId, NetMsg.RemoteInventoryIntentRequest, msg);
 	}
 
+	/// <summary>
+	/// Refuse an intent AND answer the client that performed it. Every refusal on this path answers, because a
+	/// gesture whose only referee is the host leaves the actor's screen identical to one that silently did nothing.
+	/// The reason is the SAME sentence the host logs — two wordings for one refusal is how the two ends stop
+	/// agreeing — and a refusal of the host's OWN gesture sends nothing: that client already printed it.
+	/// </summary>
+	private void Refuse(RemoteInventoryIntentMsg msg, ulong requester, string reason)
+	{
+		_log.LogWarning("[RemoteIntent] refused {Kind}: {Reason}", msg.Kind, reason);
+		if (requester == _session.LocalSteamId)
+		{
+			return;
+		}
+
+		_sender.Send(requester, NetMsg.InventoryIntentRefused, new PlayerInventoryIntentRefusedMsg
+		{
+			Kind = (int)msg.Kind,
+			ItemInstanceId = msg.ItemInstanceId,
+			Reason = reason,
+		});
+	}
+
 	/// <summary>Host only: a native inventory intent arrived — the guest→host wire and the host's own client share this path.</summary>
 	public void HandleRemoteInventoryIntentRequest(ulong requester, RemoteInventoryIntentMsg msg)
 	{
@@ -100,8 +122,7 @@ internal sealed class PlayerRemoteInventoryIntentService(
 
 		if (!_hostRules.AllowRemoteInventoryTake)
 		{
-			_log.LogInformation("[RemoteIntent] refused {Kind}: host has disabled remote inventory manipulation (AllowRemoteInventoryTake=false).",
-				msg.Kind);
+			Refuse(msg, requester, "host has disabled remote inventory manipulation (AllowRemoteInventoryTake=false).");
 			return;
 		}
 
@@ -111,15 +132,14 @@ internal sealed class PlayerRemoteInventoryIntentService(
 		if (!_characters.IsInWorld(owner) || !_characters.IsInWorld(requester)
 			|| (ownerIsTheSender && !_characters.IsInWorld(msg.TargetBodySteamId)))
 		{
-			_log.LogWarning("[RemoteIntent] refused {Kind}: {Owner}, {Requester} or the destination body {Body} is not in-world.",
-				msg.Kind, owner, requester, msg.TargetBodySteamId);
+			Refuse(msg, requester, $"{owner}, {requester} or the destination body {msg.TargetBodySteamId} is not in-world.");
 			return;
 		}
 
 		var source = _characters.GetCharacterData(owner);
 		if (source is null)
 		{
-			_log.LogWarning("[RemoteIntent] refused {Kind}: no character snapshot for {Owner}.", msg.Kind, owner);
+			Refuse(msg, requester, $"no character snapshot for {owner}.");
 			return;
 		}
 
@@ -129,14 +149,13 @@ internal sealed class PlayerRemoteInventoryIntentService(
 		// live scene anyway.
 		if (!TryFindItem(source.Items, msg.ItemInstanceId, out var original))
 		{
-			_log.LogWarning("[RemoteIntent] refused {Kind}: {Owner} has no item instance {Item}.",
-				msg.Kind, owner, msg.ItemInstanceId);
+			Refuse(msg, requester, $"{owner} has no item instance {msg.ItemInstanceId}.");
 			return;
 		}
 
 		if (!TryValidateOperands(msg, source, original, requester, out var refusal))
 		{
-			_log.LogWarning("[RemoteIntent] refused {Kind}: {Reason}", msg.Kind, refusal);
+			Refuse(msg, requester, refusal);
 			return;
 		}
 

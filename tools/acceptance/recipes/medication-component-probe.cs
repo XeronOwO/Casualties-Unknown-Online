@@ -24,7 +24,10 @@
 		var all = UnityEngine.Resources.FindObjectsOfTypeAll(typeof(Body));
 		for (var i = 0; i < all.Length; i++) {
 			var candidate = all[i] as Body;
-			if (candidate != null && candidate.gameObject.name.StartsWith("MedicalDisplay_", System.StringComparison.Ordinal)) { body = candidate; break; }
+			// Found by its MARKER COMPONENT, not by name: the coordinator does name the object
+			// `MedicalDisplay_{steamId:X}`, but a listing of the scene showed three bodies all called plain
+			// `Body`, so something in the game resets the name and a name match silently finds nothing.
+			if (candidate != null && candidate.GetComponent<RemoteMedicalDisplayBody>() != null) { body = candidate; break; }
 		}
 	} else {
 		body = camera.body;

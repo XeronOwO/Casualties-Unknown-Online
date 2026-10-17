@@ -20,6 +20,50 @@ Three shapes, and the fix direction is the same within each: an identity that is
 host, replaced by the payload's claim; a number the host could derive, taken from the report; and a claim
 with no anchor at all, which needs a design decision rather than a check.
 
+## The three reach bounds were LANDED, READ "PASSING", AND THEN REVERTED (2026-10-18)
+
+Everything this ticket's B section says about the reach bound above — the three commits, the two machine readings,
+the "PASSES" verdicts — is **withdrawn**: `fd2d2b3f` reverts `6bdf1e36`, `5168fe78`, `1a651ddc` and the two
+acceptance verbs built on them. The independent review (which the whole family had skipped) found four blockers, and
+the two readings that "passed" were produced by a test verb sharing the check's own mistake, so they proved nothing:
+
+1. **The block path compared block INDICES with WORLD POSITIONS.** `OnRemoteBlockPlaced` hands over a `Vector2Int` of
+   block coordinates while the reporter's body is a world position; the game's own conversion is
+   `WorldGeneration.WorldToBlockPos` (`new Vector2Int((int)(pos.x + this.halfWidth), (int)(pos.y + this.halfHeight))`,
+   with `halfWidth = width * 0.5f`, `width = chunkWidth * CHUNKSIZE`, `CHUNKSIZE = 64`). The offset is at least 128
+   cells, so `<= 8` was false for every real break: the bound would have refused **all legitimate player mining**.
+   The repo's own existing consumers do the conversion first (`GameAdapterBridge`:
+   `world.WorldToBlockPos(new Vector2(remote.Position.X, remote.Position.Y))`).
+2. **The block bound sat on the wrong message, and its own selector is reported by the bounded party.** A break lands
+   through `BlockDamaged` (`BlockBreakSync.FlushPendingBlockBreak` → `SendBlockDamaged`), which
+   `BlockBreakArbitration` accepts while the cell still stands and the generation verifies — so a refused air write
+   still had the break applied and relayed a frame later. And the branch is selected by `playerBreak`, which the
+   reporter writes: setting it false skips the check entirely.
+3. **A refusal did not stop the relay.** `BuildingEntityDamagedHandler` / `BuildingEntityOpenedHandler` broadcast
+   unconditionally AFTER firing the event, so the other guests applied a refused open/damage while the log and the
+   comment claimed "nothing applied, nothing relayed". The handler needs the verdict back (a `bool`/`WorldReportVerdict`
+   from the fire call) and must relay only on acceptance.
+4. **The damage channel is not only a player gesture.** `ExplosionBuildingSync` reports explosion damage through the
+   same path, so a reach bound refuses legitimate explosions.
+
+Smaller findings worth carrying: a stale position refuses a legitimate fast action; a refused report gets no answer so
+the reporter's client re-reports in a loop; quantisation differs between the three paths; two host-role gates spell
+the same rule differently; three comments and one log line are false as written.
+
+**What the next cycle must settle BEFORE writing a check**, in this order:
+
+- **Which message owns the break.** The bound has to sit where the break actually lands (`BlockDamaged`, or both),
+  not only on the air write.
+- **What a host can PROVE about the cause.** "The reporter said it was a player gesture" is not an anchor. Either the
+  wire carries a cause the host can verify (its own quake window, its own record for the cell, the weapon identity),
+  or the bound applies to every reported write and the host distinguishes cause itself.
+- **Whether a refusal can suppress the relay** — if the verdict cannot travel back to the handler, no bound on these
+  paths is honest.
+- **World coordinates everywhere.** One helper, world space only, converting block cells with `WorldToBlockPos` at the
+  single place a cell becomes a point.
+
+Until that, these rows are open and the census rows for them must say so rather than "closed".
+
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

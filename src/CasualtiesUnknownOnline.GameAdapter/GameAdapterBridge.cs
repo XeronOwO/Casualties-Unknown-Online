@@ -25,7 +25,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// casting the bound bridge, so this declaration is what makes it reachable.
 /// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort
 {
 	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
@@ -429,6 +429,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	/// <summary>The member's own end-of-layer choice: the game's entry ran its guard and its local steps, and the local regeneration must not follow (the layer is the host's capture).</summary>
 	public bool TryDelegateLocalAdvance() => domains.LayerAdvance.TryDelegateLocalAdvance();
+
+	public void UpdateDragUseCue(Item? dragItem) => domains.DragUseCue.Update(dragItem);
 
 	public void OnFluidDrinkReported(Vector2Int pos) => domains.FluidSync.OnDrinkReported(pos);
 

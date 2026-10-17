@@ -342,6 +342,10 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	// ---- capability ports (the aggregate declares no member of its own) ----
 
+	bool IDragUseCueState.Showing => _domains.DragUseCue.Showing;
+
+	ulong IDragUseCueState.TargetSteamId => _domains.DragUseCue.TargetSteamId;
+
 	bool IStartGateState.IsWaitingForReady => _domains.Gate.WaitingForReady;
 
 	string IStartGateState.WaitingText => _domains.Gate.WaitingText;

@@ -47,28 +47,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		}
 
 		var mouseWorld = camera.ScreenToWorldPoint(Input.mousePosition);
-		PlayerEntity? target = null;
-		var bestSquared = OverlapRadius * OverlapRadius;
-		var remotePlayers = domains.Entities.RemotePlayers;
-		for (var i = 0; i < remotePlayers.Count; i++)
-		{
-			var remote = remotePlayers[i];
-			if (remote.IsLocal || !domains.Session.IsRemoteInWorld(remote.SteamId))
-			{
-				continue;
-			}
-
-			var dx = remote.Position.X - mouseWorld.x;
-			var dy = remote.Position.Y - mouseWorld.y;
-			var distanceSquared = (dx * dx) + (dy * dy);
-			if (distanceSquared <= bestSquared)
-			{
-				bestSquared = distanceSquared;
-				target = remote;
-			}
-		}
-
-		if (target is null)
+		if (ResolveTargetSteamId(mouseWorld) is not { } targetSteamId)
 		{
 			return false;
 		}
@@ -88,12 +67,12 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		switch (LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.SolidFoodSemantics))
 		{
 			case LocalUseItemEligibility.Family.Drink:
-				var drinker = ResolveDrinkBody(target.SteamId);
+				var drinker = ResolveDrinkBody(targetSteamId);
 				if (drinker == null // Unity object — ==
 					|| !RemoteDrinkUseHandler.TryMeasure(dragItem, drinker, domains.ConsumeSemantics, domains.Log, out doseMl))
 				{
 					domains.Log.LogWarning("[DragUse] refused: {ItemId} could not measure a drink dose for {Target}.",
-						dragItem.id, target.SteamId);
+						dragItem.id, targetSteamId);
 					return true;
 				}
 
@@ -106,10 +85,44 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 				break;
 		}
 
-		domains.PlayerInteraction.SendUseRequest(target.SteamId, instanceId.Id, doseMl: doseMl);
+		domains.PlayerInteraction.SendUseRequest(targetSteamId, instanceId.Id, doseMl: doseMl);
 		domains.Log.LogInformation("[DragUse] dropped {ItemId} on {Target} (instance {Instance}).",
-			dragItem.id, target.SteamId, instanceId.Id);
+			dragItem.id, targetSteamId, instanceId.Id);
 		return true;
+	}
+
+	/// <summary>
+	/// The remote player a release at this world position would use the item on: the nearest
+	/// in-world remote inside <see cref="OverlapRadius"/>, or null when there is none. This is
+	/// the ONE resolution — the release and the gesture's own cue both read it, because a cue
+	/// that found its target by a second walk could disagree with the release about who the
+	/// item goes to, and the overlap case (two players standing on each other) is exactly
+	/// where that would show.
+	/// </summary>
+	internal ulong? ResolveTargetSteamId(Vector3 mouseWorld)
+	{
+		PlayerEntity? best = null;
+		var bestSquared = OverlapRadius * OverlapRadius;
+		var remotePlayers = domains.Entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
+		{
+			var remote = remotePlayers[i];
+			if (remote.IsLocal || !domains.Session.IsRemoteInWorld(remote.SteamId))
+			{
+				continue;
+			}
+
+			var dx = remote.Position.X - mouseWorld.x;
+			var dy = remote.Position.Y - mouseWorld.y;
+			var distanceSquared = (dx * dx) + (dy * dy);
+			if (distanceSquared <= bestSquared)
+			{
+				bestSquared = distanceSquared;
+				best = remote;
+			}
+		}
+
+		return best?.SteamId;
 	}
 
 	/// <summary>

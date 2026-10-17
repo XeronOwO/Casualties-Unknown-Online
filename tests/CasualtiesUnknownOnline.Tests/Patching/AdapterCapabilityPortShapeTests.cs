@@ -31,6 +31,7 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IAdapterCapabilityQuery), ["CapabilityReport"]),
 		(typeof(IWorldPresenceQuery), ["IsInWorldOrGenerating"]),
 		(typeof(IStartGateState), ["IsWaitingForReady", "WaitingText"]),
+		(typeof(IDragUseCueState), ["Showing", "TargetSteamId"]),
 		(typeof(ILocalHealItemQuery), ["GetLocalHealItems", "HasLocalHealItem"]),
 		(typeof(ITraderRecruitRequest), ["TryRequestTraderRecruit"]),
 		(typeof(INativeInputBlocker), ["IsTheGamesOwnTextInputFocused", "SetOnlineUiEscapeSurfaceVisible", "SetOnlineUiModal"]),
@@ -77,9 +78,14 @@ public class AdapterCapabilityPortShapeTests
 			Census(composed.Select(type => type.Name)));
 	}
 
+	/// <summary>
+	/// The composition's member count, pinned so a port cannot be widened without a decision. The
+	/// number lives in the assertion rather than in this name: naming it here meant renaming the test
+	/// every time a port was added, which made the review of a new port noisier than the port itself.
+	/// </summary>
 	[Fact]
-	public void Composition_CarriesExactlyTwentyFourMembers() =>
-		Assert.Equal(24, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+	public void Composition_CarriesExactlyThePinnedMemberCount() =>
+		Assert.Equal(26, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

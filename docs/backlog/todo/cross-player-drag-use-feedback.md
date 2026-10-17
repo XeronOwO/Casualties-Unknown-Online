@@ -113,3 +113,17 @@ will not use), and a row without an identity shows nothing (so the label cannot 
   gesture). All three have the ticket's own recommendations recorded; none is decided here.
 - **The acceptance rows are unrun.** Rows 1–7 need a session with a dragged item and two players, and row 5 in
   particular (two players standing on each other) is the one the naming rule exists for.
+## The label is drawn (2026-10-18)
+
+The cue decision now reaches the screen. `IDragUseCueState` is the port the plugin reads; the game adapter
+fills it from `DragUseCueTracker`, which recomputes once per while-dragging frame in
+`PlayerCameraDragUseCuePatch` — its OWN patch class on the same method the favourite-mark patch uses, because
+that one already carries a different concern. `DragUseCueOverlay` draws `Use on <name>` beside the cursor,
+inside the window edges, as a second IMGUI surface beside the start-gate panel.
+
+The name is the session's own display name for that player, resolved by the overlay: the adapter carries the
+steam id and the presentation side answers the name with the `player-{steamId:X}` fallback the backpack and
+medical views already use, so there is no fourth answer to that question.
+
+Two facts are now runtime-visible for the next run: the label is drawn LAST in the frame so a mod window cannot
+hide it, and a null dragged item clears it, so the label cannot outlive the gesture.

@@ -89,7 +89,7 @@ internal static class AdapterCapabilityCatalog
 				// the inventory ring is showing (the vanilla remote-take path keeps this
 				// class Required). R10 (the radial centre) is no longer suppressed: its
 				// use/wear calls are captured like every other mutation.
-				typeof(PlayerCameraDragUsePatch), typeof(PlayerCameraUpdateWearablesPatch),
+				typeof(PlayerCameraDragUsePatch), typeof(PlayerCameraDragUseCuePatch), typeof(PlayerCameraUpdateWearablesPatch),
 				typeof(PlayerCameraHandleWhileDraggingPatch), typeof(PlayerCameraRadialActionProbePatch),
 				typeof(RemoteDragMutationPatches.RemoteDragContainerLoadPatch), typeof(RemoteDragMutationPatches.RemoteDragContainerUnloadPatch),
 				typeof(RemoteDragMutationPatches.RemoteDragLiquidDrainPatch),

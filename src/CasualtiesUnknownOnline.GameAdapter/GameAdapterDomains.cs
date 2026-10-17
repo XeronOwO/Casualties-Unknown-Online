@@ -142,6 +142,8 @@ internal sealed class GameAdapterDomains
 	internal readonly IPlayerInteractionControl PlayerInteraction;
 	internal readonly CrossPlayerDragUse DragUse;
 
+	internal readonly DragUseCueTracker DragUseCue;
+
 	/// <summary>The deferred menu-return record — read by the scene-load interception (<c>PlayerCamera.ToMainMenu</c>) and by the bridge's deferral decision.</summary>
 	internal readonly RunMenuReturnCoordinator MenuReturn;
 
@@ -397,5 +399,6 @@ internal sealed class GameAdapterDomains
 		Gate = new StartGateCoordinator(session, world, LifePod, Run, loggerFactory.CreateLogger<StartGateCoordinator>());
 		WorldTimeSync = new WorldTimeSync(session, entities, characterData, Run, Gate, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());
 		DragUse = new CrossPlayerDragUse(this);
+		DragUseCue = new DragUseCueTracker(this);
 	}
 }

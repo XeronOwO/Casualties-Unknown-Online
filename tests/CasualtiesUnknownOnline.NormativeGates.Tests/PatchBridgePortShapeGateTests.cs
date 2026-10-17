@@ -233,6 +233,10 @@ public class PatchBridgePortShapeGateTests
 		[
 			"ReportWearPlacementRefused",
 		]),
+		("IDragUseCuePatchPort", AdapterDir + "IDragUseCuePatchPort.cs", false,
+		[
+			"UpdateDragUseCue",
+		]),
 	];
 
 	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
@@ -249,6 +253,7 @@ public class PatchBridgePortShapeGateTests
 	private static readonly string[] SeamMembers =
 	[
 		"Bind",
+		"DragUseCue",
 		"Fluid",
 		"Impl",
 		"ItemCategory",
@@ -287,6 +292,7 @@ public class PatchBridgePortShapeGateTests
 		"ILayerAdvancePatchPort",
 		"IItemCategoryPatchPort",
 		"IWearablePatchPort",
+		"IDragUseCuePatchPort",
 	];
 
 	public static IEnumerable<object[]> SeamCensus() =>

@@ -37,6 +37,9 @@ internal static class PatchBridge
 	/// <summary>The wear placement's patch port (the report for the wear the game's own placement would dereference a missing limb in). The aggregate does not declare it, so this accessor is the only way the static patches reach that logger.</summary>
 	public static IWearablePatchPort? Wearable => _bound as IWearablePatchPort;
 
+	/// <summary>The drag gesture's cue port (the per-frame target the gesture would use the item on). The aggregate does not declare it, so this accessor is the only way the static patches keep the cue current.</summary>
+	public static IDragUseCuePatchPort? DragUseCue => _bound as IDragUseCuePatchPort;
+
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 
 	public static void Unbind(IPatchBridge impl)

@@ -24,20 +24,27 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// </summary>
 internal static class LimbRestore
 {
-	/// <summary>True when a limb was missing and is now back.</summary>
-	internal static bool Apply(Body body)
+	/// <summary>
+	/// The first limb whose severed flag this call cleared, or null when nothing was severed. One limb is the
+	/// whole answer because the change has to be reported ONCE: the limb-state message carries EVERY limb of the
+	/// owner and the receiver replaces its whole set, so a single message from any cleared limb reconstructs the
+	/// body exactly — reporting per limb would send N identical messages for one action.
+	/// </summary>
+	internal static Limb? Apply(Body body)
 	{
 		if (!AnyLimbMissing(body))
 		{
-			return false;
+			return null;
 		}
 
 		var limbs = body.limbs;
+		Limb? first = null;
 		foreach (var limb in limbs)
 		{
 			if (limb != null && limb.dismembered) // Unity object — ==
 			{
 				limb.dismembered = false;
+				first ??= limb;
 			}
 		}
 
@@ -45,16 +52,14 @@ internal static class LimbRestore
 		// limb's own rigidbody and colliders.
 		foreach (var limb in limbs)
 		{
-			if (limb == null) // Unity object — ==
+			if (limb != null) // Unity object — ==
 			{
-				continue;
+				limb.gameObject.SetActive(true);
 			}
-
-			limb.gameObject.SetActive(true);
 		}
 
 		ReignoreCollisions(body);
-		return true;
+		return first;
 	}
 
 	/// <summary>Whether any limb of the body is severed. Written here rather than taken from the reference, whose
@@ -84,14 +89,14 @@ internal static class LimbRestore
 		// assembly this project does not reference, and the bodies it holds are the same ones the scene exposes.
 		var bodies = Object.FindObjectsOfType<Body>();
 		var others = new List<Collider2D>();
-		foreach (var body2 in bodies)
+		foreach (var other in bodies)
 		{
-			if (body2 == null || body2.transform.parent == null) // Unity object — ==
+			if (other == null || other.transform.parent == null) // Unity object — ==
 			{
 				continue;
 			}
 
-			others.AddRange(body2.transform.parent.GetComponentsInChildren<Collider2D>(true));
+			others.AddRange(other.transform.parent.GetComponentsInChildren<Collider2D>(true));
 		}
 
 		if (others.Count == 0)

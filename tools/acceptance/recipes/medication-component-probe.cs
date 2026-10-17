@@ -27,7 +27,16 @@
 			// Found by its MARKER COMPONENT, not by name: the coordinator does name the object
 			// `MedicalDisplay_{steamId:X}`, but a listing of the scene showed three bodies all called plain
 			// `Body`, so something in the game resets the name and a name match silently finds nothing.
-			if (candidate != null && candidate.GetComponent<RemoteMedicalDisplayBody>() != null) { body = candidate; break; }
+			// By component TYPE NAME, not by the type itself: the marker is internal to the adapter, and an
+			// in-process eval cannot reference it - naming it made the whole recipe fail to compile, which
+			// reads as "every mode stopped answering" rather than as one broken mode.
+			if (candidate == null) { continue; }
+			var parts = candidate.GetComponents<UnityEngine.Component>();
+			for (var c = 0; c < parts.Length; c++) {
+				var part = parts[c];
+				if (part != null && part.GetType().Name == "RemoteMedicalDisplayBody") { body = candidate; break; }
+			}
+			if (body != null) { break; }
 		}
 	} else {
 		body = camera.body;

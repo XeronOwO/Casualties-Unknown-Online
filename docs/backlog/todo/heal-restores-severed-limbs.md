@@ -130,3 +130,32 @@ are the `standing=` values above.
 
 Still owed: the other views (a second client reading this body), the save/reconnect survival, and the
 limb-state event the earlier review asked for.
+## Read across two clients: the other side sees the limb come back, and the watchdog stays quiet (2026-10-18)
+
+Two clients on the deployed artifact (`.acceptance/20261018-m/run2.log`). The member cuts its own arm and heals
+its own body; the HOST reads the body it holds for that member, which is the side a single client cannot answer:
+
+```
+host sees severed before the cut:  (nothing)
+member amputates UpArmF
+host sees severed after the cut:   [3]右上臂 [4]右前臂 [5]右手
+member heals
+host sees severed after the heal:  (nothing)
+'divergence' lines in the host log: 0
+```
+
+Three owed rows in one run:
+
+- **The cut reaches the other side** — the host reads all three limbs of the chain as severed, so the comparison
+  rests on a state that really travelled rather than on the patient's own view.
+- **The restore reaches the other side** — after the heal the host reads nothing severed. That is the row the
+  ticket's acceptance asked for, and it is the first evidence that a restored limb is visible to anyone but the
+  patient.
+- **The limb-state event works, and the watchdog is quiet.** The previous cycle's review had found that writing
+  the latch directly sent no event, so every receiver logged the divergence watchdog for an intended operation.
+  Zero divergence lines in this run is that finding closed — and it is zero on a run where a cut AND a restore
+  both happened, not zero on a run where nothing did.
+
+Still owed, and verification rather than code: the save/reconnect survival of the restored limb, and the vignette
+overlay the hollow clear removes (the earlier review's second major, which would be read by counting the canvas
+children).

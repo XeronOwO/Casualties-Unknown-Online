@@ -1,24 +1,25 @@
 ﻿# Item and entity data commands: give, spawn and a property editor
 
-- Status: Todo 鈥?the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
+- Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
-  `remove` landed 2026-10-17, and stage B's two remainders 鈥?the cursor target and the host's own carried
-  registration 鈥?2026-10-18, so **stage B is complete**. Stage C's `give` is surveyed; its permission is the
-  combined ruling: it ships for BOTH roles together with `todo/cheat-permission-and-op-commands.md`, every cheat
-  verb checked on both sides (the client refuses locally, the host arbitrates). Stage C and Stage D (`spawn`) are
-  what remains.
+  `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
+  registration — 2026-10-18, so **stage B is complete**. **Stage C (`give`) landed 2026-10-17 and moved out** to
+  `review/give-item-to-a-player-command.md`, together with `review/cheat-permission-and-op-commands.md`'s
+  permission half. **Only stage D (`spawn`) remains** in this ticket.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
-- Source: the user's 2026-10-07 backlog request 鈥?a Minecraft-style command family for CUO: item-specific
+- Source: the user's 2026-10-07 backlog request — a Minecraft-style command family for CUO: item-specific
   properties (battery charge, liquid and millilitres, condition/durability and the rest) must be gettable,
   settable, mergeable and removable, and the family also covers handing an item out and creating an entity.
 - Related: `review/item-data-read-commands.md` (the landed read half, and the survey these stages build on),
   `done/item-data-write-commands.md` (the landed first write verb and the local-scene port),
-  `done/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
+  `review/give-item-to-a-player-command.md` (stage C, landed and moved out with its design and acceptance rows),
+  `review/cheat-permission-and-op-commands.md` (the cheat permission and the two-sided check every cheat verb
+  rides), `done/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
   `review/in-game-command-console-interactive.md` (the console the verbs land in),
-  `review/give-item-to-another-player.md` (the gesture half of `give`; its finding 鈥?no path carries an item
-  INTO another player's inventory today 鈥?is what this family's `give` faces too),
+  `review/give-item-to-another-player.md` (the gesture half of `give`; its finding — no path carries an item
+  INTO another player's inventory — is what this family's `give` faced too),
   `done/id-system-namespaced-ids.md` (how a mod-authored item id is addressed),
   `done/runtime-entity-creation-rejection.md`, `done/runtime-entity-spawn-backfill.md` (the admission path a
   spawned entity must go through), `docs/en/reference/mod-api.md`
@@ -95,15 +96,13 @@ accepted-creation path unchanged or needs its own admission, including what a la
    what they still owe). **Landed 2026-10-18:** the cursor target, on the port the write added 鈥?the section
    *The cursor target landed* carries its mapping, its evidence and its limits; and the host's own carried
    inventory, which now registers at world entry 鈥?the last section carries it. **Stage B is complete.**
-2. **Stage C 鈥?`give`**: put an item into another player's inventory with its properties already set. The
-   missing half is materialization on the receiving side 鈥?today an item reaches another player only by the
-   receiver taking it or by dropping it for a pickup 鈥?so this stage owns that carrier, and it shares the
-   finding with `review/give-item-to-another-player.md`. **Designed 2026-10-18** 鈥?the carrier turned out to be
-   the giver-initiated push the give ticket landed, and the user's combined ruling ships the verb for BOTH roles
-   together with `todo/cheat-permission-and-op-commands.md`: see *Stage C's design, surveyed* below for the
-   carrier, the open pieces and the two-sided permission check.
-3. **Stage D 鈥?`spawn`**: create an entity in the world through the accepted-creation path, with the
-   late-joiner question answered before the verb lands.
+2. **Stage C — `give`**: put an item into a player's inventory with its properties already set. **Landed
+   2026-10-17 and moved out** to `review/give-item-to-a-player-command.md`, which carries the design that was
+   settled here, the mechanism inventory, the self-check table, the acceptance rows and the limits. The carrier
+   is the giver-initiated push the give ticket landed, the permission is
+   `review/cheat-permission-and-op-commands.md`'s two-sided check, and the creation rides a narrow adapter port.
+3. **Stage D — `spawn`**: create an entity in the world through the accepted-creation path, with the
+   late-joiner question answered before the verb lands. This is the only stage this ticket still owns.
 4. **The permission story, inside every stage.** Reads are `Anyone` today (the read half's own reasoning is in
    its ticket). Writes are the host's call, and the family expresses that as a host rule following the
    existing `HostRulesOptions` flags 鈥?enforced on the HOST side, because a member's write reaches the kernel
@@ -115,7 +114,10 @@ accepted-creation path unchanged or needs its own admission, including what a la
    new verb does not need a new gate, and it must not grow one. What the rule could not do when this was
    written 鈥?reach the member BEFORE the write, so a closed rule was a value that appeared and went back 鈥?is
    closed (`done/host-rules-replication.md`): a member holding the announced rule is refused on its own
-   client before anything is applied, and the verbs that follow `/data set` inherit it.
+   client before anything is applied, and the verbs that follow `/data set` inherit it. **`/give` rides the
+   same rulings on its own request frame** (it is not a kernel command, so the host judges it in its request
+   handler rather than at the admission seam); the permission half is
+   `review/cheat-permission-and-op-commands.md`, and the verb is `review/give-item-to-a-player-command.md`.
 
 ## Stage B's remaining two verbs 鈥?the design, settled by reading the landed one (2026-10-17)
 
@@ -143,10 +145,10 @@ yet", so the two verbs are additive work on a path that exists rather than a new
   announced rule forbids it. The ticket's own line is that "a new verb does not need a new gate, and it must not
   grow one", so `merge` and `remove` ride the landed rule and add no flag.
 
-**What is left after stage B**, unchanged from the stage text above: Stage C's `give` (which faces the same
-missing carrier the give gesture ticket found) and Stage D's `spawn` (which owes the late-joiner answer first).
-The three remainders stage B carried 鈥?the host's own id-less carried items, the cursor target and the two
-verbs 鈥?all landed by 2026-10-18 (the sections below).
+**What is left after stage B**, unchanged from the stage text above: Stage D's `spawn` (which owes the
+late-joiner answer first). Stage C landed and moved out (`review/give-item-to-a-player-command.md`). The three
+remainders stage B carried — the host's own id-less carried items, the cursor target and the two verbs — all
+landed by 2026-10-18 (the sections below).
 
 ## Non-goals
 
@@ -364,46 +366,3 @@ it adds that a member's client cannot state is the host's own authority rows; no
   starting-supply plan hands out leaf items, so this is not reachable there.
 - The host's allocation space is its own: the ids it mints here are what the host's snapshot and the kernel row
   carry, exactly as if a native act had minted them.
-
-## Stage C's design, surveyed (2026-10-18 鈥?the permission ruling and the carrier)
-
-`/give` creates one item in another player's inventory with its properties already set. Two things are settled and
-some are open; the next cycle implements it.
-
-**Who may run it: the host AND its members, gated by the cheat permission** 鈥?the user's 2026-10-18 combined
-ruling (`todo/cheat-permission-and-op-commands.md`, *The combined ruling*), which SUPERSEDES the earlier "host-only
-first" answer recorded here. The verb therefore ships TOGETHER with that ticket's `/op`/`/deop` whitelist and its
-two-sided check: the acting client refuses a `/give` locally, by name, when it holds the announced permission and
-its own entry is not on it (front end = the game instance), and the host judges every request that does reach it
-against its own authoritative list and answers a refusal (back end = the host's arbitration). The same two-sided
-shape applies to the rest of the cheat family (`/data`'s write verbs, `/spawn` when it lands); `/heal` is NOT a
-member of it 鈥?the tree's `/heal` consumes the healer's own medical item, so it is the player's own legitimate
-action, and the exclusion is recorded in `todo/cheat-permission-and-op-commands.md`'s landed section.
-
-**The delivery carrier already exists**: the giver-initiated push landed in
-`review/give-item-to-another-player.md`. The host writes the destination's character snapshot and publishes ONE
-message (`PlayerInventoryTakeService.HandleTakeCore` 鈫?`PublishTransfer(new PlayerInventoryTransferMsg {
-FromSteamId, ToSteamId, Item, TargetParentItemId })`), and the receiving client's own applier adds it to its local
-body (`PlayerInteractionApply.OnPlayerInventoryTransfer`: `ToSteamId == local` 鈫?the slot or container branch).
-`/give` mints the item and rides that message: the TARGET's client is the one that puts it in its body.
-
-**What is still open, and belongs to the implementation cycle:**
-
-- **Minting the id in the Runtime.** The instance id is allocated adapter-side (`ItemIdAllocator`), and the console
-  lives in the Runtime: the verb needs one narrow port member ("allocate an id in this host's own space") rather
-  than reaching into the adapter, and the answer must be an id that space really owns.
-- **Validating the definition.** The verb names a definition id (`bandage`, `largebattery`); an id the game does not
-  know would be refused by the receiver's own creation, a round trip too late. Either the verb asks an existing
-  adapter facts port, or the gap is named as a limit of this stage.
-- **The destination.** One body (the family's one-item rule: a selector matching several bodies is refused by
-  name), a named free slot or the first free slot, and the "no free slot" refusal. The container destination is the
-  give ticket's own open gap, so `/give` starts with body slots and records that.
-- **Properties**: the same property grammar `/data set` uses (`condition`, `favourited`, `liquid`, `component`),
-  applied to the created item BEFORE it is published, so the receiver materializes it with the values already set.
-- **The sender's own console** prints the answer (item, id, destination slot), and the host's log carries one line.
-
-**Limits this verb will inherit, to be recorded rather than hidden**: the receiving client's native slot, weight
-and tag rules do not currently decide placement (the give ticket's open gap 鈥?the host computes the destination);
-a definition the game does not know; a target with no free slot; and a member's `/give` is only as trustworthy as
-the permission list that admitted it 鈥?the host still arbitrates every request, and an IP-direct peer's identity
-is the permission ticket's open question, not this verb's.

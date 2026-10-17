@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,12 @@ internal static class PlayerInteractionComposition
 		// replaces it with the Game Adapter's engine-backed window
 		// (cross-player-item-use-random-determinism).
 		services.AddSingleton<IShrapnelGripSlipRandom>(new NoShrapnelGripSlipRandom());
+		// The item-definition capability behind the console /give verb: resolving a
+		// definition to a prefab, capturing its fresh state and allocating the instance
+		// id are the game's own facts and the adapter's id space, so the base root
+		// cannot create anything and says so. The plugin replaces this with the Game
+		// Adapter's implementation (the same shape as the three seams above).
+		services.AddSingleton<IItemGrantSource>(new UnavailableItemGrantSource());
 		// Remote medical operation session domain: generic start/update/end/cancel
 		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
 		// it for real-time injection; later stages reuse the same session envelope.

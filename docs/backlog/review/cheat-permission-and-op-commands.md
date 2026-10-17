@@ -1,19 +1,21 @@
 # Cheat permission, `/op` and `/deop`: who may run the cheat verbs
 
-- Status: Todo — **filed 2026-10-18** from the user's ruling on the `/give` verb's authority question (stage C of
+- Status: Review — **filed 2026-10-18** from the user's ruling on the `/give` verb's authority question (stage C of
   `docs/backlog/todo/item-and-entity-data-commands.md`), and **widened the same day** by the user's combined
   direction (below), which supersedes the "`/give` host-only first" step. The first ruling in the user's own
   words: "`/op` `/deop` 这种命令能给他人授权或剥夺作弊权限(拓展:将某人加入作弊权限白名单,需要同时考虑 Steam ID 与
   IP 直连场景,对于 IP 直连场景可能需要额外评估玩家名伪造问题),主机的作弊权限通过联机开关控制,授权与剥夺只允许主
-  机对其余客机执行". **The permission half LANDED 2026-10-18** — `/op`, `/deop`, the announced roster, the
-  host's cheat SWITCH and the two-sided check on `/data`'s write verbs (see *The permission mechanism landed*).
-  `/give` is the second half of the same cycle; the UI and the persistence layers are the NEXT ticket (the
-  user's 2026-10-18 direction, recorded below).
-- Priority: Medium-High — it ships WITH `/give` and the two-sided check for the cheat family, so it queues
+  机对其余客机执行". **Both halves landed**: the permission mechanism — `/op`, `/deop`, the announced roster, the
+  host's cheat SWITCH and the two-sided check on `/data`'s write verbs (see *The permission mechanism landed*) —
+  and `/give`, the same cycle's second half (`review/give-item-to-a-player-command.md`). The acceptance rows at
+  the end are what a real run still owes; the UI and the persistence layers are the NEXT ticket (the user's
+  direction, recorded below).
+- Priority: Medium-High — it shipped WITH `/give` and the two-sided check for the cheat family, so it queued
   ahead of the rest of the item-data ticket's stage C.
 - Category: Command surface / session authority / permissions
-- Related: `docs/backlog/todo/item-and-entity-data-commands.md` (the cheat verb family this gates — `/give` ships
-  with this ticket now, `spawn` next), `docs/backlog/done/host-rules-replication.md` (the announcement pattern a
+- Related: `docs/backlog/review/give-item-to-a-player-command.md` (the verb this permission ships with),
+  `docs/backlog/todo/item-and-entity-data-commands.md` (the cheat verb family this gates — `spawn` next),
+  `docs/backlog/done/host-rules-replication.md` (the announcement pattern a
   member's client reads to refuse a closed rule locally), `docs/backlog/todo/remote-backpack-access-policy.md` (a
   host policy that gates a gesture, the same shape one level down), `docs/en/internals/permissions-and-security.md`
   (the admission seam and what a console verb may assume), `docs/decisions/active.md` decision 262 (a member's
@@ -108,8 +110,8 @@ today. The two sibling tickets that asserted the opposite were re-pointed in the
 | 9 | The two rulings together are what admits a member, and the SWITCH is the ground when both are shut | `KernelCommandGatewayTests.ConsoleVerbWithTheSwitchOpenAndTheMemberGranted_IsAdmitted`, `.ConsoleVerbWithTheSwitchClosedAndNoGrant_IsRefusedByTheSwitch`, `.ConsoleVerbWithTheHostRuleClosed_IsRefusedAndAnswered` (granted + switch closed), `.ConsoleVerbFromAMemberTheRosterDoesNotName_IsRefusedAndAnswered`; `CommandAdmissionIntegrationTests.AConsoleWriteFromAPromotedMember_IsStillRefusedWhileTheSwitchIsClosed`, `.AConsoleWriteFromAMemberWithNeitherGrantNorSwitch_IsRefusedByTheSwitch` |
 | 10 | A member whose rulings were never announced is settled by the host's own refusal | `.AMemberWhoseRosterWasSwallowed_IsSettledByTheHostsOwnRefusal`, `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_WhenNothingWasAnnounced_IsSettledByTheHostsOwnRefusal` (the switch's ground) |
 | 11 | The host needs neither; a member cannot op | `.TheHostsOwnWrite_NeedsNoGrant`, `.AMemberTypingOp_IsRefusedAsHostOnly`, `CheatPermissionsTests.TheHostItself_IsRefusedByName_…` |
-| 12 | The whole family audited, not just `/data` | the console's cheat verbs today are `/data`'s write verbs (gated) and `/data get` (still `Anyone` by the read half's own rule); the host-admin verbs stay `HostOnly`; `/give` is the next commit of this cycle; `/heal` is excluded above |
-| 13 | The wire is declared where the sync audit demands it | sync-coverage matrix row H2 + its vocabulary index line + six evidence anchors |
+| 12 | The whole family audited, not just `/data` | the console's cheat verbs are `/data`'s write verbs (gated at the admission seam), `/give` (gated in its own request handler, landed as `review/give-item-to-a-player-command.md`) and `/data get` (still `Anyone` by the read half's own rule); the host-admin verbs stay `HostOnly`; `/spawn` is the next verb and joins the family then; `/heal` is excluded above |
+| 13 | The wire is declared where the sync audit demands it | sync-coverage matrix row H2 + its vocabulary index line + six evidence anchors; the `/give` pair is row I11 with its own five |
 
 **Limits, recorded rather than hidden.**
 

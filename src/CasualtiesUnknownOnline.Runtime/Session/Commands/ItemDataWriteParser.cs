@@ -87,10 +87,27 @@ internal static class ItemDataWriteParser
 			return Refuse($"Usage: {MergeUsage}", out error);
 		}
 
+		return TryParseProperties(tokens, next, target, MergeUsage, out writes, out error);
+	}
+
+	/// <summary>
+	/// The property half on its own: one or more property/value pairs starting at
+	/// <paramref name="start"/>. The <c>give</c> verb reuses it verbatim — its
+	/// destination body and item definition precede the same property list — so the
+	/// property words, their value shapes and every refusal exist once in the tree.
+	/// <paramref name="target"/> is the item the properties belong to for a write; the
+	/// give verb passes the DESTINATION BODY it was typed against, because one record
+	/// serves both verbs and the value step never reads the field.
+	/// </summary>
+	internal static bool TryParseProperties(IReadOnlyList<string> tokens, int start, ItemDataQuery target, string usage, out IReadOnlyList<ItemDataWrite> writes, out string? error)
+	{
+		writes = [];
+		error = null;
 		var parsed = new List<ItemDataWrite>();
+		var next = start;
 		while (next < tokens.Count)
 		{
-			if (!TryParseProperty(tokens, next, target, clear: false, exact: false, usage: MergeUsage, out var property, out next, out error))
+			if (!TryParseProperty(tokens, next, target, clear: false, exact: false, usage: usage, out var property, out next, out error))
 			{
 				return false;
 			}

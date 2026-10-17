@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1074,
+  "count": 1079,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -6351,6 +6351,36 @@
       "row": "I10",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemStateSettlement.cs",
       "quote": "var restore = _localItems.WriteLocalItem(instanceId, recorded);"
+    },
+    {
+      "cluster": "items",
+      "row": "I11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "PlayerInventoryGiveRequest = 147"
+    },
+    {
+      "cluster": "items",
+      "row": "I11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerInventoryGiveRequestHandler.cs",
+      "quote": "[PacketHandler(NetMsg.PlayerInventoryGiveRequest, NetMessageDirection.GuestToHost)]"
+    },
+    {
+      "cluster": "items",
+      "row": "I11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemGiveService.cs",
+      "quote": "if (!_memberRules.CheatVerbsOpenToMembers)"
+    },
+    {
+      "cluster": "items",
+      "row": "I11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInventoryTakeService.cs",
+      "quote": "internal string? DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)"
+    },
+    {
+      "cluster": "items",
+      "row": "I11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs",
+      "quote": "_playerInteraction.GiveAnswered += OnGiveAnswered;"
     },
     {
       "cluster": "host-rules",

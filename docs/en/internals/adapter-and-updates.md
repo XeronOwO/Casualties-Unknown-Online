@@ -22,15 +22,17 @@ the solution and fails the build if a project outside the adapter references one
 
 ## The boundary is a set of capability ports
 
-The adapter interface declares no members of its own. It is the composition of twelve capability ports
+The adapter interface declares no members of its own. It is the composition of seventeen capability ports
 (plus `IDisposable`, which is lifetime rather than capability), and a consumer resolves the one whose
 capability it uses:
 
 ```text
 IGameAdapter : IGameIntegrationLifecycle, IAdapterCapabilityQuery, IWorldPresenceQuery,
-               IStartGateState, ILocalHealItemQuery, ITraderRecruitRequest, INativeInputBlocker,
-               IRemoteInventoryPresentation, IRemoteMedicalPresentation, IPlayerAnchorQuery,
-               IJoinFlowPresentation, ICarryPresentationPump, IDisposable
+               IStartGateState, IDragUseCueState, ILocalHealItemQuery, ITraderRecruitRequest,
+               INativeInputBlocker, IRemoteInventoryPresentation, IRemoteMedicalPresentation,
+               ISpectatorControl, IPlayerAnchorQuery, IJoinFlowPresentation,
+               ICarryPresentationPump, IOnlineUiNativeFactsQuery, IOnlineUiSurface,
+               IItemGrantSource, IDisposable
 ```
 
 The type comment says why it is shaped that way and why it is frozen: "A version adapter therefore

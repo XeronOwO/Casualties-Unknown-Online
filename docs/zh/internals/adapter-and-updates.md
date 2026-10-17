@@ -14,13 +14,15 @@
 
 ## 边界是一组能力端口
 
-适配器接口自己不声明任何成员。它是十二个能力端口（外加只管生命周期的 `IDisposable`）的组合，使用方只解析自己真正用到的那一个：
+适配器接口自己不声明任何成员。它是十七个能力端口（外加只管生命周期的 `IDisposable`）的组合，使用方只解析自己真正用到的那一个：
 
 ```text
 IGameAdapter : IGameIntegrationLifecycle, IAdapterCapabilityQuery, IWorldPresenceQuery,
-               IStartGateState, ILocalHealItemQuery, ITraderRecruitRequest, INativeInputBlocker,
-               IRemoteInventoryPresentation, IRemoteMedicalPresentation, IPlayerAnchorQuery,
-               IJoinFlowPresentation, ICarryPresentationPump, IDisposable
+               IStartGateState, IDragUseCueState, ILocalHealItemQuery, ITraderRecruitRequest,
+               INativeInputBlocker, IRemoteInventoryPresentation, IRemoteMedicalPresentation,
+               ISpectatorControl, IPlayerAnchorQuery, IJoinFlowPresentation,
+               ICarryPresentationPump, IOnlineUiNativeFactsQuery, IOnlineUiSurface,
+               IItemGrantSource, IDisposable
 ```
 
 类型注释写明了为什么长这样、以及为什么它被冻结：面向某个游戏版本的适配器因此按能力各自实现，测试替身只实现它要顶替的那一项；往这里加成员会让 `AdapterCapabilityPortShapeTests` 失败。新能力是新增一个端口、再在列表里登记一条，绝不是把这个聚合接口撑大。

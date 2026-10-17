@@ -375,4 +375,14 @@ public enum NetMsg : byte
 	// that does arrive against its own list, and answers a refusal.
 	CheatPermissions = 146, // host → member: the cheat-permission list, absolute (admission, world entry, repair cycle, and every grant/revoke)
 
+	// The console /give verb (a cheat verb). The member cannot create an item — the
+	// definition table, the prefab capture and the instance-id space are the host's —
+	// so the member's verb is a REQUEST and the host's creation its answer. The host
+	// judges the request against its own cheat switch and roster before it creates
+	// anything, and the answer carries the host's own sentence, so a refusal lands
+	// where the operator typed the verb. The item itself does not travel on this
+	// pair: once created it rides the ordinary inventory-transfer fact below.
+	PlayerInventoryGiveRequest = 147, // guest → host: create one item for a player, with the properties the operator named
+	PlayerInventoryGiveResult = 148, // host → requester: the created item's identity and slot, or the refusal that answered it
+
 }

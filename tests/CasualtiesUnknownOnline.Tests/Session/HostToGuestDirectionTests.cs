@@ -54,6 +54,7 @@ public class HostToGuestDirectionTests(DirectionProbe probe) : IClassFixture<Dir
 		NetMsg.HostRules,
 		NetMsg.CheatPermissions,
 		NetMsg.InventoryIntentRefused,
+		NetMsg.PlayerInventoryGiveResult,
 	};
 
 	[Theory]

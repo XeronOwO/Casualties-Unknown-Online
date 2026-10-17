@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -56,6 +57,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	internal static bool IsIntroSkipped => _skipIntro;
 
 	private readonly GameAdapterDomains _domains;
+	private readonly ItemGrantSource _itemGrant;
 	private readonly GameAdapterBridge _bridge;
 	private readonly PlayerInteractionApply _playerInteraction;
 	private readonly RemoteIntentApplier _remoteInventoryApply;
@@ -124,6 +126,10 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		// and the item domain settles them before it reports an operation, so the host
 		// always judges an item's creation before any operation on it (no hold window).
 		items.RegisterPendingCreationSource(new PendingItemCreationReports(_domains.ItemWorldSync, _domains.EntityEventSync, _domains.BlockBreakSync));
+		// The console /give verb's creation half: the game's item table and prefabs,
+		// captured into the item domain's save shape with an id from the ONE allocator
+		// the rest of the adapter allocates through (a second counter would collide).
+		_itemGrant = new ItemGrantSource(_domains.ItemIds, loggerFactory.CreateLogger<ItemGrantSource>());
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		_remoteInventoryApply = new RemoteIntentApplier(_domains);
@@ -360,6 +366,9 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	bool ILocalHealItemQuery.HasLocalHealItem() => _playerInteraction.HasLocalHealItem();
 
 	IReadOnlyList<LocalHealItem> ILocalHealItemQuery.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
+
+	bool IItemGrantSource.TryCreate(string definitionId, out CharacterItemMsg? item, out string? refusal) =>
+		_itemGrant.TryCreate(definitionId, out item, out refusal);
 
 	bool ITraderRecruitRequest.TryRequestTraderRecruit(ulong targetSteamId) => _domains.TraderRecruit.TryRequest(targetSteamId);
 

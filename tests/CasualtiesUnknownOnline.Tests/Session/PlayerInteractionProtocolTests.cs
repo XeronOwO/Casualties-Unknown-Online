@@ -64,4 +64,48 @@ public class PlayerInteractionProtocolTests
 		Assert.Equal(42UL, decoded.ItemInstanceId);
 		Assert.Equal(2, decoded.LimbIndex);
 	}
+
+	[Fact]
+	public void GiveRequest_RoundTripsTheDefinitionSlotAndPropertyTokens()
+	{
+		var msg = new PlayerInventoryGiveRequestMsg
+		{
+			TargetSteamId = HostId,
+			DefinitionId = "waterbottle",
+			SlotIndex = -1,
+			Properties = ["liquid", "water", "500"],
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerInventoryGiveRequestMsg>(
+			NetPacket.Encode(NetMsg.PlayerInventoryGiveRequest, msg));
+
+		Assert.Equal(HostId, decoded.TargetSteamId);
+		Assert.Equal("waterbottle", decoded.DefinitionId);
+		Assert.Equal(-1, decoded.SlotIndex);
+		Assert.Equal(["liquid", "water", "500"], decoded.Properties);
+	}
+
+	[Fact]
+	public void GiveResult_RoundTripsTheAppliedIdentityAndAnswer()
+	{
+		var msg = new PlayerInventoryGiveResultMsg
+		{
+			TargetSteamId = HostId,
+			DefinitionId = "bandage",
+			ItemInstanceId = 42,
+			SlotIndex = 3,
+			Applied = true,
+			Answer = "Gave bandage (#42) to 1001 in slot 3.",
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerInventoryGiveResultMsg>(
+			NetPacket.Encode(NetMsg.PlayerInventoryGiveResult, msg));
+
+		Assert.Equal(HostId, decoded.TargetSteamId);
+		Assert.Equal("bandage", decoded.DefinitionId);
+		Assert.Equal(42UL, decoded.ItemInstanceId);
+		Assert.Equal(3, decoded.SlotIndex);
+		Assert.True(decoded.Applied);
+		Assert.Equal("Gave bandage (#42) to 1001 in slot 3.", decoded.Answer);
+	}
 }

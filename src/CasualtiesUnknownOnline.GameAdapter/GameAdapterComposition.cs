@@ -69,6 +69,9 @@ public static class GameAdapterComposition
 		services.AddSingleton<IStartGateState>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IDragUseCueState>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ILocalHealItemQuery>(p => p.GetRequiredService<GameAdapter>());
+		// The console /give verb's creation half: the game's item table + prefabs and the
+		// one instance-id allocator, exposed as the Runtime's narrow port.
+		services.AddSingleton<IItemGrantSource>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ITraderRecruitRequest>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<INativeInputBlocker>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ISpectatorControl>(p => p.GetRequiredService<GameAdapter>());

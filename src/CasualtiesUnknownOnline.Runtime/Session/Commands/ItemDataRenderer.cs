@@ -181,7 +181,7 @@ internal static class ItemDataRenderer
 				builder.Append("; ");
 			}
 
-			builder.Append(Property(writes[i])).Append(' ').Append(changes[i]);
+			builder.Append(PropertyName(writes[i])).Append(' ').Append(changes[i]);
 		}
 
 		builder.Append(awaitingHost
@@ -208,7 +208,12 @@ internal static class ItemDataRenderer
 	/// </summary>
 	internal static string FieldValue(ComponentFieldMsg field) => Captured(field);
 
-	private static string Property(ItemDataWrite write) => write.Property switch
+	/// <summary>
+	/// A write's property as the answer names it — the one wording the write verbs
+	/// and the <c>give</c> verb share, so an operator reads the same word whichever
+	/// verb set the value.
+	/// </summary>
+	internal static string PropertyName(ItemDataWrite write) => write.Property switch
 	{
 		ItemDataProperty.Condition => "condition",
 		ItemDataProperty.Favourited => "favourited",

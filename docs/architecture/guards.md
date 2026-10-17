@@ -136,8 +136,8 @@ Adapter-seam addendum:
 `AdapterCapabilityPortShapeTests` freezes the Game Adapter seam. It asserts that `IGameAdapter`
 declares no member of its own (a member added back onto the aggregate fails — the census reads
 methods, properties and events alike), that each capability port declares exactly its pinned member
-census and that no member name is shared by two ports, that the aggregate composes exactly those twelve
-ports plus `IDisposable`, that the composition carries exactly sixteen members, and that every port is
+census and that no member name is shared by two ports, that the aggregate composes exactly those seventeen
+ports plus `IDisposable`, that the composition carries exactly twenty-seven members, and that every port is
 registered EXACTLY ONCE from the one adapter singleton in `GameAdapterComposition` (counted, so an
 unwired port and a duplicate whose last descriptor wins both fail; read as source, because the tests
 load the adapter reflectively and cannot resolve its container). Its matcher is pinned by a synthetic

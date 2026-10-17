@@ -143,12 +143,14 @@ layer), and GameState keeps its own isolation gate.
 
 The Game Adapter boundary is the same rule on the game-facing side: the Runtime declares the contract,
 `CasualtiesUnknownOnline.GameAdapter` is its only implementation, and
-`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of twelve capability ports with no member of
+`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of seventeen capability ports with no member of
 its own — `IGameIntegrationLifecycle` (the quit broadcast), `IAdapterCapabilityQuery` (the startup
-capability report), `IWorldPresenceQuery`, `IStartGateState`, `ILocalHealItemQuery`,
-`ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
-`IRemoteMedicalPresentation`, `IPlayerAnchorQuery`, `IJoinFlowPresentation` (the direct-join intent)
-and `ICarryPresentationPump` (the late-frame carry pin) — so a consumer resolves the port whose
+capability report), `IWorldPresenceQuery`, `IStartGateState`, `IDragUseCueState` (the drag-use cue),
+`ILocalHealItemQuery`, `ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
+`IRemoteMedicalPresentation`, `ISpectatorControl`, `IPlayerAnchorQuery`, `IJoinFlowPresentation` (the
+direct-join intent), `ICarryPresentationPump` (the late-frame carry pin), `IOnlineUiNativeFactsQuery` (the
+Online UI's native-facts probe), `IOnlineUiSurface` (the Online UI's live surface) and `IItemGrantSource`
+(the console give's definition lookup and instance id) — so a consumer resolves the port whose
 capability it uses, a version adapter implements per capability, and a test double implements only the
 capability it stands in for. Every port resolves to the one adapter singleton, registered in the
 adapter's OWN composition (`GameAdapterComposition.Register`, in the adapter project because the

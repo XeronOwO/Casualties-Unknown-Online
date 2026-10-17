@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -40,6 +41,25 @@ public interface IPlayerInteractionControl
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
 	event Action<PlayerInventoryTransferMsg>? TransferReceived;
+
+	/// <summary>
+	/// Any role: the console <c>/give</c> verb — create ONE item in a player's inventory
+	/// with its properties already set. The host creates and delivers and returns the
+	/// answer sentence; a member sends the request and returns null, because its answer
+	/// arrives through <see cref="GiveAnswered"/>. The caller has already applied the
+	/// cheat gate and resolved the ONE target body; the property tokens are the write
+	/// verb's own grammar, parsed where the item is created.
+	/// </summary>
+	string? GiveItem(ulong targetSteamId, string definitionId, int slot, IReadOnlyList<string> propertyTokens);
+
+	/// <summary>Host only: a member's give request arrived — the host judges its own cheat switch and roster, creates the item, and answers.</summary>
+	void HandleGiveRequest(ulong sender, PlayerInventoryGiveRequestMsg msg);
+
+	/// <summary>Member: the host's answer to a give request arrived.</summary>
+	void FireGiveAnswered(PlayerInventoryGiveResultMsg msg);
+
+	/// <summary>The host answered a give request — the console prints the sentence where the verb was typed.</summary>
+	event Action<PlayerInventoryGiveResultMsg>? GiveAnswered;
 
 	/// <summary>Any role: request to carry another player (guest → host on the wire; host handles locally).</summary>
 	void SendCarryStartRequest(ulong targetSteamId);

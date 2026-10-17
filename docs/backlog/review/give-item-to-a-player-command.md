@@ -1,0 +1,199 @@
+# The `/give` command: create one item in a player's inventory
+
+- Status: Review — landed; every row is unit- and integration-covered, and the live rows at the
+  end are owed to the acceptance batch. Split out of `todo/item-and-entity-data-commands.md`'s stage C, which
+  this ticket completes; the umbrella keeps stage D (`spawn`).
+- Priority: Medium-High
+- Category: Command surface / item and entity state / cheat verb
+- Source: stage C of `todo/item-and-entity-data-commands.md` (designed 2026-10-18 in that ticket) and the
+  user's combined 2026-10-18 ruling recorded in `review/cheat-permission-and-op-commands.md` — `/give` ships
+  for the host AND the members, with the two-sided cheat check. The implementation cycle's directions (the
+  carrier, the narrow id port, the definition fact port, the property reuse) were frozen by the session
+  handoff and are restated under *The design, as landed*.
+- Related: `review/cheat-permission-and-op-commands.md` (the permission half of the same cycle),
+  `review/give-item-to-another-player.md` (the gesture that shares the custody carrier and its open gap),
+  `todo/item-and-entity-data-commands.md` (the umbrella whose stage C this is; stage D remains),
+  `done/item-data-write-commands.md` (the property grammar and the local-scene port this reuses),
+  `review/item-data-read-commands.md` (the row the answer is read back through),
+  `docs/architecture/member-report-validation.md` (the census row for the member's request),
+  `docs/evidence/sync-coverage-matrix.md` row I11
+
+## What was asked
+
+Put ONE item into a player's inventory with its properties already set, from the console:
+`/give [<selector>] <itemId> [slot <n>] [<property> ...]`. The item is created — nothing is taken from anyone —
+so the verb owns both the definition lookup and the delivery, and a member's verb is a request because only the
+host owns the definition table, the prefab capture and the instance-id space.
+
+## Entry mapping
+
+The console verb has no native call site: the game has no give-to-player command, and this is CUO's own
+surface by the user's backlog request (2026-10-07) and the combined ruling (2026-10-18, quoted in
+`review/cheat-permission-and-op-commands.md`) — its scope is that request's, never an inherited gesture's.
+Two native facts are reused rather than re-invented: the item is captured from the prefab exactly as the
+game's own grant instantiates it (`Utils.Create`, the call the acceptance `item-provide` recipe reproduces),
+and the delivery is the landed cross-player push, whose receiving client runs the game's own placement path.
+Nothing is supplied by a fallback: a destination that cannot take the item is refused by name.
+
+## The design, as landed
+
+- **The carrier is the landed push, unchanged.** `PlayerInventoryTakeService.DeliverCreatedItem` is the tail of
+  the cross-player transfer core with no source body: it clones the destination's character snapshot, appends the
+  created fact, saves it, records the recipient's ledger entry (`AdoptTransferredItem`, or
+  `CommitCarriedToHost` for the host itself) and publishes ONE `PlayerInventoryTransferMsg` whose receiving
+  client materializes the item through `PlayerInteractionApply.OnPlayerInventoryTransfer`. The published
+  transfer names NO source (`FromSteamId = 0`), so no client removes anything and only the recipient's
+  projection fires.
+- **The instance id is the adapter's, through a narrow port.** `IItemGrantSource.TryCreate(definitionId, ...)`
+  answers a fresh save-shaped fact with an id from the ONE `ItemIdAllocator` the rest of the adapter allocates
+  through (`AllocateId`). A second counter would mint ids the watermark, the snapshots and the archive never
+  saw; the port is the only way the Runtime can ask for "a fact for this definition, with an id this host owns".
+- **The definition is validated where it exists.** The adapter's `ItemGrantSource` reads
+  `Item.GlobalItems` and resolves the prefab (`ItemPrefabResolver`), refusing by name an id the game does not
+  know or a prefab that cannot load — before the item is created, rather than after the receiver's failed
+  instantiation.
+- **The properties are the write verbs' own grammar, applied before delivery.** `ItemGiveParser` delegates to
+  `ItemDataWriteParser.TryParseProperties`, so `condition`, `favourited`, `liquid` and `component` mean exactly
+  what `/data set` means. The host creates the fact, applies every property to its OWN capture of the
+  definition, and only then delivers — a property that does not apply refuses the whole give, the merge's
+  atomicity rule applied one step earlier.
+- **The destination is a body slot only.** A selector that names several bodies is refused by name (the
+  family's one-item rule); an occupied or out-of-range named slot falls back to the first free one with the
+  substitution logged, and the answer names where the item really landed; no free slot is a named refusal. The
+  container destination is the give gesture ticket's remaining gap and is deliberately out of this stage.
+- **A member's verb is a request, and its answer prints where it typed.** `PlayerInventoryGiveRequestMsg` (147)
+  carries the destination, the definition, the slot and the property TOKENS; the host re-parses and re-applies
+  them to its own capture, so a member cannot hand over a state the definition does not carry.
+  `PlayerInventoryGiveResultMsg` (148) carries the host's own answer sentence, built from the same reason
+  wording the host logs, and the member's console prints it (`CommandConsoleService` subscribes to
+  `IPlayerInteractionControl.GiveAnswered`).
+- **The permission is the landed two-sided check, not a second gate.** The acting client runs `CheatVerbGate`
+  (no round trip on an announced closed switch or roster); the host judges its own switch and roster for every
+  request that arrives (`IMemberCommandRules`, switch then roster, each refusal its own sentence). The host's
+  own verb needs neither — its standing is the online session — exactly as `/data`'s write verbs. The verb does
+  NOT additionally consult `AllowRemoteInventoryTake`: that rule is the cross-player GESTURE family's policy
+  (the drag/take affordances), while a console cheat verb's permission is the host's switch and roster — the
+  user's own ruling for the family. A host that wants nobody to hand items out keeps the switch shut or grants
+  nobody.
+
+## Mechanism inventory
+
+| # | Mechanism | Evidence |
+|---|---|---|
+| 1 | The creation port | `IItemGrantSource` (`Runtime/GameAdapter`), implemented by the adapter's `ItemGrantSource` on `GameAdapter`; registered in `GameAdapterComposition` and defaulted to `UnavailableItemGrantSource` in the base root |
+| 2 | The id space | `ItemGrantSource` calls `ItemIdAllocator.AllocateId()` — the same allocator `TraderRecruitCoordinator` uses for its stock gifts, so host-side ids stay in one counter |
+| 3 | The definition facts | `Item.GlobalItems` and `ItemPrefabResolver.Load` are read only in the adapter (the game-assembly boundary); a missing definition or prefab is a named refusal |
+| 4 | The property grammar | `ItemGiveParser.TryParseProperties` → `ItemDataWriteParser.TryParseProperties` → `ItemDataWriteValues.TryApply`: one property vocabulary, one refusal wording, one value check |
+| 5 | The delivery | `PlayerInventoryTakeService.DeliverCreatedItem` shares `PlayerCharacterAccess.CloneCharacter`, `ResolveDestinationSlot`, the ledger calls and `PublishTransfer` with `HandleTakeCore`; the receiver is the landed `PlayerInteractionApply.OnPlayerInventoryTransfer` |
+| 6 | The request/answer wire | `NetMsg.PlayerInventoryGiveRequest` 147 (guest → host) and `NetMsg.PlayerInventoryGiveResult` 148 (host → requester), both reliable direct frames — declared in sync-coverage row I11 and in both protocol reference blocks |
+| 7 | The front end | `CheatVerbGate` in `ItemGiveCommands`, before the target is resolved (the family's order) |
+| 8 | The back end | `PlayerItemGiveService.HandleRequest`: `CheatVerbsOpenToMembers` then `AllowsCheatVerb`; each refusal is sent back as the answer |
+| 9 | The console answer | the host's command returns the host's sentence; the member's answer arrives through `PlayerInventoryGiveResultHandler` → `FireGiveAnswered` → the console's subscription |
+| 10 | No protocol bump (a fact, not a design input) | decision 241: pre-release the number is a frozen baseline; this change adds two `NetMsg` members and no existing member moves |
+
+## Self-check table
+
+| # | Claim | Evidence |
+|---|---|---|
+| 1 | The host creates, writes the recipient's snapshot and the ledger, and the row reaches the member's kernel | `CommandConsoleItemGiveTests.Host_GivesToAGuest_WritesTheSnapshotTheLedgerAndTheKernelRow` |
+| 2 | The host's own body is a valid destination | `.Host_GivesToItself_WritesItsOwnSnapshot` |
+| 3 | A named slot is used when free, and an occupied one falls back with the answer naming the real slot | `.Host_GivesInTheNamedSlot`, `.Host_GivesIntoAnOccupiedSlot_FallsBackAndSaysWhereItWent` |
+| 4 | A full body is refused by name and nothing is delivered | `.Host_GivesToATargetWithNoFreeSlot_IsRefusedByName` |
+| 5 | Properties are applied BEFORE delivery | `.Host_GivesWithAProperty_AppliesItBeforeDelivery`, `.Host_GivesWithALiquidAndAComponent_AppliesBoth` |
+| 6 | A property the definition does not carry refuses the whole give | `.Host_GivesWithAPropertyTheDefinitionDoesNotCarry_IsRefusedAndDeliversNothing` |
+| 7 | An unknown definition is refused by name and nothing is created | `.Host_GivesADefinitionTheBuildDoesNotKnow_IsRefusedByName` |
+| 8 | A target the host cannot place the item on is refused by name | `.Host_GivesToATargetOutsideTheWorld_IsRefusedByName` |
+| 9 | Several bodies are refused, by name, with the narrowing advice | `.Host_GivesWhenTheSelectorNamesTwoBodies_IsRefusedByName` |
+| 10 | The grammar refuses the item-target words, a missing definition and a bad slot, and quotes its own usage | `ItemGiveParserTests` (14 cases), `.MalformedGive_IsRefusedWithItsOwnSentence`, `.Host_GivesWithAMalformedProperty_IsRefusedBeforeAnythingIsCreated`, `.Member_GivesWithAMalformedProperty_IsRefusedLocallyWithoutARequest` |
+| 11 | A member's verb lands, and the host's answer is what prints | `CommandConsoleMemberItemGiveTests.Member_GivesToTheHost_LandsAndTheHostsAnswerPrints`, `.Member_GivesToItself_LandsOnItsOwnSnapshot`, `.Member_GivesWithProperties_AreAppliedByTheHost` |
+| 12 | The front end refuses an announced closed switch and an announced roster that does not name the member, before anything is sent | `.Member_Gives_WhenTheAnnouncedSwitchIsClosed_IsRefusedLocally`, `.Member_Gives_WhenTheSwitchIsOpenButTheMemberIsNotGranted_IsRefusedByTheRoster` |
+| 13 | With nothing announced the host judges and answers, and the refusal prints | `.Member_Gives_WhenNoRosterWasAnnounced_IsSettledByTheHostsOwnRefusal` |
+| 14 | A member's unknown definition is answered by the host, not created locally | `.Member_GivesAnUnknownDefinition_IsAnsweredByTheHost` |
+| 15 | The two new frames are direction-classified and the member-authored one is in the report census | `GuestToHostDirectionTests`/`HostToGuestDirectionTests` rows, `docs/architecture/member-report-validation.md`, sync-coverage row I11 with 5 anchors |
+| 16 | Not covered here | the live two-client run (the rows below); the real prefab capture and the real id allocator are the adapter's, and a test host has no game assembly |
+
+## Whole-family audit
+
+The console's cheat family now reads: `/data`'s write verbs (gated, landed), `/data get` (`Anyone` by the read
+half's own rule), `/give` (this ticket — gated on both sides), `/spawn` (stage D, not built), the host-admin
+verbs (`HostOnly`), and `/heal` (excluded because it consumes the healer's own item). The give verb reuses the
+write verbs' grammar and the same `CheatVerbGate` instance in the console, and it inherits the same two host
+rulings — a new verb added no new flag, which is the family's own rule. The delivery family was checked too:
+the take core, the remote-backpack hand-over and the give all go through the one custody core, so the three
+cannot drift about who owns an item.
+
+## What the acceptance batch owes
+
+A host + member session on the deployed artifact:
+
+1. Host: `/give @p bandage` — the answer names a new instance id and slot; `/data get id <id>` on BOTH peers
+   reads the same row, owned by the member.
+2. Host: `/give @p waterbottle liquid water 500` — the answer carries `liquid water … -> 500 ml`, and
+   `/data get id <id>` reads 500 ml on the member's side.
+3. Host: `/give @p bandage slot 9` (beyond the six-slot body) — the answer names the slot it really used, not
+   9; `/data get` agrees.
+4. The member fills its own body through the game's own grants, then the host `/give`s — the named
+   no-free-slot refusal, and the member's record is unchanged.
+5. A granted member whose own body is full runs `/give @s bandage` — the no-free-slot refusal prints on the
+   member's console (the answer path, not only the host's log).
+6. Member, switch open + grant: `/give @p bandage` — the answer prints on the member's console, and the host's
+   `/data get` reads the new row.
+7. Member, switch closed (announced): the same verb is refused on the member's own console, and the host's
+   record is unchanged.
+8. Member, switch open, no grant (announced): refused by the roster's sentence, not the switch's.
+9. Member with the roster announcement swallowed: the request reaches the host, the host's roster refusal is
+   the answer, printed on the member's console.
+10. A definition the game does not know (`/give @p notanitem`): the named refusal, nothing created on either
+    side.
+
+## Limits, recorded rather than hidden
+
+- **The receiving client's own slot rules do not decide placement.** The host picks the slot from the
+  recipient's last snapshot and the receiving client accepts that slot (falling back to its first empty one);
+  a live body that has filled up since the snapshot logs "cannot place … no empty inventory slot" and the item
+  is not materialized there — the give gesture's own open gap, inherited rather than widened.
+- **Body slots only.** A container destination (a release onto an item shown in the receiver's inventory) is
+  the give gesture ticket's gap; `/give` refuses to pretend and does not offer one.
+- **A prefab's captured contents are the definition's own business.** The created fact carries what the
+  prefab's capture carries; a container definition whose prefab already holds children would materialize them
+  on the receiver, and their ids are not minted here (the same boundary the trader stock gifts have).
+- **A component field only exists if the prefab capture carries it.** A battery granted straight from its
+  prefab has no `BatteryItem` component line (the item builds one when it is loaded), so
+  `/give largebattery component …` is refused until a capture carries that component — the same finding the
+  write verbs' acceptance recorded.
+- **No definition completion.** The verb declares one free-text argument; the console's resource-location
+  catalog is not wired into it, exactly as the read half recorded.
+- **A lost answer costs the confirmation, not the item.** The answer is one reliable directed frame with no
+  re-send; the operator reads the result back with `/data get`, and the created row converges through the
+  ordinary character snapshot and kernel checkpoint (sync-coverage row I11).
+- **The verb needs a session.** A solo world has no cheat standing for either role: the host's permission is
+  the online switch and a member's is a session grant (`CheatVerbGate`'s no-session refusal).
+- **The same refusal prints with two different console kinds.** The host's own `/give` returns its sentence
+  and the console prints every command return as a success line, while a member's answer arrives through
+  the answer event and prints as an error line. The WORDS are identical; the kind is a console-wide return
+  contract (the landed `/data` writes have the same shape), not this verb's to change.
+- **The created item is a grant, not a native spawn.** No local object is instantiated on the giver's client
+  and no item-domain report fires there; the fact is built from the prefab and the receiver materializes it
+  through the ordinary transfer path (the trader gift's shape).
+
+## Adversarial review of the frozen change
+
+Independent, fresh context, read-only over the frozen tree, following `docs/development/review-prompt.md`
+(FULL tier). The review was stopped by the user before its final pass, after an interim report over the
+frozen tree: **0 blocker, 0 major, 7 minor/nit**, all fixed in the same commit except the one recorded
+above. Its "could not check" list (the runtime-only facts and the two-client delivery) is the acceptance
+batch's rows below.
+
+| # | Severity | Finding | Disposition |
+|---|---|---|---|
+| 1 | minor | The member did not parse the property words locally although `ItemGiveRequest`'s doc said it did, so a malformed line always cost a round trip | fixed: `ItemGiveCommands` runs `ItemGiveParser.TryParseProperties` before the gate/send; the member and host cases pin it (the member case asserts no request left the client) |
+| 2 | minor | The self-check table said `ItemGiveParserTests` carries 12 cases; it carries 14 | fixed |
+| 3 | minor | The same refusal showed with different console kinds (host success line vs member error line) | not fixed, recorded as a limit: the console prints every command return as success; changing the kind with the verdict is console-wide |
+| 4 | nit | The slot-substitution line was logged under `[Take]` on the give path | fixed: the resolver takes the caller's tag (`[Give]` from the give path, `[Take]` unchanged) |
+| 5 | nit | The ticket said the answer is "the same sentence it logs"; only the REASON wording is shared | fixed in the ticket and the message/service docs |
+| 6 | nit | The ticket's landing date (2026-10-17) contradicted the inherited design date (2026-10-18) it quotes | fixed: the status carries no landing date |
+| 7 | nit | The umbrella ticket lost its UTF-8 BOM and the rewritten lines fixed mojibake while 53 occurrences remain | BOM restored; the remaining mojibake is the file's repo-wide pre-existing encoding artifact, left to the encoding cleanup rather than half-rewritten here |
+
+The review also noted, and this commit fixes, a live-doc drift it did not have to find: `current.md`, the
+internals adapter page and `guards.md` still described the adapter composition as twelve ports (the tree has
+seventeen, one of them this change's), and the guard page also stated the old pinned member count.

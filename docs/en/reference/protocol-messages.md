@@ -280,6 +280,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 107 / 108 | `TraderRecruitRequest` / `TraderRecruitResult` | guest → host / host → target | recruit a dead player at a trader and the authoritative post-revive body state |
 | 127–133 | `MedicalOperationStartRequest`, `StartAck`, `Update`, `State`, `EndRequest`, `EndCommitted`, `Cancel` | operator ↔ host ↔ clients | the medical operation session: host-owned registry, reservations, incremental progress, one terminal commit |
 | 137 / 138 | `MedicalOperationTargetCheckRequest` / `Answer` | host → target / target → host | the target's own client answers whether its live body allows the operation start |
+| 147 / 148 | `PlayerInventoryGiveRequest` / `PlayerInventoryGiveResult` | guest → host / host → requester | the console `/give` cheat verb: the member's request (one destination body, the item definition, the slot and the property words) and the host's own answer (the created item and where it landed, or the refusal) — the item itself arrives through the ordinary inventory-transfer fact |
 
 **Mods and the kernel**
 

@@ -225,6 +225,7 @@ Host: start normal Batch/Stream
 | 107 / 108 | `TraderRecruitRequest` / `TraderRecruitResult` | 客机 → 主机／主机 → 目标 | 在商人处招募一名死亡玩家，以及权威的事后身体状态 |
 | 127–133 | `MedicalOperationStartRequest`、`StartAck`、`Update`、`State`、`EndRequest`、`EndCommitted`、`Cancel` | 操作方 ↔ 主机 ↔ 各客户端 | 医疗操作会话：主机持有登记表与预留、增量进度，以及唯一一次终态提交 |
 | 137 / 138 | `MedicalOperationTargetCheckRequest` / `Answer` | 主机 → 目标／目标 → 主机 | 目标自己的客户端回答它这具活体身体允不允许开始这次操作 |
+| 147 / 148 | `PlayerInventoryGiveRequest` / `PlayerInventoryGiveResult` | 客机 → 主机／主机 → 请求者 | 控制台 `/give` 作弊动词：成员的请求（一个目标身体、物品定义、槽位与属性词），以及主机自己的答复（创建的物品与落点，或拒绝）——物品本身走普通的背包转移事实到达 |
 
 **模组与内核**
 

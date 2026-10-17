@@ -242,6 +242,76 @@ internal sealed class PlayerInventoryTakeService(
 	}
 
 	/// <summary>
+	/// Host only: deliver a CREATED item into one player's carried inventory — the tail of
+	/// <see cref="HandleTakeCore"/> with no source body. The console <c>/give</c> verb creates the fact
+	/// (definition, instance id and properties) and calls this; everything from here on is the custody
+	/// path a cross-player transfer already takes: the destination's character snapshot, the recipient's
+	/// ledger entry (or the host's own item authority), and ONE published transfer whose receiving client
+	/// materializes it through its own slot rules.
+	///
+	/// <para>
+	/// The published transfer names NO source (<c>FromSteamId = 0</c>) because no body gave the item up:
+	/// nothing is removed on any client, and only the recipient's projection fires. Null means delivered;
+	/// otherwise the sentence is the refusal the operator reads.
+	/// </para>
+	/// </summary>
+	internal string? DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		{
+			return "This client is not the host of a live session world, so it cannot deliver a created item.";
+		}
+
+		if (to == 0 || item.InstanceId == 0)
+		{
+			return $"malformed give (target {to}, item id {item.InstanceId}).";
+		}
+
+		if (!_characters.IsInWorld(to))
+		{
+			return $"{to} is not in-world, so /give cannot reach its inventory.";
+		}
+
+		var target = _characters.GetCharacterData(to);
+		if (target is null)
+		{
+			return $"No character snapshot for {to}, so /give cannot place an item on it.";
+		}
+
+		var targetSlot = ResolveDestinationSlot(target, to, requestedSlot);
+		if (targetSlot < 0)
+		{
+			return $"{to} has no empty inventory slot.";
+		}
+
+		item.SlotIndex = targetSlot;
+		var newTarget = PlayerCharacterAccess.CloneCharacter(target);
+		newTarget.Items.Add(item);
+		_characters.SaveCharacterData(to, newTarget);
+
+		var ledger = PlayerCharacterAccess.CloneItem(item);
+		if (to != _session.LocalSteamId)
+		{
+			_items.AdoptTransferredItem(to, item.InstanceId, ledger);
+		}
+		else
+		{
+			CommitCarriedToHost(item.InstanceId, ledger);
+		}
+
+		_log.LogInformation("[Give] {To} receives created {ItemId} (id {InstanceId}) in slot {Slot} (requested {Requested}).",
+			to, item.ItemId, item.InstanceId, targetSlot, requestedSlot);
+		PublishTransfer(new PlayerInventoryTransferMsg
+		{
+			FromSteamId = 0,
+			ToSteamId = to,
+			Item = item,
+		});
+
+		return null;
+	}
+
+	/// <summary>
 	/// One item in a character snapshot, found by instance id anywhere in the tree — the destination of a container
 	/// hand-over is named by id alone, and whether that item really is a container is the RECEIVING client's native
 	/// decision, not this snapshot's.
@@ -270,7 +340,7 @@ internal sealed class PlayerInventoryTakeService(
 	/// free slot, with the substitution logged — the item must never be lost to
 	/// an unusable slot.
 	/// </summary>
-	private int ResolveDestinationSlot(CharacterDataMsg target, ulong recipient, int requestedSlot)
+	private int ResolveDestinationSlot(CharacterDataMsg target, ulong recipient, int requestedSlot, string logTag = "[Take]")
 	{
 		var count = target.SlotCount > 0 ? target.SlotCount : 3;
 		var occupied = false;
@@ -291,8 +361,8 @@ internal sealed class PlayerInventoryTakeService(
 		var fallback = PlayerCharacterAccess.FirstEmptySlot(target);
 		if (requestedSlot >= 0)
 		{
-			_log.LogInformation("[Take] destination slot {Slot} is not free for {To}; using slot {Fallback} instead.",
-				requestedSlot, recipient, fallback);
+			_log.LogInformation("{Tag} destination slot {Slot} is not free for {To}; using slot {Fallback} instead.",
+				logTag, requestedSlot, recipient, fallback);
 		}
 
 		return fallback;

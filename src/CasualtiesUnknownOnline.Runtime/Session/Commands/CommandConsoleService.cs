@@ -6,6 +6,7 @@ using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -108,12 +109,22 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// value: the host judges a member's console write after the fact, so the
 		// verdict reaches the operator here, where they typed the command.
 		_itemStateSettlement.Refused += OnItemDataWriteRefused;
+		// ...and the answer to a member's /give, which the host authors: without this
+		// subscription a granted give would print nothing on the member's screen and a
+		// refused one would look like a line that did nothing.
+		_playerInteraction.GiveAnswered += OnGiveAnswered;
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
 		_commands.AddBuiltIns(new SpectatorCommands(session, entities, spectator, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
-		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, localItems, itemControl, log, new CheatVerbGate(session, _hostRules, cheatPermissions, log), new ItemDataTargets(kernelItems, session, entities, localItems)));
+		// The item-data family's two verb groups share one gate and one target
+		// resolver: /data writes this client's own item, /give makes a new one, and
+		// both answer the same cheat rulings and the same selector verdict.
+		var cheatVerbs = new CheatVerbGate(session, _hostRules, cheatPermissions, log);
+		var targets = new ItemDataTargets(kernelItems, session, entities, localItems);
+		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, localItems, itemControl, log, cheatVerbs, targets));
+		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, cheatVerbs, targets, log));
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 
@@ -239,6 +250,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_restoreAudit.Reported -= OnRestoreLiveWrite;
 		_startingSupplies.Reported -= OnStartingSuppliesReported;
 		_itemStateSettlement.Refused -= OnItemDataWriteRefused;
+		_playerInteraction.GiveAnswered -= OnGiveAnswered;
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
@@ -296,6 +308,14 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// </summary>
 	private void OnItemDataWriteRefused(ItemDataWriteRefusal refusal) =>
 		AddLine(refusal.Describe(), ConsoleLineKind.Error);
+
+	/// <summary>
+	/// The host's answer to this member's <c>/give</c>: the same sentence the host
+	/// logged, printed where the operator typed the verb. One line per request, and
+	/// the kind follows the verdict — an applied give is a success, a refusal an error.
+	/// </summary>
+	private void OnGiveAnswered(PlayerInventoryGiveResultMsg msg) =>
+		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	/// <summary>
 	/// The starting-supplies grant of a player this world had no character for (S4.3):

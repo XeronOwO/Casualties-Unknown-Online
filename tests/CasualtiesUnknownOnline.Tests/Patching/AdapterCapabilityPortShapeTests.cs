@@ -43,6 +43,7 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IOnlineUiNativeFactsQuery), ["Capture"]),
 		(typeof(IOnlineUiSurface), ["Push", "TryDequeueIntent"]),
 		(typeof(ISpectatorControl), ["IsWatching", "StopWatching", "TrySetFreeFly", "TryWatch", "WatchingSteamId"]),
+		(typeof(IItemGrantSource), ["TryCreate"]),
 	];
 
 	/// <summary>Where the ports must be registered from the one adapter singleton (checked as source, because the tests load the adapter reflectively and cannot resolve its container).</summary>
@@ -85,7 +86,7 @@ public class AdapterCapabilityPortShapeTests
 	/// </summary>
 	[Fact]
 	public void Composition_CarriesExactlyThePinnedMemberCount() =>
-		Assert.Equal(26, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+		Assert.Equal(27, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

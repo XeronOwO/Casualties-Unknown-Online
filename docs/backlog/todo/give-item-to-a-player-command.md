@@ -296,22 +296,30 @@ game's own container and our write path, the honest answer is **read yes, write 
   true) is the game's own "fill it for me" flag, applied when the item is loaded/instantiated — and `/give`
   captures the PREFAB, which is not an instantiated item, so the capture legitimately has no stacks.
 
-**The design (ruled by the user's follow-ups, 2026-10-17).** A liquid write means "the amount of liquid X in
-this container", against the game's own rules: a liquid the item does not hold is APPENDED (so an empty
-container can be filled and a second liquid can sit beside the first), an amount of 0 drops the stack (the
-game's `Drain` removes stacks under half a millilitre), and the total is judged against the container's
-capacity — over capacity is REFUSED BY NAME, never clamped. The same semantics apply to `/give` and
-`/data set`, because they share the grammar.
+**The design (the user's follow-ups, 2026-10-17 — recorded, awaiting the go-ahead; no code yet).** A liquid
+write means "the amount of liquid X in this container": a liquid the item does not hold is APPENDED (an empty
+container can be filled, a second liquid can sit beside the first), 0 drops the stack, and the container's own
+capacity decides what fits — over capacity refused by name. `/give` and `/data set` share it.
 
-The capacity is a property of the item's DEFINITION (`LiquidItemInfo.capacity`, read through the live
-container's `Capacity`), not of the item instance. It therefore does NOT belong in the item fact: carrying it
-on every item would duplicate a definition constant into instance state — a second source of truth that can
-drift — and inflate the wire. The first sketch of this design did exactly that and the user rejected it on
-sight ("什么傻逼设计"), correctly: the write path asks the ADAPTER for the definition's capacity through a
-narrow port (the adapter is the only layer that can read `Item.GlobalItems` / the prefab's stats), and a
-build without an adapter answers "no capacity" so the liquid write refuses by name exactly as it does today.
-No wire or save-shape change; `ItemDataWriteValues.TryApply` takes the capacity as a parameter and the two
-callers (the console's write path and `PlayerItemGiveService`) resolve the port.
+The first two sketches of this were rejected, and the reason each was wrong is the part to remember:
+
+1. "Carry the capacity on the item fact" put a DEFINITION constant into instance state — a second source of
+   truth on every wire item. Rejected on sight ("什么傻逼设计").
+2. "Ask the adapter for the capacity, judge in the Runtime" moved the number to the right owner but left the
+   RULE in the wrong layer: it would still be the Runtime enforcing a game rule, while the adapter's
+   `RestoreLiquids` rebuilds the stack verbatim (`water.stack = [..]`, deliberately — the game's own SAVE
+   restores a container's stacks the same way), so a game rule enforced on one side and ignored on the other
+   is worse than not enforcing it. ("你是一点不懂设计啊?")
+
+The layer-correct shape, which is what this ticket now proposes: **the Runtime carries the INTENT and owns
+only shape/word errors (a negative amount, a malformed token); whether the item can hold liquids at all, and
+how much fits, is the ADAPTER's answer, because the adapter is the only layer with the live item or the
+prefab in hand** — `WaterContainerItem`'s presence is the container fact, its `Capacity` is the limit, and
+`AddLiquid`/`Drain` are the game's own operations. Concretely: for `/data set` the local write seam answers
+the liquid part (it has the live item); for `/give` the creation seam answers it (it has the prefab), before
+the fact exists, so a refusal is answered before anything is delivered. No wire change, no capacity field, no
+new Runtime knowledge of a game rule. That also makes multi-liquid fall out of the game's own model instead
+of a second implementation of it.
 
 **The re-run's finding (2026-10-17 22:04, artifact `0.1.0+02bc1f6a`) — an OPEN QUESTION for the user.** The
 exception is gone and the give answers, but row 2's 500 ml is still not reached: `/give @p waterbottle liquid

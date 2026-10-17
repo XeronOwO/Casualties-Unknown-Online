@@ -37,10 +37,18 @@
 
 ## What this ticket owes
 
-1. **A current measurement, by the page's own method.** Three `--no-build` runs of the frozen tree, per-run wall
-   clock, vstest duration, summed test time, and the TRX per-class durations; medians, not single runs
-   (`docs/evidence/test-parallelization.md` §2). The measurement table goes into that page, dated, with the census
-   it was taken at — the page is the record, this ticket is the work.
+1. **A current measurement, mined before it is run.** The wall clock is already observed three times on one tree
+   (1 m 31 s, 1 m 37 s, 4 m 05 s, §*Problem*), so a baseline does NOT start with three new full runs: that is
+   12 minutes spent to re-learn what the orchestration logs already say. The steps, cheapest first:
+   - read the existing runs' own numbers (vstest duration, case count) from `.acceptance/test-full-1/2/3.log`, and
+     decide from them whether the 4 m 05 s was a TEST slowdown (its vstest duration and summed time grew) or a
+     WALL-CLOCK-only effect (scheduling, load, first-run JIT/AV) — the two live in different columns and point at
+     different fixes;
+   - if the existing logs cannot separate them, run the suite ONCE with `--logger trx`, and read the per-class
+     durations from that single run — one run carries everything the per-class table needs;
+   - three-run medians are the page's rule for an A/B COMPARISON (§2), so they are spent only after a candidate
+     change exists — never to establish a baseline that the logs already hold.
+
 2. **The spread explained or bounded.** Name the cause of the 1 m 31 s → 4 m 05 s difference, or bound it with
    evidence: a class whose duration depends on machine scheduling, the thread budget, a first-run JIT/AV effect, or
    background load. "It varies" is not an answer the next operator can plan around; if it really is host load, the
@@ -62,7 +70,7 @@
 
 | # | Row | Expected |
 |---|---|---|
-| 1 | Three-run median of the current tree, `--no-build`, recorded in `test-parallelization.md` with the date and case count | a table with wall clock, vstest duration and summed time per run and the median |
+| 1 | The measurement, mined from the data that exists before any new run | the per-run columns the logs already carry (wall clock, vstest duration, case count), and — only if those cannot separate a test slowdown from a wall-clock effect — ONE `--logger trx` run whose per-class durations are the table |
 | 2 | The same-host spread | either a named cause with its evidence, or a bounded statement of what the host adds and how the commit gate should be planned around it |
 | 3 | The ten slowest classes | per-class medians from the TRXs, each with the reason it is slow |
 | 4 | The tier split re-measured | `Category!=Integration` and the tagged subset, cases and wall clock, replacing the 2026-09-22 figures |

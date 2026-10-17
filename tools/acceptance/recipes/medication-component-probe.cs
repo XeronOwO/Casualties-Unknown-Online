@@ -29,7 +29,19 @@
 	} else {
 		body = camera.body;
 	}
-	if (body == null) { return "{\"ok\":false,\"error\":\"no-body\",\"target\":\"" + target + "\"}"; }
+	if (body == null) {
+		// LIST rather than report an absence: a "no such body" from a lookup that has not shown what it CAN
+		// see is the shape this cycle keeps meeting. The answer carries every Body the lookup returned, with
+		// each one inactive-marked, so the next reading distinguishes "the call finds nothing" from "it finds
+		// bodies and none is named that".
+		var every = UnityEngine.Resources.FindObjectsOfTypeAll(typeof(Body));
+		var names = new System.Collections.Generic.List<string>();
+		for (var k = 0; k < every.Length; k++) {
+			var seen = every[k] as Body;
+			if (seen != null) { names.Add(seen.gameObject.name + (seen.gameObject.activeInHierarchy ? "" : "(inactive)")); }
+		}
+		return "{\"ok\":false,\"error\":\"no-body\",\"target\":\"" + target + "\",\"bodiesFound\":" + every.Length.ToString() + ",\"bodies\":[\"" + string.Join("\",\"", names.ToArray()) + "\"]}";
+	}
 
 	var sleeping = body.GetComponent<SleepingPills>();
 	var antidepressants = body.GetComponent<Antidepressants>();

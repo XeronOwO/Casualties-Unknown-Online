@@ -74,13 +74,13 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A player's own music, heard by the group](todo/player-music-sync-playback.md) — **Medium** — transfer the file, then play.
 - [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.
 - [The loading screen says what it waits for](todo/loading-screen-progress-detail.md) — **Low-Medium** — reuse the game's own line.
-- [Descent ambience parity](todo/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [Single-file package for the core plugin](todo/single-file-plugin-package.md) — **Low-Medium** — extensions stay separate.
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 ### In progress
 
 ### Review
+- [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [Enter opens the console as plain chat](review/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [The off-screen arrow's label escapes the screen edge](review/offscreen-arrow-label-clipping.md) — **Low** — awaiting the frames.

@@ -1,6 +1,6 @@
 # Descent and per-layer ambience: does the guest hear what the host hears
 
-- Status: Todo
+- Status: Review — no code to write. Both of the ticket's questions are answered by a runtime reading, and the located condition (`biomeDepth == 0`) says the deeper layers are silent BY DESIGN, so there is no difference to fix; what a headset would add over the reading is the user's own call.
 - Priority: Low-Medium
 - Category: Audio / layer transition
 - Source: the user's 2026-10-07 backlog request — entering a layer plays a whooshing descent/landing wind, and

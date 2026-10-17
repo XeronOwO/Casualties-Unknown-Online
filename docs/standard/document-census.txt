@@ -297,7 +297,7 @@ docs/backlog/todo/health-simulation-and-host-authority.md | keep | index | docs/
 docs/backlog/todo/validation-and-source-checks.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-change-member-recovery.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
+docs/backlog/review/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md

@@ -16,14 +16,26 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// the host's tables still hold. Split out of ItemWorldSync (gate-driven — the
 /// report-side class keeps growing with every pickup/drop path fix).
 ///
+/// <para>
 /// The counter is per PROCESS, so the same restart happens on this side when a
 /// world is CONTINUED: the archive's ids are stamped back onto the objects the
 /// restore rebuilds while this process's counter still starts at zero, and the
 /// restore answers with the resume point (<see cref="SetWatermark"/> — delivered
 /// through the same watermark the host's grant arrives on, because it is the same
 /// fact: the counter this side may resume from).
+/// </para>
+///
+/// <para>
+/// The CONTAINER owns the instance, not the adapter's domain graph
+/// (<c>GameAdapterComposition</c> registers it): the aggregate's domains allocate
+/// through it and the console <c>/give</c> seam allocates through the same one, and
+/// a second allocator would be a second counter whose ids the watermark, the peers'
+/// snapshots and the archive never saw. The type is public only because the
+/// aggregate's public constructor takes it; every game-facing member stays internal,
+/// so this is an implementation collaborator and never a contract.
+/// </para>
 /// </summary>
-internal sealed class ItemIdAllocator(ISessionControl session, IItemControl items, ILogger<ItemIdAllocator> log)
+public sealed class ItemIdAllocator(ISessionControl session, IItemControl items, ILogger<ItemIdAllocator> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IItemControl _items = items;

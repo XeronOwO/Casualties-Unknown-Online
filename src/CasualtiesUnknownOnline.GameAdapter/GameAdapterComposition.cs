@@ -51,6 +51,12 @@ public static class GameAdapterComposition
 		// (Mapster.DependencyInjection 10.x requires net6+).
 		services.AddSingleton<MapsterMapper.IMapper>(
 			new MapsterMapper.Mapper(Mapster.TypeAdapterConfig.GlobalSettings));
+		// The item domain's ONE id authority (ids are (counter, account id)): the aggregate's
+		// domains allocate through it and the console /give seam below allocates through the
+		// same instance. It is the container's rather than the aggregate's so the seam can be
+		// built without the aggregate — a second allocator would be a second counter, whose
+		// ids the watermark, the peers' snapshots and the archive never saw.
+		services.AddSingleton<ItemIdAllocator>();
 		services.AddSingleton<GameAdapter>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapter>());
 		// The capability ports (done/adapter-capability-ports.md): a consumer
@@ -60,7 +66,7 @@ public static class GameAdapterComposition
 		// AdapterCapabilityPortShapeTests, so a new port cannot be left unwired.
 		// `IGameAdapter` itself is deliberately NOT registered: the composition is
 		// the seam's identity and its compile-time proof (the class declaration
-		// implements all fourteen ports), and nothing in the tree resolves the whole
+		// implements all sixteen ports), and nothing in the tree resolves the whole
 		// adapter — a dead registration inside the surface this change narrows is
 		// exactly the drift the shape gate exists to catch.
 		services.AddSingleton<IGameIntegrationLifecycle>(p => p.GetRequiredService<GameAdapter>());
@@ -69,9 +75,6 @@ public static class GameAdapterComposition
 		services.AddSingleton<IStartGateState>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IDragUseCueState>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ILocalHealItemQuery>(p => p.GetRequiredService<GameAdapter>());
-		// The console /give verb's creation half: the game's item table + prefabs and the
-		// one instance-id allocator, exposed as the Runtime's narrow port.
-		services.AddSingleton<IItemGrantSource>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ITraderRecruitRequest>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<INativeInputBlocker>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ISpectatorControl>(p => p.GetRequiredService<GameAdapter>());
@@ -187,7 +190,18 @@ public static class GameAdapterComposition
 		services.AddSingleton<GameAdapterMoodleContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterMoodleContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterMoodleContentProvider>());
-		// The game-backed line-of-sight oracle is a standalone lightweight
+		// The console /give verb's creation half: the game's item table + prefabs and the
+		// one instance-id allocator, exposed as the Runtime's narrow port. It is a
+		// STANDALONE seam, never a port on the aggregate: PlayerInteractionService consumes
+		// the port and GameAdapter depends on IPlayerInteractionControl (it subscribes to
+		// the interaction events), so routing it through the adapter is a constructor
+		// cycle — the same shape and the same reason as the visibility oracle above. The
+		// seam needs nothing the domain graph owns: the item table and the prefab resolver
+		// are the game's own statics and the allocator is the container's singleton.
+		services.AddSingleton<ItemGrantSource>();
+		services.Replace(ServiceDescriptor.Singleton<IItemGrantSource>(
+			p => p.GetRequiredService<ItemGrantSource>()));
+		// The game's own line-of-sight oracle is a standalone lightweight
 		// GameAdapter service. It must NOT be registered through GameAdapter:
 		// GameAdapter depends on IPlayerInteractionControl, and
 		// PlayerInteractionService depends on IPlayerInteractionVisibility — routing

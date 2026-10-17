@@ -43,7 +43,6 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IOnlineUiNativeFactsQuery), ["Capture"]),
 		(typeof(IOnlineUiSurface), ["Push", "TryDequeueIntent"]),
 		(typeof(ISpectatorControl), ["IsWatching", "StopWatching", "TrySetFreeFly", "TryWatch", "WatchingSteamId"]),
-		(typeof(IItemGrantSource), ["TryCreate"]),
 	];
 
 	/// <summary>Where the ports must be registered from the one adapter singleton (checked as source, because the tests load the adapter reflectively and cannot resolve its container).</summary>
@@ -86,7 +85,7 @@ public class AdapterCapabilityPortShapeTests
 	/// </summary>
 	[Fact]
 	public void Composition_CarriesExactlyThePinnedMemberCount() =>
-		Assert.Equal(27, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+		Assert.Equal(26, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()
@@ -99,6 +98,37 @@ public class AdapterCapabilityPortShapeTests
 			.ToArray();
 
 		Assert.Empty(shared);
+	}
+
+	/// <summary>
+	/// The <c>/give</c> verb's creation seam is NOT a port on the adapter singleton, and
+	/// the reason is a hard one: <c>PlayerInteractionService</c> consumes the port and
+	/// <c>GameAdapter</c> depends on <c>IPlayerInteractionControl</c> (it subscribes to
+	/// the interaction events), so routing the port through the aggregate closes a
+	/// constructor cycle. On 2026-10-17 the deployed build did exactly that and the
+	/// plugin never started — "CUO startup failed: A circular dependency was detected
+	/// during CUO service resolution: IGameIntegrationLifecycle -> GameAdapter ->
+	/// IPlayerInteractionControl -> PlayerInteractionService -> IItemGrantSource ->
+	/// GameAdapter" (batch 20261017-q). The seam stands alone over the ONE allocator:
+	/// a second <c>ItemIdAllocator</c> would mint a second counter, which is why the
+	/// allocator is the container's and the seam resolves it rather than building one.
+	/// </summary>
+	[Fact]
+	public void GiveCreationSeam_IsStandaloneOverTheOneAllocator()
+	{
+		Assert.True(File.Exists(CompositionPath), $"composition root not found at {CompositionPath}");
+
+		var code = string.Join("\n", File.ReadAllLines(CompositionPath)
+			.Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+
+		// The seeded default must be REPLACED by the standalone seam: an assertion on the
+		// seam's own registration alone would stay green while the port silently resolved
+		// the Runtime's UnavailableItemGrantSource (a verb that refuses everything).
+		Assert.Equal(0, CountCodeOccurrences(code, "AddSingleton<IItemGrantSource>"));
+		Assert.Equal(1, CountCodeOccurrences(code, "Replace(ServiceDescriptor.Singleton<IItemGrantSource>"));
+		Assert.Equal(1, CountCodeOccurrences(code, "GetRequiredService<ItemGrantSource>())"));
+		Assert.Equal(1, CountCodeOccurrences(code, "AddSingleton<ItemGrantSource>()"));
+		Assert.Equal(1, CountCodeOccurrences(code, "AddSingleton<ItemIdAllocator>()"));
 	}
 
 	[Fact]
@@ -124,6 +154,13 @@ public class AdapterCapabilityPortShapeTests
 		source.Split(
 			[$"AddSingleton<{portName}>(p => p.GetRequiredService<GameAdapter>())"],
 			StringSplitOptions.None).Length - 1;
+
+	/// <summary>
+	/// Counts a literal in code lines only. A commented-out line must not satisfy a pin: the
+	/// registration a reader deletes is exactly the one a comment could keep alive here.
+	/// </summary>
+	private static int CountCodeOccurrences(string code, string text) =>
+		code.Split([text], StringSplitOptions.None).Length - 1;
 
 	/// <summary>
 	/// The aggregate check's own matcher contract: a composition that declares a

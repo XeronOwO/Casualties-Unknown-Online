@@ -198,7 +198,8 @@ internal sealed class GameAdapterDomains
 		GameAdapterMoodleContentProvider moodleContent,
 		ModStatusStore modStatusStore,
 		ModStatusProjectionReadModel modStatusProjectionReadModel,
-		ITimeSource time)
+		ITimeSource time,
+		ItemIdAllocator itemIds)
 	{
 		Session = session;
 		Items = items;
@@ -289,7 +290,7 @@ internal sealed class GameAdapterDomains
 		ItemReconcile = new ItemReconcile(items, ItemApplication, StandingMaterializer, DropGuard, loggerFactory.CreateLogger<ItemReconcile>());
 		OperationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
 		var itemReports = new ItemReportCommitter(items, OperationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());
-		ItemIds = new ItemIdAllocator(session, items, loggerFactory.CreateLogger<ItemIdAllocator>()); // ids are (counter, SteamId) — the counter reports the high-water mark and resumes from the host's grant on join/reconnect
+		ItemIds = itemIds; // ids are (counter, SteamId) — the counter reports the high-water mark and resumes from the host's grant on join/reconnect; the container owns the instance so the console /give seam allocates through the same counter
 		var itemDropState = new ItemDropState();
 		var blockBreakState = new BlockBreakPendingState();
 		TrapDrops = new TrapDropPendingState();

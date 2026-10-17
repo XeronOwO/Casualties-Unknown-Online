@@ -136,11 +136,15 @@ Adapter-seam addendum:
 `AdapterCapabilityPortShapeTests` freezes the Game Adapter seam. It asserts that `IGameAdapter`
 declares no member of its own (a member added back onto the aggregate fails — the census reads
 methods, properties and events alike), that each capability port declares exactly its pinned member
-census and that no member name is shared by two ports, that the aggregate composes exactly those seventeen
-ports plus `IDisposable`, that the composition carries exactly twenty-seven members, and that every port is
+census and that no member name is shared by two ports, that the aggregate composes exactly those sixteen
+ports plus `IDisposable`, that the composition carries exactly twenty-six members, and that every port is
 registered EXACTLY ONCE from the one adapter singleton in `GameAdapterComposition` (counted, so an
 unwired port and a duplicate whose last descriptor wins both fail; read as source, because the tests
-load the adapter reflectively and cannot resolve its container). Its matcher is pinned by a synthetic
+load the adapter reflectively and cannot resolve its container). It also pins the console give's creation
+seam as a STANDALONE registration over the container's one `ItemIdAllocator`, replacing the Runtime's
+default, and never as a port on the singleton: the interaction service consumes that seam and the adapter
+depends on the interaction service, so a port there is a constructor cycle — the shape that killed the
+2026-10-17 startup (batch 20261017-q) and that no unit test composes the real adapter to see. Its matcher is pinned by a synthetic
 composition that declares
 a method, a property and an event — so the check is known to flag the shape it exists for — and the
 port list is the same one the aggregate names, not a second list. Two mutation controls were run in the

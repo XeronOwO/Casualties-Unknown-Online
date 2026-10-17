@@ -80,7 +80,7 @@ Nothing is supplied by a fallback: a destination that cannot take the item is re
 
 | # | Mechanism | Evidence |
 |---|---|---|
-| 1 | The creation port | `IItemGrantSource` (`Runtime/GameAdapter`), implemented by the adapter's `ItemGrantSource` on `GameAdapter`; registered in `GameAdapterComposition` and defaulted to `UnavailableItemGrantSource` in the base root |
+| 1 | The creation port | `IItemGrantSource` (`Runtime/GameAdapter`), implemented by the adapter's `ItemGrantSource` as a STANDALONE adapter service (not a port on the `GameAdapter` singleton — the interaction service consumes it, and a port there is the constructor cycle *The startup cycle* below records); registered in `GameAdapterComposition` over the container's one `ItemIdAllocator`, and defaulted to `UnavailableItemGrantSource` in the base root |
 | 2 | The id space | `ItemGrantSource` calls `ItemIdAllocator.AllocateId()` — the same allocator `TraderRecruitCoordinator` uses for its stock gifts, so host-side ids stay in one counter |
 | 3 | The definition facts | `Item.GlobalItems` and `ItemPrefabResolver.Load` are read only in the adapter (the game-assembly boundary); a missing definition or prefab is a named refusal |
 | 4 | The property grammar | `ItemGiveParser.TryParseProperties` → `ItemDataWriteParser.TryParseProperties` → `ItemDataWriteValues.TryApply`: one property vocabulary, one refusal wording, one value check |
@@ -195,5 +195,46 @@ batch's rows below.
 | 7 | nit | The umbrella ticket lost its UTF-8 BOM and the rewritten lines fixed mojibake while 53 occurrences remain | BOM restored; the remaining mojibake is the file's repo-wide pre-existing encoding artifact, left to the encoding cleanup rather than half-rewritten here |
 
 The review also noted, and this commit fixes, a live-doc drift it did not have to find: `current.md`, the
-internals adapter page and `guards.md` still described the adapter composition as twelve ports (the tree has
-seventeen, one of them this change's), and the guard page also stated the old pinned member count.
+internals adapter page and `guards.md` still described the adapter composition as twelve ports (the tree
+then had seventeen, one of them this change's; the give seam has since moved OFF the aggregate — see
+*The startup cycle* below), and the guard page also stated the old pinned member count.
+
+## The startup cycle the batch found (2026-10-17)
+
+The first acceptance run against this commit never reached its first row: `7b10e6ca` deploys and then the
+plugin dies in `Awake`. The client's own log (`BepInEx/LogOutput.log`, 2026-10-17 21:24) carries it:
+
+```text
+[Error  :Casualties Unknown: Online] CUO composition root validation failed: System.InvalidOperationException: A circular dependency was detected during CUO service resolution: CasualtiesUnknownOnline.Runtime.GameAdapter.IGameIntegrationLifecycle -> CasualtiesUnknownOnline.GameAdapter.GameAdapter -> CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.IPlayerInteractionControl -> CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.PlayerInteractionService -> CasualtiesUnknownOnline.Runtime.GameAdapter.IItemGrantSource -> CasualtiesUnknownOnline.GameAdapter.GameAdapter
+[Error  :Casualties Unknown: Online] CUO startup failed: System.InvalidOperationException: A circular dependency was detected during CUO service resolution: <the same chain, verbatim>
+```
+
+Both lines are quoted from `.acceptance/20261017-q/run1-startup-failure.log`, copied out of the client's
+`LogOutput.log`; the second repeats the first line's chain exactly and is abbreviated here only in that
+repeated part.
+
+**The defect.** This change registered the new port the way every other port is registered —
+`AddSingleton<IItemGrantSource>(p => p.GetRequiredService<GameAdapter>())` — but `IItemGrantSource` is
+consumed by `PlayerInteractionService`, and `GameAdapter` itself depends on `IPlayerInteractionControl`
+(it subscribes to the transfer/carry/heal/use events). Two edges, one cycle: resolving the lifecycle port
+builds the adapter, which builds the interaction service, which asks for the give port, which asks for the
+adapter that is still being built. The composition-root validation refuses that at startup and CUO never
+runs — every unit and integration test still passed, because the tests compose the Runtime root with a
+fake give source and never build the real adapter.
+
+**The fix.** The give seam never needed the aggregate: it reads the game's own item table and prefab
+resolver (statics) and allocates from the ONE id counter. So `ItemGrantSource` is registered as a
+STANDALONE adapter service over the container's `ItemIdAllocator` (the allocator moved out of the
+adapter's domain graph into the composition, so both sides share the one counter rather than minting a
+second), `IItemGrantSource` left the `IGameAdapter` composition (sixteen ports now), and the shape gate
+pins both facts — the standalone registration, the `Replace` that wires it over the Runtime's default, and
+the one allocator — with the cycle named in the pin, so a future change that routes it back through the
+singleton fails a test instead of the startup. The adapter's own `IPlayerInteractionVisibility` forwarder,
+dead for the same reason (the container resolves the standalone oracle), was deleted with it.
+
+**What the batch records about it.** The batch's own prelude gates on the client's `ping`, so the failure
+stopped it before the first row: no row of this ticket was judged against `7b10e6ca`. The batch re-runs
+against the fix's commit once it lands, and that run's record — plus the lesson it folds into
+`docs/acceptance/lessons.md` (a green suite is not a start, because the acceptance prelude is the only thing
+that composes the real adapter) — is what closes this paragraph. Until then this states the plan, not a
+completed run.

@@ -12,7 +12,6 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -43,7 +42,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnlineUiSurface, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, IPlayerInteractionVisibility
+public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnlineUiSurface, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider
 {
 	// Set by the join-flow port (IJoinFlowPresentation.PrepareForDirectJoin) when the
 	// game was launched via a Steam friends "Join Game" (+connect_lobby): the
@@ -57,7 +56,6 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	internal static bool IsIntroSkipped => _skipIntro;
 
 	private readonly GameAdapterDomains _domains;
-	private readonly ItemGrantSource _itemGrant;
 	private readonly GameAdapterBridge _bridge;
 	private readonly PlayerInteractionApply _playerInteraction;
 	private readonly RemoteIntentApplier _remoteInventoryApply;
@@ -114,22 +112,19 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		IStartingSupplyPublisher startingSupplies,
 		ISolidFoodSemantics solidFoodSemantics,
 		IShrapnelGripSlipRandom gripSlipRandom,
-		ITimeSource time)
+		ITimeSource time,
+		ItemIdAllocator itemIds)
 	{
 		_patches = new PatchInstallLifecycle(log);
 		_onlineUiSurface = new OnlineUiSurfaceHost(log);
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
-			enemies, worldTime, layerAdvance, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, gripSlipRandom, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel, time);
+			enemies, worldTime, layerAdvance, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules, worldEntityKernel, worldBackfill, log, mapper, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, gripSlipRandom, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel, time, itemIds);
 		// Composition seam: the adapter owns the DEFERRED creation reports (a drop's
 		// velocity, a destructive trap's building-death drops, a block break's drops)
 		// and the item domain settles them before it reports an operation, so the host
 		// always judges an item's creation before any operation on it (no hold window).
 		items.RegisterPendingCreationSource(new PendingItemCreationReports(_domains.ItemWorldSync, _domains.EntityEventSync, _domains.BlockBreakSync));
-		// The console /give verb's creation half: the game's item table and prefabs,
-		// captured into the item domain's save shape with an id from the ONE allocator
-		// the rest of the adapter allocates through (a second counter would collide).
-		_itemGrant = new ItemGrantSource(_domains.ItemIds, loggerFactory.CreateLogger<ItemGrantSource>());
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		_remoteInventoryApply = new RemoteIntentApplier(_domains);
@@ -360,15 +355,9 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	void IGameIntegrationLifecycle.OnApplicationQuit() => _domains.ItemWorldSync.SuppressDestroys();
 
-	bool IPlayerInteractionVisibility.HasLineOfSight(ulong observerSteamId, ulong targetSteamId) =>
-		_domains.InteractionVisibility.HasLineOfSight(observerSteamId, targetSteamId);
-
 	bool ILocalHealItemQuery.HasLocalHealItem() => _playerInteraction.HasLocalHealItem();
 
 	IReadOnlyList<LocalHealItem> ILocalHealItemQuery.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
-
-	bool IItemGrantSource.TryCreate(string definitionId, out CharacterItemMsg? item, out string? refusal) =>
-		_itemGrant.TryCreate(definitionId, out item, out refusal);
 
 	bool ITraderRecruitRequest.TryRequestTraderRecruit(ulong targetSteamId) => _domains.TraderRecruit.TryRequest(targetSteamId);
 

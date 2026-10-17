@@ -19,9 +19,16 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 /// <see cref="IRemoteMedicalPresentation"/>,
 /// <see cref="IPlayerAnchorQuery"/>, <see cref="IJoinFlowPresentation"/>,
 /// <see cref="ICarryPresentationPump"/>, <see cref="IOnlineUiNativeFactsQuery"/>,
-/// <see cref="IOnlineUiSurface"/>, <see cref="IItemGrantSource"/>).
+/// <see cref="IOnlineUiSurface"/>, <see cref="ISpectatorControl"/>).
 /// A version adapter therefore implements per capability, and a test double
 /// implements only the capability it stands in for.
+///
+/// <para>
+/// The console <c>/give</c> verb's creation seam (<see cref="IItemGrantSource"/>) is
+/// deliberately NOT part of this composition: the interaction service consumes it and
+/// the adapter depends on that service, so a port here would close a constructor cycle
+/// (the batch 20261017-q startup failure). It is a standalone adapter seam instead.
+/// </para>
 ///
 /// The composition is the seam's single identity — one resolve that refers to
 /// the whole adapter object — and it is FROZEN: adding a member here fails
@@ -45,7 +52,6 @@ public interface IGameAdapter :
 	ICarryPresentationPump,
 	IOnlineUiNativeFactsQuery,
 	IOnlineUiSurface,
-	IItemGrantSource,
 	IDisposable
 {
 }

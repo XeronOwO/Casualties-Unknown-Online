@@ -143,21 +143,27 @@ layer), and GameState keeps its own isolation gate.
 
 The Game Adapter boundary is the same rule on the game-facing side: the Runtime declares the contract,
 `CasualtiesUnknownOnline.GameAdapter` is its only implementation, and
-`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of seventeen capability ports with no member of
+`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of sixteen capability ports with no member of
 its own — `IGameIntegrationLifecycle` (the quit broadcast), `IAdapterCapabilityQuery` (the startup
 capability report), `IWorldPresenceQuery`, `IStartGateState`, `IDragUseCueState` (the drag-use cue),
 `ILocalHealItemQuery`, `ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
 `IRemoteMedicalPresentation`, `ISpectatorControl`, `IPlayerAnchorQuery`, `IJoinFlowPresentation` (the
 direct-join intent), `ICarryPresentationPump` (the late-frame carry pin), `IOnlineUiNativeFactsQuery` (the
-Online UI's native-facts probe), `IOnlineUiSurface` (the Online UI's live surface) and `IItemGrantSource`
-(the console give's definition lookup and instance id) — so a consumer resolves the port whose
-capability it uses, a version adapter implements per capability, and a test double implements only the
+Online UI's native-facts probe) and `IOnlineUiSurface` (the Online UI's live surface) — so a consumer
+resolves the port whose capability it uses, a version adapter implements per capability, and a test double
+implements only the
 capability it stands in for. Every port resolves to the one adapter singleton, registered in the
 adapter's OWN composition (`GameAdapterComposition.Register`, in the adapter project because the
 Runtime must not reference it and the plugin must not know adapter types; the plugin's config pass
 calls it once), and `AdapterCapabilityPortShapeTests`
 fails when a member is declared back on the aggregate, when a port's member census changes, or when a
-port is left unregistered. The patch lifecycle itself (probe/install/uninstall) is driven by
+port is left unregistered. A seam consumed INSIDE the adapter's own constructor graph cannot be a port
+here: `GameAdapter` depends on `IPlayerInteractionControl`, so a seam that service (or anything resolved
+under it) consumes would be built from the adapter that is still being built — the console give's
+`IItemGrantSource` and the visibility oracle are standalone adapter services for that reason, and the
+local-body capture with them; the local item access is standalone for the simpler one, that it needs
+nothing the domain graph owns. The give seam allocates through the container's ONE `ItemIdAllocator` —
+two would be two counters. The patch lifecycle itself (probe/install/uninstall) is driven by
 `ICuoService` on the same instance and is not a consumer port, and the members no call site reached
 (`CaptureWorldParams`, `ApplyWorldParams`, `CloseRemoteBackpack`, `CloseRemoteMedical`) were removed
 rather than ported — the call-site census and each removal's reason are in

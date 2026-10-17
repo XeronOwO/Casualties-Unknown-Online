@@ -14,7 +14,7 @@
 
 ## 边界是一组能力端口
 
-适配器接口自己不声明任何成员。它是十七个能力端口（外加只管生命周期的 `IDisposable`）的组合，使用方只解析自己真正用到的那一个：
+适配器接口自己不声明任何成员。它是十六个能力端口（外加只管生命周期的 `IDisposable`）的组合，使用方只解析自己真正用到的那一个：
 
 ```text
 IGameAdapter : IGameIntegrationLifecycle, IAdapterCapabilityQuery, IWorldPresenceQuery,
@@ -22,8 +22,10 @@ IGameAdapter : IGameIntegrationLifecycle, IAdapterCapabilityQuery, IWorldPresenc
                INativeInputBlocker, IRemoteInventoryPresentation, IRemoteMedicalPresentation,
                ISpectatorControl, IPlayerAnchorQuery, IJoinFlowPresentation,
                ICarryPresentationPump, IOnlineUiNativeFactsQuery, IOnlineUiSurface,
-               IItemGrantSource, IDisposable
+               IDisposable
 ```
+
+交互服务自己消费的能力不能放在这里：适配器订阅交互服务的事件，走聚合就等于"用还在构建中的适配器去构建它自己"。这类接缝是独立的适配器服务 —— 控制台 give 的 `IItemGrantSource`、可见性判定、本地身体捕获和本地物品访问 —— 其中 give 接缝分配 id 时用的是容器里那唯一一个 `ItemIdAllocator`，第二个分配器就是第二个计数器。
 
 类型注释写明了为什么长这样、以及为什么它被冻结：面向某个游戏版本的适配器因此按能力各自实现，测试替身只实现它要顶替的那一项；往这里加成员会让 `AdapterCapabilityPortShapeTests` 失败。新能力是新增一个端口、再在列表里登记一条，绝不是把这个聚合接口撑大。
 

@@ -22,7 +22,7 @@ the solution and fails the build if a project outside the adapter references one
 
 ## The boundary is a set of capability ports
 
-The adapter interface declares no members of its own. It is the composition of seventeen capability ports
+The adapter interface declares no members of its own. It is the composition of sixteen capability ports
 (plus `IDisposable`, which is lifetime rather than capability), and a consumer resolves the one whose
 capability it uses:
 
@@ -32,8 +32,14 @@ IGameAdapter : IGameIntegrationLifecycle, IAdapterCapabilityQuery, IWorldPresenc
                INativeInputBlocker, IRemoteInventoryPresentation, IRemoteMedicalPresentation,
                ISpectatorControl, IPlayerAnchorQuery, IJoinFlowPresentation,
                ICarryPresentationPump, IOnlineUiNativeFactsQuery, IOnlineUiSurface,
-               IItemGrantSource, IDisposable
+               IDisposable
 ```
+
+A capability the interaction service itself consumes cannot be a port here: the adapter subscribes to the
+interaction events, so the port would have to be built from the adapter that is still being built. Those
+seams are standalone adapter services — the console give's `IItemGrantSource`, the visibility oracle, the
+local-body capture and the local item access — and the give seam allocates through the container's one
+`ItemIdAllocator`, because a second allocator would be a second id counter.
 
 The type comment says why it is shaped that way and why it is frozen: "A version adapter therefore
 implements per capability, and a test double implements only the capability it stands in for… adding a

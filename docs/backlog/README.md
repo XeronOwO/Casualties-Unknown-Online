@@ -71,6 +71,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The loading screen says what it waits for](todo/loading-screen-progress-detail.md) — **Low-Medium** — reuse the game's own line.
 - [Single-file package for the core plugin](todo/single-file-plugin-package.md) — **Low-Medium** — extensions stay separate.
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
+- [The full test suite takes four minutes](todo/test-suite-wall-clock.md) — **Medium** — measure, then cut the wall clock.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 ### In progress
 

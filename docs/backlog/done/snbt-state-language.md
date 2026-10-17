@@ -1,9 +1,11 @@
 # The item state language: SNBT text, NBT paths and adapter-schema completion
 
-- Status: Review — the language and the two commands that speak it (`/data`, `/give`) landed in this cycle.
-  Decision 264 ruled the syntax; this ticket owns the parser, the writer, the path resolver, the console
-  completion and the rewiring of both verbs onto them. The two consumer tickets re-derive their acceptance
-  rows here (`todo/item-and-entity-data-commands.md`, `todo/give-item-to-a-player-command.md`).
+- Status: Done — the language and the two commands that speak it (`/data`, `/give`) landed in this
+  cycle, and batch `20261018-q` judged every acceptance row it owes on the deployed `30dbb252` (record
+  `docs/evidence/acceptance/snbt-state-language-20261018-q.md`). Decision 264 ruled the syntax; this ticket
+  owned the parser, the writer, the path resolver, the console completion and the rewiring of both verbs onto
+  them. The two consumer tickets re-derived their acceptance rows here (`todo/item-and-entity-data-commands.md`,
+  `todo/give-item-to-a-player-command.md`).
 - Priority: High — it is the language decision 264 made mandatory, and both item commands ship it.
 - Category: Command surface / item state / data language
 - Source: decision 264 (`docs/decisions/active.md`), which supersedes the `condition` / `favourited` /
@@ -202,6 +204,13 @@ line token and must be inserted without the console's token quoting.
    list/component it does carry.
 10. Member, switch open + grant: the same `/data` write and `/give` from the member's console; the answers
     print on the member's console and the host's `/data get` reads them.
+
+**Batch `20261018-q` judged all ten on the deployed `30dbb252`** (record
+`docs/evidence/acceptance/snbt-state-language-20261018-q.md`): rows 1-3 and 5-10 pass as written (row 5's
+"`500f -> 200f`" was read as this run's `300f -> 200f`, the same operation on the amount the first bottle
+carried), and row 4's captured-component half is exercised on the emergencylight's `CustomItemBehaviour` —
+no live definition carries a `BatteryItem` line — with the battery's named refusal read as the row's second
+half.
 
 ## Limits, recorded rather than hidden
 

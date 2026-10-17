@@ -57,10 +57,6 @@ Judge a visual row from the largest readable surface the scenario has (the nativ
 
 A window or panel family is planned as a one-client run; peer-dependent rows get their own batch with the setup they need, and stay `unproven` meanwhile — workflow §1, §3.
 
-## 2026-10-01 — Probe output must land in the batch directory
-
-Write every probe a record cites into the batch directory as its own file and cite the file beside the reading; numbers drift between reads, so the file — never the transcript — is the evidence — `workflow.md` §7.
-
 ## 2026-10-01 — A forced state must be written where the game derives it
 
 A forced-state probe writes the INPUT the game derives from (the limbs' pain, not `Body.averagePain`, which is recomputed every frame), and reads the state back in the same step with the body still — the `body-force` and `pain-force` recipes.
@@ -511,3 +507,7 @@ The accepted-first window row 5 needed lasts one frame at the generation-finishe
 ## 2026-10-17 — A green suite is not a start
 
 Every test fakes the give source, so 693/693 and 5697/5697 were green while the deployed build died in `Awake`; only the prelude composes the real adapter — `docs/acceptance/workflow.md` §2/§5.
+
+## 2026-10-18 — A member's console verb answers later; read the console history
+
+A member's `/give` returns no line and the host's answer lands at least a frame later, so the driver's `lastLine` right after the call is the PREVIOUS line: read `tools/acceptance/recipes/console-read.cs` after a bounded wait and judge the newest line — `docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md`.

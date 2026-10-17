@@ -1,10 +1,11 @@
 # The `/give` command: create one item in a player's inventory
 
-- Status: Todo — Rejected (batch `20261017-q`'s row 2: a liquid give throws in the prefab capture; the
-  final-pass review's findings and the user's 2026-10-17 destination ladder are the fix cycle's input). The
-  verb's unit and integration coverage still holds; the live rows at the end are owed to the re-run.
-  Split out of `todo/item-and-entity-data-commands.md`'s stage C, which this ticket completes; the umbrella
-  keeps stage D (`spawn`).
+- Status: Todo — batch `20261018-q` re-judged the re-derived SNBT rows on `0.1.0+30dbb252`: rows 1, 2 (the
+  liquid give, the row that rejected the previous build), 3, 6, 7, 8, 10 and 12 pass. The destination ladder's
+  rows 4, 5 and 11 are the remaining work, and row 9 was not re-run. The record is
+  `docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md`. Split out of
+  `todo/item-and-entity-data-commands.md`'s stage C, which this ticket completes; the umbrella keeps stage D
+  (`spawn`).
 - Priority: Medium-High
 - Category: Command surface / item and entity state / cheat verb
 - Source: stage C of `todo/item-and-entity-data-commands.md` (designed 2026-10-18 in that ticket) and the
@@ -55,10 +56,10 @@ syntax:
   top-level keys, the component type names of the item at hand, their fields, and the enumerated values — from
   the adapter's schema for the item or definition being edited, never from a hand-kept list in the console.
 - **The parser, the writer, the path resolver and the completion are their own ticket**
-  (`review/snbt-state-language.md`, landed by the implementing cycle); this ticket carries the give half: the
+  (`done/snbt-state-language.md`, landed by the implementing cycle); this ticket carries the give half: the
   item id, the attached state, the schema query it needs, the delivery and the answer.
 
-The acceptance rows below are re-derived in the SNBT form by `review/snbt-state-language.md` (row 2 becomes
+The acceptance rows below are re-derived in the SNBT form by `done/snbt-state-language.md` (row 2 becomes
 `/give @p waterbottle{Liquids:[{LiquidId:"water",Amount:500}]}`, and an unknown key or a state the definition
 does not carry is a named refusal).
 
@@ -130,7 +131,7 @@ no rung is skipped without being the answer's own sentence.
 | 1 | The creation port | `IItemGrantSource` (`Runtime/GameAdapter`), implemented by the adapter's `ItemGrantSource` as a STANDALONE adapter service (not a port on the `GameAdapter` singleton — the interaction service consumes it, and a port there is the constructor cycle *The startup cycle* below records); registered in `GameAdapterComposition` over the container's one `ItemIdAllocator`, and defaulted to `UnavailableItemGrantSource` in the base root |
 | 2 | The id space | `ItemGrantSource` calls `ItemIdAllocator.AllocateId()` — the same allocator `TraderRecruitCoordinator` uses for its stock gifts, so host-side ids stay in one counter |
 | 3 | The definition facts | `Item.GlobalItems` and `ItemPrefabResolver.Load` are read only in the adapter (the game-assembly boundary); a missing definition or prefab is a named refusal |
-| 4 | The state language | `SnbtParser`/`SnbtWriter` for the text, `IItemStateLanguage` for the schema and the adapter's `ItemStateDocument.TryBind` for the legality: one language, one refusal wording, one bind (decision 264; `review/snbt-state-language.md`) |
+| 4 | The state language | `SnbtParser`/`SnbtWriter` for the text, `IItemStateLanguage` for the schema and the adapter's `ItemStateDocument.TryBind` for the legality: one language, one refusal wording, one bind (decision 264; `done/snbt-state-language.md`) |
 | 5 | The delivery | `PlayerInventoryTakeService.DeliverCreatedItem` shares `PlayerCharacterAccess.CloneCharacter`, `ResolveDestinationSlot`, the ledger calls and `PublishTransfer` with `HandleTakeCore`; the receiver is the landed `PlayerInteractionApply.OnPlayerInventoryTransfer` |
 | 6 | The request/answer wire | `NetMsg.PlayerInventoryGiveRequest` 147 (guest → host) and `NetMsg.PlayerInventoryGiveResult` 148 (host → requester), both reliable direct frames — declared in sync-coverage row I11 and in both protocol reference blocks |
 | 7 | The front end | `CheatVerbGate` in `ItemGiveCommands`, before the target is resolved (the family's order) |
@@ -178,6 +179,15 @@ liquid give throws in the prefab capture — `ItemStateCodec.CaptureLiquids` rea
 template); the record is `docs/evidence/acceptance/give-item-to-a-player-command-20261017-q.md`. The ticket
 moved back to `todo/` with its status field carrying the rejection, and the fix cycle owns: the row-2 defect,
 the final-pass review's findings, and the user's 2026-10-17 destination ladder.
+
+**Batch `20261018-q` re-judged the re-derived SNBT rows on the deployed `30dbb252`** (record
+`docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md`): rows 1, 2, 3, 6, 7, 8, 10 and 12
+pass. Row 2's liquid give answers with `Liquids:[{LiquidId:"water",Amount:500f}]` and the member reads `500f`
+back, and the receiving client's own scene tree carries the three given items with their instance ids — the
+previous record's "no local-scene probe" limit is closed. The run also read the slot substitution (`slot 9`
+→ `slot 2`, named in the log before the give line) and a container's condition following its fill ratio
+(a state naming 400 ml on a 500 ml bottle answers `Condition:0.8f`, the adapter's own rule). Rows 4, 5 and 11
+are the ladder's and stay unproven until it lands; row 9 was not re-run.
 
 1. Host: `/give @p bandage` — the answer names a new instance id and slot; `/data get id <id>` on BOTH peers
    reads the same document, owned by the member.
@@ -335,7 +345,7 @@ game's own container and our write path, the honest answer is **read yes, write 
   true) is the game's own "fill it for me" flag, applied when the item is loaded/instantiated — and `/give`
   captures the PREFAB, which is not an instantiated item, so the capture legitimately has no stacks.
 
-**The design (the user's follow-ups, 2026-10-17 — implemented by `review/snbt-state-language.md`: the state language writes the stack list, so an empty container can be filled and a second liquid added).** A liquid
+**The design (the user's follow-ups, 2026-10-17 — implemented by `done/snbt-state-language.md`: the state language writes the stack list, so an empty container can be filled and a second liquid added).** A liquid
 write means "the amount of liquid X in this container": a liquid the item does not hold is APPENDED (an empty
 container can be filled, a second liquid can sit beside the first), 0 drops the stack, and the container's own
 capacity decides what fits — over capacity refused by name. `/give` and `/data set` share it.

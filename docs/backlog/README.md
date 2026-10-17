@@ -62,7 +62,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — the spawn stage; the read and write halves and give landed.
-- [The `/give` command](todo/give-item-to-a-player-command.md) — **Medium-High** — rejected by batch `20261017-q`; its fix cycle is next.
+- [The `/give` command](todo/give-item-to-a-player-command.md) — **Medium-High** — its SNBT rows pass on batch `20261018-q`; the destination ladder is next.
 - [Health on every client, reconciled to the host](todo/health-simulation-and-host-authority.md) — **Medium-High** — everyone simulates; the host wins at once.
 - [The member reports that still have no bound](todo/member-report-bounds.md) — **Medium-High** — the census rows with no anchor.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
@@ -77,7 +77,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [The item state language](review/snbt-state-language.md) — **High** — decision 264's SNBT parser, paths and completion.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
@@ -92,7 +91,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the strip fits; the rows left need setups.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
-- [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state, read from the kernel row.
+- [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state from the kernel row; rows 5b/6 await.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
 - [Guest frame rate lower than host](review/guest-frame-rate-lower-than-host.md) — **Medium** — telemetry and allocation removal; a frame-rate row is open.
 - [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.
@@ -188,6 +187,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [The item state language](done/snbt-state-language.md) — **High** — decision 264's SNBT parser, paths and completion; accepted by batch `20261018-q`.
 - [Mod content ceiling](done/mod-content-ceiling.md) — **High** — the platform inventory: every stage cut, Part 3.C parked.
 - [Source, permission and data checks](done/validation-and-source-checks.md) — **Medium-High** — accepted; every machine row read.
 - [The radiation line stops above the layer floor](done/radiation-line-floor-stop.md) — **Medium** — a host switch, default on.

@@ -3,9 +3,12 @@
 - Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
   `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
-  registration — 2026-10-18, so **stage B is complete**. **Stage C (`give`) landed 2026-10-17 and moved out** to
-  `todo/give-item-to-a-player-command.md`, together with `review/cheat-permission-and-op-commands.md`'s
-  permission half. **Only stage D (`spawn`) remains** in this ticket.
+  registration — 2026-10-18, so **stage B is complete**; batch `20261018-q` re-read its read/write rows under
+  the SNBT renderer on `0.1.0+30dbb252` (record
+  `docs/evidence/acceptance/item-and-entity-data-commands-20261018-q.md`). **Stage C (`give`) landed 2026-10-17
+  and moved out** to `todo/give-item-to-a-player-command.md`, together with
+  `review/cheat-permission-and-op-commands.md`'s permission half. **Only stage D (`spawn`) remains** in this
+  ticket.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
 - Source: the user's 2026-10-07 backlog request — a Minecraft-style command family for CUO: item-specific
@@ -62,7 +65,7 @@ carries, which component types and fields its capture has, whether it is a liqui
 of the values. So no game rule and no definition constant ever enters the Runtime or the wire shape.
 
 The parser, the writer, the path resolver and the console's SNBT-aware completion (keys, component types,
-fields, enumerated values, from the adapter's schema) are their own ticket (`review/snbt-state-language.md`);
+fields, enumerated values, from the adapter's schema) are their own ticket (`done/snbt-state-language.md`);
 the read and write halves' rows, and every existing `/data` acceptance row, are re-derived in this syntax
 there. `spawn` (stage D) inherits the same language for its own state argument.
 
@@ -154,7 +157,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
 
 > **Superseded syntax (decision 264).** The `condition` / `favourited` / `liquid` / `component` vocabulary
 > this section's design was written against is replaced by the item's state as SNBT
-> (`review/snbt-state-language.md`): the verbs, the target grammar and the permission story below stand; the
+> (`done/snbt-state-language.md`): the verbs, the target grammar and the permission story below stand; the
 > property words and the per-property parse do not.
 
 `ItemDataCommands` already carries the constants `MergeVerb` and `RemoveVerb` and answers both with "not implemented

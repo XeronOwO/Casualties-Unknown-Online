@@ -296,7 +296,7 @@ docs/backlog/review/heal-command-limb-and-hollow-restore.md | keep | index | doc
 docs/backlog/review/heal-restores-severed-limbs.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/id-carriers-can-disagree-about-placement.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/item-and-entity-data-commands.md | keep | index | docs/backlog/README.md
-docs/backlog/review/snbt-state-language.md | keep | index | docs/backlog/README.md
+docs/backlog/done/snbt-state-language.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-census-own-instance-id.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/health-simulation-and-host-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/done/validation-and-source-checks.md | keep | index | docs/backlog/README.md
@@ -1034,3 +1034,7 @@ docs/evidence/acceptance/20261017-q-scope.md | keep | claim | docs/evidence/acce
 docs/evidence/acceptance/cheat-permission-and-op-commands-20261017-q.md | keep | claim | docs/backlog/review/cheat-permission-and-op-commands.md
 docs/evidence/acceptance/give-item-to-a-player-command-20261017-q.md | keep | claim | docs/backlog/todo/give-item-to-a-player-command.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261017-q.md | keep | claim | docs/backlog/todo/item-and-entity-data-commands.md
+docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md | keep | claim | docs/backlog/todo/give-item-to-a-player-command.md
+docs/evidence/acceptance/item-and-entity-data-commands-20261018-q.md | keep | claim | docs/backlog/todo/item-and-entity-data-commands.md
+docs/evidence/acceptance/item-data-read-commands-20261018-q.md | keep | claim | docs/backlog/review/item-data-read-commands.md
+docs/evidence/acceptance/snbt-state-language-20261018-q.md | keep | claim | docs/backlog/done/snbt-state-language.md

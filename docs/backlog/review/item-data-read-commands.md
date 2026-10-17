@@ -1,6 +1,7 @@
 # The item data read verb: what CUO records about one item
 
-- Status: Review — code-complete 2026-10-14, waiting for the agent's acceptance batch (`docs/acceptance/`).
+- Status: Review — code-complete 2026-10-14; batch `20261018-q` judged rows 1-4 and 5a/5c on the deployed
+  `0.1.0+30dbb252`, leaving row 5b (two members besides the caller) and row 6 (an item applied to a limb).
 - Priority: Medium-High
 - Category: Command surface / item state
 - Source: Stage A of `todo/item-and-entity-data-commands.md` (the user's 2026-10-07 request for a
@@ -108,6 +109,15 @@ One two-client session, host and guest both in a world:
 | 4 | The guest runs `/data get id <the same id>` for an item the host registered | The same rows the host's own read printed — the replay kernel agrees with the authority |
 | 5 | `/data get id 999999`, `/data get slot <empty>`, `/data get @a slot 0` in a session with two members BESIDES the caller, `/data get @x`, `/data get 4101`, `/data set ...` | One explicit line each — "no item is recorded", "no item is carried by … in slot …", the count of bodies the ambiguous selector matched together with what to write instead, "no players match selector", the usage line, and the not-implemented answer for the write verb — with no silent no-op anywhere |
 | 6 | An item that IS recorded and then applied to a limb (a splint or tourniquet) | Listed by the body form as `limb N`, and read by its id as `applied to <owner>, limb N` |
+
+**Batch `20261018-q` judged rows 1, 2, 3, 4 and the 5a/5c halves on the deployed `30dbb252`, against the SNBT
+renderer** (record `docs/evidence/acceptance/item-data-read-commands-20261018-q.md`): both roles list their
+one carried item at world entry, an item's whole document and a single path print the same values on both
+peers, and the unknown-id, empty-slot, bad-selector and retired-verb answers are each one explicit line.
+Row 5b (the ambiguous selector, which needs two members besides the caller) and row 6 (an item applied to a
+limb) were not staged, so the ticket stays in `review/` on them. The row-2 wording above predates the landed
+host registration: the host's untouched supplies are listed at world entry now, and the record reads that
+behaviour.
 
 ## Limits, recorded rather than hidden
 

@@ -99,3 +99,34 @@ Three things the attempt established, each read rather than assumed:
 The row itself is still owed: cut a limb, read it severed, run the game's `heal`, read it back on the body and
 still standing. The other views (a second client reading this body), the save/reconnect survival and the
 limb-state event remain owed with it.
+## Read on the machine: the limb comes back (2026-10-18)
+
+One client on the deployed artifact (`.acceptance/20261018-j/run6.log`), the game's own `amputate` cutting
+`UpArmF`, then the game's own `heal`:
+
+```
+before   [3] 右上臂 dismembered=False active=True muscle=100 … (15 limbs, standing=True shock=0)
+amputate [3] 右上臂 dismembered=True  active=False muscle=0
+         [4] 右前臂 dismembered=True  active=False muscle=0
+         [5] 右手   dismembered=True  active=False muscle=0
+         standing=False shock=99.9
+heal     [3..5] dismembered=False active=True muscle=100   ← all three, standing=False shock=59
+```
+
+**ok: the limb is back on the body** — and it is a three-limb chain, so the restore is exercised on every limb the
+cut took, not only the one that was named.
+
+**The body is left ragdolled, and that is the game's own behaviour rather than this change's.** The native
+`heal` writes limb and body fields and nothing else: it does not clear `shock`, which the cut left at 99.9 and
+which the heal brings only to 59, and `Body.Stand()` refuses below `shock < 10`. So the player gets up when the
+shock falls, through the game's own path. Forcing `Stand(true)` here would be a behaviour change nobody asked
+for — and the reference implementation's own saved-`standing` gap is exactly that mistake. Recorded as an
+observation, not a defect of this change; if the user wants a heal to also pick the patient up, that is a
+different request and a separate ticket.
+
+The batch's own "is the body standing" line printed `missing` because it still read the value through a string
+helper after the answer became a parsed object. That line is the fixture's, not the product's; the real readings
+are the `standing=` values above.
+
+Still owed: the other views (a second client reading this body), the save/reconnect survival, and the
+limb-state event the earlier review asked for.

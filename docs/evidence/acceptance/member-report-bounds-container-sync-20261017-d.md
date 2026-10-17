@@ -46,6 +46,11 @@ so a container report is no longer the creation claim.
 
 Judged from this run's own readings against the deployed artifact named above.
 
+The commit that carries this record is `44525454`, and it is rebuilt and redeployed as
+`0.1.0+44525454d1fc4eccdaee3c4f92037cae0ae4c948` (`tools/verify-deploy.ps1`, exit 0) — a tools-and-docs delta above
+the artifact the run drove, named here rather than left implicit: the DLL's own source is unchanged between the two
+commits, and the run's verdicts belong to `e054d332`.
+
 This is an acceptance run, not a development cycle: it does not reset and does not fill
 `docs/evidence/delivery-checklist.md` (workflow §1), whose boxes belong to the `e054d332` development commit it is
 reading. The only tracked source-adjacent change this run commits is the scenario recipe above, under

@@ -28,5 +28,9 @@ container sync alike). S1b landed the same day: the console item-data write has 
 the host's `HostRules.AllowMemberItemDataWrite` (off) is the seam's verdict on it, and a refusal settles
 the value the writer had already applied back onto the session's record.
 
-What is still deferred, and lives in the ticket's own stages: the drop-table check (S2) and the state
-preconditions (S3).
+What is still deferred, and lives in the ticket's own stages: S2 landed 2026-10-16 (a break report's drops
+are bounded by the destroyed block's own table, and a building-death report's by the dying buildings' own
+tables), and S3a landed 2026-10-17 (a report can no longer create an item the host never judged once that
+member's carried-set statement has been judged). What remains open is S3's other clause — "in a state that
+permits that use" — which needs a per-family data anchor the host can read; the ticket's S3 paragraph says
+why the item's own numeric state is not one.

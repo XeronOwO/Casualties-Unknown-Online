@@ -253,6 +253,7 @@ public sealed class ItemArbitration(
 			if (owned.ContainsKey(item.InstanceId))
 			{
 				known++;
+				AdoptCarriedContents(guest, item);
 				continue; // already registered — the host's entry is the arbitrated record
 			}
 
@@ -264,6 +265,7 @@ public sealed class ItemArbitration(
 
 			owned[item.InstanceId] = new WorldItem(item.InstanceId, item, default, default, 0, 0f, false);
 			registered++;
+			AdoptCarriedContents(guest, item);
 		}
 
 		if (registered > 0)
@@ -313,6 +315,74 @@ public sealed class ItemArbitration(
 			current.Value.Location.Kind == ItemLocationKind.Carried ? $" of {current.Value.Location.Owner.Value}" : string.Empty);
 		return false;
 	}
+
+	/// <summary>
+	/// The statement's CONTENTS: a carried container's children are rows of their own
+	/// (the kernel embeds no contents — each contained item is its own state), so a
+	/// registered container has to bring them or this host holds the bag and not what
+	/// is in it. The capture is recursive by construction
+	/// (<c>ItemStateCodec.CaptureItem</c>), the ids are the member's own, and the
+	/// report is absolute — but this half stays REGISTRATION-ONLY like the root: only
+	/// a child this host does not know is created (inside that parent, owned by the
+	/// registering member), an id it already holds is left exactly as it is. An item
+	/// created here is one this host has now JUDGED, which is what a later use report
+	/// on it depends on (the creation-before-operation invariant, and the bound that
+	/// stops a report creating what the statement never carried).
+	/// </summary>
+	private void AdoptCarriedContents(ulong guest, CharacterItemMsg parent)
+	{
+		if (parent.Contents.Count == 0)
+		{
+			return;
+		}
+
+		// The parent has to be a row this member owns — the statement speaks for what THIS
+		// member carries. Without this line a registration could hang a new item off
+		// somebody else's row by naming that row as the parent: `DecideSpawn`'s contained
+		// arm only checks that the parent exists and is not terminal, and this path calls
+		// the kernel directly (the admission seam is not on it). The check is the receiver's
+		// own record, never the report's claim.
+		if (!OwnsRow(guest, parent.InstanceId))
+		{
+			_log.LogWarning("Carried registration for {Guest} named contents of item {ParentId}, which this kernel does not record as that member's own — the contents are not adopted.",
+				guest, parent.InstanceId);
+			return;
+		}
+
+		var adopted = 0;
+		foreach (var child in parent.Contents)
+		{
+			if (child.InstanceId != 0 && _kernelAuthority.FindItem(child.InstanceId) is null)
+			{
+				if (_kernelAuthority.TrySpawn(
+					guest,
+					new ItemIdentity(child.InstanceId, child.ItemId),
+					ItemLocation.Contained(new ActorId(guest), parent.InstanceId),
+					child,
+					out _,
+					out var rejection))
+				{
+					adopted++;
+				}
+				else
+				{
+					_log.LogWarning("Carried registration of content item {ItemId} inside {ParentId} for {Guest} was refused by the kernel: {Reason}.",
+						child.InstanceId, parent.InstanceId, guest, rejection?.Reason);
+				}
+			}
+
+			AdoptCarriedContents(guest, child);
+		}
+
+		if (adopted > 0)
+		{
+			_log.LogInformation("Registered {Count} content item(s) inside carried container {ParentId} of {Guest}.", adopted, parent.InstanceId, guest);
+		}
+	}
+
+	/// <summary>Whether the kernel records this id as the member's own (carried, contained or installed). A world row has no owner and fails.</summary>
+	private bool OwnsRow(ulong guest, ulong itemId) =>
+		_kernelAuthority.FindItem(itemId) is { } row && row.Location.Owner.Value == guest;
 
 	// ===== Host-only surface =====
 

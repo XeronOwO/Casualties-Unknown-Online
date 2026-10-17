@@ -27,4 +27,13 @@ public enum RejectionReason
 	/// receipt.
 	/// </summary>
 	HostRuleDenied,
+
+	/// <summary>
+	/// The report names an item that the sender's own carried-set statement did not
+	/// claim, and this host has already judged that statement — so the report is not
+	/// the item's creation claim and nothing about it can be committed. It is
+	/// answered by name: the sender settles it by RE-STATING the set (the absolute
+	/// report), which is how an item it really carries reaches this host.
+	/// </summary>
+	UnclaimedItem,
 }

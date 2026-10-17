@@ -53,8 +53,8 @@ would need and MUST point at an existing ticket under `docs/backlog/`, so a gap 
 | `WireCommandKind.ItemPickup` | Fact | `bound: the seam's member-identity rule` | The seam binds the actor to the sender and the domain checks existence, terminal state, an installed item and the revision (which the handler re-stamps from the host's record), and the destination is now tied to the sender as well: the admission seam compares `NewOwner` with the transport sender before the item rules, because that comparison needs no fact the host has to look up. A report naming another member is IGNORED, unanswered — the reporter's own copy is not the fact a refusal would settle. The cost is the reconciliation budget rather than silence: the pickup kind is re-reported (`GuestCommandReconciliation`, `IntervalMs = 5_000`, `MaxReports = 12`), so one forged report reads as up to thirteen host audit lines over about a minute, while the three enemy kinds are single-shot. |
 | `WireCommandKind.ItemDrop` | Fact | `bound: the host's own record of the item's location` | The domain refuses a drop of an item the record does not put in the dropping actor's hands, plus the target-location and container rules. |
 | `WireCommandKind.ItemDestroy` | Fact | `bound: the seam's eligibility rule` | A destroy report may name world-rooted content or the sender's own carried, installed or contained item, never another member's. |
-| `WireCommandKind.ItemUpdateState` | Fact | `bound: the seam's eligibility rule` | Same rule for a state report; the domain then checks existence, terminal state and the revision, which the handler re-stamps from the host's record. |
-| `WireCommandKind.ItemContainerSync` | Fact | `bound: the seam's eligibility rule, parent and children` | The parent must be reportable by the sender and every listed child must be allowed to enter the sender's own container. |
+| `WireCommandKind.ItemUpdateState` | Fact | `bound: the seam's eligibility rule + the carried-set creation claim` | Same rule for a state report; the domain then checks existence, terminal state and the revision, which the handler re-stamps from the host's record. The CREATION half is bounded too: a report naming an id this host never judged is materialized as the reporter's own carried item only while the host has not judged that member's carried-set statement (`NetMsg.CarriedInventory`, the absolute report re-sent on its own cadence). Once it has, the report is refused by name and ANSWERED, and the member settles by re-stating the set — a use report is not the creation claim for what a member carries. A creation this host already refused answers first with its own tombstone reason, so no report can resurrect it. |
+| `WireCommandKind.ItemContainerSync` | Fact | `bound: the seam's eligibility rule, parent and children` | The parent must be reportable by the sender and every listed child must be allowed to enter the sender's own container. The CREATION half is not bounded here: a parent this host never judged is materialized as the reporter's own carried item and an unknown listed child as its contents, and the carried-set anchor that bounds the state report's creation would fit them (a carried container is a root item of that statement) — filed in `todo/member-report-bounds.md`. |
 | `WireCommandKind.ItemApplyLimb` | Fact | `bound: MayInstallOnOwnLimb` | The item must be the sender's own, and the limb the report names must be the one the record already holds. |
 | `WireCommandKind.ItemRemoveLimb` | Fact | `bound: MayTakeOffOwnLimb` | Both the applied owner and the destination owner must be the sender, and the limb must match the record. |
 | `WireCommandKind.ItemDataWrite` | Fact | `bound: the host's own rule for the verb + the eligibility rule` | `IMemberCommandRules.AllowsItemDataWrite` (default off) is read per submission and the refusal is answered; an id the host never judged is refused rather than healed. |
@@ -105,7 +105,7 @@ would need and MUST point at an existing ticket under `docs/backlog/`, so a gap 
 | `NetMsg.MedicalOperationTargetCheckAnswer` | Fact | `bound: a live parked request, the asked target, and a three-second liveness bound` | The host does not re-derive the target's body verdict, and it re-checks its own facts after the answer arrives. |
 | `NetMsg.RemoteInventoryIntentRequest` | Request | `bound: the host rule flag + both in-world + the ownership fact + the per-kind operand validation + a first-writer arbiter` | Line of sight is judged on the requester's client. |
 | `NetMsg.ItemIdWatermark` | Request | `bound: the host's own id table` | The member reports the counter it allocated up to; the host answers with the grant its own table allows, so a restarted counter cannot collide with ids the host still holds. |
-| `NetMsg.CarriedInventory` | Fact | `bound: the transport sender keys the registration` | The entries are the member's own inventory by design; the host registers them in that sender's transfer table. |
+| `NetMsg.CarriedInventory` | Fact | `bound: the transport sender keys the registration` | The entries are the member's own inventory by design; the host registers them in that sender's transfer table AND materializes the rows it does not hold — the root as that member's carried item, a container's reported contents as rows contained in it (`ItemArbitration.AdoptCarriedContents`, which only adopts contents of a row the kernel already records as that member's own). This report is also the creation CLAIM the state report is bounded by (the `ItemUpdateState` row): once judged, an item it did not carry cannot be materialized by a report. Its window's opening step states an EMPTY set too, so "no statement" is never a session-long state; a captured set that is empty only because ids could not be stamped yet is the residual (one refused report, settled by the next report). The re-stated set itself does not consult the refused-creation tombstones (`ItemArbitration.RegisterCarried`), which is the `ItemSpawn` creation class — filed in `todo/member-report-bounds.md`. |
 | `NetMsg.HandshakeAckAck` | Request | `bound: the host's own handshake state` | The host marks a member handshaken on this alone, and nothing in the payload can change that. |
 | `NetMsg.KernelEnvelope` | Fact | `bound: per kind — see the WireCommandKind rows` | The envelope is only a carrier: every command kind it can hold is judged by its own row above (and refused by name when its authority is host-only). |
 | `NetMsg.SceneState` | Fact | `bound: the transport sender names the reporter (host-side)` | On the HOST an inbound frame is the member's own report and must name itself; the old fallback (`msg.SteamId != 0 ? msg.SteamId : sender`) took the payload's word for whose state this is, so one report could enter another member and earn it the whole entry fanout. Direction-scoped: on a guest the host's relay legitimately names the third member. NAMED as left open: a forged frame addressed straight at a GUEST still moves that guest's own presence row and fires its remote-scene edge — local presentation, no durable record and no host write. |
@@ -115,7 +115,7 @@ would need and MUST point at an existing ticket under `docs/backlog/`, so a gap 
 | `NetMsg.ModMessage` | Fact | `n/a: the mod's own payload contract` | The framework routes the frame to the local mod with the carried id and drops an unknown one; the payload's meaning is a third-party contract the host cannot bound. |
 | `NetMsg.TraderSwing` | Presentation | `n/a: presentation only` | A one-shot animation replayed on the trader at the reported position; nothing durable. |
 
-## Four worked examples
+## Five worked examples
 
 - **S1a — a report may not name another member's own item.** One rule (`MayReportOn`) covers a destroy
   report, a state report and a container sync's parent and children, instead of one check per kind
@@ -135,6 +135,17 @@ would need and MUST point at an existing ticket under `docs/backlog/`, so a gap 
   host only, since the host's relay legitimately names a third member). Every census row that said
   unbounded: about an identity now names the sender instead; no magnitude, distance or rate moved with
   them.
+- **S3a (the validation ticket's state-precondition stage) — a report may not CREATE what the member's own
+  statement did not carry.** The host materializes a
+  member's item from a state report only while it has not judged any carried-set statement from that
+  member, where the report is the only claim the item has (a swallowed registration). After that the
+  statement is the creation claim for that member's carried items — a root item AND, recursively, its
+  container contents (`ItemStateCodec.CaptureItem` is recursive, so the statement carries them) — so an
+  unjudged id is refused by name, answered, and settled by re-stating the set; and a creation the host
+  already refused keeps its own tombstone answer ahead of it. The anchor is a fact the receiver holds (it
+  judged the statement), never the reporter's word, and nothing about reach, timing or magnitude is
+  involved (`KernelProtocolCommandHandler`, `ICarriedRegistrationFacts`, `ItemArbitration`). The container
+  SYNC's report is a second creation channel and is not covered by this anchor (see the limit below).
 
 ## How the rule reaches a new surface
 
@@ -161,6 +172,11 @@ The review asks it too (`docs/development/review-prompt.md`), and the guard list
 - **The reach is the handlers and the authority table.** A member-authored message that no handler declares
   and no wire kind wraps (a payload only the relay path reads) is outside the gate's derivation and has to
   be added by hand; the `CharacterData` row above is the shape to copy.
+- **The creation bound covers a state report. The container SYNC is a second channel and is not covered.**
+  A container sync's MISSING parent is materialized as the reporter's own carried item — a root item, the
+  same claim the statement makes, so the statement's anchor is the one it would need — and its listed
+  unknown children are created as contents under the parent the report itself names. Neither path consults
+  `ICarriedRegistrationFacts` yet. The ticket names the remaining gap.
 - **Frequency and rate are not part of most bounds.** Only `ModCommandRequest` and `PlayerPushRequest` carry
   a rate cap today; the rest bound content, not repetition.
 

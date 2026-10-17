@@ -54,5 +54,9 @@ internal static class KernelReplicationComposition
 		services.AddSingleton<IKernelSessionFacts>(p => p.GetRequiredService<SessionService>());
 		services.AddSingleton<IKernelFrameSender>(p => p.GetRequiredService<PacketSender>());
 		services.AddSingleton<IKernelItemDataNormalizer, KernelItemDataNormalizer>();
+		// The carried-record fact the command handler reads: which members have stated
+		// their carried set. The id coordination is what receives that report, so it
+		// holds the record; this line only names the capability.
+		services.AddSingleton<ICarriedRegistrationFacts>(p => p.GetRequiredService<ItemIdCoordinator>());
 	}
 }

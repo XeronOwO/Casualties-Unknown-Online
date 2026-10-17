@@ -126,4 +126,34 @@ public class CarriedInventoryReportScheduleTests
 
 		Assert.False(schedule.IsDue(600_000));
 	}
+
+	[Fact]
+	public void RequestNow_MakesTheNextReportDue_MidWindow_WithoutRefillingTheDenseBudget()
+	{
+		var schedule = new CarriedInventoryReportSchedule();
+		schedule.Arm(0);
+		schedule.MarkReported(0); // the window's opening report
+		schedule.MarkReported(CarriedInventoryReportSchedule.BurstIntervalMs);
+
+		Assert.False(schedule.IsDue(CarriedInventoryReportSchedule.BurstIntervalMs));
+
+		// The settlement of a refused report is one immediate re-statement, not a new
+		// window: the dense budget keeps whatever it had left (a refusal that repeats
+		// must not turn itself into a report every burst step forever).
+		var remaining = schedule.BurstRemaining;
+		schedule.RequestNow(CarriedInventoryReportSchedule.BurstIntervalMs);
+
+		Assert.True(schedule.IsDue(CarriedInventoryReportSchedule.BurstIntervalMs));
+		Assert.Equal(remaining, schedule.BurstRemaining);
+	}
+
+	[Fact]
+	public void RequestNow_OnAClosedWindow_OpensOne()
+	{
+		var schedule = new CarriedInventoryReportSchedule();
+
+		schedule.RequestNow(5_000);
+
+		Assert.True(schedule.IsDue(5_000), "nothing else would report at all in that state");
+	}
 }

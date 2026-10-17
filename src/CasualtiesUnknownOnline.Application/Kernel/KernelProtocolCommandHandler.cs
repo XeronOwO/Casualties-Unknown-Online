@@ -33,6 +33,7 @@ internal sealed class KernelProtocolCommandHandler(
 	RefusedItemCreations refusedCreations,
 	KernelCommandGateway gateway,
 	IKernelItemDataNormalizer itemDataNormalizer,
+	ICarriedRegistrationFacts carriedRegistrations,
 	ILogger log)
 {
 	private readonly IKernelSessionFacts _session = session;
@@ -43,6 +44,7 @@ internal sealed class KernelProtocolCommandHandler(
 	private readonly RefusedItemCreations _refusedCreations = refusedCreations;
 	private readonly KernelCommandGateway _gateway = gateway;
 	private readonly IKernelItemDataNormalizer _itemDataNormalizer = itemDataNormalizer;
+	private readonly ICarriedRegistrationFacts _carriedRegistrations = carriedRegistrations;
 	private readonly ILogger _log = log;
 
 	public void Handle(ulong sender, CommandEnvelope envelope)
@@ -75,11 +77,39 @@ internal sealed class KernelProtocolCommandHandler(
 		// carries no such proof, and this pre-release trust model is exactly what
 		// done/carried-inventory-registration-re-report.md and
 		// future/strict-validation-anti-cheat.md own.
-		if (envelope.Command.Kind == WireCommandKind.ItemUpdateState
+		//
+		// It is bounded by the one fact that makes it an exception rather than a hole:
+		// the member's carried-set statement (NetMsg.CarriedInventory) is the creation
+		// claim for what that member carries — a root item and, recursively, its
+		// container contents — and this host records whether it has judged one. Until it
+		// has, this heal IS the claim (the swallowed-registration window the fix exists
+		// for). After it has, a report naming an item the statement did not carry is not
+		// a creation this host may honour: it would let any report materialize any item
+		// at all, so the report is refused by name and ANSWERED, and the member settles
+		// by re-stating the set — the absolute report that is already re-sent on its own
+		// cadence, which the refusal makes due at once.
+		var updateForAnUnjudgedId = envelope.Command.Kind == WireCommandKind.ItemUpdateState
 			&& envelope.Command.Data is not null
-			&& _items.FindItem(envelope.Command.Identity.InstanceId) is null)
+			&& _items.FindItem(envelope.Command.Identity.InstanceId) is null;
+		if (updateForAnUnjudgedId)
 		{
-			HandleMissingCarriedUpdate(sender, envelope);
+			// A refused CREATION answers first on both paths: the member's own report
+			// must never resurrect one, and that answer is the precise reason the
+			// client rolls its local copy back (the drop-rollback family).
+			if (TryRefuseRefusedCreation(sender, envelope))
+			{
+				return;
+			}
+
+			if (!_carriedRegistrations.HasJudgedCarriedSet(sender))
+			{
+				HandleMissingCarriedUpdate(sender, envelope);
+				return;
+			}
+
+			_log.LogWarning("Kernel command from {Sender} refused: item {ItemId} was never judged, and that member's carried-set statement already was — a use report is not the creation claim for what a member carries, so the member re-states the set instead.",
+				sender, envelope.Command.Identity.InstanceId);
+			SendCommandRejected(sender, envelope.Command, RejectionReason.UnclaimedItem);
 			return;
 		}
 
@@ -158,9 +188,9 @@ internal sealed class KernelProtocolCommandHandler(
 	}
 
 	/// <summary>
-	/// The bare tombstone check used by the container-sync path, whose unknown-id
-	/// handling stays with the kernel: a refused creation is answered with its
-	/// precise reason, an id this host never saw keeps its existing verdict.
+	/// The bare tombstone check used by the container-sync path and by the state report's
+	/// unjudged-id path: a refused creation is answered with its precise reason and an id
+	/// this host never saw keeps its existing verdict.
 	/// </summary>
 	private bool TryRefuseRefusedCreation(ulong sender, CommandEnvelope envelope)
 	{
@@ -174,8 +204,8 @@ internal sealed class KernelProtocolCommandHandler(
 			return false;
 		}
 
-		_log.LogWarning("Container sync from {Sender} refused: the creation of item {ItemId} was refused ({Reason}) — answering the precise reason immediately.",
-			sender, envelope.Command.Identity.InstanceId, refusal);
+		_log.LogWarning("Kernel {Kind} from {Sender} refused: the creation of item {ItemId} was refused ({Reason}) — answering the precise reason immediately.",
+			envelope.Command.Kind, sender, envelope.Command.Identity.InstanceId, refusal);
 		SendCommandRejected(sender, envelope.Command, refusal);
 		return true;
 	}

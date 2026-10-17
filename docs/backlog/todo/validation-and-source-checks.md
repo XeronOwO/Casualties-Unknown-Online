@@ -9,8 +9,12 @@
   building drop refused by name where the host has no dying building, nothing registered or relayed and the
   breaker answered; and then a census of the population, the host's capture of a real `requireGround`
   building's own table, the breaker's real roll accepted against it, and one forged report whose two drops
-  were split per drop — the table-accountable one relayed, the other refused by name). S3 (the state
-  preconditions) is the open stage, and the surfaces this ticket does NOT close are the census rows of
+  were split per drop — the table-accountable one relayed, the other refused by name). S3a landed 2026-10-17 —
+  the clause "an item use must name an item the host records": a member's state report can no longer create
+  an item this host never judged once that member's carried-set statement has been judged — and S3's second
+  clause, "in a state that permits that use", is the open half (it needs a per-family data anchor, and the
+  paragraph in S3 names why the item's own numeric state is not one). The surfaces this ticket does NOT
+  close are the census rows of
   `docs/architecture/member-report-validation.md` marked `unbounded:` — they carry their own evidence in
   `todo/member-report-bounds.md`, opened by the same cycle at the user's direction that report validation
   become a general development standard.
@@ -248,6 +252,132 @@
    disagree (`ItemArbitration`) — "wrong but equal-shaped" heals, "not allowed at all" passes. Turning the
    correction into a refusal needs the missing half named: what the client does locally when the host says
    "that did not happen".
+
+   **S3a — landed 2026-10-17, and it is the clause "an item use must name an item the host records".** The
+   console write's way back landed with S1b, which is what unblocked this half: a refused report now has a
+   named settlement, so the clause could become a refusal instead of a correction. What it closes is the
+   item-CREATION channel a member's state report opened. The host's carried-item heal
+   (`KernelProtocolCommandHandler.HandleMissingCarriedUpdate`, the documented exception to
+   creation-before-operation: an `ItemUpdateState` report for an id this host never judged is spawned as the
+   reporter's own carried item, from the report) had no bound at all, and it is reachable with ONE frame: a
+   member could conjure any item definition with any state, because the report's identity IS the creation it
+   materializes. The bound is the fact that makes the heal an exception rather than a hole — the member's own
+   carried-set statement (`NetMsg.CarriedInventory`, absolute and re-sent on its cadence: 12 reports at 5 s
+   then one a minute, decision 187, and now also stating an EMPTY set on the window's first step so the fact
+   is never left unset by silence). Until this host has judged one, the heal stays exactly as it was (that is
+   the swallowed-registration window it exists for). Once it has, an unjudged id under a state report is
+   refused BY NAME (`RejectionReason.UnclaimedItem`, its own reason, so the answer says which refusal this
+   is) and ANSWERED, and the member settles by re-stating its carried set — which is what its own side does on
+   that answer (`ItemService.OnCommandRejected` makes the next report due AT ONCE without restarting the dense
+   window, and never destroys the local copy: this client's copy is the only one there is, so the pickup
+   rollback would delete the item the refusal asks to have reported). A creation the host already REFUSED
+   answers first, with its own tombstone reason, on both paths — a report can no longer resurrect a refused
+   creation by making the heal materialize it. The refusal names the sender, the item and the fact in one Warn
+   line.
+   **The statement is now the creation claim for what it carries, contents included.** The capture is
+   recursive (`ItemStateCodec.CaptureItem`), and the host used to drop the contents: it created the container
+   and not the items in it, so a use of a nested item would have been refused with no statement that could
+   ever fix it. `ItemArbitration.AdoptCarriedContents` now materializes an unknown child inside that parent
+   (registration-only exactly like the root: an id the host already holds is left alone), and it adopts the
+   contents of a row the kernel already records as THAT member's own — without that ownership test a
+   registration could name somebody else's item as a container and have a new item created inside it, since
+   the kernel's contained-spawn arm only checks that the parent exists and is not terminal.
+
+   Evidence: six new cases in `CreationBeforeOperationTests` (`AUseReportForAnUnjudgedItem_AfterTheCarriedSetWasStated_IsRefusedAndNothingIsMaterialized`,
+   `..._BeforeTheCarriedSetWasStated_IsStillMaterialized`, `ARefusedUseReport_ReStatesTheCarriedSet_AndTheItemLandsWithTheUsedState`,
+   `AUseReportForARefusedCreation_StillAnswersItsOwnReason_WithAndWithoutAStatement`,
+   `ACarriedContainersContents_AreRegisteredWithTheStatement_SoTheirUseIsNotRefused`,
+   `ACarriedStatement_MayNotCreateContentsInsideAnotherMembersItem`), two in
+   `CarriedInventoryReportScheduleTests` (`RequestNow_MakesTheNextReportDue_MidWindow_WithoutRefillingTheDenseBudget`,
+   `RequestNow_OnAClosedWindow_OpensOne`) and one in `CarriedInventoryRegistrationTests`
+   (`TheWindowsOpeningStep_StatesAnEmptySet_SoTheHostJudgesIt`). FIVE of the nine were observed RED: two in
+   the first run against the previous handler (0 refusals, item materialized as the reporter's carried fact),
+   and three by mutation control in the finished tree — the tombstone case (the tombstone branch removed →
+   red), the nested-contents case (contents adoption neutered → red) and the empty-statement case (the empty
+   send disabled → red) — plus the ownership case (the ownership test widened to accept any row → red, the
+   item created inside the other member's container). The refusal is the answered shape with its own reason
+   (`RejectionReason.UnclaimedItem`) and the judged kind (`RefusedKind`), the item is not in the host's
+   kernel afterwards, and the settlement case closes the loop in one round trip: after the refusal the
+   registration is due at once, and the re-stated set lands the item on the host WITH the state the use
+   produced (0.5f, a value the first statement did not carry). The port is `ICarriedRegistrationFacts`,
+   answered by `ItemIdCoordinator` (it receives that report), and the record is session state it clears on
+   the session edge.
+
+   Self-check for S3a (mechanism × change × evidence):
+
+   | Mechanism | Change | Evidence |
+   |---|---|---|
+   | The heal's creation channel (`KernelProtocolCommandHandler`'s `updateForAnUnjudgedId` branch) | conditional on the host's own record of the member's carried-set statement; the refusal is answered with its own reason | `AUseReportForAnUnjudgedItem_AfterTheCarriedSetWasStated_IsRefusedAndNothingIsMaterialized` (RED in the first run: 0 refusals, item materialized) and `..._BeforeTheCarriedSetWasStated_IsStillMaterialized` (the window unchanged) |
+   | The tombstone's order (`TryRefuseRefusedCreation`) | answers first on BOTH halves of the state-report path, and its log names the kind it judged | `AUseReportForARefusedCreation_StillAnswersItsOwnReason_WithAndWithoutAStatement` — RED with the tombstone branch removed; the without-a-statement half is the one a heal-first order breaks |
+   | The carried-set fact (`ICarriedRegistrationFacts` ← `ItemIdCoordinator`) | recorded when the statement is judged, cleared on the session edge; the window's opening step states an empty set | `TheWindowsOpeningStep_StatesAnEmptySet_SoTheHostJudgesIt` — RED with the empty send disabled; lifetime is `ResetSessionState` |
+   | The statement's contents (`ItemArbitration.AdoptCarriedContents` + `OwnsRow`) | an unknown child of a row the member owns becomes a contained row; contents of a row the member does not own are not adopted | `ACarriedContainersContents_AreRegisteredWithTheStatement_SoTheirUseIsNotRefused` — RED with the adoption neutered; `ACarriedStatement_MayNotCreateContentsInsideAnotherMembersItem` — RED with the ownership test widened |
+   | The settlement (`ItemService.OnCommandRejected` → `RequestCarriedInventoryReport` → `CarriedInventoryReportSchedule.RequestNow`) | one re-statement is due at once, on the existing cadence; never the pickup/block-drop rollback | `ARefusedUseReport_ReStatesTheCarriedSet_AndTheItemLandsWithTheUsedState`; `RequestNow_..._WithoutRefillingTheDenseBudget` / `RequestNow_OnAClosedWindow_OpensOne` |
+   | What did NOT change | the pre-statement window still heals; the console write's settlement is untouched; no wire shape changed (`UnclaimedItem` is an appended reason value) | `..._BeforeTheCarriedSetWasStated_IsStillMaterialized`; `CommandConsoleMemberItemDataTests` green; the diff carries no `Protocol/` file |
+
+   **What S3a does NOT close — the second clause, "in a state that permits that use".** A use report still
+   states the item's post-use state and the host takes it as the fact: condition, liquids and components are
+   the holder's own claim by design, and the digest comparison that used to correct them is now dead code
+   kept alive by its own tests (`ItemArbitration.CheckEvidence` has no production caller). Turning THAT into
+   a refusal needs a data anchor per use family — the game's own item data (a use's precondition is
+   `ItemStats.usable`, `Body.cs:2449-2456` and `:2475-2481`, and a family's own requirements such as a
+   limb), which the host would have to read through an adapter port and check per family. No anchor exists
+   for the item's own numeric state: `Item.condition` starts at 1f but is decremented without a clamp
+   (`Item.cs:7174`, the many `item.condition -= …` use actions), `SetCondition` sets an arbitrary value and
+   at least one path raises it (`Body.cs:1281`), so "condition may only fall" and "condition is 0..1" are
+   both FALSE for at least one arm — a check built on either would refuse ordinary play. **Limits S3a
+   carries**: (a) the container SYNC's heals are the same creation shape and are NOT bounded by this fact —
+   a missing parent is materialized as the reporter's own carried item, a listed unknown child as a
+   contained row under the parent THE REPORT names (`ItemDomainModule.DecideSyncContainer`), and those rows
+   are the same claim the statement makes, so the statement's anchor is exactly what that path needs; it is
+   filed in `todo/member-report-bounds.md`; (b) the bound rests on a statement the member VOLUNTEERS: a
+   client that never states a carried set keeps the pre-change behaviour, which is the `ItemSpawn` census
+   row's unbounded creation class (one state report == one spawn report at that point), filed in
+   `todo/member-report-bounds.md` — this stage narrows the reporting shape, it does not turn the item's
+   creation into a checked fact; (c) the re-stated set is itself a creation channel: `ItemArbitration`
+   does not consult the refused-creation tombstones there, so the settlement of a refused report can
+   re-create an id whose creation was refused — the same `ItemSpawn` class, and the reason the tombstone
+   answers first on the REPORT path is that the SETTLEMENT is what re-states; (d) an empty statement is a
+   statement, so a capture that is empty only because ids could not be stamped yet (an item still
+   generating, a remote kill that zeroed an id) tells the host the member carries nothing, and that
+   member's first use of the item costs ONE refused report — settled by the immediate re-statement, whose
+   capture now holds the id, so no state is lost and no divergence survives it; a body that cannot be read
+   at all is NOT this case (the reporter leaves the step unspent); and (e) a root the kernel REFUSES (an id
+   it records elsewhere, a terminal one) never reaches the contents half, so an item nested inside it is
+   never judged and every report about it is refused — the same nested-item shape, reached only through a
+   registration the host disagreed with, not through ordinary play.
+
+   **The independent review's findings and where each went** (`docs/development/review-prompt.md`, FULL tier,
+   fresh context, frozen tree, two rounds). ROUND ONE. BLOCKER: the bilingual pair gate failed because
+   `docs/standard/alignment.txt` had not been re-recorded for the two `internals/permissions-and-security.md`
+   edits — re-recorded, both hashes and the pair gate green. MAJOR 1: "the bound is opt-in — a member that
+   never states a set keeps the old hole open for the whole session", because `SendCarriedInventory`
+   returned before the send on an empty capture and the ticket claimed the residual was "only the window
+   before its first report" — the empty statement on the window's opening step now sets the fact, and the
+   residual is stated as limit (b) instead of the false claim. MAJOR 2: "the stated way back cannot settle
+   the reports the capture cannot state (nested container contents)", and the census page's reason was wrong
+   ("a carried-set statement does not carry contents" — it does; the host dropped them) —
+   `AdoptCarriedContents` now materializes them, the census wording is corrected, and the nested case has
+   its own test. MAJOR 3: the census page claimed the report materialized an item "in exactly one window",
+   contradicted by the same page's container-sync limit — reworded to the report family it covers, with the
+   container sync named as the uncovered channel. MINOR: the client keyed on `(ItemUpdateState,
+   UnknownAggregate)`, a pair two other answers also produce — `RejectionReason.UnclaimedItem` is its own
+   reason now; the tests pinned frame counts rather than the verdict — they read the reason and the
+   `RefusedKind` now; a stale rationale in `GuestCommandReconciliation` still described the heal as
+   unconditional — corrected; and a settlement that re-armed the dense window on every refusal turned a
+   repeated refusal into a report every burst step — `RequestNow` makes one report due without refilling the
+   budget while the window is open. ROUND TWO (the delta): MAJOR — `AdoptCarriedContents` did not check that
+   the parent row was the registering member's own, so a registration could create an item inside ANOTHER
+   member's container (fixed with `OwnsRow` against the kernel record, and the case has its own RED-by-
+   mutation test); the census's `CarriedInventory` row still described a registration that creates no rows
+   (rewritten); and "an unmodified client never meets this refusal" was falsifiable through an empty capture
+   whose body cannot be enumerated — the reporter now leaves the step unspent when there is no body, and the
+   unavoidable residual (ids not stamped yet) is limit (d). Its minors are fixed too: the tombstone's log
+   line names the KIND it answered instead of saying "container sync" on the state-report path; the
+   statement's ownership rule is documented where it is enforced; the RED count in the evidence paragraph
+   names its cases and now matches the tree; the inert-capture warning no longer repeats after an empty
+   opening step; and the ticket's "exactly one window" wording is gone. The nit left open: the record's
+   run-boundary behaviour is written down where it is held (a new run does not clear it; the statement is
+   re-judged on the generation edge).
 
 ## Limits S2a carries
 

@@ -62,6 +62,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		IKernelPendingCommands pendingCommands,
 		KernelCommandGateway gateway,
 		IKernelItemDataNormalizer itemDataNormalizer,
+		ICarriedRegistrationFacts carriedRegistrations,
 		ILogger<KernelProtocolService> log)
 	{
 		_session = session;
@@ -73,7 +74,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_log = log;
 		_stateStreams = new KernelStateStreamService(session, sender, checkpointSource, payloadType => CreateHeader(payloadType, 0));
 		_checkpointReceiver = new GuestCheckpointReceiver(batches, log);
-		_commandHandler = new KernelProtocolCommandHandler(session, sender, items, execution, checkpointSource, refusedCreations, gateway, itemDataNormalizer, log);
+		_commandHandler = new KernelProtocolCommandHandler(session, sender, items, execution, checkpointSource, refusedCreations, gateway, itemDataNormalizer, carriedRegistrations, log);
 		_batches.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetSessionState;
 	}

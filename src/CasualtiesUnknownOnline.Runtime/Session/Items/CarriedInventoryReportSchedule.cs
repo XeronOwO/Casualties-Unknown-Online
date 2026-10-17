@@ -99,6 +99,25 @@ public sealed class CarriedInventoryReportSchedule
 		_nextDueMs = nowMs + (_burstRemaining > 0 ? BurstIntervalMs : SteadyIntervalMs);
 	}
 
+	/// <summary>
+	/// Make the next report due at this reading WITHOUT refilling the dense budget: one
+	/// re-statement is what a settlement asks for, and re-arming would make a refusal
+	/// that keeps repeating a report every burst step for as long as the player keeps
+	/// acting. A window that is not open is opened (nothing else would report at all in
+	/// that state), so the "no dense restart" half holds for the ordinary case and the
+	/// closed-window case is the price of never leaving the report unsent.
+	/// </summary>
+	public void RequestNow(long nowMs)
+	{
+		if (!_armed)
+		{
+			Arm(nowMs);
+			return;
+		}
+
+		_nextDueMs = nowMs;
+	}
+
 	/// <summary>Close the window (the session ended): nothing is due until the next edge opens one.</summary>
 	public void Reset()
 	{

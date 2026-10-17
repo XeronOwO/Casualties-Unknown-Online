@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -281,9 +282,10 @@ public class CarriedInventoryRegistrationTests
 	[Fact]
 	public void AnEmptyCaptureBeforeAnyRegistration_IsNotWarned()
 	{
-		// A guest that has never registered a set (nothing to state yet — e.g. still loading, or
-		// dead with no body) spends its steps quietly. The warning is for an empty capture AFTER a
-		// non-empty one, which is the inert-capture shape.
+		// A guest that has never registered a set (nothing to state yet) must not be
+		// warned: the warning is for an empty capture AFTER a non-empty one, which is the
+		// inert-capture shape. The window's OPENING step still states the empty set (that
+		// statement is what the host judges), it just does not warn.
 		var recorder = new RecordingLoggerFactory();
 		using var w = ItemSimWorld.Create(s => s.AddSingleton<ILoggerFactory>(recorder));
 		var items = w.G1.Services.GetRequiredService<IItemControl>();
@@ -294,6 +296,27 @@ public class CarriedInventoryRegistrationTests
 
 		var named = recorder.Entries.Where(entry => entry.Level == LogLevel.Warning && entry.Message.Contains("captured nothing")).ToList();
 		Assert.True(named.Count == 0, $"a capture that never had anything to state must not warn, got {named.Count}");
+	}
+
+	[Fact]
+	public void TheWindowsOpeningStep_StatesAnEmptySet_SoTheHostJudgesIt()
+	{
+		// An empty set is a STATEMENT, not silence: the host judges "has this member
+		// stated what it carries" from the report, and a window-opening report that is
+		// never sent would leave that question open for the whole session — the window
+		// in which a report may still materialize an item the member never claimed.
+		using var w = ItemSimWorld.Create();
+		var items = w.G1.Services.GetRequiredService<IItemControl>();
+		var facts = w.Host.Services.GetRequiredService<ICarriedRegistrationFacts>();
+
+		Assert.False(facts.HasJudgedCarriedSet(w.G1.SteamId));
+
+		items.ArmCarriedInventoryRegistration("the local generation finished");
+		items.SendCarriedInventory([]);
+		w.Driver.Tick(33);
+
+		Assert.True(facts.HasJudgedCarriedSet(w.G1.SteamId), "the opening step's empty statement reaches the host");
+		Assert.True(w.RegistrationDue(w.G1) == false, "and it spent its step of the window like any other report");
 	}
 
 	/// <summary>

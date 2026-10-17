@@ -491,6 +491,21 @@ described above:
   the block-break carrier; this is its sibling). The anchor question is the same one S2b answered for the
   break: what identifies the entities that died in the blast, when the association on the reporter's side is
   a radius and not an identity.
+- **`WireCommandKind.ItemContainerSync`'s creations — the sibling S3a left** (2026-10-17). S3a bounded the
+  STATE report's creation channel by the member's carried-set statement, and the same claim travels two more
+  ways: a container sync whose parent this host never judged is materialized as the reporter's own carried
+  item (`ItemDomainModule.DecideSyncContainer`'s missing-parent arm), and each listed child it does not know
+  is created as a contained row under the parent THAT REPORT names — `child.ParentItemId`, which need not be
+  the sync's own parent id. The anchor is already in hand — the statement's own record
+  (`ICarriedRegistrationFacts.HasJudgedCarriedSet`) — because a carried container is a root item of that
+  statement; what is NOT free is the child half: the statement carries contents recursively now
+  (`ItemArbitration.AdoptCarriedContents`, which also refuses to adopt contents of a row the kernel does not
+  record as that member's own), so a child the statement did not carry is the same anomaly its parent is, but
+  a container that changed hands can carry children the statement could legitimately never have named. The
+  work is therefore to decide, per arm, whether an unknown parent/child is refused by name once the statement
+  was judged, and what the reporter's way back is for a container the statement cannot carry. It belongs
+  with the rest of this file's creation rows rather than with S3a, which is why it is filed here instead of
+  landed with it.
 
 ## Acceptance each row owes
 

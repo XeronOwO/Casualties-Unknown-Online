@@ -521,10 +521,13 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	/// their facts converge through the absolute fallbacks the audit matrix records for
 	/// rows I7/I4 (the 1 Hz character snapshot, the 5 s world-item keyframe) — and
 	/// <c>ItemUpdateState</c> must stay out for a second reason, because its own host
-	/// heal adopts an unknown carried id as the reporter's own
-	/// (<c>KernelProtocolCommandHandler.HandleMissingCarriedUpdate</c>), so queueing it
-	/// would evict the item's creation report exactly the way the single-slot window
-	/// this class replaced used to. <c>ItemTransfer</c> needs no entry either — the kind
+	/// heal adopts an unknown carried id as the reporter's own while the host has not
+	/// judged that member's carried-set statement (<c>KernelProtocolCommandHandler</c>),
+	/// so queueing it would evict the item's creation report exactly the way the
+	/// single-slot window this class replaced used to. Once the statement HAS been
+	/// judged the heal refuses instead, and that refusal is settled by the statement
+	/// itself (`ItemService.OnCommandRejected` makes its next report due at once), not
+	/// by this window. <c>ItemTransfer</c> needs no entry either — the kind
 	/// has no sender-side emission in this tree (the validator, the wire mapper and the
 	/// host's guard name it, no guest path sends it), so there is no report of it to
 	/// re-send.

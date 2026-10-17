@@ -178,6 +178,18 @@ internal sealed class ItemSimWorld : IDisposable
 	internal void Use(TestNode guest, ulong itemId, CharacterItemMsg item) =>
 		guest.Services.GetRequiredService<IItemControl>().SendItemUse(itemId, item);
 
+	/// <summary>The guest's absolute carried-set statement (<c>NetMsg.CarriedInventory</c>) — the one creation claim the host judges for what that member carries.</summary>
+	internal void CarriedSet(TestNode guest, params CharacterItemMsg[] items) =>
+		guest.Services.GetRequiredService<IItemControl>().SendCarriedInventory(items);
+
+	/// <summary>Whether the guest's carried-registration window wants a report now — the way back a refused use report arms.</summary>
+	internal bool RegistrationDue(TestNode guest) =>
+		guest.Services.GetRequiredService<IItemControl>().IsCarriedInventoryRegistrationDue();
+
+	/// <summary>The host's kernel row for an id, or null when the host never judged it.</summary>
+	internal ItemState? KernelRow(ulong itemId) =>
+		Host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(itemId);
+
 	internal void Slot(TestNode guest, ulong itemId, int slotIndex, CharacterItemMsg item) =>
 		guest.Services.GetRequiredService<IItemControl>().SendItemSlot(itemId, slotIndex, item);
 
@@ -243,6 +255,12 @@ internal sealed class ItemSimWorld : IDisposable
 	/// </summary>
 	internal int CommandRejectedFrames(TestNode node) =>
 		Received(node).Count(r => r.Msg == NetMsg.KernelEnvelope && IsCommandRejected(r.Frame));
+
+	/// <summary>The verdicts those frames carry — the reason the host answered with, and the kind of report it judged.</summary>
+	internal List<WireCommand> CommandRejections(TestNode node) =>
+		[.. Received(node)
+			.Where(r => r.Msg == NetMsg.KernelEnvelope && IsCommandRejected(r.Frame))
+			.Select(r => NetPacket.DecodePayload<ProtocolFrame>(r.Frame).Command!.Command)];
 
 	private static bool IsCommandRejected(byte[] frame)
 	{

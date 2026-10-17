@@ -546,6 +546,20 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			return;
 		}
 
+		if (kind == WireCommandKind.ItemUpdateState && reason == RejectionReason.UnclaimedItem)
+		{
+			// A use report for an item the host never judged — refused because the
+			// member's carried-set statement, which IS the creation claim for what it
+			// carries, had already been judged without it. The way back is that same
+			// statement, not the pickup rollback below: the local copy is the only copy
+			// there is, so destroying it would delete the item the refusal asks to have
+			// reported. Re-state the carried set now; its next report carries this
+			// item with the state the use already produced, and the two sides agree.
+			_log.LogInformation("Kernel command for item {ItemId} rejected ({Reason}) — the host has never judged it; re-stating the carried set.", itemId, reason);
+			_idCoordinator.RequestCarriedInventoryReport("the host refused a use report for an item it has never judged");
+			return;
+		}
+
 		var mappedReason = reason switch
 		{
 			RejectionReason.BlockAlreadyBroken => ItemRejectMsg.Reason.BlockAlreadyBroken,

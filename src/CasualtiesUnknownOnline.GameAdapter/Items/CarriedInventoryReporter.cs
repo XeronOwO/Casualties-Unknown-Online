@@ -67,6 +67,16 @@ internal sealed class CarriedInventoryReporter(
 
 		if (_items.IsCarriedInventoryRegistrationDue())
 		{
+			// No body is NOT an empty carried set: a statement made from a body that cannot
+			// be read yet would tell the host "this member carries nothing", and the host
+			// treats that as the statement it judges (a report for an item the statement did
+			// not carry is then refused). The step is left unspent instead, so the next frame
+			// tries again — the window is still open.
+			if (PlayerCamera.main?.body == null) // Unity object — ==
+			{
+				return;
+			}
+
 			_items.SendCarriedInventory(CaptureItems());
 		}
 	}

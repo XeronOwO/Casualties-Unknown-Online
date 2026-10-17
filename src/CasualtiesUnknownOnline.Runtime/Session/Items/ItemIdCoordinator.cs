@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Time;
@@ -38,7 +39,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// </para>
 /// Split out of ItemService when the 600-line gate demanded it.
 /// </summary>
-public sealed class ItemIdCoordinator : IDisposable, ISessionReset
+public sealed class ItemIdCoordinator : IDisposable, ISessionReset, ICarriedRegistrationFacts
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -54,6 +55,20 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 
 	/// <summary>Whether the inert-capture warning was already written for the current window.</summary>
 	private bool _emptyCaptureWarned;
+
+	/// <summary>
+	/// Host side: the members whose carried-set statement this host has judged. It is
+	/// the record behind <see cref="HasJudgedCarriedSet"/> — before a member appears
+	/// here its items have no creation claim on this host, which is the swallowed-
+	/// registration window; after it, that member's statement IS the claim for what it
+	/// carries. Session-scoped: a new session's members state their sets again. A new
+	/// RUN inside the session does not clear it (the transfer table's own clear is the
+	/// run coordinator's, which knows nothing of this record); the member's statement is
+	/// re-judged on the run's generation edge, and a report that arrives before it is
+	/// refused and settled by that re-statement — one round trip, and no divergence,
+	/// because the refused item is stated by the very report the refusal asks for.
+	/// </summary>
+	private readonly HashSet<ulong> _judgedCarriedSets = [];
 
 	/// <summary>Host side: each ID SPACE's counter high-water mark (guest → host reports), keyed by
 	/// <see cref="ItemInstanceIds.SpaceOf"/> — the value the ids themselves carry, never the full SteamId:
@@ -232,6 +247,7 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 		_carriedRegistration.Reset();
 		_registeredItems = 0;
 		_emptyCaptureWarned = false;
+		_judgedCarriedSets.Clear();
 	}
 
 	/// <summary>
@@ -267,13 +283,22 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 				_log.LogDebug("[CarriedInventory] nothing to register on this step of the window.");
 			}
 
-			return;
+			if (!opened)
+			{
+				return;
+			}
+
+			// The window's FIRST step is a statement even when it is empty, and it has
+			// to go out: the host judges "has this member stated what it carries" from
+			// the report itself, and an empty set that is never stated leaves that
+			// question open for the whole session — the window in which a report may
+			// still materialize an item the member never claimed. (A body that cannot be
+			// read is NOT this case: the reporter leaves the step unspent, so an empty
+			// statement always means "enumerated, and it carried nothing".)
+			_log.LogInformation("[CarriedInventory] opened the window with an EMPTY carried set — stating it, because the statement is what the host judges (and re-reporting every {Interval} ms while the window is open).",
+				CarriedInventoryReportSchedule.BurstIntervalMs);
 		}
-
-		_registeredItems = Math.Max(_registeredItems, items.Count);
-		_emptyCaptureWarned = false;
-
-		if (opened)
+		else if (opened)
 		{
 			_log.LogInformation("[CarriedInventory] reported {Count} carried item(s) with self-assigned ids — re-reporting every {Interval} ms while the window is open.",
 				items.Count, CarriedInventoryReportSchedule.BurstIntervalMs);
@@ -282,6 +307,15 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 		{
 			_log.LogDebug("[CarriedInventory] re-reported {Count} carried item(s) with self-assigned ids ({Remaining} dense report(s) left in this window).",
 				items.Count, _carriedRegistration.BurstRemaining);
+		}
+
+		_registeredItems = Math.Max(_registeredItems, items.Count);
+		if (items.Count > 0)
+		{
+			// Only a statement that STATES something clears the inert-capture warning: an
+			// empty opening statement would otherwise clear it and the next empty step
+			// would name the same failure again, once per step.
+			_emptyCaptureWarned = false;
 		}
 
 		_sender.Send(_session.HostSteamId, NetMsg.CarriedInventory, new CarriedInventoryMsg { Items = [.. items] });
@@ -300,11 +334,30 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 		_log.LogDebug("[CarriedInventory] registration window opened: {Reason}.", reason);
 	}
 
+	/// <summary>
+	/// Guest only: the next capture is due NOW, on the cadence the window already has.
+	/// It is the settlement of a refused report (the host refused it because its own
+	/// statement never carried the item), so the re-statement has to be immediate
+	/// rather than up to a minute away — and it must not refill the dense budget, which
+	/// would make a report that keeps being refused a stream of its own. A window that
+	/// is not open is opened: nothing would report at all in that state.
+	/// </summary>
+	public void RequestCarriedInventoryReport(string reason)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_carriedRegistration.RequestNow(_time.NowMs);
+		_log.LogDebug("[CarriedInventory] the next carried-set report is due now: {Reason}.", reason);
+	}
+
 	/// <summary>Guest only: whether the registration cadence wants a report now — the Game Adapter captures the current carried set and calls <see cref="SendCarriedInventory"/> when it does. Always false on the host and outside an active session.</summary>
 	public bool IsCarriedInventoryRegistrationDue() =>
 		_session.Role == SessionRole.Guest && _session.SessionActive && _carriedRegistration.IsDue(_time.NowMs);
 
-	/// <summary>Host only: a guest's carried inventory with self-assigned ids arrived — register it in the guest's transfer table (its use/slot reports then arbitrate normally) and surface the fact-table entries (the host's clone of the guest renders the supplies immediately, and the snapshot divergence check sees the entries as already-known instead of a phantom pickup).</summary>
+	/// <summary>Host only: a guest's carried inventory with self-assigned ids arrived — register it in the guest's transfer table (its use/slot reports then arbitrate normally) and surface the fact-table entries (the host's clone of the guest renders the supplies immediately, and the snapshot divergence check sees the entries as already-known instead of a phantom pickup). Judging the statement is itself a fact the replication surface reads: from here on, this member's items have a creation claim on this host (<see cref="HasJudgedCarriedSet"/>).</summary>
 	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
@@ -313,8 +366,12 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset
 		}
 
 		_arbitration.RegisterCarried(sender, items);
+		_judgedCarriedSets.Add(sender);
 		CarriedInventoryReceived?.Invoke(sender, items);
 	}
+
+	/// <inheritdoc />
+	public bool HasJudgedCarriedSet(ulong member) => _judgedCarriedSets.Contains(member);
 
 	/// <summary>Host side: a guest's self-assigned carried inventory arrived — the adapter merges it into the guest's fact table (clone render + snapshot divergence baseline).</summary>
 	public event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived;

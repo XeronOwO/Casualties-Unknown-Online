@@ -202,6 +202,29 @@ What that leaves for this row, all of it honest:
 - **The keypad code is not a bound at all**; it is a shared secret the design hands to every peer at spawn. If the
   project ever wants keypads to be a real barrier, that is a separate decision about who may hold the code, not a
   validation check on the open report.
+### Where the weapon identity actually is (2026-10-18) — and why the wire field is not mechanical
+
+`Body.Attack` computes building damage from an `AttackInfo` (`atk`), not from an item:
+
+    buildingEntity.health -= (buildingEntity.animal ? atk.damage : atk.structuralDamage) * num2 * (...);
+
+(`atk.unarmed`, `atk.structuralDamage`, `atk.distance`, `atk.swingSounds` are the same object.) The report site —
+`BodyPatches`' postfix — holds the `Body` (`__instance`) and the damaged entities, so it CAN name the held item through
+`Body.GetItem(slot)` / `Body.HoldingItem(slot)`, but the link between "the item held in this frame" and "the `atk` that
+computed this damage" is one frame apart and not a direct reference. That makes "carry the weapon identity" a real
+design step with a correctness question (what if the hand changes in that frame), not a mechanical field addition — and
+it is the reason the damage row has stayed open rather than half-built.
+
+Two candidate anchors, both DATA, to choose between when this row is built:
+
+- **The item identity on the report** and the host comparing it with the item it holds for that player plus that item's
+  own damage table — the shape this ticket has assumed. Needs the frame question above answered.
+- **The attack's own numbers**: the report carries the structural damage the client computed, and the host compares it
+  with the item's table itself. Same wire content, different comparison point; avoids the frame question but duplicates
+  the multiplier (`num2` includes the claw curve when unarmed), which is game logic the host should own, not re-derive.
+
+The open row for the OPEN report has the same shape one level simpler: the lockpick item is the gesture's tool and there
+is no damage arithmetic, so it is the one to land first.
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

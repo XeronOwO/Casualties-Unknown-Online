@@ -36,6 +36,18 @@
 	const System.Reflection.BindingFlags anyStatic = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
 	const System.Reflection.BindingFlags anyInstance = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
 
+	// The item's CUO instance id, read off its own component by NAME — the type is internal to the adapter, and
+	// this recipe only needs the number the release seam would refuse an id-less item for.
+	var itemIdOf = new System.Func<Item, ulong>((candidate) => {
+		var parts = candidate.GetComponents<UnityEngine.Component>();
+		for (var p = 0; p < parts.Length; p++) {
+			if (parts[p] == null || parts[p].GetType().Name != "ItemInstanceId") { continue; }
+			var idProperty = parts[p].GetType().GetProperty("Id");
+			if (idProperty != null) { return System.Convert.ToUInt64(idProperty.GetValue(parts[p])); }
+		}
+		return 0UL;
+	});
+
 	var bridgeType = findType("PatchBridge");
 	if (bridgeType == null) { return "{\"ok\":false,\"error\":\"no-PatchBridge-type\"}"; }
 
@@ -77,10 +89,14 @@
 		if (candidate == null) { continue; }
 		if (candidate.GetComponentInParent<Container>() != null) { continue; }
 		if (candidate.GetComponentInParent<InventorySlot>() == null) { continue; }
+		// An item with NO instance id is refused by the release seam itself ("it cannot be named to that player"),
+		// which would make every later reading describe that refusal instead of the one under test. A starting
+		// supply item can be id-less; an item the game handed out through a pickup is not.
+		if (itemIdOf(candidate) == 0UL) { continue; }
 		held = candidate;
 		break;
 	}
-	if (held == null) { return "{\"ok\":false,\"error\":\"no-item\",\"detail\":\"the local body carries no item outside a container\"}"; }
+	if (held == null) { return "{\"ok\":false,\"error\":\"no-item\",\"detail\":\"the local body carries no identified item outside a container\"}"; }
 
 	var report = impl.GetType().GetMethod("ReportLocalReleaseOntoProxy", anyInstance);
 	if (report == null) { return "{\"ok\":false,\"error\":\"no-ReportLocalReleaseOntoProxy\"}"; }

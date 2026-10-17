@@ -439,3 +439,24 @@ encodings are now visibly different in the ledger, which is the whole point.
 real drag and therefore a cursor. The seam's own inputs are pinned by the operands it now sends, and the host-side
 half is covered by the encoding check above.
 
+### Row 3, read on the machine (2026-10-18)
+
+The receiver left the world first, then the giver released its own item at it. Two things had to be right before
+this row could read anything, and the first attempt got the first one wrong:
+
+- **A release needs an item WITH an instance id.** The first attempt picked a starting-supply item, which has none,
+  and was refused at the giver's own seam — "it cannot be named to that player" — which is a correct refusal of a
+  different thing. The probe now prefers an item that carries an id, so a reading describes the case under test.
+- **Then the host refused, by name and observably**:
+  `[Warning] [RemoteIntent] refused GiveToBody: <giver>, <giver> or the destination body <receiver> is not in-world.`
+- **Nothing moved**: the giver's ledger still lists the item, and the receiver's client (out of world) never saw a
+  transfer.
+
+**So row 3 PASSES** on its "refused with one observable line, nothing moves on either side" half. What it does not
+cover — because the receiving client is not in a world at all — is the "the receiver's view closed mid-drag" variant
+of the same row, which needs the drag seam.
+
+**Rows now read: 1 (both destination shapes), 2, 3, 6.** Row 4's refusal shape is read in the container form (a
+target that is not a container → named fallback to a slot); its weight/tag form still needs an item the bag refuses.
+Row 5 is the local control and is the untouched native path.
+

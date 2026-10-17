@@ -245,3 +245,40 @@ which is the untouched native path.
 **One thing these readings add to the section above:** the two intra-slot placements show the transfer is already
 correct on BOTH sides at the ledger level, so the remaining gaps are about WHICH slot and WHOSE rules decide —
 not about whether the item moves.
+
+## The container half, surveyed: the wire and the receiver already carry it (2026-10-18)
+
+The first gap above ("the container half is not implemented") is smaller than it reads, and the survey says exactly
+where it lives:
+
+- **The wire already has the field.** `PlayerInventoryTransferMsg.TargetParentItemId` is documented as "the
+  authoritative destination container's instance id. 0 = place directly into an inventory slot", and
+  `CharacterItemMsg` carries `Contents` recursively, so "inside that container" is expressible without a new
+  message or a new member.
+- **The receiving client already does the native thing, and already refuses the native way.**
+  `PlayerInteractionApply.OnPlayerInventoryTransfer` branches on `msg.TargetParentItemId`: a same-owner move re-homes
+  the existing item through `TryMoveExistingItemToLocalContainer` and, when the native container refuses, leaves the
+  item where it is and logs
+  "same-owner container move refused by the native container: … stays in its current location; no destructive
+  rebuild was performed"; the cross-player branch calls `AddCarriedItemToLocalContainer(body, item,
+  msg.TargetParentItemId)`. So the receiver's own container rules are the judge on this path already.
+- **The host is the only side that refuses.** `PlayerRemoteInventoryIntentService`'s `GiveToBody` validation refuses a
+  container destination by name — "a container destination (item …) is not carried yet: only a body slot can be
+  named" — and `PlayerInventoryTakeService.HandleTakeCore` resolves a body slot unconditionally, so there is no
+  container destination to name in the first place.
+
+**So the change is one side's worth of work, not three**: validate a container destination against the receiver's own
+snapshot (the container must be one of ITS carried items), put the item into that container's `Contents` in the new
+snapshot instead of the top-level list, and set `TargetParentItemId` on the transfer message. The receiving client
+then loads it with its own `Container` rules and refuses it there if it does not fit — which is the user's ruling
+("the receiver's own container rules decide") rather than a new behaviour.
+
+**Two things to be careful about when it is implemented**, both learned the hard way in this family:
+
+- The kernel's container facts are DESTRUCTIVE for children the report does not name (`ChildrenTheReportDrops`
+  takes them to a terminal state that no later command may revive), so a container destination must not be reported
+  by sending the container's contents minus anything — the fact to report is the arrival, and the container's
+  contents must name every child it still holds.
+- The slot half's bookkeeping (`AdoptTransferredItem` / `CommitCarriedToHost`) records a carried item at a SLOT; a
+  container destination has to record the nesting instead, or the two sides' ledgers will disagree about where the
+  item is even though both show it exists.

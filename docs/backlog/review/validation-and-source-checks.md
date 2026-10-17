@@ -15,8 +15,15 @@
   an item this host never judged once that member's carried-set statement has been judged — and S3b landed the
   same day, the second clause "in a state that permits that use": the native use travels under its own wire
   kind and the host bounds it with the item's own data (`ItemInfo.usable`), answered and settled. That closes
-  the three stages as code and tests; the machine rows are the next acceptance batch's (the new row 7 below
-  included). The surfaces this ticket does NOT
+  the three stages as code and tests. Row 7 was READ on the machine on 2026-10-17 by batch `20261017-o`
+  (`docs/evidence/acceptance/validation-and-source-checks-s3b-20261017-o.md`): the host refuses a forged
+  native use of a `bandage` BY NAME, answers it, the member's already-applied `condition` is settled back to
+  the recorded one, the host's own row does not move, a control forged use of a `painkillers` (whose data
+  marks it usable) is ADMITTED, an ordinary native use still passes, and the whole session carries exactly
+  the two forged refusals. The ticket stays in `review/` for row 5 alone — its refusal half was read in batch
+  `20261017-c`, and its accepted half (the pre-statement window) was not staged and is named `unproven` in
+  the record. The same batch also read part of S2b's owed capture-loop row (the multi-building population
+  half; the already-marked half stays `unproven`, see that section). The surfaces this ticket does NOT
   close are the census rows of
   `docs/architecture/member-report-validation.md` marked `unbounded:` — they carry their own evidence in
   `todo/member-report-bounds.md`, opened by the same cycle at the user's direction that report validation
@@ -278,9 +285,19 @@
    and the whole behaviour suite green.
    **What is verified and what is not**: the published-cell semantics, the fold rule and the three glue
    sites are unit/ gate-covered, and the fold rule was mutation-red; the host's reordered capture is a
-   three-line change inside a loop over live Unity components, so no unit test can reach it — its machine
-   row is owed to the next acceptance batch along with the rest of this family, and it is named here
-   rather than implied. The cell's own precondition is a native one: `blockPlacedOn` is written by the
+   three-line change inside a loop over live Unity components, so no unit test can reach it. Batch
+   `20261017-o` read HALF of it on the machine and names the half it could not
+   (`docs/evidence/acceptance/validation-and-source-checks-s3b-20261017-o.md`): a scan of the live population
+   (`tools/acceptance/recipes/building-support-cells.cs`) found 40 cells carrying more than one
+   `requireGround` building — one with three, and both clients agreeing cell for cell — and breaking that
+   three-building cell's support from the member made the host capture `15 drop row(s) from 3 building(s) …
+   3 were still unmarked and were marked here` and then accept the breaker's own 10 building drops against
+   them. What stays `unproven` is the reordered half itself — an ALREADY-MARKED entity's table contributing
+   rows — because in this staging the air-write relay and the break report land in different host frames
+   (~100 ms apart), so by the second capture the entities are destroyed, and a marked building with health
+   left is a one-frame state in production (the mark is applied together with the health that kills it on
+   its next `Update`). Reading that half needs the lost-air-write verdict, where both captures happen inside
+   one call; it is named here rather than implied. The cell's own precondition is a native one: `blockPlacedOn` is written by the
    game's two worldgen placement sites and by nothing else, so a `requireGround` building a MOD materializes
    outside worldgen would publish the struct default `(0,0)` — the same value the real cell (0,0) has, and
    not distinguishable from it. No vanilla path was found that materializes a `requireGround` building
@@ -525,11 +542,26 @@
    over-claim of this ticket's own (a test that pins the STATE SENDER, not the gun chain's call).
 
    **What is verified and what is not.** The mechanisms and the three mutation controls above are unit and
-   integration evidence against the production composition root. The MACHINE row is owed to the next
-   acceptance batch, and it is the acceptance table's new row 7: the member client must send one use report
-   for an item its own data says is not usable (the acceptance recipes' forge shape, `member-identity-forge.cs`,
-   already sends a hand-built command this way for a pickup), and the host's refusal, its answer and the
-   sender's settled state must be read there. Nothing in this stage was read on the real machine.
+   integration evidence against the production composition root. **The machine row was read on 2026-10-17,
+   batch `20261017-o`** (`docs/evidence/acceptance/validation-and-source-checks-s3b-20261017-o.md`), and it
+   is the acceptance table's row 7: a member holding a `bandage` — created through the game's own grant inside
+   CUO's own inventory-internal scope, so the pickup report is suppressed by the product's call
+   classification, then landed on the host by the member's carried-set statement — wrote its own post-use
+   `condition` (0.4, read back in its own step) and sent ONE hand-built `ItemUse` command through
+   `IKernelProtocolControl.SendCommand` carrying it. The host refused it BY NAME on its own registry read
+   (`UseNotPermitted: item <id> is 'bandage', whose own data says no native use exists (ItemInfo.usable is
+   clear)`), answered it (`ItemUse refused (UseNotPermitted)` on the member), the member's object was settled
+   back to the recorded `condition 1` by the product's own write (`[ItemWrite]`, `[ItemState]`), and the
+   host's own row stayed at `condition 1`, `revision 1`, `Carried` under that member across both forged
+   reports. The two controls that make it a bound rather than a blanket refusal were read in the same
+   session: the SAME forged shape for a `painkillers` (whose own data marks it usable) was ADMITTED and
+   recorded (`condition 0.5`, `revision 2 → 3`), and an ordinary `Body.UseItem` of that item still reported
+   and landed (`[ItemUsed] … reported (use digest)`, both sides at `liquid 90`, `condition 0.9`,
+   `revision 2`). The whole session carried exactly the two forged `UseNotPermitted` refusals and zero
+   protocol-violation or command-rule refusals, so an ordinary client meets none. What the batch did NOT
+   read: the gun chain's call site stays uncovered for the reason this ticket already gives — and the run
+   adds the concrete one, that this build's item registry carries no gun at all (the 123 definition ids in
+   the reversed `Item.SetupItems`), so no carried gun can be staged on this map.
 
 ## Limits S2a carries
 
@@ -621,9 +653,18 @@ that says so and settles back, never a silent divergence — and the row asserts
 console and on the host's own kernel row. S2a adds a fourth, and the 2026-10-16 run read it: an unmodified
 client's break must keep every drop it rolled, so row 6 also reads that no bound refusal appears in an ordinary
 session, and when one does appear the bound's own line names the block, the table and the drops it refused.
-S3b adds row 7 — owed to the next batch, see its own section — and one more half to row 6: an unmodified
-client's native uses must all keep passing, because the item's own data admits them (a refused
+S3b adds row 7 — READ on 2026-10-17 by batch `20261017-o`, see its own section — and one more half to row 6:
+an unmodified client's native uses must all keep passing, because the item's own data admits them (a refused
 `UseNotPermitted` in an ordinary session is the finding, and its line names the item and the definition).
+That half is read too: an ordinary `Body.UseItem` of a `painkillers` reported through the use kind, the host
+refused nothing and both sides read the post-use state, while the session's only two `UseNotPermitted` lines
+are the two forged reports the batch sent.
+
+**Rows 1–6 after the 2026-10-17 batch.** Row 5 is the one the ticket still holds open, and it is the only
+remaining row: its refusal half (the creation-before-operation invariant) was read in batch `20261017-c`,
+and its accepted half — a report arriving before the creation it depends on, materialized instead of
+refused — was NOT staged, because the window it lives in is now spent by the member's carried-set statement
+at world entry. It is `unproven` in batch `20261017-o`'s record, not passed.
 
 **Read on the real machine 2026-10-14, batch `20261014-a`**
 (`docs/evidence/acceptance/validation-and-source-checks-20261014-a.md`): rows 3 and 4 pass in full — a

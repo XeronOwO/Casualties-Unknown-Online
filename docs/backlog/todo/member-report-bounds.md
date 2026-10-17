@@ -151,6 +151,20 @@ described above:
   accessor on the bridge for a recipe, or a console verb that reports a break. Until then the row is
   implemented-but-unverified and the ticket stays in `todo/`.
 
+  **READ ON THE MACHINE 2026-10-18 (`4b852aa3`, one live session) — the row PASSES.** The lever is a console verb,
+  `/blockreport <dx> <dy> <block> <playerBreak>`, which registers itself through the same attribute scan the other
+  command owners use (an unrequested singleton is never constructed, so the registry builds it explicitly). Driven
+  from the MEMBER client, two reports one after the other:
+
+  - `200 0 0 true` → the host answered with the new refusal:
+    `[BlockSync] <member>'s player break at (200,486) is further than 8 cells from its own body — refused: nothing
+    applied, nothing recorded, nothing relayed.`
+  - `1 0 0 true` → no refusal, and the write went through the ordinary path (the host reads its own cell, applies,
+    and relays).
+
+  So the bound does what the user decided: a hand that cannot reach the cell is refused with a line, a hand that can
+  keeps working, and quake/environment writes (`playerBreak=false`) never enter the branch at all.
+
   **The accessor cannot be a plain bridge member** — found by reading the interface's own contract before editing
   it: `IPatchBridge`'s doc states that a domain-specific member belongs on its OWN port ("declares a per-domain
   port instead — `IFluidPatchPort` is the first …") because the shape gate *"fails on a member added here or on

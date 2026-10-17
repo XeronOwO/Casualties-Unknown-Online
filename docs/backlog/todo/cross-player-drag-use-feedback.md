@@ -79,3 +79,37 @@
   operator is a presentation decision (an existing result/refusal message if one fits, otherwise named as a
   wire change in the implementation cycle).
 - Not new art or audio assets.
+## The cue's rule landed (2026-10-18), and the reading that shaped it
+
+`DragUseCue` and `DragUseCuePolicy` decide WHEN the gesture announces a target and WHOM it names: an item the
+family gate accepts, dragged over a player the same nearest-player resolution the release uses, shows a label
+carrying that player's steam id. Six cases pin it, including the two that keep the cue honest — an item the
+release would drop shows nothing (so the cue teaches what can be handed over rather than promising a target it
+will not use), and a row without an identity shows nothing (so the label cannot disagree with the release).
+
+**Three things the reading settled, so the wiring does not have to re-derive them:**
+
+- **The per-frame hook exists and is not the release patch.** `PlayerCamera.HandleReleaseDragging` runs only on
+  release, so the cue cannot live there; `PlayerCamera.HandleWhileDragging` runs every frame of a drag and is
+  already patched in this tree (`PlayerCameraHandleWhileDraggingPatch`, which owns the favourite-mark logic).
+  The cue belongs in its OWN patch class on the same method rather than inside that one, which is already
+  carrying a different concern.
+- **The label's NAME is not decided here.** The resolution the ticket asks for — the Online UI's own display
+  name with the `player-{steamId:X}` fallback — already exists on the presentation side
+  (`OnlineUiContext.DisplayName`), next to `RemoteBackpackView`'s and `RemoteMedicalView`'s copies of the same
+  fallback. So the cue carries the steam id and the overlay resolves the name; a name decided in the adapter
+  would be a fourth answer to that question.
+- **The target must be the release's own resolution.** `CrossPlayerDragUse` walks the remote players for the
+  nearest inside `OverlapRadius`; the cue has to read that same walk, not a second one, or the label and the
+  release can name different players — which is exactly the overlap case the ticket says the label exists for.
+
+## Limits this stage leaves
+
+- **Nothing is drawn yet.** The decision exists and is tested; the cross-layer wiring (a port the plugin reads
+  each frame, the patch that fills it, and the overlay that draws the label) is the next step, and the label
+  has no runtime reading until it lands.
+- **The sound is not implemented**, nor the refusal reaching the operator's screen (the ticket's items 3 and
+  4), nor the scope question of item 5 (whether the naming rule spreads to the medical drag and the give
+  gesture). All three have the ticket's own recommendations recorded; none is decided here.
+- **The acceptance rows are unrun.** Rows 1–7 need a session with a dragged item and two players, and row 5 in
+  particular (two players standing on each other) is the one the naming rule exists for.

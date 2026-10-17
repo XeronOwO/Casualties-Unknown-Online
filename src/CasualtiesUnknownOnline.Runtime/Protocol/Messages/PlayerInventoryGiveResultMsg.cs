@@ -9,10 +9,11 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// or a closed permission would look exactly like a typo that did nothing.
 ///
 /// <para>
-/// <see cref="Answer"/> is the host's own sentence, the same one it logs: two
-/// wordings for one verdict is how the two ends stop agreeing. The structured
-/// fields ride beside it for the log and the tests; the operator reads the
-/// sentence.
+/// <see cref="Answer"/> is the operator-facing sentence: it shares the host's
+/// REASON wording with the line the host logs, but it is not that line — the log
+/// carries the actor, the target and the `[Give]` prefix, while the answer carries
+/// the verdict and the reason only. Two voiceings for one reason would be how the
+/// two ends stop agreeing; two SENTENCES are not.
 /// </para>
 /// </summary>
 [ProtoContract]
@@ -38,7 +39,7 @@ public sealed class PlayerInventoryGiveResultMsg
 	[ProtoMember(5)]
 	public bool Applied { get; set; }
 
-	/// <summary>The host's answer line, exactly as its log carries it.</summary>
+	/// <summary>The sentence the member's console prints; the reason wording is the host's, the sentence is not the log line.</summary>
 	[ProtoMember(6)]
 	public string Answer { get; set; } = string.Empty;
 }

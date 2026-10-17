@@ -1,16 +1,21 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
 using static CasualtiesUnknownOnline.Tests.Session.CommandConsoleTestSession;
@@ -148,6 +153,59 @@ public class CommandConsoleMemberItemGiveTests
 
 		Assert.Contains("No item definition 'notanitem' is known", answer);
 		Assert.Empty(creation.Created);
+	}
+
+	/// <summary>
+	/// The sender-anchored rule the answer handler gained in the fix cycle: the wire
+	/// direction check proves only the LOCAL role, so a frame whose sender is not this
+	/// session's host is a CLAIM and is dropped by name. A third peer sends a forged
+	/// answer straight to the member; the member's console must not print it and the
+	/// handler must say why.
+	/// </summary>
+	[Fact]
+	public void AnAnswerFromANonHostSender_IsDropped()
+	{
+		const ulong ThirdId = 3001;
+		var log = new RecordingLogger<PlayerInventoryGiveResultHandler>();
+		var (host, guest, network) = TestNode.CreatePairWithNetwork(
+			HostId, GuestId, LobbyId,
+			guestRegistrations: services => services.Replace(
+				ServiceDescriptor.Singleton<ILogger<PlayerInventoryGiveResultHandler>>(log)));
+		using (host)
+		using (guest)
+		{
+			var console = guest.Services.GetRequiredService<ICommandControl>();
+			var linesBefore = console.Lines.Count;
+			var third = TestNode.Create(ThirdId, network,
+				new FakeSteamService(ThirdId) { LobbyOwner = HostId, LobbyMembers = [HostId, GuestId, ThirdId] },
+				host.Clock, pumpFirstFrame: true);
+			try
+			{
+				host.Steam.LobbyMembers = [HostId, GuestId, ThirdId];
+				third.Steam.FireLobbyEntered(LobbyId);
+				new SimulationDriver(host.Clock, network, host, third).TickUntil(
+					() => host.Session.Members.Any(member => member.SteamId == ThirdId && member.Handshaken),
+					maxMs: 5000);
+
+				third.Services.GetRequiredService<PacketSender>().Send(GuestId, NetMsg.PlayerInventoryGiveResult,
+					new PlayerInventoryGiveResultMsg
+					{
+						DefinitionId = "bandage",
+						ItemInstanceId = 1,
+						SlotIndex = 0,
+						Applied = true,
+						Answer = "Gave bandage (#1) to 1001 in slot 0.",
+					});
+				guest.Update();
+
+				Assert.Equal(linesBefore, console.Lines.Count);
+				Assert.Contains(log.Entries, entry => entry.Message.Contains("not this session's host", StringComparison.Ordinal));
+			}
+			finally
+			{
+				third.Dispose();
+			}
+		}
 	}
 
 	/// <summary>

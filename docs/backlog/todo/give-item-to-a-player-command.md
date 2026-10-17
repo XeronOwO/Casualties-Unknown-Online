@@ -247,6 +247,33 @@ The review's "could not check" list is the acceptance batch's rows (the live ses
 contents, and whether a co-member can address another guest directly at all) — the batch's own record carries
 them.
 
+## The defect fixes this ticket reopens for (2026-10-17, the rejected-row cycle)
+
+The acceptance batch's row 2 and the final-pass review's findings are fixed in one cycle before the ladder:
+
+1. **The row-2 defect: a liquid give threw.** `ItemStateCodec.CaptureLiquids` read `WaterContainerItem.stack`
+   and called `.Select` on it; a PREFAB template's list is null until the game's own load fills it, and
+   `/give` captures from the prefab, so every liquid-carrying definition threw
+   (`System.ArgumentNullException: Value cannot be null. Parameter name: source`, batch evidence
+   `d33-give-exception.log`). The capture now treats a null list as "no liquid yet", which is the honest
+   reading of an uninstantiated template; a bandage never hit it because it carries no
+   `WaterContainerItem` at all.
+2. **The `[Give]` tag (review #2a).** `DeliverCreatedItem` now passes `"[Give]"` to the slot resolver, so the
+   substitution line the give path writes is no longer logged under `[Take]`.
+3. **The answer docs (review #2b).** `PlayerInventoryGiveResultMsg` and `SendAnswer` now say what is true:
+   the answer shares the host's REASON wording, and it is not the log sentence (the log carries the actor and
+   the verb prefix).
+4. **The answer's sender anchor (review #3).** `PlayerInventoryGiveResultHandler` refuses a frame whose sender
+   is not this session's host, by name, before it reaches the console — and the family sweep added the same
+   check to `InventoryIntentRefusedHandler`, which carried the pre-existing gap. The red is pinned:
+   `CommandConsoleMemberItemGiveTests.AnAnswerFromANonHostSender_IsDropped` failed with the check
+   neutralised (the forged answer printed) and passes with it (`.acceptance/20261017-q/red-sender-check.log`
+   and `green-sender-check.log`).
+
+What this cycle does NOT do: the destination ladder. The ladder is the next unit — it changes the delivery
+path (rungs 2-4), the answer wording, the rows 4/5/11 and the slot resolver's contract, and it deserves its
+own cycle rather than half of this one.
+
 ## The destination ladder (the user's ruling, 2026-10-17)
 
 The user's direction, in its own words: "give 命令的设计,应当是优先玩家身上的空位,其次是身上有足够重量余量的

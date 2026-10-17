@@ -28,6 +28,15 @@ public sealed class InventoryIntentRefusedHandler(ILogger<InventoryIntentRefused
 			return;
 		}
 
+		if (sender != ctx.Session.HostSteamId)
+		{
+			// A host-to-guest frame whose sender is not this session's host is a CLAIM: the family's own
+			// sender-anchored rule (the announcement handlers follow it too).
+			log.LogWarning("[RemoteIntent] a refusal for {Kind} arrived from {Sender}, which is not this session's host — dropped.",
+				msg.Kind, sender);
+			return;
+		}
+
 		// Warning, not Information: this is the only place the player's own action was contradicted, and the level is
 		// what makes the refusal legible next to the positive capture line that preceded it.
 		log.LogWarning("[RemoteIntent] the host refused {Kind} on item {Item}: {Reason} — nothing on your side changed.",

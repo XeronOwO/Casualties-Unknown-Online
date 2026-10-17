@@ -217,9 +217,11 @@ internal sealed class PlayerItemGiveService(
 	}
 
 	/// <summary>
-	/// Send the answer to a member's request — the same sentence the host logged, so a
-	/// refusal reads identically on both ends. The APPLIED case is logged where the
-	/// item was created (this is only the transport).
+	/// Send the answer to a member's request. The answer shares the host log's REASON
+	/// wording — the same reason reads identically on both ends — but it is its own
+	/// sentence: the log line names the actor and carries the verb prefix, the answer
+	/// carries the verdict and the reason. The APPLIED case is logged where the item was
+	/// created (this is only the transport).
 	/// </summary>
 	private void SendAnswer(ulong requester, PlayerInventoryGiveRequestMsg request, GiveOutcome outcome)
 	{

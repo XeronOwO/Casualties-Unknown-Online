@@ -278,7 +278,7 @@ internal sealed class PlayerInventoryTakeService(
 			return $"No character snapshot for {to}, so /give cannot place an item on it.";
 		}
 
-		var targetSlot = ResolveDestinationSlot(target, to, requestedSlot);
+		var targetSlot = ResolveDestinationSlot(target, to, requestedSlot, "[Give]");
 		if (targetSlot < 0)
 		{
 			return $"{to} has no empty inventory slot.";

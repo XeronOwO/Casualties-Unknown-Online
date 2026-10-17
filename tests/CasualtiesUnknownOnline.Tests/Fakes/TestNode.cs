@@ -147,12 +147,33 @@ internal sealed class TestNode : IDisposable
 		string? modStateFile = null, string? hostBanFile = null,
 		NetMsg? swallowHostToGuest = null)
 	{
+		var (host, guest, _) = CreatePairWithNetwork(hostId, guestId, lobbyId,
+			extraRegistrations, modStateFile, hostBanFile, swallowHostToGuest);
+		return (host, guest);
+	}
+
+	/// <summary>The same pair, with the network exposed so a case can add a THIRD peer (the sender-anchored
+	/// handlers' forged-frame cases: a frame whose sender is not this session's host must be dropped).</summary>
+	internal static (TestNode Host, TestNode Guest, FakeNetwork Network) CreatePairWithNetwork(
+		ulong hostId, ulong guestId, ulong lobbyId,
+		Action<IServiceCollection>? extraRegistrations = null,
+		string? modStateFile = null, string? hostBanFile = null,
+		NetMsg? swallowHostToGuest = null,
+		Action<IServiceCollection>? guestRegistrations = null)
+	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
 		var hostSteam = new FakeSteamService(hostId) { LobbyOwner = hostId, LobbyMembers = [hostId] };
 		var guestSteam = new FakeSteamService(guestId) { LobbyOwner = hostId, LobbyMembers = [hostId, guestId] };
 		var host = Create(hostId, network, hostSteam, clock, pumpFirstFrame: true, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
-		var guest = Create(guestId, network, guestSteam, clock, pumpFirstFrame: true, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
+		Action<IServiceCollection>? guestComposition = extraRegistrations is null && guestRegistrations is null
+			? null
+			: services =>
+			{
+				extraRegistrations?.Invoke(services);
+				guestRegistrations?.Invoke(services);
+			};
+		var guest = Create(guestId, network, guestSteam, clock, pumpFirstFrame: true, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: guestComposition);
 		if (swallowHostToGuest is { } dropped)
 		{
 			// Armed BEFORE the guest joins the lobby: the handshake is driven by that edge,
@@ -164,7 +185,7 @@ internal sealed class TestNode : IDisposable
 		host.Steam.FireLobbyCreated(lobbyId);
 		host.Steam.LobbyMembers = [hostId, guestId]; // the guest joined the lobby
 		guest.Steam.FireLobbyEntered(lobbyId);
-		return (host, guest);
+		return (host, guest, network);
 	}
 
 	/// <summary>The session's per-frame pump — every ICuoService in registration

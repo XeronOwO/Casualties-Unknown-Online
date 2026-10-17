@@ -143,7 +143,10 @@ internal static class ItemStateCodec
 
 	/// <summary>The WaterContainerItem's liquid stacks — a public field
 	/// (WaterContainerItem.cs:347), read directly for the round-trip symmetry
-	/// with the restore (a game rename is a compile error, not a silent drop).</summary>
+	/// with the restore (a game rename is a compile error, not a silent drop).
+	/// A prefab TEMPLATE is not an instantiated item: its stack list is null until
+	/// the game's own load fills it, and `/give` captures definitions from their
+	/// prefabs, so a null list is "no liquid yet", not an error.</summary>
 	private static List<LiquidStackMsg> CaptureLiquids(Item item)
 	{
 		var water = item.GetComponent<WaterContainerItem>();
@@ -152,7 +155,8 @@ internal static class ItemStateCodec
 			return [];
 		}
 
-		return [.. water.stack.Select(s => new LiquidStackMsg
+		var stacks = water.stack ?? [];
+		return [.. stacks.Select(s => new LiquidStackMsg
 		{
 			LiquidId = s.liquidId,
 			Amount = s.amount,

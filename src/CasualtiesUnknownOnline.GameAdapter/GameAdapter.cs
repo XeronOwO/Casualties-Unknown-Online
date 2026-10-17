@@ -218,7 +218,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		_domains.TrapLayoutScanner.Update(); // host: report the generated trap layout on the same falling edge
 		_domains.TrapLayoutApplication.Update(); // guest: apply a deferred layout snapshot once the local generation finished
 		_domains.LayerModifierSync.Update(); // guest: apply the host's layer modifier once the local generation finished
-		_domains.CarriedInventoryReporter.Update(); // guest: report the carried inventory with self-assigned ids once the local generation finished
+		_domains.CarriedInventoryReporter.Update(); // both sides: register/report the carried inventory with instance ids once the local generation finished
 		_domains.ItemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
 		_domains.EntityEventSync.FlushPendingDrops(); // a destructive trap's building-death drops fold into the same event after the hold window
 		_domains.BlockBreakSync.FlushPendingBlockBreak(); // a break's drops fold in one frame after the break — the break + drops go out as ONE message

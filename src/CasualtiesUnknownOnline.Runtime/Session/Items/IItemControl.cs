@@ -157,13 +157,26 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>Guest only: an item-instance id was allocated locally — report the counter high-water mark so the host can grant it back on a reconnect (a crashed-and-rejoined counter restarts from zero and would reuse ids the host still holds).</summary>
 	void SendItemIdWatermark(ulong counter);
 
-	/// <summary>Guest only: the carried inventory with self-assigned ids — the host registers it in the guest's transfer table. The report is absolute and repeatable (sync-coverage row I8): every call spends one step of the registration window, and an empty capture spends a step too.</summary>
+	/// <summary>
+	/// Both sides: report this client's carried inventory with the ids it holds. A GUEST sends the
+	/// absolute statement the host registers in its transfer table, and every call spends one step of
+	/// the registration window (an empty capture spends one too — sync-coverage row I8). A HOST writes
+	/// the same set into its OWN authority, once per world entry: it is the authority for its items,
+	/// so the rows (and the members' view of those ids) are its own local write, and a host item the
+	/// player has not used, moved or dropped yet would otherwise have neither a row nor an id.
+	/// </summary>
 	void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items);
 
-	/// <summary>Guest only: open the carried-registration window — the local generation finished, or the host granted the id watermark (the join/reconnect signal). The pump reports the current carried set as soon as the cadence is due.</summary>
+	/// <summary>
+	/// Both sides: open the carried-registration opportunity. A GUEST opens the report window — the
+	/// local generation finished, or the host granted the id watermark (the join/reconnect signal) —
+	/// and the pump reports the current carried set as soon as the cadence is due. A HOST owes one
+	/// registration at the same edges (its generation, or its session appearing on a world it is
+	/// already in).
+	/// </summary>
 	void ArmCarriedInventoryRegistration(string reason);
 
-	/// <summary>Guest only: whether the carried-registration cadence wants a report now — the Game Adapter then captures the current carried set and calls <see cref="SendCarriedInventory"/>.</summary>
+	/// <summary>Whether the pump should capture this client's carried set now — the guest's report cadence, or the host's unspent one-shot. False outside an active session.</summary>
 	bool IsCarriedInventoryRegistrationDue();
 
 	/// <summary>Host only: grant a member's id watermark (its allocations may resume from counter + 1).</summary>

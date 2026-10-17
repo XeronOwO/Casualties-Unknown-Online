@@ -2,8 +2,8 @@
 
 - Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
-  `remove` landed 2026-10-17, and the cursor target 2026-10-18, both in this ticket. The stages below are what
-  remains.
+  `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
+  registration — 2026-10-18, so **stage B is complete**. Stages C (`give`) and D (`spawn`) are what remains.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
 - Source: the user's 2026-10-07 backlog request — a Minecraft-style command family for CUO: item-specific
@@ -55,20 +55,18 @@ conclusions every stage below depends on:
   the kernel keeps one revision per item, and a command write is expected to take the identical path rather
   than a second one beside it.
 
-The read half left two questions behind: the gap this stage still owns, and the cursor, which landed on
-2026-10-18 as the same family's target:
+The read half left two questions behind, and both are answered now:
 
-- **The host's own untouched carried items are not in the record — and have no instance id at all.** A member's
-  client registers its carried inventory (starting supplies and worn items included) at the generation-finished
-  edge; the host's supplies are its local authority, whose ids are minted lazily on first domain entry —
-  `CarriedInventoryReporter` states exactly that as its reason for being guest-side. Every verb in this family
-  addresses an instance id, so the gap has to be settled before a write or the cursor target can reach an item
-  the player is actually holding at world entry: either the host registers its own carried inventory the way a
-  member does, or the family gains a read that can name an item before it has an id.
+- **The host's own carried items are in the record (2026-10-18).** A member's client registers its carried
+  inventory (starting supplies and worn items included) at the generation-finished edge; the host's supplies
+  used to get an id only when a native act minted one, so no verb could name an item the host was merely
+  holding. The host now registers its own carried inventory at the same edges — a local write on the ordinary
+  kernel batch (no new frame kind) — so those items have ids and rows from world entry; *The host's own carried
+  inventory is registered* below carries the mechanism and what the acceptance batch owes.
 - **The cursor is addressable now (2026-10-18).** The console still reads the kernel, which has no cursor, so
   the pointer is a Game Adapter answer (`ILocalItemAccess.ResolveCursorItem`, the game's own pickup query) and
   the target is `cursor`; see *The cursor target landed* below for the mapping, the id rule and what the
-  acceptance batch owes. It does not close the gap above: an item the record has no id for is still refused by
+  acceptance batch owes. Neither answer weakens the other: an item the record has no id for is still refused by
   name, whichever way the operator named it.
 
 Still open, and belonging to the stage that meets it: whether a command-written property survives a
@@ -92,12 +90,8 @@ accepted-creation path unchanged or needs its own admission, including what a la
    game's own — `done/item-data-write-commands.md` carries its rows and its limits.
    **Landed with them 2026-10-17:** `merge` and `remove` (the landing section below carries what they do and
    what they still owe). **Landed 2026-10-18:** the cursor target, on the port the write added — the section
-   *The cursor target landed* below carries its mapping, its evidence and its limits. **Still open in this
-   stage:** the first gap above — the host's own untouched carried items
-   still have no id and no row, so no verb can name them until the host registers its carried inventory at the
-   generation-finished edge the way a member's client does (a cross-player change: those ids ride the 1 Hz
-   character snapshot, so the members' clones, their remote inventory view and the divergence monitor all begin
-   to see addressable rows for the host's items — its own verification run, not a ride on a verb).
+   *The cursor target landed* carries its mapping, its evidence and its limits; and the host's own carried
+   inventory, which now registers at world entry — the last section carries it. **Stage B is complete.**
 2. **Stage C — `give`**: put an item into another player's inventory with its properties already set. The
    missing half is materialization on the receiving side — today an item reaches another player only by the
    receiver taking it or by dropping it for a pickup — so this stage owns that carrier, and it shares the
@@ -143,10 +137,10 @@ yet", so the two verbs are additive work on a path that exists rather than a new
   announced rule forbids it. The ticket's own line is that "a new verb does not need a new gate, and it must not
   grow one", so `merge` and `remove` ride the landed rule and add no flag.
 
-**What is left after the two verbs**, unchanged from the stage text above: the host's own id-less carried items
-(named as its own work), Stage C's `give` (which faces the same missing carrier the give gesture ticket found)
-and Stage D's `spawn` (which owes the late-joiner answer first). The cursor target that used to head this list
-landed 2026-10-18 (the last section).
+**What is left after stage B**, unchanged from the stage text above: Stage C's `give` (which faces the same
+missing carrier the give gesture ticket found) and Stage D's `spawn` (which owes the late-joiner answer first).
+The three remainders stage B carried — the host's own id-less carried items, the cursor target and the two
+verbs — all landed by 2026-10-18 (the sections below).
 
 ## Non-goals
 
@@ -299,3 +293,68 @@ replacing the check.
   is the record's ("no item recorded"), not the scene's.
 - No tab completion for the target keywords — the verb still declares one free-text argument, exactly as the
   read half recorded.
+
+## The host's own carried inventory is registered (2026-10-18)
+
+Stage B's last gap is closed: the host's own carried items — the starting supplies and the worn items — no
+longer wait for a native act to mint their id. They are registered at world entry with the SAME write a native
+act of the host takes, so `/data get`, `/data set` and the members' record can name them from the moment the
+world opens.
+
+**Entry mapping.** No native call site, and that is the point: this is CUO's own record bookkeeping, not a
+gesture mirroring the game's action — the ticket's read half found the gap and the stage text froze the direction
+("the host registers its carried inventory at the generation-finished edge the way a member's client does"). What
+it adds that a member's client cannot state is the host's own authority rows; no player-visible gesture changed.
+
+**Mechanism inventory.**
+
+| # | Mechanism | Evidence |
+|---|---|---|
+| 1 | The capture | `CarriedInventoryReporter` — the same capture a member's client sends (body slots plus worn-limb children, `EnsureId` per item); the host now runs it at the same edge, so the host's supplies are minted in the host's own id space |
+| 2 | The arming edges | the generation-finished edge (both sides) and the host-session rising edge (`_hostSessionActive`), which covers a world entered before the session existed (a solo world turned lobby) |
+| 3 | The registration write | `ItemOwnCarriedRegistration.Register` → `ItemService.SendItemCarriedSync` → `ItemKernelAuthority.TrySpawnCarried` / `TryUpdateState`: the write a native act of the host takes, not a second route |
+| 4 | The members' record | the kernel commit is the batch a member's replay reads (`ItemKernelAuthority.TryExecute` → `BatchCommitted` → `KernelProtocolService.BroadcastCommittedBatch`); the ids the registration's `EnsureId` mints then ride the host's 1 Hz character snapshot to the members' view, and that snapshot could not carry them before — its capture reads `ItemInstanceId` and the host's items had none (`ItemStateCodec.CaptureItem`: `InstanceId = item.GetComponent<ItemInstanceId>()?.Id ?? 0`) |
+| 5 | The guest's path | unchanged: the guest's report, its cadence/window and the host's judging of that statement are untouched; the only shared surface is the role branch in `SendCarriedInventory` |
+| 6 | One registration, not a cadence | the host's write is local, so it cannot be lost on the wire; a repeat would re-commit every item — the debt is armed at world entry and spent by the first capture that can read the body |
+| 7 | No wire change (a fact, not a design input) | no frame, kind or protocol number moved; the row travels on the ordinary kernel batch |
+
+**Self-check table.**
+
+| # | Claim | Evidence |
+|---|---|---|
+| 1 | A host's own carried item has a row at world entry, owned by the host | `HostRegistration_WritesTheHostsOwnCarriedRowAndTheMembersReplayIt` — the row exists, is `Carried`, and its owner is the host |
+| 2 | The member's replay receives that row | the same case, after a tick: the member's `ItemKernelAuthority.FindItem` holds it with the host as owner |
+| 3 | The registration is owed only after an arm | `HostRegistration_WithoutAnArm_WritesNothing` |
+| 4 | It is spent once, so a later capture cannot rewrite the row | `HostRegistration_IsOwedOnce_SoALaterSendCannotRewriteTheRow` |
+| 5 | The guest's registration is untouched | the class's own suite: `dotnet test … --filter "FullyQualifiedName~CarriedInventoryRegistrationTests"` — 16/16, the first thirteen of them the existing guest/arbitration facts |
+| 6 | The service stayed under the gate | `ItemService` 578 lines (548 at HEAD), the registration in its own `ItemOwnCarriedRegistration` (85) |
+| 7 | Not covered here, and the batch's | the live world-entry run (rows 1-5 below); the ID MINTING itself (`EnsureId`) is the adapter's and has no unit test — only the acceptance run can prove a host's untouched item appears with an id |
+
+**What the acceptance batch owes.**
+
+1. A host and a member in a session's world: the host runs `/data get` and its starting supplies and worn items
+   are listed with instance ids — the state that used to be empty for a host who had not used anything yet.
+2. The host runs `/data set id <one of them> condition 0.5` WITHOUT having used, moved or dropped that item —
+   the write lands and `/data get` reads it back on both peers.
+3. The member runs `/data get id <the same id>` and reads the host's row — the member's replay really received
+   the registration.
+4. The member's own supplies still register the way they did (a regression row, not a new claim).
+5. The host takes the next-level transition (the auto-revive path): after the layer is entered, `/data get`
+   lists the host's restored carried items with ids — the registration waited for the restore instead of
+   stating an empty set.
+
+**Limits, recorded rather than hidden.**
+
+- A solo world registers nothing: there is no session, and this family's write verbs need one anyway; the
+  session's own start on that world is the arming edge once a lobby exists.
+- A layer entered through a respawn holds the registration until the local restore lands: the adapter holds the
+  due while a character restore is queued, because the respawn places its fresh body one frame after the
+  generation edge and its items two frames later, and without the hold the host would capture that empty body
+  and spend the one registration it does not get again. A plain layer change re-runs the generation edge and
+  re-registers the same set once (the state is the host's own; no new frame kind is involved).
+- The registration states the IDS and STATE of the items the body holds at that moment, at the top level: a
+  carried container's child that has never been given an id (the capture does not mint inside `Contents`) stays
+  unnamed until its own native act names it. The member's own registration has the same boundary, and the
+  starting-supply plan hands out leaf items, so this is not reachable there.
+- The host's allocation space is its own: the ids it mints here are what the host's snapshot and the kernel row
+  carry, exactly as if a native act had minted them.

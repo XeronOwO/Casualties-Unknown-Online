@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -12,14 +13,15 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Items;
 
 /// <summary>
-/// The host side of the carried-inventory registration (sync-coverage audit row
-/// I8): <c>CarriedInventory</c> is a guest's ABSOLUTE statement of the item ids
-/// it self-assigned, and the host turns it into transfer-table entries. The
-/// registration is therefore REPEATABLE by design — a swallowed frame is healed
-/// by a later one — so the host's half must be registration-only: it learns ids
-/// it does not know and never rolls back a record the host has already
-/// arbitrated, and it never adopts an id the kernel places with somebody else or
-/// has already terminated.
+/// The carried-inventory registration (sync-coverage audit row I8), both sides: a
+/// guest's <c>CarriedInventory</c> is an ABSOLUTE statement of the item ids it
+/// self-assigned and the host turns it into transfer-table entries; the HOST also
+/// registers its OWN carried set in its own authority (the last three facts here),
+/// so its untouched supplies have rows and ids from world entry. The member's report
+/// is therefore REPEATABLE by design — a swallowed frame is healed by a later one —
+/// so the host's half must be registration-only: it learns ids it does not know and
+/// never rolls back a record the host has already arbitrated, and it never adopts an
+/// id the kernel places with somebody else or has already terminated.
 /// </summary>
 [Trait("Category", "Integration")]
 public class CarriedInventoryRegistrationTests
@@ -78,6 +80,63 @@ public class CarriedInventoryRegistrationTests
 		Assert.True(
 			ItemKernelAuthority.ToCharacterItem(kernel!.Value).Condition == 0.2f,
 			"the kernel's authoritative condition must survive a re-report too");
+	}
+
+	/// <summary>
+	/// The host's OWN carried inventory owes the registration a member's client sends — written by
+	/// the host itself, because nobody else can state its authority: before this a host item the
+	/// player had not used, moved or dropped yet had no row and no instance id, so no data verb and
+	/// no member's record could name it.
+	/// </summary>
+	[Fact]
+	public void HostRegistration_WritesTheHostsOwnCarriedRowAndTheMembersReplayIt()
+	{
+		using var w = ItemSimWorld.Create();
+		var items = w.Host.Services.GetRequiredService<IItemControl>();
+
+		items.ArmCarriedInventoryRegistration("world entry");
+		Assert.True(items.IsCarriedInventoryRegistrationDue(), "a world entry owes the host's own registration");
+
+		items.SendCarriedInventory([Item(101)]);
+
+		Assert.False(items.IsCarriedInventoryRegistrationDue(), "the registration is one shot per world entry");
+		var row = w.KernelRow(101);
+		Assert.True(row is not null, "the host's own item now has a row");
+		Assert.Equal(ItemLocationKind.Carried, row!.Value.Location.Kind);
+		Assert.Equal(w.Host.SteamId, row.Value.Location.Owner.Value);
+
+		// The row is committed to the kernel, and that batch is what a member's replay reads.
+		w.Driver.Tick(50);
+		var onMember = w.G1.Services.GetRequiredService<ItemKernelAuthority>().FindItem(101);
+		Assert.True(onMember is not null, "the member's replay carries the host's row");
+		Assert.Equal(w.Host.SteamId, onMember!.Value.Location.Owner.Value);
+	}
+
+	[Fact]
+	public void HostRegistration_WithoutAnArm_WritesNothing()
+	{
+		using var w = ItemSimWorld.Create();
+		var items = w.Host.Services.GetRequiredService<IItemControl>();
+
+		Assert.False(items.IsCarriedInventoryRegistrationDue());
+		items.SendCarriedInventory([Item(101)]);
+
+		Assert.Null(w.KernelRow(101));
+	}
+
+	[Fact]
+	public void HostRegistration_IsOwedOnce_SoALaterSendCannotRewriteTheRow()
+	{
+		using var w = ItemSimWorld.Create();
+		var items = w.Host.Services.GetRequiredService<IItemControl>();
+		items.ArmCarriedInventoryRegistration("world entry");
+		items.SendCarriedInventory([Item(101, condition: 0.9f)]);
+
+		// No new arm: the debt is spent, so a capture the pump happens to produce again is not a
+		// second registration.
+		items.SendCarriedInventory([Item(101, condition: 0.1f)]);
+
+		Assert.Equal(0.9f, w.KernelRow(101)!.Value.Data.Condition);
 	}
 
 	[Fact]

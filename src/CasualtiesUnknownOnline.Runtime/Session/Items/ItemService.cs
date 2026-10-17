@@ -39,6 +39,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly ItemKernelProjectionWiring _kernelProjectionWiring;
 	private readonly RestoredWorldItemSet _restoredWorldItems;
 	private readonly ItemCommandRejectionRouter _rejections;
+	private readonly ItemOwnCarriedRegistration _ownCarried;
 
 	public ItemService(ISessionControl session, ItemArbitration arbitration, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, ItemIdCoordinator idCoordinator, ItemStateSettlement itemStateSettlement, WorldRestoreAudit? audit = null)
 	{
@@ -66,6 +67,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_itemActionSync = new(session, this, _kernelProtocol);
 		_snapshots = new(session, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, _kernelProtocol, log);
 		_idCoordinator = idCoordinator;
+		_ownCarried = new ItemOwnCarriedRegistration(session, SendItemCarriedSync, log);
 		_blockDrops = new BlockDropSync(session, this);
 		_kernelProjectionWiring = new ItemKernelProjectionWiring(
 			session,
@@ -99,11 +101,45 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public void SendItemIdWatermark(ulong counter) => _idCoordinator.SendItemIdWatermark(counter);
 
-	public void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.SendCarriedInventory(items);
+	/// <summary>
+	/// Report this client's carried inventory with the ids it holds. A GUEST sends the absolute
+	/// statement the host registers in its transfer table; a HOST writes the same set into its own
+	/// authority — nobody else can, and without it a host item the player has not used, moved or
+	/// dropped yet has neither a row nor an id for any verb (or any member's record) to name.
+	/// </summary>
+	public void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items)
+	{
+		if (_session.Role == SessionRole.Host)
+		{
+			_ownCarried.Register(items);
+			return;
+		}
 
-	public void ArmCarriedInventoryRegistration(string reason) => _idCoordinator.ArmCarriedInventoryRegistration(reason);
+		_idCoordinator.SendCarriedInventory(items);
+	}
 
-	public bool IsCarriedInventoryRegistrationDue() => _idCoordinator.IsCarriedInventoryRegistrationDue();
+	/// <summary>
+	/// Open the carried-registration opportunity, whichever side this client is: a GUEST opens the
+	/// report window the cadence spreads over its dense frame; a HOST owes the one-shot the class
+	/// above owns. The edges that arm it are the same fact on both sides — the local generation
+	/// finished, or the session (re)appeared on the world this client is already in.
+	/// </summary>
+	public void ArmCarriedInventoryRegistration(string reason)
+	{
+		if (_session.Role == SessionRole.Host && _session.SessionActive)
+		{
+			_ownCarried.Arm(reason);
+			return;
+		}
+
+		_idCoordinator.ArmCarriedInventoryRegistration(reason);
+	}
+
+	/// <summary>Whether the adapter should capture this client's carried set now: the guest's report cadence, or the host's unspent one-shot.</summary>
+	public bool IsCarriedInventoryRegistrationDue() =>
+		_session.Role == SessionRole.Host
+			? _ownCarried.IsDue
+			: _idCoordinator.IsCarriedInventoryRegistrationDue();
 
 	public void GrantItemIdWatermark(ulong targetSteamId, ulong counter) => _idCoordinator.GrantItemIdWatermark(targetSteamId, counter);
 
@@ -308,10 +344,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	public void FireItemCarriedSyncReceived(ulong sender, ulong ownerSteamId, CharacterItemMsg item, bool slotKnown)
 		=> _carriedSync.FireItemCarriedSyncReceived(sender, ownerSteamId, item, slotKnown);
 
-	private void PublishCarriedSync(ulong ownerSteamId, CharacterItemMsg item) => SendItemCarriedSync(ownerSteamId, item);
-
 	// ===== Host-only surface =====
-
 	public int LayerModifierIndex
 	{
 		get => _snapshots.LayerModifierIndex;
@@ -404,6 +437,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_projection.Clear();
 		_arbitration.ResetSessionState();
 		_idCoordinator.ResetSessionState();
+		_ownCarried.Reset();
 		_snapshots.ResetSessionState();
 		_itemTraffic.Reset();
 		_kernelProjectionWiring.ResetStream();
@@ -477,8 +511,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	internal void UpdateWorldItemState(ulong itemId, CharacterItemMsg state) =>
 		_projection.ApplyUpdateState(_session.LocalSteamId, itemId, state);
 
-	internal void PublishCarriedSyncFor(ulong owner, CharacterItemMsg item) => PublishCarriedSync(owner, item);
-
 	internal void PublishCarriedSyncLocal(ulong owner, CharacterItemMsg item) => _carriedSync.PublishLocal(owner, item);
 
 	internal void FireCorrectionLocal(CharacterItemMsg item) => _arbitration.FireCorrectionReceived(item);
@@ -541,8 +573,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	bool IItemActionWorldAccess.IsWorldItem(ulong itemId) => IsWorldItemRegistered(itemId);
 
 	void IItemActionWorldAccess.UpdateWorldItemState(ulong itemId, CharacterItemMsg state) => UpdateWorldItemState(itemId, state);
-
-	void IItemActionWorldAccess.PublishCarriedSyncFor(ulong owner, CharacterItemMsg item) => PublishCarriedSyncFor(owner, item);
 
 	void IItemActionWorldAccess.FireCorrectionLocal(CharacterItemMsg item) => FireCorrectionLocal(item);
 }

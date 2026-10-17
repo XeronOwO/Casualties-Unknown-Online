@@ -77,6 +77,13 @@ assembly), and its interface keeps growing with every feature (see
   the command registry and execution on one side, and the console's line buffer plus the notifications it
   subscribes to (save/restore reports, the item-data write refusal) on the other. That second half is the split
   due BEFORE the next change lands here.
+- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` (578 measured 2026-10-18, from 548 before the
+  host's own carried registration landed; the registration lives in a new `ItemOwnCarriedRegistration` (85), so the
+  facade grew by the delegation only, +30 — the dead `PublishCarriedSync`/`PublishCarriedSyncFor` pair it carried
+  was deleted in the same change). The world-item domain facade: the world-item table, the sub-services and the
+  message-flow wiring. The seam to extract next is the carried-fact and id-coordination block
+  (`SendCarriedInventory`'s role branch, the watermark forwards, `PublishCarriedSyncLocal`) against the world-item
+  table/projection half.
 - `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (574 after the patch-bridge port
   change on 2026-09-22, from 569) — the one implementation of the frozen `IPatchBridge` aggregate plus
   the per-domain patch ports the aggregate does not carry (`IFluidPatchPort` today). Every member is a

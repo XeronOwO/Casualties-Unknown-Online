@@ -191,8 +191,11 @@ The member side passed too, once the batch declared its own starting conditions 
 write lands while the host allows it and its record follows, and the SAME write is refused on the member's
 own client once the host announces the closed rule - the interception no unit test drives. The clear path is judged
 too on a waterbottle (a full stack goes to `500 ml -> 0 ml` and the container stays). What the record still
-owes is the COMPONENT half of that path: no run could name an item carrying a `BatteryItem`, so `TryResetField`
-is unit-covered but not runtime-covered. The record also keeps the three runs' failures, which are all one
+owes is the COMPONENT half of that path, and the run that looked for it came back with a finding rather than a
+gap: the tag scan names `largebattery` and the item is granted, but an item straight from the game's grant
+carries NO component line at all — a battery's component is brought into being by `BatteryItem.LoadBattery`,
+so judging that row needs a fixture that loads one first. `TryResetField` is unit-covered for all six kinds and
+runtime-covered for none. The record also keeps the three runs' failures, which are all one
 mistake: a step that reported an absence from a reading it had not established it could make.
 
 - **Since then:** the duplicated `<summary>` on the write method is deleted. Two nits remain unfixed and are

@@ -61,12 +61,27 @@ This repeated identically in every run that reached it (4, 5 and 6).
 
 ## Still owed
 
-**The component half of the clear path.** The unit cases cover all six field kinds (`TryResetField` writes
-each kind's own zero), but no run has reset a real component field, because no run could name an item that
-carries one: `type=battery` is not an item id the game grants (`item-provide` answers `eval-error`), and the
-probe meant to find one asked the battery-tagged census for a field its answer does not carry (see below).
-Reaching it needs an item whose prefab really loads a `BatteryItem`, named by the id the game's own item
-table uses — the census's `mode=tag:battery` already computes that list.
+**The component half of the clear path — and the reason is now a finding, not a guess.** Run 7 found the
+item the right way: the census's tag scan answers `items: [ { id, ... }, ... ]`, the first entry is
+`largebattery`, and `item-provide type=largebattery,mode=create` granted it (`ok=true`). So the item exists
+and is reachable. What the run then read was:
+
+```
+#1228681627587 largebattery [carried by …, slot 2] revision 3
+  condition 1
+  favourited no
+```
+
+**No component line.** A battery's component is not on the item as it arrives — the game BRINGS IT INTO
+BEING, which is what `BatteryItem.LoadBattery` is for, and the census recipe's own comment says a
+`BatteryInfo` is what that call requires. So the missing row is not a defect and not a fixture mistake: an
+item straight out of the game's grant call genuinely has no captured component field, and
+`/data remove … component …` has nothing to address on it. Judging this row needs a fixture that loads a
+battery into the item first, which is a scenario of its own rather than a `type=` away.
+
+The unit cases cover the reset for all six field kinds (`TryResetField` writes each kind's own zero); what
+the runtime has not shown is a real component field being reset, and the cause is now recorded above instead
+of being chased with further guessed ids.
 
 ## What the runs cost, and the one mistake they all made
 

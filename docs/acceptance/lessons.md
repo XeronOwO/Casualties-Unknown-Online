@@ -25,10 +25,6 @@ carrier with a backticked path so the reader can open it, and cite the run's own
 is what the reader needs. A narrative entry (a Symptom/Cause story) is refused by
 `AcceptanceLessonsGateTests`, which holds every entry to one line.
 
-## 2026-09-27 — In-process control is the driver this machine allows
-
-Session setups are driven inside the client's own process through the evaluator; OS-level keyboard and mouse are never used, and a state the in-process route cannot reach is a setup gap to record, not a licence to reach for them — the `input` row of `dependencies.md`, workflow §5.
-
 ## 2026-09-27 — A title-screen click is not "start the game"
 
 Session actions go through the Online UI's own registered controls; before an in-process click on a scene object becomes a setup step, the handler's target is identified from evidence, because every title-screen object carries its own action — `tools/acceptance/drive-in-process.ps1`, `workflow.md` §5.
@@ -511,3 +507,7 @@ Four runs of batch `20261017-a` produced nothing but `eval 'recipe:member-identi
 ## 2026-10-17 — A pump's cadence is the way into a frame-edge window, and a blackout brings the entry edge with it
 
 The accepted-first window row 5 needed lasts one frame at the generation-finished edge, so no out-of-process probe can win it by being fast: the way in is the pump's OWN schedule — stop its cadence for one step (the report goes out while nothing else can) and re-open it through the public control so the product sends its statement afterwards, which makes the order a property of the run instead of a race. And a receive blackout armed across world entry brings a second, larger edge: the swallowed `InWorld` report makes the member's readiness window re-assert until the host runs the whole entry path, including the saved-character restore, whose apply replaces the body's local objects and reports their destroys — the run's only refusals in batch `20261017-p`. Either wait the entry group out before staging anything on the body, or expect the restore and name it; the two conclusions are in `tools/AGENTS.md` and `docs/evidence/acceptance/validation-and-source-checks-20261017-p.md`.
+
+## 2026-10-17 — A green suite is not a start
+
+Every test fakes the give source, so 693/693 and 5697/5697 were green while the deployed build died in `Awake`; only the prelude composes the real adapter — `docs/acceptance/workflow.md` §2/§5.

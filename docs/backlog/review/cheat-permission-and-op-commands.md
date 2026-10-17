@@ -7,13 +7,13 @@
   IP 直连场景,对于 IP 直连场景可能需要额外评估玩家名伪造问题),主机的作弊权限通过联机开关控制,授权与剥夺只允许主
   机对其余客机执行". **Both halves landed**: the permission mechanism — `/op`, `/deop`, the announced roster, the
   host's cheat SWITCH and the two-sided check on `/data`'s write verbs (see *The permission mechanism landed*) —
-  and `/give`, the same cycle's second half (`review/give-item-to-a-player-command.md`). The acceptance rows at
+  and `/give`, the same cycle's second half (`todo/give-item-to-a-player-command.md`). The acceptance rows at
   the end are what a real run still owes; the UI and the persistence layers are the NEXT ticket (the user's
   direction, recorded below).
 - Priority: Medium-High — it shipped WITH `/give` and the two-sided check for the cheat family, so it queued
   ahead of the rest of the item-data ticket's stage C.
 - Category: Command surface / session authority / permissions
-- Related: `docs/backlog/review/give-item-to-a-player-command.md` (the verb this permission ships with),
+- Related: `docs/backlog/todo/give-item-to-a-player-command.md` (the verb this permission ships with),
   `docs/backlog/todo/item-and-entity-data-commands.md` (the cheat verb family this gates — `spawn` next),
   `docs/backlog/done/host-rules-replication.md` (the announcement pattern a
   member's client reads to refuse a closed rule locally), `docs/backlog/todo/remote-backpack-access-policy.md` (a
@@ -110,7 +110,7 @@ today. The two sibling tickets that asserted the opposite were re-pointed in the
 | 9 | The two rulings together are what admits a member, and the SWITCH is the ground when both are shut | `KernelCommandGatewayTests.ConsoleVerbWithTheSwitchOpenAndTheMemberGranted_IsAdmitted`, `.ConsoleVerbWithTheSwitchClosedAndNoGrant_IsRefusedByTheSwitch`, `.ConsoleVerbWithTheHostRuleClosed_IsRefusedAndAnswered` (granted + switch closed), `.ConsoleVerbFromAMemberTheRosterDoesNotName_IsRefusedAndAnswered`; `CommandAdmissionIntegrationTests.AConsoleWriteFromAPromotedMember_IsStillRefusedWhileTheSwitchIsClosed`, `.AConsoleWriteFromAMemberWithNeitherGrantNorSwitch_IsRefusedByTheSwitch` |
 | 10 | A member whose rulings were never announced is settled by the host's own refusal | `.AMemberWhoseRosterWasSwallowed_IsSettledByTheHostsOwnRefusal`, `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_WhenNothingWasAnnounced_IsSettledByTheHostsOwnRefusal` (the switch's ground) |
 | 11 | The host needs neither; a member cannot op | `.TheHostsOwnWrite_NeedsNoGrant`, `.AMemberTypingOp_IsRefusedAsHostOnly`, `CheatPermissionsTests.TheHostItself_IsRefusedByName_…` |
-| 12 | The whole family audited, not just `/data` | the console's cheat verbs are `/data`'s write verbs (gated at the admission seam), `/give` (gated in its own request handler, landed as `review/give-item-to-a-player-command.md`) and `/data get` (still `Anyone` by the read half's own rule); the host-admin verbs stay `HostOnly`; `/spawn` is the next verb and joins the family then; `/heal` is excluded above |
+| 12 | The whole family audited, not just `/data` | the console's cheat verbs are `/data`'s write verbs (gated at the admission seam), `/give` (gated in its own request handler, landed as `todo/give-item-to-a-player-command.md`) and `/data get` (still `Anyone` by the read half's own rule); the host-admin verbs stay `HostOnly`; `/spawn` is the next verb and joins the family then; `/heal` is excluded above |
 | 13 | The wire is declared where the sync audit demands it | sync-coverage matrix row H2 + its vocabulary index line + six evidence anchors; the `/give` pair is row I11 with its own five |
 
 **Limits, recorded rather than hidden.**
@@ -189,6 +189,11 @@ one by one, and whether Steam's transport lets a co-member address another guest
 without a live session (the drop branch is now covered regardless).
 
 **What the acceptance batch owes.**
+
+**Batch `20261017-q` judged these rows on the deployed `bb2350e7`**: rows 1-5 **pass** (each with the
+console's own sentence quoted in the record), row 6 (IP-direct) is **unproven** — no transport lever in that
+batch; the ticket stays in `review/` for it. Record:
+`docs/evidence/acceptance/cheat-permission-and-op-commands-20261017-q.md`.
 
 1. Host + member in one world, switch closed, grant present: the member types `/data set id <its item>
    condition …` and reads the SWITCH's sentence; the host's `/data get id <it>` still shows the old value.

@@ -1,10 +1,10 @@
-﻿# Item and entity data commands: give, spawn and a property editor
+# Item and entity data commands: give, spawn and a property editor
 
 - Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
   `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
   registration — 2026-10-18, so **stage B is complete**. **Stage C (`give`) landed 2026-10-17 and moved out** to
-  `review/give-item-to-a-player-command.md`, together with `review/cheat-permission-and-op-commands.md`'s
+  `todo/give-item-to-a-player-command.md`, together with `review/cheat-permission-and-op-commands.md`'s
   permission half. **Only stage D (`spawn`) remains** in this ticket.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
@@ -13,7 +13,7 @@
   settable, mergeable and removable, and the family also covers handing an item out and creating an entity.
 - Related: `review/item-data-read-commands.md` (the landed read half, and the survey these stages build on),
   `done/item-data-write-commands.md` (the landed first write verb and the local-scene port),
-  `review/give-item-to-a-player-command.md` (stage C, landed and moved out with its design and acceptance rows),
+  `todo/give-item-to-a-player-command.md` (stage C, landed and moved out with its design and acceptance rows),
   `review/cheat-permission-and-op-commands.md` (the cheat permission and the two-sided check every cheat verb
   rides), `done/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
@@ -97,7 +97,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
    *The cursor target landed* carries its mapping, its evidence and its limits; and the host's own carried
    inventory, which now registers at world entry 鈥?the last section carries it. **Stage B is complete.**
 2. **Stage C — `give`**: put an item into a player's inventory with its properties already set. **Landed
-   2026-10-17 and moved out** to `review/give-item-to-a-player-command.md`, which carries the design that was
+   2026-10-17 and moved out** to `todo/give-item-to-a-player-command.md`, which carries the design that was
    settled here, the mechanism inventory, the self-check table, the acceptance rows and the limits. The carrier
    is the giver-initiated push the give ticket landed, the permission is
    `review/cheat-permission-and-op-commands.md`'s two-sided check, and the creation rides a narrow adapter port.
@@ -117,7 +117,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
    client before anything is applied, and the verbs that follow `/data set` inherit it. **`/give` rides the
    same rulings on its own request frame** (it is not a kernel command, so the host judges it in its request
    handler rather than at the admission seam); the permission half is
-   `review/cheat-permission-and-op-commands.md`, and the verb is `review/give-item-to-a-player-command.md`.
+   `review/cheat-permission-and-op-commands.md`, and the verb is `todo/give-item-to-a-player-command.md`.
 
 ## Stage B's remaining two verbs 鈥?the design, settled by reading the landed one (2026-10-17)
 
@@ -146,7 +146,7 @@ yet", so the two verbs are additive work on a path that exists rather than a new
   grow one", so `merge` and `remove` ride the landed rule and add no flag.
 
 **What is left after stage B**, unchanged from the stage text above: Stage D's `spawn` (which owes the
-late-joiner answer first). Stage C landed and moved out (`review/give-item-to-a-player-command.md`). The three
+late-joiner answer first). Stage C landed and moved out (`todo/give-item-to-a-player-command.md`). The three
 remainders stage B carried — the host's own id-less carried items, the cursor target and the two verbs — all
 landed by 2026-10-18 (the sections below).
 
@@ -264,6 +264,13 @@ use, resolves PLAYERS by world-space geometry of its own (`CrossPlayerDragUse`) 
 shares nothing with this query and was checked rather than aligned.
 
 **What the acceptance batch owes.**
+
+Batch `20261017-q` judged both landed sections on the deployed `bb2350e7` (record:
+`docs/evidence/acceptance/item-and-entity-data-commands-20261017-q.md`): the host-registration rows 1-5 pass
+(with the plain-layer-change substitution named in the record), and the cursor rows 1-5 are **unproven** for
+one dependency — the machine's pointer was outside the host window (`mouseX 1265, mouseY -658, screen
+1280x720`), so the run named that dependency instead of moving the pointer or weakening the check. The
+ticket stays in `todo/` for stage D either way.
 
 1. The host drops an item (so it has an id), points at it and runs `/data get cursor` 鈥?the row of the item
    under the pointer, not a neighbour's.

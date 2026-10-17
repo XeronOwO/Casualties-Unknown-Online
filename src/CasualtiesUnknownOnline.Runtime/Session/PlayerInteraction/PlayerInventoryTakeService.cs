@@ -103,15 +103,16 @@ internal sealed class PlayerInventoryTakeService(
 	/// core the other direction is what makes the two halves agree about custody rather than merely resemble each
 	/// other.
 	/// </summary>
-	public void HandleRemoteGiveToBody(ulong giver, ulong receiver, ulong itemId, int targetSlot) =>
-		HandleTakeCore(sender: receiver, owner: giver, itemId, allowConsciousSource: true, requestedSlot: targetSlot);
+	public void HandleRemoteGiveToBody(ulong giver, ulong receiver, ulong itemId, int targetSlot, ulong targetContainerId) =>
+		HandleTakeCore(sender: receiver, owner: giver, itemId, allowConsciousSource: true, requestedSlot: targetSlot, requestedContainerId: targetContainerId);
 
 	private void HandleTakeCore(
 		ulong sender,
 		ulong owner,
 		ulong itemId,
 		bool allowConsciousSource,
-		int requestedSlot = -1)
+		int requestedSlot = -1,
+		ulong requestedContainerId = 0)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -122,6 +123,9 @@ internal sealed class PlayerInventoryTakeService(
 		var to = sender;
 		if (from == to || from == 0 || to == 0 || itemId == 0)
 		{
+			// Every other branch in this core answers with a line, so this one does too: a transfer with an empty end
+			// is a malformed request, not a routine skip.
+			_log.LogWarning("[Take] refused: malformed transfer (from {From}, to {To}, item id {InstanceId}).", from, to, itemId);
 			return;
 		}
 
@@ -170,27 +174,58 @@ internal sealed class PlayerInventoryTakeService(
 		{
 			// Worn items are excluded in this slice — the character restore path
 			// handles them separately and the Online UI only offers slot items.
-			_log.LogInformation("[Take] refused: item {ItemId} is worn (slot {Slot}) — only backpack/hand slot items are takeable in this slice.", itemId, original.SlotIndex);
-			return;
-		}
-
-		var targetSlot = ResolveDestinationSlot(target, to, requestedSlot);
-		if (targetSlot < 0)
-		{
-			_log.LogWarning("[Take] refused: {To} has no empty inventory slot.", to);
+			_log.LogInformation("[Take] refused: item {ItemId} (instance {InstanceId}) is worn (slot {Slot}) — only backpack/hand slot items are takeable in this slice.", original.ItemId, itemId, original.SlotIndex);
 			return;
 		}
 
 		var newTarget = PlayerCharacterAccess.CloneCharacter(target);
 		var transferred = PlayerCharacterAccess.CloneItem(original);
-		transferred.SlotIndex = targetSlot; // the host picks a concrete empty slot; the recipient's immediate re-report confirms it
-		newTarget.Items.Add(transferred);
+
+		// The destination is ONE operand: a ring slot names a body slot, and an ITEM shown in the receiver's
+		// inventory names that container. A container destination lands INSIDE that item's Contents, and the
+		// receiving client loads it there through its own Container rules — so whether it fits is its own
+		// decision, never this one's.
+		if (requestedContainerId != 0)
+		{
+			var container = FindCarriedItem(newTarget.Items, requestedContainerId);
+			if (container is null)
+			{
+				_log.LogWarning("[Take] refused: {To} carries no item {ContainerId} to receive {ItemId} (id {InstanceId}).",
+					to, requestedContainerId, original.ItemId, itemId);
+				return;
+			}
+
+			transferred.SlotIndex = container.SlotIndex; // a container child carries its PARENT's slot
+			container.Contents.Add(transferred);
+		}
+		else
+		{
+			var targetSlot = ResolveDestinationSlot(target, to, requestedSlot);
+			if (targetSlot < 0)
+			{
+				_log.LogWarning("[Take] refused: {To} has no empty inventory slot.", to);
+				return;
+			}
+
+			transferred.SlotIndex = targetSlot; // the host picks a concrete empty slot; the recipient's immediate re-report confirms it
+			newTarget.Items.Add(transferred);
+		}
 
 		_characters.SaveCharacterData(from, newSource);
 		_characters.SaveCharacterData(to, newTarget);
 
 		// Guest ownership records drive use/slot/drop arbitration and the
-		// reconnect restore merge — move the entry with the transfer.
+		// reconnect restore merge — move the entry with the transfer. A CONTAINER destination makes that entry
+		// state "in a container" (-1) rather than a slot: the snapshot's own convention is the parent's slot, but
+		// the transfer table and the kernel read -1 as "carried, no slot of its own", and an entry that claimed a
+		// slot would put the item in that slot on every clone and in the kernel's own item view — the container and
+		// its child competing for one slot.
+		var ledger = requestedContainerId != 0 ? PlayerCharacterAccess.CloneItem(transferred) : transferred;
+		if (requestedContainerId != 0)
+		{
+			ledger.SlotIndex = -1;
+		}
+
 		if (from != _session.LocalSteamId)
 		{
 			_items.RemoveTransferredItem(from, itemId);
@@ -198,21 +233,45 @@ internal sealed class PlayerInventoryTakeService(
 
 		if (to != _session.LocalSteamId)
 		{
-			_items.AdoptTransferredItem(to, itemId, transferred);
+			_items.AdoptTransferredItem(to, itemId, ledger);
 		}
 		else
 		{
-			CommitCarriedToHost(itemId, transferred);
+			CommitCarriedToHost(itemId, ledger);
 		}
 
-		_log.LogInformation("[Take] {To} takes {ItemId} (id {InstanceId}) from {From} (remote-backpack allowConscious={AllowConscious}).",
-			to, original.ItemId, itemId, from, allowConsciousSource);
+		_log.LogInformation("[Take] {To} takes {ItemId} (id {InstanceId}) from {From} (remote-backpack allowConscious={AllowConscious}, container {ContainerId}).",
+			to, original.ItemId, itemId, from, allowConsciousSource, requestedContainerId);
 		PublishTransfer(new PlayerInventoryTransferMsg
 		{
 			FromSteamId = from,
 			ToSteamId = to,
 			Item = transferred,
+			TargetParentItemId = requestedContainerId,
 		});
+	}
+
+	/// <summary>
+	/// One item in a character snapshot, found by instance id anywhere in the tree — the destination of a container
+	/// hand-over is named by id alone, and whether that item really is a container is the RECEIVING client's native
+	/// decision, not this snapshot's.
+	/// </summary>
+	private static CharacterItemMsg? FindCarriedItem(List<CharacterItemMsg> items, ulong instanceId)
+	{
+		foreach (var item in items)
+		{
+			if (item.InstanceId == instanceId)
+			{
+				return item;
+			}
+
+			if (FindCarriedItem(item.Contents, instanceId) is { } nested)
+			{
+				return nested;
+			}
+		}
+
+		return null;
 	}
 
 	/// <summary>

@@ -572,26 +572,24 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 	private void AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId)
 	{
 		var parent = CarriedItemLocator.FindById(body, parentItemId);
-		if (parent == null) // Unity object — ==
+		var container = parent == null ? null : parent.GetComponent<Container>(); // Unity object — ==
+		var why = parent == null // Unity object — ==
+			? "the parent is not on the local body"
+			: container == null ? "the target is not a container" : null;
+
+		// The container's own rules are the final judge (the user's ruling for a handed-over item), so anything
+		// that cannot host it falls back to a slot: the item has already left the giver by this point, and
+		// "not loaded" with no fallback is how an item vanishes from both players' ledgers.
+		if (container == null || ItemStateCodec.RestoreContent(parent!, container, item) == null) // Unity object — ==
 		{
-			domains.Log.LogWarning("[PlayerInteraction] cannot place {ItemId} (id {InstanceId}) into container {Parent} — parent not found on the local body; falling back to a slot.",
-				item.ItemId, item.InstanceId, parentItemId);
+			domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) not placed into container {ParentId} ({Why}) — falling back to a slot.",
+				item.ItemId, item.InstanceId, parentItemId, why ?? "the container's own rules refused it");
 			AddCarriedItemToLocalBody(body, item);
 			return;
 		}
 
-		var container = parent.GetComponent<Container>();
-		if (container == null) // Unity object — ==
-		{
-			domains.Log.LogWarning("[PlayerInteraction] cannot place {ItemId} (id {InstanceId}) into {Parent} — target is not a container; falling back to a slot.",
-				item.ItemId, item.InstanceId, parentItemId);
-			AddCarriedItemToLocalBody(body, item);
-			return;
-		}
-
-		ItemStateCodec.RestoreContent(parent, container, item);
 		domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) into container {Parent} ({ParentId}).",
-			item.ItemId, item.InstanceId, parent.id, parentItemId);
+			item.ItemId, item.InstanceId, parent!.id, parentItemId);
 	}
 
 }

@@ -172,6 +172,75 @@ public class RemoteIntentRequestTests
 	}
 
 	[Fact]
+	public void Guest_GiveToBody_IntoTheHostsCarriedContainer_PutsTheItemInsideIt()
+	{
+		// The user's ruling covers BOTH targets of the displayed backpack: a ring slot puts the item on the body, and
+		// an ITEM shown in it puts the item INTO that container. What this pins is the TWO things that make that
+		// happen: the host's snapshot nests the item under the container, and the outgoing transfer NAMES the
+		// container — the receiving client's placement hangs off TargetParentItemId, so a transfer without it would
+		// leave the item beside the bag while this test still saw a nested snapshot.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(900, "backpack", slot: 3)));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = HostId,
+				TargetSlotIndex = -1,
+				TargetContainerInstanceId = 900,
+			});
+
+		var transfer = TransferResult(received);
+		Assert.Equal(900UL, transfer.TargetParentItemId);
+		Assert.Equal(3, transfer.Item!.SlotIndex); // the snapshot convention: a container child carries its PARENT's slot
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.DoesNotContain(hostData.Items, i => i.InstanceId == 42); // inside the container, not beside it
+		var container = hostData.Items.Single(i => i.InstanceId == 900);
+		Assert.Contains(container.Contents, i => i.InstanceId == 42);
+		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Guest_GiveToBody_IntoAContainerTheReceiverDoesNotCarry_IsRefusedAndNothingMoves()
+	{
+		// The container's EXISTENCE is checked against the receiver's own snapshot, not against the sender's claim,
+		// and the check lives in the host path because the operand validation cannot see that snapshot. Nothing may
+		// move on either side when it fails — the giver keeps the item.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = HostId,
+				TargetSlotIndex = -1,
+				TargetContainerInstanceId = 900,
+			});
+
+		// A transfer travels as a kernel batch event rather than a NetMsg, so the refusal is read from the state it
+		// would have changed: nothing left the giver and nothing arrived.
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.Empty(characters.GetHostCharacterData()!.Items);
+	}
+
+	[Fact]
 	public void GiveToBody_ToItself_IsRefusedAndNothingMoves()
 	{
 		// The core refuses a transfer whose two ends are the same body, and the give direction reaches that check		// the same way the take direction does — so a client cannot hand an item to itself and duplicate it.

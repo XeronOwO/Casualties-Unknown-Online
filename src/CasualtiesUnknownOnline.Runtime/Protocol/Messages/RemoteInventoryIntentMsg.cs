@@ -26,7 +26,11 @@ public sealed class RemoteInventoryIntentMsg
 	[ProtoMember(3)]
 	public ulong ItemInstanceId { get; set; }
 
-	/// <summary>The destination container instance id for <see cref="RemoteInventoryIntentKind.MoveIntoContainer"/>; 0 when not used.</summary>
+	/// <summary>
+	/// The destination container instance id for <see cref="RemoteInventoryIntentKind.MoveIntoContainer"/> (a
+	/// container of the item's own owner) and for <see cref="RemoteInventoryIntentKind.GiveToBody"/> (a container
+	/// the DESTINATION body carries, named by the giver's release); 0 when not used.
+	/// </summary>
 	[ProtoMember(4)]
 	public ulong TargetContainerInstanceId { get; set; }
 
@@ -45,14 +49,24 @@ public sealed class RemoteInventoryIntentMsg
 		set => _slotSelection = value;
 	}
 
-	/// <summary>The destination body-slot index for <see cref="RemoteInventoryIntentKind.PickUpToSlot"/> and <see cref="RemoteInventoryIntentKind.SwapSlots"/>; -1 when not used.</summary>
+	/// <summary>
+	/// The destination body-slot index for <see cref="RemoteInventoryIntentKind.PickUpToSlot"/>,
+	/// <see cref="RemoteInventoryIntentKind.SwapSlots"/>, <see cref="RemoteInventoryIntentKind.TransferToBody"/>
+	/// and <see cref="RemoteInventoryIntentKind.GiveToBody"/>; -1 when not used (a container destination, or no
+	/// destination at all).
+	/// </summary>
 	public int TargetSlotIndex
 	{
 		get => _slotSelection <= 0 ? -1 : _slotSelection - 1;
 		set => _slotSelection = value >= 0 ? value + 1 : 0;
 	}
 
-	/// <summary>The destination body for <see cref="RemoteInventoryIntentKind.TransferToBody"/> — the requester's own SteamId; 0 when not used.</summary>
+	/// <summary>
+	/// The destination body for <see cref="RemoteInventoryIntentKind.TransferToBody"/> (the requester's own
+	/// SteamId, since the item belongs to the destination) and for
+	/// <see cref="RemoteInventoryIntentKind.GiveToBody"/> (the OTHER player's SteamId, since the item belongs to
+	/// the requester); 0 when not used.
+	/// </summary>
 	[ProtoMember(6)]
 	public ulong TargetBodySteamId { get; set; }
 

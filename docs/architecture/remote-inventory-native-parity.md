@@ -297,6 +297,7 @@ never a CUO semantic taxonomy, and never a mirrored result.
 | `ApplyToLimb` | `ApplyWoundItem` → `useLimbAction` / `ApplyToLimb` (R11) | item, limb |
 | `GiveToTrader` | `currentTrader.GiveItem(item)` (R12) | item, trader position |
 | `TransferToBody` | the two-sided transfer: the owner releases (`Container.UnloadItem` / `Body.DropItem`), the destination body runs R9's own sequence — drop the occupying slot item when the destination slot is held, then `Body.PickUpItem(item, slot, false)` | item, destination body, slot |
+| `GiveToBody` | the same two-sided transfer read from the other end: the ACTOR releases its own item onto the other player's displayed backpack, and the receiving client places it on its own body or into the named container, where `Container.CanHoldItem` decides whether it fits | item, destination body, slot **or** container |
 
 `TransferToBody` is the one intent with no single native call behind it, because the native world has
 no cross-player transfer: its two halves are the native release on the owner's side and the native
@@ -316,8 +317,10 @@ item-interaction members** — `UseItem`, `WearItem`, `CombineItems`, `LoadBatte
 `GiveToTrader` — together with the message's second item operand
 (`TargetItemInstanceId`) and its trader operand. **The seventh was dropped instead of added**: the
 while-dragging `favourited` store is not a remote operation at all (user ruling 2026-10-11, §3.2.9),
-so `ToggleFavourite` — carried from stage 3 until the ruling landed — is deleted with its whole path
-and the enum keeps the hole at 16. No member of the vocabulary is refused any more: every gesture
+so `ToggleFavourite` — carried from stage 3 until the ruling landed — is deleted with its whole path.
+`GiveToBody` (16) was added later, for the giver-initiated half of the custody transfer the user promoted;
+it is CUO's own gesture with no single native call behind it, and its nearest native reference is R13's
+container load for the container destination. No member of the vocabulary is refused any more: every gesture
 §2.2 and §2.3 list that IS an operation on the owner's item becomes an intent the owner replays.
 
 A slot intent's **body operand comes from the hit itself**, not from a CUO rule. An inventory button

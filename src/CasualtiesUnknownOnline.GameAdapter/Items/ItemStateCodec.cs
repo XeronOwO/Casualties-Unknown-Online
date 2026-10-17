@@ -449,13 +449,13 @@ internal static class ItemStateCodec
 	/// must be findable by id afterwards — "the corrected contents vanished on
 	/// the next action") and load it with the game's own semantics.
 	/// </summary>
-	internal static void RestoreContent(Item containerItem, Container container, CharacterItemMsg childData)
+	internal static Item? RestoreContent(Item containerItem, Container container, CharacterItemMsg childData)
 	{
 		var prefab = ItemPrefabResolver.Load(childData.ItemId);
 		if (prefab == null) // Unity object — ==
 		{
 			_log?.LogWarning("Restore: {ItemId} has no prefab — skipped.", childData.ItemId);
-			return;
+			return null;
 		}
 
 		var go = Object.Instantiate(prefab, containerItem.transform.position, Quaternion.identity);
@@ -465,7 +465,7 @@ internal static class ItemStateCodec
 		{
 			Object.Destroy(go);
 			_log?.LogWarning("Restore: {ItemId} has no Item component — skipped.", childData.ItemId);
-			return;
+			return null;
 		}
 
 		child.condition = childData.Condition;
@@ -478,6 +478,20 @@ internal static class ItemStateCodec
 		RestoreLiquids(child, childData.Liquids);
 		RestoreComponentStates(child, childData.Components);
 		RestoreContents(child, childData.Contents);
+
+		// The container's own rules decide, BEFORE the load: Container.LoadItem returns silently when CanHoldItem is
+		// false (Container.cs: "if (this.CanHoldItem(item) && …)"), so a blind load leaves a materialized item with
+		// no parent — carried by nobody, named by no report, and swept away by the next character snapshot. That is
+		// the "the item vanished" family, so the refusal is answered here and the caller decides what to do.
+		if (!container.CanHoldItem(child))
+		{
+			_log?.LogWarning("Restore: {ItemId} (id {InstanceId}) does not fit {Container} — refused by the container's own rule, not loaded.",
+				childData.ItemId, childData.InstanceId, container.name);
+			Object.Destroy(child.gameObject);
+			return null;
+		}
+
 		container.LoadItem(child);
+		return child;
 	}
 }

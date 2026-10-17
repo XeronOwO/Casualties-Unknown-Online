@@ -103,11 +103,12 @@ public enum RemoteInventoryIntentKind
 
 	/// <summary>
 	/// The giver-initiated half of the custody transfer <see cref="TransferToBody"/> already carries: the actor's
-	/// OWN item is released onto the other player's displayed backpack, and the RECEIVING client runs the native
-	/// pickup on its own body, so that body's slot, weight and tag rules decide whether it fits. It is the mirror
-	/// image of <see cref="TransferToBody"/> — there the item belongs to the destination, here it belongs to the
-	/// ACTOR — so the operands carry the destination body and the destination slot or container, and the host
-	/// reads the item as the requester's rather than as the destination's.
+	/// OWN item is released onto the other player's displayed backpack, and the RECEIVING client places it inside
+	/// its own RemoteApply scope — into a slot, or into the named container — where the game's own
+	/// <c>Container.CanHoldItem</c> decides whether it fits and the receiving side reports the refusal. It is the
+	/// mirror image of <see cref="TransferToBody"/>: there the item belongs to the destination, here it belongs
+	/// to the ACTOR, so the operands carry the destination body and the destination slot OR container, and the
+	/// host reads the item as the requester's rather than as the destination's.
 	/// </summary>
 	GiveToBody = 16,
 

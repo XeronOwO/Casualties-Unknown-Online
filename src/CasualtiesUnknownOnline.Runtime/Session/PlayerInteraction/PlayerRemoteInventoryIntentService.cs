@@ -189,7 +189,7 @@ internal sealed class PlayerRemoteInventoryIntentService(
 			// it away, and the destination body is the other player's. It runs the identical host path with the two
 			// ends swapped, so both directions of one hand-over agree about custody by construction.
 			case RemoteInventoryIntentKind.GiveToBody:
-				_take.HandleRemoteGiveToBody(requester, msg.TargetBodySteamId, msg.ItemInstanceId, msg.TargetSlotIndex);
+				_take.HandleRemoteGiveToBody(requester, msg.TargetBodySteamId, msg.ItemInstanceId, msg.TargetSlotIndex, msg.TargetContainerInstanceId);
 				break;
 			case RemoteInventoryIntentKind.ApplyToLimb:
 				_itemUse.HandleRemoteHeldItemUse(requester, owner, msg.ItemInstanceId, msg.TargetLimbIndex, msg.Amount);
@@ -293,20 +293,34 @@ internal sealed class PlayerRemoteInventoryIntentService(
 					return false;
 				}
 
-				// A ring slot names the destination directly. A container does not: putting an item INTO a container
-				// the other player carries is a different move from putting it on their body, and the host path this
-				// direction mirrors takes a body slot. Refused by name rather than landing it somewhere the player
-				// did not point at.
-				if (msg.TargetSlotIndex < 0)
+				// The destination is ONE operand, and the user's ruling names both shapes of it: a ring slot of the
+				// displayed backpack puts the item on that body, and an ITEM shown in it puts the item INTO that
+				// container. Naming both is refused rather than letting one of them silently win. Whether the named
+				// item really is a container, and whether it has room, is the RECEIVING client's native decision.
+				if (msg.TargetSlotIndex >= 0 && msg.TargetContainerInstanceId != 0)
 				{
-					refusal = msg.TargetContainerInstanceId != 0
-						? $"a container destination (item {msg.TargetContainerInstanceId}) is not carried yet: only a body slot can be named."
-						: "no destination: neither a body slot nor a container was named.";
+					refusal = $"ambiguous destination: slot {msg.TargetSlotIndex} and container {msg.TargetContainerInstanceId} were both named.";
 					return false;
 				}
 
-				// Whether that slot exists at all is the host path's own check (HandleTakeCore refuses an
-				// out-of-range destination), so it is not repeated here.
+				if (msg.TargetSlotIndex < 0 && msg.TargetContainerInstanceId == 0)
+				{
+					refusal = "no destination: neither a body slot nor a container was named.";
+					return false;
+				}
+
+				// The same self-containment rule the container moves already enforce, kept with the other operand
+				// checks rather than in the data path: it needs nothing but the message.
+				if (msg.TargetContainerInstanceId != 0 && msg.TargetContainerInstanceId == msg.ItemInstanceId)
+				{
+					refusal = $"target container {msg.TargetContainerInstanceId} is the item being given.";
+					return false;
+				}
+
+				// A slot that does not exist is NOT refused here: the host path substitutes the first empty slot and
+				// logs the substitution ("destination slot … is not free …; using slot … instead"). A container the
+				// receiver does not carry IS refused there, by name, against the receiver's own snapshot — this
+				// static check cannot see that snapshot.
 				refusal = string.Empty;
 				return true;
 			case RemoteInventoryIntentKind.ApplyToLimb:

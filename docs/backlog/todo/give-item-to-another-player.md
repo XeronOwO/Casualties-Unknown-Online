@@ -94,6 +94,20 @@ inherit. Both were answered:
 Question 3 of that list (a full or refusing destination) is already answered by the family's own rule and needs
 no decision: the receiver's native rules refuse it, with the native feedback and one observable line.
 
+### The user's ruling, restated 2026-10-18 (it is a DECISION, not a ticket-local preference)
+
+Asked again in the same words, the user answered and these are the three answers the implementation owes:
+
+1. **A release on ANY slot of the other player's displayed backpack counts as giving.** An empty slot takes the
+   item; a release onto an item shown there is decided by the RECEIVER's own container rules (so "into that
+   container when it fits" and "not into it when it does not" are both correct outcomes, and neither is a silent
+   no-op).
+2. **The receiver sees exactly what it would see picking the item up itself** — no hand-over animation is built.
+3. **When the destination cannot take it, the receiver's own rules refuse it and one observable line is written.**
+
+That ruling is the acceptance bar for rows 1–4 of the table above. It lives here, in the ticket, because it is
+this ticket's design; a goal or a session note is not where a decision is recorded.
+
 ## Where the change lands (surveyed 2026-10-17, so the next session starts from here)
 
 - **The intent vocabulary**: `RemoteInventoryIntentKind` holds `TransferToBody = 7`, which is the
@@ -282,3 +296,43 @@ then loads it with its own `Container` rules and refuses it there if it does not
 - The slot half's bookkeeping (`AdoptTransferredItem` / `CommitCarriedToHost`) records a carried item at a SLOT; a
   container destination has to record the nesting instead, or the two sides' ledgers will disagree about where the
   item is even though both show it exists.
+
+## The container half, LANDED (2026-10-18)
+
+Implemented, with the adversarial review of the frozen change set run first and its findings fixed in the same
+change:
+
+- **The operand validation stopped refusing a container destination.** `GiveToBody` now accepts exactly one
+  destination — slot OR container — and refuses both-or-neither; the self-containment check moved next to the other
+  operand checks (it needs nothing but the message). Whether the named item exists, and whether it is a container,
+  is decided against the RECEIVER's snapshot in the host core, by name.
+- **The host core nests the item and names the container.** `HandleTakeCore` grew a container operand: it finds the
+  destination in the receiver's cloned snapshot, appends the item to that item's `Contents` (never the top-level
+  list), and publishes the transfer with `TargetParentItemId` set.
+- **The ledger entry states "in a container" (-1), not a slot.** One item fact was serving two conventions: the
+  snapshot wants a container child's `SlotIndex` to be its PARENT's slot, while the transfer table and the kernel
+  read a `-1` as "carried, no slot of its own". Claiming a slot put the item in that slot on every clone — the bag
+  and its new child competing for one slot — and, for a wearable container, would have been read as a worn-limb
+  index. The message keeps the snapshot shape; the ledger copy states -1.
+- **A refusal by the container's own rules is now answered instead of losing the item.** `RestoreContent` returns
+  the item it materialized (or null), and it checks `Container.CanHoldItem` BEFORE loading, because the native
+  `LoadItem` returns silently when the weight or tag rule fails: the blind load left a materialized item with no
+  parent, carried by nobody and named by no report, and the next character snapshot swept it away — the item was
+  gone from both players. Now the receiving side logs why it did not fit and places it in a slot instead.
+- **The stale protocol docs are fixed**: `TargetParentItemId` no longer claims to be for same-owner moves only,
+  `TargetContainerInstanceId` and `TargetSlotIndex`/`TargetBodySteamId` name `GiveToBody` and the end each operand
+  belongs to, and the vocabulary page has a `GiveToBody` row instead of "the enum keeps the hole at 16".
+
+**Still owed, and why the ticket stays in `todo/`:**
+
+- **A refusal on the host still does not reach the giver.** Every refusal after the intent is sent (no such
+  container, item worn, destination not in world) lands in the host's log only; the giver's client has already
+  written a positive line and nothing follows. The existing gap now covers one more refusal, and the fix is the same
+  one: answer it on the wire (`CommandRejected`) and print it where the player acted.
+- **Row 2 is still unrun on the machine.** The code is there and the unit-level red went green, but "an item
+  released onto an item shown in the receiver's inventory enters that container and stays put" needs the live
+  reading, and so does its refusal shape (a container that cannot hold it falls back to a slot, observably).
+- **The same-owner container branch in `PlayerInteractionApply` is dead code** — it requires `From == To`, and the
+  only publisher refuses that case, so it and its "refused by the native container" log can never run. Recorded
+  rather than deleted here because deleting it moves a behaviour the family may still want to route through.
+

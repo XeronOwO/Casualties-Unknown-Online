@@ -26,7 +26,12 @@ public sealed class PlayerInventoryTransferMsg
 	[ProtoMember(3)]
 	public CharacterItemMsg? Item { get; set; }
 
-	/// <summary>For same-owner container moves: the authoritative destination container's instance id. 0 = place directly into an inventory slot.</summary>
+	/// <summary>
+	/// The authoritative destination container's instance id. 0 = place directly into an inventory slot.
+	/// On a cross-player transfer it names a container the RECEIVER carries (a handed-over item aimed at an
+	/// item shown in the receiver's inventory), and the receiving client's own container rules decide whether it
+	/// fits; on a same-owner move it names the mover's own container.
+	/// </summary>
 	[ProtoMember(4)]
 	public ulong TargetParentItemId { get; set; }
 }

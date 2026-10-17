@@ -209,10 +209,10 @@ internal sealed class WorldStateMessageService(
 
 	public void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks) => BlockStateReceived?.Invoke(blocks);
 
-	public event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived;
+	public event Action<ulong, NetVector2, float, bool, bool>? BuildingEntityDamagedReceived;
 
-	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash) =>
-		BuildingEntityDamagedReceived?.Invoke(pos, damage, playHitSound, playHitFlash);
+	public void FireBuildingEntityDamagedReceived(ulong sender, NetVector2 pos, float damage, bool playHitSound, bool playHitFlash) =>
+		BuildingEntityDamagedReceived?.Invoke(sender, pos, damage, playHitSound, playHitFlash);
 
 	public event Action<ulong, NetVector2>? BuildingEntityOpenedReceived;
 

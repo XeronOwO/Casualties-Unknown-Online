@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using Microsoft.Extensions.Logging;
@@ -20,17 +21,37 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 internal sealed class WorldBuildingEntitySync(
 	ISessionControl session,
 	IWorldControl world,
+	IEntitySyncControl entities,
 	OperationTrace trace,
 	ILogger<WorldEventSync> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
+	private readonly IEntitySyncControl _entities = entities;
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<WorldEventSync> _log = log;
 
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
 	private bool IsRemoteApply => CallContext.IsWithin(CallContext.Origin.RemoteApply);
 
+	/// <summary>Could the reporter's own body have been at the entity? An absent position is not a refusal.</summary>
+	private bool IsWithinReach(ulong sender, NetVector2 pos)
+	{
+		if (sender == _session.LocalSteamId)
+		{
+			return true; // the host's own writes never arrive through the report path
+		}
+
+		var entity = _entities.GetRemotePlayer(sender);
+		if (entity is null)
+		{
+			return true; // no position for this peer yet
+		}
+
+		var dx = entity.Position.X - pos.X;
+		var dy = entity.Position.Y - pos.Y;
+		return Mathf.Sqrt((dx * dx) + (dy * dy)) <= InteractionReach.Cells;
+	}
 	/// <summary>
 	/// Called from the Body.Attack patch after the local attack damaged a
 	/// building entity (Body.cs:1946 — the only player-vs-entity damage write,
@@ -68,8 +89,19 @@ internal sealed class WorldBuildingEntitySync(
 	/// sources (cactus collision self-damage) pass playHitSound = false because
 	/// the trigger side never played the entity hitSound.
 	/// </summary>
-	internal void OnRemoteBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash)
+	internal void OnRemoteBuildingEntityDamaged(ulong sender, NetVector2 pos, float damage, bool playHitSound, bool playHitFlash)
 	{
+		// A damage report is a gesture too: only a body within reach of the entity can have struck it. Without this the
+		// host took `damage` as stated and `entity.health -= damage` meant one report destroyed any building anywhere.
+		// The magnitude itself is still trusted (its anchor is the weapon's own damage table, which the message does not
+		// carry yet) — this bound closes WHERE, which is the half that needs nothing new on the wire.
+		if (_session.Role == SessionRole.Host && !IsWithinReach(sender, pos))
+		{
+			_log.LogWarning("[EntitySync] {Sender}'s damage report at ({X},{Y}) is further than {Reach} cells from its own body — refused: nothing applied, nothing relayed.",
+				sender, pos.X, pos.Y, InteractionReach.Cells);
+			return;
+		}
+
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var hit = Physics2D.OverlapPoint(new Vector2(pos.X, pos.Y));

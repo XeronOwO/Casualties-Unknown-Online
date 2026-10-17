@@ -75,4 +75,22 @@ public sealed class AcceptanceCommands
 		_world.SendBuildingEntityOpened(new NetVector2(x, y));
 		return $"Reported an open at ({x},{y}) as {_session.LocalSteamId}.";
 	}
+
+	[ConsoleCommand("entitydamage", "Acceptance only: publish one building-entity damage report at an offset from this client's own body.", CommandPermission.Anyone, "/entitydamage <dx> <dy> <damage>")]
+	private string EntityDamage(IReadOnlyList<string> args)
+	{
+		if (args.Count < 4
+			|| !int.TryParse(args[1], out var dx)
+			|| !int.TryParse(args[2], out var dy)
+			|| !float.TryParse(args[3], out var damage))
+		{
+			return "Usage: /entitydamage <dx> <dy> <damage>";
+		}
+
+		var local = _entities.LocalPlayer;
+		var x = (float)(Math.Round(local.Position.X) + dx);
+		var y = (float)(Math.Round(local.Position.Y) + dy);
+		_world.SendBuildingEntityDamaged(new NetVector2(x, y), damage);
+		return $"Reported {damage} damage at ({x},{y}) as {_session.LocalSteamId}.";
+	}
 }

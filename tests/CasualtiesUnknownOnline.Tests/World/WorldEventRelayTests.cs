@@ -62,9 +62,9 @@ public class WorldEventRelayTests
 		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
 		var g1Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
 		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
-		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
-		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g1Damages.Add((p.X, p.Y, d, s, f));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
+		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
+		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => g1Damages.Add((p.X, p.Y, d, s, f));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
 
 		// g1's attack (local compute) — report → host applies to its own copy
 		// (which rolls the host-side drops) and relays, the source excluded.
@@ -86,8 +86,8 @@ public class WorldEventRelayTests
 		using var w = ItemSimWorld.Create();
 		var g1Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
 		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
-		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g1Damages.Add((p.X, p.Y, d, s, f));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
+		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => g1Damages.Add((p.X, p.Y, d, s, f));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
 
 		w.Host.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new NetVector2(1f, 2f), 9f);
 		w.Driver.Tick(50);
@@ -104,8 +104,8 @@ public class WorldEventRelayTests
 		using var w = ItemSimWorld.Create();
 		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
 		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
-		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
+		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
 
 		// A Body.Attack melee hit: the source side played the native red
 		// HitFlash, so the report must carry playHitFlash=true through the star.
@@ -125,8 +125,8 @@ public class WorldEventRelayTests
 		using var w = ItemSimWorld.Create();
 		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
 		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
-		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
+		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (_, p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
 
 		// Cactus collision self-damage: the trigger side never plays the entity
 		// hitSound, so the report must carry playHitSound=false through the star.

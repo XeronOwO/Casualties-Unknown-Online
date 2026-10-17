@@ -40,11 +40,12 @@ public class BuildingEntityHitFlashReplayTests
 			?? throw new InvalidOperationException("WorldBuildingEntitySync.OnRemoteBuildingEntityDamaged not found.");
 
 		var parameters = apply.GetParameters();
-		Assert.True(parameters.Length == 4
-			&& parameters[0].ParameterType.FullName == "CasualtiesUnknownOnline.Runtime.Protocol.NetVector2"
-			&& parameters[1].ParameterType == typeof(float)
-			&& parameters[2].ParameterType == typeof(bool)
-			&& parameters[3].ParameterType == typeof(bool),
-			$"OnRemoteBuildingEntityDamaged must carry (NetVector2, float, bool playHitSound, bool playHitFlash), got {parameters.Length} parameter(s)");
+		Assert.True(parameters.Length == 5
+			&& parameters[0].ParameterType == typeof(ulong)
+			&& parameters[1].ParameterType.FullName == "CasualtiesUnknownOnline.Runtime.Protocol.NetVector2"
+			&& parameters[2].ParameterType == typeof(float)
+			&& parameters[3].ParameterType == typeof(bool)
+			&& parameters[4].ParameterType == typeof(bool),
+			$"OnRemoteBuildingEntityDamaged must carry (ulong sender, NetVector2, float, bool playHitSound, bool playHitFlash), got {parameters.Length} parameter(s)");
 	}
 }

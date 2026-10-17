@@ -42,7 +42,7 @@ internal sealed partial class WorldEventSync(
 	private readonly OperationTrace _trace = trace;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
 	private readonly WorldEntryFanout _worldBackfill = worldBackfill;
-	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, trace, log);
+	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, entities, trace, log);
 	private readonly ILogger<WorldEventSync> _log = log;
 
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>

@@ -147,10 +147,10 @@ public interface IWorldControl
 	/// <summary>A block write arrived — the message's own presentation claim rides the event, so the apply path can present a relayed break through the game's own damage roll and leave every other write silent (see <see cref="RemoteBreakPresentation"/>).</summary>
 	event Action<ulong, int, int, ushort, bool, WorldGenerationRelation>? BlockPlacedReceived;
 
-	void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash);
+	void FireBuildingEntityDamagedReceived(ulong sender, NetVector2 pos, float damage, bool playHitSound, bool playHitFlash);
 
 	/// <summary>A building entity was damaged — apply the damage to the entity at Pos. If <c>playHitSound</c> is true the receiver also replays the entity's own hitSound (attack damage); silent damage sources pass false. If <c>playHitFlash</c> is true the receiver also replays the native red HitFlash (Body.Attack only).</summary>
-	event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived;
+	event Action<ulong, NetVector2, float, bool, bool>? BuildingEntityDamagedReceived;
 
 	/// <summary>
 	/// Report a locally-opened lockable entity (instant-open/lockpick/keypad —

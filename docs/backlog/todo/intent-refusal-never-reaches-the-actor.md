@@ -62,3 +62,24 @@ answered, or the two sides do not "end up agreeing"; they end up with one side b
 | 2 | The actor's gesture is refused on the HOST's side (receiver out of world) | One line on the actor's screen naming the refusal, within the same second, and nothing moves |
 | 3 | The host's refusal of a genuinely malformed request | The actor is told, and the host's log keeps its own line |
 | 4 | A gesture the host ACCEPTS | No refusal line anywhere; the actor sees the accepted outcome only |
+
+## What landed first, and what it does not cover yet (2026-10-18)
+
+The intent SERVICE's own refusals are answered: the host's policy, an end not in world, a missing character
+snapshot, an item the owner does not carry, an invalid operand, and a first-writer-wins loss all travel back as
+`NetMsg.InventoryIntentRefused` (145) with the host's own reason sentence, and the actor's client prints it at
+Warning. Pinned by `ARefusedIntent_IsAnsweredToTheClientThatPerformedIt`, whose red was observed by sending the
+answer under a wrong discriminator.
+
+**Not covered yet, and it is the layer below:** the refusals inside `PlayerInventoryTakeService.HandleTakeCore` —
+the item is worn, the receiver carries no such container, the receiver has no empty inventory slot, the transfer is
+malformed — still answer only the host's log. The clean way to cover them is the shape this layer already has: make
+`HandleRemoteGiveToBody` return the refusal reason (null when it applied) and have the caller in
+`PlayerRemoteInventoryIntentService` send it through the same `Refuse`. That keeps ONE sender and one wording.
+
+**So row 2 of the table above is not readable yet.** Driving it needs a host-side refusal of a guest's intent, and
+the two candidates available with two clients both trip earlier: "give to oneself" is refused at the release seam
+on the actor's own client (the seam will not name the actor as the target), and taking the destination out of world
+means taking the host out, which ends the run. The container-the-receiver-does-not-carry case is the drivable one —
+and it is exactly one of the refusals listed above as not yet answered. **Cover those, and row 2 becomes drivable
+without any new lever.**

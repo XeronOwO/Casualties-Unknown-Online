@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -24,7 +25,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
 	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw,
 	IKernelProtocolControl kernelProtocol, ILayerAdvanceControl layerAdvance,
-	AnnouncedHostRules hostRules) :
+	AnnouncedHostRules hostRules, AnnouncedCheatPermissions cheatPermissions) :
 	IWorldHandlerContext,
 	IWorldKernelHandlerContext,
 	IWorldSessionHandlerContext,
@@ -44,6 +45,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ILayerAdvanceHandlerContext,
 	IKernelProtocolContext,
 	IHostRulesHandlerContext,
+	ICheatPermissionHandlerContext,
 	IEmptyHandlerContext
 {
 	public ISessionControl Session { get; } = session;
@@ -82,4 +84,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The host rules as this client last received them (member side; the announcement handler is its only writer).</summary>
 	public AnnouncedHostRules HostRules { get; } = hostRules;
+
+	/// <summary>The host's cheat-permission roster as this client last received it (member side; the announcement handler is its only writer).</summary>
+	public AnnouncedCheatPermissions CheatPermissions { get; } = cheatPermissions;
 }

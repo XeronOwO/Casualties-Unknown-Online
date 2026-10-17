@@ -61,10 +61,10 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>
 	/// Guest only: a CONSOLE command wrote one item's state (<c>/data set</c>) — the
 	/// holder's own report of a value an operator typed. It travels under its own
-	/// kind, so the host judges it against the host's own rule for the verb instead
-	/// of reading it as a native use; the row it writes is the same either way. A
-	/// host refusal comes back as its own verdict and this client settles the value
-	/// it already applied
+	/// kind, so the host judges it against its two cheat rulings (the family switch,
+	/// then the roster) instead of reading it as a native use; the row it writes is
+	/// the same either way. A host refusal comes back as its own verdict and this
+	/// client settles the value it already applied
 	/// (<see cref="ItemStateSettlement"/>).
 	/// </summary>
 	void SendItemDataWrite(ulong itemId, CharacterItemMsg item);

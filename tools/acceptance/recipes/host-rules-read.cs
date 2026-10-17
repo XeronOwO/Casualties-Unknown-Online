@@ -1,9 +1,9 @@
 // recipe: host-rules-read
 // args: none
 // serves: host-rules-replication
-// returns: ok, role, sessionActive, announced, allowRemoteInventoryTake, allowMemberItemDataWrite,
+// returns: ok, role, sessionActive, announced, allowRemoteInventoryTake, allowMemberCheatVerbs,
 //          piggybackWeightMultiplier, nativeBindingParity, permadeath, reviveFromTrader,
-//          forbidsMemberItemDataWrite, error
+//          forbidsMemberCheatVerbs, error
 //
 // Reads the host-rule surface THIS client is acting on, so an acceptance record can cite what the client
 // itself believed rather than what its log said: whether an announcement has arrived at all, the values in
@@ -26,12 +26,12 @@
 		.Append(",\"sessionActive\":").Append(control.SessionActive ? "true" : "false")
 		.Append(",\"announced\":").Append(announced.Current.HasValue ? "true" : "false")
 		.Append(",\"allowRemoteInventoryTake\":").Append(inForce.AllowRemoteInventoryTake ? "true" : "false")
-		.Append(",\"allowMemberItemDataWrite\":").Append(inForce.AllowMemberItemDataWrite ? "true" : "false")
+		.Append(",\"allowMemberCheatVerbs\":").Append(inForce.AllowMemberCheatVerbs ? "true" : "false")
 		.Append(",\"piggybackWeightMultiplier\":").Append(inForce.PiggybackWeightMultiplier.ToString(System.Globalization.CultureInfo.InvariantCulture))
 		.Append(",\"nativeBindingParity\":\"").Append(inForce.NativeBindingParity.ToString()).Append('"')
 		.Append(",\"permadeath\":").Append(inForce.Permadeath ? "true" : "false")
 		.Append(",\"reviveFromTrader\":").Append(inForce.ReviveFromTrader ? "true" : "false")
-		.Append(",\"forbidsMemberItemDataWrite\":").Append(announced.Forbids(CasualtiesUnknownOnline.Runtime.Session.HostRules.HostRuleId.AllowMemberItemDataWrite) ? "true" : "false")
+		.Append(",\"forbidsMemberCheatVerbs\":").Append(announced.Forbids(CasualtiesUnknownOnline.Runtime.Session.HostRules.HostRuleId.AllowMemberCheatVerbs) ? "true" : "false")
 		.Append('}');
 	return builder.ToString();
 }))()

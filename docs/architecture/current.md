@@ -417,7 +417,8 @@ submission of one of those is therefore refused by name at the seam instead of r
 `WireCommandSenderAuthorityGateTests` keeps that table and the `SendCommand` call sites under `src/` one
 list in both directions, so neither drift can pass unnoticed. A console verb has an identifiable wire path
 of its own (`WireCommandKind.ItemDataWrite`), which is what lets the host judge the VERB rather than only the
-state it carries: `HostRules.AllowMemberItemDataWrite` (off) reaches the seam through `IMemberCommandRules`,
+state it carries: the host's cheat SWITCH (`HostRules.AllowMemberCheatVerbs`, off) and its cheat ROSTER (the
+list `/op` edits, empty at first) reach the seam through `IMemberCommandRules`, judged in that order,
 and a refusal settles the value the writer had already applied to its own object back onto the session's
 record (`ItemStateSettlement`), keyed by the kind the answer names (`WireCommand.RefusedKind`). The native
 use has its own kind for the same reason (`WireCommandKind.ItemUse`): the host judges the USE by the item's

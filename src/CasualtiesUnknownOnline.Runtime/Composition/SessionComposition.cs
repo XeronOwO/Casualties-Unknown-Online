@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CasualtiesUnknownOnline.Runtime.Composition;
@@ -52,7 +53,17 @@ internal static class SessionComposition
 		// types, so the port is what crosses. It has no default implementation on
 		// purpose — an unanswered rule must fail at construction rather than read as
 		// consent, which is the family's default-OFF rule.
-		services.AddSingleton<IMemberCommandRules, HostRulesMemberCommandRules>();
+		// The cheat permission rides the same port beside the host rules: the FAMILY
+		// SWITCH (one for every cheat verb, not one per verb) says whether the family is
+		// open to members, and the roster says WHO may ask — a member needs both.
+		// The roster and its announced copy are session-owned state (both drop it on
+		// the session-end edge); the announcer subscribes the admission edge and is
+		// constructed with the world-entry fan-out, which takes its narrow port.
+		services.AddSingleton<CheatPermissions>();
+		services.AddSingleton<AnnouncedCheatPermissions>();
+		services.AddSingleton<CheatPermissionAnnouncer>();
+		services.AddSingleton<ICheatPermissionAnnouncement>(p => p.GetRequiredService<CheatPermissionAnnouncer>());
+		services.AddSingleton<IMemberCommandRules, SessionMemberCommandRules>();
 		// The host-rule write seam defaults to unavailable; the plugin replaces
 		// it with the BepInEx ConfigEntry-backed editor in extraRegistrations.
 		services.AddSingleton<IHostRulesEditor>(new DisabledHostRulesEditor());

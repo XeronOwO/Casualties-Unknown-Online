@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using Microsoft.Extensions.Logging;
 using CasualtiesUnknownOnline.Application.Kernel;
 
@@ -57,6 +58,7 @@ public sealed class WorldEntryFanout(
 	ICraftControl craft,
 	IKernelProtocolControl kernelProtocol,
 	IHostRulesAnnouncement hostRules,
+	ICheatPermissionAnnouncement cheatPermissions,
 	ILogger<WorldEntryFanout> log,
 	ILiveTrapLayoutSource? liveLayout = null)
 {
@@ -67,6 +69,7 @@ public sealed class WorldEntryFanout(
 	private readonly ICraftControl _craft = craft;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly IHostRulesAnnouncement _hostRules = hostRules;
+	private readonly ICheatPermissionAnnouncement _cheatPermissions = cheatPermissions;
 	private readonly ILogger<WorldEntryFanout> _log = log;
 	private readonly ILiveTrapLayoutSource? _liveLayout = liveLayout;
 
@@ -86,7 +89,10 @@ public sealed class WorldEntryFanout(
 		// member's own client checks its gestures against — the console write it would
 		// otherwise apply and have to put back, and the take affordance its member list
 		// offers. Nothing below depends on them, and a repeat costs one small message.
+		// The cheat roster is the same kind of fact (session policy, read by the
+		// member's console before it runs a cheat verb), so it rides beside them.
 		_hostRules.Announce(steamId);
+		_cheatPermissions.Announce(steamId);
 
 		// The kernel checkpoint goes FIRST because it is what carries the run
 		// baseline (RunEpoch + LayerIndex) to this member, and every absolute
@@ -140,8 +146,10 @@ public sealed class WorldEntryFanout(
 
 		// The rules are the one entry-group member that is NOT a world table: they are
 		// re-announced here so a member whose admission announcement the peer session
-		// swallowed converges on the repair cycle like every other absolute fact.
+		// swallowed converges on the repair cycle like every other absolute fact. The
+		// cheat roster is session policy of the same kind and converges the same way.
 		_hostRules.Announce(steamId);
+		_cheatPermissions.Announce(steamId);
 
 		// Same rule as the entry group: the run-baseline carrier first, then the
 		// generation-stamped absolute tables it is compared against.

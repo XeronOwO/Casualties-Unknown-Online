@@ -22,7 +22,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 /// is the member's own Admin page: its read-only branch renders every rule
 /// (<c>OnlineUiAdminDrawer</c>), so a rule's value IS read on a member's screen. Three
 /// of them are read by behaviour as well — <see cref="HostRuleId.AllowRemoteInventoryTake"/>
-/// decides the member card's take affordance, <see cref="HostRuleId.AllowMemberItemDataWrite"/>
+/// decides the member card's take affordance, <see cref="HostRuleId.AllowMemberCheatVerbs"/>
 /// decides the member's own console write, and <see cref="HostRuleId.PiggybackWeightMultiplier"/>
 /// is read by the member whose body is carrying someone
 /// (<c>CarriagePatchBridge.GetCarriedEncumbrance</c> returns for the LOCAL body only).
@@ -53,7 +53,7 @@ public static class HostRuleCensus
 		new(HostRuleId.AutoContinue, Audience.Members, HostRuleKind.Boolean, "admin.rule_auto_continue"),
 		new(HostRuleId.AllowLateJoin, Audience.Members, HostRuleKind.Boolean, "admin.rule_allow_late_join"),
 		new(HostRuleId.AllowRemoteInventoryTake, Audience.Members, HostRuleKind.Boolean, "admin.rule_allow_remote_inventory_take"),
-		new(HostRuleId.AllowMemberItemDataWrite, Audience.Members, HostRuleKind.Boolean, "admin.rule_allow_member_item_data_write"),
+		new(HostRuleId.AllowMemberCheatVerbs, Audience.Members, HostRuleKind.Boolean, "admin.rule_allow_member_cheat_verbs"),
 		new(HostRuleId.WidenRunSettings, Audience.Members, HostRuleKind.Boolean, "admin.rule_widen_run_settings"),
 		new(HostRuleId.PiggybackWeightMultiplier, Audience.Members, HostRuleKind.Number, "admin.rule_piggyback_weight"),
 		new(HostRuleId.NativeBindingParity, Audience.Members, HostRuleKind.Parity, "admin.rule_native_binding_parity"),

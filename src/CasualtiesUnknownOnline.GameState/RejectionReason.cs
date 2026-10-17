@@ -47,4 +47,15 @@ public enum RejectionReason
 	/// again.
 	/// </summary>
 	UseNotPermitted,
+
+	/// <summary>
+	/// The host's cheat-permission roster does not name this member, so the cheat
+	/// verbs (<c>/data</c>'s write verbs today, the rest of the family as it lands)
+	/// are closed to it. It is the SECOND of the host's two cheat rulings: the family
+	/// must also be open, which is refused as <see cref="HostRuleDenied"/> and judged
+	/// first — so a member needs the host's switch AND its grant. It is answered to the
+	/// sender by name because a console write has already changed the sender's local
+	/// object and the sender settles that change back on receipt.
+	/// </summary>
+	CheatPermissionDenied,
 }

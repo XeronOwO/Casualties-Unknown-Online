@@ -16,8 +16,9 @@
   principle this must not break: experience judged locally, conflict arbitration on the host, latency is never
   a decision parameter — the 2026-10-18 question may supersede it FOR PLAYER STATE, which is a ruling, not an
   implementation detail), `docs/backlog/todo/cheat-permission-and-op-commands.md` (the cheat verbs' two-sided
-  check: `/heal` is in that family, and the two tickets meet at a self-targeted verb's authority),
-  `docs/development/agent-reference.md` (the sync model), `docs/architecture/current.md` §7.1 (the authority
+  check — note that the tree's `/heal` is NOT in that family: it consumes the healer's own item, so it is the
+  player's own legitimate action, and the exclusion is recorded on that ticket; a future no-item heal verb is
+  the one that would join it), `docs/development/agent-reference.md` (the sync model), `docs/architecture/current.md` §7.1 (the authority
   inventory), `done/item-data-write-commands.md` (the same "who may state what" question on the item side)
 
 ## The user's authority question (2026-10-18) — is the value the HOST's, or the player's own report?

@@ -41,7 +41,7 @@ public sealed class HostRulesMsg
 	public bool AllowRemoteInventoryTake { get; set; }
 
 	[ProtoMember(5)]
-	public bool AllowMemberItemDataWrite { get; set; }
+	public bool AllowMemberCheatVerbs { get; set; }
 
 	[ProtoMember(6)]
 	public bool WidenRunSettings { get; set; }
@@ -84,7 +84,7 @@ public sealed class HostRulesMsg
 		AutoContinue = set.AutoContinue,
 		AllowLateJoin = set.AllowLateJoin,
 		AllowRemoteInventoryTake = set.AllowRemoteInventoryTake,
-		AllowMemberItemDataWrite = set.AllowMemberItemDataWrite,
+		AllowMemberCheatVerbs = set.AllowMemberCheatVerbs,
 		WidenRunSettings = set.WidenRunSettings,
 		PiggybackWeightMultiplier = set.PiggybackWeightMultiplier,
 		NativeBindingParity = (int)set.NativeBindingParity,
@@ -104,7 +104,7 @@ public sealed class HostRulesMsg
 		AutoContinue,
 		AllowLateJoin,
 		AllowRemoteInventoryTake,
-		AllowMemberItemDataWrite,
+		AllowMemberCheatVerbs,
 		WidenRunSettings,
 		PiggybackWeightMultiplier,
 		(NativeBindingParity)NativeBindingParity,

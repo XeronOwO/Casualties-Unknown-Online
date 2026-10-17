@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using CasualtiesUnknownOnline.Abstractions;
@@ -56,7 +55,7 @@ internal sealed class HostAdminCommands(
 			return "Usage: /kick <steamId|displayName>";
 		}
 
-		if (!TryResolveMember(args[1], out var steamId))
+		if (!CommandMemberTargets.TryResolve(_session, args[1], out var steamId))
 		{
 			return $"Unknown member '{args[1]}'.";
 		}
@@ -77,7 +76,7 @@ internal sealed class HostAdminCommands(
 			return "Usage: /ban <steamId|displayName>";
 		}
 
-		if (!TryResolveMember(args[1], out var steamId))
+		if (!CommandMemberTargets.TryResolve(_session, args[1], out var steamId))
 		{
 			return $"Unknown member '{args[1]}'.";
 		}
@@ -109,32 +108,5 @@ internal sealed class HostAdminCommands(
 		}
 
 		return $"Unbanned {steamId}.";
-	}
-
-	private bool TryResolveMember(string text, out ulong steamId)
-	{
-		if (ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out steamId))
-		{
-			return true;
-		}
-
-		if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-			&& ulong.TryParse(text.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out steamId))
-		{
-			return true;
-		}
-
-		foreach (var member in _session.Members)
-		{
-			if (!string.IsNullOrWhiteSpace(member.DisplayName)
-				&& string.Equals(member.DisplayName.Trim(), text, StringComparison.OrdinalIgnoreCase))
-			{
-				steamId = member.SteamId;
-				return true;
-			}
-		}
-
-		steamId = 0;
-		return false;
 	}
 }

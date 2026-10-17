@@ -200,18 +200,83 @@ public class CommandAdmissionIntegrationTests
 	}
 
 	/// <summary>
-	/// The host's own rule for the console write, through the production composition
-	/// root: the same report the seam admits for a native use reaches the host under
-	/// the console kind, and the host's rule — closed, which is the default a host
-	/// ships with — is what refuses it. The refusal is ANSWERED (the member's own
-	/// local object already carries the value it reported), and the row the report
+	/// The host's cheat SWITCH, through the production composition root, on the side
+	/// that matters for the user's ruling: a member that already HOLDS the grant is
+	/// still refused while the switch is closed. The refusal is ANSWERED (the member's
+	/// own local object already carries the value it reported), and the row the report
 	/// would have written is untouched.
 	/// </summary>
 	[Fact]
-	public void AConsoleWriteFromAMember_IsRefusedByTheHostRuleAndAnswered()
+	public void AConsoleWriteFromAPromotedMember_IsStillRefusedWhileTheSwitchIsClosed()
 	{
 		var gatewayLog = new RecordingLogger<KernelCommandGateway>();
 		using var w = ItemSimWorld.Create(services => services.AddSingleton<ILogger<KernelCommandGateway>>(gatewayLog));
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G1, 42), "setup: G1 owns the item");
+		Assert.True(w.GrantCheatVerbs(w.G1), "setup: the member holds the cheat grant — the switch is the only closed ground");
+
+		var before = KernelRow(w, 42).Data.Condition;
+		Report(w.G1, new WireCommand
+		{
+			Kind = WireCommandKind.ItemDataWrite,
+			Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "test_item" },
+			Data = new WireItemData { Condition = 0.01f },
+		}, WirePayloadType.ItemDataWriteCommand);
+		w.Driver.Tick(33);
+
+		Assert.Equal(before, KernelRow(w, 42).Data.Condition);
+		Assert.True(gatewayLog.HasWarning("cheat switch is closed to members"));
+		Assert.Equal(1, w.CommandRejectedFrames(w.G1));
+	}
+
+	/// <summary>
+	/// The ORDER of the two cheat rulings through the same composition root: with the
+	/// switch closed AND the roster empty the verdict must name the switch, not the
+	/// roster. Reversing the gateway's two checks would make the second assertion fail.
+	/// </summary>
+	[Fact]
+	public void AConsoleWriteFromAMemberWithNeitherGrantNorSwitch_IsRefusedByTheSwitch()
+	{
+		var gatewayLog = new RecordingLogger<KernelCommandGateway>();
+		using var w = ItemSimWorld.Create(services => services.AddSingleton<ILogger<KernelCommandGateway>>(gatewayLog));
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G1, 42), "setup: G1 owns the item");
+
+		Report(w.G1, new WireCommand
+		{
+			Kind = WireCommandKind.ItemDataWrite,
+			Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "test_item" },
+			Data = new WireItemData { Condition = 0.01f },
+		}, WirePayloadType.ItemDataWriteCommand);
+		w.Driver.Tick(33);
+
+		Assert.True(gatewayLog.HasWarning("cheat switch is closed to members"));
+		Assert.False(gatewayLog.HasWarning("cheat-permission roster does not name this member"), "the switch's ground must win when both are shut");
+		Assert.Equal(1, w.CommandRejectedFrames(w.G1));
+	}
+
+	/// <summary>
+	/// The WHO ruling, through the same composition root: a member the host's cheat
+	/// roster does not name is refused even with the switch open, the refusal is
+	/// answered (its local object already carries the value), and the row is
+	/// untouched. This is the ruling the switch sits BESIDE, not instead of.
+	/// </summary>
+	[Fact]
+	public void AConsoleWriteFromAMemberTheRosterDoesNotName_IsRefusedByTheRosterAndAnswered()
+	{
+		var gatewayLog = new RecordingLogger<KernelCommandGateway>();
+		var rules = new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowMemberCheatVerbs = true });
+		using var w = ItemSimWorld.Create(services =>
+		{
+			services.AddSingleton<ILogger<KernelCommandGateway>>(gatewayLog);
+			services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules));
+		});
 		w.Spawn(w.G1, 42, Item());
 		w.Driver.Tick(33);
 		w.Pickup(w.G1, 42, Item());
@@ -228,21 +293,22 @@ public class CommandAdmissionIntegrationTests
 		w.Driver.Tick(33);
 
 		Assert.Equal(before, KernelRow(w, 42).Data.Condition);
-		Assert.True(gatewayLog.HasWarning("the host's rule does not open the item-data write verbs"));
+		Assert.True(gatewayLog.HasWarning("cheat-permission roster does not name this member"));
 		Assert.Equal(1, w.CommandRejectedFrames(w.G1));
 	}
 
 	/// <summary>
-	/// The other side: a host whose rule is open commits exactly what the member
-	/// reported — the row a console write leaves is the row a native use leaves, which
-	/// is why the kind exists only for the rule's sake.
+	/// The other side: a host whose switch is OPEN, admitting a member it has GRANTED,
+	/// commits exactly what the member reported — the row a console write leaves is the
+	/// row a native use leaves, which is why the kind exists only for the rulings' sake.
 	/// </summary>
 	[Fact]
-	public void AConsoleWriteFromAMember_CommitsWhenTheHostRuleIsOpen()
+	public void AConsoleWriteFromAMember_CommitsWhenTheSwitchIsOpenAndTheMemberIsGranted()
 	{
-		var rules = new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowMemberItemDataWrite = true });
+		var rules = new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowMemberCheatVerbs = true });
 		using var w = ItemSimWorld.Create(services => services.Replace(
 			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules)));
+		Assert.True(w.GrantCheatVerbs(w.G1), "setup: the member holds the cheat grant");
 		w.Spawn(w.G1, 42, Item());
 		w.Driver.Tick(33);
 		w.Pickup(w.G1, 42, Item());

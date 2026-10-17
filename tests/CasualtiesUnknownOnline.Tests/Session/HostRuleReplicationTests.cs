@@ -39,20 +39,20 @@ public class HostRuleReplicationTests
 	[Fact]
 	public void AMemberWhoseOwnConfigDiffers_ReadsTheHostsRules()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = false, AllowMemberItemDataWrite = true, PiggybackWeightMultiplier = 1.5f });
-		var guestRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberItemDataWrite = false, PiggybackWeightMultiplier = 0.1f });
+		var hostRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = false, AllowMemberCheatVerbs = true, PiggybackWeightMultiplier = 1.5f });
+		var guestRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberCheatVerbs = false, PiggybackWeightMultiplier = 0.1f });
 		var (host, guest, network) = CreatePair(hostRules, guestRules);
 		Handshake(host, guest, network);
 
 		var member = guest.Services.GetRequiredService<IHostRules>();
 		Assert.False(member.AllowRemoteInventoryTake);
-		Assert.True(member.AllowMemberItemDataWrite);
+		Assert.True(member.AllowMemberCheatVerbs);
 		Assert.Equal(1.5f, member.PiggybackWeightMultiplier);
 
 		// The announcement travels one way: the host keeps enforcing its own config.
 		var onTheHost = host.Services.GetRequiredService<IHostRules>();
 		Assert.False(onTheHost.AllowRemoteInventoryTake);
-		Assert.True(onTheHost.AllowMemberItemDataWrite);
+		Assert.True(onTheHost.AllowMemberCheatVerbs);
 		Assert.Equal(1.5f, onTheHost.PiggybackWeightMultiplier);
 	}
 
@@ -84,18 +84,18 @@ public class HostRuleReplicationTests
 	[Fact]
 	public void AMemberThatThenHosts_JudgesAndAnnouncesItsOwnRules()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = true });
-		var guestRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = false });
+		var hostRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = true });
+		var guestRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = false });
 		var (host, guest, network) = CreatePair(hostRules, guestRules);
 		Handshake(host, guest, network);
-		Assert.True(guest.Services.GetRequiredService<IHostRules>().AllowMemberItemDataWrite, "the member reads the host's value");
+		Assert.True(guest.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs, "the member reads the host's value");
 
 		// The member leaves that lobby (the lobby-switch path) and opens its own.
 		guest.Steam.LobbyOwner = GuestId;
 		guest.Steam.LobbyMembers = [GuestId];
 		guest.Steam.FireLobbyLeft(LobbyId);
 		Assert.Null(guest.Services.GetRequiredService<AnnouncedHostRules>().Current);
-		Assert.False(guest.Services.GetRequiredService<IHostRules>().AllowMemberItemDataWrite, "the left session's rules must not survive it");
+		Assert.False(guest.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs, "the left session's rules must not survive it");
 
 		guest.Steam.FireLobbyCreated(SecondLobbyId);
 		Assert.Equal(SessionRole.Host, guest.Session.Role);
@@ -109,7 +109,7 @@ public class HostRuleReplicationTests
 			new SimulationDriver(guest.Clock, network, guest, joiner).TickUntil(
 				() => guest.Session.Members.Any(m => m.SteamId == JoinerId && m.Handshaken), maxMs: 5000);
 
-			Assert.False(joiner.Services.GetRequiredService<IHostRules>().AllowMemberItemDataWrite,
+			Assert.False(joiner.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs,
 				"the new host announces its own rule, not the one it was told when it was a member");
 		}
 		finally
@@ -127,7 +127,7 @@ public class HostRuleReplicationTests
 	[Fact]
 	public void AnAnnouncementWithAnUnknownParityLevel_IsRefusedWhole()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = true });
+		var hostRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = true });
 		var guestRules = Monitor(new HostRulesOptions());
 		var (host, guest, network) = CreatePair(hostRules, guestRules, swallowToGuest: NetMsg.HostRules);
 		Handshake(host, guest, network);
@@ -135,12 +135,12 @@ public class HostRuleReplicationTests
 
 		host.Services.GetRequiredService<PacketSender>().Send(GuestId, NetMsg.HostRules, new HostRulesMsg
 		{
-			AllowMemberItemDataWrite = true,
+			AllowMemberCheatVerbs = true,
 			NativeBindingParity = 7,
 		});
 
 		Assert.Null(guest.Services.GetRequiredService<AnnouncedHostRules>().Current);
-		Assert.False(guest.Services.GetRequiredService<IHostRules>().AllowMemberItemDataWrite);
+		Assert.False(guest.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs);
 	}
 
 	[Fact]
@@ -165,26 +165,26 @@ public class HostRuleReplicationTests
 	[Fact]
 	public void AMemberChangingItsOwnConfig_AnnouncesNothing()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = false, AllowMemberItemDataWrite = false });
-		var guestRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberItemDataWrite = false });
+		var hostRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = false, AllowMemberCheatVerbs = false });
+		var guestRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberCheatVerbs = false });
 		var (host, guest, network) = CreatePair(hostRules, guestRules);
 		Handshake(host, guest, network);
 
-		guestRules.Set(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberItemDataWrite = true });
+		guestRules.Set(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberCheatVerbs = true });
 
 		// The member's own entries are its own: they neither travel to the host nor
 		// overrule the set the host announced.
-		Assert.False(host.Services.GetRequiredService<IHostRules>().AllowMemberItemDataWrite);
+		Assert.False(host.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs);
 		var member = guest.Services.GetRequiredService<IHostRules>();
-		Assert.False(member.AllowMemberItemDataWrite);
+		Assert.False(member.AllowMemberCheatVerbs);
 		Assert.False(member.AllowRemoteInventoryTake);
 	}
 
 	[Fact]
 	public void AMemberWhoseAnnouncementWasSwallowed_IsPutRightOnWorldEntry()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = true });
-		var guestRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = false });
+		var hostRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = true });
+		var guestRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = false });
 		var (host, guest, network) = CreatePair(hostRules, guestRules, swallowToGuest: NetMsg.HostRules);
 
 		Handshake(host, guest, network);
@@ -195,14 +195,14 @@ public class HostRuleReplicationTests
 		guest.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		guest.Update();
 
-		Assert.True(guest.Services.GetRequiredService<IHostRules>().AllowMemberItemDataWrite);
+		Assert.True(guest.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs);
 	}
 
 	[Fact]
 	public void AMemberWhoseAnnouncementWasSwallowed_IsPutRightByTheRepairGroup()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = true });
-		var guestRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = false });
+		var hostRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = true });
+		var guestRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = false });
 		var (host, guest, network) = CreatePair(hostRules, guestRules, swallowToGuest: NetMsg.HostRules);
 
 		Handshake(host, guest, network);
@@ -211,21 +211,21 @@ public class HostRuleReplicationTests
 		network.ClearFaults(HostId, GuestId);
 		host.Services.GetRequiredService<WorldEntryFanout>().SendInSessionRepair(GuestId);
 
-		Assert.True(guest.Services.GetRequiredService<IHostRules>().AllowMemberItemDataWrite);
+		Assert.True(guest.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs);
 	}
 
 	[Fact]
 	public void AMemberThatNeverReceivedTheSet_KeepsItsOwnRulesAndSkipsTheLocalCheck()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = false });
-		var guestRules = Monitor(new HostRulesOptions { AllowMemberItemDataWrite = true });
+		var hostRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = false });
+		var guestRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = true });
 		var (host, guest, network) = CreatePair(hostRules, guestRules, swallowToGuest: NetMsg.HostRules);
 
 		Handshake(host, guest, network);
 
 		var member = guest.Services.GetRequiredService<IHostRules>();
-		Assert.True(member.AllowMemberItemDataWrite, "with nothing announced the member reads its own config — the pre-replication behaviour");
-		Assert.False(guest.Services.GetRequiredService<AnnouncedHostRules>().Forbids(HostRuleId.AllowMemberItemDataWrite),
+		Assert.True(member.AllowMemberCheatVerbs, "with nothing announced the member reads its own config — the pre-replication behaviour");
+		Assert.False(guest.Services.GetRequiredService<AnnouncedHostRules>().Forbids(HostRuleId.AllowMemberCheatVerbs),
 			"no announcement means the local check is skipped, never a guess at what the host meant");
 	}
 

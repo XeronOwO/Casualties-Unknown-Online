@@ -366,4 +366,13 @@ public enum NetMsg : byte
 	// actor's own client already made.
 	InventoryIntentRefused = 145, // host → requester: the intent sent was refused, and the host's own reason
 
+	// The host's cheat-permission roster, announced ABSOLUTE: who may run the cheat verbs (/data's write verbs,
+	// /give, and the spawn/heal stages when they land). The host's own standing is the online switch and is never on
+	// this list. It rides the same three edges as HostRules — admission, world entry, the in-session repair group —
+	// plus every grant/revoke while the session runs, because the list is what a member's own console refuses a
+	// cheat verb against: a closed permission costs no round trip, and the operator reads the reason where they
+	// typed the verb. Like the rules it is an interception layer, never the verdict: the host judges every request
+	// that does arrive against its own list, and answers a refusal.
+	CheatPermissions = 146, // host → member: the cheat-permission list, absolute (admission, world entry, repair cycle, and every grant/revoke)
+
 }

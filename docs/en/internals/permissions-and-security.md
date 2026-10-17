@@ -64,13 +64,18 @@ handler itself:
   `src/CasualtiesUnknownOnline.Application/Kernel/KernelCommandGateway.cs`, which owns "who may submit
   this" for the mapped path. It checks, in a fixed order, that the command's actor is the submitting
   member, that the declared authority kind is one a member may author (`WireCommandAuthorityPolicy` is
-  that per-kind table), that a verb the host's own rule owns is open — the console item-data write
-  (`/data set`), which `HostRules`' `AllowMemberItemDataWrite` leaves closed until the host opens it —
-  and that an item report names an item the member may speak for: a world item, or the member's own
-  carried, installed or contained one. That item rule covers a destroy report, a state report and a
-  container sync's parent and children alike. A refused console write is the one verdict that must reach
-  its sender: the writer applied the value to its own object before reporting it, so the client puts the
-  recorded value back and prints the refusal where the operator typed the command.
+  that per-kind table), that the member may run a cheat verb — two host rulings, judged in this order:
+  the cheat SWITCH must be open to members (`HostRulesOptions.AllowMemberCheatVerbs`, off by default) and
+  then the host's cheat ROSTER must name the member (`CheatPermissions`, edited by `/op` and `/deop`, empty
+  in a fresh session). Both are announced to every member, so the member's own console refuses the same
+  verb first — the switch's sentence or the roster's, each naming its own remedy — and the host answers a
+  refusal by the ground it was made on. The host's own verbs need neither ruling: its standing is the
+  online session. After the two rulings the seam asks the item rules: an item report must name an item the
+  member may speak for — a world item, or the member's own carried, installed or contained one. That rule
+  covers a destroy report, a state report and a container sync's parent and children alike. A refused
+  console write is the one verdict that must reach its sender: the writer applied the value to its own
+  object before reporting it, so the client puts the recorded value back and prints the refusal where the
+  operator typed the command.
 
 The seam's scope is part of its contract: it "decides ELIGIBILITY only (who may submit), never what
 happens to another player's body, reach or timing… the kernel still owns every domain verdict". The
@@ -118,10 +123,12 @@ box.
   What is NOT in place is a check on the item's NUMBERS: the condition, liquids and components a member
   reports remain the holder's own report by design, because the game's own state has no anchor to compare
   them with (condition can be set to any value and is raised on at least one path, and a use action may add
-  liquid). A rule over a verb (the console write's `AllowMemberItemDataWrite`) decides whether the verb runs
-  and never whether a number can be written into the record. The accepted limitation is stated on
+  liquid). The cheat SWITCH (`AllowMemberCheatVerbs`) decides whether the family is open to members at all,
+  and the cheat ROSTER beside it decides only who MAY ask — neither is an anti-cheat boundary, and neither
+  checks a number. The accepted limitation is stated on
   the judgment side too: a client that lies about its own reach or its own body can reach the host ungated,
-  and closing that is a later hardening pass.
+  and closing that is a later hardening pass. The roster carries one more recorded limit: an IP-direct
+  session has no account identity to key a grant on, so it grants nobody and announces an empty list.
 - **Save contents.** There is no anti-cheat on what a world archive holds.
 - **A mod that misbehaves inside the surface it was granted.** Once a mod has `SendNetworkMessage`, the
   channel checks size and rate, not meaning — the value's shape is validated, and its MEANING stays the mod's own.

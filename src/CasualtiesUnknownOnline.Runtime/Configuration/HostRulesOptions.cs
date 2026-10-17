@@ -54,28 +54,41 @@ public sealed class HostRulesOptions
 	public float PiggybackWeightMultiplier { get; set; } = 0.8f;
 
 	/// <summary>
-	/// Host-only: whether a member may run the item-data write verbs
-	/// (<c>/data set</c> and the verbs that follow it). OFF by default, because the verb
-	/// edits recorded item state directly and the family is deliberately "not a cheating
-	/// surface by default" (<c>todo/item-and-entity-data-commands.md</c>).
+	/// Host-only: the CHEAT SWITCH of the family — whether members may run the cheat
+	/// verbs at all (<c>/data</c>'s write verbs today, <c>/give</c> as it lands). OFF
+	/// by default, because the family is deliberately "not a cheating surface by
+	/// default" (<c>todo/item-and-entity-data-commands.md</c>).
+	///
 	/// <para>
-	/// The grant follows what a member may REPORT on at all rather than what it happens to
-	/// hold: its own carried, installed or contained item, or world content — the same item
-	/// set a native use may report, because a console write is that same kind of fact (see
-	/// <c>KernelCommandGateway.MayReportOn</c>). It is a rule over the VERB, never a check
-	/// on the value: the pre-release model still trusts a member's report of its own item's
-	/// state, and questioning the state itself is S3's stage
-	/// (<c>todo/validation-and-source-checks.md</c>).
+	/// It is one of TWO host rulings a member's cheat verb needs, and it is the broader
+	/// one: this switch says the family is open, and the cheat roster
+	/// (<c>CheatPermissions</c>, edited by <c>/op</c> and <c>/deop</c>) says WHO may
+	/// ask. A granted member is refused while the switch is off — the user's
+	/// 2026-10-18 ruling — and the switch alone admits nobody; the host's own verbs
+	/// bypass both, because its standing is the online switch.
 	/// </para>
+	///
 	/// <para>
-	/// The rule is enforced on the HOST, at the admission seam: a member's write reaches it
-	/// as a wire command of its own kind and the member's own console cannot be the gate. A
-	/// refused write is answered by name, and the member's client puts its already-changed
-	/// local value back — with this off, a member's <c>/data set</c> therefore reads the
-	/// value it wrote, then reads the refusal and the restored value in the same console.
+	/// The switch follows what a member may REPORT on at all rather than what it
+	/// happens to hold: its own carried, installed or contained item, or world
+	/// content — the same item set a native use may report, because a console write is
+	/// that same kind of fact (see <c>KernelCommandGateway.MayReportOn</c>). It is a
+	/// rule over the VERB, never a check on the value: the pre-release model still
+	/// trusts a member's report of its own item's state, and questioning the state
+	/// itself is S3's stage (<c>todo/validation-and-source-checks.md</c>).
+	/// </para>
+	///
+	/// <para>
+	/// It is enforced on BOTH sides: the member's own console refuses a cheat verb
+	/// while the announced switch is off (no round trip, the reason where the operator
+	/// typed), and the HOST's admission seam judges it again — the member's console can
+	/// never be the gate. A refused request is answered by name, and the member's client
+	/// puts its already-changed local value back — with this off, a member's
+	/// <c>/data set</c> therefore reads the value it wrote, then reads the refusal and
+	/// the restored value in the same console.
 	/// </para>
 	/// </summary>
-	public bool AllowMemberItemDataWrite { get; set; }
+	public bool AllowMemberCheatVerbs { get; set; }
 
 	/// <summary>
 	/// Host-only: how a member's declared native binding is judged when it differs

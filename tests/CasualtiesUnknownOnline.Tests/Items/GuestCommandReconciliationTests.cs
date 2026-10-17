@@ -139,9 +139,10 @@ public class GuestCommandReconciliationTests
 		// own absolute item facts carry ITS state, so a lost write is overwritten rather
 		// than corrected and the operator's act vanishes without a trace. This is the ONE
 		// re-reportable kind whose loss an operator feels rather than sees healed.
-		var rules = new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowMemberItemDataWrite = true });
+		var rules = new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowMemberCheatVerbs = true });
 		using var w = ItemSimWorld.Create(services => services.Replace(
 			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules)));
+		Assert.True(w.GrantCheatVerbs(w.G1), "setup: the member holds the cheat grant, so the host commits the write this case re-delivers");
 		SpawnWorldItem(w, 42);
 
 		SwallowKernelChannel(w, w.G1, w.Host);

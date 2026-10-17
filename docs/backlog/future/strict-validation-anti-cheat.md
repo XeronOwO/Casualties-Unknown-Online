@@ -25,8 +25,8 @@ host-only kind is refused by name at the seam; and the seam gained the item-repo
 same ticket names (a member may report on a world item or on its own carried/installed/contained item,
 never on one the record puts in another member's hands — a destroy report, a state report and a
 container sync alike). S1b landed the same day: the console item-data write has a wire kind of its own,
-the host's `HostRules.AllowMemberItemDataWrite` (off) is the seam's verdict on it, and a refusal settles
-the value the writer had already applied back onto the session's record.
+the host's cheat switch (`HostRules.AllowMemberCheatVerbs`, off) and its cheat roster are the seam's rulings
+on it, and a refusal settles the value the writer had already applied back onto the session's record.
 
 What is still deferred, and lives in the ticket's own stages: S2 landed 2026-10-16 (a break report's drops
 are bounded by the destroyed block's own table, and a building-death report's by the dying buildings' own

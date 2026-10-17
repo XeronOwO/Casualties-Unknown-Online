@@ -19,7 +19,7 @@ public enum HostRuleId
 	AutoContinue,
 	AllowLateJoin,
 	AllowRemoteInventoryTake,
-	AllowMemberItemDataWrite,
+	AllowMemberCheatVerbs,
 	WidenRunSettings,
 	PiggybackWeightMultiplier,
 	NativeBindingParity,

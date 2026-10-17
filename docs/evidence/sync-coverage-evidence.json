@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1068,
+  "count": 1074,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -5918,7 +5918,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "docs/evidence/sync-cadence-measurements.md",
-      "quote": "| One repair pass, measured in the simulation world | 2 462 bytes"
+      "quote": "| One repair pass, measured in the simulation world | 2 463 bytes"
     },
     {
       "cluster": "cadence-review",
@@ -5948,7 +5948,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
-      "quote": "Assert.Equal(2_462L, answerBytes);"
+      "quote": "Assert.Equal(2_463L, answerBytes);"
     },
     {
       "cluster": "cadence-review",
@@ -6344,7 +6344,7 @@
       "cluster": "items",
       "row": "I10",
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelCommandGateway.cs",
-      "quote": "\"the host's rule does not open the item-data write verbs to members\");"
+      "quote": "\"the host's cheat switch is closed to members, so no member may run the console write verbs\");"
     },
     {
       "cluster": "items",
@@ -6397,8 +6397,8 @@
     {
       "cluster": "host-rules",
       "row": "H1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Commands/ItemDataCommands.cs",
-      "quote": "_hostRules.Forbids(HostRuleId.AllowMemberItemDataWrite)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Commands/CheatVerbGate.cs",
+      "quote": "_hostRules.Forbids(HostRuleId.AllowMemberCheatVerbs)"
     },
     {
       "cluster": "host-rules",
@@ -6411,6 +6411,42 @@
       "row": "H1",
       "file": "src/CasualtiesUnknownOnline.Plugin/OnlineUiAdminDrawer.cs",
       "quote": "foreach (var row in HostRuleCensus.MemberRows)"
+    },
+    {
+      "cluster": "cheat-permissions",
+      "row": "H2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Permissions/CheatPermissionAnnouncer.cs",
+      "quote": "_session.MemberAdded += OnMemberAdded;"
+    },
+    {
+      "cluster": "cheat-permissions",
+      "row": "H2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Permissions/CheatPermissionAnnouncer.cs",
+      "quote": "_sender.Send(steamId, NetMsg.CheatPermissions, CheatPermissionsMsg.From(granted));"
+    },
+    {
+      "cluster": "cheat-permissions",
+      "row": "H2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs",
+      "quote": "_cheatPermissions.Announce(steamId);"
+    },
+    {
+      "cluster": "cheat-permissions",
+      "row": "H2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/CheatPermissionsHandler.cs",
+      "quote": "if (!ctx.CheatPermissions.Apply(granted))"
+    },
+    {
+      "cluster": "cheat-permissions",
+      "row": "H2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Permissions/AnnouncedCheatPermissions.cs",
+      "quote": "return _current is not null && Array.IndexOf(_current, steamId) < 0;"
+    },
+    {
+      "cluster": "cheat-permissions",
+      "row": "H2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Permissions/CheatPermissions.cs",
+      "quote": "This session is IP-direct: a peer is known by the logical id its own connection registered"
     }
   ]
 }

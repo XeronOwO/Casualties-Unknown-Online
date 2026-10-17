@@ -85,8 +85,8 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
 		var allowRemoteInventoryTake = config.Bind("HostRules", "AllowRemoteInventoryTake", true,
 			new ConfigDescription("True = other players may take carried items from a remote player's inventory (unconscious/dead loot remains the default rule; false disables cross-player inventory take entirely)."));
-		var allowMemberItemDataWrite = config.Bind("HostRules", "AllowMemberItemDataWrite", false,
-			new ConfigDescription("Host-only: true = a member may run the item-data write verbs (/data set) on an item it may report on — its own carried/installed/contained item, or world content. The host admits the report and records it like any other item fact. False (default) = the write is refused by name, the reason is named back to the member, and the member's client puts back the value it had already applied."));
+		var allowMemberCheatVerbs = config.Bind("HostRules", "AllowMemberCheatVerbs", false,
+			new ConfigDescription("Host-only: the cheat switch — true = members may run the cheat verbs (/data's write verbs, /give) at all. It is one of TWO rulings: the member must ALSO be on this host's cheat roster (granted with /op). False (default) = every member's cheat verb is refused by name, the reason is named back, and the member's client puts back the value it had already applied. The host's own verbs ignore both: its standing is the online switch."));
 		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
 			new ConfigDescription("Host-only: widen the native custom run-settings sliders in co-op so the run can be tuned for the actual lobby size. Values still ride the existing world-start params."));
 		var piggybackWeight = config.Bind("HostRules", "PiggybackWeightMultiplier", 0.8,
@@ -114,7 +114,7 @@ internal static class PluginDependencyRegistrar
 					AutoContinue = autoContinue.Value,
 					AllowLateJoin = allowLateJoin.Value,
 					AllowRemoteInventoryTake = allowRemoteInventoryTake.Value,
-					AllowMemberItemDataWrite = allowMemberItemDataWrite.Value,
+					AllowMemberCheatVerbs = allowMemberCheatVerbs.Value,
 					RadiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor.Value,
 					SpectatorFreeFly = spectatorFreeFly.Value,
 					SpectateWhileUnconscious = spectateWhileUnconscious.Value,
@@ -125,7 +125,7 @@ internal static class PluginDependencyRegistrar
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
 				allowRemoteInventoryTake.Definition,
-				allowMemberItemDataWrite.Definition,
+				allowMemberCheatVerbs.Definition,
 				widenRunSettings.Definition, piggybackWeight.Definition,
 				radiationLineStopsAboveTheFloor.Definition,
 				spectatorFreeFly.Definition,
@@ -192,7 +192,7 @@ internal static class PluginDependencyRegistrar
 			autoContinue,
 			allowLateJoin,
 			allowRemoteInventoryTake,
-			allowMemberItemDataWrite,
+			allowMemberCheatVerbs,
 			widenRunSettings,
 			piggybackWeight,
 			nativeBindingParity,

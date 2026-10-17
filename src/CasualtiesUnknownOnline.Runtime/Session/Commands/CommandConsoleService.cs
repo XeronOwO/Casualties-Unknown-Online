@@ -11,6 +11,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -70,6 +71,9 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IItemControl itemControl,
 		ItemStateSettlement itemStateSettlement,
 		AnnouncedHostRules hostRules,
+		AnnouncedCheatPermissions cheatPermissions,
+		CheatPermissions cheatRoster,
+		ICheatPermissionAnnouncement cheatAnnouncement,
 		ISpectatorControl? spectator = null)
 	{
 		_chat = chat;
@@ -106,9 +110,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_itemStateSettlement.Refused += OnItemDataWriteRefused;
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
+		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
 		_commands.AddBuiltIns(new SpectatorCommands(session, entities, spectator, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
-		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, localItems, itemControl, log, _hostRules, new ItemDataTargets(kernelItems, session, entities, localItems)));
+		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, localItems, itemControl, log, new CheatVerbGate(session, _hostRules, cheatPermissions, log), new ItemDataTargets(kernelItems, session, entities, localItems)));
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 
@@ -487,9 +492,9 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 	private IReadOnlyList<CommandSuggestion> SuggestFor(CommandArgumentKind kind, string prefix) => kind switch
 	{
-		CommandArgumentKind.CommandName => SuggestCommandNames(prefix),
-		CommandArgumentKind.PlayerOrSteamId => SuggestMembers(prefix),
-		CommandArgumentKind.SteamId => SuggestSteamIds(prefix),
+		CommandArgumentKind.CommandName => CommandSuggestions.CommandNames(_commands.All, prefix),
+		CommandArgumentKind.PlayerOrSteamId => CommandSuggestions.Members(_session, prefix),
+		CommandArgumentKind.SteamId => CommandSuggestions.BannedSteamIds(_hostBans, prefix),
 		CommandArgumentKind.Selector => CommandSelectorSuggestions.Suggest(prefix),
 		CommandArgumentKind.Json => [.. JsonSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
 		CommandArgumentKind.ResourceLocation => SuggestResourceLocations(prefix),
@@ -505,60 +510,6 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private IReadOnlyList<CommandSuggestion> SuggestResourceLocations(string prefix) =>
 		[.. _resourceLocations.Suggest(prefix)
 			.Select(entry => new CommandSuggestion(entry.Id.ToString(), $"{entry.Kind} · {entry.DisplayName}"))];
-
-	private IReadOnlyList<CommandSuggestion> SuggestCommandNames(string prefix) =>
-		[.. _commands.All
-			.Where(c => c.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			.Select(c => new CommandSuggestion(c.Name, c.Description))
-			.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
-
-	private IReadOnlyList<CommandSuggestion> SuggestMembers(string prefix)
-	{
-		var result = new List<CommandSuggestion>();
-		foreach (var member in _session.Members)
-		{
-			if (!string.IsNullOrWhiteSpace(member.DisplayName)
-				&& member.DisplayName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			{
-				result.Add(new CommandSuggestion(member.DisplayName, "Session member display name"));
-			}
-
-			var decimalId = member.SteamId.ToString(CultureInfo.InvariantCulture);
-			if (decimalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			{
-				result.Add(new CommandSuggestion(decimalId, "SteamId"));
-			}
-
-			var hexId = "0x" + member.SteamId.ToString("X", CultureInfo.InvariantCulture);
-			if (hexId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			{
-				result.Add(new CommandSuggestion(hexId, "SteamId (hex)"));
-			}
-		}
-
-		return result;
-	}
-
-	private IReadOnlyList<CommandSuggestion> SuggestSteamIds(string prefix)
-	{
-		var result = new List<CommandSuggestion>();
-		foreach (var steamId in _hostBans.BannedSteamIds)
-		{
-			var decimalId = steamId.ToString(CultureInfo.InvariantCulture);
-			if (decimalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			{
-				result.Add(new CommandSuggestion(decimalId, "Banned SteamId"));
-			}
-
-			var hexId = "0x" + steamId.ToString("X", CultureInfo.InvariantCulture);
-			if (hexId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			{
-				result.Add(new CommandSuggestion(hexId, "Banned SteamId (hex)"));
-			}
-		}
-
-		return result;
-	}
 
 	public void ResetSessionState()
 	{

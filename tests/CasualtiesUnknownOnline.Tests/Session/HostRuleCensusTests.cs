@@ -144,7 +144,7 @@ public class HostRuleCensusTests
 		AutoContinue: true,
 		AllowLateJoin: false,
 		AllowRemoteInventoryTake: false,
-		AllowMemberItemDataWrite: true,
+		AllowMemberCheatVerbs: true,
 		WidenRunSettings: false,
 		PiggybackWeightMultiplier: 1.25f,
 		NativeBindingParity: NativeBindingParity.Require,

@@ -6,6 +6,8 @@
   explains why it works this way; the records behind it are
   [`../docs/architecture/current.md`](../docs/architecture/current.md) and
   [`../docs/decisions/active.md`](../docs/decisions/active.md).
-- Red lines: only `GameAdapter` references the game assemblies; a wire change bumps
-  `ProtocolVersion.Current` in the same change; business logic references `Abstractions` only.
+- Red lines: only `GameAdapter` references the game assemblies; a wire change follows decision 241 (before the
+  first official release `ProtocolVersion.Current` is the frozen baseline and does NOT move — the change is
+  recorded by its commit, its ticket and the sync-coverage matrix; from that release on, each behavioural wire
+  change bumps it in the same change); business logic references `Abstractions` only.
 - Build, gates and commit rules: [`../AGENTS.md`](../AGENTS.md).

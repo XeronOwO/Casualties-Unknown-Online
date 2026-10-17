@@ -33,8 +33,8 @@ public interface IHostRules
 	/// <summary>Host-only: other players may take carried items from a remote player's inventory.</summary>
 	bool AllowRemoteInventoryTake { get; }
 
-	/// <summary>Host-only: a member may run the item-data write verbs (<c>/data set</c>) on an item it may report on — its own carried/installed/contained item, or world content. Off by default, and enforced on the host at the admission seam.</summary>
-	bool AllowMemberItemDataWrite { get; }
+	/// <summary>Host-only: the cheat switch — members may run the cheat verbs (<c>/data</c>'s write verbs, <c>/give</c>) at all, and only those this host's roster (<c>/op</c>) also names. Off by default, and enforced on both sides: the member's own console against the announced value, the host at the admission seam.</summary>
+	bool AllowMemberCheatVerbs { get; }
 
 	/// <summary>Host-only: widen the native custom run-settings slider ranges in co-op for lobby-size tuning.</summary>
 	bool WidenRunSettings { get; }

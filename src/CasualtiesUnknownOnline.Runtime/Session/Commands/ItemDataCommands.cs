@@ -7,7 +7,6 @@ using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -35,18 +34,19 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 ///
 /// Permission is <see cref="CommandPermission.Anyone"/> because the READ is open —
 /// another player's carried items are already visible in the remote inventory view —
-/// and the WRITE is judged by the HOST rather than by the console: a write is the
-/// holder's own report, so every client may type it, and the host's own rule decides
-/// whether a member's write lands (<c>HostRulesOptions.AllowMemberItemDataWrite</c>,
-/// off by default).
+/// and the WRITE is judged on both sides: the acting client's cheat gate
+/// (<see cref="CheatVerbGate"/>) refuses a verb while the host's announced cheat
+/// switch is closed or its announced roster does not name this client, and the host
+/// judges every report that reaches it against its own switch and roster (the
+/// admission seam's two rulings, both closed by default).
 ///
 /// <para>
-/// A MEMBER's client refuses the verb before anything is applied when it holds the
-/// host's announced rules and they say the verb is closed
-/// (<see cref="AnnouncedHostRules.Forbids"/>): the write used to be applied locally and
+/// A MEMBER's client refuses the verb before anything is applied when the host's
+/// announced rulings close it — the cheat switch or its own roster entry
+/// (<see cref="CheatVerbGate"/>): the write used to be applied locally and
 /// reported first, so on a host whose rule is closed the operator watched the value
 /// appear and go back. That refusal is an INTERCEPTION, never the verdict — it fires
-/// only on an announced rule, so a member whose belief is stale, lost or absent applies
+/// only on an announced value, so a member whose belief is stale, lost or absent applies
 /// and reports as it always did and the host's own answer settles the record.
 /// </para>
 /// </summary>
@@ -56,7 +56,7 @@ internal sealed class ItemDataCommands(
 	ILocalItemAccess localItems,
 	IItemControl itemControl,
 	ILogger log,
-	AnnouncedHostRules hostRules,
+	CheatVerbGate cheatVerbs,
 	ItemDataTargets targets)
 {
 	/// <summary>The verb list a caller reads before it knows which usage line it needs: an operator typing a bare <c>/data</c> has to learn that merge and remove exist.</summary>
@@ -78,7 +78,7 @@ internal sealed class ItemDataCommands(
 	private readonly ILocalItemAccess _localItems = localItems;
 	private readonly IItemControl _itemControl = itemControl;
 	private readonly ILogger _log = log;
-	private readonly AnnouncedHostRules _hostRules = hostRules;
+	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 	private readonly ItemDataTargets _targets = targets;
 
 	[ConsoleCommand("data", "Read or write one item's recorded state: condition, liquids, component fields and contents.", CommandPermission.Anyone, Verbs + " | " + ItemDataQueryParser.Usage + " | " + ItemDataWriteParser.Usage, CommandArgumentKind.Text)]
@@ -253,27 +253,16 @@ internal sealed class ItemDataCommands(
 	/// </summary>
 	private string Write(string verb, IReadOnlyList<ItemDataWrite> writes)
 	{
-		if (!_session.SessionActive)
+		// The cheat family's front-end check comes FIRST, and it answers BOTH of the
+		// host's rulings: the switch (announced with the host rules — a closed switch
+		// refuses the family for every member, granted or not) and the roster (announced
+		// separately — a member the host has not granted). The host's own standing is the
+		// online switch, so a session-less client and the host need no grant at all. With
+		// nothing announced the gate passes and the host's own verdict is the only one,
+		// exactly as before the rulings were replicated.
+		if (_cheatVerbs.TryRefuse("data " + verb, out var cheatRefusal))
 		{
-			// The report the write ends with is session-scoped (both routes are guarded on
-			// an active session), so without one the local object would change and the
-			// record would not — a silent divergence the answer must not call "reported".
-			_log.LogWarning("[Command] /data {Verb} refused: no active session ({Role}).", verb, _session.Role);
-			return "No active session — a write reports into the session's record, so it needs one (a solo world keeps no item record for this verb to change).";
-		}
-
-		if (_session.Role == SessionRole.Guest && _hostRules.Forbids(HostRuleId.AllowMemberItemDataWrite))
-		{
-			// The host has announced that a member's item-data write does not land, so it
-			// is refused HERE — before the value is written into the local object and
-			// reported — instead of being applied, refused and put back. The branch is
-			// reachable only on an ANNOUNCED rule: with no announcement this client
-			// applies and reports as it always did and the host's answer settles it, so
-			// the interception can never be the reason a write the host would accept is
-			// refused.
-			_log.LogInformation("[Command] /data {Verb} refused locally: the host's announced rule {Rule}=false forbids a member's item-data write; nothing was applied here.",
-				verb, HostRuleId.AllowMemberItemDataWrite);
-			return $"Refused locally: the host's rule {HostRuleId.AllowMemberItemDataWrite} is off, so a member's item-data write does not land (the host announces its rules to this client). Nothing was written here.";
+			return cheatRefusal;
 		}
 
 		var all = new List<ItemState>(_items.QueryItems().Values);

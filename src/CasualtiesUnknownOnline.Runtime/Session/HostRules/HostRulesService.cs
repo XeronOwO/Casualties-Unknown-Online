@@ -19,7 +19,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 /// host's own verdict is the only one. The host never receives an announcement (the
 /// wire direction refuses one), so the host's enforcement paths
 /// (<c>HandshakeHandler</c>, <c>PlayerInventoryTakeService</c>,
-/// <c>HostRulesMemberCommandRules</c>) keep reading the host's own config unchanged.
+/// <c>SessionMemberCommandRules</c>) keep reading the host's own config unchanged.
 /// </para>
 ///
 /// <para>
@@ -53,7 +53,7 @@ public sealed class HostRulesService(
 
 	public bool AllowRemoteInventoryTake => Current.AllowRemoteInventoryTake;
 
-	public bool AllowMemberItemDataWrite => Current.AllowMemberItemDataWrite;
+	public bool AllowMemberCheatVerbs => Current.AllowMemberCheatVerbs;
 
 	public bool WidenRunSettings => Current.WidenRunSettings;
 

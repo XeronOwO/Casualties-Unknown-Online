@@ -18,7 +18,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _autoContinue;
 	private readonly ConfigEntry<bool> _allowLateJoin;
 	private readonly ConfigEntry<bool> _allowRemoteInventoryTake;
-	private readonly ConfigEntry<bool> _allowMemberItemDataWrite;
+	private readonly ConfigEntry<bool> _allowMemberCheatVerbs;
 	private readonly ConfigEntry<bool> _widenRunSettings;
 	private readonly ConfigEntry<double> _piggybackWeight;
 	private readonly ConfigEntry<string> _nativeBindingParity;
@@ -38,7 +38,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> autoContinue,
 		ConfigEntry<bool> allowLateJoin,
 		ConfigEntry<bool> allowRemoteInventoryTake,
-		ConfigEntry<bool> allowMemberItemDataWrite,
+		ConfigEntry<bool> allowMemberCheatVerbs,
 		ConfigEntry<bool> widenRunSettings,
 		ConfigEntry<double> piggybackWeight,
 		ConfigEntry<string> nativeBindingParity,
@@ -57,7 +57,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_autoContinue = autoContinue;
 		_allowLateJoin = allowLateJoin;
 		_allowRemoteInventoryTake = allowRemoteInventoryTake;
-		_allowMemberItemDataWrite = allowMemberItemDataWrite;
+		_allowMemberCheatVerbs = allowMemberCheatVerbs;
 		_widenRunSettings = widenRunSettings;
 		_piggybackWeight = piggybackWeight;
 		_nativeBindingParity = nativeBindingParity;
@@ -80,7 +80,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 
 	internal void SetAllowRemoteInventoryTake(bool value) => Set(_allowRemoteInventoryTake, value);
 
-	internal void SetAllowMemberItemDataWrite(bool value) => Set(_allowMemberItemDataWrite, value);
+	internal void SetAllowMemberCheatVerbs(bool value) => Set(_allowMemberCheatVerbs, value);
 
 	internal void SetWidenRunSettings(bool value) => Set(_widenRunSettings, value);
 
@@ -118,8 +118,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 				return TrySetBool(_allowLateJoin, value, out error);
 			case "allowremoteinventorytake":
 				return TrySetBool(_allowRemoteInventoryTake, value, out error);
-			case "allowmemberitemdatawrite":
-				return TrySetBool(_allowMemberItemDataWrite, value, out error);
+			case "allowmembercheatverbs":
+				return TrySetBool(_allowMemberCheatVerbs, value, out error);
 			case "widenrunsettings":
 				return TrySetBool(_widenRunSettings, value, out error);
 			case "piggybackweightmultiplier":

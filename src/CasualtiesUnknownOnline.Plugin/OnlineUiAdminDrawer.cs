@@ -40,7 +40,7 @@ internal static class OnlineUiAdminDrawer
 			BuildEditableRule(ctx, page, "admin.rule_auto_continue", rules.AutoContinue, editor.SetAutoContinue);
 			BuildEditableRule(ctx, page, "admin.rule_allow_late_join", rules.AllowLateJoin, editor.SetAllowLateJoin);
 			BuildEditableRule(ctx, page, "admin.rule_allow_remote_inventory_take", rules.AllowRemoteInventoryTake, editor.SetAllowRemoteInventoryTake);
-			BuildEditableRule(ctx, page, "admin.rule_allow_member_item_data_write", rules.AllowMemberItemDataWrite, editor.SetAllowMemberItemDataWrite);
+			BuildEditableRule(ctx, page, "admin.rule_allow_member_cheat_verbs", rules.AllowMemberCheatVerbs, editor.SetAllowMemberCheatVerbs);
 			BuildEditableRule(ctx, page, "admin.rule_widen_run_settings", rules.WidenRunSettings, editor.SetWidenRunSettings);
 			BuildEditableNumberRule(ctx, page, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier, value => editor.SetPiggybackWeightMultiplier(value), 0f, 3f);
 			BuildEditableParityRule(ctx, page, "admin.rule_native_binding_parity", rules.NativeBindingParity, editor.SetNativeBindingParity);

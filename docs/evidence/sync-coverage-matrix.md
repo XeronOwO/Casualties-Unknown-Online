@@ -36,7 +36,7 @@
 
 | Verdict | Count | Rows |
 |---|---|---|
-| `OK` | 59 | all rows not listed below |
+| `OK` | 60 | all rows not listed below |
 | `Event-only gap` | 0 | — |
 | `Fallback-only gap` | 0 | — |
 | `Transient-by-design` | 9 | N6, N7, N8, N9, F3, I9, P5, E6, R7 |
@@ -127,6 +127,8 @@ the declared anchor count against the entries that file holds for the row.
 | R10 | `LayerAdvanceCoordinator` end-of-layer choice | Guest -> host only, refused at any other role: the member chooses, the LAYER is the host's to generate. | `LayerAdvanceRequest` = NetMsg 142, reliable, sent at the click and stamped with the requester's kernel generation (run epoch plus layer index); admission needs a handshaken member whose stamp IS the host's current generation. | none, and none needed: the click is a one-shot intent, recoverable at source - nothing regenerates on the member's side during the transition, so the panel re-shows and the choice repeats. | No backfill: a granted request changes the LAYER itself, which reaches every member through the kernel run baseline (layer-advance event plus world-entry checkpoint) - a later joiner learning it there, not the request. | A lost request costs the click: it keeps playing in the layer, the panel returns and the choice repeats; an unreportable choice keeps the game's own descent. Two choosing at once cost ONE advance: the generation stamp refuses the second once the host's capture bumped the layer, a request inside a running advance refused natively. | OK | 11 | |
 
 | H1 | `HostRulesAnnouncer` host-rule replication to the members | Host -> each member only, ignored at any other role: the rules are the host's switches, and a member's client reads the HOST's values (the take affordance, the write verb, the carrier's encumbrance, the Admin page), not its own config under the same names. | `HostRules` = NetMsg 144, reliable, the ABSOLUTE rule set (one field per rule the census marks member-known), sent on four edges: the member's completed handshake, the world-entry group, the repair group below, and EVERY change while the session runs — every writer (config file, Admin page, console command) is one announcement. | The world-entry group carries the set for a member that never entered a world, and the 60 s repair group re-sends it, so an admission announcement the lazy peer session swallowed converges. | A repeat is idempotent (the receiver replaces its whole set); a set that never arrived leaves the member on its own config with the local check SKIPPED — never a guess. | Reliable; a lost set costs the local interception until the next entry, repair or change, never the host's verdict: the host checks the same thing behind the member. | OK | 10 | |
+
+| H2 | `CheatPermissionAnnouncer` cheat-roster replication to the members | Host -> each member only, ignored at any other role: the roster is the host's grant list. | `CheatPermissions` = NetMsg 146, reliable, the ABSOLUTE roster — the Steam ids the host granted the cheat verbs to, sent on the member's handshake, the entry and repair groups, and every grant or revoke. The host's own standing is the online switch, never a list entry. | The entry group carries the list for a member that never entered a world, and the 60 s repair group re-sends it, so a swallowed admission announcement converges. | A repeat is idempotent (the receiver replaces its whole list); a list that NEVER arrived skips the member's local check and leaves the host's verdict as the only one, while an EMPTY announced list closes the family locally. | Reliable; a lost list costs the local interception until the next entry, repair or a repeated `/op`, never the host's verdict: the host judges every request and answers. A stale ALLOW heals by that answer; a stale DENY outlives the grant until one of those edges. IP-direct grants nobody: that transport carries no account identity. | OK | 6 | |
 
 ## Wire vocabulary index (member -> owning matrix row)
 
@@ -289,6 +291,7 @@ member, so an index entry cannot be parked on a row about something else.
 | FluidRegionFullStream | AdaptiveStreamId | F1 |
 | TraderStateStream | AdaptiveStreamId | N4 |
 | HostRules | NetMsg | H1 |
+| CheatPermissions | NetMsg | H2 |
 
 ## Gap list
 

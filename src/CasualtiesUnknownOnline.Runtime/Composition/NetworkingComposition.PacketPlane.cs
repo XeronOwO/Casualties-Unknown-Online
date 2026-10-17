@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -76,7 +77,8 @@ internal static class NetworkingPacketPlaneComposition
 			p.GetRequiredService<ITutorialClawControl>(),
 			p.GetRequiredService<IKernelProtocolControl>(),
 			p.GetRequiredService<ILayerAdvanceControl>(),
-			p.GetRequiredService<AnnouncedHostRules>()));
+			p.GetRequiredService<AnnouncedHostRules>(),
+			p.GetRequiredService<AnnouncedCheatPermissions>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 	}

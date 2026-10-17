@@ -5,8 +5,10 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
 
@@ -31,6 +33,22 @@ internal static class CommandConsoleTestSession
 
 	internal static void MarkInWorld(TestNode node) =>
 		node.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+
+	/// <summary>
+	/// The host's cheat-roster grant for one guest, ANNOUNCED and asserted: the WHO half
+	/// of the two cheat rulings every member console cheat verb needs (the switch is the
+	/// other). The announce half is what separates it from <see cref="ItemSimWorld"/>'s
+	/// grant helper, which deliberately does not announce. The assert is a PRECONDITION,
+	/// so a suite that forgot it fails on the setup rather than on the verdict it means
+	/// to test.
+	/// </summary>
+	internal static void GrantAndAnnounceCheatVerbs(TestNode host, TestNode guest)
+	{
+		var roster = host.Services.GetRequiredService<CheatPermissions>();
+		Assert.True(roster.Grant(guest.SteamId, out var refusal), $"the host grants the member the cheat verbs: {refusal}");
+		host.Services.GetRequiredService<ICheatPermissionAnnouncement>().AnnounceAll();
+		Assert.Contains(guest.SteamId, guest.Services.GetRequiredService<AnnouncedCheatPermissions>().Current ?? []);
+	}
 
 	internal static void SeedHostEntities(TestNode host, ulong guestId, float guestX, float guestY = 0f)
 	{

@@ -31,7 +31,8 @@ public readonly record struct ItemDataWriteRefusal(
 	{
 		var why = Reason switch
 		{
-			RejectionReason.HostRuleDenied => "this host's rule does not open the item-data write verbs to members",
+			RejectionReason.HostRuleDenied => "this host's cheat switch is closed to members",
+			RejectionReason.CheatPermissionDenied => "the host's cheat-permission roster does not name you — it grants the cheat verbs with /op",
 			RejectionReason.NotAuthorized => "the record does not put that item in your hands",
 			RejectionReason.UnknownAggregate => "this session records no judged item under that id",
 			RejectionReason.InvalidTransition => "the item's recorded state does not take a write",

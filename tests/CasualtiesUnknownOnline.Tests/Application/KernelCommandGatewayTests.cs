@@ -352,9 +352,32 @@ public class KernelCommandGatewayTests
 	}
 
 	/// <summary>
+	/// The cheat family's TWO host rulings, and the order between them. With the
+	/// switch CLOSED and the roster EMPTY the verdict must be the SWITCH's — the
+	/// broader ruling, and the operator's first remedy — not the roster's. Reversing
+	/// the two checks would answer <c>CheatPermissionDenied</c> here and fail; that is
+	/// what makes this the discriminating case.
+	/// </summary>
+	[Fact]
+	public void ConsoleVerbWithTheSwitchClosedAndNoGrant_IsRefusedByTheSwitch()
+	{
+		var logger = new RecordingLogger<KernelCommandGateway>();
+		var rules = new FakeMemberCommandRules();
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, Member);
+
+		var decision = Gateway(facts, rules, logger).AdmitConsoleWrite(Member, State(42, actor: Member));
+
+		Assert.Equal(CommandAdmissionKind.Refused, decision.Kind);
+		Assert.Equal(RejectionReason.HostRuleDenied, decision.Reason);
+		Assert.True(decision.AnswersSender, "a console write must be answered — its sender already changed its own copy");
+		Assert.Contains("cheat switch is closed to members", Assert.Single(logger.Entries).Message);
+	}
+
+	/// <summary>
 	/// The host's own rule for the console verb, on the CLOSED side (the default a
 	/// host ships with): the report is one the seam would otherwise admit — the
-	/// member's own carried item, which is its own report — so the rule is the only
+	/// member's own carried item, which is its own report — so the switch is the only
 	/// thing between it and the kernel. It is ANSWERED, unlike the item-eligibility
 	/// refusals beside it: the member's console has already applied the value to its
 	/// own local object, and a verdict it never saw would leave that object changed.
@@ -363,28 +386,56 @@ public class KernelCommandGatewayTests
 	public void ConsoleVerbWithTheHostRuleClosed_IsRefusedAndAnswered()
 	{
 		var logger = new RecordingLogger<KernelCommandGateway>();
+		var rules = new FakeMemberCommandRules();
+		rules.CheatGrants.Add(Member); // granted, and the switch is still the closed ground
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(42, Member);
 		var state = State(42, actor: Member);
 
-		var decision = Gateway(facts, logger).AdmitConsoleWrite(Member, state);
+		var decision = Gateway(facts, rules, logger).AdmitConsoleWrite(Member, state);
 
 		Assert.Equal(CommandAdmissionKind.Refused, decision.Kind);
 		Assert.Equal(RejectionReason.HostRuleDenied, decision.Reason);
 		Assert.True(decision.AnswersSender, "a console write must be answered — its sender already changed its own copy");
-		Assert.Contains("the host's rule does not open the item-data write verbs", Assert.Single(logger.Entries).Message);
+		Assert.Contains("cheat switch is closed to members", Assert.Single(logger.Entries).Message);
 	}
 
-	/// <summary>The other side of the same verdict: with the host's rule open the very same report is admitted, so the rule — not the report's shape — is what refused it above.</summary>
+	/// <summary>
+	/// The ROSTER half of the cheat family's two rulings: the switch is open and the
+	/// member is NOT granted, so the verdict is the roster's, and it is answered for
+	/// the same reason every console-write refusal is.
+	/// </summary>
 	[Fact]
-	public void ConsoleVerbWithTheHostRuleOpen_IsAdmitted()
+	public void ConsoleVerbFromAMemberTheRosterDoesNotName_IsRefusedAndAnswered()
 	{
-		var rules = new FakeMemberCommandRules { AllowItemDataWrite = true };
+		var logger = new RecordingLogger<KernelCommandGateway>();
+		var rules = new FakeMemberCommandRules { AllowCheatVerbs = true };
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, Member);
+
+		var decision = Gateway(facts, rules, logger).AdmitConsoleWrite(Member, State(42, actor: Member));
+
+		Assert.Equal(CommandAdmissionKind.Refused, decision.Kind);
+		Assert.Equal(RejectionReason.CheatPermissionDenied, decision.Reason);
+		Assert.True(decision.AnswersSender, "a console write must be answered — its sender already changed its own copy");
+		Assert.Contains("cheat-permission roster does not name this member", Assert.Single(logger.Entries).Message);
+	}
+
+	/// <summary>
+	/// The other side of the same verdict, and the shape the user's ruling describes:
+	/// the switch OPEN and the member GRANTED together admit the very same report, so
+	/// the two rulings — not the report's shape — are what refused it above.
+	/// </summary>
+	[Fact]
+	public void ConsoleVerbWithTheSwitchOpenAndTheMemberGranted_IsAdmitted()
+	{
+		var rules = new FakeMemberCommandRules { AllowCheatVerbs = true };
+		rules.CheatGrants.Add(Member);
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(42, Member);
 
 		Assert.True(Gateway(rules).AdmitConsoleWrite(Member, State(42, actor: Member)).IsAdmitted,
-			"the host's rule is the whole difference between the two verdicts");
+			"the host's two cheat rulings are the whole difference between the verdicts");
 	}
 
 	/// <summary>
@@ -412,6 +463,9 @@ public class KernelCommandGatewayTests
 
 	/// <summary>The seam with the host's rule OPEN — the other side of the console-verb verdict.</summary>
 	private static KernelCommandGateway Gateway(FakeMemberCommandRules rules) => new(new FakeItemFacts(), rules, new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
+
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, FakeMemberCommandRules rules, RecordingLogger<KernelCommandGateway> logger) =>
+		new(facts, rules, new FakeItemUseFacts(), logger);
 
 	/// <summary>The host's own member-command rules as a host ships them: the item-data write verb is closed.</summary>
 	private static FakeMemberCommandRules ClosedRules() => new();

@@ -10,6 +10,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CasualtiesUnknownOnline.Tests.Fakes;
@@ -217,6 +218,23 @@ internal sealed class ItemSimWorld : IDisposable
 	/// <summary>The host's kernel row for an id, or null when the host never judged it.</summary>
 	internal ItemState? KernelRow(ulong itemId) =>
 		Host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(itemId);
+
+	/// <summary>
+	/// The host's cheat-roster grant for one guest — the WHO half of the two cheat
+	/// rulings a member's console verb needs (the switch is the other). Throws with the
+	/// host's own refusal when it refuses (no session, IP-direct, not a handshaken
+	/// member), so a setup error names its ground instead of returning a bare false.
+	/// It does NOT announce: the switch-opening and announcement belong to the case.
+	/// </summary>
+	internal bool GrantCheatVerbs(TestNode guest)
+	{
+		if (!Host.Services.GetRequiredService<CheatPermissions>().Grant(guest.SteamId, out var refusal))
+		{
+			throw new InvalidOperationException($"the host refused the cheat grant: {refusal}");
+		}
+
+		return true;
+	}
 
 	/// <summary>
 	/// Stage one kernel row directly on the HOST — the host's own fact, for a case whose subject is a

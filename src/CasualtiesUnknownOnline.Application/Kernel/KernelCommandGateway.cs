@@ -50,11 +50,14 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// <see cref="WireCommandAuthorityPolicy"/>'s table, filled from the senders this
 /// tree actually has — so a member's <c>RunStart</c> is refused here while its
 /// item use is not;</item>
-/// <item>a verb the HOST'S OWN RULE owns must be open: the console item-data write
-/// is member-authorable by kind, and whether this host lets a member run it is the
-/// session's decision rather than the build's (<see cref="IMemberCommandRules"/>).
-/// The rule is read per submission, so a host that closes it mid-session refuses
-/// the next write and leaves the ones already committed alone;</item>
+/// <item>the CHEAT FAMILY's two host rulings, in this order: the host's cheat SWITCH
+/// must be open to members (the family is closed regardless of who has a grant), and
+/// then the host's cheat ROSTER must name the submitting member (the switch alone
+/// admits nobody). Both are read per submission, none is cached, and each refusal is
+/// ANSWERED with its own ground — the sender has already changed its own object for
+/// the console write, so a verdict it never sees would leave that change in place.
+/// The order is switch-then-roster on purpose: when both are shut the operator is told
+/// about the switch, which is the remedy that unlocks the family at all;</item>
 /// <item>a report that puts an item into another member's hands, or writes enemy
 /// damage onto another member's body, must name the SENDER as that member: the
 /// pickup destination and the enemy-combat victim are judged against the transport
@@ -131,15 +134,24 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 					"a presentation-only command is never a kernel fact");
 		}
 
-		if (kind == WireCommandKind.ItemDataWrite && !_memberCommandRules.AllowsItemDataWrite)
+		if (kind == WireCommandKind.ItemDataWrite && !_memberCommandRules.CheatVerbsOpenToMembers)
 		{
-			// Answered on purpose: this report is the one shape whose sender has
-			// ALREADY applied the value to its own local object (the console writes
-			// the item, then reports it), so a refusal the sender never sees would
-			// leave its picture changed for good. The member settles it back on
-			// receipt (ItemStateSettlement).
+			// The broader of the cheat family's two rulings, judged FIRST: with the
+			// switch closed the family is shut to every member, granted or not, so the
+			// operator's remedy is the switch rather than a grant. Answered on purpose
+			// (the console write has already changed the sender's own object, and it
+			// settles that change back on receipt).
 			return Refuse(sender, command, RejectionReason.HostRuleDenied,
-				"the host's rule does not open the item-data write verbs to members");
+				"the host's cheat switch is closed to members, so no member may run the console write verbs");
+		}
+
+		if (kind == WireCommandKind.ItemDataWrite && !_memberCommandRules.AllowsCheatVerb(sender))
+		{
+			// The WHO half of the same pair: the switch is open, but this host's roster
+			// does not name the sender — a grant must still be asked for. Answered for
+			// the same reason.
+			return Refuse(sender, command, RejectionReason.CheatPermissionDenied,
+				"the host's cheat-permission roster does not name this member, so the console write verbs are closed to it");
 		}
 
 		// A report that puts an item into another member's hands, or writes enemy

@@ -80,7 +80,8 @@ public class KernelItemReportEligibilityTests
 	[Fact]
 	public void ConsoleWriteForAnotherMembersItem_IsAnsweredRatherThanIgnored()
 	{
-		var rules = new FakeMemberCommandRules { AllowItemDataWrite = true };
+		var rules = new FakeMemberCommandRules { AllowCheatVerbs = true };
+		rules.CheatGrants.Add(Member); // granted, so the item-ownership rule is the one this case is about
 		var facts = new FakeItemFacts();
 		facts.CarriedBy(42, OtherMember);
 

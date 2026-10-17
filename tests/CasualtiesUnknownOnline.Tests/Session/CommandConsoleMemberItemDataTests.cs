@@ -71,6 +71,28 @@ public class CommandConsoleMemberItemDataTests
 	}
 
 	/// <summary>
+	/// The ROSTER ruling through the same console, and the case that tells the two apart
+	/// locally: with the switch OPEN and no grant the answer is the roster's sentence —
+	/// not the switch's — and nothing is applied or reported. Every other case in this
+	/// class is granted, which is why this one asks for <c>grant: false</c>.
+	/// </summary>
+	[Fact]
+	public void Set_OnAMembersConsole_WhenTheSwitchIsOpenButTheMemberIsNotGranted_IsRefusedByTheRoster()
+	{
+		var (host, guest, local) = CreateSceneSession(ruleOpen: true, grant: false);
+		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
+
+		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		Pump(host, guest);
+
+		Assert.Contains("Refused locally", answer);
+		Assert.Contains("cheat roster", answer);
+		Assert.DoesNotContain("cheat switch", answer);
+		Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
+		Assert.Empty(RefusalLines(guest));
+	}
+
+	/// <summary>
 	/// The refusal half, and the behaviour the rule announcement exists for: with the
 	/// host's rule closed AND announced, the write is refused on the member's own client
 	/// before anything is applied — the local object still holds the old value, nothing
@@ -88,7 +110,7 @@ public class CommandConsoleMemberItemDataTests
 		Pump(host, guest);
 
 		Assert.Contains("Refused locally", answer);
-		Assert.Contains("AllowMemberItemDataWrite", answer);
+		Assert.Contains("AllowMemberCheatVerbs", answer);
 		Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
 		Assert.Equal(0.5f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.Empty(RefusalLines(guest));
@@ -135,7 +157,7 @@ public class CommandConsoleMemberItemDataTests
 		Assert.Equal(0.5f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
 		var refusal = Assert.Single(RefusalLines(guest));
-		Assert.Contains("this host's rule does not open the item-data write verbs", refusal);
+		Assert.Contains("this host's cheat switch is closed to members", refusal);
 		Assert.Contains("#4101 backpack", refusal);
 	}
 
@@ -185,12 +207,21 @@ public class CommandConsoleMemberItemDataTests
 		Assert.Contains("no judged item under that id", Assert.Single(RefusalLines(guest)));
 	}
 
-	/// <summary>Every console test runs against a scene of its own, and the host's own rule is what the case is about. <paramref name="announce"/> false is the member that never received the set — the announcement frame is SWALLOWED on the host→member link, the lazy peer session's own failure, so the case exercises the real absence rather than a silenced sender; the precondition is asserted here so no case can silently run under the other one.</summary>
-	private static (TestNode Host, TestNode Guest, FakeLocalItemAccess Local) CreateSceneSession(bool ruleOpen, bool announce = true)
+	/// <summary>
+	/// Every console test runs against a scene of its own. TWO host rulings are in play
+	/// and each case says which one it exercises: <paramref name="ruleOpen"/> is the
+	/// cheat SWITCH (announced with the host rules), and <paramref name="grant"/> is the
+	/// host's cheat ROSTER (announced separately). <paramref name="announce"/> false is
+	/// the member that never received the rules — the frame is SWALLOWED on the
+	/// host→member link, the lazy peer session's own failure — so the case exercises the
+	/// real absence rather than a silenced sender; the precondition is asserted here so
+	/// no case can silently run under the other one.
+	/// </summary>
+	private static (TestNode Host, TestNode Guest, FakeLocalItemAccess Local) CreateSceneSession(bool ruleOpen, bool announce = true, bool grant = true)
 	{
 		var local = new FakeLocalItemAccess();
 		var rules = new MutableOptionsMonitor<HostRulesOptions>(
-			new HostRulesOptions { AllowMemberItemDataWrite = ruleOpen });
+			new HostRulesOptions { AllowMemberCheatVerbs = ruleOpen });
 		var (host, guest) = CreateSession(
 			services =>
 			{
@@ -201,6 +232,16 @@ public class CommandConsoleMemberItemDataTests
 
 		var announced = guest.Services.GetRequiredService<AnnouncedHostRules>().Current;
 		Assert.Equal(announce, announced is not null);
+
+		// The roster is the OTHER ruling. A case that exercises the switch is granted, so
+		// the switch is the only closed ground; the one case about the roster itself asks
+		// for no grant. The roster is a separate message, so swallowing the RULES
+		// announcement cannot swallow it.
+		if (grant)
+		{
+			GrantAndAnnounceCheatVerbs(host, guest);
+		}
+
 		return (host, guest, local);
 	}
 

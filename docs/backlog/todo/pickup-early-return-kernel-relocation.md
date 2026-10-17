@@ -93,3 +93,28 @@ idempotent (the snapshot carries the same fact), and the take-out-into-the-world
 departure rather than gaining a second one. And the two tickets should be done in ONE change, since doing either
 alone leaves the other's symptom standing while adding a second carrier for the same fact — which is the failure
 mode this repository calls "a fact with two owners".
+## The shape of the fix, and the two routes rejected (2026-10-18)
+
+Reading the unload path to find the parent settles how this has to be built:
+
+- `ContainerItemSync.OnUnloadedFromContainer(Item item, bool wasWorldItem)` does not receive the container, and the
+  pending-drop record cannot supply it — `DropPendingState.Pending` carries a `Source` ENUM (where the item came
+  from), not a reference to the container. So the parent has to be handed to the handler.
+- The one place that has it is the patch on the game's own `Container.UnloadItem`, whose `__instance` IS the
+  container. So the fix changes that seam: the bridge's unload hook takes the container, the adapter patch passes
+  `__instance`, and `ContainerItemSync` reports the parent's contents when its landed check rejects the unload
+  (which is exactly the case where the item went into a slot instead of the world).
+
+**Two routes rejected, with reasons, so they are not retried:**
+
+- **Widening `TryUpdateState` to apply location.** It would make every state-only report a location report as
+  well, across every caller, to fix one path. The kernel's two location entries are deliberate (`TrySpawnCarried`
+  for an arrival at the top, `TrySyncContainerFacts` for a parent and its contents); the correct statement is the
+  parent's, and the parent is available.
+- **Reporting the parent through `SendItemCarriedSync`'s existing branch.** That branch takes the container-facts
+  route only when `item.Contents.Count > 0`, so a parent whose LAST child just left would fall into the data-only
+  branch and state nothing. The report needs a path that always means "this is a parent's contents", including an
+  empty one.
+
+So the change touches the bridge's unload seam, the two call sites of it, `ContainerItemSync`, and `ItemService` —
+which is why it is one change for BOTH tickets and not a one-line edit in either.

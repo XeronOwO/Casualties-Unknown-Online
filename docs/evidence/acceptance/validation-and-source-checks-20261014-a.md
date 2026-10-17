@@ -1,6 +1,6 @@
 # Acceptance record — source, permission and data checks (stage S1a/S1b rows)
 
-- Ticket: `validation-and-source-checks` — verdict: **stays in `todo/`** (rows 3 and 4 pass in full;
+- Ticket: [`validation-and-source-checks`](../../backlog/done/validation-and-source-checks.md) — verdict: **stayed in `todo/` at the time of this run** (rows 3 and 4 pass in full;
   rows 1–2 wait for stage S2 and row 5 was not exercised — see Limits)
 - Batch: `20261014-a` — tickets `item-data-write-commands`, `validation-and-source-checks`,
   `online-ui-art-and-controls-overhaul`, `online-ui-layout-and-input-detail-pass`

@@ -217,5 +217,5 @@ The review asks it too (`docs/development/review-prompt.md`), and the guard list
 - `docs/architecture/current.md` §7.1 — the admission seam and the kernel's authority model
 - `docs/architecture/guards.md` — the mandatory guard list this rule belongs to
 - `docs/evidence/sync-coverage-matrix.md` — the other per-surface census (event and fallback policy)
-- `docs/backlog/review/validation-and-source-checks.md` — the stages that landed the bounds above
+- `docs/backlog/done/validation-and-source-checks.md` — the stages that landed the bounds above
 - `docs/development/review-prompt.md` — the adversarial review that asks this question

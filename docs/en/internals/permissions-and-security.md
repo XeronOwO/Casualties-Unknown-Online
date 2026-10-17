@@ -105,7 +105,7 @@ box.
 
 - **A modified client.** Anti-cheat is explicitly deferred — `docs/backlog/future/strict-validation-anti-cheat.md`
   is a low-priority future item whose basic checks are landed stage by stage
-  (`docs/backlog/review/validation-and-source-checks.md`). What IS in place bounds what a member's reports may
+  (`docs/backlog/done/validation-and-source-checks.md`). What IS in place bounds what a member's reports may
   reach: the authority kind a member's command declares is a per-kind table
   (`WireCommandAuthorityPolicy`), so a member cannot author a fact only the host's simulation owns; the
   item a report names must be one the member may speak for; a block or building-destruction report's drops

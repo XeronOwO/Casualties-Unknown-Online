@@ -1,4 +1,4 @@
-﻿# Document census 鈥?one row per tracked markdown document.
+# Document census 鈥?one row per tracked markdown document.
 #
 #   <path> | <disposition> | <reader> | <reach>
 #
@@ -296,7 +296,7 @@ docs/backlog/todo/id-carriers-can-disagree-about-placement.md | keep | index | d
 docs/backlog/todo/item-and-entity-data-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-census-own-instance-id.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/health-simulation-and-host-authority.md | keep | index | docs/backlog/README.md
-docs/backlog/review/validation-and-source-checks.md | keep | index | docs/backlog/README.md
+docs/backlog/done/validation-and-source-checks.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-change-member-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/review/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
@@ -616,11 +616,12 @@ docs/evidence/acceptance/unhooked-damage-block-callers-20261002-b.md | keep | cl
 docs/evidence/acceptance/unhooked-damage-block-callers-20261002-c.md | keep | claim | docs/backlog/review/unhooked-damage-block-callers.md
 docs/evidence/acceptance/unhooked-damage-block-callers-20261002-d.md | keep | claim | docs/backlog/review/unhooked-damage-block-callers.md
 docs/evidence/acceptance/unhooked-item-and-body-sound-families-20261001-l.md | keep | claim | docs/backlog/review/unhooked-item-and-body-sound-families.md
-docs/evidence/acceptance/validation-and-source-checks-20261014-a.md | keep | claim | docs/backlog/review/validation-and-source-checks.md
-docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md | keep | claim | docs/backlog/review/validation-and-source-checks.md
-docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md | keep | claim | docs/backlog/review/validation-and-source-checks.md
-docs/evidence/acceptance/validation-and-source-checks-s3a-20261017-c.md | keep | claim | docs/backlog/review/validation-and-source-checks.md
-docs/evidence/acceptance/validation-and-source-checks-s3b-20261017-o.md | keep | claim | docs/backlog/review/validation-and-source-checks.md
+docs/evidence/acceptance/validation-and-source-checks-20261014-a.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
+docs/evidence/acceptance/validation-and-source-checks-20261017-p.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
+docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
+docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
+docs/evidence/acceptance/validation-and-source-checks-s3a-20261017-c.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
+docs/evidence/acceptance/validation-and-source-checks-s3b-20261017-o.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
 docs/evidence/acceptance/world-acceleration-quake-direct-write-20261001-u.md | keep | claim | docs/backlog/done/world-acceleration-quake-direct-write.md
 docs/evidence/acceptance/world-acceleration-quake-direct-write-20261001-w.md | keep | claim | docs/backlog/done/world-acceleration-quake-direct-write.md
 docs/evidence/acceptance/world-acceleration-survives-movement-20261001-u.md | keep | claim | docs/backlog/done/world-acceleration-survives-movement.md

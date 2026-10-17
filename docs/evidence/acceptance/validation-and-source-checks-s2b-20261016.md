@@ -9,7 +9,7 @@
   `*-verify-deploy.txt`). The tree has moved since batch `20261016-c` read it — a comment added to the census
   recipe and this record — so a later `verify-deploy.ps1` reports a newer product version; the delta above
   `32e4b857` is a recipe comment and documentation only, with no source change.
-- Covers: `docs/backlog/review/validation-and-source-checks.md` S2b — acceptance row 1's building half in BOTH
+- Covers: `docs/backlog/done/validation-and-source-checks.md` S2b — acceptance row 1's building half in BOTH
   shapes (a building-death drop the host's own knowledge cannot account for is refused by name, nothing
   registered or relayed, the breaker answered and its copy destroyed; and a break whose cell really has a
   building losing its support, whose drops are judged against that building's own captured table) and row 6's

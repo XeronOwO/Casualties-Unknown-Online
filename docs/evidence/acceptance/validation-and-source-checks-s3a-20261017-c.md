@@ -1,6 +1,6 @@
 # Acceptance record — a member's use report may not create an item the host never judged
 
-- Ticket: `docs/backlog/review/validation-and-source-checks.md` — **S3a's acceptance row is READ and PASSES**;
+- Ticket: `docs/backlog/done/validation-and-source-checks.md` — **S3a's acceptance row is READ and PASSES**;
   at the time of this run the ticket did NOT move, because S3's second clause ("in a state that permits that use") was still
   undeveloped code (S3b landed that half on 2026-10-17, and the ticket moved to `review/` then); and the ticket says so in its own limits.
 - Batch: `20261017-c`, run 1 — two clients in one world (host on the physical machine, the member in the

@@ -1,8 +1,8 @@
 # Source, permission and data checks on what a member reports
 
-- Status: Review — all three stages are CODE AND TESTS, and the remaining work is the agent's acceptance
-  batch. The user promoted this on 2026-10-14 (it was `future/strict-validation-anti-cheat.md`, deferred);
-  the old ticket stays as the inventory behind it. S1a and S1b landed 2026-10-14, S2a
+- Status: Done — all seven acceptance rows are READ and PASS on the machine. The user promoted this on
+  2026-10-14 (it was `future/strict-validation-anti-cheat.md`, deferred); the old ticket stays as the
+  inventory behind it. S1a and S1b landed 2026-10-14, S2a
   landed 2026-10-16 **and its acceptance rows are read for the block family**
   (`docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md`: rows 1, 2 and 6's new half, on a
   deployed artifact), and S2b landed 2026-10-16 as CODE AND TESTS with BOTH halves of its acceptance row 1
@@ -20,11 +20,15 @@
   native use of a `bandage` BY NAME, answers it, the member's already-applied `condition` is settled back to
   the recorded one, the host's own row does not move, a control forged use of a `painkillers` (whose data
   marks it usable) is ADMITTED, an ordinary native use still passes, and the whole session carries exactly
-  the two forged refusals. The ticket stays in `review/` for row 5 alone — its refusal half was read in batch
-  `20261017-c`, its accepted half was not staged, and the batch found WHY it is the hard half: the window it
-  lives in closes at the generation-finished edge, before any in-process probe can run (the rejoin edge is
-  the avenue the next batch takes; see the acceptance section). The same batch also read part of S2b's owed capture-loop row (the multi-building population
-  half; the already-marked half stays `unproven`, see that section). The surfaces this ticket does NOT
+  the two forged refusals. Row 5 was READ the next day by batch `20261017-p`
+  (`docs/evidence/acceptance/validation-and-source-checks-20261017-p.md`): with the host's inbound blackout
+  holding the member's carried-set statement back, a member's `ItemUse` report for an id the host held no
+  row for was materialized accepted-first (`Accepted-first missing carried update … spawned carried fact`),
+  answered nothing, and the member's statement — judged later, when the window was re-opened through the
+  public item control — registered the item with both sides agreeing. The same batch read S2b's owed
+  reordered half too (an already-marked building's table contributing rows, both captures inside one
+  handler call), so every acceptance row this ticket declares is read and the ticket moves to `done/`. The
+  surfaces this ticket does NOT
   close are the census rows of
   `docs/architecture/member-report-validation.md` marked `unbounded:` — they carry their own evidence in
   `todo/member-report-bounds.md`, opened by the same cycle at the user's direction that report validation
@@ -287,18 +291,19 @@
    **What is verified and what is not**: the published-cell semantics, the fold rule and the three glue
    sites are unit/ gate-covered, and the fold rule was mutation-red; the host's reordered capture is a
    three-line change inside a loop over live Unity components, so no unit test can reach it. Batch
-   `20261017-o` read HALF of it on the machine and names the half it could not
+   `20261017-o` read the population half and named the half it could not
    (`docs/evidence/acceptance/validation-and-source-checks-s3b-20261017-o.md`): a scan of the live population
    (`tools/acceptance/recipes/building-support-cells.cs`) found 40 cells carrying more than one
    `requireGround` building — one with three, and both clients agreeing cell for cell — and breaking that
    three-building cell's support from the member made the host capture `15 drop row(s) from 3 building(s) …
    3 were still unmarked and were marked here` and then accept the breaker's own 10 building drops against
-   them. What stays `unproven` is the reordered half itself — an ALREADY-MARKED entity's table contributing
-   rows — because in this staging the air-write relay and the break report land in different host frames
-   (~100 ms apart), so by the second capture the entities are destroyed, and a marked building with health
-   left is a one-frame state in production (the mark is applied together with the health that kills it on
-   its next `Update`). Reading that half needs the lost-air-write verdict, where both captures happen inside
-   one call; it is named here rather than implied. The cell's own precondition is a native one: `blockPlacedOn` is written by the
+   them. Batch `20261017-p` then read the reordered half itself
+   (`docs/evidence/acceptance/validation-and-source-checks-20261017-p.md`), on the lost-air-write verdict
+   where BOTH captures happen inside one handler call: a forged report for a cell whose block still stood
+   made the host capture `6 drop row(s) from 2 building(s) … 2 were still unmarked and were marked here`,
+   accept the one building drop the rows account for, and then capture the SAME two buildings again 31 ms
+   later with `0 were still unmarked and were marked here` — six rows from an already-marked pair, with the
+   entity still alive because its death is applied on its own next `Update`. The cell's own precondition is a native one: `blockPlacedOn` is written by the
    game's two worldgen placement sites and by nothing else, so a `requireGround` building a MOD materializes
    outside worldgen would publish the struct default `(0,0)` — the same value the real cell (0,0) has, and
    not distinguishable from it. No vanilla path was found that materializes a `requireGround` building
@@ -642,8 +647,11 @@ by name on the host with NOTHING registered or relayed, the breaker is answered 
 no other refusal appears (run 9); and where a building really loses its support, the host captures its own
 table, accepts the breaker's OWN roll against it and splits one forged report per drop — the accounted-for
 drop relayed, the other refused by name against the captured rows (run 2, whose census also corrected run 9's
-claim that this map has no `requireGround` building at all). Row 5 is the
-creation-before-operation invariant that already runs above the seam. Row 6 is the batch, and it has TWO halves
+claim that this map has no `requireGround` building at all). Row 5 is read on both halves: its refusal half
+(the creation-before-operation invariant) in batch `20261017-c`, and its accepted half by batch
+`20261017-p` (`docs/evidence/acceptance/validation-and-source-checks-20261017-p.md`): with the host's
+carried-set judgment held back, a member's use report for an id it held no row for was materialized
+accepted-first, answered nothing, and the statement that followed was judged afterwards. Row 6 is the batch, and it has TWO halves
 to read rather than one: the authority half refuses only kinds no member sender emits (kept true by
 `WireCommandSenderAuthorityGateTests`), and the eligibility half refuses only report shapes a member's own
 client cannot produce — each sender of those kinds sits behind a proxy guard (`ItemUseSync`'s standing-item
@@ -661,19 +669,18 @@ That half is read too: an ordinary `Body.UseItem` of a `painkillers` reported th
 refused nothing and both sides read the post-use state, while the session's only two `UseNotPermitted` lines
 are the two forged reports the batch sent.
 
-**Rows 1–6 after the 2026-10-17 batch.** Row 5 is the one the ticket still holds open, and it is the only
-remaining row: its refusal half (the creation-before-operation invariant) was read in batch `20261017-c`,
-and its accepted half — a report arriving before the creation it depends on, materialized instead of
-refused — was NOT staged. The batch's own reading of why is sharper than "not attempted": the window it
-lives in is spent by the member's carried-set statement at the generation-finished edge
-(`CarriedInventoryReporter.Update` opens the window on that edge and the next frame sends the statement),
-which is BEFORE any in-process probe can run, so a freshly entered client already carries a judged
-statement by the time a recipe can send anything. The one avenue left is the JOIN/RECONNECT edge, where the
-host's id-watermark grant re-opens the window under a session that is already connected — a report driven
-inside that edge is the way to read it, and the next batch should try it there. If that edge cannot be won
-either, the row becomes a judgement for the user (whether the invariant plus its unit case
-`..._BeforeTheCarriedSetWasStated_IsStillMaterialized` is the acceptance), not a self-issued pass. Its
-verdict in batch `20261017-o`'s record is `unproven`.
+**Every row after the 2026-10-17 batches.** Rows 1–7 are read and pass. Row 5 was the last one open: its
+refusal half (the creation-before-operation invariant) was read in batch `20261017-c`, and its accepted
+half — a report arriving before the creation it depends on, materialized instead of refused — was not
+staged by batch `20261017-o` because the window it lives in is spent by the member's carried-set statement
+at the generation-finished edge (`CarriedInventoryReporter.Update` opens the window on that edge and the
+next frame sends the statement), before any in-process probe can run. Batch `20261017-p` read it by
+entering the same window on the production edge that leaves it open under a connected member: the host's
+inbound blackout held the entry statement back (the committed substitution for the documented lazy-P2P
+swallow the registration window exists for), the member's cadence was frozen for one step so the report
+could be put ahead of the re-statement, and the window was then re-opened through the public item control —
+the host materialized the report's item, answered nothing, and judged the later statement, with both sides
+agreeing. Its verdict in that batch's record is `pass`.
 
 **Read on the real machine 2026-10-14, batch `20261014-a`**
 (`docs/evidence/acceptance/validation-and-source-checks-20261014-a.md`): rows 3 and 4 pass in full — a

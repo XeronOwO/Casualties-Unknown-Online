@@ -1,6 +1,6 @@
 # Acceptance record — a member's native-use claim is bounded by the item's own data
 
-- Ticket: `docs/backlog/review/validation-and-source-checks.md` — **row 7 (S3b) is READ and PASSES**; the
+- Ticket: `docs/backlog/done/validation-and-source-checks.md` — **row 7 (S3b) is READ and PASSES**; the
   ticket stays in `review/` for row 5 only (see *Rows 5 and the S2b loop read* below).
 - Batch: `20261017-o`, run 1 — two clients in one world (host on the physical machine, the member in the
   `<sandbox-guest>` sandbox). Two clients, because the row is about what the HOST does with one member's

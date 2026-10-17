@@ -18,11 +18,19 @@
   the only place under `tools/acceptance/` where a window-message or key-state API may be named. A recipe
   file is written as UTF-8 WITHOUT a BOM (a BOM fails the client's evaluator as `(1,1): InteractiveHost`),
   and a nested lambda that captures a local fails as an internal error at the lambda's own header with no
-  diagnostic — inline the value or pass it as a parameter, which the offline C# 7 gate cannot see. An eval
+  diagnostic — inline the value or pass it as a parameter, which the offline C# 7 gate cannot see; an
+  inner parameter that shadows an outer local silently answers void, and a value a nested delegate must
+  read is written as a literal inside it (a placeholder may appear once, so it cannot be substituted
+  there). An eval
   ANSWER is one value with a size ceiling: a large one comes back truncated and the driver reports it as
   `answered with a truncated value` (exit 4, which reads like a protocol error while the recipe is fine), so
   a probe that must scan a whole map asks for the small projection — the shared cells, not the population
-  (`acceptance/recipes/building-support-cells.cs`). A reflected member read that answers its default is a
+  (`acceptance/recipes/building-support-cells.cs`). A recipe that assembles its JSON BY HAND is validated
+  only in the client: a stray brace surfaces as the driver's `ConvertFrom-Json` failure (`driver-error`,
+  "Invalid array passed in, ',' expected"), which names a character offset in a value the batch log does
+  not show — the offline gate parses the C# expression and never sees the string it builds, so the
+  appended braces of every branch are counted by hand before the call and the answer is read once to
+  confirm it parses. A reflected member read that answers its default is a
   defect in the READ, not a fact: `ItemInstanceId`
   exposes `Id` as a property over a private field, so a field-only read answers `0` for an id that IS
   stamped (`acceptance/recipes/container-sync-unreported.cs` reads the property first, the field as the

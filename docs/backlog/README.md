@@ -77,7 +77,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [Source, permission and data checks](review/validation-and-source-checks.md) — **Medium-High** — report validation and the host's rule for a member's write.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction, landed; four of its six rows read on the machine.
@@ -187,6 +186,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Source, permission and data checks](done/validation-and-source-checks.md) — **Medium-High** — accepted; every machine row read.
 - [The radiation line stops above the layer floor](done/radiation-line-floor-stop.md) — **Medium** — a host switch, default on.
 - [The version shows the build's commit](done/version-string-build-suffix.md) — **Low** — the log, the UI and the tools.
 - [A break log line names the wrong shape](done/block-break-log-names-the-wrong-shape.md) — **Low** — it names the shape it judged.

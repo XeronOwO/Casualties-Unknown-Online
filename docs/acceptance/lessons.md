@@ -41,10 +41,6 @@ A row naming an event no later run can re-create (an adversarial review, a one-o
 
 A header bullet added to a ticket goes after the LAST continuation line of the bullet above it, and the insertion point is verified on every ticket a script touches; rebuilding the ticket from its previous revision plus the intended lines is the cheap way to make that exact — the header shape is `docs/backlog/README.md`.
 
-## 2026-09-27 — The evaluator's lambdas must be capture-free, and inner parameter names must not shadow outer locals
-
-The client's Mono REPL refuses a nested lambda that captures a non-const local and silently returns void when an inner parameter shadows an outer local: pass every value as a parameter or inline at the call site, declare a needed closure at the snippet's top level, and smoke the snippet live — the offline Roslyn gate accepts both bad shapes — `tools/acceptance/driver/InProcessDriver.cs`, `docs/evidence/selfchecks/tooling/acceptance-recipe-layer-selfcheck.md`.
-
 ## 2026-09-27 — A driver vocabulary is not a scenario library
 
 Plan a session ticket into a batch only when its setup path exists as a committed or recorded recipe; otherwise record the setup gap, leave the ticket in `review/`, and say so in the scope — `tools/acceptance/recipes/`, workflow §5.
@@ -457,10 +453,6 @@ A change that alters a default is only observable in the states the OLD default 
 
 Drive a fixture known to throw LAST in its session, and restart a client whose scope guard has latched (`CallContext.Enter depth 16 exceeded`) rather than fighting it. The lesson inside the lesson: a mechanism sentence is built from the ARTIFACT, not from the frame the log happens to print first — this batch's first attribution named two frames that carry no CUO scope, and its own review caught it.
 
-## 2026-10-11 — A parameterized recipe cannot put a placeholder inside a lambda
-
-A recipe's placeholder may appear exactly once, so a value a nested delegate must read is written as a LITERAL inside that delegate (`tools/acceptance/recipes/plant-throwing-effect.cs` declares `// args: none` and says why a parameterized version cannot exist); a run that needs other values writes its own batch-local probe the same way.
-
 ## 2026-10-11 — Write probes as files on this channel, not as inline snippets
 
 An inline `--code` submission has to survive the shell, the argument quoting and the client's parser at once, while the file form has none of that and leaves the probe in the batch directory where a record can cite it: every cited probe is its own file, reusable ones are promoted into `tools/acceptance/recipes/` before the batch closes, and `ok` WITHOUT a value is a failed probe rather than a passing one.
@@ -515,3 +507,7 @@ Four runs of batch `20261017-a` produced nothing but `eval 'recipe:member-identi
 ## 2026-10-17 — A recipe's `// args:` line is a requirement list, and a cell's state belongs to the host
 
 `drive-in-process.ps1` REFUSES a recipe call that omits any parameter its `// args:` line declares — `block-drop-forge`'s optional-looking `absolute`, `building`, `airwrite`, `item2` and `condition2` are all required — and it says so as exit 64 in the DRIVER log while the batch log shows only `ok=missing`; and a probe that needs a cell HOLDING a block cannot find one by probing offsets around the member (eight `block-read` calls all answered `block=0`, and the reading was reached only because the absolute cell the forged break landed on happened to hold block 14). A cell's state is the host's own fact, so ask the host; a setup step that failed is a reason to stop rather than to continue, because a batch that reached its setup by accident cannot say what it proved.
+
+## 2026-10-17 — A pump's cadence is the way into a frame-edge window, and a blackout brings the entry edge with it
+
+The accepted-first window row 5 needed lasts one frame at the generation-finished edge, so no out-of-process probe can win it by being fast: the way in is the pump's OWN schedule — stop its cadence for one step (the report goes out while nothing else can) and re-open it through the public control so the product sends its statement afterwards, which makes the order a property of the run instead of a race. And a receive blackout armed across world entry brings a second, larger edge: the swallowed `InWorld` report makes the member's readiness window re-assert until the host runs the whole entry path, including the saved-character restore, whose apply replaces the body's local objects and reports their destroys — the run's only refusals in batch `20261017-p`. Either wait the entry group out before staging anything on the body, or expect the restore and name it; the two conclusions are in `tools/AGENTS.md` and `docs/evidence/acceptance/validation-and-source-checks-20261017-p.md`.

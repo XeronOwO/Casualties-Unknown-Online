@@ -93,7 +93,6 @@
 				}
 			}
 			sb.Append("]}");
-			sb.Append('}');
 		}
 		sb.Append("]}");
 		listed.Add(sb.ToString());

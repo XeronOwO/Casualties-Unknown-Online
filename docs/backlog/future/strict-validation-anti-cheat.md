@@ -1,7 +1,7 @@
 # Strict validation / anti-cheat hardening
 
 - Status: Future — **promoted in part on 2026-10-14**: the user put the basic checks on the work list, and
-  the stages live in `review/validation-and-source-checks.md` (source/permission, the drop table, the state
+  the stages live in `done/validation-and-source-checks.md` (source/permission, the drop table, the state
   preconditions). This file stays as the inventory behind that ticket, not as the work item.
 - Priority: Low
 - Category: Future / security
@@ -18,7 +18,7 @@ kind was mapped with `AuthorityKind.OwnerPredictedHostValidated`
 therefore carried no member-versus-host information, and a member's `RunStart` reached the run domain,
 which does not check authority.
 
-**Landed 2026-10-14 as S1 of `review/validation-and-source-checks.md`.** The declaration is
+**Landed 2026-10-14 as S1 of `done/validation-and-source-checks.md`.** The declaration is
 `WireCommandAuthorityPolicy`'s per-kind table, filled from the senders the tree actually has and kept
 honest by `WireCommandSenderAuthorityGateTests` in both directions, so a member's submission of a
 host-only kind is refused by name at the seam; and the seam gained the item-report eligibility family the

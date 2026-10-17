@@ -70,8 +70,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
-- [Heal restores a severed limb](todo/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
-- [Heal restores severed limbs and clears hollow](todo/heal-command-limb-and-hollow-restore.md) — **Medium** — KrokMP parity for the heal command.
 - [A player's own music, heard by the group](todo/player-music-sync-playback.md) — **Medium** — transfer the file, then play.
 - [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.
 - [The loading screen says what it waits for](todo/loading-screen-progress-detail.md) — **Low-Medium** — reuse the game's own line.
@@ -81,6 +79,8 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [Heal restores severed limbs and clears hollow](review/heal-command-limb-and-hollow-restore.md) — **Medium** — KrokMP parity for the heal command.
+- [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [Enter opens the console as plain chat](review/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.

@@ -1,13 +1,13 @@
 # Restoring a severed limb: the game has no path, so the heal needs one of its own
 
-- Status: Todo — split out of `heal-command-limb-and-hollow-restore.md` on 2026-10-18, whose Stage A (clearing
+- Status: Review — split out of `heal-command-limb-and-hollow-restore.md` on 2026-10-18, whose Stage A (clearing
   the hollow debuff through the native `heal` command) has landed and been read on the machine. This is the
   other half of the same user request: "the game's own `heal` command does not restore severed limbs".
 - Priority: Medium
 - Category: Player state / body limbs / console commands
 - Source: the user's 2026-10-07 backlog request, whose limb half the parent ticket carried until the reading
   showed it is not a field write but a physics procedure with nothing to call.
-- Related: `docs/backlog/todo/heal-command-limb-and-hollow-restore.md` (the parent: the surface decision, the
+- Related: `docs/backlog/review/heal-command-limb-and-hollow-restore.md` (the parent: the surface decision, the
   hollow half and its runtime row), `reversing/Assembly-CSharp/Assembly-CSharp/Body.cs`,
   `reversing/KrokMP/KrokoshaCasualtiesMP/KrokoshaCasualtiesUtils/Util.cs` (KrokMP's `RegrowAllLimbs`),
   `reversing/KrokMP/KrokoshaCasualtiesMP/KrokoshaCasualtiesUtils/Util_BodyExtensions.cs` (its `ResetHealth`,

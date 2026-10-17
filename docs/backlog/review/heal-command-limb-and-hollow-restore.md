@@ -1,6 +1,6 @@
 # Heal must restore severed limbs and clear the hollow moodle
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Player state / console commands / KrokMP parity
 - Source: the user's 2026-10-07 backlog request — the game's own `heal` command does not restore severed

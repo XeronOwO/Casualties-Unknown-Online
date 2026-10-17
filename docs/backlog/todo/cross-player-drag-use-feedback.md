@@ -127,3 +127,27 @@ medical views already use, so there is no fourth answer to that question.
 
 Two facts are now runtime-visible for the next run: the label is drawn LAST in the frame so a mod window cannot
 hide it, and a null dragged item clears it, so the label cannot outlive the gesture.
+## Live evidence for the wiring, and one unresolved log finding (2026-10-18)
+
+A two-client batch ran on the deployed artifact `0.1.0+efa4c49d` (`.acceptance/20261018-b/run3.log`): host and
+member both reached the world, and every read row of the batch passed. That is the row this ticket can claim
+from a run today — **the drag cue's patch class, port, tracker and overlay load and a full session plays with
+them installed** — and it is not the ticket's own rows, which need a drag the driver cannot produce.
+
+**The deployment was checked rather than assumed**, because a type-resolution error appeared in the host log:
+`CasualtiesUnknownOnline.GameAdapter.dll` carries `DragUseCueTracker`, `IDragUseCuePatchPort`, `DragUseCuePolicy`
+and `PlayerCameraDragUseCuePatch`, the Runtime carries `IDragUseCueState` and the plugin carries
+`DragUseCueOverlay`, so nothing the change added is missing from the deployed set.
+
+**The unresolved finding.** The host log carries
+`[Error :Casualties Unknown: Online] [CasualtiesUnknownOnline.Plugin] [Unity:Exception] TypeLoadException: Could not resolve type with token 0100002e …`
+immediately after the acceptance driver connects to the REPL. Its stack is entirely third-party schema
+generation — `MonoCustomAttrs.IsDefined` ← `RuntimePropertyInfo.IsDefined` ←
+`DefaultContractResolver.GetSerializableMembers` ← `NJsonSchema.Generation.JsonSchemaGeneratorSettings` — with **no
+CUO frame in it**, and it fires at plugin-load time, before any CUO session or drag exists. Both clients then
+completed the session and answered every read.
+
+What is NOT established: whether this predates this change. The log is overwritten per run, so the previous
+artifact's log is gone, and the error names no CUO type. The decisive next check is to run one client with the
+drag code reverted (or with the REPL absent) and compare, or to capture the schema subject by logging the type
+HotRepl asks about — recorded here rather than assumed away, because "it loaded before this" is not evidence.

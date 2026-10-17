@@ -3,7 +3,9 @@
 - Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
   `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
-  registration — 2026-10-18, so **stage B is complete**. Stages C (`give`) and D (`spawn`) are what remains.
+  registration — 2026-10-18, so **stage B is complete**. Stage C's `give` is surveyed and its permission settled
+  (host-only first; the member-side whitelist is `todo/cheat-permission-and-op-commands.md`); Stage C and Stage D
+  (`spawn`) are what remains.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
 - Source: the user's 2026-10-07 backlog request — a Minecraft-style command family for CUO: item-specific
@@ -95,7 +97,9 @@ accepted-creation path unchanged or needs its own admission, including what a la
 2. **Stage C — `give`**: put an item into another player's inventory with its properties already set. The
    missing half is materialization on the receiving side — today an item reaches another player only by the
    receiver taking it or by dropping it for a pickup — so this stage owns that carrier, and it shares the
-   finding with `review/give-item-to-another-player.md`.
+   finding with `review/give-item-to-another-player.md`. **Designed 2026-10-18** — the carrier turned out to be
+   the giver-initiated push the give ticket landed, and the user ruled the verb HOST-ONLY first: see
+   *Stage C's design, surveyed* below for the carrier, the open pieces and the permission ruling.
 3. **Stage D — `spawn`**: create an entity in the world through the accepted-creation path, with the
    late-joiner question answered before the verb lands.
 4. **The permission story, inside every stage.** Reads are `Anyone` today (the read half's own reasoning is in
@@ -358,3 +362,40 @@ it adds that a member's client cannot state is the host's own authority rows; no
   starting-supply plan hands out leaf items, so this is not reachable there.
 - The host's allocation space is its own: the ids it mints here are what the host's snapshot and the kernel row
   carry, exactly as if a native act had minted them.
+
+## Stage C's design, surveyed (2026-10-18 — the permission ruling and the carrier)
+
+`/give` creates one item in another player's inventory with its properties already set. Two things are settled and
+some are open; the next cycle implements it.
+
+**Who may run it: HOST-ONLY, by the user's ruling of 2026-10-18** (`CommandPermission.HostOnly`). Opening it to
+members is its own ticket — `todo/cheat-permission-and-op-commands.md` — because a created item is not a property
+write of an existing row, so `AllowMemberItemDataWrite` is the wrong gate, and the user wants a `/op`/`/deop`
+whitelist (Steam ID plus the IP-direct identity question) rather than a ride on an existing rule.
+
+**The delivery carrier already exists**: the giver-initiated push landed in
+`review/give-item-to-another-player.md`. The host writes the destination's character snapshot and publishes ONE
+message (`PlayerInventoryTakeService.HandleTakeCore` → `PublishTransfer(new PlayerInventoryTransferMsg {
+FromSteamId, ToSteamId, Item, TargetParentItemId })`), and the receiving client's own applier adds it to its local
+body (`PlayerInteractionApply.OnPlayerInventoryTransfer`: `ToSteamId == local` → the slot or container branch).
+`/give` mints the item and rides that message: the TARGET's client is the one that puts it in its body.
+
+**What is still open, and belongs to the implementation cycle:**
+
+- **Minting the id in the Runtime.** The instance id is allocated adapter-side (`ItemIdAllocator`), and the console
+  lives in the Runtime: the verb needs one narrow port member ("allocate an id in this host's own space") rather
+  than reaching into the adapter, and the answer must be an id that space really owns.
+- **Validating the definition.** The verb names a definition id (`bandage`, `largebattery`); an id the game does not
+  know would be refused by the receiver's own creation, a round trip too late. Either the verb asks an existing
+  adapter facts port, or the gap is named as a limit of this stage.
+- **The destination.** One body (the family's one-item rule: a selector matching several bodies is refused by
+  name), a named free slot or the first free slot, and the "no free slot" refusal. The container destination is the
+  give ticket's own open gap, so `/give` starts with body slots and records that.
+- **Properties**: the same property grammar `/data set` uses (`condition`, `favourited`, `liquid`, `component`),
+  applied to the created item BEFORE it is published, so the receiver materializes it with the values already set.
+- **The sender's own console** prints the answer (item, id, destination slot), and the host's log carries one line.
+
+**Limits this verb will inherit, to be recorded rather than hidden**: the receiving client's native slot, weight
+and tag rules do not currently decide placement (the give ticket's open gap — the host computes the destination);
+a definition the game does not know; a target with no free slot; and the IP-direct/no-Steam question does not
+arise for `/give` itself because it is host-only.

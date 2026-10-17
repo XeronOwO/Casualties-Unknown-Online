@@ -61,6 +61,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
+- [Cheat permission and the op commands](todo/cheat-permission-and-op-commands.md) — **Medium** — who may run the cheat verbs.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — the write verbs, give and spawn; the read half landed.
 - [Health on every client, reconciled to the host](todo/health-simulation-and-host-authority.md) — **Medium-High** — everyone simulates; the host wins at once.
 - [The member reports that still have no bound](todo/member-report-bounds.md) — **Medium-High** — the census rows with no anchor.

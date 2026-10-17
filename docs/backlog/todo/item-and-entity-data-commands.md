@@ -189,9 +189,11 @@ a merge landing both named properties and reading back, a refused merge leaving 
 unlanded (the atomicity claim, observed), and a bounded property refused by name with the REMOVE grammar.
 The member side passed too, once the batch declared its own starting conditions (third run): a member's
 write lands while the host allows it and its record follows, and the SAME write is refused on the member's
-own client once the host announces the closed rule - the interception no unit test drives. What that record
-still owes is `remove` against a real container and a real component across a save/restore round trip, plus
-the two failures the first two runs hit and the batch fixes that came out of them.
+own client once the host announces the closed rule - the interception no unit test drives. The clear path is judged
+too on a waterbottle (a full stack goes to `500 ml -> 0 ml` and the container stays). What the record still
+owes is the COMPONENT half of that path: no run could name an item carrying a `BatteryItem`, so `TryResetField`
+is unit-covered but not runtime-covered. The record also keeps the three runs' failures, which are all one
+mistake: a step that reported an absence from a reading it had not established it could make.
 
 - **Since then:** the duplicated `<summary>` on the write method is deleted. Two nits remain unfixed and are
   recorded rather than forgotten: `WroteMany` takes two index-aligned lists, and it assumes a non-empty one.

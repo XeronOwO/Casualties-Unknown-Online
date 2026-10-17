@@ -46,30 +46,51 @@ One more host row, in every run:
 Rows 8–9 are the announced-rule interception, which no unit test drives: the member refuses before applying
 because the host told it the rule is closed, rather than applying, reporting and being put back.
 
+## Judged — the clear path, on items that really carry the property
+
+The nine rows above ran on a bandage, which carries neither a liquid stack nor a component, so the clear
+path itself needed an item that does. A waterbottle does:
+
+| # | Command | The answer | Verdict |
+|---|---|---|---|
+| 10 | `/data get id <bottle>` | `condition 1`, `favourited no`, `liquid water 500 ml` | the container as it arrives, full |
+| 11 | `/data remove id <bottle> liquid water` | `liquid water 500 ml -> 0 ml — written and reported as this client's own item state.` | the liquid goes to zero, and the answer names the value it moved from and to |
+| 12 | `/data get id <bottle>` | `liquid water 0 ml`, `revision 4` | the record followed it, and the **container is still there** — removal empties a stack rather than taking the property off the item |
+
+This repeated identically in every run that reached it (4, 5 and 6).
+
 ## Still owed
 
-`remove` against a **real container** (a liquid going to zero millilitres) and a **real component** (a field
-returning to its kind's zero), across a save/restore round trip. The two verbs were judged on a bandage,
-which has neither a liquid stack nor a component, so the clear path itself is unobserved at runtime — the
-unit cases cover it but the record should not claim more than a run showed. Reaching it needs an item that
-carries both, which is a `type=` away in the same batch.
+**The component half of the clear path.** The unit cases cover all six field kinds (`TryResetField` writes
+each kind's own zero), but no run has reset a real component field, because no run could name an item that
+carries one: `type=battery` is not an item id the game grants (`item-provide` answers `eval-error`), and the
+probe meant to find one asked the battery-tagged census for a field its answer does not carry (see below).
+Reaching it needs an item whose prefab really loads a `BatteryItem`, named by the id the game's own item
+table uses — the census's `mode=tag:battery` already computes that list.
 
-## What the first two runs cost, and what each one taught
+## What the runs cost, and the one mistake they all made
 
 **Run 1 — the member never entered the world.** Its own state reading said why: `steamInit: false`,
 `role: None`, `gateText: "Waiting for the host to load…"`. The batch had waited for a second `steam`
 PROCESS and taken that for readiness, then created a lobby and handed the member an id it could not use.
-Every member-side row was lost to a failure the batch could have refused by name. **Fixed in the batch**: a
-preflight row that waits on the member's own `steamInit` reading and throws with that sentence. It reads
-`true` in runs 2 and 3, which is the row doing its job.
+**Fixed in the batch**: a preflight row that waits on the member's own `steamInit` reading and throws with
+that sentence. It reads `true` in every run since.
 
 **Run 2 — the batch did not state its own starting condition.** The member's first write came back refused
-before the step that closes the rule had run, because the rule is PERSISTED in the host's BepInEx config and
-run 1 had left it closed. The refusal was correct — it was the same interception row 8 judges — but step 6
-could not be judged at all. **Fixed in the batch**: step 6 now sets the rule ON itself and waits for the
-announcement, and 3b/row 8 turns it off again. That the rule survives a restart is itself a reading this
-batch now demonstrates instead of tripping over.
+before the step that closes the rule had run, because the rule is PERSISTED in the host's config and run 1
+had left it closed. The refusal was correct — it is the same interception row 8 judges — but step 6 could
+not be judged. **Fixed in the batch**: step 6 now sets the rule ON itself and waits for the announcement.
 
-Neither failure was a defect in the verbs. Both were the batch assuming something it could have read, which
-is the same mistake in two places and is why the preflight row and the explicit starting condition both
-live in the script rather than in this note.
+**Runs 5 and 6 — the component probe read a field the answer does not carry.** The step meant to find a
+battery-tagged item parsed the census answer for an `"ids"` array; the answer is a LISTING with different
+field names, so the parse failed and the step reported *"the game names no item tagged battery"*. The game
+may well name several. Run 6 then asked for `type=battery` directly and got `eval-error`, which is at least
+an honest failure rather than a fabricated absence.
+
+**These three are the same mistake, and it is the one worth carrying forward**: each read a PROXY for the
+fact it needed — a process count for a transport, an assumed default for a persisted setting, a field name
+assumed rather than read. A verification step that cannot tell "the fact is absent" from "I failed to read
+it" produces a false verdict in whichever direction is convenient, and two of these three very nearly did.
+The fix is structural rather than local: **a step that reports an absence must first have demonstrated that
+it can see the thing it is looking for.**
+

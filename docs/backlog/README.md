@@ -70,6 +70,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
+- [Heal restores a severed limb](todo/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Heal restores severed limbs and clears hollow](todo/heal-command-limb-and-hollow-restore.md) — **Medium** — KrokMP parity for the heal command.
 - [A player's own music, heard by the group](todo/player-music-sync-playback.md) — **Medium** — transfer the file, then play.
 - [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.

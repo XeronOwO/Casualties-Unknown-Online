@@ -78,6 +78,19 @@ described above:
   lockpick and keypad minigames run on the opener's own client, so the open is its result. Half the anchor
   already exists host-side: the keypad code is the host's (`NetMsg.KeypadCode` = 57), and the entity's own
   type says which lock it is; what is missing is a host-side model of the progress a lock requires.
+
+  **The reach bound is the half that needs no model, and the chain it must change is traced (2026-10-18)** —
+  recorded because the bound costs one wire-shaped change, not a redesign: the report carries the position and
+  NOT the reporter, so the host cannot compare the two. `BuildingEntityOpenedHandler` fires
+  `ctx.World.FireBuildingEntityOpenedReceived(pos)`, `WorldStateMessageService.FireBuildingEntityOpenedReceived`
+  invokes `BuildingEntityOpenedReceived?.Invoke(pos)` on a `Action<NetVector2>` that `IWorldControl` declares
+  without a sender, and `WorldEventSync.OnRemoteBuildingEntityOpenedRelay` hands it straight to
+  `WorldBuildingEntitySync.OnRemoteBuildingEntityOpened`, which writes the health. Note the send side already has
+  the same shape for `BlockPlaced`, whose handler DOES thread the sender — that is the pattern to copy, not a new
+  mechanism. So the cycle is: carry the sender through the handler, the event and the relay; in the sync, look the
+  opener's body position up the way the character-data bound already does, refuse beyond the interaction reach
+  with the name of the sender, the position and the distance, and keep applying an in-reach open. The minigame
+  itself stays the opener's (a lock's progress is not reproducible host-side); this row bounds WHERE, not HOW.
 - **`NetMsg.TraderAction` (73)** — the trader is re-located from the reported position and the stock side is
   re-derived (`TradeStockMachine.TryPurchase` / `.TryGiveItem`), but the item id, the price, the reputation
   offsets and the flags ride the payload. The host holds the trader's own state, so the action can be

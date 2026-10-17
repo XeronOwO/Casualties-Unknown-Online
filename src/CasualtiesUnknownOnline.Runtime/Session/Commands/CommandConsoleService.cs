@@ -51,6 +51,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly WorldRestoreAudit _restoreAudit;
 	private readonly IStartingSupplyControl _startingSupplies;
 	private readonly ItemStateSettlement _itemStateSettlement;
+	private readonly IWorldSummonControl _worldSummon;
 	private readonly AnnouncedHostRules _hostRules;
 	private readonly ItemStateCompletion _itemStateCompletion;
 
@@ -73,6 +74,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IItemControl itemControl,
 		IItemStateLanguage itemStateLanguage,
 		ItemStateSettlement itemStateSettlement,
+		IWorldSummonControl worldSummon,
 		AnnouncedHostRules hostRules,
 		AnnouncedCheatPermissions cheatPermissions,
 		CheatPermissions cheatRoster,
@@ -92,6 +94,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_restoreAudit = restoreAudit;
 		_startingSupplies = startingSupplies;
 		_itemStateSettlement = itemStateSettlement;
+		_worldSummon = worldSummon;
 		_hostRules = hostRules;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += ResetSessionState;
@@ -115,6 +118,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// subscription a granted give would print nothing on the member's screen and a
 		// refused one would look like a line that did nothing.
 		_playerInteraction.GiveAnswered += OnGiveAnswered;
+		_worldSummon.Answered += OnSummonAnswered; // the same answer shape for the world verb
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
@@ -128,6 +132,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		var writes = new ItemDataWriteCommands(kernelItems, session, localItems, itemControl, itemStateLanguage, log, cheatVerbs, targets);
 		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, itemStateLanguage, log, targets, writes));
 		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, cheatVerbs, targets, log));
+		_commands.AddBuiltIns(new WorldSummonCommands(worldSummon, cheatVerbs));
 		_itemStateCompletion = new ItemStateCompletion(kernelItems, itemStateLanguage, targets);
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
@@ -260,6 +265,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_startingSupplies.Reported -= OnStartingSuppliesReported;
 		_itemStateSettlement.Refused -= OnItemDataWriteRefused;
 		_playerInteraction.GiveAnswered -= OnGiveAnswered;
+		_worldSummon.Answered -= OnSummonAnswered;
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
@@ -324,6 +330,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// the kind follows the verdict — an applied give is a success, a refusal an error.
 	/// </summary>
 	private void OnGiveAnswered(PlayerInventoryGiveResultMsg msg) =>
+		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+
+	/// <summary>The host's answer to this member's <c>/summon</c> — the created object and its point, or the refusal; the kind follows the verdict.</summary>
+	private void OnSummonAnswered(WorldSummonResultMsg msg) =>
 		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	/// <summary>

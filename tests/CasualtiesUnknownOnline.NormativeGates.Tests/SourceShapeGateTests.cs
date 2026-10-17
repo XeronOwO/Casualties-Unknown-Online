@@ -776,22 +776,26 @@ public class SourceShapeGateTests
 	}
 
 	/// <summary>
-	/// The give ladder's drop half is two calls that must stay wired together: the transfer's Drop branch drops
-	/// the item on the receiving body, and that placement REPORTS the created world item through the item
-	/// domain. A created object nobody reported is invisible to the host's kernel and killed by the next
-	/// world-item keyframe — the defect the independent review found — and the behaviour suites cannot host the
-	/// adapter, so the wiring is pinned here by source.
+	/// The give ladder's drop half is a chain that must stay wired together: the transfer's Drop branch drops the
+	/// item on the receiving body, that placement delegates to the ONE world-item creation (shared with the console
+	/// spawn verb), and that creation REPORTS the object through the item domain. A created object nobody reported
+	/// is invisible to the host's kernel and killed by the next world-item keyframe — the defect the independent
+	/// review found — and the behaviour suites cannot host the adapter, so the wiring is pinned here by source.
+	/// The report moved out of the placement when the spawn verb needed the same creation; the pin moves with the
+	/// claim, so a later edit that drops the report still fails here.
 	/// </summary>
 	[Fact]
 	public void GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport()
 	{
 		var apply = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs"));
 		var placement = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInventoryPlacement.cs"));
+		var creation = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Items/WorldItemCreation.cs"));
 
 		Assert.Contains("msg.Destination == PlayerInventoryDestination.Drop", apply);
 		Assert.Contains("_placement.DropCreatedItemAtLocalBody(body, dropped)", apply);
-		Assert.Contains("_domains.Items.SendItemSpawned(", placement);
-		Assert.Contains("ItemStateCodec.CaptureItem(created, -1)", placement);
+		Assert.Contains("_worldItems.TryCreateAt(body.transform.position, item, \"Give\", out _)", placement);
+		Assert.Contains("_items.SendItemSpawned(", creation);
+		Assert.Contains("ItemStateCodec.CaptureItem(created, -1)", creation);
 	}
 
 	/// <summary>

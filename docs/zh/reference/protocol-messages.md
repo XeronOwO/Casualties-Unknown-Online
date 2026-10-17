@@ -226,6 +226,7 @@ Host: start normal Batch/Stream
 | 127–133 | `MedicalOperationStartRequest`、`StartAck`、`Update`、`State`、`EndRequest`、`EndCommitted`、`Cancel` | 操作方 ↔ 主机 ↔ 各客户端 | 医疗操作会话：主机持有登记表与预留、增量进度，以及唯一一次终态提交 |
 | 137 / 138 | `MedicalOperationTargetCheckRequest` / `Answer` | 主机 → 目标／目标 → 主机 | 目标自己的客户端回答它这具活体身体允不允许开始这次操作 |
 | 147 / 148 | `PlayerInventoryGiveRequest` / `PlayerInventoryGiveResult` | 客机 → 主机／主机 → 请求者 | 控制台 `/give` 作弊动词：成员的请求（一个目标身体、物品定义、槽位，以及物品状态的标准 SNBT），以及主机自己的答复（创建的物品与落点，或拒绝）——物品本身走普通的背包转移事实到达 |
+| 149 / 150 | `WorldSummonRequest` / `WorldSummonResult` | 客机 → 主机／主机 → 请求者 | 控制台 `/summon` 作弊动词：成员的请求（类型字——`item` 或预制体 id——预制体、该成员自己的场景解析出的坐标——指针、自身身体、随机点或字面坐标——物品状态的标准 SNBT，以及世界／图层代际）与主机自己的答复（创建的物品实体的实例 id，或拒绝）——创建出的实体、动物或物品实体走各自家族的既有报告，图层代际过期的请求按名拒绝 |
 
 **模组与内核**
 

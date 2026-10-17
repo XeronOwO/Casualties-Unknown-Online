@@ -1,7 +1,7 @@
 # Cheat permission, `/op` and `/deop`: who may run the cheat verbs
 
 - Status: Review — **filed 2026-10-18** from the user's ruling on the `/give` verb's authority question (stage C of
-  `docs/backlog/todo/item-and-entity-data-commands.md`), and **widened the same day** by the user's combined
+  `docs/backlog/review/item-and-entity-data-commands.md`), and **widened the same day** by the user's combined
   direction (below), which supersedes the "`/give` host-only first" step. The first ruling in the user's own
   words: "`/op` `/deop` 这种命令能给他人授权或剥夺作弊权限(拓展:将某人加入作弊权限白名单,需要同时考虑 Steam ID 与
   IP 直连场景,对于 IP 直连场景可能需要额外评估玩家名伪造问题),主机的作弊权限通过联机开关控制,授权与剥夺只允许主
@@ -14,7 +14,7 @@
   ahead of the rest of the item-data ticket's stage C.
 - Category: Command surface / session authority / permissions
 - Related: `docs/backlog/done/give-item-to-a-player-command.md` (the verb this permission ships with),
-  `docs/backlog/todo/item-and-entity-data-commands.md` (the cheat verb family this gates — `spawn` next),
+  `docs/backlog/review/item-and-entity-data-commands.md` (the cheat verb family this gates — `spawn` next),
   `docs/backlog/done/host-rules-replication.md` (the announcement pattern a
   member's client reads to refuse a closed rule locally), `docs/backlog/todo/remote-backpack-access-policy.md` (a
   host policy that gates a gesture, the same shape one level down), `docs/en/internals/permissions-and-security.md`

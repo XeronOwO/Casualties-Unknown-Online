@@ -208,6 +208,16 @@ public static class GameAdapterComposition
 		services.AddSingleton<ItemContainerFit>();
 		services.Replace(ServiceDescriptor.Singleton<IItemContainerFit>(
 			p => p.GetRequiredService<ItemContainerFit>()));
+		// The world-summon seam behind the console /summon verb: the native command's position words and ONE
+		// object summoned at a point (an item entity through the creation port above and the shared world-item
+		// creation — the same the give ladder's drop makes — or an entity through Utils.Create). The
+		// same standalone shape and cycle reason as the two seams above — the console builds it at startup and
+		// must not force the aggregate, whose own graph depends on the controls this seam's neighbours live in.
+		// It needs nothing the domain graph owns: the prefab tables, the item table and the world instance are the
+		// game's own statics.
+		services.AddSingleton<WorldSummoner>();
+		services.Replace(ServiceDescriptor.Singleton<IWorldSummon>(
+			p => p.GetRequiredService<WorldSummoner>()));
 		// The game's own line-of-sight oracle is a standalone lightweight
 		// GameAdapter service. It must NOT be registered through GameAdapter:
 		// GameAdapter depends on IPlayerInteractionControl, and

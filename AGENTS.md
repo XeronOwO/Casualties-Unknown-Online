@@ -158,6 +158,14 @@ not the goal.
     the ticket. The census that makes this answerable per wire member is
     `docs/architecture/member-report-validation.md`, enforced by `ReportValidationCensusGateTests`, and the
     adversarial review asks it (`docs/development/review-prompt.md`).
+17. `[RULE]` **A console command's shape follows Minecraft's CURRENT template, fetched not remembered.** The
+    console's command family is modelled on Minecraft's (decision 264 chose its `/data` verbs, and the user's
+    2026-10-18 ruling asks for its `/summon` template), so before designing or renaming one, read the live Java
+    Edition syntax on `minecraft.wiki` and cross-check it with a web search — the argument list, their order and
+    which are optional. A verb may deviate only by recording the reason at the point of design (a game fact, an
+    earlier user ruling, or the family's own convention), because a shape written from memory is unreviewable: a
+    reader cannot tell a typo from a deliberate difference, and the wiki's version moves under the memory. The
+    citation is the fetched page, never a recollection.
 
 ## Development Workflow (binding)
 

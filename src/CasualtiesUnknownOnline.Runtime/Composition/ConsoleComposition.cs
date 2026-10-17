@@ -27,6 +27,11 @@ internal static class ConsoleComposition
 		// with the real one; without it the verbs answer that they cannot name the item's
 		// state rather than printing a shape no item in this build carries.
 		services.AddSingleton<IItemStateLanguage>(new UnavailableItemStateLanguage());
+		// The one scene capability behind the console /summon verb: the native position
+		// words and one object summoned in the world. The Game Adapter REPLACES this
+		// with the real one; without it the verb answers that this build cannot create
+		// world objects instead of creating nothing and saying nothing.
+		services.AddSingleton<IWorldSummon>(new UnavailableWorldSummon());
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());

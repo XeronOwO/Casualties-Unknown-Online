@@ -27,8 +27,8 @@ internal static class ItemGiveParser
 {
 	internal const string Usage = "/give [<selector>] <itemId>[{<snbt>}] [slot <n>]";
 
-	/// <summary>The wire request's own bound: the state text is re-parsed on the host, so its length is stated rather than unbounded.</summary>
-	internal const int MaxStateLength = 4096;
+	/// <summary>The wire request's own bound — the one the creation verbs' shared state parser states (<see cref="ItemStateText.MaxLength"/>).</summary>
+	internal const int MaxStateLength = ItemStateText.MaxLength;
 
 	private const string SlotKeyword = "slot";
 
@@ -108,49 +108,13 @@ internal static class ItemGiveParser
 	/// Parses one state argument — the text attached to the item id here, or the text a
 	/// member's request carried, which the host re-parses. Null or empty means "the
 	/// definition's own captured state"; anything else must be a compound.
+	/// <para>
+	/// The rule itself is <see cref="ItemStateText"/>, shared with <c>/spawn</c>: one
+	/// parse, one canonical form, one length bound across the family's creation verbs.
+	/// </para>
 	/// </summary>
-	internal static bool TryParseState(string? text, out SnbtCompound? state, out string canonical, out string? error)
-	{
-		state = null;
-		canonical = "";
-		error = null;
-		if (text is null || string.IsNullOrWhiteSpace(text))
-		{
-			return true;
-		}
-
-		if (text.Length > MaxStateLength)
-		{
-			error = $"the state is {text.Length} character(s); at most {MaxStateLength} are accepted.";
-			return false;
-		}
-
-		if (!SnbtParser.TryParse(text, out var value, out var parseError))
-		{
-			error = $"The state is not SNBT: {parseError}";
-			return false;
-		}
-
-		if (value is not SnbtCompound compound)
-		{
-			error = $"The state attached to an item id is a compound, e.g. <itemId>{{<key>:<value>}} — got {value.Kind}.";
-			return false;
-		}
-
-		state = compound;
-		canonical = SnbtWriter.Write(compound);
-
-		// The bound applies to what TRAVELS: canonicalisation can grow the text (a plain
-		// decimal gains its 'd', a single-quoted string gains escapes), so a line accepted
-		// under the typed length must not be refused later by the host's canonical length.
-		if (canonical.Length > MaxStateLength)
-		{
-			error = $"the state is {canonical.Length} character(s) in canonical form; at most {MaxStateLength} are accepted.";
-			return false;
-		}
-
-		return true;
-	}
+	internal static bool TryParseState(string? text, out SnbtCompound? state, out string canonical, out string? error) =>
+		ItemStateText.TryParse(text, out state, out canonical, out error);
 
 	private static bool IsItemTargetKeyword(string token) =>
 		IsKeyword(token, IdKeyword) || IsKeyword(token, SlotKeyword) || IsKeyword(token, CursorKeyword);

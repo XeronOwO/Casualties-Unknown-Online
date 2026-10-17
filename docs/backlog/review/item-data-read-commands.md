@@ -4,11 +4,11 @@
   `0.1.0+30dbb252`, leaving row 5b (two members besides the caller) and row 6 (an item applied to a limb).
 - Priority: Medium-High
 - Category: Command surface / item state
-- Source: Stage A of `todo/item-and-entity-data-commands.md` (the user's 2026-10-07 request for a
+- Source: Stage A of `review/item-and-entity-data-commands.md` (the user's 2026-10-07 request for a
   Minecraft-style command family), cut out on 2026-10-14. That ticket's own rule is that each stage is its own
   deliverable with its own verification, and its first required job was the attribute: write down what is
   addressable today before designing a verb that writes it.
-- Related: `todo/item-and-entity-data-commands.md` (the family's remaining stages),
+- Related: `review/item-and-entity-data-commands.md` (the family's remaining stages),
   `review/in-game-command-console-interactive.md` (the console these verbs land in),
   `done/in-game-command-console.md` (the console itself), `done/id-system-namespaced-ids.md` (the instance id a
   target names), `docs/architecture/domains.md` (the item kernel domain), `docs/contracts/item-features-matrix.csv`
@@ -129,7 +129,7 @@ behaviour.
 - **The cursor target has landed (2026-10-18), in the umbrella ticket.** The user asked for a Minecraft-style
   selector including "the item nearest the mouse"; that needed a new GameAdapter capability port (the console
   reads the kernel, which has no cursor), and it landed with the write half's port rather than here
-  (`todo/item-and-entity-data-commands.md`, *The cursor target landed*). This ticket's rows do not read it.
+  (`review/item-and-entity-data-commands.md`, *The cursor target landed*). This ticket's rows do not read it.
 - **Reads the session's record, not the local scene — and having no record is a real answer.** The verb
   answers what CUO records, and the record is filled by the holding client's report. A member's client registers
   its carried inventory (starting supplies and worn items included) at the generation-finished edge, so a guest's
@@ -176,7 +176,7 @@ Each is fixed before the delta's commit.
 
 ## Non-goals
 
-- Not the write verbs, `give` or `spawn` — each is its own stage in `todo/item-and-entity-data-commands.md`.
+- Not the write verbs, `give` or `spawn` — each is its own stage in `review/item-and-entity-data-commands.md`.
 - Not a raw property editor: only the properties the game's own data model carries are addressable, and a
   property the codecs do not whitelist is out of reach by construction (the survey above says where).
 - Not a new player-facing documentation page: the reading surface for a console verb is the console's own

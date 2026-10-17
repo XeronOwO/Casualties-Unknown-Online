@@ -84,6 +84,13 @@ internal static class WorldComposition
 		// completion marker; it is injected into the handshake/scene handlers
 		// so HandlerContext no longer owns a concrete world-entry flow.
 		services.AddSingleton<WorldEntryFanout>();
+		// The console /summon verb's mechanics (stage D of the item/entity data family): the host creates ONE
+		// world object — a world entity, an animal, or a loose item entity — through the scene seam and answers
+		// where it really is; a member's request is a position claim stamped with the world/layer generation,
+		// judged against this host's own cheat rulings and refused by name when stale, and the created object
+		// reports through its own family's path so a later joiner reads it from that family's absolute table.
+		services.AddSingleton<WorldSummonService>();
+		services.AddSingleton<IWorldSummonControl>(p => p.GetRequiredService<WorldSummonService>());
 		// Pending-report fallback pump: the single time edge for the guest's
 		// unacknowledged block mutations (W1) and runtime entity creations (E3),
 		// re-reported until the host answers. Both domains stay reaction-only;

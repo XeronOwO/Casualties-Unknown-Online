@@ -385,4 +385,16 @@ public enum NetMsg : byte
 	PlayerInventoryGiveRequest = 147, // guest → host: create one item for a player, with the properties the operator named
 	PlayerInventoryGiveResult = 148, // host → requester: the created item's identity and slot, or the refusal that answered it
 
+	// The console /summon verb (a cheat verb): create one world object — a world entity, an animal, or (with the
+	// "item" type word) a loose item entity — at a position. The member cannot create it: a creation the host
+	// cannot materialize is rejected and the creating side's copy dies, the answer could not say what landed, and
+	// only the host's own record is the one the world-entry group carries to a later joiner. So the member
+	// resolves the position on its own scene (its pointer, its body) and REQUESTS; the host judges its own cheat
+	// switch and roster, enforces the type word against its own tables, creates through the game's own call, and
+	// answers. The created object itself does not ride this pair: a world entity reports EntitySpawned, an animal
+	// rides the enemy domain's runtime-spawn facts, and a loose item entity reports ItemSpawn — the same row the
+	// give ladder's drop makes.
+	WorldSummonRequest = 149, // guest → host: summon one prefab (or item entity) at this point, with the operator's item state
+	WorldSummonResult = 150, // host → requester: the created object's identity (items) and position, or the refusal that answered it
+
 }

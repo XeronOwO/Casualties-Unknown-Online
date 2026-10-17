@@ -25,10 +25,12 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
 	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw,
 	IKernelProtocolControl kernelProtocol, ILayerAdvanceControl layerAdvance,
+	IWorldSummonControl worldSummon,
 	AnnouncedHostRules hostRules, AnnouncedCheatPermissions cheatPermissions) :
 	IWorldHandlerContext,
 	IWorldKernelHandlerContext,
 	IWorldSessionHandlerContext,
+	IWorldSummonHandlerContext,
 	IItemHandlerContext,
 	ICharacterSessionHandlerContext,
 	ICraftHandlerContext,
@@ -64,6 +66,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The direct player-interaction domain (take items from another player, host-authoritative).</summary>
 	public IPlayerInteractionControl PlayerInteraction { get; } = playerInteraction;
+
+	/// <summary>The console <c>/summon</c> verb's domain: the host creates one world object at a position and answers.</summary>
+	public IWorldSummonControl WorldSummon { get; } = worldSummon;
 
 	/// <summary>The tutorial-claw presentation stream (host-authoritative 20 Hz claw visual).</summary>
 	public ITutorialClawControl TutorialClaw { get; } = tutorialClaw;

@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1079,
+  "count": 1087,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -6477,6 +6477,54 @@
       "row": "H2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Permissions/CheatPermissions.cs",
       "quote": "This session is IP-direct: a peer is known by the logical id its own connection registered"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "WorldSummonRequest = 149"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/WorldSummonRequestHandler.cs",
+      "quote": "[PacketHandler(NetMsg.WorldSummonRequest, NetMessageDirection.GuestToHost)]"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldSummonService.cs",
+      "quote": "if (!_memberRules.CheatVerbsOpenToMembers)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldSummonService.cs",
+      "quote": "WorldReportGenerationGate.Relate(msg.Generation, _generations.Current, \"WorldSummonRequest\", sender, _log)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldSummonService.cs",
+      "quote": "var outcome = _summon.TrySummon(prefabId, kind, state, x, y);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldSummoner.cs",
+      "quote": "var pointer = Camera.main.ScreenToWorldPoint(Input.mousePosition);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldSummoner.cs",
+      "quote": "var isItemDefinition = Item.GlobalItems?.ContainsKey(prefabId) == true;"
+    },
+    {
+      "cluster": "inline",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs",
+      "quote": "_worldSummon.Answered += OnSummonAnswered;"
     }
   ]
 }

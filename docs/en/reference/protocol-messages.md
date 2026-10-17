@@ -281,6 +281,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 127–133 | `MedicalOperationStartRequest`, `StartAck`, `Update`, `State`, `EndRequest`, `EndCommitted`, `Cancel` | operator ↔ host ↔ clients | the medical operation session: host-owned registry, reservations, incremental progress, one terminal commit |
 | 137 / 138 | `MedicalOperationTargetCheckRequest` / `Answer` | host → target / target → host | the target's own client answers whether its live body allows the operation start |
 | 147 / 148 | `PlayerInventoryGiveRequest` / `PlayerInventoryGiveResult` | guest → host / host → requester | the console `/give` cheat verb: the member's request (one destination body, the item definition, the slot and the item's state as canonical SNBT) and the host's own answer (the created item and where it landed, or the refusal) — the item itself arrives through the ordinary inventory-transfer fact |
+| 149 / 150 | `WorldSummonRequest` / `WorldSummonResult` | guest → host / host → requester | the console `/summon` cheat verb: the member's request (the type word — `item` or a prefab id — the prefab, the position that member's own scene resolved — pointer, body, random point or a literal point — the item state as canonical SNBT and the world/layer generation) and the host's own answer (the created item entity's id, or the refusal) — the created entity, animal or item entity arrives through its family's own report, and a stale layer stamp is refused by name |
 
 **Mods and the kernel**
 

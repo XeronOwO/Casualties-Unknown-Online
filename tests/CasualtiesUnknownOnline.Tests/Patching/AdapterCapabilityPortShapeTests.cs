@@ -101,6 +101,26 @@ public class AdapterCapabilityPortShapeTests
 	}
 
 	/// <summary>
+	/// The console <c>/summon</c> verb's scene seam is the THIRD standalone adapter seam, for the same hard reason:
+	/// the console service is built at startup and consumes it, while the adapter aggregate's own graph depends on
+	/// the controls the seam's neighbours live in — routing it through <c>GameAdapter</c> would put the aggregate
+	/// inside the console's construction, the shape the give seam already tripped in batch <c>20261017-q</c>.
+	/// </summary>
+	[Fact]
+	public void WorldSummonSeam_IsStandalone()
+	{
+		Assert.True(File.Exists(CompositionPath), $"composition root not found at {CompositionPath}");
+
+		var code = string.Join("\n", File.ReadAllLines(CompositionPath)
+			.Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+
+		Assert.Equal(0, CountCodeOccurrences(code, "AddSingleton<IWorldSummon>"));
+		Assert.Equal(1, CountCodeOccurrences(code, "Replace(ServiceDescriptor.Singleton<IWorldSummon>"));
+		Assert.Equal(1, CountCodeOccurrences(code, "GetRequiredService<WorldSummoner>())"));
+		Assert.Equal(1, CountCodeOccurrences(code, "AddSingleton<WorldSummoner>()"));
+	}
+
+	/// <summary>
 	/// The <c>/give</c> verb's creation seam is NOT a port on the adapter singleton, and
 	/// the reason is a hard one: <c>PlayerInteractionService</c> consumes the port and
 	/// <c>GameAdapter</c> depends on <c>IPlayerInteractionControl</c> (it subscribes to

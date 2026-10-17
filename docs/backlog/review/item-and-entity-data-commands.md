@@ -1,14 +1,15 @@
 # Item and entity data commands: give, spawn and a property editor
 
-- Status: Todo — the read half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
+- Status: Review — **stage D (`spawn`) landed 2026-10-18**, so every stage of this ticket is built; its acceptance
+  rows (`What the acceptance batch owes`, under *Stage D* below) are what a real run still owes. History: the read
+  half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
   `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
   registration — 2026-10-18, so **stage B is complete**; batch `20261018-q` re-read its read/write rows under
   the SNBT renderer on `0.1.0+30dbb252` (record
   `docs/evidence/acceptance/item-and-entity-data-commands-20261018-q.md`). **Stage C (`give`) landed 2026-10-17
   and moved out** to `done/give-item-to-a-player-command.md`, together with
-  `review/cheat-permission-and-op-commands.md`'s permission half. **Only stage D (`spawn`) remains** in this
-  ticket.
+  `review/cheat-permission-and-op-commands.md`'s permission half.
 - Priority: Medium-High
 - Category: Command surface / item and entity state
 - Source: the user's 2026-10-07 backlog request — a Minecraft-style command family for CUO: item-specific
@@ -366,7 +367,7 @@ it adds that a member's client cannot state is the host's own authority rows; no
 |---|---|---|
 | 1 | The capture | `CarriedInventoryReporter` 鈥?the same capture a member's client sends (body slots plus worn-limb children, `EnsureId` per item); the host now runs it at the same edge, so the host's supplies are minted in the host's own id space |
 | 2 | The arming edges | the generation-finished edge (both sides) and the host-session rising edge (`_hostSessionActive`), which covers a world entered before the session existed (a solo world turned lobby) |
-| 3 | The registration write | `ItemOwnCarriedRegistration.Register` 鈫?`ItemService.SendItemCarriedSync` 鈫?`ItemKernelAuthority.TrySpawnCarried` / `TryUpdateState`: the write a native act of the host takes, not a second route |
+| 3 | The registration write | `ItemOwnCarriedRegistration.Register` 鈫?`ItemService.SendItemCarriedSync` 鈫?`ItemKernelAuthority.TrySummonCarried` / `TryUpdateState`: the write a native act of the host takes, not a second route |
 | 4 | The members' record | the kernel commit is the batch a member's replay reads (`ItemKernelAuthority.TryExecute` 鈫?`BatchCommitted` 鈫?`KernelProtocolService.BroadcastCommittedBatch`); the ids the registration's `EnsureId` mints then ride the host's 1 Hz character snapshot to the members' view, and that snapshot could not carry them before 鈥?its capture reads `ItemInstanceId` and the host's items had none (`ItemStateCodec.CaptureItem`: `InstanceId = item.GetComponent<ItemInstanceId>()?.Id ?? 0`) |
 | 5 | The guest's path | unchanged: the guest's report, its cadence/window and the host's judging of that statement are untouched; the only shared surface is the role branch in `SendCarriedInventory` |
 | 6 | One registration, not a cadence | the host's write is local, so it cannot be lost on the wire; a repeat would re-commit every item 鈥?the debt is armed at world entry and spent by the first capture that can read the body |
@@ -412,3 +413,230 @@ it adds that a member's client cannot state is the host's own authority rows; no
   starting-supply plan hands out leaf items, so this is not reachable there.
 - The host's allocation space is its own: the ids it mints here are what the host's snapshot and the kernel row
   carry, exactly as if a native act had minted them.
+
+## Stage D — `summon`: what a later joiner sees, the entry mapping and the design (2026-10-18)
+
+This ticket's stage D owed one answer before the verb could land: **what does a member that joins after a
+command-spawned object see?** It is answered here from the tree, then the verb is designed on that answer.
+
+### What a later joiner sees (answered 2026-10-18)
+
+A spawn creates one of three classes of object, and each class already has an absolute table in the world-entry
+group. The verb therefore needs **no admission of its own**: it creates on the HOST through the game's own
+creation call, and each family's existing report path fills the table the later joiner reads.
+
+| What the prefab is | The report a host creation triggers | The absolute table a later member receives | When |
+|---|---|---|---|
+| A world entity (`BuildingEntity`, not an animal) — a beartrap, a crate, a geyser, a turret | `BuildingEntity.Start` → `EntitySpawnSync.OnEntityInstantiated` → `RuntimeEntityChannel.SendEntitySpawned`; the host branch records it (`RuntimeEntityRegistry.Report`) and broadcasts | `RuntimeEntitySnapshot` — the accepted-creation table; the guest replays each entry through the LIVE creation path (`FireRuntimeEntitySnapshotReceived` → `FireEntitySpawnedReceived` → `OnRemoteEntitySpawned`) | world entry (`WorldEntryFanout.Send`'s `SendRuntimeEntitySnapshot`), the in-session repair group, and the 60 s host cycle |
+| An animal (`BuildingEntity.animal`) — a spider, a thornback | The same Start report with `IsAnimal = true`; the host records it by KEY only (`RuntimeEntityRegistry.ReportAnimal`), never as a materializable entry | `EnemySnapshot.RuntimeSpawns` — the facts `EnemyStateCapture.Capture` builds with `RuntimeSpawned = _runtimeAnimals.Contains(entity)` and `PrefabId = entity.id`; the guest materializes them in `EnemySyncCoordinator.MaterializeRuntimeSpawns` | world entry and the in-session repair group (`SendEnemySnapshot`) |
+| A loose item — a bandage, scrap metal, a waterbottle | `Item.Start` → `ItemWorldSync.OnItemInstantiated` (it allocates the instance id and reports) → `ItemMessageFlowService.SendItemSpawned`; the host's `ItemProjection.ApplySpawn` writes the kernel row and the world table | The item snapshot (`ItemSnapshotService.SendItemSnapshot`) plus the kernel checkpoint | world entry (one-shot, reliable), then the 5 s keyframe |
+
+Three consequences the implementation takes from that table:
+
+- **The verb creates on the HOST.** A member's own creation would ride the accepted-creation path as a REPORT —
+  the host may reject it (a prefab the host lacks), the member's copy would die on that refusal, and the answer
+  could not say what landed. The host-created object's record exists from the moment its creation reports, which
+  is exactly what the later joiner reads. A member's verb is therefore a request (the `/give` shape), not a
+  local creation.
+- **No new table and no new creation frame.** The verb adds only its request/answer pair; the creation itself
+  rides `EntitySpawned` (entity and animal) or the item domain's own `ItemSpawn` (item), so the three tables
+  above stay the single answer to "what does a later joiner see".
+- **The item half is not the runtime-entity channel.** A loose item is an item-domain row from its first
+  report; putting it on the entity channel would create a second materialization path for the same object.
+
+### Entry mapping (the native call site)
+
+CUO's `/summon` is the console counterpart of the game's OWN console `spawn` command — not an invented gesture:
+
+- The call site is `ConsoleScript.RegisterAllCommands`'s `spawn` command: `spawn <string id> [position] [float
+  condition] [int amount]`. It creates `Utils.Create(id, position, 0f)` once per amount, throws *Could not find
+  entity "<id>"* for an id that resolves to nothing, applies the optional item condition (and a magazine's
+  rounds scaled by it), and **picks the item up when it lands within 2 units of the player**.
+- Its position argument is `ConsoleScript.ParsePosition`: `cursor` = `Camera.main.ScreenToWorldPoint(
+  Input.mousePosition)` (the default when the argument is omitted), `player` = `PlayerCamera.main.body.transform.
+  position`, `random` = a uniform point in the layer rectangle (`±halfWidth`, `±halfHeight`), or a literal
+  `<x>,<y>` pair.
+- The creation call is `Utils.Create` — `Object.Instantiate(Resources.Load(id), pos, rot)`. CUO's
+  `UtilsCreateCustomPrefabPatch` extends that same call to mod-registered templates, which is why the creation
+  seam attempts the call instead of pre-checking `Resources.Load` (that pre-check is the round-3 finding that
+  starved every mod template).
+- Item and entity share that one call: the game's own command applies the condition only when the created object
+  carries an `Item`, and CUO's two `Start` hooks are what report the object afterwards.
+
+Deviations, each with its reason:
+
+- **The `condition` argument is superseded by the family's state language.** The item state is an SNBT document
+  (decision 264), bound by the same adapter schema and legality `/give` uses; `/summon` inherits that language
+  rather than growing a second property vocabulary. An ENTITY prefab takes no state argument, because an entity
+  has no state document in this tree: its creation-time values (a geyser's liquid type, a keypad's code, a
+  crystal's tint) are the game's own, and a document nothing reads would be a mechanism with no consumer.
+- **The `amount` argument is not mirrored.** One invocation creates one object, the same rule as `/give`; a
+  second copy is a second verb. Recorded under *Limits*.
+- **The within-2-units auto-pickup is not mirrored.** `/summon` is the WORLD verb and `/give` is the BODY verb;
+  a member's spawn is created by the host at that member's position, so the host's own body would be the one
+  picking the item up — the native convenience would become a host-local side effect nobody asked for. Recorded
+  under *Limits*.
+
+### Grammar
+
+```text
+/summon <prefabId> [<position>] [<snbt-state>]           an entity or an animal
+/summon item <itemId> [<position>] [<snbt-state>]       a loose item entity
+<position> = cursor | player | random | <x>,<y>          (default: cursor)
+```
+
+The user's 2026-10-18 ruling renamed the stage's verb from `spawn` to `summon`: Minecraft's command template is the
+reference for a console verb (now a standing rule, `AGENTS.md` Engineering Conventions 17), and the template is
+`/summon <entity> [<pos>] [<nbt>]` — the type first, the position second, the SNBT last. The type word `item`
+follows that shape for a loose item entity, and the item's SNBT is the SAME document `/give` speaks, which the
+user required in the same ruling: the summoned item entity must be equivalent to the item entity a give drops
+when the body cannot hold it. Both verbs hand the state text to the same creation port (`IItemGrantSource`) and
+the same world-item creation (`WorldItemCreation`), so the equivalence is structural and is pinned by
+`ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument`.
+
+The template was checked against the live wiki on 2026-10-18 rather than remembered
+([`/summon`](https://minecraft.wiki/w/Commands/summon)): Java Edition's form is `<entity> [<pos>] [<nbt>]`, and its
+item entity names the item INSIDE the NBT (`{Item:{id:...,count:...}}`). CUO deviates in one place and records
+why: the definition stays the type word's argument (`/summon item bandage {…}`) and the SNBT is the item's OWN
+state document, because the user's ruling requires that document to equal the give drop's — nesting it under
+Minecraft's `Item:` envelope would make it a different document for the same item. The position and state
+arguments are Minecraft's order and shape.
+
+### Design, as landed
+
+- **The seam.** `IWorldSummon` (Runtime → Game Adapter): `TryResolveAnchor` answers the pointer / body / random
+  point (the game's own `ScreenToWorldPoint`, `body.transform.position` and layer rectangle), and `TrySummon`
+  materializes one prefab at a point and answers the created instance id (items) or zero (entities), or a
+  refusal BY NAME. It is a STANDALONE adapter service, like the give seam: the console builds it at startup and
+  the adapter aggregate must not enter that construction (the `20261017-q` startup cycle's lesson).
+- **Classification is the adapter's, before anything is created.** An id in the game's own item table is an
+  item (the `Item.GrantSource` fact path: prefab capture → state bind → instance id); otherwise the prefab is
+  created through `Utils.Create` and must carry a `BuildingEntity` with a non-empty `id` (an id-less prefab
+  could never be recreated by a peer). A prefab that is neither is refused by name and destroyed.
+- **The item path reuses the give ladder's world creation.** The fact is created by `IItemGrantSource` (the
+  id space, the state bind), then materialized at the named point and reported by the same code the give's drop
+  rung uses — extracted into one `WorldItemCreation` collaborator so the two cannot drift.
+- **The permission is the family's two-sided check, no new flag.** The acting client runs `CheatVerbGate`; the
+  host judges its own switch and roster for every request (switch then roster, each its own sentence) and
+  answers. The host's own verb needs neither.
+- **The position travels as the requesting client's own fact.** The member resolves the keyword on its own
+  scene (the pointer is its pointer, `player` is its body) and the request carries the resolved point; the host
+  creates there. The claim is a creation cause, the same class `ItemSpawn` already is, and the census row says
+  so. The request is stamped with the world/layer generation, so a request that outlived a layer boundary is
+  refused by name instead of materializing at layer-relative coordinates in the next layer.
+- **No new table, no new broadcast, no protocol bump.** The creation rides `EntitySpawned` / `ItemSpawn`; the
+  two added `NetMsg` members are 149/150 and no existing member moves (decision 241).
+
+### Landed (2026-10-18)
+
+The verb is real now: `/summon` creates one world object through the game's own creation call, on the host, and
+every family's existing report carries it to the session and to a later joiner. The console's cheat family is
+complete — `/data`'s write verbs, `/give`, `/summon` — under one two-sided check and one gate.
+
+**Mechanism inventory.**
+
+| # | Mechanism | Evidence |
+|---|---|---|
+| 1 | The native call site | the game console's own `spawn` command (`ConsoleScript.RegisterAllCommands`) and its `ParsePosition`: `cursor` = `Camera.main.ScreenToWorldPoint(Input.mousePosition)`, `player` = `PlayerCamera.main.body.transform.position`, `random` = a uniform point in the layer rectangle, or `<x>,<y>`; the creation call is `Utils.Create` (`Object.Instantiate(Resources.Load(id), pos, rot)`), extended to mod templates by `UtilsCreateCustomPrefabPatch` |
+| 2 | The position words | `WorldSummoner.TryResolveAnchor` reads the same three places; `WorldSummonParser` owns the keywords and the literal pair, and a refusal quotes the vocabulary |
+| 3 | The type word | `WorldSummoner.TrySummon`: `item` requires an id in `Item.GlobalItems` (the `IItemGrantSource` fact: prefab capture → state bind → instance id); the entity form refuses an item definition BY NAME with the spelling that works, and creates through `RuntimeEntityFactory.TryCreate`, requiring a `BuildingEntity` with a non-empty id (an id no peer could recreate is refused and destroyed) |
+| 4 | The item entity is the give drop's fact | the same `IItemGrantSource` + `WorldItemCreation` the give ladder's drop rung uses — create at the point, stamp the host's id, restore the state, report through `IItemControl.SendItemSpawned` — so the two verbs cannot produce different item entities; pinned by `ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument` |
+| 5 | The refusals | `WorldSummonOutcome.Refusal` names every ground: an unknown prefab, `item` with a non-item id, an item id without the word, an entity prefab with a state, a prefab with no entity id, a scene with no world/body/camera, an item state the definition does not carry, a request from another layer, the host's switch and roster |
+| 6 | The permission | the family's landed two-sided check, no new flag: `CheatVerbGate` on the acting client before any scene work, `IMemberCommandRules` on the host for every request (switch then roster, each its own sentence) |
+| 7 | The wire | `NetMsg.WorldSummonRequest` 149 (guest → host) and `NetMsg.WorldSummonResult` 150 (host → requester), each direction-locked by its handler; the request carries the prefab, the resolved point, the canonical SNBT state and the world/layer stamp |
+| 8 | The layer stamp | `KernelWorldGenerationSource` + `WorldReportGenerationGate.Relate`, the same pair the runtime-entity channel uses; a stale request is refused by name and answered |
+| 9 | The answer | `WorldSummonService.Describe` — what was created (the item's id included), the point the creation really used and the state the object really carries; one helper feeds the log and the sentence |
+| 10 | No new creation path | the created entity/animal reports through `EntitySpawned` (row E3), the item through the item domain's own spawn row (row I1); the verb adds no table, no broadcast and no protocol bump (decision 241) |
+| 11 | The shared state text | `ItemStateText` (extracted from `ItemGiveParser`): one parse, one canonical form, one length bound for `/give` and `/summon`, so the two creation verbs cannot disagree about what a state argument is |
+| 12 | The seam's shape | `IWorldSummon` is a STANDALONE adapter service, pinned by `AdapterCapabilityPortShapeTests.WorldSummonSeam_IsStandalone`; the give seam's startup-cycle lesson is the reason |
+
+**Self-check table.**
+
+| # | Claim | Evidence |
+|---|---|---|
+| 1 | A host summon creates an entity at the point the position word names, and the creation records | `CommandConsoleWorldSummonTests.Host_SummonsAnEntity_ReportsTheCreationAndAnswersThePosition`, `.Host_SummonsWithNoPosition_AtThePointer`, `.Host_SummonsAtALiteralPoint` |
+| 2 | An item entity is created with an instance id, its world row written and its state bound before the creation | `.Host_SummonsAnItemEntity_WritesTheWorldRowAndAnswersItsInstanceId`, `.Host_SummonsAnItemEntityWithState_AppliesItBeforeTheCreation` |
+| 3 | A summoned item entity and a give drop carry the SAME state document for the same text | `.ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument` |
+| 4 | An animal is acknowledged by key, never as a materializable creation | `.Host_SummonsAnAnimal_IsAcknowledgedByKeyAndNotRecordedAsAMaterializableCreation` |
+| 5 | The type word is enforced, not guessed | `.Host_SummonsAnItemDefinitionWithoutTheItemWord_IsRefusedWithTheSpelling`, `.Host_SummonsAnEntityPrefabWithTheItemWord_IsRefusedByName` |
+| 6 | Every other refusal is by name and creates nothing | `.Host_SummonsAPrefabTheBuildDoesNotKnow_IsRefusedByName`, `.Host_SummonsAnEntityWithAState_IsRefusedBeforeAnythingIsCreated`, `.Host_SummonWhenThePositionCannotBeResolved_IsRefusedByName`, `.MalformedSummon_IsRefusedWithItsOwnSentence` |
+| 7 | The host's own verb needs neither cheat ruling | `.Host_SummonsWhileTheMemberSwitchIsClosed` |
+| 8 | A member's verb is a request whose answer prints on the member's console, and the member's own scene resolved the point | `CommandConsoleMemberWorldSummonTests.Member_Summons_RequestsTheHostAndPrintsItsAnswer`, `.Member_SummonsAnItemEntity_IsCreatedByTheHost`, `.Member_SummonsWithState_IsBoundByTheHost` |
+| 9 | Both cheat rulings refuse locally before any scene work, and the host is the back end when the announcement was swallowed | `.Member_Summons_WhenTheAnnouncedSwitchIsClosed_IsRefusedLocally`, `.Member_Summons_WhenTheSwitchIsOpenButTheMemberIsNotGranted_IsRefusedByTheRoster`, `.Member_Summons_WhenNoRosterWasAnnounced_IsSettledByTheHostsOwnRefusal` |
+| 10 | A malformed state or an unanswerable position never leaves the member's client | `.Member_SummonsWithMalformedSnbt_IsRefusedLocallyWithoutARequest`, `.Member_SummonWhenItsOwnSceneCannotAnswerThePosition_IsRefusedLocallyWithoutARequest` |
+| 11 | A request from another layer is refused by name and creates nothing | `.ARequestFromAnotherLayer_IsRefusedByTheHostAndCreatesNothing` |
+| 12 | A forged answer from a non-host sender is dropped by name | `.AnAnswerFromANonHostSender_IsDropped` |
+| 13 | The later joiner receives the entity through the accepted-creation table | `WorldSummonLateJoinerTests.AnEntitySummon_ReachesALaterJoinerThroughTheAcceptedCreationTable` |
+| 14 | The later joiner receives the item entity through the item snapshot and the kernel row | `.AnItemEntitySummon_ReachesALaterJoinerThroughTheItemSnapshotAndTheKernelRow` |
+| 15 | The animal's key reaches the later joiner's snapshot, with no materializable entry | `.AnAnimalSummon_IsAcknowledgedByKeyInTheSnapshotALaterJoinerReceives` |
+| 16 | The three frames round-trip their fields, and an unset type word reads as the entity family | `WorldSummonProtocolTests.SummonRequest_RoundTripsTheTypePrefabPointStateAndGeneration`, `.SummonRequest_WithoutATypeWord_ReadsAsAnEntity`, `.SummonResult_RoundTripsTheAppliedIdentityAndAnswer` |
+| 17 | The pair is direction-classified and the member-authored one is in the census | `GuestToHostDirectionTests`/`HostToGuestDirectionTests` rows, `docs/architecture/member-report-validation.md`, sync-coverage row I12 with 8 anchors |
+| 18 | The grammar is Minecraft's template with the family's recorded deviation | `WorldSummonParserTests` (23 cases): the type word, the position vocabulary, the attached-state refusal and the item-form shape |
+| 19 | The seam cannot reach the aggregate and the two verbs share one item materialization | `AdapterCapabilityPortShapeTests.WorldSummonSeam_IsStandalone`; `WorldItemCreation` is the one world-item creation used by the give ladder and the summon verb |
+| 20 | Not covered here | the real instantiation, the real prefab tables, the real pointer and body — the Game Adapter's half, which a test host cannot host: code-reviewed, and the acceptance batch's rows below are its runtime proof |
+
+**Whole-family audit.** The console's cheat family now reads: `/data`'s write verbs (gated at the admission
+seam), `/give` (its own request handler), `/summon` (this verb, its own request handler), `/data get` (`Anyone`),
+the host-admin verbs (`HostOnly`), `/heal` (excluded — it consumes the healer's own item). The three creation
+families were checked against the verb: the runtime-entity channel (a non-animal `BuildingEntity`), the enemy
+domain (an animal), the item domain (a loose item) — each already had its absolute table in the world-entry
+group, so the verb adds none; and the world-item creation path the give ladder's drop rung used is now ONE
+collaborator, so the two verbs cannot materialize an item differently.
+
+**What the acceptance batch owes.**
+
+A host + one member session on the deployed artifact:
+
+| # | Scenario | Expected |
+|---|---|---|
+| 1 | Host `/summon beartrap player` | the answer names the point it used; the beartrap exists on both peers' scenes at that point |
+| 2 | Host `/summon medcrate` with the pointer over the world | the answer names the POINTER's world point (the native default) and the crate appears there |
+| 3 | Host `/summon bandage player {Condition:0.4f}` | the answer carries the state the item really holds; `/data get id <id>` on BOTH peers reads `0.4f`, and the item lies where the host stood |
+| 4 | Host `/summon spider player` | a spider appears on both clients, and the host's enemy snapshot log names it as a runtime spawn |
+| 5 | Member (switch open + grant) `/summon bandage player` | the answer prints on the member's console, and both peers see the item where the MEMBER stood — the member's own scene resolved the point |
+| 6 | Member, switch closed (announced), the same verb | refused locally, nothing created on either peer |
+| 7 | Member, switch open, no grant (announced) | the roster's refusal, nothing created |
+| 8 | `/summon notanprefab` and `/summon beartrap player {Condition:0.5f}` | each is refused by name, nothing created on either peer |
+| 9 | A later joiner: the member leaves the world and re-enters (or a third client joins) | the beartrap from row 1 materializes again at its creation point, exactly once — the runtime-entity table |
+| 10 | The layer-boundary request (a request stamped with the previous layer) | refused by name; if the live window cannot be held, the row records `unproven` rather than weakening the check (the decision is pinned by `ARequestFromAnotherLayer_IsRefusedByTheHostAndCreatesNothing`) |
+
+**Limits, recorded rather than hidden.**
+
+- **The native console's `amount` argument is not mirrored.** One invocation creates one object, the same rule as
+  `/give`; a second copy is a second verb. The native count was a loop around the same creation call.
+- **The native console's within-2-units auto-pickup is not mirrored.** `/summon` is the WORLD verb and `/give` is
+  the BODY verb; a member's spawn is created by the host at that member's position, so the host's own body would
+  be the one picking the item up — the native convenience would become a host-local side effect. A player who
+  wants an item in hand uses `/give`.
+- **An entity prefab takes no state argument.** No entity state document exists in this tree: a geyser's liquid
+  type is rolled at its child's `Start`, a keypad's code is host authority, and a crystal's tint comes from its
+  trigger. The `/data` verbs address items, and an entity state language would need a reader before it is a
+  mechanism; a state on an entity prefab is refused by name instead.
+- **The position is the operator's claim.** The member's own client resolves it (its pointer, its body, its
+  layer) and the host creates there; it is not bounded by a data anchor, by design — the permission covers the
+  verb, exactly as it covers `/give`'s state values. A client that lies about the point can put a spawned object
+  anywhere in the layer; it cannot make the host create something the host's own content lacks.
+- **A spawn needs a session.** A solo world refuses the verb, the family's cheat standing (`/give`'s rule).
+- **No console completion.** The verb declares one free-text argument, like `/give`; the native console's id
+  autofill is not ported.
+- **A spawned object is a session/layer fact.** The game's own save holds blocks, the body and saved items, not
+  runtime-created entities: a host reload regenerates the layer and the object is gone, and every member's own
+  generation agrees. A dropped item is the same kind of fact.
+- **The item half's row is the host's.** The instance id is the host's allocation and the world row is the
+  host's kernel row (the creation report); a member's `/data get id <id>` reads its replay.
+- **The answer prints with two console kinds.** The host's own verb returns a success line; a member's answer
+  arrives through the answer event and prints with the verdict's kind. The words are identical — the console-wide
+  return contract the give answer already has, not this verb's to change.
+- **The scene seam has no test host.** The real instantiation, the prefab tables and the pointer/body reads are
+  adapter shell: code review plus the acceptance batch. `FakeWorldSummon` replaces exactly that half and makes
+  the report the real hooks make.
+
+**Verification.** `dotnet build` exit 0 (0 warnings), `dotnet format` exit 0, the behavioural suite 5798/5798 and
+the normative gates 695/695 on the frozen tree (`.acceptance/test-full-3.log`, `.acceptance/gates-4.log`). The 59
+new cases are the parser's 23, the host console's 18, the member console's 10, the late-joiner table's 3, the
+protocol round trips' 3, the two direction rows and the standalone-seam pin. Two shipped lines changed on the
+way and are recorded rather than hidden: the give ladder's drop rung now logs through the shared
+`WorldItemCreation` (`[Give] created <id> (id <n>) at (<x>,<y>) and reported its creation` — the same tag, the
+same facts, the position named as coordinates instead of "the local body's position"), and `ItemGrantSource`'s
+preparation line is tagged `[ItemCreate]` because two verbs now ask it for a fact.
+

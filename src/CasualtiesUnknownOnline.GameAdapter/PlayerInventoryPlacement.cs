@@ -1,6 +1,5 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -25,6 +24,9 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 {
 	private readonly GameAdapterDomains _domains = domains;
+
+	/// <summary>The one world-item creation path (the give ladder's drop rung and the console spawn verb share it).</summary>
+	private readonly WorldItemCreation _worldItems = new(domains.Items, domains.Log);
 
 	/// <summary>A carried item leaves this body: destroy the local object at any depth (a slot, a worn limb or a container).</summary>
 	internal void RemoveCarriedItemFromLocalBody(Body body, ulong instanceId)
@@ -158,56 +160,12 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 	}
 
 	/// <summary>
-	/// The give ladder's last rung on the receiving side: create the item's world object where this body
-	/// stands, give it the host's instance id, apply the fact's state and REPORT the creation through the
-	/// item domain — the row the host and the peers keep is that report, not the local object.
+	/// The give ladder's last rung on the receiving side: create the item's world object where this body stands,
+	/// give it the host's instance id, apply the fact's state and REPORT the creation through the item domain —
+	/// the row the host and the peers keep is that report, not the local object.
 	/// </summary>
-	internal void DropCreatedItemAtLocalBody(Body body, CharacterItemMsg item)
-	{
-		var prefab = ItemPrefabResolver.Load(item.ItemId);
-		if (prefab == null) // Unity object — ==
-		{
-			_domains.Log.LogWarning("[Give] drop of {ItemId} (id {InstanceId}) skipped: its prefab does not load on this client.", item.ItemId, item.InstanceId);
-			return;
-		}
-
-		var go = Object.Instantiate(prefab, body.transform.position, Quaternion.identity);
-		go.SetActive(true);
-		var created = go.GetComponent<Item>();
-		if (created == null) // Unity object — ==
-		{
-			Object.Destroy(go);
-			_domains.Log.LogWarning("[Give] drop of {ItemId} (id {InstanceId}) skipped: its prefab has no Item component.", item.ItemId, item.InstanceId);
-			return;
-		}
-
-		// Stamp the id the host minted BEFORE the item's own Start runs: an id-less world object would be
-		// reported as a runtime spawn with a NEW id, and the give's row would name an item nothing carries.
-		if (item.InstanceId != 0)
-		{
-			created.gameObject.AddComponent<ItemInstanceId>().Id = item.InstanceId;
-		}
-
-		created.condition = item.Condition;
-		created.favourited = item.Favourited;
-		ItemStateCodec.RestoreLiquids(created, item.Liquids);
-		ItemStateCodec.RestoreComponentStates(created, item.Components);
-		ItemStateCodec.RestoreContents(created, item.Contents);
-
-		// The report is the row: a created object nobody reported is invisible to the host's kernel and is
-		// killed by the next world-item keyframe. This is the same report the native world-item hook makes.
-		_domains.Items.SendItemSpawned(
-			item.InstanceId,
-			ItemStateCodec.CaptureItem(created, -1),
-			new NetVector2(created.transform.position.x, created.transform.position.y),
-			new NetVector2(0f, 0f),
-			0f,
-			freshItemDrop: false,
-			angularVelocity: 0f);
-		_domains.Log.LogInformation(
-			"[Give] dropped {ItemId} (id {InstanceId}) at the local body's position ({X:F1},{Y:F1}) and reported its creation.",
-			item.ItemId, item.InstanceId, created.transform.position.x, created.transform.position.y);
-	}
+	internal void DropCreatedItemAtLocalBody(Body body, CharacterItemMsg item) =>
+		_worldItems.TryCreateAt(body.transform.position, item, "Give", out _);
 
 	private static bool TryDestroyById(Item item, ulong instanceId)
 	{

@@ -165,6 +165,19 @@ described above:
   So the bound does what the user decided: a hand that cannot reach the cell is refused with a line, a hand that can
   keeps working, and quake/environment writes (`playerBreak=false`) never enter the branch at all.
 
+  **The `BuildingEntityOpened` half landed on the same number and was read the same way (2026-10-18, `5168fe78`,
+  deployed `+5168fe78`).** An OPEN is a lock being worked, so it is a gesture: the sender now travels the whole path
+  (packet handler → world event → service passthrough → relay) and the host refuses an open further than the shared
+  reach, judged on the opener's own body. Driven from the member client: `/entityopen 300 0` produced
+  `[EntitySync] <member>'s open at (300,504) is further than 8 cells from its own body — refused: nothing applied,
+  nothing relayed`, while `/entityopen 1 0` met no refusal and took the ordinary path. A guest applying the host's
+  broadcast does not judge — it is applying a fact already judged.
+
+  **Refused-by-gate, recorded rather than smuggled:** `WorldEventSync` had been sitting at exactly the 600-line cap,
+  so this bound pushed it over. Moving the helper into its own part did NOT help — the gate counts a type, not a
+  file — so the class is now recorded in `docs/architecture-debt.json` with its real size. The split it deserves is
+  its own task: the file keeps accreting bounds and one more will make this a real architectural problem.
+
   **The accessor cannot be a plain bridge member** — found by reading the interface's own contract before editing
   it: `IPatchBridge`'s doc states that a domain-specific member belongs on its OWN port ("declares a per-domain
   port instead — `IFluidPatchPort` is the first …") because the shape gate *"fails on a member added here or on

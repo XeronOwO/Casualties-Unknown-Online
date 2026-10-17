@@ -151,3 +151,32 @@ What is NOT established: whether this predates this change. The log is overwritt
 artifact's log is gone, and the error names no CUO type. The decisive next check is to run one client with the
 drag code reverted (or with the REPL absent) and compare, or to capture the schema subject by logging the type
 HotRepl asks about — recorded here rather than assumed away, because "it loaded before this" is not evidence.
+## The drag lever, investigated: it is a rule question, and I did not change the rule (2026-10-18)
+
+Three tickets' acceptance rows wait on one thing — a run that can perform a native drag — so this cycle looked
+for it rather than re-recording the blocker.
+
+**The cursor route is closed by a rule this project wrote down deliberately.** The header of
+`tools/acceptance/driver/eval-declarations/window-key.cs` says it plainly: that file is the one place a
+window-message or key-state API may be named, and "a future need for an actuation, focus-setting, hook, clipboard
+or cursor API is a rule question, not a new line in this file". So adding a cursor API to unlock a reading is not
+a tool change I may make; it changes what an acceptance run is allowed to do to the machine, and that is the
+user's call, not mine.
+
+**The in-process route was checked and does not exist.** The drag's own state is settable — `PlayerCamera.dragItem`
+is assigned in several places and could be set by a recipe — but the RELEASE decides its target by comparing the
+held item against the inventory buttons (`if (invButton.GetItem() == this.dragItem)`), and there is no
+slot-under-cursor field on the camera to aim instead (a search for one returns nothing). So setting `dragItem`
+gets a drag STARTED and cannot get it released anywhere.
+
+**What that leaves**, in the order I would try them:
+
+1. Call the inventory button's own handler for the release (in-process, no OS input) — the release compares the
+   held item against the button's item, so a button that already holds an item may be reachable this way without
+   any cursor. That is worth one probe before anything else; it needs no rule change.
+2. Ask the user whether a cursor API belongs in the acceptance tooling at all. That is a real question about what
+   a run may do to the machine, and it is the one the declaration's own header defers.
+3. Accept the rows stay unread and keep this ticket in `todo/`, which is what happens if neither of the above
+   lands.
+
+Nothing was changed for this: no API was added, no rule was bent. The next attempt starts at option 1.

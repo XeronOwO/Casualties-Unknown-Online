@@ -50,3 +50,49 @@ read what the session is waiting for from the screen alone.
 - Not a new loading UI: reuse the screen the game already shows.
 - Not a progress bar for an unmeasurable step: if a step cannot report progress, the text says what it is
   rather than inventing a percentage.
+## What landed (2026-10-18), and what an adversarial review changed
+
+The wait is now a value before it is a sentence: `SessionWaitState` (a kind, the names being waited on, and
+the seconds) is built by `StartGateCoordinator.WaitingState`, and `SessionWaitText` is the ONE place it
+becomes the line the screen shows. Six cases pin the wording, and the projection's switch has no silent
+fall-through, so a wait kind with no line fails loudly instead of being worded as some other stage.
+
+**The review's most valuable finding was that the first wording asserted facts the printing client does not
+have**, in exactly the scenario step 4 verifies:
+
+- `"Everyone is here — starting the run."` was reached on a MEMBER whenever no third member was in its
+  presence table — and a third member arrives there ALREADY in-world, so a member waiting while someone else
+  generates read that it was all done. It now says `"Waiting for the host to start the run…"`, which is what
+  that client can observe.
+- `"…it is still generating the layer."` claimed the host's phase from a flag (`InWorld`) that is false for
+  "in the menu", "still loading" and "no report seen yet" alike. It now says `"The host is not in the world
+  yet."` The anchor that would let it name the phase is a host-authored "generating" fact on the wire, which
+  does not exist.
+
+The review also caught that the host's roster named members the GATE is not waiting for: the gate arms on
+`Handshaken && !InWorld` while the line listed every `!InWorld` member, so an unconfirmed peer appeared on
+screen beside a promise ("the group starts together") that was not true for them. The roster now uses the
+gate's own predicate.
+
+## Limits this stage leaves
+
+- **Step 1 is not answered, and the code aims at the other surface.** The game's own bottom-right line is
+  `WorldGeneration.loadingText` (`SetLoadingText` writes it; the field is declared in the same decompiled
+  file) and CUO never writes it — the wait line is CUO's own IMGUI panel, positioned to imitate that slot,
+  and it draws OVER a native string that the game left holding its last generation phase. Writing the wait
+  into the native `TextMeshProUGUI` would satisfy this ticket's own words ("reuse the loading screen's own
+  bottom-right text") where a parallel panel satisfies CUO's; that is a user-visible choice about which
+  surface the player reads, so it is recorded here rather than taken.
+- **The composition is untested.** `WaitingState` — the direction, the filters, the seconds — has no case;
+  the six pin the wording only. Reaching it needs a seam the coordinator does not have (it constructs a
+  `RunCoordinator`), and the cheap one is a pure factory over plain inputs.
+- **The Game Adapter now grants its internals to the test assembly**, which opens 671 internal type
+  declarations across 482 files to reach three pure types. The method is precedented in this repository, but
+  the `Runtime` grant was reviewed with a census and a recorded reason; this one has a comment. The
+  established shape for reaching adapter internals is reflective lookup, and two comments claiming the suite
+  never compile-references the adapter are now stale.
+- **The log does not read the same state.** The ticket's step 2 wants the screen, the Online UI and the log to
+  agree; the log still prints its own sentence, so they can disagree.
+- **The new sentences are not in the locale catalogue.** Recorded rather than decided.
+
+The remaining required work is step 4: three clients with an artificially slow member.

@@ -87,34 +87,53 @@ internal sealed class StartGateCoordinator(
 	};
 
 	/// <summary>
-	/// Overlay text while the gate holds: who we are waiting for and the
-	/// force-start countdown. Host counts against the real gate (armed at its
-	/// world entry); guest counts 30 s from the host's InWorld relay (network
-	/// delay approximation of the host's own gate).
+	/// Overlay text while the gate holds — the ONE line the player reads, worded from
+	/// <see cref="WaitingState"/> so the screen and the log can never describe two
+	/// different waits.
 	/// </summary>
-	internal string WaitingText
+	internal string WaitingText => SessionWaitText.Line(WaitingState);
+
+	/// <summary>
+	/// What the session is waiting for, as one value: the direction of the wait, the
+	/// members it is about (by the display name the session already carries) and the
+	/// seconds left. The host counts against the real gate (armed at its world entry);
+	/// a member counts 30 s from the host's InWorld relay, which is an approximation of
+	/// the host's own gate rather than a deadline this side owns — so the member's line
+	/// names who it waits for and does not claim a countdown for the host's work.
+	/// </summary>
+	internal SessionWaitState WaitingState
 	{
 		get
 		{
 			if (_session.Role == SessionRole.Host)
 			{
-				var waiting = _session.Members.Count(m => m.SteamId != _session.LocalSteamId && !m.InWorld);
-				return $"Waiting for {waiting} player(s) to load… ({_world.StartGateRemainingMs / 1000}s)";
+				// The gate arms on `Handshaken && !InWorld`, so this roster uses the SAME predicate: naming a
+				// member the gate is not waiting for would put a name on screen next to a promise ("the group
+				// starts together") that is not true for them — an unconfirmed peer retries its handshake
+				// instead of loading, and a member that handshakes after the gate armed enters directly.
+				var waiting = _session.Members
+					.Where(member => member.SteamId != _session.LocalSteamId && member.Handshaken && !member.InWorld)
+					.Select(member => member.DisplayName)
+					.ToList();
+				return new SessionWaitState(SessionWaitKind.MembersLoading, waiting, _world.StartGateRemainingMs / 1000);
 			}
 
 			if (!_session.IsRemoteInWorld(_session.HostSteamId))
 			{
-				return "Waiting for the host to load…";
+				return new SessionWaitState(SessionWaitKind.HostLoading, [], 0);
 			}
 
-			var others = _session.Members.Count(m => m.SteamId != _session.LocalSteamId && m.SteamId != _session.HostSteamId && !m.InWorld);
-			if (others > 0)
+			var others = _session.Members
+				.Where(member => member.SteamId != _session.LocalSteamId && member.SteamId != _session.HostSteamId && member.Handshaken && !member.InWorld)
+				.Select(member => member.DisplayName)
+				.ToList();
+			if (others.Count > 0)
 			{
 				var remaining = Mathf.Max(0, (int)(30 - (Environment.TickCount - _run.HostInWorldSinceMs) / 1000d));
-				return $"Waiting for {others} player(s)… ({remaining}s)";
+				return new SessionWaitState(SessionWaitKind.OthersLoading, others, remaining);
 			}
 
-			return "Starting…";
+			return new SessionWaitState(SessionWaitKind.Starting, [], 0);
 		}
 	}
 

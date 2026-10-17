@@ -159,6 +159,26 @@ What survives from the cycles above and is worth keeping when a data anchor arri
 (otherwise the refused side keeps a state nobody else has), it must be asked BEFORE anything is applied or recorded
 (the kernel's opened-entity table is saved and replayed to late joiners), and it must be able to stop the relay.
 Those are properties of any future data bound, not of a reach bound.
+### Native evidence for a DATA anchor on the open report (2026-10-18)
+
+The open is decided by a hand-driven minigame on the opener's own client, so the host cannot reproduce it — and under
+decision 262 it must not try. `reversing/Assembly-CSharp/Assembly-CSharp/LockpingMinigame.cs` is that minigame: its
+`Update` accumulates `this.lockProgress += Time.deltaTime * (0.66f + num * 0.065f);` while the hand sits inside a band
+(`this.clickingInside = this.HandAngle > 0f && this.HandAngle < 180f && this.HandDistance > 195f && this.HandDistance < 247f;`),
+and completion is `this.toDestroy.health = 0f;`. Hand angle and distance are the opener's input; no host-side model can
+judge them, which is exactly why a reach check was the wrong shape.
+
+What the host CAN check, both of them data:
+
+- **The item the gesture needs.** A lockpick is an inventory object; "the reporter carries the item this lock requires"
+  is an identity claim the host holds the inventory to compare against. The message carries no item identity today, so
+  this is a wire addition — the same shape the trader-give and building-damage rows need (weapon identity).
+- **The code, for a keypad lock.** The host already owns keypad codes (`NetMsg.KeypadCode` = 57 is its own authority),
+  so a report that carries the entered code can be compared against the record the host already holds — no new model,
+  no behaviour simulation. This is the cheapest genuine anchor and the first one to build.
+
+What neither anchor covers, and must not be faked: whether the minigame was actually played. That is behaviour, it is
+anti-cheat, and it stays unbounded by ruling.
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

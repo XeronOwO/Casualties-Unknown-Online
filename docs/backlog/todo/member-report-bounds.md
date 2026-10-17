@@ -64,6 +64,41 @@ the same rule differently; three comments and one log line are false as written.
 
 Until that, these rows are open and the census rows for them must say so rather than "closed".
 
+### The design the next cycle implements (decided 2026-10-18, from the review's four questions)
+
+**1. The break belongs to `NetMsg.BlockDamaged`, not to the air write.** The air write is what makes a cell empty;
+`BlockBreakSync.FlushPendingBlockBreak` → `_world.SendBlockDamaged(...)` is what actually lands the break and carries
+the drops, and `BlockBreakArbitration` accepts it while the generation verifies and the cell still stands. So the
+reach check moves to the damaged path — and the air write keeps only the bound it already has (generation + cell
+state), because a bound on a message that does not decide the outcome is decoration.
+
+**2. The cause must be something the HOST can prove, and it has two cases.** A report that claims a player gesture
+(`playerBreak: true`) must come from a body within reach. A report that claims an environment/quake write must be
+matched against the host's own quake state — the same predicate the adapter already uses,
+`WorldGeneration.world.earthquakeTime` in `GameAdapterBridge`'s set-block gate, where a quake break is recognised and
+an environment break passes. No quake running on the host → that claim is refused BY NAME (`"no quake is running on
+the host"`), which is exactly what rule 16 asks for: the receiver checks a claim against what it can establish itself.
+The alternative — trusting the reporter's `playerBreak` flag — is what the withdrawn attempt did and must not come
+back.
+
+**3. A refusal has to be able to STOP the relay, and today it cannot.** Both entity handlers
+(`BuildingEntityDamagedHandler`, `BuildingEntityOpenedHandler`) fire the event and then broadcast unconditionally, so
+a refused report is still applied by every other guest. The verdict must come back from the fire call — `bool` is
+enough — and the handler relays only when it is true. The same shape applies to `BlockDamagedHandler`. Without this
+step no bound on these paths is honest, so it is done FIRST, as its own verifiable change: a refused report must be
+observably absent from the other client's log.
+
+**4. One helper, world space only.** The block cell is converted where it is used, with the game's own
+`WorldGeneration.WorldToBlockPos` (the repo's existing consumers call it: `GameAdapterBridge` does
+`world.WorldToBlockPos(new Vector2(remote.Position.X, remote.Position.Y))`), never by subtracting an index from a
+world coordinate. The entity paths already sit in world space and stay there. Two copies of the helper are acceptable
+only while they are byte-identical in rule; the constants and the accept-on-missing-position rule live in one place.
+
+**Order of the cycle**: (3) verdict, verified end to end on the machine → (1)+(4) the break bound with world-space
+conversion and a red test that FAILS today with the real cell → (2) the quake anchor → then the entity rows on the
+same verdict plumbing, with the explosion channel excluded by the host's own explosion record rather than by the
+reporter's claim.
+
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

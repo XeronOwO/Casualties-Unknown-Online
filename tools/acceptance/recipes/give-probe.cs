@@ -1,7 +1,9 @@
 // recipe: give-probe
-// args: mode=s target=s slot=n
+// args: mode=s target=s slot=n container=n
 //        mode is `probe` (report what the reflection can reach) or `give` (drive one give intent).
-//        Each token on the args line must be <key>=s or <key>=n.
+//        slot is the destination ring slot, -1 when the destination is a container; container is that
+//        container's instance id, 0 when the destination is a slot. Each token on the args line must be
+//        <key>=s or <key>=n.
 // serves: todo/give-item-to-another-player.md - its six acceptance rows all need "release my own item onto
 //         another player's displayed backpack", which the native UI decides from the cursor. The release seam
 //         itself is a plain method on CUO's patch bridge (`ReportLocalReleaseOntoProxy`), so a run can call it
@@ -16,6 +18,7 @@
 	var mode = {{s:mode}};
 	var targetText = {{s:target}};
 	var slotText = {{n:slot}};
+	var containerText = {{n:container}};
 	var trace = new System.Collections.Generic.List<string>();
 
 	var findType = new System.Func<string, System.Type>((simpleName) => {
@@ -83,9 +86,9 @@
 	if (report == null) { return "{\"ok\":false,\"error\":\"no-ReportLocalReleaseOntoProxy\"}"; }
 
 	try {
-		report.Invoke(impl, new object[] { held, target, "recipe", 0UL, slotText });
+		report.Invoke(impl, new object[] { held, target, "recipe", (ulong)containerText, slotText });
 		return "{\"ok\":true,\"mode\":\"give\",\"item\":\"" + held.id + "\",\"target\":" + target
-			+ ",\"slot\":" + slotText + ",\"localSteamId\":" + localSteamId + "}";
+			+ ",\"slot\":" + slotText + ",\"container\":" + containerText + ",\"localSteamId\":" + localSteamId + "}";
 	} catch (System.Exception error) {
 		var inner = error.InnerException ?? error;
 		return "{\"ok\":false,\"error\":\"invoke-failed\",\"detail\":\"" + inner.GetType().Name + ": " + inner.Message.Replace("\"", "'") + "\"}";

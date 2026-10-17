@@ -336,3 +336,24 @@ change:
   only publisher refuses that case, so it and its "refused by the native container" log can never run. Recorded
   rather than deleted here because deleting it moves a behaviour the family may still want to route through.
 
+### Row 2, read on the machine (2026-10-18)
+
+One live session on the deployed artifact, driven step by step rather than by a script:
+
+- The receiver's `trashbag` was put in its slot 0 through the game's own grant (`item-provide type=trashbag`), and
+  the giver held a `bandage` and an `emergencylight` from its own supply.
+- The giver's release was aimed at that bag — `slot = -1`, `container = <the bag's instance id>` — which is exactly
+  the operand shape the drag patch produces for a release onto an item shown in the other player's inventory.
+- **The two lines that answer the row**, in this order:
+  `[Take] <receiver> takes emergencylight (id 5197989525) from <giver>` and then
+  `[PlayerInteraction] placed emergencylight (id 5197989525) into container trashbag (1241566529475).`
+  The second line is printed only after `Container.CanHoldItem` accepted the item, so the bag's OWN rules said yes.
+- **The receiver's ledger agrees with the nesting**: it lists the item as `emergencylight [carried]` with no slot,
+  beside `trashbag [slot 0]` — the -1 convention this change introduced, doing what it was introduced for (a bag
+  and the item inside it no longer compete for one slot).
+- The giver's ledger no longer lists it at all.
+
+**So row 2 PASSES.** What is still unrun in its family: the refusal shape (a bag that cannot hold the item → the
+fallback to a slot, with the line naming why). That needs an item too heavy or wrongly tagged for the bag, which is
+row 4's own scenario and is still owed together with it.
+

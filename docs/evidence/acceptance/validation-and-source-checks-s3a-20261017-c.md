@@ -45,6 +45,11 @@ This is an acceptance run, not a development cycle: it does not reset and does n
 reading. The only tracked source-adjacent change this run commits is the scenario recipe above, under
 `tools/acceptance/`, which is not part of the deployed artifact; its gates were run before the commit.
 
+The commit that carries this record is `8e919fb2`, and it is rebuilt and redeployed as
+`0.1.0+8e919fb2caabb910061dc9219fba66ba0281fe4c` (`tools/verify-deploy.ps1`, exit 0) — a tools-and-docs
+delta above the artifact the run drove, named here rather than left implicit: the DLL's own source is
+unchanged between the two commits, and the run's verdicts belong to `feed95c0`.
+
 ## Residuals for the user
 
 None open. Every row is a host log line, a member log line or a probe's own answer, so nothing here waits on

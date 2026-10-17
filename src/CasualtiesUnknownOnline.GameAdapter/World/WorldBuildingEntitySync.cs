@@ -265,8 +265,17 @@ internal sealed class WorldBuildingEntitySync(
 	/// its own next <c>Update</c>, so this call — made while the entity still
 	/// exists, from whichever path first learns the support block is gone — is the
 	/// capture point; the caller records what it returns beside the break it belongs
-	/// to. An entity already marked is skipped, so a second call for the same cell
-	/// captures nothing and cannot overwrite what the first one read.
+	/// to.
+	/// </para>
+	/// <para>
+	/// The table is read for EVERY building standing on the cell, marked or not, and
+	/// the marker only decides whether THIS call marks the death. The two answer
+	/// different questions: the marker says who applies the death (whichever path
+	/// learned of it first), while the rows answer what a building at this cell could
+	/// have dropped — which is the breaker's own roll, and it happened even when a
+	/// relayed attack had already marked the entity earlier in the same frame. Skipping
+	/// a marked entity's table left the cell's row set empty and refused every building
+	/// drop the report carried.
 	/// </para>
 	/// <para>
 	/// The rows are the UNION over the entities that lost support here, not one set
@@ -279,6 +288,7 @@ internal sealed class WorldBuildingEntitySync(
 	internal IReadOnlyList<DropBound> MarkSupportLossRemote(Vector2Int blockCell)
 	{
 		List<DropBound>? rows = null;
+		var captured = 0;
 		var marked = 0;
 		if (WorldGeneration.world == null) // Unity object — ==
 		{
@@ -292,6 +302,9 @@ internal sealed class WorldBuildingEntitySync(
 				continue;
 			}
 
+			rows ??= [];
+			rows.AddRange(GameBuildingDropTable.ForEntity(building));
+			captured++;
 			if (building.GetComponent<RemoteEntityDeath>() != null) // Unity object — ==
 			{
 				continue;
@@ -299,19 +312,17 @@ internal sealed class WorldBuildingEntitySync(
 
 			RemoteEntityDeath.Mark(building, replayAnimalDeath: false);
 			marked++;
-			rows ??= [];
-			rows.AddRange(GameBuildingDropTable.ForEntity(building));
 			_log.LogInformation("[BuildingSupport] marked remote death for requireGround building at ({X},{Y}) — whichever write brought the cell here, this client's own line says which.",
 				building.transform.position.x, building.transform.position.y);
 		}
 
-		if (marked == 0)
+		if (captured == 0)
 		{
 			return [];
 		}
 
-		_log.LogInformation("[BuildingSupport] captured {RowCount} drop row(s) from {Count} building(s) losing support at cell ({CellX},{CellY}) — this client's own capture; the host judges a break report for that cell against its own.",
-			rows!.Count, marked, blockCell.x, blockCell.y);
+		_log.LogInformation("[BuildingSupport] captured {RowCount} drop row(s) from {Count} building(s) losing support at cell ({CellX},{CellY}) — {Marked} were still unmarked and were marked here; the host judges a break report for that cell against its own.",
+			rows!.Count, captured, blockCell.x, blockCell.y, marked);
 		return rows;
 	}
 

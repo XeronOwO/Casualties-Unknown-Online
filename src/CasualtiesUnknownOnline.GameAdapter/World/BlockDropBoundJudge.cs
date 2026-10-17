@@ -99,11 +99,11 @@ internal sealed class BlockDropBoundJudge(
 	/// there.
 	/// <para>
 	/// An EMPTY row set refuses every building drop the report carries, and that is
-	/// the intended direction: this side knows of no building that lost support at
-	/// the cell, so no roll for one could have produced them. The line names which
-	/// of the two shapes ran (no mark at all, or marks that can produce nothing),
-	/// because that difference is what makes a population drift between the two
-	/// sides diagnosable rather than a silent loss.
+	/// the intended direction: this side holds no table of a building that lost
+	/// support at the cell, so no roll for one could have produced them. The line
+	/// names the shape it actually knows — an empty row table at that cell — never
+	/// "no mark": a dying building that authors no drops leaves the same empty table,
+	/// and the two are what a population drift between the two sides looks like.
 	/// </para>
 	/// </summary>
 	internal IReadOnlyList<TrapDropEntryMsg>? BoundBuildingDrops(ulong sender, Vector2Int cell, IReadOnlyList<DropBound> bounds, IReadOnlyList<TrapDropEntryMsg>? drops)
@@ -127,7 +127,7 @@ internal sealed class BlockDropBoundJudge(
 		if (bounds.Count == 0)
 		{
 			_log.LogWarning(
-				"[BlockBreak] {Sender}'s break at ({X},{Y}) claimed {RefusedCount} building drop(s), but this side marked NO building as losing support at that cell — all refused by name ({Refused}); a member's report cannot introduce a building's drops where this host has no dying building.",
+				"[BlockBreak] {Sender}'s break at ({X},{Y}) claimed {RefusedCount} building drop(s), and this side holds no drop row any building losing support at that cell could produce — all refused by name ({Refused}); a member's report cannot introduce a building's drops where this host has no table to account for them.",
 				sender, cell.x, cell.y, outcome.Refused.Count, Describe(outcome.Refused));
 			return outcome.Accepted;
 		}

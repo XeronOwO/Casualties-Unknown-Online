@@ -7,12 +7,13 @@ using System.Collections;
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
 /// <summary>
-/// The building-death drop provenance L0 contract: a new CallContext origin,
-/// a pure MonoBehaviour marker, and the two patch shapes that create it
-/// (BuildingEntity.Update opens the scope around the local death branch;
-/// Item.Awake marks the item while the scope is still active). The runtime
-/// item-submit path is intentionally unchanged at this stage — the marker is
-/// observable but does not yet fold into a trap composite.
+/// The building-death drop provenance contract: a new CallContext origin, a pure
+/// MonoBehaviour marker, and the two patch shapes that create it
+/// (BuildingEntity.Update opens the scope around the local death branch and publishes the cell the
+/// dying entity stood on; Item.Awake marks the item while the scope is still active and stamps that
+/// cell). The marker is what tells a trap drop from a block drop and what pairs a support-loss drop
+/// with the break that killed it — the scope's own publication is pinned by
+/// <c>CallContextCompositionTests.TheBuildingDeathScope_PublishesTheSupportCell</c>.
 /// </summary>
 [Trait("Category", "Integration")]
 public class BuildingDeathDropProvenanceTests
@@ -58,13 +59,19 @@ public class BuildingDeathDropProvenanceTests
 	}
 
 	[Fact]
-	public void Marker_IsAMonoBehaviourWithSpawnPosition()
+	public void Marker_CarriesTheSpawnPositionAndTheSupportCell()
 	{
 		Assert.True(Marker.BaseType?.FullName == "UnityEngine.MonoBehaviour",
 			$"BuildingDeathDropOrigin must be a MonoBehaviour marker, got base {Marker.BaseType?.FullName}");
 		var fields = Marker.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-		Assert.True(fields.Length == 1 && fields[0].Name == "SpawnPosition",
-			"BuildingDeathDropOrigin must carry exactly one SpawnPosition field for deterministic trap-drop materialization.");
+		Assert.Equal(2, fields.Length);
+		Assert.Equal("UnityEngine.Vector2", fields.Single(field => field.Name == "SpawnPosition").FieldType.FullName);
+
+		// The support cell is nullable on purpose: a building that does not depend on its
+		// ground publishes no cell at all, and a default Vector2Int would be the real
+		// cell (0,0) — a drop would then be paired with a break it has nothing to do with.
+		var supportCell = fields.Single(field => field.Name == "SupportCell");
+		Assert.Equal("UnityEngine.Vector2Int", Nullable.GetUnderlyingType(supportCell.FieldType)?.FullName);
 	}
 
 	[Fact]

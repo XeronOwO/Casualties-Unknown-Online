@@ -16,4 +16,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 internal sealed class BuildingDeathDropOrigin : MonoBehaviour
 {
 	public Vector2 SpawnPosition;
+
+	/// <summary>
+	/// The cell the dying building stood on (<c>BuildingEntity.blockPlacedOn</c>), read while the
+	/// entity still existed; null when that building does not depend on its ground, so no break can
+	/// own its drops. This is the key that pairs the drop with a break — the drop itself carries no
+	/// identity, and the host judges a report's building drops against the buildings that lost
+	/// support at the REPORT's cell.
+	/// </summary>
+	public Vector2Int? SupportCell;
 }

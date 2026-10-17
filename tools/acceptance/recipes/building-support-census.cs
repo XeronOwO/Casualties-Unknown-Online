@@ -13,10 +13,13 @@
 // path), and the zeroed health is what makes its next Update roll the drops. The host's support-loss
 // capture reads exactly that population off the live components, so this census is the precondition of the
 // run that reads the captured-rows half: it names a building AND the cell to break under it, and the table
-// a break report for that cell would be judged against. The list is a SUPERSET of what the capture reads —
-// the capture additionally skips an entity that already carries the remote-death mark, which is what the
-// per-entry `marked` field is for (a marked entity contributes no rows, so a cell whose only building is
-// marked cannot produce the reading). tables=1 lists only the entities that CARRY authored drop data at
+// a break report for that cell would be judged against. The list is the population the capture reads — every
+// `requireGround` entity, marked or not: the capture takes a building's table BEFORE it consults the
+// remote-death mark, because the mark says who applies the death while the table says what a building there
+// could have dropped. The per-entry `marked` field is therefore a FACT the run reads, not a filter over the
+// census: a cell whose buildings are all marked still produces a reading (a marked death was applied here by
+// another path, and the breaker's own copy rolled its drops). tables=1 lists only the entities that CARRY
+// authored drop data at
 // all (any of the three buckets non-empty) — the subpopulation a reading of the bound is possible on; the
 // counts stay population-wide, so a run reads "this map has N requireGround buildings and M of them carry
 // a table" from one call. Which ROWS a table yields is still the bound's own rule (GameBuildingDropTable),

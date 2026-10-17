@@ -216,31 +216,73 @@
    of row 1. Run 1 of the same batch is what corrected the claim this paragraph used to make, that this map
    has no `requireGround` building at all: the population is there, a 5×4 grid simply did not contain one, and
    a census taken 7 s after world entry reads a world still materializing (the recipe now says so).
-   **Limits S2b carries.** Two, and both are the same missing fact — the drop does not name the support cell
-   it came from — seen from the two sides of the report.
+   **Limits S2b carried — BOTH CLOSED 2026-10-17** (the cell key the bound rests on now travels to the
+   reporter's fold, and the host's capture no longer treats the death marker as a table answer). Two, and both
+   were the same missing fact — the drop did not name the support cell it came from — seen from the two sides
+   of the report.
 
-   - **The reporter's side pairs a drop with a break by TIME, not by identity.** The pending-break machine
-     holds ONE break (`BlockBreakPendingState.EnterBreak` overwrites it) and `TryAddBuildingDrop` folds
-     EVERY building death that appears while one is pending into that break, with no check that the dying
-     building's own support cell is the pending cell. A building that dies inside the break's one-to-two
-     frame window of an unrelated break therefore rides that break's report, and the host — whose rows are
-     the tables of the buildings that lost support at ITS cell — refuses the whole building set by name
-     while the breaker destroys drops it really rolled. Before this stage those drops were registered and
-     relayed, so this is the one shape where the new bound costs a legitimate item; it is rare (two breaks in
-     one frame, or a support loss landing in another break's window) and it never diverges — the host relays
-     none of them, so both sides agree on "no drops". The message cannot supply the association the reporter
-     would need to check instead: a drop is position-keyed by a transform position and the entity is
-     destroyed before its `Item.Start` runs. The fix is therefore a design one, carried by
-     `todo/member-report-bounds.md`: read the dying entity's own `blockPlacedOn` while it still exists and
-     carry it on the drop marker (the death scope already wraps the roll), then fold a drop only into the
-     break for that cell.
-   - **An entity already marked for a remote death contributes no rows.** `MarkSupportLossRemote` skips an
+   - **The reporter's side paired a drop with a break by TIME, not by identity.** The pending-break machine
+     holds ONE break (`BlockBreakPendingState.EnterBreak` overwrites it) and `TryAddBuildingDrop` folded
+     EVERY building death that appeared while one was pending into that break, with no check that the dying
+     building's own support cell was the pending cell. A building that died inside the break's next-frame
+     window therefore rode that break's report, and the host — whose rows are the tables of the buildings
+     that lost support at ITS cell — answered it per drop: a foreign drop its table could not account for was
+     refused by name while the breaker destroyed an item it really rolled, and one that happened to fit that
+     cell's table was accepted as another building's drop. (The whole-set refusal is the EMPTY-row shape, not
+     this one: a report for a cell this side captured no rows at.) Before that stage those drops were
+     registered and relayed, so this was the one place where the new bound cost a legitimate item; rare (two
+     breaks in one frame, or a support loss landing in another break's window), and it never diverged — the
+     host relayed none of them, so both sides agreed on "no drops". The message could not supply the
+     association the reporter would need to check instead: a drop is position-keyed by a transform position
+     and the entity is destroyed before its `Item.Start` runs — but the DEATH SCOPE still holds it.
+     **CLOSED**: the cell rides the scope the death branch already opens
+     (`CallContext.EnterBuildingDeathDrop` publishes `BuildingEntity.blockPlacedOn` beside the origin, read
+     while the entity exists), `Item.Awake` stamps it on the drop marker
+     (`BuildingDeathDropOrigin.SupportCell`, nullable because a building that does not depend on its ground
+     has no break that could own its drops), and `TryAddBuildingDrop` folds a drop only into the break for
+     that cell. A drop from a foreign building now reports standalone — the path an ordinary attack death
+     already took — and the mismatch has its own line, so the shape is diagnosable instead of silent.
+     **The sibling is NOT closed**: `TryAddDrop` (the BLOCK drops) is still keyed by time alone, so two
+     breaks inside one frame can cross-fold block drops the same way; every native `DamageBlock` call site
+     is single-cell, which is why it has never been read on the machine, and it is named here rather than
+     left to look closed with the bullet above.
+   - **An entity already marked for a remote death contributed no rows.** `MarkSupportLossRemote` skipped an
      entity that already carries `RemoteEntityDeath` — the marker is what stops the other paths from rolling a
-     second set — and the skip sits BEFORE the capture, so an entity marked earlier in the same frame by a
+     second set — and the skip sat BEFORE the capture, so an entity marked earlier in the same frame by a
      different path (a relayed attack whose damage took its health to zero, an opened lock, a restored
-     health row) adds no rows and leaves the cell's row set empty: every building drop that report carries is
-     refused, although the reporter's own copy was never marked and rolled them legitimately. The same fix
-     covers it, and it is filed in the same ticket.
+     health row) added no rows: the cell's row set then held only the unmarked subset's tables, and an empty
+     one whenever every building on the cell was already marked — every building drop that report carried was
+     refused, although the reporter's own copy was never marked and rolled them legitimately. **CLOSED**: the
+     table is read for EVERY `requireGround` building standing on the cell and the marker only decides whether
+     THIS call marks the death — the marker answers who applies the death, the rows answer what a building
+     there could have dropped, and they are different questions.
+
+   Evidence: `BlockBreakPendingStateTests.TryAddBuildingDrop_FromAnotherCell_IsNotFolded` and
+   `.TryAddBuildingDrop_FoldsOnlyTheCellsOwnDrops` — both observed RED with the cell comparison neutered
+   (2 of 15 in that class failed, the other 13 stayed green), green with it in place; and
+   `CallContextCompositionTests.TheBuildingDeathScope_PublishesTheSupportCell` pins the published cell,
+   its absence outside the scope, that a NESTED classification scope does not answer for it (the same
+   predicate `Current` answers), and that a building with no ground dependency publishes no cell at all
+   rather than the real cell (0,0). The marker's own shape is pinned by
+   `BuildingDeathDropProvenanceTests.Marker_CarriesTheSpawnPositionAndTheSupportCell`.
+   **The three glue sites between those two halves are pinned by `BuildingDropPairingGateTests`** (a
+   Roslyn source gate: the patch's argument must be the conditional `requireGround ? blockPlacedOn : null`,
+   `Item.Awake` must write the value the query PUBLISHED — the assignment's source has to be the very local
+   the `out` declared — and the fold must pass one object's `x` and `y` to `TryAddBuildingDrop`). Without it
+   a one-line change at any of them leaves the whole suite green while the fold silently returns to pairing
+   by time: observed — replacing the stamp with `origin.SupportCell = null` turned exactly
+   `TheAwakePatch_StampsThePublishedCellOnTheDropMarker` red (1 of 25 in that class) and left the other 24
+   and the whole behaviour suite green.
+   **What is verified and what is not**: the published-cell semantics, the fold rule and the three glue
+   sites are unit/ gate-covered, and the fold rule was mutation-red; the host's reordered capture is a
+   three-line change inside a loop over live Unity components, so no unit test can reach it — its machine
+   row is owed to the next acceptance batch along with the rest of this family, and it is named here
+   rather than implied. The cell's own precondition is a native one: `blockPlacedOn` is written by the
+   game's two worldgen placement sites and by nothing else, so a `requireGround` building a MOD materializes
+   outside worldgen would publish the struct default `(0,0)` — the same value the real cell (0,0) has, and
+   not distinguishable from it. No vanilla path was found that materializes a `requireGround` building
+   outside worldgen, so this is a mod-only edge, recorded here instead of guarded against by a check that
+   could not tell the two apart.
 
    **Reused refusal by name, not by vocabulary.** A refused building drop is answered with
    `ItemRejectMsg.Reason.BlockAlreadyBroken`, the same reason the block half uses, because the breaker's

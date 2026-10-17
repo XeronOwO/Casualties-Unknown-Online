@@ -93,6 +93,10 @@ block went `2 → 0`), and the host did exactly what S2b built:
     [INF] [CasualtiesUnknownOnline.GameAdapter.World.BlockBreakSync] [BlockBreak] &lt;member&gt;'s break at
     (396,1002) accepted — 0 block drop(s) + 1 building drop(s) registered + relayed.
 
+The two `[BuildingSupport]` lines are quoted as the run printed them. Their wording changed in later cycles
+(the capture line now names how many buildings were still unmarked when the table was read); the reading —
+three rows captured for that cell, one building drop accepted against them — is what this record is.
+
 The member's own side folded its roll into the same report
 (`[ItemTrace] op=24 item=0 origin=FlushPendingBlockBreak result=Committed(0+1) events=[Break, Drop,
 BuildingDrop]`), and the host accepted it against the table it had just captured: the captured-rows half of

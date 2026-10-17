@@ -55,9 +55,13 @@ internal static class BuildingEntityUpdatePatch
 
 		// Local death branch: this side owns the drop roll (BuildingEntity.cs:
 		// 74-120). Open a call-identity scope so Item.Awake can mark every
-		// drop spawned inside the original Update as a building-death drop.
+		// drop spawned inside the original Update as a building-death drop, and
+		// publish the cell this entity stood on while it still exists — the key
+		// that later pairs its drops with the break that killed it (null for a
+		// building that does not depend on its ground: no break can own those
+		// drops).
 		__state = __instance.health < 0.5f
-			? CallContext.Enter(CallContext.Origin.BuildingDeathDrop)
+			? CallContext.EnterBuildingDeathDrop(__instance.requireGround ? (Vector2Int?)__instance.blockPlacedOn : null)
 			: null;
 		return true;
 	}

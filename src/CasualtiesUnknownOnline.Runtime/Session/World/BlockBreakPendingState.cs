@@ -48,12 +48,16 @@ internal sealed class BlockBreakPendingState
 
 	/// <summary>Broken → stays Broken: one building-death drop's Item.Start ran (a
 	/// requireGround building lost its support block in the same break) — fold
-	/// it in so the break and the building drops share one message/verdict.
-	/// False when no break is pending (the drop then falls back to a standalone
-	/// spawn report).</summary>
-	internal bool TryAddBuildingDrop(TrapDropEntryMsg drop)
+	/// it in so the break and the building drops share one message/verdict, but
+	/// ONLY when that building stood on THIS break's cell. The host judges a
+	/// report's building drops against the tables of the buildings that lost
+	/// support at the report's own cell, so a drop from a building elsewhere is
+	/// refused there and the breaker destroys an item it really rolled. False in
+	/// both shapes (no break pending, or a break pending under another cell) —
+	/// the drop then falls back to a standalone spawn report.</summary>
+	internal bool TryAddBuildingDrop(TrapDropEntryMsg drop, int supportCellX, int supportCellY)
 	{
-		if (_pending is not { } pending)
+		if (_pending is not { } pending || pending.CellX != supportCellX || pending.CellY != supportCellY)
 		{
 			return false;
 		}

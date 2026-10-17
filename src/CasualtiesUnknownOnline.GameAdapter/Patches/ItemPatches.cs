@@ -31,16 +31,20 @@ internal static class ItemPatches
 			PatchBridge.Impl?.TryAdoptLimbRemovalItem(__instance);
 
 			// Awake runs synchronously inside Object.Instantiate, so the
-			// BuildingEntity.Update death-branch scope is still active here.
-			// The marker is consumed at Item.Start (next frame) by
-			// ItemWorldSync.OnItemInstantiated.
-			if (CallContext.Current != CallContext.Origin.BuildingDeathDrop)
+			// BuildingEntity.Update death-branch scope is still active here and
+			// carries the dying building's own support cell. The marker is
+			// consumed at Item.Start (next frame) by
+			// ItemWorldSync.OnItemInstantiated. No scope, no marker: a drop with
+			// no provenance must report standalone rather than wear a cell
+			// nothing named.
+			if (!CallContext.TryGetBuildingDeathSupportCell(out var supportCell))
 			{
 				return;
 			}
 
 			var origin = __instance.gameObject.AddComponent<BuildingDeathDropOrigin>();
 			origin.SpawnPosition = __instance.transform.position;
+			origin.SupportCell = supportCell;
 		}
 	}
 

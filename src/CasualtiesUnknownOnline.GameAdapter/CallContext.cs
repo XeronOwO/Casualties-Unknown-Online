@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -72,7 +73,7 @@ internal static class CallContext
 		/// <summary>Inside a local DamageBlock roll — Utils.Create calls in this scope are block drops (marked with DropOrigin, folded into the pending break report).</summary>
 		DamageBlockOrigin,
 
-		/// <summary>Inside BuildingEntity.Update's local death branch (health &lt; 0.5 without RemoteEntityDeath) — Item.Awake sees this scope and marks each spawned item as a building-death drop.</summary>
+		/// <summary>Inside BuildingEntity.Update's local death branch (health &lt; 0.5 without RemoteEntityDeath) — Item.Awake sees this scope and marks each spawned item as a building-death drop. It is the ONE origin entered through <see cref="EnterBuildingDeathDrop"/>, which publishes the dying building's own support cell beside the origin: a drop has no identity of its own, and that cell is what pairs it with a break.</summary>
 		BuildingDeathDrop,
 
 		/// <summary>Inside a crafting operation (Recipe.TryMake / Body.CombineItems) — the material/product item hooks stay silent (their facts ride the ONE craft report; the end-of-frame destroys ride the destroy-claim set in CraftingSync).</summary>
@@ -173,6 +174,14 @@ internal static class CallContext
 	private const int MaxDepth = 16;
 
 	private static readonly Origin[] Stack = new Origin[MaxDepth];
+
+	/// <summary>
+	/// The cell a <see cref="Origin.BuildingDeathDrop"/> scope was entered with, held at the same
+	/// index as its origin — null when the dying building does not depend on its ground (that death
+	/// is nobody's break). Only <see cref="EnterBuildingDeathDrop"/> writes here, so a slot whose
+	/// origin is not that one is never read.
+	/// </summary>
+	private static readonly Vector2Int?[] Cells = new Vector2Int?[MaxDepth];
 	private static int _depth;
 
 	/// <summary>Bumped by every recovery: a scope opened before it no longer owns a stack entry, so its later Dispose must not pop somebody else's.</summary>
@@ -263,6 +272,46 @@ internal static class CallContext
 
 		Stack[_depth++] = origin;
 		return new Scope(_epoch);
+	}
+
+	/// <summary>
+	/// Opens the building-death scope for ONE dying entity, publishing the cell it stood on
+	/// (<paramref name="supportCell"/>; null when the building does not depend on its ground, so no
+	/// break can own its drops). The cell is what pairs a drop with a break: a drop carries no
+	/// identity of its own, and the host judges the report's building drops against the tables of
+	/// the buildings that lost support at the REPORT's cell, so a foreign drop would be refused and
+	/// the breaker would destroy an item it really rolled. Published on the scope rather than in a
+	/// static beside it so the frame-boundary release (<see cref="EndFrame"/>) covers it too.
+	/// </summary>
+	internal static IDisposable EnterBuildingDeathDrop(Vector2Int? supportCell)
+	{
+		var enclosingDepth = _depth;
+		var scope = Enter(Origin.BuildingDeathDrop);
+		if (_depth == enclosingDepth + 1) // the scope was accepted: a depth-bound refusal pushes nothing, so that slot still belongs to the enclosing scope
+		{
+			Cells[_depth - 1] = supportCell;
+		}
+
+		return scope;
+	}
+
+	/// <summary>
+	/// The support cell the INNERMOST scope published, answered only when that scope is the
+	/// building-death one — the same predicate <see cref="Current"/> answers, so an item marker is
+	/// stamped exactly where the drop's provenance was decided. False outside that scope, and the
+	/// caller must not invent a cell: a default <c>Vector2Int</c> IS the real cell (0,0), which
+	/// would pair a drop with an unrelated break.
+	/// </summary>
+	internal static bool TryGetBuildingDeathSupportCell(out Vector2Int? supportCell)
+	{
+		if (_depth == 0 || Stack[_depth - 1] != Origin.BuildingDeathDrop)
+		{
+			supportCell = null;
+			return false;
+		}
+
+		supportCell = Cells[_depth - 1];
+		return true;
 	}
 
 	/// <summary>

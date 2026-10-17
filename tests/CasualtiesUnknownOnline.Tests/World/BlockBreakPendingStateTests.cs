@@ -119,8 +119,8 @@ public class BlockBreakPendingStateTests
 		var state = new BlockBreakPendingState();
 		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
 
-		Assert.True(state.TryAddBuildingDrop(BuildingDrop(9)));
-		Assert.True(state.TryAddBuildingDrop(BuildingDrop(10)));
+		Assert.True(state.TryAddBuildingDrop(BuildingDrop(9), 5, -3));
+		Assert.True(state.TryAddBuildingDrop(BuildingDrop(10), 5, -3));
 
 		state.TryFlush(BreakFrame + 1, out var flushed);
 		Assert.Equal(2, flushed.BuildingDrops.Count);
@@ -130,12 +130,43 @@ public class BlockBreakPendingStateTests
 	}
 
 	[Fact]
+	public void TryAddBuildingDrop_FromAnotherCell_IsNotFolded()
+	{
+		// A building that died somewhere else inside this break's one-frame window is
+		// NOT this break's death: the host judges the report's building drops against
+		// the buildings that lost support at the REPORT's cell, so folding a foreign
+		// drop in would have it refused there and cost the breaker a real item.
+		var state = new BlockBreakPendingState();
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
+
+		Assert.False(state.TryAddBuildingDrop(BuildingDrop(9), 6, -3));
+		Assert.False(state.TryAddBuildingDrop(BuildingDrop(10), 5, -2));
+
+		state.TryFlush(BreakFrame + 1, out var flushed);
+		Assert.Empty(flushed.BuildingDrops);
+	}
+
+	[Fact]
+	public void TryAddBuildingDrop_FoldsOnlyTheCellsOwnDrops()
+	{
+		var state = new BlockBreakPendingState();
+		state.EnterBreak(5, -3, 40f, true, Op, BreakFrame);
+
+		Assert.False(state.TryAddBuildingDrop(BuildingDrop(8), 4, -3));
+		Assert.True(state.TryAddBuildingDrop(BuildingDrop(9), 5, -3));
+
+		state.TryFlush(BreakFrame + 1, out var flushed);
+		Assert.Single(flushed.BuildingDrops);
+		Assert.Equal(9ul, flushed.BuildingDrops[0].ItemId);
+	}
+
+	[Fact]
 	public void TryAddBuildingDrop_WithoutBreak_False()
 	{
 		var state = new BlockBreakPendingState();
 
 		// The building drop falls back to a standalone spawn report.
-		Assert.False(state.TryAddBuildingDrop(BuildingDrop(1)));
+		Assert.False(state.TryAddBuildingDrop(BuildingDrop(1), 5, -3));
 	}
 
 	[Fact]

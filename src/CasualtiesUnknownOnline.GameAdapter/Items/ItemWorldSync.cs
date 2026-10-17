@@ -278,7 +278,13 @@ internal sealed class ItemWorldSync(
 			// was broken locally) — the building-death drop rides the SAME
 			// BlockDamagedMsg as the break, so the non-breaker sides receive
 			// the full transient initial state and never roll their own set.
-			if (_breakState.TryAddBuildingDrop(trapDrop))
+			// The fold is keyed on the cell the building STOOD ON: a break
+			// pending under another cell is somebody else's, and the host judges
+			// a report's building drops against the buildings that lost support
+			// at the REPORT's cell — a foreign drop would be refused there and
+			// the breaker would destroy an item it really rolled.
+			if (buildingDrop.SupportCell is { } supportCell
+				&& _breakState.TryAddBuildingDrop(trapDrop, supportCell.x, supportCell.y))
 			{
 				_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) captured for pending block-break report.",
 					item.id, itemId, trapDrop.Position.X, trapDrop.Position.Y);
@@ -286,10 +292,20 @@ internal sealed class ItemWorldSync(
 				return;
 			}
 
-			// No pending trap/break — an ordinary building death (attack/open),
-			// so it stays on the standalone spawn path.
-			_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — no pending destructive trap/break, reporting standalone.",
-				item.id, itemId, buildingDrop.SpawnPosition.x, buildingDrop.SpawnPosition.y);
+			// No pending trap, and no break pending under the cell this building
+			// stood on — an ordinary building death (attack/open), or a death that
+			// landed inside an unrelated break's one-frame window. Either way it
+			// stays on the standalone spawn path.
+			if (buildingDrop.SupportCell is { } ownCell)
+			{
+				_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — no break pending under its own cell ({CellX},{CellY}); reporting standalone.",
+					item.id, itemId, buildingDrop.SpawnPosition.x, buildingDrop.SpawnPosition.y, ownCell.x, ownCell.y);
+			}
+			else
+			{
+				_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — a building that does not depend on its ground, so no break can own this drop; reporting standalone.",
+					item.id, itemId, buildingDrop.SpawnPosition.x, buildingDrop.SpawnPosition.y);
+			}
 		}
 
 		if (dropOrigin != null) // Unity object — ==

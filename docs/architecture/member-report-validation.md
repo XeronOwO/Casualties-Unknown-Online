@@ -127,7 +127,13 @@ would need and MUST point at an existing ticket under `docs/backlog/`, so a gap 
 - **S2b — a dying building's drops are bounded by the building's own prefab table.** The capture point is
   the support-loss MARK, the only moment the entities still exist, and the key is the CELL the report
   already carries — no new wire field, no invented identity (`GameBuildingDropTable`,
-  `WorldBuildingEntitySync.MarkSupportLossRemote`).
+  `WorldBuildingEntitySync.MarkSupportLossRemote`). Both halves that keep a cell key honest: the REPORTER
+  folds a building's drop into the pending break only when that building stood on the break's own cell (the
+  cell rides the death scope and the drop marker — `CallContext.EnterBuildingDeathDrop`,
+  `BuildingDeathDropOrigin.SupportCell` — so a foreign building's death inside the break's next-frame window
+  reports standalone instead of riding a cell whose tables the host would judge it against), and the HOST
+  reads the table of every `requireGround` building standing on the cell, MARKED OR NOT, because the marker
+  answers who applies the death while the rows answer what a building there could have dropped.
 - **S3 — a report may not name another member's own body or hands.** The transport sender is the trusted
   fact and the identity the payload carries is a claim: one rule in the admission seam (a pickup's
   destination and the enemy-combat victim must be the sender) and a direction-scoped comparison in three

@@ -10,18 +10,18 @@ A `requireGround` building that dies because its support block was removed is
 **not** a destructive trap event. The previous `EntityEventMsg.Drops` +
 `ApplyTrapDropPresentation` path therefore never runs for this reproduction:
 
-- `EntityEventSync.cs:58-65` only holds destructive trap kinds
-  (`TrapDamageProfiles.cs:15-24`).
+- `EntityEventSync.OnEntityEvent` only holds destructive trap kinds
+  (`TrapDamageProfiles`' kind table).
 - `BuildingEntity.CheckSeating` is registered as a `WorldGeneration`
   `ChunkUpdated` listener; a remote air-write can set a building's health to 0,
   but the non-breaker side was never marked `RemoteEntityDeath`
-  (`BuildingEntityPatches.cs:35-43`), so every side could roll its own random
-  drop set.
+  (`BuildingEntityPatches`' death-scope prefix), so every side could roll its own
+  random drop set.
 - Building-death drops that did not fold into a trap event went through the
-  standalone kernel spawn path
-  (`ItemWorldSync.cs:240-242`, `KernelBatchItemProjection.cs:353-365`), which
-  does not carry `FreshItemDrop`, velocity, rotation or angular velocity to the
-  peers.
+  standalone kernel spawn path (`ItemWorldSync`'s `[ItemSpawned]` fallback), which
+  at the time carried no `FreshItemDrop`, velocity, rotation or angular velocity.
+  The carrier that closed that half is
+  `docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md`.
 
 ## 2. Fix
 
@@ -34,7 +34,11 @@ A `requireGround` building that dies because its support block was removed is
   `BlockDamagedMsg` gains optional `BuildingDrops` (`TrapDropEntryMsg` list);
   `BlockBreakPendingState` collects them alongside block drops;
   `ItemWorldSync` folds a building-death drop into the pending block break
-  before falling back to a standalone spawn.
+  before falling back to a standalone spawn. The fold is keyed on the CELL the
+  dying building stood on (`buildingDrop.SupportCell` against the pending break's
+  own cell, published by the death scope and stamped at `Item.Awake`), so a
+  building that died elsewhere inside that window reports standalone instead of
+  riding a break whose cell its table does not belong to.
 - **Full transient initial state survives to peers**: `BlockDropSync` maps
   `TrapDropEntryMsg` through `InitialDropStateMapper` and fires the same
   `ItemSpawned` application surface, so the receiving side materializes the

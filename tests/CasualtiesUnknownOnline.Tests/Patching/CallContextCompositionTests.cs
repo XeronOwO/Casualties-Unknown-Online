@@ -164,6 +164,64 @@ public class CallContextCompositionTests
 		Assert.False(Replayed(isReplayed));
 	}
 
+	/// <summary>
+	/// The building-death scope's payload: the cell the dying building stood on, which is what pairs
+	/// its drops with a break. A drop carries no identity of its own and the host judges a report's
+	/// building drops against the buildings that lost support at the REPORT's cell, so the cell has
+	/// to travel; the query answers only while that scope is the INNERMOST one (the same predicate
+	/// <c>Current</c> answers), and a building that does not depend on its ground publishes NO cell —
+	/// a default <c>Vector2Int</c> is the real cell (0,0), so an absent key is never guessed.
+	/// </summary>
+	[Fact]
+	public void TheBuildingDeathScope_PublishesTheSupportCell()
+	{
+		var enter = CallContext.GetMethod("EnterBuildingDeathDrop", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException(
+				"CallContext must declare `internal static IDisposable EnterBuildingDeathDrop(Vector2Int?)`: Item.Awake is the only place "
+				+ "that can stamp the dying building's cell on its drop, and it is not in scope by the time the drop reports.");
+		var query = CallContext.GetMethod("TryGetBuildingDeathSupportCell", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException(
+				"CallContext must declare `internal static bool TryGetBuildingDeathSupportCell(out Vector2Int?)` — the published cell as the "
+				+ "building-death scope carries it.");
+		var cellType = GameAssemblyHost.ResolveType("UnityEngine.Vector2Int")
+			?? throw new InvalidOperationException("UnityEngine.Vector2Int not found.");
+		var cell = Activator.CreateInstance(cellType, 5, -3);
+
+		Assert.False(PublishedCell(query, out _), "no scope publishes no cell");
+
+		using ((IDisposable)enter.Invoke(null, [cell])!)
+		{
+			Assert.True(PublishedCell(query, out var published), "the dying building's own cell travels with the drops it spawns");
+			Assert.Equal(cell, published);
+
+			using (EnterScope("DamageBlockOrigin"))
+			{
+				Assert.False(
+					PublishedCell(query, out _),
+					"a nested classification scope is not the building-death scope — the marker is stamped only where the provenance was decided");
+			}
+
+			Assert.True(PublishedCell(query, out _), "leaving the nested scope restores the published cell");
+		}
+
+		Assert.False(PublishedCell(query, out _), "leaving the scope drops the cell with it");
+
+		using ((IDisposable)enter.Invoke(null, [null])!)
+		{
+			Assert.True(PublishedCell(query, out var published), "the scope is open, so the drop still carries building-death provenance");
+			Assert.Null(published); // a building that does not depend on its ground — no break can own its drops
+		}
+	}
+
+	/// <summary>Invoke the out-parameter query and answer what it published (null when the cell is absent or the scope is closed).</summary>
+	private static bool PublishedCell(MethodInfo query, out object? cell)
+	{
+		var arguments = new object?[] { null };
+		var answered = (bool)query.Invoke(null, arguments)!;
+		cell = arguments[0];
+		return answered;
+	}
+
 	private static IDisposable EnterScope(string origin) =>
 		(IDisposable)Enter.Invoke(null, [OriginValue(origin)])!;
 

@@ -104,3 +104,35 @@ path's, section above — so what remains is the same control in the container-c
   and the third peer's two warnings per gesture, in both destination states.
 - Batch `20261006-g` (2026-10-06): the reference reading in its item shape, plus the empty-destination and
   custody-transfer contrasts — `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md`.
+## The seam, read in the code (2026-10-18)
+
+The mechanism this ticket describes from traces is one branch in `ContainerItemSync`, and reading it answers the
+first of the three decisions the ticket lists.
+
+When a container child is unloaded and then re-picked into a slot, the unload handler runs:
+`_dropState.TryCancel(item, out var unloadedOp)` cancels the registered departure (the comment beside it already
+says why — "this departure replaces that one — the item cannot leave twice") and its trace ends as `Cancelled`;
+then the handler's own "landed check", `if (!ItemWorldSync.IsWorldItem(item))`, ends the unload as `Rejected`
+because the item is no longer a world item — it is in a slot now.
+
+So **two reports die in the same branch**: the departure that would have said the container lost a child, and the
+unload that would have said the item left into the world. The second one is CORRECT to reject — reporting it would
+materialize a phantom drop on the peer, which is exactly what the comment above it warns about. The first one is
+the gap: the container really did lose that child, and nothing states it.
+
+That settles "which carrier owns the container-contents fact on a re-pick" in the direction the slot side already
+has: **the item's arrival reporter is the one that knows where it came from**, so `ItemSlotSync`'s carried report
+(the member the ticket names) is the owner, and the unload side keeps rejecting. Two consequences to honour when
+it is implemented: the report has to be idempotent for the peers' fact tables (the 1 Hz snapshot is also carrying
+this fact, and the clone-fact table already warns when it learns something from the snapshot instead), and the
+take-out into the WORLD must not start double-reporting — that path keeps its departure and reports it.
+
+The other two decisions are unchanged and need no user input: cover the family in the same change (the R5
+expansion loop, the local container-child drag, the `TransferToBody` half), and leave the clone-fact table's own
+"a new carried item the fact table never saw" judgement alone — it is the watchdog doing its job, and this ticket
+is about the fact going unreported, not about the judgement being wrong.
+
+**What still blocks the acceptance row**: the readings need a drag, and the driver has no mouse — the native
+release decides its target from the cursor position, so setting `PlayerCamera.dragItem` alone cannot aim it. That
+lever is already recorded on `cross-player-drag-use-feedback.md`, so this ticket does not re-record it; what it
+records is that the same lever unblocks this row too.

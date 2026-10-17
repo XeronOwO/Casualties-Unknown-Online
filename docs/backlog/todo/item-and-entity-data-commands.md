@@ -13,7 +13,7 @@
   `todo/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
   `review/in-game-command-console-interactive.md` (the console the verbs land in),
-  `todo/give-item-to-another-player.md` (the gesture half of `give`; its finding — no path carries an item
+  `review/give-item-to-another-player.md` (the gesture half of `give`; its finding — no path carries an item
   INTO another player's inventory today — is what this family's `give` faces too),
   `done/id-system-namespaced-ids.md` (how a mod-authored item id is addressed),
   `done/runtime-entity-creation-rejection.md`, `done/runtime-entity-spawn-backfill.md` (the admission path a
@@ -96,7 +96,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
 2. **Stage C — `give`**: put an item into another player's inventory with its properties already set. The
    missing half is materialization on the receiving side — today an item reaches another player only by the
    receiver taking it or by dropping it for a pickup — so this stage owns that carrier, and it shares the
-   finding with `todo/give-item-to-another-player.md`.
+   finding with `review/give-item-to-another-player.md`.
 3. **Stage D — `spawn`**: create an entity in the world through the accepted-creation path, with the
    late-joiner question answered before the verb lands.
 4. **The permission story, inside every stage.** Reads are `Anyone` today (the read half's own reasoning is in

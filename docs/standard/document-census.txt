@@ -288,7 +288,8 @@ docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/READ
 docs/backlog/review/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/review/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/give-item-to-another-player.md | keep | index | docs/backlog/README.md
+docs/backlog/review/give-item-to-another-player.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/intent-refusal-never-reaches-the-actor.md | keep | index | docs/backlog/README.md
 docs/backlog/review/heal-command-limb-and-hollow-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/review/heal-restores-severed-limbs.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/id-carriers-can-disagree-about-placement.md | keep | index | docs/backlog/README.md
@@ -711,7 +712,7 @@ docs/evidence/selfchecks/items/remote-inventory-native-intent-stage1-selfcheck.m
 docs/evidence/selfchecks/items/remote-inventory-native-intent-stage2-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/remote-inventory-native-intent-stage3-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/remote-inventory-native-intent-stage4-audit.md | keep | claim | docs/architecture/remote-inventory-native-parity.md
-docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md | keep | claim | docs/backlog/todo/give-item-to-another-player.md
+docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md | keep | claim | docs/backlog/review/give-item-to-another-player.md
 docs/evidence/selfchecks/items/remote-inventory-native-parity-design-selfcheck.md | keep | claim | docs/backlog/done/remote-inventory-native-parity-rework.md
 docs/evidence/selfchecks/items/remote-world-item-same-id-dedup-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/retired-display-proxy-adopt-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

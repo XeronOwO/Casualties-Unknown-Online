@@ -1,0 +1,64 @@
+# A refused player-interaction intent is silent to the player who performed it
+
+- Status: Todo
+- Priority: Medium
+- Category: Remote inventory / player interaction / observability of refusals
+- Source: the give ticket's acceptance readings (2026-10-18). Row 3 and row 6 both refused correctly, and both
+  showed the same shape from the actor's side: their client had already written a POSITIVE line when it sent the
+  intent, and nothing ever answered. Filed as its own ticket because it is not one message's gap — every kind in
+  the vocabulary answers in the same way, and the family's rule
+  (`AGENTS.md`, "Member reports are bounded, or the gap is named") says a refusal must be answered so both sides
+  end up agreeing.
+- Related: `review/give-item-to-another-player.md` (where it was found; its readings show the actor's screen),
+  `done/remote-inventory-native-parity-rework.md` (the family this applies to), `docs/architecture/member-report-validation.md`
+  (the census that asks, per wire member, whether a report is checked and whether the check is answered)
+
+## What is observed
+
+Two live readings, both on the deployed artifact, both with the actor watching:
+
+- **A policy refusal never reaches the actor.** With the host's `AllowRemoteInventoryTake` off, the giver's release
+  is refused on its OWN side — `[RemoteIntent] refused GiveToBody: host has disabled remote inventory manipulation`
+  — and the player sees nothing: the item does not move, and no line appears on their screen.
+- **A host-side refusal never reaches the actor either.** With the receiver out of world, the host refuses by name
+  (`[RemoteIntent] refused GiveToBody: … or the destination body <receiver> is not in-world`) and the giver's
+  client is never told. Its last word was the positive capture line it wrote when it sent.
+
+The same is true of the worn-item refusal, the "no such container" refusal, and every other host-side "no" in
+`PlayerInventoryTakeService`: each is a `LogWarning` on the host, and none travels.
+
+## Why it matters
+
+The player's screen is the only place a refusal can be understood. Today the actor's experience of every refused
+gesture is identical to a gesture that did nothing because of a bug: the item stays put and no explanation appears.
+That is also why the project's own rule reads the way it does — a report the receiving side contradicts has to be
+answered, or the two sides do not "end up agreeing"; they end up with one side believing it acted.
+
+## What a fix has to decide
+
+1. **What carries the answer.** The family already answers with RESULT messages
+   (`PlayerInventoryTransferMsg`, `PlayerHealResultMsg`, `PlayerItemUseResultMsg`), while the kernel's own channel
+   has `CommandRejected` + `RejectionReason`. A refusal here has to answer a `RemoteInventoryIntentMsg`, which
+   neither shape fits directly: the honest choice is a small result message whose payload names the intent kind and
+   the refusal, and it lands on the actor's own client as a line (and, where a presentation exists, the native
+   feedback the gesture would have produced).
+2. **Where the refusal is authored.** Every refusal in `HandleTakeCore` (and the sibling handlers) already has a
+   human-readable reason string. The answer should carry that same reason rather than a second wording, or the two
+   will drift.
+3. **Rate and shape.** One refusal per gesture, never per frame, and never for a refusal the ACTOR's own client
+   already made (that one is printed locally and needs no round trip).
+
+## Non-goals
+
+- Not the intent vocabulary itself: no new kind, no new operand.
+- Not the host's authority: this ticket adds no validation, only the answer to a validation that already happens.
+- Not the give feature (`review/give-item-to-another-player.md`), which is judged by its own acceptance table.
+
+## Acceptance (the rows a run must read)
+
+| # | Scenario | Expected |
+|---|---|---|
+| 1 | The actor's gesture is refused on the ACTOR's side (a policy the host announced) | One line on the actor's screen naming the refusal; nothing moves; no round trip |
+| 2 | The actor's gesture is refused on the HOST's side (receiver out of world) | One line on the actor's screen naming the refusal, within the same second, and nothing moves |
+| 3 | The host's refusal of a genuinely malformed request | The actor is told, and the host's log keeps its own line |
+| 4 | A gesture the host ACCEPTS | No refusal line anywhere; the actor sees the accepted outcome only |

@@ -3,7 +3,18 @@
 - Status: Todo — **promoted 2026-10-07** by the user's backlog directive (open-ended content customisation and
   a mod-extensible platform); the stages below are the work plan, cut into their own tickets as each one
   starts, and the inventory stays the source of truth.
-- Priority: High
+  **Drained 2026-10-18: every stage and every parkable entry has been cut and landed** — Stage 1
+  (`done/mod-crafting-quality-labels.md`), Stage 2 (`review/mod-cross-player-native-semantics.md`), Stage 3
+  (`done/mod-authored-effects.md`, `review/mod-defined-wire-packets.md`), and all of Part 3.A and Part 3.B
+  (`done/mod-item-authored-actions.md`, `review/mod-item-wearable-declaration.md`,
+  `done/mod-item-declaration-parity.md`, `done/mod-content-kind-with-no-provider.md`,
+  `done/mod-declared-behaviour-with-no-function.md`). What remains is **Part 3.C only**: capabilities the game
+  itself does not have, every one of which the promotion rule keeps out of the queue until a real consumer is
+  named. So this ticket no longer holds a deliverable of its own — it is the inventory those tickets point back
+  at, and it should move once its remaining readers are repointed (24 documents name it, 14 of them under
+  `docs/backlog/`).
+- Priority: High (the platform directive) — but its own work list is empty, so it queues nothing ahead of the
+  executable tickets.
 - Category: Mod platform / architecture
 - Related: `docs/backlog/done/mod-authored-effects.md` (Stage 3, cut out on 2026-10-08 with the user's
   ruling that supersedes its consumer gate),

@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -36,13 +37,16 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 public interface IItemGrantSource
 {
 	/// <summary>
-	/// A fresh fact for <paramref name="definitionId"/>: the prefab's own captured
-	/// state (condition, liquid stacks, component fields) with a newly allocated
-	/// instance id and no location. <see cref="CharacterItemMsg.SlotIndex"/> is -1:
-	/// where the item goes is the caller's decision, not this answer's. False with
-	/// <paramref name="refusal"/> naming the ground when this build cannot create
-	/// that definition — an id the game's own table does not know, or a definition
-	/// whose prefab cannot be loaded.
+	/// A fresh fact for <paramref name="definitionId"/>: the prefab's own captured state
+	/// (condition, liquid stacks, component fields), with <paramref name="state"/> overlaid
+	/// onto it when it is not null — compounds overlay recursively, everything else
+	/// replaces — a newly allocated instance id and no location.
+	/// <see cref="CharacterItemMsg.SlotIndex"/> is -1: where the item goes is the caller's
+	/// decision, not this answer's. False with <paramref name="refusal"/> naming the ground
+	/// when this build cannot create that definition (an id the game's own table does not
+	/// know, a definition whose prefab cannot be loaded) or when the overlaid state names a
+	/// key, component, field or value the definition's capture does not carry. The state is
+	/// bound BEFORE the id is allocated, so a refusal creates nothing.
 	/// </summary>
-	bool TryCreate(string definitionId, out CharacterItemMsg? item, out string? refusal);
+	bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out string? refusal);
 }

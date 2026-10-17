@@ -66,14 +66,14 @@ public class PlayerInteractionProtocolTests
 	}
 
 	[Fact]
-	public void GiveRequest_RoundTripsTheDefinitionSlotAndPropertyTokens()
+	public void GiveRequest_RoundTripsTheDefinitionSlotAndState()
 	{
 		var msg = new PlayerInventoryGiveRequestMsg
 		{
 			TargetSteamId = HostId,
 			DefinitionId = "waterbottle",
 			SlotIndex = -1,
-			Properties = ["liquid", "water", "500"],
+			State = "{Condition:0.5f}",
 		};
 
 		var decoded = NetPacket.DecodePayload<PlayerInventoryGiveRequestMsg>(
@@ -82,7 +82,7 @@ public class PlayerInteractionProtocolTests
 		Assert.Equal(HostId, decoded.TargetSteamId);
 		Assert.Equal("waterbottle", decoded.DefinitionId);
 		Assert.Equal(-1, decoded.SlotIndex);
-		Assert.Equal(["liquid", "water", "500"], decoded.Properties);
+		Assert.Equal("{Condition:0.5f}", decoded.State);
 	}
 
 	[Fact]

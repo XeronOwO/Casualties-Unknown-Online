@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -44,8 +43,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		remove => _take.TransferReceived -= value;
 	}
 
-	public string? GiveItem(ulong targetSteamId, string definitionId, int slot, IReadOnlyList<string> propertyTokens) =>
-		_give.Give(targetSteamId, definitionId, slot, propertyTokens);
+	public string? GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText) =>
+		_give.Give(targetSteamId, definitionId, slot, stateText);
 
 	public void HandleGiveRequest(ulong sender, PlayerInventoryGiveRequestMsg msg) =>
 		_give.HandleRequest(sender, msg);
@@ -106,6 +105,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		IMedicalOperationControl medicalOperations,
 		ProjectionHealthCoordinator projectionHealth,
 		IItemGrantSource itemCreation,
+		IItemStateLanguage itemStateLanguage,
 		IMemberCommandRules memberCommandRules,
 
 		ILogger<PlayerInteractionService> log)
@@ -115,7 +115,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
-		_give = new PlayerItemGiveService(session, sender, _take, itemCreation, memberCommandRules, log);
+		_give = new PlayerItemGiveService(session, sender, _take, itemCreation, itemStateLanguage, memberCommandRules, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, kernelAuthority, resultAuthority, log);
 		_itemUse.BindToSession(); // the admitted-eat table is session-scoped
 		_remoteInventory = new PlayerRemoteInventoryIntentService(session, sender, access, hostRules, visibility, _itemUse, _take, time, log);

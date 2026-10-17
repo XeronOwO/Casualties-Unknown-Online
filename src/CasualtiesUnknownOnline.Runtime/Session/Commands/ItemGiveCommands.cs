@@ -34,7 +34,7 @@ internal sealed class ItemGiveCommands(
 	private readonly ItemDataTargets _targets = targets;
 	private readonly ILogger _log = log;
 
-	[ConsoleCommand("give", "Give one item to a player's inventory, its properties already set (a cheat verb).", CommandPermission.Anyone, ItemGiveParser.Usage, CommandArgumentKind.Text)]
+	[ConsoleCommand("give", "Give one item to a player's inventory, its state already set (a cheat verb).", CommandPermission.Anyone, ItemGiveParser.Usage, CommandArgumentKind.Text)]
 	internal string Give(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
@@ -51,15 +51,6 @@ internal sealed class ItemGiveCommands(
 		if (!ItemGiveParser.TryParse(tokens, out var request, out var error))
 		{
 			return error!;
-		}
-
-		// Parse the property words HERE too — the same parser the host will run — so a
-		// malformed line is refused on the client that typed it instead of costing a
-		// round trip. The host still re-parses what it receives: this check is a
-		// convenience, never the verdict.
-		if (!ItemGiveParser.TryParseProperties(request.PropertyTokens, out _, out var propertyError))
-		{
-			return propertyError!;
 		}
 
 		if (_cheatVerbs.TryRefuse("give", out var refusal))
@@ -80,7 +71,7 @@ internal sealed class ItemGiveCommands(
 			return $"That selector matched {owners.Count} bodies ({ItemDataTargets.Owners(owners)}) — /give names ONE body, so name one player: @p, a selector with [limit=1], or the player's id.";
 		}
 
-		var answer = _playerInteraction.GiveItem(owners[0], request.DefinitionId, request.Slot, request.PropertyTokens);
+		var answer = _playerInteraction.GiveItem(owners[0], request.DefinitionId, request.Slot, request.StateText);
 		return answer ?? "";
 	}
 }

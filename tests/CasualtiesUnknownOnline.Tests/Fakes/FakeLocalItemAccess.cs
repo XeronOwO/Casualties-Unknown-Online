@@ -1,15 +1,17 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Tests.Fakes;
 
 /// <summary>
-/// The local scene behind the item-data write verb, as a test's own dictionary: what
-/// THIS client holds, and the writes it was handed. It answers in the adapter's own
-/// shape — a capture that is a COPY, so a command that edited the capture without
-/// writing it back cannot pass a test that only asserts what the scene holds.
+/// The local scene behind the item-data write verb, as a test's own dictionary: what THIS
+/// client holds, and the states it was handed. It answers in the adapter's own shape — a
+/// document is bound by <see cref="FakeItemState"/> and the written capture is re-read from
+/// the store — so a command that edited its own tree without writing it back cannot pass a
+/// test that only asserts what the scene holds.
 /// </summary>
 internal sealed class FakeLocalItemAccess : ILocalItemAccess
 {
@@ -24,7 +26,7 @@ internal sealed class FakeLocalItemAccess : ILocalItemAccess
 	/// <summary>The id the pointer names when <see cref="Cursor"/> is <see cref="LocalCursorItemKind.Resolved"/>.</summary>
 	internal ulong CursorInstanceId { get; set; }
 
-	/// <summary>Every state this "scene" was asked to write, in order.</summary>
+	/// <summary>Every state this "scene" was asked to write, in order — the capture the adapter re-read.</summary>
 	internal List<CharacterItemMsg> Written { get; } = [];
 
 	/// <summary>The item this client holds — the local object, as its own capture.</summary>
@@ -44,22 +46,34 @@ internal sealed class FakeLocalItemAccess : ILocalItemAccess
 	public CharacterItemMsg? ReadLocalItem(ulong instanceId) =>
 		_held.TryGetValue(instanceId, out var item) ? Copy(item) : null;
 
-	public LocalItemWriteResult WriteLocalItem(ulong instanceId, CharacterItemMsg desired)
+	public LocalItemWriteOutcome WriteLocalItem(ulong instanceId, SnbtValue desired)
 	{
 		if (NextResult is { } forced)
 		{
 			NextResult = null;
-			return forced;
+			return new LocalItemWriteOutcome(forced, forced == LocalItemWriteResult.Refused ? "the local scene refuses this state." : null, null);
 		}
 
-		if (!_held.ContainsKey(instanceId))
+		if (!_held.TryGetValue(instanceId, out var held))
 		{
-			return LocalItemWriteResult.NotHeld;
+			return new LocalItemWriteOutcome(LocalItemWriteResult.NotHeld, null, null);
 		}
 
-		Written.Add(Copy(desired));
-		_held[instanceId] = Copy(desired);
-		return LocalItemWriteResult.Applied;
+		if (!FakeItemState.TryBind(held, desired, out var bound, out var refusal))
+		{
+			return new LocalItemWriteOutcome(LocalItemWriteResult.Refused, refusal, null);
+		}
+
+		var written = Copy(bound);
+		Written.Add(Copy(written));
+		_held[instanceId] = written;
+		return new LocalItemWriteOutcome(
+			LocalItemWriteResult.Applied,
+			null,
+			Copy(written),
+			written.Condition == 0f
+				? "At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now."
+				: null);
 	}
 
 	private static CharacterItemMsg Copy(CharacterItemMsg item) => new()

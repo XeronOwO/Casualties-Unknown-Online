@@ -4,13 +4,15 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// The <c>/give</c> grammar: the one body, the definition, the destination slot and
-/// the property tokens that follow. Pure on purpose — whether the build knows the
-/// definition and whether the values apply are answered where the item is created,
-/// so what this class pins is only what a player can type.
+/// The <c>/give</c> grammar: the one body, the definition with its attached SNBT state, and
+/// the destination slot. Pure on purpose — whether the build knows the definition and whether
+/// the state binds are answered where the item is created, so what this class pins is only
+/// what a player can type.
 /// </summary>
 public class ItemGiveParserTests
 {
+	private const string Q = "\"";
+
 	[Fact]
 	public void SelectorAndDefinition_AreParsed()
 	{
@@ -20,7 +22,7 @@ public class ItemGiveParserTests
 		Assert.Equal("@p", request.Selector);
 		Assert.Equal("bandage", request.DefinitionId);
 		Assert.Equal(-1, request.Slot);
-		Assert.Empty(request.PropertyTokens);
+		Assert.Empty(request.StateText);
 	}
 
 	[Fact]
@@ -34,9 +36,9 @@ public class ItemGiveParserTests
 
 	/// <summary>
 	/// The one shape that could be read two ways: the read/write verbs spell
-	/// "<c>selector slot n</c>" for the item IN that slot, while a give spells the
-	/// SAME words for the slot the created item lands in. A give that read it the
-	/// other way would refuse a definition of "bandage" and never create anything.
+	/// "<c>selector slot n</c>" for the item IN that slot, while a give spells the SAME words for
+	/// the slot the created item lands in. A give that read it the other way would refuse a
+	/// definition of "bandage" and never create anything.
 	/// </summary>
 	[Fact]
 	public void SlotAfterTheDefinition_IsTheDestinationSlot()
@@ -46,30 +48,71 @@ public class ItemGiveParserTests
 		Assert.Equal("@p", request.Selector);
 		Assert.Equal("bandage", request.DefinitionId);
 		Assert.Equal(2, request.Slot);
-		Assert.Empty(request.PropertyTokens);
+		Assert.Empty(request.StateText);
 	}
 
 	[Fact]
-	public void Properties_AreCarriedAsTokensForTheSideThatCreatesTheItem()
+	public void StateAttachedToTheItemId_IsParsedIntoTheCanonicalText()
 	{
-		Assert.True(ItemGiveParser.TryParse(["@p", "waterbottle", "slot", "1", "liquid", "water", "500"], out var request, out _));
-
-		Assert.Equal(1, request.Slot);
-		Assert.Equal(["liquid", "water", "500"], request.PropertyTokens);
-	}
-
-	[Fact]
-	public void Properties_ParseThroughTheWriteVerbsOwnGrammar()
-	{
-		Assert.True(ItemGiveParser.TryParseProperties(["liquid", "water", "500", "condition", "0.5"], out var writes, out var error));
+		Assert.True(ItemGiveParser.TryParse(
+			["@p", "waterbottle{Liquids:[{LiquidId:'water',Amount:500}],Condition:0.8}", "slot", "1"],
+			out var request,
+			out var error));
 
 		Assert.Null(error);
-		Assert.Equal(2, writes.Count);
-		Assert.Equal(ItemDataProperty.Liquid, writes[0].Property);
-		Assert.Equal("water", writes[0].Name);
-		Assert.Equal(500f, writes[0].Number);
-		Assert.Equal(ItemDataProperty.Condition, writes[1].Property);
-		Assert.Equal(0.5f, writes[1].Number);
+		Assert.Equal("waterbottle", request.DefinitionId);
+		Assert.Equal(1, request.Slot);
+		Assert.NotEmpty(request.StateText);
+		Assert.Equal(
+			"{Liquids:[{LiquidId:" + Q + "water" + Q + ",Amount:500}],Condition:0.8d}",
+			request.StateText);
+	}
+
+	/// <summary>The console tokenizer keeps a braced group together, so the state may contain spaces and still be ONE token.</summary>
+	[Fact]
+	public void StateWithSpaces_IsStillOneArgument()
+	{
+		Assert.True(ItemGiveParser.TryParse(["@p", "largebattery{Components: {BatteryItem: {charge: 0.9, on: true}}}"], out var request, out _));
+
+		Assert.Equal("largebattery", request.DefinitionId);
+		Assert.NotEmpty(request.StateText);
+		Assert.Contains("Components:{BatteryItem:{charge:0.9d,on:true}}", request.StateText);
+	}
+
+	[Fact]
+	public void StateSeparatedFromTheItemId_IsRefusedWithTheUsage()
+	{
+		Assert.False(ItemGiveParser.TryParse(["@p", "bandage", "{Condition:0.5}"], out _, out var error));
+		Assert.Contains("Usage:", error);
+	}
+
+	[Fact]
+	public void StateThatIsNotACompound_IsRefusedByName()
+	{
+		// The attached form always begins with '{', so a non-compound state reaches the parser
+		// through the WIRE text (a member's request); the attached form's own bracket mistake is
+		// answered as a separator mistake instead.
+		Assert.False(ItemGiveParser.TryParseState("[1,2]", out _, out _, out var error));
+		Assert.Contains("is a compound", error);
+
+		Assert.False(ItemGiveParser.TryParse(["@p", "bandage[1,2]"], out _, out var attached));
+		Assert.Contains("attaches to the item id with '{'", attached);
+	}
+
+	[Fact]
+	public void MalformedState_IsRefusedWithTheParserPosition()
+	{
+		Assert.False(ItemGiveParser.TryParse(["@p", "bandage{Condition:}"], out _, out var error));
+		Assert.Contains("The state is not SNBT:", error);
+		Assert.Contains("at ", error);
+	}
+
+	[Fact]
+	public void StateLongerThanTheWireBound_IsRefused()
+	{
+		var text = "{Condition:0.5," + new string('x', ItemGiveParser.MaxStateLength) + "}";
+		Assert.False(ItemGiveParser.TryParse(["@p", "bandage" + text], out _, out var error));
+		Assert.Contains("at most", error);
 	}
 
 	/// <summary>The item-target words name an ITEM on the other verbs; a give names the body that receives it, so the word is answered rather than read as a definition id.</summary>
@@ -84,10 +127,10 @@ public class ItemGiveParserTests
 	}
 
 	/// <summary>
-	/// The wrong order is the one shape that could be swallowed: <c>@p slot 2 bandage</c>
-	/// spells the read grammar's "item in slot 2" if the selector parser is allowed to
-	/// consume two tokens, and the operator's destination slot would vanish silently.
-	/// It is refused by name instead.
+	/// The wrong order is the one shape that could be swallowed: <c>@p slot 2 bandage</c> spells
+	/// the read grammar's "item in slot 2" if the selector parser is allowed to consume two
+	/// tokens, and the operator's destination slot would vanish silently. It is refused by name
+	/// instead.
 	/// </summary>
 	[Fact]
 	public void SlotBeforeTheDefinition_IsRefusedRatherThanDropped()
@@ -121,13 +164,25 @@ public class ItemGiveParserTests
 		Assert.Contains("slot", error);
 	}
 
-	/// <summary>The property vocabulary is the write verb's, and its refusal must quote the GIVE usage rather than telling the operator to type a /data line they cannot run.</summary>
 	[Fact]
-	public void UnknownProperty_IsRefusedWithTheGiveUsage()
+	public void ATokenAfterTheState_IsRefusedWithTheUsage()
 	{
-		Assert.False(ItemGiveParser.TryParseProperties(["quality", "5"], out _, out var error));
-		Assert.Contains("not a property to write", error);
-		Assert.Contains(ItemGiveParser.Usage, error);
-		Assert.DoesNotContain(ItemDataWriteParser.Usage, error);
+		Assert.False(ItemGiveParser.TryParse(["@p", "bandage{Condition:0.5}", "5"], out _, out var error));
+		Assert.Contains("Usage:", error);
+	}
+
+	[Fact]
+	public void TryParseState_AcceptsTheWireTextAndRejectsAGarbageList()
+	{
+		Assert.True(ItemGiveParser.TryParseState("{Condition:0.5}", out var state, out var canonical, out _));
+		Assert.NotNull(state);
+		Assert.Equal("{Condition:0.5d}", canonical);
+
+		Assert.True(ItemGiveParser.TryParseState("", out var none, out var empty, out _));
+		Assert.Null(none);
+		Assert.Empty(empty);
+
+		Assert.False(ItemGiveParser.TryParseState("[1,2]", out _, out _, out var error));
+		Assert.Contains("is a compound", error);
 	}
 }

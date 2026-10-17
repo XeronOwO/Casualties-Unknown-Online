@@ -405,7 +405,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			}
 		}
 
-		var completed = ReplaceCurrentToken(input, _editor.Cursor, _completionCandidates[_completionIndex].Text);
+		var completed = ReplaceCurrentToken(input, _editor.Cursor, _completionCandidates[_completionIndex].Text, _completionCandidates[_completionIndex].Verbatim);
 		_editor.SetInput(completed, completed.Length);
 		return true;
 	}
@@ -420,7 +420,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		CaptureUndo();
 		var input = _editor.Input;
-		var completed = ReplaceCurrentToken(input, _editor.Cursor, suggestion.Text);
+		var completed = ReplaceCurrentToken(input, _editor.Cursor, suggestion.Text, suggestion.Verbatim);
 		_editor.SetInput(completed, completed.Length);
 		ResetCompletions();
 		return true;
@@ -485,16 +485,18 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 	private void ClearUndoRedo() => _editHistory.Clear();
 
-	private static string ReplaceCurrentToken(string input, int cursor, string candidate)
+	private static string ReplaceCurrentToken(string input, int cursor, string candidate, bool verbatim)
 	{
 		var token = CommandLineTokenizer.TokenAtCursor(input, cursor);
 		var isCommandToken = token.Start == 0
 			&& input.Length > 0
 			&& input[0] == '/'
 			&& token.Text.StartsWith("/", StringComparison.Ordinal);
-		var replacement = isCommandToken
-			? candidate.StartsWith("/", StringComparison.Ordinal) ? candidate : "/" + candidate
-			: CommandLineTokenizer.QuoteIfNeeded(candidate);
+		var replacement = verbatim
+			? candidate
+			: isCommandToken
+				? candidate.StartsWith("/", StringComparison.Ordinal) ? candidate : "/" + candidate
+				: CommandLineTokenizer.QuoteIfNeeded(candidate);
 
 		if (token.Length == 0)
 		{

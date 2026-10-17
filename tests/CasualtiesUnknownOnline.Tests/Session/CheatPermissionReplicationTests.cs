@@ -147,7 +147,7 @@ public class CheatPermissionReplicationTests
 		{
 			Hold(host, local, Backpack);
 
-			var refused = Run(guest, $"/data set id {Backpack} condition 0.25");
+			var refused = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 
 			Assert.Contains("Refused locally", refused);
 			Assert.Contains("cheat roster", refused);
@@ -156,10 +156,10 @@ public class CheatPermissionReplicationTests
 			Assert.Empty(local.Written);
 
 			Run(host, $"/op {GuestId}");
-			var landed = Run(guest, $"/data set id {Backpack} condition 0.25");
+			var landed = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 			Pump(host, guest);
 
-			Assert.Contains("condition 0.5 -> 0.25", landed);
+			Assert.Contains("Condition 0.5f -> 0.25f", landed);
 			Assert.Equal(0.25f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 			Assert.Single(local.Written);
 		}
@@ -183,10 +183,10 @@ public class CheatPermissionReplicationTests
 			Assert.Null(guest.Services.GetRequiredService<AnnouncedCheatPermissions>().Current);
 			Hold(host, local, Backpack);
 
-			var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+			var answer = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 			Pump(host, guest);
 
-			Assert.Contains("condition 0.5 -> 0.25", answer);
+			Assert.Contains("Condition 0.5f -> 0.25f", answer);
 			Assert.Equal(0.5f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 			Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
 			var refusal = Assert.Single(RefusalLines(guest));
@@ -204,9 +204,9 @@ public class CheatPermissionReplicationTests
 		{
 			Hold(host, local, Backpack, owner: HostId);
 
-			var answer = Run(host, $"/data set id {Backpack} condition 0.25");
+			var answer = Run(host, $"/data modify id {Backpack} Condition set 0.25f");
 
-			Assert.Contains("condition 0.5 -> 0.25", answer);
+			Assert.Contains("Condition 0.5f -> 0.25f", answer);
 			Assert.Equal(0.25f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		}
 	}
@@ -282,7 +282,7 @@ public class CheatPermissionReplicationTests
 		{
 			Hold(host, local, Backpack);
 
-			var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+			var answer = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 
 			Assert.Contains("Refused locally", answer);
 			Assert.Contains("cheat switch", answer);

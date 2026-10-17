@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -11,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 /// </summary>
 public sealed class UnavailableItemGrantSource : IItemGrantSource
 {
-	public bool TryCreate(string definitionId, out CharacterItemMsg? item, out string? refusal)
+	public bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out string? refusal)
 	{
 		item = null;
 		refusal = $"This build cannot create items: no Game Adapter is loaded, so '{definitionId}' cannot be resolved to a prefab or given an instance id.";

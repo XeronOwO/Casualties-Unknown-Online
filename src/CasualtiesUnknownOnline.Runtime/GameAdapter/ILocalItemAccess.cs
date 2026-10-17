@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -16,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 /// The port is deliberately small and holds no item vocabulary: WHICH property the
 /// operator named, whether the value is legal, which route the row's report takes
 /// and what the operator reads back are the console's business (control plane).
-/// This answers what the local scene holds and applies one top-level state to it.
+/// This answers what the local scene holds and applies one state document to it.
 /// </para>
 ///
 /// <para>
@@ -39,12 +40,13 @@ public interface ILocalItemAccess
 	CharacterItemMsg? ReadLocalItem(ulong instanceId);
 
 	/// <summary>
-	/// Apply one save-shaped top-level state to the local item: condition,
-	/// favourited, the liquid stacks and the component fields. Contents and location
-	/// are not touched — the state a console write computes is the item's own
-	/// save-shaped properties, and where the item sits is not one of them.
+	/// Apply ONE state document to the local item. The adapter owns the schema and the
+	/// legality: it binds the document against the live item (and its own capture), refuses
+	/// a key, component, field or value the item cannot carry BY NAME, and only then writes.
+	/// A refused document changes nothing, and an applied one is re-captured and returned,
+	/// so the caller reports the state the object really holds.
 	/// </summary>
-	LocalItemWriteResult WriteLocalItem(ulong instanceId, CharacterItemMsg desired);
+	LocalItemWriteOutcome WriteLocalItem(ulong instanceId, SnbtValue desired);
 
 	/// <summary>
 	/// The item the pointer is over, in the same scene an instance id names — what the

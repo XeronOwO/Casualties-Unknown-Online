@@ -77,6 +77,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [The item state language](review/snbt-state-language.md) — **High** — decision 264's SNBT parser, paths and completion.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.

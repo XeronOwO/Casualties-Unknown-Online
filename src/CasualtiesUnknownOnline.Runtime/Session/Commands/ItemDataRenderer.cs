@@ -1,76 +1,62 @@
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
-/// The item-data verb's text form: one line per item when a body is listed, one
-/// property per line when a single item is read. Pure — the command handler owns
-/// the session and the kernel, this owns what the player reads — so the wording
-/// of every property, and which properties are printed at all, is pinned by unit
-/// tests instead of by a live console.
+/// The item-data verb's text form: the item's own state as the one data language, with the
+/// location and the direct contents around it.
 ///
-/// Which properties exist is the kernel's own payload
-/// (<see cref="ItemData"/>): the SavedItem fields, the liquid stacks and the
-/// typed component fields. Values are rendered as their kind, because the kind is
-/// what a later write has to name.
+/// <para>
+/// Pure — the command handler owns the session, the kernel and the document, this owns
+/// what the player reads — so the wording of every line is pinned by unit tests instead of
+/// by a live console. The state itself is written by <see cref="SnbtWriter"/>, never by a
+/// second per-property formatter, so `/data get` prints exactly what `/data merge` and
+/// `/data modify` accept.
+/// </para>
 /// </summary>
 internal static class ItemDataRenderer
 {
-	/// <summary>One line per item a body holds, in slot order.</summary>
-	internal static string List(ulong owner, IReadOnlyList<ItemState> items, IReadOnlyList<ItemState> all)
+	/// <summary>One line per item a body holds, in slot order, each with its state document.</summary>
+	internal static string List(ulong owner, IReadOnlyList<ItemState> items, IReadOnlyList<SnbtValue> documents)
 	{
 		var builder = new StringBuilder();
 		builder.Append("Items recorded for ").Append(owner).Append(" (").Append(items.Count).Append("):");
-		foreach (var item in items)
+		for (var i = 0; i < items.Count; i++)
 		{
-			builder.Append('\n')
-				.Append('#').Append(item.Identity.InstanceId)
-				.Append(' ').Append(item.Identity.DefinitionId)
-				.Append(" [").Append(Slot(item)).Append(']')
-				.Append(" condition ").Append(Number(item.Data.Condition));
-
-			var contents = Children(item, all).Count;
-			if (contents > 0)
-			{
-				builder.Append(", ").Append(contents).Append(" content(s)");
-			}
+			builder.Append('\n').Append(ListLine(items[i], documents[i]));
 		}
 
 		return builder.ToString();
 	}
 
-	/// <summary>Every property of one item, its direct contents by id (a nested item is read by its own id).</summary>
-	internal static string One(ItemState item, IReadOnlyList<ItemState> all)
+	/// <summary>One item's line in a listing: its identity, where it sits, and its state in the canonical form.</summary>
+	internal static string ListLine(ItemState item, SnbtValue document) =>
+		$"#{item.Identity.InstanceId} {item.Identity.DefinitionId} [{Slot(item)}] {SnbtWriter.Write(document)}";
+
+	/// <summary>
+	/// The state of one item: where it is, the revision, the state document, and its
+	/// direct contents by id (a nested item is read by its own id — contents are their own
+	/// rows, not part of this document).
+	/// </summary>
+	internal static string One(ItemState item, SnbtValue document, IReadOnlyList<ItemState> all)
 	{
 		var builder = new StringBuilder();
 		builder.Append('#').Append(item.Identity.InstanceId)
 			.Append(' ').Append(item.Identity.DefinitionId)
 			.Append(" [").Append(LocationOf(item)).Append(']')
 			.Append(" revision ").Append(item.Revision)
-			.Append("\n  condition ").Append(Number(item.Data.Condition))
-			.Append("\n  favourited ").Append(item.Data.Favourited ? "yes" : "no");
+			.Append('\n').Append(SnbtWriter.Write(document));
 
-		foreach (var liquid in item.Data.Liquids)
+		var contents = Children(item, all);
+		if (contents.Count > 0)
 		{
-			builder.Append("\n  liquid ").Append(liquid.LiquidId).Append(' ').Append(Number(liquid.Amount)).Append(" ml");
-		}
-
-		foreach (var component in item.Data.Components)
-		{
-			builder.Append("\n  component ").Append(component.TypeName).Append(": ").Append(Fields(component));
-		}
-
-		var children = Children(item, all);
-		if (children.Count > 0)
-		{
-			builder.Append("\n  contents (").Append(children.Count).Append("):");
-			foreach (var child in children)
+			builder.Append("\ncontents (").Append(contents.Count).Append("):");
+			foreach (var child in contents)
 			{
 				builder.Append(" #").Append(child.Identity.InstanceId).Append(' ').Append(child.Identity.DefinitionId);
 			}
@@ -79,21 +65,47 @@ internal static class ItemDataRenderer
 		return builder.ToString();
 	}
 
-	/// <summary>The items the kernel records INSIDE this one, by the parent linkage.</summary>
-	private static List<ItemState> Children(ItemState item, IReadOnlyList<ItemState> all)
+	/// <summary>One item and one resolved path: the value in the canonical form.</summary>
+	internal static string PathLine(ItemState item, NbtPath path, SnbtValue value) =>
+		$"#{item.Identity.InstanceId} {item.Identity.DefinitionId}: {path.Text} = {SnbtWriter.Write(value)}";
+
+	/// <summary>One item whose path did not resolve: the item, the path and the resolver's reason.</summary>
+	internal static string PathFailure(ItemState item, NbtPath path, string reason) =>
+		$"#{item.Identity.InstanceId} {item.Identity.DefinitionId}: {path.Text} — {reason}";
+
+	/// <summary>
+	/// One write command's answer: the item, one "path before -> after" clause per change,
+	/// and the one consequence a condition at 0 carries. Kept here rather than built in the
+	/// command so the exact wording is unit-pinned.
+	/// </summary>
+	internal static string Wrote(CharacterItemMsg item, IReadOnlyList<string> changes, bool awaitingHost, string? note)
 	{
-		var children = new List<ItemState>();
-		foreach (var row in all)
+		var builder = new StringBuilder();
+		builder.Append('#').Append(item.InstanceId).Append(' ').Append(item.ItemId).Append(": ");
+		for (var i = 0; i < changes.Count; i++)
 		{
-			if (row.Location.Kind == ItemLocationKind.Contained
-				&& row.Location.ParentItemId == item.Identity.InstanceId)
+			if (i > 0)
 			{
-				children.Add(row);
+				builder.Append("; ");
 			}
+
+			builder.Append(changes[i]);
 		}
 
-		return children;
+		builder.Append(awaitingHost
+			? " — written here and reported to the host, which judges a member's write by its own rule; a refusal puts the old value back and says so in this console."
+			: " — written and reported as this client's own item state.");
+
+		if (note is not null)
+		{
+			builder.Append(' ').Append(note);
+		}
+
+		return builder.ToString();
 	}
+
+	/// <summary>The item's own state as one line, for a log or an answer that already names the item.</summary>
+	internal static string Document(SnbtValue document) => SnbtWriter.Write(document);
 
 	/// <summary>The short form for a listing: which slot or limb of its owner the item sits in.</summary>
 	private static string Slot(ItemState item) => item.Location.Kind switch
@@ -117,119 +129,21 @@ internal static class ItemDataRenderer
 		_ => item.Location.Kind.ToString(),
 	};
 
-	private static string Fields(ItemComponentState component)
+	/// <summary>The items the kernel records INSIDE this one, by the parent linkage.</summary>
+	private static List<ItemState> Children(ItemState item, IReadOnlyList<ItemState> all)
 	{
-		if (component.Fields.Count == 0)
+		var children = new List<ItemState>();
+		foreach (var row in all)
 		{
-			return "(no simple-typed field)";
-		}
-
-		var builder = new StringBuilder();
-		foreach (var field in component.Fields)
-		{
-			if (builder.Length > 0)
+			if (row.Location.Kind == ItemLocationKind.Contained
+				&& row.Location.ParentItemId == item.Identity.InstanceId)
 			{
-				builder.Append(", ");
+				children.Add(row);
 			}
-
-			builder.Append(Kind(field.Kind)).Append(' ').Append(field.Name).Append('=').Append(Value(field));
 		}
 
-		return builder.ToString();
+		return children;
 	}
-
-	private static string Kind(ItemComponentFieldKind kind) => kind switch
-	{
-		ItemComponentFieldKind.Float => "float",
-		ItemComponentFieldKind.Int => "int",
-		ItemComponentFieldKind.Bool => "bool",
-		ItemComponentFieldKind.String => "string",
-		ItemComponentFieldKind.StringList => "strings",
-		ItemComponentFieldKind.Enum => "enum",
-		_ => "?",
-	};
-
-	private static string Value(ItemComponentField field) => field.Kind switch
-	{
-		ItemComponentFieldKind.Float => Number(field.FloatValue),
-		ItemComponentFieldKind.Int or ItemComponentFieldKind.Enum => field.IntValue.ToString(CultureInfo.InvariantCulture),
-		ItemComponentFieldKind.Bool => field.BoolValue ? "true" : "false",
-		ItemComponentFieldKind.String => '"' + field.StringValue + '"',
-		ItemComponentFieldKind.StringList => "[" + string.Join(", ", field.StringList) + "]",
-		_ => "?",
-	};
-
-	/// <summary>A number, in the form every line of this verb prints one.</summary>
-	internal static string NumberValue(float value) => Number(value);
-
-	/// <summary>
-	/// One write COMMAND's answer when it changed more than one property — the same
-	/// line as <see cref="Wrote"/>, with one "property before -> after" clause per
-	/// property in the order the operator named them. Kept beside the single-property
-	/// pair rather than replacing them so the verbs an operator already uses print
-	/// exactly what they printed before, and so a merge or a remove cannot silently
-	/// reword the answer of a verb that did not change.
-	/// </summary>
-	internal static string WroteMany(CharacterItemMsg item, IReadOnlyList<ItemDataWrite> writes, IReadOnlyList<string> changes, bool awaitingHost)
-	{
-		var builder = new StringBuilder();
-		builder.Append('#').Append(item.InstanceId).Append(' ').Append(item.ItemId).Append(": ");
-		for (var i = 0; i < writes.Count; i++)
-		{
-			if (i > 0)
-			{
-				builder.Append("; ");
-			}
-
-			builder.Append(PropertyName(writes[i])).Append(' ').Append(changes[i]);
-		}
-
-		builder.Append(awaitingHost
-			? " — written here and reported to the host, which judges a member's write by its own rule; a refusal puts the old value back and says so in this console."
-			: " — written and reported as this client's own item state.");
-
-		// The same one consequence the single-property answer carries: an item whose
-		// condition reaches zero may be destroyed by its own rule a moment later.
-		if (writes.Any(write => !write.Clear && write.Property == ItemDataProperty.Condition && write.Number == 0f))
-		{
-			builder.Append(" At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now.");
-		}
-
-		return builder.ToString();
-	}
-
-	/// <summary>The item's own favourite flag in this verb's words for it (the read half's "yes"/"no").</summary>
-	internal static string YesNoValue(bool value) => value ? "yes" : "no";
-
-	/// <summary>
-	/// One CAPTURED component field's value, by the kind the capture tagged it with
-	/// (<c>SaveableFieldKind</c>): the write half reads and writes the local capture's
-	/// own shape, so its values are formatted here beside the kernel row's.
-	/// </summary>
-	internal static string FieldValue(ComponentFieldMsg field) => Captured(field);
-
-	/// <summary>
-	/// A write's property as the answer names it — the one wording the write verbs
-	/// and the <c>give</c> verb share, so an operator reads the same word whichever
-	/// verb set the value.
-	/// </summary>
-	internal static string PropertyName(ItemDataWrite write) => write.Property switch
-	{
-		ItemDataProperty.Condition => "condition",
-		ItemDataProperty.Favourited => "favourited",
-		ItemDataProperty.Liquid => $"liquid {write.Name}",
-		_ => $"component {write.Component} {write.Name}",
-	};
-
-	private static string Captured(ComponentFieldMsg field) => field.Kind switch
-	{
-		SaveableFieldKind.Float => Number(field.FloatValue),
-		SaveableFieldKind.Int or SaveableFieldKind.Enum => field.IntValue.ToString(CultureInfo.InvariantCulture),
-		SaveableFieldKind.Bool => field.BoolValue ? "true" : "false",
-		SaveableFieldKind.String => '"' + field.StringValue + '"',
-		SaveableFieldKind.StringList => "[" + string.Join(", ", field.StringList) + "]",
-		_ => "?",
-	};
 
 	private static string Number(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 }

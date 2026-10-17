@@ -121,10 +121,10 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage condition 0.25");
+		var answer = Run(host, "/give @p bandage{Condition:0.25f}");
 
 		var item = Assert.Single(creation.Created);
-		Assert.Contains("condition 1 -> 0.25", answer);
+		Assert.Contains("with state {Condition:0.25f,", answer);
 		Assert.Equal(0.25f, Assert.Single(Characters(host).GetSavedCharacter(GuestId)!.Items).Condition);
 		Assert.Equal(0.25f, Kernel(host).FindItem(item.InstanceId)!.Value.Data.Condition);
 	}
@@ -135,15 +135,16 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var liquid = Run(host, "/give @p waterbottle liquid water 500");
-		var component = Run(host, "/give @p largebattery component Battery charge 0.9");
+		var liquid = Run(host, "/give @p waterbottle{Liquids:[{LiquidId:'water',Amount:500f}]}");
+		var component = Run(host, "/give @p largebattery{Components:{BatteryItem:{charge:0.9f}}}");
 
-		Assert.Contains("liquid water 250 ml -> 500 ml", liquid);
-		Assert.Contains("component Battery charge 0.5 -> 0.9", component);
+		Assert.Contains("Liquids:[{LiquidId:", liquid);
+		Assert.Contains("Amount:500f}]", liquid);
+		Assert.Contains("Components:{BatteryItem:{charge:0.9f,", component);
 		var landed = Characters(host).GetSavedCharacter(GuestId)!.Items;
 		Assert.Equal(500f, landed.Single(item => item.ItemId == "waterbottle").Liquids.Single().Amount);
 		var battery = landed.Single(item => item.ItemId == "largebattery");
-		Assert.Equal(0.9f, battery.Components.Single().Fields.Single().FloatValue);
+		Assert.Equal(0.9f, battery.Components.Single().Fields.Single(field => field.Name == "charge").FloatValue);
 		Assert.Equal(2, creation.Created.Count);
 	}
 
@@ -159,10 +160,10 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage liquid water 500");
+		var answer = Run(host, "/give @p bandage{Liquids:[{LiquidId:'water',Amount:500f}]}");
 
-		Assert.Contains("carries no 'water'", answer);
-		Assert.Single(creation.Created); // created, never delivered
+		Assert.Contains("has no liquid container", answer);
+		Assert.Empty(creation.Created); // refused by the bind, before an id exists
 		Assert.Empty(Characters(host).GetSavedCharacter(GuestId)!.Items);
 		Assert.Empty(Items(host).GetTransferredItems(GuestId));
 	}
@@ -195,7 +196,7 @@ public class CommandConsoleItemGiveTests
 		SeedGuestSnapshot(host);
 
 		var answer = host.Services.GetRequiredService<IPlayerInteractionControl>()
-			.GiveItem(9999, "bandage", -1, []);
+			.GiveItem(9999, "bandage", -1, "");
 
 		Assert.Contains("9999 is not in-world", answer);
 		Assert.Empty(Characters(host).GetSavedCharacter(GuestId)!.Items);
@@ -240,14 +241,15 @@ public class CommandConsoleItemGiveTests
 	/// give grammar.
 	/// </summary>
 	[Fact]
-	public void Host_GivesWithAMalformedProperty_IsRefusedBeforeAnythingIsCreated()
+	public void Host_GivesWithAStateTheDefinitionDoesNotCarry_IsRefusedByTheCreationPort()
 	{
 		var (host, guest, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage quality 5");
+		var answer = Run(host, "/give @p bandage{Quality:5}");
 
-		Assert.Contains("not a property to write", answer);
+		Assert.Contains("not part of an item's state", answer);
+		Assert.Contains("bandage", creation.Attempts); // it reached the port, which refused it
 		Assert.Empty(creation.Created);
 		Assert.Empty(Characters(host).GetSavedCharacter(GuestId)!.Items);
 		_ = guest;

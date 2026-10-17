@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -22,7 +23,8 @@ public sealed class UnavailableLocalItemAccess : ILocalItemAccess
 	public CharacterItemMsg? ReadLocalItem(ulong instanceId) => null;
 
 	/// <summary>No local scene: nothing can be written.</summary>
-	public LocalItemWriteResult WriteLocalItem(ulong instanceId, CharacterItemMsg desired) => LocalItemWriteResult.NotHeld;
+	public LocalItemWriteOutcome WriteLocalItem(ulong instanceId, SnbtValue desired) =>
+		new(LocalItemWriteResult.NotHeld, null, null);
 
 	/// <summary>No local scene: the pointer names nothing.</summary>
 	public LocalCursorItemKind ResolveCursorItem(out ulong instanceId)

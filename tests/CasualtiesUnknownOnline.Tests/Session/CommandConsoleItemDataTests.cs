@@ -58,10 +58,11 @@ public class CommandConsoleItemDataTests
 		var answer = Run(host, $"/data get id {Backpack}");
 
 		Assert.Contains("#4101 backpack [carried by 1001, slot 1] revision", answer);
-		Assert.Contains("condition 0.8", answer);
-		Assert.Contains("favourited yes", answer);
-		Assert.Contains("liquid water 250 ml", answer);
-		Assert.Contains("component BatteryItem: float charge=0.75", answer);
+		Assert.Contains("Condition:0.8f", answer);
+		Assert.Contains("Favourited:true", answer);
+		Assert.Contains("Liquids:[", answer);
+		Assert.Contains("Amount:250f", answer);
+		Assert.Contains("Components:{BatteryItem:{charge:0.75f}}", answer);
 	}
 
 	[Fact]
@@ -190,10 +191,10 @@ public class CommandConsoleItemDataTests
 	{
 		var (host, _) = CreateSession();
 
-		var answer = Run(host, "/data frobnicate id 4101 condition 0.5");
+		var answer = Run(host, "/data frobnicate id 4101 Condition set 0.5f");
 
 		Assert.Contains("Unknown /data verb 'frobnicate'", answer);
-		Assert.Contains("/data set", answer);
+		Assert.Contains("/data modify", answer);
 	}
 
 	// ===== Write =====
@@ -213,9 +214,9 @@ public class CommandConsoleItemDataTests
 		Hold(host, local, item);
 		var reports = RecordReports(host);
 
-		var answer = Run(host, "/data set @s slot 1 condition 0.25");
+		var answer = Run(host, "/data modify @s slot 1 Condition set 0.25f");
 
-		Assert.Contains("#4101 backpack: condition 0.5 -> 0.25", answer);
+		Assert.Contains("#4101 backpack: Condition 0.5f -> 0.25f", answer);
 		Assert.Equal(0.25f, local.Held(Backpack)!.Condition);
 		Assert.Equal(0.25f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.Contains(reports.Carried, carried => carried.InstanceId == Backpack && carried.Condition == 0.25f);
@@ -235,9 +236,9 @@ public class CommandConsoleItemDataTests
 		local.Hold(Item(Backpack, "backpack", slot: 1, condition: 0.4f));
 		SeedCarried(host, HostId, Item(Backpack, "backpack", slot: 1, condition: 0.9f));
 
-		var answer = Run(host, "/data set id 4101 condition 0.2");
+		var answer = Run(host, "/data modify id 4101 Condition set 0.2f");
 
-		Assert.Contains("condition 0.4 -> 0.2", answer);
+		Assert.Contains("Condition 0.4f -> 0.2f", answer);
 		Assert.Equal(0.2f, local.Held(Backpack)!.Condition);
 		Assert.Equal(0.2f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 	}
@@ -248,9 +249,9 @@ public class CommandConsoleItemDataTests
 		var (host, _, local) = CreateSceneSession();
 		Hold(host, local, Item(Backpack, "backpack", slot: 2));
 
-		var answer = Run(host, $"/data set id {Backpack} favourited yes");
+		var answer = Run(host, $"/data modify id {Backpack} Favourited set true");
 
-		Assert.Contains("favourited no -> yes", answer);
+		Assert.Contains("Favourited false -> true", answer);
 		Assert.True(Kernel(host).FindItem(Backpack)!.Value.Data.Favourited);
 	}
 
@@ -262,9 +263,9 @@ public class CommandConsoleItemDataTests
 		var item = Item(Backpack, "backpack", slot: 2, withState: true);
 		Hold(host, local, item);
 
-		var answer = Run(host, $"/data set id {Backpack} component BatteryItem charge 0.9");
+		var answer = Run(host, $"/data modify id {Backpack} Components.BatteryItem.charge set 0.9f");
 
-		Assert.Contains("component BatteryItem charge 0.75 -> 0.9", answer);
+		Assert.Contains("Components.BatteryItem.charge 0.75f -> 0.9f", answer);
 		var field = Kernel(host).FindItem(Backpack)!.Value.Data.Components
 			.Single(component => component.TypeName == "BatteryItem")
 			.Fields.Single(candidate => candidate.Name == "charge");
@@ -277,9 +278,9 @@ public class CommandConsoleItemDataTests
 		var (host, _, local) = CreateSceneSession();
 		Hold(host, local, Item(Backpack, "backpack", slot: 2, withState: true));
 
-		var answer = Run(host, $"/data set id {Backpack} liquid water 500");
+		var answer = Run(host, $"/data modify id {Backpack} Liquids[0].Amount set 500f");
 
-		Assert.Contains("liquid water 250 ml -> 500 ml", answer);
+		Assert.Contains("Liquids[0].Amount 250f -> 500f", answer);
 		Assert.Equal(500f, Kernel(host).FindItem(Backpack)!.Value.Data.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
 	}
 
@@ -294,7 +295,7 @@ public class CommandConsoleItemDataTests
 		var (host, _, _) = CreateSceneSession();
 		SeedCarried(host, HostId, Item(Backpack, "backpack", slot: 1));
 
-		var answer = Run(host, $"/data set id {Backpack} condition 0.5");
+		var answer = Run(host, $"/data modify id {Backpack} Condition set 0.5f");
 
 		Assert.Contains("is recorded as carried by 1001, slot 1 but this client does not hold it", answer);
 	}
@@ -304,7 +305,7 @@ public class CommandConsoleItemDataTests
 	{
 		var (host, _, _) = CreateSceneSession();
 
-		Assert.Contains("No item #999999 is recorded in this session.", Run(host, "/data set id 999999 condition 0.5"));
+		Assert.Contains("No item #999999 is recorded in this session.", Run(host, "/data modify id 999999 Condition set 0.5f"));
 	}
 
 	/// <summary>
@@ -316,7 +317,7 @@ public class CommandConsoleItemDataTests
 	{
 		var (host, _, _) = CreateSceneSession();
 
-		Assert.Contains("a write names ONE item", Run(host, "/data set @s condition 0.5"));
+		Assert.Contains("a write names ONE item", Run(host, "/data modify @s Condition set 0.5f"));
 	}
 
 	[Fact]
@@ -324,7 +325,7 @@ public class CommandConsoleItemDataTests
 	{
 		var (host, _, _) = CreateSceneSession();
 
-		Assert.Contains("No item is recorded for 1001 in slot 7 yet", Run(host, "/data set slot 7 condition 0.5"));
+		Assert.Contains("No item is recorded for 1001 in slot 7 yet", Run(host, "/data modify slot 7 Condition set 0.5f"));
 	}
 
 	[Fact]
@@ -334,7 +335,7 @@ public class CommandConsoleItemDataTests
 		SeedHostEntities(host, GuestId, 5f);
 		SeedCarried(host, GuestId, Item(GuestsBandage, "bandage", slot: 2));
 
-		var answer = Run(host, "/data set @a slot 2 condition 0.5");
+		var answer = Run(host, "/data modify @a slot 2 Condition set 0.5f");
 
 		Assert.Contains("is carried by 2001", answer);
 		Assert.Contains("holder's own act", answer);
@@ -348,22 +349,22 @@ public class CommandConsoleItemDataTests
 		AddSecondRemote(host);
 		SeedCarried(host, GuestId, Item(GuestsBandage, "bandage", slot: 0));
 
-		var answer = Run(host, "/data set @a slot 0 condition 0.5");
+		var answer = Run(host, "/data modify @a slot 0 Condition set 0.5f");
 
 		Assert.Contains("matched 2 bodies", answer);
 		Assert.Contains("[limit=1]", answer);
 	}
 
 	[Fact]
-	public void Set_ForAPropertyTheItemDoesNotCarry_IsRefusedByName()
+	public void Set_ForAnUnknownPath_NamesTheKeysTheItemCarries()
 	{
 		var (host, _, local) = CreateSceneSession();
 		Hold(host, local, Item(Backpack, "backpack", slot: 2, withState: true));
 
-		var answer = Run(host, $"/data set id {Backpack} component Radio gain 1");
+		var answer = Run(host, $"/data modify id {Backpack} Components.Radio.gain set 1");
 
-		Assert.Contains("has no component 'Radio'", answer);
-		Assert.Contains("BatteryItem", answer);
+		Assert.Contains("has no 'Radio'", answer);
+		Assert.Contains("it carries: BatteryItem", answer);
 	}
 
 	/// <summary>The scene's own refusal reaches the operator as its own sentence — the seam cannot turn "not yours to write" into "done".</summary>
@@ -374,7 +375,7 @@ public class CommandConsoleItemDataTests
 		Hold(host, local, Item(Backpack, "backpack", slot: 2));
 		local.NextResult = LocalItemWriteResult.NotWritable;
 
-		var answer = Run(host, $"/data set id {Backpack} condition 0.5");
+		var answer = Run(host, $"/data modify id {Backpack} Condition set 0.5f");
 
 		Assert.Contains("not this client's fact to write", answer);
 		Assert.Equal(1f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
@@ -386,9 +387,9 @@ public class CommandConsoleItemDataTests
 		var (host, _, local) = CreateSceneSession();
 		Hold(host, local, Item(Backpack, "backpack", slot: 2));
 
-		var answer = Run(host, $"/data set id {Backpack} liquid water 500");
+		var answer = Run(host, $"/data modify id {Backpack} Liquids append {{LiquidId:'water',Amount:500f}}");
 
-		Assert.Contains("carries no 'water'", answer);
+		Assert.Contains("has no liquid container", answer);
 		Assert.Equal(1f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 	}
 
@@ -407,9 +408,9 @@ public class CommandConsoleItemDataTests
 		SeedWorld(host, HostId, item);
 		var reports = RecordReports(host);
 
-		var answer = Run(host, $"/data set id {Backpack} condition 0.2");
+		var answer = Run(host, $"/data modify id {Backpack} Condition set 0.2f");
 
-		Assert.Contains("condition 0.5 -> 0.2", answer);
+		Assert.Contains("Condition 0.5f -> 0.2f", answer);
 		Assert.Equal(0.2f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.Contains(reports.Corrected, corrected => corrected.InstanceId == Backpack && corrected.Condition == 0.2f);
 		Assert.Empty(reports.Carried);
@@ -433,9 +434,9 @@ public class CommandConsoleItemDataTests
 		Assert.True(Kernel(host).TrySyncContainerFacts(HostId, parent, out _, out _));
 		var reports = RecordReports(host);
 
-		var answer = Run(host, $"/data set id {GuestsBandage} condition 0.2");
+		var answer = Run(host, $"/data modify id {GuestsBandage} Condition set 0.2f");
 
-		Assert.Contains("condition 0.5 -> 0.2", answer);
+		Assert.Contains("Condition 0.5f -> 0.2f", answer);
 		Assert.Contains(reports.Corrected, corrected => corrected.InstanceId == GuestsBandage);
 		Assert.Empty(reports.Carried);
 	}
@@ -452,7 +453,7 @@ public class CommandConsoleItemDataTests
 		var network = new FakeNetwork(clock: clock);
 		using var node = TestNode.Create(HostId, network, new FakeSteamService(HostId), clock, pumpFirstFrame: true);
 
-		var answer = Run(node, "/data set id 4101 condition 0.5");
+		var answer = Run(node, "/data modify id 4101 Condition set 0.5f");
 
 		Assert.Contains("No active session", answer);
 	}
@@ -561,11 +562,11 @@ public class CommandConsoleItemDataTests
 		var (host, _, local) = CreateSceneSession();
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.8f, withState: true));
 
-		var answer = Run(host, $"/data merge id {Backpack} condition 0.5 favourited yes");
+		var answer = Run(host, $"/data merge id {Backpack} {{Condition:0.5f,Favourited:true}}");
 
 		// The answer names each property in the order the operator wrote them, and both landed.
-		Assert.Contains("condition 0.8 -> 0.5", answer);
-		Assert.Contains("favourited no -> yes", answer);
+		Assert.Contains("Condition 0.8f -> 0.5f", answer);
+		Assert.Contains("Favourited false -> true", answer);
 		Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
 		Assert.Equal(0.5f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.True(local.Held(Backpack)!.Favourited);
@@ -580,34 +581,34 @@ public class CommandConsoleItemDataTests
 		var (host, _, local) = CreateSceneSession();
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.8f, withState: true));
 
-		var answer = Run(host, $"/data merge id {Backpack} condition 0.5 liquid petrol 100");
+		var answer = Run(host, $"/data merge id {Backpack} {{Condition:0.5f,Liquids:[{{LiquidId:'water',Amount:999f}}]}}");
 
-		Assert.Contains("carries no 'petrol'", answer);
+		Assert.Contains("holds 500 ml and the state names 999 ml", answer);
 		Assert.Equal(0.8f, local.Held(Backpack)!.Condition);
 		Assert.Equal(0.8f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.Equal(250f, local.Held(Backpack)!.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
 	}
 
 	[Fact]
-	public void Remove_ClearsALiquidAndResetsAComponentField()
+	public void Remove_DeletesALiquidStackAndRefusesToStripARequiredKey()
 	{
 		var (host, _, local) = CreateSceneSession();
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, withState: true));
 
-		var answer = Run(host, $"/data remove id {Backpack} liquid water component BatteryItem charge");
+		var answer = Run(host, $"/data remove id {Backpack} Liquids[0]");
 
-		Assert.Contains("250 ml -> 0 ml", answer);
-		Assert.Contains("0.75 -> 0", answer);
+		Assert.Contains("Liquids[0] {LiquidId:", answer);
+		Assert.Contains("Amount:250f} -> removed", answer);
 
-		// The container stays and the field stays: removing gives each back its absent value rather
-		// than taking the property off the item.
-		var held = local.Held(Backpack)!;
-		Assert.Equal(0f, held.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
-		Assert.Equal(0f, held.Components.Single().Fields.Single(field => field.Name == "charge").FloatValue);
+		// The stack goes and the container stays, empty — the list element is the ordinary
+		// removable node. A field the component always carries cannot be removed: its state is
+		// complete, and the adapter's bind refuses the document by name rather than defaulting it.
+		Assert.Empty(local.Held(Backpack)!.Liquids);
+		Assert.Empty(Kernel(host).FindItem(Backpack)!.Value.Data.Liquids);
 
-		var recorded = Kernel(host).FindItem(Backpack)!.Value.Data;
-		Assert.Equal(0f, recorded.Liquids.Single(liquid => liquid.LiquidId == "water").Amount);
-		Assert.Equal(0f, recorded.Components.Single().Fields.Single(field => field.Name == "charge").FloatValue);
+		var refused = Run(host, $"/data remove id {Backpack} Components.BatteryItem.charge");
+		Assert.Contains("missing or takes the wrong kind", refused);
+		Assert.Equal(0.75f, local.Held(Backpack)!.Components.Single().Fields.Single(field => field.Name == "charge").FloatValue);
 	}
 
 	private static ItemKernelAuthority Kernel(TestNode node) =>

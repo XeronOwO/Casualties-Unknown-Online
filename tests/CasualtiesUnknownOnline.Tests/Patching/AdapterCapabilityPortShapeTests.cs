@@ -132,6 +132,20 @@ public class AdapterCapabilityPortShapeTests
 	}
 
 	[Fact]
+	public void ItemStateLanguageSeam_ReplacesTheRuntimeDefault()
+	{
+		Assert.True(File.Exists(CompositionPath), $"composition root not found at {CompositionPath}");
+
+		var code = string.Join("\n", File.ReadAllLines(CompositionPath)
+			.Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+
+		// The Runtime seeds UnavailableItemStateLanguage; the adapter must REPLACE it. A
+		// dropped Replace leaves every suite green (the test host registers the fake) while
+		// a deployed /data answers "this build cannot express an item state".
+		Assert.Equal(1, CountCodeOccurrences(code, "Replace(ServiceDescriptor.Singleton<IItemStateLanguage>"));
+	}
+
+	[Fact]
 	public void EveryPort_IsRegisteredExactlyOnceFromTheAdapterSingleton()
 	{
 		Assert.True(File.Exists(CompositionPath), $"composition root not found at {CompositionPath}");

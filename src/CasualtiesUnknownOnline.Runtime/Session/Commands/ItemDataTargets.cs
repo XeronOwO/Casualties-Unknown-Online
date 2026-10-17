@@ -112,7 +112,7 @@ internal sealed class ItemDataTargets(
 				return true;
 
 			default:
-				refusal = $"That target names every item the body carries — a write names ONE item: add 'slot <n>', or use 'cursor' or 'id <n>'. Usage: {ItemDataWriteParser.Usage}";
+				refusal = "That target names every item the body carries — a write names ONE item: add 'slot <n>', or use 'cursor' or 'id <n>'.";
 				return false;
 		}
 	}

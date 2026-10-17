@@ -68,14 +68,14 @@ public class CommandConsoleMemberItemGiveTests
 
 	/// <summary>The properties are applied by the HOST, to ITS capture: the values the member typed are judged where the item is created and then delivered already set.</summary>
 	[Fact]
-	public void Member_GivesWithProperties_AreAppliedByTheHost()
+	public void Member_GivesWithState_IsAppliedByTheHost()
 	{
 		var (host, guest, creation) = CreateMemberGiveSession(switchOpen: true, grant: true);
 
-		var answer = Run(guest, "/give @p bandage condition 0.5");
+		var answer = Run(guest, "/give @p bandage{Condition:0.5f}");
 
 		var item = Assert.Single(creation.Created);
-		Assert.Contains("condition 1 -> 0.5", answer);
+		Assert.Contains("with state {Condition:0.5f,", answer);
 		Assert.Equal(0.5f, Assert.Single(Characters(host).GetHostCharacterData()!.Items).Condition);
 		Assert.Equal(0.5f, Kernel(host).FindItem(item.InstanceId)!.Value.Data.Condition);
 	}
@@ -131,15 +131,15 @@ public class CommandConsoleMemberItemGiveTests
 	/// created — the same refusal the host would have produced, without the round trip.
 	/// </summary>
 	[Fact]
-	public void Member_GivesWithAMalformedProperty_IsRefusedLocallyWithoutARequest()
+	public void Member_GivesWithMalformedSnbt_IsRefusedLocallyWithoutARequest()
 	{
 		var (host, guest, creation) = CreateMemberGiveSession(switchOpen: true, grant: true);
 		var requests = new List<NetMsg>();
 		host.Transport.MessageReceived += (_, frame) => requests.Add((NetMsg)frame[0]);
 
-		var answer = Run(guest, "/give @p bandage quality 5");
+		var answer = Run(guest, "/give @p bandage{Condition:}");
 
-		Assert.Contains("not a property to write", answer);
+		Assert.Contains("The state is not SNBT:", answer);
 		Assert.DoesNotContain(NetMsg.PlayerInventoryGiveRequest, requests);
 		Assert.Empty(creation.Created);
 	}

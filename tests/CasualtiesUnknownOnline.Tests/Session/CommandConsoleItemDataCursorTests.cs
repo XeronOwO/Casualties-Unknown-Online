@@ -42,8 +42,8 @@ public class CommandConsoleItemDataCursorTests
 		var answer = Run(host, "/data get cursor");
 
 		Assert.Contains("#4101 backpack", answer);
-		Assert.Contains("condition 0.8", answer);
-		Assert.DoesNotContain("condition 0.4", answer);
+		Assert.Contains("Condition:0.8f", answer);
+		Assert.DoesNotContain("Condition:0.4f", answer);
 	}
 
 	[Fact]
@@ -95,9 +95,9 @@ public class CommandConsoleItemDataCursorTests
 		PointAt(local, LocalCursorItemKind.Resolved, Backpack);
 		var reports = RecordReports(host);
 
-		var answer = Run(host, "/data set cursor condition 0.25");
+		var answer = Run(host, "/data modify cursor Condition set 0.25f");
 
-		Assert.Contains("#4101 backpack: condition 0.5 -> 0.25", answer);
+		Assert.Contains("#4101 backpack: Condition 0.5f -> 0.25f", answer);
 		Assert.Equal(0.25f, local.Held(Backpack)!.Condition);
 		Assert.Equal(0.25f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.Contains(reports.Corrected, corrected => corrected.InstanceId == Backpack && corrected.Condition == 0.25f);
@@ -113,7 +113,7 @@ public class CommandConsoleItemDataCursorTests
 		local.Hold(item);
 		PointAt(local, LocalCursorItemKind.None);
 
-		var answer = Run(host, "/data set cursor condition 0.25");
+		var answer = Run(host, "/data modify cursor Condition set 0.25f");
 
 		Assert.Contains("Nothing is under the pointer", answer);
 		Assert.Empty(local.Written);
@@ -132,7 +132,7 @@ public class CommandConsoleItemDataCursorTests
 		local.Hold(Item(Backpack, "backpack", condition: 0.5f));
 		PointAt(local, LocalCursorItemKind.Resolved, Backpack);
 
-		var answer = Run(host, "/data set cursor condition 0.25");
+		var answer = Run(host, "/data modify cursor Condition set 0.25f");
 
 		Assert.Contains("#4101 is under the pointer but not recorded in this session yet", answer);
 		Assert.Empty(local.Written);
@@ -148,10 +148,10 @@ public class CommandConsoleItemDataCursorTests
 		local.Hold(item);
 		PointAt(local, LocalCursorItemKind.Resolved, Backpack);
 
-		var answer = Run(host, "/data merge cursor condition 0.6 favourited yes");
+		var answer = Run(host, "/data merge cursor {Condition:0.6f,Favourited:true}");
 
-		Assert.Contains("condition 0.5 -> 0.6", answer);
-		Assert.Contains("favourited no -> yes", answer);
+		Assert.Contains("Condition 0.5f -> 0.6f", answer);
+		Assert.Contains("Favourited false -> true", answer);
 		Assert.Equal(0.6f, local.Held(Backpack)!.Condition);
 		Assert.True(local.Held(Backpack)!.Favourited);
 	}

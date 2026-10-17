@@ -28,7 +28,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 internal static class ItemDataQueryParser
 {
-	internal const string Usage = "/data get [<selector> | slot <n> | cursor | id <n>]";
+	internal const string Usage = "/data get [<selector> | slot <n> | cursor | id <n>] [<path>]";
 
 	private const string IdKeyword = "id";
 

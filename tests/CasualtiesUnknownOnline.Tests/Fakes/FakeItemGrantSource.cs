@@ -1,24 +1,24 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 
 namespace CasualtiesUnknownOnline.Tests.Fakes;
 
 /// <summary>
-/// The game's item table behind <c>/give</c>, as a test's own fixture: the three
-/// definitions the give suites name, each with the state its prefab would carry,
-/// a minted instance id, and a refusal for anything else — the port's own
-/// three-valued answer without loading the game assembly.
+/// The game's item table behind <c>/give</c>, as a test's own fixture: the three definitions
+/// the give suites name, each with the state its prefab would carry, a minted instance id,
+/// and a refusal for anything else — the port's own answer without loading the game assembly.
 ///
 /// <para>
-/// A definition's state is deliberately definition-specific: <c>waterbottle</c>
-/// carries one liquid stack and <c>largebattery</c> one component field, exactly
-/// the shapes a property write addresses, while <c>bandage</c> carries neither. A
-/// suite can therefore tell "the property was applied" from "the property was
-/// accepted for an item that never had it" — the latter is the refusal a real
-/// capture would produce.
+/// The state OVERLAY and the bind are the same rules the real port applies
+/// (<see cref="FakeItemState"/>): the fixture's document is merged onto the definition's
+/// capture and bound before an id exists, so a state the definition cannot carry refuses the
+/// give rather than reaching a created item. A definition's capture is deliberately
+/// definition-specific — <c>waterbottle</c> is a container whose prefab captured no stack,
+/// <c>largebattery</c> carries the <c>BatteryItem</c> component, <c>bandage</c> neither — so a
+/// suite can tell "the state was applied" from "it was accepted for an item that never had it".
 /// </para>
 /// </summary>
 internal sealed class FakeItemGrantSource : IItemGrantSource
@@ -34,7 +34,7 @@ internal sealed class FakeItemGrantSource : IItemGrantSource
 	/// <summary>Every fact this source created, in order.</summary>
 	internal List<CharacterItemMsg> Created { get; } = [];
 
-	public bool TryCreate(string definitionId, out CharacterItemMsg? item, out string? refusal)
+	public bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out string? refusal)
 	{
 		Attempts.Add(definitionId);
 		item = null;
@@ -45,32 +45,24 @@ internal sealed class FakeItemGrantSource : IItemGrantSource
 			return false;
 		}
 
-		item = new CharacterItemMsg
+		var capture = FakeItemState.Definition(definitionId);
+		if (capture is null)
 		{
-			InstanceId = _next++,
-			ItemId = definitionId,
-			SlotIndex = -1,
-			Condition = 1f,
-		};
-
-		if (definitionId == "waterbottle")
-		{
-			item.Liquids.Add(new LiquidStackMsg { LiquidId = "water", Amount = 250f });
+			refusal = $"No item definition '{definitionId}' is known to this game — /give names a definition from the game's own item table.";
+			return false;
 		}
 
-		if (definitionId == "largebattery")
+		var document = state is null
+			? FakeItemState.Describe(capture)
+			: SnbtTree.Overlay(FakeItemState.Describe(capture), state);
+		if (!FakeItemState.TryBind(capture, document, out var bound, out refusal))
 		{
-			item.Components.Add(new ComponentStateMsg
-			{
-				TypeName = "Battery",
-				Fields =
-				[
-					new ComponentFieldMsg { Name = "charge", Kind = SaveableFieldKind.Float, FloatValue = 0.5f },
-				],
-			});
+			return false;
 		}
 
-		Created.Add(item);
+		bound.InstanceId = _next++;
+		item = bound;
+		Created.Add(bound);
 		return true;
 	}
 }

@@ -224,6 +224,11 @@ public static class GameAdapterComposition
 		services.AddSingleton<LocalItemAccess>();
 		services.Replace(ServiceDescriptor.Singleton<ILocalItemAccess>(
 			p => p.GetRequiredService<LocalItemAccess>()));
+		// The item state language's adapter half: the document projection, the schema
+		// completion asks for, and the legality the write/create ports bind against. It is
+		// a pure mapping over the game's statics (component names, the liquid registry, the
+		// prefab's capacity), so it is standalone for the same reason as the seam above.
+		services.Replace(ServiceDescriptor.Singleton<IItemStateLanguage>(new ItemStateLanguage()));
 		// The game's own item data behind the native-use bound: the admission seam asks
 		// whether a definition's ItemInfo.usable admits a native use at all, which only
 		// this layer can read. Standalone for the same reason as the semantics seams

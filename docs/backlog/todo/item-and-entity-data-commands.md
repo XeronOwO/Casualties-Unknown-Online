@@ -54,7 +54,7 @@ liquids, contents or two fields of one component, and it made the Runtime know w
 ```
 
 `<target>` stays the family's own: `id <n>`, `slot <n>`, `cursor`, or a player selector. `<path>` is dotted
-keys with list indices (`Liquids[0].Amount`, `Components.BatteryItem.charge`, `Contents[1].Condition`).
+keys with list indices (`Liquids[0].Amount`, `Components.BatteryItem.charge`).
 
 Layer split, the same rule as everywhere else in this family: the Runtime owns the SNBT parse, the path
 resolution and the sentence the operator reads; the ADAPTER owns the SCHEMA (which keys this item's state
@@ -62,9 +62,13 @@ carries, which component types and fields its capture has, whether it is a liqui
 of the values. So no game rule and no definition constant ever enters the Runtime or the wire shape.
 
 The parser, the writer, the path resolver and the console's SNBT-aware completion (keys, component types,
-fields, enumerated values, from the adapter's schema) are their own ticket; the read and write halves' rows,
-and every existing `/data` acceptance row, are re-derived in this syntax when it lands. `spawn` (stage D)
-inherits the same language for its own state argument.
+fields, enumerated values, from the adapter's schema) are their own ticket (`review/snbt-state-language.md`);
+the read and write halves' rows, and every existing `/data` acceptance row, are re-derived in this syntax
+there. `spawn` (stage D) inherits the same language for its own state argument.
+
+`Contents` is not part of the state document: each content is its own item row with its own id and report
+route, so a path into a child is refused by name and the child is addressed by its own `id` (the read half
+lists the ids).
 
 ## What the attribute answered (it came first, as this ticket required)
 
@@ -147,6 +151,11 @@ accepted-creation path unchanged or needs its own admission, including what a la
    `review/cheat-permission-and-op-commands.md`, and the verb is `todo/give-item-to-a-player-command.md`.
 
 ## Stage B's remaining two verbs 鈥?the design, settled by reading the landed one (2026-10-17)
+
+> **Superseded syntax (decision 264).** The `condition` / `favourited` / `liquid` / `component` vocabulary
+> this section's design was written against is replaced by the item's state as SNBT
+> (`review/snbt-state-language.md`): the verbs, the target grammar and the permission story below stand; the
+> property words and the per-property parse do not.
 
 `ItemDataCommands` already carries the constants `MergeVerb` and `RemoveVerb` and answers both with "not implemented
 yet", so the two verbs are additive work on a path that exists rather than a new surface. What the reading settled:
@@ -238,7 +247,7 @@ mistake: a step that reported an absence from a reading it had not established i
 
 ## The cursor target landed (2026-10-18)
 
-`cursor` is a target shape now: `/data get cursor` reads the item the pointer is over, and `/data set|merge|remove
+`cursor` is a target shape now: `/data get cursor` reads the item the pointer is over, and `/data modify|merge|remove
 cursor 鈥 writes it. The read still answers from the kernel row 鈥?the scene contributes only the ID, which is the
 one thing a command cannot get from the record.
 
@@ -276,7 +285,7 @@ request is refused BY NAME 鈥?no fallback supplies a nearby item.
 | 4 | Nothing under the pointer is answered, and a write writes nothing | `Get_Cursor_OnNothingUnderThePointer_IsRefusedByName`, `Set_Cursor_OnNothingUnderThePointer_IsRefusedWithoutWriting` (the local capture, `Written` and the kernel row all unchanged) |
 | 5 | The write takes the same path the `id` target takes | `Set_Cursor_WritesAWorldItemThroughTheCorrectionRoute` asserts the local capture, the kernel row, the world-correction route AND the absence of a carried report; `Merge_Cursor_ChangesEveryPropertyItNames` pins the multi-property tap |
 | 6 | An id the pointer names that the record has no row for is refused by name | `Set_Cursor_OnAnIdTheRecordDoesNotName_IsRefusedByName` (nothing written, the capture unchanged) |
-| 7 | The grammar is one grammar | `ItemDataQueryParserTests.Cursor_AddressesTheItemUnderThePointer`, `CursorKeyword_IsCaseInsensitive`, the `cursor 5` / `@a cursor` refusals, `ItemDataWriteParserTests.CursorTarget_IsAdmittedLikeEveryOtherTarget`, `Merge_WithACursorTarget_ParsesEveryProperty` |
+| 7 | The grammar is one grammar | `ItemDataQueryParserTests.Cursor_AddressesTheItemUnderThePointer`, `CursorKeyword_IsCaseInsensitive`, the `cursor 5` / `@a cursor` refusals, `ItemDataVerbParserTests.CursorTarget_IsAdmittedByEveryWriteVerb` |
 | 8 | Every pointer refusal is a named answer, never a silent no-op | the five refusal cases (read: nothing / no id / not recorded; write: nothing / not recorded), each asserting the sentence it prints |
 | 9 | What did not change | the write's wire kind, the host rule (`AllowMemberCheatVerbs`, then named `AllowMemberItemDataWrite`), the report routes and the protocol number; the verdict's move shrank `ItemDataCommands` 549 鈫?460 lines and `ItemDataTargets` is new at 204, both under the 600-line gate |
 | 10 | Not covered here | the real pointer under a real mouse 鈥?the acceptance batch's rows below; the driver's ban on pointer input (decision 237) is why it cannot be driven from a test |
@@ -301,7 +310,7 @@ ticket stays in `todo/` for stage D either way.
 
 1. The host drops an item (so it has an id), points at it and runs `/data get cursor` 鈥?the row of the item
    under the pointer, not a neighbour's.
-2. `/data set cursor 鈥 on that WORLD item, read back with `/data get id <id>` on BOTH peers 鈥?the world
+2. `/data modify cursor Condition set 0.5f` on that WORLD item, read back with `/data get id <id>` on BOTH peers 鈥?the world
    correction route, and the record agrees on both sides. A world row is the pointer's own shape: a carried
    item's world object stops simulating when it is picked up.
 3. An id the pointer names but the record has no row for (a guest's just-dropped item) 鈥?the named refusal and
@@ -340,7 +349,7 @@ replacing the check.
 
 Stage B's last gap is closed: the host's own carried items 鈥?the starting supplies and the worn items 鈥?no
 longer wait for a native act to mint their id. They are registered at world entry with the SAME write a native
-act of the host takes, so `/data get`, `/data set` and the members' record can name them from the moment the
+act of the host takes, so `/data get`, the write verbs and the members' record can name them from the moment the
 world opens.
 
 **Entry mapping.** No native call site, and that is the point: this is CUO's own record bookkeeping, not a
@@ -376,7 +385,7 @@ it adds that a member's client cannot state is the host's own authority rows; no
 
 1. A host and a member in a session's world: the host runs `/data get` and its starting supplies and worn items
    are listed with instance ids 鈥?the state that used to be empty for a host who had not used anything yet.
-2. The host runs `/data set id <one of them> condition 0.5` WITHOUT having used, moved or dropped that item 鈥?
+2. The host runs `/data modify id <one of them> Condition set 0.5f` WITHOUT having used, moved or dropped that item 鈥?
    the write lands and `/data get` reads it back on both peers.
 3. The member runs `/data get id <the same id>` and reads the host's row 鈥?the member's replay really received
    the registration.

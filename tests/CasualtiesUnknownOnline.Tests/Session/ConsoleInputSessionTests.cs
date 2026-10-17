@@ -129,6 +129,19 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void AcceptSuggestion_Verbatim_InsertsAStateTokenWithoutQuoting()
+	{
+		var suggestion = new CommandSuggestion("waterbottle{Liquids:[{LiquidId:'water',Amount:500f}]}", null, Verbatim: true);
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [suggestion], _ => null));
+		session.Open();
+		session.SetInput("/give @p waterbottle{Liq");
+
+		Assert.True(session.AcceptSuggestion(suggestion));
+
+		Assert.Equal("/give @p " + suggestion.Text, session.Input);
+	}
+
+	[Fact]
 	public void CycleCompletion_NoCandidates_ReturnsFalseAndKeepsInput()
 	{
 		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));

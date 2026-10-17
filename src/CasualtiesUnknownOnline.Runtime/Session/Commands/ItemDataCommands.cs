@@ -5,166 +5,110 @@ using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
-/// The item-data command group (<c>/data</c>): an operator's read AND write of what
-/// CUO records about one item — condition, favourited, liquid stacks, the typed
-/// component fields and the container contents — addressed by a player selector,
-/// a body slot, the pointer or a CUO instance id.
-///
-/// The READ reads the KERNEL fact, not the local scene: the kernel row is the same on
-/// every peer (the host's authority, a guest's replay of the committed batches), it
-/// is what replication, the save archive and a rejoin all carry, and it is therefore
-/// the row a write has to change. Reading the local scene would answer a different
-/// question — what THIS client rendered — which the remote inventory already shows.
-///
-/// The WRITE takes the other order on purpose: a carried item's state is its
-/// holder's own report, so the command computes the property against the item's
-/// LOCAL capture (<see cref="ILocalItemAccess"/>), writes it there, and reports the
-/// result through the same two calls a native use's host branch reports with — the
-/// row a command writes is the row the game would have written. A write is therefore
-/// the holder's own act: an item this client does not hold, and an item the record
-/// does not name yet, are both refused by name rather than written somewhere else.
-///
-/// Permission is <see cref="CommandPermission.Anyone"/> because the READ is open —
-/// another player's carried items are already visible in the remote inventory view —
-/// and the WRITE is judged on both sides: the acting client's cheat gate
-/// (<see cref="CheatVerbGate"/>) refuses a verb while the host's announced cheat
-/// switch is closed or its announced roster does not name this client, and the host
-/// judges every report that reaches it against its own switch and roster (the
-/// admission seam's two rulings, both closed by default).
+/// The item-data command group (<c>/data</c>): the READ verb and the verb dispatch, in the
+/// ONE data language decision 264 ruled — the item's own state as SNBT, addressed by an
+/// NBT path. The write verbs live in <see cref="ItemDataWriteCommands"/> because they take
+/// the other order (edit a document, then bind and write it through the local scene).
 ///
 /// <para>
-/// A MEMBER's client refuses the verb before anything is applied when the host's
-/// announced rulings close it — the cheat switch or its own roster entry
-/// (<see cref="CheatVerbGate"/>): the write used to be applied locally and
-/// reported first, so on a host whose rule is closed the operator watched the value
-/// appear and go back. That refusal is an INTERCEPTION, never the verdict — it fires
-/// only on an announced value, so a member whose belief is stale, lost or absent applies
-/// and reports as it always did and the host's own answer settles the record.
+/// The READ reads the KERNEL fact, not the local scene: the kernel row is the same on every
+/// peer, it is what replication, the save archive and a rejoin carry, and it is therefore the
+/// row a write has to change. The document is the adapter's projection of that row
+/// (<see cref="IItemStateLanguage"/>), so the Runtime prints keys it never had to learn.
+/// </para>
+///
+/// <para>
+/// A selector target lists the items the body holds — one line per item, each with its whole
+/// document — while <c>id</c>, <c>slot</c> and <c>cursor</c> name one item. A path narrows
+/// any of them to one value, and a path that does not resolve is answered by name rather
+/// than skipped.
 /// </para>
 /// </summary>
 internal sealed class ItemDataCommands(
 	IKernelItemFacts items,
-	ISessionControl session,
-	ILocalItemAccess localItems,
-	IItemControl itemControl,
+	IItemStateLanguage language,
 	ILogger log,
-	CheatVerbGate cheatVerbs,
-	ItemDataTargets targets)
+	ItemDataTargets targets,
+	ItemDataWriteCommands writes)
 {
-	/// <summary>The verb list a caller reads before it knows which usage line it needs: an operator typing a bare <c>/data</c> has to learn that merge and remove exist.</summary>
-	private const string Verbs = "/data get | /data set | /data merge | /data remove";
+	/// <summary>The sentence a build with no Game Adapter answers: it cannot name the state's keys.</summary>
+	internal const string NoLanguage = "This build cannot read an item's state: no Game Adapter is loaded, so its keys are not known here.";
 
-	private const string GetVerb = "get";
-
-	private const string SetVerb = "set";
-
-	private const string MergeVerb = "merge";
-
-	private const string RemoveVerb = "remove";
+	private const string Verbs = "/data get | /data merge | /data modify | /data remove";
 
 	/// <summary>The body-slot ordering key: carried items by slot, then limb-installed ones by limb.</summary>
 	private const int AppliedOrderBase = 1000;
 
 	private readonly IKernelItemFacts _items = items;
-	private readonly ISessionControl _session = session;
-	private readonly ILocalItemAccess _localItems = localItems;
-	private readonly IItemControl _itemControl = itemControl;
+	private readonly IItemStateLanguage _language = language;
 	private readonly ILogger _log = log;
-	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 	private readonly ItemDataTargets _targets = targets;
+	private readonly ItemDataWriteCommands _writes = writes;
 
-	[ConsoleCommand("data", "Read or write one item's recorded state: condition, liquids, component fields and contents.", CommandPermission.Anyone, Verbs + " | " + ItemDataQueryParser.Usage + " | " + ItemDataWriteParser.Usage, CommandArgumentKind.Text)]
+	[ConsoleCommand("data", "Read or write one item's recorded state as SNBT: get, merge, modify or remove.", CommandPermission.Anyone, ItemDataVerbParser.Usage, CommandArgumentKind.Text)]
 	internal string Data(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
 		{
-			return $"Usage: {ItemDataQueryParser.Usage} | {ItemDataWriteParser.Usage} | {ItemDataWriteParser.MergeUsage} | {ItemDataWriteParser.RemoveUsage}";
-		}
-
-		var verb = args[1].ToLowerInvariant();
-		if (verb == SetVerb)
-		{
-			var writeTokens = Tail(args, 2);
-			return ItemDataWriteParser.TryParse(writeTokens, out var one, out var setError)
-				? Write(SetVerb, [one])
-				: setError!;
-		}
-
-		if (verb == MergeVerb)
-		{
-			var writeTokens = Tail(args, 2);
-			return ItemDataWriteParser.TryParseMany(writeTokens, out var many, out var mergeError)
-				? Write(MergeVerb, many)
-				: mergeError!;
-		}
-
-		if (verb == RemoveVerb)
-		{
-			var writeTokens = Tail(args, 2);
-			return ItemDataWriteParser.TryParseRemove(writeTokens, out var clearing, out var removeError)
-				? Write(RemoveVerb, clearing)
-				: removeError!;
-		}
-
-		if (!string.Equals(args[1], GetVerb, StringComparison.OrdinalIgnoreCase))
-		{
-			return $"Unknown /data verb '{args[1]}'. The verbs are {Verbs}. Usage: {ItemDataQueryParser.Usage} | {ItemDataWriteParser.Usage} | {ItemDataWriteParser.MergeUsage} | {ItemDataWriteParser.RemoveUsage}";
+			return $"Usage: {ItemDataVerbParser.Usage}";
 		}
 
 		var tail = Tail(args, 2);
-		if (!ItemDataQueryParser.TryParse(tail, out var query, out var error))
+		return args[1].ToLowerInvariant() switch
+		{
+			"get" => Get(tail),
+			ItemDataVerbParser.MergeOperation => _writes.Merge(tail),
+			ItemDataVerbParser.ModifyOperation => _writes.Modify(tail),
+			ItemDataVerbParser.RemoveOperation => _writes.Remove(tail),
+			_ => $"Unknown /data verb '{args[1]}'. The verbs are {Verbs}. Usage: {ItemDataVerbParser.Usage}",
+		};
+	}
+
+	private string Get(IReadOnlyList<string> tokens)
+	{
+		if (!ItemDataVerbParser.TryParseGet(tokens, out var request, out var error))
 		{
 			return error!;
 		}
 
 		var rows = _items.QueryItems();
 		var all = new List<ItemState>(rows.Values);
-		return query.Kind switch
+		return request.Target.Kind switch
 		{
-			ItemDataQueryKind.InstanceId => ReadOne(rows, query.InstanceId, "id"),
-			ItemDataQueryKind.Slot => ReadSlot(all, query),
-			ItemDataQueryKind.Cursor => ReadCursor(rows),
-			_ => ReadBodies(all, query),
+			ItemDataQueryKind.InstanceId => ReadOne(rows, request.Target.InstanceId, "id", request.Path),
+			ItemDataQueryKind.Slot => ReadSlot(all, request.Target, request.Path),
+			ItemDataQueryKind.Cursor => ReadCursor(rows, request.Path),
+			_ => ReadBodies(all, request.Target, request.Path),
 		};
 	}
 
-	private static List<string> Tail(IReadOnlyList<string> args, int start)
-	{
-		var tail = new List<string>(Math.Max(args.Count - start, 0));
-		for (var i = start; i < args.Count; i++)
-		{
-			tail.Add(args[i]);
-		}
-
-		return tail;
-	}
-
-	private string ReadOne(IReadOnlyDictionary<ulong, ItemState> rows, ulong instanceId, string target)
+	private string ReadOne(IReadOnlyDictionary<ulong, ItemState> rows, ulong instanceId, string target, NbtPath path)
 	{
 		if (!rows.TryGetValue(instanceId, out var item))
 		{
 			return $"No item #{instanceId} is recorded in this session.";
 		}
 
-		_log.LogInformation("[Command] /data get {Target} read #{InstanceId} ({Definition}).", target, instanceId, item.Identity.DefinitionId);
-		return ItemDataRenderer.One(item, [.. rows.Values]);
+		if (!_language.TryDescribe(item.Data, out var document))
+		{
+			return NoLanguage;
+		}
+
+		_log.LogInformation("[Command] /data get {Target} read #{InstanceId} ({Definition}){Path}.",
+			target, instanceId, item.Identity.DefinitionId, path.IsRoot ? "" : " at " + path.Text);
+		return path.IsRoot
+			? ItemDataRenderer.One(item, document, [.. rows.Values])
+			: RenderPath(item, document, path);
 	}
 
-	/// <summary>
-	/// The item the pointer names: the local scene answers what is under the mouse, and
-	/// the record answers what is known about it. The two refusals differ — the scene
-	/// could not name an item at all, or it named one this session does not record — so
-	/// each keeps its own sentence.
-	/// </summary>
-	private string ReadCursor(IReadOnlyDictionary<ulong, ItemState> rows)
+	private string ReadCursor(IReadOnlyDictionary<ulong, ItemState> rows, NbtPath path)
 	{
 		if (!_targets.TryResolveCursor(out var instanceId, out var refusal))
 		{
@@ -172,40 +116,10 @@ internal sealed class ItemDataCommands(
 			return refusal!;
 		}
 
-		return ReadOne(rows, instanceId, "cursor");
+		return ReadOne(rows, instanceId, "cursor", path);
 	}
 
-	private string ReadBodies(IReadOnlyList<ItemState> all, ItemDataQuery query)
-	{
-		var owners = _targets.ResolveOwners(query.Selector, out var refusal);
-		if (refusal is not null)
-		{
-			return refusal;
-		}
-
-		var builder = new StringBuilder();
-		var empty = new List<ulong>();
-		var listed = 0;
-		foreach (var owner in owners)
-		{
-			var held = Held(all, owner);
-			if (held.Count == 0)
-			{
-				empty.Add(owner);
-				continue;
-			}
-
-			listed += held.Count;
-			Append(builder, ItemDataRenderer.List(owner, held, all));
-		}
-
-		ReportEmpty(builder, empty, EmptyBodyAnswer(query, empty));
-		_log.LogInformation("[Command] /data get {Selector} named {Bodies} body/bodies and listed {Items} item(s).",
-			query.Selector ?? "(self)", owners.Count, listed);
-		return builder.ToString();
-	}
-
-	private string ReadSlot(IReadOnlyList<ItemState> all, ItemDataQuery query)
+	private string ReadSlot(IReadOnlyList<ItemState> all, ItemDataQuery query, NbtPath path)
 	{
 		var owners = _targets.ResolveOwners(query.Selector, out var refusal);
 		if (refusal is not null)
@@ -233,7 +147,7 @@ internal sealed class ItemDataCommands(
 			}
 
 			listed++;
-			Append(builder, ItemDataRenderer.One(item.Value, all));
+			Append(builder, RenderItem(item.Value, path, all));
 		}
 
 		ReportEmpty(builder, empty, $"No item is carried by {{0}} in slot {query.Slot}.");
@@ -242,167 +156,93 @@ internal sealed class ItemDataCommands(
 		return builder.ToString();
 	}
 
-	// ===== Write =====
-
-	/// <summary>
-	/// The write path every write verb shares: the checks that must pass once, the ONE
-	/// item the command names, then each property applied to the in-memory capture
-	/// before a single commit. Applying every property first is what makes a merge and
-	/// a remove atomic — a property that cannot be applied refuses the whole command
-	/// and nothing is written — so the loop must not commit per property.
-	/// </summary>
-	private string Write(string verb, IReadOnlyList<ItemDataWrite> writes)
+	private string ReadBodies(IReadOnlyList<ItemState> all, ItemDataQuery query, NbtPath path)
 	{
-		// The cheat family's front-end check comes FIRST, and it answers BOTH of the
-		// host's rulings: the switch (announced with the host rules — a closed switch
-		// refuses the family for every member, granted or not) and the roster (announced
-		// separately — a member the host has not granted). The host's own standing is the
-		// online switch, so a session-less client and the host need no grant at all. With
-		// nothing announced the gate passes and the host's own verdict is the only one,
-		// exactly as before the rulings were replicated.
-		if (_cheatVerbs.TryRefuse("data " + verb, out var cheatRefusal))
+		var owners = _targets.ResolveOwners(query.Selector, out var refusal);
+		if (refusal is not null)
 		{
-			return cheatRefusal;
+			return refusal;
 		}
 
-		var all = new List<ItemState>(_items.QueryItems().Values);
-		if (!_targets.TryResolveWrite(writes[0].Target, all, out var instanceId, out var refusal))
+		var builder = new StringBuilder();
+		var empty = new List<ulong>();
+		var listed = 0;
+		foreach (var owner in owners)
 		{
-			_log.LogWarning("[Command] /data {Verb} refused: {Reason}", verb, refusal);
-			return refusal!;
-		}
-
-		var local = _localItems.ReadLocalItem(instanceId);
-		if (local is null)
-		{
-			return RefuseNotHeld(instanceId);
-		}
-
-		var changes = new List<string>(writes.Count);
-		var described = new List<string>(writes.Count);
-		foreach (var write in writes)
-		{
-			if (!ItemDataWriteValues.TryApply(local, write, out var before, out var after, out var valueError))
+			var held = Held(all, owner);
+			if (held.Count == 0)
 			{
-				_log.LogWarning("[Command] /data {Verb} {Property} on #{InstanceId} refused: {Reason}",
-					verb, write.Property, instanceId, valueError);
-				return valueError!;
+				empty.Add(owner);
+				continue;
 			}
 
-			// Two lists on purpose: the answer line names each property itself, while the LOG needs the
-			// name inline — a merge whose log read only the values could not be attributed afterwards.
-			changes.Add($"{before} -> {after}");
-			described.Add($"{write.Property.ToString().ToLowerInvariant()} {before} -> {after}");
+			listed += held.Count;
+			Append(builder, RenderBody(owner, held, all, path));
 		}
 
-		var result = _localItems.WriteLocalItem(instanceId, local);
-		if (result != LocalItemWriteResult.Applied)
-		{
-			_log.LogWarning("[Command] /data {Verb} on #{InstanceId} refused by the local scene: {Result}.", verb, instanceId, result);
-			return RefuseWrite(result, instanceId);
-		}
-
-		if (_session.Role == SessionRole.Guest)
-		{
-			// A MEMBER's write is the same act with one difference: the host judges it
-			// as a console write under its own rule, so the report travels under its own
-			// kind and the answer is provisional. The values are applied here because the
-			// rule above did not refuse them — either the host has announced that the verb
-			// is open, or no announcement has arrived and this client does what it always
-			// did — and a refusal still arrives later, puts the recorded state back and
-			// prints its own line (ItemStateSettlement, ItemDataWriteRefusal).
-			_itemControl.SendItemDataWrite(instanceId, local);
-			_log.LogInformation("[Command] /data {Verb} wrote #{InstanceId} ({Definition}): {Changes}; reported as a console write for the host's rule to judge.",
-				verb, instanceId, local.ItemId, string.Join("; ", described));
-			return ItemDataRenderer.WroteMany(local, writes, changes, awaitingHost: true);
-		}
-
-		Report(instanceId, local);
-		_log.LogInformation("[Command] /data {Verb} wrote #{InstanceId} ({Definition}): {Changes}; reported as this client's own item state.",
-			verb, instanceId, local.ItemId, string.Join("; ", described));
-		return ItemDataRenderer.WroteMany(local, writes, changes, awaitingHost: false);
+		ReportEmpty(builder, empty, EmptyBodyAnswer(query, empty));
+		_log.LogInformation("[Command] /data get {Selector} named {Bodies} body/bodies and listed {Items} item(s).",
+			query.Selector ?? "(self)", owners.Count, listed);
+		return builder.ToString();
 	}
 
-	/// <summary>
-	/// The record names an item the local scene does not hold: another player's
-	/// carried item (whose local form here is a render proxy), or an id this client
-	/// never loaded. Both are answered with WHERE the row says it is, because "not
-	/// yours" and "not loaded here" are different facts to the operator.
-	/// </summary>
-	private string RefuseNotHeld(ulong instanceId)
+	/// <summary>One body's block: every item with its whole document, or the one path's value per item.</summary>
+	private string RenderBody(ulong owner, IReadOnlyList<ItemState> held, IReadOnlyList<ItemState> all, NbtPath path)
 	{
-		var row = _items.FindItem(instanceId);
-		if (row is null)
+		if (path.IsRoot)
 		{
-			return $"No item #{instanceId} is recorded in this session.";
+			var documents = new List<SnbtValue>(held.Count);
+			foreach (var item in held)
+			{
+				if (!_language.TryDescribe(item.Data, out var document))
+				{
+					return NoLanguage;
+				}
+
+				documents.Add(document);
+			}
+
+			return ItemDataRenderer.List(owner, held, documents);
 		}
 
-		_log.LogWarning("[Command] /data write refused: #{InstanceId} is recorded as {Location} but this client does not hold it.", instanceId, row.Value.Location.Kind);
-		return $"#{instanceId} is recorded as {ItemDataRenderer.LocationOf(row.Value)} but this client does not hold it — a write is the holder's own act, and the holder is the client whose copy of the item is the fact.";
-	}
-
-	/// <summary>The local scene refused the write: each reason has its own sentence, because each has a different remedy.</summary>
-	private string RefuseWrite(LocalItemWriteResult result, ulong instanceId) => result switch
-	{
-		LocalItemWriteResult.NotHeld => $"This client does not hold #{instanceId}.",
-		_ => $"#{instanceId} is not this client's fact to write (a render proxy, or another member's item incarnated here).",
-	};
-
-	/// <summary>
-	/// The report route a native change of this item would take, chosen the way the
-	/// native path chooses it: by whether the item's location chain is rooted in the
-	/// WORLD — the kernel's own container walk (<see cref="ItemLocationChain"/>), which
-	/// the layer reset and the archive read the same way. A child inside a dropped
-	/// backpack is therefore a world item's content (1) even though its own row says
-	/// "contained", and a child inside a carried one is not. World: the local copy is
-	/// the fact and every other member's copy adopts it (the #194 correction). Anything
-	/// else: this client's carried fact, which is the call <c>ItemUseSync</c>'s host
-	/// branch makes for a native use of the same item.
-	/// </summary>
-	private void Report(ulong instanceId, CharacterItemMsg state)
-	{
-		var row = _items.FindItem(instanceId);
-		if (row is not null && ItemLocationChain.IsWorldRooted(row.Value, _items.FindItem))
+		var builder = new StringBuilder();
+		builder.Append("Items recorded for ").Append(owner).Append(" (").Append(held.Count).Append("):");
+		foreach (var item in held)
 		{
-			_itemControl.SendWorldItemCorrection(_session.LocalSteamId, state);
-			return;
+			builder.Append('\n').Append(RenderItem(item, path, all));
 		}
 
-		_itemControl.SendItemCarriedSync(_session.LocalSteamId, state);
+		return builder.ToString();
 	}
 
-	/// <summary>
-	/// A verb that names ONE item needs one body to name it on, and the verdict is
-	/// taken HERE — on the resolved set, at execution — rather than by narrowing
-	/// the grammar: the player may write any selector, and the answer says how many
-	/// it matched and what to write instead (user ruling 2026-10-14: detect the
-	/// target's uniqueness when the command runs, do not make a single-target
-	/// parameter mandatory).
-	///
-	/// <para>
-	/// The write verbs inherit the rule: "apply this to everybody the selector
-	/// touched" is a fan-out nobody asked for, one typo wide.
-	/// </para>
-	/// </summary>
+	private string RenderItem(ItemState item, NbtPath path, IReadOnlyList<ItemState> all)
+	{
+		if (!_language.TryDescribe(item.Data, out var document))
+		{
+			return NoLanguage;
+		}
+
+		return path.IsRoot
+			? ItemDataRenderer.One(item, document, all)
+			: RenderPath(item, document, path);
+	}
+
+	private static string RenderPath(ItemState item, SnbtValue document, NbtPath path) =>
+		SnbtTree.TryResolve(document, path, out var value, out var reason)
+			? ItemDataRenderer.PathLine(item, path, value)
+			: ItemDataRenderer.PathFailure(item, path, reason!);
+
+	/// <summary>A verb that names ONE item needs one body to name it on; the verdict is taken on the resolved set, at execution.</summary>
 	private static string RefuseAmbiguousBody(IReadOnlyList<ulong> owners) =>
 		$"That selector matched {owners.Count} bodies ({ItemDataTargets.Owners(owners)}) — a slot read names ONE item, so name one body: @p, a selector with [limit=1], or the item's own id.";
 
-	/// <summary>
-	/// What an empty answer says. The caller's own body is the one case where an
-	/// empty record does not mean "you carry nothing": a carried item joins CUO's
-	/// model — and gets the instance id any target needs — on the holding client's
-	/// first report of it, so the caller is told which of the two facts it is
-	/// reading. Every other body is answered plainly.
-	/// </summary>
+	/// <summary>What an empty answer says; the caller's own body has its own sentence (a carried item joins the record on its first report).</summary>
 	private static string EmptyBodyAnswer(ItemDataQuery query, IReadOnlyList<ulong> empty) =>
 		query.Selector is null && empty.Count == 1
 			? "No item is recorded for {0} yet — a carried item joins this record on the holding client's first report of it (a use, a move or a drop), which is also when it gets the id a target can name."
 			: "No item is recorded for {0}.";
 
-	/// <summary>
-	/// Every body a target names is resolved by <see cref="ItemDataTargets"/>; this
-	/// class only words its answers.
-	/// </summary>
+	/// <summary>Every body a target names is resolved by <see cref="ItemDataTargets"/>; this class only words its answers.</summary>
 	private static List<ItemState> Held(IReadOnlyList<ItemState> all, ulong owner)
 	{
 		var held = new List<ItemState>();
@@ -445,5 +285,16 @@ internal sealed class ItemDataCommands(
 		}
 
 		Append(builder, string.Format(CultureInfo.InvariantCulture, format, ItemDataTargets.Owners(empty)));
+	}
+
+	private static List<string> Tail(IReadOnlyList<string> args, int start)
+	{
+		var tail = new List<string>(Math.Max(args.Count - start, 0));
+		for (var i = start; i < args.Count; i++)
+		{
+			tail.Add(args[i]);
+		}
+
+		return tail;
 	}
 }

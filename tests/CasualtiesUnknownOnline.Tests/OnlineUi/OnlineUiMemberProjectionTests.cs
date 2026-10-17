@@ -881,7 +881,7 @@ public sealed class OnlineUiMemberProjectionTests
 			remove { }
 		}
 
-		public string? GiveItem(ulong targetSteamId, string definitionId, int slot, IReadOnlyList<string> propertyTokens) => null;
+		public string? GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText) => null;
 
 		public void HandleGiveRequest(ulong sender, PlayerInventoryGiveRequestMsg msg)
 		{

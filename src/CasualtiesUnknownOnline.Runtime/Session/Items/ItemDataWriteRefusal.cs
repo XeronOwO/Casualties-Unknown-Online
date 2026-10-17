@@ -40,8 +40,14 @@ public readonly record struct ItemDataWriteRefusal(
 			_ => Reason.ToString(),
 		};
 
-		return Restore == LocalItemWriteResult.Applied
-			? $"The host refused the write to #{InstanceId} {DefinitionId} ({why}) — the recorded value is back on this client."
-			: $"The host refused the write to #{InstanceId} {DefinitionId} ({why}), and this client could NOT put the recorded value back ({Restore}) — the two sides may disagree until the next report of that item.";
+		return Restore switch
+		{
+			LocalItemWriteResult.Applied =>
+				$"The host refused the write to #{InstanceId} {DefinitionId} ({why}) — the recorded value is back on this client.",
+			LocalItemWriteResult.Unavailable =>
+				$"The host refused the write to #{InstanceId} {DefinitionId} ({why}), and this build has no Game Adapter, so it cannot name the recorded state to put back — the two sides may disagree until the next report of that item.",
+			_ =>
+				$"The host refused the write to #{InstanceId} {DefinitionId} ({why}), and this client could NOT put the recorded value back ({Restore}) — the two sides may disagree until the next report of that item.",
+		};
 	}
 }

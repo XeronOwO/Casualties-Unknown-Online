@@ -60,10 +60,10 @@ public class CommandConsoleMemberItemDataTests
 		var (host, guest, local) = CreateSceneSession(ruleOpen: true);
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
 
-		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		var answer = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 		Pump(host, guest);
 
-		Assert.Contains("#4101 backpack: condition 0.5 -> 0.25", answer);
+		Assert.Contains("#4101 backpack: Condition 0.5f -> 0.25f", answer);
 		Assert.Contains("reported to the host", answer);
 		Assert.Equal(0.25f, local.Held(Backpack)!.Condition);
 		Assert.Equal(0.25f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
@@ -82,7 +82,7 @@ public class CommandConsoleMemberItemDataTests
 		var (host, guest, local) = CreateSceneSession(ruleOpen: true, grant: false);
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
 
-		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		var answer = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 		Pump(host, guest);
 
 		Assert.Contains("Refused locally", answer);
@@ -106,7 +106,7 @@ public class CommandConsoleMemberItemDataTests
 		var (host, guest, local) = CreateSceneSession(ruleOpen: false);
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
 
-		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		var answer = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 		Pump(host, guest);
 
 		Assert.Contains("Refused locally", answer);
@@ -127,10 +127,10 @@ public class CommandConsoleMemberItemDataTests
 		var (host, guest, local) = CreateSceneSession(ruleOpen: true);
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
 
-		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		var answer = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 		Pump(host, guest);
 
-		Assert.Contains("condition 0.5 -> 0.25", answer);
+		Assert.Contains("Condition 0.5f -> 0.25f", answer);
 		Assert.Equal(0.25f, local.Held(Backpack)!.Condition);
 		Assert.Equal(0.25f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.Empty(RefusalLines(guest));
@@ -150,10 +150,10 @@ public class CommandConsoleMemberItemDataTests
 		var (host, guest, local) = CreateSceneSession(ruleOpen: false, announce: false);
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
 
-		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		var answer = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 		Pump(host, guest);
 
-		Assert.Contains("condition 0.5 -> 0.25", answer);
+		Assert.Contains("Condition 0.5f -> 0.25f", answer);
 		Assert.Equal(0.5f, Kernel(host).FindItem(Backpack)!.Value.Data.Condition);
 		Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
 		var refusal = Assert.Single(RefusalLines(guest));
@@ -175,7 +175,7 @@ public class CommandConsoleMemberItemDataTests
 		guest.Services.GetRequiredService<IItemControl>().ItemRejected += (itemId, reason) => rejected.Add((itemId, reason));
 		Hold(host, local, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
 
-		Run(guest, $"/data set id {Backpack} condition 0.25");
+		Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 		Pump(host, guest);
 
 		Assert.Empty(rejected);
@@ -199,10 +199,10 @@ public class CommandConsoleMemberItemDataTests
 		// own kernel: the console resolves it, the host has never judged it.
 		SeedCarried(guest, GuestId, Item(Backpack, "backpack", slot: 1, condition: 0.5f));
 
-		var answer = Run(guest, $"/data set id {Backpack} condition 0.25");
+		var answer = Run(guest, $"/data modify id {Backpack} Condition set 0.25f");
 		Pump(host, guest);
 
-		Assert.Contains("condition 0.5 -> 0.25", answer);
+		Assert.Contains("Condition 0.5f -> 0.25f", answer);
 		Assert.Equal(0.5f, local.Held(Backpack)!.Condition);
 		Assert.Contains("no judged item under that id", Assert.Single(RefusalLines(guest)));
 	}

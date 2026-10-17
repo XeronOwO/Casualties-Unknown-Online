@@ -44,10 +44,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 public sealed class ItemStateSettlement(
 	IKernelItemFacts items,
 	ILocalItemAccess localItems,
+	IItemStateLanguage language,
 	ILogger<ItemStateSettlement> log)
 {
 	private readonly IKernelItemFacts _items = items;
 	private readonly ILocalItemAccess _localItems = localItems;
+	private readonly IItemStateLanguage _language = language;
 	private readonly ILogger<ItemStateSettlement> _log = log;
 
 	/// <summary>One refused console WRITE arrived from the host and was settled. The console renders it; nothing else listens.</summary>
@@ -87,20 +89,29 @@ public sealed class ItemStateSettlement(
 		}
 
 		var definitionId = row.Value.Identity.DefinitionId;
-		var recorded = ItemKernelAuthority.ToCharacterItem(row.Value);
+		if (!_language.TryDescribe(row.Value.Data, out var recorded))
+		{
+			// No Game Adapter: the record's own shape cannot be named, so there is no
+			// document to write back. The divergence is logged and announced, not hidden.
+			_log.LogWarning("[ItemState] the host refused the {Origin} to #{InstanceId} ({Definition}, {Reason}) and this build cannot express an item state — the local value cannot be settled.",
+				origin, instanceId, definitionId, reason);
+			Announce(instanceId, definitionId, reason, LocalItemWriteResult.Unavailable, announce);
+			return;
+		}
+
 		var restore = _localItems.WriteLocalItem(instanceId, recorded);
-		if (restore == LocalItemWriteResult.Applied)
+		if (restore.Applied)
 		{
 			_log.LogInformation("[ItemState] the host refused the {Origin} to #{InstanceId} ({Definition}, {Reason}) — the recorded state is back on the local object (condition {Condition}).",
-				origin, instanceId, definitionId, reason, recorded.Condition);
+				origin, instanceId, definitionId, reason, restore.Written?.Condition);
 		}
 		else
 		{
-			_log.LogWarning("[ItemState] the host refused the {Origin} to #{InstanceId} ({Definition}, {Reason}) and the local scene did not take the recorded state ({Result}) — this side may disagree with the host until the item is reported again.",
-				origin, instanceId, definitionId, reason, restore);
+			_log.LogWarning("[ItemState] the host refused the {Origin} to #{InstanceId} ({Definition}, {Reason}) and the local scene did not take the recorded state ({Result}: {Refusal}) — this side may disagree with the host until the item is reported again.",
+				origin, instanceId, definitionId, reason, restore.Result, restore.Refusal);
 		}
 
-		Announce(instanceId, definitionId, reason, restore, announce);
+		Announce(instanceId, definitionId, reason, restore.Result, announce);
 	}
 
 	private void Announce(ulong instanceId, string definitionId, RejectionReason reason, LocalItemWriteResult restore, bool announce)

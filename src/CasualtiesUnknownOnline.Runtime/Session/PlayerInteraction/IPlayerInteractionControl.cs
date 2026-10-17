@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -44,13 +43,14 @@ public interface IPlayerInteractionControl
 
 	/// <summary>
 	/// Any role: the console <c>/give</c> verb — create ONE item in a player's inventory
-	/// with its properties already set. The host creates and delivers and returns the
-	/// answer sentence; a member sends the request and returns null, because its answer
-	/// arrives through <see cref="GiveAnswered"/>. The caller has already applied the
-	/// cheat gate and resolved the ONE target body; the property tokens are the write
-	/// verb's own grammar, parsed where the item is created.
+	/// with its state already set. The host creates and delivers and returns the answer
+	/// sentence; a member sends the request and returns null, because its answer arrives
+	/// through <see cref="GiveAnswered"/>. The caller has already applied the cheat gate and
+	/// resolved the ONE target body; the state is the canonical SNBT text attached to the
+	/// item id (empty = the definition's own capture), parsed and bound where the item is
+	/// created.
 	/// </summary>
-	string? GiveItem(ulong targetSteamId, string definitionId, int slot, IReadOnlyList<string> propertyTokens);
+	string? GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText);
 
 	/// <summary>Host only: a member's give request arrived — the host judges its own cheat switch and roster, creates the item, and answers.</summary>
 	void HandleGiveRequest(ulong sender, PlayerInventoryGiveRequestMsg msg);

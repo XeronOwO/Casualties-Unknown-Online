@@ -23,6 +23,10 @@ internal static class ConsoleComposition
 		// verb answers "this client holds no such item" instead of pretending the
 		// scene is empty, which is the same shape ILocalCharacterCapture uses.
 		services.AddSingleton<ILocalItemAccess>(new UnavailableLocalItemAccess());
+		// The item state language's schema and projection. The Game Adapter REPLACES this
+		// with the real one; without it the verbs answer that they cannot name the item's
+		// state rather than printing a shape no item in this build carries.
+		services.AddSingleton<IItemStateLanguage>(new UnavailableItemStateLanguage());
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());

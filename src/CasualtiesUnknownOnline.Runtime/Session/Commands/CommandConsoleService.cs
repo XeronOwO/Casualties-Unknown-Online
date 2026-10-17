@@ -52,6 +52,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IStartingSupplyControl _startingSupplies;
 	private readonly ItemStateSettlement _itemStateSettlement;
 	private readonly AnnouncedHostRules _hostRules;
+	private readonly ItemStateCompletion _itemStateCompletion;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -70,6 +71,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IStartingSupplyControl startingSupplies,
 		ILocalItemAccess localItems,
 		IItemControl itemControl,
+		IItemStateLanguage itemStateLanguage,
 		ItemStateSettlement itemStateSettlement,
 		AnnouncedHostRules hostRules,
 		AnnouncedCheatPermissions cheatPermissions,
@@ -123,8 +125,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// both answer the same cheat rulings and the same selector verdict.
 		var cheatVerbs = new CheatVerbGate(session, _hostRules, cheatPermissions, log);
 		var targets = new ItemDataTargets(kernelItems, session, entities, localItems);
-		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, session, localItems, itemControl, log, cheatVerbs, targets));
+		var writes = new ItemDataWriteCommands(kernelItems, session, localItems, itemControl, itemStateLanguage, log, cheatVerbs, targets);
+		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, itemStateLanguage, log, targets, writes));
 		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, cheatVerbs, targets, log));
+		_itemStateCompletion = new ItemStateCompletion(kernelItems, itemStateLanguage, targets);
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 
@@ -172,6 +176,11 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		}
 
 		var current = CommandLineTokenizer.CurrentToken(input);
+		if (_itemStateCompletion.TrySuggest(command.Name, tokens, current, out var stateSuggestions))
+		{
+			return stateSuggestions;
+		}
+
 		var argumentIndex = current.Length == 0 ? tokens.Count : tokens.Count - 1;
 		if (argumentIndex < 1 || argumentIndex > command.ArgumentKinds.Count)
 		{

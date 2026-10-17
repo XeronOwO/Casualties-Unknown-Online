@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -47,14 +48,14 @@ internal sealed class LocalItemAccess(ILogger<LocalItemAccess> log) : ILocalItem
 			: ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item));
 	}
 
-	/// <summary>Applies one save-shaped top-level state to the local object, or reports why it cannot.</summary>
-	public LocalItemWriteResult WriteLocalItem(ulong instanceId, CharacterItemMsg desired)
+	/// <summary>Applies one state document to the local object, or reports why it cannot. The document is bound first, so a refusal writes nothing.</summary>
+	public LocalItemWriteOutcome WriteLocalItem(ulong instanceId, SnbtValue desired)
 	{
 		var item = Resolve(instanceId);
 		if (item is null) // Unity object — ==
 		{
 			_log.LogWarning("[ItemWrite] #{InstanceId} is not held locally — nothing written.", instanceId);
-			return LocalItemWriteResult.NotHeld;
+			return new LocalItemWriteOutcome(LocalItemWriteResult.NotHeld, null, null);
 		}
 
 		if (StandingItems.Is(item))
@@ -62,16 +63,33 @@ internal sealed class LocalItemAccess(ILogger<LocalItemAccess> log) : ILocalItem
 			// Another member's carried item, incarnated here for the cross-player use:
 			// its state belongs to that member's own report, not to this client.
 			_log.LogWarning("[ItemWrite] #{InstanceId} ({Definition}) is a standing incarnation of another member's item — not written.", instanceId, item.id);
-			return LocalItemWriteResult.NotWritable;
+			return new LocalItemWriteOutcome(LocalItemWriteResult.NotWritable, null, null);
 		}
 
-		item.condition = desired.Condition; // direct write, never SetCondition: it drains water by ratio
-		item.favourited = desired.Favourited;
-		ItemStateCodec.RestoreLiquids(item, desired.Liquids);
-		ItemStateCodec.RestoreComponentStates(item, desired.Components);
+		var capture = ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item));
+		if (!ItemStateDocument.TryBind(item, capture, desired, out var bound, out var refusal))
+		{
+			_log.LogWarning("[ItemWrite] #{InstanceId} ({Definition}) refused: {Reason}", instanceId, item.id, refusal);
+			return new LocalItemWriteOutcome(LocalItemWriteResult.Refused, refusal, null);
+		}
+
+		item.condition = bound.Condition; // direct write, never SetCondition: it drains water by ratio
+		item.favourited = bound.Favourited;
+		ItemStateCodec.RestoreLiquids(item, bound.Liquids);
+		ItemStateCodec.RestoreComponentStates(item, bound.Components);
+
+		// The answer carries what the object NOW says, not what was asked: a hook or a
+		// game rule that swallowed part of the write cannot be reported as applied.
+		var written = ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item));
 		_log.LogInformation("[ItemWrite] #{InstanceId} ({Definition}) written: condition {Condition}, favourited {Favourited}, {Liquids} liquid stack(s), {Components} component state(s).",
-			instanceId, item.id, desired.Condition, desired.Favourited, desired.Liquids.Count, desired.Components.Count);
-		return LocalItemWriteResult.Applied;
+			instanceId, item.id, written.Condition, written.Favourited, written.Liquids.Count, written.Components.Count);
+		return new LocalItemWriteOutcome(
+			LocalItemWriteResult.Applied,
+			null,
+			written,
+			written.Condition == 0f
+				? "At 0 the item's own rule may destroy it (destroyAtZeroCondition), so it can be gone a moment from now."
+				: null);
 	}
 
 	/// <summary>

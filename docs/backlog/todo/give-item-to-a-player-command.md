@@ -54,13 +54,13 @@ syntax:
 - **Completion is part of the ticket**: the console's suggestion machinery completes INSIDE the SNBT — the
   top-level keys, the component type names of the item at hand, their fields, and the enumerated values — from
   the adapter's schema for the item or definition being edited, never from a hand-kept list in the console.
-- **The parser, the writer, the path resolver and the completion are their own ticket** (`todo/…`, filed by
-  the implementing cycle); this ticket carries the give half: the item id, the attached state, the schema
-  query it needs, the delivery and the answer.
+- **The parser, the writer, the path resolver and the completion are their own ticket**
+  (`review/snbt-state-language.md`, landed by the implementing cycle); this ticket carries the give half: the
+  item id, the attached state, the schema query it needs, the delivery and the answer.
 
-The acceptance rows below still show the OLD token syntax as the record of what was judged; the implementing
-cycle re-derives them in the SNBT form (row 2 becomes
-`/give @p waterbottle{Liquids:[{LiquidId:"water",Amount:500}]}`).
+The acceptance rows below are re-derived in the SNBT form by `review/snbt-state-language.md` (row 2 becomes
+`/give @p waterbottle{Liquids:[{LiquidId:"water",Amount:500}]}`, and an unknown key or a state the definition
+does not carry is a named refusal).
 
 ## Entry mapping
 
@@ -109,7 +109,7 @@ no rung is skipped without being the answer's own sentence.
   destination the item cannot be placed into at all — for example a container whose own rules refuse the
   item).
 - **A member's verb is a request, and its answer prints where it typed.** `PlayerInventoryGiveRequestMsg` (147)
-  carries the destination, the definition, the slot and the property TOKENS; the host re-parses and re-applies
+  carries the destination, the definition, the slot and the item state as canonical SNBT; the host re-parses and re-binds
   them to its own capture, so a member cannot hand over a state the definition does not carry.
   `PlayerInventoryGiveResultMsg` (148) carries the host's own answer sentence, built from the same reason
   wording the host logs, and the member's console prints it (`CommandConsoleService` subscribes to
@@ -130,7 +130,7 @@ no rung is skipped without being the answer's own sentence.
 | 1 | The creation port | `IItemGrantSource` (`Runtime/GameAdapter`), implemented by the adapter's `ItemGrantSource` as a STANDALONE adapter service (not a port on the `GameAdapter` singleton — the interaction service consumes it, and a port there is the constructor cycle *The startup cycle* below records); registered in `GameAdapterComposition` over the container's one `ItemIdAllocator`, and defaulted to `UnavailableItemGrantSource` in the base root |
 | 2 | The id space | `ItemGrantSource` calls `ItemIdAllocator.AllocateId()` — the same allocator `TraderRecruitCoordinator` uses for its stock gifts, so host-side ids stay in one counter |
 | 3 | The definition facts | `Item.GlobalItems` and `ItemPrefabResolver.Load` are read only in the adapter (the game-assembly boundary); a missing definition or prefab is a named refusal |
-| 4 | The property grammar | `ItemGiveParser.TryParseProperties` → `ItemDataWriteParser.TryParseProperties` → `ItemDataWriteValues.TryApply`: one property vocabulary, one refusal wording, one value check |
+| 4 | The state language | `SnbtParser`/`SnbtWriter` for the text, `IItemStateLanguage` for the schema and the adapter's `ItemStateDocument.TryBind` for the legality: one language, one refusal wording, one bind (decision 264; `review/snbt-state-language.md`) |
 | 5 | The delivery | `PlayerInventoryTakeService.DeliverCreatedItem` shares `PlayerCharacterAccess.CloneCharacter`, `ResolveDestinationSlot`, the ledger calls and `PublishTransfer` with `HandleTakeCore`; the receiver is the landed `PlayerInteractionApply.OnPlayerInventoryTransfer` |
 | 6 | The request/answer wire | `NetMsg.PlayerInventoryGiveRequest` 147 (guest → host) and `NetMsg.PlayerInventoryGiveResult` 148 (host → requester), both reliable direct frames — declared in sync-coverage row I11 and in both protocol reference blocks |
 | 7 | The front end | `CheatVerbGate` in `ItemGiveCommands`, before the target is resolved (the family's order) |
@@ -146,13 +146,13 @@ no rung is skipped without being the answer's own sentence.
 | 2 | The host's own body is a valid destination | `.Host_GivesToItself_WritesItsOwnSnapshot` |
 | 3 | A named slot is used when free, and an occupied one falls back with the answer naming the real slot | `.Host_GivesInTheNamedSlot`, `.Host_GivesIntoAnOccupiedSlot_FallsBackAndSaysWhereItWent` |
 | 4 | A full body is refused by name and nothing is delivered | `.Host_GivesToATargetWithNoFreeSlot_IsRefusedByName` |
-| 5 | Properties are applied BEFORE delivery | `.Host_GivesWithAProperty_AppliesItBeforeDelivery`, `.Host_GivesWithALiquidAndAComponent_AppliesBoth` |
-| 6 | A property the definition does not carry refuses the whole give | `.Host_GivesWithAPropertyTheDefinitionDoesNotCarry_IsRefusedAndDeliversNothing` |
+| 5 | The state is bound BEFORE delivery | `.Host_GivesWithAProperty_AppliesItBeforeDelivery`, `.Host_GivesWithALiquidAndAComponent_AppliesBoth` |
+| 6 | A state the definition does not carry refuses the whole give | `.Host_GivesWithAStateTheDefinitionDoesNotCarry_IsRefusedByTheCreationPort` |
 | 7 | An unknown definition is refused by name and nothing is created | `.Host_GivesADefinitionTheBuildDoesNotKnow_IsRefusedByName` |
 | 8 | A target the host cannot place the item on is refused by name | `.Host_GivesToATargetOutsideTheWorld_IsRefusedByName` |
 | 9 | Several bodies are refused, by name, with the narrowing advice | `.Host_GivesWhenTheSelectorNamesTwoBodies_IsRefusedByName` |
-| 10 | The grammar refuses the item-target words, a missing definition and a bad slot, and quotes its own usage | `ItemGiveParserTests` (14 cases), `.MalformedGive_IsRefusedWithItsOwnSentence`, `.Host_GivesWithAMalformedProperty_IsRefusedBeforeAnythingIsCreated`, `.Member_GivesWithAMalformedProperty_IsRefusedLocallyWithoutARequest` |
-| 11 | A member's verb lands, and the host's answer is what prints | `CommandConsoleMemberItemGiveTests.Member_GivesToTheHost_LandsAndTheHostsAnswerPrints`, `.Member_GivesToItself_LandsOnItsOwnSnapshot`, `.Member_GivesWithProperties_AreAppliedByTheHost` |
+| 10 | The grammar refuses the item-target words, a missing definition and a bad slot, and quotes its own usage | `ItemGiveParserTests` (19 cases), `.Host_GivesWithAStateTheDefinitionDoesNotCarry_IsRefusedByTheCreationPort`, `.Member_GivesWithMalformedSnbt_IsRefusedLocallyWithoutARequest` |
+| 11 | A member's verb lands, and the host's answer is what prints | `CommandConsoleMemberItemGiveTests.Member_GivesToTheHost_LandsAndTheHostsAnswerPrints`, `.Member_GivesToItself_LandsOnItsOwnSnapshot`, `.Member_GivesWithState_IsAppliedByTheHost` |
 | 12 | The front end refuses an announced closed switch and an announced roster that does not name the member, before anything is sent | `.Member_Gives_WhenTheAnnouncedSwitchIsClosed_IsRefusedLocally`, `.Member_Gives_WhenTheSwitchIsOpenButTheMemberIsNotGranted_IsRefusedByTheRoster` |
 | 13 | With nothing announced the host judges and answers, and the refusal prints | `.Member_Gives_WhenNoRosterWasAnnounced_IsSettledByTheHostsOwnRefusal` |
 | 14 | A member's unknown definition is answered by the host, not created locally | `.Member_GivesAnUnknownDefinition_IsAnsweredByTheHost` |
@@ -180,9 +180,10 @@ moved back to `todo/` with its status field carrying the rejection, and the fix 
 the final-pass review's findings, and the user's 2026-10-17 destination ladder.
 
 1. Host: `/give @p bandage` — the answer names a new instance id and slot; `/data get id <id>` on BOTH peers
-   reads the same row, owned by the member.
-2. Host: `/give @p waterbottle liquid water 500` — the answer carries `liquid water … -> 500 ml`, and
-   `/data get id <id>` reads 500 ml on the member's side.
+   reads the same document, owned by the member.
+2. Host: `/give @p waterbottle{Liquids:[{LiquidId:"water",Amount:500}]}` — the answer carries the state, and
+   `/data get id <id> Liquids[0].Amount` reads `500f` on the member's side (a fresh empty container is
+   filled by the state).
 3. Host: `/give @p bandage slot 9` (beyond the six-slot body) — the answer names the slot it really used, not
    9; `/data get` agrees.
 4. The member fills its own body through the game's own grants, then the host `/give`s — the ladder's next
@@ -203,6 +204,9 @@ the final-pass review's findings, and the user's 2026-10-17 destination ladder.
 11. The ladder's last rung: a body with no free slot, no carried container with headroom and no worn
     container — the item is DROPPED at the player's own position, the answer says so, and both peers read
     the item where it landed.
+12. `/give @p bandage{Quality:5}` (an unknown top-level key) and
+    `/give @p bandage{Liquids:[{LiquidId:"water",Amount:500}]}` on a definition with no liquid container —
+    each is refused BY NAME by the adapter and nothing is created.
 
 ## Limits, recorded rather than hidden
 
@@ -331,7 +335,7 @@ game's own container and our write path, the honest answer is **read yes, write 
   true) is the game's own "fill it for me" flag, applied when the item is loaded/instantiated — and `/give`
   captures the PREFAB, which is not an instantiated item, so the capture legitimately has no stacks.
 
-**The design (the user's follow-ups, 2026-10-17 — recorded, awaiting the go-ahead; no code yet).** A liquid
+**The design (the user's follow-ups, 2026-10-17 — implemented by `review/snbt-state-language.md`: the state language writes the stack list, so an empty container can be filled and a second liquid added).** A liquid
 write means "the amount of liquid X in this container": a liquid the item does not hold is APPENDED (an empty
 container can be filled, a second liquid can sit beside the first), 0 drops the stack, and the container's own
 capacity decides what fits — over capacity refused by name. `/give` and `/data set` share it.

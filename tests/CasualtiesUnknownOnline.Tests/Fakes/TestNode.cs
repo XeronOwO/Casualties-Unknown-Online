@@ -3,6 +3,7 @@ using System.IO;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -87,6 +88,11 @@ internal sealed class TestNode : IDisposable
 				// and liquid registries answers instead (FakeLimbUseSemantics).
 				// A test that needs a different verdict replaces it here.
 				s.Replace(ServiceDescriptor.Singleton<ILimbUseSemantics>(FakeLimbUseSemantics.Instance));
+				// The item state language's adapter half is the game's own schema; a test
+				// host has none, so the fixture answers instead (FakeItemState). The same
+				// stand-in describes, completes and binds, and it is registered globally
+				// because every console suite that names an item needs it.
+				s.Replace(ServiceDescriptor.Singleton<IItemStateLanguage>(FakeItemStateLanguage.Instance));
 				// The same stand-in for the consume (drink) chain's content facts,
 				// whose production answer is Item.GlobalItems (FakeConsumeSemantics).
 				s.Replace(ServiceDescriptor.Singleton<IConsumeSemantics>(FakeConsumeSemantics.Instance));

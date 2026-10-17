@@ -407,3 +407,22 @@ Stage B.
 The review's two majors were both real and both cheap to fix, and neither was visible from the code alone: the
 component installs a full-screen overlay that nothing in the game destroys, and the suite had no case that could
 fail on the change at all. Both were found by asking the reviewer to attack the change rather than to read it.
+## Read on the machine: the overlay goes too (2026-10-18)
+
+The hollow half was first read through the component alone, and the review that followed found the component
+ALSO installs a full-screen vignette on the player's main canvas which nothing in the game destroys. The fix
+removes both; this row separates the two readings so the fix is proven rather than assumed
+(`.acceptance/20261018-n/run1.log`):
+
+```
+before the heal: component=true  active=true  | overlays=1 canvas=true
+after  the heal: component=false active=false | overlays=0 canvas=true
+```
+
+**ok on both**: the component is gone AND the overlay is gone. The `overlays=1` before the heal matters as much as
+the zero after it — the planted component really did install one, so the clear had something to remove. A row
+that found zero overlays beforehand would have proved nothing, which is why the batch reports that case as
+unjudged instead of passing it.
+
+Nothing is owed on this ticket's own subject now except the save/reconnect survival, which is verification of
+behaviour already read twice rather than code.

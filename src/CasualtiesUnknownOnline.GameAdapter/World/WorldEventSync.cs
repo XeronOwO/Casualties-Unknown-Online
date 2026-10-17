@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -29,11 +30,13 @@ internal sealed partial class WorldEventSync(
 	OperationTrace trace,
 	WorldEntityKernelProjection kernelProjection,
 	WorldEntryFanout worldBackfill,
+	IEntitySyncControl entities,
 	ILogger<WorldEventSync> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
+	private readonly IEntitySyncControl _entities = entities;
 	private readonly RestoredWorldFactReplay _replay = replay;
 	private readonly OperationTrace _trace = trace;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
@@ -329,6 +332,16 @@ internal sealed partial class WorldEventSync(
 			var pos = new Vector2Int(x, y);
 			if (IsHostMode)
 			{
+				// A PLAYER break is a gesture, so the reporter's own body had to be able to reach the cell (live
+				// reading: one was 122 cells away). Quake and environment writes carry playerBreak: false, so the
+				// wire already keeps them out of this branch — no special case needed.
+				if (playerBreak && block == 0 && !IsWithinReach(sender, pos))
+				{
+					_log.LogWarning("[BlockSync] {Sender}'s player break at ({X},{Y}) is further than {Reach} cells from its own body — refused: nothing applied, nothing recorded, nothing relayed.",
+						sender, x, y, InteractionReach.Cells);
+					return;
+				}
+
 				// Read ONCE, before anything is applied: this is the host's own
 				// statement of what the cell held, and for an air write it is the
 				// block the break destroyed — the fact the drops report is later
@@ -379,6 +392,25 @@ internal sealed partial class WorldEventSync(
 				}
 			}
 		}
+	}
+
+	/// <summary>Could the reporter's body have been at the cell it broke? An absent position is not a refusal.</summary>
+	private bool IsWithinReach(ulong sender, Vector2Int pos)
+	{
+		if (sender == _session.LocalSteamId)
+		{
+			return true; // the host's own writes never arrive through the report path
+		}
+
+		var entity = _entities.GetRemotePlayer(sender);
+		if (entity is null)
+		{
+			return true; // no position for this peer yet
+		}
+
+		var dx = entity.Position.X - pos.x;
+		var dy = entity.Position.Y - pos.y;
+		return Mathf.Sqrt((dx * dx) + (dy * dy)) <= InteractionReach.Cells;
 	}
 
 	/// <summary>

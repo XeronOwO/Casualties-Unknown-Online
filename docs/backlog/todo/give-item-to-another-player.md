@@ -384,3 +384,36 @@ is also what should answer the giver. The wire already has the shape for answeri
 That is the next piece of work on this ticket, and until it lands the two `[carried]`-without-a-slot readings are
 the evidence that it is needed.
 
+### The design for that edge, decided by reading the two ends (2026-10-18)
+
+Two routes were on the table. The one that lands is the cheaper AND the more honest, and it was found by asking
+what each side actually KNOWS:
+
+- **Rejected: let the receiver report its placement back and have the host patch its ledger.** It needs a new wire
+  message for the success case, and it leaves the host briefly believing a location that is wrong — a fact with two
+  owners until the correction lands.
+- **Chosen: the GIVER says whether it pointed at a container.** The giver's client is the only side that ever knows
+  this: the release resolves a display proxy whose `Item` really is (or is not) a `Container`, while the host's
+  snapshot has no "is a container" flag at all. So the operand gains one bit — `TargetIsContainer` on
+  `RemoteInventoryIntentMsg` — and the host refuses a destination that claims to be a container but is not, and
+  refuses a container-named destination that does not claim to be one, BY NAME and before it records anything.
+
+That removes the wrong nesting at its source (the host never again puts an item inside a plain item), and it leaves
+exactly one gap behind, the one already recorded: a host-side refusal still has to be answered to the giver.
+
+**What wiring it needs, surveyed so the next attempt starts at the right place:**
+
+- `RemoteInventoryIntentMsg` — the next free `ProtoMember` after the limb operand; the number is a pre-release
+  baseline, so it rides this ticket's own commit (decision 241).
+- `PlayerCameraDragUsePatch`'s `DisplayProxyTarget` and `RemoteDragIntentDispatcher.ReportLocalReleaseOnsProxy` —
+  the target struct has to carry the bit from the proxy's own `Container` component; the dispatcher currently
+  receives only the target's instance id, so the flag has to be threaded through with it.
+- `PlayerRemoteInventoryIntentService`'s `GiveToBody` operand validation — the two refusals above belong here,
+  beside the self-containment check, because both need only the message.
+- The `HandleTakeCore` container branch keeps its `FindCarriedItem` existence check (the receiver's snapshot is the
+  authority on what it carries); what it no longer has to do is guess whether the named item is a container.
+
+**Until that lands**, the honest reading of the live run is: the container destination works, and a destination
+aimed at a plain item still ends with the receiver placing the item in a slot and saying so — with the host's ledger
+unaware of the slot. That is the symptom the bit removes, not a reason to call row 2 unverified.
+

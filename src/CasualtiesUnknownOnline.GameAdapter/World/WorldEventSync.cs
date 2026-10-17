@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
-using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -31,18 +29,16 @@ internal sealed partial class WorldEventSync(
 	OperationTrace trace,
 	WorldEntityKernelProjection kernelProjection,
 	WorldEntryFanout worldBackfill,
-	IEntitySyncControl entities,
 	ILogger<WorldEventSync> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
-	private readonly IEntitySyncControl _entities = entities;
 	private readonly RestoredWorldFactReplay _replay = replay;
 	private readonly OperationTrace _trace = trace;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
 	private readonly WorldEntryFanout _worldBackfill = worldBackfill;
-	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, entities, trace, log);
+	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, trace, log);
 	private readonly ILogger<WorldEventSync> _log = log;
 
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
@@ -89,20 +85,8 @@ internal sealed partial class WorldEventSync(
 	// wrappers keep the event signatures void — and stay the single subscription
 	// identity Bind/Unbind pair up.
 
-	private void OnRemoteBuildingEntityOpenedRelay(ulong sender, NetVector2 pos)
-	{
-		// Same bound as a player's block break, on the same shared reach: an OPEN is a lock being worked, so it is a
-		// gesture and its reporter's own body has to have been able to reach it. Only the host judges — a guest
-		// receiving the host's broadcast is applying an already-judged fact.
-		if (IsHostMode && !IsWithinReach(sender, new Vector2Int((int)Math.Round(pos.X), (int)Math.Round(pos.Y))))
-		{
-			_log.LogWarning("[EntitySync] {Sender}'s open at ({X},{Y}) is further than {Reach} cells from its own body — refused: nothing applied, nothing relayed.",
-				sender, pos.X, pos.Y, InteractionReach.Cells);
-			return;
-		}
-
+	private void OnRemoteBuildingEntityOpenedRelay(NetVector2 pos) =>
 		_buildingEntities.OnRemoteBuildingEntityOpened(pos);
-	}
 
 	private void OnOpenedEntitiesProjected(IReadOnlyList<NetVector2Msg> positions) =>
 		_buildingEntities.OnOpenedEntitiesProjected(positions);
@@ -345,16 +329,6 @@ internal sealed partial class WorldEventSync(
 			var pos = new Vector2Int(x, y);
 			if (IsHostMode)
 			{
-				// A PLAYER break is a gesture, so the reporter's own body had to be able to reach the cell (live
-				// reading: one was 122 cells away). Quake and environment writes carry playerBreak: false, so the
-				// wire already keeps them out of this branch — no special case needed.
-				if (playerBreak && block == 0 && !IsWithinReach(sender, pos))
-				{
-					_log.LogWarning("[BlockSync] {Sender}'s player break at ({X},{Y}) is further than {Reach} cells from its own body — refused: nothing applied, nothing recorded, nothing relayed.",
-						sender, x, y, InteractionReach.Cells);
-					return;
-				}
-
 				// Read ONCE, before anything is applied: this is the host's own
 				// statement of what the cell held, and for an air write it is the
 				// block the break destroyed — the fact the drops report is later
@@ -406,7 +380,6 @@ internal sealed partial class WorldEventSync(
 			}
 		}
 	}
-
 
 	/// <summary>
 	/// An earthquake just started (detected in WorldGenerationUpdatePatch). The

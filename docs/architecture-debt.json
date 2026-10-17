@@ -6,9 +6,5 @@
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
     "Lines": 608,
     "BoolFlags": 4
-  },
-  "CasualtiesUnknownOnline.GameAdapter.World.WorldEventSync": {
-    "Lines": 623,
-    "BoolFlags": 3
   }
 }

@@ -47,6 +47,20 @@
 			}
 			if (body != null) { break; }
 		}
+	} else if (target == "remote") {
+		// The body another client holds for a REMOTE player, found by the driver component CUO adds to
+		// it - by type NAME, because that type is internal to the adapter and an in-process eval cannot
+		// reference it, the same lesson the display target already learned.
+		var all = UnityEngine.Resources.FindObjectsOfTypeAll(typeof(Body));
+		for (var i = 0; i < all.Length; i++) {
+			var candidate = all[i] as Body;
+			if (candidate == null || !candidate.gameObject.activeInHierarchy) { continue; }
+			var parts = candidate.GetComponents<UnityEngine.Component>();
+			for (var c = 0; c < parts.Length; c++) {
+				if (parts[c] != null && parts[c].GetType().Name == "RemoteBodyDriver") { body = candidate; break; }
+			}
+			if (body != null) { break; }
+		}
 	} else {
 		body = camera.body;
 	}

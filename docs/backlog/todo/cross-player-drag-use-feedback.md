@@ -180,3 +180,24 @@ gets a drag STARTED and cannot get it released anywhere.
    lands.
 
 Nothing was changed for this: no API was added, no rule was bent. The next attempt starts at option 1.
+## Option 1, read exactly: the release entry and why it is not a one-liner (2026-10-18)
+
+The release does not read a hovered slot: `PlayerCamera.HandleWhileDragging` hands its UI raycast to
+`TryPerformUIActions`, which walks the hits and calls `TryPerformInventoryAction(RaycastResult hit,
+List<RaycastResult> uiCasts)` — a PRIVATE method that first requires
+`hit.gameObject.TryGetComponent<InvButton>(ref invButton) && invButton.Overlaps(uiCasts)`, and only then acts on
+`invButton.GetItem()`.
+
+So an in-process lever has to fabricate a `RaycastResult` whose `gameObject` is the target button AND a uiCasts
+list the button's own `Overlaps` accepts (which compares geometry, so the fields have to be plausible), then call
+the private method by reflection. That is possible, and it is several probe runs of trial and error against a
+private surface — not the one-line lever this ticket was hoping for.
+
+**Decision: the drag family stops here for now.** Three tickets (this one, the model-bounds ticket and the
+container-content ticket) wait on this lever, and every round spent on it is a round not spent on the 24 open
+tickets that need no lever at all. Each of the three carries what it needs to be resumed: the blocker, the
+attempted routes, the exact private entry above, and the rule question a cursor API would raise. They stay in
+`todo/` rather than being reclassified — the work is real and unread, which is what `todo/` means.
+
+What would make this cheap to resume: one probe run that calls that private method with a hand-built
+`RaycastResult` and reads whether the move happened. If it works, all three rows open at once.

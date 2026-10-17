@@ -112,6 +112,7 @@ on an eye.
 - **No third client was in this world**, so "no other member is written to" is not read from a third view;
   what the run reads instead is that the refused report wrote nothing on the host at all (row 4).
 
-The commit that carries this record is the one below it in the log; the deployed artifact the run drove is
-`f76644c3`, and the delta above it is tools-and-docs only (the two recipes and this record), so the DLL's
-own source is unchanged between them.
+The commit that carries this record is `33e25353`, and it is rebuilt and redeployed as
+`0.1.0+33e253539ed816bad82e0a44e6cd1e8b7c3dd9c1` (`tools/verify-deploy.ps1`, exit 0) — a tools-and-docs
+delta above the artifact the run drove, named here rather than left implicit: the DLL's own source is
+unchanged between the two commits, and the run's verdicts belong to `f76644c3`.

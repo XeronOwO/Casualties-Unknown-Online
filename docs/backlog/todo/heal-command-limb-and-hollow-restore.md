@@ -380,3 +380,30 @@ nothing in that class today, so extending it is a new entry rather than a change
    it has to end in a state the character sync can carry rather than in one that merely looks right on the
    operator's screen, and its first step is to check whether CUO's own save/limb work already carries a restore
    helper before KrokMP's procedure is copied.
+## Stage A read on the machine: the game's own heal clears the hollow (2026-10-18)
+
+One client on the deployed artifact (`9a9be1d7`, `.acceptance/20261018-h/run1.log`), the component planted on the
+body the way the game installs one, then the native command's own delegate run in-process:
+
+```
+1. plant-mindwipe   then  [read] mindwipe=true  active=true
+2. game-console command=heal   then  [read] mindwipe=false active=false
+```
+
+**ok: the native heal REMOVED the mindwipe component.** This is the row the adversarial review named when it said
+nothing in the suite would fail if the change were deleted — the change now has runtime proof, and the proof runs
+through the game's own registered delegate rather than a CUO-specific path.
+
+One client is the right scope for this half, not a shortcut: `MoodleManager` draws the hollow moodle from the
+LOCAL body's component, so what the player sees is local. The replication of a removal was proven separately on
+the display clone (batch 20261018-f), which is the side that follows another player.
+
+Not judged by this batch: the vignette overlay the component installs on the main canvas (the review's second
+major, fixed in the same commit — the row would need to count canvas children), and the limb half, which is
+Stage B.
+
+## What Stage A cost, and what it teaches
+
+The review's two majors were both real and both cheap to fix, and neither was visible from the code alone: the
+component installs a full-screen overlay that nothing in the game destroys, and the suite had no case that could
+fail on the change at all. Both were found by asking the reviewer to attack the change rather than to read it.

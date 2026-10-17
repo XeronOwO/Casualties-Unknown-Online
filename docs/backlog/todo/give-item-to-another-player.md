@@ -214,3 +214,34 @@ new one, and the intent's own doc claimed a receiving-side native rule that this
   kind and still says the hole at 16 was deliberate).
 - **Every acceptance row is unrun**; the table needs three clients, and rows 1–4 and 6 need the two gaps above
   closed first.
+
+## Readings taken on the machine, one live session (2026-10-18)
+
+The gesture was driven by a function call rather than a cursor: the release seam is
+`ReportLocalReleaseOntoProxy`, and the recipe `give-probe` calls the same method the drag patch calls, with a real
+`Item` from the local body. That is what made these rows reachable at all — the run has no mouse, and the tooling's
+own rule says a cursor API is a rule question.
+
+Both ledgers were read through the product's own console (`/data get`), not through a log line:
+
+- **Row 1, free destination — PASSES.** The giver's `bandage` (#9492956821) aimed at slot **5** arrived in the
+  host's slot **5**: the host then listed `#9492956821 bandage [slot 5]` and the giver no longer listed it.
+- **Row 1, occupied destination — PASSES, with the placement the native rules give.** The giver's `emergencylight`
+  (#5197989525) aimed at slot **3** arrived in slot **0**, and the host logged
+  `[Take] destination slot 3 is not free for <receiver>; using slot 0 instead.` The slot really was occupied by an
+  item this client had never recorded, so the fallback was correct rather than a silent move to a wrong place —
+  and the requested slot is named in the line.
+- **Row 6, policy off — PASSES.** With `/hostrules {"allowRemoteInventoryTake": false}` on the host, the giver's
+  release was refused before it was sent —
+  `[RemoteIntent] refused GiveToBody: host has disabled remote inventory manipulation` — and the host's item list
+  was byte-for-byte what it had been. So this row needs no post-send status line: the rule arrives announced and
+  the refusal happens on the actor's own side, which is where the row reads.
+
+**Still unrun, and why:** row 2 needs the container half the section above records as not implemented; row 3 needs
+a receiver that leaves the world mid-gesture; row 4 needs the receiver's own rules to decide, which the same
+section records as not happening; row 5 is the local control (the same release onto the giver's OWN backpack),
+which is the untouched native path.
+
+**One thing these readings add to the section above:** the two intra-slot placements show the transfer is already
+correct on BOTH sides at the ledger level, so the remaining gaps are about WHICH slot and WHOSE rules decide —
+not about whether the item moves.

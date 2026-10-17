@@ -3,32 +3,40 @@
 // serves: validation-and-source-checks S3a (a member's use report for an item the host has never judged)
 // returns: mode=hold → ok, mode, type, instanceId, slot, held, liquid, condition, depth;
 //          mode=use → ok, mode, instanceId, type, used, liquidBefore, liquidAfter, condition, alive;
-//          mode=read → ok, mode, instanceId, source(body|kernel), held/kind, liquid, condition;
+//          mode=read → ok, mode, instanceId, source(body|kernel), type, kind, owner, liquid, condition;
 //          on failure ok, error (plus detail where the code carries one)
 //
-// The forged-member half of the S3a acceptance row: this client ends up HOLDING an item whose creation it
-// never reported, which is the state a modified client is in when it invents an item locally and reports a
-// use of it instead of reporting the item.
+// The forged-member half of the S3a acceptance row: this client ends up HOLDING an item that carries an
+// instance id the host has never judged — the state a modified client is in when it invents an item
+// locally and reports a use of it instead of reporting the item.
 //
 //   hold — creates one usable item through the game's own grant (Utils.Create + Body.PickUpItem(force))
-//          INSIDE an inventory-internal scope. The scope is CUO's own call identity
-//          (GameAdapter CallContext's Origin.InternalReorder), which is what decides that a pickup is an
-//          inventory reorder and not a world event — so the pickup report the game would have sent is
-//          suppressed by the product's own classification, not by patching anything out. `type` is the
-//          item definition id (the game's own Item.GlobalItems key), and the definition must be `usable`:
-//          an item the game has no use action for reaches no use report at all.
-//   use  — uses the item THIS run created, addressed by instance id and never by type: the body may carry
-//          an honest item of the same type, and the honest one must not be the one used. The use is the
-//          game's own `Body.UseItem`, the entry point the radial release and a recipe consumption take, so
-//          CUO's use-report hook fires on it exactly as it does on a player's gesture.
+//          INSIDE an inventory-internal scope, then stamps its instance id with the PRODUCT'S OWN allocator
+//          (ItemIdAllocator.EnsureId). Two product rules do the work, no patch and no hand-picked id:
+//            · the scope is CUO's own call identity (GameAdapter CallContext's Origin.InternalReorder), which
+//              is what decides that a pickup is an inventory reorder and not a world event — the pickup
+//              report the game would have sent is suppressed by that classification;
+//            · Item.Start allocates an id only for a STANDALONE WORLD item, so an item that is already in a
+//              body when Start runs is never reported as a spawn. The id the allocator stamps here is
+//              therefore a fact this client holds and the host does not: the carried-set statement is the
+//              only channel that will ever tell the host about it.
+//          `type` is the item definition id (the game's own Item.GlobalItems key) and must be `usable`: an
+//          item the game has no use action for reaches no use report at all.
+//   use  — uses the item this run created, addressed by instance id. The use is the game's own
+//          `Body.UseItem`, the entry point the radial release and a recipe consumption take, so CUO's
+//          use-report hook fires on it exactly as it does on a player's gesture — with the id the hold step
+//          stamped, which is the whole point.
 //   read — one item's state by instance id, from the LOCAL body when it holds it and from the KERNEL record
-//          otherwise (the host's own row — the same row replication, the save archive and a rejoin carry).
+//          otherwise (the host's own row — the row replication, the save archive and a rejoin all carry).
 //          `source` says which answered, so "the host judged it" and "this body holds it" never collapse
-//          into one reading. This is how the run shows both halves of the settlement: the refusal did not
+//          into one reading. This is how the run reads both halves of the settlement: the refusal did not
 //          destroy the member's copy, and the host's record carries the state the use produced.
 //
 // The item stays in the body: the run's next step is the carried-set statement that must land it on the
-// host. No inner lambda captures a local: the evaluator's Mono REPL refuses that shape.
+// host. Two evaluator constraints shape this file, and both are the REPL's, not the product's: no inner
+// lambda captures an enclosing local (the compiler refuses that shape — everything is inlined instead of
+// written as a helper), and the internal scope is released BEFORE any later statement, so a throw from the
+// game's own creation call cannot leave the scope open (the adapter's frame boundary is the backstop).
 ((System.Func<string>)(() => {
 	const System.Reflection.BindingFlags statics = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	const System.Reflection.BindingFlags instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
@@ -43,37 +51,8 @@
 	if (services == null) { return "{\"ok\":false,\"error\":\"no-services\"}"; }
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-local-body\"}"; }
-	var findType = new System.Func<string, System.Type>((fullName) => {
-		var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-		for (var index = 0; index < assemblies.Length; index++) {
-			System.Type candidate = null;
-			try { candidate = assemblies[index].GetType(fullName, false); } catch { candidate = null; }
-			if (candidate != null) { return candidate; }
-		}
-		return null;
-	});
-	var instanceIdType = findType("CasualtiesUnknownOnline.GameAdapter.Items.ItemInstanceId");
-	var idOf = new System.Func<Item, ulong>((item) => {
-		if (item == null) { return 0UL; }
-		var marker = item.GetComponent(instanceIdType);
-		if (marker == null) { return 0UL; }
-		var property = marker.GetType().GetProperty("Id", instanceFlags);
-		if (property != null) { return System.Convert.ToUInt64(property.GetValue(marker, null)); }
-		var field = marker.GetType().GetField("Id", instanceFlags);
-		return field == null ? 0UL : System.Convert.ToUInt64(field.GetValue(marker));
-	});
-	var liquidOf = new System.Func<Item, string>((item) => {
-		if (item == null) { return "none"; }
-		var water = item.GetComponent<WaterContainerItem>();
-		if (water == null) { return "none"; }
-		var builder = new System.Text.StringBuilder();
-		for (var i = 0; i < water.stack.Count; i++) {
-			if (i > 0) { builder.Append(","); }
-			builder.Append(water.stack[i].liquidId).Append("=")
-				.Append(water.stack[i].amount.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
-		}
-		return builder.ToString();
-	});
+	var markerType = System.Type.GetType("CasualtiesUnknownOnline.GameAdapter.Items.ItemInstanceId, CasualtiesUnknownOnline.GameAdapter");
+	if (markerType == null) { return "{\"ok\":false,\"error\":\"no-instance-marker\",\"detail\":\"the GameAdapter's ItemInstanceId is not loaded in this process\"}"; }
 	// Every item the body carries: slot occupants, worn items and their nested descendants.
 	var carried = new System.Collections.Generic.List<Item>();
 	for (var slot = 0; slot < body.slots.Length; slot++) {
@@ -99,13 +78,10 @@
 		if (session.Role != CasualtiesUnknownOnline.Runtime.Session.SessionRole.Guest) {
 			return "{\"ok\":false,\"error\":\"not-guest\",\"detail\":\"an unreported item is a MEMBER's silence; run this recipe on the member, not the host\"}";
 		}
-		ItemInfo definition;
-		if (!Item.GlobalItems.TryGetValue(type, out definition) || definition == null) {
-			return "{\"ok\":false,\"error\":\"no-definition\",\"detail\":\"Item.GlobalItems carries no definition for " + type + "\"}";
-		}
-		if (!definition.usable) {
-			return "{\"ok\":false,\"error\":\"not-usable\",\"detail\":\"" + type + " has no use action, so no use report could follow\"}";
-		}
+		if (!Item.GlobalItems.ContainsKey(type)) { return "{\"ok\":false,\"error\":\"no-definition\",\"detail\":\"Item.GlobalItems carries no definition for " + type + "\"}"; }
+		var definition = Item.GlobalItems[type];
+		if (definition == null) { return "{\"ok\":false,\"error\":\"no-definition\",\"detail\":\"Item.GlobalItems carries no definition for " + type + "\"}"; }
+		if (!definition.usable) { return "{\"ok\":false,\"error\":\"not-usable\",\"detail\":\"" + type + " has no use action, so no use report could follow\"}"; }
 		var targetSlot = -1;
 		for (var slot = 0; slot < body.slots.Length; slot++) {
 			if (body.slots[slot] != null && body.slots[slot].canPickUp && !body.HoldingItem(slot)) { targetSlot = slot; break; }
@@ -115,34 +91,52 @@
 		if (contextType == null) { return "{\"ok\":false,\"error\":\"no-call-context\",\"detail\":\"the GameAdapter's CallContext is not loaded in this process\"}"; }
 		var originType = contextType.GetNestedType("Origin", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
 		var enter = contextType.GetMethod("Enter", statics);
-		if (originType == null || enter == null) {
-			return "{\"ok\":false,\"error\":\"no-call-context\",\"detail\":\"CallContext no longer offers Enter(Origin)\"}";
-		}
+		if (originType == null || enter == null) { return "{\"ok\":false,\"error\":\"no-call-context\",\"detail\":\"CallContext no longer offers Enter(Origin)\"}"; }
 		var scope = enter.Invoke(null, new object[] { System.Enum.Parse(originType, "InternalReorder") }) as System.IDisposable;
+		var spawned = Utils.Create(type, body.transform.position, 0f);
 		Item held = null;
-		var failure = "";
-		try {
-			var spawned = Utils.Create(type, body.transform.position, 0f);
-			if (spawned == null) { failure = "create-failed"; }
+		if (spawned != null) {
+			held = spawned.GetComponent<Item>();
+			if (held == null) { UnityEngine.Object.Destroy(spawned); }
 			else {
-				held = spawned.GetComponent<Item>();
-				if (held == null) { UnityEngine.Object.Destroy(spawned); failure = "create-failed"; }
-				else {
-					body.PickUpItem(held, targetSlot, true);
-					if (!body.HoldingItem(held)) { failure = "pickup-refused"; }
-				}
+				body.PickUpItem(held, targetSlot, true);
+				if (!body.HoldingItem(held)) { held = null; }
 			}
 		}
-		catch (System.Exception e) { failure = e.GetType().Name + ": " + e.Message; }
-		finally {
-			if (scope != null) { scope.Dispose(); }
+		if (scope != null) { scope.Dispose(); }
+		if (held == null) { return "{\"ok\":false,\"error\":\"hold-failed\",\"detail\":\"the game's own creation or pickup did not leave the item in the body\"}"; }
+		// The product's own allocator: PatchBridge.Impl -> GameAdapterBridge's domains -> the item id
+		// allocator. The domain field is the bridge's primary-constructor capture, so it is matched by
+		// its TYPE instead of a name the compiler chose.
+		var patchBridgeType = System.Type.GetType("CasualtiesUnknownOnline.GameAdapter.PatchBridge, CasualtiesUnknownOnline.GameAdapter");
+		if (patchBridgeType == null) { return "{\"ok\":false,\"error\":\"no-item-allocator\",\"detail\":\"the GameAdapter's PatchBridge is not loaded in this process\"}"; }
+		var implProperty = patchBridgeType.GetProperty("Impl", statics);
+		if (implProperty == null) { return "{\"ok\":false,\"error\":\"no-item-allocator\",\"detail\":\"PatchBridge no longer exposes Impl\"}"; }
+		var bridge = implProperty.GetValue(null, null);
+		if (bridge == null) { return "{\"ok\":false,\"error\":\"no-item-allocator\",\"detail\":\"no bridge is bound in this process\"}"; }
+		var bridgeFields = bridge.GetType().GetFields(instanceFlags);
+		var domains = (object)null;
+		for (var f = 0; f < bridgeFields.Length; f++) {
+			if (bridgeFields[f].FieldType.Name == "GameAdapterDomains") { domains = bridgeFields[f].GetValue(bridge); break; }
 		}
-		if (failure.Length != 0) {
-			return "{\"ok\":false,\"error\":\"hold-failed\",\"detail\":\"" + failure.Replace("\\", "/").Replace("\"", "'") + "\"}";
-		}
-		var heldId = idOf(held);
-		if (heldId == 0UL) {
-			return "{\"ok\":false,\"error\":\"no-instance-id\",\"detail\":\"the created item carries no instance id, so no report could name it\"}";
+		if (domains == null) { return "{\"ok\":false,\"error\":\"no-item-allocator\",\"detail\":\"the bridge carries no GameAdapterDomains field\"}"; }
+		var itemIdsField = domains.GetType().GetField("ItemIds", instanceFlags);
+		if (itemIdsField == null) { return "{\"ok\":false,\"error\":\"no-item-allocator\",\"detail\":\"GameAdapterDomains carries no ItemIds field\"}"; }
+		var allocator = itemIdsField.GetValue(domains);
+		if (allocator == null) { return "{\"ok\":false,\"error\":\"no-item-allocator\",\"detail\":\"the item id allocator is null\"}"; }
+		var ensureId = allocator.GetType().GetMethod("EnsureId", instanceFlags);
+		if (ensureId == null) { return "{\"ok\":false,\"error\":\"no-item-allocator\",\"detail\":\"ItemIdAllocator no longer offers EnsureId(Item)\"}"; }
+		var stampedId = System.Convert.ToUInt64(ensureId.Invoke(allocator, new object[] { held }));
+		if (stampedId == 0UL) { return "{\"ok\":false,\"error\":\"no-instance-id\",\"detail\":\"the product's allocator refused to stamp an id on the created item\"}"; }
+		var heldWater = held.GetComponent<WaterContainerItem>();
+		var heldLiquid = "none";
+		if (heldWater != null) {
+			var heldBuilder = new System.Text.StringBuilder();
+			for (var k = 0; k < heldWater.stack.Count; k++) {
+				if (k > 0) { heldBuilder.Append(","); }
+				heldBuilder.Append(heldWater.stack[k].liquidId).Append("=").Append(heldWater.stack[k].amount.ToString("0.###", inv));
+			}
+			heldLiquid = heldBuilder.ToString();
 		}
 		var heldSlot = -1;
 		for (var slot = 0; slot < body.slots.Length; slot++) {
@@ -150,10 +144,10 @@
 		}
 		var depthField = contextType.GetField("_depth", statics);
 		return "{\"ok\":true,\"mode\":\"hold\",\"type\":\"" + type + "\""
-			+ ",\"instanceId\":\"" + heldId.ToString(inv) + "\""
+			+ ",\"instanceId\":\"" + stampedId.ToString(inv) + "\""
 			+ ",\"slot\":" + heldSlot.ToString(inv)
-			+ ",\"held\":" + (body.HoldingItem(held) ? "true" : "false")
-			+ ",\"liquid\":\"" + liquidOf(held) + "\""
+			+ ",\"held\":true"
+			+ ",\"liquid\":\"" + heldLiquid + "\""
 			+ ",\"condition\":" + held.condition.ToString("0.###", inv)
 			+ ",\"depth\":" + (depthField == null ? -1 : System.Convert.ToInt32(depthField.GetValue(null))) + "}";
 	}
@@ -163,7 +157,11 @@
 	}
 	Item target = null;
 	for (var i = 0; i < carried.Count; i++) {
-		if (idOf(carried[i]) == wantedId) { target = carried[i]; break; }
+		var candidateMarker = carried[i].GetComponent(markerType);
+		if (candidateMarker == null) { continue; }
+		var candidateProperty = candidateMarker.GetType().GetProperty("Id", instanceFlags);
+		if (candidateProperty == null) { continue; }
+		if (System.Convert.ToUInt64(candidateProperty.GetValue(candidateMarker, null)) == wantedId) { target = carried[i]; break; }
 	}
 	if (target == null) {
 		var facts = services.GetService(typeof(CasualtiesUnknownOnline.Application.Kernel.IKernelItemFacts)) as CasualtiesUnknownOnline.Application.Kernel.IKernelItemFacts;
@@ -173,11 +171,10 @@
 			return "{\"ok\":false,\"error\":\"unknown-item\",\"detail\":\"neither this body nor this client's record holds #" + wantedId.ToString(inv) + "\"}";
 		}
 		var located = row.Value;
-		var liquids = new System.Text.StringBuilder();
+		var kernelLiquid = "";
 		for (var i = 0; i < located.Data.Liquids.Count; i++) {
-			if (i > 0) { liquids.Append(","); }
-			liquids.Append(located.Data.Liquids[i].LiquidId).Append("=")
-				.Append(located.Data.Liquids[i].Amount.ToString("0.###", inv));
+			if (i > 0) { kernelLiquid = kernelLiquid + ","; }
+			kernelLiquid = kernelLiquid + located.Data.Liquids[i].LiquidId + "=" + located.Data.Liquids[i].Amount.ToString("0.###", inv);
 		}
 		return "{\"ok\":true,\"mode\":\"read\",\"source\":\"kernel\""
 			+ ",\"instanceId\":\"" + wantedId.ToString(inv) + "\""
@@ -185,36 +182,54 @@
 			+ ",\"kind\":\"" + located.Location.Kind + "\""
 			+ ",\"owner\":\"" + located.Location.Owner.Value.ToString(inv) + "\""
 			+ ",\"revision\":" + located.Revision.ToString(inv)
-			+ ",\"liquid\":\"" + liquids + "\""
+			+ ",\"liquid\":\"" + kernelLiquid + "\""
 			+ ",\"condition\":" + located.Data.Condition.ToString("0.###", inv) + "}";
+	}
+	var targetWater = target.GetComponent<WaterContainerItem>();
+	var targetLiquid = "none";
+	if (targetWater != null) {
+		var targetBuilder = new System.Text.StringBuilder();
+		for (var k = 0; k < targetWater.stack.Count; k++) {
+			if (k > 0) { targetBuilder.Append(","); }
+			targetBuilder.Append(targetWater.stack[k].liquidId).Append("=").Append(targetWater.stack[k].amount.ToString("0.###", inv));
+		}
+		targetLiquid = targetBuilder.ToString();
 	}
 	if (mode == "read") {
 		return "{\"ok\":true,\"mode\":\"read\",\"source\":\"body\""
 			+ ",\"instanceId\":\"" + wantedId.ToString(inv) + "\""
 			+ ",\"type\":\"" + target.id + "\""
+			+ ",\"where\":\"body\""
 			+ ",\"held\":" + (body.HoldingItem(target) ? "true" : "false")
-			+ ",\"liquid\":\"" + liquidOf(target) + "\""
+			+ ",\"liquid\":\"" + targetLiquid + "\""
 			+ ",\"condition\":" + target.condition.ToString("0.###", inv) + "}";
 	}
 	var definitionId = target.id;
-	var beforeLiquid = liquidOf(target);
 	var usable = target.Stats != null && target.Stats.usable;
 	body.UseItem(target);
+	var afterWater = target.GetComponent<WaterContainerItem>();
 	var afterLiquid = "destroyed";
-	var afterCondition = "-1";
-	try { afterLiquid = liquidOf(target); afterCondition = target.condition.ToString("0.###", inv); }
-	catch (System.Exception e) { afterLiquid = "destroyed:" + e.GetType().Name; }
-	var stillThere = UnityEngine.Object.FindObjectsOfType(typeof(Item));
-	var alive = false;
-	for (var i = 0; i < stillThere.Length; i++) {
-		var candidate = stillThere[i] as Item;
-		if (candidate != null && candidate == target) { alive = true; break; }
+	if (afterWater != null) {
+		var afterBuilder = new System.Text.StringBuilder();
+		for (var k = 0; k < afterWater.stack.Count; k++) {
+			if (k > 0) { afterBuilder.Append(","); }
+			afterBuilder.Append(afterWater.stack[k].liquidId).Append("=").Append(afterWater.stack[k].amount.ToString("0.###", inv));
+		}
+		afterLiquid = afterBuilder.ToString();
 	}
+	var afterCondition = "-1";
+	var inScene = false;
+	var allItems = UnityEngine.Object.FindObjectsOfType(typeof(Item));
+	for (var i = 0; i < allItems.Length; i++) {
+		var candidate = allItems[i] as Item;
+		if (candidate != null && candidate == target) { inScene = true; break; }
+	}
+	if (inScene) { afterCondition = target.condition.ToString("0.###", inv); }
 	return "{\"ok\":true,\"mode\":\"use\",\"instanceId\":\"" + wantedId.ToString(inv) + "\""
 		+ ",\"type\":\"" + definitionId + "\""
 		+ ",\"used\":" + (usable ? "true" : "false")
-		+ ",\"liquidBefore\":\"" + beforeLiquid + "\""
+		+ ",\"liquidBefore\":\"" + targetLiquid + "\""
 		+ ",\"liquidAfter\":\"" + afterLiquid + "\""
 		+ ",\"condition\":" + afterCondition
-		+ ",\"alive\":" + (alive ? "true" : "false") + "}";
+		+ ",\"alive\":" + (inScene ? "true" : "false") + "}";
 }))()

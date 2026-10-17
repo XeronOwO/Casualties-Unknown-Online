@@ -314,6 +314,19 @@
    | The settlement (`ItemService.OnCommandRejected` → `RequestCarriedInventoryReport` → `CarriedInventoryReportSchedule.RequestNow`) | one re-statement is due at once, on the existing cadence; never the pickup/block-drop rollback | `ARefusedUseReport_ReStatesTheCarriedSet_AndTheItemLandsWithTheUsedState`; `RequestNow_..._WithoutRefillingTheDenseBudget` / `RequestNow_OnAClosedWindow_OpensOne` |
    | What did NOT change | the pre-statement window still heals; the console write's settlement is untouched; no wire shape changed (`UnclaimedItem` is an appended reason value) | `..._BeforeTheCarriedSetWasStated_IsStillMaterialized`; `CommandConsoleMemberItemDataTests` green; the diff carries no `Protocol/` file |
 
+   **Read on the real machine 2026-10-17, batch `20261017-c`** (`docs/evidence/acceptance/validation-and-source-checks-s3a-20261017-c.md`):
+   the row PASSES end to end with two clients. A member holding an item whose creation it never reported (created
+   through the game's own grant inside CUO's own inventory-internal scope, so the pickup report is suppressed by the
+   product's classification, and stamped by the product's own allocator because `Item.Start` allocates only for a
+   standalone world item) used it: the host answered with the S3a lineup —
+   `Kernel command from <member> refused: item <id> was never judged, and that member's carried-set statement already
+   was — …` plus its own answer `ItemUpdateState refused (UnclaimedItem)` — the member re-stated the carried set on the
+   spot (`the next carried-set report is due now`), and the host's own kernel row then held the item as
+   `Carried` under that member with the state the use produced (liquid 150 of the 250 ml it was created with, condition
+   0.6 — the definition's condition-from-contents). The same item survived on the reporting client, so the two sides
+   ended up agreeing. An ordinary stretch of the same session carried ZERO such refusals, the whole session exactly
+   ONE (the forged one) and zero protocol-violation refusals.
+
    **What S3a does NOT close — the second clause, "in a state that permits that use".** A use report still
    states the item's post-use state and the host takes it as the fact: condition, liquids and components are
    the holder's own claim by design, and the digest comparison that used to correct them is now dead code

@@ -618,6 +618,7 @@ docs/evidence/acceptance/unhooked-item-and-body-sound-families-20261001-l.md | k
 docs/evidence/acceptance/validation-and-source-checks-20261014-a.md | keep | claim | docs/backlog/todo/validation-and-source-checks.md
 docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md | keep | claim | docs/backlog/todo/validation-and-source-checks.md
 docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md | keep | claim | docs/backlog/todo/validation-and-source-checks.md
+docs/evidence/acceptance/validation-and-source-checks-s3a-20261017-c.md | keep | claim | docs/backlog/todo/validation-and-source-checks.md
 docs/evidence/acceptance/world-acceleration-quake-direct-write-20261001-u.md | keep | claim | docs/backlog/done/world-acceleration-quake-direct-write.md
 docs/evidence/acceptance/world-acceleration-quake-direct-write-20261001-w.md | keep | claim | docs/backlog/done/world-acceleration-quake-direct-write.md
 docs/evidence/acceptance/world-acceleration-survives-movement-20261001-u.md | keep | claim | docs/backlog/done/world-acceleration-survives-movement.md

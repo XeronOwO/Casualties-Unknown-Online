@@ -15,7 +15,10 @@
   `acceptance/driver/eval-declarations/` into a client (idempotent: a presence probe decides whether it is
   sent at all), which is how a recipe reaches a capability the evaluator has to be given before it can run
   — `recipes/key-hold.cs` holds a key the game's own gesture reads through the `window-key` declaration,
-  the only place under `tools/acceptance/` where a window-message or key-state API may be named.
+  the only place under `tools/acceptance/` where a window-message or key-state API may be named. A recipe
+  file is written as UTF-8 WITHOUT a BOM (a BOM fails the client's evaluator as `(1,1): InteractiveHost`),
+  and a nested lambda that captures a local fails as an internal error at the lambda's own header with no
+  diagnostic — inline the value or pass it as a parameter, which the offline C# 7 gate cannot see.
 - `acceptance/session-environment.ps1` is the run's gate on the install's BepInEx trees: it classifies
   each tree by its own marker DLL (never by a folder name), refuses while a game process is running, and
   swaps only when the machine is free. The marker, process and parking names are machine facts.

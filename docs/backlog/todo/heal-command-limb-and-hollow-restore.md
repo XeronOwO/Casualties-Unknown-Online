@@ -238,3 +238,24 @@ is now known, so the next attempt is mechanical rather than exploratory:
   member instead of hardcoding it, which is also the only form that survives the id being per-row.
 - What the probe still needs is a mode that reads and plants on the display body by name rather than on
   `PlayerCamera.main.body`, because the clone is the side that must follow the inspected player.
+## Second attempt: the view opened, and the probe matched a name I had not read (2026-10-18)
+
+The lever worked. The batch discovered the control from the client's own offered ids
+(`member.open_medical.<digits>`, so nothing was hardcoded), the driver applied the invocation (`applied: true`,
+`offered: true`), and the host's log confirms the surface really opened:
+`[MedicalView] opened native medical view for <member>`. The discovery approach is proven.
+
+Then the reading failed for a reason worth writing down: **the display probe found no body at all**, and the
+name it looked for — `MedicalDisplay_{steamId:X}` — came from the review's call-site audit, not from a file I
+read myself. Matching on a name I had not verified is the same shape this cycle keeps meeting: the probe reports
+"nothing there" from a comparison it never showed it could make. The two possibilities it cannot distinguish are
+(a) the display body is created later or only in a sub-state of the view, and (b) it is named differently.
+
+**The next step is therefore to LIST rather than MATCH**: a probe mode that enumerates every `Body` in the scene
+with its game-object name and parent, run right after the click. That answers both possibilities at once and
+costs one run, whereas guessing a second name would cost another.
+
+One more thing this run showed about the probe itself: its answer is assembled BEFORE the plant, so a
+`plant-*` call reports the state it found rather than the state it made. The fourth step's `clear-local` reading
+(`sleepingPills=true`) is what proves the planting worked. That ordering should be fixed when the probe is next
+touched — a fixture whose answer describes the wrong moment is how a run gets read backwards.

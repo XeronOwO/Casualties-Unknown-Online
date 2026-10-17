@@ -83,9 +83,12 @@ gate's own predicate.
   into the native `TextMeshProUGUI` would satisfy this ticket's own words ("reuse the loading screen's own
   bottom-right text") where a parallel panel satisfies CUO's; that is a user-visible choice about which
   surface the player reads, so it is recorded here rather than taken.
-- **The composition is untested.** `WaitingState` — the direction, the filters, the seconds — has no case;
-  the six pin the wording only. Reaching it needs a seam the coordinator does not have (it constructs a
-  `RunCoordinator`), and the cheap one is a pure factory over plain inputs.
+- **The composition is now tested, and the seam is the fix.** The review's point was that both blockers lived in
+  the getter while only the wording had cases. The decision moved out of the coordinator into
+  `SessionWaitPolicy.Decide`, which takes `SessionWaitInput` — plain values, so a case can drive the two
+  scenarios that failed (a member whose table holds no third player, which is the ordinary three-client case, and
+  a member whose host flag is false) plus the roster the host prints. Seven cases, and
+  `StartGateCoordinator.WaitingState` now only gathers the facts.
 - **The Game Adapter now grants its internals to the test assembly**, which opens 671 internal type
   declarations across 482 files to reach three pure types. The method is precedented in this repository, but
   the `Runtime` grant was reviewed with a census and a recorded reason; this one has a comment. The

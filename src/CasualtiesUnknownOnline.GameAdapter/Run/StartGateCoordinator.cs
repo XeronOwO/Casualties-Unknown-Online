@@ -94,48 +94,19 @@ internal sealed class StartGateCoordinator(
 	internal string WaitingText => SessionWaitText.Line(WaitingState);
 
 	/// <summary>
-	/// What the session is waiting for, as one value: the direction of the wait, the
-	/// members it is about (by the display name the session already carries) and the
-	/// seconds left. The host counts against the real gate (armed at its world entry);
-	/// a member counts 30 s from the host's InWorld relay, which is an approximation of
-	/// the host's own gate rather than a deadline this side owns — so the member's line
-	/// names who it waits for and does not claim a countdown for the host's work.
+	/// What the session is waiting for, as one value. This getter only GATHERS the facts;
+	/// which wait they add up to is <see cref="SessionWaitPolicy.Decide"/>, which is pure
+	/// and therefore a case rather than an accident — the two claims a review caught this
+	/// side making about other machines both lived here.
 	/// </summary>
-	internal SessionWaitState WaitingState
-	{
-		get
-		{
-			if (_session.Role == SessionRole.Host)
-			{
-				// The gate arms on `Handshaken && !InWorld`, so this roster uses the SAME predicate: naming a
-				// member the gate is not waiting for would put a name on screen next to a promise ("the group
-				// starts together") that is not true for them — an unconfirmed peer retries its handshake
-				// instead of loading, and a member that handshakes after the gate armed enters directly.
-				var waiting = _session.Members
-					.Where(member => member.SteamId != _session.LocalSteamId && member.Handshaken && !member.InWorld)
-					.Select(member => member.DisplayName)
-					.ToList();
-				return new SessionWaitState(SessionWaitKind.MembersLoading, waiting, _world.StartGateRemainingMs / 1000);
-			}
-
-			if (!_session.IsRemoteInWorld(_session.HostSteamId))
-			{
-				return new SessionWaitState(SessionWaitKind.HostLoading, [], 0);
-			}
-
-			var others = _session.Members
-				.Where(member => member.SteamId != _session.LocalSteamId && member.SteamId != _session.HostSteamId && member.Handshaken && !member.InWorld)
-				.Select(member => member.DisplayName)
-				.ToList();
-			if (others.Count > 0)
-			{
-				var remaining = Mathf.Max(0, (int)(30 - (Environment.TickCount - _run.HostInWorldSinceMs) / 1000d));
-				return new SessionWaitState(SessionWaitKind.OthersLoading, others, remaining);
-			}
-
-			return new SessionWaitState(SessionWaitKind.Starting, [], 0);
-		}
-	}
+	internal SessionWaitState WaitingState => SessionWaitPolicy.Decide(new SessionWaitInput(
+		_session.Role == SessionRole.Host,
+		_session.LocalSteamId,
+		_session.HostSteamId,
+		[.. _session.Members.Select(member => new SessionWaitMember(member.SteamId, member.Handshaken, member.InWorld, member.DisplayName))],
+		_session.IsRemoteInWorld(_session.HostSteamId),
+		_world.StartGateRemainingMs / 1000,
+		Environment.TickCount - (int)_run.HostInWorldSinceMs));
 
 	/// <summary>
 	/// PlayerCamera.DoAlert entry — true when the popup was queued instead of

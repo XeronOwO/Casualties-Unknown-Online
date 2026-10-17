@@ -107,3 +107,32 @@ to be re-derived after a full clear.
   the game's own idea of "fully heals"; KrokMP's extra forty are that author's composition. Copying them all is
   a design choice, not parity — and every one of them has to be replicated to peers and survive a save/restore
   to be worth anything.
+## Correction, and the hollow half answered (2026-10-18)
+
+**The previous section was wrong about the hollow half and this corrects it.** It said KrokMP "does not touch
+any moodle at all, so clearing the hollow debuff cannot be copied from it". The first half is true and the
+conclusion does not follow: KrokMP removes the thing that PRODUCES the moodle, which is the only thing that
+works.
+
+The evidence, read in order:
+
+- `MoodleManager` draws the icon every frame from body state, not once:
+  `if (this.body.mindWipe && this.body.mindWipe.active) { this.AddMoodle(0, "hollow", …); }` — the only place in
+  the whole assembly that names `"hollow"`. So destroying the icon is USELESS: the next frame draws it again,
+  and `ClearMoodles()` (the manager's only removal member, all moodles, not one) is no better.
+- `Body.mindWipe` is a component reference, not a flag: `this.mindWipe = base.GetComponent<MindwipeScript>();`
+  with `public MindwipeScript mindWipe;`, and `MindwipeScript.active` is the bool the manager tests.
+- The moodle is not the whole debuff either. `Body`'s effective-happiness getter multiplies by
+  `(this.mindWipe ? 0f : 1f)`, so the same component forces effective happiness to zero — which is what a player
+  actually feels.
+
+So **the clear path is removing `MindwipeScript` from the body**, and that is exactly what KrokMP's `unmindwipe`
+arm does (`if (unmindwipe && body.TryGetComponent<MindwipeScript>(ref mindwipeScript)) Object.Destroy(mindwipeScript);`).
+The ticket's open question — "whether the hollow moodle is cleared by any native path at all today" — is now
+answered with the mechanism rather than a yes/no: **no path clears it, and the reason is that nothing removes
+the component**, which no game code does.
+
+**What that leaves for the implementation.** The removal is a mutation of the PATIENT's body, so by decision 184
+it belongs on the affected player's own client, and it has to reach the host and every peer to be worth
+anything — a heal that removes the component only locally leaves every other view showing hollow and the next
+character sync putting it back. That replication question, not the removal itself, is the work.

@@ -501,6 +501,7 @@ docs/evidence/acceptance/id-system-namespaced-ids-20261012-c.md | keep | claim |
 docs/evidence/acceptance/item-creation-registration-first-20261003-d.md | keep | claim | docs/backlog/done/item-creation-registration-first.md
 docs/evidence/acceptance/item-data-write-commands-20261014-a.md | keep | claim | docs/backlog/done/item-data-write-commands.md
 docs/evidence/acceptance/item-data-write-verbs-20261018.md | keep | claim | docs/backlog/todo/item-and-entity-data-commands.md
+docs/evidence/acceptance/loading-screen-wait-text-20261018.md | keep | claim | docs/backlog/todo/loading-screen-progress-detail.md
 docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md | keep | claim | docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md
 docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md | keep | claim | docs/backlog/todo/layer-change-member-recovery.md
 docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md | keep | claim | docs/backlog/todo/layer-change-member-recovery.md

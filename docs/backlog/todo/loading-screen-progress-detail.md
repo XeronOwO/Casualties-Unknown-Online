@@ -98,4 +98,12 @@ gate's own predicate.
   agree; the log still prints its own sentence, so they can disagree.
 - **The new sentences are not in the locale catalogue.** Recorded rather than decided.
 
-The remaining required work is step 4: three clients with an artificially slow member.
+**Step 4 ran (2026-10-18)**: the record is `docs/evidence/acceptance/loading-screen-wait-text-20261018.md`.
+Two clients on the deployed artifact read the overlay's own line, and all three of the claims the review
+faulted the first wording for now hold live: a member is told what IT waits for (`Waiting for the host to
+start the run…`) and nothing about the host's phase, the last stage claims no arrival, and the host names
+rather than counts. What the run did not reach is recorded there too: the NAMED form of the host's line (the
+member was already in the world by the time it was read, so the roster was empty and the fallback showed), and
+whether the longer lines fit the panel. The batch's own first attempt is kept in the record because it read the
+OLD wording off a stale deployment and its verification step said exactly why — a batch that reads a deployed
+artifact has to stop on a failed verification rather than log it.

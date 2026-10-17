@@ -244,6 +244,8 @@ replicated instance id of this live game item" (or the inverse map maintained wh
 open patch names `Minigame.game.currentItem` — the lockpick, per
 `reversing/.../LockpingMinigame.cs` (`NeedsItem() => this.pickLevel >= 0`, `Minigame.game.currentItem`) — and the host
 check above becomes possible. Until then the open report has no data anchor and the row stays open, honestly.
+**Prerequisite filed:** the client cannot name the tool it used — the game's `Item` has no instance id and CUO keeps no map — so both remaining rows wait on `docs/backlog/todo/item-identity-bridge.md`.
+
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

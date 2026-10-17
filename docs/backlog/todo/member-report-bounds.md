@@ -123,6 +123,21 @@ described above:
   member break a cell 122 blocks from its own cell as that run read the body, and the host applied the break and
   judged its drops (`docs/evidence/acceptance/validation-and-source-checks-s2b-20261016.md`).
 
+  **DECIDED by the user 2026-10-18 — bound the GESTURE only.** The question was what an out-of-reach write
+  should do, and the user asked first whether moving the quake to host-side authority would change play. It would
+  not, because the quake is ALREADY host-authoritative: `WorldGenerationUpdatePatch` records that the quake timer
+  runs on every side while the host broadcasts the start and **the guest's own timer is frozen**, and the patch
+  bridge's own gate says only quake breaks are gated while environment breaks pass. So the user's answer is to
+  bound the gesture and leave the quake and environment writes exactly as they are — with the confirmation that
+  the gesture bound changes no legitimate play.
+
+  **The split is already on the wire**: `OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block, bool
+  playerBreak, WorldGenerationRelation generation)` carries `playerBreak`, so the check belongs beside the
+  generation refusal, inside the host branch, on `playerBreak` writes only. The anchor is the one the visibility
+  bound already uses — `CharacterDataMsg.Position` as `PlayerInteractionVisibility.TryGetPosition` reads it — and
+  the reach constant is chosen once and shared with the `BuildingEntityOpened` row below, so a hand that can pick a
+  lock is also a hand that can break the wall beside it.
+
 ## C. A claim with no anchor (a design decision, not a check)
 
 - **`WireCommandKind.ItemSpawn`** — the item-creation half named in S2a's own limits: the report names an

@@ -338,11 +338,12 @@
    (`Item.cs:7174`, the many `item.condition -= …` use actions), `SetCondition` sets an arbitrary value and
    at least one path raises it (`Body.cs:1281`), so "condition may only fall" and "condition is 0..1" are
    both FALSE for at least one arm — a check built on either would refuse ordinary play. **Limits S3a
-   carries**: (a) the container SYNC's heals are the same creation shape and are NOT bounded by this fact —
-   a missing parent is materialized as the reporter's own carried item, a listed unknown child as a
+   carries**: (a) the container SYNC's heals are the same creation shape and were NOT bounded by this fact —
+   a missing parent was materialized as the reporter's own carried item, a listed unknown child as a
    contained row under the parent THE REPORT names (`ItemDomainModule.DecideSyncContainer`), and those rows
-   are the same claim the statement makes, so the statement's anchor is exactly what that path needs; it is
-   filed in `todo/member-report-bounds.md`; (b) the bound rests on a statement the member VOLUNTEERS: a
+   are the same claim the statement makes; the follow-up cycle that bounded them landed with this anchor
+   (`member-report-bounds.md`, the `ItemContainerSync` row), so this limit is closed rather than owed; (b) the
+   bound rests on a statement the member VOLUNTEERS: a
    client that never states a carried set keeps the pre-change behaviour, which is the `ItemSpawn` census
    row's unbounded creation class (one state report == one spawn report at that point), filed in
    `todo/member-report-bounds.md` — this stage narrows the reporting shape, it does not turn the item's

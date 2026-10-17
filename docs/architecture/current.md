@@ -400,9 +400,11 @@ what stops a report pulling a peer's item into the reporter's own container). It
 decides ELIGIBILITY only (the 2026-09-18 ruling: never what happens to another player's body, reach
 or timing), the kernel still owns every domain verdict, and the seam occupies the position the old
 check held so an eligibility refusal cannot mask a domain one. Two things it deliberately does NOT
-cover: the handler's two protocol heals (a container-sync report and an update for an unknown carried
-id, which materialize the reporter's own carried parent — the host's own write, not a member-authored
-fact) and a guest's range request, which never becomes a command.
+cover: the handler's protocol heals (a container-sync report and an update for an unknown carried id,
+which materialize the reporter's own carried parent — the host's own write, not a member-authored
+fact; both are judged by the handler's own creation bounds first, which answer a report the member's
+judged carried-set statement does not account for) and a guest's range request, which never becomes a
+command.
 
 WHICH wire kind declares what is `WireCommandAuthorityPolicy`'s table, one entry per mapped kind,
 filled from the senders this tree actually has rather than from the blanket value the mapper used to

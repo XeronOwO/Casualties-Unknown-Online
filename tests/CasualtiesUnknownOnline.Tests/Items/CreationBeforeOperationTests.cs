@@ -197,6 +197,338 @@ public class CreationBeforeOperationTests
 		Assert.Equal(0.5f, updated.Value.Data.Condition);
 	}
 
+	/// <summary>
+	/// The container sync is the SAME creation channel the state report was, one wire kind over: a
+	/// carried container's facts reach the kernel through it, and its missing-parent arm materializes
+	/// whatever the report names. Once this host has judged the member's carried-set statement — which
+	/// carries a carried container AND its contents recursively — an id the statement did not carry is
+	/// not a creation it may honour, so the report is refused and answered instead of accepted-first.
+	/// </summary>
+	[Fact]
+	public void AContainerSyncForAnUnjudgedParent_AfterTheCarriedSetWasStated_IsRefusedAndNothingIsMaterialized()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.CarriedSet(w.G1, Item(42));
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G1, 42), "the carried set must be judged before this case means anything");
+
+		w.ContainerSync(w.G1, 900, Item(900));
+		w.Driver.Tick(33);
+
+		var verdict = Assert.Single(w.CommandRejections(w.G1));
+		Assert.Equal(RejectionReason.UnclaimedItem, (RejectionReason)verdict.RejectionReason);
+		Assert.Equal(WireCommandKind.ItemContainerSync, verdict.RefusedKind);
+		Assert.Null(w.KernelRow(900));
+		// The same rule the state report obeys: the settlement is a re-stated set, never the
+		// pickup/block-drop rollback that would destroy the only copy there is.
+		Assert.Empty(w.Rejects(w.G1));
+	}
+
+	/// <summary>
+	/// And the window the heal exists for is unchanged: before the statement is judged, the container
+	/// report IS the claim (the registration was swallowed), so the parent is still materialized as the
+	/// reporting member's own carried item.
+	/// </summary>
+	[Fact]
+	public void AContainerSyncForAnUnjudgedParent_BeforeTheCarriedSetWasStated_IsStillMaterialized()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.ContainerSync(w.G1, 900, Item(900));
+		w.Driver.Tick(33);
+
+		var row = Assert.NotNull(w.KernelRow(900));
+		Assert.Equal(ItemLocationKind.Carried, row.Location.Kind);
+		Assert.Equal(w.G1.SteamId, row.Location.Owner.Value);
+		Assert.Equal(0, w.CommandRejectedFrames(w.G1));
+	}
+
+	/// <summary>
+	/// The child arm of the same channel, and the refusal must apply NOTHING: the sync also destroys the
+	/// descendants a report leaves out, so an applied-then-refused shape would take the known sibling down
+	/// with the forged child.
+	/// </summary>
+	[Fact]
+	public void AContainerSyncForAnUnjudgedChild_AfterTheCarriedSetWasStated_IsRefused()
+	{
+		using var w = ItemSimWorld.Create();
+
+		var container = Item(50);
+		container.Contents.Add(Item(51));
+		w.CarriedSet(w.G1, container);
+		w.Driver.Tick(33);
+		Assert.True(w.KernelRow(51).HasValue, "the statement's contents are judged with it");
+
+		var forged = Item(50);
+		forged.Contents.Add(Item(52));
+		w.ContainerSync(w.G1, 50, forged);
+		w.Driver.Tick(33);
+
+		var verdict = Assert.Single(w.CommandRejections(w.G1));
+		Assert.Equal(RejectionReason.UnclaimedItem, (RejectionReason)verdict.RejectionReason);
+		Assert.Equal(WireCommandKind.ItemContainerSync, verdict.RefusedKind);
+		Assert.Null(w.KernelRow(52));
+		var sibling = Assert.NotNull(w.KernelRow(51));
+		Assert.Equal(ItemLocationKind.Contained, sibling.Location.Kind);
+		Assert.Empty(w.Rejects(w.G1));
+	}
+
+	/// <summary>
+	/// And a child this host never judged may only be created inside a row it records as THAT member's
+	/// own — the rule that holds even in the heal window, where a member's carried-set statement has not
+	/// been judged yet and its reports are still accepted-first. The kernel's contained-spawn arm checks
+	/// that the named parent exists, never whose it is, and this path reaches the kernel directly (the
+	/// admission seam only judges rows that already exist, so it can never see a creation).
+	/// </summary>
+	[Fact]
+	public void AContainerSync_MayNotCreateAnUnjudgedChildInsideAnotherMembersContainer()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.CarriedSet(w.G2, Item(80));
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G2, 80), "the other member's container must be judged first");
+		// G1 has stated nothing: this case is the heal window, where the report is the claim.
+
+		w.ForgeContainerChildParent(w.G1, 40, "test_item", 81, "test_item", 80);
+		w.Driver.Tick(33);
+
+		Assert.Null(w.KernelRow(81));
+		var verdict = Assert.Single(w.CommandRejections(w.G1));
+		Assert.Equal(RejectionReason.UnclaimedItem, (RejectionReason)verdict.RejectionReason);
+		Assert.Equal(WireCommandKind.ItemContainerSync, verdict.RefusedKind);
+		// The refusal applies NOTHING — not even the parent row the same report names.
+		Assert.Null(w.KernelRow(40));
+	}
+
+	/// <summary>
+	/// The container sync's way back is the same statement the state report's is — the refusal makes the
+	/// next carried-set report due at once, and the re-stated set carries the container WITH the content it
+	/// gained, so the child lands on the host inside the parent the member owns.
+	/// </summary>
+	[Fact]
+	public void ARefusedContainerSync_ReStatesTheCarriedSet_AndTheContentsLand()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.CarriedSet(w.G1, Item(50));
+		w.Driver.Tick(33);
+		Assert.False(w.RegistrationDue(w.G1), "no window is open before the refusal");
+
+		var changed = Item(50);
+		changed.Contents.Add(Item(52, condition: 0.5f));
+		w.ContainerSync(w.G1, 50, changed);
+		w.Driver.Tick(33);
+		Assert.Single(w.CommandRejections(w.G1));
+		Assert.True(w.RegistrationDue(w.G1), "the refusal makes the next carried-set report due now");
+		Assert.Null(w.KernelRow(52));
+
+		w.CarriedSet(w.G1, changed);
+		w.Driver.Tick(33);
+
+		var landed = Assert.NotNull(w.KernelRow(52));
+		Assert.Equal(ItemLocationKind.Contained, landed.Location.Kind);
+		Assert.Equal(50ul, landed.Location.ParentItemId);
+		Assert.Equal(w.G1.SteamId, landed.Location.Owner.Value);
+		Assert.Equal(0.5f, landed.Data.Condition);
+	}
+
+	/// <summary>
+	/// The heal window's nested shape must NOT be refused by the ownership arm: a report may create a
+	/// parent and hang a child under THAT parent in the same report, so a named parent this host does not
+	/// know yet is not a fact the arm can judge. Without this the swallowed-registration window would
+	/// refuse every nested container report it exists for.
+	/// </summary>
+	[Fact]
+	public void AContainerSync_BeforeTheCarriedSetWasStated_StillCreatesANestedTree()
+	{
+		using var w = ItemSimWorld.Create();
+
+		var outer = Item(900);
+		var inner = Item(901);
+		inner.Contents.Add(Item(902));
+		outer.Contents.Add(inner);
+		w.ContainerSync(w.G1, 900, outer);
+		w.Driver.Tick(33);
+
+		Assert.Equal(0, w.CommandRejectedFrames(w.G1));
+		var nested = Assert.NotNull(w.KernelRow(902));
+		Assert.Equal(ItemLocationKind.Contained, nested.Location.Kind);
+		Assert.Equal(901ul, nested.Location.ParentItemId);
+		Assert.Equal(w.G1.SteamId, nested.Location.Owner.Value);
+	}
+
+	/// <summary>
+	/// The record arm on the parent, alone (no children listed, so no other arm can refuse this shape):
+	/// the sync REWRITES the parent's own facts, so a parent that is not this member's row is not a
+	/// report this host applies. A world container is the shape with no production sender — a load that
+	/// lands in a world container reports a drop — and naming one used to rewrite it.
+	/// </summary>
+	[Fact]
+	public void AContainerSyncMayNotRewriteAWorldContainer()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.Spawn(w.G1, 70, Item(70));
+		w.Driver.Tick(33);
+		Assert.True(w.HostTable(70), "the world row must exist before this case means anything");
+
+		w.ContainerSync(w.G1, 70, Item(70, condition: 0.5f));
+		w.Driver.Tick(33);
+
+		var verdict = Assert.Single(w.CommandRejections(w.G1));
+		Assert.Equal(RejectionReason.UnclaimedItem, (RejectionReason)verdict.RejectionReason);
+		Assert.Equal(WireCommandKind.ItemContainerSync, verdict.RefusedKind);
+		var parent = Assert.NotNull(w.KernelRow(70));
+		Assert.Equal(ItemLocationKind.World, parent.Location.Kind);
+		Assert.Equal(1f, parent.Data.Condition);
+	}
+
+	/// <summary>
+	/// The same arm's DESTRUCTIVE half. This one needs the contents to be CONTAINED rows, and a world
+	/// container's real contents are WORLD rows carrying a parent id (`ItemLocation.World(x, y,
+	/// parentItemId)`) — the kernel's destroy walk only descends CONTAINED rows, so one report against a
+	/// world container cannot reach them. The destructive shape is therefore reachable only in two
+	/// reports (the first converting contents into contained rows, which these same arms now refuse), so
+	/// this case states that converted record by hand and pins that the destroy walk cannot reach it
+	/// through a parent the sender does not own: defence in depth, declared as staged.
+	/// </summary>
+	[Fact]
+	public void AContainerSyncMayNotDestroyAWorldContainersContents()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.Spawn(w.G1, 70, Item(70));
+		w.Driver.Tick(33);
+		Assert.True(w.HostTable(70), "the world container must exist before this case means anything");
+		Assert.True(
+			w.StageKernelRow(w.G1.SteamId, 71, "test_item", ItemLocation.Contained(new ActorId(w.G1.SteamId), 70), Item(71)),
+			"the converted record this case is about is stated by hand, not produced by a report");
+
+		w.ContainerSync(w.G1, 70, Item(70)); // no children listed: the stale-descendant arm would destroy 71
+		w.Driver.Tick(33);
+
+		var verdict = Assert.Single(w.CommandRejections(w.G1));
+		Assert.Equal(WireCommandKind.ItemContainerSync, verdict.RefusedKind);
+		Assert.True(w.KernelRow(71).HasValue, "the world container's content must survive the report");
+	}
+
+	/// <summary>
+	/// The kernel writes each listed child's destination verbatim (<c>ItemLocation.Contained(command.Actor,
+	/// child.ParentItemId)</c>), so the destination has to be this member's own row: otherwise a report
+	/// hangs its item inside another member's container.
+	/// </summary>
+	[Fact]
+	public void AContainerSyncMayNotHangAChildUnderAnotherMembersRow()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.CarriedSet(w.G2, Item(80));
+		w.Driver.Tick(33);
+		w.CarriedSet(w.G1, Item(40), Item(42));
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G1, 42));
+
+		w.ForgeContainerChildParent(w.G1, 40, "test_item", 42, "test_item", 80);
+		w.Driver.Tick(33);
+
+		var verdict = Assert.Single(w.CommandRejections(w.G1));
+		Assert.Equal(WireCommandKind.ItemContainerSync, verdict.RefusedKind);
+		var moved = Assert.NotNull(w.KernelRow(42));
+		Assert.Equal(ItemLocationKind.Carried, moved.Location.Kind);
+		Assert.Equal(w.G1.SteamId, moved.Location.Owner.Value);
+	}
+
+	/// <summary>
+	/// And a child the record holds inside ANOTHER member's container is not this sender's to move,
+	/// whatever destination the report names: the container-changed-hands allowance is about a child
+	/// whose container is the SENDER's row (the picked-up container carries children whose recorded
+	/// owner is still the previous one), never about a peer's backpack.
+	/// </summary>
+	[Fact]
+	public void AContainerSyncMayNotMoveAnotherMembersContainedItem()
+	{
+		using var w = ItemSimWorld.Create();
+
+		var theirs = Item(80);
+		theirs.Contents.Add(Item(81));
+		w.CarriedSet(w.G2, theirs);
+		w.Driver.Tick(33);
+		w.CarriedSet(w.G1, Item(40));
+		w.Driver.Tick(33);
+
+		w.ForgeContainerChildParent(w.G1, 40, "test_item", 81, "test_item", 40);
+		w.Driver.Tick(33);
+
+		var verdict = Assert.Single(w.CommandRejections(w.G1));
+		Assert.Equal(WireCommandKind.ItemContainerSync, verdict.RefusedKind);
+		var stayed = Assert.NotNull(w.KernelRow(81));
+		Assert.Equal(ItemLocationKind.Contained, stayed.Location.Kind);
+		Assert.Equal(80ul, stayed.Location.ParentItemId);
+		Assert.Equal(w.G2.SteamId, stayed.Location.Owner.Value);
+	}
+
+	/// <summary>
+	/// And the heal window's NESTED shape must not be refused: a member's own nested container is
+	/// recorded as CONTAINED with that member's owner (never as carried), and a later report hanging a
+	/// new item under it is ordinary play in the window where the registration was swallowed.
+	/// </summary>
+	[Fact]
+	public void AContainerSync_BeforeTheCarriedSetWasStated_StillAddsAChildToTheMembersOwnNestedContainer()
+	{
+		using var w = ItemSimWorld.Create();
+
+		var outer = Item(900);
+		var inner = Item(901);
+		outer.Contents.Add(inner);
+		w.ContainerSync(w.G1, 900, outer);
+		w.Driver.Tick(33);
+		var nested = Assert.NotNull(w.KernelRow(901));
+		Assert.Equal(ItemLocationKind.Contained, nested.Location.Kind);
+
+		var changed = Item(900);
+		var grown = Item(901);
+		grown.Contents.Add(Item(902));
+		changed.Contents.Add(grown);
+		w.ContainerSync(w.G1, 900, changed);
+		w.Driver.Tick(33);
+
+		Assert.Equal(0, w.CommandRejectedFrames(w.G1));
+		var landed = Assert.NotNull(w.KernelRow(902));
+		Assert.Equal(901ul, landed.Location.ParentItemId);
+	}
+
+	/// <summary>
+	/// The container-changed-hands shape the arms must NOT refuse: the container's row is the sender's
+	/// own, while the item inside it still records the PREVIOUS holder — that is what the game's own
+	/// drop + pickup leaves behind, and it is why the arms test the ROW's owner and never the child's.
+	/// A future tightening to the child's own owner (the field that produced this cycle's blocker) would
+	/// fail only here.
+	/// </summary>
+	[Fact]
+	public void AContainerSync_AfterTheContainerChangedHands_StillAcceptsTheRecordedContents()
+	{
+		using var w = ItemSimWorld.Create();
+
+		// The record a drop + pickup produces, stated: the container is G1's row now, its child 81 still
+		// carries G2 (the previous holder) in its own location.
+		Assert.True(w.StageKernelRow(w.G1.SteamId, 80, "test_item", ItemLocation.Carried(new ActorId(w.G1.SteamId)), Item(80)));
+		Assert.True(w.StageKernelRow(w.G2.SteamId, 81, "test_item", ItemLocation.Contained(new ActorId(w.G2.SteamId), 80), Item(81)));
+		w.CarriedSet(w.G1, Item(40));
+		w.Driver.Tick(33);
+
+		var container = Item(80);
+		container.Contents.Add(Item(81));
+		w.ContainerSync(w.G1, 80, container);
+		w.Driver.Tick(33);
+
+		Assert.Equal(0, w.CommandRejectedFrames(w.G1));
+		var child = Assert.NotNull(w.KernelRow(81));
+		Assert.Equal(80ul, child.Location.ParentItemId);
+		Assert.Equal(w.G2.SteamId, child.Location.Owner.Value);
+	}
+
 	[Fact]
 	public void AnOperationOnAnUnjudgedItem_IsRefusedInTheVeryFrame_NotHeld()
 	{

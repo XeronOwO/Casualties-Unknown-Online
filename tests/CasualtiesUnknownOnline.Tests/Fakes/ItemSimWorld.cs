@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Tests.GameState;
 using CasualtiesUnknownOnline.GameState.Projections;
@@ -182,6 +183,33 @@ internal sealed class ItemSimWorld : IDisposable
 	internal void CarriedSet(TestNode guest, params CharacterItemMsg[] items) =>
 		guest.Services.GetRequiredService<IItemControl>().SendCarriedInventory(items);
 
+	/// <summary>The guest's own container-content report, through the PRODUCT's sender, which derives every listed child's parent from the tree (so an honest report can never name another row).</summary>
+	internal void ContainerSync(TestNode guest, ulong itemId, CharacterItemMsg parent) =>
+		guest.Services.GetRequiredService<IItemControl>().SendItemContainerContent(itemId, parent);
+
+	/// <summary>
+	/// A container report whose listed child names a parent the tree does NOT put it under — the
+	/// shape only a modified client sends, because the product's sender derives each child's parent
+	/// from the tree. It goes out as a wire command through the same control the product's own
+	/// sender uses, so what the host judges is an ordinary <c>ItemContainerSync</c> frame.
+	/// </summary>
+	internal void ForgeContainerChildParent(TestNode guest, ulong itemId, string definitionId, ulong childId, string childDefinitionId, ulong childParentId) =>
+		guest.Services.GetRequiredService<IKernelProtocolControl>().SendCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemContainerSync,
+				Identity = new WireItemIdentity { InstanceId = itemId, DefinitionId = definitionId },
+				ContainerChildren =
+				[
+					new WireContainerChild
+					{
+						Identity = new WireItemIdentity { InstanceId = childId, DefinitionId = childDefinitionId },
+						ParentItemId = childParentId,
+					},
+				],
+			},
+			WirePayloadType.ItemContainerSyncCommand);
+
 	/// <summary>Whether the guest's carried-registration window wants a report now — the way back a refused use report arms.</summary>
 	internal bool RegistrationDue(TestNode guest) =>
 		guest.Services.GetRequiredService<IItemControl>().IsCarriedInventoryRegistrationDue();
@@ -189,6 +217,15 @@ internal sealed class ItemSimWorld : IDisposable
 	/// <summary>The host's kernel row for an id, or null when the host never judged it.</summary>
 	internal ItemState? KernelRow(ulong itemId) =>
 		Host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(itemId);
+
+	/// <summary>
+	/// Stage one kernel row directly on the HOST — the host's own fact, for a case whose subject is a
+	/// report that must not be able to move or destroy that row. The world paths that put an item inside
+	/// a world container are the game's own; the harness states the fact instead of replaying them.
+	/// </summary>
+	internal bool StageKernelRow(ulong actor, ulong instanceId, string definitionId, ItemLocation location, CharacterItemMsg item) =>
+		Host.Services.GetRequiredService<ItemKernelAuthority>()
+			.TrySpawn(actor, new ItemIdentity(instanceId, definitionId), location, item, out _, out _);
 
 	internal void Slot(TestNode guest, ulong itemId, int slotIndex, CharacterItemMsg item) =>
 		guest.Services.GetRequiredService<IItemControl>().SendItemSlot(itemId, slotIndex, item);

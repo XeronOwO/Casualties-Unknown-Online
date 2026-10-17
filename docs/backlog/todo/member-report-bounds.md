@@ -491,21 +491,67 @@ described above:
   the block-break carrier; this is its sibling). The anchor question is the same one S2b answered for the
   break: what identifies the entities that died in the blast, when the association on the reporter's side is
   a radius and not an identity.
-- **`WireCommandKind.ItemContainerSync`'s creations — the sibling S3a left** (2026-10-17). S3a bounded the
-  STATE report's creation channel by the member's carried-set statement, and the same claim travels two more
-  ways: a container sync whose parent this host never judged is materialized as the reporter's own carried
-  item (`ItemDomainModule.DecideSyncContainer`'s missing-parent arm), and each listed child it does not know
-  is created as a contained row under the parent THAT REPORT names — `child.ParentItemId`, which need not be
-  the sync's own parent id. The anchor is already in hand — the statement's own record
-  (`ICarriedRegistrationFacts.HasJudgedCarriedSet`) — because a carried container is a root item of that
-  statement; what is NOT free is the child half: the statement carries contents recursively now
-  (`ItemArbitration.AdoptCarriedContents`, which also refuses to adopt contents of a row the kernel does not
-  record as that member's own), so a child the statement did not carry is the same anomaly its parent is, but
-  a container that changed hands can carry children the statement could legitimately never have named. The
-  work is therefore to decide, per arm, whether an unknown parent/child is refused by name once the statement
-  was judged, and what the reporter's way back is for a container the statement cannot carry. It belongs
-  with the rest of this file's creation rows rather than with S3a, which is why it is filed here instead of
-  landed with it.
+- **`WireCommandKind.ItemContainerSync`'s creations — IMPLEMENTED 2026-10-17, the machine row is OWED.**
+  The sibling S3a left: the same claim travelled two more ways — a parent this host never judged
+  (materialized as the reporter's own carried item by `ItemDomainModule.DecideSyncContainer`'s
+  missing-parent arm) and each listed child it did not know (created as a contained row under the parent
+  THAT REPORT names, `child.ParentItemId`, which need not be the sync's own parent id). Both are bounded in
+  code now; this row is NOT marked read, because the acceptance each row in this file owes is a two-client
+  session, and none has been run for it.
+
+  THE DESTINATION ARMS need no statement, and they are what the report can actually WRITE — behind the
+  seam, the kernel rewrites the parent, moves every listed child to `child.ParentItemId` verbatim, and
+  destroys the descendants the report omits. Three rows are judged against the host's own record, and the
+  row a child sits in or is being moved to must be the sender's: the parent (naming a world container
+  rewrote its data and relocated listed world rows into the sender's own container; a load that lands in
+  the world reports a drop, so no production sender names one), each child's named destination, and a known
+  child's current container. The membership test is the family's own, `Location.Owner.Value == sender`: a
+  nested container is recorded as CONTAINED with that owner, never as carried, and the CHILD's own owner is
+  never the test (a container that changed hands leaves its old contents recorded under the previous
+  holder). The destroy half walks CONTAINED rows only and a world container's real contents are WORLD rows,
+  so one report cannot reach them; it needs a prior report that converted them — which these same arms
+  refuse.
+
+  THE STATEMENT ARM is the state report's bound on this kind: once
+  `ICarriedRegistrationFacts.HasJudgedCarriedSet(sender)` holds, an unjudged parent or an unjudged child is
+  refused BY NAME (`RejectionReason.UnclaimedItem`) and ANSWERED, nothing is applied, and the member's way
+  back is re-stating the set — the statement carries a carried container's contents recursively, so the
+  re-stated set lands the container and what is inside it. On the client, `ItemService.OnCommandRejected`
+  settles EVERY refused container report by asking for that re-statement (never the pickup rollback, which
+  would unparent a live container into the world while the host still records it as the member's).
+
+  EVIDENCE (unit level; a machine row is still owed): `CreationBeforeOperationTests` gains twelve cases, of
+  which TEN were observed RED — four in the first run, before any of this code existed (the refusal frames
+  absent; a forged child created inside another member's container; nothing landing after a refusal), and
+  six by mutation control in the finished tree (the parent arm neutralised → the world row's data is
+  rewritten and its staged content destroyed; the destination arm neutralised → the child is hung under the
+  peer's row; the destination arm narrowed to "carried" → the member's own nested container is refused; the
+  child-home arm neutralised → the peer's contained item is moved; the child's OWN owner used as the test →
+  the container-changed-hands case is refused). The two remaining cases are guards that assert today's
+  behaviour: the pre-statement parent is still materialized and the pre-statement nested tree still lands.
+  Style: measured after the change, `KernelProtocolCommandHandler` 565 and `ItemService` 595 lines, both
+  under the 600 gate; a further growth of either owes the split.
+
+  What the row still does NOT close: a member that never states a carried set keeps the pre-change behaviour
+  (the `ItemSpawn` class); the refusals are implementation-level until the owed two-client row reads them on
+  the machine (by name on the host, nothing created or destroyed, the unmodified stretch silent); and a
+  NESTED container whose interior row still records a previous holder is refused by the destination and
+  home arms with no recovery, because the re-stated set's `AdoptCarriedContents` stops at a row the kernel
+  does not record as the member's own. That shape is not producible through the game's own paths today
+  (`Container.LoadItem` refuses loading a container that is itself inside a container and refuses loading a
+  non-empty container into one), and today's container-load report flattens to the outermost carried root;
+  it is named here because the arms judge the row a child sits in, and a future container-in-container path
+  would hit it.
+
+  Self-check (mechanism × change × evidence):
+
+  | Mechanism | Change | Evidence |
+  |---|---|---|
+  | The parent a report can rewrite and whose omitted contained descendants it destroys (`DecideSyncContainer`) | the parent must be the sender's own row when the host holds it — a world parent is refused before anything is applied, so its data is not rewritten and a listed world row is not relocated | `AContainerSyncMayNotRewriteAWorldContainer` and `AContainerSyncMayNotDestroyAWorldContainersContents` — both RED with the arm neutralised |
+  | Each listed child's destination (`ItemLocation.Contained(command.Actor, child.ParentItemId)`) | the destination must be the sender's own row or one the report creates | `AContainerSyncMayNotHangAChildUnderAnotherMembersRow` — RED with the arm neutralised; `AContainerSync_BeforeTheCarriedSetWasStated_StillAddsAChildToTheMembersOwnNestedContainer` — RED with the arm narrowed to "carried" |
+  | A known child the record holds inside somebody else's container | the row the child sits in must be the sender's own (world-rooted excluded); never the child's own recorded owner | `AContainerSyncMayNotMoveAnotherMembersContainedItem` — RED with the arm neutralised; `AContainerSync_AfterTheContainerChangedHands_StillAcceptsTheRecordedContents` — RED with the child's own owner used as the test |
+  | The creation claim (`ICarriedRegistrationFacts.HasJudgedCarriedSet`) | an unjudged parent or child after the statement was judged is refused by name and answered | `AContainerSyncForAnUnjudgedParent_AfterTheCarriedSetWasStated_IsRefusedAndNothingIsMaterialized` and `AContainerSyncForAnUnjudgedChild_AfterTheCarriedSetWasStated_IsRefused` — both RED in the first run; `..._BeforeTheCarriedSetWasStated_IsStillMaterialized` is the window's guard |
+  | The settlement (`ItemService.OnCommandRejected`) | every refused container report settles by the carried-set statement, never by the pickup rollback that unparents a live container | `ARefusedContainerSync_ReStatesTheCarriedSet_AndTheContentsLand` — RED in the first run |
 
 ## Acceptance each row owes
 

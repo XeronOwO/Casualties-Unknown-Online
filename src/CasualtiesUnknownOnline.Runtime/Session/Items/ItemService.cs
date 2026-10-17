@@ -546,6 +546,20 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			return;
 		}
 
+		if (kind == WireCommandKind.ItemContainerSync)
+		{
+			// A container report is never a pickup, so it never reaches the rollback below: that
+			// rollback UNPARENTS the local item into the world (its own comment says so, for the
+			// mid-drag and inside-a-container cases), and a container detached into the world while the
+			// host still records it as this member's is the opposite of a settlement. Whatever reason
+			// the host answered with — an unclaimed creation, a child it refuses to move, or a refused
+			// creation's own tombstone — the way back is the carried-set statement, which carries the
+			// container AND its contents.
+			_log.LogInformation("Kernel command for container {ItemId} rejected ({Reason}) — container reports settle by re-stating the carried set, never by rolling the container back.", itemId, reason);
+			_idCoordinator.RequestCarriedInventoryReport("the host refused a container report");
+			return;
+		}
+
 		if (kind == WireCommandKind.ItemUpdateState && reason == RejectionReason.UnclaimedItem)
 		{
 			// A use report for an item the host never judged — refused because the

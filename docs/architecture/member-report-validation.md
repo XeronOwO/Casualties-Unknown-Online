@@ -54,7 +54,7 @@ would need and MUST point at an existing ticket under `docs/backlog/`, so a gap 
 | `WireCommandKind.ItemDrop` | Fact | `bound: the host's own record of the item's location` | The domain refuses a drop of an item the record does not put in the dropping actor's hands, plus the target-location and container rules. |
 | `WireCommandKind.ItemDestroy` | Fact | `bound: the seam's eligibility rule` | A destroy report may name world-rooted content or the sender's own carried, installed or contained item, never another member's. |
 | `WireCommandKind.ItemUpdateState` | Fact | `bound: the seam's eligibility rule + the carried-set creation claim` | Same rule for a state report; the domain then checks existence, terminal state and the revision, which the handler re-stamps from the host's record. The CREATION half is bounded too: a report naming an id this host never judged is materialized as the reporter's own carried item only while the host has not judged that member's carried-set statement (`NetMsg.CarriedInventory`, the absolute report re-sent on its own cadence). Once it has, the report is refused by name and ANSWERED, and the member settles by re-stating the set — a use report is not the creation claim for what a member carries. A creation this host already refused answers first with its own tombstone reason, so no report can resurrect it. |
-| `WireCommandKind.ItemContainerSync` | Fact | `bound: the seam's eligibility rule, parent and children` | The parent must be reportable by the sender and every listed child must be allowed to enter the sender's own container. The CREATION half is not bounded here: a parent this host never judged is materialized as the reporter's own carried item and an unknown listed child as its contents, and the carried-set anchor that bounds the state report's creation would fit them (a carried container is a root item of that statement) — filed in `todo/member-report-bounds.md`. |
+| `WireCommandKind.ItemContainerSync` | Fact | `bound: the seam's eligibility rule + the record's own destinations + the carried-set creation claim` | The parent must be reportable by the sender and every listed child must be allowed to enter the sender's own container. Behind the seam, the handler judges the rows this report can WRITE, all of them facts of the host's own record: the PARENT must be the sender's own row when the host already holds it (a world container's data would otherwise be rewritten and a listed world row relocated into the sender's own container, and a container load that lands in the world reports a drop, so no production sender names one); each child's DESTINATION must be the sender's own row or one the same report creates (the kernel writes `child.ParentItemId` verbatim); and a KNOWN child the record holds inside another member's non-world container is not the sender's to move (the container-changed-hands allowance is about the ROW the child sits in being the sender's own, never the child's own recorded owner — a nested container is `Contained` with that owner, never carried). The sync's DESTRUCTIVE arm — the descendants a report omits are destroyed — walks CONTAINED rows only, so a world container's real contents (WORLD rows carrying a parent id) are out of its reach, and the parent arm puts a world container out of reach entirely. The CREATION half rests on the same fact the state report's does: once this host has judged the member's carried-set statement, a parent or a listed child it never judged is refused by name and ANSWERED, and the member settles by re-stating the set — the statement carries a carried container's contents recursively, so the re-stated set lands them. Before that statement the heal is the claim (the swallowed-registration window the path exists for). A creation this host already refused answers first with its tombstone reason, and the seam still speaks before the handler's own arms, so a report naming another member's container is IGNORED unanswered as it always was. |
 | `WireCommandKind.ItemApplyLimb` | Fact | `bound: MayInstallOnOwnLimb` | The item must be the sender's own, and the limb the report names must be the one the record already holds. |
 | `WireCommandKind.ItemRemoveLimb` | Fact | `bound: MayTakeOffOwnLimb` | Both the applied owner and the destination owner must be the sender, and the limb must match the record. |
 | `WireCommandKind.ItemDataWrite` | Fact | `bound: the host's own rule for the verb + the eligibility rule` | `IMemberCommandRules.AllowsItemDataWrite` (default off) is read per submission and the refusal is answered; an id the host never judged is refused rather than healed. |
@@ -145,7 +145,10 @@ would need and MUST point at an existing ticket under `docs/backlog/`, so a gap 
   already refused keeps its own tombstone answer ahead of it. The anchor is a fact the receiver holds (it
   judged the statement), never the reporter's word, and nothing about reach, timing or magnitude is
   involved (`KernelProtocolCommandHandler`, `ICarriedRegistrationFacts`, `ItemArbitration`). The container
-  SYNC's report is a second creation channel and is not covered by this anchor (see the limit below).
+  SYNC's report is the second creation channel and rests on the same anchor since the follow-up cycle
+  (below): its unjudged parent and its unjudged children are refused by name and answered, and the record
+  adds the destinations no statement can speak for — the report's parent, each child's named parent and a
+  known child's current container must be rows this member owns.
 
 ## How the rule reaches a new surface
 
@@ -172,11 +175,18 @@ The review asks it too (`docs/development/review-prompt.md`), and the guard list
 - **The reach is the handlers and the authority table.** A member-authored message that no handler declares
   and no wire kind wraps (a payload only the relay path reads) is outside the gate's derivation and has to
   be added by hand; the `CharacterData` row above is the shape to copy.
-- **The creation bound covers a state report. The container SYNC is a second channel and is not covered.**
-  A container sync's MISSING parent is materialized as the reporter's own carried item — a root item, the
-  same claim the statement makes, so the statement's anchor is the one it would need — and its listed
-  unknown children are created as contents under the parent the report itself names. Neither path consults
-  `ICarriedRegistrationFacts` yet. The ticket names the remaining gap.
+- **The creation bound covers the state report AND the container sync.** Both carried the same claim on two
+  wire kinds; both now consult `ICarriedRegistrationFacts`, and the sync adds the destinations no statement
+  can speak for (its parent, each child's named parent, a known child's current container). What stays
+  outside it is a member that never states a carried set at all: before that statement the heals are the
+  claim by design, which is the `ItemSpawn` row's unbounded creation class rather than a gap in this one.
+  The sync's DESTRUCTIVE arm — the descendants a report omits are destroyed — is bounded by those same
+  arms: it walks CONTAINED rows only, a world container's real contents are WORLD rows (so the destroy
+  walk never reaches them), and the parent arm puts a world container out of reach entirely. What is left
+  open is a nested container whose interior row still records a PREVIOUS holder (the shape a
+  container-changed-hands report can leave): the arms judge the row a child sits in, so such a report is
+  refused, and the game's own container rules do not produce that shape today (a container inside a
+  container may not hold contents). It is named in the container-sync ticket row as a limit.
 - **Frequency and rate are not part of most bounds.** Only `ModCommandRequest` and `PlayerPushRequest` carry
   a rate cap today; the rest bound content, not repetition.
 

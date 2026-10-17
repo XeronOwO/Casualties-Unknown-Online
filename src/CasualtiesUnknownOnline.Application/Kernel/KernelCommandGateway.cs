@@ -260,7 +260,11 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// remote-clone shape, and without this rule a report could pull a peer's
 	/// carried item into the reporter's own container. A row that is merely
 	/// CONTAINED elsewhere is admitted on purpose: that is the container-changed-
-	/// hands case above, and refusing it would refuse ordinary play.
+	/// hands case above, and refusing it would refuse ordinary play. What the CHILD'S
+	/// own owner cannot answer is whose row it sits in and whose row it is being moved
+	/// to — the handler's container-sync bounds judge those two destinations
+	/// (<c>KernelProtocolCommandHandler.TryRefuseUnclaimedContainer</c>), so this seam
+	/// stays an eligibility test and never becomes the ownership rule.
 	/// </summary>
 	private bool MayEnterOwnContainer(ulong sender, ulong itemId)
 	{

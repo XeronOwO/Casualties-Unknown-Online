@@ -61,11 +61,7 @@ internal sealed class KernelProtocolCommandHandler(
 		// not cover this kind (see IsItemOperation).
 		if (envelope.Command.Kind == WireCommandKind.ItemContainerSync)
 		{
-			if (!TryRefuseRefusedCreation(sender, envelope))
-			{
-				HandleItemContainerSync(sender, envelope);
-			}
-
+			HandleContainerSync(sender, envelope);
 			return;
 		}
 
@@ -211,6 +207,116 @@ internal sealed class KernelProtocolCommandHandler(
 	}
 
 	/// <summary>
+	/// The container sync's verdict, in the two kinds of fact this host can hold about it.
+	///
+	/// <para>
+	/// FIRST the record's own rows, which need no statement: the kernel's container arm rewrites the
+	/// parent's facts, MOVES every listed child to the parent THE REPORT names and DESTROYS the
+	/// descendants the report leaves out, so every row this report can write to must be the sender's
+	/// own. Three destinations are judged, all against rows the host already holds — a row it does not
+	/// know is not a fact to refuse here, because the same report may be creating it:
+	/// the PARENT (a world row has no production sender for this kind, and naming one would let a
+	/// report rewrite a world container and destroy its contents; the seam deliberately admits a world
+	/// row because a destroy report may name world content), each child's DESTINATION (the kernel
+	/// writes <c>child.ParentItemId</c> verbatim, so a listed child could otherwise be hung under
+	/// another member's row), and a known child's own HOME (a child the record holds inside another
+	/// member's container is not this sender's to move). The membership test is the family's own —
+	/// <c>Location.Owner.Value == sender</c> — because a nested container is recorded as CONTAINED
+	/// with that owner, never as carried.
+	/// </para>
+	///
+	/// <para>
+	/// THEN the statement, which is the same creation claim the state report's refusals rest on: the
+	/// member's carried-set statement speaks for what that member carries — a carried container AND,
+	/// recursively, what is inside it — so once this host has judged one, an id the statement did not
+	/// carry is not a creation it may honour, and the member's way back is re-stating the set. Until it
+	/// has judged one, the heal IS the claim (the swallowed-registration window this path exists for)
+	/// and the report passes through.
+	/// </para>
+	/// </summary>
+	private bool TryRefuseUnclaimedContainer(ulong sender, CommandEnvelope envelope)
+	{
+		var parentId = envelope.Command.Identity.InstanceId;
+		var parent = _items.FindItem(parentId);
+		if (parent is not null && parent.Value.Location.Owner.Value != sender)
+		{
+			_log.LogWarning("Container sync from {Sender} refused: container {ItemId} is recorded as {Kind} and is not this member's own row — nothing applied, nothing destroyed, nothing relayed.",
+				sender, parentId, parent.Value.Location.Kind);
+			SendCommandRejected(sender, envelope.Command, RejectionReason.UnclaimedItem);
+			return true;
+		}
+
+		foreach (var child in envelope.Command.ContainerChildren)
+		{
+			var childId = child.Identity.InstanceId;
+			if (childId == 0)
+			{
+				continue;
+			}
+
+			var destination = _items.FindItem(child.ParentItemId);
+			if (destination is not null && destination.Value.Location.Owner.Value != sender)
+			{
+				_log.LogWarning("Container sync from {Sender} refused: it lists content item {ItemId} under {ParentId}, which this kernel does not record as that member's own row — nothing created, nothing applied, nothing relayed.",
+					sender, childId, child.ParentItemId);
+				SendCommandRejected(sender, envelope.Command, RejectionReason.UnclaimedItem);
+				return true;
+			}
+
+			var current = _items.FindItem(childId);
+			if (current is null)
+			{
+				continue; // created by this very report: the statement arm below judges it
+			}
+
+			if (current.Value.Location.Kind != ItemLocationKind.Contained)
+			{
+				continue; // carried/installed rows are the seam's MayEnterOwnContainer rule
+			}
+
+			var home = _items.FindItem(current.Value.Location.ParentItemId);
+			if (home is not null
+				&& home.Value.Location.Owner.Value != sender
+				&& !ItemLocationChain.IsWorldRooted(home.Value, _items.FindItem))
+			{
+				_log.LogWarning("Container sync from {Sender} refused: it lists content item {ItemId}, which this kernel records inside {HomeId} — another member's container, so it is not this sender's to move. Nothing applied, nothing relayed.",
+					sender, childId, current.Value.Location.ParentItemId);
+				SendCommandRejected(sender, envelope.Command, RejectionReason.UnclaimedItem);
+				return true;
+			}
+		}
+
+		if (!_carriedRegistrations.HasJudgedCarriedSet(sender))
+		{
+			return false;
+		}
+
+		if (parent is null)
+		{
+			_log.LogWarning("Container sync from {Sender} refused: container {ItemId} was never judged, and that member's carried-set statement already was — a container report is not the creation claim for what a member carries, so the member re-states the set instead.",
+				sender, parentId);
+			SendCommandRejected(sender, envelope.Command, RejectionReason.UnclaimedItem);
+			return true;
+		}
+
+		foreach (var child in envelope.Command.ContainerChildren)
+		{
+			var childId = child.Identity.InstanceId;
+			if (childId == 0 || _items.FindItem(childId) is not null)
+			{
+				continue;
+			}
+
+			_log.LogWarning("Container sync from {Sender} refused: content item {ItemId} of container {ParentId} was never judged, and that member's carried-set statement already was — the statement carries a carried container's contents, so the member re-states the set instead.",
+				sender, childId, parentId);
+			SendCommandRejected(sender, envelope.Command, RejectionReason.UnclaimedItem);
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
 	/// Every wire kind that OPERATES on an existing item — the family the invariant
 	/// governs (a creation kind, <c>ItemSpawn</c>, is the judgement itself).
 	/// <c>ItemContainerSync</c> is deliberately absent: that kind carries the
@@ -261,17 +367,29 @@ internal sealed class KernelProtocolCommandHandler(
 	}
 
 	/// <summary>
-	/// The container sync's host half, and it runs through the SAME admission seam as
-	/// every other member command. For a parent this host already judged, the
-	/// kernel's <c>DecideSyncContainer</c> rewrites that parent's data, moves the
-	/// listed children in and destroys the descendants the report left out — so the
-	/// parent must be one the sender may report on and no listed child may be an item
-	/// the record puts in another member's hands. The MISSING parent is the heal the
-	/// entry point describes: nothing names it yet, so the seam admits it and the
-	/// domain creates it as the reporter's own carried item.
+	/// The container sync's whole host half, in the ONE order its four verdicts have to run in.
+	///
+	/// <para>
+	/// 1. A refused CREATION answers first, with its own reason (the tombstone).
+	/// 2. The admission seam judges the report as every other member command is judged — it is what
+	/// decides whether the report is even talked back to (<c>AnswersSender</c>): a report naming
+	/// another member's container is IGNORED without an answer, because the sender's own copy is not
+	/// the fact a refusal would settle. The creation bounds below MUST NOT move ahead of it: they
+	/// answer, and answering in the seam's place breaks that documented contract.
+	/// 3. The creation bounds (<see cref="TryRefuseUnclaimedContainer"/>) judge the rows this report
+	/// can write and the creation claim its member's carried-set statement is, and they answer.
+	/// 4. Only then is the command executed: the kernel's <c>DecideSyncContainer</c> rewrites the
+	/// parent's data, moves the listed children to the parent the report names and destroys the
+	/// descendants the report left out.
+	/// </para>
 	/// </summary>
-	private void HandleItemContainerSync(ulong sender, CommandEnvelope envelope)
+	private void HandleContainerSync(ulong sender, CommandEnvelope envelope)
 	{
+		if (TryRefuseRefusedCreation(sender, envelope))
+		{
+			return;
+		}
+
 		var command = envelope.Command;
 		var parentId = command.Identity.InstanceId;
 		var sync = KernelWireMapper.FromWireCommand(command, envelope.Header);
@@ -283,6 +401,11 @@ internal sealed class KernelProtocolCommandHandler(
 				SendCommandRejected(sender, envelope.Command, reason);
 			}
 
+			return;
+		}
+
+		if (TryRefuseUnclaimedContainer(sender, envelope))
+		{
 			return;
 		}
 

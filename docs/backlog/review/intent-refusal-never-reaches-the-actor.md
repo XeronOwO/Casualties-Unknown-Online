@@ -1,6 +1,6 @@
 # A refused player-interaction intent is silent to the player who performed it
 
-- Status: Todo
+- Status: Review — both answering sites landed and row 2 is read on the machine; the remaining rows are readings, not code
 - Priority: Medium
 - Category: Remote inventory / player interaction / observability of refusals
 - Source: the give ticket's acceptance readings (2026-10-18). Row 3 and row 6 both refused correctly, and both
@@ -84,19 +84,20 @@ means taking the host out, which ends the run. The container-the-receiver-does-n
 and it is exactly one of the refusals listed above as not yet answered. **Cover those, and row 2 becomes drivable
 without any new lever.**
 
-### Row 2, driven: the host refuses and answers, and the actor still sees nothing (2026-10-18)
+### Row 2, READ — and the first reading of it was wrong (2026-10-18)
 
 The take core now answers, so the drivable case ran on the deployed artifact: the giver released its own item at a
-container id the receiver does not carry, and the host refused exactly as designed —
+container id the receiver does not carry. The host refused as designed, and **the giver's own client printed the
+answer**:
 
-`[Warning] [RemoteIntent] refused GiveToBody: 76561198281246659 carries no item 424242 …`
+`[Warning] [InventoryIntentRefusedHandler] [RemoteIntent] the host refused 16 on item 5197989525: <receiver> carries
+no item 424242 …`
 
-That line comes from `Refuse`, the only place that both logs and answers, so the answer WAS built and sent. **The
-actor's client never printed it: the log holds zero occurrences of `the host refused`.** So the message is sent and
-not received — a routing or registration gap on the receiving side, not a wording gap.
+**The first reading of this run reported the opposite**, and the mistake is worth keeping because it is a reading
+error, not a code one: the search was made in the host's `BepInEx/LogOutput.log`, where the line does not exist
+because the two clients do **not** share one log — the member runs inside a sandbox and writes to the sandbox root's
+own copy of the game directory. Every "the actor sees nothing" conclusion taken from the host's log is therefore a
+false negative, and this one was recorded as a defect before the guest's log was read.
 
-**What to check first** (the sweep that has not been done): whether a `NetMsg` needs to be declared in the
-message/payload registry on top of its `[PacketHandler]` attribute and its direction row — the existing result
-messages of this family (`PlayerItemUseResultMsg`, `PlayerHealResultMsg`) travel as kernel batch events and are
-therefore NOT a precedent for a new `NetMsg`. Until that is settled, the two ends do not agree, which is exactly
-what this ticket exists to fix, so it stays open with this reading.
+**So row 2 PASSES.** The remaining rows are readings, not code: row 1 (a refusal the actor's own client makes —
+printed locally, no round trip) and row 4 (an ACCEPTED gesture prints no refusal line anywhere).

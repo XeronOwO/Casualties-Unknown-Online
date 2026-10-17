@@ -4,7 +4,7 @@
   it, the giver-initiated push in this ticket. Four of the six acceptance rows are read on the machine (1 in both
   destination shapes, 2, 3 and 6); row 4's weight/tag shape and row 5's local control are the residuals named below,
   and the family-wide "a refusal never reaches the actor" gap moved to
-  `todo/intent-refusal-never-reaches-the-actor.md`.
+  `review/intent-refusal-never-reaches-the-actor.md`.
 - Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.

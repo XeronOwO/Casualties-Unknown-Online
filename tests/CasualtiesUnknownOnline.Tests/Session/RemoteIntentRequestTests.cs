@@ -238,6 +238,13 @@ public class RemoteIntentRequestTests
 		// would have changed: nothing left the giver and nothing arrived.
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 		Assert.Empty(characters.GetHostCharacterData()!.Items);
+
+		// …and the actor is TOLD, by the layer that actually knows why: this refusal is decided in the host's take
+		// core against the receiver's snapshot, which is below the operand validation, and a refusal answered only in
+		// the host's log leaves the giver's screen identical to a gesture that silently did nothing.
+		var answer = received.Single(r => r.Msg == NetMsg.InventoryIntentRefused);
+		var refused = NetPacket.DecodePayload<PlayerInventoryIntentRefusedMsg>(answer.Frame);
+		Assert.Contains("carries no item", refused.Reason);
 	}
 
 	[Fact]

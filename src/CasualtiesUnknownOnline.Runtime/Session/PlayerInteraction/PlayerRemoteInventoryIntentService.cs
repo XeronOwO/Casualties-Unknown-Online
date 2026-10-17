@@ -208,7 +208,11 @@ internal sealed class PlayerRemoteInventoryIntentService(
 			// it away, and the destination body is the other player's. It runs the identical host path with the two
 			// ends swapped, so both directions of one hand-over agree about custody by construction.
 			case RemoteInventoryIntentKind.GiveToBody:
-				_take.HandleRemoteGiveToBody(requester, msg.TargetBodySteamId, msg.ItemInstanceId, msg.TargetSlotIndex, msg.TargetContainerInstanceId);
+				if (_take.HandleRemoteGiveToBody(requester, msg.TargetBodySteamId, msg.ItemInstanceId, msg.TargetSlotIndex, msg.TargetContainerInstanceId) is { } takeRefusal)
+				{
+					Refuse(msg, requester, takeRefusal);
+				}
+
 				break;
 			case RemoteInventoryIntentKind.ApplyToLimb:
 				_itemUse.HandleRemoteHeldItemUse(requester, owner, msg.ItemInstanceId, msg.TargetLimbIndex, msg.Amount);

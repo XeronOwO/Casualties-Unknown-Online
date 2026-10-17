@@ -93,7 +93,7 @@ internal sealed class PlayerInventoryTakeService(
 	/// host names the slot and falls back to the first free one — observably —
 	/// only when the named slot cannot take the item.
 	/// </summary>
-	public void HandleRemoteBackpackTransferToBody(ulong requester, ulong owner, ulong itemId, int targetSlot) =>
+	public string? HandleRemoteBackpackTransferToBody(ulong requester, ulong owner, ulong itemId, int targetSlot) =>
 		HandleTakeCore(requester, owner, itemId, allowConsciousSource: true, requestedSlot: targetSlot);
 
 	/// <summary>
@@ -103,10 +103,10 @@ internal sealed class PlayerInventoryTakeService(
 	/// core the other direction is what makes the two halves agree about custody rather than merely resemble each
 	/// other.
 	/// </summary>
-	public void HandleRemoteGiveToBody(ulong giver, ulong receiver, ulong itemId, int targetSlot, ulong targetContainerId) =>
+	public string? HandleRemoteGiveToBody(ulong giver, ulong receiver, ulong itemId, int targetSlot, ulong targetContainerId) =>
 		HandleTakeCore(sender: receiver, owner: giver, itemId, allowConsciousSource: true, requestedSlot: targetSlot, requestedContainerId: targetContainerId);
 
-	private void HandleTakeCore(
+	private string? HandleTakeCore(
 		ulong sender,
 		ulong owner,
 		ulong itemId,
@@ -116,37 +116,31 @@ internal sealed class PlayerInventoryTakeService(
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
-			return;
+			return null; // not this host's business at all — nothing was asked of the requester's gesture
 		}
 
 		var from = owner;
 		var to = sender;
 		if (from == to || from == 0 || to == 0 || itemId == 0)
 		{
-			// Every other branch in this core answers with a line, so this one does too: a transfer with an empty end
-			// is a malformed request, not a routine skip.
-			_log.LogWarning("[Take] refused: malformed transfer (from {From}, to {To}, item id {InstanceId}).", from, to, itemId);
-			return;
+			return $"malformed transfer (from {from}, to {to}, item id {itemId}).";
 		}
 
 		if (!_hostRules.AllowRemoteInventoryTake)
 		{
-			_log.LogInformation("[Take] refused: host has disabled cross-player inventory take (rule AllowRemoteInventoryTake=false).");
-			return;
+			return "host has disabled cross-player inventory take (rule AllowRemoteInventoryTake=false).";
 		}
 
 		if (!_characters.IsInWorld(from) || !_characters.IsInWorld(to))
 		{
-			_log.LogWarning("[Take] refused: {From} or {To} is not in-world.", from, to);
-			return;
+			return $"{from} or {to} is not in-world.";
 		}
 
 		var source = _characters.GetCharacterData(from);
 		var target = _characters.GetCharacterData(to);
 		if (source is null || target is null)
 		{
-			_log.LogWarning("[Take] refused: no character snapshot for {From}/{To}.", from, to);
-			return;
+			return $"no character snapshot for {from}/{to}.";
 		}
 
 		// The game's direct-interaction rule (KrokMP-compatible default): a
@@ -159,23 +153,20 @@ internal sealed class PlayerInventoryTakeService(
 			&& (source.Health is not { } health
 				|| (health.Conscious && health.Alive)))
 		{
-			_log.LogInformation("[Take] refused: {From} is conscious/alive and not takeable (or has no health snapshot).", from);
-			return;
+			return $"{from} is conscious/alive and not takeable (or has no health snapshot).";
 		}
 
 		var newSource = PlayerCharacterAccess.CloneCharacter(source);
 		if (!TryFindAndRemove(newSource.Items, itemId, out var original))
 		{
-			_log.LogWarning("[Take] refused: {From} has no item instance {ItemId}.", from, itemId);
-			return;
+			return $"{from} has no item instance {itemId}.";
 		}
 
 		if (original.SlotIndex < 0)
 		{
 			// Worn items are excluded in this slice — the character restore path
 			// handles them separately and the Online UI only offers slot items.
-			_log.LogInformation("[Take] refused: item {ItemId} (instance {InstanceId}) is worn (slot {Slot}) — only backpack/hand slot items are takeable in this slice.", original.ItemId, itemId, original.SlotIndex);
-			return;
+			return $"item {original.ItemId} (instance {itemId}) is worn (slot {original.SlotIndex}) — only backpack/hand slot items are takeable in this slice.";
 		}
 
 		var newTarget = PlayerCharacterAccess.CloneCharacter(target);
@@ -190,9 +181,7 @@ internal sealed class PlayerInventoryTakeService(
 			var container = FindCarriedItem(newTarget.Items, requestedContainerId);
 			if (container is null)
 			{
-				_log.LogWarning("[Take] refused: {To} carries no item {ContainerId} to receive {ItemId} (id {InstanceId}).",
-					to, requestedContainerId, original.ItemId, itemId);
-				return;
+				return $"{to} carries no item {requestedContainerId} to receive {original.ItemId} (id {itemId}).";
 			}
 
 			transferred.SlotIndex = container.SlotIndex; // a container child carries its PARENT's slot
@@ -203,8 +192,7 @@ internal sealed class PlayerInventoryTakeService(
 			var targetSlot = ResolveDestinationSlot(target, to, requestedSlot);
 			if (targetSlot < 0)
 			{
-				_log.LogWarning("[Take] refused: {To} has no empty inventory slot.", to);
-				return;
+				return $"{to} has no empty inventory slot.";
 			}
 
 			transferred.SlotIndex = targetSlot; // the host picks a concrete empty slot; the recipient's immediate re-report confirms it
@@ -249,6 +237,8 @@ internal sealed class PlayerInventoryTakeService(
 			Item = transferred,
 			TargetParentItemId = requestedContainerId,
 		});
+
+		return null; // applied
 	}
 
 	/// <summary>

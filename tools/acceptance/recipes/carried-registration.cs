@@ -1,7 +1,10 @@
 // recipe: carried-registration
 // args: mode=s guest=s
-// serves: carried-inventory-registration-re-report, guest-container-contents-ghost-drops-on-host
-// returns: ok, mode, guest, due, countBefore, countAfter, entryIds, entries, error, detail
+// serves: carried-inventory-registration-re-report, guest-container-contents-ghost-drops-on-host,
+//         validation-and-source-checks row 5 (the window a report is sequenced inside)
+// returns: ok, mode, guest, due, burstBefore, burstAfter, burstRemaining, bodyPresent, generating,
+//          memberCandidates, memberHandshaken, memberInWorld, judged, countBefore, countAfter,
+//          entryIds, entries, error, detail
 //
 // The carried-inventory registration seam, read and steered from inside one client:
 //  - mode=read (host): the guest's transfer-table entries (ItemArbitration.
@@ -15,12 +18,23 @@
 //  - mode=arm (guest): opens the registration window through the public item control
 //    and reports whether the cadence wants a report now. Used only when the natural
 //    dense window has already closed; the record says so when it is.
+//  - mode=status (either role): the window's own state, in the two facts the staging
+//    turns on — the guest's cadence (due, remaining dense reports) beside the local
+//    body and generation flag, and on the host the fact the kernel branches on:
+//    whether this host has judged that member's carried-set statement
+//    (ICarriedRegistrationFacts), with the member's presence row. A guest that holds an
+//    item and a host that has not judged its statement is row 5's window.
+//  - mode=freeze (guest): stops the cadence for one step by calling the registration
+//    schedule's own Reset, so the run can put a report AHEAD of the statement instead
+//    of racing it. This is a named substitution, not a product path: the record says
+//    the window was held back, and mode=arm re-opens the same window through the
+//    public item control.
 ((System.Func<string>)(() => {
 	const System.Reflection.BindingFlags instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var mode = {{s:mode}};
 	var guestArg = {{s:guest}};
-	if (mode != "read" && mode != "clear" && mode != "arm") {
-		return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be read, clear or arm\"}";
+	if (mode != "read" && mode != "clear" && mode != "arm" && mode != "status" && mode != "freeze") {
+		return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be read, clear, arm, status or freeze\"}";
 	}
 	var services = CasualtiesUnknownOnline.Runtime.CuoBootstrap.Services;
 	if (services == null) { return "{\"ok\":false,\"error\":\"no-services\"}"; }
@@ -29,6 +43,72 @@
 	var guestId = 0UL;
 	if (guestArg != "auto") {
 		ulong.TryParse(guestArg, out guestId);
+	}
+	if (mode == "status" || mode == "freeze") {
+		var inv = System.Globalization.CultureInfo.InvariantCulture;
+		var coordinator = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Items.ItemIdCoordinator)) as CasualtiesUnknownOnline.Runtime.Session.Items.ItemIdCoordinator;
+		if (coordinator == null) { return "{\"ok\":false,\"error\":\"no-id-coordinator\"}"; }
+		var scheduleField = coordinator.GetType().GetField("_carriedRegistration", instanceFlags);
+		if (scheduleField == null) { return "{\"ok\":false,\"error\":\"no-registration-schedule\",\"detail\":\"ItemIdCoordinator no longer carries _carriedRegistration\"}"; }
+		var schedule = scheduleField.GetValue(coordinator);
+		if (schedule == null) { return "{\"ok\":false,\"error\":\"no-registration-schedule\"}"; }
+		var burstProperty = schedule.GetType().GetProperty("BurstRemaining", instanceFlags);
+		if (burstProperty == null) { return "{\"ok\":false,\"error\":\"no-burst-reading\",\"detail\":\"CarriedInventoryReportSchedule no longer exposes BurstRemaining\"}"; }
+		var burstBefore = System.Convert.ToInt32(burstProperty.GetValue(schedule, null), inv);
+		if (mode == "freeze") {
+			if (session.Role != CasualtiesUnknownOnline.Runtime.Session.SessionRole.Guest) {
+				return "{\"ok\":false,\"error\":\"not-guest\",\"detail\":\"the registration window belongs to a guest client\"}";
+			}
+			var reset = schedule.GetType().GetMethod("Reset", instanceFlags);
+			if (reset == null) { return "{\"ok\":false,\"error\":\"freeze-unavailable\",\"detail\":\"CarriedInventoryReportSchedule no longer offers Reset\"}"; }
+			reset.Invoke(schedule, null);
+			var itemsAfter = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Items.IItemControl)) as CasualtiesUnknownOnline.Runtime.Session.Items.IItemControl;
+			var dueAfter = itemsAfter != null && itemsAfter.IsCarriedInventoryRegistrationDue();
+			return "{\"ok\":true,\"mode\":\"freeze\",\"guest\":\"" + guestId.ToString(inv) + "\""
+				+ ",\"burstBefore\":" + burstBefore.ToString(inv)
+				+ ",\"burstAfter\":" + System.Convert.ToInt32(burstProperty.GetValue(schedule, null), inv).ToString(inv)
+				+ ",\"dueAfter\":" + (dueAfter ? "true" : "false") + "}";
+		}
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
+		var gameWorld = WorldGeneration.world;
+		var generating = false;
+		if (gameWorld != null) {
+			var generatingField = gameWorld.GetType().GetField("generatingWorld", instanceFlags);
+			if (generatingField != null && generatingField.FieldType == typeof(bool)) {
+				generating = (bool)generatingField.GetValue(gameWorld);
+			}
+		}
+		var items = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Items.IItemControl)) as CasualtiesUnknownOnline.Runtime.Session.Items.IItemControl;
+		var statusJson = new System.Text.StringBuilder();
+		statusJson.Append("{\"ok\":true,\"mode\":\"status\",\"role\":\"").Append(session.Role.ToString()).Append("\"");
+		statusJson.Append(",\"guest\":\"").Append(guestId.ToString(inv)).Append("\"");
+		statusJson.Append(",\"localSteamId\":\"").Append(session.LocalSteamId.ToString(inv)).Append("\"");
+		statusJson.Append(",\"sessionActive\":").Append(session.SessionActive ? "true" : "false");
+		statusJson.Append(",\"bodyPresent\":").Append(body != null ? "true" : "false");
+		statusJson.Append(",\"generating\":").Append(generating ? "true" : "false");
+		statusJson.Append(",\"due\":").Append(items != null && items.IsCarriedInventoryRegistrationDue() ? "true" : "false");
+		statusJson.Append(",\"burstRemaining\":").Append(burstBefore.ToString(inv));
+		if (session.Role == CasualtiesUnknownOnline.Runtime.Session.SessionRole.Host) {
+			var facts = services.GetService(typeof(CasualtiesUnknownOnline.Application.Kernel.ICarriedRegistrationFacts)) as CasualtiesUnknownOnline.Application.Kernel.ICarriedRegistrationFacts;
+			var member = 0UL;
+			var candidates = 0;
+			var handshaken = false;
+			var inWorld = false;
+			foreach (var presence in session.Members) {
+				if (presence.SteamId == session.LocalSteamId) { continue; }
+				candidates++;
+				member = presence.SteamId;
+				handshaken = presence.Handshaken;
+				inWorld = presence.InWorld;
+			}
+			statusJson.Append(",\"memberSteamId\":\"").Append(member.ToString(inv)).Append("\"");
+			statusJson.Append(",\"memberCandidates\":").Append(candidates.ToString(inv));
+			statusJson.Append(",\"memberHandshaken\":").Append(handshaken ? "true" : "false");
+			statusJson.Append(",\"memberInWorld\":").Append(inWorld ? "true" : "false");
+			statusJson.Append(",\"judged\":").Append(facts != null && member != 0UL && facts.HasJudgedCarriedSet(member) ? "true" : "false");
+		}
+		statusJson.Append("}");
+		return statusJson.ToString();
 	}
 	if (mode == "arm") {
 		if (session.Role != CasualtiesUnknownOnline.Runtime.Session.SessionRole.Guest) {

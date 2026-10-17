@@ -5,14 +5,23 @@
 //         cell that carries more than one is the only place that loop can be READ (the census answers
 //         per-building rows, which a large map truncates before a shared cell turns up).
 // returns: ok, total, requireGround, multiCells, listed, entries (each cellX, cellY, count and its
-//          building ids with a hasTable flag), error
+//          building ids with a hasTable flag and that building's OWN rows: ids, min, max), error
 //
 // Read-only. Groups the live requireGround population by the support cell each entity stands on and lists
 // the cells carrying at least <min> of them, up to <limit> cells - the shape `MarkSupportLossRemote`
 // iterates, so the run can break one cell's support and read the host's own `[BuildingSupport] captured N
 // drop row(s) from M building(s)` line against a known M. Read it after the world has settled.
+//
+// The rows are the PRODUCT's own reading of the live entity (`GameBuildingDropTable.ForEntity`, reached by
+// reflection because it is internal), not a re-derivation in the probe: a forged drop the run builds from
+// them is one the host's captured table accounts for by construction, which is what makes the acceptance
+// line a reading of the capture rather than of the probe's arithmetic.
 ((System.Func<string>)(() => {
+	const System.Reflection.BindingFlags statics = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+	const System.Reflection.BindingFlags instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
+	var tableType = System.Type.GetType("CasualtiesUnknownOnline.GameAdapter.World.GameBuildingDropTable, CasualtiesUnknownOnline.GameAdapter");
+	var forEntity = tableType == null ? null : tableType.GetMethod("ForEntity", statics);
 	var min = (int)({{n:min}});
 	var limit = (int)({{n:limit}});
 	if (min < 2) { min = 2; }
@@ -52,7 +61,39 @@
 			sb.Append(",\"x\":").Append(building.transform.position.x.ToString("R", inv));
 			sb.Append(",\"y\":").Append(building.transform.position.y.ToString("R", inv));
 			sb.Append(",\"health\":").Append(building.health.ToString("R", inv));
-			sb.Append(",\"hasTable\":").Append(hasTable ? "true" : "false").Append('}');
+			sb.Append(",\"hasTable\":").Append(hasTable ? "true" : "false");
+			sb.Append(",\"rows\":[");
+			if (forEntity != null) {
+				var bounds = forEntity.Invoke(null, new object[] { building }) as System.Collections.IEnumerable;
+				var written = 0;
+				if (bounds != null) {
+					foreach (var bound in bounds) {
+						if (written > 0) { sb.Append(','); }
+						written++;
+						var boundType = bound.GetType();
+						var idsProperty = boundType.GetProperty("ItemIds", instanceFlags);
+						var boundsProperty = idsProperty == null ? null : idsProperty.GetValue(bound, null);
+						var ids = boundsProperty as System.Collections.Generic.IReadOnlyList<string>;
+						sb.Append("{\"ids\":[");
+						if (ids != null) {
+							for (var r = 0; r < ids.Count; r++) {
+								if (r > 0) { sb.Append(','); }
+								sb.Append('"').Append(ids[r]).Append('"');
+							}
+						}
+						sb.Append(']');
+						var minProperty = boundType.GetProperty("MinCondition", instanceFlags);
+						var maxProperty = boundType.GetProperty("MaxCondition", instanceFlags);
+						var minValue = minProperty == null ? null : (float?)minProperty.GetValue(bound, null);
+						var maxValue = maxProperty == null ? null : (float?)maxProperty.GetValue(bound, null);
+						sb.Append(",\"min\":").Append(minValue.HasValue ? minValue.Value.ToString("R", inv) : "null");
+						sb.Append(",\"max\":").Append(maxValue.HasValue ? maxValue.Value.ToString("R", inv) : "null");
+						sb.Append('}');
+					}
+				}
+			}
+			sb.Append("]}");
+			sb.Append('}');
 		}
 		sb.Append("]}");
 		listed.Add(sb.ToString());

@@ -274,6 +274,45 @@ What this cycle does NOT do: the destination ladder. The ladder is the next unit
 path (rungs 2-4), the answer wording, the rows 4/5/11 and the slot resolver's contract, and it deserves its
 own cycle rather than half of this one.
 
+## Several liquids in one container (the user's question, 2026-10-17)
+
+The question: does the property design consider a container holding more than one liquid? Read against the
+game's own container and our write path, the honest answer is **read yes, write no**:
+
+- **The game's model is multi-liquid with a capacity.** `WaterContainerItem.stack` is a
+  `List<LiquidStack>`; `AddLiquid` appends a NEW stack for a liquid id it does not hold
+  (`this.stack.Add(new LiquidStack(liquidId, num))`), tops up an existing one, clamps to
+  `SpaceLeft = Capacity - CurrentTotal`, and `Capacity` is `LiquidItemInfo.capacity`. `Drain` drops stacks
+  under 0.5 ml. So the game itself allows water + another liquid in one container, up to one shared capacity.
+- **Our READ is multi-liquid already**: `CharacterItemMsg.Liquids` carries every stack, the codec captures
+  the list, and `/data get` prints one `liquid <id> <ml>` line per stack — so a multi-liquid container reads
+  correctly and round-trips through the snapshot/archive.
+- **Our WRITE is not**: `ItemDataWriteValues.ApplyLiquid` looks up ONE existing stack by liquid id and sets
+  its amount; it cannot append a stack, cannot fill a container that captured none (which is why the batch's
+  row 2 refused — the prefab capture has no stacks at all), and it does not consult the capacity, so a set
+  can exceed what the container holds. One `liquid` token edits one existing stack; a second liquid cannot be
+  introduced by `/give` or `/data set`.
+- **Why a prefab capture is empty even for a container the game fills**: `LiquidItemInfo.autoFill` (default
+  true) is the game's own "fill it for me" flag, applied when the item is loaded/instantiated — and `/give`
+  captures the PREFAB, which is not an instantiated item, so the capture legitimately has no stacks.
+
+**The design (ruled by the user's follow-ups, 2026-10-17).** A liquid write means "the amount of liquid X in
+this container", against the game's own rules: a liquid the item does not hold is APPENDED (so an empty
+container can be filled and a second liquid can sit beside the first), an amount of 0 drops the stack (the
+game's `Drain` removes stacks under half a millilitre), and the total is judged against the container's
+capacity — over capacity is REFUSED BY NAME, never clamped. The same semantics apply to `/give` and
+`/data set`, because they share the grammar.
+
+The capacity is a property of the item's DEFINITION (`LiquidItemInfo.capacity`, read through the live
+container's `Capacity`), not of the item instance. It therefore does NOT belong in the item fact: carrying it
+on every item would duplicate a definition constant into instance state — a second source of truth that can
+drift — and inflate the wire. The first sketch of this design did exactly that and the user rejected it on
+sight ("什么傻逼设计"), correctly: the write path asks the ADAPTER for the definition's capacity through a
+narrow port (the adapter is the only layer that can read `Item.GlobalItems` / the prefab's stats), and a
+build without an adapter answers "no capacity" so the liquid write refuses by name exactly as it does today.
+No wire or save-shape change; `ItemDataWriteValues.TryApply` takes the capacity as a parameter and the two
+callers (the console's write path and `PlayerItemGiveService`) resolve the port.
+
 **The re-run's finding (2026-10-17 22:04, artifact `0.1.0+02bc1f6a`) — an OPEN QUESTION for the user.** The
 exception is gone and the give answers, but row 2's 500 ml is still not reached: `/give @p waterbottle liquid
 water 500` creates the waterbottle and then refuses with `carries no 'water' — its liquids are: none (an item

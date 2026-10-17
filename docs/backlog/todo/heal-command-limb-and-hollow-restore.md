@@ -136,3 +136,36 @@ the component**, which no game code does.
 it belongs on the affected player's own client, and it has to reach the host and every peer to be worth
 anything — a heal that removes the component only locally leaves every other view showing hollow and the next
 character sync putting it back. That replication question, not the removal itself, is the work.
+## The replication question, answered: a removal cannot travel today (2026-10-18)
+
+The channel exists. CUO already carries `MindwipeScriptPresent` / `MindwipeScriptActive` on the character health
+message (`KernelDomainWireMapper` and `KernelPlayerInteractionWireMapper` both map them), and
+`MedicationComponentsSync` is the helper that moves that component state — its own doc comment says it exists
+because "those fields live on components, not on `Body`".
+
+**But the channel only ever ADDS, never REMOVES**, and that is a defect rather than a limitation of this ticket:
+
+- `Capture` writes the presence flag only when the component is there (`if (mindwipe != null) { Present = true; … }`),
+  so a body WITHOUT the component sends the field's default `false`.
+- `Apply` reads it as `if (health.MindwipeScriptPresent) { … add or set … }` — with **no else arm**. A `false`
+  therefore means "do nothing", not "remove", and a client that already has the component keeps it.
+
+The same hole runs through the other two components in the same helper: `SleepingPillsAmount` and
+`AntidepressantsAmount` are only acted on when non-zero, so a dose that has decayed to zero — or a component the
+owner no longer has — leaves the receiver's copy standing.
+
+**What that means for this ticket.** The heal's hollow half is exactly "make the component absent", so it cannot
+replicate through this helper as written: the operator would remove it, the wire would carry `false`, and every
+other view (and the restored save) would keep showing hollow. Fixing the helper is therefore a PREREQUISITE of
+this ticket's limb/moodle outcome, and it is a fix in its own right — three components, one shape, measurable on
+its own — so it is filed as its own item rather than smuggled into the heal.
+
+**Why it was not caught**: every existing case for these components drives them from zero to a value. Nothing
+exercised arrival at zero or the removal of a component the receiver already holds, which is the direction that
+was never written.
+
+## What this leaves to decide (unchanged)
+
+- Which surface: the vanilla console command (item-free) or CUO's own `/heal`.
+- How much of KrokMP's ~40 extra body fields parity wants — that author's composition, not the game's own idea
+  of "fully heals", and each one has to replicate and survive a save to be worth having.

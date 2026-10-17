@@ -50,7 +50,13 @@
 		var names = new System.Collections.Generic.List<string>();
 		for (var k = 0; k < every.Length; k++) {
 			var seen = every[k] as Body;
-			if (seen != null) { names.Add(seen.gameObject.name + (seen.gameObject.activeInHierarchy ? "" : "(inactive)")); }
+			if (seen == null) { continue; }
+			// Each body carries its component type names, because "found three bodies, none matched" cannot say
+			// WHICH part of a body the marker lives on or whether it is there at all.
+			var kinds = new System.Collections.Generic.List<string>();
+			var comps = seen.GetComponents<UnityEngine.Component>();
+			for (var c = 0; c < comps.Length; c++) { if (comps[c] != null) { kinds.Add(comps[c].GetType().Name); } }
+			names.Add(seen.gameObject.name + (seen.gameObject.activeInHierarchy ? "" : "(inactive)") + " [" + string.Join(",", kinds.ToArray()) + "]");
 		}
 		return "{\"ok\":false,\"error\":\"no-body\",\"target\":\"" + target + "\",\"bodiesFound\":" + every.Length.ToString() + ",\"bodies\":[\"" + string.Join("\",\"", names.ToArray()) + "\"]}";
 	}

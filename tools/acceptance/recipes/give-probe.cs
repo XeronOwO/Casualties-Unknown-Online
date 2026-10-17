@@ -68,10 +68,12 @@
 	var candidates = body.GetComponentsInChildren<Item>(true);
 	for (var i = 0; i < candidates.Length; i++) {
 		var candidate = candidates[i];
-		// A RING-SLOT item: not inside a container, and not worn on a limb. Worn items are refused by the host
-		// path ("only backpack/hand slot items are takeable in this slice"), so picking one would read as a
-		// give that silently does not land.
-		if (candidate == null || candidate.GetComponentInParent<Container>() != null || candidate.GetComponentInParent<Limb>() != null) { continue; }
+		// A SLOT item: sitting in an inventory slot and not inside a container. The host path refuses a worn item
+		// by name ("only backpack/hand slot items are takeable in this slice"), and the slot itself hangs under a
+		// limb — so a "no limb ancestor" test would skip every slot item, which is what the first attempt did.
+		if (candidate == null) { continue; }
+		if (candidate.GetComponentInParent<Container>() != null) { continue; }
+		if (candidate.GetComponentInParent<InventorySlot>() == null) { continue; }
 		held = candidate;
 		break;
 	}

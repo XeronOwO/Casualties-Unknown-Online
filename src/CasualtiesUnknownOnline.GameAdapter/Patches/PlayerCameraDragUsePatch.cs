@@ -148,7 +148,16 @@ internal static class PlayerCameraDragUsePatch
 				var item = button.GetItem();
 				if (item != null && RemoteDragProxyQuery.IsProxy(item)) // Unity objects — ==
 				{
-					return new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy item {item.id}", TargetItemInstanceId: RemoteDragProxyQuery.InstanceId(item));
+					// What the pointer hit decides the OPERAND, and this is the only side that can tell: the item
+					// shown here is a real object with (or without) a Container component, while the host's snapshot
+					// of the other player carries no such flag. An item that really is a container is named as the
+					// destination; anything else is not a container, so the release means that RING SLOT — naming a
+					// container the host would then have to nest into a plain item is what left the host's ledger
+					// stating a location the receiver never used.
+					var container = item.GetComponent<Container>();
+					return container != null // Unity object — ==
+						? new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy container item {item.id}", TargetItemInstanceId: RemoteDragProxyQuery.InstanceId(item))
+						: new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy item {item.id} in slot {button.slot}", TargetSlotIndex: button.slot);
 				}
 
 				if (button.isBody && RemoteBackpackView.IsOpen)

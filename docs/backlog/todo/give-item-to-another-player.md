@@ -417,3 +417,25 @@ exactly one gap behind, the one already recorded: a host-side refusal still has 
 aimed at a plain item still ends with the receiver placing the item in a slot and saying so — with the host's ledger
 unaware of the slot. That is the symptom the bit removes, not a reason to call row 2 unverified.
 
+### It landed smaller than planned: the classification is the giver's, and needs no wire field (2026-10-18)
+
+`ResolveDisplayProxyTarget` already has everything the decision needs — the hit `InvButton` (so the ring slot) and
+the item shown in it (a REAL object with or without a `Container`). So the release now classifies at the seam:
+
+- the hit object IS a container → name it as the destination (unchanged), and
+- it is NOT → name that RING SLOT instead, and no container at all.
+
+No `TargetIsContainer` bit, no new `ProtoMember`, and the host can never again be told to nest an item into a plain
+item. A peer that lies anyway still lands somewhere safe: the receiver's own lookup refuses it by name and places it
+in a slot, which the previous section's livetest already read.
+
+**Verified on the machine, in the still-running session**: a release encoded the way the classification now encodes a
+non-container target (`slot = 2`, `container = 0`) put the item in a REAL slot on the receiver — the destination was
+substituted to slot 4 because 2 was taken, exactly as `ResolveDestinationSlot` documents — and the receiver's ledger
+states `bandage [slot 4]`. That is the shape the container path cannot give (it states `[carried]`), so the two
+encodings are now visibly different in the ledger, which is the whole point.
+
+**What is still not drivable**: the classification itself lives in the drag seam, so reading it end to end needs a
+real drag and therefore a cursor. The seam's own inputs are pinned by the operands it now sends, and the host-side
+half is covered by the encoding check above.
+

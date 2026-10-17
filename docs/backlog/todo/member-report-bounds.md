@@ -246,6 +246,28 @@ open patch names `Minigame.game.currentItem` — the lockpick, per
 check above becomes possible. Until then the open report has no data anchor and the row stays open, honestly.
 **Prerequisite filed:** the client cannot name the tool it used — the game's `Item` has no instance id and CUO keeps no map — so both remaining rows wait on `docs/backlog/todo/item-identity-bridge.md`.
 
+### Third attempt, reviewed and reverted: the tool claim cannot be made falsifiable (2026-10-18)
+
+Built end to end and withdrawn uncommitted. The independent review found four blockers, and two of them are structural
+rather than bugs — they close this anchor, not just this attempt:
+
+1. **Empty-handed lockpicking is legal.** `reversing/.../Openable.OnUse` clears the tool when the skill check fails
+   (`if (PlayerCamera.main.body.skills.INT < 10) { item = null; }`), so "I opened it with no tool" is ordinary play. A
+   report that names a tool can therefore only be checked when it CLAIMS one, and a zero id has to be accepted — which
+   makes the id unfalsifiable: any client sends 0 and passes.
+2. **The id is gone by the time the report fires.** The successful lockpick path writes `this.toDestroy.health = 0f;`
+   and then `Minigame.game.EndMinigame()`, which clears `currentItem` (`MinigameBase`: `this.currentItem = null;`) —
+   all inside the `Update` whose POSTFIX is our hook. So the tool's id reads 0 exactly on the path this check exists
+   for. It would have to be snapshotted in a prefix, or taken at the gesture's own start.
+3. The rest was mechanical but fatal in production: the id was dropped one hop inside the adapter (`WorldBuildingEntitySync`
+   called `SendBuildingEntityOpened` without it), and the check ran on the guest relay path too, where `sender` is the
+   HOST, so every relayed open would have been refused against the opener's item.
+4. A refusal here also has no answer, and the opener's own copy is already open with its drops rolled — so an
+   unanswerable refusal here is worse than none: it turns "forge a tool" into a one-way loot advantage.
+
+**Conclusion for this row**: the open report has no data anchor that survives contact with legal empty-handed play. It
+stays `unbounded` and the census says so. If the project ever wants tool claims to be checkable, the wire has to carry a
+claim that can be FALSE (a gesture kind), and the refusal has to be answered — both are prerequisites, not details.
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

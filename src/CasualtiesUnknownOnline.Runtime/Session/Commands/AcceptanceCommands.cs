@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -58,5 +59,20 @@ public sealed class AcceptanceCommands
 		var y = (int)Math.Round(local.Position.Y) + dy;
 		_world.SendBlockPlacedReport(x, y, block, playerBreak);
 		return $"Reported block {block} at ({x},{y}) playerBreak={playerBreak} as {_session.LocalSteamId}.";
+	}
+
+	[ConsoleCommand("entityopen", "Acceptance only: publish one building-entity open at an offset from this client's own body.", CommandPermission.Anyone, "/entityopen <dx> <dy>")]
+	private string EntityOpen(IReadOnlyList<string> args)
+	{
+		if (args.Count < 3 || !int.TryParse(args[1], out var dx) || !int.TryParse(args[2], out var dy))
+		{
+			return "Usage: /entityopen <dx> <dy>";
+		}
+
+		var local = _entities.LocalPlayer;
+		var x = (float)(Math.Round(local.Position.X) + dx);
+		var y = (float)(Math.Round(local.Position.Y) + dy);
+		_world.SendBuildingEntityOpened(new NetVector2(x, y));
+		return $"Reported an open at ({x},{y}) as {_session.LocalSteamId}.";
 	}
 }

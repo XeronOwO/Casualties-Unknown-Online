@@ -468,9 +468,9 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true, bool playHitFlash = false) => _messages.SendBuildingEntityDamaged(pos, damage, playHitSound, playHitFlash);
 
-	public event Action<NetVector2>? BuildingEntityOpenedReceived { add => _messages.BuildingEntityOpenedReceived += value; remove => _messages.BuildingEntityOpenedReceived -= value; }
+	public event Action<ulong, NetVector2>? BuildingEntityOpenedReceived { add => _messages.BuildingEntityOpenedReceived += value; remove => _messages.BuildingEntityOpenedReceived -= value; }
 
-	public void FireBuildingEntityOpenedReceived(NetVector2 pos) => _messages.FireBuildingEntityOpenedReceived(pos);
+	public void FireBuildingEntityOpenedReceived(ulong sender, NetVector2 pos) => _messages.FireBuildingEntityOpenedReceived(sender, pos);
 
 	public void SendBuildingEntityOpened(NetVector2 pos) => _messages.SendBuildingEntityOpened(pos);
 

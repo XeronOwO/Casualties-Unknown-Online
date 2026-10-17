@@ -214,16 +214,16 @@ internal sealed class WorldStateMessageService(
 	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash) =>
 		BuildingEntityDamagedReceived?.Invoke(pos, damage, playHitSound, playHitFlash);
 
-	public event Action<NetVector2>? BuildingEntityOpenedReceived;
+	public event Action<ulong, NetVector2>? BuildingEntityOpenedReceived;
 
-	public void FireBuildingEntityOpenedReceived(NetVector2 pos)
+	public void FireBuildingEntityOpenedReceived(ulong sender, NetVector2 pos)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
 			_eventChannel.ReportOpenedEntity(pos.X, pos.Y);
 		}
 
-		BuildingEntityOpenedReceived?.Invoke(pos);
+		BuildingEntityOpenedReceived?.Invoke(sender, pos);
 	}
 
 	public void SendBuildingEntityOpened(NetVector2 pos)

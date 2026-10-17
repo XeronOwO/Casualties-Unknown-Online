@@ -160,10 +160,10 @@ public interface IWorldControl
 	/// </summary>
 	void SendBuildingEntityOpened(NetVector2 pos);
 
-	void FireBuildingEntityOpenedReceived(NetVector2 pos);
+	void FireBuildingEntityOpenedReceived(ulong sender, NetVector2 pos);
 
 	/// <summary>A lockable entity was opened — apply the open (health = 0) to the entity at Pos.</summary>
-	event Action<NetVector2>? BuildingEntityOpenedReceived;
+	event Action<ulong, NetVector2>? BuildingEntityOpenedReceived;
 
 	/// <summary>Host only: everyone enters the world together — arm the start gate (waits for every guest's InWorld, or 30 s). Returns whether anyone is being waited on.</summary>
 	bool StartStartGate();

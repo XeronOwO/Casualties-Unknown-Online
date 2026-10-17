@@ -19,7 +19,7 @@ public sealed class BuildingEntityOpenedHandler(ILogger<BuildingEntityOpenedHand
 	protected override void Handle(ulong sender, BuildingEntityOpenedMsg msg, IWorldSessionHandlerContext ctx)
 	{
 		var pos = msg.Position.ToNetVector2();
-		ctx.World.FireBuildingEntityOpenedReceived(pos);
+		ctx.World.FireBuildingEntityOpenedReceived(sender, pos);
 		if (ctx.Session.Role == SessionRole.Host)
 		{
 			ctx.Session.BroadcastExcept(sender, NetMsg.BuildingEntityOpened, msg);

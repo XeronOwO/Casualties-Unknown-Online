@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -88,8 +89,20 @@ internal sealed partial class WorldEventSync(
 	// wrappers keep the event signatures void — and stay the single subscription
 	// identity Bind/Unbind pair up.
 
-	private void OnRemoteBuildingEntityOpenedRelay(NetVector2 pos) =>
+	private void OnRemoteBuildingEntityOpenedRelay(ulong sender, NetVector2 pos)
+	{
+		// Same bound as a player's block break, on the same shared reach: an OPEN is a lock being worked, so it is a
+		// gesture and its reporter's own body has to have been able to reach it. Only the host judges — a guest
+		// receiving the host's broadcast is applying an already-judged fact.
+		if (IsHostMode && !IsWithinReach(sender, new Vector2Int((int)Math.Round(pos.X), (int)Math.Round(pos.Y))))
+		{
+			_log.LogWarning("[EntitySync] {Sender}'s open at ({X},{Y}) is further than {Reach} cells from its own body — refused: nothing applied, nothing relayed.",
+				sender, pos.X, pos.Y, InteractionReach.Cells);
+			return;
+		}
+
 		_buildingEntities.OnRemoteBuildingEntityOpened(pos);
+	}
 
 	private void OnOpenedEntitiesProjected(IReadOnlyList<NetVector2Msg> positions) =>
 		_buildingEntities.OnOpenedEntitiesProjected(positions);
@@ -394,24 +407,6 @@ internal sealed partial class WorldEventSync(
 		}
 	}
 
-	/// <summary>Could the reporter's body have been at the cell it broke? An absent position is not a refusal.</summary>
-	private bool IsWithinReach(ulong sender, Vector2Int pos)
-	{
-		if (sender == _session.LocalSteamId)
-		{
-			return true; // the host's own writes never arrive through the report path
-		}
-
-		var entity = _entities.GetRemotePlayer(sender);
-		if (entity is null)
-		{
-			return true; // no position for this peer yet
-		}
-
-		var dx = entity.Position.X - pos.x;
-		var dy = entity.Position.Y - pos.y;
-		return Mathf.Sqrt((dx * dx) + (dy * dy)) <= InteractionReach.Cells;
-	}
 
 	/// <summary>
 	/// An earthquake just started (detected in WorldGenerationUpdatePatch). The

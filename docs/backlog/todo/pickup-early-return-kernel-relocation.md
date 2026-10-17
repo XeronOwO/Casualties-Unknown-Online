@@ -118,3 +118,34 @@ Reading the unload path to find the parent settles how this has to be built:
 
 So the change touches the bridge's unload seam, the two call sites of it, `ContainerItemSync`, and `ItemService` —
 which is why it is one change for BOTH tickets and not a one-line edit in either.
+## CORRECTION: the parent report would kill the item, so it is not the fix (2026-10-18)
+
+The section above proposed stating the old parent's updated contents, on the reasoning that the kernel has no
+"move one item out" call. Reading `ItemKernelAuthority.TrySyncContainerFacts` shows that route is **destructive**:
+
+```
+var dropped = ChildrenTheReportDrops(parent);
+… if (accepted && dropped.Count > 0) { … }
+```
+
+and its own comment says what happens to them: "a child it does not name is no longer inside — and the decision
+takes it to Terminal (ReplacedBy), which no later command may revive ('terminal child … cannot re-enter
+container' rejects the WHOLE container sync)".
+
+So reporting the parent's contents without the child does not relocate the child — it **terminalizes** it, and an
+item in that state refuses every later command. The ticket's own symptom list already said this ("Terminal is
+one-way: every later command that touches the item is refused"); the proposed fix would have been a worse version
+of the bug it was meant to cure, on every single re-home.
+
+**What that leaves.** The kernel needs a statement that relocates ONE item out of its container without
+terminalizing anything — its location changes, its identity and usability do not. `TryUpdateState` will not carry
+it (that is exactly the branch the ticket is about), and a container report cannot express it. So the fix is a
+kernel-level relocation entry, and the Unity-side change (the unload patch handing its container down, which the
+previous section established) becomes the caller of it rather than the author of a container report.
+
+**The two tickets are therefore NOT one change after all** — that was the wrong conclusion and is withdrawn. The
+sibling ticket (`container-content-event-gap-on-repick.md`) is about the PEERS' fact table learning the
+container's change; a container report is the right carrier there and is harmless, because it reaches a clone fact
+table rather than a kernel that terminalizes unnamed children. This ticket is about the KERNEL's records, and it
+needs a relocation command of its own. Both still need the same drag lever to be READ, but their fixes are
+different and must not be merged.

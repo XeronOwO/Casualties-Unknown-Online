@@ -222,3 +222,19 @@ the CLONE, which is the side that must follow.
 name where the driver requires `key=value`, so no answer file existed and every comparison fell to a default.
 The verdict lines printed FAIL for a reading that was never taken. That is the same shape the earlier batches
 were taught to avoid: a check that reports an absence from a reading it has not shown it can make.
+## The lever for the owed row, located (2026-10-18)
+
+The row needs the remote medical display clone, and the driver cannot open that surface today. What it CAN do
+is now known, so the next attempt is mechanical rather than exploratory:
+
+- The view is opened from the Online UI's member list — `OnlineUiMemberListDrawer` calls
+  `ctx.OpenRemoteMedical(steamId, name)` for a row — and from that row's context menu
+  (`OnlineUiPlayerContextMenu`, the `member.open_medical` action). Both go through
+  `OnlineUiActions.OpenRemoteMedicalFromUi` → `IRemoteMedicalPresentation.OpenRemoteMedical`, which is
+  `GameAdapter`'s own method. The view is NATIVE, so what it produces is a display body named
+  `MedicalDisplay_{steamId:X}` parked off-scene.
+- The driver's vocabulary is `open-window`, `goto-page players`, `click <control id>` and `state`, and `state`
+  reports the control ids the client currently OFFERS — so the batch can DISCOVER the medical control id for the
+  member instead of hardcoding it, which is also the only form that survives the id being per-row.
+- What the probe still needs is a mode that reads and plants on the display body by name rather than on
+  `PlayerCamera.main.body`, because the clone is the side that must follow the inspected player.

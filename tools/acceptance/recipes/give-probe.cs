@@ -18,7 +18,7 @@
 	var slotText = {{n:slot}};
 	var trace = new System.Collections.Generic.List<string>();
 
-	System.Type FindType(string simpleName) {
+	var findType = new System.Func<string, System.Type>((simpleName) => {
 		var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 		for (var i = 0; i < assemblies.Length; i++) {
 			System.Type[] types;
@@ -28,12 +28,12 @@
 			}
 		}
 		return null;
-	}
+	});
 
 	const System.Reflection.BindingFlags anyStatic = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
 	const System.Reflection.BindingFlags anyInstance = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
 
-	var bridgeType = FindType("PatchBridge");
+	var bridgeType = findType("PatchBridge");
 	if (bridgeType == null) { return "{\"ok\":false,\"error\":\"no-PatchBridge-type\"}"; }
 
 	var implProperty = bridgeType.GetProperty("Impl", anyStatic);

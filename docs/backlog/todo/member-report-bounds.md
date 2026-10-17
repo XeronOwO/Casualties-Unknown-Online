@@ -179,6 +179,29 @@ What the host CAN check, both of them data:
 
 What neither anchor covers, and must not be faked: whether the minigame was actually played. That is behaviour, it is
 anti-cheat, and it stays unbounded by ruling.
+### The keypad anchor does not exist — the code is shipped to every client (2026-10-18)
+
+Checked before building it, and the plan does not survive: the keypad code is HOST-OWNED but not HOST-ONLY.
+`EntitySpawnSync` creates it on the host (`KeypadCodeTable.EnsureCode(openable) // the host creates it — its code is host
+authority from the start`), carries it in the spawn report (`KeypadCode = KeypadCodeTable.EnsureCode(openable)`), and
+every receiving client writes it into its own copy:
+
+    if (msg.KeypadCode.Length > 0)
+        Traverse.Create(openable).Field("code").SetValue(msg.KeypadCode);
+
+So a code the opener "entered" is a value that client was already given. Comparing a reported code against the host's own
+copy would always agree — it is not an anchor, it is a tautology, and building it would be exactly the kind of check that
+looks defended and proves nothing.
+
+What that leaves for this row, all of it honest:
+
+- **The item anchor is the real one** and it needs the wire: "the opener carries the tool this lock requires" is an
+  inventory identity claim the host holds the data to check. Same shape as the weapon identity the building-damage row
+  needs, so both land in one protocol change.
+- **The minigame result stays unbounded** (decision 262 — behaviour, not data).
+- **The keypad code is not a bound at all**; it is a shared secret the design hands to every peer at spawn. If the
+  project ever wants keypads to be a real barrier, that is a separate decision about who may hold the code, not a
+  validation check on the open report.
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

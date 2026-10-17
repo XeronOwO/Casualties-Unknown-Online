@@ -68,7 +68,10 @@
 	var candidates = body.GetComponentsInChildren<Item>(true);
 	for (var i = 0; i < candidates.Length; i++) {
 		var candidate = candidates[i];
-		if (candidate == null || candidate.GetComponentInParent<Container>() != null) { continue; }
+		// A RING-SLOT item: not inside a container, and not worn on a limb. Worn items are refused by the host
+		// path ("only backpack/hand slot items are takeable in this slice"), so picking one would read as a
+		// give that silently does not land.
+		if (candidate == null || candidate.GetComponentInParent<Container>() != null || candidate.GetComponentInParent<Limb>() != null) { continue; }
 		held = candidate;
 		break;
 	}

@@ -24,6 +24,8 @@ internal static class ConsoleComposition
 		// scene is empty, which is the same shape ILocalCharacterCapture uses.
 		services.AddSingleton<ILocalItemAccess>(new UnavailableLocalItemAccess());
 		services.AddSingleton<CommandConsoleService>();
+		// Acceptance-only verbs: their own owner object, so the player-facing console does not grow a line for them.
+		services.AddSingleton<AcceptanceCommands>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandArgumentSuggestions>(p => p.GetRequiredService<CommandConsoleService>());

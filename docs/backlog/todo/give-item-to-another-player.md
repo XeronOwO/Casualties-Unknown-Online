@@ -357,3 +357,30 @@ One live session on the deployed artifact, driven step by step rather than by a 
 fallback to a slot, with the line naming why). That needs an item too heavy or wrongly tagged for the bag, which is
 row 4's own scenario and is still owed together with it.
 
+### The refusal shape, read — and it found a real gap (2026-10-18)
+
+Driven in the same live session, aiming a give at an item the receiver carries that is NOT a container (a spare
+`bandage`, so the receiving side's container lookup fails at `GetComponent<Container>()`):
+
+- The receiving client answered exactly as designed:
+  `[Warning] [PlayerInteraction] bandage (id 9492956821) not placed into container 1245861496771 (the target is not
+  a container) — falling back to a slot.` — and the item did NOT vanish; it is in the receiver's body.
+- **But the host's ledger never learned where it actually went.** Both handed-over items read
+  `emergencylight [carried]` / `bandage [carried]` — "carried, no slot" — and re-reading a minute later still does.
+  For the emergencylight that is correct (it is inside the bag); for the bandage it is WRONG: the receiver put it in
+  a slot, and nothing tells the host that.
+
+**Root cause, and it is one mechanism for two of the owed items.** The host takes the container path on the
+sender's word that the named item is a container; whether it really is one, and where the item ends up when it is
+not, is decided on the RECEIVING client, and the receiving client's answer never travels back except through the
+character re-report — which updates the character snapshot but not this ledger entry. So:
+
+- the ledger states a location the receiver did not use (this finding), and
+- a host-side refusal still reaches nobody (the gap listed above).
+
+Both are the same missing edge: **the receiving client's placement outcome has to travel back to the host**, and it
+is also what should answer the giver. The wire already has the shape for answering a refused report
+(`CommandRejected` with a `RefusedKind`); what it does not have is a positive "it went here instead" correction.
+That is the next piece of work on this ticket, and until it lands the two `[carried]`-without-a-slot readings are
+the evidence that it is needed.
+

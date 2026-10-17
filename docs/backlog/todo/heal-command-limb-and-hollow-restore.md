@@ -345,3 +345,38 @@ been read from the source first.
 
 Still owed on this ticket: the heal itself (limb restoration and the hollow clear). The prerequisite and its
 proof are now both in place.
+## The surface is settled by the user's own words, and the two halves are not the same size (2026-10-18)
+
+**Which surface: no decision needed.** The ticket's open question asked whether to extend the vanilla console
+command or CUO's own `/heal`. The user's request names the former in its own words ("the game's own `heal`
+command does not restore severed limbs and does not remove the hollow debuff"), and KrokMP re-registers that
+same command name. Re-asking a question the source already answered is the process violation the rules name, so
+the vanilla `heal` command is the surface and the item path keeps its own behaviour.
+
+**It is at `ConsoleScript.cs`**: `ConsoleScript.Commands.Add(new Command("heal", "Fully heals the player
+character.", delegate(string[] args) { … }))`, writing each limb's fields and the body's, ending with
+`LogToConsole("Healed the player.")`. It writes `PlayerCamera.main.body` — the LOCAL body — and CUO patches
+nothing in that class today, so extending it is a new entry rather than a change to an existing one.
+
+**The two halves are not the same size, and one of them has no native path at all.**
+
+- **The hollow half is small and now unblocked.** Clearing it means removing `MindwipeScript`, and the
+  replication for that was fixed and proven this cycle (a component the owner no longer has is now removed on
+  every receiver, read live on the display body). So this half is an effect on the local body plus the existing
+  sync carrying it out.
+- **The limb half has nothing to call.** `dismembered` appears in `Body.cs` only as a READ (its broken/dislocated
+  and distance checks) and is never assigned anywhere in the assembly, so **the game has no limb-regrow path**:
+  a severed limb is permanent by construction. That is why KrokMP carries a physics procedure of its own
+  (`RegrowAllLimbs`), which its own reading in this ticket describes — ragdoll, hinge-state restoration, a
+  deactivate/reactivate pass over every limb, collision ignores against every body in the scene, and two gaps
+  already noted (a saved `standing` never restored, a `Ragdoll()` with no matching un-ragdoll).
+
+**So the ticket is split**, per the rule that multi-stage work becomes stages with verifiable results:
+
+1. **Stage A — the hollow clear through the native `heal` command**: remove the component after the native body
+   runs, on the affected player's own client, and let the existing sync carry it out. Small, testable, and it
+   closes half of the user's request.
+2. **Stage B — limb restoration**: its own ticket, because it is a physics procedure rather than a field write,
+   it has to end in a state the character sync can carry rather than in one that merely looks right on the
+   operator's screen, and its first step is to check whether CUO's own save/limb work already carries a restore
+   helper before KrokMP's procedure is copied.

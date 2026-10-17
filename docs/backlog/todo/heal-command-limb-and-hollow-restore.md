@@ -192,3 +192,33 @@ has none instead of doing nothing. Five cases pin the rule.
   next-level respawn now clear medication where they previously left it standing. Death clearing medication is
   the intended end state and both entry points require `Alive == false`, but it is a change inside a fix whose
   subject was the heal, so it is named here.
+## The owed row, attempted and re-aimed (2026-10-18)
+
+A probe now exists (`tools/acceptance/recipes/medication-component-probe.cs`: plant / read / clear-local on the
+local body) and a two-client batch ran it on the deployed artifact. It produced a reading, and the reading says
+the row was aimed at the wrong side.
+
+**What the run showed.** Planting worked (`sleepingPills=true` on the next read, `mindwipe=true active=true`
+after planting it), and six seconds of authoritative snapshots later both were **still there**. The batch
+called that a failure. It is not: **the client the component was planted on is the OWNER of that body**, and by
+the disclosure rule the affected player's own client is the authority for their own state. So the owner's next
+capture reports "present" — the system is self-consistent, and no snapshot has a reason to remove anything.
+Planting on the owner tests the one direction that cannot fail, so a green there would have proved nothing
+either; the red is the same defect in the fixture.
+
+**Where the removal direction is actually reachable**, from the review's call-site audit:
+
+- the **remote medical display clone** — a player inspecting a teammate applies that teammate's health to a
+  display body, so a component the teammate cleared must disappear from the clone;
+- the **restore** path (`CharacterRestoreApplier`) — a restored snapshot that says "absent" must not leave the
+  body's previous component standing;
+- the **local body** when the host sends an authoritative result for it — which is the path a heal takes.
+
+The cleanest of the three to drive is the display clone: it needs the medical view open on a teammate, no
+combat, and its own read. The next row should plant on the INSPECTED player's body (or clear it there) and read
+the CLONE, which is the side that must follow.
+
+**Also recorded**: the batch's first attempt read `missing` for every field — the recipe was passed a bare mode
+name where the driver requires `key=value`, so no answer file existed and every comparison fell to a default.
+The verdict lines printed FAIL for a reading that was never taken. That is the same shape the earlier batches
+were taught to avoid: a check that reports an absence from a reading it has not shown it can make.

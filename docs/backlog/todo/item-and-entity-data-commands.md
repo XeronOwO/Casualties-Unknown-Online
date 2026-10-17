@@ -6,7 +6,7 @@
   registration — 2026-10-18, so **stage B is complete**; batch `20261018-q` re-read its read/write rows under
   the SNBT renderer on `0.1.0+30dbb252` (record
   `docs/evidence/acceptance/item-and-entity-data-commands-20261018-q.md`). **Stage C (`give`) landed 2026-10-17
-  and moved out** to `todo/give-item-to-a-player-command.md`, together with
+  and moved out** to `done/give-item-to-a-player-command.md`, together with
   `review/cheat-permission-and-op-commands.md`'s permission half. **Only stage D (`spawn`) remains** in this
   ticket.
 - Priority: Medium-High
@@ -16,7 +16,7 @@
   settable, mergeable and removable, and the family also covers handing an item out and creating an entity.
 - Related: `review/item-data-read-commands.md` (the landed read half, and the survey these stages build on),
   `done/item-data-write-commands.md` (the landed first write verb and the local-scene port),
-  `todo/give-item-to-a-player-command.md` (stage C, landed and moved out with its design and acceptance rows),
+  `done/give-item-to-a-player-command.md` (stage C, landed and moved out with its design and acceptance rows),
   `review/cheat-permission-and-op-commands.md` (the cheat permission and the two-sided check every cheat verb
   rides), `done/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
@@ -131,7 +131,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
    *The cursor target landed* carries its mapping, its evidence and its limits; and the host's own carried
    inventory, which now registers at world entry 鈥?the last section carries it. **Stage B is complete.**
 2. **Stage C — `give`**: put an item into a player's inventory with its properties already set. **Landed
-   2026-10-17 and moved out** to `todo/give-item-to-a-player-command.md`, which carries the design that was
+   2026-10-17 and moved out** to `done/give-item-to-a-player-command.md`, which carries the design that was
    settled here, the mechanism inventory, the self-check table, the acceptance rows and the limits. The carrier
    is the giver-initiated push the give ticket landed, the permission is
    `review/cheat-permission-and-op-commands.md`'s two-sided check, and the creation rides a narrow adapter port.
@@ -151,7 +151,7 @@ accepted-creation path unchanged or needs its own admission, including what a la
    client before anything is applied, and the verbs that follow `/data set` inherit it. **`/give` rides the
    same rulings on its own request frame** (it is not a kernel command, so the host judges it in its request
    handler rather than at the admission seam); the permission half is
-   `review/cheat-permission-and-op-commands.md`, and the verb is `todo/give-item-to-a-player-command.md`.
+   `review/cheat-permission-and-op-commands.md`, and the verb is `done/give-item-to-a-player-command.md`.
 
 ## Stage B's remaining two verbs 鈥?the design, settled by reading the landed one (2026-10-17)
 
@@ -185,7 +185,7 @@ yet", so the two verbs are additive work on a path that exists rather than a new
   grow one", so `merge` and `remove` ride the landed rule and add no flag.
 
 **What is left after stage B**, unchanged from the stage text above: Stage D's `spawn` (which owes the
-late-joiner answer first). Stage C landed and moved out (`todo/give-item-to-a-player-command.md`). The three
+late-joiner answer first). Stage C landed and moved out (`done/give-item-to-a-player-command.md`). The three
 remainders stage B carried — the host's own id-less carried items, the cursor target and the two verbs — all
 landed by 2026-10-18 (the sections below).
 

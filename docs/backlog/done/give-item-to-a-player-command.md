@@ -1,11 +1,12 @@
 # The `/give` command: create one item in a player's inventory
 
-- Status: Todo — batch `20261018-q` re-judged the re-derived SNBT rows on `0.1.0+30dbb252`: rows 1, 2 (the
-  liquid give, the row that rejected the previous build), 3, 6, 7, 8, 10 and 12 pass. **The destination ladder
-  landed after that batch** (section *The ladder, as landed* below), so rows 4, 5 and 11 await the next
-  acceptance run, and row 9 was not re-run. The record is
-  `docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md`. Split out of
-  `todo/item-and-entity-data-commands.md`'s stage C, which this ticket completes; the umbrella keeps stage D
+- Status: Done — all twelve acceptance rows pass. Batch `20261018-q` judged rows 1, 2 (the liquid give, the
+  row that rejected the previous build), 3, 6, 7, 8, 10 and 12 on `0.1.0+30dbb252`; batch `20261018-r`
+  judged rows 4, 5 and 11 on `0.1.0+510b9cd1`, the build that landed the destination ladder, and its
+  continuation `20261018-r2` judged row 9. The records are
+  `docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md` and
+  `docs/evidence/acceptance/give-item-to-a-player-command-20261018-r.md`. Split out of
+  `done/item-and-entity-data-commands.md`'s stage C, which this ticket completes; the umbrella keeps stage D
   (`spawn`).
 - Priority: Medium-High
 - Category: Command surface / item and entity state / cheat verb
@@ -193,6 +194,13 @@ previous record's "no local-scene probe" limit is closed. The run also read the 
 → `slot 2`, named in the log before the give line) and a container's condition following its fill ratio
 (a state naming 400 ml on a 500 ml bottle answers `Condition:0.8f`, the adapter's own rule). Rows 4, 5 and 11
 are the ladder's and stay unproven until it lands; row 9 was not re-run.
+
+**Batches `20261018-r` and `20261018-r2` judged the remaining rows on the deployed `510b9cd1`** (record
+`docs/evidence/acceptance/give-item-to-a-player-command-20261018-r.md`): rows 4, 5, 11 and 9 pass. Row 4's
+answer named the carried `plasticbag` and the member's own scene tree held the item inside it; row 5's answer
+printed on the member's console for its own verb; row 11 dropped the item and BOTH peers read the world row
+with the same id and state, because the receiving client created AND reported it; row 9's stale-roster
+request reached the host and its own refusal printed on the member's console.
 
 1. Host: `/give @p bandage` — the answer names a new instance id and slot; `/data get id <id>` on BOTH peers
    reads the same document, owned by the member.

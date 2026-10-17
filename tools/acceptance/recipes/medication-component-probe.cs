@@ -111,5 +111,23 @@
 		return "{\"ok\":true,\"mode\":\"clear-local\"," + state + "}";
 	}
 
+	if (mode == "limb") {
+		// The list of limbs with the name the game's own `amputate` command resolves (`Body.LimbByName`) and the
+		// flags a restore has to change, so a run picks a REAL limb name instead of guessing one.
+		var limbs = body.limbs;
+		var parts = new System.Collections.Generic.List<string>();
+		for (var i = 0; i < limbs.Length; i++) {
+			var limb = limbs[i];
+			if (limb == null) { parts.Add("{\"i\":" + i + ",\"name\":\"<destroyed>\"}"); continue; }
+			parts.Add("{\"i\":" + i
+				+ ",\"name\":\"" + limb.fullName + "\""
+				+ ",\"dismembered\":" + (limb.dismembered ? "true" : "false")
+				+ ",\"active\":" + (limb.gameObject.activeSelf ? "true" : "false")
+				+ ",\"muscle\":" + limb.muscleHealth.ToString("0.#", culture) + "}");
+		}
+		return "{\"ok\":true,\"mode\":\"limb\",\"standing\":" + (body.standing ? "true" : "false")
+			+ ",\"shock\":" + body.shock.ToString("0.#", culture)
+			+ ",\"limbs\":[" + string.Join(",", parts.ToArray()) + "]}";
+	}
 	return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be plant-sleepingpills, plant-mindwipe, clear-local or read\"}";
 }))()

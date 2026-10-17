@@ -55,3 +55,19 @@ One artifact a user can drop in and start from, containing the CUO core only:
   `future/phase5-tooling-ecosystem.md`.
 - Not the entry's own refactor (`review/plugin-host-shell.md`); this ticket consumes it rather than replacing
   it.
+## Cost, read from the ticket's own requirements (2026-10-18)
+
+Picked up and put back down in the same cycle, with the reason recorded so it is not mistaken for a quick win:
+
+1. **The feasibility probe is the gate, and it is a runtime reading** — pack one build and find out what BepInEx
+   5's loader and Unity's own assembly loading do with it. Nothing about the package can be designed until that
+   answers, and it needs the real client, a deployment, and a log read.
+2. **The release identity story has to keep working** — `verify-deploy.ps1` compares the deployed set against the
+   build output, and a packed artifact has to preserve "one build → one artifact named for its commit" rather than
+   quietly dropping the check that proves a running client is this build.
+3. **The user-facing documentation is bilingual by rule** — `docs/en/` and `docs/zh/` carry the same page set and
+   `standard/alignment.txt` records each confirmed pair, so a packaging page lands on both sides in one change.
+
+So this is a probe-plus-design-plus-docs change, not a build-script tweak: at least two cycles, with the first
+ending at a reading rather than a package. That is why the next cycle should not open it expecting a one-round
+close, and why a Medium-High ticket is the better use of the next cycle if one is closeable.

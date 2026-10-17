@@ -4,7 +4,9 @@
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
   drops; this ticket is the rest of the same question, one surface per row, each with its own evidence.
   Section A (the reports that name another member's identity) CLOSED 2026-10-17 — its five surfaces now
-  compare against the transport sender, and the census rows say so. Sections B and C remain open.
+  compare against the transport sender, and the census rows say so. Sections B and C remain open, with one
+  exception inside C: the container-sync row was READ on the machine 2026-10-17 (batch `20261017-d`; record
+  `docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md`).
 - Priority: Medium-High
 - Category: Security / report validation
 - Source: the user's 2026-10-14 request (basic checks from the game's own mechanics, never an anti-cheat)
@@ -491,13 +493,18 @@ described above:
   the block-break carrier; this is its sibling). The anchor question is the same one S2b answered for the
   break: what identifies the entities that died in the blast, when the association on the reporter's side is
   a radius and not an identity.
-- **`WireCommandKind.ItemContainerSync`'s creations — IMPLEMENTED 2026-10-17, the machine row is OWED.**
+- **`WireCommandKind.ItemContainerSync`'s creations — IMPLEMENTED 2026-10-17, READ ON THE MACHINE
+  2026-10-17 (batch `20261017-d`) — PASSES.**
   The sibling S3a left: the same claim travelled two more ways — a parent this host never judged
   (materialized as the reporter's own carried item by `ItemDomainModule.DecideSyncContainer`'s
   missing-parent arm) and each listed child it did not know (created as a contained row under the parent
   THAT REPORT names, `child.ParentItemId`, which need not be the sync's own parent id). Both are bounded in
-  code now; this row is NOT marked read, because the acceptance each row in this file owes is a two-client
-  session, and none has been run for it.
+  code; this row is the two-client session that reads them, and it has been run:
+  `docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md`. Both creation arms were
+  driven on the machine — an unjudged PARENT with an unjudged child, and a KNOWN parent with an unjudged
+  child — and each read the host's by-name refusal, its answer, the member's immediate re-statement, the
+  re-stated set landing the container and its content with the state they carried, and an ordinary session
+  that meets neither refusal.
 
   THE DESTINATION ARMS need no statement, and they are what the report can actually WRITE — behind the
   seam, the kernel rewrites the parent, moves every listed child to `child.ParentItemId` verbatim, and
@@ -520,7 +527,7 @@ described above:
   settles EVERY refused container report by asking for that re-statement (never the pickup rollback, which
   would unparent a live container into the world while the host still records it as the member's).
 
-  EVIDENCE (unit level; a machine row is still owed): `CreationBeforeOperationTests` gains twelve cases, of
+  EVIDENCE (unit level plus the machine row below): `CreationBeforeOperationTests` gains twelve cases, of
   which TEN were observed RED — four in the first run, before any of this code existed (the refusal frames
   absent; a forged child created inside another member's container; nothing landing after a refusal), and
   six by mutation control in the finished tree (the parent arm neutralised → the world row's data is
@@ -532,9 +539,24 @@ described above:
   Style: measured after the change, `KernelProtocolCommandHandler` 565 and `ItemService` 595 lines, both
   under the 600 gate; a further growth of either owes the split.
 
+  **Read on the real machine 2026-10-17, batch `20261017-d`**
+  (`docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md`): both creation arms PASS end to
+  end with two clients. Arm 1, an unjudged parent AND an unjudged child: the member's own container-load report
+  (`[ContainerLoad] waterbottle (id 13787924117) moved inside body container trashbag — root content event up to
+  trashbag (id 9492956821)`) drew the host's by-name refusal (`Container sync from <member> refused: container
+  9492956821 was never judged, and that member's carried-set statement already was — …`), its answer
+  (`ItemContainerSync refused (UnclaimedItem)`), the member's own settlement line and `the next carried-set report
+  is due now`, and the re-statement 10 ms later (`re-reported 2 carried item(s)`) landed the pair on the host —
+  kernel `Carried` / `Contained` rows under that member carrying the state the statement captured (`liquid
+  water=500`, `condition 1`) — while the reporting client's own tree survived intact. Arm 2, a KNOWN parent with
+  an unjudged child: the same round trip through the child branch's own message (`content item 18082891413 of
+  container 9492956821 was never judged`), its re-statement landing the child under the judged bag, after which
+  the kernel's `contained` half carries both children. The ordinary session reads ZERO of these refusals before
+  the first stage and zero in the stretch after each settlement, and the whole session carries exactly the two
+  the run provoked — no third line, and no protocol-violation refusal at all.
+
   What the row still does NOT close: a member that never states a carried set keeps the pre-change behaviour
-  (the `ItemSpawn` class); the refusals are implementation-level until the owed two-client row reads them on
-  the machine (by name on the host, nothing created or destroyed, the unmodified stretch silent); and a
+  (the `ItemSpawn` class); and a
   NESTED container whose interior row still records a previous holder is refused by the destination and
   home arms with no recovery, because the re-stated set's `AdoptCarriedContents` stops at a row the kernel
   does not record as the member's own. That shape is not producible through the game's own paths today

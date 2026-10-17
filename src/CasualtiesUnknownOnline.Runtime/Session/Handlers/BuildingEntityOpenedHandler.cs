@@ -19,19 +19,12 @@ public sealed class BuildingEntityOpenedHandler(ILogger<BuildingEntityOpenedHand
 	protected override void Handle(ulong sender, BuildingEntityOpenedMsg msg, IWorldSessionHandlerContext ctx)
 	{
 		var pos = msg.Position.ToNetVector2();
-		var admitted = ctx.World.FireBuildingEntityOpenedReceived(sender, pos);
-		if (admitted && ctx.Session.Role == SessionRole.Host)
+		ctx.World.FireBuildingEntityOpenedReceived(pos);
+		if (ctx.Session.Role == SessionRole.Host)
 		{
 			ctx.Session.BroadcastExcept(sender, NetMsg.BuildingEntityOpened, msg);
 		}
 
-		if (admitted)
-		{
-			_log.LogInformation("Building entity opened at {Pos} by {Sender}.", msg.Position, sender);
-		}
-		else
-		{
-			_log.LogInformation("Building entity open at {Pos} by {Sender} was not admitted — nothing applied, nothing relayed.", msg.Position, sender);
-		}
+		_log.LogInformation("Building entity opened at {Pos} by {Sender}.", msg.Position, sender);
 	}
 }

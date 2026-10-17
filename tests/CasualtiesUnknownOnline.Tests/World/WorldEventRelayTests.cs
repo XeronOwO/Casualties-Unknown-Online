@@ -5,7 +5,6 @@ using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 
 namespace CasualtiesUnknownOnline.Tests.World;
 
@@ -138,42 +137,5 @@ public class WorldEventRelayTests
 		Assert.True(hostDamages[0].PlayHitSound == false, "the host must know this is silent damage");
 		Assert.True(g2Damages.Count == 1, $"the other guest must receive the silent damage relay, got {g2Damages.Count}");
 		Assert.True(g2Damages[0].PlayHitSound == false, "the relay must keep silent-damage semantics");
-	}
-
-	[Fact]
-	public void BuildingOpened_AdmittedByTheHost_IsRelayedToTheOtherGuest()
-	{
-		using var w = ItemSimWorld.Create();
-		var g2Opened = new List<NetVector2>();
-		w.Host.Services.GetRequiredService<IWorldControl>().SetBuildingEntityOpenedAdmission((_, _) => true);
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityOpenedReceived += p => g2Opened.Add(p);
-
-		w.G1.Services.GetRequiredService<IWorldControl>().SendBuildingEntityOpened(new NetVector2(5f, 6f));
-		w.Driver.Tick(50);
-
-		Assert.True(g2Opened.Count == 1, $"an admitted open must be relayed, got {g2Opened.Count}");
-	}
-
-	[Fact]
-	public void BuildingOpened_RefusedByTheHostAdmission_IsNeitherAppliedNorRelayedNorRecorded()
-	{
-		using var w = ItemSimWorld.Create();
-		var hostOpened = new List<NetVector2>();
-		var g2Opened = new List<NetVector2>();
-		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
-		hostWorld.BuildingEntityOpenedReceived += p => hostOpened.Add(p);
-		// The seam stands in for the adapter's reach check.
-		hostWorld.SetBuildingEntityOpenedAdmission((_, _) => false);
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityOpenedReceived += p => g2Opened.Add(p);
-
-		w.G1.Services.GetRequiredService<IWorldControl>().SendBuildingEntityOpened(new NetVector2(400f, 400f));
-		w.Driver.Tick(50);
-
-		Assert.True(hostOpened.Count == 0, $"a refused open must not be applied, got {hostOpened.Count}");
-		Assert.True(g2Opened.Count == 0, $"a refused open must not be relayed, got {g2Opened.Count}");
-		// The durable half: the opened-entity table is saved and replayed to late joiners as health = 0, so a refusal
-		// that still recorded the row would hand a fact to the next joiner while the log claimed nothing happened.
-		var kernel = w.Host.Services.GetRequiredService<ItemKernelAuthority>();
-		Assert.Empty(kernel.CreateCheckpoint().WorldEntities?.OpenedEntities ?? []);
 	}
 }

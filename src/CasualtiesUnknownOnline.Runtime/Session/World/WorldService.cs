@@ -470,8 +470,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public event Action<NetVector2>? BuildingEntityOpenedReceived { add => _messages.BuildingEntityOpenedReceived += value; remove => _messages.BuildingEntityOpenedReceived -= value; }
 
-	public bool FireBuildingEntityOpenedReceived(ulong sender, NetVector2 pos) => _messages.FireBuildingEntityOpenedReceived(sender, pos);
-	public void SetBuildingEntityOpenedAdmission(Func<ulong, NetVector2, bool>? admission) => _messages.SetBuildingEntityOpenedAdmission(admission);
+	public void FireBuildingEntityOpenedReceived(NetVector2 pos) => _messages.FireBuildingEntityOpenedReceived(pos);
 
 	public void SendBuildingEntityOpened(NetVector2 pos) => _messages.SendBuildingEntityOpened(pos);
 

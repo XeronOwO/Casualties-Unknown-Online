@@ -150,7 +150,7 @@ not the goal.
     (`docs/en/reference/modification-policy.md`; the adversarial pass asks them too,
     `docs/development/review-prompt.md`), and the sweep's three tickets have all landed, so the
     contract carries none of that debt.
-16. `[RULE]` **Member reports are bounded, or the gap is named**: a state a member REPORTS (rather than
+16. `[RULE]` **Member reports are bounded by DATA, or the gap is named** (decision 262): the check compares the claim with a fact the receiver already holds — an identity, a value it computed, a table it owns — and never models what a player is ABLE to do. Reach, aim, timing, cooldown and input-rate checks are anti-cheat, which the MVP excludes, so a report with no data anchor stays unbounded and is named as such rather than given a behavioural bound. Concretely: a state a member REPORTS (rather than
     requests) is a claim, so the receiving side checks it against what it can establish on its own, refuses
     what contradicts that BY NAME, and answers the refusal so both sides end up agreeing. Never re-derive
     what the receiver cannot reproduce (an unseeded roll, another client's frame) and never invent an

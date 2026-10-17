@@ -137,6 +137,28 @@ Also noted clean by that review: the sender really is the reporter on the host a
 must be renamed to say world units, because a constant named "cells" compared against world coordinates is exactly
 how the withdrawn block bound went wrong.
 
+## DECISION 262 (2026-10-18, user's ruling): data validation only — the reach family is withdrawn for good
+
+**Everything above that talks about a distance, a reach, "could this body have been there", the frozen constant, the
+admission seam or the four-question design is CLOSED, not pending.** The user's ruling: CUO validates DATA, never
+BEHAVIOUR. A report is checked against facts the receiver already holds — an identity it can compare, a value it already
+computed, a table it owns. Modelling what a player is physically able to do (reach, aim, timing, cooldown, input rate)
+is anti-cheat, which the MVP explicitly excludes, and it duplicates the game's rules in a second, weaker implementation
+that refuses legitimate play whenever the two disagree.
+
+What that means for this ticket, row by row:
+
+- **`BlockPlaced`** — already bounded by DATA (the generation stamp + the first-writer cell rule). No reporter check is
+  wanted; the row reads `bound` for the data half and says the reporter half is out of scope.
+- **`BuildingEntityOpened` / `BuildingEntityDamaged`** — no data anchor exists yet: the open message carries no lock
+  identity and the host has no model of lock progress; the damage message carries no weapon identity. Those are WIRE
+  additions, and they are the only legitimate way to bound these two. Until then both rows stay `unbounded` and say so.
+- **The verdict/suppress plumbing** that a refusal needs has no customer left, so it is not built speculatively.
+
+What survives from the cycles above and is worth keeping when a data anchor arrives: a refusal must be answered
+(otherwise the refused side keeps a state nobody else has), it must be asked BEFORE anything is applied or recorded
+(the kernel's opened-entity table is saved and replayed to late joiners), and it must be able to stop the relay.
+Those are properties of any future data bound, not of a reach bound.
 ## A. A report that names another member's own body or hands — CLOSED 2026-10-17
 
 LANDED: every surface below compares the identity it would write against the TRANSPORT SENDER. The

@@ -214,29 +214,16 @@ internal sealed class WorldStateMessageService(
 	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash) =>
 		BuildingEntityDamagedReceived?.Invoke(pos, damage, playHitSound, playHitFlash);
 
-	private Func<ulong, NetVector2, bool>? _openedAdmission;
-
 	public event Action<NetVector2>? BuildingEntityOpenedReceived;
 
-	public void SetBuildingEntityOpenedAdmission(Func<ulong, NetVector2, bool>? admission) => _openedAdmission = admission;
-
-	public bool FireBuildingEntityOpenedReceived(ulong sender, NetVector2 pos)
+	public void FireBuildingEntityOpenedReceived(NetVector2 pos)
 	{
-		// Admission is asked BEFORE anything is applied or recorded: a refusal must leave no durable fact behind (the
-		// kernel's opened-entity table is saved and replayed to late joiners), and the verdict is what lets the handler
-		// suppress its own relay.
-		if (_openedAdmission is { } admission && !admission(sender, pos))
-		{
-			return false;
-		}
-
 		if (_session.Role == SessionRole.Host)
 		{
 			_eventChannel.ReportOpenedEntity(pos.X, pos.Y);
 		}
 
 		BuildingEntityOpenedReceived?.Invoke(pos);
-		return true;
 	}
 
 	public void SendBuildingEntityOpened(NetVector2 pos)

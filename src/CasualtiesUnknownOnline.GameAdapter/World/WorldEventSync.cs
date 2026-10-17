@@ -24,7 +24,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 internal sealed partial class WorldEventSync(
 	ISessionControl session,
 	IWorldControl world,
-	BuildingReportAdmission admission,
 	BlockBreakSync blockBreaks,
 	RestoredWorldFactReplay replay,
 	OperationTrace trace,
@@ -34,7 +33,6 @@ internal sealed partial class WorldEventSync(
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
-	private readonly BuildingReportAdmission _admission = admission;
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
 	private readonly RestoredWorldFactReplay _replay = replay;
 	private readonly OperationTrace _trace = trace;
@@ -55,7 +53,6 @@ internal sealed partial class WorldEventSync(
 		_world.BlockDamageSnapshotReceived += _blockBreaks.OnBlockDamageSnapshot;
 		_world.BuildingEntityDamagedReceived += _buildingEntities.OnRemoteBuildingEntityDamaged;
 		_world.BuildingEntityOpenedReceived += OnRemoteBuildingEntityOpenedRelay;
-		_world.SetBuildingEntityOpenedAdmission(_admission.IsOpenAdmissible);
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
@@ -72,7 +69,6 @@ internal sealed partial class WorldEventSync(
 		_world.BlockDamageSnapshotReceived -= _blockBreaks.OnBlockDamageSnapshot;
 		_world.BuildingEntityDamagedReceived -= _buildingEntities.OnRemoteBuildingEntityDamaged;
 		_world.BuildingEntityOpenedReceived -= OnRemoteBuildingEntityOpenedRelay;
-		_world.SetBuildingEntityOpenedAdmission(null);
 		_world.BlockStateReceived -= OnRemoteBlockState;
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;

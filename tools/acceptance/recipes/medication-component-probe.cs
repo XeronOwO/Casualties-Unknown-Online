@@ -1,6 +1,6 @@
 // recipe: medication-component-probe
-// args: mode=s
-//        mode is one of: plant-sleepingpills, plant-mindwipe, read, clear-local. Each token on the args
+// args: mode=s target=s
+//        mode is plant-sleepingpills | plant-mindwipe | read | clear-local; target is local | display.
 //        line above must be <key>=s or <key>=n, so the allowed values are named here instead.
 // serves: todo/heal-command-limb-and-hollow-restore.md — the owed runtime row for the removal direction:
 //         an apply path that only ADDED left every receiver's stale copy standing, and nothing in the suite
@@ -16,8 +16,20 @@
 	var mode = {{s:mode}};
 	var camera = PlayerCamera.main;
 	if (camera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; }
-	var body = camera.body;
-	if (body == null) { return "{\"ok\":false,\"error\":\"no-body\"}"; }
+	var target = {{s:target}};
+	Body body = null;
+	if (target == "display") {
+		// The remote medical view inspects a DISPLAY BODY named for the inspected player, parked off-scene and
+		// under an inactive hierarchy, so FindObjectsOfType would not see it - the all-objects form does.
+		var all = UnityEngine.Resources.FindObjectsOfTypeAll(typeof(Body));
+		for (var i = 0; i < all.Length; i++) {
+			var candidate = all[i] as Body;
+			if (candidate != null && candidate.gameObject.name.StartsWith("MedicalDisplay_", System.StringComparison.Ordinal)) { body = candidate; break; }
+		}
+	} else {
+		body = camera.body;
+	}
+	if (body == null) { return "{\"ok\":false,\"error\":\"no-body\",\"target\":\"" + target + "\"}"; }
 
 	var sleeping = body.GetComponent<SleepingPills>();
 	var antidepressants = body.GetComponent<Antidepressants>();
@@ -29,7 +41,8 @@
 		+ ",\"mindwipe\":" + (mindwipe != null ? "true" : "false")
 		+ ",\"mindwipeActive\":" + (mindwipe != null && mindwipe.active ? "true" : "false")
 		+ ",\"painkillers\":" + (painkillers != null ? "true" : "false")
-		+ ",\"bodyName\":\"" + body.gameObject.name + "\"";
+		+ ",\"bodyName\":\"" + body.gameObject.name + "\""
+		+ ",\"target\":\"" + target + "\"";
 
 	if (mode == "read") {
 		return "{\"ok\":true,\"mode\":\"read\"," + state + "}";

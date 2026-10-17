@@ -1,6 +1,6 @@
 # The mod item's wearable declaration: the placement the game's own wear flow reads
 
-- Status: Review — **cut and landed 2026-10-11** out of `docs/backlog/todo/mod-content-ceiling.md` Part 3.A,
+- Status: Review — **cut and landed 2026-10-11** out of `docs/backlog/done/mod-content-ceiling.md` Part 3.A,
   which lists the wearable set as one entry and whose promotion rule puts a defect of a surface the API
   already promises ahead of the capability entries. This entry is one: `IModItemDefinition.Wearable` is
   declared today, and the game's own wear flow THROWS on it (below). The code half is complete and the
@@ -11,7 +11,7 @@
   gaps are "none of them is a crash" — the wearable half is one.
 - Priority: High
 - Category: Mod platform / content binding
-- Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A)
+- Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 3.A)
 - Related: `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (the sibling ruling this ticket
   follows: a declaration the framework cannot materialize is inert and reported, never fatal),
   `docs/backlog/review/mod-cross-player-native-semantics.md` (the wear chain whose predicate already asks

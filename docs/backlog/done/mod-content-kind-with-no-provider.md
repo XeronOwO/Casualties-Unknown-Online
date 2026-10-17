@@ -1,6 +1,6 @@
 # Content kinds with no provider: the vocabulary names what binds, the binder answers for the rest
 
-- Status: Done — cut 2026-10-07 from `todo/mod-content-ceiling.md` Part 3 B (the second of its two
+- Status: Done — cut 2026-10-07 from `done/mod-content-ceiling.md` Part 3 B (the second of its two
   first-in-line entries; the quality reference was the first, landed as
   `done/mod-crafting-quality-labels.md`). The development half landed 2026-10-07 (see *What landed*);
   every acceptance row is judged by this repository's own suite, because all of them are load-time and
@@ -9,7 +9,7 @@
 - Priority: Medium-High — a defect of a surface the API already promises, so it is filed ahead of the
   umbrella's capability entries (Part 3 C), as that ticket's promotion rule requires.
 - Category: Mod platform / content surface
-- Related: `todo/mod-content-ceiling.md` (the inventory: this is Part 3 B's kind-versus-provider entry),
+- Related: `done/mod-content-ceiling.md` (the inventory: this is Part 3 B's kind-versus-provider entry),
   `done/mod-crafting-quality-labels.md` (the sibling entry and the shape it closed),
   `docs/en/reference/mod-api.md` + `docs/zh/reference/mod-api.md` (the user-facing rule),
   `docs/backlog/done/cucorelib-migration-support.md` (which rules settings and locale out of CUO core),

@@ -1,7 +1,7 @@
 # Crafting-quality labels — mechanism inventory and self-check
 
 Owner cycle: `done/mod-crafting-quality-labels.md` (2026-10-07), the stage-1 item of the mod content
-ceiling's Part 2 (`todo/mod-content-ceiling.md`): a mod item could not declare a crafting quality, and a
+ceiling's Part 2 (`done/mod-content-ceiling.md`): a mod item could not declare a crafting quality, and a
 quality reference that resolved to nothing was silent.
 
 Decision: one label type for both surfaces (`ModLiquidQuality` renamed `ModCraftingQuality`), the item

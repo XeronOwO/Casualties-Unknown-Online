@@ -9,7 +9,7 @@
 - Source: User decision (2026-09-06) — CPR can be placed in future; user directive 2026-10-07 — promote it and
   implement the KrokMP-style feature.
 - Related: `review/remote-medical-stage-1-injection-session.md` (the `MedicalOperationSession` shape a
-  continuous action rides), `todo/mod-content-ceiling.md` (a mod-authored medical interaction is the
+  continuous action rides), `done/mod-content-ceiling.md` (a mod-authored medical interaction is the
   registration surface its Stage 3 names), `docs/decisions/active.md` (the acting side judges on its own
   picture and timeline)
 

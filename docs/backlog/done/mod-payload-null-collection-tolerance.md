@@ -15,7 +15,7 @@
   remaining sweep here), `docs/en/reference/mod-api.md` + `docs/zh/reference/mod-api.md` (the DTO tables
   and the rule), `docs/decisions/active.md` (entry 244),
   `docs/evidence/selfchecks/mod-api/mod-payload-null-collections-selfcheck.md`,
-  `docs/backlog/todo/mod-content-ceiling.md` (the surface this belongs to)
+  `docs/backlog/done/mod-content-ceiling.md` (the surface this belongs to)
 
 ## What is asked
 

@@ -8,7 +8,7 @@
   marks, item properties and merging two partially spent items' condition. The user recalls the behaviour from
   a "quality of life" mod and points at it as the reference.
 - Related: `review/pinyin-search-standalone-mod.md` (the precedent for a CUO-family mod that is not the core
-  plugin), `todo/mod-content-ceiling.md` (the recipe surface: CUO can append recipes, not override the
+  plugin), `done/mod-content-ceiling.md` (the recipe surface: CUO can append recipes, not override the
   vanilla ones), `review/recipe-unlock-fallback.md` (the unlock half of the recipe panel),
   `src/CasualtiesUnknownOnline.Plugin/OnlineUiActions.cs` (a mod's UI surface if it draws its own panel)
 
@@ -53,5 +53,5 @@
 ## Non-goals
 
 - Not a crafting overhaul in the core plugin, and not a recipe-override capability (CUO can only append
-  recipes today — `todo/mod-content-ceiling.md`).
+  recipes today — `done/mod-content-ceiling.md`).
 - Not an automation feature: the player still performs each craft.

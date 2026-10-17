@@ -9,7 +9,7 @@
 - Priority: High
 - Category: Mod platform / cross-player item use / architecture
 - Parent: `docs/backlog/review/mod-cross-player-native-semantics.md` (Part B)
-- Related: `docs/backlog/todo/mod-content-ceiling.md` (Part 2 stage 2, its pre-cut statement),
+- Related: `docs/backlog/done/mod-content-ceiling.md` (Part 2 stage 2, its pre-cut statement),
   `docs/evidence/selfchecks/players/cross-player-native-drink-semantics-selfcheck.md` (the sibling
   chain that landed), `docs/evidence/selfchecks/players/cross-player-native-topical-semantics-selfcheck.md`,
   `docs/decisions/active.md` (184: the affected side judges on its own picture)

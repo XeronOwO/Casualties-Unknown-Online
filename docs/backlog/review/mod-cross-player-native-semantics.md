@@ -9,7 +9,7 @@
   landed.
 - Priority: High
 - Category: Mod platform / remote medical / architecture
-- Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2, stage 2)
+- Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 2, stage 2)
 - Related: `docs/backlog/review/remote-medical-stage-1-injection-session.md` (the session this ticket's
   Part A changes the effect half of), `docs/backlog/done/mod-crafting-quality-labels.md`,
   `docs/backlog/done/mod-content-kind-with-no-provider.md`, `docs/en/reference/mod-api.md`,

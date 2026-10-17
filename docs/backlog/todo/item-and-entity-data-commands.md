@@ -10,7 +10,7 @@
   settable, mergeable and removable, and the family also covers handing an item out and creating an entity.
 - Related: `review/item-data-read-commands.md` (the landed read half, and the survey these stages build on),
   `done/item-data-write-commands.md` (the landed first write verb and the local-scene port),
-  `todo/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
+  `done/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
   `review/in-game-command-console-interactive.md` (the console the verbs land in),
   `review/give-item-to-another-player.md` (the gesture half of `give`; its finding — no path carries an item

@@ -8,8 +8,8 @@
 - Source: the user's 2026-10-07 backlog request — the protocol must be extensible by mods: a mod has to be
   able to define its own behaviour packets and its own handling chain, instead of only riding CUO's
   built-in messages. This promotes the "custom replication domains" entry of
-  `todo/mod-content-ceiling.md` (Part 3, section C) out of the memo.
-- Related: `todo/mod-content-ceiling.md` (the entry this promotes and the platform direction it sits in),
+  `done/mod-content-ceiling.md` (Part 3, section C) out of the memo.
+- Related: `done/mod-content-ceiling.md` (the entry this promotes and the platform direction it sits in),
   `done/mod-crafting-quality-labels.md` (the sibling stage-1 cycle of the same promotion funnel),
   `future/wire-surface-baseline.md` (the wire surface is recorded beside the protocol version),
   `docs/en/reference/protocol-messages.md`, `docs/decisions/active.md` (decision 243 — this cycle's design

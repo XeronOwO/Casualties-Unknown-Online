@@ -1,6 +1,6 @@
 # Mod content ceiling: the native label surface, cross-player semantics and the parked gaps
 
-- Status: Todo — **promoted 2026-10-07** by the user's backlog directive (open-ended content customisation and
+- Status: Done — **promoted 2026-10-07** by the user's backlog directive (open-ended content customisation and
   a mod-extensible platform); the stages below are the work plan, cut into their own tickets as each one
   starts, and the inventory stays the source of truth.
   **Drained 2026-10-18: every stage and every parkable entry has been cut and landed** — Stage 1
@@ -11,8 +11,9 @@
   `done/mod-declared-behaviour-with-no-function.md`). What remains is **Part 3.C only**: capabilities the game
   itself does not have, every one of which the promotion rule keeps out of the queue until a real consumer is
   named. So this ticket no longer holds a deliverable of its own — it is the inventory those tickets point back
-  at, and it should move once its remaining readers are repointed (24 documents name it, 14 of them under
-  `docs/backlog/`).
+  at. **Moved from `todo/` to `done/` 2026-10-18**, after the 24 documents that named it (16 of them under
+  `docs/backlog/`) were repointed at this path, so no page points at the folder the ticket left; its index row
+  and the two census rows that name it moved in the same change.
 - Priority: High (the platform directive) — but its own work list is empty, so it queues nothing ahead of the
   executable tickets.
 - Category: Mod platform / architecture

@@ -1,7 +1,7 @@
 # Content kinds with no provider — mechanism inventory and self-check
 
 Owner cycle: `done/mod-content-kind-with-no-provider.md` (2026-10-07), cut from
-`todo/mod-content-ceiling.md` Part 3 B — the second of its two first-in-line entries, after
+`done/mod-content-ceiling.md` Part 3 B — the second of its two first-in-line entries, after
 `done/mod-crafting-quality-labels.md`.
 
 Decision (entry 245): the framework's content-kind vocabulary names EXACTLY the kinds a CUO provider

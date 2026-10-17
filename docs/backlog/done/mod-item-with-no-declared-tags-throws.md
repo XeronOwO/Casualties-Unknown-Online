@@ -15,7 +15,7 @@
 - Priority: High — every mod item whose definition leaves `Tags` empty (the DTO's own default) throws when
   it is created, and throws once per frame while it is the item in hand.
 - Category: Mod platform / content binding
-- Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A's field gaps, the same build site)
+- Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 3.A's field gaps, the same build site)
 - Related: `docs/backlog/done/mod-item-authored-actions.md` (the cycle whose fixture carried the missing tag
   declaration), `docs/backlog/done/mod-item-declaration-parity.md` (the same factory, the "every field the
   game reads" rule this ticket completes),

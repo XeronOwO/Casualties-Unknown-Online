@@ -13,7 +13,7 @@
   carries no delegate at all.
 - Priority: High
 - Category: Mod platform / content binding
-- Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A)
+- Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 3.A)
 - Related: `docs/en/reference/mod-api.md` (the two DTO rows this ticket's surface promises),
   `docs/backlog/done/mod-content-kind-with-no-provider.md` (the precedent: a declaration nothing
   materializes), `docs/backlog/done/mod-crafting-quality-labels.md` (the other one: a reference nothing

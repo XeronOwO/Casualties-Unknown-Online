@@ -15,7 +15,7 @@
   could.
 - Priority: High (user-promoted)
 - Category: Mod platform / mod API
-- Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 2 Stage 3 and Part 3.A's effect gap)
+- Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 2 Stage 3 and Part 3.A's effect gap)
 - Related: `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (the cycle that makes a
   declaration without a function non-fatal, and whose inert default is this ticket's no-effect-registered
   path), `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md` (the tiers and the

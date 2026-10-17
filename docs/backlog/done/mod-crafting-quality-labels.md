@@ -6,10 +6,10 @@
   **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-crafting-quality-labels-20261012-c.md`): every row passes — the six label rows are the suite's own cases, green in this run.
 - Priority: High
 - Category: Mod platform / content surface
-- Source: cut from `todo/mod-content-ceiling.md` Part 2 **stage 1** ("content surface parity, small,
+- Source: cut from `done/mod-content-ceiling.md` Part 2 **stage 1** ("content surface parity, small,
   self-contained"), which is the plan this ticket executes; the umbrella keeps the inventory and the later
   stages. Its two acceptance rows come from that stage.
-- Related: `todo/mod-content-ceiling.md` (the plan and the inventory: Part 1 is the label surface, this is
+- Related: `done/mod-content-ceiling.md` (the plan and the inventory: Part 1 is the label surface, this is
   Part 2 stage 1, Part 3 B is the second row's sibling), `docs/en/reference/mod-api.md` +
   `docs/zh/reference/mod-api.md` (the user-facing rule),
   `docs/contracts/abstractions-api-baseline.txt` (the rename is recorded there with tombstones)

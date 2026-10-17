@@ -303,7 +303,7 @@ docs/backlog/review/layer-descent-audio-parity.md | keep | index | docs/backlog/
 docs/backlog/todo/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/mod-content-ceiling.md | keep | index | docs/backlog/README.md
+docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
 docs/backlog/review/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
@@ -321,7 +321,7 @@ docs/backlog/done/version-string-build-suffix.md | keep | index | docs/backlog/R
 docs/backlog/watchlist/architecture-watchlist.md | keep | index | docs/backlog/README.md
 docs/contracts/README.md | keep | spec | docs/en/contributing/documentation-standard.md
 docs/decisions/active.md | keep | spec | AGENTS.md
-docs/decisions/archive.md | keep | spec | docs/backlog/todo/mod-content-ceiling.md
+docs/decisions/archive.md | keep | spec | docs/backlog/done/mod-content-ceiling.md
 docs/decisions/index.md | keep | spec | docs/evidence/selfchecks/mod-api/mod-content-fingerprint-review.md
 docs/development/agent-reference.md | keep | spec | docs/backlog/review/bilingual-human-docs.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md

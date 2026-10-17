@@ -1,7 +1,7 @@
 # Cross-player topical semantics from the game's own data self-check
 
-Owner cycle: `todo/mod-cross-player-native-semantics.md` Part B, topical chain (cut
-out of `todo/mod-content-ceiling.md` Part 2 stage 2). Decision: the topical chain
+Owner cycle: `review/mod-cross-player-native-semantics.md` Part B, topical chain (cut
+out of `done/mod-content-ceiling.md` Part 2 stage 2). Decision: the topical chain
 stops carrying an id/coefficient table — the game's own registries answer WHO may
 be treated, the operator's client runs the item's own native limb action to
 MEASURE the dose, and the patient's client runs the game's own `ApplyToLimb`

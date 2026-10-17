@@ -13,7 +13,7 @@
   `docs/backlog/done/mod-item-with-no-declared-tags-throws.md` with the run's measurements.
 - Priority: High
 - Category: Mod platform / mod API
-- Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A: `useLimbAction`, and the item half of the
+- Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 3.A: `useLimbAction`, and the item half of the
   effect gap)
 - Related: `docs/backlog/done/mod-authored-effects.md` (the liquid half — the same design, the surface
   this one extends), `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (the cycle that made

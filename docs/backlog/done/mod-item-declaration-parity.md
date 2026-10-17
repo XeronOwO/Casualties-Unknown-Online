@@ -1,6 +1,6 @@
 # The mod item's declaration reaches every field the game's own items carry
 
-- Status: Done — **cut and landed 2026-10-11** out of `docs/backlog/todo/mod-content-ceiling.md` Part 3.A,
+- Status: Done — **cut and landed 2026-10-11** out of `docs/backlog/done/mod-content-ceiling.md` Part 3.A,
   whose only remaining entry is its "miscellaneous" list, and **accepted 2026-10-11 in batch `20261011-j`**
   (`docs/evidence/acceptance/mod-item-declaration-parity-20261011-j.md`): all seven rows pass, no residual. The
   code was complete and the independent FULL-tier review's findings were fixed in the same commit before the
@@ -13,7 +13,7 @@
   this ticket corrects it in place.
 - Priority: High
 - Category: Mod platform / content binding
-- Parent: `docs/backlog/todo/mod-content-ceiling.md` (Part 3.A)
+- Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 3.A)
 - Related: `docs/backlog/review/mod-item-wearable-declaration.md` (the same build site, the same audit shape,
   and the claim this ticket corrects), `docs/backlog/done/mod-item-authored-actions.md` (the action half of
   the same surface, landed), `docs/backlog/done/mod-crafting-quality-labels.md` (Part 2 stage 1, whose

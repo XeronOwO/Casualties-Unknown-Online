@@ -54,6 +54,13 @@ internal static class KernelReplicationComposition
 		services.AddSingleton<IKernelSessionFacts>(p => p.GetRequiredService<SessionService>());
 		services.AddSingleton<IKernelFrameSender>(p => p.GetRequiredService<PacketSender>());
 		services.AddSingleton<IKernelItemDataNormalizer, KernelItemDataNormalizer>();
+		// The game's own item data behind the native-use bound: the adapter replaces
+		// this registration (it is the only layer that can read the item registry), so
+		// a build without one admits the report unchecked instead of throwing. The
+		// registration is a Replace rather than an Add on the adapter's side, so the
+		// order that matters is the adapter's block running after this one — the same
+		// contract the other adapter seams carry.
+		services.AddSingleton<IKernelItemUseFacts, UnavailableItemUseFacts>();
 		// The carried-record fact the command handler reads: which members have stated
 		// their carried set. The id coordination is what receives that report, so it
 		// holds the record; this line only names the capability.

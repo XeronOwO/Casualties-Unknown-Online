@@ -48,7 +48,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IWorldSaveControl _saves;
 	private readonly WorldRestoreAudit _restoreAudit;
 	private readonly IStartingSupplyControl _startingSupplies;
-	private readonly ItemDataWriteSettlement _itemDataWriteSettlement;
+	private readonly ItemStateSettlement _itemStateSettlement;
 	private readonly AnnouncedHostRules _hostRules;
 
 	public CommandConsoleService(
@@ -68,7 +68,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IStartingSupplyControl startingSupplies,
 		ILocalItemAccess localItems,
 		IItemControl itemControl,
-		ItemDataWriteSettlement itemDataWriteSettlement,
+		ItemStateSettlement itemStateSettlement,
 		AnnouncedHostRules hostRules,
 		ISpectatorControl? spectator = null)
 	{
@@ -84,7 +84,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_saves = worldSaves;
 		_restoreAudit = restoreAudit;
 		_startingSupplies = startingSupplies;
-		_itemDataWriteSettlement = itemDataWriteSettlement;
+		_itemStateSettlement = itemStateSettlement;
 		_hostRules = hostRules;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += ResetSessionState;
@@ -103,7 +103,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// ...and the write verb's own answer, which cannot be the command's return
 		// value: the host judges a member's console write after the fact, so the
 		// verdict reaches the operator here, where they typed the command.
-		_itemDataWriteSettlement.Refused += OnItemDataWriteRefused;
+		_itemStateSettlement.Refused += OnItemDataWriteRefused;
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new SpectatorCommands(session, entities, spectator, log));
@@ -233,7 +233,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_saves.RestoreReported -= OnRestoreReported;
 		_restoreAudit.Reported -= OnRestoreLiveWrite;
 		_startingSupplies.Reported -= OnStartingSuppliesReported;
-		_itemDataWriteSettlement.Refused -= OnItemDataWriteRefused;
+		_itemStateSettlement.Refused -= OnItemDataWriteRefused;
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>

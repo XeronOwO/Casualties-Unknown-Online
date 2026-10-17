@@ -38,16 +38,16 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly ItemKernelProjectionWiring _kernelProjectionWiring;
 	private readonly RestoredWorldItemSet _restoredWorldItems;
-	private readonly ItemDataWriteSettlement _itemDataWriteSettlement;
+	private readonly ItemCommandRejectionRouter _rejections;
 
-	public ItemService(ISessionControl session, ItemArbitration arbitration, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, ItemIdCoordinator idCoordinator, ItemDataWriteSettlement itemDataWriteSettlement, WorldRestoreAudit? audit = null)
+	public ItemService(ISessionControl session, ItemArbitration arbitration, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, ItemIdCoordinator idCoordinator, ItemStateSettlement itemStateSettlement, WorldRestoreAudit? audit = null)
 	{
 		_session = session;
 		_log = log;
 		_arbitration = arbitration;
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
-		_itemDataWriteSettlement = itemDataWriteSettlement;
+		_rejections = new ItemCommandRejectionRouter(session, idCoordinator, itemStateSettlement, log);
 		_restoredWorldItems = new RestoredWorldItemSet(kernelAuthority, audit, log);
 		_kernelProtocol.CommandRejected += OnCommandRejected;
 		_projection = new ItemProjection(kernelAuthority, _worldTable);
@@ -133,7 +133,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public event Action<ulong, WorldItem>? ItemCookedReceived;
 
-	public event Action<ulong, ItemRejectMsg.Reason>? ItemRejected;
+	public event Action<ulong, ItemRejectMsg.Reason>? ItemRejected
+	{
+		add => _rejections.ItemRejected += value;
+		remove => _rejections.ItemRejected -= value;
+	}
 
 	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived
 	{
@@ -201,6 +205,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_messageFlow.SendItemPickedUp(itemId, evidence);
 
 	public void SendItemUse(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemUse(itemId, item);
+
+	public void SendItemState(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemState(itemId, item);
 
 	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item) => _messageFlow.SendItemSlot(itemId, slotIndex, item);
 
@@ -527,61 +533,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	// ===== Kernel rejection surfacing =====
 
-	private void OnCommandRejected(WireCommandKind kind, ulong itemId, RejectionReason reason)
-	{
-		if (_session.Role != SessionRole.Guest)
-		{
-			return;
-		}
-
-		if (kind == WireCommandKind.ItemDataWrite)
-		{
-			// The console-write family settles its OWN refusals, and it has to: this
-			// client applied that value to its local object before reporting it, so
-			// the answer puts the session's recorded state back
-			// (ItemDataWriteSettlement). Falling through to the pickup/block-drop
-			// mapping below would roll back the wrong thing — an item this client is
-			// holding would be dropped as if a pickup had lost a race.
-			_itemDataWriteSettlement.Settle(itemId, reason);
-			return;
-		}
-
-		if (kind == WireCommandKind.ItemContainerSync)
-		{
-			// A container report is never a pickup, so it never reaches the rollback below: that
-			// rollback UNPARENTS the local item into the world (its own comment says so, for the
-			// mid-drag and inside-a-container cases), and a container detached into the world while the
-			// host still records it as this member's is the opposite of a settlement. Whatever reason
-			// the host answered with — an unclaimed creation, a child it refuses to move, or a refused
-			// creation's own tombstone — the way back is the carried-set statement, which carries the
-			// container AND its contents.
-			_log.LogInformation("Kernel command for container {ItemId} rejected ({Reason}) — container reports settle by re-stating the carried set, never by rolling the container back.", itemId, reason);
-			_idCoordinator.RequestCarriedInventoryReport("the host refused a container report");
-			return;
-		}
-
-		if (kind == WireCommandKind.ItemUpdateState && reason == RejectionReason.UnclaimedItem)
-		{
-			// A use report for an item the host never judged — refused because the
-			// member's carried-set statement, which IS the creation claim for what it
-			// carries, had already been judged without it. The way back is that same
-			// statement, not the pickup rollback below: the local copy is the only copy
-			// there is, so destroying it would delete the item the refusal asks to have
-			// reported. Re-state the carried set now; its next report carries this
-			// item with the state the use already produced, and the two sides agree.
-			_log.LogInformation("Kernel command for item {ItemId} rejected ({Reason}) — the host has never judged it; re-stating the carried set.", itemId, reason);
-			_idCoordinator.RequestCarriedInventoryReport("the host refused a use report for an item it has never judged");
-			return;
-		}
-
-		var mappedReason = reason switch
-		{
-			RejectionReason.BlockAlreadyBroken => ItemRejectMsg.Reason.BlockAlreadyBroken,
-			_ => ItemRejectMsg.Reason.UnknownItem,
-		};
-		_log.LogWarning("Kernel command for item {ItemId} rejected ({Reason}) — surfacing item reject.", itemId, reason);
-		ItemRejected?.Invoke(itemId, mappedReason);
-	}
+	private void OnCommandRejected(WireCommandKind kind, ulong itemId, RejectionReason reason) =>
+		_rejections.Handle(kind, itemId, reason);
 
 	// ===== IItemActionWorldAccess =====
 

@@ -416,6 +416,20 @@ public static class KernelWireMapper
 				command.ExpectedRevision),
 			WireCommandKind.ItemApplyLimb => KernelLimbItemWireMapper.FromWireApplyLimbCommand(command, operation, actor, epoch, authority, identity.InstanceId),
 			WireCommandKind.ItemRemoveLimb => KernelLimbItemWireMapper.FromWireRemoveLimbCommand(command, operation, actor, epoch, authority, identity.InstanceId),
+			// A NATIVE USE and a console write are the SAME kernel fact as a state
+			// update of the item — the row they write is the row the game would have
+			// written — so all three map to the same command. What differs is the
+			// CLAIM: the use kind is judged by the item's own data at the admission
+			// seam (KernelCommandGateway), the console kind by the host's rule for the
+			// verb, and the plain state report by neither.
+			WireCommandKind.ItemUse => new UpdateItemStateCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				identity.InstanceId,
+				command.Data is null ? ItemData.Empty : FromWireData(command.Data),
+				command.ExpectedRevision),
 			WireCommandKind.ItemUpdateState => new UpdateItemStateCommand(
 				operation,
 				actor,

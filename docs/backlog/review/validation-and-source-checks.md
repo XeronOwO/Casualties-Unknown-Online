@@ -1,7 +1,8 @@
 # Source, permission and data checks on what a member reports
 
-- Status: Todo — the user promoted this on 2026-10-14 (it was `future/strict-validation-anti-cheat.md`,
-  deferred); the old ticket stays as the inventory behind it. S1a and S1b landed 2026-10-14, S2a
+- Status: Review — all three stages are CODE AND TESTS, and the remaining work is the agent's acceptance
+  batch. The user promoted this on 2026-10-14 (it was `future/strict-validation-anti-cheat.md`, deferred);
+  the old ticket stays as the inventory behind it. S1a and S1b landed 2026-10-14, S2a
   landed 2026-10-16 **and its acceptance rows are read for the block family**
   (`docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md`: rows 1, 2 and 6's new half, on a
   deployed artifact), and S2b landed 2026-10-16 as CODE AND TESTS with BOTH halves of its acceptance row 1
@@ -11,9 +12,11 @@
   building's own table, the breaker's real roll accepted against it, and one forged report whose two drops
   were split per drop — the table-accountable one relayed, the other refused by name). S3a landed 2026-10-17 —
   the clause "an item use must name an item the host records": a member's state report can no longer create
-  an item this host never judged once that member's carried-set statement has been judged — and S3's second
-  clause, "in a state that permits that use", is the open half (it needs a per-family data anchor, and the
-  paragraph in S3 names why the item's own numeric state is not one). The surfaces this ticket does NOT
+  an item this host never judged once that member's carried-set statement has been judged — and S3b landed the
+  same day, the second clause "in a state that permits that use": the native use travels under its own wire
+  kind and the host bounds it with the item's own data (`ItemInfo.usable`), answered and settled. That closes
+  the three stages as code and tests; the machine rows are the next acceptance batch's (the new row 7 below
+  included). The surfaces this ticket does NOT
   close are the census rows of
   `docs/architecture/member-report-validation.md` marked `unbounded:` — they carry their own evidence in
   `todo/member-report-bounds.md`, opened by the same cycle at the user's direction that report validation
@@ -435,6 +438,99 @@
    run-boundary behaviour is written down where it is held (a new run does not clear it; the statement is
    re-judged on the generation edge).
 
+   **S3b — landed 2026-10-17, and it is the second clause: "in a state that permits that use".** The missing
+   half was never the check; it was the CLAIM. The one wire kind carried a slot move, a gun transition and a
+   native use in the same payload, so no bound could tell them apart: a check on the kind would have refused
+   ordinary play (moving a bandage between slots) and a check without one could not see a use report at all.
+   The console write had already shown the answer (S1b): a claim that needs its own verdict gets its own
+   kind. **The native use now travels as `WireCommandKind.ItemUse`** (`ItemActionSync.SendItemUse`, the two
+   `Body` call sites), and every state change that is NOT one of those two guarded uses stays on
+   `ItemUpdateState` and claims nothing — the slot move, and the gun chain's own persistent transitions
+   (`GunStateSync`'s rack/safety/load/unload/auto-rack route, which reports through
+   `ItemUseSync.OnItemStateChanged` and `IItemControl.SendItemState`). That split is not cosmetic: a rack is
+   not a use, and sending it under the use kind would have let the use bound refuse a legitimate transition
+   of a gun whose own data does not mark it usable. The host judges the use claim with the one data anchor
+   the game gives: the item's own `ItemInfo.usable`, the flag BOTH use call sites require (`Body.cs:2452`
+   is `usable && usableWithLMB` plus consciousness, `:2477` is `usable` alone — the necessary flag is
+   `usable`, so that is the bound and the stricter flag is deliberately not asked), read from the HOST's
+   registry through the adapter port `IKernelItemUseFacts` and keyed on the definition id the host's own
+   record holds — never on the report's identity. The port is three-valued and the difference matters:
+   `Forbidden` is refused BY NAME (`RejectionReason.UseNotPermitted`) and ANSWERED, while `Unknown` (a
+   definition this host's registry does not carry — a mod it does not have) is admitted as before, because a
+   read that failed is not evidence that the item is unusable (the `RecipeUnlock` row's own rule). The way
+   back is S1b's settlement, generalized: `ItemDataWriteSettlement` becomes `ItemStateSettlement`, and a
+   refused use puts the session's recorded state back onto the sender's own object — the use already ran
+   there before it was reported, exactly like a console write. An item the use consumed locally is the one
+   shape that settle cannot repair, and the warning says so.
+
+   **What this does NOT bound, said here because the opposite reading is the natural one.** It bounds the
+   CLAIM, not the numbers: a report that claims no use (a slot move, a gun transition, a state drift) still
+   carries the holder's own condition/liquids/components, because the game's own item state has no anchor —
+   the ticket's S3 paragraph says why, and a `bound:` cell for those values could only restate a rule the
+   game does not have. The census rows say the same (`ItemUpdateState` names the residual, `ItemUse` names
+   what it bounds) instead of reading as a whole-item guarantee. The kind is also OUTSIDE the guest's
+   pending-command re-report window (`GuestCommandReconciliation.IsReReported`), exactly like the state
+   report it was split from: a swallowed use report converges through the item's next report or the absolute
+   item snapshots (matrix row I7), not through a re-send.
+
+   Evidence: five new cases in `KernelItemReportEligibilityTests` (forbidden refused and answered with its
+   audit line naming the definition, permitted admitted, unreadable admitted, another member's item keeping
+   the eligibility verdict, and a plain state report of the same forbidden item still admitted — the last is
+   what pins "the bound is the use claim, not the state"), three in `CommandAdmissionIntegrationTests`
+   (forbidden: host row unchanged, `UseNotPermitted`/`ItemUse` on the wire, the sender's local object settled
+   back to the recorded value and never the pickup rollback; permitted recorded; unreadable recorded), and
+   one in `ItemActionSyncTests` (the state sender records a transition of the same forbidden item with no
+   claim and no refusal — RED if that sender used the use kind; the GUN CHAIN's one-line call into it is
+   adapter-only and no test reaches it, named under "Not covered"), and
+   the authority census grew to 26 rows while the sender gate's member-authored floor moved 12 → 13 (the new
+   `SendItemUse` send site is what satisfies it). Three mutation controls, each with that mechanism alone
+   turned off, over the two suites (35 cases): with the seam's use rule keyed on the wrong kind exactly TWO
+   go red (the forbidden unit case and the forbidden end-to-end case), with `SettleUse` a no-op exactly ONE
+   goes red (the end-to-end case's local-object assertion), and with the sender back on the old kind exactly
+   ONE goes red (the end-to-end case: the host records the use) while the unit cases stay green — which is
+   what makes the new kind load-bearing rather than cosmetic.
+
+   Self-check for S3b (mechanism × change × evidence):
+
+   | Mechanism | Change | Evidence |
+   |---|---|---|
+   | The use claim's own wire kind (`WireCommandKind.ItemUse`, payload 30) | sent by `ItemActionSync.SendItemUse`; the mapper produces the same `UpdateItemStateCommand` the console write does, so the FACT is unchanged and only the claim is distinguishable | the sender gate's floor 13 (it fails without the send site); mutation control 3 — the host records the forbidden use when the sender is back on `ItemUpdateState` |
+   | The state route's own sender (`IItemControl.SendItemState` ← `ItemActionSync.SendItemState`) and the gun chain on it | a persistent transition that no guarded use produced reports under `ItemUpdateState` and claims nothing | `ItemActionSyncTests.StateChangeWithoutAUseClaim_IsRecordedForAnItemWhoseDataForbidsAUse` (the forbidden definition is recorded and nothing is refused — RED if the state sender used the use kind); the gun chain's CALL into it (`GunStateSync` → `ItemUseSync.OnItemStateChanged`) is a one-line adapter route no test reaches — named below |
+   | The data anchor (`IKernelItemUseFacts` ← `GameItemUseFacts`, `Item.GlobalItems` → `ItemInfo.usable`) | the seam reads the RECORD's definition and refuses only `Forbidden`; `Unknown` admits and is logged where the read happened; a build without an adapter answers `Unknown` (`UnavailableItemUseFacts`) instead of inventing a refusal | the forbidden unit + end-to-end cases (RED with the rule keyed on the wrong kind); `.NativeUseOfADefinitionThisHostCannotRead_IsAdmitted` / `..._IsRecorded` |
+   | The refusal's name and answer (`RejectionReason.UseNotPermitted`) | answered with `WireCommand.RefusedKind = ItemUse`, so the sender knows WHICH report the verdict judged | `.NativeUseOfAnItemWhoseOwnDataForbidsIt_IsRefusedAndAnswered`; `CreationBeforeOperationTests` reads its own refusals' kind (the creation half is unchanged for the new kind) |
+   | The way back (`ItemStateSettlement`, generalized from S1b) | a refused use writes the recorded state back onto the sender's object; the console-write event stays console-only; the routing lives in its own `ItemCommandRejectionRouter` (the size gate's split) | `.ANativeUseOfAnItemWhoseOwnDataForbidsIt_IsRefusedAnsweredAndSettled` — RED with the settle skipped |
+   | What did NOT change | the creation-before-operation invariant and the S3a heal now cover the use kind (`IsItemOperation`, the unjudged-id branch); a slot/state report's values stay the holder's claim; the limb families keep their record-based bounds | `CreationBeforeOperationTests` green (with the new kind's `RefusedKind`); `KernelItemReportEligibilityTests.StateReportOfAnItemWhoseOwnDataForbidsAUse_IsStillAdmitted`; `ItemActionSyncTests` green |
+   | Not covered | `ItemInfo.usableWithLMB` (the LMB call site's stricter flag) is not checked — the report does not name which call site ran; an item the use consumed locally cannot be brought back by the settle (logged); the item's numbers stay unanchored (see the paragraph above); the adapter's `Item.GlobalItems` read is one line exercised only on a real machine; and the gun chain's one-line CALL to the state sender is adapter-only (the sender it calls is pinned, the call site is not — an ordinary gun's transition is read by the acceptance batch's row 6) | named here rather than implied |
+
+   **The independent review's findings and where each went** (FULL tier, fresh context, frozen tree). ROUND
+   ONE (interim report at its first milestone; the reviewer was stopped before its final report, so its
+   remaining checks — the gates, the test bodies, the reference set — were re-run by the parent in the same
+   round and are the ones this section cites). MAJOR: the gun chain's transitions reached the new use kind
+   with no `usable` guard, so a gun whose definition data does not mark it usable would have had every
+   rack/safety/load refused and settled back — a legitimate mod-gun transition undone by the bound. Fixed in
+   this commit by splitting the ROUTE, not the guard: `ItemUseSync.OnItemStateChanged` reports through
+   `IItemControl.SendItemState` under `ItemUpdateState`, `GunStateSync` calls it, and the new
+   `ItemActionSyncTests` case pins the shape; the ticket's "mod gun" limit is gone because the exposure is.
+   MINOR: the premise sentence said both call sites run behind `usable` — the LMB site runs behind
+   `usable && usableWithLMB`; the port doc, the census row, this section and `current.md` now state the
+   necessary flag and why the stricter one is not asked. MINOR: the docs did not say whether the new kind is
+   in the guest's re-report window — it is not, and the paragraph above now says so and names how a swallowed
+   report converges. The parent's own sweep of the same round also fixed two stale sentences (the census's
+   "gun transition's sibling shape" and §7.1's "stages still open") and two historical records whose ticket
+   path had moved. ROUND TWO (the delta, on the fixed tree): started in a fresh context to re-attack the
+   fixes; it did not return a report before the parent stopped it, so there is no round-two finding to
+   record. The fixed items were verified instead by re-reading the senders (`SendItemUse` reachable only
+   from the two guarded `Body` call sites; `GunStateSync` on the state sender), the focused suites (61
+   cases including the new state-route case) and the 693 gates; that sweep also caught and corrected one
+   over-claim of this ticket's own (a test that pins the STATE SENDER, not the gun chain's call).
+
+   **What is verified and what is not.** The mechanisms and the three mutation controls above are unit and
+   integration evidence against the production composition root. The MACHINE row is owed to the next
+   acceptance batch, and it is the acceptance table's new row 7: the member client must send one use report
+   for an item its own data says is not usable (the acceptance recipes' forge shape, `member-identity-forge.cs`,
+   already sends a hand-built command this way for a pickup), and the host's refusal, its answer and the
+   sender's settled state must be read there. Nothing in this stage was read on the real machine.
+
 ## Limits S2a carries
 
 - **The table is a mirror.** `GameBlockDropTable`'s vanilla rows transcribe the game's switch at the build
@@ -495,6 +591,7 @@ A two-client session where one client is modified by hand or by a test harness t
 | 4 | A member sends an item-state report for somebody else's item | Refused by name (the ownership check S1 adds) |
 | 5 | A report arriving before its creation | Accepted in the documented order, not refused |
 | 6 | An ordinary session, unmodified clients | Nothing changes: no new refusals, no new logs at Warn |
+| 7 | A member reports a native use of an item whose own data says it cannot be used (`ItemInfo.usable` clear) | Refused by name on the host and answered; the sender's already-applied state put back to the recorded one; the host's own row unchanged; an ordinary session meets no such refusal |
 
 Where the rows stand after S1a, S1b, S2a and S2b: row 3 is answered on both halves — a kind only the host authors is
 refused by name, and a member's console write is refused unless the host's `AllowMemberItemDataWrite` rule
@@ -524,6 +621,9 @@ that says so and settles back, never a silent divergence — and the row asserts
 console and on the host's own kernel row. S2a adds a fourth, and the 2026-10-16 run read it: an unmodified
 client's break must keep every drop it rolled, so row 6 also reads that no bound refusal appears in an ordinary
 session, and when one does appear the bound's own line names the block, the table and the drops it refused.
+S3b adds row 7 — owed to the next batch, see its own section — and one more half to row 6: an unmodified
+client's native uses must all keep passing, because the item's own data admits them (a refused
+`UseNotPermitted` in an ordinary session is the finding, and its line names the item and the definition).
 
 **Read on the real machine 2026-10-14, batch `20261014-a`**
 (`docs/evidence/acceptance/validation-and-source-checks-20261014-a.md`): rows 3 and 4 pass in full — a

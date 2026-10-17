@@ -419,7 +419,13 @@ list in both directions, so neither drift can pass unnoticed. A console verb has
 of its own (`WireCommandKind.ItemDataWrite`), which is what lets the host judge the VERB rather than only the
 state it carries: `HostRules.AllowMemberItemDataWrite` (off) reaches the seam through `IMemberCommandRules`,
 and a refusal settles the value the writer had already applied to its own object back onto the session's
-record (`ItemDataWriteSettlement`), keyed by the kind the answer names (`WireCommand.RefusedKind`).
+record (`ItemStateSettlement`), keyed by the kind the answer names (`WireCommand.RefusedKind`). The native
+use has its own kind for the same reason (`WireCommandKind.ItemUse`): the host judges the USE by the item's
+own data through an adapter port (`IKernelItemUseFacts`: both native call sites require `ItemInfo.usable`,
+so a use of an item that flag forbids cannot have happened), refuses it by name, and the same settlement
+puts the recorded state back on the sender's object. A state change that is not a use — a gun's
+rack/safety/load transition, a slot move — reports under `ItemUpdateState` and claims no use, so the bound
+never touches it.
 
 The seam is not the only place a member's report is judged, and the second one sits in the Game Adapter
 because the fact it needs is the game's own: a destruction report's drops are bounded against the thing that
@@ -433,8 +439,9 @@ assignment of the report to the table's rows can account for is refused by name,
 rest keeps its normal fate), and the buildings that lost their support block in that break have their own
 tables read at the MARK, the one moment their components still exist, keyed by the cell the report already
 carries. What every other member-authored wire member is bounded against — or the anchor it lacks — is the
-census in [member-report-validation.md](member-report-validation.md); the stages still open are
-`todo/validation-and-source-checks.md`'s and `todo/member-report-bounds.md`'s.
+census in [member-report-validation.md](member-report-validation.md); the bounds' own record is
+`review/validation-and-source-checks.md` (every stage landed; its machine rows wait on an acceptance batch),
+and the rows still carrying no anchor are `todo/member-report-bounds.md`'s.
 
 ### 7.2 Guest prediction model (not implemented in current code)
 

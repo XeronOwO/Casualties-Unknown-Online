@@ -7,7 +7,7 @@
   simulated on EVERY client so each player's own state stays continuous (native feel), reported to the host
   periodically, and reconciled to the host's value — the host is the final result, which is also what makes
   the state authoritative.
-- Related: `todo/validation-and-source-checks.md` (the same conversation's other half: source, permission and
+- Related: `review/validation-and-source-checks.md` (the same conversation's other half: source, permission and
   data checks — this ticket owns the continuous-value half), `docs/backlog/future/generic-prediction-runtime.md`
   (this is a NARROW slice of it: one known family, one model), `docs/decisions/active.md` 184 (the design
   principle this must not break: experience judged locally, conflict arbitration on the host, latency is never
@@ -29,7 +29,7 @@ Two halves, and the whole design turns on keeping them apart:
 1. **Events** — what happened: a bite, a fall, a medical action, a limb breaking. These are NOT simulated;
    they are decided once, by the side the existing rulings already give them to (the affected client judges
    its own injury and medical actions; the host owns the enemies and the environment), and they travel as
-   events. A peer that invents an event is a `todo/validation-and-source-checks.md` problem, not this one.
+   events. A peer that invents an event is a `review/validation-and-source-checks.md` problem, not this one.
 2. **Continuous values** — what the state does BETWEEN events: bleeding, decay, the slide a wound causes.
    This is what each client simulates for every body it can see, from the last authoritative event, so the
    panel moves smoothly instead of stepping once per report.
@@ -87,7 +87,7 @@ Two clients (plus a third where a row needs it), one of them with an artificial 
 
 ## Limits to write down rather than hide
 
-- **A plausible lie is not caught by (a).** Only event/data validation (`todo/validation-and-source-checks.md`)
+- **A plausible lie is not caught by (a).** Only event/data validation (`review/validation-and-source-checks.md`)
   or a host-side model (b) closes that.
 - **Simulation for everyone costs work on every client** (N bodies, not one) — the frame budget has to be
   measured before the design is called affordable, and the measurement belongs in this ticket.

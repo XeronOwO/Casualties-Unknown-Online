@@ -402,16 +402,16 @@ public class KernelCommandGatewayTests
 			"a carried item's state is its holder's own report — the rule closes the console verb, not the item");
 	}
 
-	private static KernelCommandGateway Gateway() => new(new FakeItemFacts(), ClosedRules(), new RecordingLogger<KernelCommandGateway>());
+	private static KernelCommandGateway Gateway() => new(new FakeItemFacts(), ClosedRules(), new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
 
-	private static KernelCommandGateway Gateway(FakeItemFacts facts) => new(facts, ClosedRules(), new RecordingLogger<KernelCommandGateway>());
+	private static KernelCommandGateway Gateway(FakeItemFacts facts) => new(facts, ClosedRules(), new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
 
-	private static KernelCommandGateway Gateway(RecordingLogger<KernelCommandGateway> logger) => new(new FakeItemFacts(), ClosedRules(), logger);
+	private static KernelCommandGateway Gateway(RecordingLogger<KernelCommandGateway> logger) => new(new FakeItemFacts(), ClosedRules(), new FakeItemUseFacts(), logger);
 
-	private static KernelCommandGateway Gateway(FakeItemFacts facts, RecordingLogger<KernelCommandGateway> logger) => new(facts, ClosedRules(), logger);
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, RecordingLogger<KernelCommandGateway> logger) => new(facts, ClosedRules(), new FakeItemUseFacts(), logger);
 
 	/// <summary>The seam with the host's rule OPEN — the other side of the console-verb verdict.</summary>
-	private static KernelCommandGateway Gateway(FakeMemberCommandRules rules) => new(new FakeItemFacts(), rules, new RecordingLogger<KernelCommandGateway>());
+	private static KernelCommandGateway Gateway(FakeMemberCommandRules rules) => new(new FakeItemFacts(), rules, new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
 
 	/// <summary>The host's own member-command rules as a host ships them: the item-data write verb is closed.</summary>
 	private static FakeMemberCommandRules ClosedRules() => new();

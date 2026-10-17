@@ -45,6 +45,16 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>Guest only: an item was used locally (Body.UseItem) — report the used state (digest evidence) so the host validates and corrects.</summary>
 	void SendItemUse(ulong itemId, CharacterItemMsg item);
 
+	/// <summary>
+	/// Guest only: an item's persistent state changed WITHOUT one of the game's two
+	/// guarded use call sites having run — the gun chain's rack, safety, load, unload and
+	/// timed auto-rack transitions. It travels as the plain state report, which claims no
+	/// use: the host's native-use bound judges a claimed use by the item's own data, and a
+	/// state transition is not one. Host-side changes are the host's own fact, never
+	/// reported.
+	/// </summary>
+	void SendItemState(ulong itemId, CharacterItemMsg item);
+
 	/// <summary>Guest only: an item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync. The digest evidence rides along (the host broadcasts it as the carried-fact event when it has no transfer-table entry — a starting-supply item).</summary>
 	void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item);
 
@@ -55,7 +65,7 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// of reading it as a native use; the row it writes is the same either way. A
 	/// host refusal comes back as its own verdict and this client settles the value
 	/// it already applied
-	/// (<see cref="ItemDataWriteSettlement"/>).
+	/// (<see cref="ItemStateSettlement"/>).
 	/// </summary>
 	void SendItemDataWrite(ulong itemId, CharacterItemMsg item);
 

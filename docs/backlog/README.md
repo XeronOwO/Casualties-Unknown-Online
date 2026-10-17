@@ -64,7 +64,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Mod content ceiling](todo/mod-content-ceiling.md) — **High** — the native label surface, cross-player predicates, the parked gaps.
 - [Item and entity data commands](todo/item-and-entity-data-commands.md) — **Medium-High** — the write verbs, give and spawn; the read half landed.
 - [Health on every client, reconciled to the host](todo/health-simulation-and-host-authority.md) — **Medium-High** — everyone simulates; the host wins at once.
-- [Source, permission and data checks](todo/validation-and-source-checks.md) — **Medium-High** — report validation and the host's rule for a member's write.
 - [The member reports that still have no bound](todo/member-report-bounds.md) — **Medium-High** — the census rows with no anchor.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
@@ -78,6 +77,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
+- [Source, permission and data checks](review/validation-and-source-checks.md) — **Medium-High** — report validation and the host's rule for a member's write.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction, landed; four of its six rows read on the machine.

@@ -21,7 +21,9 @@ internal sealed class ItemActionSync(
 	private readonly IItemActionWorldAccess _world = world;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 
-	/// <summary>Guest only: an item was used locally — report the used state (digest evidence) so the host validates and corrects. Host-side uses are the host's own authority, never reported.</summary>
+	/// <summary>
+	/// Guest only: an item was used locally — report the used state (digest evidence) so the host validates and corrects. Host-side uses are the host's own authority, never reported. The report carries its own kind, not the plain state report's: it CLAIMS a native use, and the host bounds that claim by the item's own data (a use of an item whose <c>ItemInfo.usable</c> is clear cannot have happened); a slot move or a gun transition reports the same payload under <c>ItemUpdateState</c> and claims no use at all.
+	/// </summary>
 	public void SendItemUse(ulong itemId, CharacterItemMsg item)
 	{
 		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
@@ -32,15 +34,15 @@ internal sealed class ItemActionSync(
 		_kernelProtocol.SendCommand(
 			new WireCommand
 			{
-				Kind = WireCommandKind.ItemUpdateState,
+				Kind = WireCommandKind.ItemUse,
 				Identity = ToIdentity(itemId, item),
 				Data = ToWireData(item),
 			},
-			WirePayloadType.ItemUpdateStateCommand);
+			WirePayloadType.ItemUseCommand);
 	}
 
-	/// <summary>Guest only: an item moved slots locally — report the new slot so the host's record stays in sync. Host-side moves are the host's own authority, never reported.</summary>
-	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item)
+	/// <summary>Guest only: an item's state changed without a use claim (the gun chain's persistent transitions) — report it as the plain state report, so the host's record and the peers' clones follow without the claim.</summary>
+	public void SendItemState(ulong itemId, CharacterItemMsg item)
 	{
 		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
 		{
@@ -56,6 +58,9 @@ internal sealed class ItemActionSync(
 			},
 			WirePayloadType.ItemUpdateStateCommand);
 	}
+
+	/// <summary>Guest only: an item moved slots locally — report the new slot so the host's record stays in sync. Host-side moves are the host's own authority, never reported. The row is the same state report a gun transition uses; the slot rides the payload.</summary>
+	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item) => SendItemState(itemId, item);
 
 	/// <summary>
 	/// Guest only: a CONSOLE command wrote this item's state (<c>/data set</c>) — the

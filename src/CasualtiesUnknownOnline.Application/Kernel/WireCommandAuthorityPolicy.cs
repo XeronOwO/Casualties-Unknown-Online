@@ -56,6 +56,11 @@ public static class WireCommandAuthorityPolicy
 		WireCommandKind.ItemDrop => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemDestroy => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemUpdateState => AuthorityKind.OwnerPredictedHostValidated,
+		// A native use: the member's own client ran the item's own use action and
+		// reports the state it produced. It carries its own kind so the seam can
+		// judge it by the item's own data — a use kind, the console write and the
+		// plain state report are three different claims about one row.
+		WireCommandKind.ItemUse => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemContainerSync => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemApplyLimb => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemRemoveLimb => AuthorityKind.OwnerPredictedHostValidated,

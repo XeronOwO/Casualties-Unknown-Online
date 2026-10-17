@@ -42,12 +42,13 @@ internal static class ItemComposition
 		// from went with its only consumer, because an applied item keeps its id across the
 		// transform.
 		services.AddSingleton<ItemIdCoordinator>();
-		// The member's half of a console item-data write: the answer to a refusal the
-		// host sends back (it puts the recorded state onto the local object). It is
-		// registered here, with ItemService, because the rejection routing is
-		// ItemService's own subscription — a settlement created only when a console
-		// opens would miss a refusal that arrived before it.
-		services.AddSingleton<ItemDataWriteSettlement>();
+		// The member's half of a report the host refuses after this client already
+		// applied it: the console item-data write AND the native use both put the
+		// recorded state back (ItemStateSettlement). It is registered here, with
+		// ItemService, because the rejection routing is ItemService's own
+		// subscription — a settlement created only when a console opens would miss a
+		// refusal that arrived before it.
+		services.AddSingleton<ItemStateSettlement>();
 		// Item domain: the authoritative world-item table + pickup arbitration
 		// (ItemService itself reacts to calls and messages — no pump).
 		services.AddSingleton<ItemService>();

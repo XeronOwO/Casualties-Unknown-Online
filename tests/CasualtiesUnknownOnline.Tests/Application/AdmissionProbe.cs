@@ -37,6 +37,14 @@ internal static class AdmissionProbe
 		/// </summary>
 		internal CommandAdmission AdmitConsoleWrite(ulong sender, GameCommand command) =>
 			gateway.AdmitMemberSubmission(sender, WireCommandKind.ItemDataWrite, command);
+
+		/// <summary>
+		/// One member submission of a NATIVE USE — the claim the item's own data bounds.
+		/// The command is the same <c>UpdateItemStateCommand</c> a slot move or a console
+		/// write maps to; the kind is what says this report claims a use at all.
+		/// </summary>
+		internal CommandAdmission AdmitUse(ulong sender, GameCommand command) =>
+			gateway.AdmitMemberSubmission(sender, WireCommandKind.ItemUse, command);
 	}
 
 	/// <summary>

@@ -11,10 +11,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// had no dedicated report — they only reached the host and the peer clones on
 /// the next 1 Hz character snapshot. This domain owns the per-instance
 /// "last reported snapshot" and reports every actual persistent-state change
-/// through the existing item-use fact path (one operation = one message, the
-/// same accept-with-correction shape as a use). The Harmony patches are thin:
-/// they only call <see cref="TryReport"/> after the native transition; the
-/// deduplication state belongs here, not in the patch.
+/// through the item fact route, as a STATE report: a rack, a safety toggle or a
+/// magazine load is a state transition, not one of the game's two guarded use call
+/// sites, so it must claim no use — the use bound judges a claimed native use, and
+/// sending these as one would let it refuse a legitimate transition of a gun whose
+/// own data does not mark it usable. The Harmony patches are thin: they only call
+/// <see cref="TryReport"/> after the native transition; the deduplication state
+/// belongs here, not in the patch.
 /// </summary>
 internal sealed class GunStateSync(ItemUseSync itemUseSync, ILogger<GunStateSync> log)
 {
@@ -59,7 +62,7 @@ internal sealed class GunStateSync(ItemUseSync itemUseSync, ILogger<GunStateSync
 		_last.Remove(gun);
 		_last.Add(gun, current);
 
-		_itemUseSync.OnItemUsed(item);
+		_itemUseSync.OnItemStateChanged(item);
 		_log.LogInformation(
 			"[GunState] {Item} (id {ItemId}) reported: chamber={Chamber}, racked={Racked}, mag={Mag}, hasMag={HasMag}, safe={Safe}, condition={Condition:F3}.",
 			item.id,

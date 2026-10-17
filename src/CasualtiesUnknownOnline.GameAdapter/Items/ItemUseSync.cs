@@ -6,16 +6,20 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
-/// The use-chain's report side (the domain owner): an item was used
+/// The item-fact report side (the domain owner): an item was USED
 /// (Body.UseItemInHand — the LMB click on a usable item; Body.UseItem — the
-/// radial-menu drag and the recipe consumption). One use = one report carrying
-/// the post-use digest: the host validates the state against the item's
-/// transfer-table entry, adopts a matching evidence (the guest is the fact
+/// radial-menu drag and the recipe consumption), or its persistent state changed
+/// without a use (the gun chain's transitions). One fact = one report carrying the
+/// post-fact digest. A USE report claims the gesture and travels under its own wire
+/// kind, so the host judges it by the item's own data; a STATE report claims no use
+/// and travels as the plain state report. The host validates the state against the
+/// item's transfer-table entry, adopts a matching evidence (the guest is the fact
 /// source for its own body) and sends an ItemCorrection when it diverges.
-/// Usage itself is never rejected — this report exists so wrong stored state
-/// heals on the next ordinary action. The host's OWN use needs no arbitration
-/// (its local object IS the fact) — it broadcasts the full carried item
-/// instead, so the peers' clones of the host flip the moment the use lands.
+/// Usage itself is never rejected by the domain — the use CLAIM is what the
+/// admission seam can refuse, and a refusal settles the recorded state back. The
+/// host's OWN fact needs no arbitration (its local object IS the fact) — it
+/// broadcasts the full carried item instead, so the peers' clones of the host flip
+/// the moment the fact lands.
 /// <para>
 /// A STANDING item object takes the chain's third route, added with the
 /// cross-player eat: the use ran against another member's carried item's local
@@ -38,7 +42,20 @@ internal sealed class ItemUseSync(
 	private readonly ISolidFoodSemantics _solidFoodSemantics = solidFoodSemantics;
 	private readonly ILogger<ItemUseSync> _log = log;
 
-	internal void OnItemUsed(Item item)
+	internal void OnItemUsed(Item item) => Report(item, claimsNativeUse: true);
+
+	/// <summary>
+	/// The STATE half of the same route: an item's persistent state changed without one
+	/// of the game's two guarded use call sites having run (the gun chain's rack, safety,
+	/// load, unload and timed auto-rack transitions — <see cref="GunStateSync"/>). The
+	/// report must not CLAIM a use: it travels as the plain state report, which the host
+	/// admits as the holder's own fact. Sending it as a use would let the native-use bound
+	/// refuse a legitimate transition of a gun whose own data does not mark it usable
+	/// (<c>ItemInfo.usable</c> is the use guard, not a state-transition guard).
+	/// </summary>
+	internal void OnItemStateChanged(Item item) => Report(item, claimsNativeUse: false);
+
+	private void Report(Item item, bool claimsNativeUse)
 	{
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp == null || idComp.Id == 0) // Unity object — ==; unbound items have no table entry to arbitrate
@@ -110,7 +127,15 @@ internal sealed class ItemUseSync(
 			return;
 		}
 
-		_items.SendItemUse(idComp.Id, ItemStateCodec.CaptureDigest(item));
-		_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) reported (digest).", item.id, idComp.Id);
+		if (claimsNativeUse)
+		{
+			_items.SendItemUse(idComp.Id, ItemStateCodec.CaptureDigest(item));
+			_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) reported (use digest).", item.id, idComp.Id);
+		}
+		else
+		{
+			_items.SendItemState(idComp.Id, ItemStateCodec.CaptureDigest(item));
+			_log.LogInformation("[ItemState] {Type} (id {ItemId}) reported as a state change — no use claimed.", item.id, idComp.Id);
+		}
 	}
 }

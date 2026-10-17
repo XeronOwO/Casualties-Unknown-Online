@@ -36,4 +36,15 @@ public enum RejectionReason
 	/// report), which is how an item it really carries reaches this host.
 	/// </summary>
 	UnclaimedItem,
+
+	/// <summary>
+	/// A native-use report names an item whose OWN data says no native use exists
+	/// (<c>ItemInfo.usable</c> is clear, so both of the game's use call sites fall
+	/// through to something else), which no client of this game could have
+	/// performed. It is answered by name: the sender has already applied the use
+	/// locally by the time the report arrives, and the recorded state is written
+	/// back onto that object (<c>ItemStateSettlement</c>) so the two sides agree
+	/// again.
+	/// </summary>
+	UseNotPermitted,
 }

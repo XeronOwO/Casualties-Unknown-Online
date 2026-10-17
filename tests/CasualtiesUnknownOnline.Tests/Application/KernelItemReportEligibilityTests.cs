@@ -268,14 +268,109 @@ public class KernelItemReportEligibilityTests
 		Assert.Contains(nameof(RejectionReason.NotAuthorized), entry.Message);
 	}
 
-	private static KernelCommandGateway Gateway() => new(new FakeItemFacts(), new FakeMemberCommandRules(), new RecordingLogger<KernelCommandGateway>());
+	/// <summary>
+	/// The native-use half of the family: a report that CLAIMS a use must name an item
+	/// whose own data admits one. Both of the game's use call sites run their delegate
+	/// behind <c>ItemInfo.usable</c>, so a use of a definition whose flag is clear is a
+	/// report no client of this game could have made. The refusal is ANSWERED — the use
+	/// already ran on the sender's own client — and it names the definition the HOST's
+	/// record holds, never the report's.
+	/// </summary>
+	[Fact]
+	public void NativeUseOfAnItemWhoseOwnDataForbidsIt_IsRefusedAndAnswered()
+	{
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, Member);
+		var logger = new RecordingLogger<KernelCommandGateway>();
 
-	private static KernelCommandGateway Gateway(FakeItemFacts facts) => new(facts, new FakeMemberCommandRules(), new RecordingLogger<KernelCommandGateway>());
+		var decision = Gateway(facts, new FakeItemUseFacts().Forbid("test_item"), logger)
+			.AdmitUse(Member, State(42, actor: Member));
 
-	private static KernelCommandGateway Gateway(FakeItemFacts facts, RecordingLogger<KernelCommandGateway> logger) => new(facts, new FakeMemberCommandRules(), logger);
+		Assert.Equal(CommandAdmissionKind.Refused, decision.Kind);
+		Assert.Equal(RejectionReason.UseNotPermitted, decision.Reason);
+		Assert.True(decision.AnswersSender, "the use already ran on the sender's own client — a verdict it never sees would leave it changed");
+		var entry = Assert.Single(logger.Entries);
+		Assert.Equal(LogLevel.Warning, entry.Level);
+		Assert.Contains("'test_item'", entry.Message);
+		Assert.Contains(nameof(RejectionReason.UseNotPermitted), entry.Message);
+	}
+
+	/// <summary>The other side of the same answer: the item's own data admits the use, so the ordinary native use is admitted.</summary>
+	[Fact]
+	public void NativeUseOfAnItemWhoseOwnDataPermitsIt_IsAdmitted()
+	{
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, Member);
+
+		Assert.True(Gateway(facts, new FakeItemUseFacts().Permit("test_item"))
+			.AdmitUse(Member, State(42, actor: Member)).IsAdmitted);
+	}
+
+	/// <summary>
+	/// A definition this host cannot read is not evidence that the item is unusable: the
+	/// read failed, so the report is admitted as it was before the rule existed. The
+	/// case pins the three-valued port — folding "unknown" into "forbidden" would refuse
+	/// every use of a mod item the host does not carry.
+	/// </summary>
+	[Fact]
+	public void NativeUseOfADefinitionThisHostCannotRead_IsAdmitted()
+	{
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, Member);
+
+		Assert.True(Gateway(facts, new FakeItemUseFacts().Unknown("test_item"))
+			.AdmitUse(Member, State(42, actor: Member)).IsAdmitted);
+	}
+
+	/// <summary>
+	/// The order the two rules run in: a use report on ANOTHER member's item keeps the
+	/// eligibility family's verdict — ignored, with no answer — even when the item's own
+	/// data also forbids a use. Answering would start a guest rollback on a copy that is
+	/// not the item's fact, which is what the eligibility rule exists to avoid.
+	/// </summary>
+	[Fact]
+	public void NativeUseOfAnotherMembersItem_StaysTheEligibilityVerdict()
+	{
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, OtherMember);
+
+		var decision = Gateway(facts, new FakeItemUseFacts().Forbid("test_item"))
+			.AdmitUse(Member, State(42, actor: Member));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+		Assert.False(decision.AnswersSender);
+	}
+
+	/// <summary>
+	/// The bound is about the USE CLAIM, not about the item's state: the same payload
+	/// arriving as a plain state report (a slot move) claims no use, so the item's
+	/// <c>usable</c> flag has nothing to say about it and ordinary play stays untouched.
+	/// </summary>
+	[Fact]
+	public void StateReportOfAnItemWhoseOwnDataForbidsAUse_IsStillAdmitted()
+	{
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(42, Member);
+
+		Assert.True(Gateway(facts, new FakeItemUseFacts().Forbid("test_item"))
+			.Admit(Member, State(42, actor: Member)).IsAdmitted,
+			"a slot move or a state drift is not a use claim; the record keeps taking its holder's own report");
+	}
+
+	private static KernelCommandGateway Gateway() => new(new FakeItemFacts(), new FakeMemberCommandRules(), new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
+
+	private static KernelCommandGateway Gateway(FakeItemFacts facts) => new(facts, new FakeMemberCommandRules(), new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
+
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, RecordingLogger<KernelCommandGateway> logger) => new(facts, new FakeMemberCommandRules(), new FakeItemUseFacts(), logger);
 
 	/// <summary>The seam with the host's rule OPEN, for the console-verb cases: the rule is judged before any item rule, so the cases below need it open to reach the rule they pin.</summary>
-	private static KernelCommandGateway Gateway(FakeItemFacts facts, FakeMemberCommandRules rules) => new(facts, rules, new RecordingLogger<KernelCommandGateway>());
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, FakeMemberCommandRules rules) => new(facts, rules, new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
+
+	/// <summary>The seam with the game's own item data seeded — the native-use family's data anchor.</summary>
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, FakeItemUseFacts useFacts) => new(facts, new FakeMemberCommandRules(), useFacts, new RecordingLogger<KernelCommandGateway>());
+
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, FakeItemUseFacts useFacts, RecordingLogger<KernelCommandGateway> logger) => new(facts, new FakeMemberCommandRules(), useFacts, logger);
 
 	private static DestroyItemCommand Destroy(ulong instanceId, ulong actor) =>
 		new(new OperationId(1), new ActorId(actor), new RunEpoch(1), AuthorityKind.OwnerPredictedHostValidated, instanceId, TerminalKind.Consumed, 0);

@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.World;
@@ -206,6 +207,13 @@ public static class GameAdapterComposition
 		services.AddSingleton<LocalItemAccess>();
 		services.Replace(ServiceDescriptor.Singleton<ILocalItemAccess>(
 			p => p.GetRequiredService<LocalItemAccess>()));
+		// The game's own item data behind the native-use bound: the admission seam asks
+		// whether a definition's ItemInfo.usable admits a native use at all, which only
+		// this layer can read. Standalone for the same reason as the semantics seams
+		// below — it needs nothing the domain graph owns.
+		services.AddSingleton<GameItemUseFacts>();
+		services.Replace(ServiceDescriptor.Singleton<IKernelItemUseFacts>(
+			p => p.GetRequiredService<GameItemUseFacts>()));
 		// The game's own content facts behind the cross-player limb-use chains
 		// (mod-cross-player-native-semantics): the item and liquid registries answer
 		// what the injection chain may draw from, instead of a CUO id table. Same

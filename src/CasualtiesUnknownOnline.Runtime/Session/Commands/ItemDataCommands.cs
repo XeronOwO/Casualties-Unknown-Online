@@ -304,7 +304,7 @@ internal sealed class ItemDataCommands(
 			// rule above did not refuse them — either the host has announced that the verb
 			// is open, or no announcement has arrived and this client does what it always
 			// did — and a refusal still arrives later, puts the recorded state back and
-			// prints its own line (ItemDataWriteSettlement, ItemDataWriteRefusal).
+			// prints its own line (ItemStateSettlement, ItemDataWriteRefusal).
 			_itemControl.SendItemDataWrite(instanceId, local);
 			_log.LogInformation("[Command] /data {Verb} wrote #{InstanceId} ({Definition}): {Changes}; reported as a console write for the host's rule to judge.",
 				verb, instanceId, local.ItemId, string.Join("; ", described));

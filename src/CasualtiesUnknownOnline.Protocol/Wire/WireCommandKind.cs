@@ -52,6 +52,17 @@ public enum WireCommandKind
 	/// </summary>
 	ItemDataWrite = 29,
 
+	/// <summary>
+	/// A NATIVE USE of one item ran on the reporting member's own client, through one of
+	/// the game's two guarded use call sites, and this is the state it produced. Separate
+	/// from <see cref="ItemUpdateState"/> for the same reason the console write is: the
+	/// host judges a USE by the item's own data (<c>ItemInfo.usable</c>, the flag both of
+	/// those call sites require), and a slot move, a state drift or a gun's rack/safety
+	/// transition through that kind claims no use at all, so one kind could not carry both
+	/// answers.
+	/// </summary>
+	ItemUse = 30,
+
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,
 	CommandRejected = 101,

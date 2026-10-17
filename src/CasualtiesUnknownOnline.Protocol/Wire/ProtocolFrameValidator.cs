@@ -317,6 +317,7 @@ public static class ProtocolFrameValidator
 			WirePayloadType.ItemApplyLimbCommand => WireCommandKind.ItemApplyLimb,
 			WirePayloadType.ItemRemoveLimbCommand => WireCommandKind.ItemRemoveLimb,
 			WirePayloadType.ItemDataWriteCommand => WireCommandKind.ItemDataWrite,
+			WirePayloadType.ItemUseCommand => WireCommandKind.ItemUse,
 			WirePayloadType.RunStartCommand => WireCommandKind.RunStart,
 			WirePayloadType.AdvanceLayerCommand => WireCommandKind.AdvanceLayer,
 			WirePayloadType.RecordTrapConsumedCommand => WireCommandKind.RecordTrapConsumed,

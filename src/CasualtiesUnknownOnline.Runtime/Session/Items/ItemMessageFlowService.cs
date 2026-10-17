@@ -118,6 +118,13 @@ internal sealed class ItemMessageFlowService(
 		_itemActionSync.SendItemUse(itemId, item);
 	}
 
+	/// <summary>An item's state changed without a use claim (the gun chain's transitions): the same pending-creation settlement as the other item operations, then the plain state report.</summary>
+	public void SendItemState(ulong itemId, CharacterItemMsg item)
+	{
+		_pendingCreations.SettleBeforeOperation();
+		_itemActionSync.SendItemState(itemId, item);
+	}
+
 	/// <summary>
 	/// A console command wrote one item's state. Deliberately NOT settled against the
 	/// pending creations first, unlike the native operations beside it: the verb

@@ -66,6 +66,15 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// ground, or inside a container that ultimately does), the member's own carried,
 /// installed or contained item, or an id this host never judged. The destroy half
 /// is the handler's former <c>CanDestroy</c> check, moved here;</item>
+/// <item>a report that says it is a NATIVE USE must name an item whose own data
+/// permits one (<see cref="IKernelItemUseFacts"/>): both of the game's use call
+/// sites run their delegate behind the item's own <c>ItemInfo.usable</c>, so a
+/// use of an item that flag does not admit cannot have happened. The rule reads
+/// the DEFINITION the host's own record holds, never the report's identity, and
+/// it ANSWERS the refusal — the use already ran on the sender's own client, so
+/// the recorded state is put back there (<c>ItemStateSettlement</c>). It sits
+/// after the eligibility rule so a report on another member's item keeps the
+/// verdict that family already gives it;</item>
 /// <item>a container sync's listed CHILDREN must not be items the record puts in
 /// another member's hands or on another member's limb
 /// (<see cref="MayEnterOwnContainer"/>): the parent rule alone would still let a
@@ -85,10 +94,11 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// </list>
 /// </para>
 /// </summary>
-public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandRules memberCommandRules, ILogger<KernelCommandGateway> log)
+public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandRules memberCommandRules, IKernelItemUseFacts itemUseFacts, ILogger<KernelCommandGateway> log)
 {
 	private readonly IKernelItemFacts _items = items;
 	private readonly IMemberCommandRules _memberCommandRules = memberCommandRules;
+	private readonly IKernelItemUseFacts _itemUseFacts = itemUseFacts;
 	private readonly ILogger<KernelCommandGateway> _log = log;
 
 	/// <summary>
@@ -127,7 +137,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 			// ALREADY applied the value to its own local object (the console writes
 			// the item, then reports it), so a refusal the sender never sees would
 			// leave its picture changed for good. The member settles it back on
-			// receipt (ItemDataWriteSettlement).
+			// receipt (ItemStateSettlement).
 			return Refuse(sender, command, RejectionReason.HostRuleDenied,
 				"the host's rule does not open the item-data write verbs to members");
 		}
@@ -179,6 +189,18 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 			return kind == WireCommandKind.ItemDataWrite
 				? Refuse(sender, command, RejectionReason.NotAuthorized, detail)
 				: Ignore(sender, command, RejectionReason.NotAuthorized, detail);
+		}
+
+		if (kind == WireCommandKind.ItemUse
+			&& command is UpdateItemStateCommand use
+			&& NativeUseRefusal(use) is { } useDetail)
+		{
+			// Answered on purpose: the use already ran on the sender's own client, so a
+			// verdict it never sees would leave that object changed for good. Only the
+			// USE kind reaches this rule — a slot move or a gun transition reports the
+			// same shape under ItemUpdateState and claims no use, so no use precondition
+			// applies to it.
+			return Refuse(sender, command, RejectionReason.UseNotPermitted, useDetail);
 		}
 
 		if (command is SyncContainerItemsCommand sync && ContainerSyncRefusal(sender, sync) is { } containerDetail)
@@ -249,6 +271,34 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 			ItemLocationKind.Contained => row.Location.Owner.Value == sender
 				|| ItemLocationChain.IsWorldRooted(row, _items.FindItem),
 			_ => row.Location.Owner.Value == sender,
+		};
+	}
+
+	/// <summary>
+	/// The native-use family's own data anchor: a report that says it is a use must
+	/// name an item the game's own data lets a use run on. The answer is asked of the
+	/// RECORD's definition id — the identity this host already judged — never the
+	/// report's, and the three values are kept apart: only
+	/// <see cref="ItemUsePermission.Forbidden"/> refuses, because
+	/// <see cref="ItemUsePermission.Unknown"/> means this host holds no fact about
+	/// that definition (a mod it does not have) and refusing on a missing fact is the
+	/// behaviour the census forbids. An id this host never judged returns no detail:
+	/// the creation-before-operation invariant above this seam answers it.
+	/// </summary>
+	private string? NativeUseRefusal(UpdateItemStateCommand command)
+	{
+		var current = _items.FindItem(command.InstanceId);
+		if (current is null)
+		{
+			return null;
+		}
+
+		var definitionId = current.Value.Identity.DefinitionId;
+		return _itemUseFacts.NativeUse(definitionId) switch
+		{
+			ItemUsePermission.Forbidden =>
+				$"item {command.InstanceId} is '{definitionId}', whose own data says no native use exists (ItemInfo.usable is clear) — both of the game's use call sites would have run something else",
+			_ => null,
 		};
 	}
 

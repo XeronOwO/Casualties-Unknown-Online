@@ -13,7 +13,7 @@
   and the 2026-10-16 direction that the validation standard becomes a general development rule — which is
   also why these are written down instead of left implicit.
 - Related: `docs/architecture/member-report-validation.md` (the census these rows come from),
-  `todo/validation-and-source-checks.md` (S1/S2a/S2b landed the seam, the block drops and the building
+  `review/validation-and-source-checks.md` (S1/S2a/S2b landed the seam, the block drops and the building
   drops), `docs/evidence/sync-coverage-matrix.md` (each surface's event + fallback policy)
 
 ## The three patterns

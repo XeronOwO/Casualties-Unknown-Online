@@ -105,17 +105,21 @@ box.
 
 - **A modified client.** Anti-cheat is explicitly deferred — `docs/backlog/future/strict-validation-anti-cheat.md`
   is a low-priority future item whose basic checks are landed stage by stage
-  (`docs/backlog/todo/validation-and-source-checks.md`). What IS in place bounds what a member's reports may
+  (`docs/backlog/review/validation-and-source-checks.md`). What IS in place bounds what a member's reports may
   reach: the authority kind a member's command declares is a per-kind table
   (`WireCommandAuthorityPolicy`), so a member cannot author a fact only the host's simulation owns; the
   item a report names must be one the member may speak for; a block or building-destruction report's drops
-  are bounded by the destroyed thing's own table; and a report may not CREATE an item this host never
+  are bounded by the destroyed thing's own table; a report may not CREATE an item this host never
   judged once that member's carried-set statement has been judged — the statement is the creation claim for
-  what a member carries, so such a report is refused by name, answered, and settled by re-stating the set.
-  What is NOT in place is any check on the STATE a member reports: a member's own item's state is still
-  trusted by design, so a rule over a verb (the console write's `AllowMemberItemDataWrite`) decides whether
-  the verb runs and never whether a number can be written into the record, and a use's PRECONDITIONS beyond
-  that creation claim (S3's remaining half) are the stage still open. The accepted limitation is stated on
+  what a member carries, so such a report is refused by name, answered, and settled by re-stating the set;
+  and a report that claims a native USE is refused by name when the item's own data (`ItemInfo.usable`, the
+  guard both of the game's use call sites run behind) says no use exists — answered, with the sender's
+  recorded state put back, because the use already ran on that client.
+  What is NOT in place is a check on the item's NUMBERS: the condition, liquids and components a member
+  reports remain the holder's own report by design, because the game's own state has no anchor to compare
+  them with (condition can be set to any value and is raised on at least one path, and a use action may add
+  liquid). A rule over a verb (the console write's `AllowMemberItemDataWrite`) decides whether the verb runs
+  and never whether a number can be written into the record. The accepted limitation is stated on
   the judgment side too: a client that lies about its own reach or its own body can reach the host ungated,
   and closing that is a later hardening pass.
 - **Save contents.** There is no anti-cheat on what a world archive holds.

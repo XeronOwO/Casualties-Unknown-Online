@@ -30,6 +30,7 @@ public class WireCommandAuthorityPolicyTests
 		[WireCommandKind.ItemDrop] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemDestroy] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemUpdateState] = AuthorityKind.OwnerPredictedHostValidated,
+		[WireCommandKind.ItemUse] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemContainerSync] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemApplyLimb] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemRemoveLimb] = AuthorityKind.OwnerPredictedHostValidated,

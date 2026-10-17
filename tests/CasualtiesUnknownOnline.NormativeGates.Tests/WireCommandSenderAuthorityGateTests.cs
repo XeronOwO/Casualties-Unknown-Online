@@ -47,8 +47,8 @@ public class WireCommandSenderAuthorityGateTests
 	/// <summary>The tree the sender census reads, derived from the repository layout rather than listed.</summary>
 	internal const string SourceRoot = "src";
 
-	/// <summary>Census floors: the counts measured at 2026-10-14 — twelve member-authored kinds and thirteen host-only kinds (the console write added the twelfth member-authored kind). A scan emptied alongside its source must fail here rather than pass by finding nothing.</summary>
-	internal const int MemberAuthoredFloor = 12;
+	/// <summary>Census floors: the counts measured at 2026-10-14 — thirteen member-authored kinds and thirteen host-only kinds (the console write added the twelfth and the native-use report the thirteenth). A scan emptied alongside its source must fail here rather than pass by finding nothing.</summary>
+	internal const int MemberAuthoredFloor = 13;
 
 	internal const int HostOnlyFloor = 13;
 

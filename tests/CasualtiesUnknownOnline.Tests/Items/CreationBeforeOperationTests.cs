@@ -43,7 +43,7 @@ public class CreationBeforeOperationTests
 
 		var verdict = Assert.Single(w.CommandRejections(w.G1));
 		Assert.Equal(RejectionReason.UnclaimedItem, (RejectionReason)verdict.RejectionReason);
-		Assert.Equal(WireCommandKind.ItemUpdateState, verdict.RefusedKind);
+		Assert.Equal(WireCommandKind.ItemUse, verdict.RefusedKind);
 		Assert.Null(w.KernelRow(900));
 		// NOT the pickup/block-drop rollback: that one destroys the local copy, and this
 		// copy is the only one there is — the refusal exists to have it stated, not deleted.
@@ -132,7 +132,7 @@ public class CreationBeforeOperationTests
 		Assert.Equal(ItemRejectMsg.Reason.BlockAlreadyBroken, afterStatement.Rejection);
 		var verdict = w.CommandRejections(w.G1).Last(); // the seeded tombstone's own frame comes first
 		Assert.Equal(RejectionReason.BlockAlreadyBroken, (RejectionReason)verdict.RejectionReason);
-		Assert.Equal(WireCommandKind.ItemUpdateState, verdict.RefusedKind);
+		Assert.Equal(WireCommandKind.ItemUse, verdict.RefusedKind);
 		Assert.False(w.RegistrationDue(w.G1), "a tombstoned item is not settled by re-stating the set");
 		Assert.Null(w.KernelRow(77));
 	}

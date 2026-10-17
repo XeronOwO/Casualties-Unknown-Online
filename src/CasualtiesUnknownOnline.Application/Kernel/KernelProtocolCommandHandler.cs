@@ -84,7 +84,7 @@ internal sealed class KernelProtocolCommandHandler(
 		// at all, so the report is refused by name and ANSWERED, and the member settles
 		// by re-stating the set — the absolute report that is already re-sent on its own
 		// cadence, which the refusal makes due at once.
-		var updateForAnUnjudgedId = envelope.Command.Kind == WireCommandKind.ItemUpdateState
+		var updateForAnUnjudgedId = envelope.Command.Kind is WireCommandKind.ItemUpdateState or WireCommandKind.ItemUse
 			&& envelope.Command.Data is not null
 			&& _items.FindItem(envelope.Command.Identity.InstanceId) is null;
 		if (updateForAnUnjudgedId)
@@ -335,6 +335,7 @@ internal sealed class KernelProtocolCommandHandler(
 		WireCommandKind.ItemTransfer => true,
 		WireCommandKind.ItemDestroy => true,
 		WireCommandKind.ItemUpdateState => true,
+		WireCommandKind.ItemUse => true,
 		WireCommandKind.ItemDataWrite => true,
 		WireCommandKind.ItemApplyLimb => true,
 		WireCommandKind.ItemRemoveLimb => true,

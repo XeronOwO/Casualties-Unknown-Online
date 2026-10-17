@@ -1,8 +1,10 @@
 using System.Linq;
 using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,11 +24,12 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// <c>KernelCommandGatewayTests</c> pins the seam itself.
 ///
 /// <para>
-/// The three cases below are the seam's three verdict families end to end, each
-/// against the HOST's own kernel row: a host-only kind refused, another member's
-/// item state refused, and another member's container sync refused. Each also
-/// reads the seam's own audit line — for a "no answer" verdict that line is the
-/// only trace the dropped report leaves.
+/// The cases below are the seam's verdict families end to end, each against the
+/// HOST's own kernel row: a host-only kind refused, another member's item state
+/// refused, another member's container sync refused, the console verb judged by the
+/// host's rule, and the native-use claim judged by the item's own data (with the
+/// sender's local object settled back). Each also reads the seam's own audit line —
+/// for a "no answer" verdict that line is the only trace the dropped report leaves.
 /// </para>
 /// </summary>
 [Trait("Category", "Integration")]
@@ -255,6 +258,93 @@ public class CommandAdmissionIntegrationTests
 
 		Assert.Equal(0.25f, KernelRow(w, 42).Data.Condition);
 		Assert.Equal(0, w.CommandRejectedFrames(w.G1));
+	}
+
+	/// <summary>
+	/// The native-use bound end to end, against the host's own row and the sender's own
+	/// local object: a report that CLAIMS a native use of an item whose own data says no
+	/// use exists (<c>ItemInfo.usable</c> clear) is refused by name and ANSWERED, the
+	/// host's record does not move, and the sender settles the state it had already
+	/// applied back to the recorded one. It is deliberately not the pickup/block-drop
+	/// rollback: that one destroys the local copy, and this report is not about a pickup.
+	/// </summary>
+	[Fact]
+	public void ANativeUseOfAnItemWhoseOwnDataForbidsIt_IsRefusedAnsweredAndSettled()
+	{
+		var local = new FakeLocalItemAccess();
+		var useFacts = new FakeItemUseFacts().Forbid("test_item");
+		using var w = ItemSimWorld.Create(services =>
+		{
+			services.Replace(ServiceDescriptor.Singleton<IKernelItemUseFacts>(useFacts));
+			services.Replace(ServiceDescriptor.Singleton<ILocalItemAccess>(local));
+		});
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		Assert.True(w.TransferredOf(w.G1, 42), "setup: G1 owns the item");
+		Assert.Equal(1f, KernelRow(w, 42).Data.Condition, 3);
+
+		var used = Item();
+		used.InstanceId = 42;
+		used.Condition = 0.5f;
+		local.Hold(used); // the use already ran here, which is what a refusal has to settle
+		w.Use(w.G1, 42, used);
+		w.Driver.Tick(33);
+
+		Assert.Equal(1f, KernelRow(w, 42).Data.Condition, 3);
+		var verdict = Assert.Single(w.CommandRejections(w.G1));
+		Assert.Equal(RejectionReason.UseNotPermitted, (RejectionReason)verdict.RejectionReason);
+		Assert.Equal(WireCommandKind.ItemUse, verdict.RefusedKind);
+		Assert.Equal(1f, local.Held(42)!.Condition, 3);
+		Assert.Empty(w.Rejects(w.G1));
+	}
+
+	/// <summary>
+	/// The other side of the same bound: the item's own data admits the use, so the
+	/// ordinary native report is recorded and nothing is refused.
+	/// </summary>
+	[Fact]
+	public void ANativeUseOfAnItemWhoseOwnDataPermitsIt_IsRecorded()
+	{
+		using var w = ItemSimWorld.Create(services =>
+			services.Replace(ServiceDescriptor.Singleton<IKernelItemUseFacts>(new FakeItemUseFacts().Permit("test_item"))));
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(33);
+
+		var used = Item();
+		used.Condition = 0.5f;
+		w.Use(w.G1, 42, used);
+		w.Driver.Tick(33);
+
+		Assert.Equal(0.5f, KernelRow(w, 42).Data.Condition, 3);
+		Assert.Empty(w.CommandRejections(w.G1));
+	}
+
+	/// <summary>
+	/// And the read that FAILED is not a refusal: a definition this host's registry does
+	/// not carry (a mod it does not have) is admitted as the pre-change behaviour, so the
+	/// three-valued port cannot turn "no fact" into "unusable".
+	/// </summary>
+	[Fact]
+	public void ANativeUseOfADefinitionThisHostCannotRead_IsRecorded()
+	{
+		using var w = ItemSimWorld.Create(services =>
+			services.Replace(ServiceDescriptor.Singleton<IKernelItemUseFacts>(new FakeItemUseFacts().Unknown("test_item"))));
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Tick(33);
+
+		var used = Item();
+		used.Condition = 0.5f;
+		w.Use(w.G1, 42, used);
+		w.Driver.Tick(33);
+
+		Assert.Equal(0.5f, KernelRow(w, 42).Data.Condition, 3);
+		Assert.Empty(w.CommandRejections(w.G1));
 	}
 
 	/// <summary>One raw kernel command, framed the way a member's own client frames it — the shape a modified client has, and the only way a test can report a kind no CUO gesture emits.</summary>

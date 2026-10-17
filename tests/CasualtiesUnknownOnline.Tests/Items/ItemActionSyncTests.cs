@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
@@ -108,5 +110,31 @@ public class ItemActionSyncTests
 		// No transfer-table entry and not a world item — the accept-first carried
 		// spawn re-surfaces as the carried-fact event, never corrected.
 		Assert.Single(g2Carried);
+	}
+
+	/// <summary>
+	/// The gun chain's route, at the control surface it uses: a persistent state change
+	/// that is NOT one of the game's two guarded use call sites reports under the plain
+	/// state kind, which claims no use — so an item whose own data forbids a native use
+	/// still has its transition recorded, and only a report that CLAIMS a use is refused.
+	/// Without the split the gun chain's rack/load/safety reports rode the use kind and a
+	/// gun the definition data did not mark usable would have had every transition
+	/// refused.
+	/// </summary>
+	[Fact]
+	public void StateChangeWithoutAUseClaim_IsRecordedForAnItemWhoseDataForbidsAUse()
+	{
+		using var w = ItemSimWorld.Create(services =>
+			services.Replace(ServiceDescriptor.Singleton<IKernelItemUseFacts>(new FakeItemUseFacts().Forbid("test_item"))));
+		w.Spawn(w.G1, 42, Item(condition: 1f));
+		w.Driver.Tick(33);
+		w.Pickup(w.G1, 42, Item(condition: 1f));
+		w.Driver.Tick(33);
+
+		w.G1.Services.GetRequiredService<IItemControl>().SendItemState(42, Item(condition: 0.9f));
+		w.Driver.Tick(33);
+
+		Assert.Equal(0.9f, w.KernelRow(42)!.Value.Data.Condition, 3);
+		Assert.Empty(w.CommandRejections(w.G1));
 	}
 }

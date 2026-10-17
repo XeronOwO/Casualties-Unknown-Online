@@ -4034,7 +4034,7 @@
       "cluster": "inline",
       "row": "I7",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Items/GunStateSync.cs",
-      "quote": "_itemUseSync.OnItemUsed(item);"
+      "quote": "_itemUseSync.OnItemStateChanged(item);"
     },
     {
       "cluster": "inline",
@@ -6349,7 +6349,7 @@
     {
       "cluster": "items",
       "row": "I10",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemDataWriteSettlement.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemStateSettlement.cs",
       "quote": "var restore = _localItems.WriteLocalItem(instanceId, recorded);"
     },
     {

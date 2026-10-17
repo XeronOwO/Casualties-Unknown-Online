@@ -138,13 +138,13 @@ public class KernelMemberIdentityReportTests
 		Assert.Contains(nameof(RejectionReason.NotAuthorized), entry.Message);
 	}
 
-	private static KernelCommandGateway Gateway() => new(new FakeItemFacts(), new FakeMemberCommandRules(), new RecordingLogger<KernelCommandGateway>());
+	private static KernelCommandGateway Gateway() => new(new FakeItemFacts(), new FakeMemberCommandRules(), new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
 
-	private static KernelCommandGateway Gateway(FakeItemFacts facts) => new(facts, new FakeMemberCommandRules(), new RecordingLogger<KernelCommandGateway>());
+	private static KernelCommandGateway Gateway(FakeItemFacts facts) => new(facts, new FakeMemberCommandRules(), new FakeItemUseFacts(), new RecordingLogger<KernelCommandGateway>());
 
-	private static KernelCommandGateway Gateway(FakeItemFacts facts, RecordingLogger<KernelCommandGateway> logger) => new(facts, new FakeMemberCommandRules(), logger);
+	private static KernelCommandGateway Gateway(FakeItemFacts facts, RecordingLogger<KernelCommandGateway> logger) => new(facts, new FakeMemberCommandRules(), new FakeItemUseFacts(), logger);
 
-	private static KernelCommandGateway Gateway(RecordingLogger<KernelCommandGateway> logger) => new(new FakeItemFacts(), new FakeMemberCommandRules(), logger);
+	private static KernelCommandGateway Gateway(RecordingLogger<KernelCommandGateway> logger) => new(new FakeItemFacts(), new FakeMemberCommandRules(), new FakeItemUseFacts(), logger);
 
 	private static PickUpItemCommand Pickup(ulong instanceId, ulong actor, ulong newOwner) =>
 		new(new OperationId(1), new ActorId(actor), new RunEpoch(1), AuthorityKind.OwnerPredictedHostValidated,

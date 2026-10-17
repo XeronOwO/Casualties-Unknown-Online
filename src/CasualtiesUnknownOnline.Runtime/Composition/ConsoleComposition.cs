@@ -17,15 +17,21 @@ internal static class ConsoleComposition
 	/// <summary>Registers the command registry, the console service and its input session.</summary>
 	internal static void AddConsole(IServiceCollection services)
 	{
-		services.AddSingleton<ConsoleCommandRegistry>();
+		// The acceptance verbs register themselves through the same attribute scan the other owners use, so they have to
+		// be CONSTRUCTED for the run to see them — an unrequested singleton is never created. Building them here, while
+		// the registry is being built, is what makes that happen without the console service carrying a member for it.
+		services.AddSingleton(p =>
+		{
+			var registry = new ConsoleCommandRegistry();
+			_ = ActivatorUtilities.CreateInstance<AcceptanceCommands>(p, registry);
+			return registry;
+		});
 		// The local scene the item-data write verb reads and writes. The Game Adapter
 		// REPLACES this with the real one where an adapter is loaded; without it the
 		// verb answers "this client holds no such item" instead of pretending the
 		// scene is empty, which is the same shape ILocalCharacterCapture uses.
 		services.AddSingleton<ILocalItemAccess>(new UnavailableLocalItemAccess());
 		services.AddSingleton<CommandConsoleService>();
-		// Acceptance-only verbs: their own owner object, so the player-facing console does not grow a line for them.
-		services.AddSingleton<AcceptanceCommands>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandArgumentSuggestions>(p => p.GetRequiredService<CommandConsoleService>());

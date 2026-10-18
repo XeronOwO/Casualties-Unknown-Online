@@ -519,7 +519,17 @@ Live reading after the fix (Preferences, the language dropdown, a `150 × 36` fi
   once: `value 1 → 0`, and the next frame's UI was English; selecting `简体中文` went back (`w-after-select.png`,
   `w-final-zh.png`);
 - the log-level dropdown (7 options) opens the same way under its own field (field `y 86.0..122.0`, list
-  `y −107.4..86.0`), content `150.0 × 1010.1` with all seven items and the same mask and scroll.
+  `y −107.4..86.0`), content `150.0 × 1010.1` with all seven items and the same mask and scroll;
+- on the row-10 canvas (the game's own `CanvasScaler.referenceResolution` set to `900 × 500`, the window
+  fitted to `856.9 × 468`), with the language field's bottom 24 units above the canvas bottom
+  (`y −226.0..−190.0`), the 193.4-unit list would have ended 169.4 units below the canvas: it opened ABOVE
+  the field instead — pivot `0.5, 0`, list canvas `y −190.0..3.4`, wholly on the canvas (`f-flip-read.json`,
+  `f-flip-frame.png`); the canvas was restored afterwards and the list hidden.
+
+The readings above are the tree's build output deployed as
+`0.1.0+d145202eb6e5651f04d9d0068170fe24a0b109c4` (`tools/verify-deploy.ps1` exit 0, `verify2.log`: "Deployment
+matches this tree's build output"); the earlier `w-…` readings are the same text deployed before the commit as
+`0.1.0+6065f67a05497f62f80fa937787ff93a82534309-dirty`.
 
 ### Row 9 — the top clamp kept a strip of the FRAME, which at the top is the window's bottom
 
@@ -551,8 +561,8 @@ that stays.
   template's width.
 - `OnlineUiLayoutDetailPinTests` keeps the rest (11 facts + 23 mutation rows = 34 cases);
   `OnlineUiWindowSurfacePinTests` re-anchored its drag pin on the rule the handler now reads.
-- The focused runs are green: `OnlineUiWindowDragTests` 7, `OnlineUiDropdownPlacementTests` 7,
-  `OnlineUiPopupLayerPinTests` 9, `OnlineUiWindowSurfacePinTests` 31 and `OnlineUiLayoutDetailPinTests` 34.
+- The focused runs are green (94 cases): `OnlineUiWindowDragTests` 7, `OnlineUiDropdownPlacementTests` 7,
+  `OnlineUiPopupLayerPinTests` 9, `OnlineUiWindowSurfacePinTests` 37 and `OnlineUiLayoutDetailPinTests` 34.
 
 ### Self-check: mechanism × change × evidence
 
@@ -622,7 +632,9 @@ the code it cites.
   and a mutation row holds the line.
 - **m11 — the live reading cited no build identity.** It is the tree's build output deployed as
   `0.1.0+6065f67a05497f62f80fa937787ff93a82534309-dirty` (`verify-deploy.ps1` exit 0 in the run's
-  `verify1.log`); the committed artifact is verified after the commit and the batch names it.
+  `verify1.log`); the committed artifact was then built, deployed and re-read as
+  `0.1.0+d145202eb6e5651f04d9d0068170fe24a0b109c4` (`verify2.log`, the popup, the log-level popup, the drag
+  and the small-canvas flip all re-read on it), and the acceptance batch names it again.
 - **m12 — two open lists could be misplaced.** The layer now closes every open list but the newest
   (`adopted.Dropdown.Hide()`), which is what the game's own blocker would have done one step higher; a
   mutation row holds it.

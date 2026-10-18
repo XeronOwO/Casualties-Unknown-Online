@@ -500,10 +500,6 @@ Four runs of batch `20261017-a` produced nothing but `eval 'recipe:member-identi
 
 `drive-in-process.ps1` REFUSES a recipe call that omits any parameter its `// args:` line declares — `block-drop-forge`'s optional-looking `absolute`, `building`, `airwrite`, `item2` and `condition2` are all required — and it says so as exit 64 in the DRIVER log while the batch log shows only `ok=missing`; and a probe that needs a cell HOLDING a block cannot find one by probing offsets around the member (eight `block-read` calls all answered `block=0`, and the reading was reached only because the absolute cell the forged break landed on happened to hold block 14). A cell's state is the host's own fact, so ask the host; a setup step that failed is a reason to stop rather than to continue, because a batch that reached its setup by accident cannot say what it proved.
 
-## 2026-10-17 — A green suite is not a start
-
-Every test fakes the give source, so 693/693 and 5697/5697 were green while the deployed build died in `Awake`; only the prelude composes the real adapter — `docs/acceptance/workflow.md` §2/§5.
-
 ## 2026-10-18 — A member's console verb answers later; read the console history
 
 A member's `/give` returns no line and the host's answer lands at least a frame later, so the driver's `lastLine` right after the call is the PREVIOUS line: read `tools/acceptance/recipes/console-read.cs` after a bounded wait and judge the newest line — `docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md`.
@@ -511,3 +507,7 @@ A member's `/give` returns no line and the host's answer lands at least a frame 
 ## 2026-10-18 — A 15 s blackout window is one process's budget, not a step-by-step driver's
 
 The member ends its own session 15 s after the last host frame, and a host layer change (`skiplayer`) spends 8-13 s of that budget re-entering the world. The committed driver spawns one Windows PowerShell process and one websocket per step (~2.2 s), so a correct step-by-step window still lands past the deadline — batch `20261018-s3`'s first attempt answered `No active session` at 15.2 s, with the host ready 1.7 s earlier. Two rules from that run: arm the blackout BEFORE `skiplayer` (without it the member's own generation follows the host to the next layer within ~3 s, before the host re-enters), and drive the window itself over sockets opened before it, reusing the committed recipes through the same in-process evaluator protocol — the window then closes in ~8 s. The helper is a batch-local artifact named in the record (`docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md`); a committed fast-window action would let the next batch drop it.
+
+## 2026-10-18 — A command's help text is not its requirement
+
+Before judging a command's design, read the ticket that asked for it; its own help text is a claim the run verifies, never the source — `docs/backlog/todo/remove-duplicate-heal-console-command.md`.

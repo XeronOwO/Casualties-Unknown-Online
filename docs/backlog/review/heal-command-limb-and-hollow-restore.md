@@ -426,3 +426,10 @@ unjudged instead of passing it.
 
 Nothing is owed on this ticket's own subject now except the save/reconnect survival, which is verification of
 behaviour already read twice rather than code.
+## Correction (2026-10-18): the item-based `/heal` console command was a duplicate
+
+The user corrected the surface after batch `20261018-t`: `/heal` was never designed as "a carried medical
+item on another player"; the heal asked for is the vanilla `heal`, item-free. CUO's own `/heal` console
+command is removed by `docs/backlog/todo/remove-duplicate-heal-console-command.md`; the item-based treatment
+stays the remote-medical UI's action. The surface decision above (the vanilla command) is unchanged, and this
+ticket's limb/hollow rows do not depend on the duplicate.

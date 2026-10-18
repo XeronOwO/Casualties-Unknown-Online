@@ -10,9 +10,9 @@
   `NetMsg.EntityEvent` DROPS row landed 2026-10-18 (its trigger half stays unbounded on purpose) — its
   evidence and remaining acceptance are in section C, and the `BuildingEntityDamaged` magnitude row CLOSED the same
   day as `unbounded`: its assumed anchor does not exist (the damage values are code, not item data) and the reading
-  is in section B. The `NetMsg.TraderAction` GIVE row is IMPLEMENTED 2026-10-18 — the identity anchor landed
-  (wire field + host-side judgement + the generation-time container-contents naming it exposed), and its machine
-  reading is owed to the next acceptance batch; section B.
+  is in section B. The `NetMsg.TraderAction` GIVE row is IMPLEMENTED and READ ON THE MACHINE 2026-10-18 — the
+  identity anchor landed (wire field + host-side judgement + the generation-time container-contents naming it
+  exposed) and batch `20261018-z` passed all four owed rows; section B.
 - Priority: Medium-High
 - Category: Security / report validation
 - Source: the user's 2026-10-14 request (basic checks from the game's own mechanics, never an anti-cheat)
@@ -463,11 +463,29 @@ described above:
   distance/line check, behaviour, out of scope by decision 265; and the Unity-typed halves (the Prefix id read,
   the game-table value, the generation/carried naming) have no unit test — the machine reading is their evidence.
 
-  **Acceptance owed (next batch)**: a two-client session where (1) a real hand-in credits the host's number and
-  the guest converges, (2) `/traderreport` (cheat-gated: `/hostrules` opens the switch, `/op` grants the member)
-  with a claim above the row's worth draws the host's clamp and the guest's converged total, (3) an unjudged id
-  and a repeated id are refused by name with nothing credited, and (4) an unmodified session meets no refusal.
-  The lever and the machine are ready (`tools/acceptance/preflight.ps1`: a full two-client run is possible).
+  **READ ON THE MACHINE 2026-10-18 (batch `20261018-z`, two clients, deployed `+ad5d3bc7`) — the four owed
+  rows PASS** (`docs/evidence/acceptance/member-report-bounds-trader-give-20261018-z.md`):
+  (1) a real hand-in — the member's own client ran the native `TraderScript.GiveItem` over a world item the run
+  had created, `bandage` instance `9492956821`, condition 1 — drew the host's own number,
+  `[Trade] <member>'s give credited 10 (bandage (#9492956821, World, condition 1) is worth 10 on the host's
+  record; the report claimed 10).` with `acceptedAsClaimed=True`, and both clients converged on
+  `valueGiven=10 totalValueGiven=10`;
+  (2) a `/traderreport` claim of 500 on the carried `emergencylight` instance `5197989525` (the host's record
+  makes it worth 8) drew the clamp — `claimed more than the host's own record makes the item worth — … is worth
+  8 on the host's record; the report claimed 500. Credited 8, the answer rides the state broadcast.`,
+  `acceptedAsClaimed=False` — and the member settled on the applied 8 (`local totalValueGiven 10,
+  authoritative 18`), both sides then reading 18;
+  (3) an unjudged id (`999999999`) and a repeat of the credited id were each refused BY NAME (`the host has
+  never judged item #999999999`, `item #5197989525 was already given to a trader in this session`),
+  `acceptedAsClaimed=False`, `applied 0`, and the totals stayed 18 on both sides;
+  (4) the unmodified stretch — the host's first trade line to the first forged step, 67 s carrying eleven
+  snapshot rounds — held zero refusals, and the whole session carries exactly the two the run provoked, with no
+  `trader not found` warning.
+  The lever and the machine are what the run used (`/hostrules` + `/op`, then `/traderreport`); the run's own
+  limits — the hand-in was the native method invoked on the member's client rather than a walk to the trader and
+  a trade-UI drag (the native method has no distance gate and reach is out of scope by decision 265, and the body
+  stood 271.5 world units away), and the clamp's "unrecorded GAIN" direction was not exercised — are named in
+  the record.
 - **`NetMsg.RecipeUnlock` (77)** 鈥?`RecipeUnlockReceived?.Invoke(recipeIndex);` applies and the handler then
   relays, with no range check against the host's own recipe table (the SNAPSHOT path's `known` set answers a
   different question 鈥?whether the host had already LEARNED the index, never whether its table HAS one).

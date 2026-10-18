@@ -150,11 +150,12 @@ collected while its scenario is up.
   are cropped out of the frame.
 - **The characters are part of the setup, and a restore is read back.** Restore each character BEFORE the
   long row work, and keep checking: an unconscious healer is refused, so a heal attempted after a character
-  has already collapsed does nothing. The heal surface is the game's own `heal` console command — item-free,
-  on the LOCAL body, with CUO's limb/hollow extension (`ConsoleScriptHealHollowPatch`); CUO's own `/heal`
-  console command is a duplicate of it and is being removed (`todo/remove-duplicate-heal-console-command.md`),
-  and the item-based cross-player treatment is the remote-medical UI's action, not a console command. Read the
-  vitals back (`body-read`, `wound-read`) after a restore. A host left in a near-death state is a setup
+  has already collapsed does nothing. There are three INDEPENDENT heal surfaces: the game's own `heal`
+  console command (item-free, on the LOCAL body; CUO extends it with severed limbs and hollow), CUO's own
+  console `/heal` cheat command (the immediate full reset of a selected player, cheat-family permission;
+  `todo/heal-cheat-command-state-reset.md`, not yet landed), and the remote-medical UI's item-based
+  cross-player treatment. The run restores with whichever is deployed, gives the item for the medical
+  path, and reads the vitals back (`body-read`, `wound-read`). A host left in a near-death state is a setup
   defect, not a row's finding: rows judged on its frame are re-read once it is restored.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
 

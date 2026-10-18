@@ -53,7 +53,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — rejected: the dropdown list and the top-edge drag clamp.
-- [The /heal console command is a duplicate](todo/remove-duplicate-heal-console-command.md) — **Medium** — remove it; the game's own heal is the surface.
+- [/heal resets a player's state as a cheat command](todo/heal-cheat-command-state-reset.md) — **Medium-High** — full reset, cheat family, dead targets revived.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.

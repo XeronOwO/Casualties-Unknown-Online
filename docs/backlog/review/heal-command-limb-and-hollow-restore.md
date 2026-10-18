@@ -426,10 +426,18 @@ unjudged instead of passing it.
 
 Nothing is owed on this ticket's own subject now except the save/reconnect survival, which is verification of
 behaviour already read twice rather than code.
-## Correction (2026-10-18): the item-based `/heal` console command was a duplicate
+## Correction (2026-10-18): the CUO `/heal` is its own cheat command, not a duplicate to remove
 
-The user corrected the surface after batch `20261018-t`: `/heal` was never designed as "a carried medical
-item on another player"; the heal asked for is the vanilla `heal`, item-free. CUO's own `/heal` console
-command is removed by `docs/backlog/todo/remove-duplicate-heal-console-command.md`; the item-based treatment
-stays the remote-medical UI's action. The surface decision above (the vanilla command) is unchanged, and this
-ticket's limb/hollow rows do not depend on the duplicate.
+The user corrected two things after batch `20261018-t`, and the first correction also stands against this
+ticket's earlier note that the item-based console command was "a duplicate":
+
+- The CUO console is an INDEPENDENT extension of the game's built-in console. The native `heal` existing
+  does not mean CUO must not have its own `/heal`.
+- The CUO `/heal` is a CHEAT command that immediately resets the selected player's state — full reset
+  (KrokMP's body fields + the native limb fields + CUO's severed limbs and hollow), cheat-family
+  permission, and a dead target revived. That design is the ticket
+  `docs/backlog/todo/heal-cheat-command-state-reset.md`; the item-based remote-medical treatment keeps its
+  UI path and is not this command.
+
+The surface decision above (the vanilla `heal` command for the limb/hollow extension) is unchanged: it is
+the native command's own surface, and this ticket's rows do not depend on the CUO console command.

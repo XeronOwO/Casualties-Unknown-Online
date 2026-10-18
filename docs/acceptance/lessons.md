@@ -510,4 +510,4 @@ The member ends its own session 15 s after the last host frame, and a host layer
 
 ## 2026-10-18 — A command's help text is not its requirement
 
-Before judging a command's design, read the ticket that asked for it; its own help text is a claim the run verifies, never the source — `docs/backlog/todo/remove-duplicate-heal-console-command.md`.
+Before judging a command's design, read the ticket that asked for it; its own help text is a claim the run verifies, never the source — `docs/backlog/todo/heal-cheat-command-state-reset.md`.

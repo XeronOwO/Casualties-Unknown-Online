@@ -121,9 +121,12 @@ not the goal.
    be reused, record the concrete blocker with evidence and get user direction before adding custom UI.
 9. `[RULE]` **Ask on functional design, execute on implementation**: research and confirm a design that is
    ambiguous, has several reasonable options or has user-visible trade-offs; do not ask about routine
-   implementation detail once design and requirements are clear. **Which backlog item to work on next,
-   and in what order, is not such a decision** — take it from the ticket's priority, its dependencies and
-   the handoff's order.
+   implementation detail once design and requirements are clear. **A rejection is a question, not a
+   mandate**: a user saying a design or a behaviour is wrong asks what it SHOULD be — inferring a removal, a
+   rename, a new surface or a different mechanism from the rejection is the violation, and a user-visible
+   command's semantics (who may use it, what it does, whether it exists) are design, not implementation
+   detail. **Which backlog item to work on next, and in what order, is not such a decision** — take it from
+   the ticket's priority, its dependencies and the handoff's order.
 10. `[RULE]` **Future backlog items are not work items**: `future/` means "deferred by decision", not
     "pending implementation", and those items are implemented only when the user promotes them.
 11. `[RULE]` **Large or multi-stage work is split into stages** that each produce a verifiable result; the

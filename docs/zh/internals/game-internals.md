@@ -53,6 +53,8 @@ CUO 不是用零件拼一个角色出来。`RemoteBodyFactory` 找到场景里�
 
 主机还多一项职责，这是用户在 2026-10-18 裁定的：它对自己为每个远端玩家持有的克隆跑游戏自己的生命体征阶段（`HandleVariableUpdates`、`HandleBody`、`HandleBodyTemperature`、`HandleRadiationSickness`、`HandlePeriodicChecks` 与 `Limb.Update`），按固定步算出主机拥有的三个连续出血值，再推给该玩家自己的客户端。用的就是同一具渲染克隆，从保存的角色快照播种；主机的显示和它的权威是同一具身体。事件、终局事实和随机结果仍归受影响的客机 —— 它的上报/事件是这些东西的唯一写入者 —— 推进每步之后会把客机拥有的字段恢复回去。客机永远不跑这条推进；它只渲染被告知的东西，并判定自己的事件。细节见 `docs/backlog/todo/health-simulation-and-host-authority.md`。
 
+克隆自己产不出模型的全部输入：它跳过 `HandlePhysics`，所以 `inWater`（`Body.cs:3088`）永远不会被算出来；它的 `moveDir` 为了表现被清零；`exercising` 和 `currentClimbable` 又都是主人本地的动作。于是这些判定改由主人的 20 Hz 状态携带（入水、移动、正在锻炼；移动与否用的就是游戏自己的体力阈值 `|moveDir.x| < 0.1`，`Body.cs:2994`），推进期间把这四项写到克隆上，攀爬状态用主机自己的 `Climbable` 列表解析（与原生开始攀爬同一次查找），推进结束再把表现值放回去。主机世界若没有对应攀爬物，只记录一次，并按静止建模。
+
 它对 CUO 的意义是：身体的**动作**和**事件**归它的主人那台客户端；主机拥有共享世界，并对连续出血值用主人给的输入来计算。主机绝不重新推导一次受伤、一个终局事实或一次随机结果。
 
 ## KrokMP 是参考，不是范本

@@ -29,7 +29,10 @@ public static class PlayerStreamWireMapper
 				(entity.Sleeping ? 0x40 : 0) | (entity.Climbing ? 0x80 : 0)),
 			ExtendedFlags = (entity.IsAttacking ? 0x01u : 0u) |
 				(entity.SlidingLeft ? 0x02u : 0u) |
-				(entity.SlidingRight ? 0x04u : 0u),
+				(entity.SlidingRight ? 0x04u : 0u) |
+				(entity.InWater ? 0x08u : 0u) |
+				(entity.Moving ? 0x10u : 0u) |
+				(entity.Exercising ? 0x20u : 0u),
 			SwingSeq = entity.SwingSeq,
 			WorkoutType = entity.WorkoutType,
 			NapVariant = entity.NapVariant,
@@ -66,6 +69,9 @@ public static class PlayerStreamWireMapper
 			target.IsAttacking = (wire.ExtendedFlags & 0x01u) != 0;
 			target.SlidingLeft = (wire.ExtendedFlags & 0x02u) != 0;
 			target.SlidingRight = (wire.ExtendedFlags & 0x04u) != 0;
+			target.InWater = (wire.ExtendedFlags & 0x08u) != 0;
+			target.Moving = (wire.ExtendedFlags & 0x10u) != 0;
+			target.Exercising = (wire.ExtendedFlags & 0x20u) != 0;
 			target.SwingSeq = wire.SwingSeq;
 			target.WorkoutType = wire.WorkoutType;
 			target.NapVariant = wire.NapVariant;

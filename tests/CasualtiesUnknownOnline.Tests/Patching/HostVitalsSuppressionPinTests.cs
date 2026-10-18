@@ -276,6 +276,129 @@ public class HostVitalsSuppressionPinTests
 		Assert.False(RenderLimbPreservesOwnedBleed(mutated));
 	}
 
+	[Fact]
+	public void TheModelInputs_AreAppliedForThePassOnly_AndEveryPresentationValueIsRestored()
+	{
+		var bodies = Stripped(ReadSource("Character", "HostVitalsBodies.cs"));
+		var scope = Stripped(ReadSource("Character", "HostVitalsInputScope.cs"));
+
+		Assert.True(PassRunsInsideTheInputScope(bodies), "the pass must run inside the input scope's block, after the inputs are read");
+
+		var applyBlock = MemberBlock(scope, "internal static HostVitalsInputScope Apply(Body body, in HostVitalsInputs inputs)");
+		var disposeBlock = MemberBlock(scope, "public void Dispose()");
+		var capture = MemberBlock(scope, "private HostVitalsInputScope(Body body)");
+		Assert.True(ScopeShapeHolds(applyBlock, disposeBlock, capture));
+
+		// Negative sample 1: the pass moved AFTER the scope's closing brace. Every IndexOf order
+		// still holds, so only the brace-matched nesting check can reject it.
+		var outside = Mutate(bodies,
+			"\t\t\tHostVitalsPass.Run(driver.Body, driver.Quarantine);\n\t\t}",
+			"\t\t}\n\t\t\tHostVitalsPass.Run(driver.Body, driver.Quarantine);");
+		Assert.False(PassRunsInsideTheInputScope(outside));
+
+		// Negative sample 2: each restore removed in turn — the predicate (not a string search on
+		// the mutation) must reject it.
+		Assert.False(ScopeShapeHolds(Mutate(applyBlock, "body.currentClimbable = climbable;", "// not applied"), disposeBlock, capture));
+		Assert.False(ScopeShapeHolds(applyBlock, Mutate(disposeBlock, "_body.inWater = _inWater;", "// not restored"), capture));
+		Assert.False(ScopeShapeHolds(applyBlock, Mutate(disposeBlock, "SetExercising(_body, _exercising);", "// not restored"), capture));
+		Assert.False(ScopeShapeHolds(applyBlock, Mutate(disposeBlock, "_body.currentClimbable = _climbable;", "// not restored"), capture));
+	}
+
+	/// <summary>
+	/// Whether the pass call sits inside the <c>using (HostVitalsInputScope.Apply(...))</c> block and
+	/// after the stream read — matched by braces, not by index order, so a regression that disposes
+	/// the scope before the pass is rejected.
+	/// </summary>
+	private static bool PassRunsInsideTheInputScope(string source)
+	{
+		var read = source.IndexOf("HostVitalsInputs.From(_entities.GetRemotePlayer(driver.SteamId))", StringComparison.Ordinal);
+		var usingAt = source.IndexOf("using (HostVitalsInputScope.Apply(driver.Body, inputs))", StringComparison.Ordinal);
+		var pass = source.IndexOf("HostVitalsPass.Run(driver.Body, driver.Quarantine);", StringComparison.Ordinal);
+		if (read < 0 || usingAt < read || pass < usingAt)
+		{
+			return false;
+		}
+
+		var open = source.IndexOf('{', usingAt);
+		return open > 0 && open < pass && MatchingBrace(source, open) > pass;
+	}
+
+	/// <summary>The index of the brace matching the one at <paramref name="open"/>, or -1. Braces inside a string are balanced in this file, so a plain count is exact here.</summary>
+	private static int MatchingBrace(string source, int open)
+	{
+		var depth = 0;
+		for (var i = open; i < source.Length; i++)
+		{
+			if (source[i] == '{')
+			{
+				depth++;
+			}
+			else if (source[i] == '}')
+			{
+				depth--;
+				if (depth == 0)
+				{
+					return i;
+				}
+			}
+		}
+
+		return -1;
+	}
+
+	/// <summary>
+	/// One reviewed shape of the input scope: the apply half writes every model input (the climb
+	/// lookup resolved BEFORE the first write, so a throw cannot strand half of them), the capture
+	/// half holds what the clone presented, and the dispose half restores every one of those values.
+	/// </summary>
+	private static bool ScopeShapeHolds(string apply, string dispose, string capture)
+	{
+		var writes = new[]
+		{
+			"body.inWater = inputs.InWater;",
+			"body.moveDir = new Vector2(inputs.Moving ? 1f : 0f, 0f);",
+			"SetExercising(body, inputs.Exercising);",
+			"body.currentClimbable = climbable;",
+		};
+		var restores = new[]
+		{
+			"_body.inWater = _inWater;",
+			"_body.moveDir = _moveDir;",
+			"SetExercising(_body, _exercising);",
+			"_body.currentClimbable = _climbable;",
+		};
+		var captures = new[] { "_inWater = ", "_exercising = ", "_moveDir = ", "_climbable = " };
+		var resolve = apply.IndexOf("Climbable.GetClosestClimbable(body.transform.position)", StringComparison.Ordinal);
+		var firstWrite = apply.IndexOf("body.inWater = inputs.InWater;", StringComparison.Ordinal);
+
+		return writes.All(line => apply.Contains(line, StringComparison.Ordinal))
+			&& restores.All(line => dispose.Contains(line, StringComparison.Ordinal))
+			&& captures.All(line => capture.Contains(line, StringComparison.Ordinal))
+			&& resolve >= 0
+			&& firstWrite >= 0
+			&& resolve < firstWrite;
+	}
+
+	[Fact]
+	public void TheOwnerSide_PublishesTheThreeModelInputs()
+	{
+		var run = Stripped(ReadSource("Run", "RunCoordinator.cs"));
+		Assert.Contains("var vitals = HostVitalsInputs.FromBody(body);", run, StringComparison.Ordinal);
+		Assert.Contains("limbPoses, vitals.InWater, vitals.Moving, vitals.Exercising);", run, StringComparison.Ordinal);
+
+		var inputs = Stripped(ReadSource("Character", "HostVitalsInputs.cs"));
+		var fromBody = MemberBlock(inputs, "internal static HostVitalsInputs FromBody(Body body)");
+		Assert.Contains("body.inWater,", fromBody, StringComparison.Ordinal);
+		Assert.Contains("IsMoving(body.moveDir.x),", fromBody, StringComparison.Ordinal);
+		Assert.Contains("body.exercising,", fromBody, StringComparison.Ordinal);
+		Assert.Contains("body.currentClimbable != null", fromBody, StringComparison.Ordinal);
+
+		var service = Stripped(ReadRuntimeSource("Session", "EntitySync", "EntitySyncService.cs"));
+		Assert.Contains("_localPlayer.InWater = inWater;", service, StringComparison.Ordinal);
+		Assert.Contains("_localPlayer.Moving = moving;", service, StringComparison.Ordinal);
+		Assert.Contains("_localPlayer.Exercising = exercising;", service, StringComparison.Ordinal);
+	}
+
 	private static bool VoidGuardsHold(string source) =>
 		PassScopedPatches
 			.Where(patch => patch.Guard.Contains("Prefix() =>", StringComparison.Ordinal))
@@ -382,7 +505,7 @@ public class HostVitalsSuppressionPinTests
 		var start = source.IndexOf(anchor, StringComparison.Ordinal);
 		Assert.True(start >= 0, $"the pin's anchor `{anchor}` was not found");
 		var tail = source.Substring(start);
-		var boundaries = new[] { "\n\t[HarmonyPatch", "\n\tinternal ", "\n\tprivate ", "\n}" };
+		var boundaries = new[] { "\n\t[HarmonyPatch", "\n\tinternal ", "\n\tprivate ", "\n\tpublic ", "\n}" };
 		var end = tail.Length;
 		foreach (var boundary in boundaries)
 		{

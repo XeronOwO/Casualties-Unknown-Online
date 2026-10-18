@@ -136,7 +136,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl, ISessio
 		bool sitting = false, bool sleeping = false, bool climbing = false,
 		byte workoutType = 0, byte napVariant = 0, float dogShakeIntensity = 0f,
 		bool slidingLeft = false, bool slidingRight = false,
-		List<PlayerLimbPose>? limbPoses = null)
+		List<PlayerLimbPose>? limbPoses = null,
+		bool inWater = false, bool moving = false, bool exercising = false)
 	{
 		_localPlayer.Position = position;
 		_localPlayer.LookPos = lookPos;
@@ -160,6 +161,9 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl, ISessio
 		_localPlayer.SlidingLeft = slidingLeft;
 		_localPlayer.SlidingRight = slidingRight;
 		_localPlayer.LimbPoses = limbPoses;
+		_localPlayer.InWater = inWater;
+		_localPlayer.Moving = moving;
+		_localPlayer.Exercising = exercising;
 		_localPlayer.IsAttacking = _attackSwing.IsAttacking;
 		_localPlayer.SwingSeq = _swingSeq;
 		if (_session.Role == SessionRole.Host)

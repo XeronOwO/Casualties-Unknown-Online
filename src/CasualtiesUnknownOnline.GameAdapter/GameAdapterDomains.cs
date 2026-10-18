@@ -286,7 +286,7 @@ internal sealed class GameAdapterDomains
 			new GameStartingSupplyTarget(),
 			time,
 			loggerFactory.CreateLogger<StartingSupplyCoordinator>());
-		HostVitals = new HostVitalsBodies(session, characterData, restoreApplier, time, loggerFactory.CreateLogger<HostVitalsBodies>());
+		HostVitals = new HostVitalsBodies(session, entities, characterData, restoreApplier, time, loggerFactory.CreateLogger<HostVitalsBodies>());
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), HostVitals, playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
 		RemoteMedical = new RemoteMedicalCoordinator(session, CharacterDataSync, mapper, loggerFactory.CreateLogger<RemoteMedicalCoordinator>());

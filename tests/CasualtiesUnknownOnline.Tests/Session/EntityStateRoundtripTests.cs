@@ -31,6 +31,21 @@ public class EntityStateRoundtripTests
 		(0x80, e => e.Climbing),
 	];
 
+	/// <summary>
+	/// The ExtendedFlags bits' mapping: the presentation flags and the host-clone model inputs
+	/// (in-water, moving, exercising) share this word, so a bit swapped between them is a silent
+	/// model-input corruption — the same completeness guard as the byte above.
+	/// </summary>
+	private static readonly (uint Bit, Func<PlayerEntity, bool> Get)[] ExtendedFlagBits =
+	[
+		(0x01u, e => e.IsAttacking),
+		(0x02u, e => e.SlidingLeft),
+		(0x04u, e => e.SlidingRight),
+		(0x08u, e => e.InWater),
+		(0x10u, e => e.Moving),
+		(0x20u, e => e.Exercising),
+	];
+
 	private static PlayerEntity NewEntity(bool isAttacking = false) =>
 		new(steamId: 0, entityId: default, isLocal: false) { IsAttacking = isAttacking };
 
@@ -64,6 +79,55 @@ public class EntityStateRoundtripTests
 				Assert.False(otherGet(entity), $"bit 0x{bit:X2} must not set the 0x{otherBit:X2} property");
 			}
 		}
+	}
+
+	[Fact]
+	public void ExtendedFlags_EveryBitRoundtrips_AndTableIsComplete()
+	{
+		var or = 0u;
+		foreach (var (bit, _) in ExtendedFlagBits)
+		{
+			Assert.NotEqual(0u, bit);
+			or |= bit;
+		}
+
+		Assert.Equal(6, ExtendedFlagBits.Length);
+		Assert.Equal(6, ExtendedFlagBits.Select(b => b.Bit).Distinct().Count());
+		Assert.Equal(0x3Fu, or);
+
+		foreach (var (bit, get) in ExtendedFlagBits)
+		{
+			var entity = NewEntity();
+			new WirePlayerStreamState { ExtendedFlags = bit }.ApplyTo(entity);
+
+			Assert.True(get(entity), $"bit 0x{bit:X2} must set its property");
+			foreach (var (otherBit, otherGet) in ExtendedFlagBits)
+			{
+				if (otherBit == bit)
+				{
+					continue;
+				}
+
+				Assert.False(otherGet(entity), $"bit 0x{bit:X2} must not set the 0x{otherBit:X2} property");
+			}
+
+			Assert.Equal(bit, entity.ToWirePlayerStreamState().ExtendedFlags);
+		}
+	}
+
+	[Fact]
+	public void ModelInputFlags_DefaultOff_AndClearOnAnEmptyFlagsWord()
+	{
+		var entity = NewEntity();
+		entity.InWater = true;
+		entity.Moving = true;
+		entity.Exercising = true;
+
+		new WirePlayerStreamState { ExtendedFlags = 0u }.ApplyTo(entity);
+
+		Assert.False(entity.InWater);
+		Assert.False(entity.Moving);
+		Assert.False(entity.Exercising);
 	}
 
 	[Fact]

@@ -49,6 +49,12 @@ internal sealed class HostVitalsDriver : MonoBehaviour
 
 	internal bool WarnedNonFiniteSnapshot;
 
+	/// <summary>One-time diagnostic: the owner reports climbing but this host's world resolved no climbable for the clone.</summary>
+	internal bool WarnedClimbUnresolved;
+
+	/// <summary>The model inputs applied at the last pass, so a CHANGE is one Debug line instead of per-step noise.</summary>
+	internal HostVitalsInputs LastInputs;
+
 	internal void Initialize(HostVitalsBodies bodies, Body body, ulong steamId)
 	{
 		Bodies = bodies;

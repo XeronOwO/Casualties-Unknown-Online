@@ -31,7 +31,8 @@ public interface IEntitySyncControl
 		bool sitting = false, bool sleeping = false, bool climbing = false,
 		byte workoutType = 0, byte napVariant = 0, float dogShakeIntensity = 0f,
 		bool slidingLeft = false, bool slidingRight = false,
-		List<PlayerLimbPose>? limbPoses = null);
+		List<PlayerLimbPose>? limbPoses = null,
+		bool inWater = false, bool moving = false, bool exercising = false);
 
 	/// <summary>The local player swung — mark the swing so peers replay the animation via the snapshot flag + sequence.</summary>
 	void MarkLocalAttackSwing();

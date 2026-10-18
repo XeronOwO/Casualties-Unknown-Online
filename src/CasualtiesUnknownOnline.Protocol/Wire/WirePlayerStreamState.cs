@@ -42,6 +42,13 @@ public sealed class WirePlayerStreamState
 	[ProtoMember(10)]
 	public byte Flags { get; set; }
 
+	/// <summary>
+	/// Bit-packed flags the byte above cannot hold: <c>0x01</c> attacking, <c>0x02</c> wall-sliding
+	/// left, <c>0x04</c> wall-sliding right, <c>0x08</c> in water, <c>0x10</c> moving, <c>0x20</c>
+	/// exercising. The last three are the host clone's model inputs: the clone skips the native stage
+	/// that computes in-water, and the movement/workout state exists only on the owner's own body, so
+	/// the owner's verdict rides the stream.
+	/// </summary>
 	[ProtoMember(11)]
 	public uint ExtendedFlags { get; set; }
 

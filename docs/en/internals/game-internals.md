@@ -114,6 +114,15 @@ with the affected client — its report/event is the only writer of those — an
 client-owned fields after every step. A guest never runs the pass; it renders what it is told and
 judges its own events. Details: `docs/backlog/todo/health-simulation-and-host-authority.md`.
 
+The clone cannot produce all of the model's inputs itself: it skips `HandlePhysics` (so `inWater`,
+`Body.cs:3088`, is never computed), its `moveDir` is zeroed for presentation, and `exercising` /
+`currentClimbable` are the owner's local actions. Their verdicts therefore ride the owner's 20 Hz
+state (in-water, moving, exercising — the walk verdict uses the game's own `|moveDir.x| < 0.1`
+stamina threshold, `Body.cs:2994`), and the pass writes all four onto the clone for its duration,
+resolving the climb state against the host's own `Climbable` list (the same lookup the native
+climbing start uses) and restoring the presentation values afterwards. A climbable the host world
+does not have is named once and the body is modelled as stationary.
+
 What that means for CUO: a body's ACTIONS and its EVENTS belong to its owner's client; the host
 owns the shared world and, for the continuous bleeding values, computes them from the owner's
 inputs. The host never re-derives an injury, a terminal fact or a random outcome.

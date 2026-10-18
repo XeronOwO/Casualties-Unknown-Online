@@ -4,9 +4,9 @@
   player state by reusing the game's own methods; the affected client judges every event and
   applies the host's rows to its own body.** This supersedes the (a)-first recommendation the
   earlier draft carried. Stage 1 (the bleeding family) landed and was superseded by Stage 2 unit 1
-  (the host clone simulation plus item 4's event/quarantine/reconciliation boundary), which lands
-  in this cycle's commit; the two-client runtime acceptance of both is still owed, and Stage 2's
-  missing-input (item 2) and frame-cost (item 5) items are the rest.
+  (the host clone simulation plus item 4's event/quarantine/reconciliation boundary) and unit 2
+  (the missing model inputs, which lands in this cycle's commit); the two-client runtime acceptance
+  of both is still owed, and Stage 2's frame-cost item (item 5) is the rest.
 - Priority: Medium-High
 - Category: Player state / cross-player sync / authority
 - Source: the user's 2026-10-14 request (health simulated on every client, reconciled to the host)
@@ -51,9 +51,9 @@
    host's machine. Each needs suppression on a proxy body — the same family as the carried-body
    patches, which is why they are not free.
 2. **Inputs.** The host clone carries standing, crouching, sleeping and climbing (the 20 Hz entity
-   stream); it does NOT carry in-water, movement/exercise intent or the current action, and its
-   `moveDir` is zeroed every frame. Those must ride the stream or the temperature/stamina pass
-   computes wrong numbers.
+   stream), but not in-water, movement/exercise intent or the current action (the climb state as
+   the model reads it), and its `moveDir` is zeroed every frame. Unit 2 makes them ride the stream
+   and feeds them to the pass; without that the temperature/stamina pass computes wrong numbers.
 3. **Determinism inside the host.** The advance must use one dt accounting and one clamp order.
    Two hosts replaying the same events must land on the same numbers; otherwise the
    reconciliation fights its own model.
@@ -75,9 +75,11 @@
   `TotalBleedSpeed` (`[ProtoMember(81)]`) as the third host-owned value, because the stored
   snapshot is the host clone's mirror and the 10 Hz row is built from it; a report's copy is
   preserved from the host's, exactly like blood volume and per-limb bleed.
-- **Stage 2 remaining additions:** the missing input flags on the 20 Hz entity stream (in-water,
-  moving, exercising, current action), and the reconciliation log over the report — the comparison
-  itself is stage 2 item 4.
+- **Stage 2 unit 2 additions:** the missing input flags on the 20 Hz entity stream — `InWater`
+  (`0x08`), `Moving` (`0x10`) and `Exercising` (`0x20`) in `WirePlayerStreamState.ExtendedFlags`,
+  beside the already-carried `Climbing` pose bit that the model also reads — and the scope that
+  writes them (with the climb state) onto the clone for the pass; the reconciliation log over the
+  report is the 1 Hz comparison already landed in unit 1.
 
 ## Stage 1 — the bleeding family (landed, runtime acceptance owed)
 
@@ -218,7 +220,8 @@ snapshot is a full body list, so a partial one would cap the model's array — s
    a stalled frame cannot teleport a value).
 
 2. **Feed the missing inputs** from the 20 Hz entity stream: in-water, moving/exercising, current
-   action. Standing/crouching/sleeping/climbing already ride it.
+   action. **Landed as unit 2** — see that unit's section for the exact native reads and why the
+   climb state is the "current action".
 3. **Suppress the side effects** on a proxy body: camera, sounds, vomit, talk, coroutines, ragdoll,
    and physics re-enable. Every suppression is a patch with its own contract test, the way the
    carried-body family is pinned.
@@ -247,7 +250,8 @@ components. That clone is the only per-player body the host has, and it already 
 inputs a fresh clone would have to rebuild: the display inventory (whose `Item.Stats` give
 `GetAllWearables` the insulation and `GetTotalEncumberance` the weights, so `HandleBodyTemperature`
 and `HandleBody` read real numbers) and the stream-fed pose flags (`standing`, `crouching`,
-`sleeping`, `climbing`). A second clone would duplicate all of that sanitization and would then
+`sleeping`, `climbing` — the last one is presentation here; unit 2 adds the model's own
+`currentClimbable` read). A second clone would duplicate all of that sanitization and would then
 need the same seeding anyway, so the simulated body and the host's view of a remote player are the
 same object by construction: they cannot disagree. Guests' clones keep the presentation-only path
 (`RemoteBodyDriver`, no `HostVitalsDriver`); only the host attaches the simulation driver.
@@ -324,14 +328,14 @@ tests are in `HostVitalsSuppressionPinTests` and `HostVitalsPassTests`; the gene
 | RNG | `HandlePeriodicChecks` and `Limb.Update` draw from the process-global `UnityEngine.Random` | `HostVitalsPass.Run` saves `Random.state`, seeds it, and restores it in `finally`; the quarantine makes any draw harmless |
 
 **What this unit deliberately leaves out.** The 20 Hz missing inputs (in-water, movement/exercise,
-current action) are Stage 2 item 2, and the frame-cost measurement is item 5. The random branches
-that remain reachable still EXECUTE, because `HandlePeriodicChecks`/`Limb.Update` cannot be split
-and `UnityEngine.Random.value`/`Range(float,float)` have no IL body to patch (verified: `body=False`
-on the game's UnityEngine.CoreModule); what the quarantine guarantees is that no drawn outcome
-persists, changes a body transition, or leaves on the wire. The minute/half-minute random blocks
-and the limb infection roll are not even reached (timers pinned). A body that cannot be cloned now
-stops the 10 Hz row after the freshness window instead of freezing the owner's body to stale host
-values; the existing clone-failure window names the clone failure.
+current action) are Stage 2 item 2 and now land as unit 2; the frame-cost measurement is item 5.
+The random branches that remain reachable still EXECUTE, because `HandlePeriodicChecks`/`Limb.Update`
+cannot be split and `UnityEngine.Random.value`/`Range(float,float)` have no IL body to patch
+(verified: `body=False` on the game's UnityEngine.CoreModule); what the quarantine guarantees is
+that no drawn outcome persists, changes a body transition, or leaves on the wire. The
+minute/half-minute random blocks and the limb infection roll are not even reached (timers pinned).
+A body that cannot be cloned now stops the 10 Hz row after the freshness window instead of freezing
+the owner's body to stale host values; the existing clone-failure window names the clone failure.
 
 **Landed in this unit.** Adapter pieces: `HostVitalsBodies` (the per-body seam and driver attach),
 `HostVitalsDriver` (the fixed-step pump), `HostVitalsOwned` (the body half of the round trip),
@@ -515,6 +519,121 @@ findings and their fixes:
   one and the remote-clone one) — disjoint by condition and order-independent in effect, but one
   owner per target would be cleaner; noted for the next pass.
 
+### Stage 2 unit 2 — the missing model inputs (landed)
+
+Stage 2 item 2. The pass runs the game's own stages, so the model reads whatever fields those
+stages read; four inputs are produced by body code a clone never runs, and this unit feeds them:
+
+| Model input | Native read | Why the clone does not have it | Source on the wire |
+|---|---|---|---|
+| In-water | `HandleCirculation`'s breath rule (`Body.cs:669`: `!inWater \|\| hasScubaGear`), the sleep-wake condition and the stamina-regen gate (`Body.cs:2972`, `:2996`) | `inWater` is written by `HandlePhysics` (`Body.cs:3088`) from the fluid world — a stage the clone skips, so it stays `false` | New `InWater` flag |
+| Moving | the stamina regen/decay branch (`Body.cs:2994`: `Mathf.Abs(moveDir.x) < 0.1f`) | `moveDir` is the owner's input intent and is zeroed for presentation (`SessionStatePump`, `BodyUpdatePatch`); the native rule reads the intent, not `rb.velocity` | New `Moving` flag, derived with the game's own threshold |
+| Exercising | the same branch (`!exercising`, `Body.cs:2994`) and the native idle-sit exclusion | `Body.exercising` is owned by the local workout coroutine; a clone's copy is template leftover | New `Exercising` flag |
+| The current action: climbing | the same branch (`!currentClimbable`, `Body.cs:2994`) and `HandleBody`'s climbing read | `currentClimbable` is a scene reference the wire cannot carry; the clone's is null | The existing `Climbing` pose bit, now consumed by the model |
+
+One further stage-read input is NOT carried: `idleTime` (`Body.cs:3562`, the over-encumbered skill
+gain inside the half-second pass). The clone's timer is maintained by its visual path, so it cycles
+instead of tracking the owner's; the effect is a skill-exp drift that each 1 Hz report re-seeds, it
+reaches no owned value, and it is recorded here rather than carried. The four above are the inputs
+whose branches change the model's stamina/temperature state.
+
+The wire addition is the three bits `0x08`/`0x10`/`0x20` of `WirePlayerStreamState.ExtendedFlags`
+(the same message and envelope as the rest of the 20 Hz stream, no new member). `PlayerEntity`
+carries the three values, `PlayerStreamWireMapper` maps them both ways, `EntitySyncService.
+PublishLocalState` accepts them, and `RunCoordinator.PublishBodyState` derives them from the
+owner's own body: `body.inWater`, `HostVitalsInputs.IsMoving(body.moveDir.x)` and
+`body.exercising`. `IsMoving` is the native test's exact complement
+(`!(Mathf.Abs(moveDir.x) < 0.1f)`), so a NaN move input reads as NOT stationary — the native
+comparison is false for it too, which selects the drain branch. The stream stays unreliable and
+absolute — a lost frame self-heals on the next, exactly like every other pose flag.
+
+**The stream is member-authored, so its ingress now has the identity bound.** The vitals model reads
+the host's entity buffer for the member, which made the old receive path a way to steer another
+member's model: the host resolved the row from the payload's entity id and ignored the transport
+sender, and a guest accepted any sender and would apply (then re-report) a row naming its own entity.
+Both are identity facts the receiver holds, not behavioural bounds (decision 265), so
+`PlayerStreamExchange` now: on the HOST refuses a row whose member is not the transport sender,
+BEFORE the seq gate and the buffer write; on a GUEST accepts player state only from the host and
+drops a row naming its own entity (the host excludes each recipient's own row, so one naming it is
+forged). Refusals are named at Warning. The CONTENT of the four inputs is still the member's own
+claim — that is the limit below.
+
+`HostVitalsInputScope.Apply` writes the four inputs onto the clone for the duration of one pass and
+puts the presentation values back afterwards, so `HandleVisuals` and the entity stream still see the
+clone they always saw (`inWater=false`, `moveDir=zero`, the template's action flags). The climbable
+lookup runs BEFORE the first write (a torn-down-world throw must not strand half of the fields), and
+any other throw restores through the scope. `exercising` is a public get with a private set, so the
+scope writes it through that setter (resolved once into a typed delegate; a renamed property fails at
+first use, not per pass). The climb state is resolved with the game's own
+`Climbable.GetClosestClimbable` (`Body.cs:3086`'s lookup) — the model reads only "climbing or not",
+and a host world that has no climbable for a climbing member is named once and modelled as
+stationary rather than being silently treated as moving. An input TRANSITION is one Debug line per
+body, so "the member's bits never arrive" is distinguishable from "the member is dry and still".
+
+Files: `HostVitalsInputs.cs` (new: the input value, the threshold rule, the stream-source and
+owner-body mappings), `HostVitalsInputScope.cs` (new: the apply/restore scope and the setter
+resolution), `HostVitalsBodies` (reads the member's entity, logs input transitions, applies the scope
+around the pass, names the missing-climbable case once), `HostVitalsDriver` (the warning latch and
+the last-inputs memory), `RunCoordinator` (the owner-side derivation), `GameAdapterDomains` (the
+wiring), `PlayerEntity`, `PlayerStreamWireMapper`, `IEntitySyncControl`, `EntitySyncService` (the
+stream), `PlayerStreamExchange` (the ingress identity bound), `WirePlayerStreamState` (bit
+documentation). Tests: `HostVitalsInputsTests` (the threshold incl. NaN, the entity mapping, a null
+buffer, the private setter contract), `EntityStateRoundtripTests` (a six-entry extended-flag table —
+every bit sets only its own property — plus the empty-word clear), `HostVitalsSuppressionPinTests`
+(the pass is brace-matched INSIDE the input scope's block after the stream read — with a negative
+sample that moves it out while keeping every earlier index — the scope resolves before writing and
+restores every value, and the owner-side publish names the three inputs), and `StateStreamTests`
+(the three forged/misrouted frame cases: a non-host sender to a guest, a guest row naming its own
+entity, and a guest naming another member's entity id to the host — each must not move the buffer or
+its seq gate). No protocol-number move: the number is frozen at the pre-release baseline
+(src/AGENTS.md), and this ticket and the commit record the wire change.
+
+What this unit deliberately leaves out: the frame-cost measurement (item 5, still owed before the
+design is called affordable) and the two-client acceptance rows. The input values themselves are the
+owner's claim by design — see the limit below.
+
+### Independent adversarial review (2026-10-18, frozen tree) — unit 2 findings and dispositions
+
+A fresh-context reviewer read the whole uncommitted diff against the frozen tree, re-checked every
+native citation, and reproduced 741/741 gates and 5944/5944 behaviour tests. No blocker; two majors
+and the minors below, all fixed in the same commit.
+
+- **M1 (major) — the census sentence "no data anchor on the host" was false, because the stream's
+  ingress ignored the transport sender.** `PlayerStreamExchange` resolved the host's member from the
+  payload's entity id (`var member = entities.Members.FirstOrDefault(m => m.Entity.EntityId == id);`)
+  and never compared `sender`; a guest learns every member's entity id from the roster, so it could
+  name another member's id and steer that member's host model (and advance its report-seq gate). The
+  guest branch had the mirror hole: `var target = id == entities.LocalPlayer.EntityId ? entities.LocalPlayer : ...`
+  applied any sender's row naming the guest's own entity, which the guest then re-reported under its
+  own valid identity, and a large `Seq` moved the single `LastStateSeq` gate. **Fix:** the host
+  refuses a row whose member is not the transport sender BEFORE the seq gate and the buffer write;
+  a guest accepts player state only from `HostSteamId` and drops a row naming its own entity (the
+  host excludes each recipient's own row). Both are identity facts the receiver holds (decision 265).
+  Pinned by three `StateStreamTests` rows; the red was observed with the guards removed (3 failures),
+  then the fixed file was restored byte-for-byte. The census row now names the sender bound and keeps
+  only the CONTENT gap as the stated limit.
+- **M2 (major) — the new ordering pin could not fail.** The test compared three `IndexOf` positions,
+  so a scope closed before the pass still passed; its "negative sample" only proved that
+  `string.Replace` removed a string. **Fix:** `PassRunsInsideTheInputScope` brace-matches the
+  `using` block and requires the pass inside it, with a negative sample that moves the pass after
+  the closing brace while keeping every earlier index; `ScopeShapeHolds` is a predicate the samples
+  re-run (each restore removed in turn is rejected), and the climbable-resolve-before-write order is
+  pinned the same way.
+- **Minors fixed:** `IsMoving` had the NaN direction inverted (`Abs(x) < 0.1` is false for NaN, so
+  the native branch is DRAIN, not stationary) — now `!(Mathf.Abs(x) < MoveThreshold)`; "exactly
+  four" over-claimed (`idleTime`, `Body.cs:3562`, is a fifth stage-read the clone does not track —
+  its effect is a bounded skill-exp drift re-seeded by the report, now named instead of hidden); the
+  new file's doc claimed the inputs compute the owned values (they steer stamina/temperature; the
+  owned values read limbs and internal bleeding, with temperature >41 °C the only direct channel);
+  a throw inside `Apply` after the first write stranded half the fields (the climbable lookup now
+  runs before the writes and any throw restores through the scope); the ticket's file list omitted
+  `HostVitalsInputScope.cs`, `GameAdapterDomains`, `PlayerStreamExchange` and `StateStreamTests`;
+  the wire doc's "the clone skips the native physics stage that computes them" was wrong for
+  movement/workout; the staleness limit now names the governor's 1 Hz floor (up to ~1 s), not only
+  the 20 Hz base; and the input path gained a Debug TRANSITION line per body so "the bits never
+  arrive" is distinguishable from "the body is dry and still". The per-pass reflection invocation
+  became a typed delegate resolved once (no per-step boxing; a renamed property fails at first use).
+
 ## Acceptance (the rows a run must read)
 
 Two clients (plus a third where a row needs it), one of them with an artificial delay and packet loss:
@@ -532,11 +651,16 @@ Two clients (plus a third where a row needs it), one of them with an artificial 
 
 ## Limits to write down rather than hide
 
-- **Inputs remain the client's.** A client that lies about an input (viscosity, hunger, in-water)
-  bends the model; the protection this ticket buys is that the plain report can no longer STATE the
-  output. The one event channel that can raise a limb's bleed is the owner's injury event, and the
-  host clamps it upward (a lower value is ignored; a dismembered limb zeroes). Closing the input
-  side is the determinism project (`future/generic-prediction-runtime.md`).
+- **Inputs remain the client's; only the SENDER is bound.** A client that lies about an input
+  (viscosity, hunger, in-water, moving, exercising, climbing) bends its own body's model; the
+  protection this ticket buys is that the plain report can no longer STATE the output. The one event
+  channel that can raise a limb's bleed is the owner's injury event, and the host clamps it upward
+  (a lower value is ignored; a dismembered limb zeroes). A member can no longer report ANOTHER
+  member's stream row (the ingress identity bound above); the remaining gap is a member's own input
+  claim, which only the determinism project closes (`future/generic-prediction-runtime.md`). The
+  stream inputs are the owner's last PUBLISHED verdict — up to one stream frame stale (50 ms at the
+  20 Hz base, up to 1 s under governor pressure, whose floor is 1 Hz) — not a per-pass sample; a lost
+  frame self-heals on the next, and the model's own step is still the fixed step.
 - **A wrong model is caught only by the minimal reconciliation**, and only because the client still
   reports the value. That report must never be removed for the sake of bandwidth. The comparison's
   tolerances are sampling-window values (blood 0.5, total/limb bleed 0.05), recorded so a run can

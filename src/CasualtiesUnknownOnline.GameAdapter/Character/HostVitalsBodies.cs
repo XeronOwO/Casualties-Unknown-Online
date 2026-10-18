@@ -2,6 +2,7 @@ using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Time;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
@@ -20,7 +21,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// Data flow per fixed step: read the stored snapshot; seed the body once (health, skills, limbs,
 /// painkiller fields; no item wipe, no limb components); on a new snapshot object map its inputs
 /// with the owned values preserved; if the stored owned values no longer match what this body
-/// last wrote, an authoritative write landed — copy it onto the body before advancing; run
+/// last wrote, an authoritative write landed — copy it onto the body before advancing; write the
+/// member's stream inputs onto the clone for the pass (<see cref="HostVitalsInputScope"/>); run
 /// <see cref="HostVitalsPass"/>; write the body's three values back. A plain report can
 /// never reach the owned values (<c>ContinuousVitals.Preserve</c>), which is what makes the last
 /// comparison an authority test.
@@ -34,6 +36,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 internal sealed class HostVitalsBodies
 {
 	private readonly ISessionControl _session;
+	private readonly IEntitySyncControl _entities;
 	private readonly ICharacterDataControl _characters;
 	private readonly CharacterRestoreApplier _restore;
 	private readonly ITimeSource _time;
@@ -41,12 +44,14 @@ internal sealed class HostVitalsBodies
 
 	internal HostVitalsBodies(
 		ISessionControl session,
+		IEntitySyncControl entities,
 		ICharacterDataControl characters,
 		CharacterRestoreApplier restore,
 		ITimeSource time,
 		ILogger<HostVitalsBodies> log)
 	{
 		_session = session;
+		_entities = entities;
 		_characters = characters;
 		_restore = restore;
 		_time = time;
@@ -165,7 +170,33 @@ internal sealed class HostVitalsBodies
 			return;
 		}
 
-		HostVitalsPass.Run(driver.Body, driver.Quarantine);
+		// The three model inputs the clone cannot produce itself (in-water, the walk verdict, the
+		// workout action) plus the owner's current action (climbing) are written for the pass only:
+		// the native stages read plain body fields, and the clone's visual path owns those values
+		// outside the pass.
+		var inputs = HostVitalsInputs.From(_entities.GetRemotePlayer(driver.SteamId));
+		if (driver.LastInputs.InWater != inputs.InWater
+			|| driver.LastInputs.Moving != inputs.Moving
+			|| driver.LastInputs.Exercising != inputs.Exercising
+			|| driver.LastInputs.Climbing != inputs.Climbing)
+		{
+			driver.LastInputs = inputs;
+			_log.LogDebug("[Vitals] {Player}'s model inputs changed: in-water {InWater}, moving {Moving}, exercising {Exercising}, climbing {Climbing}.",
+				driver.SteamId, inputs.InWater, inputs.Moving, inputs.Exercising, inputs.Climbing);
+		}
+
+		using (HostVitalsInputScope.Apply(driver.Body, inputs))
+		{
+			if (inputs.Climbing && driver.Body.currentClimbable == null && !driver.WarnedClimbUnresolved) // Unity object — ==
+			{
+				driver.WarnedClimbUnresolved = true;
+				_log.LogWarning("[Vitals] {Player} reports climbing, but this host's world has no Climbable to model it with — the pass treats the body as stationary.",
+					driver.SteamId);
+			}
+
+			HostVitalsPass.Run(driver.Body, driver.Quarantine);
+		}
+
 		HostVitalsOwned.Capture(driver.Body, driver.LastWrittenBleeds, out var blood, out var total);
 		ContinuousVitals.Write(data, blood, total, driver.LastWrittenBleeds);
 		driver.LastWrittenBloodVolume = blood;

@@ -14,6 +14,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 /// <see cref="EntitySyncService"/> so the entity-table owner stays under the
 /// architecture line gate; the exchange only reads the narrow
 /// <see cref="IEntitySyncControl"/> surface and the protocol control.
+///
+/// <para>
+/// The stream is member-authored, so both receive directions are bounded by the
+/// TRANSPORT SENDER: the host accepts a member's row only from that member (the
+/// payload's entity id is a claim), and a guest accepts player state only from the
+/// host and drops a row naming its own entity (the host excludes each recipient's
+/// own row). Both checks run before the buffer write and, on the host, before the
+/// member's report-sequence gate — the entity buffer is the host vitals model's
+/// input source.
+/// </para>
 /// </summary>
 public sealed class PlayerStreamExchange(
 	ISessionControl session,
@@ -87,6 +97,18 @@ public sealed class PlayerStreamExchange(
 
 		if (session.Role == SessionRole.Guest)
 		{
+			// The host is the only player-state broadcaster a guest accepts. Without this the
+			// transport sender would be ignored and a third peer could write another player's
+			// buffer — and, naming this client's own entity id, poison the seq gate below or be
+			// re-reported to the host as this client's own state. The sender is a fact the receiver
+			// holds (decision 265's data anchor), so this is a bound, not a behaviour rule.
+			if (sender != session.HostSteamId)
+			{
+				log.LogWarning("Dropping player stream from {Sender}: only the host broadcasts player state to a guest.",
+					sender);
+				return;
+			}
+
 			if (stream.Seq <= LastStateSeq)
 			{
 				return;
@@ -96,8 +118,17 @@ public sealed class PlayerStreamExchange(
 			foreach (var state in stream.PlayerStates)
 			{
 				var id = PlayerStreamWireMapper.ToNetworkEntityId(state.EntityId);
-				var target = id == entities.LocalPlayer.EntityId ? entities.LocalPlayer
-					: entities.Members.FirstOrDefault(m => m.Entity.EntityId == id)?.Entity;
+				if (id == entities.LocalPlayer.EntityId)
+				{
+					// The host excludes each recipient's own row from its broadcast, so a row naming
+					// this client's own entity is misrouted or forged: applying it would overwrite the
+					// local simulation and then be relayed back as this client's own report.
+					log.LogWarning("Dropping player stream row naming this client's own entity {Id} from {Sender}: the host never echoes a member's own state.",
+						id, sender);
+					continue;
+				}
+
+				var target = entities.Members.FirstOrDefault(m => m.Entity.EntityId == id)?.Entity;
 				if (target is null)
 				{
 					log.LogWarning("Dropping player stream {Id} from {Sender}: no member with that entity id.",
@@ -122,6 +153,17 @@ public sealed class PlayerStreamExchange(
 				{
 					log.LogWarning("Dropping player report {Id} from {Sender}: no synced member owns that entity id.",
 						id, sender);
+					continue;
+				}
+
+				// A member's state is that member's own report: the payload's entity id is a claim,
+				// the transport sender is the fact. Checked BEFORE the seq gate, so a forged row can
+				// neither advance the owner's report sequence nor steer the owner's entity buffer —
+				// which is the host vitals model's input source.
+				if (member.SteamId != sender)
+				{
+					log.LogWarning("Dropping player report for {Member} from {Sender}: a member's state must be reported by that member.",
+						member.SteamId, sender);
 					continue;
 				}
 

@@ -4,8 +4,9 @@
     "BoolFlags": 5
   },
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
-    "Lines": 608,
-    "BoolFlags": 4
+    "Lines": 611,
+    "BoolFlags": 4,
+    "Note": "The host-state cycle added the model-input publish line (the derivation itself lives in HostVitalsInputs); the planned split is the local-body publish path into a LocalBodyStatePublisher, leaving the coordinator the run phase machine and world entry."
   },
   "CasualtiesUnknownOnline.GameAdapter.Character.CharacterDataSync": {
     "Lines": 671,

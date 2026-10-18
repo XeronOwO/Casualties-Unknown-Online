@@ -65,6 +65,27 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	public bool Climbing { get; set; }
 
 	/// <summary>
+	/// Whether the owner's body is in water (Body.inWater, written by the native HandlePhysics from
+	/// the fluid world, Body.cs:3088). One of the host-clone model's inputs: the host's copy of the
+	/// body skips that stage, so the breath/stamina rules would read a dry body without it.
+	/// </summary>
+	public bool InWater { get; set; }
+
+	/// <summary>
+	/// Whether the owner's move input is walking (the native stamina rule's own threshold on
+	/// <c>moveDir.x</c>, Body.cs:2994). The render clone zeroes <c>moveDir</c>, so the model is told
+	/// the verdict instead of a synthetic vector.
+	/// </summary>
+	public bool Moving { get; set; }
+
+	/// <summary>
+	/// Whether the owner is mid-workout (Body.exercising). Presentation replays the clip from
+	/// <see cref="WorkoutType"/>; the host model reads this flag because the game's stamina rule
+	/// consumes exactly it.
+	/// </summary>
+	public bool Exercising { get; set; }
+
+	/// <summary>
 	/// True while the player performs an attack swing (ExtendedFlags 0x01).
 	/// Wire-reserved in the star-network refactor; consumed when attack-animation
 	/// sync lands (the clone drives armsAnimator.Play("ArmsSwing")).

@@ -593,6 +593,9 @@ internal sealed class RunCoordinator(
 		var limbPoses = CarriedBodyPose.ShouldPublishExactLimbPoses(isCarried, body.alive, body.conscious)
 			? LimbPoseCapture.Capture(body)
 			: null;
+		// The host clone's vitals-model inputs, read off the owner's own body (HostVitalsInputs owns
+		// the walk threshold, the workout flag and the climb state; the receiver is the host pass).
+		var vitals = HostVitalsInputs.FromBody(body);
 		_entities.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),
@@ -603,6 +606,6 @@ internal sealed class RunCoordinator(
 			sitting, body.sleeping, body.currentClimbable != null, // Unity object — ==
 			workoutType, napVariant, dogShakeIntensity,
 			slidingLeft, slidingRight,
-			limbPoses);
+			limbPoses, vitals.InWater, vitals.Moving, vitals.Exercising);
 	}
 }

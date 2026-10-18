@@ -367,7 +367,7 @@ public enum NetMsg : byte
 	InventoryIntentRefused = 145, // host → requester: the intent sent was refused, and the host's own reason
 
 	// The host's cheat-permission roster, announced ABSOLUTE: who may run the cheat verbs (/data's write verbs,
-	// /give, and the spawn/heal stages when they land). The host's own standing is the online switch and is never on
+	// /give, /summon and the /heal reset). The host's own standing is the online switch and is never on
 	// this list. It rides the same three edges as HostRules — admission, world entry, the in-session repair group —
 	// plus every grant/revoke while the session runs, because the list is what a member's own console refuses a
 	// cheat verb against: a closed permission costs no round trip, and the operator reads the reason where they
@@ -396,5 +396,16 @@ public enum NetMsg : byte
 	// give ladder's drop makes.
 	WorldSummonRequest = 149, // guest → host: summon one prefab (or item entity) at this point, with the operator's item state
 	WorldSummonResult = 150, // host → requester: the created object's identity (items) and the answer, or the refusal that answered it
+
+	// The console /heal verb (a cheat verb): an immediate, item-free FULL reset of the selected
+	// players' state. A reset is a mutation of the TARGET's body, so by the judgment-ownership rule
+	// the target's own client applies it and re-reports — the host judges its own cheat switch and
+	// roster, resets its own body where it is named, and instructs each member target. The result
+	// state does not ride this pair: the target's ordinary character snapshot re-report carries it
+	// to the host and every peer. The answer carries the host's own sentence, so a refusal lands
+	// where the operator typed the verb.
+	HealResetRequest = 151, // guest → host: reset these players' state now (the member's selector expansion)
+	HealResetInstruction = 152, // host → a member target: apply the full reset to your own body now
+	HealResetResult = 153, // host → requester: the answer (what was reset/revived/restored, or the refusal)
 
 }

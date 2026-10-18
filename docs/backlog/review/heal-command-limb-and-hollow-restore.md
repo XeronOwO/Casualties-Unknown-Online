@@ -436,7 +436,7 @@ ticket's earlier note that the item-based console command was "a duplicate":
 - The CUO `/heal` is a CHEAT command that immediately resets the selected player's state — full reset
   (KrokMP's body fields + the native limb fields + CUO's severed limbs and hollow), cheat-family
   permission, and a dead target revived. That design is the ticket
-  `docs/backlog/todo/heal-cheat-command-state-reset.md`; the item-based remote-medical treatment keeps its
+  `docs/backlog/review/heal-cheat-command-state-reset.md`; the item-based remote-medical treatment keeps its
   UI path and is not this command.
 
 The surface decision above (the vanilla `heal` command for the limb/hollow extension) is unchanged: it is

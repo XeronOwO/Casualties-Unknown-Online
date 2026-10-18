@@ -66,7 +66,7 @@ public static class GameAdapterComposition
 		// AdapterCapabilityPortShapeTests, so a new port cannot be left unwired.
 		// `IGameAdapter` itself is deliberately NOT registered: the composition is
 		// the seam's identity and its compile-time proof (the class declaration
-		// implements all sixteen ports), and nothing in the tree resolves the whole
+		// implements all seventeen ports), and nothing in the tree resolves the whole
 		// adapter — a dead registration inside the surface this change narrows is
 		// exactly the drift the shape gate exists to catch.
 		services.AddSingleton<IGameIntegrationLifecycle>(p => p.GetRequiredService<GameAdapter>());
@@ -87,6 +87,16 @@ public static class GameAdapterComposition
 		// The Online UI's live surface (S2a): the adapter owns CUO's canvas under the game's canvas and
 		// the game's own launcher control on it, and the plugin drives it with frames over this port.
 		services.AddSingleton<IOnlineUiSurface>(p => p.GetRequiredService<GameAdapter>());
+		// The console /heal cheat verb's body half: the full reset of the local body. A port on the
+		// aggregate rather than a standalone seam because the reset must re-report the character
+		// snapshot, and the capture/report live on the character domain the aggregate owns. No
+		// constructor cycle: nothing in the aggregate's own graph consumes this port (the Runtime's
+		// heal service does, and the aggregate does not depend on it). REPLACES the Runtime's
+		// UnavailableLocalBodyReset, like every other Runtime-seeded scene seam: two descriptors
+		// would leave the real one winning on registration order alone, and a later reorder would
+		// silently make the deployed verb answer "this build has no game scene".
+		services.Replace(ServiceDescriptor.Singleton<ILocalBodyReset>(
+			p => p.GetRequiredService<GameAdapter>()));
 		// The world library (decision 198): the worlds and backups the Online UI's Worlds page
 		// manages, and the restore that replaces one world's live snapshot with an archive the
 		// player picked. It is an ICuoService because an armed restore runs at a frame boundary

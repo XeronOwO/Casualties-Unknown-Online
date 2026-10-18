@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CasualtiesUnknownOnline.Runtime.Composition;
@@ -32,6 +33,11 @@ internal static class ConsoleComposition
 		// with the real one; without it the verb answers that this build cannot create
 		// world objects instead of creating nothing and saying nothing.
 		services.AddSingleton<IWorldSummon>(new UnavailableWorldSummon());
+		// The one scene capability behind the console /heal cheat verb: the full reset of THIS
+		// client's own body, with its severed-limb restore and hollow clear. The Game Adapter
+		// REPLACES this with the real one; without it the verb answers that this build cannot reset a
+		// body instead of resetting nothing and saying nothing.
+		services.AddSingleton<ILocalBodyReset>(new UnavailableLocalBodyReset());
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());

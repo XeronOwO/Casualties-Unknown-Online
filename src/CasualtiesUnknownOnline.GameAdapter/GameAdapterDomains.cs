@@ -77,6 +77,7 @@ internal sealed class GameAdapterDomains
 
 	internal readonly CloneFactTable FactTable;
 	internal readonly CharacterDataSync CharacterDataSync;
+	internal readonly LocalBodyReset LocalBodyReset;
 	internal readonly StartingSupplyCoordinator StartingSupplies;
 	internal readonly RemotePlayerRenderer Renderer;
 	internal readonly RemoteBackpackCoordinator RemoteBackpack;
@@ -267,6 +268,10 @@ internal sealed class GameAdapterDomains
 			nativeCharacterSystem,
 			localRestore,
 			loggerFactory.CreateLogger<CharacterDataSync>());
+		// The console /heal verb's body half: the full reset applied to this client's own body and
+		// re-reported. It is the adapter's port because only this side has the live Body and the
+		// character-snapshot capture; the Runtime's verb asks for it through ILocalBodyReset.
+		LocalBodyReset = new LocalBodyReset(CharacterDataSync, loggerFactory.CreateLogger<LocalBodyReset>());
 		// The starting-supplies grant (S4.3): a player the world has no character for gets
 		// the run's startingsupplies once per body. The shared restore queue above is its
 		// input — a queued character restore means this player is NOT new.

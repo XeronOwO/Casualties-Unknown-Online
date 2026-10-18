@@ -7,7 +7,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Permissions;
 
 /// <summary>
 /// The HOST's cheat-permission roster: the members this host has granted the cheat
-/// verbs to (<c>/data</c>'s write verbs today, <c>/give</c> as it lands). It is the
+/// verbs to (<c>/data</c>'s write verbs, <c>/give</c>, <c>/summon</c> and the
+/// <c>/heal</c> reset). It is the
 /// WHO half of the host's two cheat rulings: the family must also be OPEN, which is
 /// <see cref="Configuration.HostRulesOptions.AllowMemberCheatVerbs"/> — a grant alone
 /// admits nothing, and a closed switch refuses even a granted member (the user's

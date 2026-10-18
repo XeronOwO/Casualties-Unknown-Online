@@ -227,6 +227,7 @@ Host: start normal Batch/Stream
 | 137 / 138 | `MedicalOperationTargetCheckRequest` / `Answer` | 主机 → 目标／目标 → 主机 | 目标自己的客户端回答它这具活体身体允不允许开始这次操作 |
 | 147 / 148 | `PlayerInventoryGiveRequest` / `PlayerInventoryGiveResult` | 客机 → 主机／主机 → 请求者 | 控制台 `/give` 作弊动词：成员的请求（一个目标身体、物品定义、槽位，以及物品状态的标准 SNBT），以及主机自己的答复（创建的物品与落点，或拒绝）——物品本身走普通的背包转移事实到达 |
 | 149 / 150 | `WorldSummonRequest` / `WorldSummonResult` | 客机 → 主机／主机 → 请求者 | 控制台 `/summon` 作弊动词：成员的请求（类型字——`item` 或预制体 id——预制体、该成员自己的场景解析出的坐标——指针、自身身体、随机点或字面坐标——物品状态的标准 SNBT，以及世界／图层代际）与主机自己的答复（创建的物品实体的实例 id，或拒绝）——创建出的实体、动物或物品实体走各自家族的既有报告，图层代际过期的请求按名拒绝 |
+| 151 / 152 / 153 | `HealResetRequest` / `HealResetInstruction` / `HealResetResult` | 客机 → 主机／主机 → 目标／主机 → 请求者 | 控制台 `/heal` 作弊动词：成员的请求（它自己的选择器解析出的目标）、主机要求某个成员目标在本机身体上执行全量重置的指令，以及主机的一句答复（重置、复活、接回断肢了什么，或拒绝）——重置后的状态本身走目标客户端平时的角色快照重报 |
 
 **模组与内核**
 

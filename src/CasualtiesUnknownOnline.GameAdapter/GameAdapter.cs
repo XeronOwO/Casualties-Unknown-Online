@@ -138,6 +138,13 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	public string CapabilityReport { get; private set; } = "Not probed";
 
 	/// <summary>
+	/// The console <c>/heal</c> cheat verb's body half: the full reset of THIS client's own body,
+	/// with its severed-limb restore, hollow clear and re-report. The host instructs, this client
+	/// applies — a player's own body is that player's to mutate (the judgment-ownership rule).
+	/// </summary>
+	LocalBodyResetOutcome ILocalBodyReset.Reset() => _domains.LocalBodyReset.Reset();
+
+	/// <summary>
 	/// The startup gate <c>ICuoService.Initialize</c> drives: probe the loaded
 	/// game assembly (the four types and the report text live in the patch life
 	/// cycle, declared as the session capability's game types), then install only

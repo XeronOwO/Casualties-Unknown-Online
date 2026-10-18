@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -59,19 +60,7 @@ internal static class CharacterDataCapture
 		}
 
 		// Limb has no Index field — Mapster maps the rest, the loop assigns it.
-		for (var i = 0; i < body.limbs.Length; i++)
-		{
-			var limbMsg = mapper.Map<CharacterLimbMsg>(body.limbs[i]);
-			limbMsg.Index = i;
-			limbMsg.IsHead = body.limbs[i].isHead;
-			limbMsg.IsVital = body.limbs[i].isVital;
-			limbMsg.Components = LimbComponentStateCodec.Capture(body.limbs[i]);
-			limbMsg.ConnectedLimbIndices = [.. body.limbs[i].connectedLimbs
-				.Select(l => Array.IndexOf(body.limbs, l))
-				.Where(idx => idx >= 0)];
-			limbMsg.DistanceToHeart = body.limbs[i].distanceToHeart;
-			msg.Limbs.Add(limbMsg);
-		}
+		msg.Limbs.AddRange(CaptureLimbs(mapper, body));
 
 		// Items: id ↔ ItemId is a rename, not a case variant — keep it manual.
 		// Capture is recursive: container contents ride inside the parent item
@@ -109,5 +98,35 @@ internal static class CharacterDataCapture
 		}
 
 		return msg;
+	}
+
+	/// <summary>
+	/// The ONE limb capture every snapshot producer uses (the 1 Hz character report, the limb-latch
+	/// event and the heal reset's capture-then-apply). It is a method rather than a loop copied into
+	/// each producer because the fields it must fill are not all mappable: <c>Index</c> has no source
+	/// field, <c>Components</c> is a game-component walk, <c>ConnectedLimbIndices</c> is a graph
+	/// translation and <c>IsHead</c>/<c>IsVital</c>/<c>DistanceToHeart</c> must be READ — a producer
+	/// that left them at their CLR defaults would write false/false/0 back onto a real body when the
+	/// row is applied (the heal reset is exactly such an apply), so the omission is a correctness
+	/// defect, not a thinner snapshot.
+	/// </summary>
+	internal static List<CharacterLimbMsg> CaptureLimbs(IMapper mapper, Body body)
+	{
+		var limbs = new List<CharacterLimbMsg>(body.limbs.Length);
+		for (var i = 0; i < body.limbs.Length; i++)
+		{
+			var limbMsg = mapper.Map<CharacterLimbMsg>(body.limbs[i]);
+			limbMsg.Index = i;
+			limbMsg.IsHead = body.limbs[i].isHead;
+			limbMsg.IsVital = body.limbs[i].isVital;
+			limbMsg.Components = LimbComponentStateCodec.Capture(body.limbs[i]);
+			limbMsg.ConnectedLimbIndices = [.. body.limbs[i].connectedLimbs
+				.Select(l => Array.IndexOf(body.limbs, l))
+				.Where(idx => idx >= 0)];
+			limbMsg.DistanceToHeart = body.limbs[i].distanceToHeart;
+			limbs.Add(limbMsg);
+		}
+
+		return limbs;
 	}
 }

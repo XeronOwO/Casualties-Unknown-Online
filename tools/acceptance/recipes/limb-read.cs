@@ -1,8 +1,8 @@
 // recipe: limb-read
 // args: source=s limb=n target=s
-// serves: medical-state-names-no-kind, cross-player-item-use-random-determinism
+// serves: medical-state-names-no-kind, cross-player-item-use-random-determinism, heal-cheat-command-state-reset
 // returns: ok, source, limb, skinHealth, bleedAmount, pain, muscleHealth, shrapnel, hasShrapnel, splinted,
-//          dislocated, dismembered, components, error, detail
+//          dislocated, dismembered, isHead, isVital, distanceToHeart, components, error, detail
 //
 // Reads ONE limb through the surface a row names, so a run compares what each side actually holds
 // instead of inferring it:
@@ -16,6 +16,11 @@
 // The component list is the limb's dynamic [Saveable] set (SplintLimb / TourniquetScript / ChilledLimb):
 // it is part of the character report, and it is the fact a removal has to clear on the target's own
 // body. `shrapnel`/`hasShrapnel` read the game's own field and its derived property.
+//
+// The three topology fields are read too: `isHead`/`isVital` drive the game's own bone-break damage,
+// healing rate and infection rules, and `distanceToHeart` orders the tourniquet's lower limbs. A body
+// reset that captured a limb row without them would write false/false/0 onto the live limb, so a
+// `/heal` row reads all three before and after.
 ((System.Func<string>)(() => {
 	var source = {{s:source}};
 	var limbIndex = (int){{n:limb}};
@@ -32,6 +37,9 @@
 	var splinted = false;
 	var dislocated = false;
 	var dismembered = false;
+	var isHead = false;
+	var isVital = false;
+	var distanceToHeart = 0;
 	var componentText = "";
 
 	if (source == "local" || source == "display") {
@@ -66,6 +74,9 @@
 		splinted = limb.splinted;
 		dislocated = limb.dislocated;
 		dismembered = limb.dismembered;
+		isHead = limb.isHead;
+		isVital = limb.isVital;
+		distanceToHeart = limb.distanceToHeart;
 		if (limb.GetComponent<SplintLimb>() != null) { componentText = "SplintLimb"; }
 		if (limb.GetComponent<TourniquetScript>() != null) { componentText = componentText.Length > 0 ? componentText + ",TourniquetScript" : "TourniquetScript"; }
 		if (limb.GetComponent<ChilledLimb>() != null) { componentText = componentText.Length > 0 ? componentText + ",ChilledLimb" : "ChilledLimb"; }
@@ -90,6 +101,9 @@
 		splinted = row.Splinted;
 		dislocated = row.Dislocated;
 		dismembered = row.Dismembered;
+		isHead = row.IsHead;
+		isVital = row.IsVital;
+		distanceToHeart = row.DistanceToHeart;
 		for (var i = 0; i < row.Components.Count; i++) {
 			componentText = componentText.Length > 0 ? componentText + "," + row.Components[i].TypeName : row.Components[i].TypeName;
 		}
@@ -104,5 +118,8 @@
 		+ ",\"splinted\":" + (splinted ? "true" : "false")
 		+ ",\"dislocated\":" + (dislocated ? "true" : "false")
 		+ ",\"dismembered\":" + (dismembered ? "true" : "false")
+		+ ",\"isHead\":" + (isHead ? "true" : "false")
+		+ ",\"isVital\":" + (isVital ? "true" : "false")
+		+ ",\"distanceToHeart\":" + distanceToHeart
 		+ ",\"components\":\"" + componentText + "\"}";
 }))()

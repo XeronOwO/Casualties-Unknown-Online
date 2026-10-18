@@ -42,6 +42,7 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(ICarryPresentationPump), ["PinCarriedPresentation"]),
 		(typeof(IOnlineUiNativeFactsQuery), ["Capture"]),
 		(typeof(IOnlineUiSurface), ["Push", "TryDequeueIntent"]),
+		(typeof(ILocalBodyReset), ["Reset"]),
 		(typeof(ISpectatorControl), ["IsWatching", "StopWatching", "TrySetFreeFly", "TryWatch", "WatchingSteamId"]),
 	];
 
@@ -85,7 +86,7 @@ public class AdapterCapabilityPortShapeTests
 	/// </summary>
 	[Fact]
 	public void Composition_CarriesExactlyThePinnedMemberCount() =>
-		Assert.Equal(26, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+		Assert.Equal(27, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()
@@ -201,14 +202,31 @@ public class AdapterCapabilityPortShapeTests
 		Assert.Empty(problems);
 	}
 
+	[Fact]
+	public void LocalBodyResetSeam_ReplacesTheRuntimeDefault()
+	{
+		Assert.True(File.Exists(CompositionPath), $"composition root not found at {CompositionPath}");
+
+		var code = string.Join("\n", File.ReadAllLines(CompositionPath)
+			.Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+
+		// The Runtime seeds UnavailableLocalBodyReset for a build with no game scene; the adapter must
+		// REPLACE it. Two descriptors leave only registration order deciding, and the port pin's own
+		// count would stay green while a reorder turned the deployed verb into "this build has no game
+		// scene" — the item-state seam's recorded failure.
+		Assert.Equal(0, CountCodeOccurrences(code, "AddSingleton<ILocalBodyReset>"));
+		Assert.Equal(1, CountCodeOccurrences(code, "Replace(ServiceDescriptor.Singleton<ILocalBodyReset>"));
+	}
+
 	/// <summary>
 	/// Zero registrations leaves a port unresolvable and two make the last descriptor
-	/// win, so the pin counts occurrences instead of asserting presence.
+	/// win, so the pin counts occurrences instead of asserting presence. A port that
+	/// replaces a Runtime-seeded default registers with <c>Replace</c>; both spellings
+	/// are counted so the pin sees the one descriptor that is really there.
 	/// </summary>
 	private static int CountRegistrations(string source, string portName) =>
-		source.Split(
-			[$"AddSingleton<{portName}>(p => p.GetRequiredService<GameAdapter>())"],
-			StringSplitOptions.None).Length - 1;
+		CountCodeOccurrences(source, $"AddSingleton<{portName}>(p => p.GetRequiredService<GameAdapter>())")
+		+ CountCodeOccurrences(source, $"Replace(ServiceDescriptor.Singleton<{portName}>(");
 
 	/// <summary>
 	/// Counts a literal in code lines only. A commented-out line must not satisfy a pin: the

@@ -64,6 +64,32 @@ public sealed class CharacterDataMapperRegressionTests
 		Assert.Equal(LimbType, result!.GetType());
 	}
 
+	/// <summary>
+	/// The limb-topology fields are MAPPER-VISIBLE, so a capture that leaves them at their CLR defaults
+	/// does not produce a "thinner" row — applying it writes false/false/0 onto a real body. This test
+	/// pins that liveness (it is the fact the capture gate's six assignments exist for).
+	/// </summary>
+	[Fact]
+	public void Configure_LimbTopologyFields_AreWrittenOntoTheBody()
+	{
+		var mapper = Activator.CreateInstance(MapperType)!;
+		InvokeConfigure();
+
+		var limb = FormatterServices.GetUninitializedObject(LimbType);
+		var map = MapperType.GetMethods()
+			.Single(m => m.Name == "Map"
+				&& m.IsGenericMethodDefinition
+				&& m.GetParameters().Length == 2
+				&& m.GetParameters()[0].ParameterType.IsGenericParameter
+				&& m.GetParameters()[1].ParameterType.IsGenericParameter);
+		var result = map.MakeGenericMethod(typeof(CharacterLimbMsg), LimbType)
+			.Invoke(mapper, [new CharacterLimbMsg { IsHead = true, IsVital = true, DistanceToHeart = 7 }, limb])!;
+
+		Assert.True((bool)LimbType.GetField("isHead")!.GetValue(result)!);
+		Assert.True((bool)LimbType.GetField("isVital")!.GetValue(result)!);
+		Assert.Equal(7, (int)LimbType.GetField("distanceToHeart")!.GetValue(result)!);
+	}
+
 	private static void InvokeConfigure()
 	{
 		var mapper = GameAssemblyHost.Adapter.GetType(

@@ -26,11 +26,13 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw,
 	IKernelProtocolControl kernelProtocol, ILayerAdvanceControl layerAdvance,
 	IWorldSummonControl worldSummon,
+	IHealResetControl healReset,
 	AnnouncedHostRules hostRules, AnnouncedCheatPermissions cheatPermissions) :
 	IWorldHandlerContext,
 	IWorldKernelHandlerContext,
 	IWorldSessionHandlerContext,
 	IWorldSummonHandlerContext,
+	IHealResetHandlerContext,
 	IItemHandlerContext,
 	ICharacterSessionHandlerContext,
 	ICraftHandlerContext,
@@ -69,6 +71,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The console <c>/summon</c> verb's domain: the host creates one world object at a position and answers.</summary>
 	public IWorldSummonControl WorldSummon { get; } = worldSummon;
+
+	/// <summary>The console <c>/heal</c> verb's domain: the host judges a member's request and instructs the target clients; the target applies the reset.</summary>
+	public IHealResetControl HealReset { get; } = healReset;
 
 	/// <summary>The tutorial-claw presentation stream (host-authoritative 20 Hz claw visual).</summary>
 	public ITutorialClawControl TutorialClaw { get; } = tutorialClaw;

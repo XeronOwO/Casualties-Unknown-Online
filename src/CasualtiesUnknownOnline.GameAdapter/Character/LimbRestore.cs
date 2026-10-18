@@ -64,19 +64,23 @@ internal static class LimbRestore
 
 	/// <summary>Whether any limb of the body is severed. Written here rather than taken from the reference, whose
 	/// equivalent is its own extension method rather than a native member.</summary>
-	internal static bool AnyLimbMissing(Body body)
+	internal static bool AnyLimbMissing(Body body) => CountMissing(body) > 0;
+
+	/// <summary>How many severed limbs the body carries — the number the heal reset's answer names.</summary>
+	internal static int CountMissing(Body body)
 	{
 		var limbs = body.limbs;
+		var count = 0;
 		for (var i = 0; i < limbs.Length; i++)
 		{
 			var limb = limbs[i];
 			if (limb != null && limb.dismembered) // Unity object — ==
 			{
-				return true;
+				count++;
 			}
 		}
 
-		return false;
+		return count;
 	}
 
 	/// <summary>

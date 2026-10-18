@@ -1,4 +1,3 @@
-using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -10,50 +9,13 @@ using static CasualtiesUnknownOnline.Tests.Session.CommandConsoleTestSession;
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// Command console family: the heal and host-rules command executions through the real services.
-/// Split from the former single class so xUnit v2 (serial inside a class)
-/// does not serialize this whole surface in one collection.
+/// Command console family: the host-rules command executions through the real services.
+/// The <c>/heal</c> cheat verb's own matrix lives in
+/// <see cref="CommandConsoleHealResetTests"/> and <see cref="CommandConsoleMemberHealResetTests"/>.
 /// </summary>
 [Trait("Category", "Integration")]
 public class CommandConsoleCommandTests
 {
-	[Fact]
-	public void Heal_WithSelector_SendsRequestToGuest()
-	{
-		var (host, guest) = CreateSession();
-		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
-		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "bandage", slot: 0)));
-		characters.SaveCharacterData(GuestId, SnapshotWithLimbs(GuestId, conscious: false));
-		SeedHostEntities(host, GuestId, guestX: 10f);
-
-		var console = host.Services.GetRequiredService<ICommandControl>();
-		Assert.True(console.TryExecute("/heal @p"));
-
-		var healed = characters.GetSavedCharacter(GuestId)!;
-		Assert.True(healed.Limbs[1].SkinHealAmount > 0f);
-		Assert.Contains(console.Lines, l => l.Text.Contains("Sent heal request to 1 player(s): 2001"));
-	}
-
-	[Fact]
-	public void Heal_UnknownSelector_AddsNoMatchLine()
-	{
-		var (host, _) = CreateSession();
-		var console = host.Services.GetRequiredService<ICommandControl>();
-
-		Assert.True(console.TryExecute("/heal @z"));
-		Assert.Contains(console.Lines, l => l.Text.Contains("No players match selector '@z'"));
-	}
-
-	[Fact]
-	public void Heal_WithoutSelector_ShowsUsage()
-	{
-		var (host, _) = CreateSession();
-		var console = host.Services.GetRequiredService<ICommandControl>();
-
-		Assert.True(console.TryExecute("/heal"));
-		Assert.Contains(console.Lines, l => l.Text.Contains("Usage: /heal <selector>"));
-	}
-
 	[Fact]
 	public void HostRules_WithJson_UpdatesEditor()
 	{

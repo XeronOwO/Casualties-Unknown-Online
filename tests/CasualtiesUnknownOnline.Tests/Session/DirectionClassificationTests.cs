@@ -22,6 +22,7 @@ public class DirectionClassificationTests
 		var all = Enum.GetValues(typeof(NetMsg)).Cast<NetMsg>().ToHashSet();
 		var classified = ((IEnumerable<object[]>)GuestToHostDirectionTests.GuestToHostMessages)
 			.Concat((IEnumerable<object[]>)HostToGuestDirectionTests.HostToGuestMessages)
+			.Concat((IEnumerable<object[]>)HostToGuestInteractionDirectionTests.HostToGuestInteractionMessages)
 			.Concat((IEnumerable<object[]>)BidirectionalDirectionTests.BidirectionalMessages)
 			.Select(row => (NetMsg)row[0])
 			.ToHashSet();

@@ -149,30 +149,36 @@ internal sealed class CharacterDataSync(
 
 	private LimbStateEventMsg CaptureLimbStateEvent(Body body)
 	{
+		var health = CaptureHealth(body);
+
+		var msg = new LimbStateEventMsg
+		{
+			OwnerSteamId = _session.LocalSteamId,
+			Health = health,
+			Limbs = [.. CaptureLimbs(body)],
+		};
+
+		return msg;
+	}
+
+	/// <summary>
+	/// Capture the LOCAL body's health message — the same capture the character snapshot, the limb
+	/// event and the heal reset use, so the presentation/component fields Mapster cannot see are
+	/// filled in exactly one place.
+	/// </summary>
+	internal CharacterHealthMsg CaptureHealth(Body body)
+	{
 		var health = _mapper.Map<CharacterHealthMsg>(body);
 		// Unified capture: face latches/mouth, component state and the
 		// leg-speed pose multiplier now ride the same dedicated event as the
 		// 1 Hz snapshot, so a limb-latch update also refreshes the full remote
 		// presentation without waiting for the next snapshot.
 		RemoteCharacterDisplayProjection.Capture(body, health);
-
-		var msg = new LimbStateEventMsg
-		{
-			OwnerSteamId = _session.LocalSteamId,
-			Health = health,
-		};
-
-		// Limb has no Index field — Mapster maps the rest, the loop assigns it
-		// (the same capture shape as the 1 Hz character snapshot).
-		for (var i = 0; i < body.limbs.Length; i++)
-		{
-			var limbMsg = _mapper.Map<CharacterLimbMsg>(body.limbs[i]);
-			limbMsg.Index = i;
-			msg.Limbs.Add(limbMsg);
-		}
-
-		return msg;
+		return health;
 	}
+
+	/// <summary>Capture every limb as a wire row. The record itself is <see cref="CharacterDataCapture.CaptureLimbs"/>'s — the one capture the 1 Hz report, the limb event and the heal reset share, so none of them can drop a field the others carry.</summary>
+	internal IReadOnlyList<CharacterLimbMsg> CaptureLimbs(Body body) => CharacterDataCapture.CaptureLimbs(_mapper, body);
 
 	private void OnCharacterDataReceived(ulong sender, CharacterDataMsg data)
 	{
@@ -252,7 +258,7 @@ internal sealed class CharacterDataSync(
 	{
 		if (localBody != null && _session.SessionActive && !_restore.HasPending && !_restore.WipePending) // Unity object — ==
 		{
-			_log.LogInformation("[CloneRender] inventory changed — immediate re-report.");
+			_log.LogInformation("[CloneRender] local body changed — immediate re-report.");
 			ReportCharacterData(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: false, nativeFailure);
 		}
 	}

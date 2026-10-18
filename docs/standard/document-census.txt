@@ -247,7 +247,7 @@ docs/backlog/review/mod-item-wearable-declaration.md | keep | index | docs/backl
 docs/backlog/review/mod-native-binding-handshake-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-art-and-controls-overhaul.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/heal-cheat-command-state-reset.md | keep | index | docs/backlog/README.md
+docs/backlog/review/heal-cheat-command-state-reset.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md

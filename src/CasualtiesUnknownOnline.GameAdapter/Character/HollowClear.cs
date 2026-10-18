@@ -25,7 +25,18 @@ internal static class HollowClear
 	private const string VignetteName = "Mindwipe";
 
 	/// <summary>True when the body carried the component and it is now gone.</summary>
-	internal static bool Apply(Body body)
+	internal static bool Apply(Body body) => Remove(body, immediate: false);
+
+	/// <summary>
+	/// The same clear for a caller that RE-REPORTS the body in this same frame (the heal reset):
+	/// <c>Object.Destroy</c> only takes effect at the end of the frame, so a snapshot captured
+	/// before then would still see the component and carry the hollow back to every peer. These
+	/// components have no <c>OnDestroy</c>, and the limb-component codec already uses the immediate
+	/// form for exactly this reason.
+	/// </summary>
+	internal static bool ApplyImmediate(Body body) => Remove(body, immediate: true);
+
+	private static bool Remove(Body body, bool immediate)
 	{
 		var mindwipe = body.GetComponent<MindwipeScript>();
 		if (mindwipe == null) // Unity object — ==
@@ -33,7 +44,15 @@ internal static class HollowClear
 			return false;
 		}
 
-		Object.Destroy(mindwipe);
+		if (immediate)
+		{
+			Object.DestroyImmediate(mindwipe);
+		}
+		else
+		{
+			Object.Destroy(mindwipe);
+		}
+
 		body.mindWipe = null;
 		RemoveVignettes();
 		return true;

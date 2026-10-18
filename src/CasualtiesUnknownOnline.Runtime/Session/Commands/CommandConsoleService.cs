@@ -41,7 +41,6 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly ISessionControl _session;
 	private readonly IHostBanService _hostBans;
 	private readonly IPlayerInteractionControl _playerInteraction;
-	private readonly IEntitySyncControl _entities;
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly List<ConsoleLine> _lines = [];
@@ -52,6 +51,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IStartingSupplyControl _startingSupplies;
 	private readonly ItemStateSettlement _itemStateSettlement;
 	private readonly IWorldSummonControl _worldSummon;
+	private readonly IHealResetControl _healReset;
 	private readonly AnnouncedHostRules _hostRules;
 	private readonly ItemStateCompletion _itemStateCompletion;
 
@@ -75,6 +75,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IItemStateLanguage itemStateLanguage,
 		ItemStateSettlement itemStateSettlement,
 		IWorldSummonControl worldSummon,
+		IHealResetControl healReset,
 		AnnouncedHostRules hostRules,
 		AnnouncedCheatPermissions cheatPermissions,
 		CheatPermissions cheatRoster,
@@ -85,7 +86,6 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_session = session;
 		_hostBans = hostBans;
 		_playerInteraction = playerInteraction;
-		_entities = entities;
 		_time = time;
 		_log = log;
 		_commands = commandRegistry;
@@ -95,6 +95,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_startingSupplies = startingSupplies;
 		_itemStateSettlement = itemStateSettlement;
 		_worldSummon = worldSummon;
+		_healReset = healReset;
 		_hostRules = hostRules;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += ResetSessionState;
@@ -119,6 +120,11 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// refused one would look like a line that did nothing.
 		_playerInteraction.GiveAnswered += OnGiveAnswered;
 		_worldSummon.Answered += OnSummonAnswered; // the same answer shape for the world verb
+												   // ...and the two answers the heal cheat verb prints where the player reads: the host's own
+												   // sentence to a member's request, and the notice of a reset the host applied to THIS client's
+												   // body (a member's reset arrives as an instruction, never as its own command's return).
+		_healReset.Answered += OnHealResetAnswered;
+		_healReset.Applied += OnHealResetApplied;
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
 		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
@@ -133,6 +139,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, itemStateLanguage, log, targets, writes));
 		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, cheatVerbs, targets, log));
 		_commands.AddBuiltIns(new WorldSummonCommands(worldSummon, cheatVerbs));
+		_commands.AddBuiltIns(new HealResetCommands(healReset, cheatVerbs, session, entities));
 		_itemStateCompletion = new ItemStateCompletion(kernelItems, itemStateLanguage, targets);
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
@@ -266,6 +273,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_itemStateSettlement.Refused -= OnItemDataWriteRefused;
 		_playerInteraction.GiveAnswered -= OnGiveAnswered;
 		_worldSummon.Answered -= OnSummonAnswered;
+		_healReset.Answered -= OnHealResetAnswered;
+		_healReset.Applied -= OnHealResetApplied;
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
@@ -335,6 +344,18 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// <summary>The host's answer to this member's <c>/summon</c> — the created object and its point, or the refusal; the kind follows the verdict.</summary>
 	private void OnSummonAnswered(WorldSummonResultMsg msg) =>
 		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+
+	/// <summary>The host's answer to this member's <c>/heal</c> — what was reset, revived or restored, or the refusal that answered it.</summary>
+	private void OnHealResetAnswered(HealResetResultMsg msg) =>
+		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+
+	/// <summary>
+	/// The host reset THIS client's body. A member's reset is never its own command's return — the
+	/// host instructs, this client applies — so this notice is the only line on the player's own
+	/// screen that says what happened to it; an incomplete reset is announced as an error.
+	/// </summary>
+	private void OnHealResetApplied(HealResetNotice notice) =>
+		AddLine(notice.Text, notice.Outcome.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	/// <summary>
 	/// The starting-supplies grant of a player this world had no character for (S4.3):
@@ -453,34 +474,6 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	[ConsoleCommand("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, "/whoami")]
 	private string WhoAmI(IReadOnlyList<string> _) =>
 		$"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}";
-
-	[ConsoleCommand("heal", "Use a carried medical item on the selected player(s).", CommandPermission.Anyone, "/heal <selector>", CommandArgumentKind.Selector)]
-	private string Heal(IReadOnlyList<string> args)
-	{
-		if (args.Count < 2)
-		{
-			return "Usage: /heal <selector>";
-		}
-
-		var targets = ResolveSelector(args[1]);
-		if (targets.Count == 0)
-		{
-			return $"No players match selector '{args[1]}'.";
-		}
-
-		foreach (var steamId in targets)
-		{
-			_playerInteraction.SendHealRequest(steamId);
-		}
-
-		var targetText = string.Join(", ", targets.Select(t => t.ToString(CultureInfo.InvariantCulture)));
-		_log.LogInformation("[Command] /heal resolved {Selector} to {Count} player(s): {Targets}.",
-			args[1], targets.Count, targetText);
-		return $"Sent heal request to {targets.Count} player(s): {targetText}.";
-	}
-
-	private IReadOnlyList<ulong> ResolveSelector(string selector) =>
-		CommandPlayerTargets.Resolve(_session, _entities, selector);
 
 	// The host-administration commands (/hostrules, /kick, /ban, /unban) live in
 	// HostAdminCommands, and the save commands (/save) in WorldSaveCommands: each

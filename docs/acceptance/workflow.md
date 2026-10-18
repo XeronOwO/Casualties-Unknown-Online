@@ -153,7 +153,7 @@ collected while its scenario is up.
   has already collapsed does nothing. There are three INDEPENDENT heal surfaces: the game's own `heal`
   console command (item-free, on the LOCAL body; CUO extends it with severed limbs and hollow), CUO's own
   console `/heal` cheat command (the immediate full reset of a selected player, cheat-family permission;
-  `todo/heal-cheat-command-state-reset.md`, not yet landed), and the remote-medical UI's item-based
+  `review/heal-cheat-command-state-reset.md`, S1-S3 landed, the two-client rows owed), and the remote-medical UI's item-based
   cross-player treatment. The run restores with whichever is deployed, gives the item for the medical
   path, and reads the vitals back (`body-read`, `wound-read`). A host left in a near-death state is a setup
   defect, not a row's finding: rows judged on its frame are re-read once it is restored.

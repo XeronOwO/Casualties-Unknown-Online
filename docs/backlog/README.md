@@ -53,7 +53,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — rejected: the dropdown list and the top-edge drag clamp.
-- [/heal resets a player's state as a cheat command](todo/heal-cheat-command-state-reset.md) — **Medium-High** — full reset, cheat family, dead targets revived.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
@@ -84,6 +83,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction, landed; four of its six rows read on the machine.
 - [Heal restores severed limbs and clears hollow](review/heal-command-limb-and-hollow-restore.md) — **Medium** — KrokMP parity for the heal command.
+- [/heal resets a player's state as a cheat command](review/heal-cheat-command-state-reset.md) — **Medium-High** — full reset, cheat family, dead revived.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.

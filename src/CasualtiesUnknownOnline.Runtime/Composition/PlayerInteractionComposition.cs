@@ -76,6 +76,12 @@ internal static class PlayerInteractionComposition
 		// session, character-data and item control surfaces; no pump.
 		services.AddSingleton<PlayerInteractionService>();
 		services.AddSingleton<IPlayerInteractionControl>(p => p.GetRequiredService<PlayerInteractionService>());
+		// The console /heal cheat verb's mechanics: the permission ruling, the target roster and the
+		// host instruction. The body reset itself is the target client's own, behind the
+		// ILocalBodyReset seam the Game Adapter replaces (the Runtime default refuses by name in a
+		// build with no scene).
+		services.AddSingleton<PlayerHealResetService>();
+		services.AddSingleton<IHealResetControl>(p => p.GetRequiredService<PlayerHealResetService>());
 		// Item-traffic observer: logs the per-window item-message volume (no
 		// batching/rate-limit — observe first, optimize only if the numbers hurt).
 		services.AddSingleton<ItemTrafficPump>();

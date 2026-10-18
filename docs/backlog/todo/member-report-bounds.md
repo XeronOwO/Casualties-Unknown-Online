@@ -305,7 +305,7 @@ described above:
   latch another member's limb. NOW: on the host an inbound frame must name the sender.
 - **`WireCommandKind.RecordEnemyBite` / `RecordEnemyLunge` / `RecordEnemyEffect`** 鈥?the entity domain
   accepted all three outright (`EnemyDomainModule`), so the victim, the limb and the effect magnitudes
-  were the reporter's own. NOW: the victim must be the sender, which is what the design intent requires 鈥?  the AFFECTED side's client is the judge (`review/health-simulation-and-host-authority.md`).
+  were the reporter's own. NOW: the victim must be the sender, which is what the design intent requires 鈥?  the AFFECTED side's client is the judge (`done/health-simulation-and-host-authority.md`).
 - **`NetMsg.SpeechMsg`** 鈥?the bubble was replayed under the speaker the payload named, with no sender
   comparison and no length cap. NOW: on the host an inbound frame must name the sender. The length cap is
   still open: it belongs with the abuse bound the chat handler's own rate cap is waiting for, and no

@@ -172,7 +172,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		if (ForeignVictimDetail(sender, command) is { } victimDetail)
 		{
 			// The AFFECTED member's client is the judge of its own body
-			// (review/health-simulation-and-host-authority.md), and every production
+			// (done/health-simulation-and-host-authority.md), and every production
 			// sender names itself — EnemyCombatReplay and EnemyProximitySync both set
 			// msg.VictimSteamId = _session.LocalSteamId — so a report naming somebody
 			// else is not a report this host can place.

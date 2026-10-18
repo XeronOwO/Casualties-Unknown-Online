@@ -56,7 +56,7 @@ plug-in or in its own mod, apply the four-layer rule in
   exception (2026-10-18) is the CONTINUOUS VITALS model: the host runs the game's own vital stages
   on its clone of a remote body to compute the three bleeding values the host owns, while every
   event, terminal fact and random outcome stays with that player's client and reaches the host as
-  its report/event — `docs/backlog/review/health-simulation-and-host-authority.md`.
+  its report/event — `docs/backlog/done/health-simulation-and-host-authority.md`.
 - `[CRITICAL]` **Judge where the effect lands (user ruling 2026-09-18)**: a judgment about
   what happens to a player belongs to THAT player's client, on its own view and timeline —
   the victim judges its own hit, the actor and the target judge their own interaction gates

@@ -112,7 +112,7 @@ that player's client. The clone is the same render clone, seeded from the stored
 the host's view and its authority are one body. Events, terminal facts and random outcomes stay
 with the affected client — its report/event is the only writer of those — and the pass restores the
 client-owned fields after every step. A guest never runs the pass; it renders what it is told and
-judges its own events. Details: `docs/backlog/review/health-simulation-and-host-authority.md`.
+judges its own events. Details: `docs/backlog/done/health-simulation-and-host-authority.md`.
 
 The clone cannot produce all of the model's inputs itself: it skips `HandlePhysics` (so `inWater`,
 `Body.cs:3088`, is never computed), its `moveDir` is zeroed for presentation, and `exercising` /

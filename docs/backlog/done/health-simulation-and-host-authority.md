@@ -1,13 +1,12 @@
 # Health on every client, reconciled to the host's value
 
-- Status: Review — **direction ruled by the user on 2026-10-18: the HOST computes the continuous
-  player state by reusing the game's own methods; the affected client judges every event and
-  applies the host's rows to its own body.** This supersedes the (a)-first recommendation the
-  earlier draft carried. Stage 1 (the bleeding family) landed and was superseded by Stage 2 unit 1
-  (the host clone simulation plus item 4's event/quarantine/reconciliation boundary), unit 2
-  (the missing model inputs) and unit 3 (the frame-cost probe, landed); no code remains, so the
-  ticket waits for the two-client acceptance batch, which also fills in the unit-3 section's
-  measured numbers.
+- Status: Done — accepted by batch `20261018-x` on `0.1.0+85ff4f76`; all eight rows pass (record:
+  `docs/evidence/acceptance/health-simulation-and-host-authority-20261018-x.md`). **Direction ruled
+  by the user on 2026-10-18: the HOST computes the continuous player state by reusing the game's
+  own methods; the affected client judges every event and applies the host's rows to its own
+  body.** Stage 2 units 1-3 landed and accepted; the frame-cost measured numbers are in the
+  unit-3 section. The batch found one `/heal` authority gap outside these eight rows, filed as
+  `docs/backlog/todo/heal-reset-does-not-restore-host-owned-vitals.md`.
 - Priority: Medium-High
 - Category: Player state / cross-player sync / authority
 - Source: the user's 2026-10-14 request (health simulated on every client, reconciled to the host)
@@ -677,12 +676,14 @@ and the window boundary, every field's arithmetic (including a 5× window and th
 case), the basis and quiet-gap resets, the body/pass counts and the Debug gate are row tests in
 `HostVitalsCostProbeTests`.
 
-**Measured numbers:** owed — the two-client batch reads this line on the host while it runs the
-acceptance rows below. It observes ONE remote clone (host + one guest), so the reading is N=1; the
-projection to N clones is linear because each clone runs its own pass. Read a steady-state window,
-not the first one after Debug is enabled or after a body joins (that one can include the one-time
-seed), and note its `timeScale`: the line stays in the deployed build so a later session can
-re-measure it.
+**Measured (batch 20261018-x, host, one remote clone, `timeScale` 1):** a steady ten-second
+window reports `bodies=1 steps=501 passes=501 stepAvg≈122-126us passAvg≈110-114us
+frameCost=0.122-0.126ms frameBudget=0.61-0.63% fixedStep=20.00ms timeScale=1`; the first window
+after the seed reads 0.809ms/4.05% and is not the steady-state number. The per-clone cost is about
+0.12ms per fixed-step invocation, so N clones project linearly to about N × 0.12ms at that speed
+(2.4% of the 20ms step for four); the run measured N=1 (host + one guest). Artifact:
+`host-cost-lines.txt` in batch `20261018-x`; the record is
+`docs/evidence/acceptance/health-simulation-and-host-authority-20261018-x.md`.
 
 ### Independent adversarial review (2026-10-18, frozen tree) — unit 3 findings and dispositions
 
@@ -756,6 +757,9 @@ Two clients (plus a third where a row needs it), one of them with an artificial 
 | 6 | A limb flag (broken, splinted, infected) changes | It is broadcast, not predicted: no peer shows it before the authoritative event |
 | 7 | A member edits its own blood volume locally (console or memory) | The next row overwrites it, and the divergence line names the edit |
 
+**Verdicts:** all eight rows pass on `0.1.0+85ff4f76` (batch `20261018-x`); each row's evidence
+pointer is in `docs/evidence/acceptance/health-simulation-and-host-authority-20261018-x.md`.
+
 ## Limits to write down rather than hide
 
 - **Inputs remain the client's; only the SENDER is bound.** A client that lies about an input
@@ -804,6 +808,21 @@ Two clients (plus a third where a row needs it), one of them with an artificial 
   remote-clone guard). They are disjoint by condition and each returns false only for its own
   case, so the effect is order-independent, but one owner per target would be cleaner; recorded
   for the next patch-surface pass rather than merged under this unit's freeze.
+- **A `/heal` reset cannot raise the host-owned values** (batch `20261018-x`, outside the eight
+  rows): the target applies the reset and re-reports, but `SaveReportedCharacterData` preserves the
+  host's three values, so a member at a negative host-model blood stayed at about -99.7 on both
+  sides after `/heal @a` even though the reset table sets `BloodVolume = 100`. A host-side
+  authority write (`SaveCharacterData` plus a revision bump) restored the test body, which is the
+  fix's shape; filed as `docs/backlog/todo/heal-reset-does-not-restore-host-owned-vitals.md`.
+- **The frame cost is measured at N=1** (host + one guest). N-clone scaling is linear by
+  construction because each clone runs its own pass; it was not measured at N>1.
+- **The explosion-injury row used the game's own production path, not a spawned trap**: the guest's
+  own `ExplosionBodyEffect.ApplyToLocalBodies` plus the production owner-state event
+  (`CharacterDataSync.ReportOwnerStateEvent`), not a live trap/explosion entity. The event, its
+  handler and the model are the production ones; the trigger entity is the setup's substitute.
+- **The row-3 visual jump was not captured before the panel closed**: the forced host value was read
+  as 20 on the host, 19.6 on the guest and 18.8 a moment later while the guest collapsed; the
+  machine values carry the row, the frame does not.
 - **This is not the generic prediction runtime.** One model, the body's own, no movement, no
   animation.
 

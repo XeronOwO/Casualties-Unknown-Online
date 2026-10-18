@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [A /heal reset cannot restore host vitals](todo/heal-reset-does-not-restore-host-owned-vitals.md) — **High** — the report filter keeps the old blood.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
@@ -76,7 +77,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Health on every client, reconciled to the host](review/health-simulation-and-host-authority.md) — **Medium-High** — everyone simulates; the host wins.
 - [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — fixed: the dropdown list and the top-edge title bar.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
@@ -181,6 +181,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Health on every client, reconciled to the host](done/health-simulation-and-host-authority.md) — **Medium-High** — accepted; the host model and its cost.
 - [An item's identity across a transform](done/item-identity-across-transforms.md) — **High** — accepted; applied and taken-off items keep their id.
 - [Heal restores severed limbs and clears hollow](done/heal-command-limb-and-hollow-restore.md) — **Medium** — the owed save/reconnect row passes.
 - [/heal resets a player's state as a cheat command](done/heal-cheat-command-state-reset.md) — **Medium-High** — accepted; full reset, dead revived.

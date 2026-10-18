@@ -44,7 +44,7 @@
   `future/strict-validation-anti-cheat.md` (the inventory this ticket works from — its
   authority-declaration half is closed by S1a below; the console command's own path, the drop table and the
   state preconditions are what remains of it),
-  `review/health-simulation-and-host-authority.md` (the continuous-value half of the same conversation),
+  `done/health-simulation-and-host-authority.md` (the continuous-value half of the same conversation),
   `done/item-data-write-commands.md` (its write verb is host-only today for exactly this reason: a command
   write is byte-identical to a native use on the wire), `docs/decisions/active.md` 210 (the admission seam),
   `docs/evidence/sync-coverage-matrix.md` (a new wire kind owes it a row), `docs/architecture/current.md` §7.1
@@ -694,6 +694,6 @@ wait for S2 and row 5 was not exercised.
 ## Non-goals
 
 - No player-state simulation, no movement validation: the continuous-value half is
-  `review/health-simulation-and-host-authority.md`, and behaviour stays as it is.
+  `done/health-simulation-and-host-authority.md`, and behaviour stays as it is.
 - No bans, kicks or scoreboards: a check answers the report, and what to do about a repeat offender is a
   later decision (the user's 2026-10-14 call: "refuse and correct, log it").

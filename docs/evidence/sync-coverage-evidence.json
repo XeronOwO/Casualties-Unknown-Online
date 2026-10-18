@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1087,
+  "count": 1090,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -6519,6 +6519,24 @@
       "row": "I12",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldSummoner.cs",
       "quote": "var isItemDefinition = Item.GlobalItems?.ContainsKey(prefabId) == true;"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "WorldSummonResult = 150"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/WorldSummonResultHandler.cs",
+      "quote": "[PacketHandler(NetMsg.WorldSummonResult, NetMessageDirection.HostToGuest)]"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "I12",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldSummonService.cs",
+      "quote": "_sender.Send(requester, NetMsg.WorldSummonResult, new WorldSummonResultMsg"
     },
     {
       "cluster": "inline",

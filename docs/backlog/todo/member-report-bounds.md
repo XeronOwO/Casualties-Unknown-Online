@@ -139,7 +139,7 @@ Also noted clean by that review: the sender really is the reporter on the host a
 must be renamed to say world units, because a constant named "cells" compared against world coordinates is exactly
 how the withdrawn block bound went wrong.
 
-## DECISION 265 (2026-10-18, user's ruling): data validation only 鈥?the reach family is withdrawn for good
+## DECISION 265 (2026-10-17, user's ruling): data validation only 鈥?the reach family is withdrawn for good
 
 **Everything above that talks about a distance, a reach, "could this body have been there", the frozen constant, the
 admission seam or the four-question design is CLOSED, not pending.** The user's ruling: CUO validates DATA, never

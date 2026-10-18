@@ -458,7 +458,7 @@ CUO's `/summon` is the console counterpart of the game's OWN console `spawn` com
   Input.mousePosition)` (the default when the argument is omitted), `player` = `PlayerCamera.main.body.transform.
   position`, `random` = a uniform point in the layer rectangle (`±halfWidth`, `±halfHeight`), or a literal
   `<x>,<y>` pair.
-- The creation call is `Utils.Create` — `Object.Instantiate(Resources.Load(id), pos, rot)`. CUO's
+- The creation call is `Utils.Create` — `Object.Instantiate(Resources.Load(id), pos, Quaternion.Euler(0f, 0f, rot))`. CUO's
   `UtilsCreateCustomPrefabPatch` extends that same call to mod-registered templates, which is why the creation
   seam attempts the call instead of pre-checking `Resources.Load` (that pre-check is the round-3 finding that
   starved every mod template).
@@ -516,6 +516,11 @@ its reason recorded at the point of design:
 
 The position and state arguments keep Minecraft's ORDER — type, position, SNBT.
 
+Against the GAME's own `spawn` command, one difference is not one of the three above: the keyword match is
+case-insensitive (`PLAYER`, `ITEM`, `Cursor`), where `ConsoleScript.ParsePosition` compares its tokens with `==`.
+The parser's own table decides, and the same word in either case is the same word; recorded because this verb is
+the native command's counterpart rather than an independent grammar.
+
 ### Design, as landed
 
 - **The seam.** `IWorldSummon` (Runtime → Game Adapter): `TryResolveAnchor` answers the pointer / body / random
@@ -537,7 +542,9 @@ The position and state arguments keep Minecraft's ORDER — type, position, SNBT
   scene (the pointer is its pointer, `player` is its body) and the request carries the resolved point; the host
   creates there. The claim is a creation cause, the same class `ItemSpawn` already is, and the census row says
   so. The request is stamped with the world/layer generation, so a request that outlived a layer boundary is
-  refused by name instead of materializing at layer-relative coordinates in the next layer.
+  refused by name instead of materializing at layer-relative coordinates in the next layer; a request that
+  carries no stamp cannot be compared and is not refused on that ground (the ordinary in-world client always
+  holds a run baseline and stamps).
 - **No new table, no new broadcast, no protocol bump.** The creation rides `EntitySpawned` / `ItemSpawn`; the
   two added `NetMsg` members are 149/150 and no existing member moves (decision 241).
 
@@ -551,11 +558,11 @@ complete — `/data`'s write verbs, `/give`, `/summon` — under one two-sided c
 
 | # | Mechanism | Evidence |
 |---|---|---|
-| 1 | The native call site | the game console's own `spawn` command (`ConsoleScript.RegisterAllCommands`) and its `ParsePosition`: `cursor` = `Camera.main.ScreenToWorldPoint(Input.mousePosition)`, `player` = `PlayerCamera.main.body.transform.position`, `random` = a uniform point in the layer rectangle, or `<x>,<y>`; the creation call is `Utils.Create` (`Object.Instantiate(Resources.Load(id), pos, rot)`), extended to mod templates by `UtilsCreateCustomPrefabPatch` |
+| 1 | The native call site | the game console's own `spawn` command (`ConsoleScript.RegisterAllCommands`) and its `ParsePosition`: `cursor` = `Camera.main.ScreenToWorldPoint(Input.mousePosition)`, `player` = `PlayerCamera.main.body.transform.position`, `random` = a uniform point in the layer rectangle, or `<x>,<y>`; the creation call is `Utils.Create` (`Object.Instantiate(Resources.Load(id), pos, Quaternion.Euler(0f, 0f, rot))`), extended to mod templates by `UtilsCreateCustomPrefabPatch` |
 | 2 | The position words | `WorldSummoner.TryResolveAnchor` reads the same three places; `WorldSummonParser` owns the keywords and the literal pair, and a refusal quotes the vocabulary |
 | 3 | The type word | `WorldSummoner.TrySummon`: `item` requires an id in `Item.GlobalItems` (the `IItemGrantSource` fact: prefab capture → state bind → instance id); the entity form refuses an item definition BY NAME with the spelling that works, and creates through `RuntimeEntityFactory.TryCreate`, requiring a `BuildingEntity` with a non-empty id (an id no peer could recreate is refused and destroyed) |
 | 4 | The item entity is the give drop's fact | the same `IItemGrantSource` + `WorldItemCreation` the give ladder's drop rung uses — create at the point, stamp the host's id, restore the state, report through `IItemControl.SendItemSpawned` — so the two verbs cannot produce different item entities. The summoner's calls are pinned by `WorldSummonContractGateTests.WorldSummoner_EnforcesTheTypeWordAndCreatesThroughTheSharedPorts`, the give side by `SourceShapeGateTests.GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport`; the two answers' shared canonical document by `ASummonedItemEntity_AndAGivenDrop_PrintTheSameCanonicalStateDocument` |
-| 5 | The refusals | `WorldSummonOutcome.Refusal` names every ground the SEAM owns: an unknown prefab, `item` with a non-item id, an item id without the word, an entity prefab with a state, a prefab with no entity id, a scene with no world/body/camera, an item state the definition does not carry, a request from another layer, the host's switch and roster. The grounds ABOVE the seam are named by their own layers and tested there: no session and an unanswerable position (`WorldSummonService`), the state bound and the grammar (`ItemStateText`/`WorldSummonParser`), the request's state length and non-finite point (`WorldSummonService.HandleSummonRequest`/`Apply`), the host not in a world (answered by `HandleSummonRequest`) |
+| 5 | The refusals | Three surfaces own them, each naming its own ground. The SEAM (`WorldSummonOutcome.Refusal`) names: no prefab id, not in a world, `item` with a non-item id, an item id without the word, an entity prefab with a state, an item definition this build cannot create, an item that cannot be materialized, a prefab no entity table knows, and a prefab with no entity id; the item state the definition does not carry is the creation port's refusal, passed through unchanged. The ANCHOR (`TryResolveAnchor`) answers its own `bool`/`string`: no world, no camera, no body, an unknown position word. The SERVICE (`HandleSummonRequest`) names the layer stamp, the host's switch, the roster, the state length, and the host not being in a world; the entry path (`Summon`) names no session and an unanswerable position, while `ItemStateText`/`WorldSummonParser` own the state bound and the grammar |
 | 6 | The permission | the family's landed two-sided check, no new flag: `CheatVerbGate` on the acting client before any scene work, `IMemberCommandRules` on the host for every request (switch then roster, each its own sentence) |
 | 7 | The wire | `NetMsg.WorldSummonRequest` 149 (guest → host) and `NetMsg.WorldSummonResult` 150 (host → requester), each direction-locked by its handler; the request carries the prefab, the resolved point, the canonical SNBT state and the world/layer stamp |
 | 8 | The layer stamp | `KernelWorldGenerationSource` + `WorldReportGenerationGate.Relate`, the same pair the runtime-entity channel uses; a stale request is refused by name and answered |
@@ -584,10 +591,10 @@ complete — `/data`'s write verbs, `/give`, `/summon` — under one two-sided c
 | 14 | The later joiner receives the item entity through the item snapshot and the kernel row | `.AnItemEntitySummon_ReachesALaterJoinerThroughTheItemSnapshotAndTheKernelRow` |
 | 15 | The animal's key reaches the later joiner's snapshot, with no materializable entry | `.AnAnimalSummon_IsAcknowledgedByKeyInTheSnapshotALaterJoinerReceives` |
 | 16 | The two messages round-trip their fields, and an unset type word reads as the entity family | `WorldSummonProtocolTests.SummonRequest_RoundTripsTheTypePrefabPointStateAndGeneration`, `.SummonRequest_WithoutATypeWord_ReadsAsAnEntity`, `.SummonResult_RoundTripsTheAppliedIdentityAndAnswer` |
-| 17 | The pair is direction-classified and the member-authored one is in the census | `GuestToHostDirectionTests`/`HostToGuestDirectionTests` rows, `docs/architecture/member-report-validation.md`, sync-coverage row I12 with 8 anchors |
+| 17 | The pair is direction-classified and the member-authored one is in the census | `GuestToHostDirectionTests`/`HostToGuestDirectionTests` rows, `docs/architecture/member-report-validation.md`, sync-coverage row I12 with 11 anchors (both directions) |
 | 18 | The grammar is Minecraft's template with the family's three recorded deviations | `WorldSummonParserTests` (25 cases): the type word, the position vocabulary (non-finite literals refused), the attached-state refusal and the item-form shape |
 | 19 | The seam cannot reach the aggregate and the two verbs share one item materialization | `AdapterCapabilityPortShapeTests.WorldSummonSeam_IsStandalone`; `WorldSummonContractGateTests.WorldSummoner_EnforcesTheTypeWordAndCreatesThroughTheSharedPorts` pins `WorldSummoner`'s `_grant.TryCreate` + `_worldItems.TryCreateAt`, and `WorldItemCreation` is the one world-item creation the give ladder and the summon verb use |
-| 20 | Not covered here | the real instantiation, the real prefab tables, the real pointer and body — the Game Adapter's half, which a test host cannot host. `WorldSummonContractGateTests` pins the production sentences and the port calls by source shape; the acceptance batch's rows below are the runtime proof of the materialization |
+| 20 | Not covered here | the real instantiation, the real prefab tables, the real pointer and body — the Game Adapter's half, which a test host cannot host. `WorldSummonContractGateTests` pins the production's full refusal sentences (tails included), the branch conditions that choose a family, the state hint, the three position words and their refusals, and the two creation calls by source shape (a text pin, not an execution); the acceptance batch's rows below are the runtime proof of the materialization |
 
 **Whole-family audit.** The console's cheat family now reads: `/data`'s write verbs (gated at the admission
 seam), `/give` (its own request handler), `/summon` (this verb, its own request handler), `/data get` (`Anyone`),
@@ -631,6 +638,11 @@ A host + one member session on the deployed artifact:
   verb, exactly as it covers `/give`'s state values. A client that lies about the point can put a spawned object
   anywhere the host's own creation can place it; nothing clamps the point to the layer rectangle (only a
   non-finite point is refused as data), and it cannot make the host create something the host's own content lacks.
+- **An unstamped request is not layer-checked.** The stamp is the kernel run baseline, and
+  `WorldReportGeneration.Relate` answers `Unknown` when either side is missing; the family-wide convention is
+  that `Unknown` is not stale and leaves the caller's pre-stamp behaviour in place, so such a request is accepted
+  as the member's own creation cause. The ordinary in-world client always holds a baseline, so this is the
+  entry-window edge rather than a second path.
 - **A spawn needs a session.** A solo world refuses the verb, the family's cheat standing (`/give`'s rule).
 - **No console completion.** The verb declares one free-text argument, like `/give`; the native console's id
   autofill is not ported.
@@ -793,7 +805,9 @@ the artifact that commit produces (the rehearsal observations above are not acce
   one-marker-removed case per check and a missing-method case (16 cases). The behavioural suites now say what
   they prove — the console/service half against the seam's contract — and `FakeWorldSummon` gained the two
   fragments it had drifted on (the state hint and "Nothing was created."). The fake still speaks the contract,
-  not the production file; the gate is what keeps the contract's wording honest.
+  not the production file; the gate is what keeps the contract's wording honest. (The second review found this pin
+  narrower than its claim — the markers were fragments; the follow-up below pins the full sentences, the branch
+  conditions and the position words.)
 - **M2.** `ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument` is renamed
   `ASummonedItemEntity_AndAGivenDrop_PrintTheSameCanonicalStateDocument` and its doc says exactly what it
   proves: the two verbs' answers carry the same canonical document for the same text (the console/service half).
@@ -845,8 +859,8 @@ the "did not return" / "stalled" wording this record previously carried was fals
 independent findings exist for this commit. What the commit carries instead is the gate's own matcher contract
 (a complete sample plus one failure shape per check), the focused and full suites, and a working-session
 self-review that corrected two defects in this record before the commit (the new-case count sentence and a `|`
-inside a code span that would have split a table row). The missing pass is a process limit, not a pass: it is
-re-run against `5cd3cb9f` before the ticket is treated as reviewed.
+inside a code span that would have split a table row). The missing pass is a process limit, not a pass: it was
+re-run against `5cd3cb9f` (recorded below, *Second independent adversarial review*).
 
 ## Batch `20261018-s2` (2026-10-18): nine rows pass, row 10 unproven
 
@@ -861,4 +875,117 @@ reached the host; the check itself stays pinned by
 `ARequestFromAnotherLayer_IsRefusedByTheHostAndCreatesNothing`. The ticket stays in `review/` on that row — the
 remaining work is a live window (send the request in the same step as the host's generation move), not a code
 change this ticket knows of.
+
+## Second independent adversarial review (2026-10-18)
+
+The pass `5cd3cb9f` owed, run in a fresh context (a new session, not a fork of the working conversation) against
+the frozen tree: range `4e8ea42f..5cd3cb9f`, with `5088b2e1` adding one documentation paragraph and nothing under
+`src/` or `tests/`. Read-only; the reviewer modified no file. **Verdict: no blocker; 1 major, 4 minor, 5 nits.**
+It reproduced `dotnet build` exit 0 with 0 warnings, the normative gates 711/711, the behavioural suite 5806/5806,
+`WorldSummonContractGateTests` 16, and the case decomposition (parser 25, host console 18, member console 15, late
+joiner 3, protocol 3 = the landing 59 + the fix 8).
+
+**The premise (A0) holds, re-derived rather than accepted.** The native counterpart is `ConsoleScript`'s own
+`spawn` command (`reversing/Assembly-CSharp/Assembly-CSharp/ConsoleScript.cs:626-675`; registration at `:517`): one
+id plus optional position/condition/amount, the pointer default at `:633`
+(`Camera.main.ScreenToWorldPoint(Input.mousePosition)`), `ParsePosition`'s four words at `:1657-1676`, the creation
+`Utils.Create` at `:648`, and `Utils.cs:10-13`'s
+`Object.Instantiate(Resources.Load(id), pos, Quaternion.Euler(0f, 0f, rot))`. The live wiki
+(`https://minecraft.wiki/w/Commands/summon`) gives `summon <entity> [<pos>] [<nbt>]`, and the ticket's three
+recorded deviations check out (the item id outside the NBT, the 2-D pointer-defaulted position, the refused entity
+`<nbt>`). Two further differences were observed and not raised as findings: the parser matches keywords
+case-insensitively where `ParsePosition` compares with `==`, and the ticket's `Utils.Create` quote abbreviated the
+rotation. Both are recorded in the grammar section above.
+
+**The request's facts (A1/A1b) were re-anchored.** Every check compares the claim with a fact the host holds: the
+sender against the roster, the switch against the host's own option, the stamp against its own run baseline, the
+in-world flag against its own session, the type word against its own item table and content, the state against
+its own capture, the length and the point against the message itself. Every refusal is answered through
+`RefuseRequest` → `SendAnswer`, and the member's own gate refusals print locally — no double answer. The state
+length and the non-finite point are defence against a hand-crafted frame (the console parser refuses both first),
+which is the right shape. The position's LOCATION stays the member's creation cause, declared unbounded — the
+ticket's limit, not a missing check.
+
+**M1 (major) — the gate claimed more than it pinned.** The class said the type-word classification, "every refusal
+sentence" and the two creation calls "are pinned here by source shape", and "a refusal that loses its sentence …
+fails here"; but its `Require` calls were fragments (`"'/summon item' names an item definition"`,
+`"StateHint(state)"`, `"takes no state argument"`, `"carries no entity id"`), its sample stopped before the
+production tails (`... Nothing was created.`), and nothing read `if (kind == WorldSummonKind.Item)`,
+`if (!isItemDefinition)`, `if (isItemDefinition)`, `if (state is not null)`, the hint's returned value, or
+`TryResolveAnchor` at all. The reviewer demonstrated the escape on a copy: inverting `if (state is not null)`,
+returning `""` from `StateHint` and deleting every `. Nothing was created.` left all 13 markers and all 3
+signatures present, which the gate would have passed. The gate's core (a production pin exists; the table check,
+both dispatches, the port calls, the destroy and the field are pinned; the matcher is sensitive to a missing
+marker) is real — the sentence and behaviour claim was not.
+
+**m1 — `WorldSummonService` 245 was stale; it is 262.** The checklist and the disposition table said 245; the file
+at `5cd3cb9f` is 262 (245 before the fix's own +18/−1). The under-600 claim still holds.
+
+**m2 — the `/spawn` sweep missed two sentences in a file the disposition says it cleaned.** `WorldItemCreation`
+still said "behind the spawn seam" and "the spawn verb at the point the operator named", while disposition row 3
+claimed the stale words were removed from that file and the commit's diff had changed two other lines there.
+
+**m3 — mechanism row 5 still named the wrong owner for three grounds.** It said `WorldSummonOutcome.Refusal` "names
+every ground the SEAM owns: … a request from another layer, the host's switch and roster", but the layer stamp,
+the switch and the roster are `WorldSummonService.HandleSummonRequest`'s, and the camera/body refusals are
+`TryResolveAnchor`'s own `bool`/`string` — not `WorldSummonOutcome` at all.
+
+**m4 — the A1 census row was not updated for the two data checks the fix added.** The row named the switch/roster,
+the generation, the type word and the state, but not the 4096-character state bound
+(`msg.State.Length > ItemStateText.MaxLength`) or the non-finite point.
+
+**Nits.** n1: the stale "spawn verb" survived in `SourceShapeGateTests` ("shared with the console spawn verb",
+"when the spawn verb needed the same creation") and the checklist's whole-family row. n2: the new host-switch
+test's comment said "the member still holds the open value, sends", but the announcement is swallowed before the
+guest joins, so the member holds no value and `CheatVerbGate.TryRefuse` skips the check (`Forbids` false). n3: the
+layer-stamp bound fires only on `Stale`; `WorldReportGeneration.Relate` answers `Unknown` when either side is
+missing, so an unstamped request is accepted, and the design bullet's unqualified "a request that outlived a layer
+boundary is refused by name" was broader than the code (mechanism row 8's "a stale request" was correct). n4: the
+I12 anchors covered only the request direction — eight entries, none for `WorldSummonResult = 150`, its handler or
+`SendAnswer` — while the matrix row says the row carries both. n5: the checklist's "59 new cases" is the landing
+count; the fix commit's 8 behavioural cases were not counted in that row's total. Pre-existing, surfaced here:
+`member-report-bounds.md`'s heading dated decision 265 to 2026-10-18 while `active.md` and the history (commit
+`9da0e642`, 2026-10-17) say 2026-10-17.
+
+**What the review could not check.** The live game: the real pointer/body reads, `Utils.Create`, the prefab tables,
+the runtime materialization, the live reachability of the not-in-world and switch refusals, and the runtime
+sentence text. It read the s2 acceptance record as context but ran no acceptance row.
+
+## The second review's findings, fixed (2026-10-18)
+
+**M1.** `WorldSummonContractGateTests` now pins what its doc says: `TrySummon`'s item-table check, the three branch
+conditions (`kind == WorldSummonKind.Item`, `!isItemDefinition`, `isItemDefinition`, `state is not null`), the FULL
+item-word, bare-item and entity-state sentences (the `... Nothing was created.` tails included), the state-hint
+call AND the hint's returned value; `SummonItem`'s two guarded port calls, both fallback sentences and the
+real-state answer; `SummonEntity`'s factory call, its `created == null` and `string.IsNullOrEmpty(created.id)`
+guards, the destroy and the no-id sentence; and `TryResolveAnchor`'s world check, its three words with the reads
+behind them (`ScreenToWorldPoint`, `PlayerCamera.main.body`, the layer-rectangle formulas), its two scene refusals
+and its unknown-word refusal — plus `IsInWorld`'s own check and sentence. Its class doc now states that this is a
+TEXT pin, not an execution. The matcher is still pinned by a complete sample plus one marker-removed case per
+check (39 rows) and a missing-method case, so the class is **42 cases** and the gates move **711 → 737**. The
+over-claims the review named are corrected in the class doc, the checklist's self-check row and this ticket's
+self-check row 20.
+
+**m1.** `WorldSummonService` is 262, in the checklist and in the disposition table above. **m2.** `WorldItemCreation`
+now says "the summon seam" and "the summon verb". **m3.** Mechanism row 5 assigns each refusal to its owner — the
+seam, `TryResolveAnchor`'s `bool`/`string`, `HandleSummonRequest`'s layer/switch/roster/length/in-world grounds,
+and the entry path's no-session and unanswerable-position grounds. **m4.** Census row I12's bound cell now names
+the state-length and finite-point checks and the `Unknown`-stamp exception, and its text says why an unstamped
+request cannot be compared.
+
+**Nits.** n1: both `SourceShapeGateTests` sentences and the checklist's whole-family row now say summon. n2: the
+host-switch test's comment now says the announcement never arrived (the member holds no value and its gate skips
+the check) instead of "still holds the open value". n3: the design bullet now names the no-stamp case and a Limits
+bullet records the convention (`Unknown` is not stale, so an unstamped request is accepted as the member's creation
+cause; the ordinary in-world client always holds a baseline and stamps). n4: three answer-direction anchors were
+added (`WorldSummonResult = 150`, its handler's direction attribute, `SendAnswer`'s send), so I12 declares 11
+anchors and the evidence file carries 1090 entries. n5: the checklist's self-check row now separates the three
+runs' cases (landing 59, review-fix 8, follow-up 42 gate cases). The date nit: `member-report-bounds.md`'s heading
+now dates decision 265 to 2026-10-17, the date the history and `active.md` record.
+
+**Verification of the follow-up commit.** `dotnet build` exit 0 (0 warnings), `dotnet format` exit 0, the
+behavioural suite 5806/5806 and the normative gates 737/737 on the frozen tree
+(`.acceptance/test-full-followup.log`, `.acceptance/gates-followup.log`). No production behaviour changed: the only
+`src/` edit is `WorldItemCreation`'s two XML-doc sentences. The artifact is rebuilt and deployed from this commit
+anyway (the version stamp follows the commit), and the acceptance batch below re-runs all ten rows on it.
 

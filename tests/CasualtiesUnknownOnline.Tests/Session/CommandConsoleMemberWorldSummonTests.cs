@@ -244,8 +244,8 @@ public class CommandConsoleMemberWorldSummonTests
 
 	/// <summary>
 	/// The host judges its own switch for every request, and the member's front end cannot stand in for it when the
-	/// announcement is stale: the member still holds the open value, sends, and the host's sentence is what lands
-	/// on its console. The rules announcement is swallowed here so the two values really disagree.
+	/// announcement never arrived: the member holds no value to intercept, so its gate is skipped and the request
+	/// travels — the host's sentence is what lands on its console. The rules announcement is swallowed here.
 	/// </summary>
 	[Fact]
 	public void ARequestWhileTheHostSwitchIsClosed_IsRefusedByTheHost()

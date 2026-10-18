@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 ///
 /// <para>
 /// The fact (definition, instance id, state) is created elsewhere — the give's creation port, or the same port
-/// behind the spawn seam — and it already carries the id the host minted. The id is stamped BEFORE the object's
+/// behind the summon seam — and it already carries the id the host minted. The id is stamped BEFORE the object's
 /// own <c>Start</c> runs: an id-less world object would be reported as a runtime spawn with a NEW id, and the
 /// caller's row would name an item nothing carries. The report is the row — a created object nobody reported is
 /// invisible to the host's kernel and is killed by the next world-item keyframe — so this class reports it with
@@ -22,7 +22,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// </para>
 ///
 /// <para>
-/// Two callers, one rule: the give's drop rung places the item at the receiving body, the spawn verb at the point
+/// Two callers, one rule: the give's drop rung places the item at the receiving body, the summon verb at the point
 /// the operator named. Neither may skip the report, which is why the report lives here rather than at each call
 /// site (the give ladder's review found a drop rung that created the object without it).
 /// </para>

@@ -1,6 +1,6 @@
 # The member reports that still have no bound
 
-- Status: Todo 鈥?opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
+- Status: Todo — Rejected (batch `20261019-a`: the entity-event drop bound's forged-refusal and unmodified-session rows pass, but an ordinary event's accepted drop never reaches the kernel — the trap composite is rejected on the trap's raw negative health — and the fragile-crystal row is unproven in a world that carries no fragile crystal) — opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
   drops; this ticket is the rest of the same question, one surface per row, each with its own evidence.
   Section A (the reports that name another member's identity) CLOSED 2026-10-17 鈥?its five surfaces now
@@ -650,6 +650,30 @@ described above:
   | A kind outside the building-death carrier | cannot carry a drop: every one is refused by name and the kind is named in the line | `Bound_AKindOutsideTheBuildingDeathCarrier_AnswersEveryDrop` |
   | The trap table's single count | the entity whose table the caller read before the apply is excluded from the scope's second read | `TrapBuildingHealthScope.Begin(trapEntity)` + `ReferenceEquals`; Unity-typed, named for the acceptance batch rather than unit-tested |
   | The row set being empty | every reported drop is refused (the safe direction: a report cannot introduce an entity's drops where this host accounted for none) | `Bound_NoTableAccountsForTheSet_AnswersEveryDrop` |
+
+  **READ ON THE MACHINE 2026-10-18 (batch `20261019-a`, two clients, deployed `+c909fd3d`): row 1 PASSES, row 4
+  PASSES, row 3 is UNPROVEN, and row 2 FAILS** (`docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-a.md`).
+  The lever the row owed now exists: `trap-event-forge` sends one hand-built drop inside a real
+  `EntityEventMsg`, `trap-drop-census` reads the destructive carriers with the entity's own table and the
+  entity the host's lookup resolves, and `trap-crystal-break` drives the game's own fragile-crystal touch. The
+  forged report at a summoned mine drew the TABLE arm — `claimed 1 drop(s) the 1 row(s) … cannot produce —
+  refused by name (bandage@0.50), 0 drop(s) accepted and relayed` — and the answer destroyed the member's copy
+  (`[ItemReject] … destroying the local copy (TrapDropUnaccounted)`). The real event's drop folded correctly on
+  the member (`[ItemTrapDrop] … captured`, `[TrapDropFlush] … drops=1`) and the host applied the event and
+  materialized the drop, but the authoritative composite was REJECTED: `record-building-health rejected:
+  InvariantViolation (… invalid health -751.9034)` and then `wire-command rejected: InvariantViolation (…
+  -900.2673)`. The kernel's `WorldEntityDomainModule` validation refuses any building health below zero, and
+  this path feeds it the game's raw float: `EntityEventSync.ReadDestroyedTrapHealth` returns the trap's
+  post-blast health (negative after the applier's own explosion) and `TrapBuildingHealthScope` the same for
+  every blast-damaged entity — both inside the ONE composite that also carries the consumption and the drops.
+  The accepted drop therefore exists only as the host's presentation, never as a kernel row
+  (`container-read mode=host` has no `13787924117`), so a save or rejoin loses it. The same clamp gap is one
+  channel over: the explosion's building-damage report drew `record-building-health rejected … invalid health
+  -295.9813` in the same session. **Next step for this row**: one clamp of the physical health where it becomes
+  a kernel fact (0 = destroyed) for the trap batch AND the damage report, with a red test on both, then re-run
+  this row. The fragile-crystal row could not be read at all: this run's world carries no `CrystalBehaviour`
+  (nine and thirteen crystal-prefab buildings on layers 0 and 1, zero effect components), so no fragile crystal
+  exists to break; the run descended one layer and re-read rather than assume.
 - **`WireCommandKind.ItemContainerSync`'s creations 鈥?IMPLEMENTED 2026-10-17, READ ON THE MACHINE
   2026-10-17 (batch `20261017-d`) 鈥?PASSES.**
   The sibling S3a left: the same claim travelled two more ways 鈥?a parent this host never judged

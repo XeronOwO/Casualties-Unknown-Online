@@ -528,6 +528,7 @@ docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md | keep | clai
 docs/evidence/acceptance/medical-state-names-no-kind-20261011-c.md | keep | claim | docs/backlog/done/medical-state-names-no-kind.md
 docs/evidence/acceptance/member-report-bounds-a-20261017.md | keep | claim | docs/backlog/todo/member-report-bounds.md
 docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md | keep | claim | docs/backlog/todo/member-report-bounds.md
+docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-a.md | keep | claim | docs/backlog/todo/member-report-bounds.md
 docs/evidence/acceptance/mod-api-contract-governance-20260927.md | keep | claim | docs/backlog/done/mod-api-contract-governance.md
 docs/evidence/acceptance/mod-api-typed-seams-20261012-c.md | keep | claim | docs/backlog/done/mod-api-typed-seams.md
 docs/evidence/acceptance/mod-authored-effects-20261011-k.md | keep | claim | docs/backlog/done/mod-authored-effects.md

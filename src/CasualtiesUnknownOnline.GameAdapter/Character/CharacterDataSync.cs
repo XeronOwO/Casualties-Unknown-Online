@@ -27,6 +27,7 @@ internal sealed class CharacterDataSync(
 	WearableRestorer wearables,
 	ICharacterNativeSystem nativeSystem,
 	LocalCharacterRestoreQueue restore,
+	HealResetReportRetry healResetReports,
 	ILogger<CharacterDataSync> log)
 {
 	private readonly ISessionControl _session = session;
@@ -37,6 +38,9 @@ internal sealed class CharacterDataSync(
 	private readonly CharacterRestoreApplier _restoreApplier = restoreApplier;
 	private readonly WearableRestorer _wearables = wearables;
 	private readonly ILogger<CharacterDataSync> _log = log;
+
+	/// <summary>The reset result's retry (the transport can suppress the one event that carries the host-owned values).</summary>
+	private readonly HealResetReportRetry _healResetReports = healResetReports;
 
 	/// <summary>The local favourite marks this client's own character record carries (its own responsibility, split out when this coordinator reached the architecture line's watchlist).</summary>
 	private readonly LocalFavouriteMarkSync _favouriteMarks = new(mapper, nativeSystem, log);
@@ -249,6 +253,10 @@ internal sealed class CharacterDataSync(
 	/// <summary>Pump: re-report the character snapshot on the 1 Hz interval (only when the body exists).</summary>
 	internal void Update(Body? localBody)
 	{
+		// The applied reset's authority event retries on this cadence while this body exists: it is
+		// the only carrier of the three host-owned values, and the transport may not have accepted it.
+		_healResetReports.Tick();
+
 		if (localBody == null) // Unity object — ==
 		{
 			return;
@@ -431,6 +439,7 @@ internal sealed class CharacterDataSync(
 	/// </summary>
 	internal void ResetSessionState()
 	{
+		_healResetReports.Clear();
 		_restore.Clear();
 		_factTable.Clear();
 		_favouriteMarks.Reset();
@@ -439,6 +448,9 @@ internal sealed class CharacterDataSync(
 	/// <summary>Leaving the world (death, menu) — push a final snapshot so the host's save carries the state at the moment of leaving, not the last 1 Hz report (a death → re-enter cycle would otherwise restore the pre-death state).</summary>
 	internal void NotifyBodyLeft(Body prevBody)
 	{
+		// The result belongs to the body that left: re-offering it on a later body would write a
+		// stale health/limb set onto the new one.
+		_healResetReports.Clear();
 		if (_restore.WipePending)
 		{
 			// The body that took the restore's FIRST pass is leaving: the second pass can never

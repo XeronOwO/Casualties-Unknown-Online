@@ -13,12 +13,16 @@ internal sealed class FakeLocalBodyReset : ILocalBodyReset
 {
 	internal int Resets { get; private set; }
 
+	/// <summary>The instruction id the last reset was asked to answer (null = the local console triggered it).</summary>
+	internal ulong? LastInstructionId { get; private set; }
+
 	/// <summary>The outcome the next reset answers with (default: an applied, alive, whole reset).</summary>
 	internal LocalBodyResetOutcome Outcome { get; set; } = LocalBodyResetOutcome.AppliedNow(wasDead: false, restoredLimbs: 0, hollowCleared: false);
 
-	public LocalBodyResetOutcome Reset()
+	public LocalBodyResetOutcome Reset(ulong? instructionId)
 	{
 		Resets++;
+		LastInstructionId = instructionId;
 		return Outcome;
 	}
 }

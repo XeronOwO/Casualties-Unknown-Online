@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 
@@ -102,6 +103,23 @@ internal static class CharacterDataFinite
 
 	/// <summary>The same verdict over an already-decoded health block (the adapter's own snapshot re-check).</summary>
 	internal static string? FirstNonFinite(CharacterHealthMsg health) => FirstNonFinite(health, HealthFloats);
+
+	/// <summary>
+	/// The log-and-refuse gate every authority write shares: a non-finite field is named once and the
+	/// caller keeps the previous snapshot. One definition, so the save path, the host's own snapshot
+	/// and the event merges cannot disagree about what "refused whole by name" means.
+	/// </summary>
+	internal static bool Refuse(ILogger log, ulong peer, CharacterDataMsg data, string path)
+	{
+		if (FirstNonFinite(data) is not { } field)
+		{
+			return false;
+		}
+
+		log.LogError("[Character] refusing a non-finite {Path} for {Peer}: {Field} — the previous snapshot stays.",
+			path, peer, field);
+		return true;
+	}
 
 	/// <summary>One limb row's float scan (the enemy/injury event payloads).</summary>
 	internal static string? FirstNonFiniteLimb(CharacterLimbMsg limb) => FirstNonFinite(limb, LimbFloats);

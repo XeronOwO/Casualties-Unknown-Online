@@ -91,6 +91,26 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 
 	void ICharacterDataControl.SendLimbStateEvent(LimbStateEventMsg msg) => throw new NotSupportedException("the save tests never send");
 
+	/// <summary>How many applied-reset sends the next attempts answer with a false (transport-suppressed) verdict.</summary>
+	internal int SuppressedResetSends { get; set; }
+
+	/// <summary>The reset reports offered through the send seam, in order.</summary>
+	internal List<HealResetAppliedMsg> AppliedResetSends { get; } = [];
+
+	bool ICharacterDataControl.TrySendHealResetApplied(HealResetAppliedMsg msg)
+	{
+		AppliedResetSends.Add(msg);
+		if (SuppressedResetSends > 0)
+		{
+			SuppressedResetSends--;
+			return false;
+		}
+
+		return true;
+	}
+
+	bool ICharacterDataControl.ApplyHealResetEvent(HealResetAppliedMsg msg) => throw new NotSupportedException("the save tests never apply a reset");
+
 	void ICharacterDataControl.FireCharacterSoundReceived(ulong sender, CharacterSoundMsg msg) => throw new NotSupportedException("the save tests never fire");
 
 	void ICharacterDataControl.SendCharacterSound(CharacterSoundMsg msg) => throw new NotSupportedException("the save tests never send");

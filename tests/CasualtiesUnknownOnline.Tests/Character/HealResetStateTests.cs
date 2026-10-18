@@ -31,6 +31,9 @@ public class HealResetStateTests
 		// Native heal: body fields (ConsoleScript.cs).
 		["BrainHealth"] = 100f,
 		["BloodVolume"] = 100f,
+		// The derived total: the native heal leaves it to the next variable update, but the reset's
+		// captured result must state the healthy value the host stores as its authority record.
+		["TotalBleedSpeed"] = 0f,
 		["BloodOxygen"] = 100f,
 		["BloodPressure"] = 120f,
 		["HeartRate"] = 70f,
@@ -163,6 +166,7 @@ public class HealResetStateTests
 
 		Assert.Equal(100f, health.BrainHealth);
 		Assert.Equal(120f, health.BloodPressure);
+		Assert.Equal(0f, health.TotalBleedSpeed);
 		Assert.Equal(37f, health.Temperature);
 		Assert.Equal(-1000f, health.LastStandTime);
 		Assert.Equal(0f, health.OpiateAmount);

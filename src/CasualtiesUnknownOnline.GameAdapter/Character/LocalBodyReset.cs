@@ -1,4 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -13,26 +15,33 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 ///
 /// <para>
 /// The target's own client is the only place the body exists (the judgment-ownership rule), so the
-/// host instructs and this class applies; the resulting character snapshot is re-reported straight
-/// away, which is what carries the reset to the host and every peer without a second wire shape.
+/// host instructs and this class applies. The result is reported twice, on purpose: the ordinary
+/// character snapshot keeps the peers' rendering and the ordinary save path current, and — for a
+/// host instruction — the authority event carries the POST-reset health/limb state to the host,
+/// because the ordinary snapshot may not state the three continuous values the host owns and the
+/// reset's blood volume would otherwise be thrown away by the report filter. Both are captured
+/// after the state is applied, so each carries the body that resulted rather than the table.
 /// </para>
 ///
 /// <para>
 /// Three ordering decisions are load-bearing. The components and the hollow overlay go through
-/// <c>DestroyImmediate</c> (see <see cref="HollowClear.ApplyImmediate"/>) because the re-report is
+/// <c>DestroyImmediate</c> (see <see cref="HollowClear.ApplyImmediate"/>) because the reports are
 /// captured in this same frame. The native <c>MendBone</c>/<c>UnDislocate</c> and the limb restore
 /// run BEFORE the state is applied, so the visuals and the rest of the body agree with the flags
 /// the message carries. And the whole application runs under the remote-apply scope the
 /// host-authoritative heal result already uses: it is a host-ordered local mutation, and the scope
-/// keeps the item/sound hooks quiet so the explicit re-report below is the only report.
+/// keeps the item/sound hooks quiet so the explicit reports below are the only reports.
 /// </para>
 /// </summary>
-internal sealed class LocalBodyReset(CharacterDataSync characterDataSync, ILogger<LocalBodyReset> log) : ILocalBodyReset
+internal sealed class LocalBodyReset(
+	CharacterDataSync characterDataSync,
+	HealResetReportRetry healResetReports,
+	ILogger<LocalBodyReset> log) : ILocalBodyReset
 {
 	private readonly CharacterDataSync _characterDataSync = characterDataSync;
 
 	/// <inheritdoc />
-	public LocalBodyResetOutcome Reset()
+	public LocalBodyResetOutcome Reset(ulong? instructionId)
 	{
 		var camera = PlayerCamera.main;
 		var body = camera == null ? null : camera.body; // Unity objects — ==
@@ -100,6 +109,22 @@ internal sealed class LocalBodyReset(CharacterDataSync characterDataSync, ILogge
 			// The game's own timed-operation pump is part of "reset": a queued operation from
 			// before the heal must not fire onto the healthy body a second later.
 			CoUtils.instance.CancelAll();
+
+			// The authority event first, then the ordinary snapshot: the host's copy must hold the
+			// reset's own blood volume/bleeds before the plain report arrives there, or the report
+			// filter would preserve the pre-reset values the event is meant to replace. The retry owns
+			// the send: the transport may suppress it locally, and nothing else can repair these values.
+			if (instructionId is { } hostInstructionId)
+			{
+				healResetReports.Report(new HealResetAppliedMsg
+				{
+					InstructionId = hostInstructionId,
+					// The POST-reset body, not the table: every field the reset did not name keeps its
+					// live value, and the structural effects are already applied.
+					Health = _characterDataSync.CaptureHealth(body),
+					Limbs = [.. _characterDataSync.CaptureLimbs(body)],
+				});
+			}
 
 			_characterDataSync.ReportInventoryChanged(body);
 			log.LogInformation(

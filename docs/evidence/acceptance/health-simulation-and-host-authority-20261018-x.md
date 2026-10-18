@@ -41,7 +41,7 @@ about -99.7 blood: the target's re-report is a plain snapshot, and
 reset table itself sets `BloodVolume = 100` (`HealResetState`). The batch rescued the session with a
 host-side `SaveCharacterData` write plus a revision bump (`70/72/73`), which is the authority shape
 the fix needs. Filed as
-`docs/backlog/todo/heal-reset-does-not-restore-host-owned-vitals.md`; artifacts
+`docs/backlog/review/heal-reset-does-not-restore-host-owned-vitals.md`; artifacts
 `63-host-heal-all.json`, `66-host-health-healed2.json`, `67-guest-health-now.json`,
 `70-host-force-heal.json`.
 

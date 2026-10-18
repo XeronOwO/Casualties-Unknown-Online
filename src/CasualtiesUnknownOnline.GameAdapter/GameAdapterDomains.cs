@@ -263,6 +263,9 @@ internal sealed class GameAdapterDomains
 																			   // have a character for me?" (S4.3).
 		var localRestore = new LocalCharacterRestoreQueue();
 		var restoreApplier = new CharacterRestoreApplier(mapper, wearables, nativeCharacterSystem, loggerFactory.CreateLogger<CharacterRestoreApplier>());
+		// The applied reset's authority event retries here because the transport can suppress a send
+		// locally; it is the only carrier of the three values the host owns.
+		var healResetReports = new HealResetReportRetry(characterData, time, loggerFactory.CreateLogger<HealResetReportRetry>());
 		CharacterDataSync = new CharacterDataSync(session, characterData, mapper,
 			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
 			FactTable,
@@ -270,11 +273,12 @@ internal sealed class GameAdapterDomains
 			wearables,
 			nativeCharacterSystem,
 			localRestore,
+			healResetReports,
 			loggerFactory.CreateLogger<CharacterDataSync>());
 		// The console /heal verb's body half: the full reset applied to this client's own body and
 		// re-reported. It is the adapter's port because only this side has the live Body and the
 		// character-snapshot capture; the Runtime's verb asks for it through ILocalBodyReset.
-		LocalBodyReset = new LocalBodyReset(CharacterDataSync, loggerFactory.CreateLogger<LocalBodyReset>());
+		LocalBodyReset = new LocalBodyReset(CharacterDataSync, healResetReports, loggerFactory.CreateLogger<LocalBodyReset>());
 		// The starting-supplies grant (S4.3): a player the world has no character for gets
 		// the run's startingsupplies once per body. The shared restore queue above is its
 		// input — a queued character restore means this player is NOT new.

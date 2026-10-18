@@ -44,6 +44,14 @@ public static class HealResetState
 
 	public const float BloodVolume = 100f;
 
+	/// <summary>
+	/// The bleeding total the healthy body carries. The native command does not write it (the next
+	/// <c>HandleVariableUpdates</c> recomputes it from the limbs), but the captured reset result must
+	/// state it: the host stores the result as the authority record before any native update runs,
+	/// and its model starts from that record. Zero is what the table's own zeros sum to.
+	/// </summary>
+	public const float TotalBleedSpeed = 0f;
+
 	public const float BloodOxygen = 100f;
 
 	public const float BloodPressure = 120f;
@@ -226,6 +234,7 @@ public static class HealResetState
 	{
 		health.BrainHealth = BrainHealth;
 		health.BloodVolume = BloodVolume;
+		health.TotalBleedSpeed = TotalBleedSpeed;
 		health.BloodOxygen = BloodOxygen;
 		health.BloodPressure = BloodPressure;
 		health.HeartRate = HeartRate;

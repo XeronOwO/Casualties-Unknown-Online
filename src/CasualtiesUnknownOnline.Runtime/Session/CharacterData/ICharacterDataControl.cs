@@ -127,6 +127,27 @@ public interface ICharacterDataControl
 	/// <summary>Report/broadcast a limb-latch event: a guest reports its own limb latch to the host; the host broadcasts its own to every guest. Reliable — the trigger rides the event, never the snapshot.</summary>
 	void SendLimbStateEvent(LimbStateEventMsg msg);
 
+	/// <summary>
+	/// Target client: offer the reset the host instructed as the AUTHORITY event, carrying the
+	/// resulting full health/limb state (the three continuous values included — the ordinary
+	/// character report may not state them). True when the transport accepted the frame; false when
+	/// it did not send at all (the transport suppressed it locally, or this client is no longer a
+	/// guest in an active session), so the caller can re-offer it on the report cadence and can drop
+	/// it with the body/session it belongs to. The owner is stamped here from this client's own
+	/// session, so the event cannot name another body.
+	/// </summary>
+	bool TrySendHealResetApplied(HealResetAppliedMsg msg);
+
+	/// <summary>
+	/// Host side: merge a heal reset event's full health/limb state into the owner's saved snapshot
+	/// through the authority path — the reset's blood volume and bleeds are kept as written, unlike
+	/// the plain report, which may never state them. Returns false when the event was refused WHOLE: a
+	/// non-finite field, no health record, no limbs, no saved snapshot to merge into, or one of the
+	/// three host-owned values that is not the reset table's healthy constant (the host's own anchor).
+	/// The caller must then write nothing and say which.
+	/// </summary>
+	bool ApplyHealResetEvent(HealResetAppliedMsg msg);
+
 	/// <summary>Surface an arrived character-sound event (report or relay) for the Game Adapter to replay on the owner's clone.</summary>
 	void FireCharacterSoundReceived(ulong sender, CharacterSoundMsg msg);
 

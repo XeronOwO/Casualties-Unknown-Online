@@ -114,6 +114,13 @@ with the affected client — its report/event is the only writer of those — an
 client-owned fields after every step. A guest never runs the pass; it renders what it is told and
 judges its own events. Details: `docs/backlog/done/health-simulation-and-host-authority.md`.
 
+One consequence of that seam is worth knowing: a plain snapshot report may never state the three
+values, so an event that legitimately changes them — an amputation's zero, the `/heal` reset's
+restored 100 — must be written through the authority path instead. A member target's own client
+therefore reports a host-instructed reset twice: the ordinary snapshot for the peers, and the
+`HealResetApplied` event that the host stores as the authoritative record and its model adopts on
+the next fixed step. A host's own reset needs no event; its own snapshot is already the authority.
+
 The clone cannot produce all of the model's inputs itself: it skips `HandlePhysics` (so `inWater`,
 `Body.cs:3088`, is never computed), its `moveDir` is zeroed for presentation, and `exercising` /
 `currentClimbable` are the owner's local actions. Their verdicts therefore ride the owner's 20 Hz

@@ -9,6 +9,6 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// </summary>
 internal sealed class UnavailableLocalBodyReset : ILocalBodyReset
 {
-	public LocalBodyResetOutcome Reset() =>
+	public LocalBodyResetOutcome Reset(ulong? instructionId) =>
 		LocalBodyResetOutcome.Refused("this build has no game scene, so it cannot reset a player's body.");
 }

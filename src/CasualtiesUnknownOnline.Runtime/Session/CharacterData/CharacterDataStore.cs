@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -58,6 +57,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// <summary>The same freshness window the row pump uses; the reconciliation is skipped while the model is stalled.</summary>
 	private const long HostModelFreshnessMs = 250;
 
+	/// <summary>The event-merge rules over the table below (enemy terminal states, limb/injury, the heal reset result).</summary>
+	private readonly CharacterEventMerges _eventMerges;
+
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
 		ILogger<CharacterDataStore> log, IItemControl items,
 		PlayerKernelLimbProjection playerLimbKernel,
@@ -72,6 +74,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		_playerKernelRestore = playerKernelRestore;
 		_appliedItems = appliedItems;
 		_savedCharacters = [];
+		_eventMerges = new CharacterEventMerges(FindSaved, playerLimbKernel, log);
 
 		// The table is SESSION-scoped and starts EMPTY, deliberately: the world archive is
 		// the only persistent copy of a character (decisions 162/164), and it feeds this
@@ -126,17 +129,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// so it is refused by name and the previous snapshot stays. The same gate protects the host's
 	/// own broadcast snapshot.
 	/// </summary>
-	private bool RefuseNonFinite(ulong steamId, CharacterDataMsg msg, string path)
-	{
-		if (CharacterDataFinite.FirstNonFinite(msg) is not { } field)
-		{
-			return false;
-		}
-
-		_log.LogError("[Character] refusing a non-finite {Path} for {Peer}: {Field} — the previous snapshot stays.",
-			path, steamId, field);
-		return true;
-	}
+	private bool RefuseNonFinite(ulong steamId, CharacterDataMsg msg, string path) =>
+		CharacterDataFinite.Refuse(_log, steamId, msg, path);
 
 	/// <summary>
 	/// Host side: keep a member's 1 Hz report. The CONTINUOUS bleeding values are the host's, not
@@ -198,76 +192,14 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		return SaveCharacterData(steamId, msg);
 	}
 
-	/// <summary>
-	/// Host side: merge an enemy bite's post-bite terminal state into the
-	/// victim's saved snapshot immediately — a disconnect before the next 1 Hz
-	/// report must still restore the bite (the dedicated event is the trigger;
-	/// the snapshot is only the fallback).
-	/// </summary>
-	public void ApplyEnemyBite(EnemyBiteMsg msg)
-	{
-		if (RefuseEnemyEvent(msg.VictimSteamId, msg, msg.Limb, "bite event"))
-		{
-			return;
-		}
+	/// <summary>Host side: merge an enemy bite's post-bite terminal state into the victim's saved snapshot immediately (the rules live in <see cref="CharacterEventMerges"/>).</summary>
+	public void ApplyEnemyBite(EnemyBiteMsg msg) => _eventMerges.ApplyEnemyBite(msg);
 
-		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
-		{
-			EnemyTerminalStateApplier.ApplyBite(data, msg);
-			HeadMouthRule.Refresh(data);
-			data.LocalRevision++;
-		}
-	}
+	/// <summary>Host side: the <see cref="ApplyEnemyBite"/> mirror for a crystal-lunge terminal state.</summary>
+	public void ApplyEnemyLunge(EnemyLungeMsg msg) => _eventMerges.ApplyEnemyLunge(msg);
 
-	/// <summary>Host side: the EnemyBite mirror for a crystal-lunge terminal state.</summary>
-	public void ApplyEnemyLunge(EnemyLungeMsg msg)
-	{
-		if (RefuseEnemyEvent(msg.VictimSteamId, msg, msg.Limb, "lunge event"))
-		{
-			return;
-		}
-
-		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
-		{
-			EnemyTerminalStateApplier.ApplyLunge(data, msg);
-			HeadMouthRule.Refresh(data);
-			data.LocalRevision++;
-		}
-	}
-
-	/// <summary>Host side: the EnemyBite mirror for an enemy-proximity side effect.</summary>
-	public void ApplyEnemyEffect(EnemyEffectMsg msg)
-	{
-		if (RefuseEnemyEvent(msg.VictimSteamId, msg, limb: null, "effect event"))
-		{
-			return;
-		}
-
-		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
-		{
-			EnemyTerminalStateApplier.ApplyEffect(data, msg);
-			HeadMouthRule.Refresh(data);
-			data.LocalRevision++;
-		}
-	}
-
-	/// <summary>
-	/// The in-place enemy merges bypass SaveCharacterData, so they get the finiteness gate here: a
-	/// non-finite limb or body float would poison the host clone (and the row) from an authority
-	/// path that no report can repair.
-	/// </summary>
-	private bool RefuseEnemyEvent(ulong victim, object message, CharacterLimbMsg? limb, string kind)
-	{
-		var field = CharacterDataFinite.FirstNonFiniteFields(message)
-			?? (limb is null ? null : CharacterDataFinite.FirstNonFiniteLimb(limb));
-		if (field is null)
-		{
-			return false;
-		}
-
-		_log.LogError("[Character] refusing a non-finite {Kind} for {Peer}: {Field}.", kind, victim, field);
-		return true;
-	}
+	/// <summary>Host side: the <see cref="ApplyEnemyBite"/> mirror for an enemy-proximity side effect.</summary>
+	public void ApplyEnemyEffect(EnemyEffectMsg msg) => _eventMerges.ApplyEnemyEffect(msg);
 
 	/// <summary>
 	/// Host only: a NEW run started (the host clicked start) — the saved
@@ -358,6 +290,10 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) =>
 		_savedCharacters.TryGetValue(steamId, out var data) ? data : null;
 
+	/// <summary>The saved-snapshot lookup the event-merge seams read; the table itself never leaves this class.</summary>
+	private CharacterDataMsg? FindSaved(ulong steamId) =>
+		_savedCharacters.TryGetValue(steamId, out var data) ? data : null;
+
 	/// <summary>Host only: the field the current report refusal names, or null when the store is not refusing this member.</summary>
 	public string? GetReportRefusal(ulong steamId) =>
 		_refusedReports.Contains(steamId) && _refusalFields.TryGetValue(steamId, out var field) ? field : null;
@@ -437,25 +373,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	public event Action<PlayerVitalsMsg>? PlayerVitalsReceived;
 
 
-	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the dedicated event is the trigger; the snapshot is only the fallback).</summary>
-	public bool ApplyLimbStateEvent(LimbStateEventMsg msg)
-	{
-		var eventData = new CharacterDataMsg { Health = msg.Health, Limbs = msg.Limbs };
-		if (RefuseNonFinite(msg.OwnerSteamId, eventData, "owner limb/injury event"))
-		{
-			return false;
-		}
-
-		if (_savedCharacters.TryGetValue(msg.OwnerSteamId, out var data))
-		{
-			EnemyTerminalStateApplier.ApplyLimbState(data, msg);
-			HeadMouthRule.Refresh(data);
-			data.LocalRevision++;
-		}
-
-		_playerLimbKernel.SyncFromLimbEvent(msg);
-		return true;
-	}
+	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the rules live in <see cref="CharacterEventMerges"/>).</summary>
+	public bool ApplyLimbStateEvent(LimbStateEventMsg msg) => _eventMerges.ApplyLimbStateEvent(msg);
 
 	/// <summary>
 	/// Report/broadcast a limb-latch event: a guest reports its own limb to the
@@ -487,6 +406,37 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			_sender.Send(_session.HostSteamId, NetMsg.LimbStateEvent, msg);
 		}
 	}
+
+	/// <summary>
+	/// Target client: offer the reset the host instructed, as the authority event. The ordinary
+	/// character report that follows cannot carry it: <see cref="SaveReportedCharacterData"/>
+	/// preserves the host's three continuous values, so the reset's blood volume and bleeds would be
+	/// thrown away and the 10 Hz row would put the old values back within one tick. The transport's
+	/// verdict is returned because the caller must re-offer a frame that was not sent — this event is
+	/// the only carrier of the values it restores; false also covers this client no longer being a
+	/// guest in an active session, and the caller drops the pending result with that session. A host
+	/// reset needs no event; its own snapshot is already written authoritatively.
+	/// </summary>
+	public bool TrySendHealResetApplied(HealResetAppliedMsg msg)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return false;
+		}
+
+		// The event always speaks for THIS client's body, whatever a caller put in the payload: the
+		// host's identity check then compares one structural fact with another.
+		msg.OwnerSteamId = _session.LocalSteamId;
+		return _sender.TrySend(_session.HostSteamId, NetMsg.HealResetApplied, msg, reliable: true);
+	}
+
+	/// <summary>
+	/// Host side: merge the reset result a member's own client applied through the AUTHORITY path —
+	/// unlike a plain report, its blood volume, total bleeding speed and per-limb bleed are kept as
+	/// written. A no-snapshot, no-health or non-finite result is refused by name (the rules live in
+	/// <see cref="CharacterEventMerges"/>), so the caller may treat false as "nothing was written".
+	/// </summary>
+	public bool ApplyHealResetEvent(HealResetAppliedMsg msg) => _eventMerges.ApplyHealResetEvent(msg);
 
 	/// <summary>
 	/// Report/broadcast a character action sound: a guest reports its own sound
@@ -645,6 +595,10 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		LimbStateEventReceived?.Invoke(sender, msg);
 
 	void ICharacterDataControl.SendLimbStateEvent(LimbStateEventMsg msg) => SendLimbStateEvent(msg);
+
+	bool ICharacterDataControl.TrySendHealResetApplied(HealResetAppliedMsg msg) => TrySendHealResetApplied(msg);
+
+	bool ICharacterDataControl.ApplyHealResetEvent(HealResetAppliedMsg msg) => ApplyHealResetEvent(msg);
 
 	void ICharacterDataControl.FireCharacterSoundReceived(ulong sender, CharacterSoundMsg msg) =>
 		CharacterSoundReceived?.Invoke(sender, msg);

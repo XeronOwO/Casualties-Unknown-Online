@@ -9,13 +9,13 @@
     "Note": "The host-state cycle added the model-input publish line (the derivation itself lives in HostVitalsInputs); the planned split is the local-body publish path into a LocalBodyStatePublisher, leaving the coordinator the run phase machine and world entry."
   },
   "CasualtiesUnknownOnline.GameAdapter.Character.CharacterDataSync": {
-    "Lines": 671,
+    "Lines": 683,
     "BoolFlags": 0,
-    "Note": "The host-state cycle added the local injury trigger and the owner-state report to the existing capture/report/restore coordinator; the planned split is the trigger into LocalInjuryReporter (owning the baseline, the host-row absorption and the report call), leaving the coordinator the snapshot/restore/render seams."
+    "Note": "The host-state cycle added the local injury trigger and the owner-state report; the heal authority fix added the applied-reset retry tick and its body/session drop (the retry state itself lives in Runtime's HealResetReportRetry). The planned split is still the trigger into LocalInjuryReporter (owning the baseline, the host-row absorption and the report call), leaving the coordinator the snapshot/restore/render seams."
   },
   "CasualtiesUnknownOnline.Runtime.Session.CharacterData.CharacterDataStore": {
-    "Lines": 672,
+    "Lines": 626,
     "BoolFlags": 0,
-    "Note": "The host-state cycle added the report-refusal answer, the model-advancing mark, the authority finiteness gate and the enemy-event finite guard to the reconnect table; the planned split is a host-model companion (advance marks + refusal window) fed by this store, leaving the table the save/restore and event-merge seams."
+    "Note": "The heal authority event added the applied-reset send seam (whose verdict the caller must see) after the event-merge seams moved into CharacterEventMerges. The planned split is still the host-model companion (advance marks + refusal window) fed by this store, leaving the table the save/restore and the report filter."
   }
 }

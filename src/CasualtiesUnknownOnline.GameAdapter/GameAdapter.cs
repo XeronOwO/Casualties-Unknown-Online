@@ -139,10 +139,10 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	/// <summary>
 	/// The console <c>/heal</c> cheat verb's body half: the full reset of THIS client's own body,
-	/// with its severed-limb restore, hollow clear and re-report. The host instructs, this client
-	/// applies — a player's own body is that player's to mutate (the judgment-ownership rule).
+	/// with its severed-limb restore, hollow clear and re-report. The host instructs (with the
+	/// instruction id the applied event echoes), this client applies — the body is its owner's.
 	/// </summary>
-	LocalBodyResetOutcome ILocalBodyReset.Reset() => _domains.LocalBodyReset.Reset();
+	LocalBodyResetOutcome ILocalBodyReset.Reset(ulong? instructionId) => _domains.LocalBodyReset.Reset(instructionId);
 
 	/// <summary>
 	/// The startup gate <c>ICuoService.Initialize</c> drives: probe the loaded

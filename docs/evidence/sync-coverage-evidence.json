@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1096,
+  "count": 1100,
   "entries": [
     {
       "cluster": "inline",
@@ -1831,7 +1831,7 @@
     {
       "cluster": "players",
       "row": "P4",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterEventMerges.cs",
       "quote": "EnemyTerminalStateApplier.ApplyLimbState(data, msg);"
     },
     {
@@ -6579,6 +6579,30 @@
       "row": "I13",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs",
       "quote": "_healReset.Applied += OnHealResetApplied;"
+    },
+    {
+      "cluster": "player-interaction",
+      "row": "I13",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "HealResetApplied = 155"
+    },
+    {
+      "cluster": "player-interaction",
+      "row": "I13",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/LocalBodyReset.cs",
+      "quote": "healResetReports.Report(new HealResetAppliedMsg"
+    },
+    {
+      "cluster": "player-interaction",
+      "row": "I13",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterEventMerges.cs",
+      "quote": "stored {Peer}'s reset result through the authority path"
+    },
+    {
+      "cluster": "player-interaction",
+      "row": "I13",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerHealResetService.cs",
+      "quote": "if (pending.InstructionId != msg.InstructionId)"
     }
   ]
 }

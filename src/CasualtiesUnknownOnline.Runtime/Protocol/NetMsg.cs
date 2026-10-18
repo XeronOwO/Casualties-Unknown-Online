@@ -400,14 +400,23 @@ public enum NetMsg : byte
 
 	// The console /heal verb (a cheat verb): an immediate, item-free FULL reset of the selected
 	// players' state. A reset is a mutation of the TARGET's body, so by the judgment-ownership rule
-	// the target's own client applies it and re-reports — the host judges its own cheat switch and
-	// roster, resets its own body where it is named, and instructs each member target. The result
-	// state does not ride this pair: the target's ordinary character snapshot re-report carries it
-	// to the host and every peer. The answer carries the host's own sentence, so a refusal lands
-	// where the operator typed the verb.
+	// the target's own client applies it — the host judges its own cheat switch and roster, resets its
+	// own body where it is named, and instructs each member target. The result travels as two reports:
+	// the ordinary character snapshot for the peers and the reconnect, and `HealResetApplied` for the
+	// host's authority copy, because the plain snapshot may not state the three continuous values the
+	// host owns. The answer carries the host's own sentence, so a refusal lands where the operator
+	// typed the verb.
 	HealResetRequest = 151, // guest → host: reset these players' state now (the member's selector expansion)
-	HealResetInstruction = 152, // host → a member target: apply the full reset to your own body now
+	HealResetInstruction = 152, // host → a member target: apply the full reset to your own body now (carries the host's instruction id)
 	HealResetResult = 153, // host → requester: the answer (what was reset/revived/restored, or the refusal)
+
+	// The applied half of the heal reset: the target's own client reports the body state the reset
+	// produced, and the host merges it through the character data's authority-merge seam
+	// (ApplyHealResetEvent), not the plain report path, because the ordinary character report may not
+	// state the three continuous values the host owns. Bound to the instruction the host issued to
+	// that member (its id is echoed), to the transport sender's own body, and to the reset table's
+	// healthy constants for those three values.
+	HealResetApplied = 155, // guest → host: the reset the host instructed was applied; here is the resulting full health/limb state
 
 	// Host-computed continuous vitals (host authority — the host owns the continuous bleeding
 	// values for every player and pushes the row down; the affected client still judges the

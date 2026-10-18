@@ -6,7 +6,7 @@
   own methods; the affected client judges every event and applies the host's rows to its own
   body.** Stage 2 units 1-3 landed and accepted; the frame-cost measured numbers are in the
   unit-3 section. The batch found one `/heal` authority gap outside these eight rows, filed as
-  `docs/backlog/todo/heal-reset-does-not-restore-host-owned-vitals.md`.
+  `docs/backlog/review/heal-reset-does-not-restore-host-owned-vitals.md`.
 - Priority: Medium-High
 - Category: Player state / cross-player sync / authority
 - Source: the user's 2026-10-14 request (health simulated on every client, reconciled to the host)
@@ -813,7 +813,7 @@ pointer is in `docs/evidence/acceptance/health-simulation-and-host-authority-202
   host's three values, so a member at a negative host-model blood stayed at about -99.7 on both
   sides after `/heal @a` even though the reset table sets `BloodVolume = 100`. A host-side
   authority write (`SaveCharacterData` plus a revision bump) restored the test body, which is the
-  fix's shape; filed as `docs/backlog/todo/heal-reset-does-not-restore-host-owned-vitals.md`.
+  fix's shape; filed as `docs/backlog/review/heal-reset-does-not-restore-host-owned-vitals.md`.
 - **The frame cost is measured at N=1** (host + one guest). N-clone scaling is linear by
   construction because each clone runs its own pass; it was not measured at N>1.
 - **The explosion-injury row used the game's own production path, not a spawned trap**: the guest's

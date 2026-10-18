@@ -33,6 +33,15 @@ public interface IHealResetControl
 	/// <summary>Target client: the host instructed this client to reset its own body.</summary>
 	void HandleInstruction(ulong sender, HealResetInstructionMsg msg);
 
+	/// <summary>
+	/// Host only: a target's client reports the reset its instruction produced. The sender must be
+	/// the body's owner and the event must answer an instruction this host issued to that member
+	/// and has not resolved yet; a result that answers nothing writes nothing. An accepted result is
+	/// stored through the character data's AUTHORITY path, so the reset's host-owned values are kept
+	/// instead of filtered like a plain report.
+	/// </summary>
+	void HandleApplied(ulong sender, HealResetAppliedMsg msg);
+
 	/// <summary>Guest only: a heal answer arrived from the host.</summary>
 	void FireAnswered(HealResetResultMsg msg);
 }

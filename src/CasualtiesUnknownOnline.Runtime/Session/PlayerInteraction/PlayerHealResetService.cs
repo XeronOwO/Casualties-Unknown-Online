@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -20,8 +21,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// (<c>docs/en/internals/judgment-ownership.md</c>). The host's job is the permission (its cheat
 /// switch and roster, judged for every request that arrives), the roster of targets it can place
 /// in this world, and the instruction: a HOST target resets locally at once, a MEMBER target
-/// receives <see cref="HealResetInstructionMsg"/> and applies the reset to its own live body, then
-/// re-reports the character snapshot the host and every peer already read.
+/// receives <see cref="HealResetInstructionMsg"/> and applies the reset to its own live body. The
+/// member then reports the RESULT twice: the ordinary character snapshot, and the authority event
+/// <see cref="HealResetAppliedMsg"/> that carries the host-owned continuous values the snapshot may
+/// not state. The host writes that event through the character data's authority path, and this
+/// service is where the event is judged: its owner must be the sender, and it must answer an
+/// instruction the host really issued to that member.
 /// </para>
 ///
 /// <para>
@@ -32,24 +37,65 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// the outcome (revived, limbs restored, hollow cleared) or the refusal and its ground; it never
 /// says a request was sent when the host already refused it.
 /// </para>
+///
+/// <para>
+/// The outstanding-instruction table is the authority anchor of the applied event, not a latency
+/// judgement: every instruction gets an id, the target echoes it, and one instruction resolves at
+/// most one result. The liveness bound only abandons an instruction whose answer never arrives (a
+/// target with no body, a lost client), so a stale entry cannot accept a later or forged result;
+/// nothing measured about the network decides whether a reset is accepted.
+/// </para>
 /// </summary>
-internal sealed class PlayerHealResetService(
-	ISessionControl session,
-	PacketSender sender,
-	ICharacterDataControl characters,
-	ILocalBodyReset localReset,
-	IMemberCommandRules memberRules,
-	ILogger<PlayerHealResetService> log) : IHealResetControl
+internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset, IDisposable
 {
 	/// <summary>A selector cannot name more bodies than a session has members; the cap refuses a hand-built frame before it fans out.</summary>
 	internal const int MaxTargets = 32;
 
-	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
-	private readonly PlayerCharacterAccess _access = new(session, characters);
-	private readonly ILocalBodyReset _localReset = localReset;
-	private readonly IMemberCommandRules _memberRules = memberRules;
-	private readonly ILogger _log = log;
+	/// <summary>
+	/// How long an instruction may wait for its applied event before it is abandoned. It drops an
+	/// answer that has not arrived within the bound; the event normally arrives in the same command's
+	/// round trip, and no latency value is ever an input to whether a result is accepted.
+	/// </summary>
+	private const int InstructionTimeoutMs = 30_000;
+
+	private readonly ISessionControl _session;
+	private readonly PacketSender _sender;
+	private readonly ICharacterDataControl _characters;
+	private readonly PlayerCharacterAccess _access;
+	private readonly ILocalBodyReset _localReset;
+	private readonly IMemberCommandRules _memberRules;
+	private readonly ITimeSource _time;
+	private readonly ILogger _log;
+
+	/// <summary>The instructions this host issued to members and has not seen a result for, keyed by target — one outstanding instruction per body.</summary>
+	private readonly Dictionary<ulong, PendingReset> _pending = [];
+
+	/// <summary>Test/observability seam (InternalsVisibleTo): instructions this host awaits a result for.</summary>
+	internal int PendingInstructionCount => _pending.Count;
+
+	private ulong _nextInstructionId;
+
+	public PlayerHealResetService(
+		ISessionControl session,
+		PacketSender sender,
+		ICharacterDataControl characters,
+		ILocalBodyReset localReset,
+		IMemberCommandRules memberRules,
+		ITimeSource time,
+		ILogger<PlayerHealResetService> log)
+	{
+		_session = session;
+		_sender = sender;
+		_characters = characters;
+		_access = new PlayerCharacterAccess(session, characters);
+		_localReset = localReset;
+		_memberRules = memberRules;
+		_time = time;
+		_log = log;
+		session.SessionEnded += ResetSessionState;
+	}
+
+	private readonly record struct PendingReset(ulong InstructionId, long IssuedMs);
 
 	/// <inheritdoc />
 	public event Action<HealResetNotice>? Applied;
@@ -126,19 +172,70 @@ internal sealed class PlayerHealResetService(
 			return;
 		}
 
-		var outcome = _localReset.Reset();
+		var outcome = _localReset.Reset(msg.InstructionId);
 		var text = DescribeNotice(msg.OperatorSteamId, outcome);
 		if (outcome.Applied)
 		{
-			_log.LogInformation("[HealReset] the host's instruction from {Operator} reset this body: wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}.",
-				msg.OperatorSteamId, outcome.WasDead, outcome.RestoredLimbs, outcome.HollowCleared);
+			_log.LogInformation("[HealReset] the host's instruction from {Operator} (instruction {InstructionId}) reset this body: wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}.",
+				msg.OperatorSteamId, msg.InstructionId, outcome.WasDead, outcome.RestoredLimbs, outcome.HollowCleared);
 		}
 		else
 		{
-			_log.LogWarning("[HealReset] the host's instruction from {Operator} could not be applied here: {Reason}", msg.OperatorSteamId, outcome.Refusal);
+			_log.LogWarning("[HealReset] the host's instruction from {Operator} (instruction {InstructionId}) could not be applied here: {Reason}",
+				msg.OperatorSteamId, msg.InstructionId, outcome.Refusal);
 		}
 
 		Applied?.Invoke(new HealResetNotice(msg.OperatorSteamId, outcome, text));
+	}
+
+	/// <inheritdoc />
+	public void HandleApplied(ulong sender, HealResetAppliedMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			_log.LogWarning("[HealReset] a reset result arrived while this process is {Role} — dropped.", _session.Role);
+			return;
+		}
+
+		// The payload names a body; only the transport sender may speak for its own. The limb event's
+		// handler carries the same rule for the same reason: a member ID in the payload is a claim.
+		if (msg.OwnerSteamId != sender)
+		{
+			_log.LogWarning("[HealReset] dropped a reset result from {Sender} claiming owner {Owner}.", sender, msg.OwnerSteamId);
+			return;
+		}
+
+		PruneExpired(_time.NowMs);
+		if (!_pending.TryGetValue(sender, out var pending))
+		{
+			// No instruction this host issued is waiting for this member's result: the frame is
+			// unsolicited. Writing it would let any member heal itself on demand, which is the cheat
+			// permission's decision, not the wire's.
+			_log.LogWarning("[HealReset] dropped an unsolicited reset result from {Sender} (instruction {InstructionId}): this host has no outstanding instruction for that player.",
+				sender, msg.InstructionId);
+			return;
+		}
+
+		if (pending.InstructionId != msg.InstructionId)
+		{
+			// A stale result (an older instruction answered after a newer one was issued) or a forged
+			// id. Either way it is not the instruction that is outstanding, so it writes nothing.
+			_log.LogWarning("[HealReset] dropped {Sender}'s reset result for instruction {AnsweredId}; the outstanding instruction is {OutstandingId}.",
+				sender, msg.InstructionId, pending.InstructionId);
+			return;
+		}
+
+		if (!_characters.ApplyHealResetEvent(msg))
+		{
+			_log.LogWarning("[HealReset] refused {Sender}'s reset result for instruction {InstructionId}; the previous snapshot stands and the instruction stays outstanding until it expires.",
+				sender, msg.InstructionId);
+			return;
+		}
+
+		_pending.Remove(sender);
+
+		_log.LogInformation("[HealReset] {Sender} applied the reset for instruction {InstructionId}.",
+			sender, msg.InstructionId);
 	}
 
 	/// <inheritdoc />
@@ -165,6 +262,8 @@ internal sealed class PlayerHealResetService(
 			return (false, "Refused: the request names no player.");
 		}
 
+		var nowMs = _time.NowMs;
+		PruneExpired(nowMs);
 		var applied = true;
 		var parts = new List<string>(targets.Count);
 		foreach (var target in targets)
@@ -178,7 +277,7 @@ internal sealed class PlayerHealResetService(
 					continue;
 				}
 
-				var outcome = _localReset.Reset();
+				var outcome = _localReset.Reset(null);
 				applied &= outcome.Applied;
 				parts.Add(DescribeLocal(target, outcome));
 				_log.LogInformation("[HealReset] {Actor} reset the host's own body (wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}, applied={Applied}).",
@@ -194,14 +293,81 @@ internal sealed class PlayerHealResetService(
 				continue;
 			}
 
+			// The instruction id is the host's ticket for the applied event: the target echoes it, and
+			// the write is accepted only while this is the outstanding instruction for that body.
+			var instructionId = ++_nextInstructionId;
 			var wasDead = _access.GetCharacterData(target)?.Health is { Alive: false };
-			_sender.Send(target, NetMsg.HealResetInstruction, new HealResetInstructionMsg { OperatorSteamId = actor });
+			if (!_sender.TrySend(target, NetMsg.HealResetInstruction, new HealResetInstructionMsg
+			{
+				OperatorSteamId = actor,
+				InstructionId = instructionId,
+			}))
+			{
+				// The transport refused the frame locally: nothing was sent, so no result can answer
+				// this instruction and the operator must not read "sent".
+				applied = false;
+				parts.Add(RefusedFor(target, "the transport did not accept the reset instruction, so nothing was sent."));
+				_log.LogWarning("[HealReset] {Actor}'s instruction to {Target} (instruction {InstructionId}) was not accepted by the transport; no reset is pending.",
+					actor, target, instructionId);
+				continue;
+			}
+
+			_pending[target] = new PendingReset(instructionId, nowMs);
 			parts.Add(DescribeRemote(target, wasDead));
-			_log.LogInformation("[HealReset] {Actor} instructed {Target} to reset its own body (wasDead={WasDead}).", actor, target, wasDead);
+			_log.LogInformation("[HealReset] {Actor} instructed {Target} to reset its own body (instruction {InstructionId}, wasDead={WasDead}).",
+				actor, target, instructionId, wasDead);
 		}
 
 		return (applied, string.Join(" ", parts));
 	}
+
+	/// <summary>
+	/// Abandon instructions whose result never arrived. It is the family's liveness bound: it can
+	/// abandon a result the host did not see within the bound, and it never judges what the target's
+	/// body may state — timing is not an input to acceptance, only to whether an answerless
+	/// instruction stops waiting.
+	/// </summary>
+	private void PruneExpired(long nowMs)
+	{
+		if (_pending.Count == 0)
+		{
+			return;
+		}
+
+		List<ulong>? expired = null;
+		foreach (var entry in _pending)
+		{
+			if (nowMs - entry.Value.IssuedMs > InstructionTimeoutMs)
+			{
+				(expired ??= []).Add(entry.Key);
+			}
+		}
+
+		if (expired is null)
+		{
+			return;
+		}
+
+		foreach (var target in expired)
+		{
+			var instructionId = _pending[target].InstructionId;
+			_pending.Remove(target);
+			_log.LogInformation("[HealReset] instruction {InstructionId} to {Target} expired without an applied result.",
+				instructionId, target);
+		}
+	}
+
+	/// <summary>Session teardown: the instructions belong to the session that issued them (the ISessionReset contract).</summary>
+	public void ResetSessionState()
+	{
+		if (_pending.Count > 0)
+		{
+			_log.LogInformation("[HealReset] dropping {Count} outstanding reset instruction(s): the session ended.", _pending.Count);
+			_pending.Clear();
+		}
+	}
+
+	public void Dispose() => _session.SessionEnded -= ResetSessionState;
 
 	/// <summary>
 	/// Deduplicate a request's target list, drop the zero id, and preserve the caller's order: a

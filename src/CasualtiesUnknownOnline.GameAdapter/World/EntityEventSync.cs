@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// sides, so the trap's transform position IS its identity (same pattern as
 /// the building-entity damage/open events).
 /// </summary>
-internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, WorldEntityKernelProjection kernelProjection, TrapDropPendingState pendingDrops, ItemApplication itemApplication, ILogger<EntityEventSync> log)
+internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, WorldEntityKernelProjection kernelProjection, TrapDropPendingState pendingDrops, ItemApplication itemApplication, TrapDropBoundJudge dropBound, ILogger<EntityEventSync> log)
 {
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
@@ -27,6 +27,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
 	private readonly TrapDropPendingState _pendingDrops = pendingDrops;
 	private readonly ItemApplication _itemApplication = itemApplication;
+	private readonly TrapDropBoundJudge _dropBound = dropBound;
 	private readonly ILogger<EntityEventSync> _log = log;
 
 	internal void BindToSession()
@@ -119,14 +120,37 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 				msg.Kind, pos.X, pos.Y, sender);
 
 			IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null;
-			using (var scope = TrapBuildingHealthScope.Begin())
+			// The trap entity's own table, read BEFORE the apply: the applier kills it
+			// as a remote death and its own next Update destroys the component, so this
+			// is the only moment its prefab data exists. The lookup is the applier's own
+			// position-keyed rule (the nearest building within its 3-unit tolerance), not
+			// a collider query: the event position is the trap's transform, and another
+			// collider standing on that point must not shadow it. Only a destructive kind
+			// can carry drops at all, so the other kinds skip the scene lookup. The entity
+			// is handed to the scope too: an explosion damages it as well, and the same
+			// table must not reach the bound twice (one row = one roll).
+			var position = new Vector2(pos.X, pos.Y);
+			var trapEntity = TrapDamageProfiles.IsDestructive(msg.Kind) ? TrapEffectApplier.FindTrap<BuildingEntity>(position) : null;
+			var trapRows = trapEntity != null ? GameBuildingDropTable.ForEntity(trapEntity) : []; // Unity object — ==
+			IReadOnlyList<TrapDropEntryMsg>? acceptedDrops;
+			using (var scope = TrapBuildingHealthScope.Begin(trapEntity))
 			{
-				_applier.ApplyEvent(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
+				_applier.ApplyEvent(msg.Kind, position, msg.Extra);
 				if (scope.Entries.Count > 0)
 				{
 					additionalHealth = [.. scope.Entries];
 				}
+
+				// The report's drops are bounded against what THIS host's own application
+				// touched — its blast's damaged entities (captured in the scope while they
+				// still existed) plus the trap entity — never against the reporter's claim.
+				// Judged before the kernel batch and the relay, so a refused drop is never
+				// materialized and never relayed; the reporter is answered by name.
+				var bounds = trapRows.Count == 0 ? scope.DropRows : [.. trapRows, .. scope.DropRows];
+				acceptedDrops = _dropBound.Bound(sender, msg.Kind, position, bounds, msg.Drops);
 			}
+
+			msg.Drops = acceptedDrops is null ? [] : [.. acceptedDrops];
 
 			// Record the whole trigger as one atomic kernel batch: one-shot
 			// consumptions are position-keyed for the late-joiner snapshot,

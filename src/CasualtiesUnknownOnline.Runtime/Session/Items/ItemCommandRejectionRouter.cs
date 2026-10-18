@@ -137,6 +137,7 @@ internal sealed class ItemCommandRejectionRouter(
 		var mappedReason = reason switch
 		{
 			RejectionReason.BlockAlreadyBroken => ItemRejectMsg.Reason.BlockAlreadyBroken,
+			RejectionReason.TrapDropUnaccounted => ItemRejectMsg.Reason.TrapDropUnaccounted,
 			_ => ItemRejectMsg.Reason.UnknownItem,
 		};
 		_log.LogWarning("Kernel command for item {ItemId} rejected ({Reason}) — surfacing item reject.", itemId, reason);

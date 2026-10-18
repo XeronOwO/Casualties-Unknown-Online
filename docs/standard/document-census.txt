@@ -322,6 +322,7 @@ docs/backlog/todo/recursive-crafting-mod.md | keep | index | docs/backlog/README
 docs/backlog/todo/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-identity-bridge.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/member-report-bounds.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/single-file-plugin-package.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md

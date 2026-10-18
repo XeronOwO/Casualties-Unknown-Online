@@ -49,7 +49,7 @@ internal sealed class WorldBuildingEntitySync(
 
 		var pos = entity.transform.position;
 		_world.SendBuildingEntityDamaged(new NetVector2(pos.x, pos.y), damage, playHitSound, playHitFlash);
-		if (!TrapBuildingHealthScope.TryAdd(pos.x, pos.y, entity.health))
+		if (!TrapBuildingHealthScope.TryAdd(entity, pos.x, pos.y, entity.health))
 		{
 			_world.ReportBuildingEntityHealth(pos.x, pos.y, entity.health); // host-only — the late-joiner snapshot's fact source
 		}

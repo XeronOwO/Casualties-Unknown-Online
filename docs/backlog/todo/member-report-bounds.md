@@ -4,9 +4,11 @@
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
   drops; this ticket is the rest of the same question, one surface per row, each with its own evidence.
   Section A (the reports that name another member's identity) CLOSED 2026-10-17 鈥?its five surfaces now
-  compare against the transport sender, and the census rows say so. Sections B and C remain open, with one
-  exception inside C: the container-sync row was READ on the machine 2026-10-17 (batch `20261017-d`; record
-  `docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md`).
+  compare against the transport sender, and the census rows say so. Sections B and C remain open, with two
+  exceptions inside C: the container-sync row was READ on the machine 2026-10-17 (batch `20261017-d`; record
+  `docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md`), and the
+  `NetMsg.EntityEvent` DROPS row landed 2026-10-18 (its trigger half stays unbounded on purpose) — its
+  evidence and remaining acceptance are in section C.
 - Priority: Medium-High
 - Category: Security / report validation
 - Source: the user's 2026-10-14 request (basic checks from the game's own mechanics, never an anti-cheat)
@@ -482,11 +484,48 @@ described above:
   item nobody has seen and carries no creating cause. A bound needs an anchor the wire does not have (the
   consuming use, the container it came out of, the craft that produced it) 鈥?the same decision the spawn
   family already owes.
-- **`NetMsg.EntityEvent` (66)** 鈥?the host applies the trap report against its own world but takes the
-  trigger as a fact, and the building-death drops riding a DESTRUCTIVE trap event are unbounded (S2b closed
-  the block-break carrier; this is its sibling). The anchor question is the same one S2b answered for the
-  break: what identifies the entities that died in the blast, when the association on the reporter's side is
-  a radius and not an identity.
+- **`NetMsg.EntityEvent` (66)** — LANDED 2026-10-18. The TRIGGER stays the reporter's fact: the host applies
+  it to its own world, and whether the trap was really tripped is not a claim the host can check by data
+  (decision 265). The DROPS riding a DESTRUCTIVE event are bounded by the host's OWN application of that
+  event, which is this row's anchor answer: the capture point is the host's explosion diff
+  (`TrapBuildingHealthScope` reads `GameBuildingDropTable.ForEntity` for every entity its own blast damaged,
+  while the entity still exists) plus the trap entity's own table read before the apply
+  (`TrapEffectApplier.FindTrap<BuildingEntity>` + `GameBuildingDropTable.ForEntity`, the applier's own
+  position-keyed identity rule rather than a collider query). The trap entity is EXCLUDED from the scope's
+  second read (`TrapBuildingHealthScope.Begin(trapEntity)`): an explosion damages it too, and one row is one
+  roll, so the same table must not reach the bound twice. `TrapDropBoundJudge` refuses by name every drop no
+  row can account for (`ItemRejectMsg.Reason.TrapDropUnaccounted`), answers the reporter (which destroys its
+  local copy), and relays only the accepted set. A kind outside the building-death carrier's profile
+  (`TrapDamageProfiles`: the four destructive kinds) refuses every drop it carries; the wording is
+  deliberately not "a kind that destroys nothing", because `CrystalMetamorphicTriggered` destroys its crystal
+  and rolls its own drops while staying outside this carrier (they are an item-domain fact). The per-entity
+  identity the row asked about is NOT needed and is NOT invented: the message carries none, and the rows are
+  matched as a set (`DropBoundPolicy`), so the bound decides whether the event's own tables can account for
+  the set, never which entity dropped what. This row does NOT change who owns a death: the host's own
+  application of a member's blast still kills its own copies of the blast's victims natively and rolls a
+  second set for them — a separate ownership defect, found by this cycle's family audit and filed as
+  `todo/host-blast-rolls-a-second-drop-set.md` (the direct-blast mark was attempted and withdrawn because a
+  chain explosion runs outside the apply scope and the per-side random damage can make a death host-only).
+  Evidence: `TrapDropBoundJudgeTests` (five cases; RED recorded three times by neutralizing the bound, the
+  kind arm and the reason arm) — the capture and the caller's use of the returned list are Unity-typed and
+  read by the acceptance batch. Acceptance owed: a two-client session, a member's destructive event with a
+  drop its tables cannot produce refused by name on the host and destroyed on the reporter, an ordinary
+  event's drops landing whole, a fragile-crystal break (that kind's only anchor is the trap-table read, so
+  it must be read on the machine), and no refusal line in an unmodified session. DEPENDENCY named: the
+  refusal row needs a lever that can send a forged `EntityEventMsg` with a hand-built drop list — no
+  acceptance recipe constructs one today (the block family's `block-drop-forge` builds `TrapDropEntryMsg`
+  inside `SendBlockDamaged`), so that lever is part of the acceptance batch, not of this code change.
+
+  Self-check (mechanism × change × evidence):
+
+  | Mechanism | Change | Evidence |
+  |---|---|---|
+  | The reported drop set of a destructive event | bounded against the host's own application: the tables of the entities its blast damaged (`TrapBuildingHealthScope.DropRows`, read while the components still exist) plus the trap entity's own table (read before the apply, and excluded from the scope so it counts once) | `TrapDropBoundJudgeTests`, five cases; RED recorded by neutralizing the partition (3 failed), the kind arm (1) and the reason arm (1) |
+  | The answer to the reporter | a refused drop is answered with `ItemRejectMsg.Reason.TrapDropUnaccounted`; the reporter destroys its local copy | `Bound_KeepsWhatTheApplicationsTablesCanProduce_AndAnswersTheRest` observes the reason on the guest; `ItemApplication.OnItemRejected` handles it in the same destroy-the-local-copy arm as a refused break drop |
+  | The reason's two mappings | `RejectionReason.TrapDropUnaccounted` ↔ `ItemRejectMsg.Reason.TrapDropUnaccounted` (host → wire → guest) | the same test drives the host judge, the real wire and the guest's `ItemRejected` surfacing |
+  | A kind outside the building-death carrier | cannot carry a drop: every one is refused by name and the kind is named in the line | `Bound_AKindOutsideTheBuildingDeathCarrier_AnswersEveryDrop` |
+  | The trap table's single count | the entity whose table the caller read before the apply is excluded from the scope's second read | `TrapBuildingHealthScope.Begin(trapEntity)` + `ReferenceEquals`; Unity-typed, named for the acceptance batch rather than unit-tested |
+  | The row set being empty | every reported drop is refused (the safe direction: a report cannot introduce an entity's drops where this host accounted for none) | `Bound_NoTableAccountsForTheSet_AnswersEveryDrop` |
 - **`WireCommandKind.ItemContainerSync`'s creations 鈥?IMPLEMENTED 2026-10-17, READ ON THE MACHINE
   2026-10-17 (batch `20261017-d`) 鈥?PASSES.**
   The sibling S3a left: the same claim travelled two more ways 鈥?a parent this host never judged

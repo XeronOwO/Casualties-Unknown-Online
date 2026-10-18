@@ -211,7 +211,10 @@ internal sealed class ItemApplication
 	/// destroyed cannot produce that drop at all), destroy the local drops: they
 	/// were never picked up, there is no ground position to roll back to. The
 	/// second shape is refused PER DROP, so the rest of the break's set keeps its
-	/// normal fate.
+	/// normal fate. TrapDropUnaccounted — a destructive entity event's drop of ours
+	/// was refused (no table of the entities this host's own application destroyed
+	/// or damaged can account for it); the drop was never picked up either, so it
+	/// takes the same destroy-the-local-copy fate per drop.
 	/// </summary>
 	private void OnItemRejected(ulong itemId, ItemRejectMsg.Reason reason)
 	{
@@ -236,10 +239,10 @@ internal sealed class ItemApplication
 				return;
 			}
 
-			if (reason == ItemRejectMsg.Reason.BlockAlreadyBroken)
+			if (reason is ItemRejectMsg.Reason.BlockAlreadyBroken or ItemRejectMsg.Reason.TrapDropUnaccounted)
 			{
 				_scene.KillRemoteItem(item);
-				_log.LogInformation("[ItemReject] block drop {ItemId} ({Type}) refused — destroying the local copy.", itemId, item.id);
+				_log.LogInformation("[ItemReject] refused drop {ItemId} ({Type}) — destroying the local copy ({Reason}).", itemId, item.id, reason);
 			}
 			else
 			{

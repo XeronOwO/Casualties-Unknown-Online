@@ -58,4 +58,14 @@ public enum RejectionReason
 	/// object and the sender settles that change back on receipt.
 	/// </summary>
 	CheatPermissionDenied,
+
+	/// <summary>
+	/// A destructive entity event's reported drops were refused: no drop table of the
+	/// entities the host's OWN application of that event destroyed or damaged can
+	/// account for them. It is answered to the reporter by name — the refused items
+	/// were never picked up, so the reporter destroys its local copies and the sides
+	/// agree on the set this host could account for. A per-drop refusal leaves the rest
+	/// of the event's set accepted and relayed.
+	/// </summary>
+	TrapDropUnaccounted,
 }

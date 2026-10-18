@@ -342,6 +342,7 @@ internal sealed class ItemMessageFlowService(
 		var rejection = reason switch
 		{
 			ItemRejectMsg.Reason.BlockAlreadyBroken => RejectionReason.BlockAlreadyBroken,
+			ItemRejectMsg.Reason.TrapDropUnaccounted => RejectionReason.TrapDropUnaccounted,
 			_ => RejectionReason.UnknownAggregate,
 		};
 

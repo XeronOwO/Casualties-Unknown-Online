@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1100,
+  "count": 1104,
   "entries": [
     {
       "cluster": "inline",
@@ -6603,6 +6603,30 @@
       "row": "I13",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerHealResetService.cs",
       "quote": "if (pending.InstructionId != msg.InstructionId)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/TrapDropBoundJudge.cs",
+      "quote": "internal IReadOnlyList<TrapDropEntryMsg>? Bound("
+    },
+    {
+      "cluster": "inline",
+      "row": "E2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/TrapBuildingHealthScope.cs",
+      "quote": "internal static bool TryAdd(BuildingEntity entity, float x, float y, float health)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E2",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/EntityEventSync.cs",
+      "quote": "acceptedDrops = _dropBound.Bound(sender, msg.Kind, position, bounds, msg.Drops);"
+    },
+    {
+      "cluster": "inline",
+      "row": "E2",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/ItemRejectMsg.cs",
+      "quote": "TrapDropUnaccounted = 3,"
     }
   ]
 }

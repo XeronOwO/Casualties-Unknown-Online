@@ -344,12 +344,14 @@ internal sealed class GameAdapterDomains
 		// world-entry write (GameRestoredWorldFactSink) must replay a trap fact the
 		// same way, or a restore would present facts the live path never would.
 		var trapVisualReplay = new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>());
+		var trapDropBound = new TrapDropBoundJudge(items, loggerFactory.CreateLogger<TrapDropBoundJudge>());
 		EntityEventSync = new EntityEventSync(world, session,
 			new TrapEffectApplier(loggerFactory.CreateLogger<TrapEffectApplier>()),
 			trapVisualReplay,
 			worldEntityKernel,
 			TrapDrops,
 			ItemApplication,
+			trapDropBound,
 			loggerFactory.CreateLogger<EntityEventSync>());
 		var restoredWorldFactSink = new GameRestoredWorldFactSink(
 			BlockBreakSync,

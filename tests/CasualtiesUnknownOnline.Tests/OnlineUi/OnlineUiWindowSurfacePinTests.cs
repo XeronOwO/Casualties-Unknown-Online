@@ -136,7 +136,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(EveryInteractiveControlReportsItsOwnId), "adapter/OnlineUiControlView.cs", "OnlineUiIntentKind.ControlCommitted, _id, Text: text", "OnlineUiIntentKind.ControlCommitted, \"\", Text: text", "a committed number whose field cannot be attributed" },
 		{ nameof(ThePointerFactIsPolledFromTheWindowsRect), "adapter/OnlineUiWindowView.cs", "RectTransformUtility.RectangleContainsScreenPoint(_rect, Input.mousePosition, camera)", "true", "a pointer fact that never asks the pointer" },
 		{ nameof(TheWindowStopsTheWorldBehindItFromBeingClicked), "adapter/OnlineUiWindowView.cs", "panel.raycastTarget = true;", "panel.raycastTarget = false;", "a frame that lets clicks fall through to the world" },
-		{ nameof(TheTitleBarDragsTheWindow), "adapter/OnlineUiWindowDragHandler.cs", "_target.anchoredPosition += eventData.delta / scale;", "_target.anchoredPosition += Vector2.zero;", "a title bar that does not drag" },
+		{ nameof(TheTitleBarDragsTheWindow), "adapter/OnlineUiWindowDragHandler.cs", "var position = _target.anchoredPosition + (eventData.delta / scale);", "var position = _target.anchoredPosition + Vector2.zero;", "a title bar that does not drag" },
 		{ nameof(ThePluginDispatchesEveryIntentKind), "plugin/OnlineUiHost.cs", "case OnlineUiIntentKind.ControlEdited:", "case OnlineUiIntentKind.ControlInvoked:", "an intent kind the plugin silently drops" },
 		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlView.cs", "(aloneOnItsLine || element.NewLine) && OnlineUiControlSizing.FillsTheRow(element)", "OnlineUiControlSizing.FillsTheRow(element)", "a control that takes the whole line even when it shares one" },
 		{ nameof(AControlIsSizedByTheLayoutAndTheEngine), "adapter/OnlineUiControlFactory.cs", "group.childForceExpandWidth = false;", "group.childForceExpandWidth = true;", "a content group that stretches its caption instead of measuring it" },
@@ -312,7 +312,9 @@ public sealed class OnlineUiWindowSurfacePinTests
 		var flat = Flatten(windowSource);
 
 		return flat.Contains("titleBar.gameObject.AddComponent<OnlineUiWindowDragHandler>().Bind(rect);", StringComparison.Ordinal)
-			&& Flatten(handlerSource).Contains("_target.anchoredPosition += eventData.delta / scale;", StringComparison.Ordinal);
+			&& Flatten(handlerSource).Contains("var position = _target.anchoredPosition + (eventData.delta / scale);", StringComparison.Ordinal)
+			&& Flatten(handlerSource).Contains("OnlineUiWindowDrag.Clamp(", StringComparison.Ordinal)
+			&& Flatten(handlerSource).Contains("_target.anchoredPosition = position;", StringComparison.Ordinal);
 	}
 
 	/// <summary>

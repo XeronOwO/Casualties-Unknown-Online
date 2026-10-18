@@ -1,11 +1,9 @@
 # The Online UI's layout and input detail pass
 
-- Status: Todo — Rejected (batch `20261018-t`: row 4 **fails** — an open dropdown's list is not drawn under its
-  field (the popup's open list is a negative-height object at the canvas's top edge, so no option can be
-  reached where the field is); row 9 **fails** — at the TOP edge the drag clamp leaves the title bar 411 units
-  above the canvas and keeps only the window's bottom strip inside, so the window cannot be grabbed again.
-  Rows 1, 2, 3, 5, 6, 7, 8, 10 and 11 pass on the same artifact; row 8's hover is a residual. Record
-  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261018-t.md`).
+- Status: Review — the sixth pass below fixes the two rows batch `20261018-t` rejected (the open dropdown's
+  list and the top-edge title bar) and re-read both live on the deployed build; awaiting the next acceptance
+  batch. The failed batch's record stays as the rejection it was:
+  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261018-t.md`.
 - History: code-complete since the fifth pass below. Batch `20261015-b` judged the row that kept it rejected:
   in the ENGLISH UI the strip reads `Tabs rect=984.0x36.0` with the six tabs at 112 / 132.1 / 133.8 / 112 /
   119.5 / 191.2 units — 820.6 plus the five 4-unit gaps against the page's 984 — and in Chinese 112 each, both
@@ -234,13 +232,13 @@ found four things, all fixed in the same round, plus findings it judged sound:
   per line, which is where the engine takes over again (flexible widths, alignment, sizes). That is the
   boundary of "the engine does the layout" in this tree: everything else is declared, measured or placed by
   uGUI.
-- **`TMP_Dropdown`'s own parenting is not visible from this tree.** The template is re-parented and given its
-  own canvas, sorting order and raycaster, and the open list is normalised every frame, so the outcome does
-  not depend on which of the two parents the library picks; which one it picks is still unverified here.
-- **The popup layer covers the window, not the screen.** A list longer than the window's own rect is not
-  clipped by the layer (it has no mask), but its position is computed by the game's own code from the
-  dropdown's rect, so a dropdown within a few units of the window's bottom edge may still open over the
-  frame's lower border — a cosmetic difference to watch in the run.
+- **`TMP_Dropdown`'s own parenting is the template's parent.** `Show` parents the list to
+  `m_Template.transform.parent` (`TMP_Dropdown.cs`), which is why the template sits on the layer: the list is
+  a child of the layer from the first frame.
+- **The popup layer covers the window, not the screen.** Superseded by the sixth pass, which made the layer
+  compute the list's position every frame from the field and the canvas: the list opens above the field when
+  the canvas has no room below it. What remains is that the layer has no mask, so a list longer than the canvas
+  still hangs past the frame's edge.
 - **The colour field's new rule is deliberate.** The box is never empty now: with the automatic colour it
   shows the resolved automatic hex, and the "current" line is what says `Auto`. Cleared text therefore means
   "give me the automatic colour", which is also what the Auto control does.
@@ -248,8 +246,8 @@ found four things, all fixed in the same round, plus findings it judged sound:
   dropdown added to the quick panel or the context menu would need the same treatment, and neither panel
   carries one today (the review's latent finding, kept as a limit rather than built for a case that does not
   exist).
-- **The drag clamp is not pinned.** It is a small recovery guard (a strip of the window always stays on the
-  canvas); no test holds its constant, and the felt behaviour is a run observation.
+- **The drag clamp is pinned now.** `OnlineUiWindowDragTests` holds the top edge (the title bar's own strip),
+  the bottom and both sides, and the rule's arithmetic; the felt behaviour is still a run observation.
 
 ## Second pass (2026-09-27): the tab strip's height and the title
 
@@ -466,6 +464,171 @@ What landed:
 - **Structure.** `OnlineUiWindowView.cs` is 497 lines against the 600-line ceiling, after the shared view
   machinery came out of it; the page's own row machinery is the next thing to cut if this file grows again, and
   the paired-controls ticket (which re-cuts the same rows) is the pass that will need it.
+
+## Sixth pass (2026-10-18): the two rejected rows
+
+Batch `20261018-t` read two defects on the deployed build; this pass found each one's cause and re-read the
+fix on the deployed build again, through the production code paths (one host client; the run's local
+artifacts are the `20261018-w` set named by `acceptance-artifacts-dir`).
+
+### Row 4 — the open list was a negative rect at the window's top edge
+
+The layer itself was right (sorting `30001`, its own raycaster, no masked ancestor), but the template it took
+over had been re-cut TWICE by CUO before the game's own dropdown code saw it:
+
+- `OnlineUiBoxGeometry.LayOutInterior` treated the template as one more container of the dropdown's box and
+  wrote the row's insets onto it (`offsetMin = (10, 10)`, `offsetMax = (−10, −10)`). The template is
+  top-anchored (both vertical anchors at `1`, a zero-height anchor span) with pivot `(0.5, 1)`, so that write
+  made it `−20` high; the same pass had already hidden its art and dropped its layout drivers, which the skip
+  now leaves alone as well.
+- The template's parent became the `1000 × 700` layer, where its anchors resolve against the window: the
+  batch read `sizeDelta=-20.0x-20.0 rect=980.0x-20.0` at the window's top edge.
+
+The template's rect is what `TMP_Dropdown.Show` starts the list from (`TMP_Dropdown.cs`, the `m_Template`
+block of `Show`): the clone inherits the template's anchors, pivot, position and height, and the game's own
+code only ever SHRINKS that height (`float num = rectTransform.rect.height - rectTransform2.rect.height;` —
+`if (num > 0f)`), so a negative authored height stayed negative. The fix is one ownership rule per writer:
+
+- **The box pass leaves the template alone** (`OnlineUiBoxGeometry.LayOutInterior`, both loops): a dropdown's
+  template is the list's factory, not part of the box the player sees. Its authored rect — the height a list
+  may take (`193.4` in the game's own reference) and the edge it opens at — is where `TMP_Dropdown` starts.
+- **The popup layer owns the template's rect and the open list's** (`OnlineUiDropdownPopup`): it captures the
+  authored height when it adopts the template, and every frame the window is applied it puts the template on
+  the field's bottom edge and the open list on the side of the field the canvas has room for — below normally,
+  above when below would leave the canvas and above would not (`OnlineUiDropdownPlacement.SideFor`, the same
+  question the game's own `FlipLayoutOnAxis` answers from world corners). The field is read from the live
+  `RectTransform` (world corners into the layer's space), so a dragged window, a scrolled page or a rebuilt
+  row carries the list with it. The layer tracks one template per dropdown, prunes it when the dropdown's row
+  is rebuilt (the layer, not the row, is its parent) and logs that at `Debug`; and it closes a second field's
+  list, because the game's own outside-click blocker sits one step below CUO's surface and would not swallow
+  the click that opens it.
+
+Live reading after the fix (Preferences, the language dropdown, a `150 × 36` field):
+
+- the template and the list are `150.0 × 193.4`, anchored at the field's bottom (`anchor 0.172, 0.431`,
+  pivot `0.5, 1`); the list's layer-local box is `x −403.0..−253.0, y −241.4..−48.0` against the field's
+  `y −48.0..−12.0` — under the field and exactly as wide;
+- the list opens below the field on the shipped canvas — the batch's own field has room for it (the worst
+  case on that canvas leaves 4.6 units to spare), and the reading above is that case;
+- the viewport keeps its `Mask` and the list its `ScrollRect` (content `150.0 × 760.1`), so the game's own
+  list still clips and scrolls;
+- the layer sorts at `30001`; the list is created with the template's `30000` and the next `Apply` normalises
+  it to `30001` (a read taken in the same eval as `Show()` sees `30000`; the frame captured after that frame
+  sees `30001`), while its alpha is still fading in;
+- choosing `English` through the item's own `Toggle` — the listener TMP wires to `OnSelectItem` — applied at
+  once: `value 1 → 0`, and the next frame's UI was English; selecting `简体中文` went back (`w-after-select.png`,
+  `w-final-zh.png`);
+- the log-level dropdown (7 options) opens the same way under its own field (field `y 86.0..122.0`, list
+  `y −107.4..86.0`), content `150.0 × 1010.1` with all seven items and the same mask and scroll.
+
+### Row 9 — the top clamp kept a strip of the FRAME, which at the top is the window's bottom
+
+The clamp was symmetric — `canvas/2 + window/2 − 48` on every side — so at the up clamp the 48 units that
+stayed inside were the window's bottom, and the title bar, the only surface a drag starts on, sat 411 screen
+pixels (616.5 canvas units) above the canvas. The rule is now a pure Runtime type (`OnlineUiWindowDrag`): the
+bottom and both sides keep `Reach = 48` units of the frame, while the top keeps the TITLE BAR
+(`min(Reach, TitleHeight)` of it), so the window may rise only until the bar would leave.
+`OnlineUiWindowDragHandler` reads the rule and keeps the IMGUI behaviour — the window simply follows — when
+there is no canvas to clamp against.
+
+Live reading on the batch's canvas (1920 × 1080 canvas units): right `1412`, left `−1412`, up `190`, down
+`−842`. At the up clamp the window's world box is `307,253..973,720` on the 1280 × 720 screen and the title
+bar `312,696..968,715` — wholly on the canvas; at the down clamp the title bar `312,8..968,27` is the strip
+that stays.
+
+### Pins and tests
+
+- `OnlineUiWindowDragTests` holds the rule: seven cases, run red before the fix (the extracted first-cut
+  arithmetic failed three of them), green after it — the top edge's exact value (`190` on the batch's canvas,
+  `16` on the clamped one) and the title bar's relation to `Reach` are pinned, not just the inequality.
+- `OnlineUiDropdownPlacementTests` (new) holds the side rule and the anchor arithmetic: below when it fits,
+  above when below does not and above does, below when neither side does, the exact fits, and a field dragged
+  outside the layer.
+- `OnlineUiPopupLayerPinTests` (new) is the popup family split out of `OnlineUiLayoutDetailPinTests` when its
+  own mutation rows took that class to 43 cases against the 40-case cap: eight mutation rows — a window with no
+  layer, the template left inside the page, a centred list, a zero-height list, a second list left open, the
+  prune left silent, the box pass stretching the template again, and the caption's room counting the
+  template's width.
+- `OnlineUiLayoutDetailPinTests` keeps the rest (11 facts + 23 mutation rows = 34 cases);
+  `OnlineUiWindowSurfacePinTests` re-anchored its drag pin on the rule the handler now reads.
+- The focused runs are green: `OnlineUiWindowDragTests` 7, `OnlineUiDropdownPlacementTests` 7,
+  `OnlineUiPopupLayerPinTests` 9, `OnlineUiWindowSurfacePinTests` 31 and `OnlineUiLayoutDetailPinTests` 34.
+
+### Self-check: mechanism × change × evidence
+
+| Mechanism | Change | Evidence |
+|---|---|---|
+| The dropdown's template rect (the list's factory) | The box pass skips it in both loops; the layer captures the prefab's authored height when it adopts it | `OnlineUiPopupLayerPinTests` (two mutation rows on the skip; the capture clause); live: template and list `150.0 × 193.4` |
+| The list's placement | The layer writes anchor, pivot and size every frame from the field's live box; the side is `OnlineUiDropdownPlacement.SideFor` | `OnlineUiDropdownPlacementTests` (7 cases), the popup pin's pivot and size rows; live: list under the field (`w-popup2.json`) |
+| The list's sorting | The layer sorts at `30001`; the open list is normalised to it on every `Apply` | The popup pin's sorting and normalise clauses; live: `listCanvas=30001` after the next `Apply` |
+| The template's lifetime | One template per dropdown; pruned with a `Debug` line when its row is rebuilt | The popup pin's prune-log clause and its mutation row |
+| A second field's list | The layer closes every open list but the newest | The popup pin's `Hide()` clause and its mutation row |
+| The window's drag clamp | A pure Runtime rule: `Reach` of the frame on the bottom and sides, the title bar's own strip at the top | `OnlineUiWindowDragTests` (7 cases, red before the fix — 3 of 5 old ones failed); live: up `190`, down `−842` |
+| The drag's application | The handler reads the rule and keeps the IMGUI follow where there is no canvas | `OnlineUiWindowSurfacePinTests.TheTitleBarDragsTheWindow`, re-anchored |
+| The build and the suite | — | `dotnet build` exit 0; `dotnet format` exit 0; `dotnet test CasualtiesUnknownOnline.slnx` 5861 behavioural + 741 normative, all green (`full2.log`) |
+
+### Limits (this pass)
+
+- **A field with room on neither side keeps its list below.** The list flips above only when the canvas has
+  room above it; a field boxed in by the canvas (a canvas shorter than twice the list plus the field) keeps
+  the list below, with its first option at the field and the rest past the canvas's edge. The layer has no
+  mask, so a list longer than the canvas is not clipped by it either.
+- **No OS pointer and no OS drag.** The option choice was driven through the item's own `Toggle` (TMP's
+  production listener) and the drag through the production `OnlineUiWindowDragHandler.OnDrag` with a
+  synthetic delta — the same limits batch `20261018-t` recorded.
+- **One host, one window.** The two rows are window-only; no member view is involved, and no session was
+  needed for them.
+
+## Review dispositions (2026-10-18)
+
+The independent adversarial review (fresh context, frozen tree) found two blockers, one major, twelve minors
+and three nits; all were fixed or answered in the same commit as this section, and each is recorded here with
+the code it cites.
+
+- **B1 — the test-class size gate.** `TestClassSizeGateTests` read `OnlineUiLayoutDetailPinTests` at 43 cases
+  (HEAD was exactly 40; the three new popup mutation rows took it over). Fixed by the split the gate asks for:
+  the popup fact and its rows moved to `OnlineUiPopupLayerPinTests`, and the class now holds 34 cases.
+- **B2 — six dangling backlog references.** The move to `review/` left `docs/backlog/todo/...` in
+  `docs/acceptance/lessons.md`, `docs/backlog/review/offscreen-arrow-label-clipping.md`,
+  `docs/evidence/acceptance/20261014-a-scope.md`, `20261015-a-scope.md`, `20261015-b-scope.md` and
+  `20261018-t-scope.md`; all six now point at `docs/backlog/review/online-ui-layout-and-input-detail-pass.md`,
+  and `BacklogReferenceGateTests` is green.
+- **M1 — the list only opened downward, cancelling the game's own flip.** The layer now answers the same
+  question the game does (`RectTransformUtility.FlipLayoutOnAxis` on a world corner that leaves the canvas,
+  `TMP_Dropdown.cs`): `OnlineUiDropdownPlacement.SideFor(listHeight, roomBelow, roomAbove)` opens the list
+  above the field when below has no room and above does. The "always opens downward" limit is retired; the
+  remaining limit is the field with room on neither side.
+- **m1 — `411 units` was screen pixels.** The ticket and the `OnlineUiWindowDrag` doc now say 411 screen pixels
+  (616.5 canvas units).
+- **m2 — `listCanvas=30001` on the first frame was contradicted by the same-eval reads.** Corrected: the list
+  is created at `30000` and normalised on the next `Apply`.
+- **m3 — "zero-height pivot" misnamed the mechanism.** Corrected to "both vertical anchors at 1 (a zero-height
+  anchor span), pivot `(0.5, 1)`".
+- **m4 — the earlier popup limit's cause was stale.** Its sentence said the game's own code computes the
+  position; the sixth pass computes it, and the old limit now says so (superseded) and keeps only the true
+  part (no mask on the layer).
+- **m5 — "on every page switch" over-claimed.** The six inactive templates are per rebuilt dropdown, not per
+  page switch.
+- **m6 — the causality was inverted.** The layer is the template's parent, so the row's destruction no longer
+  takes it; `NormaliseAdopted`'s prune does, and it now logs at `Debug`.
+- **m7 — the first box-pass loop's guard was unpinned.** `part != template` now has its own mutation row in
+  `OnlineUiPopupLayerPinTests`.
+- **m8 — the drag tests did not pin the rule.** `TheTopClampIsTheWindowsTopEdge` asserts the exact `190` and
+  `16`, and `TheTitleBarIsWithinTheReach` states the relation the `min` branch assumes.
+- **m9 — the popup's arithmetic was pinned only by spelling.** It is now the pure Runtime rule
+  `OnlineUiDropdownPlacement` with its own tests.
+- **m10 — the prune branch was unobservable.** `NormaliseAdopted` logs
+  `"Online UI window: the popup layer dropped the template of a dropdown whose row was rebuilt."` at `Debug`,
+  and a mutation row holds the line.
+- **m11 — the live reading cited no build identity.** It is the tree's build output deployed as
+  `0.1.0+6065f67a05497f62f80fa937787ff93a82534309-dirty` (`verify-deploy.ps1` exit 0 in the run's
+  `verify1.log`); the committed artifact is verified after the commit and the batch names it.
+- **m12 — two open lists could be misplaced.** The layer now closes every open list but the newest
+  (`adopted.Dropdown.Hide()`), which is what the game's own blocker would have done one step higher; a
+  mutation row holds it.
+- **Nits.** The zero-height mutation's wording now says the batch's negative rect is the degenerate form; the
+  duplicated `canvas.overrideSorting` clause is pre-existing and left alone; the cause section now names the
+  template's art and layout drivers, which the same skip covers.
 
 ## Non-goals
 

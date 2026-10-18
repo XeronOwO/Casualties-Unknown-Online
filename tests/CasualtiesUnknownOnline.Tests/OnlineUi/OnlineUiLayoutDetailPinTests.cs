@@ -10,8 +10,9 @@ namespace CasualtiesUnknownOnline.Tests.OnlineUi;
 /// The Online UI's layout and pointer detail (ticket online-ui-layout-and-input-detail-pass): the shell's
 /// bands come from the Runtime's own arithmetic, every control of a page is the same compact height, a label is
 /// as tall as its wrapped text, the frame keeps the game's border, the inside of one of the game's rows is CUO's
-/// geometry, an open dropdown's list rides the window's own popup layer, and a control the game's prefab left
-/// unclickable is given a pointer surface and REPORTED.
+/// geometry, and a control the game's prefab left unclickable is given a pointer surface and REPORTED. The
+/// popup layer that carries an open dropdown's list is its own family,
+/// <see cref="OnlineUiPopupLayerPinTests"/>.
 ///
 /// <para>
 /// These are the user's acceptance findings of 2026-09-27 written as pins, each with a mutation of the real
@@ -83,12 +84,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 			"the window and the two panels each carried their own copy of the same three construction helpers, byte for byte (the cycle of 2026-10-15 found them): one place builds them, so a fix cannot land on one surface and miss its sibling");
 
 	[Fact]
-	public void AnOpenDropdownListRidesTheWindowsPopupLayer() =>
-		Assert.True(
-			ThePopupLayerCarriesTheLists(Adapter("OnlineUiWindowView.cs"), Adapter("OnlineUiDropdownPopup.cs"), Adapter("OnlineUiControlView.cs")),
-			"an open dropdown's options are the user's report: a list built inside the page is clipped by the page's mask and drawn under the rows after it, so the templates must live on the window's popup layer, sorted above CUO's own canvas");
-
-	[Fact]
 	public void AControlWithNoPointerSurfaceIsGivenOneAndReported() =>
 		Assert.True(
 			PointerSurfacesAreEnsured(Adapter("OnlineUiControlView.cs"), Adapter("OnlineUiRowGeometry.cs"), Adapter("OnlineUiViewSource.cs")),
@@ -131,8 +126,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiSurfaceParts.cs", "text.font = typography.Font;", "// the game's own font is not applied", "a label construction that leaves the game's own font unapplied" },
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiWindowView.cs", "private static void DeclareBandHeight(RectTransform band, float height)", "private static void Stretch(RectTransform rect, float left, float right, float top, float bottom) { } private static void DeclareBandHeight(RectTransform band, float height)", "a surface that grows its own copy of a shared part again, which is how the window and the panels drifted apart" },
 		{ nameof(TheSurfacesBuildTheirPartsInOnePlace), "adapter/OnlineUiWorldOverlayParts.cs", "var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", "var text = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();", "a label built by hand beside the one construction the surfaces share" },
-		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiWindowView.cs", "var popup = OnlineUiDropdownPopup.Create(rect, OnlineUiSurfaceHost.SortingOrder);", "var popup = null!;", "a window with no popup layer for its dropdowns" },
-		{ nameof(AnOpenDropdownListRidesTheWindowsPopupLayer), "adapter/OnlineUiDropdownPopup.cs", "template.SetParent(_layer, worldPositionStays: false);", "// the template stays inside the page", "a list instantiated inside the page's mask again" },
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiControlView.cs", "pointerFixed = OnlineUiRowGeometry.EnsurePointerSurface(control.gameObject);", "pointerFixed = false;", "a field left without a pointer surface" },
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiRowGeometry.cs", "graphic.raycastTarget = true;", "graphic.raycastTarget = false;", "a pointer surface that still refuses the raycast" },
 		{ nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported), "adapter/OnlineUiViewSource.cs", "view.FixedPointerSurface && _reportedPointerFixes.Add(element.Kind)", "view.FixedPointerSurface", "a control the game left unclickable that nobody was told about" },
@@ -189,10 +182,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 				: Is(broken, "internal sealed class OnlineUiWorldOverlayView")
 					? broken + Adapter("OnlineUiWorldOverlayParts.cs")
 					: Adapter("OnlineUiWorldOverlayView.cs") + Adapter("OnlineUiWorldOverlayParts.cs")),
-		nameof(AnOpenDropdownListRidesTheWindowsPopupLayer) => broken => ThePopupLayerCarriesTheLists(
-			Is(broken, "internal sealed class OnlineUiDropdownPopup") ? Adapter("OnlineUiWindowView.cs") : broken,
-			Is(broken, "internal sealed class OnlineUiDropdownPopup") ? broken : Adapter("OnlineUiDropdownPopup.cs"),
-			Adapter("OnlineUiControlView.cs")),
 		nameof(AControlWithNoPointerSurfaceIsGivenOneAndReported) => broken => PointerSurfacesAreEnsured(
 			Is(broken, "internal sealed class OnlineUiControlView") ? broken : Adapter("OnlineUiControlView.cs"),
 			Is(broken, "internal static class OnlineUiRowGeometry") ? broken : Adapter("OnlineUiRowGeometry.cs"),
@@ -344,23 +333,6 @@ public sealed class OnlineUiLayoutDetailPinTests
 			&& !Flatten(panelSource).Contains("private static RectTransform CreateRect(", StringComparison.Ordinal)
 			&& !Flatten(panelSource).Contains("private static void Stretch(", StringComparison.Ordinal)
 			&& Flatten(overlaySource).Contains("var text = OnlineUiSurfaceParts.CreateLabel(name, parent, typography, OnlineUiTextStyle.Muted);", StringComparison.Ordinal);
-	}
-
-	/// <summary>The window owns a popup layer, every dropdown hands its template to it, the layer sorts above
-	/// CUO's own canvas and its list is normalised every frame the window is applied.</summary>
-	private static bool ThePopupLayerCarriesTheLists(string windowSource, string popupSource, string controlSource)
-	{
-		var window = Flatten(windowSource);
-		var popup = Flatten(popupSource);
-
-		return window.Contains("var popup = OnlineUiDropdownPopup.Create(rect, OnlineUiSurfaceHost.SortingOrder);", StringComparison.Ordinal)
-			&& window.Contains("view.AdoptPopup(_popup);", StringComparison.Ordinal)
-			&& window.Contains("_popup.Normalise();", StringComparison.Ordinal)
-			&& popup.Contains("canvas.overrideSorting = true;", StringComparison.Ordinal)
-			&& popup.Contains("canvas.sortingOrder = surfaceSortingOrder + 1;", StringComparison.Ordinal)
-			&& popup.Contains("canvas.overrideSorting = true;", StringComparison.Ordinal)
-			&& popup.Contains("template.SetParent(_layer, worldPositionStays: false);", StringComparison.Ordinal)
-			&& Flatten(controlSource).Contains("popup.Adopt(_dropdown);", StringComparison.Ordinal);
 	}
 
 	/// <summary>A dropdown or a field is given a pointer surface when the game's row left it without one, and

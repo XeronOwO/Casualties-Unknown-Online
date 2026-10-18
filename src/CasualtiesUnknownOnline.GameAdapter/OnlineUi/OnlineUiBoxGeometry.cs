@@ -77,12 +77,19 @@ internal static class OnlineUiBoxGeometry
 		var interior = OnlineUiControlBox.InteriorWidth(controlWidth, InnerPadding);
 		ApplyBoxStyle(control);
 
+		// A dropdown's TEMPLATE is not part of the box the player sees: it is the object the game's own
+		// dropdown instantiates its option list from, and its authored rect is where that code starts from —
+		// the list's own maximum height and the edge it opens at. Writing the box's insets onto it made the
+		// list a negative-height rect at the window's top edge (batch `20261018-t`); the popup layer owns its
+		// rect instead (<see cref="OnlineUiDropdownPopup"/>).
+		var template = control.GetComponent<TMP_Dropdown>()?.template;
+
 		// The room a caption keeps clear of: read BEFORE anything is re-placed, because that is where the
 		// game's own prefab still says how wide the art and the boxes beside it were authored to be.
 		var captionRoom = interior;
 		for (var index = 0; index < control.childCount; index++)
 		{
-			if (control.GetChild(index) is RectTransform part && IsContainer(part))
+			if (control.GetChild(index) is RectTransform part && part != template && IsContainer(part))
 			{
 				captionRoom = Mathf.Max(0f, captionRoom - Mathf.Min(AuthoredWidthOf(part), interior));
 			}
@@ -90,7 +97,7 @@ internal static class OnlineUiBoxGeometry
 
 		for (var index = 0; index < control.childCount; index++)
 		{
-			if (control.GetChild(index) is not RectTransform child)
+			if (control.GetChild(index) is not RectTransform child || child == template)
 			{
 				continue;
 			}

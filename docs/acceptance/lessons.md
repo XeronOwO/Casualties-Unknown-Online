@@ -483,7 +483,7 @@ The UI tickets' rows read "Any page" and "an English page", while the batches th
 
 ## 2026-10-15 — A size read from the container it is shared among agrees with itself
 
-A layout rule that asks a CONTAINER for the size of the control inside it measures the box by itself — the container's preferred width is its children summed, so the value the rule is about to write is already in it, and a band budgeted from its own rect is as wide as the children's minimums the sharing rule just wrote; both self-measurements agree with themselves, and the fixed point looks settled in every probe reading. Read the object the size describes, once, before anything writes it, and read the container BESIDE the band, exercising the share by narrowing the window — `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md`, `docs/backlog/todo/online-ui-layout-and-input-detail-pass.md`.
+A layout rule that asks a CONTAINER for the size of the control inside it measures the box by itself — the container's preferred width is its children summed, so the value the rule is about to write is already in it, and a band budgeted from its own rect is as wide as the children's minimums the sharing rule just wrote; both self-measurements agree with themselves, and the fixed point looks settled in every probe reading. Read the object the size describes, once, before anything writes it, and read the container BESIDE the band, exercising the share by narrowing the window — `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md`, `docs/backlog/review/online-ui-layout-and-input-detail-pass.md`.
 
 ## 2026-10-16 — "None here" from a probe grid is a claim about the GRID
 

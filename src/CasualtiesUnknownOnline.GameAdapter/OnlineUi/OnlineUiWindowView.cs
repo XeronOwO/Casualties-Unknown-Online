@@ -259,7 +259,7 @@ internal sealed class OnlineUiWindowView
 
 		// An open dropdown's list is an overlay: the layer takes the game's templates out of the page's mask
 		// and layout, and sorts above CUO's own canvas, so the options are visible and clickable (S3).
-		var popup = OnlineUiDropdownPopup.Create(rect, OnlineUiSurfaceHost.SortingOrder);
+		var popup = OnlineUiDropdownPopup.Create(rect, OnlineUiSurfaceHost.SortingOrder, log);
 
 		var view = new OnlineUiWindowView(
 			log,

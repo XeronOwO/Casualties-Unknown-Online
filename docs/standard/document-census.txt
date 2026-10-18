@@ -177,6 +177,7 @@ docs/backlog/done/state-stream-bandwidth-reduction.md | keep | attribution | doc
 docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md | keep | attribution | docs/backlog/README.md
 docs/backlog/done/systemic-save-backup-management.md | keep | attribution | docs/backlog/README.md
 docs/backlog/done/test-suite-parallelization.md | keep | attribution | docs/backlog/README.md
+docs/backlog/done/test-suite-wall-clock.md | keep | attribution | docs/backlog/README.md
 docs/backlog/done/trap-action-divergence-hardening.md | keep | attribution | docs/backlog/README.md
 docs/backlog/done/trap-destruction-drop-quantity-desync.md | keep | attribution | docs/backlog/README.md
 docs/backlog/done/trap-layout-entry-snapshot-staleness.md | keep | attribution | docs/backlog/README.md
@@ -301,7 +302,6 @@ docs/backlog/done/item-census-own-instance-id.md | keep | index | docs/backlog/R
 docs/backlog/todo/health-simulation-and-host-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/done/validation-and-source-checks.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/test-suite-wall-clock.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-change-member-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/review/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md

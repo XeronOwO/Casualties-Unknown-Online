@@ -1,6 +1,8 @@
 # The full behavioural suite takes four minutes — measure it and cut the wall clock
 
-- Status: Todo — filed 2026-10-18 from the user's observation while landing the `/summon` verb.
+- Status: Done — measured 2026-10-18: the four-minute sample is a host outlier on a deliberate serial
+  tail, the normal cost is 76–97 s of vstest duration, and no case or class changed. Result below;
+  the measurement is §10 of `docs/evidence/test-parallelization.md`.
 - Priority: Medium
 - Category: Engineering / test feedback loop
 - Source: the user, 2026-10-18: the full `dotnet test` run took **4 m 05 s** ("整整跑了 4 分钟？落个优化票"). The same
@@ -85,3 +87,28 @@
 - Not a comparison across thread settings: summed test time is a wall-clock metric and inflates with concurrency
   (`test-parallelization.md` §2/§7.5), so only medians at a fixed setting are comparable.
 - Not the gate project's own cost unless the measurement says it matters.
+
+## Result (2026-10-18)
+
+**What the measurement found.** The suite's normal cost on the delivered tree is 76 s of vstest
+duration / 82.7 s of process wall clock for 5 798 cases, and the 4 m 05 s sample is the outlier, not
+the norm. The run's shape is 5 798 cases in a 38.6 s parallel phase, then `DriverToolTests` — 38
+cases, 43 PowerShell launches, 49 s serial, in a `DisableParallelization` collection whose isolation
+exists because a loaded suite misread slow process starts as unreachable endpoints. That class owns
+the run's last 37.6 s. The 148 s excess over the 1 m 37 s run is bounded by that amplifier: +3.4 s
+per process launch, or an equivalent host-wide stall; no per-test record exists for that session, so
+the trigger is named as unknown rather than guessed. The fast tier is 3 514 cases / 16.2 s (the
+2026-09-22 figure was 2 097 / 17 s); the tagged tier is 2 284 / 77.1 s and carries the whole serial
+tail. The decision is no change: splitting the class cannot help while it is in a non-parallel
+collection, and the levers that could shrink it change the harness or the driver's fail-fast
+contract, which the non-goals above exclude.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 1 | pass | §10.1 mines the three logs' columns (cases, gate project, vstest duration) and shows they cannot separate test slowdown from scheduling; §10.2 is the one TRX run they justified |
+| 2 | pass, bounded | §10.3: the amplifier is the 43-launch isolated class; the trigger is not attributable without per-test data, and the planning rule is stated instead |
+| 3 | pass, in the plan's single-run form | §10.2's table; commit `8cba2d0a` replaced three-run medians with one run for the table and reserved medians for an A/B, and this outcome has no A/B to serve |
+| 4 | pass | §10.4: 3 514 / 16.2 s fast, 2 284 / 77.1 s tagged, 307 tagged classes, replacing the 2026-09-22 figures |
+| 5 | pass | §10.5: no change, with the numbers that make the four-minute sample a host event |
+| 6 | not applicable | no code or test change; the suite is still 5 798 cases and 695 gates |
+

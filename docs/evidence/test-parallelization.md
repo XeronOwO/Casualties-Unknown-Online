@@ -3,7 +3,8 @@
 Scope: how `CasualtiesUnknownOnline.Tests` (xUnit v2.9.3, net48) parallelizes, the
 measured baseline, the process-global hazards parallel execution exposes, and the
 reproducible way to re-measure. Ticket:
-`docs/backlog/done/test-suite-parallelization.md`.
+`docs/backlog/done/test-suite-parallelization.md`. §10 is the 2026-10-18 re-measurement that closed
+`docs/backlog/done/test-suite-wall-clock.md`.
 
 ## 1. The parallel model
 
@@ -357,7 +358,8 @@ the patch-bridge port change; the earlier same-day plugin-host-shell measurement
 fast and 1 694 / 37 s tagged, and the
 2026-09-17 figures were 1 291 / 14.5 s and 1 306 tagged). Both include
 test-host startup and discovery. The full suite remains the default; the trait is
-metadata only and does not change test semantics.
+metadata only and does not change test semantics. Re-measured 2026-10-18 on the 5 798-case suite:
+3 514 fast cases in 16.2 s and 2 284 tagged in 77.1 s — §10.4.
 
 ### 9.2 Anti-rot gate for the long pole
 
@@ -419,3 +421,118 @@ caps future growth at 40 cases.
 2 595 → **2 597**: +2 anti-rot gate facts (`NoTestClass_ExceedsTheCaseLimit` and
 `CaseCounting_SeesMemberDataRowsAndFlagsTheLimit`). No pre-existing case,
 assertion or data row changed; the `Integration` attributes are metadata only.
+
+## 10. 2026-10-18 re-measurement — the four-minute run, the long pole and the tiers
+
+`docs/backlog/done/test-suite-wall-clock.md` was filed on a 4 m 05 s full run and closed on the
+measurement below: the four minutes is a host outlier, the suite's normal cost is 76–97 s of vstest
+duration, and its shape ends in one deliberate serial block. This section supersedes §9.1's tier
+figures (§10.4); §2's method governs throughout.
+
+### 10.1 What the three existing runs said, and what they could not
+
+| Run | Suite cases | Gate project | vstest duration |
+|---|---:|---:|---:|
+| `.acceptance/test-full-1.log` | 5 790 | 695, 5 red, 12 s | 1 m 31 s |
+| `.acceptance/test-full-2.log` | 5 790 | 695, 1 red, 11 s | 1 m 37 s |
+| `.acceptance/test-full-3.log` | 5 798 | 695, 2 red, 11 s | 4 m 05 s |
+
+The column is the runner's own duration — test execution, not shell overhead — so the 4 m 05 s was
+already a test-side number. The logs hold no per-class or summed data, so they cannot separate "the
+tests got slower" from "the schedule stalled". The tree delta between the last two runs is +8 cases
+(the `/summon` rename); the whole `/summon` surface is 56 cases and 3.7 s summed (§10.2), so it
+cannot account for 148 s. That is the branch the ticket allowed one TRX run for.
+
+### 10.2 One TRX run on the delivered tree
+
+2026-10-18 08:47, tree `8cba2d0a` (the deployed build), 18 logical processors (`1x` = 18), Debug,
+`--no-build`:
+
+```bash
+dotnet test tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.csproj \
+  -c Debug --no-build --logger "trx;LogFileName=wallclock-1.trx" \
+  --results-directory TestResults/wallclock-1
+```
+
+| Metric | Value |
+|---|---:|
+| Cases / classes | 5 798 / 637, every case passed |
+| vstest duration | 76 s |
+| Process wall clock | 82.7 s |
+| Test timeline span | 76.2 s |
+| Summed test time | 425.4 s |
+| Summed / wall | 5.1x |
+| Concurrency | 9.7 average over the parallel phase, 17 peak of 18 workers |
+
+5 798 cases finish the parallel phase at +38.6 s. `DriverToolTests` — 38 cases that make 43
+`powershell.exe` launches, 49.2 s summed and 48.9 s in a filtered run of the class alone (53 s
+process wall) — then owns the end of the run: its last 37.6 s have no other test in flight. The
+reason it is serial is in its collection definition, `ToolProcessCollection.cs`: the driver carries
+its own connect and eval budgets, and a loaded suite's slow PowerShell start is read as an
+unreachable endpoint (three full-suite runs failed with exit 3 before the collection was isolated).
+
+Per-class table — one run, so it ranks and does not compare (§2: ±20 % per class between runs; the
+ticket spends three-run medians only on an A/B):
+
+| Class | Cases | Summed | Max case | Why it is slow |
+|---|---:|---:|---:|---|
+| `DriverToolTests` | 38 | 49.19 s | 4.12 s | 43 PowerShell launches, one per case, in a non-parallel collection |
+| `PreflightToolTests` | 11 | 17.06 s | 2.15 s | one PowerShell launch per case (parallel) |
+| `SessionEnvironmentTests` | 9 | 10.46 s | 1.22 s | one PowerShell launch per case (parallel) |
+| `SessionControlConvergenceTests` | 9 | 8.49 s | 2.51 s | full-stack node pair plus tick-driven retries, serial inside the class |
+| `CompareItemTraceMatchModeTests` | 4 | 6.95 s | 2.29 s | PowerShell harness per case |
+| `OnlineUiConsolePageRemovalPinTests` | 21 | 5.96 s | 2.26 s | reads and regex-scans the plugin sources per case |
+| `EntryRepairConvergenceTests` | 5 | 5.83 s | 2.79 s | full-stack node pair per case |
+| `CompareItemTraceInputTests` | 3 | 5.80 s | 2.40 s | PowerShell harness per case |
+| `GuestCommandReconciliationTests` | 19 | 5.70 s | 0.68 s | full-stack session per case |
+| `WorldSnapshotWorldFactsTests` | 39 | 4.85 s | 0.27 s | save-archive encode/decode per case |
+
+The top ten carry 120.3 s of the 425.4 s summed time (28 %); the other 627 classes average 0.49 s.
+
+### 10.3 The four minutes, bounded
+
+- The same tree measured 1 m 31 s, 1 m 37 s and 4 m 05 s. The 148 s excess is the page's only
+  unexplained number, and the only part of the suite whose cost is wall-clock-bound rather than
+  CPU-bound is the isolated class: 43 sequential process launches at ~1.1 s each on an idle host.
+  Spread over those launches, the excess is +3.4 s per launch; a host-wide stall of the same
+  duration produces the same total.
+- The direction is not speculative: the collection's own definition records the same calls turning
+  into exit-3 "unreachable endpoint" failures under a loaded suite, i.e. process-start latency on
+  this host has already been observed to move by seconds.
+- No per-test record survives from that session, so the trigger (an antivirus scan, another
+  process, thermal state) cannot be named from evidence. The amplifier and its size can.
+
+Planning rule for the commit gate: the full run is 76–97 s of vstest duration on this host (process
+wall about 7 s more); a run above twice that band is a host event — re-run it once on an idle host
+before opening a defect — and absolute wall clock is never compared across windows (§2).
+
+### 10.4 The tier split, re-measured (replaces §9.1's 2026-09-22 figures)
+
+Single run each, same tree, `--no-build`, after the TRX run, with §9.1's commands:
+
+| Tier | Cases | Wall clock | vstest duration | 2026-09-22 figures |
+|---|---:|---:|---:|---|
+| `Category!=Integration` | 3 514 | 16.2 s | 10 s | 2 097 cases / 17 s |
+| `Category=Integration` | 2 284 | 77.1 s | 72 s | 1 698 cases / 31 s |
+| Tagged classes | 307 | — | — | 261 |
+
+The fast loop grew 68 % in cases and stayed at ~16 s wall — the parallel phase absorbs growth. The
+tagged tier grew 35 % in cases and 2.5x in wall clock, and 37.6 s of its 77.1 s is the isolated tail
+above: the tagged subset is the full run minus the fast work, so it carries the whole tail.
+
+### 10.5 Decision
+
+No code or test change; the ticket closes with this measurement as its result.
+
+- The four-minute premise does not hold: the same tree's normal cost is 76 s of vstest duration /
+  82.7 s wall.
+- The long pole is one class (49.2 s summed, 37.6 s of it alone at the end), but splitting it cannot
+  help: xUnit runs every class in a `DisableParallelization` collection serially and apart from the
+  rest, so the same 38 cases would remain one serial block.
+- The levers that would shrink it — running the collection in parallel, raising the driver's
+  budgets, batching its 43 launches into fewer processes — change the harness or the driver's
+  fail-fast contract, which the ticket's non-goals exclude; the isolation exists because three
+  full-suite runs proved the failure mode.
+- The thread cap is not the constraint: 17 of 18 workers at peak, 5.1x summed/wall, and §9.3's A/B
+  already settled `1x`.
+- No case, class or assertion changed; the suite is still 5 798 cases with the same behaviour.

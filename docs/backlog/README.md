@@ -71,7 +71,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The loading screen says what it waits for](todo/loading-screen-progress-detail.md) — **Low-Medium** — reuse the game's own line.
 - [Single-file package for the core plugin](todo/single-file-plugin-package.md) — **Low-Medium** — extensions stay separate.
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
-- [The full test suite takes four minutes](todo/test-suite-wall-clock.md) — **Medium** — measure, then cut the wall clock.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 ### In progress
 
@@ -187,6 +186,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [The full test suite takes four minutes](done/test-suite-wall-clock.md) — **Medium** — the measured two phases and the host bound behind a slow run.
 - [The `/give` command](done/give-item-to-a-player-command.md) — **Medium-High** — the SNBT give and the destination ladder; all twelve rows accepted.
 - [The item state language](done/snbt-state-language.md) — **High** — decision 264's SNBT parser, paths and completion; accepted by batch `20261018-q`.
 - [Mod content ceiling](done/mod-content-ceiling.md) — **High** — the platform inventory: every stage cut, Part 3.C parked.

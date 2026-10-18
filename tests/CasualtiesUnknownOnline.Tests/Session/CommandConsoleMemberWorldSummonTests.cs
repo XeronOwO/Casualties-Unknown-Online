@@ -243,12 +243,118 @@ public class CommandConsoleMemberWorldSummonTests
 	}
 
 	/// <summary>
+	/// The host judges its own switch for every request, and the member's front end cannot stand in for it when the
+	/// announcement is stale: the member still holds the open value, sends, and the host's sentence is what lands
+	/// on its console. The rules announcement is swallowed here so the two values really disagree.
+	/// </summary>
+	[Fact]
+	public void ARequestWhileTheHostSwitchIsClosed_IsRefusedByTheHost()
+	{
+		var (host, guest, summons) = CreateMemberSummonSession(
+			switchOpen: true, grant: true, swallowHostToGuest: NetMsg.HostRules);
+		var rules = (MutableOptionsMonitor<HostRulesOptions>)host.Services.GetRequiredService<IOptionsMonitor<HostRulesOptions>>();
+		rules.Set(new HostRulesOptions { AllowMemberCheatVerbs = false });
+
+		var answer = Run(guest, "/summon beartrap player");
+
+		Assert.Contains("the host's cheat switch (AllowMemberCheatVerbs) is off", answer);
+		Assert.Empty(summons.Host.Attempts);
+		Assert.Equal(0, Registry(host).Count);
+	}
+
+	/// <summary>
+	/// The state bound is checked on the host too: a hand-crafted request can carry a longer text than the console's
+	/// parser would ever send, and the host answers it by name instead of parsing kilometres of SNBT.
+	/// </summary>
+	[Fact]
+	public void ARequestWithAnOverlongState_IsRefusedByTheHost()
+	{
+		var (host, guest, summons) = CreateMemberSummonSession(switchOpen: true, grant: true);
+		var console = guest.Services.GetRequiredService<ICommandControl>();
+
+		guest.Services.GetRequiredService<PacketSender>().Send(host.SteamId, NetMsg.WorldSummonRequest, new WorldSummonRequestMsg
+		{
+			PrefabId = "bandage",
+			Kind = WorldSummonKind.Item,
+			State = new string('x', ItemStateText.MaxLength + 1),
+			X = 1f,
+			Y = 2f,
+		});
+		host.Update();
+		guest.Update();
+
+		Assert.Empty(summons.Host.Attempts);
+		Assert.True(
+			console.Lines.Any(line => line.Text.Contains("character(s) of state", StringComparison.Ordinal)),
+			"guest lines: " + string.Join(" | ", console.Lines.Select(line => line.Text)));
+	}
+
+	/// <summary>
+	/// The host can leave the world while the session and its console stay alive. A request that arrives then is a
+	/// refusal like any other — answered, never silently dropped — because a swallowed request is indistinguishable
+	/// from a lost one where the operator typed the verb.
+	/// </summary>
+	[Fact]
+	public void ARequestWhileTheHostIsNotInAWorld_IsRefusedAndAnswered()
+	{
+		var (host, guest, summons) = CreateMemberSummonSession(switchOpen: true, grant: true);
+		var console = guest.Services.GetRequiredService<ICommandControl>();
+		host.Session.ReportSceneState(SceneStateType.InMenu, "SampleScene");
+		Assert.False(host.Session.LocalInWorld);
+
+		guest.Services.GetRequiredService<PacketSender>().Send(host.SteamId, NetMsg.WorldSummonRequest, new WorldSummonRequestMsg
+		{
+			PrefabId = "beartrap",
+			Kind = WorldSummonKind.Entity,
+			X = 1f,
+			Y = 2f,
+		});
+		host.Update();
+		guest.Update();
+
+		Assert.Empty(summons.Host.Attempts);
+		Assert.True(
+			console.Lines.Any(line => line.Text.Contains("this host is not in a world", StringComparison.Ordinal)),
+			"guest lines: " + string.Join(" | ", console.Lines.Select(line => line.Text)));
+	}
+
+	/// <summary>
+	/// The point is a claim, so the host checks it as DATA: a hand-crafted frame bypasses the console's parser, and a
+	/// NaN or an infinity would be written into every position derived from the creation. Refused by name, created
+	/// nothing.
+	/// </summary>
+	[Theory]
+	[InlineData(float.NaN, 1f)]
+	[InlineData(1f, float.PositiveInfinity)]
+	public void ARequestWithANonFinitePoint_IsRefusedByTheHost(float x, float y)
+	{
+		var (host, guest, summons) = CreateMemberSummonSession(switchOpen: true, grant: true);
+		var console = guest.Services.GetRequiredService<ICommandControl>();
+
+		guest.Services.GetRequiredService<PacketSender>().Send(host.SteamId, NetMsg.WorldSummonRequest, new WorldSummonRequestMsg
+		{
+			PrefabId = "beartrap",
+			Kind = WorldSummonKind.Entity,
+			X = x,
+			Y = y,
+		});
+		host.Update();
+		guest.Update();
+
+		Assert.Empty(summons.Host.Attempts);
+		Assert.True(
+			console.Lines.Any(line => line.Text.Contains("not a finite point", StringComparison.Ordinal)),
+			"guest lines: " + string.Join(" | ", console.Lines.Select(line => line.Text)));
+	}
+
+	/// <summary>
 	/// A member's console case needs the switch OPEN as the host's own configuration (announced to the member on
 	/// the handshake), the roster granted only when the case is about the WHO half, and one scene seam per node:
-	/// the member resolves the position, the host creates.
+	/// the member resolves the position, the host creates. A case that needs the two sides to DISAGREE about the
+	/// announced rules swallows that announcement instead of weakening the check.
 	/// </summary>
 	private static (TestNode Host, TestNode Guest, (FakeWorldSummon Host, FakeWorldSummon Member) Summons) CreateMemberSummonSession(
-		bool switchOpen, bool grant, bool announceRoster = true)
+		bool switchOpen, bool grant, bool announceRoster = true, NetMsg? swallowHostToGuest = null)
 	{
 		var rules = new MutableOptionsMonitor<HostRulesOptions>(
 			new HostRulesOptions { AllowMemberCheatVerbs = switchOpen });
@@ -261,7 +367,7 @@ public class CommandConsoleMemberWorldSummonTests
 					p.GetRequiredService<ISessionControl>())));
 				services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules));
 			},
-			swallowHostToGuest: announceRoster ? null : NetMsg.CheatPermissions);
+			swallowHostToGuest: swallowHostToGuest ?? (announceRoster ? null : NetMsg.CheatPermissions));
 
 		if (grant)
 		{

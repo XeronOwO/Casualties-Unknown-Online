@@ -50,7 +50,7 @@ internal sealed class ItemGrantSource(ItemIdAllocator ids, ILogger<ItemGrantSour
 
 		bound.InstanceId = _ids.AllocateId();
 		item = bound;
-		// One tag for the port, not for one of its callers: the console's give verb and its spawn verb both create
+		// One tag for the port, not for one of its callers: the console's give verb and its summon verb both create
 		// facts through this seam, and a line naming one of them would misattribute the other.
 		_log.LogInformation("[ItemCreate] prepared {Definition} (id {InstanceId}) from its prefab{State}.",
 			definitionId, bound.InstanceId, state is null ? "" : " with the operator's state");

@@ -40,7 +40,7 @@ for exactly the cases that matter (a tool inside a container, an item restored f
 ## Related
 
 - `docs/backlog/todo/member-report-bounds.md` — the rows waiting on it, and the ruling that behaviour bounds are out of
-  scope (`docs/decisions/active.md`, decision 262).
+  scope (`docs/decisions/active.md`, decision 265).
 - `docs/architecture/member-report-validation.md` — the census that names these rows `unbounded`.
 ## Resolution 2026-10-18: no subsystem is needed, and its only consumer turned out to have no anchor
 

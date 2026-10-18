@@ -142,7 +142,7 @@ internal sealed class WorldSummoner(
 			return Refused(refusal ?? $"the item definition '{prefabId}' could not be created by this build.");
 		}
 
-		if (!_worldItems.TryCreateAt(new Vector2(x, y), item, "Summon", out var createRefusal))
+		if (!_worldItems.TryCreateAt(new Vector3(x, y, 0f), item, "Summon", out var createRefusal))
 		{
 			return Refused(createRefusal ?? $"the item '{prefabId}' could not be materialized at the position.");
 		}

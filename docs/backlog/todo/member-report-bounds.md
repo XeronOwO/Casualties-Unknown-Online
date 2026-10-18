@@ -1,4 +1,4 @@
-﻿# The member reports that still have no bound
+# The member reports that still have no bound
 
 - Status: Todo 鈥?opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
@@ -139,7 +139,7 @@ Also noted clean by that review: the sender really is the reporter on the host a
 must be renamed to say world units, because a constant named "cells" compared against world coordinates is exactly
 how the withdrawn block bound went wrong.
 
-## DECISION 262 (2026-10-18, user's ruling): data validation only 鈥?the reach family is withdrawn for good
+## DECISION 265 (2026-10-18, user's ruling): data validation only 鈥?the reach family is withdrawn for good
 
 **Everything above that talks about a distance, a reach, "could this body have been there", the frozen constant, the
 admission seam or the four-question design is CLOSED, not pending.** The user's ruling: CUO validates DATA, never
@@ -164,7 +164,7 @@ Those are properties of any future data bound, not of a reach bound.
 ### Native evidence for a DATA anchor on the open report (2026-10-18)
 
 The open is decided by a hand-driven minigame on the opener's own client, so the host cannot reproduce it 鈥?and under
-decision 262 it must not try. `reversing/Assembly-CSharp/Assembly-CSharp/LockpingMinigame.cs` is that minigame: its
+decision 265 it must not try. `reversing/Assembly-CSharp/Assembly-CSharp/LockpingMinigame.cs` is that minigame: its
 `Update` accumulates `this.lockProgress += Time.deltaTime * (0.66f + num * 0.065f);` while the hand sits inside a band
 (`this.clickingInside = this.HandAngle > 0f && this.HandAngle < 180f && this.HandDistance > 195f && this.HandDistance < 247f;`),
 and completion is `this.toDestroy.health = 0f;`. Hand angle and distance are the opener's input; no host-side model can
@@ -200,7 +200,7 @@ What that leaves for this row, all of it honest:
 - **The item anchor is the real one** and it needs the wire: "the opener carries the tool this lock requires" is an
   inventory identity claim the host holds the data to check. Same shape as the weapon identity the building-damage row
   needs, so both land in one protocol change.
-- **The minigame result stays unbounded** (decision 262 鈥?behaviour, not data).
+- **The minigame result stays unbounded** (decision 265 鈥?behaviour, not data).
 - **The keypad code is not a bound at all**; it is a shared secret the design hands to every peer at spawn. If the
   project ever wants keypads to be a real barrier, that is a separate decision about who may hold the code, not a
   validation check on the open report.

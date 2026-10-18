@@ -33,7 +33,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 internal static class WorldSummonParser
 {
-	internal const string Usage = "/summon [item] <prefabId> [<position>] [<snbt-state>]";
+	internal const string Usage = "/summon <prefabId> [<position>] [<snbt-state>] or /summon item <itemId> [<position>] [<snbt-state>]";
 
 	/// <summary>The type word that names a loose item entity — the only type word this command has; everything else is a prefab id.</summary>
 	internal const string ItemKeyword = "item";
@@ -73,7 +73,9 @@ internal static class WorldSummonParser
 		if (prefabId.IndexOfAny(['{', '}', '[', ']']) >= 0)
 		{
 			// The state is its own argument here; the attached form is the shape a reader of /give would try.
-			return Refuse($"The state is its own argument, not attached to the id: /summon {prefabId} [<position>] {{<key>:<value>}} — e.g. /summon item bandage player {{Condition:0.5f}}. Usage: {Usage}", out error);
+			// The correction names the form, not the rejected line, and does not assume the id's family: a bare
+			// id may be an item definition, which needs the type word as well.
+			return Refuse($"The state is its own argument, not attached to the id: /summon <prefabId> [<position>] {{<key>:<value>}} — an item definition also needs the item word, e.g. /summon item bandage player {{Condition:0.5f}}. Usage: {Usage}", out error);
 		}
 
 		var position = WorldSummonPosition.Default;
@@ -139,7 +141,11 @@ internal static class WorldSummonParser
 		var comma = token.IndexOf(',');
 		if (comma > 0
 			&& float.TryParse(token.Substring(0, comma), NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
-			&& float.TryParse(token.Substring(comma + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
+			&& float.TryParse(token.Substring(comma + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out var y)
+			&& !float.IsNaN(x)
+			&& !float.IsInfinity(x)
+			&& !float.IsNaN(y)
+			&& !float.IsInfinity(y))
 		{
 			position = new WorldSummonPosition(null, x, y);
 			return true;

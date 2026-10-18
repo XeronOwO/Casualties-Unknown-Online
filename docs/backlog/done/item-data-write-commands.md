@@ -5,12 +5,12 @@
   **Accepted 2026-10-14 in batch `20261014-a`** (`docs/evidence/acceptance/item-data-write-commands-20261014-a.md`): every row passes — the host's own writes on a carried item, a component field, a liquid stack and a world item, both sides of the host's rule for a member's write (refused and settled back / admitted and recorded), the record-gap refusal, the four refused targets, and the written values surviving a save, a restore and a rejoin.
 - Priority: Medium-High
 - Category: Command surface / item state
-- Source: Stage B of `todo/item-and-entity-data-commands.md`, cut off 2026-10-14 — the first write verb
+- Source: Stage B of `review/item-and-entity-data-commands.md`, cut off 2026-10-14 — the first write verb
   (`/data set`) plus the local-scene port every later write and the cursor target need. The stage's other
   halves (`merge`, `remove`, the cursor target and the record gap the read half found) are still open there,
   each with its own verification.
 - Related: `review/item-data-read-commands.md` (the read half, and the property survey this verb writes
-  through), `todo/item-and-entity-data-commands.md` (the family's remaining stages),
+  through), `review/item-and-entity-data-commands.md` (the family's remaining stages),
   `todo/validation-and-source-checks.md` (S1b: the console write's own wire kind, the host's rule and the
   refusal's way back), `done/host-rules-replication.md` (landed later: the member's console is told the
   rule before it writes), `review/in-game-command-console-interactive.md` (the console the verb lands in),

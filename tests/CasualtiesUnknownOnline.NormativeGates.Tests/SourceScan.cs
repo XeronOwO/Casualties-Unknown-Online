@@ -85,6 +85,55 @@ internal static class SourceScan
 	}
 
 	/// <summary>
+	/// The body of one method, located by its signature prefix and closed by brace counting that
+	/// skips string and character literals. Empty when the signature is absent, so a rule that reads
+	/// a body fails rather than passes by checking nothing. Comments are flattened FIRST: an
+	/// apostrophe in prose ("the entity's id") is not a character literal, and treating it as one
+	/// would swallow the method's closing brace.
+	/// </summary>
+	internal static string MethodBody(string text, string signature)
+	{
+		var live = Flatten(text);
+		var start = live.IndexOf(signature, StringComparison.Ordinal);
+		if (start < 0)
+		{
+			return string.Empty;
+		}
+
+		var open = live.IndexOf('{', start);
+		if (open < 0)
+		{
+			return string.Empty;
+		}
+
+		var depth = 0;
+		for (var i = open; i < live.Length; i++)
+		{
+			var current = live[i];
+			if (current == '"' || current == '\'')
+			{
+				i = LiteralEnd(live, i) - 1;
+				continue;
+			}
+
+			if (current == '{')
+			{
+				depth++;
+			}
+			else if (current == '}')
+			{
+				depth--;
+				if (depth == 0)
+				{
+					return live[open..(i + 1)];
+				}
+			}
+		}
+
+		return string.Empty;
+	}
+
+	/// <summary>
 	/// The argument text of every call to one of <paramref name="accessors"/>, written either as a
 	/// member access (<c>ctx.T(…)</c>) or as a bare call (<c>T(…)</c>): the call's argument list,
 	/// balanced, nested parentheses kept. A declaration's parameter list matches too

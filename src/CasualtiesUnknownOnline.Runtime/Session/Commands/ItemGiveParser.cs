@@ -109,7 +109,7 @@ internal static class ItemGiveParser
 	/// member's request carried, which the host re-parses. Null or empty means "the
 	/// definition's own captured state"; anything else must be a compound.
 	/// <para>
-	/// The rule itself is <see cref="ItemStateText"/>, shared with <c>/spawn</c>: one
+	/// The rule itself is <see cref="ItemStateText"/>, shared with <c>/summon</c>: one
 	/// parse, one canonical form, one length bound across the family's creation verbs.
 	/// </para>
 	/// </summary>

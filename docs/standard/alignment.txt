@@ -32,7 +32,7 @@ docs/en/internals/README.md | 920362ce1450e0e8b56db0c6b7b6213716bdecec | docs/zh
 docs/en/internals/save-archive.md | 97b6f7be36b931cf79b511c66cdaf9d81313502b | docs/zh/internals/save-archive.md | aaa935a0715601519e16ab97b657b504c0d1fb0f
 docs/en/internals/state-and-snapshots.md | e74a4d1c22ac4f2460adda792fd624dab35f1d30 | docs/zh/internals/state-and-snapshots.md | 2f2168f383a2966f7b15756f47f0793658a03620
 docs/en/README.md | b1e639e3617977e06ba8d16d2f4330714592d110 | docs/zh/README.md | d9beaa00a4ac195a30e55c21c6820dc4da260240
-docs/en/reference/configuration.md | 04f87343d9efac9c94bd1a2516d74ff2d74ba05e | docs/zh/reference/configuration.md | ff4f988eaf1d434a09a2e588ecf148d1c26b31b9
+docs/en/reference/configuration.md | cd34e4b3169ecda047935d572ef4a60949f06cdf | docs/zh/reference/configuration.md | e11111fbf687c73e9897f8020797e7318dc9cb3b
 docs/en/reference/feature-matrices.md | 3546f411e3a4f4f78f02c971bb14edc9bf486e05 | docs/zh/reference/feature-matrices.md | 6a942efc0bb693925c3321ad957df26a89ef08a6
 docs/en/reference/glossary.md | 352ffa57a33bd63ce80ca68efcfbe876d550164e | docs/zh/reference/glossary.md | cd530617957089f20b18315c5316d95cb9b715a5
 docs/en/reference/logs.md | 7f9656dc7a6dc6587fec2c41588cc9677125c707 | docs/zh/reference/logs.md | 0e12de22c2a89cc10bcda0ec12d4e596c12f78e2

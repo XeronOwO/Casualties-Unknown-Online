@@ -97,8 +97,16 @@ public sealed class WorldSummonService(
 	/// <inheritdoc />
 	public void HandleSummonRequest(ulong sender, WorldSummonRequestMsg msg)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
+			return;
+		}
+
+		if (!_session.LocalInWorld)
+		{
+			// The host has no layer to create in — the same ground the member's own scene check answers, reached
+			// from the wire. Answered rather than swallowed: a refusal that never travels looks like a lost request.
+			RefuseRequest(sender, msg, "this host is not in a world, so there is no layer to create anything in.");
 			return;
 		}
 
@@ -153,6 +161,15 @@ public sealed class WorldSummonService(
 	/// </summary>
 	private SummonResult Apply(ulong actor, string prefabId, WorldSummonKind kind, string stateText, float x, float y)
 	{
+		if (float.IsNaN(x) || float.IsInfinity(x) || float.IsNaN(y) || float.IsInfinity(y))
+		{
+			// The point is a claim (the host's own console included): a hand-crafted frame bypasses the parser's
+			// finite check, and a NaN would poison every position written from the creation.
+			var reason = "the requested position is not a finite point, so nothing was created.";
+			LogRefused(actor, prefabId, x, y, reason);
+			return Refused(reason);
+		}
+
 		if (!ItemStateText.TryParse(stateText, out var state, out _, out var parseError))
 		{
 			LogRefused(actor, prefabId, x, y, parseError!);

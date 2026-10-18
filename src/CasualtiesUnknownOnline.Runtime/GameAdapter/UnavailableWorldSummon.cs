@@ -3,7 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Data;
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
-/// The default <see cref="IWorldSpawn"/> in a build with no Game Adapter: there is no prefab table and no
+/// The default <see cref="IWorldSummon"/> in a build with no Game Adapter: there is no prefab table and no
 /// creation call, so every answer is the fact, not a silent success.
 /// </summary>
 internal sealed class UnavailableWorldSummon : IWorldSummon

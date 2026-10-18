@@ -18,7 +18,7 @@
   `docs/backlog/done/host-rules-replication.md` (the announcement pattern a
   member's client reads to refuse a closed rule locally), `docs/backlog/todo/remote-backpack-access-policy.md` (a
   host policy that gates a gesture, the same shape one level down), `docs/en/internals/permissions-and-security.md`
-  (the admission seam and what a console verb may assume), `docs/decisions/active.md` decision 262 (a member's
+  (the admission seam and what a console verb may assume), `docs/decisions/active.md` decision 265 (a member's
   report is bounded by data; a permission list is a host ruling, not a client-enforced boundary), decision 241
   (pre-release wire changes do not bump the protocol number)
 - Source: the user's rulings of 2026-10-18 (quoted here and in *The combined ruling*), plus the same day's
@@ -39,7 +39,7 @@ permission, and every cheat verb carries a TWO-SIDED check:
   console); the client's copy is only a prediction, never the verdict. A refusal is ANSWERED so both sides end up
   agreeing (the item-data write's way back is the precedent).
 - **The family** is the verbs that change the world or another player beyond the player's own legitimate actions:
-  `/data`'s write verbs, `/give`, and `/spawn` when it lands. The host-admin verbs (`/hostrules`, `/kick`, `/ban`,
+  `/data`'s write verbs, `/give`, and `/summon`. The host-admin verbs (`/hostrules`, `/kick`, `/ban`,
   `/unban`) keep `HostOnly` and need no two-sided check — only the host can run them, so there is no member
   request to arbitrate; the item-data READ (`/data get`) stays `Anyone`. **`/heal` was named in this sentence and
   is EXCLUDED** — the tree's `/heal` consumes the healer's own medical item, so it is the player's own legitimate
@@ -110,7 +110,7 @@ today. The two sibling tickets that asserted the opposite were re-pointed in the
 | 9 | The two rulings together are what admits a member, and the SWITCH is the ground when both are shut | `KernelCommandGatewayTests.ConsoleVerbWithTheSwitchOpenAndTheMemberGranted_IsAdmitted`, `.ConsoleVerbWithTheSwitchClosedAndNoGrant_IsRefusedByTheSwitch`, `.ConsoleVerbWithTheHostRuleClosed_IsRefusedAndAnswered` (granted + switch closed), `.ConsoleVerbFromAMemberTheRosterDoesNotName_IsRefusedAndAnswered`; `CommandAdmissionIntegrationTests.AConsoleWriteFromAPromotedMember_IsStillRefusedWhileTheSwitchIsClosed`, `.AConsoleWriteFromAMemberWithNeitherGrantNorSwitch_IsRefusedByTheSwitch` |
 | 10 | A member whose rulings were never announced is settled by the host's own refusal | `.AMemberWhoseRosterWasSwallowed_IsSettledByTheHostsOwnRefusal`, `CommandConsoleMemberItemDataTests.Set_OnAMembersConsole_WhenNothingWasAnnounced_IsSettledByTheHostsOwnRefusal` (the switch's ground) |
 | 11 | The host needs neither; a member cannot op | `.TheHostsOwnWrite_NeedsNoGrant`, `.AMemberTypingOp_IsRefusedAsHostOnly`, `CheatPermissionsTests.TheHostItself_IsRefusedByName_…` |
-| 12 | The whole family audited, not just `/data` | the console's cheat verbs are `/data`'s write verbs (gated at the admission seam), `/give` (gated in its own request handler, landed as `done/give-item-to-a-player-command.md`) and `/data get` (still `Anyone` by the read half's own rule); the host-admin verbs stay `HostOnly`; `/spawn` is the next verb and joins the family then; `/heal` is excluded above |
+| 12 | The whole family audited, not just `/data` | the console's cheat verbs are `/data`'s write verbs (gated at the admission seam), `/give` (gated in its own request handler, landed as `done/give-item-to-a-player-command.md`), `/summon` (its own request handler, landed 2026-10-18 under the same two-sided check) and `/data get` (still `Anyone` by the read half's own rule); the host-admin verbs stay `HostOnly`; `/heal` is excluded above |
 | 13 | The wire is declared where the sync audit demands it | sync-coverage matrix row H2 + its vocabulary index line + six evidence anchors; the `/give` pair is row I11 with its own five |
 
 **Limits, recorded rather than hidden.**
@@ -218,8 +218,8 @@ batch; the ticket stays in `review/` for it. Record:
 3. Identity: Steam ID is the normal key. The IP-direct join has no Steam identity, so that case needs its own
    evaluation — a display name there is claimed, not proven, and a whitelist keyed on it would be spoofable.
 4. The host's own cheat permission is governed by the online switch (the session/online toggle), not by `/op`.
-5. The verbs the permission gates are the cheat family: the item-data verbs (`/data`), `/give`, and the `/spawn`
-   stage when it lands; `/heal` is excluded (above).
+5. The verbs the permission gates are the cheat family: the item-data verbs (`/data`), `/give`, and `/summon`;
+   `/heal` is excluded (above).
 
 ## Open questions — and where each stands now
 
@@ -236,7 +236,7 @@ batch; the ticket stays in `review/` for it. Record:
   by name; the host judges and answers; the member settles the value it had applied.
 - **What the permission is NOT — unchanged.** It is a host ruling on ordinary clients, not an anti-cheat boundary:
   every cheat verb still rides the host's admission seam and the host still judges what it accepts
-  (`docs/en/internals/permissions-and-security.md`; decision 262).
+  (`docs/en/internals/permissions-and-security.md`; decision 265).
 
 ## Non-goals
 

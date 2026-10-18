@@ -21,10 +21,11 @@ namespace CasualtiesUnknownOnline.Tests.Fakes;
 /// That report is the whole point of the fixture: the suites that use it prove the claim this stage had to answer
 /// — a later joiner receives the creation through its family's absolute table — against the REAL channel,
 /// registry and world-entry fan-out, while only the game-assembly half (instantiation and the tables) is faked.
-/// The TYPE WORD is enforced the way the real seam enforces it: an item id without <c>item</c> is refused with the
+/// The TYPE WORD is enforced here the way the real seam enforces it: an item id without <c>item</c> is refused with the
 /// spelling that works, <c>item</c> with a non-item prefab is refused by name, an entity prefab given a state is
 /// refused before anything is "created", and the anchor map can be made to refuse so the no-world path is
-/// reachable.
+/// reachable. The sentences mirror <c>WorldSummoner</c>'s, whose production text is pinned by
+/// <c>WorldSummonContractGateTests</c>: this fixture stands in for the seam's scene half, not for its wording.
 /// </para>
 /// </summary>
 internal sealed class FakeWorldSummon : IWorldSummon
@@ -101,12 +102,13 @@ internal sealed class FakeWorldSummon : IWorldSummon
 
 		if (definition is not null)
 		{
-			return new WorldSummonOutcome(false, 0, "", $"'{prefabId}' is an item definition, so it is summoned as a loose item entity: /summon item {prefabId}. Nothing was created.");
+			var hint = state is null ? "" : " {<state>}";
+			return new WorldSummonOutcome(false, 0, "", $"'{prefabId}' is an item definition, so it is summoned as a loose item entity: /summon item {prefabId}{hint}. Nothing was created.");
 		}
 
 		if (state is not null)
 		{
-			return new WorldSummonOutcome(false, 0, "", $"'{prefabId}' is not an item definition, so it takes no state argument.");
+			return new WorldSummonOutcome(false, 0, "", $"'{prefabId}' is not an item definition, so it takes no state argument — an entity's creation-time values are the game's own. Nothing was created.");
 		}
 
 		if (!EntityPrefabs.Contains(prefabId) && !Animals.Contains(prefabId))

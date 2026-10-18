@@ -59,7 +59,7 @@ Adversarially verify:
 - **A1b. Data or behaviour?** Ask of every check this change adds: does it compare the claim with a fact
   the receiver ALREADY HOLDS (an identity, a value it computed, a table it owns), or does it model what the
   player was physically ABLE to do? The second kind — reach, aim, timing, cooldown, input rate, "could this
-  gesture have happened" — is anti-cheat, which decision 262 rules out: it duplicates the game's rules in a
+  gesture have happened" — is anti-cheat, which decision 265 rules out: it duplicates the game's rules in a
   second, weaker implementation and refuses legitimate play when the two disagree. It is a BLOCKER even when
   it looks like a tidy bound, and it is a blocker when the "fix" for an unbounded row is a distance check
   rather than the wire identity the row actually needs. Also ask whether the new bound can be exercised at

@@ -461,7 +461,9 @@ CUO's `/summon` is the console counterpart of the game's OWN console `spawn` com
   seam attempts the call instead of pre-checking `Resources.Load` (that pre-check is the round-3 finding that
   starved every mod template).
 - Item and entity share that one call: the game's own command applies the condition only when the created object
-  carries an `Item`, and CUO's two `Start` hooks are what report the object afterwards.
+  carries an `Item`. In CUO an ENTITY reports through its own `BuildingEntity.Start`; an item entity is reported
+  EXPLICITLY by the shared `WorldItemCreation` (the pre-stamped instance id makes its own `Start` skip the
+  report), which is the same report the give drop makes.
 
 Deviations, each with its reason:
 
@@ -491,16 +493,26 @@ reference for a console verb (now a standing rule, `AGENTS.md` Engineering Conve
 follows that shape for a loose item entity, and the item's SNBT is the SAME document `/give` speaks, which the
 user required in the same ruling: the summoned item entity must be equivalent to the item entity a give drops
 when the body cannot hold it. Both verbs hand the state text to the same creation port (`IItemGrantSource`) and
-the same world-item creation (`WorldItemCreation`), so the equivalence is structural and is pinned by
-`ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument`.
+the same world-item creation (`WorldItemCreation`); the summoner's calls are pinned by
+`WorldSummonContractGateTests.WorldSummoner_EnforcesTheTypeWordAndCreatesThroughTheSharedPorts`, the give side by
+`SourceShapeGateTests.GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport`, and the two answers' shared
+canonical document by `ASummonedItemEntity_AndAGivenDrop_PrintTheSameCanonicalStateDocument`.
 
 The template was checked against the live wiki on 2026-10-18 rather than remembered
 ([`/summon`](https://minecraft.wiki/w/Commands/summon)): Java Edition's form is `<entity> [<pos>] [<nbt>]`, and its
-item entity names the item INSIDE the NBT (`{Item:{id:...,count:...}}`). CUO deviates in one place and records
-why: the definition stays the type word's argument (`/summon item bandage {…}`) and the SNBT is the item's OWN
-state document, because the user's ruling requires that document to equal the give drop's — nesting it under
-Minecraft's `Item:` envelope would make it a different document for the same item. The position and state
-arguments are Minecraft's order and shape.
+item entity names the item INSIDE the NBT (`{Item:{id:...,count:...}}`). CUO deviates in three places, each with
+its reason recorded at the point of design:
+
+1. **The definition stays the type word's argument** (`/summon item bandage {…}`) and the SNBT is the item's OWN
+   state document, because the user's ruling requires that document to equal the give drop's — nesting it under
+   Minecraft's `Item:` envelope would make it a different document for the same item.
+2. **The position is a 2-D world point whose default is the pointer.** The game's own console `spawn` resolves a
+   flat point from `cursor`/`player`/`random`/`<x>,<y>` here; Minecraft's is a 3-D position the caller supplies.
+3. **The entity form takes no `<nbt>`.** This tree has no entity state document (a geyser's liquid type, a keypad's
+   code and a crystal's tint are the game's own), so a state on an entity prefab is refused by name instead of
+   accepted and ignored.
+
+The position and state arguments keep Minecraft's ORDER — type, position, SNBT.
 
 ### Design, as landed
 
@@ -540,12 +552,12 @@ complete — `/data`'s write verbs, `/give`, `/summon` — under one two-sided c
 | 1 | The native call site | the game console's own `spawn` command (`ConsoleScript.RegisterAllCommands`) and its `ParsePosition`: `cursor` = `Camera.main.ScreenToWorldPoint(Input.mousePosition)`, `player` = `PlayerCamera.main.body.transform.position`, `random` = a uniform point in the layer rectangle, or `<x>,<y>`; the creation call is `Utils.Create` (`Object.Instantiate(Resources.Load(id), pos, rot)`), extended to mod templates by `UtilsCreateCustomPrefabPatch` |
 | 2 | The position words | `WorldSummoner.TryResolveAnchor` reads the same three places; `WorldSummonParser` owns the keywords and the literal pair, and a refusal quotes the vocabulary |
 | 3 | The type word | `WorldSummoner.TrySummon`: `item` requires an id in `Item.GlobalItems` (the `IItemGrantSource` fact: prefab capture → state bind → instance id); the entity form refuses an item definition BY NAME with the spelling that works, and creates through `RuntimeEntityFactory.TryCreate`, requiring a `BuildingEntity` with a non-empty id (an id no peer could recreate is refused and destroyed) |
-| 4 | The item entity is the give drop's fact | the same `IItemGrantSource` + `WorldItemCreation` the give ladder's drop rung uses — create at the point, stamp the host's id, restore the state, report through `IItemControl.SendItemSpawned` — so the two verbs cannot produce different item entities; pinned by `ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument` |
-| 5 | The refusals | `WorldSummonOutcome.Refusal` names every ground: an unknown prefab, `item` with a non-item id, an item id without the word, an entity prefab with a state, a prefab with no entity id, a scene with no world/body/camera, an item state the definition does not carry, a request from another layer, the host's switch and roster |
+| 4 | The item entity is the give drop's fact | the same `IItemGrantSource` + `WorldItemCreation` the give ladder's drop rung uses — create at the point, stamp the host's id, restore the state, report through `IItemControl.SendItemSpawned` — so the two verbs cannot produce different item entities. The summoner's calls are pinned by `WorldSummonContractGateTests.WorldSummoner_EnforcesTheTypeWordAndCreatesThroughTheSharedPorts`, the give side by `SourceShapeGateTests.GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport`; the two answers' shared canonical document by `ASummonedItemEntity_AndAGivenDrop_PrintTheSameCanonicalStateDocument` |
+| 5 | The refusals | `WorldSummonOutcome.Refusal` names every ground the SEAM owns: an unknown prefab, `item` with a non-item id, an item id without the word, an entity prefab with a state, a prefab with no entity id, a scene with no world/body/camera, an item state the definition does not carry, a request from another layer, the host's switch and roster. The grounds ABOVE the seam are named by their own layers and tested there: no session and an unanswerable position (`WorldSummonService`), the state bound and the grammar (`ItemStateText`/`WorldSummonParser`), the request's state length and non-finite point (`WorldSummonService.HandleSummonRequest`/`Apply`), the host not in a world (answered by `HandleSummonRequest`) |
 | 6 | The permission | the family's landed two-sided check, no new flag: `CheatVerbGate` on the acting client before any scene work, `IMemberCommandRules` on the host for every request (switch then roster, each its own sentence) |
 | 7 | The wire | `NetMsg.WorldSummonRequest` 149 (guest → host) and `NetMsg.WorldSummonResult` 150 (host → requester), each direction-locked by its handler; the request carries the prefab, the resolved point, the canonical SNBT state and the world/layer stamp |
 | 8 | The layer stamp | `KernelWorldGenerationSource` + `WorldReportGenerationGate.Relate`, the same pair the runtime-entity channel uses; a stale request is refused by name and answered |
-| 9 | The answer | `WorldSummonService.Describe` — what was created (the item's id included), the point the creation really used and the state the object really carries; one helper feeds the log and the sentence |
+| 9 | The answer | `WorldSummonService.Describe` builds the operator-facing sentence — what was created (the item's id included), the point the creation really used and the state the object really carries; the APPLIED log line is built separately in `Apply` from the same facts (actor, kind, prefab, state clause, point), never by reusing the answer text |
 | 10 | No new creation path | the created entity/animal reports through `EntitySpawned` (row E3), the item through the item domain's own spawn row (row I1); the verb adds no table, no broadcast and no protocol bump (decision 241) |
 | 11 | The shared state text | `ItemStateText` (extracted from `ItemGiveParser`): one parse, one canonical form, one length bound for `/give` and `/summon`, so the two creation verbs cannot disagree about what a state argument is |
 | 12 | The seam's shape | `IWorldSummon` is a STANDALONE adapter service, pinned by `AdapterCapabilityPortShapeTests.WorldSummonSeam_IsStandalone`; the give seam's startup-cycle lesson is the reason |
@@ -556,24 +568,24 @@ complete — `/data`'s write verbs, `/give`, `/summon` — under one two-sided c
 |---|---|---|
 | 1 | A host summon creates an entity at the point the position word names, and the creation records | `CommandConsoleWorldSummonTests.Host_SummonsAnEntity_ReportsTheCreationAndAnswersThePosition`, `.Host_SummonsWithNoPosition_AtThePointer`, `.Host_SummonsAtALiteralPoint` |
 | 2 | An item entity is created with an instance id, its world row written and its state bound before the creation | `.Host_SummonsAnItemEntity_WritesTheWorldRowAndAnswersItsInstanceId`, `.Host_SummonsAnItemEntityWithState_AppliesItBeforeTheCreation` |
-| 3 | A summoned item entity and a give drop carry the SAME state document for the same text | `.ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument` |
+| 3 | Both creation verbs print the SAME canonical state document for the same text, and the summoner reaches the same creation port and world-item creation the give drop uses | `.ASummonedItemEntity_AndAGivenDrop_PrintTheSameCanonicalStateDocument` (the two answers); `WorldSummonContractGateTests.WorldSummoner_EnforcesTheTypeWordAndCreatesThroughTheSharedPorts` (the adapter's `_grant.TryCreate` + `_worldItems.TryCreateAt`); `SourceShapeGateTests.GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport` (the give drop's chain into the same creation) |
 | 4 | An animal is acknowledged by key, never as a materializable creation | `.Host_SummonsAnAnimal_IsAcknowledgedByKeyAndNotRecordedAsAMaterializableCreation` |
 | 5 | The type word is enforced, not guessed | `.Host_SummonsAnItemDefinitionWithoutTheItemWord_IsRefusedWithTheSpelling`, `.Host_SummonsAnEntityPrefabWithTheItemWord_IsRefusedByName` |
-| 6 | Every other refusal is by name and creates nothing | `.Host_SummonsAPrefabTheBuildDoesNotKnow_IsRefusedByName`, `.Host_SummonsAnEntityWithAState_IsRefusedBeforeAnythingIsCreated`, `.Host_SummonWhenThePositionCannotBeResolved_IsRefusedByName`, `.MalformedSummon_IsRefusedWithItsOwnSentence` |
+| 6 | Every other refusal is by name and creates nothing | `.Host_SummonsAPrefabTheBuildDoesNotKnow_IsRefusedByName`, `.Host_SummonsAnEntityWithAState_IsRefusedBeforeAnythingIsCreated`, `.Host_SummonWhenThePositionCannotBeResolved_IsRefusedByName`, `.MalformedSummon_IsRefusedWithItsOwnSentence`, `.ARequestWithAnOverlongState_IsRefusedByTheHost`, `.ARequestWhileTheHostIsNotInAWorld_IsRefusedAndAnswered`, `.ARequestWithANonFinitePoint_IsRefusedByTheHost`, `.NonFiniteLiteralPoint_IsRefused` |
 | 7 | The host's own verb needs neither cheat ruling | `.Host_SummonsWhileTheMemberSwitchIsClosed` |
 | 8 | A member's verb is a request whose answer prints on the member's console, and the member's own scene resolved the point | `CommandConsoleMemberWorldSummonTests.Member_Summons_RequestsTheHostAndPrintsItsAnswer`, `.Member_SummonsAnItemEntity_IsCreatedByTheHost`, `.Member_SummonsWithState_IsBoundByTheHost` |
-| 9 | Both cheat rulings refuse locally before any scene work, and the host is the back end when the announcement was swallowed | `.Member_Summons_WhenTheAnnouncedSwitchIsClosed_IsRefusedLocally`, `.Member_Summons_WhenTheSwitchIsOpenButTheMemberIsNotGranted_IsRefusedByTheRoster`, `.Member_Summons_WhenNoRosterWasAnnounced_IsSettledByTheHostsOwnRefusal` |
+| 9 | Both cheat rulings refuse locally before any scene work, and the host is the back end when the announcement was swallowed or stale | `.Member_Summons_WhenTheAnnouncedSwitchIsClosed_IsRefusedLocally`, `.Member_Summons_WhenTheSwitchIsOpenButTheMemberIsNotGranted_IsRefusedByTheRoster`, `.Member_Summons_WhenNoRosterWasAnnounced_IsSettledByTheHostsOwnRefusal`, `.ARequestWhileTheHostSwitchIsClosed_IsRefusedByTheHost` |
 | 10 | A malformed state or an unanswerable position never leaves the member's client | `.Member_SummonsWithMalformedSnbt_IsRefusedLocallyWithoutARequest`, `.Member_SummonWhenItsOwnSceneCannotAnswerThePosition_IsRefusedLocallyWithoutARequest` |
 | 11 | A request from another layer is refused by name and creates nothing | `.ARequestFromAnotherLayer_IsRefusedByTheHostAndCreatesNothing` |
 | 12 | A forged answer from a non-host sender is dropped by name | `.AnAnswerFromANonHostSender_IsDropped` |
 | 13 | The later joiner receives the entity through the accepted-creation table | `WorldSummonLateJoinerTests.AnEntitySummon_ReachesALaterJoinerThroughTheAcceptedCreationTable` |
 | 14 | The later joiner receives the item entity through the item snapshot and the kernel row | `.AnItemEntitySummon_ReachesALaterJoinerThroughTheItemSnapshotAndTheKernelRow` |
 | 15 | The animal's key reaches the later joiner's snapshot, with no materializable entry | `.AnAnimalSummon_IsAcknowledgedByKeyInTheSnapshotALaterJoinerReceives` |
-| 16 | The three frames round-trip their fields, and an unset type word reads as the entity family | `WorldSummonProtocolTests.SummonRequest_RoundTripsTheTypePrefabPointStateAndGeneration`, `.SummonRequest_WithoutATypeWord_ReadsAsAnEntity`, `.SummonResult_RoundTripsTheAppliedIdentityAndAnswer` |
+| 16 | The two messages round-trip their fields, and an unset type word reads as the entity family | `WorldSummonProtocolTests.SummonRequest_RoundTripsTheTypePrefabPointStateAndGeneration`, `.SummonRequest_WithoutATypeWord_ReadsAsAnEntity`, `.SummonResult_RoundTripsTheAppliedIdentityAndAnswer` |
 | 17 | The pair is direction-classified and the member-authored one is in the census | `GuestToHostDirectionTests`/`HostToGuestDirectionTests` rows, `docs/architecture/member-report-validation.md`, sync-coverage row I12 with 8 anchors |
-| 18 | The grammar is Minecraft's template with the family's recorded deviation | `WorldSummonParserTests` (23 cases): the type word, the position vocabulary, the attached-state refusal and the item-form shape |
-| 19 | The seam cannot reach the aggregate and the two verbs share one item materialization | `AdapterCapabilityPortShapeTests.WorldSummonSeam_IsStandalone`; `WorldItemCreation` is the one world-item creation used by the give ladder and the summon verb |
-| 20 | Not covered here | the real instantiation, the real prefab tables, the real pointer and body — the Game Adapter's half, which a test host cannot host: code-reviewed, and the acceptance batch's rows below are its runtime proof |
+| 18 | The grammar is Minecraft's template with the family's three recorded deviations | `WorldSummonParserTests` (25 cases): the type word, the position vocabulary (non-finite literals refused), the attached-state refusal and the item-form shape |
+| 19 | The seam cannot reach the aggregate and the two verbs share one item materialization | `AdapterCapabilityPortShapeTests.WorldSummonSeam_IsStandalone`; `WorldSummonContractGateTests.WorldSummoner_EnforcesTheTypeWordAndCreatesThroughTheSharedPorts` pins `WorldSummoner`'s `_grant.TryCreate` + `_worldItems.TryCreateAt`, and `WorldItemCreation` is the one world-item creation the give ladder and the summon verb use |
+| 20 | Not covered here | the real instantiation, the real prefab tables, the real pointer and body — the Game Adapter's half, which a test host cannot host. `WorldSummonContractGateTests` pins the production sentences and the port calls by source shape; the acceptance batch's rows below are the runtime proof of the materialization |
 
 **Whole-family audit.** The console's cheat family now reads: `/data`'s write verbs (gated at the admission
 seam), `/give` (its own request handler), `/summon` (this verb, its own request handler), `/data get` (`Anyone`),
@@ -615,7 +627,8 @@ A host + one member session on the deployed artifact:
 - **The position is the operator's claim.** The member's own client resolves it (its pointer, its body, its
   layer) and the host creates there; it is not bounded by a data anchor, by design — the permission covers the
   verb, exactly as it covers `/give`'s state values. A client that lies about the point can put a spawned object
-  anywhere in the layer; it cannot make the host create something the host's own content lacks.
+  anywhere the host's own creation can place it; nothing clamps the point to the layer rectangle (only a
+  non-finite point is refused as data), and it cannot make the host create something the host's own content lacks.
 - **A spawn needs a session.** A solo world refuses the verb, the family's cheat standing (`/give`'s rule).
 - **No console completion.** The verb declares one free-text argument, like `/give`; the native console's id
   autofill is not ported.
@@ -628,17 +641,20 @@ A host + one member session on the deployed artifact:
   arrives through the answer event and prints with the verdict's kind. The words are identical — the console-wide
   return contract the give answer already has, not this verb's to change.
 - **The scene seam has no test host.** The real instantiation, the prefab tables and the pointer/body reads are
-  adapter shell: code review plus the acceptance batch. `FakeWorldSummon` replaces exactly that half and makes
-  the report the real hooks make.
+  adapter shell: `FakeWorldSummon` replaces that whole half and makes the report the real hooks make. The
+  production sentences, the type-word classification and the two creation calls are pinned by
+  `WorldSummonContractGateTests`; the live materialization is the acceptance batch.
 
 **Verification.** `dotnet build` exit 0 (0 warnings), `dotnet format` exit 0, the behavioural suite 5798/5798 and
-the normative gates 695/695 on the frozen tree (`.acceptance/test-full-3.log`, `.acceptance/gates-4.log`). The 59
-new cases are the parser's 22, the host console's 18, the member console's 10, the late-joiner table's 3, the
-protocol round trips' 3, the two direction rows and the standalone-seam pin. Two shipped lines changed on the
-way and are recorded rather than hidden: the give ladder's drop rung now logs through the shared
-`WorldItemCreation` (`[Give] created <id> (id <n>) at (<x>,<y>) and reported its creation` — the same tag, the
-same facts, the position named as coordinates instead of "the local body's position"), and `ItemGrantSource`'s
-preparation line is tagged `[ItemCreate]` because two verbs now ask it for a fact.
+the normative gates 695/695 on the frozen tree (`.acceptance/test-full-3.log` for the behaviour,
+`.acceptance/gates-4.log` for the gates). The 59 new cases are the parser's 22, the host console's 18, the member
+console's 10, the late-joiner table's 3, the protocol round trips' 3, the two direction rows and the
+standalone-seam pin. Three shipped texts changed on the way and are recorded rather than hidden: the give
+ladder's drop rung now logs through the shared `WorldItemCreation` (`[Give] created <id> (id <n>) at (<x>,<y>)
+and reported its creation` — the same tag, the same facts, the position named as coordinates instead of "the
+local body's position"); `ItemGrantSource`'s preparation line is tagged `[ItemCreate]` because two verbs now ask
+it for a fact; and the shared state parser's non-compound refusal now reads "The state is a compound, e.g.
+{<key>:<value>}" so it belongs to both `/give` and `/summon` instead of either verb's vocabulary.
 
 ## Independent adversarial review (2026-10-18)
 
@@ -727,8 +743,9 @@ batch is re-run.
 `gates-4.log` is 695); `NetMsg.cs`'s `WorldSummonResult` comment claims a position field the message lacks;
 `IWorldSummon`'s "the caller never chooses the family" contradicts `TrySummon(..., WorldSummonKind kind, ...)`;
 the position limit says "anywhere in the layer" while nothing clamps to the layer rectangle; `Usage`'s `[item]`
-bracket suggests an optional prefix rather than a form switch; `docs/decisions/active.md` has two rows numbered
-262 (pre-existing, recorded because the review cites 262).
+bracket suggests an optional prefix rather than a form switch; `docs/decisions/active.md` had two rows numbered
+262 (pre-existing; the later data-validation ruling is renumbered to 265 — see *The review's findings, fixed*
+below).
 
 **Batch `20261018-s` (interrupted; the ticket stays in `review/`).** The session was set up on
 `0.1.0+d5c1a592` (lobby 109775241292074201, host and member both in world) and the rows were driven one step at
@@ -755,4 +772,75 @@ next run, not an accepted row. Observed on that build:
 
 The rows' commands are corrected above (3, 4, 5) so the next batch runs the landed grammar; the evidence files
 are in `.acceptance/20261018-s/` (local, never committed).
+
+## The review's findings, fixed (2026-10-18)
+
+Every finding above is closed in one commit, and batch `20261018-s2` (the re-run of `20261018-s`) runs against
+the artifact that commit produces (the rehearsal observations above are not accepted rows and are not counted).
+
+**The two majors — the missing evidence, replaced by the evidence the review named.**
+
+- **M1.** `tests/CasualtiesUnknownOnline.NormativeGates.Tests/WorldSummonContractGateTests.cs` pins
+  `WorldSummoner` by source shape, because the behavioural project cannot compile the adapter: `TrySummon`'s
+  `Item.GlobalItems` table check, the item-word refusal, `StateHint(state)`, the entity-state refusal and both
+  dispatches; `SummonItem`'s `_grant.TryCreate(prefabId, state, out var item, out var refusal)` and
+  `_worldItems.TryCreateAt(new Vector3(x, y, 0f), …)` calls and the real-state answer
+  (`SnbtWriter.Write(ItemStateDocument.Describe(item))`); `SummonEntity`'s
+  `RuntimeEntityFactory.TryCreate(…)`, the `Object.Destroy(created.gameObject)` of an id-less prefab and its
+  refusal sentence; and the class's `WorldItemCreation` field. Its matcher is pinned by a complete sample, one
+  one-marker-removed case per check and a missing-method case (16 cases). The behavioural suites now say what
+  they prove — the console/service half against the seam's contract — and `FakeWorldSummon` gained the two
+  fragments it had drifted on (the state hint and "Nothing was created."). The fake still speaks the contract,
+  not the production file; the gate is what keeps the contract's wording honest.
+- **M2.** `ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument` is renamed
+  `ASummonedItemEntity_AndAGivenDrop_PrintTheSameCanonicalStateDocument` and its doc says exactly what it
+  proves: the two verbs' answers carry the same canonical document for the same text (the console/service half).
+  The structural sharing it used to claim is now pinned where it happens — the gate above for the summon side,
+  `SourceShapeGateTests.GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport` for the give drop's chain into
+  the same `WorldItemCreation` — and the ticket's mechanism row 4 and self-check row 3 name all three.
+
+**The fourteen minors.**
+
+| # | Disposition |
+|---|---|
+| 1 | Case arithmetic corrected: the parser class is 22 at landing (now 25 after three non-finite cases), self-check row 18 and the verification paragraph say so. |
+| 2 | `docs/evidence/delivery-checklist.md`: twenty rows, 59 new cases, `WorldSummonService` 245, `WorldSummoner` 201, `/summon` naming. |
+| 3 | Stale `/spawn`, `TrySpawn`, `IWorldSpawn` and `UnavailableWorldSpawn` removed from `IWorldSummon.cs`, `UnavailableWorldSummon.cs`, `WorldItemCreation.cs`, `PlayerInventoryPlacement.cs`, `ItemStateText.cs`, `ItemGiveParser.cs`, `ItemGrantSource.cs`, `IWorldSummonHandlerContext.cs`, `review/cheat-permission-and-op-commands.md` and `done/give-item-to-a-player-command.md`. |
+| 4 | The ticket's old `todo/` path re-pointed to its `review/` path in `HostRulesOptions.cs` and the five done/selfcheck pages. |
+| 5 | `docs/evidence/acceptance/20261017-q-scope.md` says the ticket stays in `review/`. |
+| 6 | The third shipped-text change is recorded in the verification paragraph, and the message is now family-neutral: "The state is a compound, e.g. `{<key>:<value>}`" — it belongs to `/give` and `/summon` alike. |
+| 7 | `WorldSummonParser`'s attached-state refusal no longer echoes the rejected line and no longer assumes the family; `WorldSummonParserTests.StateAttachedToTheId_IsRefusedWithTheAcceptedShape` asserts the correction's shape, the item-word clause and the absence of the echoed line. |
+| 8 | The seam's standalone reason is corrected in `docs/architecture/current.md` and `GameAdapterComposition.cs`: it is standalone because the console builds it at startup and it must not force the aggregate — it takes the item control and the give creation port, container singletons that do not reach the aggregate. |
+| 9 | `HandleSummonRequest` answers `!LocalInWorld` instead of returning silently; tests cover the host's own switch refusal, the state-length branch and the not-in-world answer (`.ARequestWhileTheHostSwitchIsClosed_IsRefusedByTheHost`, `.ARequestWithAnOverlongState_IsRefusedByTheHost`, `.ARequestWhileTheHostIsNotInAWorld_IsRefusedAndAnswered`). |
+| 10 | Non-finite points are data-checked twice: `WorldSummonParser` refuses a `NaN`/`Infinity` literal, and `WorldSummonService.Apply` refuses a hand-crafted frame's non-finite point by name (`.ARequestWithANonFinitePoint_IsRefusedByTheHost`, `.NonFiniteLiteralPoint_IsRefused`). |
+| 11 | The bilingual `reference/configuration.md` pair names `/summon` in the cheat switch's family. |
+| 12 | The grammar section records all three deviations from Minecraft's template (item id outside the NBT, the 2-D pointer-defaulted position, the refused entity `<nbt>`) instead of "one place". |
+| 13 | Mechanism row 5 names the grounds above the seam, row 9 separates `Describe` from `Apply`'s log line, self-check row 16 says two messages, and the entry mapping says the item entity reports explicitly through the shared creation (its `Start` skips the pre-stamped id). |
+| 14 | `WorldItemCreation.TryCreateAt` takes a `Vector3` again: the give drop passes `body.transform.position` unchanged, the summon passes `(x, y, 0)`. The refactor's narrowing to `Vector2` is gone. |
+
+**The six nits.** The gate citation now splits `.acceptance/test-full-3.log` (behaviour) from
+`.acceptance/gates-4.log` (gates); `NetMsg.WorldSummonResult`'s comment no longer claims a position field;
+`IWorldSummon` says the caller chooses the family with its type word and the seam enforces it; the position limit
+names the missing clamp; `Usage` spells the two forms instead of an `[item]` prefix; and the duplicated decision
+number is resolved — the `CallContext` frame-boundary ruling held 262 from 2026-10-12, so the later
+data-validation ruling is now decision 265, with every reference updated (`AGENTS.md` rule 16,
+`docs/architecture/member-report-validation.md`, `docs/development/review-prompt.md`,
+`docs/backlog/todo/member-report-bounds.md`, `review/cheat-permission-and-op-commands.md`,
+`review/item-identity-bridge.md`).
+
+**Verification of the fix commit.** `dotnet build` exit 0 (0 warnings), `dotnet format` exit 0, the behavioural
+suite 5806/5806 and the normative gates 711/711 on the frozen tree (`.acceptance/test-full-review-fixes.log`,
+`.acceptance/gates-review-fixes.log`); the 8 new behavioural cases are the five host refusal cases (the switch,
+the state length, the not-in-world answer and two non-finite points) plus the parser's three non-finite
+literals, and the 16 new gate cases are `WorldSummonContractGateTests`. The gate and checklist counts in
+`docs/evidence/delivery-checklist.md` are updated with them.
+
+**The independent pass for THIS commit did not return.** Three fresh-context review sessions were started against
+the frozen tree. The first two produced nothing; the third read the four production diffs and then stalled on its
+answer (its session transcript ends after those reads, with no findings). All three were stopped, so no
+independent findings exist for this commit. What the commit carries instead is the gate's own matcher contract
+(a complete sample plus one failure shape per check), the focused and full suites, and a working-session
+self-review that corrected two defects in this record before the commit (the new-case count sentence and a `|`
+inside a code span that would have split a table row). The missing independent pass is a process limit, not a
+pass: a later cycle must run it before the ticket is treated as reviewed.
 

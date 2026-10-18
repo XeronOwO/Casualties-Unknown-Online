@@ -395,6 +395,6 @@ public enum NetMsg : byte
 	// rides the enemy domain's runtime-spawn facts, and a loose item entity reports ItemSpawn — the same row the
 	// give ladder's drop makes.
 	WorldSummonRequest = 149, // guest → host: summon one prefab (or item entity) at this point, with the operator's item state
-	WorldSummonResult = 150, // host → requester: the created object's identity (items) and position, or the refusal that answered it
+	WorldSummonResult = 150, // host → requester: the created object's identity (items) and the answer, or the refusal that answered it
 
 }

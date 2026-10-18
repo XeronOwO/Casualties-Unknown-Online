@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
 /// ONE world-item object materialized from an already-created fact, at a point, and REPORTED through the item
-/// domain — the single implementation shared by the give ladder's drop rung and the console <c>/spawn</c> verb.
+/// domain — the single implementation shared by the give ladder's drop rung and the console <c>/summon</c> verb.
 ///
 /// <para>
 /// The fact (definition, instance id, state) is created elsewhere — the give's creation port, or the same port
@@ -36,9 +36,9 @@ internal sealed class WorldItemCreation(IItemControl items, ILogger log)
 	/// Create the item's world object at <paramref name="position"/>, stamp the fact's instance id, apply the
 	/// fact's state and report the creation. False with <paramref name="refusal"/> naming the ground when this
 	/// client cannot materialize the prefab; nothing is created in that case.
-	/// <paramref name="context"/> names the caller in the log (<c>Give</c>, <c>Spawn</c>).
+	/// <paramref name="context"/> names the caller in the log (<c>Give</c>, <c>Summon</c>).
 	/// </summary>
-	internal bool TryCreateAt(Vector2 position, CharacterItemMsg item, string context, out string? refusal)
+	internal bool TryCreateAt(Vector3 position, CharacterItemMsg item, string context, out string? refusal)
 	{
 		refusal = null;
 		var prefab = ItemPrefabResolver.Load(item.ItemId);

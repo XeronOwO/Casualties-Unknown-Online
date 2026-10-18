@@ -3,7 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Data;
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
-/// The one scene capability the console <c>/spawn</c> verb needs from the Game Adapter: where the native
+/// The one scene capability the console <c>/summon</c> verb needs from the Game Adapter: where the native
 /// command's position words point, and one prefab materialized in the world.
 ///
 /// <para>
@@ -14,18 +14,20 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 /// </para>
 ///
 /// <para>
-/// <see cref="TrySpawn"/> is deliberately ONE answer for three families, because the CLASSIFICATION is the
+/// <see cref="TrySummon"/> is deliberately ONE answer for three families, because the CLASSIFICATION is the
 /// game's own fact: an id the game's item table knows is a loose item (created from the prefab capture, with the
 /// operator's state bound and an instance id from the one allocator), anything else is a world-entity prefab
 /// (<c>Utils.Create</c>, and the object must carry a <c>BuildingEntity</c> with a prefab id a peer could
-/// recreate). The caller never chooses the family and never sees the difference except in the answer's identity:
-/// the entity and the item report through their own landed paths — <c>BuildingEntity.Start</c> /
-/// <c>Item.Start</c> — so no second creation path exists for either.
+/// recreate). The caller chooses the family with its TYPE WORD and the seam enforces that word against its own
+/// tables — it never guesses the family from them, and a word that contradicts the id is refused by name. The
+/// entity reports through its own <c>BuildingEntity.Start</c>; the item is reported explicitly by the shared
+/// world-item creation (the pre-stamped id makes its own <c>Start</c> skip the report), so no second creation
+/// path exists for either.
 /// </para>
 ///
 /// <para>
 /// A build without the Game Adapter — a test host, a headless one — registers
-/// <see cref="UnavailableWorldSpawn"/> instead, so the verb answers "this build cannot create world objects"
+/// <see cref="UnavailableWorldSummon"/> instead, so the verb answers "this build cannot create world objects"
 /// rather than creating nothing and saying nothing.
 /// </para>
 /// </summary>

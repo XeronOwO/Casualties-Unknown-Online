@@ -102,7 +102,25 @@ public class WorldSummonParserTests
 		Assert.False(WorldSummonParser.TryParse(["bandage{Condition:0.5f}"], out _, out var error));
 
 		Assert.Contains("The state is its own argument", error);
+		// The correction names the form instead of echoing the rejected line, and it does not assume the family:
+		// a bare item id needs the type word too, which the example says.
+		Assert.Contains("/summon <prefabId> [<position>] {<key>:<value>}", error);
+		Assert.DoesNotContain("/summon bandage{Condition:0.5f}", error);
+		Assert.Contains("an item definition also needs the item word", error);
 		Assert.Contains("Usage:", error);
+	}
+
+	/// <summary>The literal point must be finite: a NaN or an infinity parsed from text would travel as a "position" and poison everything written from it.</summary>
+	[Theory]
+	[InlineData("NaN,1")]
+	[InlineData("1,Infinity")]
+	[InlineData("-Infinity,-Infinity")]
+	public void NonFiniteLiteralPoint_IsRefused(string point)
+	{
+		Assert.False(WorldSummonParser.TryParse(["beartrap", point], out _, out var error));
+
+		Assert.Contains("is not a position", error);
+		Assert.Contains("cursor | player | random | <x>,<y>", error);
 	}
 
 	[Fact]

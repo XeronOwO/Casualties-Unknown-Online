@@ -4,7 +4,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
 /// ONE parser for the "state attached to a prefab id" argument the console's creation verbs take — <c>/give</c>
-/// and <c>/spawn</c> — so the two cannot drift about what a state text is: a compound, parsed by the family's one
+/// and <c>/summon</c> — so the two cannot drift about what a state text is: a compound, parsed by the family's one
 /// SNBT parser, canonicalised by the one writer, and bounded by one length before it travels.
 ///
 /// <para>
@@ -47,7 +47,7 @@ internal static class ItemStateText
 
 		if (value is not SnbtCompound compound)
 		{
-			error = $"The state attached to a prefab id is a compound, e.g. <id> {{<key>:<value>}} — got {value.Kind}.";
+			error = $"The state is a compound, e.g. {{<key>:<value>}} — got {value.Kind}.";
 			return false;
 		}
 

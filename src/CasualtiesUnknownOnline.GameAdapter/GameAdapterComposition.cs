@@ -210,11 +210,11 @@ public static class GameAdapterComposition
 			p => p.GetRequiredService<ItemContainerFit>()));
 		// The world-summon seam behind the console /summon verb: the native command's position words and ONE
 		// object summoned at a point (an item entity through the creation port above and the shared world-item
-		// creation — the same the give ladder's drop makes — or an entity through Utils.Create). The
-		// same standalone shape and cycle reason as the two seams above — the console builds it at startup and
-		// must not force the aggregate, whose own graph depends on the controls this seam's neighbours live in.
-		// It needs nothing the domain graph owns: the prefab tables, the item table and the world instance are the
-		// game's own statics.
+		// creation — the same the give ladder's drop makes — or an entity through Utils.Create). The console
+		// builds it at startup, so it must not force the aggregate, whose own graph depends on the controls this
+		// seam's neighbours live in. It takes the item control and the give creation port (itself a standalone
+		// seam) plus the game's own statics (the prefab tables, the item table and the world instance), never the
+		// aggregate or a service that reaches it.
 		services.AddSingleton<WorldSummoner>();
 		services.Replace(ServiceDescriptor.Singleton<IWorldSummon>(
 			p => p.GetRequiredService<WorldSummoner>()));

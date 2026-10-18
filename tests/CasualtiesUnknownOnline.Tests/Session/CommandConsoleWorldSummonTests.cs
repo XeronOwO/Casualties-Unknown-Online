@@ -21,13 +21,15 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// the verb asks the scene seam for the position, the seam summons the object and reports it through the family's
 /// own landed path (<see cref="FakeWorldSummon"/> documents which one), and the answer names what was created and
 /// where. The <c>item</c> type word is Minecraft's shape — the type first, the definition its argument — and the
-/// item entity it makes is the same fact and the same world row the give ladder's drop makes.
+/// item entity it makes goes through the same creation port and the same world-item creation the give ladder's
+/// drop uses (pinned at the adapter by <c>WorldSummonContractGateTests</c>; this suite pins the console/service).
 ///
 /// <para>
 /// The permission cases and the member's request/answer path are
 /// <see cref="CommandConsoleMemberWorldSummonTests"/>'s. The scene seam's own half — instantiation, the real
-/// prefab tables — is the Game Adapter's and has no test host (`FakeWorldSummon` replaces exactly that); the
-/// acceptance batch reads it live.
+/// prefab tables, and the classification the seam performs against them — is the Game Adapter's and has no test
+/// host: <see cref="FakeWorldSummon"/> replaces that whole half, the production sentences and port calls are
+/// pinned by <c>WorldSummonContractGateTests</c>, and the acceptance batch reads the real materialization live.
 /// </para>
 /// </summary>
 [Trait("Category", "Integration")]
@@ -103,12 +105,15 @@ public class CommandConsoleWorldSummonTests
 	}
 
 	/// <summary>
-	/// The user's 2026-10-18 requirement: a summoned item entity's SNBT is the give drop's — the SAME bound document
-	/// for the same text, because both verbs hand it to the same creation port and the same world-item creation.
-	/// The give to a full body answers through its drop rung; the summon answers with the same document.
+	/// What both VERBS' ANSWERS share: one canonical document for one state text. The give to a full body answers
+	/// through its drop rung and the summon through its own seam, and each answer names the document its creation
+	/// bound. This is the console/service half — the shape of the two answers. That both verbs reach the SAME
+	/// adapter creation (and so cannot materialize an item differently) is pinned by
+	/// <c>WorldSummonContractGateTests</c>, because the adapter is not compiled into this suite; the live item
+	/// entities are acceptance rows 3 and 5.
 	/// </summary>
 	[Fact]
-	public void ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument()
+	public void ASummonedItemEntity_AndAGivenDrop_PrintTheSameCanonicalStateDocument()
 	{
 		var (host, summon) = CreateSummonSession();
 		Characters(host).SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true,

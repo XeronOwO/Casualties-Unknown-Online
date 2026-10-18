@@ -86,7 +86,7 @@ The umbrella's Part 3 B measured one defect with two halves:
   registry, the API baseline (three tombstones), the rule-to-gate map, the self-check MANIFEST, the
   umbrella's Part 3 B / layer table / promotion rule / open question, the cycle's self-check, and the
   other live documents that still printed the old vocabulary
-  (`done/cucorelib-migration-support.md`'s implemented-base list, `todo/item-and-entity-data-commands.md`'s
+  (`done/cucorelib-migration-support.md`'s implemented-base list, `review/item-and-entity-data-commands.md`'s
   related-surface clause).
 - Decision 245 records the rule and the rejected alternative.
 

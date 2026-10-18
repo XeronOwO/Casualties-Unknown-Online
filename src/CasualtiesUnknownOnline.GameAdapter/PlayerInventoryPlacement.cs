@@ -25,7 +25,7 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 {
 	private readonly GameAdapterDomains _domains = domains;
 
-	/// <summary>The one world-item creation path (the give ladder's drop rung and the console spawn verb share it).</summary>
+	/// <summary>The one world-item creation path (the give ladder's drop rung and the console summon verb share it).</summary>
 	private readonly WorldItemCreation _worldItems = new(domains.Items, domains.Log);
 
 	/// <summary>A carried item leaves this body: destroy the local object at any depth (a slot, a worn limb or a container).</summary>

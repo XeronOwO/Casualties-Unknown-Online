@@ -95,8 +95,16 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// moves from the limb into the body's own hands and keeps the id it had while it
 	/// was installed. The caller names the item, because it is the one that resolved
 	/// the id from the applied row before the game created the object.
+	/// <para>
+	/// <paramref name="item"/> is the revived object's own state at the moment it lands
+	/// — its condition and, when it went to a slot or a limb, the real placement
+	/// (<c>SlotIndex</c>; -1 for a container or the world). The relocation keeps the
+	/// applied row's data when this is null, and that data was captured BEFORE the
+	/// apply: its slot is where the item used to be, and it names no new placement. So
+	/// the caller that can see the revived object passes what it sees.
+	/// </para>
 	/// </summary>
-	void SendItemRemovedFromLimb(ulong itemId, int limbIndex);
+	void SendItemRemovedFromLimb(ulong itemId, int limbIndex, CharacterItemMsg? item = null);
 
 	/// <summary>
 	/// Read-only: the item the authoritative data records as INSTALLED on this limb —

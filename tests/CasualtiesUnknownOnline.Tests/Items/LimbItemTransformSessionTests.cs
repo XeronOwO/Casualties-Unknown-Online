@@ -78,6 +78,61 @@ public class LimbItemTransformSessionTests
 		Assert.Equal(ItemLocation.Carried(new ActorId(HostId)), Row(w, hostsItem).Location);
 	}
 
+	[Fact]
+	public void TheHostsOwnRemoval_CarriesTheRevivedItemsSlotAndCondition()
+	{
+		// The relocation's data is the REVIVED object's, not the applied row's: the row's slot is
+		// where the item was before the apply and its condition is the last component report's, so
+		// a removal that passes nothing leaves a mod-visible row with a stale placement (batch
+		// 20261018-v's review). The seam captures the object after the game's own AutoPickUpItem
+		// put it where the player will find it.
+		using var w = ItemSimWorld.Create();
+		var item = Carried(w, HostId, 43, "splint");
+		var items = w.Host.Services.GetRequiredService<IItemControl>();
+		items.SendItemAppliedToLimb(item, 3);
+		w.Driver.Tick(20);
+
+		items.SendItemRemovedFromLimb(item, 3, new CharacterItemMsg
+		{
+			InstanceId = item,
+			ItemId = "splint",
+			Condition = 0.4f,
+			SlotIndex = 4,
+		});
+		w.Driver.Tick(20);
+
+		var row = Row(w, item);
+		Assert.Equal(ItemLocation.Carried(new ActorId(HostId)), row.Location);
+		Assert.Equal(4, row.Data.SlotIndex);
+		Assert.Equal(0.4f, row.Data.Condition, 3);
+	}
+
+	[Fact]
+	public void AGuestsRemovalReport_CarriesTheRevivedItemsSlotAndConditionToTheHost()
+	{
+		// The same fact over the member's own wire: the command's payload carries the object's
+		// state, and the host's kernel row is where the imprecision used to land.
+		using var w = ItemSimWorld.Create();
+		var item = Carried(w, GuestId, 45, "splint");
+		var seam = w.G1.Services.GetRequiredService<IItemControl>();
+		seam.SendItemAppliedToLimb(item, 2);
+		w.Driver.Tick(50);
+
+		seam.SendItemRemovedFromLimb(item, 2, new CharacterItemMsg
+		{
+			InstanceId = item,
+			ItemId = "splint",
+			Condition = 0.35f,
+			SlotIndex = 6,
+		});
+		w.Driver.Tick(50);
+
+		var row = Row(w, item);
+		Assert.Equal(ItemLocation.Carried(new ActorId(GuestId)), row.Location);
+		Assert.Equal(6, row.Data.SlotIndex);
+		Assert.Equal(0.35f, row.Data.Condition, 3);
+	}
+
 	/// <summary>One carried item of that owner, in the kernel and in the owner's own snapshot, so the report has a row to relocate.</summary>
 	private static ulong Carried(ItemSimWorld world, ulong owner, ulong instanceId, string definitionId)
 	{

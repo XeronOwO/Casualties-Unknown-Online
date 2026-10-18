@@ -233,7 +233,7 @@ docs/backlog/done/in-game-command-console-interactive.md | keep | index | docs/b
 docs/backlog/review/item-data-read-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-data-write-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-id-counter-is-not-resumed-by-a-restore.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/item-identity-across-transforms.md | keep | index | docs/backlog/README.md
+docs/backlog/review/item-identity-across-transforms.md | keep | index | docs/backlog/README.md
 docs/backlog/review/layer-complete-choice-for-members.md | keep | index | docs/backlog/README.md
 docs/backlog/review/limb-tool-family-protection-gaps.md | keep | index | docs/backlog/README.md
 docs/backlog/review/middle-click-location-marker.md | keep | index | docs/backlog/README.md
@@ -681,11 +681,11 @@ docs/evidence/selfchecks/enemies/trader-recruit-selfcheck.md | keep | claim | do
 docs/evidence/selfchecks/enemies/trader-swing-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/fluids/fluid-presentation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/applied-item-location-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/items/applied-item-location-selfcheck.md | keep | claim | docs/backlog/todo/item-identity-across-transforms.md
+docs/evidence/selfchecks/items/applied-item-location-selfcheck.md | keep | claim | docs/backlog/review/item-identity-across-transforms.md
 docs/evidence/selfchecks/items/applied-item-mod-surface-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/items/applied-item-mod-surface-selfcheck.md | keep | claim | docs/backlog/todo/item-identity-across-transforms.md
+docs/evidence/selfchecks/items/applied-item-mod-surface-selfcheck.md | keep | claim | docs/backlog/review/item-identity-across-transforms.md
 docs/evidence/selfchecks/items/applied-item-round-trip-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md | keep | claim | docs/backlog/todo/item-identity-across-transforms.md
+docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md | keep | claim | docs/backlog/review/item-identity-across-transforms.md
 docs/evidence/selfchecks/items/building-support-drop-sync-selfcheck.md | keep | claim | docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md
 docs/evidence/selfchecks/items/container-content-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/container-move-event-carrier-selfcheck.md | keep | claim | docs/decisions/active.md
@@ -704,7 +704,7 @@ docs/evidence/selfchecks/items/gun-state-sync-selfcheck.md | keep | claim | docs
 docs/evidence/selfchecks/items/heal-item-selection-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/heater-cook-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-cook-replay-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/items/item-identity-across-transforms-design.md | keep | claim | docs/backlog/todo/item-identity-across-transforms.md
+docs/evidence/selfchecks/items/item-identity-across-transforms-design.md | keep | claim | docs/backlog/review/item-identity-across-transforms.md
 docs/evidence/selfchecks/items/item-keyframe-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-service-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-spawn-presentation-kernel-selfcheck.md | keep | claim | docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md
@@ -1051,4 +1051,4 @@ docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261018-t.md
 docs/evidence/acceptance/enter-key-opens-plain-chat-20261018-t.md | keep | claim | docs/backlog/todo/enter-key-opens-plain-chat.md
 docs/evidence/acceptance/20261018-u-scope.md | keep | claim | docs/evidence/acceptance/heal-cheat-command-state-reset-20261018.md
 docs/evidence/acceptance/heal-cheat-command-state-reset-20261018.md | keep | claim | docs/backlog/done/heal-cheat-command-state-reset.md
-docs/evidence/acceptance/item-identity-across-transforms-20261018.md | keep | claim | docs/backlog/todo/item-identity-across-transforms.md
+docs/evidence/acceptance/item-identity-across-transforms-20261018.md | keep | claim | docs/backlog/review/item-identity-across-transforms.md

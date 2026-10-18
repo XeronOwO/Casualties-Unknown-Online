@@ -24,6 +24,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// <item>a refused native-use CLAIM (<see cref="RejectionReason.UseNotPermitted"/>)
 /// puts the recorded state back, for the same reason a console write does: the use
 /// already ran here before it was reported;</item>
+/// <item>a refused LIMB RELOCATION (`ItemApplyLimb` / `ItemRemoveLimb`) is the applied
+/// family's divergence (or a command the host does not hold) and settles by being NAMED:
+/// the native call already ran, so the component and the item object stay where the game
+/// left them, and the pickup rollback below would unparent a live item into the world for a
+/// report that was never about a pickup;</item>
 /// <item>every other reason keeps the family's oldest answer — surface the item
 /// reject, which the adapter removes or rolls back (the refused-creation tombstone
 /// above all: the local copy of a drop the host refused must be destroyed).</item>
@@ -80,6 +85,21 @@ internal sealed class ItemCommandRejectionRouter(
 			// container AND its contents.
 			_log.LogInformation("Kernel command for container {ItemId} rejected ({Reason}) — container reports settle by re-stating the carried set, never by rolling the container back.", itemId, reason);
 			_idCoordinator.RequestCarriedInventoryReport("the host refused a container report");
+			return;
+		}
+
+		if (kind is WireCommandKind.ItemApplyLimb or WireCommandKind.ItemRemoveLimb)
+		{
+			// The applied family has exactly two doors, and a refusal of either is a DIVERGENCE
+			// rather than a lost pickup race: the native limb action already ran on this side, so
+			// the component and the item object are where the game left them, while the host's row
+			// did not take the move (or never held the item at all). The pickup rollback below
+			// would UNPARENT that live object into the world for a report that was never about a
+			// pickup, and the world reconcile kills an id its table does not hold (batch
+			// `20261018-u`'s row I4: a refused pickup from a take-off rolled the item out and the
+			// copy died one keyframe later). Nothing is rolled back and nothing is re-stated: the
+			// disagreement is named, which is the family's own rule.
+			_log.LogWarning("Kernel command for item {ItemId} rejected ({Reason}) — the {Kind} relocation was refused: this side's native action already ran, so its object and the host's item row no longer agree (the applied family's divergence, or an item the host does not hold). Nothing was moved back; the local object stays where the native call left it.", itemId, reason, kind);
 			return;
 		}
 

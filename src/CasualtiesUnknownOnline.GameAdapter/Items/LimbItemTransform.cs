@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
@@ -39,6 +40,17 @@ internal sealed class LimbItemTransform(ISessionControl session, IItemControl it
 
 	/// <summary>The take-off whose object has not been created yet, if one is in flight.</summary>
 	private PendingTakeOff? _pendingTakeOff;
+
+	/// <summary>
+	/// The scope opened around the native <c>TakeOff</c> this seam armed. It marks the call as
+	/// the removal's own internal pickup (see <see cref="CallContext.Origin.LimbComponentTakeOff"/>):
+	/// the game's <c>AutoPickUpItem</c> inside the call would otherwise report a pickup of an item
+	/// the host's row still holds as APPLIED — refused, and the refusal rolled the live object out
+	/// into the world (batch <c>20261018-u</c>'s row I4). Held here because the two patch halves
+	/// are one native call; released at the postfix, and by the frame boundary if the native call
+	/// throws and Harmony skips the postfix.
+	/// </summary>
+	private IDisposable? _takeOffScope;
 
 	/// <summary>
 	/// The local body's limb action installed <paramref name="item"/> as the component of
@@ -122,6 +134,13 @@ internal sealed class LimbItemTransform(ISessionControl session, IItemControl it
 		}
 
 		_pendingTakeOff = new PendingTakeOff(itemId, limbIndex, definitionId);
+
+		// The native call this prefix wraps is the removal's own run: the object it instantiates is
+		// the item that comes back, and the pickup it performs is the relocation this seam reports
+		// below — not a second, independent gesture. The scope is what tells the pickup and
+		// container-load hooks to stay silent; a take-off with no applied row (the divergence
+		// logged above) opens none, because the item it creates is genuinely new.
+		_takeOffScope = CallContext.Enter(CallContext.Origin.LimbComponentTakeOff);
 	}
 
 	/// <summary>
@@ -134,6 +153,12 @@ internal sealed class LimbItemTransform(ISessionControl session, IItemControl it
 	/// </summary>
 	internal void OnLimbComponentTakeOffEnd(bool nativeRan)
 	{
+		// The native call is over, so the removal's own pickup scope ends before anything reports:
+		// the item report below is the removal, and any later gesture on the revived object is an
+		// ordinary one again.
+		_takeOffScope?.Dispose();
+		_takeOffScope = null;
+
 		if (_pendingTakeOff is not { } pending)
 		{
 			return;
@@ -156,11 +181,24 @@ internal sealed class LimbItemTransform(ISessionControl session, IItemControl it
 			return;
 		}
 
-		_items.SendItemRemovedFromLimb(pending.ItemId, pending.LimbIndex);
+		_items.SendItemRemovedFromLimb(pending.ItemId, pending.LimbIndex, RevivedState(pending));
 		_log.LogInformation(
 			"[LimbItem] the {Definition} component of limb {Limb} came off as item {ItemId}; the item kept the id it had while installed.",
 			pending.DefinitionId, pending.LimbIndex, pending.ItemId);
 	}
+
+	/// <summary>
+	/// The revived object's state at the moment it landed, so the relocation's row carries the
+	/// real placement instead of the pre-apply one: by the time this runs, the game's own
+	/// <c>AutoPickUpItem</c> inside <c>TakeOff</c> has put the item where the player will find it
+	/// (a slot, a limb, a container, or — when nothing could take it — the world). <c>SlotOf</c>
+	/// answers -1 for the last two, which is the honest "no slot or limb" the row should record.
+	/// Null when the native call created no object (the removal was not reported either).
+	/// </summary>
+	private static CharacterItemMsg? RevivedState(PendingTakeOff pending) =>
+		pending.Item is { } item && item != null // Unity object — ==
+			? ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item))
+			: null;
 
 	/// <summary>
 	/// <c>Item.Awake</c>, which runs synchronously inside the <c>Object.Instantiate</c> a
@@ -182,12 +220,15 @@ internal sealed class LimbItemTransform(ISessionControl session, IItemControl it
 		}
 
 		item.gameObject.AddComponent<ItemInstanceId>().Id = pending.ItemId;
-		_pendingTakeOff = pending with { Adopted = true };
+		_pendingTakeOff = pending with { Adopted = true, Item = item };
 	}
 
 	/// <summary>The session ended: a take-off in flight belongs to the world it was started in.</summary>
 	internal void ResetSessionState()
 	{
+		_takeOffScope?.Dispose();
+		_takeOffScope = null;
+
 		if (_pendingTakeOff is { } pending)
 		{
 			_log.LogInformation(
@@ -197,5 +238,5 @@ internal sealed class LimbItemTransform(ISessionControl session, IItemControl it
 		}
 	}
 
-	private readonly record struct PendingTakeOff(ulong ItemId, int LimbIndex, string DefinitionId, bool Adopted = false);
+	private readonly record struct PendingTakeOff(ulong ItemId, int LimbIndex, string DefinitionId, bool Adopted = false, Item? Item = null);
 }

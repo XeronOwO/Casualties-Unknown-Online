@@ -28,6 +28,17 @@ internal static class ContainerItemPatches
 
 		private static void Postfix(Container __instance, Item item, bool __state)
 		{
+			// A limb component's own TakeOff revives its item and hands it to the body's
+			// AutoPickUpItem; when every slot is taken that call loads the item into a
+			// surface container instead, and this report would be the same refused pickup
+			// as the slot landing's (the removal seam already reports the item's return).
+			// The scope is the take-off's, and it is opened only when an applied row was
+			// resolved — see BodyItemPatches.PickUpItemPatch for the whole reason.
+			if (CallContext.IsWithin(CallContext.Origin.LimbComponentTakeOff))
+			{
+				return;
+			}
+
 			// A product loading into a surface container during a craft (the
 			// AutoPickUpItem container path) rides the ONE craft report — the
 			// coordinator's inventory diff sees it.

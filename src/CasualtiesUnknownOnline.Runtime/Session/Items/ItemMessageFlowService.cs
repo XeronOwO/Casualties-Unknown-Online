@@ -267,7 +267,7 @@ internal sealed class ItemMessageFlowService(
 		// broadcast by KernelProtocolService.
 	}
 
-	public void SendItemRemovedFromLimb(ulong itemId, int limbIndex)
+	public void SendItemRemovedFromLimb(ulong itemId, int limbIndex, CharacterItemMsg? item = null)
 	{
 		_pendingCreations.SettleBeforeOperation();
 		if (itemId == 0 || limbIndex < 0)
@@ -283,7 +283,7 @@ internal sealed class ItemMessageFlowService(
 				new ActorId(_session.LocalSteamId),
 				limbIndex,
 				new ActorId(_session.LocalSteamId),
-				null);
+				item);
 		}
 
 		if (!_session.SessionActive)
@@ -300,6 +300,11 @@ internal sealed class ItemMessageFlowService(
 				Location = AppliedLocation(_session.LocalSteamId, limbIndex),
 				NewOwner = _session.LocalSteamId,
 				ExpectedRevision = 0,
+				// The revived object's own state travels with the relocation: without it the row
+				// keeps the pre-apply slot and the last applied condition (batch 20261018-v's
+				// review). Null stays the "the caller could not see the object" case, which the
+				// kernel reads as "keep the row's data".
+				Data = item is null ? null : ToWireItemData(item),
 			}, WirePayloadType.ItemRemoveLimbCommand);
 		}
 	}

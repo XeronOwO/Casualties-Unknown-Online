@@ -79,6 +79,18 @@ internal static class CallContext
 		/// <summary>Inside a crafting operation (Recipe.TryMake / Body.CombineItems) — the material/product item hooks stay silent (their facts ride the ONE craft report; the end-of-frame destroys ride the destroy-claim set in CraftingSync).</summary>
 		Craft,
 
+		/// <summary>
+		/// Inside a limb component's own <c>TakeOff</c> (<c>SplintLimb</c> / <c>TourniquetScript</c>):
+		/// the game instantiates the item the component revives and hands it straight to the body's own
+		/// <c>AutoPickUpItem</c>, and that pickup is PART of the removal the limb seam reports itself —
+		/// the item keeps its id and comes back carried. Reporting it here would ask the host to pick up
+		/// an item its row still holds as APPLIED (a refusal), and the refusal used to roll the live
+		/// object back out of the inventory into the world, where the reconcile killed it (batch
+		/// <c>20261018-u</c>'s row I4). Opened only when the applied row was resolved: a take-off with
+		/// no row revives a NEW item, and that pickup is a real fact.
+		/// </summary>
+		LimbComponentTakeOff,
+
 		/// <summary>The world-time domain is applying an authoritative speed (host policy or a host broadcast on the guest) — the SetTimeScale patch must let it through without re-reporting.</summary>
 		WorldTimeApply,
 

@@ -303,6 +303,7 @@ public static class PlayerInteractionKernelCodec
 			DrinkDose = [.. e.DrinkDose.Select(ToLiquidStack)],
 			TargetEatsTheItem = e.TargetEatsTheItem,
 			TargetRunsLimbAction = e.TargetRunsLimbAction,
+			BecameLimbComponent = e.BecameLimbComponent,
 		};
 
 	private static ComponentStateMsg ToComponentMessage(ItemComponentState component) =>

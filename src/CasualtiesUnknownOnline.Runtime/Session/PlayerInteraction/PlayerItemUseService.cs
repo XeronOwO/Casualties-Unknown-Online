@@ -574,6 +574,7 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			[.. msg.DrinkDose.Select(PlayerInteractionKernelCodec.FromLiquidStack)],
 			msg.TargetEatsTheItem,
 			msg.TargetRunsLimbAction,
+			msg.BecameLimbComponent,
 			out _,
 			out var rejection))
 		{

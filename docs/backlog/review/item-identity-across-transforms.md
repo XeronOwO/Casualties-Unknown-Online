@@ -1,10 +1,9 @@
 # An item's identity across a transform: is a worn splint still the item it was made from?
 
-- Status: Todo — Rejected (batch `20261018-u`: row I1 **fails** — a cross-player apply commits the applied
-  relocation and then the operator's own destroy report ends the item 21 ms later, so the item reads
-  `Terminal` while the limb keeps its component and a later removal is refused as the two-carriers
-  divergence; row I4's live object is lost although its row reads `Carried`. Rows I2, I3, I5, I6 and I7
-  pass. Record: `docs/evidence/acceptance/item-identity-across-transforms-20261018.md`.) The RESEARCH cycle
+- Status: Review — fix landed 2026-10-18 (the "Fix landed" section names the two causes the batch found,
+  the third finding the review added, and the named limits); the I1-I7 rows await the acceptance re-run
+  (batch `20261018-v`). The previous batch's rejection is
+  `docs/evidence/acceptance/item-identity-across-transforms-20261018.md`. The RESEARCH cycle
   and all three implementation stages landed (2026-10-12 → 2026-10-14) and the user ruled **option 1** on
   2026-10-11: stage 1 is the kernel model (`docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`),
   stage 2 the adapter commits and the deletion of the synthesized id namespace
@@ -100,6 +99,82 @@ gains no id carrier, because `(owner, limb, definition)` already binds the row t
 (the definition is what separates a splint from a tourniquet on one limb). And the mod surface does NOT
 list an applied item as an inventory entry: stage 3 adds the by-id read on `IModGameState` and the
 written lifecycle rule. The reasons and the evidence are in the stage-1 self-check's §2.
+
+## Fix landed (2026-10-18), before the acceptance re-run
+
+Both defects the batch recorded are fixed at their cause, and neither needed a wider guard.
+
+**1 — the owner's destroy is not the item's end (I1).** The host's limb-component outcome now marks the
+result it publishes: `PlayerItemUseResultMsg.BecameLimbComponent` → `RecordPlayerItemUseResultCommand` /
+`PlayerItemUseResultEvent` → wire payload field 27 → `PlayerInteractionKernelCodec`. The owner's client
+reads that flag in `PlayerInteractionApply.OnPlayerItemUseReceived` and attaches the SAME
+`LimbAppliedItemOrigin` marker the local apply seam attaches before destroying its own carried object, so
+`ItemPatches.ItemOnDestroyPatch` stays silent and the row committed as `Applied` is no longer overwritten
+21 ms later. The marker was already the family's answer; what was missing was the fact that made it
+reachable from the cross-player side. A guest owner gets the same answer through the wire field, so the
+two directions (host applies to a member, member applies to the host) share one path.
+
+**2 — the take-off's own pickup is the removal, not a second report (I4).** `LimbItemTransform` opens
+`CallContext.Origin.LimbComponentTakeOff` around the native `TakeOff` — only when the applied row
+resolved — and the `Body.PickUpItem` and `Container.LoadItem` report hooks stay silent inside it: the
+item the component revives comes back through the removal relocation, which is the fact the seam already
+reports. A take-off with no applied row opens no scope; the item it creates is new and its pickup is a
+real fact. The refusal half is routed in `ItemCommandRejectionRouter`: a refused `ItemApplyLimb` /
+`ItemRemoveLimb` is a divergence (the native action already ran) or a command the host does not hold, and
+it is NAMED, never answered with the pickup rollback that unparented the live object into the world for
+the reconcile to kill (batch `20261018-u`'s I4).
+
+**3 — the removal's row carries the revived object, not the pre-apply one.** The review of this fix
+found that `ItemMessageFlowService.SendItemRemovedFromLimb` sent no data, so `LimbItemLocationRules.DecideRemove`
+kept the applied row's data: its slot was where the item used to be BEFORE the apply and its condition was
+the last applied-condition step — and nothing later updates that slot. `LimbItemTransform` now captures the
+revived object after the game's own `AutoPickUpItem` placed it (slot or limb encoding, -1 for a container or
+the world) and the report carries it, on both the host's own path and the member's wire command.
+
+**The red** has two halves and they are different failure shapes. The runtime red is the batch's own I1/I4
+reading on the deployed artifact (`+a3dff483`): the applied row went `Terminal` 21 ms after the commit, and
+the taken-off item's local copy was rolled out and killed. The unit red is the refusal-settlement pair in
+`ItemArbitrationFlowTests` (`RefusedLimbRemoval_…`, `RefusedLimbInstall_…`): both failed on the pre-fix
+router, which surfaced the pickup rollback's item reject for the limb commands, and both pass with the
+branch. The kernel/wire round trip
+(`PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerItemUseResultEvent`), the limb-tool outcome
+(`MedicalToolApplicationTests.AffectedSideOutcome_ComponentToolThatBecameTheComponent_…`), the two
+relocation-data cases (`LimbItemTransformSessionTests`) and a source-shape gate
+(`LimbToolChainGateTests.TheAppliedFamily_ReportsOneRelocationPerTransformOnBothSides`, which checks the
+marker's condition and order, the scope's open/close points and both hooks' guard-before-report ordering —
+not just that the names appear) pin the wiring. That gate was itself mutation-tested: the review's four
+counterexamples — an unconditional marker, the scope opened above the applied-row refusal, a deleted
+postfix release, and a hook guard moved below its report — were each applied to the tree and each failed
+the gate with its own message. The sync-coverage matrix's P8 row declares wire payload field 27 with its
+own anchor; `PlayerItemUseResultMsg`'s field 16 is process-local metadata on the same fact, not a second
+wire member.
+
+### Self-check: mechanism × change × evidence
+
+| # | Mechanism | Change | Evidence |
+|---|---|---|---|
+| 1 | The host's limb-component outcome | the result carries `BecameLimbComponent`, and every layer (command, event, wire payload 27, codec) passes it | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerItemUseResultEvent`; `MedicalToolApplicationTests.AffectedSideOutcome_ComponentToolThatBecameTheComponent_…` (the wire-decoded result) |
+| 2 | The owner's client (both directions: host owner and guest owner) | the marker `LimbAppliedItemOrigin` is attached inside the flag before the deferred destroy | the same two cases plus `LimbToolChainGateTests.TheAppliedFamily_…` (condition + order); row I1 |
+| 3 | The item's own `OnDestroy` hook | the existing marker read is unchanged and now reachable from the cross-player side | the same gate; `ItemPatches.ItemOnDestroyPatch` |
+| 4 | `SplintLimb.TakeOff` / `TourniquetScript.TakeOff` | the scope `CallContext.Origin.LimbComponentTakeOff` is opened only after the applied row resolves | `LimbToolChainGateTests.TheAppliedFamily_…` (the ordering check, mutation-proven); rows I2/I4 |
+| 5 | `Body.PickUpItem` / `Container.LoadItem` reports | both hooks return before reporting inside the scope | the same gate (both patches, guard before report); row I4 |
+| 6 | A refused limb relocation | `ItemCommandRejectionRouter` names it and never surfaces the pickup rollback | `ItemArbitrationFlowTests.RefusedLimbRemoval_…` / `RefusedLimbInstall_…` (red before the branch) |
+| 7 | The removal relocation's data | the revived object's slot and condition ride `SendItemRemovedFromLimb` | `LimbItemTransformSessionTests` (host path and guest wire path) |
+| 8 | A self-contradictory outcome | `BecameLimbComponent` without `Consumed` is refused by name | `MedicalToolApplicationTests.AffectedSideOutcome_ClaimsTheComponentWithoutConsumingTheItem_IsRefused` (red before the guard) |
+| 9 | The wire and its bookkeeping | no new discriminator, `ProtocolVersion` untouched; P8 declares field 27 with a new anchor | `SyncCoverageGateTests`; the matrix row and `sync-coverage-evidence.json` |
+
+**Limits this fix does not close, named rather than papered over.** A take-off whose native
+`AutoPickUpItem` cannot place the item (no empty slot and no surface container) leaves the object in the
+world while the row relocates to carried — the kernel has no Applied → World door, so that landing is the
+family's divergence; the batch did not observe it. A take-off whose item lands in a surface container
+carries slot -1 and no parent: the kernel's removal door is Carried-only, so the row stays a top-level
+carried item and the containment lives only in the character snapshot and the transfer table (the 1 Hz
+fallback carries the clone and the restore, not the kernel row). The take-off scope covers the two landing
+shapes the native templates can take; a modded component whose item is `Stats.wearable` or carries
+`noautopickup` would land through a path the scope does not silence (the native splint and tourniquet
+templates are neither), and a `CallContext` depth-bound refusal at 16 would silently disable the guard —
+the frame boundary reports that refusal rather than repairing it. And the two-carriers placement question
+stays `todo/id-carriers-can-disagree-about-placement.md`'s.
 
 ## Limits
 

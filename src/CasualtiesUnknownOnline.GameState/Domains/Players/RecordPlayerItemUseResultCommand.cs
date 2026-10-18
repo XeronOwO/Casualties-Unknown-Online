@@ -26,4 +26,5 @@ public sealed record RecordPlayerItemUseResultCommand(
 	int LimbIndex,
 	IReadOnlyList<PlayerInteractionLiquidStack> DrinkDose,
 	bool TargetEatsTheItem = false,
-	bool TargetRunsLimbAction = false) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);
+	bool TargetRunsLimbAction = false,
+	bool BecameLimbComponent = false) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);

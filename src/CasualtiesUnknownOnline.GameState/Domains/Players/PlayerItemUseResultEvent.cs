@@ -22,4 +22,5 @@ public sealed record PlayerItemUseResultEvent(
 	int LimbIndex,
 	IReadOnlyList<PlayerInteractionLiquidStack> DrinkDose,
 	bool TargetEatsTheItem = false,
-	bool TargetRunsLimbAction = false) : PlayerEvent;
+	bool TargetRunsLimbAction = false,
+	bool BecameLimbComponent = false) : PlayerEvent;

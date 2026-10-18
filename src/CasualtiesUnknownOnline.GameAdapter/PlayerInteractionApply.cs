@@ -277,8 +277,24 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				}
 				else if (msg.ItemDestroyed)
 				{
+					if (msg.BecameLimbComponent)
+					{
+						// The destroy takes the owner's CARRIED object, not the item: the affected
+						// side's own limb action turned it into the limb component, the commit
+						// relocated its row onto that limb, and the instance id lives on. The same
+						// marker the local apply seam attaches keeps the generic OnDestroy hook
+						// from reporting this deferred destroy as the item's end — without it the
+						// row that was just committed as Applied is overwritten with Terminal and
+						// the limb keeps a component no row names (batch 20261018-u's row I1).
+						item.gameObject.AddComponent<LimbAppliedItemOrigin>();
+					}
+
 					Object.Destroy(item.gameObject);
-					domains.Log.LogInformation("[ItemUse] local item {ItemId} destroyed by cross-player use.", msg.ItemInstanceId);
+					domains.Log.LogInformation(
+						msg.BecameLimbComponent
+							? "[ItemUse] local item {ItemId} destroyed by cross-player use — the item did not end: it is installed on the target's limb and keeps its id."
+							: "[ItemUse] local item {ItemId} destroyed by cross-player use.",
+						msg.ItemInstanceId);
 					changed = true;
 				}
 				else if (msg.ItemAfter is { } after)

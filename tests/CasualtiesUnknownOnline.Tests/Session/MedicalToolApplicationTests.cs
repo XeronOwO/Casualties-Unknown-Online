@@ -180,6 +180,7 @@ public class MedicalToolApplicationTests
 
 		var committed = UseResults(received)[1];
 		Assert.True(committed.ItemDestroyed, "the owner's own object is gone either way");
+		Assert.True(committed.BecameLimbComponent, "the owner's client must not report the destroy as the item's end");
 		Assert.Null(committed.ItemAfter);
 		Assert.Empty(characters.GetSavedCharacter(GuestId)!.Items);
 		Assert.Empty(items.GetTransferredItems(GuestId));
@@ -211,6 +212,34 @@ public class MedicalToolApplicationTests
 		Assert.Single(UseResults(received));
 		Assert.NotNull(characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42));
 		Assert.Equal(ItemLocationKind.Carried, host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42)!.Value.Location.Kind);
+	}
+
+	[Fact]
+	public void AffectedSideOutcome_ClaimsTheComponentWithoutConsumingTheItem_IsRefused()
+	{
+		// The pair is ONE fact: the delegate that installs the limb component destroys the object
+		// it was handed, which is why the affected side reports both. The host holds both fields
+		// of the same report, so "the item became the component" AND "the item survived" is a
+		// self-contradictory claim it can refuse by name — landing it would relocate a row for an
+		// item the owner's own object still carries, leaving the two carriers apart.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var splint = Item(42, "splint", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, splint));
+		items.AdoptTransferredItem(GuestId, 42, splint);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, 1);
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendItemActionOutcome(42, 0.5f, consumed: false, becameLimbComponent: true);
+
+		// Only the request half is published: the contradictory outcome moves nothing.
+		Assert.Single(UseResults(received));
+		Assert.Equal(ItemLocationKind.Carried, host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42)!.Value.Location.Kind);
+		Assert.Single(characters.GetSavedCharacter(GuestId)!.Items);
+		Assert.Single(items.GetTransferredItems(GuestId));
 	}
 
 	[Fact]

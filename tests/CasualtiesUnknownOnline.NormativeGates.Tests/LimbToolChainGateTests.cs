@@ -71,6 +71,14 @@ public class LimbToolChainGateTests
 
 	private const string ResultApplyFile = "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs";
 
+	private const string TransformFile = "src/CasualtiesUnknownOnline.GameAdapter/Items/LimbItemTransform.cs";
+
+	private const string ItemPatchesFile = "src/CasualtiesUnknownOnline.GameAdapter/Patches/ItemPatches.cs";
+
+	private const string BodyItemPatchesFile = "src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyItemPatches.cs";
+
+	private const string ContainerItemPatchesFile = "src/CasualtiesUnknownOnline.GameAdapter/Patches/ContainerItemPatches.cs";
+
 	/// <summary>
 	/// An id table's shape: a collection initializer whose keys are string literals.
 	/// Deliberately narrow, and the same shape the two sibling chain gates read — a
@@ -203,6 +211,131 @@ public class LimbToolChainGateTests
 			resultApply.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "msg.TargetRunsLimbAction");
 	}
+
+	/// <summary>
+	/// The applied family keeps ONE id across both sides of the transform, and both sides are
+	/// source shapes no behavioural test can reach (they run Unity's own deferred destroy and the
+	/// game's own <c>TakeOff</c>), so they are pinned here:
+	/// <list type="number">
+	/// <item>the OWNER's destroy of its carried object is not the item's end. The result says the
+	/// item became the limb component, and the handler attaches the same marker the local apply
+	/// seam does before destroying its object — the marker <c>ItemPatches</c> reads to stay
+	/// silent. Without the pair the row committed as APPLIED was overwritten with Terminal 21 ms
+	/// later and the limb kept a component no row named (batch <c>20261018-u</c>'s row I1).</item>
+	/// <item>a limb component's own <c>TakeOff</c> hands its revived item to the game's own
+	/// <c>AutoPickUpItem</c>, and that pickup is the removal the limb seam reports — not a second
+	/// gesture. The take-off scope is what keeps the pickup and container-load hooks silent, and
+	/// only a take-off that resolved an applied row opens it. Without it the pickup was refused as
+	/// "applied item cannot be picked up" and the refusal rolled the live object out into the
+	/// world, where the reconcile killed it (row I4).</item>
+	/// </list>
+	/// <para>
+	/// The checks are structural, not token presence, because token presence passed the mutations
+	/// that matter most: making the marker unconditional (silencing every consumed item's end),
+	/// opening the scope above the applied-row refusal (suppressing a genuinely new item's pickup),
+	/// deleting a release (leaking the scope into later gestures) and moving a hook guard below its
+	/// report (reporting the removal twice). Each check below names the ordering or the condition
+	/// it needs, so those edits fail.
+	/// </para>
+	/// </summary>
+	[Fact]
+	public void TheAppliedFamily_ReportsOneRelocationPerTransformOnBothSides()
+	{
+		// 1. The owner's side: the marker is attached INSIDE the result's own flag, and before the
+		//    deferred destroy that the marker is there to silence.
+		var destroyHandler = Members(Parse(ResultApplyFile), "OnPlayerItemUseReceived").ToList();
+		var marker = destroyHandler
+			.OfType<InvocationExpressionSyntax>()
+			.FirstOrDefault(invocation => invocation.ToString() == "item.gameObject.AddComponent<LimbAppliedItemOrigin>()");
+		Assert.True(
+			marker is not null,
+			$"{ResultApplyFile}: OnPlayerItemUseReceived no longer attaches LimbAppliedItemOrigin to the owner's object — the deferred destroy is reported as the item's end again");
+		Assert.True(
+			marker!.Ancestors().OfType<IfStatementSyntax>().Any(statement =>
+				statement.Condition.ToString() == "msg.BecameLimbComponent"),
+			$"{ResultApplyFile}: the marker is attached UNCONDITIONALLY — every consumed item's destroy would then be silenced, not only the applied family's");
+		var destroy = destroyHandler
+			.OfType<InvocationExpressionSyntax>()
+			.FirstOrDefault(invocation => invocation.ToString() == "Object.Destroy(item.gameObject)");
+		Assert.True(destroy is not null, $"{ResultApplyFile}: the handler no longer destroys the owner's object");
+		Assert.True(
+			marker.SpanStart < destroy!.SpanStart,
+			$"{ResultApplyFile}: the marker is attached AFTER the destroy — Unity's deferred OnDestroy no longer sees it");
+
+		// ...and the hook reads it on the object being torn down, inside the one patch that decides.
+		var destroyPatch = Parse(ItemPatchesFile).DescendantNodes().OfType<ClassDeclarationSyntax>()
+			.SingleOrDefault(type => type.Identifier.ValueText == "ItemOnDestroyPatch");
+		Assert.True(destroyPatch is not null, $"{ItemPatchesFile}: ItemOnDestroyPatch not found — the scan read nothing");
+		var markerRead = destroyPatch!.DescendantNodes().OfType<GenericNameSyntax>()
+			.FirstOrDefault(name => name.Identifier.ValueText == "GetComponent"
+				&& name.TypeArgumentList.Arguments.ToString().Contains("LimbAppliedItemOrigin", StringComparison.Ordinal));
+		Assert.True(
+			markerRead is not null,
+			$"{ItemPatchesFile}: ItemOnDestroyPatch no longer reads LimbAppliedItemOrigin — the marker silences nothing");
+		Assert.True(
+			markerRead!.Ancestors().OfType<IfStatementSyntax>().Any(statement =>
+				statement.Statement.DescendantNodes().OfType<ReturnStatementSyntax>().Any()),
+			$"{ItemPatchesFile}: the marker read is not part of a condition that returns — the hook falls through and reports the end anyway");
+
+		// 2. The removal side: the scope is opened only AFTER the applied row resolved, and it is
+		//    released on both of its exit paths.
+		var transform = Parse(TransformFile);
+		var begin = Members(transform, "OnLimbComponentTakeOffBegin").ToList();
+		var enter = begin.OfType<AssignmentExpressionSyntax>()
+			.FirstOrDefault(assignment => assignment.Left.ToString() == "_takeOffScope"
+				&& assignment.Right.ToString() == "CallContext.Enter(CallContext.Origin.LimbComponentTakeOff)");
+		Assert.True(
+			enter is not null,
+			$"{TransformFile}: OnLimbComponentTakeOffBegin no longer opens the take-off scope (an assignment of CallContext.Enter(Origin.LimbComponentTakeOff) to _takeOffScope)");
+		var unresolvedReturn = begin.OfType<IfStatementSyntax>()
+			.FirstOrDefault(statement => statement.Condition.ToString().Contains("itemId == 0", StringComparison.Ordinal));
+		Assert.True(
+			unresolvedReturn is not null,
+			$"{TransformFile}: the applied-row refusal (itemId == 0) is gone — the scan can no longer tell when the scope is legal");
+		Assert.True(
+			enter!.SpanStart > unresolvedReturn!.Span.End,
+			$"{TransformFile}: the scope is opened BEFORE the applied row resolves — a take-off with no row would suppress the pickup of a genuinely new item");
+
+		foreach (var methodName in new[] { "OnLimbComponentTakeOffEnd", "ResetSessionState" })
+		{
+			Assert.True(
+				Members(transform, methodName).Any(node => node.ToString() == "_takeOffScope?.Dispose()"),
+				$"{TransformFile}: {methodName} no longer releases the take-off scope — it leaks into the next gesture and suppresses a real pickup");
+		}
+
+		// ...and both report hooks check it BEFORE they report, each in the patch that owns it.
+		foreach (var (hookFile, className, methodName, reportCall) in new[]
+		{
+			(BodyItemPatchesFile, "PickUpItemPatch", "Postfix", "PatchBridge.Impl?.OnItemPickedUp(item)"),
+			(ContainerItemPatchesFile, "ContainerLoadItemPatch", "Postfix", "PatchBridge.Impl?.OnItemLoadedIntoContainer(item, __state)"),
+		})
+		{
+			var body = MembersInClass(Parse(hookFile), className, methodName).ToList();
+			var guard = body.OfType<IfStatementSyntax>().FirstOrDefault(statement =>
+				statement.Condition.ToString() == "CallContext.IsWithin(CallContext.Origin.LimbComponentTakeOff)");
+			Assert.True(
+				guard is not null,
+				$"{hookFile}: {className}.{methodName} no longer refuses to report inside a limb take-off");
+			Assert.True(
+				guard!.Statement.DescendantNodes().OfType<ReturnStatementSyntax>().Any(),
+				$"{hookFile}: {className}.{methodName} checks the take-off scope without returning — the report below still runs");
+			var report = body.FirstOrDefault(node => node.ToString() == reportCall);
+			Assert.True(report is not null, $"{hookFile}: {className}.{methodName} no longer reports its fact — the scan read nothing");
+			Assert.True(
+				guard.SpanStart < report!.SpanStart,
+				$"{hookFile}: {className}.{methodName} reports BEFORE the take-off guard — the removal's own pickup reaches the host again");
+		}
+	}
+
+	/// <summary>Everything declared inside one named METHOD of one named class, so a guard can be asked of the patch that owns it rather than of the whole file (the two hook files hold several patches with same-named members).</summary>
+	private static IEnumerable<SyntaxNode> MembersInClass(SyntaxNode root, string className, string methodName) =>
+		root.DescendantNodes()
+			.OfType<ClassDeclarationSyntax>()
+			.Where(type => type.Identifier.ValueText == className)
+			.SelectMany(type => type.DescendantNodes())
+			.OfType<MethodDeclarationSyntax>()
+			.Where(method => method.Identifier.ValueText == methodName)
+			.SelectMany(method => method.DescendantNodes());
 
 	[Fact]
 	public void TheWorldDragGate_AsksNoLimbRuleAndTheMedicalGateIsWhereItIsAsked()

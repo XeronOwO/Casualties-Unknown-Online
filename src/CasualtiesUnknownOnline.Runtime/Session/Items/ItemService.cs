@@ -257,7 +257,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public void SendItemAppliedToLimb(ulong itemId, int limbIndex) => _messageFlow.SendItemAppliedToLimb(itemId, limbIndex);
 
-	public void SendItemRemovedFromLimb(ulong itemId, int limbIndex) => _messageFlow.SendItemRemovedFromLimb(itemId, limbIndex);
+	public void SendItemRemovedFromLimb(ulong itemId, int limbIndex, CharacterItemMsg? item = null) => _messageFlow.SendItemRemovedFromLimb(itemId, limbIndex, item);
 
 	public ulong FindAppliedLimbItem(ulong owner, int limbIndex, string definitionId) =>
 		_kernelAuthority.FindAppliedLimbItem(new ActorId(owner), limbIndex, definitionId)?.Identity.InstanceId ?? 0;

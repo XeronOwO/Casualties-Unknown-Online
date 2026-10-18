@@ -125,6 +125,19 @@ internal static class BodyItemPatches
 				return;
 			}
 
+			// A limb component's own TakeOff hands the item it revives to this same
+			// AutoPickUpItem, and that pickup is part of the removal the limb seam already
+			// reported: the item keeps its id and comes back carried. Reporting it here
+			// would ask the host to pick up an item its row still holds as APPLIED — a
+			// refusal that used to roll the live object back out of the inventory, where
+			// the world reconcile killed it (batch 20261018-u's row I4). Only a take-off
+			// that resolved an applied row opens the scope; one that did not is reviving a
+			// new item, and its pickup is a real fact.
+			if (CallContext.IsWithin(CallContext.Origin.LimbComponentTakeOff))
+			{
+				return;
+			}
+
 			if (CallContext.Current != CallContext.Origin.InternalReorder
 				&& CallContext.Current != CallContext.Origin.Craft
 				&& __instance.HoldingItem(item))

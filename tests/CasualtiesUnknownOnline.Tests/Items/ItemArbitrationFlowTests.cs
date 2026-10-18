@@ -145,6 +145,46 @@ public class ItemArbitrationFlowTests
 	}
 
 	[Fact]
+	public void RefusedLimbRemoval_DoesNotSurfaceTheItemReject()
+	{
+		// The applied family has two doors — apply and remove — and a refusal of either is
+		// the two-carriers DIVERGENCE, not a lost pickup race. The item reject is the
+		// pickup/block-drop family's answer: the adapter rolls a refused pickup back by
+		// UNPARENTING the live object into the world, where the world reconcile kills it
+		// (batch 20261018-u's row I4: the local take-off's item was refused as already
+		// carried and the copy died one keyframe later). A limb relocation that the host
+		// refuses must therefore never reach that event.
+		var (host, guest) = CreateSession();
+		SpawnItem(guest, 42, Item());
+		ReportPickup(guest, 42, Item());
+		new SimulationDriver(guest.Clock, guest.Transport.Network, host, guest).Tick(40);
+
+		var rejects = new List<ulong>();
+		guest.Services.GetRequiredService<IItemControl>().ItemRejected += (id, _) => rejects.Add(id);
+
+		// Item 42 is carried here, not applied: the host refuses the removal as an invalid
+		// transition, which is exactly the shape the batch produced.
+		guest.Services.GetRequiredService<IItemControl>().SendItemRemovedFromLimb(42, 3);
+
+		Assert.Empty(rejects);
+	}
+
+	[Fact]
+	public void RefusedLimbInstall_DoesNotSurfaceTheItemReject()
+	{
+		// The same sentence for the other door: the item the report names is unknown to the
+		// host's kernel, so the install is refused — and the local limb already carries the
+		// component the native action installed. Nothing is rolled back here either.
+		var (_, guest) = CreateSession();
+		var rejects = new List<ulong>();
+		guest.Services.GetRequiredService<IItemControl>().ItemRejected += (id, _) => rejects.Add(id);
+
+		guest.Services.GetRequiredService<IItemControl>().SendItemAppliedToLimb(4242, 3);
+
+		Assert.Empty(rejects);
+	}
+
+	[Fact]
 	public void DuplicatePickupReport_RetransmitIsSilentlyIdempotent()
 	{
 		var (_, guest) = CreateSession();

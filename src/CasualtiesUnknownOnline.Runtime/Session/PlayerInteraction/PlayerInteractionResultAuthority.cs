@@ -85,6 +85,7 @@ internal sealed class PlayerInteractionResultAuthority(ItemKernelAuthority kerne
 		IReadOnlyList<PlayerInteractionLiquidStack> drinkDose,
 		bool targetEatsTheItem,
 		bool targetRunsLimbAction,
+		bool becameLimbComponent,
 		out CommittedBatch? batch,
 		out Rejection? rejection) =>
 		TryExecute(
@@ -105,7 +106,8 @@ internal sealed class PlayerInteractionResultAuthority(ItemKernelAuthority kerne
 				limbIndex,
 				drinkDose,
 				targetEatsTheItem,
-				targetRunsLimbAction),
+				targetRunsLimbAction,
+				becameLimbComponent),
 			actor,
 			"record-player-item-use-result",
 			out batch,

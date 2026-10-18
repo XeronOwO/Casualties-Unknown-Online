@@ -120,6 +120,19 @@ internal sealed class PlayerItemActionOutcomeService(
 
 		if (msg.BecameLimbComponent)
 		{
+			// The pair is ONE fact, and the host holds both halves of it in this one report: the
+			// delegate that installs the limb component destroys the object it was handed, which is
+			// why the affected side reports the component together with the consumption. "It became
+			// the component" AND "the item survived" cannot both be true, and landing it would
+			// relocate the row for an item the owner's own object still carries — the two carriers
+			// apart. A report that contradicts itself is refused by name, not half-applied.
+			if (!msg.Consumed)
+			{
+				_log.LogWarning("[ItemUse] refused the affected-side outcome from {Actor} for item {ItemId}: it reports the limb component while the item survived — the two are one fact (the delegate that installs the component destroys the object it was handed), so nothing was committed.",
+					sender, msg.ItemInstanceId);
+				return null;
+			}
+
 			// The one consumption that keeps the id. Only the limb-tool family can
 			// observe it, and only a limb-tool use has a limb to put the row on, so a
 			// report that claims it without an admitted limb is refused instead of being
@@ -144,6 +157,10 @@ internal sealed class PlayerItemActionOutcomeService(
 				// row's business rather than this message's.
 				ItemDestroyed = true,
 				ItemAfter = null,
+				// ...but the owner's client must know that "gone" is not "ended": the row
+				// relocated onto the limb and kept its id, so the destroy it performs on its
+				// own incarnation is not an item end (batch 20261018-u's row I1).
+				BecameLimbComponent = true,
 			};
 		}
 

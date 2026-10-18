@@ -710,7 +710,8 @@ public class PlayerDomainKernelTests
 				1,
 				[new PlayerInteractionLiquidStack("water", 100f)],
 				TargetEatsTheItem: false,
-				TargetRunsLimbAction: true),
+				TargetRunsLimbAction: true,
+				BecameLimbComponent: true),
 			new CommandContext(Epoch, Host)).Batch!;
 
 		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
@@ -730,6 +731,7 @@ public class PlayerDomainKernelTests
 		Assert.Equal(100f, Assert.Single(@event.DrinkDose).Amount);
 		Assert.False(@event.TargetEatsTheItem);
 		Assert.True(@event.TargetRunsLimbAction);
+		Assert.True(@event.BecameLimbComponent);
 	}
 
 	[Fact]

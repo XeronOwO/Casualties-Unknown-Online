@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [An item's identity across a transform](todo/item-identity-across-transforms.md) — **High** — rejected: a cross-player apply ends the item row.
 - [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — rejected: the dropdown list and the top-edge drag clamp.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
@@ -82,6 +81,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
+- [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the applied row and the taken-off item keep their id.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction, landed; four of its six rows read on the machine.
 - [Heal restores severed limbs and clears hollow](review/heal-command-limb-and-hollow-restore.md) — **Medium** — KrokMP parity for the heal command.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.

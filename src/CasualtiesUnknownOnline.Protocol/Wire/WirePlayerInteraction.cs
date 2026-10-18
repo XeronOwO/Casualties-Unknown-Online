@@ -134,4 +134,15 @@ public sealed class WirePlayerInteraction
 	/// </summary>
 	[ProtoMember(26)]
 	public int Destination { get; set; }
+
+	/// <summary>
+	/// True on the limb-tool family's SECOND result when the destroyed item did not end:
+	/// the affected side's own limb action turned it into the limb component installed on
+	/// the target, so its row relocated onto that limb and kept its instance id. The
+	/// owner's client destroys its own incarnation (the owner's inventory lost it) but
+	/// must not report that destroy as an item end. False for every family that consumes
+	/// an item, and for the request half.
+	/// </summary>
+	[ProtoMember(27)]
+	public bool BecameLimbComponent { get; set; }
 }

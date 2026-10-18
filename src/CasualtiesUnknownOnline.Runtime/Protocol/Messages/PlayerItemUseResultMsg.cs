@@ -137,4 +137,17 @@ public sealed class PlayerItemUseResultMsg
 	/// </summary>
 	[ProtoMember(15)]
 	public bool TargetRunsLimbAction { get; set; }
+
+	/// <summary>
+	/// True when the item this result destroys did NOT end: the affected side's own limb
+	/// action turned it into the limb component installed on the target, so its row
+	/// RELOCATED onto that limb and kept its instance id. The owner's carried object goes
+	/// away (the native apply destroyed it) and the owner's client destroys its local
+	/// incarnation, but that destroy is not the item's end — it is the same item, now on
+	/// the limb — and reporting it as one would end the row 21 ms after the apply
+	/// committed it (batch <c>20261018-u</c>'s row I1). False for every family that
+	/// consumes an item, and for the request half.
+	/// </summary>
+	[ProtoMember(16)]
+	public bool BecameLimbComponent { get; set; }
 }

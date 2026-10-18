@@ -7,17 +7,17 @@
   `docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md` and
   `docs/evidence/acceptance/give-item-to-a-player-command-20261018-r.md`. Split out of
   `done/item-and-entity-data-commands.md`'s stage C, which this ticket completes; the umbrella keeps stage D
-  (`/summon`, landed 2026-10-18 and recorded in `review/item-and-entity-data-commands.md`).
+  (`/summon`, landed 2026-10-18 and recorded in `done/item-and-entity-data-commands.md`).
 - Priority: Medium-High
 - Category: Command surface / item and entity state / cheat verb
-- Source: stage C of `review/item-and-entity-data-commands.md` (designed 2026-10-18 in that ticket) and the
+- Source: stage C of `done/item-and-entity-data-commands.md` (designed 2026-10-18 in that ticket) and the
   user's combined 2026-10-18 ruling recorded in `review/cheat-permission-and-op-commands.md` — `/give` ships
   for the host AND the members, with the two-sided cheat check. The implementation cycle's directions (the
   carrier, the narrow id port, the definition fact port, the property reuse) were frozen by the session
   handoff and are restated under *The design, as landed*.
 - Related: `review/cheat-permission-and-op-commands.md` (the permission half of the same cycle),
   `review/give-item-to-another-player.md` (the gesture that shares the custody carrier and its open gap),
-  `review/item-and-entity-data-commands.md` (the umbrella whose stage C this is; stage D landed there too),
+  `done/item-and-entity-data-commands.md` (the umbrella whose stage C this is; stage D landed there too),
   `done/item-data-write-commands.md` (the property grammar and the local-scene port this reuses),
   `review/item-data-read-commands.md` (the row the answer is read back through),
   `docs/architecture/member-report-validation.md` (the census row for the member's request),

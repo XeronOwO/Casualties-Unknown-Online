@@ -57,7 +57,7 @@ public sealed class HostRulesOptions
 	/// Host-only: the CHEAT SWITCH of the family — whether members may run the cheat
 	/// verbs at all (<c>/data</c>'s write verbs, <c>/give</c> and <c>/summon</c>). OFF
 	/// by default, because the family is deliberately "not a cheating surface by
-	/// default" (`review/item-and-entity-data-commands.md`).
+	/// default" (`done/item-and-entity-data-commands.md`).
 	///
 	/// <para>
 	/// It is one of TWO host rulings a member's cheat verb needs, and it is the broader

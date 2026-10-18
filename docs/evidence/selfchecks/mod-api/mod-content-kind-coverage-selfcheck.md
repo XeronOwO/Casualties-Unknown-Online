@@ -31,7 +31,7 @@ binder's warning answers a kind written as a literal or invented by a mod.
 | `ModContentDisplayName` | its switch over the vocabulary | reads eight of the nine kinds; `Recipe` deliberately falls back to the registered id, unchanged by this cycle |
 | `ModContentResourceLocationSource` | whether it should also skip a provider-less kind | it keeps listing it: the console vocabulary answers "what did the mod register", the binder answers "will it exist". The distinction is now stated on the mod API page instead of implied |
 | The nine providers | class ↔ registration statement ↔ constant, in both directions | all nine agree (the gate asserts it) |
-| Docs stating the old vocabulary | both blocks of `reference/mod-api.md` and `how-to/register-content.md`, the umbrella, and every other live document that printed the twelve-kind list | updated — including `done/cucorelib-migration-support.md`'s implemented-base list (the very ticket this cycle cites as its authority, found by the independent review after the first sweep missed it) and `review/item-and-entity-data-commands.md`'s related-surface clause |
+| Docs stating the old vocabulary | both blocks of `reference/mod-api.md` and `how-to/register-content.md`, the umbrella, and every other live document that printed the twelve-kind list | updated — including `done/cucorelib-migration-support.md`'s implemented-base list (the very ticket this cycle cites as its authority, found by the independent review after the first sweep missed it) and `done/item-and-entity-data-commands.md`'s related-surface clause |
 | Tests and tools naming a removed constant | a repository-wide scan | none; the change compiled with no test edits beyond the binder fact and the new built-in source fact |
 
 ## 3. Self-check table

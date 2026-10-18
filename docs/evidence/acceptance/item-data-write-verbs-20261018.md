@@ -1,7 +1,7 @@
 # Acceptance — `/data merge` and `/data remove` on a real session
 
 - Date: 2026-10-18
-- Ticket: `docs/backlog/review/item-and-entity-data-commands.md`
+- Ticket: `docs/backlog/done/item-and-entity-data-commands.md`
 - Batch: `.acceptance/20261017-n/run.ps1` (two clients: host + one sandboxed member)
 - Delivered artifact: `0.1.0+b1cc399ceaaad6ff77d0c7b4379115c62b3f8c96` — the tree's own HEAD, confirmed by
   `verify-deploy.ps1` before the clients started, in all three runs

@@ -1,9 +1,11 @@
 # Item and entity data commands: give, spawn and a property editor
 
-- Status: Review — **stage D (`/summon`) landed 2026-10-18** (the user's ruling renamed the stage's working
-  name `/spawn`), so every stage of this ticket is built; its acceptance rows (`What the acceptance batch owes`,
-  under *Stage D* below) were then run on the review-fix commit: batch `20261018-s2` passes rows 1-9 and leaves
-  row 10 `unproven` (the live layer-boundary window), so the ticket stays in `Review` on that row. History: the read
+- Status: Done — all ten acceptance rows pass. Batch `20261018-s2` passed rows 1-9 on `0.1.0+5cd3cb9f…` and left
+  row 10 `unproven`; the second review's fix commit `35a0b14d` rebuilt the artifact, and batch `20261018-s3`
+  judged all ten rows on `0.1.0+35a0b14d…` (record:
+  `docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md`). **Stage D (`/summon`) landed
+  2026-10-18** (the user's ruling renamed the stage's working name `/spawn`), so every stage of this ticket is
+  built. History: the read
   half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
   `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
@@ -988,4 +990,17 @@ behavioural suite 5806/5806 and the normative gates 737/737 on the frozen tree
 (`.acceptance/test-full-followup.log`, `.acceptance/gates-followup.log`). No production behaviour changed: the only
 `src/` edit is `WorldItemCreation`'s two XML-doc sentences. The artifact is rebuilt and deployed from this commit
 anyway (the version stamp follows the commit), and the acceptance batch below re-runs all ten rows on it.
+
+## Batch `20261018-s3` (2026-10-18): all ten rows pass
+
+The full batch on the artifact `35a0b14d` produces (`0.1.0+35a0b14d…`): rows 1-9 re-verified on the new build, and
+row 10 — the window s2 left `unproven` — held live and refused by name. The record is
+`docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md`. The window needed two things the s2 run
+did not have: the blackout armed BEFORE the host's `skiplayer` (a diagnostic skip showed the member's own
+generation following the host to the next layer within 3 s, before the host re-entered), and a driver fast enough
+to spend the member's 15 s silence budget on the host's ~8-13 s re-entry instead of on per-step
+process/connection cost. The batch drove the window through the same in-process evaluator protocol over
+pre-opened sockets (a local helper, named in the record); the host's refusal names both sides — `belongs to run 1
+layer 2 while this side is at run 1 layer 3` — and the member's console printed the same sentence, at 8.2 s, with
+nothing created and the session still active. The ticket moves to `done/`.
 

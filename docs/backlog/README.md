@@ -75,7 +75,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### In progress
 
 ### Review
-- [Item and entity data commands](review/item-and-entity-data-commands.md) — **Medium-High** — every stage built; the spawn rows await a run.
+
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
@@ -186,6 +186,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Item and entity data commands](done/item-and-entity-data-commands.md) — **Medium-High** — `/data`, `/give` and `/summon`; all ten rows accepted.
 - [The full test suite takes four minutes](done/test-suite-wall-clock.md) — **Medium** — the measured two phases and the host bound behind a slow run.
 - [The `/give` command](done/give-item-to-a-player-command.md) — **Medium-High** — the SNBT give and the destination ladder; all twelve rows accepted.
 - [The item state language](done/snbt-state-language.md) — **High** — decision 264's SNBT parser, paths and completion; accepted by batch `20261018-q`.

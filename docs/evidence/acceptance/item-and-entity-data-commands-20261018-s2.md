@@ -2,7 +2,7 @@
 
 - Ticket: `item-and-entity-data-commands` — verdict: stays in `review/` (rows 1-9 pass; row 10 `unproven`)
 - Batch: `20261018-s2` (the re-run of `20261018-s` on the review-fix commit) — tickets
-  `review/item-and-entity-data-commands.md`
+  `done/item-and-entity-data-commands.md`
 - Commit: `5cd3cb9f` · Deployed artifact: `CasualtiesUnknownOnline.dll`, ProductVersion
   `0.1.0+5cd3cb9f7c93e7d819f58b5d356736b567c342d0`, checked with `tools/verify-deploy.ps1` (exit 0;
   `prelude-verify-deploy.txt`)

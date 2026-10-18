@@ -4,14 +4,14 @@
   cycle, and batch `20261018-q` judged every acceptance row it owes on the deployed `30dbb252` (record
   `docs/evidence/acceptance/snbt-state-language-20261018-q.md`). Decision 264 ruled the syntax; this ticket
   owned the parser, the writer, the path resolver, the console completion and the rewiring of both verbs onto
-  them. The two consumer tickets re-derived their acceptance rows here (`review/item-and-entity-data-commands.md`,
+  them. The two consumer tickets re-derived their acceptance rows here (`done/item-and-entity-data-commands.md`,
   `done/give-item-to-a-player-command.md`).
 - Priority: High — it is the language decision 264 made mandatory, and both item commands ship it.
 - Category: Command surface / item state / data language
 - Source: decision 264 (`docs/decisions/active.md`), which supersedes the `condition` / `favourited` /
   `liquid` / `component` token vocabulary and orders "the parser, the writer, the path resolver and the
   console's SNBT-aware completion" as a ticket of their own.
-- Related: `docs/decisions/active.md` 264, `review/item-and-entity-data-commands.md` (*The data family's
+- Related: `docs/decisions/active.md` 264, `done/item-and-entity-data-commands.md` (*The data family's
   syntax*), `done/give-item-to-a-player-command.md` (*The syntax decision*),
   `done/item-data-write-commands.md` (the token grammar this replaces), `review/item-data-read-commands.md`
   (the read half the new renderer keeps), `docs/architecture/member-report-validation.md` (the give

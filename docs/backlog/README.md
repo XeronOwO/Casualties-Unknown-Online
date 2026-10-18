@@ -74,6 +74,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — rejected: the guard latches on the game console's stale selection.
 - [Four tracked docs carry code-page mojibake](todo/docs-mojibake-cleanup.md) — **Low** — punctuation damaged by a code-page round trip; restore it by meaning.
+- [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 ### In progress
 
 ### Review

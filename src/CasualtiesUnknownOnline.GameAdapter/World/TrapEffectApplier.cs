@@ -175,20 +175,31 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 		}
 	}
 
+	/// <summary>How far a position key may sit from the entity's own transform: the trap-layout snapshot keys are CELL CENTRES, and a generated entity's transform can be that far from its cell's centre.</summary>
+	private const float TrapMatchTolerance = 3f;
+
 	/// <summary>Find the trap at a world position (world entities are generated
-	/// deterministically, so the position IS the identity; the 3-unit radius
-	/// tolerates the cell-centre snapshot keys).</summary>
+	/// deterministically, so the position IS the identity; the tolerance
+	/// tolerates the cell-centre snapshot keys). The answer is the NEAREST
+	/// candidate inside that tolerance, never the scene's first hit: several
+	/// entities of one type can share the radius, and this answer is the
+	/// entity's IDENTITY — the trap the event applies to and, for a destructive
+	/// event, the table its reported drops are judged against. A first hit can
+	/// apply an event to a sibling and judge a legitimate roll against the wrong
+	/// prefab's table, which is the runtime-entity geyser case
+	/// <see cref="NearestCandidate"/> documents.</summary>
 	internal static T? FindTrap<T>(Vector2 position) where T : Component
 	{
-		foreach (var trap in Object.FindObjectsOfType<T>())
+		var traps = Object.FindObjectsOfType<T>();
+		var positions = new (float X, float Y)[traps.Length];
+		for (var i = 0; i < traps.Length; i++)
 		{
-			if (Vector2.Distance(trap.transform.position, position) < 3f)
-			{
-				return trap;
-			}
+			var point = traps[i].transform.position;
+			positions[i] = (point.x, point.y);
 		}
 
-		return null;
+		var index = NearestCandidate.FindIndex(position.x, position.y, positions, TrapMatchTolerance);
+		return index < 0 ? null : traps[index];
 	}
 
 	private void ApplyMineExplosion(Vector2 position)

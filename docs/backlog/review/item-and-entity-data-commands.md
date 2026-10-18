@@ -837,14 +837,16 @@ the state length, the not-in-world answer and two non-finite points) plus the pa
 literals, and the 16 new gate cases are `WorldSummonContractGateTests`. The gate and checklist counts in
 `docs/evidence/delivery-checklist.md` are updated with them.
 
-**The independent pass for THIS commit did not return.** Three fresh-context review sessions were started against
-the frozen tree. The first two produced nothing; the third read the four production diffs and then stalled on its
-answer (its session transcript ends after those reads, with no findings). All three were stopped, so no
+**The independent pass for THIS commit was stopped by this session, so it produced no conclusion.** Three
+fresh-context review sessions were started against the frozen tree, and this session stopped all three while they
+were still running: it polled their status and then interrupted them instead of waiting for the completion
+notice. That was the session's mistake, not a tool fault — no session went silent and none failed to return, so
+the "did not return" / "stalled" wording this record previously carried was false, and it is corrected here. No
 independent findings exist for this commit. What the commit carries instead is the gate's own matcher contract
 (a complete sample plus one failure shape per check), the focused and full suites, and a working-session
 self-review that corrected two defects in this record before the commit (the new-case count sentence and a `|`
-inside a code span that would have split a table row). The missing independent pass is a process limit, not a
-pass: a later cycle must run it before the ticket is treated as reviewed.
+inside a code span that would have split a table row). The missing pass is a process limit, not a pass: it is
+re-run against `5cd3cb9f` before the ticket is treated as reviewed.
 
 ## Batch `20261018-s2` (2026-10-18): nine rows pass, row 10 unproven
 

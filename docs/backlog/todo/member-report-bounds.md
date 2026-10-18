@@ -4,11 +4,13 @@
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
   drops; this ticket is the rest of the same question, one surface per row, each with its own evidence.
   Section A (the reports that name another member's identity) CLOSED 2026-10-17 鈥?its five surfaces now
-  compare against the transport sender, and the census rows say so. Sections B and C remain open, with two
-  exceptions inside C: the container-sync row was READ on the machine 2026-10-17 (batch `20261017-d`; record
+  compare against the transport sender, and the census rows say so. Sections B and C remain open, with three
+  exceptions: the container-sync row was READ on the machine 2026-10-17 (batch `20261017-d`; record
   `docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md`), and the
   `NetMsg.EntityEvent` DROPS row landed 2026-10-18 (its trigger half stays unbounded on purpose) — its
-  evidence and remaining acceptance are in section C.
+  evidence and remaining acceptance are in section C, and the `BuildingEntityDamaged` magnitude row CLOSED the same
+  day as `unbounded`: its assumed anchor does not exist (the damage values are code, not item data) and the reading
+  is in section B.
 - Priority: Medium-High
 - Category: Security / report validation
 - Source: the user's 2026-10-14 request (basic checks from the game's own mechanics, never an anti-cheat)
@@ -216,7 +218,8 @@ What that leaves for this row, all of it honest:
 `Body.GetItem(slot)` / `Body.HoldingItem(slot)`, but the link between "the item held in this frame" and "the `atk` that
 computed this damage" is one frame apart and not a direct reference. That makes "carry the weapon identity" a real
 design step with a correctness question (what if the hand changes in that frame), not a mechanical field addition 鈥?and
-it is the reason the damage row has stayed open rather than half-built.
+it is the reason the damage row has stayed open rather than half-built. **The next section checks that premise**: the
+frame question is answered there (the same call, not a frame apart) and the table it assumed does not exist.
 
 Two candidate anchors, both DATA, to choose between when this row is built:
 
@@ -228,6 +231,52 @@ Two candidate anchors, both DATA, to choose between when this row is built:
 
 The open row for the OPEN report has the same shape one level simpler: the lockpick item is the gesture's tool and there
 is no damage arithmetic, so it is the one to land first.
+### The damaging item's "damage table" is code, not data — so the magnitude has no anchor either (2026-10-18)
+
+The section above left two questions open: whether the held item can be tied to the `atk` that computed the damage, and
+whether the host can own "the item's own damage table". The first is answered YES and the second NO, so the row closes
+unbounded by decision 265 instead of being half-built.
+
+**The frame question is not a gap.** `Body.Attack(AttackInfo atk, int slot)` overwrites the slot argument with the
+body's own hand slot (`reversing/Assembly-CSharp/Assembly-CSharp/Body.cs`: `slot = this.handSlot;`), and every item
+attack reaches it synchronously from that item's `useAction` delegate — `Body.UseItemInHand` runs
+`this.GetItem(num).Stats.useAction(this, this.GetItem(num));` with `int num = this.handSlot;`, and the delegate body is
+the `body.Attack(new AttackInfo { ... }, 0)` call itself (`Item.cs`'s `Item.GlobalItems` initializer). Nothing inside
+`Attack` or inside an item's `useAction` assigns `handSlot` (no `useAction` in `Item.cs` mentions it at all), so a
+postfix that reads `__instance.GetItem(__instance.handSlot)` names exactly the item whose delegate built that `atk` —
+the same call, not a frame apart. The one attack with no item is the unarmed claw: `UseItemInHand`'s fallback builds its
+own `AttackInfo` with `unarmed = true` (`Body.cs`: `this.Attack(new AttackInfo { damage = 30f, structuralDamage = 20f,
+... unarmed = true }, 0);`).
+
+**The table does not exist.** `ItemInfo` — the game's per-item table, and the only item data a host can read by
+definition id (`reversing/Assembly-CSharp/Assembly-CSharp/ItemInfo.cs`: `value`, `weight`, `tags`, `qualities`,
+`usable`, …) — has no damage member. Every melee number is a literal inside the item's `useAction` delegate: `Item.cs`
+has 27 `body.Attack(new AttackInfo` sites, each a freshly constructed `AttackInfo` with its own `structuralDamage`
+literal (75f, 65f, 45f, … 140f, 10f, and the flimsy knife's 16f), plus the unarmed 20f above. So "the host compares
+the reported number with the item's table" has no table to compare against: the host's own `Item.GlobalItems` holds the
+same delegates, and the only ways to read a delegate's literals are to invoke it — which runs the attack — or to read
+its IL. Neither is data validation; invoking it is the gesture simulation decision 265 forbids.
+
+**And a copied table would still be a second rule.** The reported number is not the literal either: `Body.Attack`
+writes `buildingEntity.health -= (buildingEntity.animal ? atk.damage : atk.structuralDamage) * num2 *
+((atk.metalMoreDamage && buildingEntity.metallic) ? 10f : 1f);`, where `num2` is the attacker's own body state —
+`this.slots[slot].armPowerMult` (`InventorySlot.cs`: the sum of `staminaStrength.Evaluate(limb.totalForce)` over the
+slot's use limbs, times `actualStaminaStrength`, capped at 0.65 by a broken or dislocated arm), `× 0.75` for hand slot
+1, `× (1 + skills.STRFrom10 * 0.0334)`, and, unarmed, `× clawDamageCurve.Evaluate(clawHealth)`. A CUO-owned copy of the
+constants would still refuse a legitimate hit whenever the host's model of the attacker's body differs from the
+attacker's own client — the exact failure the ruling names when it says a second implementation "refuse[s] legitimate
+play whenever the two disagree". Making the recomputation exact needs the attacker's own frame and body reading, which
+is the gesture itself.
+
+**What the wire could carry does not bound anything.** Adding the damaging item's instance id (the reverse lookup
+`review/item-identity-bridge.md` calls one line) lets the host check that the sender holds the item it names — a real
+DATA fact, but one about the claim's SOURCE, never its magnitude: a member holding a digging tool can still report any
+number. That is exactly the "looks defended and proves nothing" check this ticket refuses elsewhere, so no wire field
+is added.
+
+**Verdict**: the row is `unbounded` by decision 265 for the same reason the open report is — the number is the
+attacking client's own computation over code and its own body state, and the receiver holds no fact that contradicts
+it. The census row now says this, and both candidate anchors in the section above are closed.
 ### The open's tool identity is blocked on ONE mapping, not on the wire (2026-10-18)
 
 Attempted and reverted the same way. What is now known, so the next attempt starts at the gap instead of the field:
@@ -320,8 +369,9 @@ described above:
 
 - **`NetMsg.BuildingEntityDamaged` (51)** 鈥?the only check is that an entity stands at the position;
   `entity.health -= damage;` takes the magnitude as reported, so one report destroys any building. The
-  anchor is the damaging item's own identity and its damage table (`Body.Attack`'s melee write is the
-  native call site), which the message does not carry today.
+  assumed anchor was the damaging item's own identity and its damage table (`Body.Attack`'s melee write is the
+  native call site), which the message does not carry — and which, on reading the game, does not exist as data
+  (see the CLOSED paragraph below).
 
   **The WHERE half landed and read (2026-10-18, `1a651ddc`, deployed `+1a651ddc`)**: the sender now travels the whole
   path 鈥?packet handler 鈫?world event 鈫?service passthrough 鈫?relay 鈫?`WorldBuildingEntitySync` 鈥?and a damage report
@@ -330,13 +380,22 @@ described above:
   `[EntitySync] <member>'s damage report at (400,508) is further than 8 cells from its own body 鈥?refused: nothing
   applied, nothing relayed`, and `/entitydamage 2 0 5` added no refusal line.
 
-  **The HOW MUCH half is still open, and deliberately not faked**: the magnitude's anchor is the weapon's own damage
-  table, which the message does not carry. A host-side cap would be a second rule for a number the game already
-  computes, so it waits for the wire to carry the damaging item 鈥?the same shape the trader-give row above settled.
+  **The HOW MUCH half is CLOSED 2026-10-18 — unbounded by decision 265, not faked**: the anchor this row assumed does
+  not exist. The damage is an `AttackInfo` literal (code, inside each item's `useAction` in `Item.GlobalItems`) times
+  the attacker's own body multipliers, so the host has no table to compare against and no way to reproduce the number
+  without simulating the gesture; carrying the item's identity would bound the claim's SOURCE only, never its
+  magnitude. The full reading, including the answered frame question the earlier text left open, is "The damaging
+  item's 'damage table' is code, not data" above.
 - **`NetMsg.BuildingEntityOpened` (52)** 鈥?same shape: `entity.health = 0f;` after a presence test only. The
   lockpick and keypad minigames run on the opener's own client, so the open is its result. Half the anchor
   already exists host-side: the keypad code is the host's (`NetMsg.KeypadCode` = 57), and the entity's own
   type says which lock it is; what is missing is a host-side model of the progress a lock requires.
+
+  **The anchor half is CLOSED 2026-10-18 as well — no data anchor survives**: the keypad code turned out to be
+  shipped to every client (the section below works through the tautology), and a tool claim cannot be falsified
+  because the game's own `Openable.OnUse` clears the lockpick below INT 10 (`if (PlayerCamera.main.body.skills.INT <
+  10) { item = null; }`), so empty-handed opening is ordinary play; the tool's id is also already cleared by the
+  time the open fires. The minigame result stays the opener's own (decision 265), and the census row now says so.
 
   **The reach bound is the half that needs no model, and the chain it must change is traced (2026-10-18)** 鈥?  recorded because the bound costs one wire-shaped change, not a redesign: the report carries the position and
   NOT the reporter, so the host cannot compare the two. `BuildingEntityOpenedHandler` fires

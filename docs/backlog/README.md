@@ -73,6 +73,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — rejected: the guard latches on the game console's stale selection.
+- [Four tracked docs carry code-page mojibake](todo/docs-mojibake-cleanup.md) — **Low** — punctuation damaged by a code-page round trip; restore it by meaning.
 ### In progress
 
 ### Review

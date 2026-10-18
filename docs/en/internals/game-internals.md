@@ -89,12 +89,14 @@ generation for its sound mixer.
 
 The proxy recipe is a per-component decision, verified in the decompiled sources under `reversing/`:
 
-- **`Body.Update` must run on a proxy.** Its `HandleVisuals` branch (`Body.cs:3123+`) drives the limb
-  poses from the body and arm animators and casts for `grounded`; a proxy that skipped it would keep
-  uninitialized limb sprites and animate nothing. While the owner is active the clone suppresses the
-  animator-to-visible copy, so the poses the stream carries are not overwritten.
-- **`Limb.Update` (`Limb.cs:498+`) is safe to leave running.** It writes the limb's shader parameters
-  and runs heal and infection timers; it never moves a limb.
+- **A proxy's `Body.Update` is skipped; its visual path is called directly.** `HandleVisuals`
+  (`Body.cs:3123+`) drives the limb poses from the body and arm animators and casts for `grounded`;
+  a proxy that skipped it would keep uninitialized limb sprites and animate nothing. The adapter
+  calls only that visual branch, so the native vital-sign stages never run on a guest's clone.
+- **`Limb.Update` (`Limb.cs:498+`) is skipped on every remote clone.** A guest's clone never runs
+  it; the host runs it explicitly inside its fixed-step vitals pass (below), because the host's
+  clone is the bleeding model. It writes the limb's shader parameters and heals/infects, it never
+  moves a limb.
 - **`IKHandle.Update` (`IKHandle.cs:40-57`) is disabled.** It lerps its target toward
   `Camera.main.ScreenToWorldPoint(Input.mousePosition)` and draws a line renderer at it, so a clone
   drew its aim line at the *local* player's mouse — the "head looking at the mouse" symptom.
@@ -102,16 +104,27 @@ The proxy recipe is a per-component decision, verified in the decompiled sources
   (`FixedUpdate` skipped, `Rigidbody2D.simulated` false), and the root transform is written every frame
   from the peer's report.
 
-What that means for CUO is the same rule as everywhere else — one side owns a body, the other side
-renders what it is told.
+The **host** has one additional duty, ruled by the user on 2026-10-18: on its clone of each remote
+player it runs the game's own vital stages (`HandleVariableUpdates`, `HandleBody`,
+`HandleBodyTemperature`, `HandleRadiationSickness`, `HandlePeriodicChecks` and `Limb.Update`) in a
+fixed-step pass to compute the three continuous bleeding values the host owns, then pushes them to
+that player's client. The clone is the same render clone, seeded from the stored character snapshot;
+the host's view and its authority are one body. Events, terminal facts and random outcomes stay
+with the affected client — its report/event is the only writer of those — and the pass restores the
+client-owned fields after every step. A guest never runs the pass; it renders what it is told and
+judges its own events. Details: `docs/backlog/todo/health-simulation-and-host-authority.md`.
+
+What that means for CUO: a body's ACTIONS and its EVENTS belong to its owner's client; the host
+owns the shared world and, for the continuous bleeding values, computes them from the owner's
+inputs. The host never re-derives an injury, a terminal fact or a random outcome.
 
 ## KrokMP is a reference, not a model
 
 The decompiled KrokMP mod in `reversing/` is read for facts about the game, not as a design to follow:
 it broadcasts body state to clones whose physics still run, and it replaces generation coroutines
-outright. CUO's answers to the same problems — one owner per body, a deterministic kernel, a render
-proxy with frozen physics — are the opposite where it matters, and that contrast is why this page
-exists.
+outright. CUO's answers to the same problems — one owner per body's actions and events, a
+deterministic kernel, physics-frozen render proxies, and a host-side VITALS-ONLY model over the
+clone's inputs — are the opposite where it matters, and that contrast is why this page exists.
 
 ## Related reading
 

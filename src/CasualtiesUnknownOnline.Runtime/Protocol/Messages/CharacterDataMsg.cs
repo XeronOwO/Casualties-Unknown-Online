@@ -83,4 +83,14 @@ public sealed class CharacterDataMsg
 	/// </summary>
 	[ProtoMember(10)]
 	public List<CharacterFavouriteMarkMsg>? FavouriteMarks { get; set; }
+
+	/// <summary>
+	/// LOCAL-ONLY mutation counter, never serialized (no <c>ProtoMember</c>): the host's stored
+	/// snapshot is mutated in place by the event appliers (a bite, a limb latch, an injury), and a
+	/// host clone's input map must notice that mutation even though the object reference did not
+	/// change. A new report or restore is a new object and carries the counter at 0; the host's
+	/// store increments it after each in-place event merge. Receiver-side objects are independent,
+	/// so no wire meaning is implied.
+	/// </summary>
+	internal int LocalRevision { get; set; }
 }

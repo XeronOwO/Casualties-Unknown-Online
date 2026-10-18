@@ -14,10 +14,12 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// The vitals row's sender rule: the wire direction check proves only this client's ROLE, so a
-/// row whose sender is not this session's host is a CLAIM and is dropped by name — the same rule
-/// every host-addressed instruction follows. A peer that could deliver such a frame would
-/// otherwise state a guest's blood volume and per-limb bleed (an output for another body).
+/// The vitals row's sender and identity rules: the wire direction check proves only this client's
+/// ROLE, so a row whose sender is not this session's host is a CLAIM and is dropped by name — the
+/// same rule every host-addressed instruction follows. A peer that could deliver such a frame would
+/// otherwise state a guest's blood volume and per-limb bleed (an output for another body). A row
+/// that names someone else is dropped too: the row belongs to the player whose body it describes,
+/// and the handler's refusal edge is this client's own.
 /// </summary>
 public class PlayerVitalsForgeryTests
 {
@@ -75,6 +77,58 @@ public class PlayerVitalsForgeryTests
 			{
 				third.Dispose();
 			}
+		}
+	}
+
+	[Fact]
+	public void ARowNamingAnotherPlayer_IsDropped_AndARefusalIsLoggedOncePerEdge()
+	{
+		var log = new RecordingLogger<PlayerVitalsHandler>();
+		var (host, guest, _) = TestNode.CreatePairWithNetwork(HostId, GuestId, LobbyId,
+			guestRegistrations: services => services.Replace(ServiceDescriptor.Singleton<ILogger<PlayerVitalsHandler>>(log)));
+		using (host)
+		using (guest)
+		{
+			var received = new List<PlayerVitalsMsg>();
+			guest.Services.GetRequiredService<ICharacterDataControl>().PlayerVitalsReceived += received.Add;
+			var sender = host.Services.GetRequiredService<PacketSender>();
+
+			// A row naming a third member on the guest's client is a misroute: no apply, no edge.
+			sender.Send(GuestId, NetMsg.PlayerVitals, new PlayerVitalsMsg
+			{
+				SteamId = ThirdId,
+				BloodVolume = 1f,
+				RefusedField = "health.BloodViscosity",
+			});
+			guest.Update();
+
+			Assert.Empty(received);
+			Assert.Contains(log.Entries, entry => entry.Message.Contains("naming"));
+
+			// The guest's own refusal: one warning on the edge, none on its repeat.
+			sender.Send(GuestId, NetMsg.PlayerVitals, new PlayerVitalsMsg
+			{
+				SteamId = GuestId,
+				BloodVolume = 50f,
+				RefusedField = "health.BloodViscosity",
+			});
+			guest.Update();
+			sender.Send(GuestId, NetMsg.PlayerVitals, new PlayerVitalsMsg
+			{
+				SteamId = GuestId,
+				BloodVolume = 51f,
+				RefusedField = "health.BloodViscosity",
+			});
+			guest.Update();
+
+			Assert.Equal(2, received.Count);
+			Assert.Single(log.Entries.Where(entry => entry.Level == LogLevel.Warning
+				&& entry.Message.Contains("non-finite")));
+
+			// The refusal clearing is the other edge: one information line.
+			sender.Send(GuestId, NetMsg.PlayerVitals, new PlayerVitalsMsg { SteamId = GuestId, BloodVolume = 52f });
+			guest.Update();
+			Assert.Contains(log.Entries, entry => entry.Level == LogLevel.Information && entry.Message.Contains("accepts"));
 		}
 	}
 }

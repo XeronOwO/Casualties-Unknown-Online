@@ -16,22 +16,42 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 {
 	private readonly Dictionary<ulong, CharacterDataMsg> _saved = [];
 
+	private readonly Dictionary<ulong, string> _refusalFields = [];
+
+	private readonly Dictionary<ulong, long> _modelAdvancingMs = [];
+
 	public CharacterDataMsg? HostData { get; private set; }
 
 	public IReadOnlyDictionary<ulong, CharacterDataMsg> Saved => _saved;
 
 	public void SaveCharacterData(ulong steamId, CharacterDataMsg msg) => _saved[steamId] = msg;
 
-	/// <summary>The real store's report rule, mirrored: a plain report cannot state the owned values.</summary>
-	public void SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg)
+	/// <summary>The real store's report rule, mirrored: a plain report cannot state the owned values, and a non-finite one is refused whole.</summary>
+	public bool SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg)
 	{
+		if (CharacterDataFinite.FirstNonFinite(msg) is { } field)
+		{
+			_refusalFields[steamId] = field;
+			return false;
+		}
+
+		_refusalFields.Remove(steamId);
 		if (_saved.TryGetValue(steamId, out var previous))
 		{
 			ContinuousVitals.Preserve(previous, msg);
 		}
 
 		_saved[steamId] = msg;
+		return true;
 	}
+
+	public string? GetReportRefusal(ulong steamId) =>
+		_refusalFields.TryGetValue(steamId, out var field) ? field : null;
+
+	public void MarkHostModelAdvancing(ulong steamId, long nowMs) => _modelAdvancingMs[steamId] = nowMs;
+
+	public bool IsHostModelAdvancing(ulong steamId, long nowMs, long maxAgeMs) =>
+		_modelAdvancingMs.TryGetValue(steamId, out var atMs) && nowMs - atMs <= maxAgeMs;
 
 	public void SaveHostCharacterData(CharacterDataMsg msg) => HostData = msg;
 
@@ -48,6 +68,8 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 	void ICharacterDataControl.ClearSavedCharacters()
 	{
 		_saved.Clear();
+		_refusalFields.Clear();
+		_modelAdvancingMs.Clear();
 		SavedCharactersCleared?.Invoke();
 	}
 
@@ -63,7 +85,7 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 
 	void ICharacterDataControl.ApplyEnemyEffect(EnemyEffectMsg msg) => throw new NotSupportedException("the save tests never apply enemy effects");
 
-	void ICharacterDataControl.ApplyLimbStateEvent(LimbStateEventMsg msg) => throw new NotSupportedException("the save tests never apply limb events");
+	bool ICharacterDataControl.ApplyLimbStateEvent(LimbStateEventMsg msg) => true;
 
 	void ICharacterDataControl.FireLimbStateEventReceived(ulong sender, LimbStateEventMsg msg) => throw new NotSupportedException("the save tests never fire");
 

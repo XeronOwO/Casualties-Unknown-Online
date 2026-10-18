@@ -46,6 +46,18 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
 	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
 
+	/// <summary>Members whose latest report was refused for a non-finite physiological field; the warning is named once, not at 1 Hz.</summary>
+	private readonly HashSet<ulong> _refusedReports = [];
+
+	/// <summary>The field each refused member's report is refused for — carried back on the 10 Hz row so the refusal is answered.</summary>
+	private readonly Dictionary<ulong, string> _refusalFields = [];
+
+	/// <summary>The host clone's last successful advance per member (host-local, never on the wire).</summary>
+	private readonly Dictionary<ulong, long> _modelAdvancingMs = [];
+
+	/// <summary>The same freshness window the row pump uses; the reconciliation is skipped while the model is stalled.</summary>
+	private const long HostModelFreshnessMs = 250;
+
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
 		ILogger<CharacterDataStore> log, IItemControl items,
 		PlayerKernelLimbProjection playerLimbKernel,
@@ -95,28 +107,95 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// <see cref="SaveReportedCharacterData"/> instead, which is the only path where the two
 	/// continuous values the host owns are filtered.
 	/// </summary>
-	internal void SaveCharacterData(ulong steamId, CharacterDataMsg msg)
+	internal bool SaveCharacterData(ulong steamId, CharacterDataMsg msg)
 	{
+		if (RefuseNonFinite(steamId, msg, "authoritative write"))
+		{
+			return false;
+		}
+
 		_savedCharacters[steamId] = msg;
 		_playerLimbKernel.SyncFromCharacterData(steamId, msg);
 		_appliedItems.SyncFromCharacterData(steamId, msg);
+		return true;
+	}
+
+	/// <summary>
+	/// The authority path's finiteness gate: a non-finite value from an applier would freeze the
+	/// member's model and row forever (the report path cannot repair the owned values it copies),
+	/// so it is refused by name and the previous snapshot stays. The same gate protects the host's
+	/// own broadcast snapshot.
+	/// </summary>
+	private bool RefuseNonFinite(ulong steamId, CharacterDataMsg msg, string path)
+	{
+		if (CharacterDataFinite.FirstNonFinite(msg) is not { } field)
+		{
+			return false;
+		}
+
+		_log.LogError("[Character] refusing a non-finite {Path} for {Peer}: {Field} — the previous snapshot stays.",
+			path, steamId, field);
+		return true;
 	}
 
 	/// <summary>
 	/// Host side: keep a member's 1 Hz report. The CONTINUOUS bleeding values are the host's, not
 	/// the reporter's (the 2026-10-18 ruling): a plain report refreshes the model's inputs but
-	/// never the two values the host owns, so a client that edits its own bleed/blood volume
-	/// cannot state it. An event the host arbitrated writes them through
-	/// <see cref="SaveCharacterData"/> instead, which is also what PlayerVitalsService re-seeds on.
+	/// never the three values the host owns, so a client that edits its own bleed, blood volume or
+	/// total bleeding speed cannot state it. An event the host arbitrated writes them through
+	/// <see cref="SaveCharacterData"/> instead, which is also what the host clone's simulation
+	/// recognizes as authoritative.
+	/// <para>
+	/// A report with a non-finite physiological field is refused WHOLE and the previous snapshot is
+	/// kept: the Game Adapter maps this snapshot onto the host's simulated clone, and a NaN there
+	/// would poison every native rule and be pushed back to the owner. Returns false when refused,
+	/// so the caller does not relay or render a snapshot that was never stored; at most one warning
+	/// per member until a finite report arrives.
+	/// </para>
 	/// </summary>
-	internal void SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg)
+	internal bool SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg)
 	{
+		if (CharacterDataFinite.FirstNonFinite(msg) is { } field)
+		{
+			if (_refusedReports.Add(steamId))
+			{
+				_log.LogWarning("[Character] {Peer}'s report carries a non-finite {Field} — the whole report is refused and the host keeps the previous snapshot.",
+					steamId, field);
+			}
+
+			_refusalFields[steamId] = field;
+			return false;
+		}
+
+		if (_refusedReports.Remove(steamId))
+		{
+			_refusalFields.Remove(steamId);
+			_log.LogInformation("[Character] {Peer}'s report is finite again; the host stores it.", steamId);
+		}
+
 		if (_savedCharacters.TryGetValue(steamId, out var previous))
 		{
+			// The comparison is BEFORE Preserve: the report's values are the client's claim, the
+			// stored ones are the host model's latest write. This is the only detector of a wrong
+			// model (ruling item 5); the host's value still stands. It is skipped while the model is
+			// stalled (the clone failed, the world is paused): the client is then free-running and a
+			// divergence line per report would be noise, not a model defect.
+			if (IsHostModelAdvancing(steamId, Environment.TickCount, HostModelFreshnessMs))
+			{
+				var differences = VitalsReconciliation.Compare(previous, msg);
+				if (differences.Count > 0)
+				{
+					_log.LogWarning("[Vitals] {Peer} divergence: {Differences}", steamId, string.Join("; ", differences));
+				}
+			}
+
 			ContinuousVitals.Preserve(previous, msg);
 		}
 
-		SaveCharacterData(steamId, msg);
+		// Preserve can copy a non-finite stored value into this report only if an earlier path
+		// bypassed both guards; the inner save refuses it and THIS return must tell the caller, or
+		// the handler would relay a snapshot the store never kept.
+		return SaveCharacterData(steamId, msg);
 	}
 
 	/// <summary>
@@ -127,31 +206,67 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// </summary>
 	public void ApplyEnemyBite(EnemyBiteMsg msg)
 	{
+		if (RefuseEnemyEvent(msg.VictimSteamId, msg, msg.Limb, "bite event"))
+		{
+			return;
+		}
+
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyBite(data, msg);
 			HeadMouthRule.Refresh(data);
+			data.LocalRevision++;
 		}
 	}
 
 	/// <summary>Host side: the EnemyBite mirror for a crystal-lunge terminal state.</summary>
 	public void ApplyEnemyLunge(EnemyLungeMsg msg)
 	{
+		if (RefuseEnemyEvent(msg.VictimSteamId, msg, msg.Limb, "lunge event"))
+		{
+			return;
+		}
+
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyLunge(data, msg);
 			HeadMouthRule.Refresh(data);
+			data.LocalRevision++;
 		}
 	}
 
 	/// <summary>Host side: the EnemyBite mirror for an enemy-proximity side effect.</summary>
 	public void ApplyEnemyEffect(EnemyEffectMsg msg)
 	{
+		if (RefuseEnemyEvent(msg.VictimSteamId, msg, limb: null, "effect event"))
+		{
+			return;
+		}
+
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyEffect(data, msg);
 			HeadMouthRule.Refresh(data);
+			data.LocalRevision++;
 		}
+	}
+
+	/// <summary>
+	/// The in-place enemy merges bypass SaveCharacterData, so they get the finiteness gate here: a
+	/// non-finite limb or body float would poison the host clone (and the row) from an authority
+	/// path that no report can repair.
+	/// </summary>
+	private bool RefuseEnemyEvent(ulong victim, object message, CharacterLimbMsg? limb, string kind)
+	{
+		var field = CharacterDataFinite.FirstNonFiniteFields(message)
+			?? (limb is null ? null : CharacterDataFinite.FirstNonFiniteLimb(limb));
+		if (field is null)
+		{
+			return false;
+		}
+
+		_log.LogError("[Character] refusing a non-finite {Kind} for {Peer}: {Field}.", kind, victim, field);
+		return true;
 	}
 
 	/// <summary>
@@ -166,6 +281,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	{
 		_savedCharacters.Clear();
 		_hostData = null;
+		_refusedReports.Clear();
+		_refusalFields.Clear();
+		_modelAdvancingMs.Clear();
 		SavedCharactersCleared?.Invoke();
 	}
 
@@ -174,6 +292,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	{
 		_savedCharacters.Clear();
 		_hostData = null;
+		_refusedReports.Clear();
+		_refusalFields.Clear();
+		_modelAdvancingMs.Clear();
 	}
 
 
@@ -237,12 +358,28 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) =>
 		_savedCharacters.TryGetValue(steamId, out var data) ? data : null;
 
+	/// <summary>Host only: the field the current report refusal names, or null when the store is not refusing this member.</summary>
+	public string? GetReportRefusal(ulong steamId) =>
+		_refusedReports.Contains(steamId) && _refusalFields.TryGetValue(steamId, out var field) ? field : null;
+
+	/// <summary>Host only: record that the member's simulated body just advanced; the row pump reads the freshness.</summary>
+	public void MarkHostModelAdvancing(ulong steamId, long nowMs) => _modelAdvancingMs[steamId] = nowMs;
+
+	/// <summary>Host only: whether the member's simulated body advanced within the given window.</summary>
+	public bool IsHostModelAdvancing(ulong steamId, long nowMs, long maxAgeMs) =>
+		_modelAdvancingMs.TryGetValue(steamId, out var atMs) && nowMs - atMs <= maxAgeMs;
+
 	/// <summary>Host: the host's own latest character snapshot (cross-player interaction authority for host-owned items).</summary>
 	public CharacterDataMsg? GetHostCharacterData() => _hostData;
 
 	/// <summary>Host: record the host's own latest character snapshot (cross-player transfer result).</summary>
 	public void SaveHostCharacterData(CharacterDataMsg msg)
 	{
+		if (RefuseNonFinite(_session.LocalSteamId, msg, "host snapshot"))
+		{
+			return;
+		}
+
 		_hostData = msg;
 		_playerLimbKernel.SyncFromCharacterData(_session.LocalSteamId, msg);
 		_appliedItems.SyncFromCharacterData(_session.LocalSteamId, msg);
@@ -253,6 +390,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	public void BroadcastHostCharacterData(CharacterDataMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		if (RefuseNonFinite(_session.LocalSteamId, msg, "host broadcast"))
 		{
 			return;
 		}
@@ -296,15 +438,23 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 
 
 	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the dedicated event is the trigger; the snapshot is only the fallback).</summary>
-	public void ApplyLimbStateEvent(LimbStateEventMsg msg)
+	public bool ApplyLimbStateEvent(LimbStateEventMsg msg)
 	{
+		var eventData = new CharacterDataMsg { Health = msg.Health, Limbs = msg.Limbs };
+		if (RefuseNonFinite(msg.OwnerSteamId, eventData, "owner limb/injury event"))
+		{
+			return false;
+		}
+
 		if (_savedCharacters.TryGetValue(msg.OwnerSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyLimbState(data, msg);
 			HeadMouthRule.Refresh(data);
+			data.LocalRevision++;
 		}
 
 		_playerLimbKernel.SyncFromLimbEvent(msg);
+		return true;
 	}
 
 	/// <summary>
@@ -443,11 +593,17 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 
 	void ICharacterDataControl.SaveCharacterData(ulong steamId, CharacterDataMsg msg) => SaveCharacterData(steamId, msg);
 
-	void ICharacterDataControl.SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg) => SaveReportedCharacterData(steamId, msg);
-
+	bool ICharacterDataControl.SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg) => SaveReportedCharacterData(steamId, msg);
 	void ICharacterDataControl.SendSavedCharacter(ulong steamId) => SendSavedCharacter(steamId);
 
 	CharacterDataMsg? ICharacterDataControl.GetSavedCharacter(ulong steamId) => GetSavedCharacter(steamId);
+
+	string? ICharacterDataControl.GetReportRefusal(ulong steamId) => GetReportRefusal(steamId);
+
+	void ICharacterDataControl.MarkHostModelAdvancing(ulong steamId, long nowMs) => MarkHostModelAdvancing(steamId, nowMs);
+
+	bool ICharacterDataControl.IsHostModelAdvancing(ulong steamId, long nowMs, long maxAgeMs) =>
+		IsHostModelAdvancing(steamId, nowMs, maxAgeMs);
 
 	CharacterDataMsg? ICharacterDataControl.GetHostCharacterData() => GetHostCharacterData();
 
@@ -483,7 +639,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 
 	void ICharacterDataControl.ApplyEnemyEffect(EnemyEffectMsg msg) => ApplyEnemyEffect(msg);
 
-	void ICharacterDataControl.ApplyLimbStateEvent(LimbStateEventMsg msg) => ApplyLimbStateEvent(msg);
+	bool ICharacterDataControl.ApplyLimbStateEvent(LimbStateEventMsg msg) => ApplyLimbStateEvent(msg);
 
 	void ICharacterDataControl.FireLimbStateEventReceived(ulong sender, LimbStateEventMsg msg) =>
 		LimbStateEventReceived?.Invoke(sender, msg);

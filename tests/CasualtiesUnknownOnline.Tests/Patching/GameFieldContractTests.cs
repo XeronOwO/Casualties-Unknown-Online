@@ -101,6 +101,9 @@ public class GameFieldContractTests
 		("XalorisScript", "lastTime", Kind.Field, typeof(float), "the 0.5 s septic-tick edge (EnemyProximityPatches)"),
 		// Character/item bodies.
 		("Body", "movingAllowed", Kind.Field, typeof(bool), "the start-gate freeze (StartGateCoordinator, BodyPatches)"),
+		("Body", "secondCheckTime", Kind.Field, typeof(float), "the host clone's first-pass derived values are forced by HostVitalsBodies.SeedDerivedState"),
+		("Body", "halfSecondCheckTime", Kind.Field, typeof(float), "the host clone's first-pass encumbrance/immunity refresh is forced by HostVitalsBodies.SeedDerivedState"),
+		("Limb", "infectionCheckTime", Kind.Field, typeof(float), "the host clone's limb infection roll is disabled by pinning this private check timer at seed"),
 		("LiquidAffect", "rb", Kind.Field, "UnityEngine.Rigidbody2D", "the one-time backfill when a frozen item goes dynamic (ItemPositionFollow)"),
 		("GrabberPlant", "grabBody", Kind.Field, "UnityEngine.Rigidbody2D", "the grab latch (TrapGrabberPlantPatch)"),
 		// The talker domain.

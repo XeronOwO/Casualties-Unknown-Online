@@ -51,8 +51,12 @@ plug-in or in its own mod, apply the four-layer rule in
 **Sync model (non-negotiable):**
 
 - `[CRITICAL]` **Local compute, remote verify/sync**: each player simulates its own actions
-  with single-player feel; the host never simulates a guest's per-frame behavior. Host
-  authority is limited to global world-state ownership (seed, saves, rulings).
+  with single-player feel; the host never simulates a guest's input-driven behaviour. Host
+  authority is limited to global world-state ownership (seed, saves, rulings). The one ruled
+  exception (2026-10-18) is the CONTINUOUS VITALS model: the host runs the game's own vital stages
+  on its clone of a remote body to compute the three bleeding values the host owns, while every
+  event, terminal fact and random outcome stays with that player's client and reaches the host as
+  its report/event — `docs/backlog/todo/health-simulation-and-host-authority.md`.
 - `[CRITICAL]` **Judge where the effect lands (user ruling 2026-09-18)**: a judgment about
   what happens to a player belongs to THAT player's client, on its own view and timeline —
   the victim judges its own hit, the actor and the target judge their own interaction gates

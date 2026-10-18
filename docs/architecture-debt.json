@@ -6,5 +6,15 @@
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
     "Lines": 608,
     "BoolFlags": 4
+  },
+  "CasualtiesUnknownOnline.GameAdapter.Character.CharacterDataSync": {
+    "Lines": 671,
+    "BoolFlags": 0,
+    "Note": "The host-state cycle added the local injury trigger and the owner-state report to the existing capture/report/restore coordinator; the planned split is the trigger into LocalInjuryReporter (owning the baseline, the host-row absorption and the report call), leaving the coordinator the snapshot/restore/render seams."
+  },
+  "CasualtiesUnknownOnline.Runtime.Session.CharacterData.CharacterDataStore": {
+    "Lines": 672,
+    "BoolFlags": 0,
+    "Note": "The host-state cycle added the report-refusal answer, the model-advancing mark, the authority finiteness gate and the enemy-event finite guard to the reconnect table; the planned split is a host-model companion (advance marks + refusal window) fed by this store, leaving the table the save/restore and event-merge seams."
   }
 }

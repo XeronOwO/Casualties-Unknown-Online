@@ -13,8 +13,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// <summary>
 /// Remote-player rendering: the per-member render clones (physics off,
 /// animations on, fed by the state stream) and the local body's state
-/// publishing (the stream's source side). NO remote-side simulation anywhere —
-/// each player simulates only its own body. Reads the character-data domain's
+/// publishing (the stream's source side). A clone is presentation on every
+/// client; on the HOST only it is also the vitals model (the fixed-step pass in
+/// <see cref="HostVitalsBodies"/>). It reads the character-data domain's
 /// snapshot cache for the clones' carried-item rendering. What the carry
 /// relation does to those clones — the local-carrier mount, the per-frame pin
 /// and its read-only drift reading — belongs to
@@ -25,6 +26,7 @@ internal sealed class RemotePlayerRenderer(
 	IEntitySyncControl entities,
 	CharacterDataSync characterData,
 	CloneLimbRenderer limbRenderer,
+	HostVitalsBodies hostVitals,
 	IPlayerInteractionControl playerInteraction,
 	ILogger<RemotePlayerRenderer> log)
 {
@@ -32,6 +34,7 @@ internal sealed class RemotePlayerRenderer(
 	private readonly IEntitySyncControl _entities = entities;
 	private readonly CharacterDataSync _characterData = characterData;
 	private readonly CloneLimbRenderer _limbRenderer = limbRenderer;
+	private readonly HostVitalsBodies _hostVitals = hostVitals;
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
 	private readonly ILogger<RemotePlayerRenderer> _log = log;
 	private readonly CarriedRiderPresenter _carriedRider = new(session, playerInteraction);
@@ -91,7 +94,7 @@ internal sealed class RemotePlayerRenderer(
 			&& _characterData.CloneData.TryGetValue(steamId, out var data))
 		{
 			_characterData.ApplyCloneInventory(clone, data, steamId);
-			_limbRenderer.ApplyCloneLimbs(clone, data);
+			_limbRenderer.ApplyCloneLimbs(clone, data, preserveOwnedBleed: HostVitalsBodies.IsSimulated(clone));
 			RemoteCharacterDisplayProjection.ApplyRenderClone(clone, RemoteCharacterPresentation.State.From(data));
 		}
 	}
@@ -172,13 +175,18 @@ internal sealed class RemotePlayerRenderer(
 			// reference-comparison would miss it; retry creation next frame.
 			if (!_remoteClones.TryGetValue(remote.SteamId, out var clone) || clone == null)
 			{
-				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _cloneFailures, _log);
+				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _cloneFailures, _log,
+					hostSimulated: _session.Role == SessionRole.Host);
 				if (clone == null)
 				{
 					continue; // template unavailable — retry next frame
 				}
 
 				_remoteClones[remote.SteamId] = clone;
+				// The host's clone is also the model: attach the fixed-step driver before the
+				// initial snapshot is applied, so the limb apply already knows to preserve the
+				// owned values. Guests never attach one.
+				_hostVitals.Attach(clone, remote.SteamId);
 				EndCloneFailureRuns(remote.SteamId); // the member builds a clone again: its failure run is over
 				_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
 				// Render its carried items + limb presentation from the latest
@@ -186,7 +194,7 @@ internal sealed class RemotePlayerRenderer(
 				if (_characterData.CloneData.TryGetValue(remote.SteamId, out var data))
 				{
 					_characterData.ApplyCloneInventory(clone, data, remote.SteamId);
-					_limbRenderer.ApplyCloneLimbs(clone, data);
+					_limbRenderer.ApplyCloneLimbs(clone, data, preserveOwnedBleed: HostVitalsBodies.IsSimulated(clone));
 					RemoteCharacterDisplayProjection.ApplyRenderClone(clone, RemoteCharacterPresentation.State.From(data));
 				}
 			}

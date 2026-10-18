@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
@@ -43,7 +44,21 @@ public sealed class LimbStateEventHandler(ILogger<LimbStateEventHandler> log) : 
 
 		if (ctx.Session.Role == SessionRole.Host)
 		{
-			ctx.CharacterData.ApplyLimbStateEvent(msg);
+			// The store's merge can refuse a non-finite event; the handler must then skip BOTH the
+			// adapter event and the relay — the fact table shares the stored object reference, so
+			// firing would apply the refused limbs there and the relay would push them to every
+			// guest.
+			if (!ctx.CharacterData.ApplyLimbStateEvent(msg))
+			{
+				_log.LogWarning("[LimbEvent] refused a non-finite owner event from {Sender} for {Owner}.", sender, msg.OwnerSteamId);
+				return;
+			}
+		}
+		else if (CharacterDataFinite.FirstNonFinite(new CharacterDataMsg { Health = msg.Health, Limbs = msg.Limbs }) is { } field)
+		{
+			// A guest receives the host's relay; a refused event must never reach its presentation.
+			_log.LogWarning("[LimbEvent] dropped a non-finite relay from the host for {Owner}: {Field}.", msg.OwnerSteamId, field);
+			return;
 		}
 
 		ctx.CharacterData.FireLimbStateEventReceived(sender, msg);

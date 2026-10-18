@@ -272,7 +272,7 @@ public class CarriedBodyVitalsSubsetPinTests
 	private const string PeriodicChecksStage = "HandlePeriodicChecksMethod.Invoke(body, []);";
 	private const string ProxyPathAnchor = "UpdateGrounded(__instance);";
 	private const string PrefixAnchor = "private static bool Prefix(Body __instance)";
-	private const string SubsetMethodAnchor = "private static void RunVitalsSubset(Body body)";
+	private const string SubsetMethodAnchor = "internal static void RunVitalsSubset(Body body)";
 	private const string LimbPrefixAnchor = "private static bool Prefix(Limb __instance)";
 	private const string PhysicsPrefixAnchor = "private static bool Prefix(Body __instance) =>";
 
@@ -333,7 +333,7 @@ public class CarriedBodyVitalsSubsetPinTests
 	/// and nothing else, in the game's own order.
 	/// </summary>
 	private const string ExpectedSubsetMethod = """
-		private static void RunVitalsSubset(Body body) { var painkillers = body.GetComponent<Painkillers>(); HandleVariableUpdatesMethod.Invoke(body, []); HandleBodyMethod.Invoke(body, [painkillers]); HandleBodyTemperatureMethod.Invoke(body, [painkillers]); HandleRadiationSicknessMethod.Invoke(body, []); HandlePeriodicChecksMethod.Invoke(body, []); }
+		internal static void RunVitalsSubset(Body body) { var painkillers = body.GetComponent<Painkillers>(); HandleVariableUpdatesMethod.Invoke(body, []); HandleBodyMethod.Invoke(body, [painkillers]); HandleBodyTemperatureMethod.Invoke(body, [painkillers]); HandleRadiationSicknessMethod.Invoke(body, []); HandlePeriodicChecksMethod.Invoke(body, []); }
 		""";
 
 	private const string VitalsSubsetExpectation =

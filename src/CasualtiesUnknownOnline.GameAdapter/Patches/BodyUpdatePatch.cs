@@ -9,14 +9,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
 /// The <c>Body.Update</c> render-proxy and carry-participant presentation
-/// patch. A remote clone gets the visual-only proxy path; every LOCAL body —
-/// carried or not — runs the original simulation, because a carried rider's
-/// own client must keep advancing vitals, the heart progression behind the ECG
-/// animation, limb state and sounds (<see cref="CarriedBodySimulation"/>). Only
-/// the rider's movement input and the native idle-sit are gated while carried.
-/// This also holds the native idle-sit suppression for both halves of a carry
-/// relation, and the pinned presentation of a dead/unconscious carried body —
-/// whose own client still runs the VITALS stages of the native pass
+/// patch. A remote clone gets the presenter path on a guest; on the HOST the
+/// same clone is also the vitals model, whose fixed-step pass calls
+/// <see cref="RunVitalsSubset"/> directly (<see cref="HostVitalsPass"/>). Every
+/// LOCAL body — carried or not — runs the original simulation, because a
+/// carried rider's own client must keep advancing vitals, the heart progression
+/// behind the ECG animation, limb state and sounds (<see cref="CarriedBodySimulation"/>).
+/// Only the rider's movement input and the native idle-sit are gated while
+/// carried. This also holds the native idle-sit suppression for both halves of
+/// a carry relation, and the pinned presentation of a dead/unconscious carried
+/// body — whose own client still runs the VITALS stages of the native pass
 /// (<see cref="RunVitalsSubset"/>) under that frozen pose.
 /// </summary>
 [HarmonyPatch(typeof(Body), "Update")]
@@ -299,8 +301,14 @@ internal static class BodyUpdatePatch
 	/// Body.cs:3080-3083), <c>HandleVisuals</c> (the pinned presentation path owns
 	/// the visuals) and <c>HandleSounds</c> (the fall scream reads the rigidbody
 	/// velocity, which is the carrier's, Body.cs:2751).
+	/// <para>
+	/// The host's simulated clone of a remote player runs the same five stages
+	/// through <see cref="HostVitalsPass"/>; this method is the one definition of
+	/// the subset both paths use, so a game update that renames a stage fails at
+	/// startup for both.
+	/// </para>
 	/// </summary>
-	private static void RunVitalsSubset(Body body)
+	internal static void RunVitalsSubset(Body body)
 	{
 		var painkillers = body.GetComponent<Painkillers>();
 		HandleVariableUpdatesMethod.Invoke(body, []);

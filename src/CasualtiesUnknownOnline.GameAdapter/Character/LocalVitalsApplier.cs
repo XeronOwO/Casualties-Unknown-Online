@@ -23,6 +23,13 @@ internal sealed class LocalVitalsApplier(ISessionControl session)
 {
 	private Body? _localBody;
 
+	/// <summary>
+	/// How many rows this client has applied to its own body. The injury detector reads it to tell
+	/// the host's own authority raise (a row whose value must not look like a new local injury) from
+	/// a rise the owner judged between rows.
+	/// </summary>
+	internal int AppliedCount { get; private set; }
+
 	/// <summary>The pump's per-frame hand-over of the live local body.</summary>
 	internal void TrackLocalBody(Body? localBody) => _localBody = localBody;
 
@@ -52,5 +59,7 @@ internal sealed class LocalVitalsApplier(ISessionControl session)
 				limb.bleedAmount = row.BleedAmount;
 			}
 		}
+
+		AppliedCount++;
 	}
 }

@@ -80,6 +80,9 @@ internal sealed class GameAdapterDomains
 	internal readonly LocalBodyReset LocalBodyReset;
 	internal readonly StartingSupplyCoordinator StartingSupplies;
 	internal readonly RemotePlayerRenderer Renderer;
+
+	/// <summary>The host's per-remote-player simulated bodies (stage 2 of the health-authority ticket) — attached to the render clones that exist anyway.</summary>
+	internal readonly HostVitalsBodies HostVitals;
 	internal readonly RemoteBackpackCoordinator RemoteBackpack;
 	internal readonly RemoteMedicalCoordinator RemoteMedical;
 	internal readonly DropProtectionGuard DropGuard;
@@ -283,7 +286,8 @@ internal sealed class GameAdapterDomains
 			new GameStartingSupplyTarget(),
 			time,
 			loggerFactory.CreateLogger<StartingSupplyCoordinator>());
-		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
+		HostVitals = new HostVitalsBodies(session, characterData, restoreApplier, time, loggerFactory.CreateLogger<HostVitalsBodies>());
+		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), HostVitals, playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
 		RemoteMedical = new RemoteMedicalCoordinator(session, CharacterDataSync, mapper, loggerFactory.CreateLogger<RemoteMedicalCoordinator>());
 		DropGuard = new DropProtectionGuard(world.IsBreakDropPending);

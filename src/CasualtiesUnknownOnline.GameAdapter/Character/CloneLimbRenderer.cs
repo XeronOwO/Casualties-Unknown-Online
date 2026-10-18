@@ -11,11 +11,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// The remote clones' limb-presentation rendering: each limb of a clone shows
 /// its owner's synced wound state (broken bone sprite, dismembered = gone,
 /// blood overlay + drip particles, skin/muscle wound shading, infection tint).
-/// The clone's own Limb.Update is SKIPPED (BodyPatches.LimbUpdatePatch — its
-/// vitals are not simulated), so every visual is applied directly here from
-/// the owner's character snapshot (the 1 Hz <see cref="CharacterDataMsg"/>
-/// carries the full per-limb set; the dedicated limb-state event updates it
-/// between snapshots). The pure formulas live in <see cref="LimbPresentation"/>
+/// The clone's own Limb.Update is skipped by the engine
+/// (BodyPatches.LimbUpdatePatch); on the HOST the fixed-step vitals pass calls
+/// it explicitly, because the host's clone is the bleeding model. Every limb
+/// visual is applied directly here from the owner's character snapshot (the
+/// 1 Hz <see cref="CharacterDataMsg"/> carries the full per-limb set; the
+/// dedicated limb-state/injury event updates it between snapshots). On the
+/// host's simulated clone the limb BLEED is the host's model, so the apply
+/// preserves it; everything else is the owner's. The pure formulas live in
+/// <see cref="LimbPresentation"/>
 /// and mirror the game's own visual code:
 /// - broken: the brokenBone sprite child (Limb.MakeBoneSprite, Limb.cs:250-259
 ///   — private, replicated with public surface)
@@ -35,7 +39,14 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 {
 	private readonly ILogger<CloneLimbRenderer> _log = log;
 
-	internal void ApplyCloneLimbs(Body clone, CharacterDataMsg data)
+	/// <summary>
+	/// Apply the owner's limb state to a clone. <paramref name="preserveOwnedBleed"/> is true for
+	/// the host's simulated clone: its limb bleed is the HOST's advancing model, so the report's
+	/// copy would overwrite it every second — the same ownership rule as
+	/// <see cref="HostVitalsBodies"/>. Everything else (terminal flags, skin/muscle health, pain,
+	/// infection, the blood overlay) is a report input and is applied either way.
+	/// </summary>
+	internal void ApplyCloneLimbs(Body clone, CharacterDataMsg data, bool preserveOwnedBleed = false)
 	{
 		foreach (var limbData in data.Limbs)
 		{
@@ -51,11 +62,11 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 				continue;
 			}
 
-			ApplyLimb(limb, limbData, data.Health);
+			ApplyLimb(limb, limbData, data.Health, preserveOwnedBleed);
 		}
 	}
 
-	private static void ApplyLimb(Limb limb, CharacterLimbMsg limbData, CharacterHealthMsg? body)
+	private static void ApplyLimb(Limb limb, CharacterLimbMsg limbData, CharacterHealthMsg? body, bool preserveOwnedBleed)
 	{
 		// Dismembered: the limb is gone (game semantics — SetActive(false)).
 		// Applied in BOTH directions: a clone Instantiate copies the template's
@@ -93,7 +104,11 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 		limb.skinHealth = limbData.SkinHealth;
 		limb.muscleHealth = limbData.MuscleHealth;
 		limb.infectionAmount = limbData.InfectionAmount;
-		limb.bleedAmount = limbData.BleedAmount;
+		if (!preserveOwnedBleed)
+		{
+			limb.bleedAmount = limbData.BleedAmount;
+		}
+
 		limb.furBloodAmount = limbData.FurBloodAmount;
 		limb.pain = limbData.Pain;
 		limb.dislocationTimer = limbData.DislocationTimer;

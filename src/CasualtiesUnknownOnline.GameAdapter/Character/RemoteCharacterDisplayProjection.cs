@@ -132,9 +132,8 @@ internal static class RemoteCharacterDisplayProjection
 		// Antidepressant happiness is produced by Antidepressants.Update; the
 		// component only contributes while its amount is non-zero, and the
 		// currentAmount determines the live ramp.
-		body.antidepressantHappiness = medical.AntidepressantsAmount > 0f
-			? -body.happiness * 0.6f * Mathf.Clamp01(medical.AntidepressantsCurrentAmount * 0.0166f)
-			: 0f;
+		body.antidepressantHappiness = AntidepressantHappiness(
+			body.happiness, medical.AntidepressantsAmount, medical.AntidepressantsCurrentAmount);
 
 		// Mindwipe is assigned by Body.Update's half-second pass. The display
 		// clone may still carry a component from an earlier snapshot; remove it
@@ -234,6 +233,14 @@ internal static class RemoteCharacterDisplayProjection
 	/// </summary>
 	internal static float OpiateHappinessFromReception(float reception) =>
 		reception > 0f ? reception : Math.Max(-80f, reception * 1.66f);
+
+	/// <summary>
+	/// The antidepressant happiness the owner's <c>Antidepressants.Update</c> contributes:
+	/// the component only contributes while its committed amount is non-zero, and the current
+	/// amount sets the ramp (Antidepressants.cs, the <c>Update</c> additive term).
+	/// </summary>
+	internal static float AntidepressantHappiness(float happiness, float amount, float currentAmount) =>
+		amount > 0f ? -happiness * 0.6f * Mathf.Clamp01(currentAmount * 0.0166f) : 0f;
 
 	/// <summary>
 	/// Inverse of <see cref="OpiateHappinessFromReception"/> for the positive

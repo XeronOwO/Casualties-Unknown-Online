@@ -60,6 +60,20 @@ internal sealed class CharacterDataSync(
 
 	private readonly RestorePositionGate _positionGate = new(); // the restore's position lands ONCE per body (a re-sent restore must not teleport it again)
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
+
+	/// <summary>The local body the injury baseline belongs to (reset when the body changes).</summary>
+	private Body? _injuryBody;
+
+	/// <summary>The per-limb bleed the last injury check saw; a RISE is the owner-judged injury trigger.</summary>
+	private float[] _injuryBleedBaseline = [];
+
+	/// <summary>
+	/// The last row-apply count the injury detector saw. A change means the HOST just pushed its own
+	/// authority value onto this body; that raise must be absorbed as the new baseline, not reported
+	/// back as a local injury (enemy bites, shrapnel and the injury event itself are all host writes).
+	/// </summary>
+	private int _lastRowApplyCount;
+
 	private long _nextCharacterReportMs;
 
 	/// <summary>Read-only view for the clone renderer: latest snapshot per SteamId.</summary>
@@ -247,8 +261,14 @@ internal sealed class CharacterDataSync(
 
 		if (_restore.HasPending || _restore.WipePending)
 		{
-			return; // restoring: a fresh-run snapshot would overwrite the host's saved character data
+			// Restoring: a fresh-run snapshot would overwrite the host's saved character data. The
+			// injury baseline is dropped too — the restore writes limb state, and a rise it causes is
+			// not an owner-judged wound.
+			_injuryBody = null;
+			return;
 		}
+
+		TrackInjury(localBody);
 
 		var nowMs = Environment.TickCount;
 		if (nowMs < _nextCharacterReportMs)
@@ -258,6 +278,75 @@ internal sealed class CharacterDataSync(
 
 		_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);
 		ReportCharacterData(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: true, nativeFailure);
+	}
+
+	/// <summary>
+	/// The injury trigger (B1 of the stage-2 review): the host's model can only DECAY a limb's
+	/// bleed, and the plain 1 Hz report is not allowed to state the owned value, so a rise in the
+	/// LOCAL body's limb bleed must ride the owner-state event instead. The event sends the whole
+	/// post-injury limb set and health (the same payload a limb latch sends), and the host takes the
+	/// limbs as authority while keeping its own blood volume. The baseline follows every check —
+	/// including the host row's own decreases — so only a RISE triggers and the 100 ms row can
+	/// never look like an injury.
+	/// </summary>
+	/// <summary>
+	/// Detect a local injury: the owner's own simulation raised a limb's bleed. A RISE is the one
+	/// change the plain report may not carry (the host owns the value), so it is reported at once as
+	/// the full owner state. Two things are deliberately NOT injuries: the HOST's own authority push
+	/// (a row raised the value — absorbed by the apply counter) and the value a restore just wrote
+	/// (the baseline is cleared across a restore). The check runs per frame, not at the row rate, so
+	/// the next 10 Hz row cannot overwrite a rise before it is seen.
+	/// </summary>
+	private void TrackInjury(Body body)
+	{
+		var limbs = body.limbs;
+		var current = new float[limbs.Length];
+		for (var i = 0; i < limbs.Length; i++)
+		{
+			current[i] = limbs[i].bleedAmount;
+		}
+
+		if (!ReferenceEquals(_injuryBody, body) || _injuryBleedBaseline.Length != limbs.Length)
+		{
+			_injuryBody = body;
+			_injuryBleedBaseline = current;
+			_lastRowApplyCount = _vitals.AppliedCount;
+			return; // a fresh body has no injury to report yet
+		}
+
+		if (_vitals.AppliedCount != _lastRowApplyCount)
+		{
+			// The host pushed its authoritative values (or an event it arbitrated). Those raises are
+			// the host's, not a new local wound: adopt them as the baseline and do not report.
+			_lastRowApplyCount = _vitals.AppliedCount;
+			_injuryBleedBaseline = current;
+			return;
+		}
+
+		if (PlayerInjuryRule.AnyBleedRose(_injuryBleedBaseline, current))
+		{
+			ReportOwnerStateEvent(body, "injury");
+		}
+
+		_injuryBleedBaseline = current;
+	}
+
+	/// <summary>
+	/// Send the owner's FULL limb/body state as the owner-state event. A limb latch (the patches)
+	/// and an injury (the bleed-rise detector) both use it: the payload is the post-event state, so
+	/// the host applies the event's limbs (the injury's bleed included) while
+	/// <see cref="EnemyTerminalStateApplier.ApplyLimbState"/> keeps the host's two continuous blood
+	/// values. The host relays it to the other guests like any other owner event.
+	/// </summary>
+	internal void ReportOwnerStateEvent(Body body, string reason)
+	{
+		if (!_session.SessionActive || body == null) // Unity object — ==
+		{
+			return;
+		}
+
+		_characterData.SendLimbStateEvent(CaptureLimbStateEvent(body));
+		_log.LogInformation("[LimbEvent] reported local owner state ({Reason}).", reason);
 	}
 
 	/// <summary>An inventory-internal move finished (SwapSlots/SwitchHands) — re-report right away (the 1 Hz throttle alone reads as a 1-2 s delay on the peer's clone).</summary>

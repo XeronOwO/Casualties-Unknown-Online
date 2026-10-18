@@ -113,9 +113,10 @@ public enum NetMsg : byte
 	WorldTimeRequest = 90, // guest → host: a speed the guest already applied locally (hotkey / native movement reset)
 	WorldTime = 91, // host → guest: the authoritative world-time speed (change / request answer / world entry / 5 s resend)
 
-	// Limb presentation (local compute → report → apply → fan-out: a limb's
-	// latch changed on its owner's local simulation — break/mend/dismember)
-	LimbStateEvent = 93, // bidirectional: guest → host report of the owner's own limb latch; host → guest broadcast relay (source excluded) — carries the body's full post-event limb + health terminal state
+	// Limb presentation and owner injury (local compute → report → apply →
+	// fan-out: a limb's latch changed on its owner's local simulation — break/
+	// mend/dismember — or an injury raised a limb's bleed)
+	LimbStateEvent = 93, // bidirectional: guest → host report of the owner's own limb latch OR injury; host → guest broadcast relay (source excluded) — carries the body's full post-event limb + health state
 
 	// Character action presentation (one-shot event: the owner's action already
 	// played its sound locally, the peers replay it on the owner's clone; GunFire
@@ -411,6 +412,6 @@ public enum NetMsg : byte
 	// Host-computed continuous vitals (host authority — the host owns the continuous bleeding
 	// values for every player and pushes the row down; the affected client still judges the
 	// events and applies the row to its own body, so this is not a body write by the host)
-	PlayerVitals = 154, // host → client: the host-computed bleeding row (blood volume + per-limb bleed, 10 Hz, unreliable)
+	PlayerVitals = 154, // host → client: the host-computed bleeding row (blood volume + total speed + per-limb bleed, 10 Hz, unreliable; also answers a refused report by field name)
 
 }

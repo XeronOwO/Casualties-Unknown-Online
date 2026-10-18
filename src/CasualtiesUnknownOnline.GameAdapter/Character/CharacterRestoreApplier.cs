@@ -62,6 +62,20 @@ internal sealed class CharacterRestoreApplier(
 			}
 		}
 
+		ApplyStats(body, data, applyComponents: true);
+	}
+
+	/// <summary>
+	/// The state half of a restore, split from the wipe because the host's simulated clone needs
+	/// it without the item wipe and WITHOUT the component half. That body is the render clone: the
+	/// limb components (<c>SplintLimb</c>/<c>TourniquetScript</c>/<c>ChilledLimb</c>) and the
+	/// medication components run owner-local native behaviour, and their state is already carried
+	/// by the mapped limb fields and the health block. Adding them enabled onto a render clone is
+	/// exactly the per-frame exception storm <see cref="LimbComponentStateCodec"/> records for a
+	/// display copy. A real restore still passes <c>applyComponents: true</c>.
+	/// </summary>
+	internal void ApplyStats(Body body, CharacterDataMsg data, bool applyComponents)
+	{
 		if (data.Skills is { } skills)
 		{
 			_mapper.Map(skills, body.skills);
@@ -74,7 +88,10 @@ internal sealed class CharacterRestoreApplier(
 			// are touched — alive/conscious (derived properties, Body.cs:203/213)
 			// are read-only and skipped automatically.
 			_mapper.Map(health, body);
-			CharacterComponentSync.Apply(body, health);
+			if (applyComponents)
+			{
+				CharacterComponentSync.Apply(body, health);
+			}
 		}
 
 		foreach (var limbData in data.Limbs)
@@ -85,7 +102,10 @@ internal sealed class CharacterRestoreApplier(
 			}
 
 			_mapper.Map(limbData, body.limbs[limbData.Index]);
-			LimbComponentStateCodec.ApplyAuthoritative(body.limbs[limbData.Index], limbData.Components);
+			if (applyComponents)
+			{
+				LimbComponentStateCodec.ApplyAuthoritative(body.limbs[limbData.Index], limbData.Components);
+			}
 		}
 	}
 

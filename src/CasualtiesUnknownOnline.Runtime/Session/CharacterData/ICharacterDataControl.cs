@@ -19,11 +19,31 @@ public interface ICharacterDataControl
 	void SaveCharacterData(ulong steamId, CharacterDataMsg msg);
 
 	/// <summary>
-	/// Host: store a member's plain 1 Hz REPORT. It may refresh the model's inputs, but the two
-	/// continuous values the host owns (blood volume, per-limb bleed) are preserved from the
-	/// current snapshot — a member never states them (the 2026-10-18 ruling).
+	/// Host: store a member's plain 1 Hz REPORT and answer whether it was usable. It may refresh
+	/// the model's inputs, but the three continuous values the host owns (blood volume, total
+	/// bleeding speed, per-limb bleed) are preserved from the current snapshot — a member never
+	/// states them (the 2026-10-18 ruling). A report with a non-finite physiological field is
+	/// refused whole and the previous snapshot stays, so the caller must not relay or render it.
 	/// </summary>
-	void SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg);
+	bool SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg);
+
+	/// <summary>
+	/// Host only: which physiological field the current report refusal names for this member, or
+	/// null when the store is not refusing that member's reports. The 10 Hz vitals row carries the
+	/// name back, so a refusal is answered instead of silent.
+	/// </summary>
+	string? GetReportRefusal(ulong steamId);
+
+	/// <summary>
+	/// Host only: the adapter's simulated body for this member completed an advance at
+	/// <paramref name="nowMs"/>. The 10 Hz row is gated on a fresh mark, so a clone that cannot be
+	/// seeded, a refused snapshot or a stopped FixedUpdate cannot keep pinning the owner's body to
+	/// stale values.
+	/// </summary>
+	void MarkHostModelAdvancing(ulong steamId, long nowMs);
+
+	/// <summary>Host only: whether the member's simulated body advanced within <paramref name="maxAgeMs"/>.</summary>
+	bool IsHostModelAdvancing(ulong steamId, long nowMs, long maxAgeMs);
 
 	void SendSavedCharacter(ulong steamId);
 
@@ -92,8 +112,14 @@ public interface ICharacterDataControl
 	/// <summary>Host side: merge an enemy-proximity side effect terminal state into the victim's saved snapshot.</summary>
 	void ApplyEnemyEffect(EnemyEffectMsg msg);
 
-	/// <summary>Host side: merge a limb-latch event's full limb + body terminal state into the owner's saved snapshot (the trigger rides the event, the snapshot is the fallback).</summary>
-	void ApplyLimbStateEvent(LimbStateEventMsg msg);
+	/// <summary>
+	/// Host side: merge a limb-latch/injury event's full limb + body terminal state into the owner's
+	/// saved snapshot (the trigger rides the event, the snapshot is the fallback). Returns false when
+	/// the event was refused (non-finite); the caller must then skip the adapter event and the relay,
+	/// because the fact table shares the stored object reference and would otherwise apply and relay
+	/// the refused values.
+	/// </summary>
+	bool ApplyLimbStateEvent(LimbStateEventMsg msg);
 
 	/// <summary>Surface an arrived limb-latch event (report or relay) for the Game Adapter to apply to the owner's clone.</summary>
 	void FireLimbStateEventReceived(ulong sender, LimbStateEventMsg msg);

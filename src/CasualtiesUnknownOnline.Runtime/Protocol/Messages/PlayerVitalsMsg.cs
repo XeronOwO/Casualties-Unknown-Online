@@ -9,10 +9,17 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// applies the row).
 ///
 /// <para>
-/// What it carries is ONLY the two values the host owns: the body's blood volume and each
-/// limb's bleed amount, plus the body-level bleeding speed the panel reads. Everything that
-/// is random or terminal — infection, internal-bleeding rolls, death, unconsciousness, a
-/// broken limb — never rides this message; those stay with the affected client's events.
+/// What it carries is ONLY the three values the host owns: the body's blood volume, the body-level
+/// bleeding speed the panel reads, and each limb's bleed amount. Everything that is random or
+/// terminal — infection, internal-bleeding rolls, death, unconsciousness, a broken limb — never
+/// rides this message; those stay with the affected client's events.
+/// </para>
+///
+/// <para>
+/// <see cref="RefusedField"/> is the answer half of the store's report refusal: when the host
+/// refused the owner's latest character report for a non-finite physiological field, the row names
+/// that field so the client learns why its reports are not being used. It is empty while the host
+/// is not refusing the member. The host's values still apply — the refusal is not a state channel.
 /// </para>
 ///
 /// <para>
@@ -40,4 +47,12 @@ public sealed class PlayerVitalsMsg
 	/// <summary>The per-limb bleed amounts the host owns, by native limb index.</summary>
 	[ProtoMember(4)]
 	public List<PlayerLimbBleedMsg> Limbs { get; set; } = [];
+
+	/// <summary>
+	/// The physiological field the host refused the owner's latest report for, or empty when no
+	/// report is being refused. The row still carries the host's values; this is the named answer
+	/// the refusal owes the reporter.
+	/// </summary>
+	[ProtoMember(5)]
+	public string RefusedField { get; set; } = "";
 }

@@ -10,10 +10,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// <summary>
 /// Creates remote player bodies by cloning the scene's player character
 /// ("Experiment" GameObject — same template KrokMP uses). Every remote body is
-/// a frozen render proxy that reflects the owner's synced state; no side
-/// simulates another player's body. The clone spawns exactly at the peer's
-/// position (reported spawn point / PlayerJoin anchor) — no offset: a constant
-/// offset would keep the two presentations permanently divergent.
+/// a frozen render proxy that reflects the owner's synced state; on the HOST
+/// only, that same body is also the per-player vitals model (HostVitalsBodies),
+/// and the factory's <c>hostSimulated</c> pass additionally disables the
+/// owner-local component behaviours that state comes from the wire instead. The
+/// clone spawns exactly at the peer's position (reported spawn point /
+/// PlayerJoin anchor) — no offset: a constant offset would keep the two
+/// presentations permanently divergent.
 ///
 /// <para>
 /// Both ways an attempt can produce nothing are reported through a repetition
@@ -40,7 +43,8 @@ internal static class RemoteBodyFactory
 	/// </summary>
 	private const string FailureLine = "Remote body: {Why} for {SteamId} (repeat {Repeat}).";
 
-	public static Body? CreateRemoteBody(PlayerEntity remote, Vector2 anchor, LogRepetitionGuard failures, ILogger log)
+	public static Body? CreateRemoteBody(PlayerEntity remote, Vector2 anchor, LogRepetitionGuard failures, ILogger log,
+		bool hostSimulated = false)
 	{
 		var template = GameObject.Find("Experiment");
 		if (template == null) // Unity object — == (is null misses destroyed)
@@ -172,6 +176,54 @@ internal static class RemoteBodyFactory
 		foreach (var component in clone.GetComponentsInChildren<SleepingBagUse>())
 		{
 			component.enabled = false;
+		}
+
+		if (hostSimulated)
+		{
+			// The host's clone is also the simulated body (stage 2 of the health-authority ticket):
+			// the medication components' Updates are owner-local (they ramp happiness, sleep and
+			// mood on the owner's own machine) and their state rides the health block instead; the
+			// limb components' Updates are owner-local too, and their state rides the mapped limb
+			// fields. Disabled rather than destroyed for the limb components: their visual children
+			// stay, only the native behaviour stops. Painkillers keeps its fields (the circulation
+			// and temperature stages read them) but never advances its own reception ramp on the
+			// host.
+			foreach (var component in clone.GetComponentsInChildren<SleepingPills>())
+			{
+				Object.Destroy(component);
+			}
+
+			foreach (var component in clone.GetComponentsInChildren<Antidepressants>())
+			{
+				Object.Destroy(component);
+			}
+
+			foreach (var component in clone.GetComponentsInChildren<MindwipeScript>())
+			{
+				Object.Destroy(component);
+			}
+
+			body.mindWipe = null;
+
+			foreach (var component in clone.GetComponentsInChildren<SplintLimb>(includeInactive: true))
+			{
+				component.enabled = false;
+			}
+
+			foreach (var component in clone.GetComponentsInChildren<TourniquetScript>(includeInactive: true))
+			{
+				component.enabled = false;
+			}
+
+			foreach (var component in clone.GetComponentsInChildren<ChilledLimb>(includeInactive: true))
+			{
+				component.enabled = false;
+			}
+
+			foreach (var component in clone.GetComponentsInChildren<Painkillers>())
+			{
+				component.enabled = false;
+			}
 		}
 
 		return body;

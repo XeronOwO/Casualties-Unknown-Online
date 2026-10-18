@@ -161,10 +161,11 @@ public class LimbStatePatchTests
 		var apply = Renderer.GetMethod("ApplyCloneLimbs", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("CloneLimbRenderer.ApplyCloneLimbs not found.");
 		var parameters = apply.GetParameters();
-		Assert.True(parameters.Length == 2
+		Assert.True(parameters.Length == 3
 			&& parameters[0].ParameterType.FullName == "Body"
-			&& parameters[1].ParameterType.FullName == "CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterDataMsg",
-			$"ApplyCloneLimbs must take (Body, CharacterDataMsg), got {parameters.Length} parameter(s)");
+			&& parameters[1].ParameterType.FullName == "CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterDataMsg"
+			&& parameters[2].ParameterType.FullName == "System.Boolean",
+			$"ApplyCloneLimbs must take (Body, CharacterDataMsg, bool preserveOwnedBleed), got {parameters.Length} parameter(s)");
 	}
 
 	[Fact]

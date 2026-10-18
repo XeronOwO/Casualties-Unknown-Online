@@ -321,6 +321,46 @@ public class PatchContractTests
 		Assert.Contains(contracts, c => c.TargetType == "CrystalTeleport" && c.MethodName == "Touched");
 	}
 
+	/// <summary>
+	/// The host-clone vitals suppression surface: every owner-local side effect the game's vital
+	/// stages produce on a remote clone must have its hook, or a host would play, vomit, ragdoll,
+	/// flash or transition another player's body. The source shape of each guard is pinned by
+	/// <see cref="HostVitalsSuppressionPinTests"/>; this row proves the targets resolve.
+	/// </summary>
+	[Fact]
+	public void HostVitalsSuppressionPatchSet_IsComplete()
+	{
+		var contracts = BuildContracts();
+		var expected = new[]
+		{
+			("Body", "Ragdoll"),
+			("Body", "TryStartFibrillation"),
+			("Body", "TryLastStand"),
+			("Body", "WakeUp"),
+			("Body", "DropItem"),
+			("Body", "Cry"),
+			("Body", "BrainControlReverse"),
+			("Body", "BrainDamageRagdoll"),
+			("Body", "TheCoroutineThatMakesYouShitYourselfWhenUnconscious"),
+			("LiquidAffect", "FixedUpdate"),
+			("PlayerCamera", "FlashBrain"),
+			("Vomiter", "Vomit"),
+			("Vomiter", "VomitBlood"),
+		};
+
+		var missing = new List<string>();
+		foreach (var (type, method) in expected)
+		{
+			if (!contracts.Any(c => c.TargetType == type && c.MethodName == method))
+			{
+				missing.Add($"{type}.{method}");
+			}
+		}
+
+		Assert.True(missing.Count == 0,
+			$"the host-clone vitals suppression surface is incomplete ({missing.Count}):" + Environment.NewLine + string.Join(Environment.NewLine, missing));
+	}
+
 	// ---- PatchContractChecker verdict unit tests	}
 
 	// ---- PatchContractChecker verdict unit tests (against this assembly's own methods) ----

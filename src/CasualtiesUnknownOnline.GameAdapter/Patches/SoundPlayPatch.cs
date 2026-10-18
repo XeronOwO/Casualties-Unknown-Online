@@ -25,6 +25,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// The string overload internally calls the AudioClip overload, so after a
 /// successful string report the AudioClip patch must skip the same physical
 /// call (SoundCaptureContext flag, cleared in the postfix).
+/// 3. Host-clone vitals suppression: inside <see cref="HostVitalsPass"/> a
+/// clone's native stages play the OWNER's sounds on the host's machine; the
+/// prefix refuses them there (before the play and before the capture).
 /// </summary>
 [HarmonyPatch(typeof(Sound), "Play",
 	[typeof(string), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform),
@@ -33,6 +36,15 @@ internal static class SoundPlayPatch
 {
 	private static bool Prefix(string clip, Vector2 pos, bool twoDimensional, Transform follow, float volume)
 	{
+		// The host's simulated clone of a remote player runs the game's own vital stages; their
+		// heart thump, growl, speech and vomit warnings are the OWNER's sounds, not the host's.
+		// Refuse before the play and before the character-sound capture: a capture here would even
+		// report another player's sound as the host's own event.
+		if (HostVitalsPass.IsActive)
+		{
+			return false;
+		}
+
 		// In a live session the spawn landing sound is deferred until the
 		// start-gate release: it plays at the very end of generation, before
 		// the gate freezes — WaitingForReady is not yet true there, so the

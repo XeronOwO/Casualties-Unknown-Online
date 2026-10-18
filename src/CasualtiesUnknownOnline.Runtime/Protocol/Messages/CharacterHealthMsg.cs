@@ -291,4 +291,13 @@ public sealed class CharacterHealthMsg
 	/// </summary>
 	[ProtoMember(80)]
 	public float LegSpeedMult { get; set; }
+
+	/// <summary>
+	/// The body's live bleeding speed in the game's units (Body.totalBleedSpeed, the value the
+	/// WoundView's l/m line reads). It is one of the HOST-owned continuous values: a report
+	/// carries the owner's own value as an input, the host's snapshot keeps the host's, and the
+	/// 10 Hz `PlayerVitals` row is built from the host's value.
+	/// </summary>
+	[ProtoMember(81)]
+	public float TotalBleedSpeed { get; set; }
 }

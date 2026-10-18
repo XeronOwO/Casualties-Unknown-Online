@@ -1,45 +1,27 @@
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using CasualtiesUnknownOnline.Tests.Fakes;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Character;
 
 /// <summary>
-/// The host's continuous-vitals pump: the 10 Hz cadence, the unreliable channel, the authority
-/// seam (an event the host arbitrated re-seeds the model; a report never does), the world/session
-/// lifecycle, and the refusal of a non-finite report. The model's own rules are pinned in
-/// <see cref="PlayerBleedingStateTests"/>; the report/event seam against the real store is pinned
-/// in <see cref="PlayerVitalsOwnershipTests"/>.
+/// The host's continuous-vitals wire pump: the 10 Hz cadence, the unreliable channel, the
+/// world/session gates, the row's exact host-owned values, and the refusal of a non-finite stored
+/// value. The model itself now runs in the Game Adapter on the host's per-player clones; its
+/// authority round-trip is pinned in <c>ContinuousVitalsTests</c> and the report/event seam against
+/// the real store in <see cref="PlayerVitalsOwnershipTests"/>.
 /// </summary>
 public class PlayerVitalsServiceTests
 {
 	private const ulong HostId = 1;
 	private const ulong GuestId = 2;
-
-	[Fact]
-	public void Tick_AdvancesTheModelByWallTimeNotByFrame()
-	{
-		var harness = Create();
-		var snapshot = Snapshot(bloodVolume: 100f, bleed: 10f);
-		harness.Characters.SaveCharacterData(GuestId, snapshot);
-
-		// A 60 fps pump for about one virtual second. The model must consume that whole second; a
-		// per-frame delta would advance only ~0.14 s and leave the blood near its start.
-		for (var frame = 0; frame < 64; frame++)
-		{
-			harness.Clock.Advance(16);
-			harness.Service.Tick(harness.Clock.NowMs);
-		}
-
-		// The native one-second drain: 10 bleed * 0.01 bleedingSpeedMultiplier = 0.1 blood, no
-		// regeneration (hunger 0). A per-frame dt leaves 99.98; the wall-time step lands near 99.90.
-		Assert.InRange(snapshot.Health!.BloodVolume, 99.85f, 99.95f);
-	}
 
 	[Fact]
 	public void TheRow_GoesOutAtTenHertz()
@@ -48,13 +30,13 @@ public class PlayerVitalsServiceTests
 		var guest = new FakeTransport(GuestId, harness.Network);
 		var received = 0;
 		guest.MessageReceived += (_, _) => received++;
-		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, bleed: 10f));
+		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, totalBleedSpeed: 0.2f, bleed: 10f));
 
-		// One virtual second at 60 fps: ten 100 ms rows (the first tick counts as the seed/send).
+		// One virtual second at 60 fps: ten 100 ms rows.
 		for (var frame = 0; frame < 64; frame++)
 		{
 			harness.Clock.Advance(16);
-			harness.Service.Tick(harness.Clock.NowMs);
+			harness.Tick();
 		}
 
 		Assert.Equal(10, received);
@@ -67,156 +49,208 @@ public class PlayerVitalsServiceTests
 		var guest = new FakeTransport(GuestId, harness.Network);
 		var received = 0;
 		guest.MessageReceived += (_, _) => received++;
-		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, bleed: 10f));
+		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, totalBleedSpeed: 0.2f, bleed: 10f));
 
 		// Every unreliable frame on this link is dropped; a reliable send would still arrive.
 		harness.Network.SetFaults(HostId, GuestId, new LinkFaults { UnreliableDropRate = 1.0 });
 		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
+		harness.Tick();
 
 		Assert.Equal(0, received);
 
 		// Positive control: with the link healed the next row lands — the pump really sends.
 		harness.Network.ClearFaults(HostId, GuestId);
 		harness.Clock.Advance(100);
-		harness.Service.Tick(harness.Clock.NowMs);
+		harness.Tick();
 
 		Assert.Equal(1, received);
 	}
 
 	[Fact]
-	public void ATickPastTheStallCap_AdvancesOnlyTheCap()
+	public void TheRow_CarriesTheStoredHostOwnedValues_AndSkipsADismemberedLimb()
 	{
 		var harness = Create();
-		var snapshot = Snapshot(bloodVolume: 100f, bleed: 10f);
+		var guest = new FakeTransport(GuestId, harness.Network);
+		PlayerVitalsMsg? row = null;
+		guest.MessageReceived += (_, data) => row = NetPacket.DecodePayload<PlayerVitalsMsg>(data);
+		var snapshot = Snapshot(bloodVolume: 42f, totalBleedSpeed: 0.42f, bleed: 4f);
+		snapshot.Limbs.Add(new CharacterLimbMsg { Index = 1, BleedAmount = 9f, Dismembered = true });
 		harness.Characters.SaveCharacterData(GuestId, snapshot);
+
 		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
+		harness.Tick();
 
-		// A five-second stall must be worth 0.25 s of model time, not five.
-		harness.Clock.Advance(5_000);
-		harness.Service.Tick(harness.Clock.NowMs);
-
-		Assert.InRange(snapshot.Health!.BloodVolume, 99.95f, 99.99f);
+		Assert.NotNull(row);
+		Assert.Equal(GuestId, row!.SteamId);
+		Assert.Equal(42f, row.BloodVolume, 3);
+		Assert.Equal(0.42f, row.TotalBleedSpeed, 3);
+		var limb = Assert.Single(row.Limbs);
+		Assert.Equal(0, limb.Index);
+		Assert.Equal(4f, limb.BleedAmount, 3);
 	}
 
 	[Fact]
-	public void AnAuthoritativeSnapshotWrite_ReseedsTheModelAndIsNotAdvancedAgain()
+	public void AGuestPump_SendsNothing()
 	{
 		var harness = Create();
-		var snapshot = Snapshot(bloodVolume: 100f, bleed: 10f);
-		harness.Characters.SaveCharacterData(GuestId, snapshot);
-		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
-
-		// The host's own applier writes the victim's saved snapshot (SaveCharacterData, the
-		// authoritative path). That is the only writer of the owned values, so the next tick must
-		// ADOPT it rather than advance over it.
-		snapshot.Health!.BloodVolume = 40f;
-		harness.Clock.Advance(100);
-		harness.Service.Tick(harness.Clock.NowMs);
-
-		Assert.Equal(40f, snapshot.Health.BloodVolume, 3);
-	}
-
-	[Fact]
-	public void AGuestPump_NeverAdvances()
-	{
-		var harness = Create();
-		var snapshot = Snapshot(bloodVolume: 100f, bleed: 10f);
-		harness.Characters.SaveCharacterData(GuestId, snapshot);
+		var guest = new FakeTransport(GuestId, harness.Network);
+		var received = 0;
+		guest.MessageReceived += (_, _) => received++;
+		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, totalBleedSpeed: 0.2f, bleed: 10f));
 		harness.Session.Role = SessionRole.Guest;
 
 		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
+		harness.Tick();
 
-		Assert.Equal(100f, snapshot.Health!.BloodVolume, 3);
+		Assert.Equal(0, received);
 	}
 
 	[Fact]
-	public void AMemberOutOfTheWorld_IsNotAdvanced()
+	public void TheHostOutOfTheWorld_SendsNothing()
 	{
 		var harness = Create();
-		var snapshot = Snapshot(bloodVolume: 100f, bleed: 10f);
-		harness.Characters.SaveCharacterData(GuestId, snapshot);
-		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
-		var inWorld = snapshot.Health!.BloodVolume;
-
-		// The guest went back to the menu: no Body exists natively, so the saved values freeze.
-		Assert.True(harness.Session.TryGetMember(GuestId, out var member));
-		member.InWorld = false;
-		harness.Clock.Advance(5_000);
-		harness.Service.Tick(harness.Clock.NowMs);
-
-		Assert.Equal(inWorld, snapshot.Health.BloodVolume, 3);
-	}
-
-	[Fact]
-	public void TheHostOutOfTheWorld_IsNotAdvanced()
-	{
-		var harness = Create();
-		var snapshot = Snapshot(bloodVolume: 100f, bleed: 10f);
-		harness.Characters.SaveCharacterData(GuestId, snapshot);
+		var guest = new FakeTransport(GuestId, harness.Network);
+		var received = 0;
+		guest.MessageReceived += (_, _) => received++;
+		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, totalBleedSpeed: 0.2f, bleed: 10f));
 		harness.Session.LocalInWorld = false;
 
 		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
+		harness.Tick();
 
-		Assert.Equal(100f, snapshot.Health!.BloodVolume, 3);
+		Assert.Equal(0, received);
 	}
 
 	[Fact]
-	public void ClearingTheSavedCharacters_DropsTheModelledState()
+	public void AMemberOutOfTheWorld_IsNotSent()
 	{
 		var harness = Create();
-		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, bleed: 10f));
+		var guest = new FakeTransport(GuestId, harness.Network);
+		var received = 0;
+		guest.MessageReceived += (_, _) => received++;
+		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, totalBleedSpeed: 0.2f, bleed: 10f));
+		Assert.True(harness.Session.TryGetMember(GuestId, out var member));
+		member.InWorld = false;
+
 		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
-		Assert.Equal(1, harness.Service.TrackedPlayers);
+		harness.Tick();
 
-		// A new run / world restore voids the previous values: the next report seeds fresh.
-		harness.Characters.FireSavedCharactersCleared();
-
-		Assert.Equal(0, harness.Service.TrackedPlayers);
+		Assert.Equal(0, received);
 	}
 
 	[Fact]
-	public void SessionEnd_DropsTheModelledState()
+	public void AMemberWithoutASnapshot_IsSkipped()
 	{
 		var harness = Create();
-		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, bleed: 10f));
+		var guest = new FakeTransport(GuestId, harness.Network);
+		var received = 0;
+		guest.MessageReceived += (_, _) => received++;
+
 		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
-		Assert.Equal(1, harness.Service.TrackedPlayers);
+		harness.Tick();
 
-		harness.Session.FireSessionEnded();
-
-		Assert.Equal(0, harness.Service.TrackedPlayers);
+		Assert.Equal(0, received);
 	}
 
 	[Fact]
-	public void ANonFiniteReport_IsRefusedAndTheModelStaysFinite()
+	public void ANonFiniteStoredValue_RefusesTheRowAndWarnsOnce()
 	{
 		var harness = Create();
-		var snapshot = Snapshot(bloodVolume: 100f, bleed: 10f);
+		var guest = new FakeTransport(GuestId, harness.Network);
+		var received = 0;
+		guest.MessageReceived += (_, _) => received++;
+		var snapshot = Snapshot(bloodVolume: float.NaN, totalBleedSpeed: 0.2f, bleed: 10f);
+		harness.Characters.SaveCharacterData(GuestId, snapshot);
+
+		for (var frame = 0; frame < 16; frame++)
+		{
+			harness.Clock.Advance(16);
+			harness.Tick();
+		}
+
+		Assert.Equal(0, received);
+		Assert.True(harness.Log.HasWarning("not finite"), "the refusal must be named");
+		Assert.Equal(1, harness.Log.Entries.FindAll(entry => entry.Level == LogLevel.Warning).Count);
+	}
+
+	[Fact]
+	public void TheRefusalWindow_ClearsWhenTheStoredValueIsFiniteAgain()
+	{
+		var harness = Create();
+		var guest = new FakeTransport(GuestId, harness.Network);
+		var received = 0;
+		guest.MessageReceived += (_, _) => received++;
+		var snapshot = Snapshot(bloodVolume: float.NaN, totalBleedSpeed: 0.2f, bleed: 10f);
 		harness.Characters.SaveCharacterData(GuestId, snapshot);
 		harness.Clock.Advance(16);
-		harness.Service.Tick(harness.Clock.NowMs);
+		harness.Tick();
 
-		// A corrupt authoritative snapshot (an input the model would integrate): the row's owned
-		// value is offered as 20, but the report is refused by name and the model keeps its own.
-		var corrupt = Snapshot(bloodVolume: 20f, bleed: 10f);
-		corrupt.Health!.BloodViscosity = float.NaN;
-		harness.Characters.SaveCharacterData(GuestId, corrupt);
+		snapshot.Health!.BloodVolume = 80f;
 		harness.Clock.Advance(100);
-		harness.Service.Tick(harness.Clock.NowMs);
+		harness.Tick();
 
-		Assert.True(float.IsNaN(corrupt.Health.BloodViscosity), "the refusal leaves the corrupt input where it was");
-		Assert.True(!float.IsNaN(corrupt.Health.BloodVolume) && !float.IsInfinity(corrupt.Health.BloodVolume),
-			"the model's own value must stay finite");
-		Assert.True(corrupt.Health.BloodVolume > 50f, $"the corrupt 20 must not be adopted, got {corrupt.Health.BloodVolume}.");
-		Assert.True(harness.Log.HasWarning("non-finite"));
+		Assert.Equal(1, received);
+		Assert.Contains(harness.Log.Entries, entry => entry.Level == LogLevel.Information);
+	}
+
+	[Fact]
+	public void TheRow_AnswersARefusedReportWithTheFieldName()
+	{
+		var harness = Create();
+		var guest = new FakeTransport(GuestId, harness.Network);
+		PlayerVitalsMsg? row = null;
+		guest.MessageReceived += (_, data) => row = NetPacket.DecodePayload<PlayerVitalsMsg>(data);
+		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 80f, totalBleedSpeed: 0.2f, bleed: 4f));
+		var corrupt = Snapshot(bloodVolume: 80f, totalBleedSpeed: 0.2f, bleed: 4f);
+		corrupt.Health!.BloodViscosity = float.NaN;
+		Assert.False(harness.Characters.SaveReportedCharacterData(GuestId, corrupt));
+
+		harness.Clock.Advance(16);
+		harness.Tick();
+
+		Assert.NotNull(row);
+		Assert.Equal("health.BloodViscosity", row!.RefusedField);
+	}
+
+	[Fact]
+	public void TheRow_StartsOnlyAfterTheModelAdvances()
+	{
+		var harness = Create();
+		var guest = new FakeTransport(GuestId, harness.Network);
+		var received = 0;
+		guest.MessageReceived += (_, _) => received++;
+		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, totalBleedSpeed: 0.2f, bleed: 10f));
+
+		harness.Clock.Advance(16);
+		harness.Service.Tick(harness.Clock.NowMs); // no adapter advance yet
+		Assert.Equal(0, received);
+
+		harness.Clock.Advance(100);
+		harness.Tick(); // the fixed step advances the model
+		Assert.Equal(1, received);
+	}
+
+	[Fact]
+	public void TheRow_StopsWhenTheModelIsNotAdvancing()
+	{
+		var harness = Create();
+		var guest = new FakeTransport(GuestId, harness.Network);
+		var received = 0;
+		guest.MessageReceived += (_, _) => received++;
+		harness.Characters.SaveCharacterData(GuestId, Snapshot(bloodVolume: 100f, totalBleedSpeed: 0.2f, bleed: 10f));
+		harness.Clock.Advance(16);
+		harness.Tick();
+		Assert.Equal(1, received);
+
+		// The clone stops advancing (timeScale 0 / a clone that cannot be seeded): the stored mark
+		// ages out and the row must stop, or it would keep pinning the owner to frozen host values.
+		harness.Clock.Advance(1_000);
+		harness.Service.Tick(harness.Clock.NowMs);
+		Assert.Equal(1, received);
+
+		harness.Clock.Advance(100);
+		harness.Tick();
+		Assert.Equal(2, received);
 	}
 
 	private static Harness Create()
@@ -240,16 +274,15 @@ public class PlayerVitalsServiceTests
 			new PacketSender(transport, monitor),
 			characters,
 			clock,
-			new DefaultPlayerVitalsTuning(),
 			log);
 		((ICuoService)service).Initialize();
 		((ICuoService)service).Start();
 		return new Harness(clock, network, session, characters, service, log);
 	}
 
-	private static CharacterDataMsg Snapshot(float bloodVolume, float bleed) => new()
+	private static CharacterDataMsg Snapshot(float bloodVolume, float totalBleedSpeed, float bleed) => new()
 	{
-		Health = new CharacterHealthMsg { BloodVolume = bloodVolume },
+		Health = new CharacterHealthMsg { BloodVolume = bloodVolume, TotalBleedSpeed = totalBleedSpeed },
 		Limbs = [new CharacterLimbMsg { Index = 0, BleedAmount = bleed, SkinHealth = 50f }],
 	};
 
@@ -259,5 +292,13 @@ public class PlayerVitalsServiceTests
 		FakeSessionControl Session,
 		FakeCharacterDataControl Characters,
 		PlayerVitalsService Service,
-		RecordingLogger<PlayerVitalsService> Log);
+		RecordingLogger<PlayerVitalsService> Log)
+	{
+		/// <summary>The adapter advances the model on its fixed step; the test marks it fresh right before the row pump reads it.</summary>
+		internal void Tick()
+		{
+			Characters.MarkHostModelAdvancing(GuestId, Clock.NowMs);
+			Service.Tick(Clock.NowMs);
+		}
+	}
 }

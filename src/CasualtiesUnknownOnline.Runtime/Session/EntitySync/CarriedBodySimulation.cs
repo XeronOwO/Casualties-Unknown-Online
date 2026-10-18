@@ -2,10 +2,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
 /// The rule that decides who runs the game's own per-frame body simulation.
-/// A remote clone is a presentation proxy and never simulates. A LOCAL carried
-/// body is not a proxy: the carry relation owns its TRANSFORM, not its
-/// simulation. The pose the carry presentation can hold then splits the local
-/// case in two:
+/// A remote clone's NATIVE per-frame pass never runs on this client: a guest
+/// renders it, and on the host the separate fixed-step vitals pass
+/// (<c>HostVitalsPass</c>) runs the five vital-sign stages and
+/// <c>Limb.Update</c> on the clone — this rule still owns the native pass the
+/// body patches gate, not that host-only pass. A LOCAL carried body is not a
+/// proxy: the carry relation owns its TRANSFORM, not its simulation. The pose
+/// the carry presentation can hold then splits the local case in two:
 /// <list type="bullet">
 /// <item>a conscious/alive rider keeps the WHOLE native per-frame pass
 /// (<c>Body.FixedUpdate</c>, <c>Body.Update</c>, <c>Limb.Update</c> — vital-sign

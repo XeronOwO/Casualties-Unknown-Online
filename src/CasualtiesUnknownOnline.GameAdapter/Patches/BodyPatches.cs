@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
@@ -12,16 +13,47 @@ using Object = UnityEngine.Object;
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// Body patches: render proxies are visual-only. Physics (FixedUpdate) and the
-/// whole per-frame simulation (Body.Update — health/temperature/radiation,
-/// ground queries that can damage blocks under the clone (Body.cs:2702-2711),
-/// sounds (clones were audible to the local player), RNG consumption) are
-/// skipped. Only the animator-driven visuals (HandleVisuals, Body.cs:3123+)
-/// plus the few visual-input fields it reads (grounded, crouchAmount) are
-/// maintained. See the "A remote player is a clone of the scene's own character" section of docs/en/internals/game-internals.md.
+/// Body patches: a remote clone's NATIVE per-frame pass is skipped. Physics
+/// (FixedUpdate) and the whole per-frame simulation (Body.Update — health/
+/// temperature/radiation, ground queries that can damage blocks under the clone
+/// (Body.cs:2702-2711), sounds (clones were audible to the local player), RNG
+/// consumption) are skipped. Only the animator-driven visuals (HandleVisuals,
+/// Body.cs:3123+) plus the few visual-input fields it reads (grounded,
+/// crouchAmount) are maintained on a guest. On the HOST the same clone is also
+/// the vitals model: <see cref="HostVitalsPass"/> runs the five vital-sign stages
+/// and <c>Limb.Update</c> explicitly in its fixed step, under the suppression
+/// patches. See the "A remote player is a clone of the scene's own character" section of docs/en/internals/game-internals.md.
 /// </summary>
 internal static class BodyPatches
 {
+	/// <summary>
+	/// <c>Limb.Update</c> resolved once for the host's simulated clone: its own engine
+	/// update is skipped for every remote clone, so the host runs the pass explicitly
+	/// inside <see cref="HostVitalsPass"/> in the same fixed step as the body stages.
+	/// </summary>
+	private static readonly MethodInfo LimbUpdateMethod =
+		AccessTools.Method(typeof(Limb), "Update")
+		?? throw new InvalidOperationException("Limb.Update not found.");
+
+	/// <summary>
+	/// Run the limb half of the vitals pass for a host-simulated clone, in the game's own
+	/// per-limb order. A dismembered limb is inactive natively (the game never runs its
+	/// update), and a limb whose GameObject is off carries no pass either; both are skipped
+	/// instead of advancing a wound that no longer exists.
+	/// </summary>
+	internal static void RunLimbUpdates(Body body)
+	{
+		foreach (var limb in body.limbs)
+		{
+			if (limb == null || limb.dismembered || !limb.gameObject.activeSelf) // Unity objects — ==
+			{
+				continue;
+			}
+
+			LimbUpdateMethod.Invoke(limb, []);
+		}
+	}
+
 	[HarmonyPatch(typeof(Body), "FixedUpdate")]
 	internal static class BodyFixedUpdatePatch
 	{
@@ -29,10 +61,11 @@ internal static class BodyPatches
 		// == null: Unity object (a missing component is managed-null, same check).
 		// A remote clone and a dead/unconscious carried body (the pinned-ragdoll
 		// presentation) skip the original physics step. Their per-frame pass is
-		// BodyUpdatePatch's call: the clone gets visuals only, the pinned ragdoll
-		// runs its vitals stages. A conscious/alive carried rider does NOT skip:
-		// the carry relation owns its transform, not its simulation, so it keeps
-		// the whole native per-frame pass.
+		// BodyUpdatePatch's call: a guest's clone gets visuals only, the pinned
+		// ragdoll runs its vitals stages, and the HOST additionally runs the
+		// vitals pass on its clone from HostVitalsDriver.FixedUpdate. A
+		// conscious/alive carried rider does NOT skip: the carry relation owns
+		// its transform, not its simulation, so it keeps the whole native pass.
 		private static bool Prefix(Body __instance) =>
 			!CarriedBodySimulation.SkipsNativeSimulation(
 				__instance.GetComponentInParent<RemoteBodyDriver>() != null,
@@ -47,16 +80,21 @@ internal static class BodyPatches
 	{
 		// Limb.Update (Limb.cs:498+) simulates wounds/infection, writes shader
 		// params from those numbers and consumes Random (Limb.cs:535) — none of
-		// it applies to a render clone (its vitals are not synced on this client).
-		// Every LOCAL body's limbs keep simulating, carried or not: a dead or
-		// unconscious carried body keeps the vital-sign stages of its per-frame
-		// pass, and the game runs Limb.Update for a corpse too (no alive guard in
-		// it). The limb pass is the limb half of the carried-body family, decided
-		// by the proxy flag alone (CarriedBodySimulation.RunsLimbSimulation).
+		// it applies to a guest's render clone (its vitals are not simulated on
+		// that client). The host's clone is the model instead: HostVitalsPass
+		// calls Limb.Update explicitly inside its fixed step, and this prefix
+		// admits that call through HostVitalsPass.IsActive. Every LOCAL body's
+		// limbs keep simulating, carried or not (no alive guard in it). The limb
+		// pass is the limb half of the carried-body family, decided by the proxy
+		// flag alone (CarriedBodySimulation.RunsLimbSimulation).
 		// GetComponentInParent: the driver lives on the Body GameObject.
 		// == null: Unity object (a missing component is managed-null, same check).
+		// The host's simulated clone is the one exception: HostVitalsPass runs this
+		// pass explicitly inside its fixed step, where every native side effect is
+		// suppressed and the limb belongs to the model, not to the render proxy.
 		private static bool Prefix(Limb __instance) =>
-			CarriedBodySimulation.RunsLimbSimulation(
+			HostVitalsPass.IsActive
+			|| CarriedBodySimulation.RunsLimbSimulation(
 				__instance.GetComponentInParent<RemoteBodyDriver>() != null);
 	}
 

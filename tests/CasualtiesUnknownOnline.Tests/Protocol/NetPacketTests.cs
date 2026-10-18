@@ -734,6 +734,45 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void CharacterHealth_TotalBleedSpeed_RoundTrips()
+	{
+		// The host-owned total bleeding speed rides the 1 Hz snapshot as the third owned value; a
+		// silent field drop would leave the host clone's value out of every restore and reconnect.
+		var msg = new CharacterDataMsg
+		{
+			Health = new CharacterHealthMsg { BloodVolume = 55f, TotalBleedSpeed = 0.42f },
+		};
+
+		var decoded = NetPacket.DecodePayload<CharacterDataMsg>(NetPacket.Encode(NetMsg.CharacterData, msg));
+
+		Assert.Equal(55f, decoded.Health!.BloodVolume);
+		Assert.Equal(0.42f, decoded.Health.TotalBleedSpeed);
+	}
+
+	[Fact]
+	public void PlayerVitalsRow_RoundTripsAllThreeOwnedValuesAndTheRefusalAnswer()
+	{
+		var msg = new PlayerVitalsMsg
+		{
+			SteamId = 77,
+			BloodVolume = 42f,
+			TotalBleedSpeed = 0.25f,
+			RefusedField = "health.BloodViscosity",
+			Limbs = [new PlayerLimbBleedMsg { Index = 2, BleedAmount = 3.5f }],
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerVitalsMsg>(NetPacket.Encode(NetMsg.PlayerVitals, msg));
+
+		Assert.Equal(77UL, decoded.SteamId);
+		Assert.Equal(42f, decoded.BloodVolume);
+		Assert.Equal(0.25f, decoded.TotalBleedSpeed);
+		Assert.Equal("health.BloodViscosity", decoded.RefusedField);
+		Assert.Single(decoded.Limbs);
+		Assert.Equal(2, decoded.Limbs[0].Index);
+		Assert.Equal(3.5f, decoded.Limbs[0].BleedAmount);
+	}
+
+	[Fact]
 	public void CharacterData_EveryFieldFamily_RoundTrips()
 	{
 		// Moved here from the retired character-data disk suite (S4.1): that store was the only

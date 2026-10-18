@@ -851,11 +851,12 @@ pass: a later cycle must run it before the ticket is treated as reviewed.
 The re-run on the review-fix commit (`5cd3cb9f`, artifact `0.1.0+5cd3cb9f…`) judged rows 1-9 from this run's
 own evidence; the record is `docs/evidence/acceptance/item-and-entity-data-commands-20261018-s2.md`. The rows'
 answers, both peers' readings and the logs are cited there row by row; nothing from the rehearsal above was
-counted. Row 10 (the layer-boundary request) is `unproven`: the member's inbound blackout held its generation at
-layer 0 while the host reached layer 1, but the host's layer load outlived the member's silence budget, the
-member's session ended before the request went out, and the retry could not re-establish it. No stale request
+counted. Row 10 (the layer-boundary request) is `unproven`: the window itself existed — the member's inbound
+blackout held its generation at layer 0 while the host reached layer 1 — but the request went out about 23 s
+after the blackout was armed, past the member's silence budget, so the member's session had ended and the command
+answered `No active session…` instead of sending. The retry could not re-establish the member. No stale request
 reached the host; the check itself stays pinned by
 `ARequestFromAnotherLayer_IsRefusedByTheHostAndCreatesNothing`. The ticket stays in `review/` on that row — the
-remaining work is a live window (a longer silence budget or a pre-stamp lever), not a code change this ticket
-knows of.
+remaining work is a live window (send the request in the same step as the host's generation move), not a code
+change this ticket knows of.
 

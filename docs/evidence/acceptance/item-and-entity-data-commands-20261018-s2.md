@@ -33,7 +33,7 @@ session, the rows driven one step at a time through the committed in-process dri
 | 7 | Member, switch open, no grant (announced) | machine | **pass** | `s7-guest-summon.json`: the roster refusal `the host's cheat roster (announced to this client) does not name you …`; the host log window from `marks-s7.txt` has no `[Summon]` line — no request, nothing created. |
 | 8 | `/summon notanprefab` and `/summon beartrap player {Condition:0.5f}` | machine | **pass** | `s8-host-unknown.json`: `Refused: no prefab 'notanprefab' could be materialized…`; `s8-host-entity-state.json`: `Refused: 'beartrap' is not an item definition, so it takes no state argument — … Nothing was created.`; the runtime-entity census still holds exactly the three objects of rows 1, 2 and 4 (`s8-host-census.json`). |
 | 9 | A later joiner: the member leaves and re-enters | machine | **pass** | the member left the world (`s9-guest-leave.json` `inWorld=false`), left the lobby (`s9-guest-state-nolobby.json` `lobby=0, role=None`), rejoined the same lobby and re-entered (`s9-guest-state-rejoined.json` `inWorld=true`); its census then carries the row-1 `beartrap` once, `seq=3495675330` at `(0.000, 503.615)` — the same creation key and point — with the medcrate and cavetick once each (`s9-guest-census.json`; host `s9-host-census.json` agrees on the ids). The host sent the entry group (`Sending world-entry snapshot group to <member>` at 09:45:49.511). |
-| 10 | The layer-boundary request | machine | **unproven** | first attempt: the member's inbound blackout was armed (`s10-guest-blackout-on.json` `armed=true`) and the host descended (`s10-host-skiplayer.json`); the host reached `runEpoch=1, layerIndex=1` while the member still read `layerIndex=0` (`s10-host-gen-after.json`, `s10-guest-gen-after.json`, `s10-guest-gen-before.json`). But the host's layer load took about 20 s, and the member's session ended inside that window, so the stale request could not be sent: its console answered `No active session — a cheat verb needs one …` (`s10-guest-summon.json`). The blackout was disarmed (`s10-guest-blackout-off.json`), and a retry could not re-establish the member's session (`s10-guest-state-rejoin.json` `active=false, hostId=0`). No stale request reached the host. The check itself stays pinned by `ARequestFromAnotherLayer_IsRefusedByTheHostAndCreatesNothing`. |
+| 10 | The layer-boundary request | machine | **unproven** | first attempt: the member's inbound blackout was armed at 09:47:18 (`s10-guest-blackout-on.json` `armed=true`) and the host descended (`s10-host-skiplayer.json`, 09:47:21); the host read `runEpoch=1, layerIndex=1` at 09:47:25 while the member still read `layerIndex=0` at 09:47:32 (`s10-host-gen-after.json`, `s10-guest-gen-after.json`, `s10-guest-gen-before.json`) — the stale window existed. But the request went out at 09:47:41, about 23 s after the arm and past the member's silence budget: its session had already ended and the console answered `No active session — a cheat verb needs one …` (`s10-guest-summon.json`). The blackout was disarmed (`s10-guest-blackout-off.json`), and a retry could not re-establish the member (`s10-guest-state-rejoin.json` `active=false, hostId=0`; the later leave/join click no longer applied). No stale request reached the host. The check itself stays pinned by `ARequestFromAnotherLayer_IsRefusedByTheHostAndCreatesNothing`. |
 
 ## Residuals for the user
 
@@ -41,10 +41,12 @@ None: no row needs a person's judgement. Row 10 is `unproven`, not a residual.
 
 ## Limits
 
-- **Row 10's live window.** The blackout keeps the member on the previous baseline, but the host's `skiplayer`
-  layer load (about 20 s) outlived the member's silence budget, so the member's session ended before the request.
-  Holding the window needs a longer silence budget or a pre-stamp lever; the row is not weakened and the ticket
-  stays open on it.
+- **Row 10's live window.** The blackout DID hold the member on layer 0 while the host moved to layer 1 — the
+  host read layer 1 four seconds after `skiplayer`, and the member still read layer 0 seven seconds later. The
+  miss was the run's own pacing: the stale request went out about 23 s after the blackout was armed, past the
+  member's silence budget, so its session had ended and the command answered `No active session…` instead of
+  sending. The next attempt sends the request the moment the host's generation moves, and reads the member's
+  generation in the same step; a retry could not re-establish the member afterwards. The row is not weakened.
 - **Row 2's pointer.** The invocation named no position, so the pointer default is what produced the answer; the
   pointer's screen geometry was not independently probed this run (the `remote-gesture` aim-ring mode needs an
   item argument). The answer's point and the census's creation cell agree.

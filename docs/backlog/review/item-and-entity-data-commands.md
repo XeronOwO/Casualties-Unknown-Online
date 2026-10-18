@@ -1,7 +1,9 @@
 # Item and entity data commands: give, spawn and a property editor
 
 - Status: Review — **stage D (`/summon`) landed 2026-10-18** (the user's ruling renamed the stage's working
-  name `/spawn`), so every stage of this ticket is built; its acceptance rows (`What the acceptance batch owes`, under *Stage D* below) are what a real run still owes. History: the read
+  name `/spawn`), so every stage of this ticket is built; its acceptance rows (`What the acceptance batch owes`,
+  under *Stage D* below) were then run on the review-fix commit: batch `20261018-s2` passes rows 1-9 and leaves
+  row 10 `unproven` (the live layer-boundary window), so the ticket stays in `Review` on that row. History: the read
   half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
   `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
@@ -843,4 +845,17 @@ independent findings exist for this commit. What the commit carries instead is t
 self-review that corrected two defects in this record before the commit (the new-case count sentence and a `|`
 inside a code span that would have split a table row). The missing independent pass is a process limit, not a
 pass: a later cycle must run it before the ticket is treated as reviewed.
+
+## Batch `20261018-s2` (2026-10-18): nine rows pass, row 10 unproven
+
+The re-run on the review-fix commit (`5cd3cb9f`, artifact `0.1.0+5cd3cb9f…`) judged rows 1-9 from this run's
+own evidence; the record is `docs/evidence/acceptance/item-and-entity-data-commands-20261018-s2.md`. The rows'
+answers, both peers' readings and the logs are cited there row by row; nothing from the rehearsal above was
+counted. Row 10 (the layer-boundary request) is `unproven`: the member's inbound blackout held its generation at
+layer 0 while the host reached layer 1, but the host's layer load outlived the member's silence budget, the
+member's session ended before the request went out, and the retry could not re-establish it. No stale request
+reached the host; the check itself stays pinned by
+`ARequestFromAnotherLayer_IsRefusedByTheHostAndCreatesNothing`. The ticket stays in `review/` on that row — the
+remaining work is a live window (a longer silence budget or a pre-stamp lever), not a code change this ticket
+knows of.
 

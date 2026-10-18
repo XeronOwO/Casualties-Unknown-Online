@@ -1038,5 +1038,6 @@ docs/evidence/acceptance/item-and-entity-data-commands-20261017-q.md | keep | cl
 docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md | keep | claim | docs/backlog/done/give-item-to-a-player-command.md
 docs/evidence/acceptance/give-item-to-a-player-command-20261018-r.md | keep | claim | docs/backlog/done/give-item-to-a-player-command.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-q.md | keep | claim | docs/backlog/review/item-and-entity-data-commands.md
+docs/evidence/acceptance/item-and-entity-data-commands-20261018-s2.md | keep | claim | docs/backlog/review/item-and-entity-data-commands.md
 docs/evidence/acceptance/item-data-read-commands-20261018-q.md | keep | claim | docs/backlog/review/item-data-read-commands.md
 docs/evidence/acceptance/snbt-state-language-20261018-q.md | keep | claim | docs/backlog/done/snbt-state-language.md

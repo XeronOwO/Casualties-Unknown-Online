@@ -62,6 +62,15 @@ Standards are "done well, not just done". Delivering means passing three reviews
 behaviour) and **maintainability** (readable and changeable by the next person). "It runs" is the floor,
 not the goal.
 
+- `[CRITICAL]` **Gameplay first — never "the code connects"**: CUO is a game, so a player-facing command,
+  UI or mechanic is designed from the player's need and normal gameplay expectations FIRST — who uses it,
+  what it does, what it costs, what it refuses, and what the player sees — and only then implemented. A
+  compatible service, a matching signature or an unused mechanism is never a design reason, and "it wires
+  up", "it compiles" and "the mechanism would otherwise have no consumer" are forbidden justifications.
+  Every code change names the player-facing or system problem it solves and the design it implements; a
+  change that names only the code it touches is the "code for code's sake" this rule refuses. A design
+  with user-visible trade-offs goes to the user (Development Workflow rule 9); the implementation's own
+  help text or doc comment is never the design.
 - `[CRITICAL]` No shortcuts: take the proper path when one exists.
 - `[CRITICAL]` Pragmatism is not a shield: a suboptimal choice needs an architectural reason. Do the
   right thing once.

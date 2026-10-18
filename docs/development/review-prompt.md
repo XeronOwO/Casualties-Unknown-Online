@@ -48,6 +48,15 @@ Adversarially verify:
   names no limb) with the limb resolved to the target's most-injured one, and this section exists
   because the review of that cycle was scoped to attack the implementation and could not see the wrong
   premise. Ask the same three questions of the change in front of you.
+- **A0a. The PLAYER-FACING PREMISE — what does "connecting it" mean?** Before the mapping, write down
+  yourself what problem the change solves for a player, and what the design is: who uses it, what it
+  does, what it costs, what it refuses, what the player sees. A compatible service, a matching signature
+  or a mechanism that would otherwise be unused is NOT a reason to add a surface; "the code connects",
+  "it compiles" and "the mechanism needs a consumer" are findings, not justifications. Then ask whether
+  the design meets the normal expectation of the name or place it appears in — a `/heal` that cannot
+  heal its own caster, costs an item or answers success for a refusal is wrong at the design level,
+  however clean the wiring. A user-visible design with trade-offs must have been asked (AGENTS.md rule
+  9); the implementation's own help text or doc comment is not that answer.
 - **A1. Report validation — for every fact the change has a member REPORT rather than request.** Name,
   yourself, what the receiving side checks that claim against: the record it holds, the table it can read,
   the announcement it made. A fact taken on the reporter's word is a finding unless the census declares it

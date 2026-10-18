@@ -1,7 +1,8 @@
 # `/heal` — the console cheat command that resets a player's state
 
-- Status: Review — **S1-S3 landed 2026-10-18**; the six acceptance rows below are the next batch's
-  work. The revive semantics were ruled by the user the same day: **in place**, the trader-revive
+- Status: Done — accepted by batch `20261018-u` on `0.1.0+a3dff483`; all six rows pass (record:
+  `docs/evidence/acceptance/heal-cheat-command-state-reset-20261018.md`). The S1-S3 implementation landed
+  2026-10-18; the revive semantics were ruled by the user the same day: **in place**, the trader-revive
   reading, not the next-level respawn's.
 - Priority: Medium-High
 - Category: Commands / cheat verbs / player state

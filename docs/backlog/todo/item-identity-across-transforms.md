@@ -1,22 +1,18 @@
 # An item's identity across a transform: is a worn splint still the item it was made from?
 
-- Status: Review — the RESEARCH cycle landed (design record:
-  `docs/evidence/selfchecks/items/item-identity-across-transforms-design.md`) and the user ruled
-  **option 1** on 2026-10-11. All three stages are implemented. **Stage 1** (2026-10-12) is the model
-  half: the kernel's `Applied` location family, the two limb-application commands and their decisions,
-  the wire kind with its required limb, the archive rule and the consumer census, plus 35 cases
-  (self-check: `docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`). **Stage 2**
-  (2026-10-13) is the adapter half: the apply and removal commits, cross-player and local, the
-  limb-component binding, the divergence report at the restore seam, and the deletion of the
-  synthesized id namespace with its documentation and test surface (self-check:
-  `docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md`). **Stage 3** (2026-10-14) is
-  the mod-facing half: the lifecycle rule written into `docs/en/reference/mod-api.md` and its Chinese
-  twin, and the by-id read `IModGameState.TryGetItem` with its reviewed baseline entry and 8 cases
-  (self-check: `docs/evidence/selfchecks/items/applied-item-mod-surface-selfcheck.md`). Decision 259.
-  The rule is true in a running game and a mod author has an official way to read it. What remains is
-  acceptance, not code: no two-client run has observed the round trip, and the adapter's Unity-facing
-  decision code (`LimbItemTransform`) has no case that runs without the game. The draft below is the
-  frozen design it implements.
+- Status: Todo — Rejected (batch `20261018-u`: row I1 **fails** — a cross-player apply commits the applied
+  relocation and then the operator's own destroy report ends the item 21 ms later, so the item reads
+  `Terminal` while the limb keeps its component and a later removal is refused as the two-carriers
+  divergence; row I4's live object is lost although its row reads `Carried`. Rows I2, I3, I5, I6 and I7
+  pass. Record: `docs/evidence/acceptance/item-identity-across-transforms-20261018.md`.) The RESEARCH cycle
+  and all three implementation stages landed (2026-10-12 → 2026-10-14) and the user ruled **option 1** on
+  2026-10-11: stage 1 is the kernel model (`docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`),
+  stage 2 the adapter commits and the deletion of the synthesized id namespace
+  (`docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md`), stage 3 the mod-facing rule and
+  `IModGameState.TryGetItem` with its baseline entry and 8 cases
+  (`docs/evidence/selfchecks/items/applied-item-mod-surface-selfcheck.md`); the design record is
+  `docs/evidence/selfchecks/items/item-identity-across-transforms-design.md` and decision 259 records the
+  ruling. The draft below is the frozen design the implementation follows.
 - Priority: High
 - Category: Item identity / model contract / mod API / persistence
 - Source: handoff instruction (2026-10-11) after `review/id-resume-sources-still-unseeded.md` landed:

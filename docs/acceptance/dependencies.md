@@ -32,7 +32,10 @@ the exit code.
 that nothing refreshes: every client loads it at startup, and a stale one breaks the session silently
 (batch `20261011-a` lost a cycle to exactly that). A normal run therefore keeps the install free of it. A
 batch whose rows judge mod content places the DLL from THIS tree's build output as its own setup step,
-names that placement in its scope, and removes it when the run closes.
+names that placement in its scope, and removes it when the run closes. A mod DLL is loaded by BepInEx only
+when the assembly carries a `BaseUnityPlugin` type, so the example mod ships an empty plugin shell beside its
+`[CuoMod]` class — a batch that places its own fixture mod needs the same shell, or CUO's discovery never
+sees the assembly (batch `20261018-u`'s `/idread` answered `Unknown command` until the shell was added).
 
 **A gesture that needs the physical pointer and the key is not a dependency row.** The boundary above is
 the rule, and a batch that needs such a gesture has exactly two ways to get one: the user's own hand at the

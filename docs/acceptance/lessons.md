@@ -481,13 +481,9 @@ A local `probe.ps1` substitutes placeholders verbatim, so a template's `{{s:id}}
 
 The UI tickets' rows read "Any page" and "an English page", while the batches that judged them photographed Home, Worlds and Preferences only: the Admin page collapses every rule row's label to one character per line and paints it over the rows below, in English and Chinese alike, which no earlier frame could have shown. A batch that touches a UI ticket photographs EVERY page it can open and captures the same page in both languages — the A/B is what separates a translation defect from a layout one (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md`).
 
-## 2026-10-14 — A measurement taken from the container of the thing measured reproduces itself
+## 2026-10-15 — A size read from the container it is shared among agrees with itself
 
-A layout rule that asks a CONTAINER for the size of the control inside it is asking the box how wide the box is — the container's own preferred width is its children summed, so it contains the value the rule is about to write and grows by its own padding plus its neighbour every frame (a 984-unit page carried rows of 30537, labels squeezed to one character per line) — so when a rule needs a size, name the object that size describes and read it there, once, before anything writes it (`docs/backlog/todo/online-ui-layout-and-input-detail-pass.md`, *Fourth pass (2026-10-14)*).
-
-## 2026-10-15 — A budget read from the container it is shared among agrees with itself
-
-A strip that SHARES a fixed band among its tabs was budgeted from the band's own rect, and the band is as wide as its children's minimums — each of which the sharing rule had just written — so the budget equalled what was asked for, nothing was ever given up and the strip stayed exactly as wide as its own content for ever (`Tabs rect=1038.7x36.0` against a shell of `984.0` in one frame, batch `20261015-a`); a self-measurement does not have to diverge to be wrong, and a fixed point that agrees with itself looks settled in every reading a probe can take, which is why this run reads the container's own width BESIDE the band's and exercises the share by narrowing the window (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md`).
+A layout rule that asks a CONTAINER for the size of the control inside it measures the box by itself — the container's preferred width is its children summed, so the value the rule is about to write is already in it, and a band budgeted from its own rect is as wide as the children's minimums the sharing rule just wrote; both self-measurements agree with themselves, and the fixed point looks settled in every probe reading. Read the object the size describes, once, before anything writes it, and read the container BESIDE the band, exercising the share by narrowing the window — `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md`, `docs/backlog/todo/online-ui-layout-and-input-detail-pass.md`.
 
 ## 2026-10-16 — "None here" from a probe grid is a claim about the GRID
 
@@ -510,4 +506,8 @@ The member ends its own session 15 s after the last host frame, and a host layer
 
 ## 2026-10-18 — A command's help text is not its requirement
 
-Before judging a command's design, read the ticket that asked for it; its own help text is a claim the run verifies, never the source — `docs/backlog/review/heal-cheat-command-state-reset.md`.
+Before judging a command's design, read the ticket that asked for it; its own help text is a claim the run verifies, never the source — `docs/backlog/done/heal-cheat-command-state-reset.md`.
+
+## 2026-10-18 — An item-identity row reads the row and the scene as a pair
+
+A limb can carry the applied component while its item row already reads `Terminal`; read both — `docs/evidence/acceptance/item-identity-across-transforms-20261018.md`.

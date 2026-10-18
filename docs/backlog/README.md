@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [An item's identity across a transform](todo/item-identity-across-transforms.md) — **High** — rejected: a cross-player apply ends the item row.
 - [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — rejected: the dropdown list and the top-edge drag clamp.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
@@ -83,7 +84,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction, landed; four of its six rows read on the machine.
 - [Heal restores severed limbs and clears hollow](review/heal-command-limb-and-hollow-restore.md) — **Medium** — KrokMP parity for the heal command.
-- [/heal resets a player's state as a cheat command](review/heal-cheat-command-state-reset.md) — **Medium-High** — full reset, cheat family, dead revived.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
@@ -93,7 +93,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state from the kernel row; rows 5b/6 await.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
 - [Guest frame rate lower than host](review/guest-frame-rate-lower-than-host.md) — **Medium** — telemetry and allocation removal; a frame-rate row is open.
-- [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the rule mods read, and the read that answers it.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
@@ -184,6 +183,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [/heal resets a player's state as a cheat command](done/heal-cheat-command-state-reset.md) — **Medium-High** — accepted; full reset, dead revived.
 - [Paired controls and page scroll](done/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — accepted; the frame is the user's look.
 - [Interactive in-game command console](done/in-game-command-console-interactive.md) — **High** — accepted; the overlay, the suggestions and the history.
 - [Command console ESC interception](done/command-console-esc-not-intercepted.md) — **High** — accepted; the one-frame suppression holds and releases.

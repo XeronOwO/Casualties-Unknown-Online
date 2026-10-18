@@ -80,6 +80,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		AnnouncedCheatPermissions cheatPermissions,
 		CheatPermissions cheatRoster,
 		ICheatPermissionAnnouncement cheatAnnouncement,
+		IWorldControl world,
 		ISpectatorControl? spectator = null)
 	{
 		_chat = chat;
@@ -140,6 +141,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, cheatVerbs, targets, log));
 		_commands.AddBuiltIns(new WorldSummonCommands(worldSummon, cheatVerbs));
 		_commands.AddBuiltIns(new HealResetCommands(healReset, cheatVerbs, session, entities));
+		// A run's own levers: the acceptance-only verbs must be reachable from the console, and their
+		// owner registers itself through the same attribute scan as every other group above. The cheat
+		// gate is the permission: a lever that can move a trader's credit is not a player's shortcut.
+		_commands.AddBuiltIns(new AcceptanceCommands(session, world, cheatVerbs));
 		_itemStateCompletion = new ItemStateCompletion(kernelItems, itemStateLanguage, targets);
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}

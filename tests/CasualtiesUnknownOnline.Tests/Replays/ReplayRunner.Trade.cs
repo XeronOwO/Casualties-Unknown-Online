@@ -77,9 +77,10 @@ internal static partial class ReplayRunner
 		}
 	}
 
-	/// <summary>Trade grammar: "trade g1 &lt;kind&gt; [item=&lt;id&gt;] [value=&lt;n&gt;]
-	/// [offset=&lt;n&gt;] [scale=&lt;n&gt;] [post=&lt;n&gt;] [bleeding] [hasgun] [dirty]".
-	/// Kinds: meet / purchase / give / haggle / threaten / hug / move.</summary>
+	/// <summary>Trade grammar: "trade g1 &lt;kind&gt; [item=&lt;id&gt;] [instance=&lt;id&gt;]
+	/// [value=&lt;n&gt;] [offset=&lt;n&gt;] [scale=&lt;n&gt;] [post=&lt;n&gt;] [bleeding] [hasgun] [dirty]".
+	/// Kinds: meet / purchase / give / haggle / threaten / hug / move. A give names the
+	/// judged item instance its claim is checked against (item= is the purchase's stock id).</summary>
 	private static TraderActionMsg BuildTradeAction(ReplayStep step)
 	{
 		var kind = step.Args[1] switch
@@ -103,6 +104,7 @@ internal static partial class ReplayRunner
 
 		string? itemId = null;
 		int? itemValue = null;
+		ulong? itemInstanceId = null;
 		foreach (var arg in step.Args.Skip(2))
 		{
 			if (arg == "bleeding")
@@ -135,6 +137,14 @@ internal static partial class ReplayRunner
 			{
 				case "item":
 					itemId = value;
+					break;
+				case "instance":
+					if (!ulong.TryParse(value, out var parsedInstance))
+					{
+						throw new InvalidOperationException($"invalid trade instance '{value}'");
+					}
+
+					itemInstanceId = parsedInstance;
 					break;
 				case "value":
 					if (!int.TryParse(value, out var parsedValue))
@@ -169,19 +179,20 @@ internal static partial class ReplayRunner
 				msg.ItemId = itemId;
 				break;
 			case TraderActionKind.GiveItem:
-				if (itemValue is null)
+				if (itemValue is null || itemInstanceId is null)
 				{
-					throw new InvalidOperationException("give needs value=<n>");
+					throw new InvalidOperationException("give needs instance=<id> value=<n>");
 				}
 
+				msg.ItemInstanceId = itemInstanceId.Value;
 				msg.ItemValue = itemValue.Value;
 				break;
 			case TraderActionKind.MeetPlayer:
 				break;
 			default:
-				if (itemId is not null || itemValue is not null)
+				if (itemId is not null || itemValue is not null || itemInstanceId is not null)
 				{
-					throw new InvalidOperationException("item= is purchase-only and value= is give-only");
+					throw new InvalidOperationException("item= is purchase-only and instance=/value= are give-only");
 				}
 
 				break;

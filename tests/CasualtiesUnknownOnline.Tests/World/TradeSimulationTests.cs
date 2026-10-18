@@ -44,6 +44,7 @@ public class TradeSimulationTests
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var trader = new SimTraderHost(InitialState(), seed);
+		trader.JudgeItem(SimTraderHost.GiveFixtureInstanceId, GuestId, SimTraderHost.GiveFixtureValue); // the judged item the give claims are checked against
 		var received = new List<TraderStateMsg>();
 		var hostBroadcasts = new List<TraderStateMsg>();
 		var world = host.Services.GetRequiredService<IWorldControl>();
@@ -52,9 +53,9 @@ public class TradeSimulationTests
 		// authoritative broadcast (TradeStateSync.OnTraderActionReceived's shape).
 		// The broadcasted message is recorded — the fidelity assertion compares
 		// the guest's received sequence against the host's broadcast sequence.
-		world.TraderActionReceived += (_, msg) =>
+		world.TraderActionReceived += (sender, msg) =>
 		{
-			var rejected = trader.Execute(msg);
+			var rejected = trader.Execute(sender, msg);
 			var state = trader.ToStateMsg();
 			state.RejectedAction = rejected;
 			lock (hostBroadcasts)
@@ -141,8 +142,9 @@ public class TradeSimulationTests
 		AssertConverged(s.Received[1], s.Trader.ToStateMsg());
 		Assert.True(s.Trader.State.Items.All(i => i.Id != "bandage"), "the sold entry is removed");
 
-		// A give — the credit lands (still under the 60 cap).
-		Report(s.Guest, new TraderActionMsg { Action = TraderActionKind.GiveItem, Position = Pos(), ItemValue = 20 });
+		// A give — the credit lands (still under the 60 cap), judged against the
+		// host's own row for the item the report names.
+		Report(s.Guest, new TraderActionMsg { Action = TraderActionKind.GiveItem, Position = Pos(), ItemInstanceId = SimTraderHost.GiveFixtureInstanceId, ItemValue = SimTraderHost.GiveFixtureValue });
 		driver.TickUntil(() => s.ReceivedCount() >= 3, maxMs: 1000);
 		AssertConverged(s.Received[2], s.Trader.ToStateMsg());
 
@@ -179,6 +181,106 @@ public class TradeSimulationTests
 		AssertConverged(s.Received[0], s.Trader.ToStateMsg());
 		Assert.True(s.Trader.State.Items.Any(i => i.Id == "rifle"), "the refused item stays in stock");
 		Assert.True(Math.Abs(s.Trader.State.Reputation - (100f - 2f)) < 0.001f, "the refusal penalty (TraderScript.cs:800) applies");
+	}
+
+	[Fact]
+	public void GiveItem_ClaimAboveTheHostsOwnValue_CreditsTheHostsValue_AndAnswers()
+	{
+		var s = CreateTradeSession();
+		var driver = new SimulationDriver(s.Guest.Clock, s.Host.Transport.Network, s.Host, s.Guest);
+		var before = (int)s.Trader.State.TotalValueGiven;
+
+		// The item is worth 20 on the host's own record; the report claims 60.
+		Report(s.Guest, new TraderActionMsg
+		{
+			Action = TraderActionKind.GiveItem,
+			Position = Pos(),
+			ItemInstanceId = SimTraderHost.GiveFixtureInstanceId,
+			ItemValue = 60,
+		});
+		driver.TickUntil(() => s.ReceivedCount() >= 1, maxMs: 1000);
+
+		Assert.True((int)s.Trader.State.TotalValueGiven == before + SimTraderHost.GiveFixtureValue,
+			$"the host credits its own value, not the claim (total {s.Trader.State.TotalValueGiven})");
+		Assert.True(s.Received[0].RejectedAction == (byte)TraderActionKind.GiveItem,
+			"the clamp is ANSWERED (the marker rides the broadcast), never silent");
+		AssertConverged(s.Received[0], s.Trader.ToStateMsg());
+	}
+
+	[Fact]
+	public void GiveItem_UnjudgedInstance_CreditsNothing_AndAnswers()
+	{
+		var s = CreateTradeSession();
+		var driver = new SimulationDriver(s.Guest.Clock, s.Host.Transport.Network, s.Host, s.Guest);
+		var before = (int)s.Trader.State.TotalValueGiven;
+
+		Report(s.Guest, new TraderActionMsg
+		{
+			Action = TraderActionKind.GiveItem,
+			Position = Pos(),
+			ItemInstanceId = 999_999,
+			ItemValue = 60,
+		});
+		driver.TickUntil(() => s.ReceivedCount() >= 1, maxMs: 1000);
+
+		Assert.True((int)s.Trader.State.TotalValueGiven == before, "an item the host never judged credits nothing");
+		Assert.True(s.Received[0].RejectedAction == (byte)TraderActionKind.GiveItem, "the refusal is answered");
+		AssertConverged(s.Received[0], s.Trader.ToStateMsg());
+	}
+
+	[Fact]
+	public void GiveItem_SameInstanceTwice_CreditsOnce()
+	{
+		var s = CreateTradeSession();
+		var driver = new SimulationDriver(s.Guest.Clock, s.Host.Transport.Network, s.Host, s.Guest);
+
+		Report(s.Guest, new TraderActionMsg
+		{
+			Action = TraderActionKind.GiveItem,
+			Position = Pos(),
+			ItemInstanceId = SimTraderHost.GiveFixtureInstanceId,
+			ItemValue = 10,
+		});
+		driver.TickUntil(() => s.ReceivedCount() >= 1, maxMs: 1000);
+		Assert.True(s.Received[0].RejectedAction == 0, "the first give is taken as claimed (10 ≤ the host's 20)");
+		var afterFirst = (int)s.Trader.State.TotalValueGiven;
+
+		// The item is destroyed by the give; a repeat (a client that never sends
+		// its destroy report) must not credit the same instance again.
+		Report(s.Guest, new TraderActionMsg
+		{
+			Action = TraderActionKind.GiveItem,
+			Position = Pos(),
+			ItemInstanceId = SimTraderHost.GiveFixtureInstanceId,
+			ItemValue = 10,
+		});
+		driver.TickUntil(() => s.ReceivedCount() >= 2, maxMs: 1000);
+
+		Assert.True((int)s.Trader.State.TotalValueGiven == afterFirst, "one instance credits once");
+		Assert.True(s.Received[1].RejectedAction == (byte)TraderActionKind.GiveItem, "the repeat is answered");
+		AssertConverged(s.Received[1], s.Trader.ToStateMsg());
+	}
+
+	[Fact]
+	public void GiveItem_AnotherMembersItem_IsRefused()
+	{
+		var s = CreateTradeSession();
+		s.Trader.JudgeItem(9_001, 4_242, 50); // judged, but carried by somebody else
+		var driver = new SimulationDriver(s.Guest.Clock, s.Host.Transport.Network, s.Host, s.Guest);
+		var before = (int)s.Trader.State.TotalValueGiven;
+
+		Report(s.Guest, new TraderActionMsg
+		{
+			Action = TraderActionKind.GiveItem,
+			Position = Pos(),
+			ItemInstanceId = 9_001,
+			ItemValue = 50,
+		});
+		driver.TickUntil(() => s.ReceivedCount() >= 1, maxMs: 1000);
+
+		Assert.True((int)s.Trader.State.TotalValueGiven == before, "the reporter may not credit another member's item");
+		Assert.True(s.Received[0].RejectedAction == (byte)TraderActionKind.GiveItem, "the refusal is answered");
+		AssertConverged(s.Received[0], s.Trader.ToStateMsg());
 	}
 
 	[Fact]
@@ -247,7 +349,14 @@ public class TradeSimulationTests
 					: $"unknown_{rng.Next(100)}";
 				break;
 			case TraderActionKind.GiveItem:
+				// Half the time the judged fixture (a claim that can straddle the host's
+				// own value and the lifetime cap), half an unjudged instance (refused).
 				msg.ItemValue = 1 + rng.Next(80); // straddles the 60 lifetime cap
+				if (rng.NextDouble() < 0.5)
+				{
+					msg.ItemInstanceId = SimTraderHost.GiveFixtureInstanceId;
+				}
+
 				break;
 			case TraderActionKind.MeetPlayer:
 				msg.ReputationOffset = (float)(rng.NextDouble() * 40 - 20);

@@ -83,6 +83,33 @@ public class CarriedInventoryRegistrationTests
 	}
 
 	/// <summary>
+	/// A carried container's CONTENTS are part of the statement: the capture walks the tree
+	/// (<c>ItemStateCodec.CaptureItem</c>) and this host adopts a child only when an instance id names
+	/// it. That pair is what a give from inside a carried container relies on — the host has to hold a
+	/// judged row for the item the claim names, and before the reporter stamped contained children the
+	/// row did not exist. This pins the HOST half (the client half is the Unity-typed capture).
+	/// </summary>
+	[Fact]
+	public void ContainedChildren_WithInstanceIds_LandAsTheMembersOwnRows()
+	{
+		using var w = ItemSimWorld.Create();
+		var bag = Item(201, "trashbag");
+		bag.Contents.Add(Item(202, "bandage", condition: 0.5f));
+		bag.Contents.Add(Item(203, "waterbottle"));
+
+		Register(w.G1, bag);
+		w.Driver.Tick(50);
+
+		var child = w.KernelRow(202);
+		Assert.True(child is not null, "the contained child the statement names must have a judged row");
+		Assert.Equal(ItemLocationKind.Contained, child!.Value.Location.Kind);
+		Assert.Equal(w.G1.SteamId, child.Value.Location.Owner.Value);
+		Assert.Equal(201UL, child.Value.Location.ParentItemId);
+		Assert.Equal(0.5f, child.Value.Data.Condition);
+		Assert.True(w.KernelRow(203) is not null, "the second child lands too");
+	}
+
+	/// <summary>
 	/// The host's OWN carried inventory owes the registration a member's client sends — written by
 	/// the host itself, because nobody else can state its authority: before this a host item the
 	/// player had not used, moved or dropped yet had no row and no instance id, so no data verb and

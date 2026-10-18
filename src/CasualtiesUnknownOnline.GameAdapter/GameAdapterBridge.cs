@@ -465,8 +465,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void ApplyLiquidTileBodyTouch(Body body) =>
 		domains.LiquidTileBodyTouch.Apply(body);
 
-	public void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem) =>
-		domains.TradeSync.OnTraderActionReported(trader, action, itemId, itemValue, purchaseItem);
+	public void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, ulong itemInstanceId, int itemValue, Item? purchaseItem) =>
+		domains.TradeSync.OnTraderActionReported(trader, action, itemId, itemInstanceId, itemValue, purchaseItem);
 
 	public void OnTraderSwing(TraderScript trader) => domains.TraderSwingSync.Report(trader);
 

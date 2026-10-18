@@ -142,6 +142,7 @@ internal sealed class CarriedInventoryReporter(
 				continue; // no id to state: still generating, or a remote kill zeroed the id
 			}
 
+			EnsureContentsAreNamed(item);
 			items.Add(ItemStateCodec.CaptureItem(item, slot));
 		}
 
@@ -162,10 +163,45 @@ internal sealed class CarriedInventoryReporter(
 					continue; // no id to state (same rule as the slot loop)
 				}
 
+				EnsureContentsAreNamed(worn);
 				items.Add(ItemStateCodec.CaptureItem(worn, -(i + 2)));
 			}
 		}
 
 		return items;
+	}
+
+	/// <summary>
+	/// A carried container's CONTENTS are part of the statement's fact set, so every one of them has to be
+	/// nameable: the capture walks the tree and the host adopts only the children an instance id names
+	/// (<c>ItemArbitration.AdoptCarriedContents</c> skips id 0), which before this left anything that had
+	/// sat inside a carried container since it was generated unnameable — a report about it (the trader
+	/// give above all, whose credit the host judges against the item's own row) named no instance at all.
+	/// Stamped here, at the one place the statement is captured, so the id exists before any later report
+	/// needs it; an existing id is returned unchanged, so a repeat states the same set.
+	/// </summary>
+	private void EnsureContentsAreNamed(Item item)
+	{
+		var container = item.GetComponent<Container>();
+		if (container == null) // Unity object — ==
+		{
+			return;
+		}
+
+		for (var i = 0; i < container.transform.childCount; i++)
+		{
+			var child = container.transform.GetChild(i).GetComponent<Item>();
+			if (child == null || child.GetComponent<RemoteCloneRender>() != null) // Unity objects — ==
+			{
+				continue;
+			}
+
+			if (_ids.EnsureId(child) == 0)
+			{
+				continue;
+			}
+
+			EnsureContentsAreNamed(child);
+		}
 	}
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -33,6 +34,16 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// </para>
 	/// </summary>
 	bool IsWorldItemRegistered(ulong itemId);
+
+	/// <summary>
+	/// Read-only: the kernel's judged row for any item, or null when this host never judged the id.
+	/// <see cref="IsWorldItemRegistered"/> answers "is it WORLD content"; this answers "what does the
+	/// host know about it at all" — the trade give's credit is derived from the row the reporter names
+	/// (its definition and its instance state), and an id the host never judged has no state to judge a
+	/// claim against. The caller reads the row's location and data as the receiver's own facts; the
+	/// report's claim never overwrites them.
+	/// </summary>
+	ItemState? FindJudgedItem(ulong instanceId);
 
 	// ===== Report side (the adapter's local compute reports here) =====
 

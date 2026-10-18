@@ -95,6 +95,57 @@ internal static class TradeStockMachine
 		return (true, state with { Items = remaining });
 	}
 
+	/// <summary>
+	/// The item's own worth — <c>ItemInfo.GetValue</c> transcribed (ItemInfo.cs:29-49) over the
+	/// instance state the HOST's kernel row carries:
+	/// <code>
+	/// float num = (float)this.value * item.condition;
+	/// if (item has AmmoScript &amp;&amp; itemType == Magazine) num *= (float)rounds / (float)maxRounds;
+	/// float num2 = Σ amount * 0.001f * valuePerLiter;
+	/// num2 = Mathf.Min(num2, 50f);
+	/// num += num2;
+	/// return Mathf.RoundToInt(num);
+	/// </code>
+	/// The arithmetic is transcribed rather than re-invented because the give CREDIT is this number: the
+	/// host compares the acting side's claim against it (<see cref="JudgeGiveItem"/>), so the two sides
+	/// must round the same way. Same float types, same operation order, same banker's rounding
+	/// (<c>Mathf.RoundToInt</c> is <c>(int)Math.Round(float)</c>), so an unchanged row yields the same
+	/// integer the giver's own client computed. The liquid sum is passed in already weighted by the
+	/// game's own <c>valuePerLiter</c> table, in the stack's own order (the adapter owns both).
+	/// </summary>
+	internal static int GiveItemValue(int baseValue, float condition, bool magazine, int rounds, int maxRounds, float liquidValue)
+	{
+		var num = (float)baseValue * condition;
+		if (magazine && maxRounds > 0)
+		{
+			// maxRounds <= 0 is not a state the game produces (a magazine's prefab fills it); the
+			// guard keeps a corrupt row from turning the whole credit into NaN/Infinity.
+			num *= (float)rounds / (float)maxRounds;
+		}
+
+		num += Math.Min(liquidValue, 50f);
+		return (int)Math.Round((double)num);
+	}
+
+	/// <summary>
+	/// The give CREDIT the host will accept, judged as DATA (decision 265): the claim is the acting side's
+	/// own <c>GetValue</c> over its live item, and the host holds the item's recorded state, which can be a
+	/// frame behind. Decay makes the row OVER-state (harmless: the claim sits below it, nothing is clamped);
+	/// a gain that has not reached the host yet — a repair, a refill, a reload — makes it under-state, and
+	/// there the claim is CLAMPED to the host's own number instead of refused, so the honest giver loses a few
+	/// credits but never the item over a snapshot that moved. The clamp is answered
+	/// (<see cref="ClaimExceeded"/>) and the claim can never inflate the credit. A credit of 0 is the honest
+	/// "no claim" (the native method credits nothing for a zero-worth or bought item).
+	/// </summary>
+	internal static GiveItemClaim JudgeGiveItem(int reportedValue, int itemValue)
+	{
+		var credit = Math.Min(Math.Max(reportedValue, 0), Math.Max(itemValue, 0));
+		return new GiveItemClaim(credit, reportedValue > itemValue);
+	}
+
+	/// <summary>The judged credit and whether the claim had to be clamped to the host's own number (the answer the host logs and marks).</summary>
+	internal readonly record struct GiveItemClaim(int Credit, bool ClaimExceeded);
+
 	/// <summary>GiveItem (TraderScript.cs:604-639): credit the value — the item
 	/// itself was destroyed on the acting side (the item domain reported it).
 	/// False when the credit would exceed the lifetime cap (the acting side's own

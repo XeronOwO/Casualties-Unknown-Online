@@ -10,7 +10,9 @@
   `NetMsg.EntityEvent` DROPS row landed 2026-10-18 (its trigger half stays unbounded on purpose) — its
   evidence and remaining acceptance are in section C, and the `BuildingEntityDamaged` magnitude row CLOSED the same
   day as `unbounded`: its assumed anchor does not exist (the damage values are code, not item data) and the reading
-  is in section B.
+  is in section B. The `NetMsg.TraderAction` GIVE row is IMPLEMENTED 2026-10-18 — the identity anchor landed
+  (wire field + host-side judgement + the generation-time container-contents naming it exposed), and its machine
+  reading is owed to the next acceptance batch; section B.
 - Priority: Medium-High
 - Category: Security / report validation
 - Source: the user's 2026-10-14 request (basic checks from the game's own mechanics, never an anti-cheat)
@@ -421,6 +423,51 @@ described above:
   aligned (`TradeStockMachine.TryGiveItem` clamps to the remaining headroom, as the game does). The
   reputation chain and the flags are the acting player's OWN body state, which the message documents as
   computed there, so they are not this row's business either.
+
+  **IMPLEMENTED 2026-10-18 — the GIVE half's number is the host's own, and the machine reading is owed.**
+  `TraderActionMsg.ItemInstanceId` names the handed-over item (read in `TraderPatches.GiveItemPatch`'s Prefix,
+  because the native method destroys the object), and the host judges the claim in `TradeGiveJudge`: the
+  instance must be a judged row, live, and the sender's own by the container CHAIN
+  (`ItemLocationChain.HolderOf`) or world content; its worth is `ItemInfo.GetValue`'s arithmetic over the row's
+  recorded state (`TradeStockMachine.GiveItemValue`, the game's own `value`/`valuePerLiter` tables read in
+  `TradeExecutor`), and the claim is credited as it stands but never above that number. A claim above the host's
+  number is CLAMPED and ANSWERED (the reject marker rides the authoritative overwrite) instead of refused: the
+  direction that matters is an unrecorded GAIN (repair, refill, reload) — the host's row is then lower than the
+  item the giver held, and refusing would destroy a legitimate hand-in over timing; decay over-states the row, so
+  the claim sits below it and nothing is clamped. Unjudged instances, another member's items, terminal rows,
+  installed limb items, unknown liquids and a repeat give of the same instance are refused by name.
+  The clamp's first draft exposed an identity gap and it was closed at the ROOT instead of papered over: a
+  generation-time container's contents are now named at the publish (`GeneratedItemAuthority.NameContainerContents`)
+  and get kernel rows through the same container-sync command a member's report maps to
+  (`ItemService.PublishGeneratedItems`), and the carried-set statement names a carried container's contents
+  (`CarriedInventoryReporter.EnsureContentsAreNamed`) — so a give from inside a generated container names a
+  judged item, not an id the host never saw.
+
+  Self-check (mechanism × change × evidence):
+
+  | Mechanism | Change | Evidence |
+  |---|---|---|
+  | The give's claimed credit | judged against the host's own row for the named instance; credited as claimed but clamped to the row's own worth | `TradeGiveJudgeTests` (16 facts) + `TradeStockMachineTests` (formula and clamp); mutation: clamp neutralized → 5 failed |
+  | Whose item the reporter may speak for | the chain's holder or world content; another member's row, a terminal row and an installed limb item are refused by name | `TradeGiveJudgeTests`; mutation: ownership arm neutralized → 3 failed |
+  | One instance, one credit | a per-session receipt set; a repeat is refused | `TradeGiveJudgeTests.SecondGiveOfTheSameInstance_IsRefused`, `TradeSimulationTests.GiveItem_SameInstanceTwice_CreditsOnce`; mutation: repeat arm neutralized → 2 failed |
+  | The state a give can run into | a clamped claim is answered (reject marker) and converges; a refusal credits nothing; the guest reads the applied credit versus its local total | `TradeSimulationTests` (4 give paths through the real judge) |
+  | A generated container's contents | instance ids at the generation publish, one kernel row each (contained) | `ItemSnapshotSimulationTests.GenerationSnapshot_AWorldContainersContents_LandAsContainedRows`; the naming itself is Unity-typed (generation) and is read on the machine |
+  | A carried container's contents | ids at the carried-set statement; the host adopts them as the member's contained rows | `CarriedInventoryRegistrationTests.ContainedChildren_WithInstanceIds_LandAsTheMembersOwnRows`; the capture is Unity-typed and is read on the machine |
+  | The acceptance lever | `/traderreport` sends one give report; the cheat family's gate decides who may run it | `AcceptanceTraderReportTests` (open, closed switch, host role, non-finite position) |
+
+  NAMED as left open: the item's recorded state is itself the holder's earlier report (condition, rounds,
+  liquids), so the bound forces the give claim to agree with the state that member already stated rather than
+  proving that state; the native `!item.GetComponent<BoughtItem>()` guard is not mirrored (the kernel payload
+  carries no marker, so a bought item can be handed back at its own value, which the native method refuses); a
+  `World` row proves the item EXISTS, never that the reporter held it — the native gesture's own gate is a
+  distance/line check, behaviour, out of scope by decision 265; and the Unity-typed halves (the Prefix id read,
+  the game-table value, the generation/carried naming) have no unit test — the machine reading is their evidence.
+
+  **Acceptance owed (next batch)**: a two-client session where (1) a real hand-in credits the host's number and
+  the guest converges, (2) `/traderreport` (cheat-gated: `/hostrules` opens the switch, `/op` grants the member)
+  with a claim above the row's worth draws the host's clamp and the guest's converged total, (3) an unjudged id
+  and a repeated id are refused by name with nothing credited, and (4) an unmodified session meets no refusal.
+  The lever and the machine are ready (`tools/acceptance/preflight.ps1`: a full two-client run is possible).
 - **`NetMsg.RecipeUnlock` (77)** 鈥?`RecipeUnlockReceived?.Invoke(recipeIndex);` applies and the handler then
   relays, with no range check against the host's own recipe table (the SNAPSHOT path's `known` set answers a
   different question 鈥?whether the host had already LEARNED the index, never whether its table HAS one).

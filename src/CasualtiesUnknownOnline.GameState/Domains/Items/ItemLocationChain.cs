@@ -67,6 +67,43 @@ public static class ItemLocationChain
 		return false;
 	}
 
+	/// <summary>
+	/// The actor whose carried inventory the item's chain is rooted in — the holder a container tree belongs
+	/// to — or 0 when the chain is world-rooted, ends at an applied/terminal row, or reaches a parent the
+	/// reader does not hold. This is the fact a per-row owner field cannot carry for a CONTAINED item: the
+	/// kernel records the child's owner only at creation and does not re-stamp it when the container changes
+	/// hands or a generation-time container is picked up, while the CHAIN always names who holds the root.
+	/// </summary>
+	public static ulong HolderOf(ItemState item, Func<ulong, ItemState?> find)
+	{
+		var current = item;
+		var visited = new HashSet<ulong> { item.Identity.InstanceId };
+		while (true)
+		{
+			switch (current.Location.Kind)
+			{
+				case ItemLocationKind.Carried:
+					return current.Location.Owner.Value;
+				case ItemLocationKind.Contained:
+					if (!visited.Add(current.Location.ParentItemId))
+					{
+						return 0;
+					}
+
+					var parent = find(current.Location.ParentItemId);
+					if (parent is null)
+					{
+						return 0;
+					}
+
+					current = parent.Value;
+					continue;
+				default:
+					return 0;
+			}
+		}
+	}
+
 	/// <summary>Whether the item's parent chain reaches <paramref name="ancestorId"/>.</summary>
 	public static bool IsDescendantOf(ulong itemId, ulong ancestorId, Func<ulong, ItemState?> find)
 	{

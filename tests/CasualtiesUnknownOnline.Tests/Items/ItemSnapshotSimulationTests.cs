@@ -1,10 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
@@ -200,6 +203,35 @@ public class ItemSnapshotSimulationTests
 		Assert.True(entry.Item.Components.Count == 1
 			&& entry.Item.Components[0].Fields.Single(f => f.Name == "state").IntValue == 2,
 			"the keyframe carries the current component state");
+	}
+
+	[Fact]
+	public void GenerationSnapshot_AWorldContainersContents_LandAsContainedRows()
+	{
+		// A generated container's contents are items of their own in the kernel (one row each, contained —
+		// never nested copies). Without rows no report could address one: the give bound refuses an id the
+		// host never judged, and the native give has already destroyed the object on the giver's client.
+		var log = new RecordingLogger<ItemService>();
+		using var w = ItemSimWorld.Create(services => services.Replace(
+			ServiceDescriptor.Singleton<ILogger<ItemService>>(_ => log)));
+		var bag = Item("trashbag");
+		bag.InstanceId = 1;
+		bag.Contents.Add(new CharacterItemMsg { InstanceId = 41, ItemId = "bandage", Condition = 0.5f });
+		bag.Contents.Add(new CharacterItemMsg { InstanceId = 42, ItemId = "waterbottle", Condition = 1f });
+
+		w.Host.Services.GetRequiredService<IItemControl>().PublishGeneratedItems(
+		[
+			new WorldItem(1, bag, new NetVector2(10, 20), new NetVector2(0, 0), 0, 0f, false),
+		]);
+		w.Driver.Tick(50);
+
+		Assert.True(w.HostTable(1), "the container itself registered as a world row");
+		var child = w.KernelRow(41);
+		Assert.True(child is not null,
+			"the container's contents must have judged rows; the item service said: " + string.Join(" | ", log.Entries.Select(e => $"{e.Level}:{e.Message}")));
+		Assert.Equal(ItemLocationKind.Contained, child!.Value.Location.Kind); Assert.Equal(1UL, child.Value.Location.ParentItemId);
+		Assert.Equal(0.5f, child.Value.Data.Condition);
+		Assert.True(w.KernelRow(42) is not null, "the second child lands too");
 	}
 
 	[Fact]

@@ -370,7 +370,7 @@ internal sealed class GameAdapterDomains
 		// that owns sending them to members and taking a member's own is one small class.
 		RunClockFacts = new RunClockFactsSync(world, NativeWorldFacts, loggerFactory.CreateLogger<RunClockFactsSync>());
 		FluidSync = new FluidWorldSync(world, session, entities, adaptiveRates, loggerFactory);
-		TradeSync = new TradeStateSync(world, session, new TradeExecutor(), adaptiveRates, loggerFactory.CreateLogger<TradeStateSync>());
+		TradeSync = new TradeStateSync(world, session, new TradeExecutor(items, loggerFactory.CreateLogger<TradeExecutor>()), adaptiveRates, loggerFactory.CreateLogger<TradeStateSync>());
 		TraderSwingSync = new TraderSwingSync(world, session, loggerFactory.CreateLogger<TraderSwingSync>());
 		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, InteractionVisibility, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		Respawn = new RespawnCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());

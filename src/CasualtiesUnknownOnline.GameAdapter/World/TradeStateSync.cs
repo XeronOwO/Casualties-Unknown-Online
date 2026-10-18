@@ -57,6 +57,7 @@ internal sealed class TradeStateSync(
 	{
 		_lastSnapshot = 0;
 		_pendingPurchase = null;
+		_executor.ResetSessionState();
 	}
 
 	internal void Update()
@@ -99,7 +100,7 @@ internal sealed class TradeStateSync(
 	/// overwrite. Guest: report it — the host executes the trader-side change
 	/// and broadcasts; the acting side's provisional state is overwritten.
 	/// </summary>
-	internal void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem)
+	internal void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, ulong itemInstanceId, int itemValue, Item? purchaseItem)
 	{
 		if (!_session.SessionActive || trader == null) // Unity object — ==
 		{
@@ -125,6 +126,7 @@ internal sealed class TradeStateSync(
 			Action = action,
 			Position = new NetVector2Msg(trader.transform.position.x, trader.transform.position.y),
 			ItemId = itemId,
+			ItemInstanceId = itemInstanceId,
 			ItemValue = itemValue,
 			PlayerFlags = ComputePlayerFlags(body),
 		};
@@ -134,7 +136,8 @@ internal sealed class TradeStateSync(
 		}
 
 		_world.SendTraderAction(msg);
-		_log.LogInformation("[Trade] report action={Action} trader=({X:0.0},{Y:0.0}) item={Item}.", action, msg.Position.X, msg.Position.Y, itemId);
+		_log.LogInformation("[Trade] report action={Action} trader=({X:0.0},{Y:0.0}) item={Item} instance={Instance} value={Value}.",
+			action, msg.Position.X, msg.Position.Y, itemId, itemInstanceId, itemValue);
 	}
 
 	/// <summary>Host: a guest's interaction arrived — execute the trader-side change and broadcast the authoritative state (with the rejection marker when the stock was already consumed).</summary>
@@ -156,7 +159,7 @@ internal sealed class TradeStateSync(
 		{
 			TraderActionKind.MeetPlayer => Execute(() => _executor.ExecuteMeetPlayer(trader, msg), true),
 			TraderActionKind.Purchase => _executor.ExecutePurchase(trader, msg.ItemId),
-			TraderActionKind.GiveItem => _executor.ExecuteGiveItem(trader, msg.ItemValue),
+			TraderActionKind.GiveItem => _executor.ExecuteGiveItem(trader, sender, msg.ItemInstanceId, msg.ItemValue),
 			TraderActionKind.Haggle => Execute(() => _executor.ExecuteHaggle(trader), true),
 			TraderActionKind.Threaten => Execute(() => _executor.ExecuteThreaten(trader, (msg.PlayerFlags & TraderActionMsg.FlagHasGun) != 0), true),
 			TraderActionKind.Hug => Execute(() => _executor.ExecuteHug(trader, (msg.PlayerFlags & TraderActionMsg.FlagDirty) != 0), true),
@@ -165,7 +168,7 @@ internal sealed class TradeStateSync(
 		};
 
 		_world.BroadcastTraderState(BuildStateMsg(trader, accepted ? (byte)0 : (byte)msg.Action));
-		_log.LogInformation("[Trade] executed action={Action} by={Sender} trader=({X:0.0},{Y:0.0}) accepted={Accepted} rep={Rep} items={N}.",
+		_log.LogInformation("[Trade] executed action={Action} by={Sender} trader=({X:0.0},{Y:0.0}) acceptedAsClaimed={Accepted} rep={Rep} items={N}.",
 			msg.Action, sender, msg.Position.X, msg.Position.Y, accepted, trader.reputation, trader.items.Count);
 	}
 
@@ -184,6 +187,7 @@ internal sealed class TradeStateSync(
 			return;
 		}
 
+		var localTotalBefore = trader.totalValueGiven;
 		trader.reputation = msg.Reputation;
 		trader.hostility = msg.Hostility;
 		trader.valueGiven = msg.ValueGiven;
@@ -211,7 +215,11 @@ internal sealed class TradeStateSync(
 		}
 		else if (msg.RejectedAction != 0)
 		{
-			_log.LogInformation("[Trade] rejected action={Reject} — no rollback surface (give credit capped on the host).", msg.RejectedAction);
+			// A give's marker means "the claim was not taken as it stood": 0 credit is a refusal, a
+			// positive delta is the host's own lower number (the item's row is a frame behind).
+			var applied = msg.TotalValueGiven - localTotalBefore;
+			_log.LogInformation("[Trade] rejected action={Reject} — the host did not take this client's give credit as it stood: it applied {Applied} (local totalValueGiven {Local}, authoritative {Authoritative}); no rollback surface remains for this action.",
+				msg.RejectedAction, applied, localTotalBefore, msg.TotalValueGiven);
 		}
 
 		RefreshTradeUi(trader);

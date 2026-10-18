@@ -113,15 +113,16 @@ internal sealed class TradeReplayWorld : IDisposable
 			maxMs: 5000);
 
 		var trader = new SimTraderHost(SimTraderHost.CreateDefaultState(), seed);
+		trader.JudgeItem(SimTraderHost.GiveFixtureInstanceId, GuestId, SimTraderHost.GiveFixtureValue); // the give's judged row (the sim stands in for the kernel)
 		var world = new TradeReplayWorld(driver, host, guest, trader);
 
 		var hostWorld = host.Services.GetRequiredService<IWorldControl>();
-		hostWorld.TraderActionReceived += (_, msg) =>
+		hostWorld.TraderActionReceived += (sender, msg) =>
 		{
 			// The production TradeStateSync.OnTraderActionReceived shape: the
 			// real machine executes the trader-side change, then the
 			// authoritative full overwrite (with the rejection marker) goes out.
-			var rejected = trader.Execute(msg);
+			var rejected = trader.Execute(sender, msg);
 			var state = trader.ToStateMsg();
 			state.RejectedAction = rejected;
 			lock (world._hostBroadcasts)

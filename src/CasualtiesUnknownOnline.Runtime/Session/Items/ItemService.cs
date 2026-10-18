@@ -34,6 +34,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly ItemTrafficTracker _itemTraffic = new(ItemTrafficTracker.DefaultWindowMs);
 	private readonly ItemMessageFlowService _messageFlow;
 	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly GeneratedItemRows _generatedRows;
 	private readonly ItemProjection _projection;
 	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly ItemKernelProjectionWiring _kernelProjectionWiring;
@@ -47,6 +48,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_log = log;
 		_arbitration = arbitration;
 		_kernelAuthority = kernelAuthority;
+		_generatedRows = new GeneratedItemRows(kernelAuthority, log);
 		_kernelProtocol = kernelProtocol;
 		_rejections = new ItemCommandRejectionRouter(session, idCoordinator, itemStateSettlement, log);
 		_restoredWorldItems = new RestoredWorldItemSet(kernelAuthority, audit, log);
@@ -486,6 +488,10 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			if (accepted)
 			{
 				registered++;
+				// A generated container's contents are items of their own in this kernel (one row each,
+				// contained — never nested copies); the publish named their ids, so the rows are written
+				// through the same container-sync command a member's report maps to.
+				_generatedRows.Register(_session.LocalSteamId, entry.ItemId, entry.Item);
 			}
 		}
 
@@ -557,6 +563,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _messageFlow.RegisterWorldItemIfAbsent(itemId, item);
 
 	public bool IsWorldItemRegistered(ulong itemId) => _messageFlow.IsWorldItemRegistered(itemId);
+
+	public ItemState? FindJudgedItem(ulong instanceId) => _kernelAuthority.FindItem(instanceId);
 
 	internal void FireItemSpawned(WorldItem item) => _messageFlow.FireItemSpawned(item);
 

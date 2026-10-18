@@ -457,12 +457,12 @@ internal interface IPatchBridge
 
 	/// <summary>
 	/// A trader interaction ran locally (the full game method — the acting
-	/// player's effects are already applied): report it (guest → host, the host
-	/// executes the trader-side change) or broadcast the state (host — already
-	/// authoritative). Purchase carries the locally-created item (the rollback
-	/// hold for a rejected purchase).
+	/// player's effects are already applied): report it (guest → host; the host
+	/// executes the trader-side change) or broadcast the state (host). Purchase
+	/// carries the locally-created item (the rollback hold); GiveItem carries the
+	/// item's INSTANCE id (the host judges the claim).
 	/// </summary>
-	void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem);
+	void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, ulong itemInstanceId, int itemValue, Item? purchaseItem);
 
 	/// <summary>A hostile trader swing ran locally (TraderScript.Swing — the
 	/// animation, swing sound and local damage are already applied) — report

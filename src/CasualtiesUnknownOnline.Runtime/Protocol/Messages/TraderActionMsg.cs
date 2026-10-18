@@ -28,15 +28,28 @@ public sealed class TraderActionMsg
 	public string ItemId { get; set; } = "";
 
 	/// <summary>
-	/// GiveItem: the credit the acting side's own giveaway produced. The game's <c>TraderScript.GiveItem</c>
-	/// adds <c>min(item.Stats.GetValue(item), MAX_VALUE_GIVEN - totalValueGiven)</c>, and
-	/// <c>ItemInfo.GetValue</c> reads the item INSTANCE — its <c>condition</c>, a magazine's remaining
-	/// <c>rounds/maxRounds</c> and a container's liquid <c>stack</c> — so this number is NOT derivable from
-	/// <see cref="ItemId"/> alone (an earlier comment here said it was: the census row carries the
-	/// corrected reading and the anchor this row would need — the item instance's identity).
+	/// GiveItem: the credit the acting side's own giveaway produced — <c>TraderScript.GiveItem</c>'s
+	/// <c>min(item.Stats.GetValue(item), MAX_VALUE_GIVEN - totalValueGiven)</c> read from its own
+	/// <c>totalValueGiven</c> delta. The number is a CLAIM about the acting side's live item, so it is
+	/// judged against <see cref="ItemInstanceId"/>'s row on the host (the claim is clamped to the host's
+	/// own derivation; a disagreement is answered, never refused, because the host's row can be a frame
+	/// behind). <c>ItemInfo.GetValue</c> reads the item INSTANCE — its <c>condition</c>, a magazine's
+	/// remaining <c>rounds/maxRounds</c> and a container's liquid <c>stack</c> — so
+	/// <see cref="ItemId"/> alone could never reproduce it.
 	/// </summary>
 	[ProtoMember(4)]
 	public int ItemValue { get; set; }
+
+	/// <summary>
+	/// GiveItem: the instance id of the item the acting side handed over — the item the host judges
+	/// <see cref="ItemValue"/> against. The value itself is instance state (see <see cref="ItemValue"/>),
+	/// and the instance's own row is the only place the host holds that state, so the give names the item
+	/// rather than trusting a type id. 0 = the report names no instance (an item this client never bound);
+	/// the host refuses that claim by name because it holds no state to judge it against. Other action
+	/// kinds leave it 0.
+	/// </summary>
+	[ProtoMember(9)]
+	public ulong ItemInstanceId { get; set; }
 
 	/// <summary>
 	/// MeetPlayer: the acting player's reputation modifier chain (the game reads

@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using HarmonyLib;
 
@@ -57,7 +58,7 @@ internal static class TraderPatches
 			__state = __instance != null ? CountInBackpack(item.id) : 0; // Unity object — ==
 
 		private static void Postfix(TraderScript __instance, TraderItem item, int __state) =>
-			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.Purchase, item.id, 0, FindNewItem(item.id, __state));
+			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.Purchase, item.id, 0, 0, FindNewItem(item.id, __state));
 
 		private static int CountInBackpack(string id)
 		{
@@ -107,15 +108,18 @@ internal static class TraderPatches
 	}
 
 	/// <summary>
-	/// GiveItem: report the locally-executed hand-in with the id read BEFORE the call (the
+	/// GiveItem: report the locally-executed hand-in with the ids read BEFORE the call (the
 	/// game destroys the item on success, so a Postfix cannot read it afterwards), and
 	/// only when the write is verified — the trader's lifetime credit really moved. The
 	/// reported VALUE is that verified credit, not the item's own value: the native method
 	/// clamps the credit to what is left of <c>MAX_VALUE_GIVEN</c>
 	/// (<c>TraderScript.cs:620-627</c>) while the item can be worth more, and a hand-in
 	/// that credited nothing (the cap already reached) must report nothing at all —
-	/// otherwise the host would credit more than this client did. A call the remote drag
-	/// window took is not a local hand-in: the OWNER's trader performs it.
+	/// otherwise the host would credit more than this client did. The item's INSTANCE id
+	/// rides along for the same reason it is read here: the host judges the claim against
+	/// its own row for that instance, and the object is gone by the time a Postfix runs.
+	/// A call the remote drag window took is not a local hand-in: the OWNER's trader
+	/// performs it.
 	/// </summary>
 	[HarmonyPatch(typeof(TraderScript), "GiveItem")]
 	internal static class GiveItemPatch
@@ -123,6 +127,7 @@ internal static class TraderPatches
 		private static void Prefix(TraderScript __instance, Item item, out GiveItemState __state) =>
 			__state = new GiveItemState(
 				item != null ? item.id : string.Empty, // Unity object — ==
+				item != null ? item.GetComponent<ItemInstanceId>()?.Id ?? 0 : 0, // Unity object — ==
 				__instance != null ? __instance.totalValueGiven : 0, // Unity object — ==
 				item != null && RemoteDragProxyQuery.IsProxy(item) && RemoteDragIntentWindow.Current.IsOpen); // Unity object — ==
 
@@ -139,46 +144,46 @@ internal static class TraderPatches
 				return;
 			}
 
-			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.GiveItem, __state.ItemId, credited, null);
+			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.GiveItem, __state.ItemId, __state.ItemInstanceId, credited, null);
 		}
 
 		/// <summary>What the Postfix needs after a call that destroys its item.</summary>
-		private readonly record struct GiveItemState(string ItemId, int CreditBefore, bool TakenByTheRemoteDragWindow);
+		private readonly record struct GiveItemState(string ItemId, ulong ItemInstanceId, int CreditBefore, bool TakenByTheRemoteDragWindow);
 	}
 
 	[HarmonyPatch(typeof(TraderScript), "TryHaggle")]
 	internal static class TryHagglePatch
 	{
 		private static void Postfix(TraderScript __instance) =>
-			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.Haggle, "", 0, null);
+			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.Haggle, "", 0, 0, null);
 	}
 
 	[HarmonyPatch(typeof(TraderScript), "Threaten")]
 	internal static class ThreatenPatch
 	{
 		private static void Postfix(TraderScript __instance) =>
-			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.Threaten, "", 0, null);
+			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.Threaten, "", 0, 0, null);
 	}
 
 	[HarmonyPatch(typeof(TraderScript), "TryHug")]
 	internal static class TryHugPatch
 	{
 		private static void Postfix(TraderScript __instance) =>
-			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.Hug, "", 0, null);
+			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.Hug, "", 0, 0, null);
 	}
 
 	[HarmonyPatch(typeof(TraderScript), "AskToMove")]
 	internal static class AskToMovePatch
 	{
 		private static void Postfix(TraderScript __instance) =>
-			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.MoveTo, "", 0, null);
+			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.MoveTo, "", 0, 0, null);
 	}
 
 	[HarmonyPatch(typeof(TraderScript), "MeetPlayer")]
 	internal static class MeetPlayerPatch
 	{
 		private static void Postfix(TraderScript __instance) =>
-			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.MeetPlayer, "", 0, null);
+			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.MeetPlayer, "", 0, 0, null);
 	}
 
 	/// <summary>TraderScript.Swing: the hostile swing ran locally (animation +

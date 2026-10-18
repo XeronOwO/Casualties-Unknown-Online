@@ -234,6 +234,64 @@ public class TradeStockMachineTests
 		Assert.Equal(20f, result.TotalValueGiven);
 	}
 
+	// ---- The give claim's own value and judgement (ItemInfo.GetValue / decision 265) ----
+
+	[Fact]
+	public void GiveItemValue_FullCondition_IsTheBaseValue() =>
+		Assert.Equal(30, TradeStockMachine.GiveItemValue(baseValue: 30, condition: 1f, magazine: false, rounds: 0, maxRounds: 0, liquidValue: 0f));
+
+	[Fact]
+	public void GiveItemValue_ConditionScalesTheBaseValue() =>
+		Assert.Equal(15, TradeStockMachine.GiveItemValue(30, 0.5f, magazine: false, rounds: 0, maxRounds: 0, liquidValue: 0f));
+
+	[Fact]
+	public void GiveItemValue_Magazine_ScalesByRemainingRounds()
+	{
+		Assert.Equal(10, TradeStockMachine.GiveItemValue(30, 1f, magazine: true, rounds: 10, maxRounds: 30, liquidValue: 0f));
+		Assert.Equal(30, TradeStockMachine.GiveItemValue(30, 1f, magazine: true, rounds: 30, maxRounds: 30, liquidValue: 0f));
+		Assert.Equal(0, TradeStockMachine.GiveItemValue(30, 1f, magazine: true, rounds: 0, maxRounds: 30, liquidValue: 0f));
+	}
+
+	[Fact]
+	public void GiveItemValue_LiquidValue_IsCappedAtFiftyLikeTheGame()
+	{
+		Assert.Equal(40, TradeStockMachine.GiveItemValue(30, 1f, magazine: false, rounds: 0, maxRounds: 0, liquidValue: 10f));
+		Assert.Equal(80, TradeStockMachine.GiveItemValue(30, 1f, magazine: false, rounds: 0, maxRounds: 0, liquidValue: 60f)); // num2 = Mathf.Min(num2, 50f)
+	}
+
+	[Fact]
+	public void GiveItemValue_RoundsLikeMathfRoundToInt()
+	{
+		Assert.Equal(2, TradeStockMachine.GiveItemValue(5, 0.5f, magazine: false, rounds: 0, maxRounds: 0, liquidValue: 0f)); // 2.5 → 2 (banker's)
+		Assert.Equal(4, TradeStockMachine.GiveItemValue(7, 0.5f, magazine: false, rounds: 0, maxRounds: 0, liquidValue: 0f)); // 3.5 → 4
+	}
+
+	[Fact]
+	public void JudgeGiveItem_WithinTheHostsValue_CreditsTheClaim()
+	{
+		var claim = TradeStockMachine.JudgeGiveItem(reportedValue: 15, itemValue: 20);
+
+		Assert.Equal(15, claim.Credit);
+		Assert.False(claim.ClaimExceeded, "a claim inside the host's own number is taken as it stands");
+	}
+
+	[Fact]
+	public void JudgeGiveItem_AboveTheHostsValue_ClampsAndAnswers()
+	{
+		var claim = TradeStockMachine.JudgeGiveItem(reportedValue: 60, itemValue: 20);
+
+		Assert.Equal(20, claim.Credit); // the host's own number, never the claim
+		Assert.True(claim.ClaimExceeded, "the clamp is ANSWERED, not silent");
+	}
+
+	[Fact]
+	public void JudgeGiveItem_NoClaimOrNoValue_CreditsNothing()
+	{
+		Assert.Equal(0, TradeStockMachine.JudgeGiveItem(reportedValue: 0, itemValue: 20).Credit);
+		Assert.Equal(0, TradeStockMachine.JudgeGiveItem(reportedValue: -5, itemValue: 20).Credit);
+		Assert.Equal(0, TradeStockMachine.JudgeGiveItem(reportedValue: 20, itemValue: 0).Credit);
+	}
+
 	// ---- Haggle (TraderScript.cs:220-265) ----
 
 	[Fact]

@@ -193,6 +193,7 @@ internal sealed class GeneratedItemAuthority(
 	private WorldItem BuildEntry(Item item, int slotIndex)
 	{
 		var itemId = _ids.Allocate(item);
+		NameContainerContents(item);
 		var pos = item.transform.position;
 		var vel = item.rb.velocity;
 		return new WorldItem(
@@ -203,5 +204,35 @@ internal sealed class GeneratedItemAuthority(
 			0,
 			item.transform.eulerAngles.z,
 			false);
+	}
+
+	/// <summary>
+	/// A generated CONTAINER's contents are items of this world and must be nameable like any other: the
+	/// snapshot carries them inside the parent's <c>Contents</c> (they are never published as separate
+	/// entries), and the host's kernel keeps one row per item, so an id-less child is an item no report can
+	/// address — a give from inside a generated container would name nothing and be refused by the give
+	/// bound. Stamped here, at the one place a generation-time item is published; the guests bind or
+	/// materialize the same ids from the snapshot (<c>ItemStateCodec.RestoreContent</c> attaches a non-zero
+	/// id), and the host's own rows are written by <c>ItemService.PublishGeneratedItems</c>.
+	/// </summary>
+	private void NameContainerContents(Item item)
+	{
+		var container = item.GetComponent<Container>();
+		if (container == null) // Unity object — ==
+		{
+			return;
+		}
+
+		for (var i = 0; i < container.transform.childCount; i++)
+		{
+			var child = container.transform.GetChild(i).GetComponent<Item>();
+			if (child == null || ItemWorldSync.IsDisplayProxy(child)) // Unity objects — ==
+			{
+				continue;
+			}
+
+			_ids.Allocate(child);
+			NameContainerContents(child);
+		}
 	}
 }

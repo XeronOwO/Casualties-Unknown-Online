@@ -28,7 +28,7 @@ namespace CasualtiesUnknownOnline.Tests.Application;
 /// The enemy half: the entity domain accepts a bite, a lunge and an effect
 /// outright, so the victim, the limb and the magnitudes were the reporter's own.
 /// The design intent is that the AFFECTED side's client is the judge
-/// (<c>todo/health-simulation-and-host-authority.md</c>), and every production
+/// (<c>review/health-simulation-and-host-authority.md</c>), and every production
 /// sender names itself — <c>EnemyCombatReplay</c> and <c>EnemyProximitySync</c>
 /// both set <c>msg.VictimSteamId = _session.LocalSteamId</c> — which is exactly
 /// why the victim identity has to be the sender rather than a field.

@@ -112,7 +112,7 @@ that player's client. The clone is the same render clone, seeded from the stored
 the host's view and its authority are one body. Events, terminal facts and random outcomes stay
 with the affected client — its report/event is the only writer of those — and the pass restores the
 client-owned fields after every step. A guest never runs the pass; it renders what it is told and
-judges its own events. Details: `docs/backlog/todo/health-simulation-and-host-authority.md`.
+judges its own events. Details: `docs/backlog/review/health-simulation-and-host-authority.md`.
 
 The clone cannot produce all of the model's inputs itself: it skips `HandlePhysics` (so `inWater`,
 `Body.cs:3088`, is never computed), its `moveDir` is zeroed for presentation, and `exercising` /
@@ -122,6 +122,13 @@ stamina threshold, `Body.cs:2994`), and the pass writes all four onto the clone 
 resolving the climb state against the host's own `Climbable` list (the same lookup the native
 climbing start uses) and restoring the presentation values afterwards. A climbable the host world
 does not have is named once and the body is modelled as stationary.
+
+Because the pass is the only cost this duty adds to the host's frame, the adapter also counts it:
+one Debug line per ten-second window reports the window's per-clone whole-step and native-pass
+averages and maxima, the cost of one fixed-step invocation across all simulated clones, that
+cost's share of the host's wall time, and the fixed step/time scale the window ran on. A speed or
+fixed-step change closes the window first, so the numbers never average two bases. It is
+diagnostic — raise `Logging.MinimumLevel` to capture it — not a second simulation.
 
 What that means for CUO: a body's ACTIONS and its EVENTS belong to its owner's client; the host
 owns the shared world and, for the continuous bleeding values, computes them from the owner's

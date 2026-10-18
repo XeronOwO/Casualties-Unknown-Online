@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -42,6 +43,9 @@ internal sealed class HostVitalsBodies
 	private readonly ITimeSource _time;
 	private readonly ILogger<HostVitalsBodies> _log;
 
+	/// <summary>The ticket's affordability readout: every clone's step and native-pass cost, summarized once per window.</summary>
+	private readonly HostVitalsCostProbe _cost;
+
 	internal HostVitalsBodies(
 		ISessionControl session,
 		IEntitySyncControl entities,
@@ -56,6 +60,7 @@ internal sealed class HostVitalsBodies
 		_restore = restore;
 		_time = time;
 		_log = log;
+		_cost = new HostVitalsCostProbe(log);
 	}
 
 	/// <summary>True when this body carries the host simulation driver (the patches' marker for "the clone is the model").</summary>
@@ -79,8 +84,41 @@ internal sealed class HostVitalsBodies
 		driver.Initialize(this, body, steamId);
 	}
 
-	/// <summary>One fixed step of one body. Called by <see cref="HostVitalsDriver.FixedUpdate"/>.</summary>
+	/// <summary>
+	/// One fixed step of one body, measured for the frame-cost readout. Called by
+	/// <see cref="HostVitalsDriver.FixedUpdate"/>. The measurement is a wrapper around
+	/// <see cref="Advance"/> so an early return is a step too (bookkeeping is part of the host's
+	/// per-frame cost) and a throwing pass is still recorded by the <c>finally</c>.
+	/// </summary>
 	internal void Step(HostVitalsDriver driver)
+	{
+		var measure = _cost.Enabled;
+		var started = measure ? Stopwatch.GetTimestamp() : 0L;
+		var passTicks = 0L;
+		try
+		{
+			Advance(driver, ref passTicks, measure);
+		}
+		finally
+		{
+			if (measure)
+			{
+				_cost.Record(Stopwatch.GetTimestamp(), started, passTicks, driver.SteamId, Time.fixedDeltaTime, Time.timeScale);
+			}
+			else
+			{
+				// A filtered step closes the window: a later Debug toggle must not average the gap in.
+				_cost.Suspend();
+			}
+		}
+	}
+
+	/// <summary>
+	/// One advance attempt. <paramref name="passTicks"/> receives the native pass's measured ticks
+	/// (0 when the step returned before the pass); the <c>ref</c> write in the pass's own
+	/// <c>finally</c> survives a throw, so the wrapper still records what ran.
+	/// </summary>
+	private void Advance(HostVitalsDriver driver, ref long passTicks, bool measure)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -194,7 +232,20 @@ internal sealed class HostVitalsBodies
 					driver.SteamId);
 			}
 
-			HostVitalsPass.Run(driver.Body, driver.Quarantine);
+			var passStarted = measure ? Stopwatch.GetTimestamp() : 0L;
+			try
+			{
+				HostVitalsPass.Run(driver.Body, driver.Quarantine);
+			}
+			finally
+			{
+				if (measure)
+				{
+					// The measured pass excludes this scope's restore; the whole step still carries it.
+					// The ref write survives a throw, so Step's finally still records what ran.
+					passTicks = Stopwatch.GetTimestamp() - passStarted;
+				}
+			}
 		}
 
 		HostVitalsOwned.Capture(driver.Body, driver.LastWrittenBleeds, out var blood, out var total);

@@ -300,7 +300,7 @@ docs/backlog/todo/id-carriers-can-disagree-about-placement.md | keep | index | d
 docs/backlog/done/item-and-entity-data-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/snbt-state-language.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-census-own-instance-id.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/health-simulation-and-host-authority.md | keep | index | docs/backlog/README.md
+docs/backlog/review/health-simulation-and-host-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/done/validation-and-source-checks.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-change-member-recovery.md | keep | index | docs/backlog/README.md

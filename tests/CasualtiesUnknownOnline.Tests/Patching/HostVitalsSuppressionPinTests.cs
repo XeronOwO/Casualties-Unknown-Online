@@ -131,6 +131,26 @@ public class HostVitalsSuppressionPinTests
 	}
 
 	[Fact]
+	public void TheFrameCostProbe_MeasuresTheWholeStepAndTheNativePass()
+	{
+		var bodies = Stripped(ReadSource("Character", "HostVitalsBodies.cs"));
+		Assert.True(ProbeWiringHolds(bodies), "the frame-cost probe must time the whole step and the native pass and record both");
+
+		// Negative samples: an unrecorded step, an unmeasured pass, or either try/finally removed
+		// each break the shape the window's fields (and the throwing-path record) depend on.
+		var step = MemberBlock(bodies, "internal void Step(");
+		var advance = MemberBlock(bodies, "private void Advance(");
+		Assert.False(ProbeWiringHolds(Mutate(bodies,
+			"_cost.Record(Stopwatch.GetTimestamp(), started, passTicks, driver.SteamId, Time.fixedDeltaTime, Time.timeScale);",
+			"// dropped")));
+		Assert.False(ProbeWiringHolds(Mutate(bodies,
+			"passTicks = Stopwatch.GetTimestamp() - passStarted;",
+			"passTicks = 0L;")));
+		Assert.False(ProbeWiringHolds(Mutate(bodies, step, Mutate(step, "finally", "// no finally"))));
+		Assert.False(ProbeWiringHolds(Mutate(bodies, advance, Mutate(advance, "finally", "// no finally"))));
+	}
+
+	[Fact]
 	public void TheCloneSource_IsTheExistingRenderClone_AndTheHostOwnedRoundTripUsesTheRuntimeDefinition()
 	{
 		var renderer = Stripped(ReadSource("Character", "RemotePlayerRenderer.cs"));
@@ -291,9 +311,10 @@ public class HostVitalsSuppressionPinTests
 
 		// Negative sample 1: the pass moved AFTER the scope's closing brace. Every IndexOf order
 		// still holds, so only the brace-matched nesting check can reject it.
-		var outside = Mutate(bodies,
-			"\t\t\tHostVitalsPass.Run(driver.Body, driver.Quarantine);\n\t\t}",
-			"\t\t}\n\t\t\tHostVitalsPass.Run(driver.Body, driver.Quarantine);");
+		var outside = Mutate(
+			Mutate(bodies, "\t\t\t\tHostVitalsPass.Run(driver.Body, driver.Quarantine);\n", string.Empty),
+			"\t\t}\n\n\t\tHostVitalsOwned.Capture",
+			"\t\t}\n\t\tHostVitalsPass.Run(driver.Body, driver.Quarantine);\n\n\t\tHostVitalsOwned.Capture");
 		Assert.False(PassRunsInsideTheInputScope(outside));
 
 		// Negative sample 2: each restore removed in turn — the predicate (not a string search on
@@ -421,6 +442,56 @@ public class HostVitalsSuppressionPinTests
 
 		return at < prefix.IndexOf("if (clip == \"lifePodHit\"", StringComparison.Ordinal)
 			&& at < prefix.IndexOf("CharacterSoundPolicy.Classify", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The frame-cost probe's wiring: the whole step is timed inside a try/finally that records
+	/// (and suspends when filtered), and the native pass inside it is timed in its own finally so
+	/// a throwing pass still reports its ticks. The shapes are brace-matched, not order-only: a
+	/// removed finally would otherwise leave every anchor in order.
+	/// </summary>
+	private static bool ProbeWiringHolds(string source) =>
+		StepShapeHolds(MemberBlock(source, "internal void Step("))
+		&& PassMeasureShapeHolds(MemberBlock(source, "private void Advance("));
+
+	private static bool StepShapeHolds(string step)
+	{
+		var measure = step.IndexOf("var measure = _cost.Enabled;", StringComparison.Ordinal);
+		var advance = step.IndexOf("Advance(driver, ref passTicks, measure);", StringComparison.Ordinal);
+		var record = step.IndexOf("_cost.Record(Stopwatch.GetTimestamp(), started, passTicks, driver.SteamId, Time.fixedDeltaTime, Time.timeScale);", StringComparison.Ordinal);
+		var suspend = step.IndexOf("_cost.Suspend();", StringComparison.Ordinal);
+		var tryAt = step.IndexOf("\t\ttry\n\t\t{", StringComparison.Ordinal);
+		if (measure < 0 || advance < 0 || record < 0 || suspend < 0 || tryAt < 0 || advance < tryAt)
+		{
+			return false;
+		}
+
+		var tryOpen = step.IndexOf('{', tryAt);
+		var tryClose = MatchingBrace(step, tryOpen);
+		if (tryClose < advance)
+		{
+			return false;
+		}
+
+		var finallyAt = step.IndexOf("\t\tfinally\n\t\t{", tryClose, StringComparison.Ordinal);
+		if (finallyAt < 0)
+		{
+			return false;
+		}
+
+		var finallyOpen = step.IndexOf('{', finallyAt);
+		var finallyClose = MatchingBrace(step, finallyOpen);
+		return record > finallyOpen && record < finallyClose && suspend > finallyOpen && suspend < finallyClose;
+	}
+
+	private static bool PassMeasureShapeHolds(string advance)
+	{
+		var passStarted = advance.IndexOf("var passStarted = measure ? Stopwatch.GetTimestamp() : 0L;", StringComparison.Ordinal);
+		var tryAt = advance.IndexOf("\t\t\ttry\n\t\t\t{", StringComparison.Ordinal);
+		var pass = advance.IndexOf("HostVitalsPass.Run(driver.Body, driver.Quarantine);", StringComparison.Ordinal);
+		var finallyAt = advance.IndexOf("\t\t\tfinally\n\t\t\t{", StringComparison.Ordinal);
+		var measured = advance.IndexOf("passTicks = Stopwatch.GetTimestamp() - passStarted;", StringComparison.Ordinal);
+		return passStarted > 0 && tryAt > passStarted && pass > tryAt && finallyAt > pass && measured > finallyAt;
 	}
 
 	private static bool PassShapeHolds(string source)

@@ -1,12 +1,13 @@
 # Health on every client, reconciled to the host's value
 
-- Status: Todo — **direction ruled by the user on 2026-10-18: the HOST computes the continuous
+- Status: Review — **direction ruled by the user on 2026-10-18: the HOST computes the continuous
   player state by reusing the game's own methods; the affected client judges every event and
   applies the host's rows to its own body.** This supersedes the (a)-first recommendation the
   earlier draft carried. Stage 1 (the bleeding family) landed and was superseded by Stage 2 unit 1
-  (the host clone simulation plus item 4's event/quarantine/reconciliation boundary) and unit 2
-  (the missing model inputs, which lands in this cycle's commit); the two-client runtime acceptance
-  of both is still owed, and Stage 2's frame-cost item (item 5) is the rest.
+  (the host clone simulation plus item 4's event/quarantine/reconciliation boundary), unit 2
+  (the missing model inputs) and unit 3 (the frame-cost probe, landed); no code remains, so the
+  ticket waits for the two-client acceptance batch, which also fills in the unit-3 section's
+  measured numbers.
 - Priority: Medium-High
 - Category: Player state / cross-player sync / authority
 - Source: the user's 2026-10-14 request (health simulated on every client, reconciled to the host)
@@ -633,6 +634,112 @@ and the minors below, all fixed in the same commit.
   the 20 Hz base; and the input path gained a Debug TRANSITION line per body so "the bits never
   arrive" is distinguishable from "the body is dry and still". The per-pass reflection invocation
   became a typed delegate resolved once (no per-step boxing; a renamed property fails at first use).
+
+### Stage 2 unit 3 — the frame-cost probe (landed)
+
+Stage 2 item 5. The affordability question was the last unmeasured claim, and the number has to
+come from the pass a real session runs — not from a synthetic loop that would miss seeding, the
+input scope and the write-back. So the step carries a window probe rather than a benchmark
+harness.
+
+`HostVitalsCostProbe` (Runtime, one per host body domain) records two durations per fixed step:
+the WHOLE `HostVitalsBodies.Step` (snapshot read, gates, input scope, the `HostVitalsPass` call,
+write-back) and the pass itself — the game's five stages plus CUO's pass-level wrapper (RNG and
+camera-field preservation, the quarantine, the reflection invocation); the step-minus-pass
+difference is CUO's body-level bookkeeping. One Debug line per ten-second window:
+
+`[Vitals] cost 10.0s: bodies=1 steps=501 passes=501 stepAvg=…us stepMax=…us passAvg=…us passMax=…us frameCost=…ms frameBudget=…% fixedStep=…ms timeScale=…`
+
+- `steps` / `passes`: completed steps and the subset that reached the native pass. A step that
+  returns before the pass (no snapshot, not in world, a stalled step) is still host cost, so it is
+  counted with pass ticks 0.
+- `stepAvg` / `stepMax`: per clone per fixed step, in microseconds. `passAvg` / `passMax` are the
+  pass (native stages plus the pass-level wrapper) inside that step.
+- `frameCost`: the cost of ONE fixed-step invocation across the observed bodies, derived from the
+  observed wall rate and the window's own `fixedStep`/`timeScale` (`rate / (timeScale / fixedStep)`)
+  — the ticket's “N bodies × the pass per fixed step” number. At `timeScale` 1 it is the familiar
+  per-20 ms-frame cost; at 5×/25× the invocation cost is the same and invocations arrive faster, so
+  the wall share below is the affordability number.
+- `frameBudget`: the share of wall time those steps took. It grows with `timeScale`; a reader
+  compares it with 100% (2.5% at 5× with one clone, for example).
+- `fixedStep` / `timeScale` name the basis the window ran on. A fixed-step or speed change, and a
+  gap above 1 s (a paused host, a stopped `timeScale`, a detached clone), close the partial window
+  on its own basis before the next one starts, so no window averages two bases or a pause.
+- While Debug is filtered — the default `Logging.MinimumLevel=Information` — the caller skips its
+  stopwatches and calls `Suspend`, which closes the window; turning Debug on later starts a fresh
+  one. An acceptance run raises the level to Debug to capture the line.
+
+The line is Debug and one per window on purpose: the ticket asks for a number, not a per-frame
+log. The call site is pinned by source
+(`HostVitalsSuppressionPinTests.TheFrameCostProbe_MeasuresTheWholeStepAndTheNativePass`, with
+negative samples for an unrecorded step, an unmeasured pass and either `try`/`finally` removed),
+and the window boundary, every field's arithmetic (including a 5× window and the slowest-step
+case), the basis and quiet-gap resets, the body/pass counts and the Debug gate are row tests in
+`HostVitalsCostProbeTests`.
+
+**Measured numbers:** owed — the two-client batch reads this line on the host while it runs the
+acceptance rows below. It observes ONE remote clone (host + one guest), so the reading is N=1; the
+projection to N clones is linear because each clone runs its own pass. Read a steady-state window,
+not the first one after Debug is enabled or after a body joins (that one can include the one-time
+seed), and note its `timeScale`: the line stays in the deployed build so a later session can
+re-measure it.
+
+### Independent adversarial review (2026-10-18, frozen tree) — unit 3 findings and dispositions
+
+A fresh-context reviewer read the probe, its wiring, the tests and the docs against the frozen
+tree; it reproduced 23/23 focused and 741/741 gates + 5953/5953 behaviour tests (the pre-fix
+counts) and found one major, eleven minors and nits. All are fixed in the same unit:
+
+- **M1 (major) — `frameCost` was not one fixed-step invocation when `Time.timeScale != 1`.**
+  The reviewer cited `WorldTimeSpeedScale` (`Fast` 5, `SuperFast` 20, `UnconsciousFast` 25,
+  `DyingFast` 3.5) and the game's own writes (`PlayerCamera`: 1/5/20/25/3.5/0.16/0), and quoted
+  `var frameCostMs = stepSecondsPerSecond * _fixedStepSeconds * 1000.0;`: at 25× a FixedUpdate
+  runs 25 times per wall second, so that expression reports a 20 ms wall slice, 25× the
+  per-invocation cost. **Fixed:** the probe takes `Time.timeScale`, computes
+  `frameCost = stepSecondsPerSecond / (timeScale / fixedStep)` (one fixed-step invocation), emits
+  `timeScale`, and closes the window when the fixed step or the time scale changes;
+  `frameBudget` remains the wall share and is now the affordability number. The 5× row test
+  records 2501 invocations per window and pins equal per-invocation cost with a 5× wall share.
+- **m2 — the Debug-gate test could not fail if the gate were removed.** The filtered and enabled
+  phases were separated by a >1 s gap, so a gap reset hid the accumulation. **Fixed:** the phases
+  are contiguous, the filtered phase varies the step/pass duration, and the enabled window must
+  read `stepAvg=100.0us`/`passAvg=80.0us` (a mixed window would read 149.9 µs).
+- **m3 — the pin did not enforce the try/finally, and a throwing pass lost its pass ticks.**
+  `ProbeWiringHolds` was order-only, and the inner `finally` assigned a local that never reached
+  `Step` when `Run` threw. **Fixed:** the pass ticks are reported through a `ref` written in the
+  pass's `finally`, so a throw still records what ran; `StepShapeHolds` and
+  `PassMeasureShapeHolds` brace-match both try/finallys, and the negative samples remove each.
+- **m4 — `stepMax`/`passMax` were not distinguished from the average, and the N=2 `frameCost` was
+  unpinned.** **Fixed:** one slow step per window (`500 µs` step, `400 µs` pass) and a two-body
+  `frameCost=0.150ms`/`frameBudget=0.75%` assertion.
+- **m5 — the pass was labelled as the game's stages only.** `HostVitalsPass.Run` also carries the
+  RNG/camera preservation, the quarantine, the scope and the reflection invocation. **Fixed:** the
+  probe doc, this ticket and both internals pages now say the pass is the native stages plus the
+  pass-level wrapper, and step−pass is CUO's body-level bookkeeping.
+- **m6 — “one disabled check per step” understated the filtered path.** `Step` still took two
+  timestamps and read `Time.fixedDeltaTime` before the check. **Fixed:** `Enabled` gates the
+  timestamps and `Time` reads; the filtered step calls `Suspend` (one check and one field write).
+- **m7 — a partial window vanished on a pause.** **Fixed:** a >1 s gap emits the partial window on
+  its own basis, then restarts; the row test asserts both lines.
+- **m8 — the last `Time.fixedDeltaTime` was used for a whole window.** **Fixed by the same basis
+  reset** (fixed-step or time-scale change closes the window first).
+- **m9 — the N=1/linearity assumption was unstated.** **Recorded** in the measured-numbers
+  paragraph: the two-client batch observes one remote clone; the per-clone projection is linear
+  because each clone runs its own pass.
+- **m10 — the delivery checklist evidence was stale** (`HostVitalsBodies` 294, 5947/5947).
+  **Rewritten for this cycle:** 345/213 lines, 5956/5956 behaviour + 741/741 gates, the probe's
+  tests/pin and the acceptance obligation.
+- **m11 — the code-complete ticket still sat in `todo/`.** **Fixed:** moved to `review/` with
+  `- Status: Review`; the index row, `docs/standard/document-census.txt` and every inbound link
+  were updated in the same change.
+- **Nits fixed:** the internals pages now say window averages/maxima (not per-clone figures) and
+  that the step includes bookkeeping; a negative step duration is clamped to 0; a filtered
+  `Record` also closes the window; “headroom readable without arithmetic” now says the share is
+  compared with 100%; the main-thread assumption and the first-window seed are stated.
+- **Recorded, not fixed:** the line is Debug-only and invisible at the default
+  `Logging.MinimumLevel=Information`; a window reports a sample (average/maximum), not a
+  distribution; `timeScale = 0` produces no records because `FixedUpdate` stops, and a
+  non-finite value would keep re-opening the window — a game/mod defect, not a probe case.
 
 ## Acceptance (the rows a run must read)
 

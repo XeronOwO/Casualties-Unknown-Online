@@ -106,6 +106,9 @@ Adversarially verify:
 
 Report findings by severity (blocker / major / minor / nit), each with a path or `file:line`, the
 quoted text, and how you verified it. Then state explicitly what you could NOT falsify and what you
-could not check at all (for example anything that needs the game running). Send an INTERIM report at
-your first milestone so the parent can triage while you continue; the parent must not edit the frozen
-files until the final report lands.
+could not check at all (for example anything that needs the game running).
+
+Send an INTERIM report only when a finding would change the parent's plan — a blocker that stops or
+re-scopes the round, or a contradiction it must put to the user — because the parent must not edit the
+frozen files until the final report lands: a routine milestone ping cannot be acted on, so it is noise.
+Otherwise deliver one final report.

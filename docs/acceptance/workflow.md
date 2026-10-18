@@ -148,11 +148,14 @@ collected while its scenario is up.
   On a DPI-scaled display the capturing process sets its DPI awareness before `GetWindowRect`/`PrintWindow`;
   otherwise the bitmap is the physical window and the canvas's right/bottom — the launcher, a docked panel —
   are cropped out of the frame.
-- **The characters are part of the setup, and a restore is read back.** Before the long row work, put each
-  character in a usable state and READ THE RESULT: `/heal` uses a carried medical item and its
-  `Sent heal request to N player(s)` answer reports the REQUEST, not a restore, so a run that has no
-  medical item at hand gives one (`/give`, `item-provide`) or uses the game's own restore, and then reads
-  the vitals back (`body-read`, `wound-read`). A host left in a near-death state is a setup defect, not a
+- **The characters are part of the setup, and a restore is read back.** Restore each character BEFORE the
+  long row work, and keep checking: an unconscious healer is refused, so a heal attempted after a character
+  has already collapsed does nothing. The LOCAL reset is the game's own `heal` console command (the debug
+  command `ConsoleScriptHealHollowPatch` extends with severed limbs and hollow); CUO's `/heal` is the
+  ITEM-BASED CROSS-PLAYER heal — a conscious healer, a carried medical item, another player. `/heal`'s
+  `Sent heal request to N player(s)` answer reports the REQUEST, not a restore, and its synchronous
+  refusals are currently answered the same way (`todo/heal-command-silent-refusals.md`), so read the vitals
+  back (`body-read`, `wound-read`) after either. A host left in a near-death state is a setup defect, not a
   row's finding: rows judged on its frame are re-read once it is restored.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
 

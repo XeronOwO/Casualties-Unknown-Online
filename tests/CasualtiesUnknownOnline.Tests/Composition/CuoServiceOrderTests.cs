@@ -48,6 +48,9 @@ public class CuoServiceOrderTests
 		"EntitySyncService",
 		"EnemySyncService",
 		"TutorialClawService",
+		// The host's continuous-vitals authority advances every player's bleeding state and
+		// sends the row down; it sits with the character table it reads.
+		"PlayerVitalsService",
 		"WorldReportFallbackPump",
 		"SessionControlConvergence",
 		"ProjectionHealthCoordinator",

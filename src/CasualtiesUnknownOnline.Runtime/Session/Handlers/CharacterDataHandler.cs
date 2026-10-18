@@ -18,7 +18,9 @@ public sealed class CharacterDataHandler(ILogger<CharacterDataHandler> log) : Pa
 	{
 		if (ctx.Session.Role == SessionRole.Host)
 		{
-			ctx.CharacterData.SaveCharacterData(sender, msg);
+			// A plain 1 Hz report: it refreshes the model's inputs, never the continuous values
+			// the host owns (PlayerVitalsService's seam).
+			ctx.CharacterData.SaveReportedCharacterData(sender, msg);
 			// Render the reporter's clone inventory (the adapter diff-applies
 			// the snapshot to the remote clone's slots).
 			ctx.CharacterData.FireCharacterDataReceived(sender, msg);

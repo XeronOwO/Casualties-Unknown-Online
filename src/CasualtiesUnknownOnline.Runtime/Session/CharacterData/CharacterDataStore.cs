@@ -89,12 +89,34 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		_sender.Send(_session.HostSteamId, NetMsg.CharacterData, msg);
 	}
 
-	/// <summary>Host side: keep the latest report per SteamID in memory.</summary>
+	/// <summary>
+	/// Host side: keep the latest authoritative snapshot per SteamID. Callers are the host's own
+	/// writers (event appliers, revives, restores); a member's plain report goes through
+	/// <see cref="SaveReportedCharacterData"/> instead, which is the only path where the two
+	/// continuous values the host owns are filtered.
+	/// </summary>
 	internal void SaveCharacterData(ulong steamId, CharacterDataMsg msg)
 	{
 		_savedCharacters[steamId] = msg;
 		_playerLimbKernel.SyncFromCharacterData(steamId, msg);
 		_appliedItems.SyncFromCharacterData(steamId, msg);
+	}
+
+	/// <summary>
+	/// Host side: keep a member's 1 Hz report. The CONTINUOUS bleeding values are the host's, not
+	/// the reporter's (the 2026-10-18 ruling): a plain report refreshes the model's inputs but
+	/// never the two values the host owns, so a client that edits its own bleed/blood volume
+	/// cannot state it. An event the host arbitrated writes them through
+	/// <see cref="SaveCharacterData"/> instead, which is also what PlayerVitalsService re-seeds on.
+	/// </summary>
+	internal void SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg)
+	{
+		if (_savedCharacters.TryGetValue(steamId, out var previous))
+		{
+			ContinuousVitals.Preserve(previous, msg);
+		}
+
+		SaveCharacterData(steamId, msg);
 	}
 
 	/// <summary>
@@ -144,6 +166,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	{
 		_savedCharacters.Clear();
 		_hostData = null;
+		SavedCharactersCleared?.Invoke();
 	}
 
 	/// <summary>Session ended: the in-memory saves die with the session; the world archive is what a later start restores from.</summary>
@@ -247,6 +270,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// </summary>
 	public event Action<ulong, CharacterDataMsg>? CharacterDataReceived;
 
+	/// <summary>Host: the saved-character table was cleared (new run / world restore) — dependent per-run state must die with it.</summary>
+	public event Action? SavedCharactersCleared;
+
 	/// <summary>Guest: the host's own 1 Hz snapshot arrived — render its clone inventory (never apply).</summary>
 	public event Action<CharacterDataMsg>? HostCharacterDataReceived;
 
@@ -264,6 +290,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 
 	/// <summary>A character ragdoll-toggle event arrived (report or relay) — the Game Adapter replays the lying pose on the owner's clone.</summary>
 	public event Action<ulong, CharacterRagdollMsg>? CharacterRagdollReceived;
+
+	/// <summary>Guest: the host-computed continuous-vitals row arrived — the Game Adapter applies it to its own body.</summary>
+	public event Action<PlayerVitalsMsg>? PlayerVitalsReceived;
 
 
 	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the dedicated event is the trigger; the snapshot is only the fallback).</summary>
@@ -414,6 +443,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 
 	void ICharacterDataControl.SaveCharacterData(ulong steamId, CharacterDataMsg msg) => SaveCharacterData(steamId, msg);
 
+	void ICharacterDataControl.SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg) => SaveReportedCharacterData(steamId, msg);
+
 	void ICharacterDataControl.SendSavedCharacter(ulong steamId) => SendSavedCharacter(steamId);
 
 	CharacterDataMsg? ICharacterDataControl.GetSavedCharacter(ulong steamId) => GetSavedCharacter(steamId);
@@ -476,6 +507,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 
 	void ICharacterDataControl.FireCharacterRagdollReceived(ulong sender, CharacterRagdollMsg msg) =>
 		CharacterRagdollReceived?.Invoke(sender, msg);
+
+	void ICharacterDataControl.FirePlayerVitalsReceived(PlayerVitalsMsg msg) =>
+		PlayerVitalsReceived?.Invoke(msg);
 
 	void ICharacterDataControl.SendCharacterRagdoll(CharacterRagdollMsg msg) => SendCharacterRagdoll(msg);
 

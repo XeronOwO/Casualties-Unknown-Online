@@ -11,7 +11,19 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// </summary>
 public interface ICharacterDataControl
 {
+	/// <summary>
+	/// Host: store an authoritative snapshot this side itself authored — an event the host
+	/// arbitrated (revive, amputation, heal, a limb latch, a restore from the world archive).
+	/// The owned continuous values in it are kept as written.
+	/// </summary>
 	void SaveCharacterData(ulong steamId, CharacterDataMsg msg);
+
+	/// <summary>
+	/// Host: store a member's plain 1 Hz REPORT. It may refresh the model's inputs, but the two
+	/// continuous values the host owns (blood volume, per-limb bleed) are preserved from the
+	/// current snapshot — a member never states them (the 2026-10-18 ruling).
+	/// </summary>
+	void SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg);
 
 	void SendSavedCharacter(ulong steamId);
 
@@ -33,6 +45,9 @@ public interface ICharacterDataControl
 	/// <summary>Host only: a NEW run started — the previous run's saved characters are void (a stale restore would wipe the new run's starting supplies).</summary>
 	void ClearSavedCharacters();
 
+	/// <summary>Host: the saved-character table was cleared (new run / world restore) — dependent per-run state must die with it.</summary>
+	event Action? SavedCharactersCleared;
+
 	/// <summary>A character snapshot arrived (host: guest report; guest: host restore) — the Game Adapter applies/renders it.</summary>
 	event Action<ulong, CharacterDataMsg>? CharacterDataReceived;
 
@@ -53,6 +68,12 @@ public interface ICharacterDataControl
 
 	/// <summary>A character ragdoll-toggle event arrived — the Game Adapter replays the lying pose on the owner's clone.</summary>
 	event Action<ulong, CharacterRagdollMsg>? CharacterRagdollReceived;
+
+	/// <summary>Guest: a host-computed continuous-vitals row arrived — the Game Adapter applies it to the body it names (its own).</summary>
+	event Action<PlayerVitalsMsg>? PlayerVitalsReceived;
+
+	/// <summary>Surface an arrived vitals row for the Game Adapter to apply.</summary>
+	void FirePlayerVitalsReceived(PlayerVitalsMsg msg);
 
 	/// <summary>Host only: relay a guest's report to the other guests (OwnerSteamId stamped, source excluded) — their clones of the reporter render its carried state.</summary>
 	void RelayCharacterData(ulong ownerSteamId, CharacterDataMsg msg);

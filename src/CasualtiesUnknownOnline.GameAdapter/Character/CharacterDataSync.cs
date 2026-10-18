@@ -97,6 +97,7 @@ internal sealed class CharacterDataSync(
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived += OnHostCharacterDataReceived;
 		_characterData.LimbStateEventReceived += OnLimbStateEventReceived;
+		_characterData.PlayerVitalsReceived += _vitals.Apply;
 	}
 
 	internal void Unbind()
@@ -104,6 +105,7 @@ internal sealed class CharacterDataSync(
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived -= OnHostCharacterDataReceived;
 		_characterData.LimbStateEventReceived -= OnLimbStateEventReceived;
+		_characterData.PlayerVitalsReceived -= _vitals.Apply;
 	}
 
 	/// <summary>A limb-latch event arrived (report or relay) — update the owner's fact-table entry and re-render its clone (the dedicated event is the trigger; the 1 Hz snapshot is the fallback).</summary>
@@ -237,6 +239,11 @@ internal sealed class CharacterDataSync(
 		{
 			return;
 		}
+
+		// The host-computed vitals row arrives outside the pump, so the pump hands the local
+		// body over once per frame — the row can then be applied the moment it lands instead
+		// of waiting for the next frame's capture.
+		_vitals.TrackLocalBody(localBody);
 
 		if (_restore.HasPending || _restore.WipePending)
 		{
@@ -569,4 +576,7 @@ internal sealed class CharacterDataSync(
 	/// <see cref="WearableRestorer"/>, which both callers share.
 	/// </summary>
 	internal void RestoreWearable(CharacterItemMsg itemData, Body body) => _wearables.RestoreWearable(itemData, body);
+
+	/// <summary>The host-computed vitals row's apply target (its own logic lives in <see cref="LocalVitalsApplier"/>).</summary>
+	private readonly LocalVitalsApplier _vitals = new(session);
 }

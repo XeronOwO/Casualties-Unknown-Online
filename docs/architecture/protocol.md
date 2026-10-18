@@ -107,6 +107,13 @@ or change ownership.
 - Player/enemy streams: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs`
 - Stream wire shape: `src/CasualtiesUnknownOnline.Protocol/Wire/WireStateStream.cs`
 
+One standalone, per-player message also rides the unreliable channel outside the stream envelope:
+`NetMsg.PlayerVitals` (154, host → that player's client, 10 Hz) carries the host-computed continuous
+bleeding values the player's own client applies to its own body. It is an absolute row, and the next
+row 100 ms later repairs a lost one, so it needs neither the stream's sequence gate nor a checkpoint.
+Its policy and fallback live in the sync-coverage matrix row P3; the direction and the sender check
+are in `PlayerVitalsHandler`.
+
 ## Common header fields
 
 All envelopes share `EnvelopeHeader` fields:

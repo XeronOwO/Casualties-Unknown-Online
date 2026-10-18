@@ -52,6 +52,13 @@ internal static class EntityReplicationComposition
 		services.AddSingleton<PlayerKernelRestoreProjection>();
 		services.AddSingleton<CharacterDataStore>();
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
+		// The host's continuous-vitals authority (2026-10-18 ruling): the host advances every
+		// player's bleeding values with the game's own rules and pushes the row down, and the
+		// player's own client applies it to its own body. It is a pump because the advance is a
+		// clock step, and it is registered AFTER the character table it reads.
+		services.AddSingleton<IPlayerVitalsTuning, DefaultPlayerVitalsTuning>();
+		services.AddSingleton<PlayerVitalsService>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PlayerVitalsService>());
 		// Remote-vitals cache: the Online UI's read-only view of the latest
 		// character snapshots (no pump, not an ICuoService — only reacts to the
 		// character-data stream and session end).

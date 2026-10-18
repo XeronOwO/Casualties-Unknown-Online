@@ -3,8 +3,8 @@
 - Status: Todo — **direction ruled by the user on 2026-10-18: the HOST computes the continuous
   player state by reusing the game's own methods; the affected client judges every event and
   applies the host's rows to its own body.** This supersedes the (a)-first recommendation the
-  earlier draft carried. Stage 1 (the bleeding family) is written and staged; Stage 2 (the whole
-  chain) is designed below. Not started on the verification side.
+  earlier draft carried. Stage 1 (the bleeding family) is implemented and committed; its
+  two-client runtime acceptance is still owed, and Stage 2 (the whole chain) is designed below.
 - Priority: Medium-High
 - Category: Player state / cross-player sync / authority
 - Source: the user's 2026-10-14 request (health simulated on every client, reconciled to the host)
@@ -70,9 +70,10 @@
   row). It carries ONLY the host-owned values: body blood volume, body bleeding speed, and the
   per-limb bleed amounts. Nothing terminal rides it.
 - **Stage 2 additions:** the missing input flags on the 20 Hz entity stream (in-water, moving,
-  exercising, current action), and the 1 Hz `CharacterData` stays as the reconciliation channel.
+  exercising, current action), and the 1 Hz `CharacterData` stays as the report channel the
+  reconciliation will read — the comparison itself is stage 2, not stage 1.
 
-## Stage 1 — the bleeding family (written, staged in git, NOT verified)
+## Stage 1 — the bleeding family (landed, runtime acceptance owed)
 
 Owned values: per-limb `bleedAmount` and `bloodVolume` (+ derived `totalBleedSpeed`). Inputs, all
 already on the existing snapshot: blood viscosity, venom, hunger, internal bleeding, and per limb
@@ -80,7 +81,7 @@ the skin health, tourniquet flag, shrapnel count and bandage amount. World setti
 `healingrate`, `bleedrate` (read by the adapter through `IPlayerVitalsTuning`, so a widened run is
 honoured). No new inputs, no randomness, no terminal output.
 
-Files (all staged as `stash@{0}` at hand-off):
+Files:
 
 - `src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/PlayerBleedingState.cs` — the model,
   one rule per native call site, with the citations in its doc comment.
@@ -88,22 +89,113 @@ Files (all staged as `stash@{0}` at hand-off):
   per player, 10 Hz advance and send; re-seeds when the host's own snapshot stops carrying the
   model's values (which only an event the host arbitrated can do).
 - `src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/ContinuousVitals.cs` — keeps a plain
-  report from writing the two owned fields (`CharacterDataStore.SaveCharacterData`).
+  report from writing the two owned fields (`CharacterDataStore.SaveReportedCharacterData`).
+- `src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/IPlayerVitalsTuning.cs`,
+  `DefaultPlayerVitalsTuning.cs` — the run-setting port and the container's unmodified-run default.
 - `src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/PlayerVitalsMsg.cs`,
   `PlayerLimbBleedMsg.cs`, `NetMsg.PlayerVitals = 154`.
-- `src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerVitalsHandler.cs` — host → client.
+- `src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerVitalsHandler.cs` — host → client,
+  with the sender check every host-addressed instruction shares.
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/LocalVitalsApplier.cs` — applies a row to the
   local body only (its own row; another player's is read from the snapshot).
 - `src/CasualtiesUnknownOnline.GameAdapter/GamePlayerVitalsTuning.cs` — the live run settings.
-- `tests/CasualtiesUnknownOnline.Tests/Character/PlayerBleedingStateTests.cs` — 9 rows, green.
+- Edited: `CharacterDataStore.cs` + `ICharacterDataControl.cs` (the report/authority split and the
+  cleared-table signal), `CharacterDataHandler.cs` (a report goes through the report path),
+  `CharacterDataSync.cs` (the local-body hand-over), `EntityReplicationComposition.cs` and
+  `GameAdapterComposition.cs` (the service and the real tuning).
+- `tests/CasualtiesUnknownOnline.Tests/Character/PlayerBleedingStateTests.cs` — 18 rows.
+- `tests/CasualtiesUnknownOnline.Tests/Character/PlayerVitalsServiceTests.cs` — 11 rows (cadence,
+  reliability, stall cap, authority re-seed, role/world gates, session/table reset, non-finite).
+- `tests/CasualtiesUnknownOnline.Tests/Character/PlayerVitalsOwnershipTests.cs` — 4 rows against
+  the real store and the real revive/amputation writers.
+- `tests/CasualtiesUnknownOnline.Tests/Session/PlayerVitalsForgeryTests.cs` — 1 row (a non-host
+  sender is dropped by name; the host's row still lands).
 - Doc/gate edits: the sync-coverage matrix P3 row + `NetMsg.PlayerVitals` vocabulary index entry +
-  two evidence anchors, `HostToGuestDirectionTests`, `CuoServiceOrderTests`, the test fake.
+  two evidence anchors, the protocol message table (both blocks, id 154), the protocol page's
+  standalone-unreliable-message note, the member-report census's `CharacterData` row,
+  `HostToGuestDirectionTests`, `CuoServiceOrderTests`, the test fake.
 
-Where it stands: build green and the 9 model tests green at the last full run. Five gates went red
-and were being fixed when the cycle handed off — the vocabulary index entry, the P3 row length
-(1200-char bound), the `CharacterDataSync` 611-line aggregate (split into `LocalVitalsApplier`),
-and the message-direction/order registries. **The last three edits were not built or gated**, so
-the next round's first action is `git stash pop` followed by a build and those five gates.
+### Review findings fixed before the stage-1 commit
+
+1. `PlayerBleedingState.TotalBleedSpeed` summed the raw limb bleed and missed
+   `Body.bleedingSpeedMultiplier`, the factor native `Body.HandleBody` applies through
+   `Limb.bleedSpeedMult` (`Body.cs:2807`): a 10-unit wound read 10 l/m instead of 0.1. Fixed and
+   pinned by two exact-value rows.
+2. `PlayerVitalsService` measured its step from the PREVIOUS FRAME while only advancing on every
+   tenth update: the drain ran at roughly a sixth of the game's speed. The step now comes from the
+   previous advance, and `PlayerVitalsServiceTests` pumps 60 fps of virtual time to pin it.
+3. The row was sent RELIABLE although the design says unreliable, 10 Hz, self-healing on the next
+   row (`PacketSender.Send` defaults to reliable). Now `reliable: false`, pinned by a test whose
+   link drops every unreliable frame.
+4. `PlayerVitalsMsg.TotalBleedSpeed` had no receiver; `LocalVitalsApplier` now writes it onto
+   `Body.totalBleedSpeed` (the value the WoundView l/m line and the moodles read).
+5. The service's first divergence logger compared the SAVED snapshot against the model, but
+   `ContinuousVitals.Preserve` had already overwritten the report's owned values with the host's
+   own from the previous tick, so it reported the model's advance as a client divergence. Removed:
+   the real reconciliation needs the raw report captured before `Preserve` and a tolerance, which
+   is Stage 2 item 4, not a half-correct logger in Stage 1.
+6. `GamePlayerVitalsTuning` turned a deliberate `0` run setting into `1`; it now falls back only
+   when the world (and therefore the settings table) does not exist yet.
+7. The protocol message table had no row for 154; added in both language blocks.
+
+Built green; the five gates that were red at hand-off (vocabulary index, P3 row budget, 600-line
+aggregate, message direction, service order) are green; 34 focused model/pump/ownership/forgery
+tests green; the full suite and the gates are green at the commit that carries this ticket. Not yet
+verified: the two-client acceptance rows below, and the frame-cost measurement (Stage 2 item 5).
+
+### Independent adversarial review (2026-10-18, frozen tree)
+
+A fresh-context reviewer read the whole diff, the native call sites and the test bodies; its report
+drove the fixes below, all in the same commit.
+
+- **B1 (blocker) — the ownership filter sat on the wrong method, so every clone-and-save event was
+  reverted.** `ContinuousVitals.Preserve` ran inside `CharacterDataStore.SaveCharacterData`, i.e. on
+  EVERY save, while the medical/revive appliers clone the stored snapshot and save the clone:
+  `OtherMedicalOperationApplier.CompleteAmputation` writes `limb.BleedAmount = 0f` / halves the
+  connected limbs (lines 138/164/179) and saves; `ShrapnelSessionStateWriter.ApplyBreakGrasp` adds
+  the stump bleed and saves; `TraderRecruitPolicy.PrepareRevive` builds a fresh health block with
+  `BloodVolume = 100f` (line 116) and `RespawnCoordinator` (line 131) / `TraderRecruitCoordinator`
+  (lines 229/246-249) save it — the recruit path mutates the very object whose health the result
+  message then sends. Only the in-place appliers (bite, limb latch) survived. Red observed with the
+  real store BEFORE the fix: `AReviveSave_KeepsTheRevivedBloodVolume` expected 100, got 0;
+  `AnAmputationSave_KeepsTheZeroedLimbBleed` expected 0, got 4. Fix: the filter lives on the REPORT
+  path only — `ICharacterDataControl.SaveReportedCharacterData`, called by `CharacterDataHandler`
+  for a member's 1 Hz report, preserves the owned values; `SaveCharacterData` stays the authority
+  path every event, revive and restore writes through. Pinned by `PlayerVitalsOwnershipTests`
+  against the real store and the real policies.
+- **M1 (major) — the row handler had no host-sender check.** `PlayerVitalsHandler` fired the event
+  for any sender; the wire direction check proves only the local ROLE. A guest-addressed frame from
+  a third peer could set that guest's blood. Fixed: the handler requires
+  `sender == ctx.Session.HostSteamId` and logs the refusal by name;
+  `PlayerVitalsForgeryTests` proves a forged frame is dropped while the host's own row still lands.
+- **M2 (major) — a non-finite report could abort the pump for every player.** `Math.Sign(float.NaN)`
+  throws, and every report field is unvalidated. Fixed in two layers: the model adopts a reported
+  number only when finite (`FiniteOr`), and the service refuses a non-finite snapshot by name once
+  per player (`FirstNonFinite`/`AcceptReport`), keeps its own values and still sends them. Two tests
+  pin the layers.
+- **M3 (major) — the model advanced players outside the world.** A member in the menu has no native
+  `Body`/`Limb` update, so a wall-clock advance was a CUO invention. Fixed: the pump requires the
+  host's own `LocalInWorld` and the member's `InWorld`; two service rows pin it.
+- **M4 (major) — the modelled state outlived its session and its run.** The service declared
+  `ISessionReset` but never subscribed `SessionEnded`, and `ClearSavedCharacters()` (new run / world
+  restore) did not reach it, so a stale state could survive and then ADOPT the next plain report.
+  Fixed: the service subscribes both (`SessionEnded`, and the store's new `SavedCharactersCleared`)
+  and drops every state; two service rows and one real-store row pin it.
+- **M5 (major) — the absence of reconciliation was not stated where the ticket claimed it.** The
+  wire and stage-1 sections now say plainly that stage 1 computes and pushes but compares nothing;
+  acceptance rows 4/5/7 need the stage-2 comparison.
+
+Minors fixed in the same commit: the native intra-update order (limb drain before decay;
+regeneration/clamp before the internal/venom drains); the venom drain runs only while positive (a
+negative report must not add blood); the model doc states that inputs are sampled at 1 Hz rather
+than re-running their own decay; `Limb.Dismembered` is in the input list; a limb index the previous
+snapshot did not carry has its reported bleed zeroed rather than kept; the send sentinel is
+`long.MinValue` (a signed `Environment.TickCount` can be negative after ~24.85 days of uptime); the
+protocol and census pages state the new member's loss/repair and the input-driving consequence.
+Recorded, not fixed: the family-wide signed-clock sentinel (`CharacterDataSync` has the same shape,
+pre-existing); the overstatement that a row's `totalBleedSpeed` survives the body's own per-frame
+recompute; the skipped advance on a re-seed tick (~100 ms); and the first-snapshot limb shape (the
+snapshot is a full body list, so a partial one would cap the model's array — self-only today).
 
 ## Stage 2 — the whole chain (design)
 

@@ -408,4 +408,9 @@ public enum NetMsg : byte
 	HealResetInstruction = 152, // host → a member target: apply the full reset to your own body now
 	HealResetResult = 153, // host → requester: the answer (what was reset/revived/restored, or the refusal)
 
+	// Host-computed continuous vitals (host authority — the host owns the continuous bleeding
+	// values for every player and pushes the row down; the affected client still judges the
+	// events and applies the row to its own body, so this is not a body write by the host)
+	PlayerVitals = 154, // host → client: the host-computed bleeding row (blood volume + per-limb bleed, 10 Hz, unreliable)
+
 }

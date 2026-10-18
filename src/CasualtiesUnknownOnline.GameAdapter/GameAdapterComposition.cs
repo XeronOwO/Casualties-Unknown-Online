@@ -59,6 +59,10 @@ public static class GameAdapterComposition
 		services.AddSingleton<ItemIdAllocator>();
 		services.AddSingleton<GameAdapter>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapter>());
+		// The host's bleeding model integrates with the LIVE run settings (a widened run clots
+		// and bleeds at its own speeds); the container's default is the unmodified run. It is
+		// registered here, after the runtime's default, so this one wins.
+		services.AddSingleton<Runtime.Session.CharacterData.IPlayerVitalsTuning, GamePlayerVitalsTuning>();
 		// The capability ports (done/adapter-capability-ports.md): a consumer
 		// resolves the port whose capability it uses instead of the whole adapter,
 		// and every port IS the one adapter singleton the implementation is.

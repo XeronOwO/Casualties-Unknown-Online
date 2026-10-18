@@ -2,8 +2,20 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1094,
+  "count": 1096,
   "entries": [
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/PlayerVitalsService.cs",
+      "quote": "_sender.Send(steamId, NetMsg.PlayerVitals, Capture(steamId, state), reliable: false);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerVitalsHandler.cs",
+      "quote": "ctx.CharacterData.FirePlayerVitalsReceived(msg);"
+    },
     {
       "cluster": "enemies-trade",
       "row": "N1",

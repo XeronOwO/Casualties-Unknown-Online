@@ -22,6 +22,17 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 
 	public void SaveCharacterData(ulong steamId, CharacterDataMsg msg) => _saved[steamId] = msg;
 
+	/// <summary>The real store's report rule, mirrored: a plain report cannot state the owned values.</summary>
+	public void SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg)
+	{
+		if (_saved.TryGetValue(steamId, out var previous))
+		{
+			ContinuousVitals.Preserve(previous, msg);
+		}
+
+		_saved[steamId] = msg;
+	}
+
 	public void SaveHostCharacterData(CharacterDataMsg msg) => HostData = msg;
 
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) => _saved.TryGetValue(steamId, out var data) ? data : null;
@@ -34,7 +45,11 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 
 	void ICharacterDataControl.ReportCharacterData(CharacterDataMsg msg) => throw new NotSupportedException("the save tests never report");
 
-	void ICharacterDataControl.ClearSavedCharacters() => _saved.Clear();
+	void ICharacterDataControl.ClearSavedCharacters()
+	{
+		_saved.Clear();
+		SavedCharactersCleared?.Invoke();
+	}
 
 	void ICharacterDataControl.RelayCharacterData(ulong ownerSteamId, CharacterDataMsg msg) => throw new NotSupportedException("the save tests never relay");
 
@@ -69,6 +84,13 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 	void ICharacterDataControl.FireCharacterRagdollReceived(ulong sender, CharacterRagdollMsg msg) => throw new NotSupportedException("the save tests never fire");
 
 	void ICharacterDataControl.SendCharacterRagdoll(CharacterRagdollMsg msg) => throw new NotSupportedException("the save tests never send");
+
+	void ICharacterDataControl.FirePlayerVitalsReceived(PlayerVitalsMsg msg) => throw new NotSupportedException("the save tests never fire vitals");
+
+	/// <summary>Test seam: simulate the store being cleared (new run / restore).</summary>
+	internal void FireSavedCharactersCleared() => SavedCharactersCleared?.Invoke();
+
+	public event Action? SavedCharactersCleared;
 
 	event Action<ulong, CharacterDataMsg>? ICharacterDataControl.CharacterDataReceived
 	{
@@ -107,6 +129,12 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 	}
 
 	event Action<ulong, CharacterRagdollMsg>? ICharacterDataControl.CharacterRagdollReceived
+	{
+		add { }
+		remove { }
+	}
+
+	event Action<PlayerVitalsMsg>? ICharacterDataControl.PlayerVitalsReceived
 	{
 		add { }
 		remove { }

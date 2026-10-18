@@ -1,7 +1,7 @@
 # Item and entity data commands: give, spawn and a property editor
 
-- Status: Review — **stage D (`spawn`) landed 2026-10-18**, so every stage of this ticket is built; its acceptance
-  rows (`What the acceptance batch owes`, under *Stage D* below) are what a real run still owes. History: the read
+- Status: Review — **stage D (`/summon`) landed 2026-10-18** (the user's ruling renamed the stage's working
+  name `/spawn`), so every stage of this ticket is built; its acceptance rows (`What the acceptance batch owes`, under *Stage D* below) are what a real run still owes. History: the read
   half landed 2026-10-14 as `review/item-data-read-commands.md`, and stage B's first
   verb (`/data set`, with the local-scene port) the same day as `done/item-data-write-commands.md`; `merge` and
   `remove` landed 2026-10-17, and stage B's two remainders — the cursor target and the host's own carried
@@ -591,9 +591,9 @@ A host + one member session on the deployed artifact:
 |---|---|---|
 | 1 | Host `/summon beartrap player` | the answer names the point it used; the beartrap exists on both peers' scenes at that point |
 | 2 | Host `/summon medcrate` with the pointer over the world | the answer names the POINTER's world point (the native default) and the crate appears there |
-| 3 | Host `/summon bandage player {Condition:0.4f}` | the answer carries the state the item really holds; `/data get id <id>` on BOTH peers reads `0.4f`, and the item lies where the host stood |
-| 4 | Host `/summon spider player` | a spider appears on both clients, and the host's enemy snapshot log names it as a runtime spawn |
-| 5 | Member (switch open + grant) `/summon bandage player` | the answer prints on the member's console, and both peers see the item where the MEMBER stood — the member's own scene resolved the point |
+| 3 | Host `/summon item bandage player {Condition:0.4f}` | the answer carries the state the item really holds; `/data get id <id>` on BOTH peers reads `0.4f`, and the item lies where the host stood |
+| 4 | Host `/summon cavetick player` (the game's own spider prefab) | a spider appears on both clients as an animal, and the host's enemy snapshot log names it as a runtime spawn |
+| 5 | Member (switch open + grant) `/summon item bandage player` | the answer prints on the member's console, and both peers see the item where the MEMBER stood — the member's own scene resolved the point |
 | 6 | Member, switch closed (announced), the same verb | refused locally, nothing created on either peer |
 | 7 | Member, switch open, no grant (announced) | the roster's refusal, nothing created |
 | 8 | `/summon notanprefab` and `/summon beartrap player {Condition:0.5f}` | each is refused by name, nothing created on either peer |
@@ -633,10 +633,126 @@ A host + one member session on the deployed artifact:
 
 **Verification.** `dotnet build` exit 0 (0 warnings), `dotnet format` exit 0, the behavioural suite 5798/5798 and
 the normative gates 695/695 on the frozen tree (`.acceptance/test-full-3.log`, `.acceptance/gates-4.log`). The 59
-new cases are the parser's 23, the host console's 18, the member console's 10, the late-joiner table's 3, the
+new cases are the parser's 22, the host console's 18, the member console's 10, the late-joiner table's 3, the
 protocol round trips' 3, the two direction rows and the standalone-seam pin. Two shipped lines changed on the
 way and are recorded rather than hidden: the give ladder's drop rung now logs through the shared
 `WorldItemCreation` (`[Give] created <id> (id <n>) at (<x>,<y>) and reported its creation` — the same tag, the
 same facts, the position named as coordinates instead of "the local body's position"), and `ItemGrantSource`'s
 preparation line is tagged `[ItemCreate]` because two verbs now ask it for a fact.
+
+## Independent adversarial review (2026-10-18)
+
+The review the handoff owed. Fresh context, read-only, frozen tree `d5c1a592` (only documentation after
+`8b637361`); it ran the gates (695/695), the full suite (5 798/5 798) and the focused classes, fetched the live
+Minecraft page and read the decompiled call sites. **Verdict: no blocker; 2 major, 14 minor, 6 nits.** No file
+was modified by the review.
+
+**The premise (A0) holds.** The native counterpart is `ConsoleScript.cs:626-675` (`spawn <string id>
+[position] [float condition] [int amount]`), the default at `:633` is
+`Camera.main.ScreenToWorldPoint(Input.mousePosition)`, `ParsePosition` at `:1657-1676` reads exactly the four
+words the ticket names, creation is `Utils.Create` at `:648` (`Utils.cs:10-13` `Object.Instantiate(...)`), and
+`UtilsCreateCustomPrefabPatch.cs:23-43` extends it. The type word isolates the families: no order arbitration,
+no fallback identity. The live wiki shape (`summon <entity> [<pos>] [<nbt>]`) matches the parser's argument
+order and optionality; the ticket over-claims "deviates in one place" — the 2-D pointer-defaulted position and
+the refused entity `<nbt>` are two more (finding 12).
+
+**Major findings.**
+
+M1 — **The adapter's claimed behaviour is tested only against a hand-written duplicate.** `WorldSummoner` (the
+type-word enforcement, the item/entity classification, the state hint, the id-recreatable refusal and every
+refusal sentence) is never executed by a test: the test project references GameAdapter with
+`ExcludeAssets="compile"`, and every summon suite replaces the seam
+(`CommandConsoleWorldSummonTests.CreateSummonSession` → `services.Replace(ServiceDescriptor.Singleton<IWorldSummon>(p => new FakeWorldSummon(...)))`).
+`FakeWorldSummon` copies the production strings and has already drifted (it lacks `StateHint(state)` and
+"Nothing was created."), so the tests pin the fake. The ticket's Limits say the fake replaces "exactly that
+half" = instantiation/tables/pointer/body, but it also replaces the pure classification logic; self-check rows
+4/5/6/8 present it as claim 3's evidence.
+
+M2 — **`ASummonedItemEntity_AndAGivenDrop_CarryTheSameStateDocument` tests neither a give drop nor a state
+document.** Its body compares two console answer substrings (`Assert.Equal(givenDoc, summonedDoc)`): the summon
+side is `FakeWorldSummon` over a `FakeItemState` fact, the give side `FakeItemGrantSource` +
+`FakeItemStateLanguage`, and the give's world-drop rung (`PlayerInventoryPlacement.DropCreatedItemAtLocalBody` →
+`WorldItemCreation`) never runs in the test host. The production sharing is real (`WorldSummonService.Apply` →
+`WorldSummoner.SummonItem` → `_grant.TryCreate` + `WorldItemCreation`), and the give side is pinned by
+`SourceShapeGateTests.GiveLadderDrop_IsWiredFromTheTransferToTheSpawnReport`, but nothing pins the summoner's
+use — so "pinned by" is not true until one does.
+
+**Fix plan.** M1/M2 are test evidence: pin `WorldSummoner`'s production sentences and its
+`_grant.TryCreate`/`_worldItems.TryCreateAt` calls with source-shape assertions, and restate M2's test as what
+it proves (the service's answer equivalence) or replace it with a pin of the summoner's port use. The minors
+split: documentation (2, 3, 4, 5, 8, 11, 12, 13 and the nits), tests (1, 9, 10's negative path) and production
+(6, 7, 9's unanswered host branch, 10, 14). All of it is the next cycle's one commit, before the acceptance
+batch is re-run.
+
+**Minor findings.**
+
+1. Case arithmetic — the parser class is 22, not 23 (the listed decomposition summed to 60); the total 59 is
+   right (5 798 − 5 739 = 59, re-run).
+2. `docs/evidence/delivery-checklist.md` — "eighteen rows" (the table has 20), "51 new cases" (59),
+   `WorldSummonService` 243 (245), `WorldSummoner` 184 (201).
+3. Stale `/spawn` naming and non-existent `TrySpawn`/`IWorldSpawn`/`UnavailableWorldSpawn` in `IWorldSummon.cs`,
+   `UnavailableWorldSummon.cs`, `WorldItemCreation.cs`, `PlayerInventoryPlacement.cs`, `ItemStateText.cs`,
+   `ItemGiveParser.cs`, `ItemGrantSource.cs`, `IWorldSummonHandlerContext.cs`; pages:
+   `review/cheat-permission-and-op-commands.md` ("`/spawn` is the next verb", "when it lands"),
+   `done/give-item-to-a-player-command.md` ("not built"). This ticket's Status line is fixed in this commit.
+4. Dangling references to this ticket's old `todo/` path: `HostRulesOptions.cs` and five done/selfcheck docs.
+5. `docs/evidence/acceptance/20261017-q-scope.md` points at `review/…` but still says "stays in `todo/`".
+6. The shared state parser's refusal now reaches `/give` callers with `/summon` vocabulary ("The state attached
+   to a prefab id is a compound, e.g. `<id> {<key>:<value>}`") — a third shipped-text change the ticket records
+   nowhere.
+7. `WorldSummonParser`'s attached-state refusal echoes the rejected line as its correction
+   (`/summon bandage{Condition:0.5f} …`) and uses the `item` form for a bare entity id; its test asserts two
+   substrings only.
+8. The recorded reason the seam is standalone is false: `WorldSummoner` takes `IItemControl` and
+   `IItemGrantSource`, so "needs nothing the domain graph owns" (`docs/architecture/current.md`,
+   `GameAdapterComposition.cs`) does not hold; the registration pin itself is correct.
+9. No test exercises the host's `CheatVerbsOpenToMembers` refusal or the `msg.State.Length` branch, and
+   `HandleSummonRequest`'s `!LocalInWorld` early return is silent and unanswered — contrary to the census rule
+   that a refusal is answered (self-check row 9 claims both cheat rulings; only the roster half is).
+10. No finiteness check on the member's point: `float.TryParse` accepts `NaN` and a hand-crafted request
+    bypasses the parser; a host-side data check is missing (data validation, not anti-cheat).
+11. `docs/en|zh/reference/configuration.md` still define the switch's family as "(`/data`'s write verbs and
+    `/give`)" — `/summon` is missing from the bilingual pair.
+12. The entity form refuses Minecraft's `<nbt>`; that deviation is recorded, but "deviates in one place" and
+    "the position and state arguments are Minecraft's order and shape" are not.
+13. Ticket mechanism-table over-claims: row 9's "one helper feeds the log and the sentence" (`Describe` feeds
+    only the answer; the applied log line is built in `Apply`), row 5's "names every ground" (the length,
+    no-session and parser grounds are missing), self-check row 16's "three frames" (there are two messages) and
+    the entry mapping's "CUO's two `Start` hooks … report the object afterwards" (the item path reports
+    explicitly through `SendItemSpawned`; the Start hook skips the pre-stamped id).
+14. The give drop's `Instantiate` position narrowed from `body.transform.position` (Vector3) to `Vector2` (z=0)
+    in the refactor; unrecorded and unverified in play.
+
+**Nits.** `.acceptance/test-full-3.log` is cited for a 695/695 gate run but records 693/695 (only
+`gates-4.log` is 695); `NetMsg.cs`'s `WorldSummonResult` comment claims a position field the message lacks;
+`IWorldSummon`'s "the caller never chooses the family" contradicts `TrySummon(..., WorldSummonKind kind, ...)`;
+the position limit says "anywhere in the layer" while nothing clamps to the layer rectangle; `Usage`'s `[item]`
+bracket suggests an optional prefix rather than a form switch; `docs/decisions/active.md` has two rows numbered
+262 (pre-existing, recorded because the review cites 262).
+
+**Batch `20261018-s` (interrupted; the ticket stays in `review/`).** The session was set up on
+`0.1.0+d5c1a592` (lobby 109775241292074201, host and member both in world) and the rows were driven one step at
+a time through the committed driver and recipes. The review landed before rows 9-10, so the batch stopped
+instead of certifying an artifact that the fix commit replaces; every observation below is a rehearsal for the
+next run, not an accepted row. Observed on that build:
+
+- Row 1: `Summoned beartrap at (0.0, 485.6)`; both peers' runtime-entity census carry the same `seq=2375093948`
+  entity at `(0.000, 485.616)`, creator the host.
+- Row 2: `Summoned medcrate at (36.6, 489.5)`; the census reads `(34.609, 490.665)` after its own settle.
+- Row 3: **the ticket's command was stale** — `/summon bandage player {Condition:0.4f}` is refused by design
+  ("an item definition, so it is summoned as a loose item entity"); `/summon item bandage player
+  {Condition:0.4f}` created `#1207206791107` and both peers read `Condition:0.4f` at `(-2.352, 485.616)`.
+- Row 4: **the ticket's prefab was wrong** — `spider` is not a prefab id; the game's own is `cavetick`
+  (`CaveTickSpawner` `Resources.Load("cavetick")`). `Summoned cavetick at (-2.2, 485.6)` appeared on both peers
+  as `animal=True`, `seq=2375093950`, with the host log `[Enemy] host bound runtime spawn … (prefab cavetick)`
+  and `[Enemy] snapshot … 78 enemies, 1 runtime spawns`.
+- Row 5: the member's `/summon item bandage player {Condition:0.6f}` answered
+  `Summoned bandage (#1211501758403) at (-1.9, 485.6)`; both peers read `world (-1.915, 485.615)`, the member's
+  own body is at `(-1.917, 485.616)` and the host's at `(-2.005, 485.616)`.
+- Rows 6-7: the switch-closed and roster refusals print on the member's console with their own sentences.
+- Row 8: both refusals name their grounds and the runtime-entity census stays at three entities.
+- Rows 9-10 (later joiner, layer-boundary request) were not run.
+
+The rows' commands are corrected above (3, 4, 5) so the next batch runs the landed grammar; the evidence files
+are in `.acceptance/20261018-s/` (local, never committed).
 

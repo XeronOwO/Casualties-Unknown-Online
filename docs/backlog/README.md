@@ -82,7 +82,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction, landed; four of its six rows read on the machine.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
-- [A /heal reset cannot restore host vitals](review/heal-reset-does-not-restore-host-owned-vitals.md) — **High** — the event writes the authority path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [The off-screen arrow's label escapes the screen edge](review/offscreen-arrow-label-clipping.md) — **Low** — awaiting the frames.
@@ -184,6 +183,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Health on every client, reconciled to the host](done/health-simulation-and-host-authority.md) — **Medium-High** — accepted; the host model and its cost.
 - [An item's identity across a transform](done/item-identity-across-transforms.md) — **High** — accepted; applied and taken-off items keep their id.
 - [Heal restores severed limbs and clears hollow](done/heal-command-limb-and-hollow-restore.md) — **Medium** — the owed save/reconnect row passes.
+- [A /heal reset cannot restore host vitals](done/heal-reset-does-not-restore-host-owned-vitals.md) — **High** — the applied event restores them.
 - [/heal resets a player's state as a cheat command](done/heal-cheat-command-state-reset.md) — **Medium-High** — accepted; full reset, dead revived.
 - [Paired controls and page scroll](done/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — accepted; the frame is the user's look.
 - [Interactive in-game command console](done/in-game-command-console-interactive.md) — **High** — accepted; the overlay, the suggestions and the history.

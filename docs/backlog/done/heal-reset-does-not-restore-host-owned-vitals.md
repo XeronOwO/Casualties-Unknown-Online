@@ -1,7 +1,8 @@
 # A `/heal` reset cannot restore the host-owned vitals
 
-- Status: Review — fixed by the applied authority event (`HealResetApplied`), waiting for the
-  acceptance batch
+- Status: Done — accepted by batch `20261018-y`
+  (`docs/evidence/acceptance/heal-reset-does-not-restore-host-owned-vitals-20261018-y.md`); all four
+  acceptance rows pass on the deployed artifact
 - Priority: High
 - Category: Player state / cross-player sync / authority
 - Source: found by acceptance batch `20261018-x` while accepting
@@ -128,8 +129,9 @@ judge that APPLIES the reset, and the host is the writer that records the result
   `.AnInstructionTheTransportRefuses_IsAnsweredAndLeavesNoPendingReset`,
   `.Host_SelfReset_AsksTheBodyWithNoInstructionId`, and
   `HealResetReportRetryTests` (the retry cadence and the budget).
-- **Remaining.** The four acceptance rows above are not yet judged; the deployed artifact must be
-  re-read once for a `[Vitals] cost` line after the deploy.
+- **Remaining.** None: the four acceptance rows above were judged by batch `20261018-y` on the
+  deployed artifact (`docs/evidence/acceptance/heal-reset-does-not-restore-host-owned-vitals-20261018-y.md`),
+  and the deploy was re-read once for a `[Vitals] cost` line (probe intact, `bodies=2`).
 
 ## Independent review (2026-10-18, frozen tree)
 

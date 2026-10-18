@@ -1,9 +1,10 @@
 # An item's identity across a transform: is a worn splint still the item it was made from?
 
-- Status: Review — fix landed 2026-10-18 (the "Fix landed" section names the two causes the batch found,
-  the third finding the review added, and the named limits); the I1-I7 rows await the acceptance re-run
-  (batch `20261018-v`). The previous batch's rejection is
-  `docs/evidence/acceptance/item-identity-across-transforms-20261018.md`. The RESEARCH cycle
+- Status: Done — all seven acceptance rows pass on the fixed artifact (`0.1.0+ef05371c`); record:
+  `docs/evidence/acceptance/item-identity-across-transforms-20261018-v.md`. The "Fix landed" section names
+  the two causes the earlier batch found, the third finding the review added, and the named limits; the
+  previous batch's rejection is `docs/evidence/acceptance/item-identity-across-transforms-20261018.md`. The
+  RESEARCH cycle
   and all three implementation stages landed (2026-10-12 → 2026-10-14) and the user ruled **option 1** on
   2026-10-11: stage 1 is the kernel model (`docs/evidence/selfchecks/items/applied-item-location-selfcheck.md`),
   stage 2 the adapter commits and the deletion of the synthesized id namespace

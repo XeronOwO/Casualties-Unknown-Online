@@ -1,6 +1,9 @@
 # Heal must restore severed limbs and clear the hollow moodle
 
-- Status: Review
+- Status: Done — the owed save/reconnect row (and the peer view of the same outcome) passes on the fixed
+  artifact (`0.1.0+ef05371c`); record:
+  `docs/evidence/acceptance/heal-command-limb-and-hollow-restore-20261018-v.md`. The ticket's earlier
+  readings are recorded in its own sections and in batch `20261018-u`'s H5 row.
 - Priority: Medium
 - Category: Player state / console commands / KrokMP parity
 - Source: the user's 2026-10-07 backlog request — the game's own `heal` command does not restore severed

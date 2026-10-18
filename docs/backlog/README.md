@@ -81,9 +81,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
-- [An item's identity across a transform](review/item-identity-across-transforms.md) — **High** — the applied row and the taken-off item keep their id.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction, landed; four of its six rows read on the machine.
-- [Heal restores severed limbs and clears hollow](review/heal-command-limb-and-hollow-restore.md) — **Medium** — KrokMP parity for the heal command.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
@@ -183,6 +181,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [An item's identity across a transform](done/item-identity-across-transforms.md) — **High** — accepted; applied and taken-off items keep their id.
+- [Heal restores severed limbs and clears hollow](done/heal-command-limb-and-hollow-restore.md) — **Medium** — the owed save/reconnect row passes.
 - [/heal resets a player's state as a cheat command](done/heal-cheat-command-state-reset.md) — **Medium-High** — accepted; full reset, dead revived.
 - [Paired controls and page scroll](done/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — accepted; the frame is the user's look.
 - [Interactive in-game command console](done/in-game-command-console-interactive.md) — **High** — accepted; the overlay, the suggestions and the history.

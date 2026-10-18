@@ -7,7 +7,7 @@
 - Category: Player state / body limbs / console commands
 - Source: the user's 2026-10-07 backlog request, whose limb half the parent ticket carried until the reading
   showed it is not a field write but a physics procedure with nothing to call.
-- Related: `docs/backlog/review/heal-command-limb-and-hollow-restore.md` (the parent: the surface decision, the
+- Related: `docs/backlog/done/heal-command-limb-and-hollow-restore.md` (the parent: the surface decision, the
   hollow half and its runtime row), `reversing/Assembly-CSharp/Assembly-CSharp/Body.cs`,
   `reversing/KrokMP/KrokoshaCasualtiesMP/KrokoshaCasualtiesUtils/Util.cs` (KrokMP's `RegrowAllLimbs`),
   `reversing/KrokMP/KrokoshaCasualtiesMP/KrokoshaCasualtiesUtils/Util_BodyExtensions.cs` (its `ResetHealth`,

@@ -7,8 +7,9 @@
   `prelude-verify-deploy.txt`)
 - Run: prelude 10:34:00 → 10:34:47, rows 10:35:02 → 10:38:07, row 10 10:38:32 → 10:41:21, both clients quit
   at 10:43 · Host: physical machine · Member: the `Steam1` sandbox (the ids are written host/member here)
-- Dependencies: `dotnet`, `game`, `deploy`, `steam` (already running), `sandboxie`, `hotrepl` (host 18590 +
-  member 18591), `input`, `logs`, `artifacts` — the preflight reported eleven present
+- Dependencies: `dotnet`, `game`, `deploy`, `steam` (already running), `sandboxie`, `hotrepl` (the host and
+  member endpoints named by `hotrepl-host-url` / `hotrepl-guest-url`), `input`, `logs`, `artifacts` — the
+  preflight reported eleven present
   (`prelude-preflight.txt`), the active BepInEx tree was CUO's (`prelude-session-environment.txt`)
 - Artifacts: the `20261018-s3` subdirectory of the directory named by `acceptance-artifacts-dir`
   (`prelude-*`, `s1-*` … `s10-*`, `window.log`, `fast-window.log`, `s10-host-refusal.txt`, `z-*`,

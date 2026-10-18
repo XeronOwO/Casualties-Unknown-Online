@@ -1,20 +1,28 @@
 // recipe: trade-drive
 // args: mode=s index=n type=s
 // serves: item-creation-registration-first row 7 (the trade regression: a purchase's item creation is registered)
-// returns: ok, mode, index, type, traderCount, traderX, traderY, valueGiven, totalValueGiven, reputation, itemCount, buildHealth, traders, credited, valueBefore, valueAfter, totalBefore, totalAfter, priceExpected, stockBefore, stockAfter, stockRemoved, bought, boughtType, beforeCount, afterCount, products, reason, error, detail
+//         and the trader give's judged-item requirement (a give names an INSTANCE the host already judged)
+// returns: ok, mode, index, type, traderCount, traderX, traderY, valueGiven, totalValueGiven, reputation, itemCount, buildHealth, traders, credited, valueBefore, valueAfter, totalBefore, totalAfter, priceExpected, stockBefore, stockAfter, stockRemoved, bought, boughtType, beforeCount, afterCount, products, reason, error, detail, instanceId, distance
 //
 // Drives the game's own trader entry on the NEAREST TraderScript:
-//   mode=list  — the traders in this scene with their credit (valueGiven), reputation, stock and
+//   mode=list   — the traders in this scene with their credit (valueGiven), reputation, stock and
 //     build health (the purchase gate).
-//   mode=give  — Utils.Create(<type>) handed to the trader (TraderScript.GiveItem): the native
-//     credit path the trade domain reports. A refused give (no value, lifetime cap, contents) is
-//     reported through credited=false, never as a silent ok.
-//   mode=buy   — TraderScript.TryPurchase on the trader's stock entry <index>: the native purchase
+//   mode=create — Utils.Create(<type>) at the body's position and NOTHING else: the item lies where the
+//     body stands, the game's own Item.Start runs on a later frame, its instance id is allocated and its
+//     creation report is judged by the host. A give of an item created in the SAME eval names instance 0
+//     (the object is destroyed before its Start ever runs) and the host refuses it by name, so the
+//     fixture is TWO steps: create here, give next.
+//   mode=give   — the nearest live world item of <type> WITHIN 8 units of the body that carries an
+//     instance id, handed to the trader through TraderScript.GiveItem: the native credit path, on an item
+//     the host has already judged. A refused give (no value, lifetime cap, contents) is reported through
+//     credited=false, never as a silent ok; no judged item in reach is `no-judged-item`, which tells the
+//     caller to run mode=create and let a frame pass.
+//   mode=buy    — TraderScript.TryPurchase on the trader's stock entry <index>: the native purchase
 //     creates the item on this side (Utils.Create + AutoPickUpItem) — the LOCAL creation half; the
 //     run reads the host's table with container-read mode=host. The two silent refusal gates
 //     (build.health < 200, valueGiven < price) are pre-read and reported through reason, so a
-//     refusal is never confused with a purchase. <type> is used by mode=give only; the driver
-//     substitutes every declared argument, so pass a placeholder when another mode ignores it.
+//     refusal is never confused with a purchase. <type> is used by mode=create and mode=give only; the
+//     driver substitutes every declared argument, so pass a placeholder when another mode ignores it.
 // The id reader is a delegate over the const flags only: the evaluator's Mono REPL refuses a
 // delegate that captures a local. One eval.
 ((System.Func<string>)(() => {
@@ -109,14 +117,40 @@
 			+ ",\"itemCount\":" + stock.ToString(inv)
 			+ ",\"traders\":[" + sb.ToString() + "]}";
 	}
-	if (mode == "give") {
-		var spawned = Utils.Create(type, body.transform.position, 0f);
-		if (spawned == null) { return "{\"ok\":false,\"error\":\"create-failed\",\"detail\":\"Utils.Create returned nothing for " + type + "\"}"; }
-		var given = spawned.GetComponent<Item>();
-		if (given == null) {
-			UnityEngine.Object.Destroy(spawned);
+	if (mode == "create") {
+		var created = Utils.Create(type, body.transform.position, 0f);
+		if (created == null) { return "{\"ok\":false,\"error\":\"create-failed\",\"detail\":\"Utils.Create returned nothing for " + type + "\"}"; }
+		var createdItem = created.GetComponent<Item>();
+		if (createdItem == null) {
+			UnityEngine.Object.Destroy(created);
 			return "{\"ok\":false,\"error\":\"create-failed\",\"detail\":\"the created object is not an Item\"}";
 		}
+		return "{\"ok\":true,\"mode\":\"create\",\"type\":\"" + type + "\""
+			+ ",\"instanceId\":" + idOf(createdItem).ToString(inv)
+			+ ",\"x\":" + createdItem.transform.position.x.ToString("0.###", inv)
+			+ ",\"y\":" + createdItem.transform.position.y.ToString("0.###", inv)
+			+ ",\"itemCount\":" + stock.ToString(inv) + "}";
+	}
+	if (mode == "give") {
+		// The host judges the give against its own row for the INSTANCE the report names, so the item must
+		// already have an id and a judged creation: one created inside this eval would be destroyed before
+		// its Start runs and would report instance 0. Search the world item set for an id-carrying item of
+		// the requested type in reach of the body — that is the fixture mode=create left behind.
+		var worldItems = UnityEngine.Object.FindObjectsOfType(typeof(Item));
+		Item given = null;
+		var givenDistance = 0f;
+		for (var i = 0; i < worldItems.Length; i++) {
+			var candidate = worldItems[i] as Item;
+			if (candidate == null || candidate.id != type) { continue; }
+			if (idOf(candidate) == 0UL) { continue; }
+			var candidateDistance = UnityEngine.Vector2.Distance(candidate.transform.position, body.transform.position);
+			if (candidateDistance > 8f) { continue; }
+			if (given == null || candidateDistance < givenDistance) { given = candidate; givenDistance = candidateDistance; }
+		}
+		if (given == null) {
+			return "{\"ok\":false,\"error\":\"no-judged-item\",\"detail\":\"no " + type + " within 8 units of the body carries an instance id — run mode=create first and let a frame pass, then give that same item\"}";
+		}
+		var givenId = idOf(given);
 		var valueBefore = trader.valueGiven;
 		var totalBefore = trader.totalValueGiven;
 		var giveDetail = "";
@@ -127,6 +161,8 @@
 		var totalAfter = trader.totalValueGiven;
 		var credited = valueAfter > valueBefore || totalAfter > totalBefore;
 		return "{\"ok\":true,\"mode\":\"give\",\"type\":\"" + type + "\""
+			+ ",\"instanceId\":" + givenId.ToString(inv)
+			+ ",\"distance\":" + givenDistance.ToString("0.###", inv)
 			+ ",\"traderX\":" + positionX + ",\"traderY\":" + positionY
 			+ ",\"valueBefore\":" + valueBefore.ToString(inv)
 			+ ",\"valueAfter\":" + valueAfter.ToString(inv)
@@ -136,7 +172,7 @@
 			+ ",\"reason\":\"" + (credited ? "" : "the trader took no credit (value 0, lifetime cap reached, or the item still holds contents)") + "\""
 			+ ",\"itemCount\":" + stock.ToString(inv) + "}";
 	}
-	if (mode != "buy") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be list, give or buy\"}"; }
+	if (mode != "buy") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be list, create, give or buy\"}"; }
 	if (index < 0 || index >= stock) {
 		return "{\"ok\":false,\"error\":\"bad-index\",\"detail\":\"index must name a stock entry (0.." + (stock - 1).ToString(inv) + ")\"}";
 	}

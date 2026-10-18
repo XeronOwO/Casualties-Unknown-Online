@@ -8,8 +8,9 @@
 - Commit: `ad5d3bc7` · Deployed artifact: `CasualtiesUnknownOnline.dll`, ProductVersion
   `0.1.0+ad5d3bc79735c0a83645b40c470939e8af2b0ee5`, checked with `tools/verify-deploy.ps1` (exit 0;
   `prelude-verify-deploy.txt`)
-- Run: 2026-10-18 22:52 → 22:56 (+08:00) · Host: the physical machine · Member: the `Steam1` sandbox · No
-  third client
+- Run: 2026-10-18 22:52 → 23:00 (+08:00): the judged rows in one session (22:52 → 22:56) and a second,
+  short one (22:58 → 23:00, artifact prefix `z2-`) for the lever finding below · Host: the physical machine ·
+  Member: the `Steam1` sandbox · No third client
 - Dependencies: `dotnet`, `game`, `deploy`, `steam`, `sandboxie`, `hotrepl` (the host and member endpoints named
   by `hotrepl-host-url` / `hotrepl-guest-url`), `input`, `logs`, `artifacts` — the preflight reported eleven
   present (`prelude-preflight.txt`); the active BepInEx tree was CUO's (`prelude-session-environment.txt`)
@@ -77,6 +78,27 @@ is the item row 2 claims against.
   bought item, so handing a bought item back stayed unexercised, exactly as the ticket's "NAMED as left open"
   says.
 - One session, no artificial delay or loss. The run proves the four rows once, not the absence of a rare race.
+
+## What the run also found — the give lever itself was broken by the bound
+
+A second, short session (`20261018-z2`) checked the committed `trade-drive mode=give` against the new
+judgement, because every earlier trade row used it. It creates the item and hands it over inside ONE eval,
+so the object is destroyed before its own `Item.Start` runs: the report names `instance=0` and the host
+refuses it by name — `[Trade] <member>'s give of item #0 credited nothing: the report names no item
+instance, so the host holds no state to judge the credit against. Nothing applied.` — while the member's
+native credit was rolled back by the authoritative overwrite (`it applied -10 (local totalValueGiven 10,
+authoritative 0)`).
+
+The run fixed the recipe rather than the record: `trade-drive` now has `mode=create` (the fixture, left in
+the world so its own frame runs) and `mode=give` (the nearest id-carrying item of the type within 8 units of
+the body, `no-judged-item` when there is none). The recipe's own header states the two-step rule, which is where
+the next trade run reads it. The two-step shape was smoked in the same session:
+`[ItemSpawn] materializing bandage (id 9492956821)` on the host, then `[Trade] <member>'s give credited 10
+(bandage (#9492956821, World, condition 1) is worth 10 on the host's record; the report claimed 10)` with
+`acceptedAsClaimed=True` (`z2b-create.log`, `z2b-give.log`, `marks-z2b.txt`).
+
+The second session's deployed artifact is `0.1.0+fca798dc…` — the commit above the first session's build,
+documentation-only, so both sessions exercised the same code.
 
 ## Not in this batch
 

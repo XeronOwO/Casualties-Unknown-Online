@@ -25,6 +25,11 @@ the setup of every scenario, so the run is planned across tickets — deploy onc
 through every ticket's scenarios in that session — and is never started for a single ticket while
 another one waits on the same capability.
 
+A batch can also serve a ticket that is not in `review/` at all: a ticket kept in `todo/` by its
+remaining rows can still owe the machine reading of a row that landed and was tested in code. That row
+is accepted by the same procedure and recorded on its own (`docs/evidence/acceptance/`), and the ticket
+does not move — the rows that keep it in `todo/` decide its folder, never this reading.
+
 Each ticket keeps its own rows: the tables headed `Goal and acceptance criteria`,
 `Reproduction / acceptance matrix` or `Final-acceptance procedure`, plus every behavioural claim its
 `What landed` section makes. When a ticket states its expectations only in prose, the run writes the

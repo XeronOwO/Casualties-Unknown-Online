@@ -1,13 +1,19 @@
 # The Online UI's layout and input detail pass
 
-- Status: Review — code-complete since the fifth pass below, and batch `20261015-b` judged the row that kept it
-  rejected: in the ENGLISH UI the strip reads `Tabs rect=984.0x36.0` with the six tabs at 112 / 132.1 / 133.8 /
-  112 / 119.5 / 191.2 units — 820.6 plus the five 4-unit gaps against the page's 984 — and in Chinese 112 each,
-  both read live on the deployed build (record
+- Status: Todo — Rejected (batch `20261018-t`: row 4 **fails** — an open dropdown's list is not drawn under its
+  field (the popup's open list is a negative-height object at the canvas's top edge, so no option can be
+  reached where the field is); row 9 **fails** — at the TOP edge the drag clamp leaves the title bar 411 units
+  above the canvas and keeps only the window's bottom strip inside, so the window cannot be grabbed again.
+  Rows 1, 2, 3, 5, 6, 7, 8, 10 and 11 pass on the same artifact; row 8's hover is a residual. Record
+  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261018-t.md`).
+- History: code-complete since the fifth pass below. Batch `20261015-b` judged the row that kept it rejected:
+  in the ENGLISH UI the strip reads `Tabs rect=984.0x36.0` with the six tabs at 112 / 132.1 / 133.8 / 112 /
+  119.5 / 191.2 units — 820.6 plus the five 4-unit gaps against the page's 984 — and in Chinese 112 each, both
+  read live on the deployed build (record
   `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md`). Rows 2 and 3 **pass** in
   batch `20261015-a` (record `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md`);
-  rows 8–10 stay `unproven` with the setups batch `20261001-k` named, and row 11's window half — the quick panel,
-  the context menu and the overlays — still needs a session.
+  rows 8–10 stayed `unproven` with the setups batch `20261001-k` named, and row 11's window half — the quick
+  panel, the context menu and the overlays — needed a session; batch `20261018-t` has now read that half.
   **That rule landed in the fifth pass below** (`OnlineUiTabLayout`, with the room around a caption counted once).
   **Found 2026-10-14 by the user, after the batch**: this cycle routed the tabs through the width rule so the
   model's `TabWidth` floor would not go unread (the review's own finding), and the floor is not what decides a

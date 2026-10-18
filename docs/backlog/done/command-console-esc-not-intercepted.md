@@ -1,6 +1,7 @@
 # Command console ESC fully intercepted
 
-- Status: Review (code complete; waiting for the final unified acceptance pass)
+- Status: Done — batch `20261018-t` judged all three expected behaviours on the current artifact and every
+  one passes (record `docs/evidence/acceptance/command-console-esc-not-intercepted-20261018-t.md`).
 - Priority: High
 - Category: Tooling / UI / input interception
 - Source: User report (2026-09-05) — after the interactive command console redo, pressing ESC while the console is open still triggered the game's native ESC/pause menu. Resolved in this cycle.

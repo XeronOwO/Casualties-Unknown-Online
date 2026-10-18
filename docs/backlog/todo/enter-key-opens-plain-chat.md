@@ -1,13 +1,18 @@
 # Enter should open the console as plain chat
 
-- Status: Review — implemented and gated; the driver rows and a real keypress are what is left.
+- Status: Todo — Rejected (batch `20261018-t`: row E2 **fails** — after the game's own console has been
+  opened and closed, the event system still names its input as the selected object, so
+  `OnlineUiKeyboardFacts.IsATextFieldFocused` stays true and the Enter/Slash opener is refused until
+  something else takes the selection. The clean-state opener, the swallow, the submit, the chat delivery and
+  both no-open surfaces pass; record
+  `docs/evidence/acceptance/enter-key-opens-plain-chat-20261018-t.md`).
 - Priority: Low
 - Category: Online UI / input
 - Source: the user's 2026-10-07 backlog request — pressing Enter should open the command/chat input the same
   way `/` does, but without the `/` prefix, so it is ordinary chat.
 - Related: `src/CasualtiesUnknownOnline.Plugin/CommandConsoleOverlay.cs` (the `/` opener and the in-overlay
-  Return handling), `review/in-game-command-console-interactive.md`,
-  `review/command-console-esc-not-intercepted.md` (the same interception surface, ESC),
+  Return handling), `done/in-game-command-console-interactive.md`,
+  `done/command-console-esc-not-intercepted.md` (the same interception surface, ESC),
   `src/CasualtiesUnknownOnline.Runtime/Session/Chat/ChatService.cs` (the text-chat domain a plain line goes to)
 
 ## What is asked
@@ -30,7 +35,7 @@ Two openers, two entry modes, one input surface:
 
 - Whether the game or the Online UI already consumes Enter in the states where the user wants this (in-world
   gameplay, an open container panel, the Online UI window, the death/spectator panels). The sibling ticket
-  `review/command-console-esc-not-intercepted.md` exists because this interception surface is easy to get
+  `done/command-console-esc-not-intercepted.md` exists because this interception surface is easy to get
   wrong in exactly that way, so the reading comes before the binding.
 - Whether the opening keypress must be swallowed by the overlay (otherwise the same Enter key-down could reach
   the freshly opened field and submit an empty line).

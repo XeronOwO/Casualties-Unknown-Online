@@ -1,12 +1,13 @@
 # The Online UI's paired controls and its pages' scroll affordance
 
-- Status: Review — the four points of *The user's rejection* below are **implemented and pass on batch
+- Status: Done — batch `20261018-t` re-read all five rows on the current artifact and every one passes
+  (record `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261018-t.md`). The one
+  residual is the user's look at the Admin frame (`a11-admin-en.png` / `a6-admin-zh.png` in that batch);
+  a rejection returns the ticket to `todo/`.
+- History: the four points of *The user's rejection* below were **implemented and passed on batch
   `.acceptance/20261015-e/`'s own readings** (artifact `0.1.0+6dad2d41…`; the reading is the section
   *The reading of the fix* below, and the run's record is
-  `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-e.md`). The ticket is in
-  `review/` because the rejected LOOK is the user's own call: the frame those rows are judged from is
-  `a7-admin.png` in that batch.
-- History: S1 to S4 landed in the suite, and two real-machine passes re-read them. Batch `.acceptance/20261015-c/`
+  `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-e.md`). S1 to S4 landed in the suite, and two real-machine passes re-read them. Batch `.acceptance/20261015-c/`
   found the paired row's second line did not stretch (its reading is kept below); the fix that followed — the
   row owns its line — is what batch `.acceptance/20261015-d/` measured and what the user rejected the LOOK of
   (that run's record is `docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md`);

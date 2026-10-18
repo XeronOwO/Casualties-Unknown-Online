@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Online UI layout and input detail pass](todo/online-ui-layout-and-input-detail-pass.md) — **High** — rejected: the dropdown list and the top-edge drag clamp.
 - [A health-usable liquid in a drinkable container is refused](todo/topical-live-stack-family-order.md) — **Low-Medium** — the order decides, not the data.
 - [A member that lost its body to a layer change](todo/layer-change-member-recovery.md) — **Medium** — attributed; the door is chosen, the recovery is left.
 - [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
@@ -72,6 +73,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Single-file package for the core plugin](todo/single-file-plugin-package.md) — **Low-Medium** — extensions stay separate.
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
+- [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — rejected: the guard latches on the game console's stale selection.
 ### In progress
 
 ### Review
@@ -84,10 +86,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
-- [Enter opens the console as plain chat](review/enter-key-opens-plain-chat.md) — **Low** — no slash prefix.
 - [The off-screen arrow's label escapes the screen edge](review/offscreen-arrow-label-clipping.md) — **Low** — awaiting the frames.
-- [Paired controls and page scroll](review/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — four look defects pass; the frame awaits an eye.
-- [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — the strip fits; the rows left need setups.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state from the kernel row; rows 5b/6 await.
@@ -133,8 +132,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Player pain vocalizations and bark](review/sync-player-pain-vocalizations-and-bark.md) — **Medium** — they ride the character-sound event.
 - [Tab opens the backpack then closes](review/tab-backpack-open-close-immediately.md) — **Medium** — remote Close wrote the radial state.
 - [Entity drop loses fresh state on the guest](review/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — full drop state is preserved.
-- [Interactive in-game command console](review/in-game-command-console-interactive.md) — **High** — the overlay with live suggestions.
-- [Command console ESC interception](review/command-console-esc-not-intercepted.md) — **High** — one-frame modal suppression.
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
 - [Remote player medical panel](review/remote-player-medical-panel.md) — **Medium** — native WoundView reuse.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — **Medium** — limb drag routes through the heal path.
@@ -186,6 +183,9 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Paired controls and page scroll](done/online-ui-paired-controls-and-page-scroll.md) — **Medium-High** — accepted; the frame is the user's look.
+- [Interactive in-game command console](done/in-game-command-console-interactive.md) — **High** — accepted; the overlay, the suggestions and the history.
+- [Command console ESC interception](done/command-console-esc-not-intercepted.md) — **High** — accepted; the one-frame suppression holds and releases.
 - [Item and entity data commands](done/item-and-entity-data-commands.md) — **Medium-High** — `/data`, `/give` and `/summon`; all ten rows accepted.
 - [The full test suite takes four minutes](done/test-suite-wall-clock.md) — **Medium** — the measured two phases and the host bound behind a slow run.
 - [The `/give` command](done/give-item-to-a-player-command.md) — **Medium-High** — the SNBT give and the destination ladder; all twelve rows accepted.

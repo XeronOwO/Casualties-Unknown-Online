@@ -215,7 +215,7 @@ docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/REA
 docs/backlog/review/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
 docs/backlog/review/bilingual-human-docs.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cheat-permission-and-op-commands.md | keep | index | docs/backlog/README.md
-docs/backlog/review/command-console-esc-not-intercepted.md | keep | index | docs/backlog/README.md
+docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/backlog/README.md
 docs/backlog/review/concurrent-medical-operations.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cross-player-item-use-random-determinism.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-right-click-name-suffix.md | keep | index | docs/backlog/README.md
@@ -229,7 +229,7 @@ docs/backlog/review/guest-remote-pose-head-orientation-desync.md | keep | index 
 docs/backlog/review/guest-report-fallback-first-resend.md | keep | index | docs/backlog/README.md
 docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md | keep | index | docs/backlog/README.md
 docs/backlog/review/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
-docs/backlog/review/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
+docs/backlog/done/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-data-read-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-data-write-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-id-counter-is-not-resumed-by-a-restore.md | keep | index | docs/backlog/README.md
@@ -246,7 +246,7 @@ docs/backlog/review/mod-defined-wire-packets.md | keep | index | docs/backlog/RE
 docs/backlog/review/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-native-binding-handshake-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-art-and-controls-overhaul.md | keep | index | docs/backlog/README.md
-docs/backlog/review/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
@@ -289,7 +289,7 @@ docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/ba
 docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/review/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
-docs/backlog/review/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/review/give-item-to-another-player.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-item-to-a-player-command.md | keep | index | docs/backlog/README.md
 docs/backlog/review/intent-refusal-never-reaches-the-actor.md | keep | index | docs/backlog/README.md
@@ -543,9 +543,9 @@ docs/evidence/acceptance/normative-style-unit-test-gates-20260927.md | keep | cl
 docs/evidence/acceptance/official-game-name-in-window-title-20261001.md | keep | claim | docs/backlog/done/official-game-name-in-window-title.md
 docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261001.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
 docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261014-a.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001-k.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261001-k.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
 docs/evidence/acceptance/online-ui-panels-request-alpha-blend-false-20261001.md | keep | claim | docs/backlog/done/online-ui-panels-request-alpha-blend-false.md
 docs/evidence/acceptance/partial-damage-delta-report-overlap-20261003-f.md | keep | claim | docs/backlog/done/partial-damage-delta-report-overlap.md
 docs/evidence/acceptance/patch-bridge-domain-ports-20260927.md | keep | claim | docs/backlog/done/patch-bridge-domain-ports.md
@@ -925,7 +925,7 @@ docs/evidence/selfchecks/tooling/simtrace-diff-selfcheck.md | keep | claim | doc
 docs/evidence/selfchecks/tooling/start-gate-alert-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/building-destruction-presentation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/chat-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/ui/command-console-selfcheck.md | keep | claim | docs/backlog/review/in-game-command-console-interactive.md
+docs/evidence/selfchecks/ui/command-console-selfcheck.md | keep | claim | docs/backlog/done/in-game-command-console-interactive.md
 docs/evidence/selfchecks/ui/cuo-launcher-idle-fade-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/dead-player-context-menu-title-selfcheck.md | keep | claim | docs/backlog/review/dead-player-right-click-name-suffix.md
 docs/evidence/selfchecks/ui/i18n-framework-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
@@ -1023,14 +1023,14 @@ reversing/README.md | keep | index | -
 src/AGENTS.md | keep | loaded | -
 tests/AGENTS.md | keep | loaded | -
 tools/AGENTS.md | keep | loaded | -
-docs/backlog/review/online-ui-paired-controls-and-page-scroll.md | keep | index | docs/backlog/README.md
+docs/backlog/done/online-ui-paired-controls-and-page-scroll.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/20261015-a-scope.md | keep | claim | docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261015-a.md
 docs/evidence/acceptance/online-ui-art-and-controls-overhaul-20261015-a.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-a.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
 docs/evidence/acceptance/20261015-b-scope.md | keep | claim | docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md
-docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md | keep | claim | docs/backlog/review/online-ui-layout-and-input-detail-pass.md
-docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md | keep | claim | docs/backlog/review/online-ui-paired-controls-and-page-scroll.md
-docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-e.md | keep | claim | docs/backlog/review/online-ui-paired-controls-and-page-scroll.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md | keep | claim | docs/backlog/done/online-ui-paired-controls-and-page-scroll.md
+docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-e.md | keep | claim | docs/backlog/done/online-ui-paired-controls-and-page-scroll.md
 docs/evidence/acceptance/20261017-q-scope.md | keep | claim | docs/evidence/acceptance/give-item-to-a-player-command-20261017-q.md
 docs/evidence/acceptance/cheat-permission-and-op-commands-20261017-q.md | keep | claim | docs/backlog/review/cheat-permission-and-op-commands.md
 docs/evidence/acceptance/give-item-to-a-player-command-20261017-q.md | keep | claim | docs/backlog/done/give-item-to-a-player-command.md
@@ -1042,3 +1042,9 @@ docs/evidence/acceptance/item-and-entity-data-commands-20261018-s2.md | keep | c
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/item-data-read-commands-20261018-q.md | keep | claim | docs/backlog/review/item-data-read-commands.md
 docs/evidence/acceptance/snbt-state-language-20261018-q.md | keep | claim | docs/backlog/done/snbt-state-language.md
+docs/evidence/acceptance/20261018-t-scope.md | keep | claim | docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261018-t.md
+docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261018-t.md | keep | claim | docs/backlog/todo/online-ui-layout-and-input-detail-pass.md
+docs/evidence/acceptance/in-game-command-console-interactive-20261018-t.md | keep | claim | docs/backlog/done/in-game-command-console-interactive.md
+docs/evidence/acceptance/command-console-esc-not-intercepted-20261018-t.md | keep | claim | docs/backlog/done/command-console-esc-not-intercepted.md
+docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261018-t.md | keep | claim | docs/backlog/done/online-ui-paired-controls-and-page-scroll.md
+docs/evidence/acceptance/enter-key-opens-plain-chat-20261018-t.md | keep | claim | docs/backlog/todo/enter-key-opens-plain-chat.md

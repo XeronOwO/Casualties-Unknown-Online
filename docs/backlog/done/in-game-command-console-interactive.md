@@ -1,6 +1,7 @@
 # Interactive in-game command console
 
-- Status: Review (code complete; waiting for the final unified acceptance pass)
+- Status: Done — batch `20261018-t` judged all eleven derived rows on the current artifact and every one
+  passes (record `docs/evidence/acceptance/in-game-command-console-interactive-20261018-t.md`).
 - Priority: High
 - Category: Tooling / UI / Minecraft-style command console
 - Source: User rejection (2026-09-05) — the whole feature was rejected and has been redone in this cycle.

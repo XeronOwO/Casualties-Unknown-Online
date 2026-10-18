@@ -138,8 +138,22 @@ collected while its scenario is up.
   `drive-in-process.ps1 -Action declare -Declare <name>` before the first step that uses it. Ad-hoc
   probes stay evals of the same channel. The socket
   dies with the game process, so a restart means reconnecting before the next probe.
+- **A key message reaches the game only while the client's own window is the foreground window.** A batch
+  that plans key rows checks that fact FIRST; when the client the run started is behind another window, the
+  run asks the user for a one-time switch of THAT window (the message channel itself never activates a
+  window), and records the switch. `posted=true` with `heldAtEnd=false` is the tell that the game did not
+  see the key.
 - Capture is per row, not per run: one frame (or recording) per `visual` / `feel` row, captured from the
   client's own window (never the desktop, so the run never needs the clients in front), written to `acceptance-artifacts-dir` under an artifact id, plus the log excerpts a `machine` row needs.
+  On a DPI-scaled display the capturing process sets its DPI awareness before `GetWindowRect`/`PrintWindow`;
+  otherwise the bitmap is the physical window and the canvas's right/bottom — the launcher, a docked panel —
+  are cropped out of the frame.
+- **The characters are part of the setup, and a restore is read back.** Before the long row work, put each
+  character in a usable state and READ THE RESULT: `/heal` uses a carried medical item and its
+  `Sent heal request to N player(s)` answer reports the REQUEST, not a restore, so a run that has no
+  medical item at hand gives one (`/give`, `item-provide`) or uses the game's own restore, and then reads
+  the vitals back (`body-read`, `wound-read`). A host left in a near-death state is a setup defect, not a
+  row's finding: rows judged on its frame are re-read once it is restored.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
 
 ## 6. Verdicts

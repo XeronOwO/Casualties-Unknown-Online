@@ -9,7 +9,7 @@
   deliverable with its own verification, and its first required job was the attribute: write down what is
   addressable today before designing a verb that writes it.
 - Related: `done/item-and-entity-data-commands.md` (the family's remaining stages),
-  `review/in-game-command-console-interactive.md` (the console these verbs land in),
+  `done/in-game-command-console-interactive.md` (the console these verbs land in),
   `done/in-game-command-console.md` (the console itself), `done/id-system-namespaced-ids.md` (the instance id a
   target names), `docs/architecture/domains.md` (the item kernel domain), `docs/contracts/item-features-matrix.csv`
 

@@ -35,6 +35,18 @@ the guest's own local enumeration used for the alignment, both omit the whole fa
 comment says the opposite ("the public `CrystalBehaviour` base is scanned and the kind is derived from the
 runtime type name"), and so does the comment on the row.
 
+## The build-level fact this run found (2026-10-19, batch `20261019-b`)
+
+The crystal hazard does not exist in the current build: the seven prefabs `WorldGeneration.PlaceCrystals`
+loads (`BloodCrystal`, `SoothingCrystal`, `ReliefCrystal`, `TurbulentCrystal`, `OxygenCrystal`,
+`EmissiveCrystal`, `DigestionCrystal`) carry no `CrystalBehaviour` component at all — a runtime prefab probe
+answers `hasBehaviour=false` for every one (`probe-crystal-prefabs.json`), two scanned layers carry 28
+crystal-prefab buildings with zero components (`probe-crystals-guest.json`, `probe-crystals-layer1.json`),
+and nothing in the assembly adds one (`AddComponent<CrystalBehaviour>` appears nowhere). So the scanner's
+crystal arm cannot fire on this build for a reason deeper than the runtime-type bug above — but that bug is
+still real for the day a prefab carries the component, and this ticket's fix (read the effects list) is still
+the right shape then. Evidence: `docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-b.md`.
+
 ## What it affects
 
 - The layout is the host-authoritative **repair** path: a guest whose world is missing a generated trap has it

@@ -1,6 +1,6 @@
 # The member reports that still have no bound
 
-- Status: Todo — Rejected (batch `20261019-a`: the entity-event drop bound's forged-refusal and unmodified-session rows pass, but an ordinary event's accepted drop never reaches the kernel — the trap composite is rejected on the trap's raw negative health — and the fragile-crystal row is unproven in a world that carries no fragile crystal). The rejection's root cause is FIXED 2026-10-19 and its machine rerun is owed in batch `20261019-b`; the fragile-crystal row still needs a world that generates one — opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
+- Status: Todo — Rejected (batch `20261019-b`: rows 1, 2 and 4 pass; row 3 is unproven and UNPROVABLE in this build — none of the seven crystal prefabs carries a `CrystalBehaviour`, so no world generates a fragile crystal, and the row needs a product decision: drop it as an entity the shipped build does not have, or define an injected-component fixture and name it as such). The batch-a failure's root cause is fixed, verified on the machine and deployed (`+dd1fd79e`) — opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
   drops; this ticket is the rest of the same question, one surface per row, each with its own evidence.
   Section A (the reports that name another member's identity) CLOSED 2026-10-17 鈥?its five surfaces now
@@ -701,18 +701,29 @@ described above:
   | The clamp's observability | Debug at the two Runtime report seams when a reading is below zero (the kernel is logger-free) | `BuildingEntityHealthRegistry.Report`, `TrapStateRegistry.ReportBatch`; no new state |
   | The whole family | every writer reaches the one command (trap composite, blast scope, direct damage report, opened report); `Restore` named as the separate host-trusted writer | the reviewer's writer trace; the limits below |
 
-  **Still owed: the machine rerun of this row (the ordinary event's drop must land as a kernel row) in batch
-  `20261019-b`.** Named limits of this fix: (a) `GameStateKernel.Restore` is a second, UNVALIDATED writer of
+  **READ ON THE MACHINE 2026-10-19 (batch `20261019-b`, two clients, deployed `+dd1fd79e`): row 2 PASSES.**
+  The member's summoned mine rolled `scrapmetal` id 9492956821 and folded it into the event
+  (`[ItemTrapDrop] … captured`, `[TrapDropFlush] … drops=1`), the host applied the event
+  (`origin=HostApply from <member>`) and materialized the drop, and NO `[TrapDrop]`/`InvariantViolation` line
+  appears anywhere in the run — the composite that batch `20261019-a` rejected now commits. The host kernel's
+  world table carries `{"id":"9492956821","type":"scrapmetal"}` (`container-read mode=host,guest=auto`,
+  `worldCount` 267), so the drop is an authoritative row, not presentation
+  (`docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-b.md`). The fragile-crystal row
+  is **unproven, and unprovable in this build**: both layers scanned with INACTIVE objects included carry 28
+  crystal-prefab buildings and zero `CrystalBehaviour` components, and all seven prefabs
+  `WorldGeneration.PlaceCrystals` loads answer `hasBehaviour=false`; no game code adds the component
+  (`AddComponent<CrystalBehaviour>` appears nowhere), so no world can generate a fragile crystal. The ticket
+  stays open on that row and needs a product decision: drop it as an entity the shipped build does not have, or
+  define an injected-component fixture and name it as such.
+
+  Named limits of this fix: (a) `GameStateKernel.Restore` is a second, UNVALIDATED writer of
   world-entity facts — a hostile/buggy host checkpoint or a tampered save can still carry a negative/NaN
   health row, and later `Apply` calls then refuse the whole batch loudly; this row's host cannot produce such
   a fact through a command any more, but the floor is command-path-only by design. (b) The game's death
   predicate is `< 0.5` (`reversing/Assembly-CSharp/Assembly-CSharp/BuildingEntity.cs`: `if
   (this.health < 0.5f)`), while the kernel's "destroyed" is 0; a destroyed entity read at 0…0.5 is stored as
   the positive reading it was, so the revival rule (`current.Health <= 0`) does not apply to it. Pre-existing,
-  not this failure, and out of this row's scope — named rather than silently widened. The fragile-crystal
-  row could not be read at all: this run's world carries no `CrystalBehaviour` (nine and thirteen
-  crystal-prefab buildings on layers 0 and 1, zero effect components), so no fragile crystal exists to
-  break; the run descended one layer and re-read rather than assume.
+  not this failure, and out of this row's scope — named rather than silently widened.
 - **`WireCommandKind.ItemContainerSync`'s creations 鈥?IMPLEMENTED 2026-10-17, READ ON THE MACHINE
   2026-10-17 (batch `20261017-d`) 鈥?PASSES.**
   The sibling S3a left: the same claim travelled two more ways 鈥?a parent this host never judged

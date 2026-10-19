@@ -1,6 +1,11 @@
 # The limb-tool family's two protections are weaker than its record says
 
-- Status: Review
+- Status: Done — both acceptance rows pass in batch `20261023-a` on the deployed artifact: the picked limb is
+  served (an `icepack`'s native limb action lands `ChilledLimb` on limb 2 on the treated side, and the
+  operator's and third peer's displayed copies carry it), and a request naming a limb the patient's body does
+  not have is REFUSED by the affected side with the item named, no limb touched and the item still carried.
+  The dismembered-between-pick-and-run variant was not staged (row (b)'s invalid-index shape was). Record:
+  `docs/evidence/acceptance/limb-tool-family-protection-gaps-20261023-a.md`.
 - Priority: High
 - Category: Player interaction / cross-player item use (limb tools)
 - Source: the independent NARROWED adversarial review of the entry-mapping record cycle (2026-10-08),

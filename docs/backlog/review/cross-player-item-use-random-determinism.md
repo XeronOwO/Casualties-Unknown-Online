@@ -27,6 +27,13 @@
   `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`, which also records
   what the driver had to learn first (a native panel opened, both clients in sight, and the ack that
   assigns the operation id arriving a call later); the `20261011-b` verdict is in the record named above.
+  **Batch `20261023-a` closed rows 2, 4 and 5 as PASS** (the late joiner lands on the committed slip; the
+  groundwater drink's rolled sickness agrees across the patient, the authority and the operator's display;
+  the derived window restores the engine stream exactly), **left row 3 `unjudged` with a code finding** (no
+  ordinary injectable liquid rolls per call — the per-call `Random` reads are `onDrink` bodies, i.e. row 4's
+  chain), and left **row 8 a residual for the user** (the same-call local feedback is machine-read; the
+  perceived smoothness is the user's). Record:
+  `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md`.
 - Priority: High — **raise to Critical if the investigation shows the divergence reaches authoritative state**
   (a body value, a limb fact, an item amount). Presentation-only divergence stays High.
 - Category: Players / cross-player semantics
@@ -381,6 +388,35 @@ are pinned by the suite, and the one that would otherwise decay silently is pinn
 - the DRAW ORDER — the part a game update can break — is pinned offline by `ShrapnelGripSlipDrawOrderGateTests`
   and compared on every live slip, which is what makes row 7's "the comparison stays empty" a reading
   instead of an assumption.
+
+## Batch 20261023-a: what it closed and what it found
+
+Rows 2, 4 and 5 PASS, with the readings in
+`docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md`: the late joiner's display
+of the patient's limb carried the committed `94.606 / 0.516` (the slip's derived `5.393552 / 0.5164161` off
+a `100 / 0` baseline); the groundwater drink rolled `11.446` on the patient and the authority and the
+operator's display both read `11.429`; and a controlled draw around the native `BreakGrasp` proved the
+derived window restores the engine stream exactly (`afterDraw == referenceDraw` with a working control pair,
+while the same call moved the displayed limb).
+
+**Row 3 is not reachable as written.** The row asks for an injection whose liquid carries a per-call roll.
+The decompiled `Liquids.cs` was re-read this run for the `onHealthUse` bodies: only two read `Random` —
+`midgradestimulant`, inside the `DoTimedOp` tick that the injection starts (so the draw happens on the
+patient's client over time, not per call, and there is still one roller), and `epinephrine`, whose 5 % branch
+runs only while `limb.body.inCardiacArrest`. Every `Random.value < ml / 80f` this ticket's §2 lists is in
+`onDrink` (`reliefcream` `:1059`, `woundglue` `:1090`) — the drink chain row 4 covers. So the row needs
+re-scoping (an injection-shaped random effect that actually exists, or its removal) rather than another
+batch.
+
+**Row 8 is the user's to judge.** The drive shows the operator's displayed limb taking `skinDelta 5.394` in
+the same invocation as the break — immediate feedback with no round trip — but "reads as a stall" is a
+perception, so it is a residual, not a self-issued pass.
+
+**One batch observation, not a row verdict:** a second start on the same displayed minigame answered
+`started:true` without an authority `session 2 created` line, and its slip report left no authority line.
+The window still opened and restored (row 5's equality); the start path was driven through the recipe's seam,
+not the game's own UI, so this is recorded as something a future batch may want to look at, not as a defect
+of this ticket.
 
 ## Self-check table (as delivered)
 

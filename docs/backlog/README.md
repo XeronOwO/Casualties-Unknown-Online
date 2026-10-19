@@ -90,9 +90,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
-- [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
+- [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — rows 2/4/5 pass; row 3 open.
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
-- [Limb-tool protections weaker than recorded](review/limb-tool-family-protection-gaps.md) — **High** — the affected side refuses a limb it cannot serve.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [Content declarations by attribute](review/mod-content-attribute-declarations.md) — **High** — stage B landed; the scan replaces the Bind list.
 - [A declaration's nested member types are not contracts](review/mod-content-nested-member-contracts.md) — **Medium** — landed; a mod implements its own `Tool`.
@@ -178,6 +177,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Limb-tool protections weaker than recorded](done/limb-tool-family-protection-gaps.md) — **High** — accepted; the picked limb is served, the other refused.
 - [Give an item to another player](done/give-item-to-another-player.md) — **Medium** — accepted; the refused container keeps the item.
 - [An item id can be re-issued after a restore](done/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — accepted; the restore resumes the counter.
 - [Guest frame rate lower than host](done/guest-frame-rate-lower-than-host.md) — **Medium** — accepted; the guest's pump was not lower.

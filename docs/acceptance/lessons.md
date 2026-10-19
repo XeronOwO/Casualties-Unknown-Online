@@ -41,10 +41,6 @@ A header bullet added to a ticket goes after the LAST continuation line of the b
 
 Plan a session ticket into a batch only when its setup path exists as a committed or recorded recipe; otherwise record the setup gap, leave the ticket in `review/`, and say so in the scope — `tools/acceptance/recipes/`, workflow §5.
 
-## 2026-09-27 — A recipe smoke belongs inside the session it verifies
-
-Smoke the recipe set in the session it will run in, as steps of the batch, rather than planning a separate "recipe cycle" first; the probe JSON is the layer's proof — `tools/acceptance/recipes/`, `docs/evidence/selfchecks/tooling/acceptance-recipe-layer-selfcheck.md`.
-
 ## 2026-09-28 — `move-drive` walk is frame-window-dependent; slide is the displacement source
 
 A movement window uses `slide` and confirms travel from the positions before and after; a walk-only window that shows no travel is `unproven`, not a pass — the `move-drive` recipe.
@@ -108,10 +104,6 @@ A mechanical fact check says where each unmatched token actually lives (the umbr
 ## 2026-10-01 — A HUD widget can be live, readable and still absent from the window capture
 
 A row whose subject the window capture cannot composite (a HUD indicator the widget's own rects place but `PrintWindow` never draws) is judged from the widget's live objects and classified `machine`, with the record saying why the frame cannot carry it — and, the other way round, a visual change is judged on a frame BEFORE the geometry is trusted, which can read correctly while the frame shows a white box.
-
-## 2026-10-01 — A WorldJoin starts every handshaken member, so a parked lobby client cannot hold the gate
-
-A member parked in the lobby does not hold the start gate — the host's click sends `WorldJoin` to every handshaken member and each guest starts its own run: hold the gate with `leave-world` on a member plus the production arm (`tools/acceptance/recipes/gate-arm.cs` → `IWorldControl.StartStartGate`), and cite the arm line plus the forced-release line as the hold's bounds.
 
 ## 2026-10-01 — A recipe whose expression ends at the cast returns the delegate
 
@@ -445,10 +437,6 @@ Drive a fixture known to throw LAST in its session, and restart a client whose s
 
 An inline `--code` submission has to survive the shell, the argument quoting and the client's parser at once, while the file form has none of that and leaves the probe in the batch directory where a record can cite it: every cited probe is its own file, reusable ones are promoted into `tools/acceptance/recipes/` before the batch closes, and `ok` WITHOUT a value is a failed probe rather than a passing one.
 
-## 2026-10-11 — The remote half of the wound-view release had no committed drive at all
-
-`tools/acceptance/recipes/remote-medical-release.cs` (args `item`, `limb`) is the cross-player half — the display focus open (`remote-wound-special mode=open`), the view pointed at the treated limb, a local item dragged onto that limb's `WoundViewLimb` — and a future topical, injection or limb-tool row starts from it instead of rediscovering that `remote-gesture mode=medical` refuses by design unless the limb is the acting client's own.
-
 ## 2026-10-11 — Batch `20261011-c`: an exception census names the known startup line, and an artifact is checked before it is cited
 
 Count exceptions per peer AND name the one known startup line with its timestamp (every client throws the `DataAnnotations` `TypeLoadException` once at plugin startup), so the record separates "the session was quiet" from "the client logged its usual line"; count the MECHANISM (the exception type or its message) rather than the `[Unity:Exception]` marker as a second dimension, since the marker is part of every such line and two equal columns are one reading twice; and list the batch directory to check each cited artifact exists BEFORE writing the record, because a reading that lives only in the transcript is not evidence a later reader can open.
@@ -519,3 +507,11 @@ A container item answers `GetComponentInParent<Container>()` for itself, so a pr
 ## 2026-10-19 — A client's quit can log shutdown and leave the process alive
 
 After `quit` a host can log `Steam API shut down` and still hold the process: read the path, stop only the process this run started once the shutdown line is there, then relaunch — a save batch's archives have already committed — `docs/evidence/acceptance/item-id-counter-is-not-resumed-by-a-restore-20261021-a.md`.
+
+## 2026-10-19 — A batch-local probe sender is not the driver: placeholders are verbatim and the leftover check misses `{{n:...}}`
+
+A batch probe template spells a string placeholder with its own quotes and the sender is invoked in-process (`& probe.ps1 -Arg @('s:x=...','n:y=...')`); `-File` binds the comma list as one string and the sender's leftover regex does not match a colon, so a mis-bound argument reaches the client as a compile error with no value. Read the expanded `x-<name>.cs` once before trusting an empty answer — `.acceptance/20261023-a/probe.ps1`, `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md`.
+
+## 2026-10-19 — A member joining a run in progress is in the world before its session is
+
+The driver's `state` reads the game's own world (`inWorld:true`) while `SessionService.LocalInWorld` is still false and the host has not published the member yet, so a remote view opened on the join's first answer refuses (`opened:false`, `isRemoteInWorld:false`): retry the production open after the member's own `PlayerJoin` line, and read the session predicates rather than the scene — `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md`.

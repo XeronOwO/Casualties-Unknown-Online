@@ -92,14 +92,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				{
 					if (msg.TargetParentItemId != 0)
 					{
-						// A CREATE has no source body to keep the item if the live container refuses (FromSteamId
-						// is zero), and its answer already named that container — so that refusal is answered by
-						// the ladder's last rung. A source transfer keeps the slot fallback.
-						_placement.AddCarriedItemToLocalContainer(
-							body,
-							item,
-							msg.TargetParentItemId,
-							dropWhenRefused: msg.FromSteamId == 0 && msg.Destination == PlayerInventoryDestination.Container);
+						// One policy for both directions of a container destination: the container's own rules on this
+						// client decide, and a refusal falls back to a slot here. A drop is NOT the answer for a
+						// handed-over item — the host has already recorded its id as carried, so the spawn report a
+						// drop needs is refused by the kernel and the object would be swept.
+						_placement.AddCarriedItemToLocalContainer(body, item, msg.TargetParentItemId);
 					}
 					else
 					{

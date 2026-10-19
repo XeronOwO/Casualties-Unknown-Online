@@ -301,7 +301,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, StandingItemMa
 			}
 			else
 			{
-				ItemStateCodec.RestoreContent(target, container, childData);
+				ItemStateCodec.RestoreContentDiscarding(target, container, childData);
 			}
 		}
 	}

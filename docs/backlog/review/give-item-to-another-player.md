@@ -1,14 +1,15 @@
 # Give an item to another player (the push direction)
 
-- Status: Todo — Rejected (batch `20261021-a`: row 4's container refusal is read on the receiver, but the
-  fallback to a slot destroys the handed-over item — the host's kernel ends with the id TERMINAL and neither
-  client carries it). Row 5's local control passes in the same run; rows 1 (both shapes), 2, 3 and 6 remain
-  as read in the earlier batches. Record:
-  `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md`.
+- Status: Review — row 4's item loss is fixed (a container refusal places the object it materialized in a slot
+  on the receiver's body; a body that cannot take it reports the item's end, loudly and on both sides) and its
+  re-read is owed to the next acceptance batch. Rows 1 (both shapes), 2 and 6 were read whole in earlier batches;
+  row 3 was read on its refusal half only (the "receiver's view closes mid-drag" variant is still unrun); row 5
+  passed in batch `20261021-a`. The fix changed no wire member. Record:
+  `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md` (the rejection this answers).
 - Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
-- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `todo/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3.
+- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `todo/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `todo/restore-refused-child-keeps-its-id.md` and `todo/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
 
 ## What exists today (both directions of one hand-over, only one carried)
 
@@ -318,8 +319,9 @@ change:
   read a `-1` as "carried, no slot of its own". Claiming a slot put the item in that slot on every clone — the bag
   and its new child competing for one slot — and, for a wearable container, would have been read as a worn-limb
   index. The message keeps the snapshot shape; the ledger copy states -1.
-- **A refusal by the container's own rules is now answered instead of losing the item.** `RestoreContent` returns
-  the item it materialized (or null), and it checks `Container.CanHoldItem` BEFORE loading, because the native
+- **A refusal by the container's own rules is now answered instead of losing the item.** `RestoreContent` answers
+  the item it materialized (today as `RestoredContent`, which also says whether the container took it and why it
+  did not), and it checks `Container.CanHoldItem` BEFORE loading, because the native
   `LoadItem` returns silently when the weight or tag rule fails: the blind load left a materialized item with no
   parent, carried by nobody and named by no report, and the next character snapshot swept it away — the item was
   gone from both players. Now the receiving side logs why it did not fit and places it in a slot instead.
@@ -332,7 +334,9 @@ change:
 - **A refusal on the host still does not reach the giver.** Every refusal after the intent is sent (no such
   container, item worn, destination not in world) lands in the host's log only; the giver's client has already
   written a positive line and nothing follows. The existing gap now covers one more refusal, and the fix is the same
-  one: answer it on the wire (`CommandRejected`) and print it where the player acted.
+  one: answer it on the wire (`CommandRejected`) and print it where the player acted. **Landed since**: the
+  refusal answer is `review/intent-refusal-never-reaches-the-actor.md`, whose own record reads its row 2 as passing;
+  what remains open in that shape is not this ticket's.
 - **Row 2 is still unrun on the machine.** The code is there and the unit-level red went green, but "an item
   released onto an item shown in the receiver's inventory enters that container and stays put" needs the live
   reading, and so does its refusal shape (a container that cannot hold it falls back to a slot, observably).
@@ -502,4 +506,121 @@ case that drives a container refusal and reads the item alive in a slot afterwar
 native `[ContainerLoad] bandage … moved inside body container plasticbag`, with `castItemProxy: false`,
 `castItemOwner: 0`, `viewOpen: false` and no `[RemoteIntent]` line. The record is
 `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md`.
+
+## The loss is fixed (2026-10-19, commit on top of `a7981497`)
+
+The fix takes the first shape the note above preferred: the refusal hands the object on, and nothing that a rung
+is about to own is ever destroyed. A container refusal now answers the same way in both directions — the
+receiver's own rules decide, and the item falls back to a slot on its body with one Warning naming the
+container's reason (the user's ruling).
+
+- **The codec does not destroy a refused content item.** `ItemStateCodec.RestoreContent` now answers
+  `RestoredContent` — the object, whether the container took it, and the container's own reason — instead of
+  `Item?`-or-null-with-a-destroy. Its two refusal points (`CanHoldItem` false, and `LoadItem` refusing after
+  it) both return the real object; the only object it still destroys is a prefab instance that carries no
+  `Item` (and so no instance id). The log line the acceptance record quotes is unchanged.
+- **The placement places that object.** `PlayerInventoryPlacement.AddCarriedItemToLocalContainer` hands the
+  returned item to ONE verified slot loop, `TryPlaceInBodySlot`: the slot the transfer named when it is free,
+  else every other free slot in index order, each attempt read back with `body.GetItem(slot) == placed`. The
+  read-back is not decoration — the game's own `Body.PickUpItem` refuses a native `onlyHoldInHands` item
+  outside a hand slot EVEN with `force` (Body.cs:1390), so an unverified attempt would log a slot the item
+  never entered (the review of batch `20261021-b` found that in the first version of this rung).
+- **Both placement paths share that loop.** `ItemStateCodec.MaterializeItem` is split out of `RestoreItem`
+  (same steps, id stamped before the object's own `Start`), and `AddCarriedItemToLocalBody` materializes and
+  then places through `TryPlaceInBodySlot` — so the slot-destination path verifies its landing too, and the
+  two paths cannot drift about what "placed" means.
+- **A body with no room is a loud, consistent loss, not a silent one.** When no slot on the body accepts the
+  item, one Warning reports the item's end (its destroy carries the id, so both clients agree it is gone).
+  The world-drop answer this case wants needs the host to re-record the item — see
+  `todo/placement-outcome-never-returns.md`.
+- **The first version's drop rung was withdrawn after review.** It reported the dropped object as a new
+  world-item spawn, and that report can never be applied: the host records the handed-over id as carried
+  BEFORE it publishes the transfer (`HandleTakeCore`'s `AdoptTransferredItem`/`CommitCarriedToHost`, and
+  `DeliverCreatedItem`'s `Carry`), so `ItemDomainModule.DecideSpawn` refuses the spawn as `Conflict` and a
+  guest receiver's object is then deleted by the next world-item keyframe with no trace. `dropWhenRefused` is
+  gone with it: a created item whose live container refuses takes the same slot fallback.
+- **The bulk restore's policy is unchanged and named.** `ItemStateCodec.RestoreContentDiscarding` is the one
+  place a restored content item is still discarded (the character restore, a world item's contents,
+  `RemoteItemSceneOps.ApplyAuthoritativeState`); it keeps its old behaviour and its own ticket,
+  `todo/restore-refused-child-keeps-its-id.md`, records why.
+
+**The regression test, and its red.** The behaviour suite cannot host this path — a refusal needs real Unity
+objects and a container that really refuses — so the invariant is pinned at the source by
+`SourceShapeGateTests.ContainerRefusal_HandsTheMaterializedItemToTheVerifiedSlotRung` (member bodies located by
+their DECLARATION in three files, with its own matcher contract in
+`TheContainerRefusalMatcher_SeesEveryDiscardShapeAndItsPositiveSample`: seven shapes, including a destroy in the
+codec, a `Refused` that claims "loaded", the creating rung back in the refusal branch, a slot loop that creates
+instead of placing, one without the read-back, and `RestoreItem` back in the slot path). The red was taken before
+the fix, on the first version of the gate: six violations on the old code, including
+`ItemStateCodec.RestoreContent destroys the content item it materialized …` and
+`AddCarriedItemToLocalContainer still calls a rung that materializes from the message AFTER RestoreContent
+materialized the item — two objects, one instance id` (`.acceptance/20261021-b/red-container-refusal.log`); the
+independent review reproduced all six against `HEAD`'s three files with the current matcher. Green after the fix:
+the focused run in `.acceptance/20261021-b/focused-container-refusal.log` (the filter is named in the delivery
+checklist's evidence line).
+
+The self-check behind the change, one row per mechanism:
+
+| Mechanism | Change | Evidence |
+|---|---|---|
+| `ItemStateCodec.RestoreContent` | a refusal answers `RestoredContent.Refused(item, why)` with the object in hand and `Loaded: false`; no destroy of the item | the gate above, red on the old body (two `Destroy(child…)` sites) and green after; its factory is read too |
+| `PlayerInventoryPlacement.AddCarriedItemToLocalContainer` | hands that object to `TryPlaceInBodySlot`; the unmaterialized branch (no parent / not a container) creates through `AddCarriedItemToLocalBody`, and a refusal never reaches the drop rung | the same gate (it fails if the materialized hand-off is replaced, or if the drop comes back) |
+| `PlayerInventoryPlacement.TryPlaceInBodySlot` | places the object it is given and reads the slot back; tries the named slot then every free one | the same gate (a creating or unverified loop fails it) |
+| `ItemStateCodec.MaterializeItem` / `AddCarriedItemToLocalBody` | materialize and place are separate steps, so both paths share the verified loop | the same gate (`AddCarriedItemToLocalBody` must go through both; `MaterializeItem` must stamp the id) |
+| the destroy chain `ItemPatches.ItemOnDestroyPatch` → `ItemWorldSync.OnItemDestroyed` | unchanged, and no longer reached by a refused-but-placeable item: it is what turns a discarded id-carrying object into a TERMINAL kernel row | read in the code: the hook filters replay, generation, teardown, display-proxy and standing-item destroys, and reports every other id |
+
+### The independent review's findings, and what each one changed
+
+The review ran in a fresh context against the frozen tree (batch `20261021-b`). Every finding is recorded here
+with the code it named, because a fixed finding that is not written down is one the next cycle re-learns.
+
+- **Blocker — the drop rung's spawn report can never be applied.** `ItemDomainModule.DecideSpawn`:
+  `if (state.FindItem(command.Identity.InstanceId) is not null) { return DomainDecision.Reject(RejectionReason.Conflict, $"item {command.Identity.InstanceId} already exists"); }`,
+  and the row always exists first: `PlayerInventoryTakeService.HandleTakeCore` calls
+  `_items.AdoptTransferredItem`/`CommitCarriedToHost` BEFORE `PublishTransfer`, and `DeliverCreatedItem`'s
+  `Carry` does the same. A guest receiver's refused spawn is then deleted by
+  `ItemReconcile.OnRemoteItemSnapshot` (absent from the keyframe → `KillNow` zeroes the ids, no destroy report),
+  and the host receiver's object is never broadcast. **Changed:** the rung is gone, and the no-room case
+  reports the item's end; the host-side answer is `todo/placement-outcome-never-returns.md`.
+- **Major — the new slot rung silently no-ops for a native `onlyHoldInHands` item.** `Body.PickUpItem`'s guard
+  (Body.cs:1390) is `… && (!item.Stats.onlyHoldInHands || this.slots[slot].isHand)`, which `force` does NOT
+  bypass, so the rung logged a slot the item never entered. **Changed:** `TryPlaceInBodySlot` tries the named
+  slot and then every free slot, reading each attempt back with `body.GetItem(slot) == placed`
+  (`Body.GetItem` at Body.cs:1346), and the unverified hand-off in `AddCarriedItemToLocalBody` was removed by the
+  `MaterializeItem` split.
+- **Major — the gate could not see the defect inside the rungs it added** (the reviewer put a destroy back into
+  `AddRestoredItemToLocalBody` and a creating rung back into the drop path and the matcher still passed).
+  **Changed:** it now reads the rung bodies and the `RestoredContent` factory, and its matcher contract carries
+  seven shapes, including those two.
+- **Major — the drop outcome had no acceptance row and no runtime trace, yet was stated as fact.** **Changed:**
+  the outcome is withdrawn, so there is nothing to claim; the no-room case is a limit below.
+- **Minors, each addressed:** the "nothing could be created on this client" branch loses the item with a
+  Warning and the caller ignores the answer (recorded as a limit below); the codec's "NEVER destroys" wording
+  was false for the componentless prefab (fixed); two stale restatements in this ticket (the 2026-10-18
+  `RestoreContent` sentence and the "host-side refusal only reaches the host" bullet, both fixed — the second
+  one is `review/intent-refusal-never-reaches-the-actor.md`, which reads its own row as passing); the status
+  over-claimed row 3 (narrowed above); the checklist's format-evidence line had no exit code (the log now
+  appends it), its "unfiltered" wording contradicted the excluded checklist gate (the filter is now named, and
+  a separate unfiltered gate run proves the checklist), and its structure line did not say the touched test
+  file sits outside the `src/` ceiling (it does now); the receiver's slot substitution was logged nowhere (a
+  Warning now names the requested slot); the stale drop pin in this file was replaced by
+  `ContainerDestination_TakesTheSlotFallbackInBothDirections`; the focused filter is named in the ticket and
+  the checklist.
+
+**What is still owed, and where it went:**
+
+- **Row 4 itself is unrun against the fixed artifact.** The re-read is the next acceptance batch's first row,
+  in the same shape as the rejection (the receiver's 3.501 g `plasticbag` refuses the giver's 4 g `toolbox`),
+  and it reads four things: the receiver's log lines, the item alive in a slot with its id, no destroy trace
+  for the id, and the host's kernel not storing it terminal.
+- **The host's ledger still does not learn the receiver's own placement.** It keeps what the message said, so
+  a refused container destination reads as "inside that container" on the host while the receiver placed the
+  item in a slot — and the "no room at all" case is exactly the drop the host would have to re-record. Filed
+  as `todo/placement-outcome-never-returns.md` with the readings it was found from.
+- **The restore paths' discard policy** (the same destroy shape, one call site over) is
+  `todo/restore-refused-child-keeps-its-id.md`.
+- **Two limits this change leaves, named rather than buried.** An item that cannot be created on the receiving
+  client at all (its prefab does not load there — mod content, differing builds) is lost with one Warning, and
+  `PlayerInteractionApply` ignores the placement's answer; and a slot-destination transfer whose live body has
+  no room takes the same loud loss. Both are the "no room at all" shape above, which the host has to answer.
 

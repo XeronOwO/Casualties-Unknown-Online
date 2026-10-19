@@ -799,17 +799,204 @@ public class SourceShapeGateTests
 	}
 
 	/// <summary>
-	/// A give's container rung is the only transfer that answers a live container refusal with the drop: its
-	/// answer already named the container, and its item has no source body to fall back to. The flag is passed
-	/// from the transfer's own facts, not hard-coded, so a source transfer keeps its slot fallback.
+	/// A container destination has ONE policy in both directions: the container's own rules on the RECEIVING client
+	/// decide, and a refusal falls back to a slot there. The flag that used to send a created item to the give
+	/// ladder's drop rung is gone — the host records the item's id as carried BEFORE it publishes the transfer (and
+	/// `DeliverCreatedItem`'s carry does the same), so a spawn report from that rung is refused by the kernel as a
+	/// conflict and a guest's object is then swept by the world-item keyframe. The independent review of batch
+	/// `20261021-b` found that, and the rung was withdrawn rather than shipped.
 	/// </summary>
 	[Fact]
-	public void GiveLadderContainerRefusal_FallsToTheDropOnlyForACreatedItem()
+	public void ContainerDestination_TakesTheSlotFallbackInBothDirections()
 	{
 		var apply = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs"));
 		var placement = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInventoryPlacement.cs"));
 
-		Assert.Contains("dropWhenRefused: msg.FromSteamId == 0 && msg.Destination == PlayerInventoryDestination.Container", apply);
-		Assert.Contains("DropCreatedItemAtLocalBody(body, item);", placement);
+		Assert.Contains("_placement.AddCarriedItemToLocalContainer(body, item, msg.TargetParentItemId);", apply);
+		Assert.DoesNotContain("dropWhenRefused", apply, StringComparison.Ordinal);
+		Assert.Contains("TryPlaceInBodySlot(body, item, materialized)", placement);
+		Assert.DoesNotContain("dropWhenRefused", placement, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A container that refuses a handed-over item must hand on the object the restore already materialized.
+	/// <c>ItemStateCodec.RestoreContent</c> used to destroy that child and answer null; the caller then
+	/// materialized a SECOND object with the same instance id, Unity's deferred destroy reported the id dead at
+	/// the end of the frame, the host's kernel stored it TERMINAL and swept the second object — the handed-over
+	/// toolbox was gone from both players (batch `20261021-a`, `give-item-to-another-player` row 4). The
+	/// behaviour suite cannot host the refusal (it needs real Unity objects and a container that really
+	/// refuses), so the invariant is pinned here at the source: the codec never destroys the item it
+	/// materialized, the refusal's own flag says "not loaded", the placement's container rung hands THAT object
+	/// to the slot rung (never to a rung that creates one), the slot rung verifies its landing, and both the
+	/// place and the materialize paths go through the one verified slot loop.
+	/// <para>
+	/// Its reach, stated exactly: three files' text, member bodies located by their DECLARATION (a call site's
+	/// next brace is another member's, so a call is never a body). What it cannot see: a destroy introduced in a
+	/// helper the codec calls, and <c>RestoreContents</c>' own discard policy — that bulk path has no destination
+	/// to hand a refused child to, and its ticket is separate. The materialized item's own destroy is what is
+	/// pinned; the componentless prefab object the codec discards before it becomes an item carries no instance
+	/// id and is allowed to stay. The live proof of the fix is the row-4 rerun on the deployed artifact, not this
+	/// pin.
+	/// </para>
+	/// </summary>
+	[Fact]
+	public void ContainerRefusal_HandsTheMaterializedItemToTheVerifiedSlotRung()
+	{
+		var failures = ContainerRefusalHandoverFailures(
+			File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Items/ItemStateCodec.cs")),
+			File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInventoryPlacement.cs")),
+			File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Items/RestoredContent.cs")));
+		Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
+	}
+
+	/// <summary>The gate's own contract: the fixed shape passes, and every shape it exists to catch fails.</summary>
+	[Theory]
+	[InlineData(
+		"internal static RestoredContent RestoreContent(Item containerItem, Container container, CharacterItemMsg childData) { if (!container.CanHoldItem(child)) { LogWarning(message); return RestoredContent.Refused(child, refused); } return RestoredContent.Landed(child); } internal static Item? MaterializeItem(CharacterItemMsg itemData, Vector3 position) { var item = go.GetComponent<Item>(); item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId; return item; }",
+		"internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId) { if (container == null) { return AddCarriedItemToLocalBody(body, item); } var restored = ItemStateCodec.RestoreContent(parent, container, item); if (restored.Item is not { } materialized) { return false; } return TryPlaceInBodySlot(body, item, materialized); } private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) { foreach (var slot in SlotCandidates(body, item)) { body.PickUpItem(placed, slot, force: true); if (body.GetItem(slot) != placed) { continue; } item.SlotIndex = slot; return true; } return false; } internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item) { if (ItemStateCodec.MaterializeItem(item, body.transform.position) is not { } created) { return false; } return TryPlaceInBodySlot(body, item, created); }",
+		"internal readonly record struct RestoredContent(Item? Item, bool Loaded, string? Refusal) { internal static RestoredContent Refused(Item item, string why) => new(item, false, why); }",
+		0)]
+	[InlineData(
+		"internal static RestoredContent RestoreContent(Item containerItem, Container container, CharacterItemMsg childData) { if (!container.CanHoldItem(child)) { Object.Destroy(child.gameObject); return RestoredContent.Refused(child, refused); } return RestoredContent.Landed(child); } internal static Item? MaterializeItem(CharacterItemMsg itemData, Vector3 position) { var item = go.GetComponent<Item>(); item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId; return item; }",
+		"internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId) { if (container == null) { return AddCarriedItemToLocalBody(body, item); } var restored = ItemStateCodec.RestoreContent(parent, container, item); if (restored.Item is not { } materialized) { return false; } return TryPlaceInBodySlot(body, item, materialized); } private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) { foreach (var slot in SlotCandidates(body, item)) { body.PickUpItem(placed, slot, force: true); if (body.GetItem(slot) != placed) { continue; } item.SlotIndex = slot; return true; } return false; } internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item) { if (ItemStateCodec.MaterializeItem(item, body.transform.position) is not { } created) { return false; } return TryPlaceInBodySlot(body, item, created); }",
+		"internal readonly record struct RestoredContent(Item? Item, bool Loaded, string? Refusal) { internal static RestoredContent Refused(Item item, string why) => new(item, false, why); }",
+		1)]
+	[InlineData(
+		"internal static RestoredContent RestoreContent(Item containerItem, Container container, CharacterItemMsg childData) { if (!container.CanHoldItem(child)) { LogWarning(message); return RestoredContent.Refused(child, refused); } return RestoredContent.Landed(child); } internal static Item? MaterializeItem(CharacterItemMsg itemData, Vector3 position) { var item = go.GetComponent<Item>(); item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId; return item; }",
+		"internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId) { if (container == null) { return AddCarriedItemToLocalBody(body, item); } var restored = ItemStateCodec.RestoreContent(parent, container, item); if (restored.Item is not { } materialized) { return false; } return TryPlaceInBodySlot(body, item, materialized); } private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) { foreach (var slot in SlotCandidates(body, item)) { body.PickUpItem(placed, slot, force: true); if (body.GetItem(slot) != placed) { continue; } item.SlotIndex = slot; return true; } return false; } internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item) { if (ItemStateCodec.MaterializeItem(item, body.transform.position) is not { } created) { return false; } return TryPlaceInBodySlot(body, item, created); }",
+		"internal readonly record struct RestoredContent(Item? Item, bool Loaded, string? Refusal) { internal static RestoredContent Refused(Item item, string why) => new(item, true, why); }",
+		1)]
+	[InlineData(
+		"internal static RestoredContent RestoreContent(Item containerItem, Container container, CharacterItemMsg childData) { if (!container.CanHoldItem(child)) { LogWarning(message); return RestoredContent.Refused(child, refused); } return RestoredContent.Landed(child); } internal static Item? MaterializeItem(CharacterItemMsg itemData, Vector3 position) { var item = go.GetComponent<Item>(); item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId; return item; }",
+		"internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId) { if (container == null) { return AddCarriedItemToLocalBody(body, item); } var restored = ItemStateCodec.RestoreContent(parent, container, item); if (restored.Item is not { } materialized) { return false; } return DropCreatedItemAtLocalBody(body, item); } private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) { foreach (var slot in SlotCandidates(body, item)) { body.PickUpItem(placed, slot, force: true); if (body.GetItem(slot) != placed) { continue; } item.SlotIndex = slot; return true; } return false; } internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item) { if (ItemStateCodec.MaterializeItem(item, body.transform.position) is not { } created) { return false; } return TryPlaceInBodySlot(body, item, created); }",
+		"internal readonly record struct RestoredContent(Item? Item, bool Loaded, string? Refusal) { internal static RestoredContent Refused(Item item, string why) => new(item, false, why); }",
+		2)]
+	[InlineData(
+		"internal static RestoredContent RestoreContent(Item containerItem, Container container, CharacterItemMsg childData) { if (!container.CanHoldItem(child)) { LogWarning(message); return RestoredContent.Refused(child, refused); } return RestoredContent.Landed(child); } internal static Item? MaterializeItem(CharacterItemMsg itemData, Vector3 position) { var item = go.GetComponent<Item>(); item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId; return item; }",
+		"internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId) { if (container == null) { return AddCarriedItemToLocalBody(body, item); } var restored = ItemStateCodec.RestoreContent(parent, container, item); if (restored.Item is not { } materialized) { return false; } return TryPlaceInBodySlot(body, item, materialized); } private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) { var created = ItemStateCodec.MaterializeItem(item, body.transform.position); return created != null; } internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item) { if (ItemStateCodec.MaterializeItem(item, body.transform.position) is not { } created) { return false; } return TryPlaceInBodySlot(body, item, created); }",
+		"internal readonly record struct RestoredContent(Item? Item, bool Loaded, string? Refusal) { internal static RestoredContent Refused(Item item, string why) => new(item, false, why); }",
+		3)]
+	[InlineData(
+		"internal static RestoredContent RestoreContent(Item containerItem, Container container, CharacterItemMsg childData) { if (!container.CanHoldItem(child)) { LogWarning(message); return RestoredContent.Refused(child, refused); } return RestoredContent.Landed(child); } internal static Item? MaterializeItem(CharacterItemMsg itemData, Vector3 position) { var item = go.GetComponent<Item>(); item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId; return item; }",
+		"internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId) { if (container == null) { return AddCarriedItemToLocalBody(body, item); } var restored = ItemStateCodec.RestoreContent(parent, container, item); if (restored.Item is not { } materialized) { return false; } return TryPlaceInBodySlot(body, item, materialized); } private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) { foreach (var slot in SlotCandidates(body, item)) { body.PickUpItem(placed, slot, force: true); if (body.GetItem(slot) != placed) { continue; } item.SlotIndex = slot; return true; } return false; } internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item) { ItemStateCodec.RestoreItem(item, body); return true; }",
+		"internal readonly record struct RestoredContent(Item? Item, bool Loaded, string? Refusal) { internal static RestoredContent Refused(Item item, string why) => new(item, false, why); }",
+		1)]
+	[InlineData(
+		"internal static RestoredContent RestoreContent(Item containerItem, Container container, CharacterItemMsg childData) { if (!container.CanHoldItem(child)) { LogWarning(message); return RestoredContent.Refused(child, refused); } return RestoredContent.Landed(child); } internal static Item? MaterializeItem(CharacterItemMsg itemData, Vector3 position) { return go.GetComponent<Item>(); }",
+		"internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId) { if (container == null) { return AddCarriedItemToLocalBody(body, item); } var restored = ItemStateCodec.RestoreContent(parent, container, item); if (restored.Item is not { } materialized) { return false; } return TryPlaceInBodySlot(body, item, materialized); } private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) { foreach (var slot in SlotCandidates(body, item)) { body.PickUpItem(placed, slot, force: true); if (body.GetItem(slot) != placed) { continue; } item.SlotIndex = slot; return true; } return false; } internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item) { if (ItemStateCodec.MaterializeItem(item, body.transform.position) is not { } created) { return false; } return TryPlaceInBodySlot(body, item, created); }",
+		"internal readonly record struct RestoredContent(Item? Item, bool Loaded, string? Refusal) { internal static RestoredContent Refused(Item item, string why) => new(item, false, why); }",
+		1)]
+	[InlineData("", "", "", 6)]
+	public void TheContainerRefusalMatcher_SeesEveryDiscardShapeAndItsPositiveSample(
+		string codec, string placement, string restoredContent, int expectedFailures) =>
+		Assert.Equal(expectedFailures, ContainerRefusalHandoverFailures(codec, placement, restoredContent).Count);
+
+	private static List<string> ContainerRefusalHandoverFailures(string codec, string placement, string restoredContent)
+	{
+		var failures = new List<string>();
+
+		var restore = SourceScan.MethodBody(codec, "internal static RestoredContent RestoreContent(");
+		if (restore.Length == 0)
+		{
+			failures.Add("ItemStateCodec.RestoreContent's body was not found — this rule would pass by checking nothing");
+		}
+		else if (restore.Contains("Destroy(child", StringComparison.Ordinal))
+		{
+			failures.Add("ItemStateCodec.RestoreContent destroys the content item it materialized: the deferred destroy reports its instance id dead at the end of the frame, and the object a fallback then builds with the same id is swept (batch 20261021-a's handed-over toolbox). The one destroy the method may keep is the componentless prefab object, which carries no Item and therefore no instance id");
+		}
+		else if (!restore.Contains("RestoredContent.Refused(", StringComparison.Ordinal))
+		{
+			failures.Add("ItemStateCodec.RestoreContent answers a container refusal without handing the materialized item back — the caller can only rebuild it, which is the same id twice");
+		}
+
+		var refusedStart = restoredContent.IndexOf("Refused(Item item, string why)", StringComparison.Ordinal);
+		if (refusedStart < 0)
+		{
+			failures.Add("RestoredContent.Refused was not found — the refusal's own flag is nobody's check");
+		}
+		else
+		{
+			var lineEnd = restoredContent.IndexOf('\n', refusedStart);
+			var refused = lineEnd < 0 ? restoredContent[refusedStart..] : restoredContent[refusedStart..lineEnd];
+			if (!refused.Contains("false", StringComparison.Ordinal) || refused.Contains("true", StringComparison.Ordinal))
+			{
+				failures.Add("RestoredContent.Refused does not report the refusal as not loaded — a placement that trusts the flag would treat a refused item as already in the container and never place it");
+			}
+		}
+
+		var container = SourceScan.MethodBody(placement, "internal bool AddCarriedItemToLocalContainer(");
+		if (container.Length == 0)
+		{
+			failures.Add("PlayerInventoryPlacement.AddCarriedItemToLocalContainer's body was not found — this rule would pass by checking nothing");
+		}
+		else
+		{
+			if (!container.Contains("ItemStateCodec.RestoreContent(", StringComparison.Ordinal))
+			{
+				failures.Add("AddCarriedItemToLocalContainer no longer loads the container through ItemStateCodec.RestoreContent — the container's own rules are the judge, and this rule cannot see what replaced them");
+			}
+
+			if (!container.Contains("TryPlaceInBodySlot(body, item, materialized)", StringComparison.Ordinal))
+			{
+				failures.Add("AddCarriedItemToLocalContainer's slot fallback does not place the object RestoreContent materialized — a rung that materializes from the message builds the same instance id twice");
+			}
+
+			if (container.Contains("DropCreatedItemAtLocalBody(", StringComparison.Ordinal))
+			{
+				failures.Add("AddCarriedItemToLocalContainer answers a refusal with a world drop the kernel refuses: the host has already recorded the id as carried, so the spawn is a conflict and a guest's copy is swept by the keyframe");
+			}
+		}
+
+		var slot = SourceScan.MethodBody(placement, "private bool TryPlaceInBodySlot(");
+		if (slot.Length == 0)
+		{
+			failures.Add("PlayerInventoryPlacement.TryPlaceInBodySlot's body was not found — this rule would pass by checking nothing");
+		}
+		else
+		{
+			if (!slot.Contains("body.PickUpItem(placed", StringComparison.Ordinal))
+			{
+				failures.Add("TryPlaceInBodySlot does not hand the object it was given to the body — it has to place that object, never create one");
+			}
+
+			if (!slot.Contains("body.GetItem(slot) != placed", StringComparison.Ordinal))
+			{
+				failures.Add("TryPlaceInBodySlot does not read the slot back: the game's own placement refuses an onlyHoldInHands item outside a hand slot even with force, so an unverified attempt logs a slot the item never entered");
+			}
+
+			if (slot.Contains("MaterializeItem(", StringComparison.Ordinal)
+				|| slot.Contains("Instantiate(", StringComparison.Ordinal)
+				|| slot.Contains("Destroy(", StringComparison.Ordinal))
+			{
+				failures.Add("TryPlaceInBodySlot creates or destroys an object instead of placing the one it was given — one instance id, one object");
+			}
+		}
+
+		var carried = SourceScan.MethodBody(placement, "internal bool AddCarriedItemToLocalBody(");
+		if (carried.Length == 0)
+		{
+			failures.Add("PlayerInventoryPlacement.AddCarriedItemToLocalBody's body was not found — this rule would pass by checking nothing");
+		}
+		else if (carried.Contains("ItemStateCodec.RestoreItem(", StringComparison.Ordinal))
+		{
+			failures.Add("AddCarriedItemToLocalBody hands the placement back to RestoreItem, whose hand-off has no landing check — the shape the refusal fallback used to rebuild the same id through");
+		}
+		else if (!carried.Contains("ItemStateCodec.MaterializeItem(", StringComparison.Ordinal)
+			|| !carried.Contains("TryPlaceInBodySlot(body, item, created)", StringComparison.Ordinal))
+		{
+			failures.Add("AddCarriedItemToLocalBody no longer materializes and then places through the verified slot path");
+		}
+
+		var materialize = SourceScan.MethodBody(codec, "internal static Item? MaterializeItem(");
+		if (materialize.Length == 0)
+		{
+			failures.Add("ItemStateCodec.MaterializeItem was not found — the placement builds its object through it, and an id-less materialization is reported as a new spawn");
+		}
+		else if (!materialize.Contains("AddComponent<ItemInstanceId>()", StringComparison.Ordinal))
+		{
+			failures.Add("ItemStateCodec.MaterializeItem does not stamp the instance id: the object's own Start would report it as a runtime spawn with a NEW id");
+		}
+
+		return failures;
 	}
 }

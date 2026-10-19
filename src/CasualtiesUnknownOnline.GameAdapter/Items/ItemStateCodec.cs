@@ -274,11 +274,10 @@ internal static class ItemStateCodec
 		return states;
 	}
 
-	/// <summary>Restores one item (recursively): instantiate by id, apply the
-	/// SavedItem fields, the liquid stacks, the component states and the
-	/// container contents, then hand it to the slot — with the game's own
-	/// restore semantics (SaveSystem.cs:304-329): a non-empty slot takes the
-	/// item into its container instead of failing.</summary>
+	/// <summary>Restores one item (recursively) and hands it to the slot — with the game's own restore semantics
+	/// (SaveSystem.cs:304-329): a non-empty slot takes the item into its container instead of failing. The
+	/// materialization half is <see cref="MaterializeItem"/>, shared with the placement that decides where an item
+	/// goes only after the body's own rules have been asked.</summary>
 	internal static void RestoreItem(CharacterItemMsg itemData, Body body)
 	{
 		if (itemData.SlotIndex < 0 || itemData.SlotIndex >= body.slots.Length)
@@ -286,21 +285,52 @@ internal static class ItemStateCodec
 			return;
 		}
 
+		if (MaterializeItem(itemData, body.transform.position) is not { } item)
+		{
+			return;
+		}
+
+		if (body.HoldingItem(itemData.SlotIndex))
+		{
+			// The slot already holds something (a restored container) — the
+			// item goes inside it (SaveSystem semantics, Body.cs:1388 would
+			// silently refuse the slot otherwise).
+			body.GetItem(itemData.SlotIndex).GetComponent<Container>()?.LoadItem(item);
+		}
+		else
+		{
+			body.PickUpItem(item, itemData.SlotIndex, force: true);
+		}
+	}
+
+	/// <summary>
+	/// Materializes ONE item from its wire form at a point: instantiate by definition, stamp the instance id, apply
+	/// the SavedItem fields, the liquid stacks, the component states and the container contents. Answers null when
+	/// this client cannot create it at all (no prefab, or a prefab without an <c>Item</c>); the reason is logged.
+	///
+	/// <para>
+	/// It PLACES nothing. A caller that has to ask a rule before deciding where the item goes (the placement's slot
+	/// loop, the container's own capacity) does so with the object in hand and never has to build a second one —
+	/// two objects with one instance id are how the handed-over toolbox was lost (batch <c>20261021-a</c>).
+	/// </para>
+	/// </summary>
+	internal static Item? MaterializeItem(CharacterItemMsg itemData, Vector3 position)
+	{
 		var prefab = ItemPrefabResolver.Load(itemData.ItemId);
 		if (prefab == null) // Unity object — ==
 		{
 			_log?.LogWarning("Restore: {ItemId} has no prefab — skipped.", itemData.ItemId);
-			return;
+			return null;
 		}
 
-		var go = Object.Instantiate(prefab, body.transform.position, Quaternion.identity);
+		var go = Object.Instantiate(prefab, position, Quaternion.identity);
 		go.SetActive(true);
 		var item = go.GetComponent<Item>();
 		if (item == null) // Unity object — ==
 		{
 			Object.Destroy(go);
 			_log?.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
-			return;
+			return null;
 		}
 
 		if (itemData.InstanceId != 0)
@@ -319,17 +349,7 @@ internal static class ItemStateCodec
 		RestoreComponentStates(item, itemData.Components);
 		RestoreContents(item, itemData.Contents);
 
-		if (body.HoldingItem(itemData.SlotIndex))
-		{
-			// The slot already holds something (a restored container) — the
-			// item goes inside it (SaveSystem semantics, Body.cs:1388 would
-			// silently refuse the slot otherwise).
-			body.GetItem(itemData.SlotIndex).GetComponent<Container>()?.LoadItem(item);
-		}
-		else
-		{
-			body.PickUpItem(item, itemData.SlotIndex, force: true);
-		}
+		return item;
 	}
 
 	internal static void RestoreLiquids(Item item, List<LiquidStackMsg> liquids)
@@ -442,24 +462,33 @@ internal static class ItemStateCodec
 
 		foreach (var childData in contents)
 		{
-			RestoreContent(containerItem, container, childData);
+			RestoreContentDiscarding(containerItem, container, childData);
 		}
 	}
 
 	/// <summary>
 	/// Materializes ONE content item into a container (the shared step of the
-	/// bulk restore and the correction apply): instantiate by definition,
-	/// restore the state, attach the instance id (a correction-addressed item
-	/// must be findable by id afterwards — "the corrected contents vanished on
-	/// the next action") and load it with the game's own semantics.
+	/// bulk restore, the correction apply and the give ladder's placement):
+	/// instantiate by definition, restore the state, attach the instance id (a
+	/// correction-addressed item must be findable by id afterwards — "the
+	/// corrected contents vanished on the next action") and load it with the
+	/// game's own semantics.
+	///
+	/// <para>
+	/// A refusal never destroys the item: it answers <see cref="RestoredContent.Refused"/> with the real object, and
+	/// the caller decides where it goes — the give ladder places it in a slot, because destroying it is reported as
+	/// the id's end at the end of the frame and a caller that then rebuilds the same id loses the item on both
+	/// clients (batch <c>20261021-a</c>'s handed-over toolbox). The only object this method destroys is a prefab
+	/// instance that carries no <c>Item</c> at all, and therefore no instance id to report.
+	/// </para>
 	/// </summary>
-	internal static Item? RestoreContent(Item containerItem, Container container, CharacterItemMsg childData)
+	internal static RestoredContent RestoreContent(Item containerItem, Container container, CharacterItemMsg childData)
 	{
 		var prefab = ItemPrefabResolver.Load(childData.ItemId);
 		if (prefab == null) // Unity object — ==
 		{
 			_log?.LogWarning("Restore: {ItemId} has no prefab — skipped.", childData.ItemId);
-			return null;
+			return RestoredContent.NotCreated();
 		}
 
 		var go = Object.Instantiate(prefab, containerItem.transform.position, Quaternion.identity);
@@ -469,7 +498,7 @@ internal static class ItemStateCodec
 		{
 			Object.Destroy(go);
 			_log?.LogWarning("Restore: {ItemId} has no Item component — skipped.", childData.ItemId);
-			return null;
+			return RestoredContent.NotCreated();
 		}
 
 		child.condition = childData.Condition;
@@ -484,29 +513,44 @@ internal static class ItemStateCodec
 		RestoreContents(child, childData.Contents);
 
 		// The container's own rules decide, BEFORE the load: Container.LoadItem returns silently when CanHoldItem is
-		// false (Container.cs: "if (this.CanHoldItem(item) && …)"), so a blind load leaves a materialized item with
-		// no parent — carried by nobody, named by no report, and swept away by the next character snapshot. That is
-		// the "the item vanished" family, so the refusal is answered here and the caller decides what to do.
+		// false (Container.cs: "if (this.CanHoldItem(item) && …"), so a blind load leaves a materialized item with
+		// no parent — carried by nobody, named by no report, and swept away by the next character snapshot. The
+		// refusal hands the object back instead of destroying it: destroying an id-carrying item is reported as that
+		// id's end at the end of the frame, and a caller that rebuilds the same id afterwards loses the item on both
+		// clients (batch `20261021-a`).
 		if (!container.CanHoldItem(child))
 		{
 			_log?.LogWarning("Restore: {ItemId} (id {InstanceId}) does not fit {Container} — refused by the container's own rule, not loaded.",
 				childData.ItemId, childData.InstanceId, container.name);
-			Object.Destroy(child.gameObject);
-			return null;
+			return RestoredContent.Refused(child, "the container's own rules refused it");
 		}
 
 		container.LoadItem(child);
 		if (child.transform.parent != container.transform) // Unity object — ==
 		{
 			// LoadItem can refuse AFTER CanHoldItem (its own stacking rule and the distance gate) and it does so
-			// silently: a child that did not land is carried by nobody, named by no report, and swept away by the
-			// next snapshot. Answer the refusal here so the caller can place the item another way.
+			// silently: a child that did not land is carried by nobody and named by no report. Same answer as the
+			// capacity refusal above — hand the object back, never destroy it here.
 			_log?.LogWarning("Restore: {ItemId} (id {InstanceId}) did not land in {Container} despite CanHoldItem — refused by the container's own load.",
 				childData.ItemId, childData.InstanceId, container.name);
-			Object.Destroy(child.gameObject);
-			return null;
+			return RestoredContent.Refused(child, "the container refused the load");
 		}
 
-		return child;
+		return RestoredContent.Landed(child);
+	}
+
+	/// <summary>
+	/// The restore paths' policy for a content item the container refused: they have no destination to hand it to —
+	/// the snapshot says "inside this container", this client's own rules say it cannot be — so it is discarded, and
+	/// the end it announces is that discard. Ticket <c>todo/restore-refused-child-keeps-its-id.md</c> carries
+	/// the sibling this policy leaves open. The give ladder does NOT use this: it places the object it gets back (a
+	/// slot, or the world when even that has no room).
+	/// </summary>
+	internal static void RestoreContentDiscarding(Item containerItem, Container container, CharacterItemMsg childData)
+	{
+		if (RestoreContent(containerItem, container, childData) is { Loaded: false, Item: { } discarded })
+		{
+			Object.Destroy(discarded.gameObject);
+		}
 	}
 }

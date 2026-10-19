@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -93,76 +94,152 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 	}
 
 	/// <summary>
-	/// A transferred item enters a container. The container's own rules are the final judge. A give
-	/// (<paramref name="dropWhenRefused"/>) has no source body left to fall back to and its answer already
-	/// named that container, so a refusal is answered by the ladder's last rung — the drop — rather than a
-	/// silent slot swap the operator was not told about. Every other transfer keeps the slot fallback: its
-	/// item did come off a body and a slot is still the better place for it.
+	/// A transferred item enters a container. The container's own rules are the final judge: when it refuses, the
+	/// item falls back to a slot on this body with one Warning naming the container's reason — the user's ruling for
+	/// a handed-over item ("the receiver's own rules refuse it and one observable line is written").
+	///
+	/// <para>
+	/// The fallback PLACES the object the restore materialized, never a second one:
+	/// <see cref="ItemStateCodec.RestoreContent"/> materializes the item before the container can be asked, and a
+	/// destroy of that object is reported as its instance id's end at the end of the frame — the second object the
+	/// fallback used to build with the same id was then swept, and the handed-over item was gone from both players
+	/// (batch <c>20261021-a</c>, row 4).
+	/// </para>
 	/// </summary>
-	internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId, bool dropWhenRefused)
+	internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId)
 	{
 		var parent = CarriedItemLocator.FindById(body, parentItemId);
 		var container = parent == null ? null : parent.GetComponent<Container>(); // Unity object — ==
-		var why = parent == null // Unity object — ==
-			? "the parent is not on the local body"
-			: container == null ? "the target is not a container" : null;
-
-		if (container == null || ItemStateCodec.RestoreContent(parent!, container, item) == null) // Unity object — ==
+		if (container == null) // Unity object — ==
 		{
-			if (dropWhenRefused)
-			{
-				_domains.Log.LogWarning(
-					"[PlayerInteraction] {ItemId} (id {InstanceId}) not placed into container {ParentId} ({Why}) — the give ladder's last rung: dropping it at this body instead.",
-					item.ItemId, item.InstanceId, parentItemId, why ?? "the container's own rules refused it");
-				DropCreatedItemAtLocalBody(body, item);
-				return true;
-			}
-
-			// The container's own rules are the final judge (the user's ruling for a handed-over item), so anything
-			// that cannot host it falls back to a slot: the item has already left the giver by this point, and
-			// "not loaded" with no fallback is how an item vanishes from both players' ledgers.
+			// Nothing was materialized, so the fallback must create the item itself.
 			_domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) not placed into container {ParentId} ({Why}) — falling back to a slot.",
-				item.ItemId, item.InstanceId, parentItemId, why ?? "the container's own rules refused it");
+				item.ItemId, item.InstanceId, parentItemId,
+				parent == null ? "the parent is not on the local body" : "the target is not a container"); // Unity object — ==
 			return AddCarriedItemToLocalBody(body, item);
 		}
 
-		_domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) into container {Parent} ({ParentId}).",
-			item.ItemId, item.InstanceId, parent!.id, parentItemId);
-		return true;
+		var restored = ItemStateCodec.RestoreContent(parent!, container, item);
+		if (restored.Loaded)
+		{
+			_domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) into container {Parent} ({ParentId}).",
+				item.ItemId, item.InstanceId, parent!.id, parentItemId);
+			return true;
+		}
+
+		if (restored.Item is not { } materialized)
+		{
+			// Nothing came into existence on this client (its definition's prefab does not load here), so there is no
+			// object to hand on — and a rung that would create it from the message fails for the same reason.
+			_domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) not placed into container {ParentId} — the item could not be created on this client, so there is nothing to place.",
+				item.ItemId, item.InstanceId, parentItemId);
+			return false;
+		}
+
+		_domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) not placed into container {ParentId} ({Why}) — falling back to a slot.",
+			item.ItemId, item.InstanceId, parentItemId, restored.Refusal ?? "the container's own rules refused it");
+
+		// The item's own slot is not what a container destination named: the message carries the PARENT's slot for a
+		// nested item, and letting the placement read that as a request would log a substitution nobody asked for.
+		item.SlotIndex = -1;
+		if (TryPlaceInBodySlot(body, item, materialized))
+		{
+			return true;
+		}
+
+		ReportUnplaceableItem(item, materialized);
+		return false;
 	}
 
 	/// <summary>A transferred item enters a body slot: the one the transfer named when it is free, else the first free one.</summary>
 	internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item)
 	{
-		int slot;
-		if (item.SlotIndex >= 0
-			&& item.SlotIndex < body.slots.Length
-			&& !body.HoldingItem(item.SlotIndex))
+		if (ItemStateCodec.MaterializeItem(item, body.transform.position) is not { } created)
 		{
-			slot = item.SlotIndex;
+			return false;
 		}
-		else
+
+		if (TryPlaceInBodySlot(body, item, created))
 		{
-			var empty = body.FirstEmptySlot();
-			if (empty is not { } fallback)
+			return true;
+		}
+
+		ReportUnplaceableItem(item, created);
+		return false;
+	}
+
+	/// <summary>
+	/// Puts an item that already exists into a slot this body accepts, verifying each attempt by reading the slot
+	/// back: the game's own placement refuses a native <c>onlyHoldInHands</c> item outside a hand slot EVEN with
+	/// <c>force</c> (Body.cs:1390), so a placement that trusts the call can log a slot the item never entered. The
+	/// transfer's named slot is a preference; every other free slot is tried in index order.
+	/// </summary>
+	private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed)
+	{
+		var requested = item.SlotIndex;
+		foreach (var slot in SlotCandidates(body, item))
+		{
+			body.PickUpItem(placed, slot, force: true);
+			if (body.GetItem(slot) != placed) // Unity objects — ==
 			{
-				_domains.Log.LogWarning("[PlayerInteraction] cannot place {ItemId} (id {InstanceId}) — no empty inventory slot.", item.ItemId, item.InstanceId);
-				return false;
+				continue;
 			}
 
-			slot = fallback;
+			item.SlotIndex = slot;
+			if (requested >= 0 && requested != slot)
+			{
+				_domains.Log.LogWarning("[PlayerInteraction] destination slot {Requested} is not usable for {ItemId} (id {InstanceId}) — using slot {Slot} instead.",
+					requested, item.ItemId, item.InstanceId, slot);
+			}
+
+			_domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) in local slot {Slot}.", item.ItemId, item.InstanceId, slot);
+			return true;
 		}
 
-		item.SlotIndex = slot;
-		ItemStateCodec.RestoreItem(item, body);
-		_domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) in local slot {Slot}.", item.ItemId, item.InstanceId, slot);
-		return true;
+		return false;
+	}
+
+	/// <summary>The slots to try, in order: the one the transfer named when it is free, then every other free slot.</summary>
+	private static List<int> SlotCandidates(Body body, CharacterItemMsg item)
+	{
+		var candidates = new List<int>(body.slots.Length);
+		if (item.SlotIndex >= 0 && item.SlotIndex < body.slots.Length && !body.HoldingItem(item.SlotIndex))
+		{
+			candidates.Add(item.SlotIndex);
+		}
+
+		for (var slot = 0; slot < body.slots.Length; slot++)
+		{
+			if (!body.HoldingItem(slot) && !candidates.Contains(slot))
+			{
+				candidates.Add(slot);
+			}
+		}
+
+		return candidates;
+	}
+
+	/// <summary>
+	/// Nothing on this body accepts the item. It has already left the giver and no destination here can hold it, so
+	/// its END is reported — a loud, consistent loss on both clients — instead of leaving an object nothing names (a
+	/// guest's copy of that is deleted by the next world-item keyframe, silently). The world-drop answer for this
+	/// case needs the host to re-record the item, which is
+	/// <c>todo/placement-outcome-never-returns.md</c>; a spawn report from here is refused by the kernel, because the
+	/// id is already a carried row (the finding that removed the first version of this rung).
+	/// </summary>
+	private void ReportUnplaceableItem(CharacterItemMsg item, Item placed)
+	{
+		_domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) found no slot this body accepts — reporting the item's end so both sides agree it is gone.",
+			item.ItemId, item.InstanceId);
+		Object.Destroy(placed.gameObject);
 	}
 
 	/// <summary>
 	/// The give ladder's last rung on the receiving side: create the item's world object where this body stands,
 	/// give it the host's instance id, apply the fact's state and REPORT the creation through the item domain —
-	/// the row the host and the peers keep is that report, not the local object.
+	/// the row the host and the peers keep is that report, not the local object. This rung is for an item the
+	/// host never recorded as carried (<c>Destination.Drop</c>); a handed-over item already has a kernel row, so a
+	/// spawn report for it is refused as a conflict.
 	/// </summary>
 	internal void DropCreatedItemAtLocalBody(Body body, CharacterItemMsg item) =>
 		_worldItems.TryCreateAt(body.transform.position, item, "Give", out _);

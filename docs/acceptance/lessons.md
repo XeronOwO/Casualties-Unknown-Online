@@ -511,3 +511,7 @@ Before judging a command's design, read the ticket that asked for it; its own he
 ## 2026-10-18 — An item-identity row reads the row and the scene as a pair
 
 A limb can carry the applied component while its item row already reads `Terminal`; read both — `docs/evidence/acceptance/item-identity-across-transforms-20261018.md`.
+
+## 2026-10-19 — A probe reads a UI surface before its next frame
+
+`TMP_Dropdown.Show()` builds the list in the calling frame and the popup layer normalises its canvas order on the next `Apply`, so a probe that opens the list and reads it in the SAME eval answers the pre-frame value (`listCanvas=30000`); open in one call, read after a frame, and the read answers the layer's own `30001` — `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261019-c.md`.

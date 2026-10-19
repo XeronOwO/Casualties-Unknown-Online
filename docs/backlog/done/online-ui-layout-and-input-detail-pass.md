@@ -1,8 +1,9 @@
 # The Online UI's layout and input detail pass
 
-- Status: Review — the sixth pass below fixes the two rows batch `20261018-t` rejected (the open dropdown's
-  list and the top-edge title bar) and re-read both live on the deployed build; awaiting the next acceptance
-  batch. The failed batch's record stays as the rejection it was:
+- Status: Done — batch `20261019-c` (2026-10-19) read the two rows batch `20261018-t` rejected on the
+  deployed artifact, and both **pass** (record
+  `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261019-c.md`); the failed batch's
+  record stays as the rejection it was:
   `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261018-t.md`.
 - History: code-complete since the fifth pass below. Batch `20261015-b` judged the row that kept it rejected:
   in the ENGLISH UI the strip reads `Tabs rect=984.0x36.0` with the six tabs at 112 / 132.1 / 133.8 / 112 /
@@ -601,7 +602,7 @@ the code it cites.
 - **B2 — six dangling backlog references.** The move to `review/` left `docs/backlog/todo/...` in
   `docs/acceptance/lessons.md`, `docs/backlog/review/offscreen-arrow-label-clipping.md`,
   `docs/evidence/acceptance/20261014-a-scope.md`, `20261015-a-scope.md`, `20261015-b-scope.md` and
-  `20261018-t-scope.md`; all six now point at `docs/backlog/review/online-ui-layout-and-input-detail-pass.md`,
+  `20261018-t-scope.md`; all six now point at `docs/backlog/done/online-ui-layout-and-input-detail-pass.md`,
   and `BacklogReferenceGateTests` is green.
 - **M1 — the list only opened downward, cancelling the game's own flip.** The layer now answers the same
   question the game does (`RectTransformUtility.FlipLayoutOnAxis` on a world corner that leaves the canvas,
@@ -641,6 +642,23 @@ the code it cites.
 - **Nits.** The zero-height mutation's wording now says the batch's negative rect is the degenerate form; the
   duplicated `canvas.overrideSorting` clause is pre-existing and left alone; the cause section now names the
   template's art and layout drivers, which the same skip covers.
+
+## Acceptance (2026-10-19, batch `20261019-c`) — the two rejected rows PASS
+
+The window-only batch re-read the two rows on `0.1.0+c9769177` with one host client and no session (record
+`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261019-c.md`):
+
+- **Row 4 passes.** The language list is `150.0 × 193.4` under its field (`y −241.4..−48.0` against the
+  field's `−48.0..−12.0`), width-matched, sorted on the popup layer (`30001`) after one frame, drawn over
+  the page in the frame, with both options as raycast-targeted toggles and its own raycaster; choosing
+  English applied at once (`value 1 → 0`). The seven-option log-level list repeats the shape.
+- **Row 9 passes.** The four production drag calls clamp to `1412,0`, `−1412,0`, `0,190`, `0,−842` on the
+  `1920 × 1080` canvas; at the up clamp the title bar `312,696..968,715` is wholly inside it — the defect
+  `20261018-t` read (the title bar 411 screen pixels above the canvas) is gone, and the down clamp keeps the
+  title bar's strip.
+
+The run's limits are the batch's own: no OS pointer or wheel (the selection rode the item's `Toggle`, the
+drag the production `OnDrag`, and the long list's scroll was read, not wheeled), one client and no session.
 
 ## Non-goals
 

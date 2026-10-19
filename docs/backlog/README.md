@@ -78,7 +78,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Online UI layout and input detail pass](review/online-ui-layout-and-input-detail-pass.md) — **High** — fixed: the dropdown list and the top-edge title bar.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
@@ -182,6 +181,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Online UI layout and input detail pass](done/online-ui-layout-and-input-detail-pass.md) — **High** — accepted; the dropdown list and the top-edge title bar.
 - [The member reports that still have no bound](done/member-report-bounds.md) — **Medium-High** — the census rows with no anchor.
 - [Health on every client, reconciled to the host](done/health-simulation-and-host-authority.md) — **Medium-High** — accepted; the host model and its cost.
 - [An item's identity across a transform](done/item-identity-across-transforms.md) — **High** — accepted; applied and taken-off items keep their id.

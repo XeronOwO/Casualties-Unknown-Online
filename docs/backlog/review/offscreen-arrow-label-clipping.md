@@ -10,7 +10,7 @@
   `src/CasualtiesUnknownOnline.Runtime/OnlineUi/OnlineUiWorldMarker.cs` (the marker and its `OffScreenText`
   label), `src/CasualtiesUnknownOnline.GameAdapter/OnlineUi/OnlineUiWorldOverlayView.cs` (the drawing),
   `src/CasualtiesUnknownOnline.Runtime/OnlineUi/NameplateLayout.cs` (the above-head box, which has the same
-  edge problem in its on-screen form), `review/online-ui-layout-and-input-detail-pass.md`
+  edge problem in its on-screen form), `done/online-ui-layout-and-input-detail-pass.md`
 
 ## What is observed
 

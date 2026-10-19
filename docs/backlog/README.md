@@ -78,6 +78,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 - [The remote panel's header shows the viewer](todo/remote-medical-panel-header-shows-viewer-identity.md) — **High** — the viewed player's data.
 - [The remote panel's alarm follows the viewer](todo/remote-medical-panel-alarm-follows-viewed-player.md) — **High** — not the viewer's own body.
+- [Speech in the remote panel is not synced](todo/remote-medical-panel-speech-text-desync.md) — **High** — the viewed player's line, not the viewer's.
 ### In progress
 
 ### Review

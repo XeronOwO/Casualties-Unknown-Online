@@ -1,6 +1,8 @@
 # The off-screen arrow's label escapes the screen edge
 
-- Status: Review — implemented and gated; the per-edge frames are what is left.
+- Status: Done — batch `20261020-a` (2026-10-19) captured the four edge frames and the corner case on the
+  deployed `0.1.0+c9769177`: the label's outer edge sits on the guarded margin on every edge.
+  Record: `docs/evidence/acceptance/offscreen-arrow-label-clipping-20261020-a.md`.
 - Priority: Low
 - Category: Online UI / world overlay
 - Source: the user's 2026-10-07 backlog request — on the host's view, a member off the right edge is marked by
@@ -44,7 +46,7 @@ top and bottom edges, where the label has less room than the arrow itself.
 
 - Not a redesign of the indicator: arrow, name and distance stay as they are.
 - Not a name-truncation policy for the UI in general; only the marker label's placement is in scope.
-## Implemented (2026-10-17) — awaiting the frames
+## Implemented (2026-10-17) — frames read by batch `20261020-a`
 
 - **Item 1, a measured box.** `OffScreenLabelGeometry.Place(...)` is the Runtime rule the ticket asks for (pure,
   unit-tested without the game, beside `OffScreenArrowGeometry`), and the three call sites now MEASURE their own
@@ -60,9 +62,11 @@ top and bottom edges, where the label has less room than the arrow itself.
 - **Item 3, the on-screen nameplate.** The same rule, horizontally. Its vertical axis is deliberately NOT
   clamped: the box above a head cannot leave the top of the screen while the head itself is inside the guarded
   rectangle, and clamping it moved a nameplate down onto its own head (found in review, before the commit).
-- **Item 4 is what a run still owes**, which is why this ticket moves to `review/` rather than `done/`: frames
-  per edge with a long name plus a three-digit distance, captured per client window, and the corner case (a
-  member exactly at a corner is two clamps at once). No frame has been taken yet.
+- **Item 4 was a run's, and batch `20261020-a` ran it**: four edge frames with a three-digit distance
+  (105 m) and a long name, captured per client window, plus the corner case where the arrow lands on two
+  borders at once (`docs/evidence/acceptance/offscreen-arrow-label-clipping-20261020-a.md`). The label's outer
+  edge sat exactly on the 52-unit guard on the two side edges, the bottom-edge label went above its arrow, and
+  no frame showed any part of a label past the border.
 
 ## Limits this cycle names
 

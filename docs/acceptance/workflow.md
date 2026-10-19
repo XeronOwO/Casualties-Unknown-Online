@@ -141,7 +141,11 @@ collected while its scenario is up.
   invocations. A recipe that needs an eval declaration says so in its own header (`// requires: <name>`),
   and the run loads that declaration once per client with
   `drive-in-process.ps1 -Action declare -Declare <name>` before the first step that uses it. Ad-hoc
-  probes stay evals of the same channel. The socket
+  probes stay evals of the same channel, and a batch-local sender of the `probe.ps1` shape substitutes
+  `{{key}}` text VERBATIM: its template spells a string placeholder with its own quotes
+  (`var mode = "{{s:mode}}"`) and its `-Arg` takes the full typed name (`s:mode=probe`), where the
+  committed driver's `{{s:key}}` inserts the quotes and its `-RecipeArg` takes `key=value`; a bare word the
+  raw replacement leaves in the code comes back as `(1,1): InteractiveHost` (batch `20261020-a`). The socket
   dies with the game process, so a restart means reconnecting before the next probe.
 - **A key message reaches the game only while the client's own window is the foreground window.** A batch
   that plans key rows checks that fact FIRST; when the client the run started is behind another window, the
@@ -152,7 +156,10 @@ collected while its scenario is up.
   client's own window (never the desktop, so the run never needs the clients in front), written to `acceptance-artifacts-dir` under an artifact id, plus the log excerpts a `machine` row needs.
   On a DPI-scaled display the capturing process sets its DPI awareness before `GetWindowRect`/`PrintWindow`;
   otherwise the bitmap is the physical window and the canvas's right/bottom — the launcher, a docked panel —
-  are cropped out of the frame.
+  are cropped out of the frame. **A frame's pixels are not the canvas's units**: the UI layer a row is about
+  may be laid out on its own reference resolution (batch `20261020-a` read a 1920x1080 overlay canvas on a
+  1280x720 window), so a box row is judged on the live rect's own canvas coordinates and the frame carries the
+  look, never a pixel measurement of the label.
 - **The characters are part of the setup, and a restore is read back.** Restore each character BEFORE the
   long row work, and keep checking: an unconscious healer is refused, so a heal attempted after a character
   has already collapsed does nothing. There are three INDEPENDENT heal surfaces: the game's own `heal`

@@ -85,10 +85,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
-- [The off-screen arrow's label escapes the screen edge](review/offscreen-arrow-label-clipping.md) — **Low** — awaiting the frames.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
-- [The item data read verb](review/item-data-read-commands.md) — **Medium-High** — one item's recorded state from the kernel row; rows 5b/6 await.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
 - [Guest frame rate lower than host](review/guest-frame-rate-lower-than-host.md) — **Medium** — telemetry and allocation removal; a frame-rate row is open.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
@@ -181,6 +179,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [The off-screen arrow's label escapes the screen edge](done/offscreen-arrow-label-clipping.md) — **Low** — accepted; four edge frames, corner clamp.
+- [The item data read verb](done/item-data-read-commands.md) — **Medium-High** — accepted; rows 5b and 6 on a three-client session.
 - [Online UI layout and input detail pass](done/online-ui-layout-and-input-detail-pass.md) — **High** — accepted; the dropdown list and the top-edge title bar.
 - [The member reports that still have no bound](done/member-report-bounds.md) — **Medium-High** — the census rows with no anchor.
 - [Health on every client, reconciled to the host](done/health-simulation-and-host-authority.md) — **Medium-High** — accepted; the host model and its cost.

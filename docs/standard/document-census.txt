@@ -230,7 +230,7 @@ docs/backlog/review/guest-report-fallback-first-resend.md | keep | index | docs/
 docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md | keep | index | docs/backlog/README.md
 docs/backlog/review/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
 docs/backlog/done/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
-docs/backlog/review/item-data-read-commands.md | keep | index | docs/backlog/README.md
+docs/backlog/done/item-data-read-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-data-write-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-id-counter-is-not-resumed-by-a-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-identity-across-transforms.md | keep | index | docs/backlog/README.md
@@ -315,7 +315,7 @@ docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/
 docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
-docs/backlog/review/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
+docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/player-music-sync-playback.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md | keep | index | docs/backlog/README.md
@@ -1050,7 +1050,7 @@ docs/evidence/acceptance/give-item-to-a-player-command-20261018-r.md | keep | cl
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-q.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-s2.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
-docs/evidence/acceptance/item-data-read-commands-20261018-q.md | keep | claim | docs/backlog/review/item-data-read-commands.md
+docs/evidence/acceptance/item-data-read-commands-20261018-q.md | keep | claim | docs/backlog/done/item-data-read-commands.md
 docs/evidence/acceptance/snbt-state-language-20261018-q.md | keep | claim | docs/backlog/done/snbt-state-language.md
 docs/evidence/acceptance/20261018-t-scope.md | keep | claim | docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261018-t.md
 docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261018-t.md | keep | claim | docs/backlog/done/online-ui-layout-and-input-detail-pass.md
@@ -1065,3 +1065,5 @@ docs/evidence/acceptance/item-identity-across-transforms-20261018.md | keep | cl
 docs/evidence/acceptance/20261018-v-scope.md | keep | claim | docs/evidence/acceptance/item-identity-across-transforms-20261018-v.md
 docs/evidence/acceptance/item-identity-across-transforms-20261018-v.md | keep | claim | docs/backlog/done/item-identity-across-transforms.md
 docs/evidence/acceptance/heal-command-limb-and-hollow-restore-20261018-v.md | keep | claim | docs/backlog/done/heal-command-limb-and-hollow-restore.md
+docs/evidence/acceptance/item-data-read-commands-20261020-a.md | keep | claim | docs/backlog/done/item-data-read-commands.md
+docs/evidence/acceptance/offscreen-arrow-label-clipping-20261020-a.md | keep | claim | docs/backlog/done/offscreen-arrow-label-clipping.md

@@ -1,7 +1,8 @@
 # The item data read verb: what CUO records about one item
 
-- Status: Review — code-complete 2026-10-14; batch `20261018-q` judged rows 1-4 and 5a/5c on the deployed
-  `0.1.0+30dbb252`, leaving row 5b (two members besides the caller) and row 6 (an item applied to a limb).
+- Status: Done — batch `20261020-a` (2026-10-19) read the two rows batch `20261018-q` left: 5b on a
+  three-client session (two members besides each caller) and 6 through the game's own
+  `PlayerCamera.ApplyWoundItem`. Record: `docs/evidence/acceptance/item-data-read-commands-20261020-a.md`.
 - Priority: Medium-High
 - Category: Command surface / item state
 - Source: Stage A of `done/item-and-entity-data-commands.md` (the user's 2026-10-07 request for a
@@ -115,9 +116,11 @@ renderer** (record `docs/evidence/acceptance/item-data-read-commands-20261018-q.
 one carried item at world entry, an item's whole document and a single path print the same values on both
 peers, and the unknown-id, empty-slot, bad-selector and retired-verb answers are each one explicit line.
 Row 5b (the ambiguous selector, which needs two members besides the caller) and row 6 (an item applied to a
-limb) were not staged, so the ticket stays in `review/` on them. The row-2 wording above predates the landed
+limb) were not staged, so the ticket stayed in `review/` on them. The row-2 wording above predates the landed
 host registration: the host's untouched supplies are listed at world entry now, and the record reads that
-behaviour.
+behaviour. **Batch `20261020-a` read both**: a three-client session gave each caller two bodies besides itself
+for 5b, and a real splint was turned into a limb component by the game's own `PlayerCamera.ApplyWoundItem` for
+row 6 (`docs/evidence/acceptance/item-data-read-commands-20261020-a.md`).
 
 ## Limits, recorded rather than hidden
 

@@ -1,6 +1,12 @@
 # Remote medical parity — Stage 1: medical operation session + real-time injection
 
 - Status: Review
+- Acceptance (20261023-b): rows 1-7, 9, 12-19, 21 and 23 pass on the deployed artifact
+  (`0.1.0+d960f05f…`); rows 8 (operator disconnect), 10 (target disconnect), 20 (mixed CUO versions) and
+  22 (lobby close with a session in flight) stay `unproven` — the live staging was not reached, and the
+  batch's focused suite (`MedicalOperationSessionServiceTests`, 9/9) is the behavioural evidence for the
+  two disconnect shapes. Record:
+  `docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261023-b.md`.
 - Priority: High
 - Category: Remote medical / medical operation session / real-time syringe
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -109,9 +115,14 @@ For injection, the update payload carries the newly injected ml since the last r
 | # | Scenario | Expected |
 |---|---|---|
 | 11 | Two operations attempt to use the same item instance simultaneously | Second Start is rejected (item reservation) while the first session is active; no item can be consumed by two sessions |
-| 12 | Two operations attempt to mutate the same target + limb simultaneously | Second Start is rejected (target/limb reservation) while the first session on that target/limb is active |
+| 12 | Two operations attempt to mutate the same target + limb simultaneously | Both may start: the 2026-09-19 ruling (`concurrent-medical-operations`) deleted the target/limb lock; injection is repeatable, so each completed operation applies, and a unique unit resolves once with the loser answered `AlreadyHandled` |
 | 13 | Two injectable operations on different limbs/items of the same target | Allowed; each session keeps its own reservations and progress identity |
 | 14 | Operator already has an active medical operation | Second Start is rejected; one operator cannot run overlapping native minigame sessions |
+
+Row 12's expectation was superseded by the 2026-09-19 ruling recorded in
+`concurrent-medical-operations.md` (point 1 and "Ruling 2026-09-19"): the limb lock is
+deleted, what does not coexist is a UNIQUE unit's resolution. Corrected here on
+2026-10-19, before batch `20261023-b` judged the table.
 
 ### Protocol / commit semantics
 

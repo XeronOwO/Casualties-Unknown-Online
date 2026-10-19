@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Remote medical / native WoundView reuse
 - Source: User ruling (2026-09-21): while viewing another player's medical panel, do not show the sleep, workout (exercise) and main/off-hand switch controls at all — today only the sleep button is disabled. Hide them.
-- Related: `review/remote-player-medical-panel.md`, `review/remote-medical-panel-acceptance-issues.md`, `review/remote-fentanyl-injection-and-medical-panel-desync.md` (its "nap button visibly disabled" wording is superseded here), `review/remote-medical-treatment-operations.md`
+- Related: `review/remote-player-medical-panel.md`, `done/remote-medical-panel-acceptance-issues.md`, `done/remote-fentanyl-injection-and-medical-panel-desync.md` (its "nap button visibly disabled" wording is superseded here), `review/remote-medical-treatment-operations.md`
 
 ## What landed (2026-09-25 cycle)
 

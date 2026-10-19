@@ -1,13 +1,17 @@
 # Remote medical panel acceptance issues (mood cadence / breathing icon / ECG)
 
-- Status: Review
+- Status: Done — all four rows pass in batch `20261023-b` on the deployed artifact
+  (`0.1.0+d960f05f…`): the fentanyl mood ramp advances with the committed dose (not at 1 Hz), the
+  breathing-stop icon is `cantbreathe3` on the host's panel and the guest's display, the panel ECG reads
+  the display body and stops at heart rate 0, and the other bottom icons equal the host's own set.
+  Record: `docs/evidence/acceptance/remote-medical-panel-acceptance-issues-20261023-b.md`.
 - Priority: High
 - Acceptance (20261005-c): the batch named this ticket, and its session closed on the sibling
   `remote-inventory-native-parity-rework` rows; the syringe-drag-on-a-remote-limb staging this ticket's
   rows need was not built, so every row here stays unjudged and the ticket stays in `review/`.
 - Category: Remote medical / WoundView display / real-time injection
 - Parents:
-  - `docs/backlog/review/remote-fentanyl-injection-and-medical-panel-desync.md`
+  - `docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md`
   - `docs/backlog/review/remote-player-medical-panel.md`
   - `docs/backlog/review/remote-medical-stage-1-injection-session.md`
 - Source: User acceptance findings (2026-09-06).

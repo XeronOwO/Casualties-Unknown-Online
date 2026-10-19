@@ -76,6 +76,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — rejected: the guard latches on the game console's stale selection.
 - [Four tracked docs carry code-page mojibake](todo/docs-mojibake-cleanup.md) — **Low** — punctuation damaged by a code-page round trip; restore it by meaning.
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
+- [The remote panel's header shows the viewer](todo/remote-medical-panel-header-shows-viewer-identity.md) — **High** — the viewed player's data.
+- [The remote panel's alarm follows the viewer](todo/remote-medical-panel-alarm-follows-viewed-player.md) — **High** — not the viewer's own body.
 ### In progress
 
 ### Review
@@ -118,8 +120,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
-- [Remote medical panel acceptance issues](review/remote-medical-panel-acceptance-issues.md) — **High** — opiate ramp, breathing and ECG.
-- [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — the operation session.
+- [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — rows 1-7/9/12-19/21/23 pass; 8/10/20/22 unproven.
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
@@ -129,7 +130,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
 - [Remote player medical panel](review/remote-player-medical-panel.md) — **Medium** — native WoundView reuse.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — **Medium** — limb drag routes through the heal path.
-- [Remote fentanyl injection desync](review/remote-fentanyl-injection-and-medical-panel-desync.md) — **Critical** — cross-player syringe doses.
 - [Remote Medical and visibility](review/remote-context-menu-medical-visible-when-target-not-visible.md) — **Medium** — the shared visibility gate.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
@@ -351,6 +351,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest partial block damage re-report](done/guest-partial-block-damage-re-report.md) — **Medium** — the absolute re-report and the per-cell merge.
 - [Partial-damage report vs the live delta](done/partial-damage-delta-report-overlap.md) — **Low-Medium** — damage is accounted per sender.
 - [Trap/entity action divergence](done/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
+- [Remote medical panel acceptance issues](done/remote-medical-panel-acceptance-issues.md) — **High** — accepted in `20261023-b`: ramp, breathing, ECG, icons.
+- [Remote fentanyl desync](done/remote-fentanyl-injection-and-medical-panel-desync.md) — **Critical** — accepted in `20261023-b`.
 
 ### Watchlist
 

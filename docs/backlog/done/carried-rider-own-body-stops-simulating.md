@@ -6,7 +6,7 @@
 - Acceptance record: docs/evidence/acceptance/carried-rider-own-body-stops-simulating-20260927.md (batch `20260927-d`: rows 1/2/4/5/6/8 `pass`, row 3 a residual)
 - Category: Carry/piggyback presentation / own-client body simulation
 - Source: User acceptance finding (2026-09-21): the guest carries the host on their back; on the host's own screen the host's own medical panel shows an almost flat ECG although the heart rate is real (only occasional tiny waveforms), and the panel's limbs twitch with a frequency that keeps growing; releasing the carry restores normal behaviour.
-- Related: `done/carry-piggyback-rider-position-smoothing.md` (the same mechanism), `done/carried-player-idle-sit-suppression.md`, `done/carrier-sit-while-carrying.md`, `done/carry-piggyback-vertical-placement-asymmetry.md`, `review/remote-medical-panel-acceptance-issues.md`
+- Related: `done/carry-piggyback-rider-position-smoothing.md` (the same mechanism), `done/carried-player-idle-sit-suppression.md`, `done/carrier-sit-while-carrying.md`, `done/carry-piggyback-vertical-placement-asymmetry.md`, `done/remote-medical-panel-acceptance-issues.md`
 
 ## Evidence
 

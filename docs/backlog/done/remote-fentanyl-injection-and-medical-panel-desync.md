@@ -1,6 +1,13 @@
 # Comprehensive medical UI / medical-item minigame gap audit (fentanyl is a surface symptom)
 
-- Status: Review
+- Status: Done — accepted by batch `20261023-b` on the deployed artifact (`0.1.0+d960f05f…`): the
+  native syringe minigame runs and drains incrementally, the host's happiness rises with the committed
+  dose on the guest's panel, the panel ECG reads the display body and stops with the host's heart, the
+  bottom icons equal the host's own set, the sleep control is hidden, and all directions (guest→host,
+  host→guest, guest→guest, third-party) were observed. Record:
+  `docs/evidence/acceptance/remote-fentanyl-injection-and-medical-panel-desync-20261023-b.md`.
+  Two panel findings the user raised during that run are their own `todo/` tickets (identity header,
+  heartbeat alarm).
 - Priority: Critical
 - Acceptance (20261005-c): the batch named this ticket, and its session closed on the sibling
   `remote-inventory-native-parity-rework` rows; the syringe-drag-on-a-remote-limb staging this ticket's
@@ -13,7 +20,7 @@
 
 The user opened this review ticket for acceptance and found the following
 issues. They are recorded in
-`docs/backlog/review/remote-medical-panel-acceptance-issues.md` and were
+`docs/backlog/done/remote-medical-panel-acceptance-issues.md` and were
 resolved by the display-projection follow-up (see that ticket plus
 `docs/evidence/selfchecks/players/remote-medical-panel-acceptance-projection-selfcheck.md`).
 This parent ticket remains in review for the final unified acceptance pass.

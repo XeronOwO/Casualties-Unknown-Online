@@ -183,6 +183,7 @@ public class PatchBridgePortShapeGateTests
 		[
 			"MeasureRemoteDrinkDose",
 			"MeasureRemoteTopicalDose",
+			"ReportRemoteMedicalHeartbeatSuppressed",
 			"TryDivertRemoteDrink",
 			"TryDivertRemoteInjection",
 			"TryDivertRemoteTopicalApply",

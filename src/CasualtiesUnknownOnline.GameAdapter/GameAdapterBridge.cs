@@ -275,6 +275,11 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool TryDivertRemoteInjection(WaterContainerItem container, Limb limb, float amount) =>
 		_remoteMedicalOps.TryDivertInjection(container, limb, amount);
 
+	public void ReportRemoteMedicalHeartbeatSuppressed(string clip) =>
+		domains.Log.LogDebug(
+			"[MedicalView] suppressed native heartbeat {Clip}: the panel's alarm describes the displayed body, not this one.",
+			clip);
+
 	public bool TryDivertRemoteTopicalApply(WaterContainerItem container, Limb limb, float amount) =>
 		RemoteTopicalUseHandler.TryDivertApplyToLimb(container, limb, amount);
 

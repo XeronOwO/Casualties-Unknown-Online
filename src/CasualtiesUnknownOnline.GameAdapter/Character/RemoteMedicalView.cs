@@ -65,6 +65,10 @@ internal static class RemoteMedicalView
 	/// </summary>
 	internal static void Close()
 	{
+		// The panel's alarm latch belongs to this focus: a new focus starts with a clean beat latch, and a
+		// closed focus never inherits the last one (the display body it was driven from is destroyed below).
+		RemoteMedicalHeartbeat.Reset();
+
 		// Any in-flight remote syringe or shrapnel minigame belongs to this
 		// focus. Cancel them first (restores item condition where applicable
 		// and ends only the exact native minigames), so the destroyed display

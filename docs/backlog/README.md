@@ -77,7 +77,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Four tracked docs carry code-page mojibake](todo/docs-mojibake-cleanup.md) — **Low** — punctuation damaged by a code-page round trip; restore it by meaning.
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 - [The remote panel's header shows the viewer](todo/remote-medical-panel-header-shows-viewer-identity.md) — **High** — the viewed player's data.
-- [The remote panel's alarm follows the viewer](todo/remote-medical-panel-alarm-follows-viewed-player.md) — **High** — not the viewer's own body.
 ### In progress
 
 ### Review
@@ -150,6 +149,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
 - [A late joiner never binds the generated enemies](review/enemy-generation-pairing-late-join.md) — **High** — the key is the anchor, not the live pose.
+- [The remote panel's alarm follows the viewer](review/remote-medical-panel-alarm-follows-viewed-player.md) — **High** — not the viewer's own body.
 
 ### Future
 

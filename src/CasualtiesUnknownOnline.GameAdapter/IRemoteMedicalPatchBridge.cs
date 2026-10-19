@@ -71,6 +71,14 @@ internal interface IRemoteMedicalPatchBridge
 	bool TryDivertRemoteDrink(WaterContainerItem container, float amount);
 
 	/// <summary>
+	/// The string <c>Sound.Play</c> prefix refused one of the game's <c>heartthump*</c> clips while a remote
+	/// medical focus is open: the panel's alarm describes the DISPLAYED body, so the native local-body
+	/// heartbeat (the viewer's own, or a host-simulated clone's) must not reach the speakers. Diagnostic only;
+	/// the decision belongs to the patch and the cue.
+	/// </summary>
+	void ReportRemoteMedicalHeartbeatSuppressed(string clip);
+
+	/// <summary>
 	/// Measure the ml one drink of <paramref name="dragItem"/> takes, for the
 	/// held-remote-item route: the requester's own client runs the item's native
 	/// use action against the requester's OWN body — the body the native call

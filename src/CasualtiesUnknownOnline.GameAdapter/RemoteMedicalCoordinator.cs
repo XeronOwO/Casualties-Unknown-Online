@@ -152,6 +152,10 @@ internal sealed class RemoteMedicalCoordinator(
 				presentation,
 				Time.deltaTime,
 				Time.unscaledDeltaTime);
+			// The panel's alarm belongs to the DISPLAYED body: same heart phase the redirected ECG draws,
+			// its critical state and its fibrillation damping. The native local-body thump is refused while
+			// this focus is open (RemoteMedicalPatches.RemoteMedicalNativeHeartbeatPatch).
+			RemoteMedicalHeartbeat.Play(display, _log);
 		}
 	}
 	/// <summary>
@@ -199,8 +203,13 @@ internal sealed class RemoteMedicalCoordinator(
 			RemoteMedicalDisplayIcons.Sync(display, limb);
 		}
 
+		// WoundView also reads averagePain, which the wire does not carry; rebuild it from the
+		// synced limbs. totalBleedSpeed is NOT rebuilt: the wire carries the owner's own native
+		// value (CharacterHealthMsg.TotalBleedSpeed), and a limb-only sum drops the native
+		// bleedingSpeedMultiplier, the internal-bleeding term and the regen term — it read two
+		// orders of magnitude high and feeds isCriticallyDying, so the panel would alarm on a
+		// state the patient does not have.
 		display.averagePain = ComputeAveragePain(display);
-		display.totalBleedSpeed = ComputeTotalBleedSpeed(display);
 	}
 
 
@@ -288,11 +297,10 @@ internal sealed class RemoteMedicalCoordinator(
 			RemoteMedicalDisplayIcons.Sync(body, limb);
 		}
 
-		// WoundView reads these two fields directly; they are normally produced
-		// by the local Body.Update simulation. Rebuild them from the synced limb
-		// facts so the read-only display matches the owner's own panel.
+		// WoundView also reads averagePain, which the wire does not carry; rebuild it from the
+		// synced limbs. totalBleedSpeed stays the owner's own native value mapped from the wire
+		// (see ApplyMedicalState above) — a limb-only sum would misstate isCriticallyDying.
 		body.averagePain = ComputeAveragePain(body);
-		body.totalBleedSpeed = ComputeTotalBleedSpeed(body);
 	}
 
 	private static float ComputeAveragePain(Body body)
@@ -312,21 +320,5 @@ internal sealed class RemoteMedicalCoordinator(
 		}
 
 		return pain;
-	}
-
-	private static float ComputeTotalBleedSpeed(Body body)
-	{
-		var total = 0f;
-		foreach (var limb in body.limbs)
-		{
-			if (limb == null || limb.dismembered) // Unity object — ==
-			{
-				continue;
-			}
-
-			total += limb.bleedAmount * (limb.blockedBleeding ? 0f : 1f);
-		}
-
-		return total;
 	}
 }

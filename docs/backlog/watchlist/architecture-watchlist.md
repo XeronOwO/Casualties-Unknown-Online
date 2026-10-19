@@ -84,7 +84,8 @@ assembly), and its interface keeps growing with every feature (see
   message-flow wiring. The seam to extract next is the carried-fact and id-coordination block
   (`SendCarriedInventory`'s role branch, the watermark forwards, `PublishCarriedSyncLocal`) against the world-item
   table/projection half.
-- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (574 after the patch-bridge port
+- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (598 measured 2026-10-19, after the
+  remote panel's heartbeat diagnostic forwarder added one member; it was 574 after the patch-bridge port
   change on 2026-09-22, from 569) — the one implementation of the frozen `IPatchBridge` aggregate plus
   the per-domain patch ports the aggregate does not carry (`IFluidPatchPort` today). Every member is a
   one-line forwarder to a domain handle, so the file grows with the SEAM SURFACE rather than with

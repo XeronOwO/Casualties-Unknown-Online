@@ -83,6 +83,33 @@ internal static class RemoteMedicalPatches
 		}
 	}
 
+	/// <summary>
+	/// The game's heartbeat sound. <c>Body.HandleCirculation</c> plays one of the three <c>heartthump*</c>
+	/// clips through the STRING <c>Sound.Play</c> overload whenever the local WoundView is open or the body
+	/// is critically dying, and the clip is chosen from the LOCAL body's critical state (Body.cs:907-924).
+	/// While a remote medical focus is open every such call belongs to a body the panel is not sounding: the
+	/// viewer's own body, or a host-simulated clone (already refused by the host vitals pass, and when that
+	/// clone is the displayed player it would only duplicate the panel's own alarm). This prefix refuses
+	/// them; <see cref="RemoteMedicalHeartbeat"/> plays the DISPLAYED body's alarm through the AudioClip
+	/// overload, which this prefix deliberately does not bind.
+	/// </summary>
+	[HarmonyPatch(typeof(Sound), "Play",
+		[typeof(string), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform),
+			typeof(float), typeof(float), typeof(bool), typeof(bool)])]
+	internal static class RemoteMedicalNativeHeartbeatPatch
+	{
+		private static bool Prefix(string clip)
+		{
+			if (!RemoteMedicalView.IsOpen || !RemoteMedicalHeartbeat.IsNativeHeartbeatClip(clip))
+			{
+				return true;
+			}
+
+			PatchBridge.Impl?.ReportRemoteMedicalHeartbeatSuppressed(clip);
+			return false;
+		}
+	}
+
 	[HarmonyPatch(typeof(MoodleManager), "UpdateMoodles")]
 	internal static class RemoteMedicalMoodleBodyPatch
 	{

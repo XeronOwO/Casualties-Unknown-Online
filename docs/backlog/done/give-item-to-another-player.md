@@ -1,11 +1,12 @@
 # Give an item to another player (the push direction)
 
-- Status: Review — row 4's item loss is fixed (a container refusal places the object it materialized in a slot
-  on the receiver's body; a body that cannot take it reports the item's end, loudly and on both sides) and its
-  re-read is owed to the next acceptance batch. Rows 1 (both shapes), 2 and 6 were read whole in earlier batches;
-  row 3 was read on its refusal half only (the "receiver's view closes mid-drag" variant is still unrun); row 5
-  passed in batch `20261021-a`. The fix changed no wire member. Record:
-  `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md` (the rejection this answers).
+- Status: Done — row 4 re-read on the fixed artifact (batch `20261022-a`) and it passes: the receiver's own
+  container rule refuses the handed-over item, one line is written, and the item is alive in a slot afterwards
+  with the host's kernel keeping it non-terminal. Rows 1 (both shapes), 2 and 6 were read whole in earlier
+  batches; row 3 was read on its refusal half only (the "receiver's view closes mid-drag" variant was never
+  run); row 5 passed in batch `20261021-a`. The fix changed no wire member. Records:
+  `docs/evidence/acceptance/give-item-to-another-player-20261022-a.md` (the re-read) and
+  `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md` (the rejection it answers).
 - Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
@@ -609,10 +610,10 @@ with the code it named, because a fixed finding that is not written down is one 
 
 **What is still owed, and where it went:**
 
-- **Row 4 itself is unrun against the fixed artifact.** The re-read is the next acceptance batch's first row,
-  in the same shape as the rejection (the receiver's 3.501 g `plasticbag` refuses the giver's 4 g `toolbox`),
-  and it reads four things: the receiver's log lines, the item alive in a slot with its id, no destroy trace
-  for the id, and the host's kernel not storing it terminal.
+- **Row 4 is read on the fixed artifact (batch `20261022-a`) and passes.** The receiver's own container rule
+  refused the handed-over `toolbox` (4 g) against its `plasticbag`, wrote the refusal and the slot fallback, and
+  the item was still in slot 1 twenty seconds later, with the host's kernel keeping its id out of the terminal
+  set. Record: `docs/evidence/acceptance/give-item-to-another-player-20261022-a.md`.
 - **The host's ledger still does not learn the receiver's own placement.** It keeps what the message said, so
   a refused container destination reads as "inside that container" on the host while the receiver placed the
   item in a slot — and the "no room at all" case is exactly the drop the host would have to re-record. Filed

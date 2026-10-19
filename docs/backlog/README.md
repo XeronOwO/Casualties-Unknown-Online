@@ -80,7 +80,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction; row 4 awaits its re-read.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
@@ -179,6 +178,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Give an item to another player](done/give-item-to-another-player.md) — **Medium** — accepted; the refused container keeps the item.
 - [An item id can be re-issued after a restore](done/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — accepted; the restore resumes the counter.
 - [Guest frame rate lower than host](done/guest-frame-rate-lower-than-host.md) — **Medium** — accepted; the guest's pump was not lower.
 - [The off-screen arrow's label escapes the screen edge](done/offscreen-arrow-label-clipping.md) — **Low** — accepted; four edge frames, corner clamp.

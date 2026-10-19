@@ -4,7 +4,7 @@
 //        slot is the destination ring slot, -1 when the destination is a container; container is that
 //        container's instance id, 0 when the destination is a slot. Each token on the args line must be
 //        <key>=s or <key>=n.
-// serves: review/give-item-to-another-player.md - its six acceptance rows all need "release my own item onto
+// serves: done/give-item-to-another-player.md - its six acceptance rows all need "release my own item onto
 //         another player's displayed backpack", which the native UI decides from the cursor. The release seam
 //         itself is a plain method on CUO's patch bridge (`ReportLocalReleaseOntoProxy`), so a run can call it
 //         directly from inside the process: no cursor, no OS input, and exactly the call the drag patch makes.

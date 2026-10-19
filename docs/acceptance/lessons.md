@@ -321,10 +321,6 @@ Take the mark AFTER the last fixture action: `item-provide mode=create` + `conta
 
 A submission carrying a double quote fails at `(1,1)` on the local probe client (`.acceptance/tools/hotrepl-eval.mjs`) while the same code runs through the driver, so an ad-hoc probe goes through the recipe channel — an existing recipe whose reader already answers the question, or a new committed recipe — and the local client is used for quote-free expressions only.
 
-## 2026-10-07 — Batch `20261007-b`: a documentation-only commit above the build commit is named, not hidden
-
-A record names BOTH the run's commit and the artifact's `ProductVersion` and says the delta between them is documentation-only: the `+<sha>` is the commit the DLL was BUILT from, and `tools/verify-deploy.ps1` against this tree's build output is what makes the statement checkable.
-
 ## 2026-10-07 — Batch `20261007-c`: a census invoked through `powershell -File` binds no array argument
 
 `-File` passes every argument as a literal string, so `-Patterns 'a','b'` arrives as `a,b` and matches nothing while reporting `= 0` per client: call a local helper in-process with `&`, where array binding is ordinary PowerShell, and read a comma-joined pattern name in its output as the tell that the census checked nothing — keeping `powershell -File` for the scripts whose contract is "ASCII, no dependent modules" (`preflight.ps1`, `session-environment.ps1`).
@@ -519,3 +515,7 @@ The scene answers `buttonCount: 0` while the ring is closed and `remote-gesture`
 ## 2026-10-19 — "Inside a container" is the PARENT, not `GetComponentInParent<Container>()`
 
 A container item answers `GetComponentInParent<Container>()` for itself, so a probe that skips nested items drops a toolbox or a bag; test the parent — `.acceptance/20261021-a/give-item-probe.cs`.
+
+## 2026-10-19 — A client's quit can log shutdown and leave the process alive
+
+After `quit` a host can log `Steam API shut down` and still hold the process: read the path, stop only the process this run started once the shutdown line is there, then relaunch — a save batch's archives have already committed — `docs/evidence/acceptance/item-id-counter-is-not-resumed-by-a-restore-20261021-a.md`.

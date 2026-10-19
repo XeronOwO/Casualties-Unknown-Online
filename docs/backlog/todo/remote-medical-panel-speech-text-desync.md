@@ -2,56 +2,62 @@
 
 - Status: Todo
 - Priority: High
-- Category: Remote medical / WoundView display / character speech bubble
-- Source: User report (2026-10-19, during acceptance batch `20261023-b`): "角色说的话，会在医疗面板以文字形式显示，这个不同步" — while viewing another player's medical panel, the character's spoken line shown at the top centre of the screen is not the displayed player's line.
+- Category: Remote medical / native HUD / character speech subtitle
+- Source: User report (2026-10-19, during acceptance batch `20261023-b`): "角色说的话，会在医疗面板以文字形式显示，这个不同步"; clarified by the user: what appears is the VIEWER's own spoken line, it shows only while the medical panel is open, and it disappears when the panel is closed.
 - Related: `review/sync-player-pain-vocalizations-and-bark.md` (the audio sibling), `review/remote-player-medical-panel.md`, `todo/remote-medical-panel-header-shows-viewer-identity.md`, `todo/remote-medical-panel-alarm-follows-viewed-player.md`
 
-## What the text is
+## What the text is (final diagnosis, 2026-10-19)
 
-The line at the top centre is NOT a `WoundView` text. It is the native `Talker` world
-bubble: `Talker.cs:380-414` types `currentString` into a world-space `TextMeshPro`
-prefab above the speaker, and the panel's own labels are the static `nameText`
-("EXPERIMENT", no writer in Assembly-CSharp) and the identity line (its own ticket).
-The speech domain already exists in CUO:
+The user's sentence is the game's **screen-space speech subtitle**, not a `WoundView` text and not
+the world bubble:
 
-- `TalkerPatch` suppresses a remote clone's own talk rolls and reports the local body's
-  line once (`PatchBridge.OnSpeechReported`).
-- `SpeechSync` reports a guest's bubble to the host / broadcasts the host's, and the
-  receiving side replays it on the speaker's clone: `GameObject.Find("Character_<steamId>")`
-  → `Talker.currentString = text`, `timeSinceTalked = 0`, inside the `RemoteApply` scope
-  (`SpeechSync.ReplayOnClone`).
+- `PlayerCamera.HandleOnscreenCharacterTalkText` (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:3065-3077`)
+  copies the LOCAL body's talker text into `charTalkText` and sets
+  `charTalkText.enabled = this.woundView.activeSelf || this.tradeMenu.activeSelf`.
+- The object is `Main Camera/Canvas/TalkText` (a `TextMeshProUGUI` sibling of the canvas, not a
+  child of `WoundView`). That is why it shows exactly while a medical/trade panel is open and
+  disappears when the panel closes — the user's own observation.
+- The WoundView panel itself holds 48 texts and none carries a speech line; the world bubble
+  (`Experiment/TalkText`, and the clone's bubble) is a separate copy that the speech sync already
+  maintains.
 
-So the expected behaviour is already designed — every screen shows the speaker's line,
-typed out by that clone's own `Talker.Update`. The run observed a mismatch while a remote
-medical panel was open, and this ticket is to find which half of that path breaks.
+The defect: `charTalkText` is fed from `this.body` — the viewer's own body — so while the viewer
+looks at another player's panel, the viewer's own line is shown as if it belonged to the viewed
+player. The world clone's replayed line (the viewed player's actual words) is not what the
+subtitle reads.
 
-## What is known / what is not
+## Fix (2026-10-19)
 
-- Known: the reported text is the world bubble, not a panel label (user clarification
-  2026-10-19); the panel's top-centre area is where the bubble lands because the camera
-  centres the character.
-- Not known (verify before touching code): whether the visible line is the viewer's OWN
-  body's bubble, a stale line from the display body's parked copy, a replay that never
-  reaches the clone, or a replay that lands but is not rendered under the panel's camera.
-  Name the witness for each: the Talker owner body, its `currentString`, the speaker's
-  own `currentString`, and the clone's `currentString` on each client.
+`RemoteMedicalTalkTextPatch` (a Postfix on `PlayerCamera.HandleOnscreenCharacterTalkText`, in
+`RemoteMedicalPatches`) takes the subtitle over while `RemoteMedicalView.IsOpen`: it writes the
+**viewed player's world-clone talker** text/color (the clone `SpeechSync` replays into; the
+`MedicalDisplay_` copy is inactive and never fed), clears the line when the viewed player is
+silent, and restores the LOCAL body's line on the first frame after the focus ends. The restore is
+required because the native method only fades a silent local line; without it the peer's last line
+would stick on the viewer's next local panel or trade menu. The native `enabled` state is left
+untouched.
+
+The takeover/restore rule is a Unity-free state helper (`RemoteMedicalTalkTextState`) with a unit
+test; the visible typing and color need the live two-client run below.
 
 ## Reproduction / acceptance matrix
 
-Reproduction: two clients in one world; the guest opens the host's medical panel. The host
-speaks through the game's own line (B-key bark or a driven `Talker.Talk`), then the guest
-speaks; read each client's talker facts and the visible bubble.
+Reproduction: two clients in one world; the guest opens the host's native medical panel. Each side
+speaks through the game's own line (B-key bark or a driven `Talker.Talk`); read
+`PlayerCamera.charTalkText` (enabled, text, color) on both clients beside the speaker's own line.
 
 | # | Scenario | Expected |
 |---|---|---|
-| 1 | Host speaks while the guest views its panel | The guest's screen shows the host's line, the same string the host's own screen types |
-| 2 | Guest speaks while the host views the guest's panel | The host shows the guest's line (the reverse direction) |
-| 3 | Third-party view | The bystander shows the speaker's line |
-| 4 | Panel closed | The same lines as row 1-2; the panel must not change the speech path |
-| 5 | Viewer's own body speaks while viewing a peer | The viewer's own bubble is not presented as the peer's; each line is attributed to its own speaker |
-| 6 | No echo / no double | A replayed line is not re-reported; one line, one bubble per screen |
+| 1 | Host speaks while the guest views its panel | The guest's subtitle shows the host's line, typed and colored from the host's clone, not the guest's line |
+| 2 | Guest speaks while the host views the guest's panel | The host's subtitle shows the guest's line (the reverse direction) |
+| 3 | The viewed player is silent | The subtitle is empty, not the viewer's own last line |
+| 4 | The viewer speaks while viewing a peer | The subtitle does NOT show the viewer's line; it keeps the peer's current line or stays empty |
+| 5 | Close the remote panel, then open the LOCAL panel | The subtitle shows the local body's own line (or nothing when silent); the peer's last line never appears |
+| 6 | Trade menu open, remote panel opened over it | The same takeover/restore rules; no peer line on the trade menu's character line after close |
+| 7 | Target leaves the world while the panel is open | The coordinator closes the focus; the subtitle restores the local line and never keeps the peer's line |
+| 8 | Panel closed entirely | `charTalkText.enabled` is false; nothing is drawn |
 
 ## Non-goals
 
 - Voice audio (the pain/bark sound family is `sync-player-pain-vocalizations-and-bark.md`).
-- A new speech UI; the world bubble stays the only surface.
+- A new speech UI; the native subtitle and the world bubble stay the only surfaces.

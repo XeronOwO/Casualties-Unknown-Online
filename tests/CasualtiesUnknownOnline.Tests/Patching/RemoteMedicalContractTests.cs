@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using Xunit;
@@ -75,5 +76,43 @@ public class RemoteMedicalContractTests
 		var isOpen = view.GetProperty("IsOpen", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
 		Assert.NotNull(isOpen);
 		Assert.Equal(typeof(bool), isOpen!.PropertyType);
+	}
+
+	[Fact]
+	public void TalkTextPatch_TargetsTheNativeSpeechMethod()
+	{
+		var patch = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Patches.RemoteMedicalPatches+RemoteMedicalTalkTextPatch",
+			throwOnError: true)!;
+
+		var attribute = Assert.Single(patch.GetCustomAttributesData(), a => a.AttributeType.FullName == "HarmonyLib.HarmonyPatch");
+		Assert.Equal(2, attribute.ConstructorArguments.Count);
+		Assert.Equal("PlayerCamera", (attribute.ConstructorArguments[0].Value as Type)?.Name);
+		Assert.Equal("HandleOnscreenCharacterTalkText", attribute.ConstructorArguments[1].Value as string);
+
+		var postfix = patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+		Assert.NotNull(postfix);
+		var parameters = postfix!.GetParameters();
+		Assert.Single(parameters);
+		Assert.Equal("PlayerCamera", parameters[0].ParameterType.Name);
+	}
+
+	[Fact]
+	public void TalkTextState_DecidesTheLocalRestoreOnceAfterARemoteTakeover()
+	{
+		var state = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Patches.RemoteMedicalPatches+RemoteMedicalTalkTextState",
+			throwOnError: true)!;
+		var shouldRestore = state.GetMethod(
+			"ShouldRestoreLocalLine",
+			BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+		Assert.NotNull(shouldRestore);
+
+		// The static is process-wide: clear any take-over a prior test left behind.
+		_ = shouldRestore!.Invoke(null, [false]);
+		Assert.False((bool)shouldRestore.Invoke(null, [false])!);
+		Assert.False((bool)shouldRestore.Invoke(null, [true])!);
+		Assert.True((bool)shouldRestore.Invoke(null, [false])!);
+		Assert.False((bool)shouldRestore.Invoke(null, [false])!);
 	}
 }

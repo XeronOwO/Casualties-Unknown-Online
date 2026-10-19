@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -253,6 +254,108 @@ internal static class RemoteMedicalPatches
 			RemoteOtherMedicalOperationHandler.CompleteActiveUse();
 			RemoteMedicalOperationHandler.CompleteActiveShrapnelUse();
 			RemoteMedicalOperationHandler.CompleteActiveSyringeUse();
+		}
+	}
+
+	/// <summary>
+	/// The native on-screen speech line (`PlayerCamera.charTalkText`) is enabled while the wound view or
+	/// the trade menu is open, and its text is copied from the LOCAL body's talker
+	/// (`PlayerCamera.HandleOnscreenCharacterTalkText`). While a REMOTE medical focus is open that shows
+	/// the VIEWER's own line on the panel of the player being viewed; re-point it at the displayed
+	/// player's replayed bubble (the world clone `SpeechSync` writes), and clear it when that player is
+	/// silent. When the focus ends the next frame restores the LOCAL body's line, because the native
+	/// method only fades a silent local line and never clears the text — without the restore the peer's
+	/// last line would sit on the viewer's next local panel or trade menu.
+	/// </summary>
+	[HarmonyPatch(typeof(PlayerCamera), "HandleOnscreenCharacterTalkText")]
+	internal static class RemoteMedicalTalkTextPatch
+	{
+		private static ulong _targetSteamId;
+		private static Body? _worldCloneBody;
+
+		private static void Postfix(PlayerCamera __instance)
+		{
+			if (__instance.charTalkText == null) // Unity object — ==
+			{
+				return;
+			}
+
+			if (RemoteMedicalTalkTextState.ShouldRestoreLocalLine(RemoteMedicalView.IsOpen))
+			{
+				RestoreLocalLine(__instance);
+				return;
+			}
+
+			if (!RemoteMedicalView.IsOpen)
+			{
+				return;
+			}
+
+			var body = WorldCloneBody(RemoteMedicalView.TargetSteamId);
+			var talker = body == null ? null : body.talker; // Unity object — ==
+			var bubble = talker == null ? null : talker.text; // Unity object — ==
+			if (bubble == null) // Unity object — ==
+			{
+				__instance.charTalkText.text = "";
+				return;
+			}
+
+			__instance.charTalkText.text = bubble.text;
+			__instance.charTalkText.color = bubble.color;
+		}
+
+		/// <summary>The LOCAL line the native method would have left: the local body's own bubble text, empty when it is silent.</summary>
+		private static void RestoreLocalLine(PlayerCamera camera)
+		{
+			var talker = camera.body == null ? null : camera.body.talker; // Unity object — ==
+			var bubble = talker == null ? null : talker.text; // Unity object — ==
+			camera.charTalkText.text = bubble == null ? "" : bubble.text; // Unity object — ==
+		}
+
+		/// <summary>
+		/// The displayed player's own body: the world clone `SpeechSync` writes the replayed line into (the
+		/// `MedicalDisplay_` copy is inactive and never receives the replay). The lookup is cached per
+		/// target; a clone destroyed and recreated (a re-entry) is caught by the Unity null check and found
+		/// again, so the frame path does not run <c>GameObject.Find</c> while a body is cached.
+		/// </summary>
+		private static Body? WorldCloneBody(ulong steamId)
+		{
+			if (_targetSteamId == steamId && _worldCloneBody != null) // Unity object — ==
+			{
+				return _worldCloneBody;
+			}
+
+			_targetSteamId = steamId;
+			var clone = GameObject.Find($"Character_{steamId:X}");
+			_worldCloneBody = clone == null ? null : clone.GetComponentInChildren<Body>(); // Unity object — ==
+			return _worldCloneBody;
+		}
+	}
+
+	/// <summary>
+	/// The subtitle's ownership state, Unity-free so the takeover/restore rule is unit-testable: the first
+	/// frame of a remote focus marks the label as taken over, and the first frame after the focus ends
+	/// asks the patch to write the local line back. A second closed frame asks for nothing.
+	/// </summary>
+	internal static class RemoteMedicalTalkTextState
+	{
+		private static bool _tookOver;
+
+		internal static bool ShouldRestoreLocalLine(bool remoteOpen)
+		{
+			if (remoteOpen)
+			{
+				_tookOver = true;
+				return false;
+			}
+
+			if (!_tookOver)
+			{
+				return false;
+			}
+
+			_tookOver = false;
+			return true;
 		}
 	}
 }

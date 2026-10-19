@@ -1,10 +1,10 @@
 # Give an item to another player (the push direction)
 
-- Status: Review — **user-promoted (2026-10-06)**, and both halves are now landed: the receiver-initiated take before
-  it, the giver-initiated push in this ticket. Four of the six acceptance rows are read on the machine (1 in both
-  destination shapes, 2, 3 and 6); row 4's weight/tag shape and row 5's local control are the residuals named below,
-  and the family-wide "a refusal never reaches the actor" gap moved to
-  `review/intent-refusal-never-reaches-the-actor.md`.
+- Status: Todo — Rejected (batch `20261021-a`: row 4's container refusal is read on the receiver, but the
+  fallback to a slot destroys the handed-over item — the host's kernel ends with the id TERMINAL and neither
+  client carries it). Row 5's local control passes in the same run; rows 1 (both shapes), 2, 3 and 6 remain
+  as read in the earlier batches. Record:
+  `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md`.
 - Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
@@ -461,6 +461,45 @@ cover — because the receiving client is not in a world at all — is the "the 
 of the same row, which needs the drag seam.
 
 **Rows now read: 1 (both destination shapes), 2, 3, 6.** Row 4's refusal shape is read in the container form (a
-target that is not a container → named fallback to a slot); its weight/tag form still needs an item the bag refuses.
-Row 5 is the local control and is the untouched native path.
+target that is not a container → named fallback to a slot); its weight/tag form is read by batch `20261021-a`
+below, and it found item loss. Row 5 is the local control; batch `20261021-a` read it and it still runs the
+native path.
+
+## Row 4 read, and it found item loss (2026-10-19, batch `20261021-a`)
+
+Two clients on the deployed `0.1.0+c9769177…` (receiver = host, giver = member). The receiver's `plasticbag`
+(`maxWeightPerItem 3.501 g`, measured live) refuses the member's 4 g `toolbox`, and the receiver's own client
+writes the rule and the fallback:
+
+```text
+[Take] <host> takes toolbox (id 9492956821) from <member> (remote-backpack allowConscious=True, container 1043998033859).
+Restore: toolbox (id 9492956821) does not fit plasticbag(Clone) — refused by the container's own rule, not loaded.
+[PlayerInteraction] toolbox (id 9492956821) not placed into container 1043998033859 (the container's own rules refused it) — falling back to a slot.
+[PlayerInteraction] placed toolbox (id 9492956821) in local slot 2.
+```
+
+**But the item is gone from both clients seconds later.** In the same second the receiver logs
+`[ItemTrace] op=6 item=9492956821 origin=OnItemDestroyed result=Committed(1)`, the fact table reports
+`[CharSync] divergence … left the inventory without an event sync`, the standing-object materializer retires
+it, and the host's kernel stores the id as TERMINAL (`container-read mode=host`: `terminal: ["9492956821"]`,
+the item in neither `carried` nor `contained`). The receiver's own tree and the giver's tree both no longer
+list it, and the giver's `ItemDestroy` for the id is refused
+`InvalidTransition (terminal item 9492956821 cannot be destroyed again)`.
+
+**Root cause.** `PlayerInventoryPlacement.AddCarriedItemToLocalContainer` calls
+`ItemStateCodec.RestoreContent`, which INSTANTIATES the child with its `ItemInstanceId` and then checks
+`Container.CanHoldItem`; on a refusal it logs and calls `Object.Destroy(child.gameObject)` (deferred to the
+end of the frame). The caller then falls back to `AddCarriedItemToLocalBody`, which instantiates a SECOND
+object with the SAME id and places it in slot 2. At the end of the frame the first object's destroy fires and
+publishes the id as destroyed; the kernel marks it terminal, and the second object is swept. The refusal is
+observable, but the item does not survive its own fallback.
+
+**What the fix must do**: do not destroy a materialized child the fallback is about to own — hand the same
+object to the slot fallback, or destroy it without publishing a destroy for its id — and add a regression
+case that drives a container refusal and reads the item alive in a slot afterwards.
+
+**Row 5 passes in the same session**: the member's own bandage released onto its own `plasticbag` ran the
+native `[ContainerLoad] bandage … moved inside body container plasticbag`, with `castItemProxy: false`,
+`castItemOwner: 0`, `viewOpen: false` and no `[RemoteIntent]` line. The record is
+`docs/evidence/acceptance/give-item-to-another-player-20261021-a.md`.
 

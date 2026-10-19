@@ -58,6 +58,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 - [The archive's two id carriers can disagree](todo/id-carriers-can-disagree-about-placement.md) — **Low** — unproven; needs a probe inside the report window.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
+- [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — row 4: the refused container fallback loses the item.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
@@ -81,14 +82,12 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
-- [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — the push direction, landed; four of its six rows read on the machine.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
-- [Guest frame rate lower than host](review/guest-frame-rate-lower-than-host.md) — **Medium** — telemetry and allocation removal; a frame-rate row is open.
 - [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
@@ -179,6 +178,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Guest frame rate lower than host](done/guest-frame-rate-lower-than-host.md) — **Medium** — accepted; the guest's pump was not lower.
 - [The off-screen arrow's label escapes the screen edge](done/offscreen-arrow-label-clipping.md) — **Low** — accepted; four edge frames, corner clamp.
 - [The item data read verb](done/item-data-read-commands.md) — **Medium-High** — accepted; rows 5b and 6 on a three-client session.
 - [Online UI layout and input detail pass](done/online-ui-layout-and-input-detail-pass.md) — **High** — accepted; the dropdown list and the top-edge title bar.

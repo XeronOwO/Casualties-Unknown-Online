@@ -16,7 +16,7 @@
   carrier, the narrow id port, the definition fact port, the property reuse) were frozen by the session
   handoff and are restated under *The design, as landed*.
 - Related: `review/cheat-permission-and-op-commands.md` (the permission half of the same cycle),
-  `review/give-item-to-another-player.md` (the gesture that shares the custody carrier and its open gap),
+  `todo/give-item-to-another-player.md` (the gesture that shares the custody carrier and its open gap),
   `done/item-and-entity-data-commands.md` (the umbrella whose stage C this is; stage D landed there too),
   `done/item-data-write-commands.md` (the property grammar and the local-scene port this reuses),
   `review/item-data-read-commands.md` (the row the answer is read back through),

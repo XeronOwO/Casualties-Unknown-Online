@@ -55,7 +55,7 @@
    otherwise cannot tell a refusal from a bug.
 5. **Scope of the cue.** Whether the same treatment (including the named target) applies to the other
    cross-player gestures — the medical drag onto a limb, the give-an-item push of
-   `review/give-item-to-another-player.md` — or only to this one. Recommended: apply the naming rule to every
+   `todo/give-item-to-another-player.md` — or only to this one. Recommended: apply the naming rule to every
    cross-player gesture whose target can be ambiguous, since the ambiguity is a property of the scene rather
    than of this gesture; decision 184's disclosure rule is where the ruling is recorded.
 

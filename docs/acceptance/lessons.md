@@ -473,10 +473,6 @@ A sweep script carries a DIRECTION, not just a rule: re-running the one-directio
 
 `sandboxie` reported `SbieSvc and SbieDrv: found 1 of the 2 services` with every program file in place: the kernel driver's own service registration was gone (the System log showed the service stopping unexpectedly, then a reboot), and starting the service registered it back — the next preflight reported `RESULT: OK` with no reinstall and no reboot. When the preflight blames a program-plus-service pair, read WHICH half is missing and offer the start-it option before proposing a reinstall; the repair is the user's action (`docs/acceptance/dependencies.md`, "Asking the user").
 
-## 2026-10-14 — A batch-local probe harness takes the FULL placeholder name
-
-A local `probe.ps1` substitutes placeholders verbatim, so a template's `{{s:id}}` needs `-Arg s:id=7`; the committed driver's own `-RecipeArg id=7` spelling matches nothing, and the harness's leftover check cannot see the colon — the un-substituted file is SENT and the evaluator answers `ok:true` with no `value` field instead of raising a compile error. Pass the typed name, and read an answer with no `value` as "the code never ran" (`tools/acceptance/drive-in-process.ps1` is the driver whose spelling differs).
-
 ## 2026-10-14 — A page-agnostic UI row is only covered on the pages a batch photographs
 
 The UI tickets' rows read "Any page" and "an English page", while the batches that judged them photographed Home, Worlds and Preferences only: the Admin page collapses every rule row's label to one character per line and paints it over the rows below, in English and Chinese alike, which no earlier frame could have shown. A batch that touches a UI ticket photographs EVERY page it can open and captures the same page in both languages — the A/B is what separates a translation defect from a layout one (`docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261014-a.md`).
@@ -515,3 +511,11 @@ A limb can carry the applied component while its item row already reads `Termina
 ## 2026-10-19 — A probe reads a UI surface before its next frame
 
 `TMP_Dropdown.Show()` builds the list in the calling frame and the popup layer normalises its canvas order on the next `Apply`, so a probe that opens the list and reads it in the SAME eval answers the pre-frame value (`listCanvas=30000`); open in one call, read after a frame, and the read answers the layer's own `30001` — `docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261019-c.md`.
+
+## 2026-10-19 — A local inventory ring has no buttons until the ring is open
+
+The scene answers `buttonCount: 0` while the ring is closed and `remote-gesture` rebuilds its list per call: set `PlayerCamera.radialOpen = true` with no drag, let one evaluator call's frames pass, then list and release — `.acceptance/20261021-a/ring-open.cs`.
+
+## 2026-10-19 — "Inside a container" is the PARENT, not `GetComponentInParent<Container>()`
+
+A container item answers `GetComponentInParent<Container>()` for itself, so a probe that skips nested items drops a toolbox or a bag; test the parent — `.acceptance/20261021-a/give-item-probe.cs`.

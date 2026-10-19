@@ -26,7 +26,7 @@
   rides), `done/mod-content-ceiling.md` (the property surface this family writes through: item qualities,
   `useLimbAction` and the wearable set),
   `review/in-game-command-console-interactive.md` (the console the verbs land in),
-  `review/give-item-to-another-player.md` (the gesture half of `give`; its finding — no path carries an item
+  `todo/give-item-to-another-player.md` (the gesture half of `give`; its finding — no path carries an item
   INTO another player's inventory — is what this family's `give` faced too),
   `done/id-system-namespaced-ids.md` (how a mod-authored item id is addressed),
   `done/runtime-entity-creation-rejection.md`, `done/runtime-entity-spawn-backfill.md` (the admission path a

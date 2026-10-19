@@ -1,7 +1,7 @@
 # Guest frame rate lower than host — baseline/overhead isolation self-check
 
 Closes the performance investigation work in
-`docs/backlog/review/guest-frame-rate-lower-than-host.md` by landing the runtime
+`docs/backlog/done/guest-frame-rate-lower-than-host.md` by landing the runtime
 baseline instrumentation and removing one avoidable per-frame allocation in the
 remote-player rendering hot path. It does not claim a measured FPS number from a
 manual dual-client acceptance; the new telemetry is the intended evidence

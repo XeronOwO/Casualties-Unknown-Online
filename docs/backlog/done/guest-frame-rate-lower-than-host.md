@@ -1,7 +1,12 @@
 # Guest frame rate lower than host with frame drops
 
-- Status: Review
-  **Batch `20261012-c` (offline) judged the four rows above: all pass** (`docs/evidence/acceptance/guest-frame-rate-lower-than-host-20261012-c.md`). **One row is still unjudged and keeps this ticket open**: the host-vs-guest frame-rate comparison with the latency telemetry on. The offline run claimed it as a person's residual and was wrong to: both clients can be run and their `[Latency] Frame` lines compared, so it is the next session batch's row.
+- Status: Done — accepted by batch `20261021-a` on the deployed `0.1.0+c9769177…`: with
+  `Diagnostics:LatencyInstrumentation=true`, two 45 s windows compared each client's own `[Latency] Frame`
+  lines, and the guest's update pump ran MORE often and cost LESS than the host's in both windows (guest
+  69.3/75.7 calls per second, 3.97/3.68 ms average; host 63.1/69.9 calls per second, 6.96/6.24 ms average).
+  The reported guest deficit did not reproduce on this artifact in that session. Record:
+  `docs/evidence/acceptance/guest-frame-rate-lower-than-host-20261021-a.md`. The four landed-work rows were
+  judged by batch `20261012-c` (`docs/evidence/acceptance/guest-frame-rate-lower-than-host-20261012-c.md`).
 - Priority: Medium
 - Category: Performance / guest-side runtime
 - Source: User report (2026-09-05) — the guest's frame rate is noticeably lower than the host's and the guest experiences frame drops.

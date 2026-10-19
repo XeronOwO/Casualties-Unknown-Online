@@ -14,6 +14,13 @@
 // in-process eval cannot compile against them. Everything below is looked up BY NAME for that reason, and the
 // item is handed to that method as a real `Item` - the callee derives the id itself, which is why this recipe
 // never needs to.
+//
+// It selects the FIRST body-slot item with an instance id, so a row about a particular item needs that item to
+// be the only candidate (or its own selector). A container ITEM (toolbox, trashbag) is never selectable here:
+// the filter tests `GetComponentInParent<Container>()`, which includes the item itself, so the give falls
+// through to the next carried item - a row about one uses a batch-local selector that tests the item's PARENT
+// (`Transform.parent.GetComponent<Container>()`, e.g. `.acceptance/20261022-a/give-item-probe.cs`), the shape
+// the row-4 re-read in `docs/evidence/acceptance/give-item-to-another-player-20261022-a.md` used.
 ((System.Func<string>)(() => {
 	var mode = {{s:mode}};
 	var targetText = {{s:target}};

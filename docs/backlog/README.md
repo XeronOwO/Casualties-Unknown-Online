@@ -78,7 +78,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 - [The remote panel's header shows the viewer](todo/remote-medical-panel-header-shows-viewer-identity.md) — **High** — the viewed player's data.
 - [The remote panel's alarm follows the viewer](todo/remote-medical-panel-alarm-follows-viewed-player.md) — **High** — not the viewer's own body.
-- [Speech in the remote panel is not synced](todo/remote-medical-panel-speech-text-desync.md) — **High** — the viewed player's line, not the viewer's.
 ### In progress
 
 ### Review
@@ -122,6 +121,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — rows 1-7/9/12-19/21/23 pass; 8/10/20/22 unproven.
+- [Speech in the remote panel is not synced](review/remote-medical-panel-speech-text-desync.md) — **High** — rows 1-5/7-8 pass; trade-menu row open.
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.

@@ -1,6 +1,6 @@
 # The speech shown while a remote medical panel is open is not synchronized
 
-- Status: Todo
+- Status: Review — code-complete; batch `20261023-b` passes rows 1-5 and 7-8 on the deployed artifact, row 6 (trade menu) stays `unproven` (no trader fixture); record `docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md`
 - Priority: High
 - Category: Remote medical / native HUD / character speech subtitle
 - Source: User report (2026-10-19, during acceptance batch `20261023-b`): "角色说的话，会在医疗面板以文字形式显示，这个不同步"; clarified by the user: what appears is the VIEWER's own spoken line, it shows only while the medical panel is open, and it disappears when the panel is closed.

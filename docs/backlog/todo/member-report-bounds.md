@@ -1,6 +1,6 @@
 # The member reports that still have no bound
 
-- Status: Todo — Rejected (batch `20261019-a`: the entity-event drop bound's forged-refusal and unmodified-session rows pass, but an ordinary event's accepted drop never reaches the kernel — the trap composite is rejected on the trap's raw negative health — and the fragile-crystal row is unproven in a world that carries no fragile crystal) — opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
+- Status: Todo — Rejected (batch `20261019-a`: the entity-event drop bound's forged-refusal and unmodified-session rows pass, but an ordinary event's accepted drop never reaches the kernel — the trap composite is rejected on the trap's raw negative health — and the fragile-crystal row is unproven in a world that carries no fragile crystal). The rejection's root cause is FIXED 2026-10-19 and its machine rerun is owed in batch `20261019-b`; the fragile-crystal row still needs a world that generates one — opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
   drops; this ticket is the rest of the same question, one surface per row, each with its own evidence.
   Section A (the reports that name another member's identity) CLOSED 2026-10-17 鈥?its five surfaces now
@@ -669,11 +669,50 @@ described above:
   The accepted drop therefore exists only as the host's presentation, never as a kernel row
   (`container-read mode=host` has no `13787924117`), so a save or rejoin loses it. The same clamp gap is one
   channel over: the explosion's building-damage report drew `record-building-health rejected … invalid health
-  -295.9813` in the same session. **Next step for this row**: one clamp of the physical health where it becomes
-  a kernel fact (0 = destroyed) for the trap batch AND the damage report, with a red test on both, then re-run
-  this row. The fragile-crystal row could not be read at all: this run's world carries no `CrystalBehaviour`
-  (nine and thirteen crystal-prefab buildings on layers 0 and 1, zero effect components), so no fragile crystal
-  exists to break; the run descended one layer and re-read rather than assume.
+  -295.9813` in the same session. **FIXED 2026-10-19 — one floor where a physical health becomes a kernel
+  fact.** `WorldEntityDomainModule.DecideRecordHealth` now takes `Math.Max(0f, command.Health)` and builds the
+  event from the floored value, so EVERY reporter of this family is covered by the one rule: the trap
+  composite's destroyed-trap reading, the blast scope's entries, the explosion's direct damage report and the
+  opened report all construct the same `RecordBuildingEntityHealthCommand`. The ADAPTERS do not clamp: the
+  command carries the raw reading to the kernel, and only the kernel FACT (and the wire event built from it)
+  is floored to 0 = destroyed. Red-first on both halves:
+  `HostReportTrapEvent_WithNegativePostBlastHealth_CommitsTheBatchAndFloorsTheFacts` and
+  `Report_NegativePostBlastHealth_IsRecordedAsDestroyed` failed on the old tree at the assertions that the
+  batch and the kernel state exist — the composite was rejected whole and the drop with it, the machine log
+  names the invariant — and pass now (`.acceptance/20261019-b/red-negative-health.log`,
+  `green-negative-health.log`). **Independent review (2026-10-19) found no blocker and one major**: the
+  first draft claimed "a non-finite reading stays the invariant's refusal", but the invariant only refused
+  NaN and `< 0`, so `Max(0, +∞)` became a valid-looking infinite-health fact that would be broadcast and
+  saved, while `-∞` was silently floored. Fixed in the same change: the fact invariant now also rejects
+  `float.IsInfinity` (a health fact must be finite), and `-∞` is a destroyed reading like any negative and
+  floors to 0; `NonFiniteHealth_IsRejectedByInvariant` was RED on the old invariant
+  (`.acceptance/20261019-b/red-nonfinite-health.log`) and pins NaN/+∞ refused plus `-∞` → 0. Its minors are
+  carried as the limits below or fixed: the clamp is now observable at Debug in the two Runtime report seams
+  (`BuildingEntityHealthRegistry.Report`, `TrapStateRegistry.ReportBatch`) when a raw reading is below zero;
+  the red-log wording and the raw-command sentence were corrected; the composite test now also pins its
+  `TrapConsumedEvent`/`TrapStateChangedEvent` composition.
+
+  Self-check (mechanism × change × evidence):
+
+  | Mechanism | Change | Evidence |
+  |---|---|---|
+  | Physical health becoming a kernel fact | one floor (`Math.Max(0f, health)`) in `DecideRecordHealth`, the single command every reporter builds | the two red-first tests above; `green-negative-health.log`; the machine readings -751.9034 / -900.2673 / -295.9813 in `20261019-a` |
+  | A non-finite fact | the invariant now refuses NaN and ±∞; the command path floors `-∞` to 0 with the rest | `NonFiniteHealth_IsRejectedByInvariant` (RED observed on the old invariant, `.acceptance/20261019-b/red-nonfinite-health.log`) |
+  | The clamp's observability | Debug at the two Runtime report seams when a reading is below zero (the kernel is logger-free) | `BuildingEntityHealthRegistry.Report`, `TrapStateRegistry.ReportBatch`; no new state |
+  | The whole family | every writer reaches the one command (trap composite, blast scope, direct damage report, opened report); `Restore` named as the separate host-trusted writer | the reviewer's writer trace; the limits below |
+
+  **Still owed: the machine rerun of this row (the ordinary event's drop must land as a kernel row) in batch
+  `20261019-b`.** Named limits of this fix: (a) `GameStateKernel.Restore` is a second, UNVALIDATED writer of
+  world-entity facts — a hostile/buggy host checkpoint or a tampered save can still carry a negative/NaN
+  health row, and later `Apply` calls then refuse the whole batch loudly; this row's host cannot produce such
+  a fact through a command any more, but the floor is command-path-only by design. (b) The game's death
+  predicate is `< 0.5` (`reversing/Assembly-CSharp/Assembly-CSharp/BuildingEntity.cs`: `if
+  (this.health < 0.5f)`), while the kernel's "destroyed" is 0; a destroyed entity read at 0…0.5 is stored as
+  the positive reading it was, so the revival rule (`current.Health <= 0`) does not apply to it. Pre-existing,
+  not this failure, and out of this row's scope — named rather than silently widened. The fragile-crystal
+  row could not be read at all: this run's world carries no `CrystalBehaviour` (nine and thirteen
+  crystal-prefab buildings on layers 0 and 1, zero effect components), so no fragile crystal exists to
+  break; the run descended one layer and re-read rather than assume.
 - **`WireCommandKind.ItemContainerSync`'s creations 鈥?IMPLEMENTED 2026-10-17, READ ON THE MACHINE
   2026-10-17 (batch `20261017-d`) 鈥?PASSES.**
   The sibling S3a left: the same claim travelled two more ways 鈥?a parent this host never judged

@@ -3674,7 +3674,7 @@
       "cluster": "inline",
       "row": "E1",
       "file": "src/CasualtiesUnknownOnline.GameState/Domains/WorldEntities/WorldEntityDomainModule.cs",
-      "quote": "if (current is not null && current.Health <= 0f && command.Health > 0f)"
+      "quote": "if (current is not null && current.Health <= 0f && health > 0f)"
     },
     {
       "cluster": "inline",

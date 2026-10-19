@@ -101,6 +101,29 @@ public class WorldEntityDomainKernelTests
 	}
 
 	[Fact]
+	public void NonFiniteHealth_IsRejectedByInvariant()
+	{
+		// The fact invariant is "finite and non-negative": NaN and a POSITIVE
+		// infinity are not physical readings the floor can make sense of, so they
+		// stay a loud refusal instead of becoming a kernel fact (a +infinity health
+		// would be broadcast and saved). A NEGATIVE infinity is below zero like any
+		// destroyed reading and floors to 0 in DecideRecordHealth.
+		var kernel = new GameStateKernel(Epoch);
+
+		var nan = RecordHealth(kernel, 1, new EntityPosition(1, 2), float.NaN);
+		Assert.False(nan.IsAccepted);
+		Assert.Equal(RejectionReason.InvariantViolation, nan.Rejection!.Reason);
+
+		var positiveInfinity = RecordHealth(kernel, 2, new EntityPosition(3, 4), float.PositiveInfinity);
+		Assert.False(positiveInfinity.IsAccepted);
+		Assert.Equal(RejectionReason.InvariantViolation, positiveInfinity.Rejection!.Reason);
+
+		var negativeInfinity = RecordHealth(kernel, 3, new EntityPosition(5, 6), float.NegativeInfinity);
+		Assert.True(negativeInfinity.IsAccepted);
+		Assert.Equal(0f, Assert.Single(kernel.QueryWorldEntities()!.BuildingHealth).Health);
+	}
+
+	[Fact]
 	public void SamePositionOpened_IsIdempotent()
 	{
 		var kernel = new GameStateKernel(Epoch);

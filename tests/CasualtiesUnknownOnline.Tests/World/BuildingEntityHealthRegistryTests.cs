@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -33,6 +34,24 @@ public class BuildingEntityHealthRegistryTests
 			$"the same-cell entry must carry the latest health at the cell centre, got {received[0][0].X}/{received[0][0].Y}/{received[0][0].Health}");
 		Assert.True(received[0][1].X == 30.5f && received[0][1].Y == 40.5f && received[0][1].Health == 0f,
 			$"a destroyed entity's health 0 must survive the wire, got {received[0][1].X}/{received[0][1].Y}/{received[0][1].Health}");
+	}
+
+	[Fact]
+	public void Report_NegativePostBlastHealth_IsRecordedAsDestroyed()
+	{
+		// The explosion's building-damage report is the same family as the trap
+		// batch: the host reads the live entity's health after its own blast
+		// subtracted past zero (batch 20261019-a read -295.9813), and the kernel's
+		// fact has a floor of 0 — a destroyed entity.
+		using var w = EntityEventSimWorld.Create();
+		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
+		var authority = w.Host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		hostWorld.ReportBuildingEntityHealth(10.2f, 20.8f, -295.9813f);
+
+		var state = authority.QueryWorldEntities();
+		Assert.NotNull(state);
+		Assert.Equal(0f, Assert.Single(state!.BuildingHealth).Health);
 	}
 
 	[Fact]

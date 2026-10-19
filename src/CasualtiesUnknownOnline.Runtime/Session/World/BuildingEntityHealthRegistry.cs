@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -10,10 +11,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// </summary>
 public sealed class BuildingEntityHealthRegistry(
 	ISessionControl session,
-	ItemKernelAuthority kernelAuthority)
+	ItemKernelAuthority kernelAuthority,
+	ILogger<BuildingEntityHealthRegistry> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
+	private readonly ILogger<BuildingEntityHealthRegistry> _log = log;
 
 	/// <summary>Host only: record the entity's current health by committing a kernel command.</summary>
 	public void Report(float x, float y, float health)
@@ -21,6 +24,11 @@ public sealed class BuildingEntityHealthRegistry(
 		if (_session.Role != SessionRole.Host)
 		{
 			return;
+		}
+
+		if (health < 0f)
+		{
+			_log.LogDebug("[BuildingHealth] physical health {Health} at ({X:F1},{Y:F1}) is below zero; the kernel fact floors it to 0 (destroyed).", health, x, y);
 		}
 
 		_kernelAuthority.TryRecordBuildingEntityHealth(

@@ -52,9 +52,21 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 
 	private static DomainDecision DecideRecordHealth(RecordBuildingEntityHealthCommand command, KernelReadModel state)
 	{
+		// Physical health becomes a kernel fact HERE, and the game does not floor
+		// it: an explosion keeps subtracting from an entity that already died (batch
+		// 20261019-a read -751.9034 for the trap the applier had just destroyed and
+		// -900.2673 for one its blast damaged). The kernel's fact is "current health,
+		// 0 = destroyed", so the reading is floored at 0 — once, for EVERY reporter:
+		// the trap composite's destroyed-trap reading, the blast scope's entries and
+		// the direct damage report all construct this one command. A NaN or a
+		// POSITIVE infinity is still refused by the fact invariant: neither is a
+		// physical reading, and the floor must not turn a broken float into a
+		// valid-looking fact. A NEGATIVE infinity is below zero like any destroyed
+		// reading and floors to 0 with the rest.
+		var health = Math.Max(0f, command.Health);
 		var entities = state.WorldEntities ?? WorldEntityState.Empty;
 		var current = entities.BuildingHealth.FirstOrDefault(h => h.Position == command.Position);
-		if (current is not null && current.Health <= 0f && command.Health > 0f)
+		if (current is not null && current.Health <= 0f && health > 0f)
 		{
 			return DomainDecision.Reject(RejectionReason.InvalidTransition,
 				"destroyed building entity cannot accept damage or be revived by a health report");
@@ -66,7 +78,7 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 				"building-entity health table is full");
 		}
 
-		return DomainDecision.Accept(new BuildingEntityHealthUpdatedEvent(command.Position, command.Health));
+		return DomainDecision.Accept(new BuildingEntityHealthUpdatedEvent(command.Position, health));
 	}
 
 	private static DomainDecision DecideRecordOpened(RecordOpenedEntityCommand command, KernelReadModel state)
@@ -163,7 +175,7 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 
 		foreach (var health in entities.BuildingHealth)
 		{
-			if (float.IsNaN(health.Health) || health.Health < 0f)
+			if (float.IsNaN(health.Health) || float.IsInfinity(health.Health) || health.Health < 0f)
 			{
 				throw new InvalidOperationException($"building entity at ({health.Position.X},{health.Position.Y}) has invalid health {health.Health}");
 			}

@@ -258,6 +258,59 @@ public class WorldEntityProjectionTests
 	}
 
 	[Fact]
+	public void HostReportTrapEvent_WithNegativePostBlastHealth_CommitsTheBatchAndFloorsTheFacts()
+	{
+		// The game keeps damaging a destroyed entity: the trap applier's own
+		// explosion leaves the trap hundreds below zero, and the blast leaves the
+		// entities it damaged below zero too (batch 20261019-a read -751.9034 and
+		// -900.2673 on the machine). Both ride the ONE atomic trap composite
+		// together with the consumption and the accepted drop, so the whole batch
+		// — drop included — must survive the raw physical reading, and the kernel
+		// fact must say 0 (= destroyed).
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var world = host.Services.GetRequiredService<IWorldControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		CommittedBatch? captured = null;
+		authority.BatchCommitted += batch => captured = batch;
+
+		world.ReportTrapEvent(
+			EntityEventKind.MineExploded,
+			1.2f,
+			2.8f,
+			5,
+			-751.9034f,
+			[
+				new BuildingEntityHealthEntryMsg { X = 3.4f, Y = 6.8f, Health = -900.2673f },
+			],
+			[
+				new TrapDropEntryMsg
+				{
+					ItemId = 501,
+					Item = new CharacterItemMsg { ItemId = "rock", Condition = 1f },
+					Position = new NetVector2Msg(1.2f, 2.8f),
+				},
+			],
+			dropActor: 2001);
+
+		Assert.NotNull(captured);
+		var healthEvents = captured!.Events.OfType<BuildingEntityHealthUpdatedEvent>().ToList();
+		Assert.Equal(2, healthEvents.Count);
+		Assert.All(healthEvents, e => Assert.Equal(0f, e.Health));
+		Assert.Contains(captured.Events, e => e is TrapConsumedEvent);
+		Assert.Contains(captured.Events, e => e is TrapStateChangedEvent);
+		Assert.Contains(captured.Events, e => e is ItemSpawnedEvent);
+
+		var state = authority.QueryWorldEntities();
+		Assert.NotNull(state);
+		Assert.Equal(2, state!.BuildingHealth.Count);
+		Assert.All(state.BuildingHealth, health => Assert.Equal(0f, health.Health));
+		Assert.Single(authority.QueryItems().Values.Where(i => i.Identity.InstanceId == 501));
+	}
+
+	[Fact]
 	public void GuestCheckpointRestore_ProjectsKernelWorldEntities()
 	{
 		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();

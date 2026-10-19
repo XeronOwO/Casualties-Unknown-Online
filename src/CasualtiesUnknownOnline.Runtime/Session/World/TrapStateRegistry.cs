@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -18,11 +19,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 public sealed class TrapStateRegistry(
 	ISessionControl session,
 	ItemKernelAuthority kernelAuthority,
-	ITimeSource time)
+	ITimeSource time,
+	ILogger<TrapStateRegistry> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly ITimeSource _time = time;
+	private readonly ILogger<TrapStateRegistry> _log = log;
 
 	/// <summary>Host only: record a stateful trap edge by committing a kernel command.</summary>
 	public void Report(EntityEventKind kind, float x, float y, byte extra)
@@ -64,6 +67,30 @@ public sealed class TrapStateRegistry(
 		if (_session.Role != SessionRole.Host)
 		{
 			return;
+		}
+
+		// The game keeps subtracting from a destroyed entity, so an explosion's
+		// raw readings are routinely below zero; the kernel fact floors them to 0
+		// (destroyed). Debug is the right level for a value that is expected on every
+		// blast, but the line keeps the fact observable instead of silently rewritten.
+		var belowZero = buildingHealth is < 0f ? 1 : 0;
+		float? firstNegativeEntry = null;
+		if (additionalHealth is not null)
+		{
+			foreach (var entry in additionalHealth)
+			{
+				if (entry.Health < 0f)
+				{
+					belowZero++;
+					firstNegativeEntry ??= entry.Health;
+				}
+			}
+		}
+
+		if (belowZero > 0)
+		{
+			_log.LogDebug("[TrapHealth] the {Kind} batch at ({X:F1},{Y:F1}) carries {Count} physical health reading(s) below zero (trap {TrapHealth}, first entry {EntryHealth}); the kernel fact floors each to 0 (destroyed).",
+				kind, x, y, belowZero, buildingHealth, firstNegativeEntry);
 		}
 
 		var commands = new List<GameCommand>();

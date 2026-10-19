@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Remote medical / native HUD / character speech subtitle
 - Source: User report (2026-10-19, during acceptance batch `20261023-b`): "角色说的话，会在医疗面板以文字形式显示，这个不同步"; clarified by the user: what appears is the VIEWER's own spoken line, it shows only while the medical panel is open, and it disappears when the panel is closed.
-- Related: `review/sync-player-pain-vocalizations-and-bark.md` (the audio sibling), `review/remote-player-medical-panel.md`, `todo/remote-medical-panel-header-shows-viewer-identity.md`, `review/remote-medical-panel-alarm-follows-viewed-player.md`
+- Related: `review/sync-player-pain-vocalizations-and-bark.md` (the audio sibling), `review/remote-player-medical-panel.md`, `todo/remote-medical-panel-header-shows-viewer-identity.md`, `done/remote-medical-panel-alarm-follows-viewed-player.md`
 
 ## What the text is (final diagnosis, 2026-10-19)
 

@@ -25,7 +25,7 @@ None for this ticket.
 - Two panel-level findings raised by the user during this run are outside this ticket's criteria and
   were filed separately:
   `docs/backlog/todo/remote-medical-panel-header-shows-viewer-identity.md` (the identity header keeps the
-  viewer's data) and `docs/backlog/review/remote-medical-panel-alarm-follows-viewed-player.md` (the native
+  viewer's data) and `docs/backlog/done/remote-medical-panel-alarm-follows-viewed-player.md` (the native
   monitor alarm follows the viewer's own body).
 - The dose was driven through the native minigame's own `OnUse` delegate in process (declared in the
   stage-1 record); the pointer drag itself is not exercised.

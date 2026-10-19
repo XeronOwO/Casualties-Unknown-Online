@@ -1,6 +1,6 @@
 # The remote medical panel's heartbeat alarm follows the viewer, not the viewed player
 
-- Status: Review — code-complete; acceptance batch `20261023-c` judges rows 1-6 on the deployed artifact
+- Status: Done — accepted in batch `20261023-c` (rows 1-6 pass); record `docs/evidence/acceptance/remote-medical-panel-alarm-follows-viewed-player-20261023-c.md`
 - Priority: High
 - Category: Remote medical / WoundView display / heartbeat alarm
 - Source: User report (2026-10-19, during acceptance batch `20261023-b`): hearing the medical panel's critical "滴滴滴" alarm on the host whose own panel was not open, while the sandbox clients were muted.

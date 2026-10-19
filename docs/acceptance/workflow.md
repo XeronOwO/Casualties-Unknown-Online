@@ -169,6 +169,15 @@ collected while its scenario is up.
   item-based cross-player treatment. The run restores with whichever is deployed, gives the item for the
   medical path, and reads the vitals back (`body-read`, `wound-read`). A host left in a near-death state is
   a setup defect, not a row's finding: rows judged on its frame are re-read once it is restored.
+- **A forced critical state names the body's role.** A VIEWER that must keep a native panel open is forced
+  through the septic-shock clause (`septicShock` 90: 0.07/s decay, no fibrillation trigger), because the
+  hunger/limb clause (`hunger < 0` and limb-0 `muscleHealth` < 25) drops consciousness within seconds and
+  the game closes the WoundView with it; write the game's own public `Body` fields the 1 Hz snapshot
+  captures, and restore and read them back like any other forced state.
+- **A panel sound row names each AudioSource's own clip.** A panel's native critical loop can be its own
+  clip (`WoundView`'s is `healthpanel-alert`, which already reads the displayed body) while the heartbeat
+  family is `heartthump*`: read the clip off each AudioSource and call a panel "double sound" only when the
+  same native sound is duplicated, not when two different native sounds play.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
 
 ## 6. Verdicts

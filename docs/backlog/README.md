@@ -149,7 +149,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
 - [A late joiner never binds the generated enemies](review/enemy-generation-pairing-late-join.md) — **High** — the key is the anchor, not the live pose.
-- [The remote panel's alarm follows the viewer](review/remote-medical-panel-alarm-follows-viewed-player.md) — **High** — not the viewer's own body.
 
 ### Future
 
@@ -354,6 +353,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Trap/entity action divergence](done/trap-action-divergence-hardening.md) — **Low-Medium** — row verdicts instead of exceptions.
 - [Remote medical panel acceptance issues](done/remote-medical-panel-acceptance-issues.md) — **High** — accepted in `20261023-b`: ramp, breathing, ECG, icons.
 - [Remote fentanyl desync](done/remote-fentanyl-injection-and-medical-panel-desync.md) — **Critical** — accepted in `20261023-b`.
+- [The remote panel's alarm follows the viewer](done/remote-medical-panel-alarm-follows-viewed-player.md) — **High** — accepted; follows the displayed body.
 
 ### Watchlist
 

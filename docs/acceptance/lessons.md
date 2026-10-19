@@ -261,10 +261,6 @@ A verdict about a stamped or reported table is read from the gate's own comparis
 
 A staged window that parks both directions is written as ONE command (the 5–7 s gap between separate agent commands is what blows the 15 s `GuestHostSilenceWatchdog`): arm host, arm guest, skip layer, +2 s, destroy the carried item, disarm guest, disarm host — 12 s end to end. The host's in-session repair cycle sends a kernel checkpoint every 60 s, an empty host world-item table is the layer edge (which also unloads the member's body), layer-changing staging is scheduled LAST, `item-pickup mode=id` still obeys the game's proximity guard, a committed-batch receipt needs ~6 s of parked inbound, and a byte-mark log reader seeks BYTES over `latest.log` when the evidence needs timestamps — slicing the split text by the mark silently matches nothing.
 
-## 2026-10-06 — A held key IS reachable in process, and the OS key state never moves
-
-Posting the game's OWN window a `WM_KEYDOWN` carrying the key's scan code makes `Input.GetKey` read true on the next frame, and a `WM_KEYUP` carrying the scan code plus the transition bits clears it, with `GetAsyncKeyState` at 0 and no foreground change throughout — a message to the client's own window from inside its own process, which is what keeps it inside the `input` dependency's rule. A key-down alone is NOT the capability: prove the key-up too, because a half-verified hold leaves the modifier stuck down for the rest of the session — `tools/acceptance/recipes/key-hold.cs`, `docs/evidence/selfchecks/tooling/acceptance-key-hold-selfcheck.md`, decision 237.
-
 ## 2026-10-06 — Batch `20261006-g`: a gesture whose meaning is read at RELEASE time must be staged and released in one call
 
 The game closes its own ring between evaluator calls, so every gesture whose classification is decided at release — the ring's focused body, `RemoteBackpackView.IsOpen` for `TransferToBody`, the cast button's own item — is staged AND released inside ONE invocation (two calls answer `buttonCount: 0` and the release falls through to the world path), and further Tab presses do not reopen what the second one closed: clear the drag with the probe and open the ring from a clean state. A divergence warning is attributed by the SHAPE of the move rather than by who drove it (take the owner-local control in the same session), and a member joining a run in progress is a different code path whose entry-time warnings belong to no row under test.
@@ -515,3 +511,11 @@ A batch probe template spells a string placeholder with its own quotes and the s
 ## 2026-10-19 — A member joining a run in progress is in the world before its session is
 
 The driver's `state` reads the game's own world (`inWorld:true`) while `SessionService.LocalInWorld` is still false and the host has not published the member yet, so a remote view opened on the join's first answer refuses (`opened:false`, `isRemoteInWorld:false`): retry the production open after the member's own `PlayerJoin` line, and read the session predicates rather than the scene — `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md`.
+
+## 2026-10-19 — The native syringe minigame's own `OnUse` delegate is the drivable seam
+
+Staging `MinigameBase.handPos`/`holdingSyringe` is pulled back toward the pointer and ends the minigame in its sharp-skew branch after a few frames; invoke the minigame's own `OnUse(ml / 100f)` per planned increment instead, and read the host registry between increments — `docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261023-b.md`.
+
+## 2026-10-19 — A 15 s idle window is shorter than a multi-client read loop
+
+Plan each injection increment so the next update lands inside the host's window: a four-read sequence between increments times the session out, and the row then reads a `TimedOut` terminal it did not stage — `docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261023-b.md`.

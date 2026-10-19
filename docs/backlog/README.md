@@ -88,7 +88,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
-- [An item id can be re-issued after a restore](review/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — the counter resumes at the restore click.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — both screens draw one derived roll.
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
@@ -178,6 +177,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [An item id can be re-issued after a restore](done/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — accepted; the restore resumes the counter.
 - [Guest frame rate lower than host](done/guest-frame-rate-lower-than-host.md) — **Medium** — accepted; the guest's pump was not lower.
 - [The off-screen arrow's label escapes the screen edge](done/offscreen-arrow-label-clipping.md) — **Low** — accepted; four edge frames, corner clamp.
 - [The item data read verb](done/item-data-read-commands.md) — **Medium-High** — accepted; rows 5b and 6 on a three-client session.

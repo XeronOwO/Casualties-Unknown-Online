@@ -232,7 +232,7 @@ docs/backlog/review/id-resume-sources-still-unseeded.md | keep | index | docs/ba
 docs/backlog/done/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-data-read-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-data-write-commands.md | keep | index | docs/backlog/README.md
-docs/backlog/review/item-id-counter-is-not-resumed-by-a-restore.md | keep | index | docs/backlog/README.md
+docs/backlog/done/item-id-counter-is-not-resumed-by-a-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-identity-across-transforms.md | keep | index | docs/backlog/README.md
 docs/backlog/review/layer-complete-choice-for-members.md | keep | index | docs/backlog/README.md
 docs/backlog/review/limb-tool-family-protection-gaps.md | keep | index | docs/backlog/README.md
@@ -516,6 +516,7 @@ docs/evidence/acceptance/host-severe-sleepiness-posture-desync-20260927.md | kee
 docs/evidence/acceptance/id-system-namespaced-ids-20261012-c.md | keep | claim | docs/backlog/done/id-system-namespaced-ids.md
 docs/evidence/acceptance/item-creation-registration-first-20261003-d.md | keep | claim | docs/backlog/done/item-creation-registration-first.md
 docs/evidence/acceptance/item-data-write-commands-20261014-a.md | keep | claim | docs/backlog/done/item-data-write-commands.md
+docs/evidence/acceptance/item-id-counter-is-not-resumed-by-a-restore-20261021-a.md | keep | claim | docs/backlog/done/item-id-counter-is-not-resumed-by-a-restore.md
 docs/evidence/acceptance/item-data-write-verbs-20261018.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/loading-screen-wait-text-20261018.md | keep | claim | docs/backlog/todo/loading-screen-progress-detail.md
 docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md | keep | claim | docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md

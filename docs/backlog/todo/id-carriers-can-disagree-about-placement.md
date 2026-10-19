@@ -7,7 +7,7 @@
   (2026-10-11), which asked what the new two-carrier seed does NOT settle. It settles WHICH ids exist;
   it says nothing about the two carriers disagreeing about one id it names twice.
 - Related: `review/id-resume-sources-still-unseeded.md` (the seed and the carrier reader,
-  `RestoredItemIds`), `review/item-id-counter-is-not-resumed-by-a-restore.md`,
+  `RestoredItemIds`), `done/item-id-counter-is-not-resumed-by-a-restore.md`,
   `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/RestoredItemIds.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/TransferTableRestoreMerge.cs`
 

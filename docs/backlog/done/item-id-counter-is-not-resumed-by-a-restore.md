@@ -1,8 +1,11 @@
 # The item-id counter is not resumed by a restore, so a restored world can re-issue a live id
 
-- Status: Review (landed 2026-10-11; awaiting the acceptance batch). The claim was reproduced on the real
-  machine against the pre-fix artifact before anything was changed, the resume now lands at the restore
-  click, and the acceptance rows below are what the batch judges.
+- Status: Done — accepted by batch `20261021-a` on the deployed `0.1.0+c9769177…`: a new process's
+  continue resumed the host allocator at 241 → 242 and the next allocation took counter 242 with no
+  duplicate-id refusal; the present member's grant arrived at the restore with no reconnect; the absent
+  member's handshake grant carried the restored mark (1, not 0); and a layer change published ids up to
+  counter 503 with no duplicate. Record:
+  `docs/evidence/acceptance/item-id-counter-is-not-resumed-by-a-restore-20261021-a.md`.
 - Priority: High
 - Category: Remote inventory / item identity / persistence
 - Source: found by reading during the `favourite-marks-are-local-and-saved` cycle (2026-10-11), which
@@ -73,10 +76,10 @@ adversarial review caught it, and the tests now use account-sized ids so the mis
 
 | # | Scenario | Expected | State |
 |---|---|---|---|
-| 1 | Continue a mid-run cut in a NEW process, then allocate one new host item | The new id's counter is above every restored id of that account's space, the log names the resume (`[IdWatermark] the restored world already handed this side ids up to counter N`), and no kernel `already exists` refusal follows | pending |
-| 2 | A guest is in the lobby while the host continues that world | The guest receives the raised grant at the restore (no reconnect) and its own log resumes its counter | pending |
-| 3 | A guest that was away when the world was restored rejoins | Its handshake grant carries the restored high-water mark, not its last report and not 0 | pending |
-| 4 | Play on past the restore into the next layer | The generation's publish allocates above the restored marks: no duplicate-id refusal, and no two scene objects share one instance id | pending |
+| 1 | Continue a mid-run cut in a NEW process, then allocate one new host item | The new id's counter is above every restored id of that account's space, the log names the resume (`[IdWatermark] the restored world already handed this side ids up to counter N`), and no kernel `already exists` refusal follows | pass (batch `20261021-a`) |
+| 2 | A guest is in the lobby while the host continues that world | The guest receives the raised grant at the restore (no reconnect) and its own log resumes its counter | pass (batch `20261021-a`) |
+| 3 | A guest that was away when the world was restored rejoins | Its handshake grant carries the restored high-water mark, not its last report and not 0 | pass (batch `20261021-a`) |
+| 4 | Play on past the restore into the next layer | The generation's publish allocates above the restored marks: no duplicate-id refusal, and no two scene objects share one instance id | pass (batch `20261021-a`) |
 
 ## Limits recorded with the landing
 

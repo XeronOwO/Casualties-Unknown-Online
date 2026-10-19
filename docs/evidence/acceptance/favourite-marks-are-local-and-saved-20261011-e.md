@@ -77,7 +77,7 @@ and both findings are new:
   carries NOTHING is never dropped (pruning on mere absence is refused), which row 7b's reading confirms
   from the other direction.
 - **The mark's identity still rests on the item instance id**, and the id-reuse path is
-  `review/item-id-counter-is-not-resumed-by-a-restore.md`; nothing in this run needed it.
+  `done/item-id-counter-is-not-resumed-by-a-restore.md`; nothing in this run needed it.
 - **The third peer was in the world throughout** and supplies the views cited in 1a and 7a; no row of this
   batch asks anything else of it.
 

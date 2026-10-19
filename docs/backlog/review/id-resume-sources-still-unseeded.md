@@ -5,11 +5,11 @@
   (`.acceptance/20261011-h/red-id-resume-sources.md`), and the acceptance rows below are what the batch judges.
 - Priority: Medium
 - Category: Remote inventory / item identity / persistence
-- Source: found by the independent adversarial review of `review/item-id-counter-is-not-resumed-by-a-restore.md`
+- Source: found by the independent adversarial review of `done/item-id-counter-is-not-resumed-by-a-restore.md`
   (2026-10-11). That landing resumes every id space from the restored archive's item rows; the review asked
   the completeness question of the rule itself ("does the restore carry EVERY id this process will
   re-stamp?") and found two sources the seed does not read.
-- Related: `review/item-id-counter-is-not-resumed-by-a-restore.md` (the landing and its rule),
+- Related: `done/item-id-counter-is-not-resumed-by-a-restore.md` (the landing and its rule),
   `Runtime/Session/Items/ItemInstanceIds.cs` (the format owner),
   `Runtime/Session/Items/IRestoredItemIdSeed.cs` (the port this ticket adds),
   `docs/architecture/save-archive-format.md` §3.4 (what a cut holds)

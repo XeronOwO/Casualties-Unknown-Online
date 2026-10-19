@@ -843,7 +843,7 @@ names the missing clamp; `Usage` spells the two forms instead of an `[item]` pre
 number is resolved — the `CallContext` frame-boundary ruling held 262 from 2026-10-12, so the later
 data-validation ruling is now decision 265, with every reference updated (`AGENTS.md` rule 16,
 `docs/architecture/member-report-validation.md`, `docs/development/review-prompt.md`,
-`docs/backlog/todo/member-report-bounds.md`, `review/cheat-permission-and-op-commands.md`,
+`docs/backlog/done/member-report-bounds.md`, `review/cheat-permission-and-op-commands.md`,
 `review/item-identity-bridge.md`).
 
 **Verification of the fix commit.** `dotnet build` exit 0 (0 warnings), `dotnet format` exit 0, the behavioural

@@ -1,6 +1,6 @@
 # Acceptance record — the member-report identity bound (section A of the unbounded-reports ticket)
 
-- Ticket: `docs/backlog/todo/member-report-bounds.md` — **section A's five surfaces (seven wire members)
+- Ticket: `docs/backlog/done/member-report-bounds.md` — **section A's five surfaces (seven wire members)
   are read and PASS on the machine.** The ticket does NOT move: sections B (a number the host could
   derive) and C (a claim with no anchor at all) are still undeveloped code.
 - Batch: `20261017-a`, run 1 — THREE clients in one world (host on the physical machine, members in the

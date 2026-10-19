@@ -39,7 +39,7 @@ for exactly the cases that matter (a tool inside a container, an item restored f
 
 ## Related
 
-- `docs/backlog/todo/member-report-bounds.md` — the rows waiting on it, and the ruling that behaviour bounds are out of
+- `docs/backlog/done/member-report-bounds.md` — the rows waiting on it, and the ruling that behaviour bounds are out of
   scope (`docs/decisions/active.md`, decision 265).
 - `docs/architecture/member-report-validation.md` — the census that names these rows `unbounded`.
 ## Resolution 2026-10-18: no subsystem is needed, and its only consumer turned out to have no anchor
@@ -55,7 +55,7 @@ review of an attempt that used it, and it is wrong:
   id" does not leave a hole.
 - Its only consumer was the open report's tool claim, and that claim has just been concluded unanchorable for a reason
   that has nothing to do with identity: empty-handed opening is legal gameplay, so a zero id must be accepted and the
-  claim cannot be falsified (`docs/backlog/todo/member-report-bounds.md`, third attempt).
+  claim cannot be falsified (`docs/backlog/done/member-report-bounds.md`, third attempt).
 
 So there is no code to develop here. If a future consumer needs "name this live item", the one-line reverse lookup is
 the whole change; nothing has to be built or maintained ahead of it. Recorded rather than kept as a pending ticket so

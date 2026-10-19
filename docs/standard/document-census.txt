@@ -304,7 +304,7 @@ docs/backlog/done/item-census-own-instance-id.md | keep | index | docs/backlog/R
 docs/backlog/done/health-simulation-and-host-authority.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/health-simulation-and-host-authority-20261018-x.md | keep | claim | docs/backlog/done/health-simulation-and-host-authority.md
 docs/evidence/acceptance/heal-reset-does-not-restore-host-owned-vitals-20261018-y.md | keep | claim | docs/backlog/done/heal-reset-does-not-restore-host-owned-vitals.md
-docs/evidence/acceptance/member-report-bounds-trader-give-20261018-z.md | keep | claim | docs/backlog/todo/member-report-bounds.md
+docs/evidence/acceptance/member-report-bounds-trader-give-20261018-z.md | keep | claim | docs/backlog/done/member-report-bounds.md
 docs/backlog/done/heal-reset-does-not-restore-host-owned-vitals.md | keep | index | docs/backlog/README.md
 docs/backlog/done/validation-and-source-checks.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
@@ -323,7 +323,7 @@ docs/backlog/done/radiation-line-floor-stop.md | keep | index | docs/backlog/REA
 docs/backlog/todo/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/review/item-identity-bridge.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/member-report-bounds.md | keep | index | docs/backlog/README.md
+docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/single-file-plugin-package.md | keep | index | docs/backlog/README.md
@@ -526,10 +526,10 @@ docs/evidence/acceptance/local-item-into-remote-display-20261006-e.md | keep | c
 docs/evidence/acceptance/medical-removal-limb-component-not-applied-20261011-c.md | keep | claim | docs/backlog/done/medical-removal-limb-component-not-applied.md
 docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md | keep | claim | docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-b.md
 docs/evidence/acceptance/medical-state-names-no-kind-20261011-c.md | keep | claim | docs/backlog/done/medical-state-names-no-kind.md
-docs/evidence/acceptance/member-report-bounds-a-20261017.md | keep | claim | docs/backlog/todo/member-report-bounds.md
-docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md | keep | claim | docs/backlog/todo/member-report-bounds.md
-docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-a.md | keep | claim | docs/backlog/todo/member-report-bounds.md
-docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-b.md | keep | claim | docs/backlog/todo/member-report-bounds.md
+docs/evidence/acceptance/member-report-bounds-a-20261017.md | keep | claim | docs/backlog/done/member-report-bounds.md
+docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md | keep | claim | docs/backlog/done/member-report-bounds.md
+docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-a.md | keep | claim | docs/backlog/done/member-report-bounds.md
+docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-b.md | keep | claim | docs/backlog/done/member-report-bounds.md
 docs/evidence/acceptance/mod-api-contract-governance-20260927.md | keep | claim | docs/backlog/done/mod-api-contract-governance.md
 docs/evidence/acceptance/mod-api-typed-seams-20261012-c.md | keep | claim | docs/backlog/done/mod-api-typed-seams.md
 docs/evidence/acceptance/mod-authored-effects-20261011-k.md | keep | claim | docs/backlog/done/mod-authored-effects.md
@@ -564,7 +564,7 @@ docs/evidence/acceptance/protocol-frame-validation-20260927.md | keep | claim | 
 docs/evidence/acceptance/readme-language-pair-20261012-c.md | keep | claim | docs/backlog/done/readme-language-pair.md
 docs/evidence/acceptance/recipe-args-crlf-gate-20261002.md | keep | claim | docs/backlog/done/recipe-args-crlf-gate.md
 docs/evidence/acceptance/item-census-instance-id-20261017-c.md | keep | claim | docs/backlog/done/item-census-own-instance-id.md
-docs/evidence/acceptance/recipe-unlock-bound-20261017-b.md | keep | claim | docs/backlog/todo/member-report-bounds.md
+docs/evidence/acceptance/recipe-unlock-bound-20261017-b.md | keep | claim | docs/backlog/done/member-report-bounds.md
 docs/evidence/acceptance/recipe-unlock-fallback-20261003-e.md | keep | claim | docs/backlog/review/recipe-unlock-fallback.md
 docs/evidence/acceptance/reenter-baseline-adoption-20261002-m.md | keep | claim | docs/backlog/done/reenter-baseline-adoption.md
 docs/evidence/acceptance/remote-clone-warning-storm-on-member-dropout-20261007-c.md | keep | claim | docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md

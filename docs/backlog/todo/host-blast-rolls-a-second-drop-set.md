@@ -1,12 +1,12 @@
 # The host rolls a second drop set for a death a member already rolled
 
 - Status: Todo — opened 2026-10-18 by the audit inside the entity-event drop bound (the
-  `NetMsg.EntityEvent` row of `docs/backlog/todo/member-report-bounds.md`).
+  `NetMsg.EntityEvent` row of `docs/backlog/done/member-report-bounds.md`).
 - Priority: Medium
 - Category: Sync / item ownership
 - Source: the bounds cycle's family audit — the same audit that gave a member's reported event drops a bound
   found that the host's OWN application of the event still rolls a set for the same death.
-- Related: `docs/backlog/todo/member-report-bounds.md` (the bound that admits the member's report),
+- Related: `docs/backlog/done/member-report-bounds.md` (the bound that admits the member's report),
   `docs/evidence/sync-coverage-matrix.md` (row E2), `docs/architecture/member-report-validation.md`
   (`NetMsg.EntityEvent`), `done/trap-destruction-drop-quantity-desync.md` (the support-loss carrier's
   "one death, one roll" rule), `done/validation-and-source-checks.md` (S2b)

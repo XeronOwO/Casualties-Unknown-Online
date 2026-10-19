@@ -31,7 +31,7 @@
   surfaces this ticket does NOT
   close are the census rows of
   `docs/architecture/member-report-validation.md` marked `unbounded:` — they carry their own evidence in
-  `todo/member-report-bounds.md`, opened by the same cycle at the user's direction that report validation
+  `done/member-report-bounds.md`, opened by the same cycle at the user's direction that report validation
   become a general development standard.
 - Priority: Medium-High
 - Category: Security / report validation / host rules
@@ -40,7 +40,7 @@
   probability window for a non-integer roll), a command's report needs the sender to hold the cheat
   permission, an item use needs the item to exist in a state that allows it.
 - Related: `docs/architecture/member-report-validation.md` (the rule and the per-wire-member census this
-  ticket's stages produced), `todo/member-report-bounds.md` (the surfaces that census leaves unbounded),
+  ticket's stages produced), `done/member-report-bounds.md` (the surfaces that census leaves unbounded),
   `future/strict-validation-anti-cheat.md` (the inventory this ticket works from — its
   authority-declaration half is closed by S1a below; the console command's own path, the drop table and the
   state preconditions are what remains of it),
@@ -414,7 +414,7 @@
    bound rests on a statement the member VOLUNTEERS: a
    client that never states a carried set keeps the pre-change behaviour, which is the `ItemSpawn` census
    row's unbounded creation class (one state report == one spawn report at that point), filed in
-   `todo/member-report-bounds.md` — this stage narrows the reporting shape, it does not turn the item's
+   `done/member-report-bounds.md` — this stage narrows the reporting shape, it does not turn the item's
    creation into a checked fact; (c) the re-stated set is itself a creation channel: `ItemArbitration`
    does not consult the refused-creation tombstones there, so the settlement of a refused report can
    re-create an id whose creation was refused — the same `ItemSpawn` class, and the reason the tombstone

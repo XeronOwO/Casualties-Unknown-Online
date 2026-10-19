@@ -3,7 +3,8 @@
 - Ticket: `member-report-bounds` — row `NetMsg.EntityEvent` (the drops half) rerun after the kernel
   floor: **row 2 PASSES**; row 3 is **unproven, now for a build-level reason**: the seven crystal
   prefabs the generator loads carry no `CrystalBehaviour` component at all, so no world can generate a
-  fragile crystal. The ticket stays in `todo/` on row 3.
+  fragile crystal. The ticket stayed in `todo/` on row 3 until the follow-up below withdrew the row and
+  closed it.
 - Batch: `20261019-b` — the rerun of batch `20261019-a`'s failed row against the fix commit. One
   ticket, two rows; rows 1 and 4 were judged in `20261019-a` and are not re-judged here.
 - Commit: `dd1fd79e` · Deployed artifact: `CasualtiesUnknownOnline.dll`, ProductVersion
@@ -70,7 +71,7 @@ appearing (recorded as a method note, not a row; the separate visible start was 
 |---|---|---|---|---|
 | 1 | A member's destructive event with a drop its tables cannot produce is refused by name on the host and destroyed on the reporter | machine | pass — judged in `20261019-a`, not re-run | `member-report-bounds-entity-event-drops-20261019-a.md`; the deployed fix does not touch the judge |
 | 2 | An ordinary event's drops land whole | machine | **pass** | the member rolled `scrapmetal` id `9492956821` into the event (`[ItemTrapDrop]`, `[TrapDropFlush] drops=1`), the host applied the event and materialized the drop with **no rejection line** (`ev-host-trap.txt`, `ev-host-refusals.txt`), and the host kernel's `world` table holds `{"id":"9492956821","type":"scrapmetal"}` (`s19-host-kernel-after-mine.json`); the member's copy is the same id and skips duplicate materialization |
-| 3 | A fragile-crystal break, read on the machine | machine | **unproven — no such entity exists in this build** | two layers scanned with inactive objects included carry 28 crystal-prefab buildings and ZERO `CrystalBehaviour` components (`probe-crystals-guest.json`, `probe-crystals-layer1.json`); the seven prefabs the generator loads all answer `hasBehaviour=false` (`probe-crystal-prefabs.json`); the decompiled assembly has no `AddComponent<CrystalBehaviour>` anywhere, and `WorldGeneration.PlaceCrystals` instantiates only those prefabs — so `CrystalFragile` can never be rolled, and no world can prove this row |
+| 3 | A fragile-crystal break, read on the machine | machine | **unproven — no such entity exists in this build** (the row is withdrawn by the follow-up below) | two layers scanned with inactive objects included carry 28 crystal-prefab buildings and ZERO `CrystalBehaviour` components (`probe-crystals-guest.json`, `probe-crystals-layer1.json`); the seven prefabs the generator loads all answer `hasBehaviour=false` (`probe-crystal-prefabs.json`); the decompiled assembly has no `AddComponent<CrystalBehaviour>` anywhere, and `WorldGeneration.PlaceCrystals` instantiates only those prefabs — so `CrystalFragile` can never be rolled, and no world can prove this row |
 | 4 | An unmodified session meets no refusal | machine | pass — judged in `20261019-a`, not re-run | `member-report-bounds-entity-event-drops-20261019-a.md`; this run's single `[TrapDrop]`-family line is the accepted event, not a refusal (`ev-host-refusals.txt`) |
 
 ## The fragile crystal is not generated in this build
@@ -84,11 +85,19 @@ world carry 28 crystal-prefab buildings with zero components between them. The c
 (`AddComponent<CrystalBehaviour>` appears nowhere), so the component is inert and the effect list it
 would roll is never created.
 
-That makes the row's premise — a generated fragile crystal — impossible in this build. The row stays
-`unproven` rather than `pass`/`fail`: the run cannot put the world into the state the row needs. The
-ticket keeps it open and records the product decision it now needs: either drop the row as an entity
-the shipped game does not have, or define a fixture that accepts a component CUO has to inject (which
-would no longer be the game's own generated crystal, and would need to be named as such).
+That makes the row's premise — a generated fragile crystal — impossible in this build. The row stayed
+`unproven` rather than `pass`/`fail` in this run: the run could not put the world into the state the row
+needs. The decision it asked for was taken afterwards and is recorded in the follow-up below.
+
+## Follow-up — the row is withdrawn (2026-10-19)
+
+The ticket needed a decision after this run: drop the row as an entity the shipped build does not have, or
+define a fixture that injects the component and name it as such. The decision (recorded in the ticket,
+`docs/backlog/done/member-report-bounds.md`) is to **withdraw the row**: a fixture would test CUO against an
+object CUO made, not the game's own generated crystal, and no report from the shipped game's own world can
+carry `CrystalFragileBroken`. The run's verdict stands as observed; the row is no longer owed, and the
+ticket closes with rows 1, 2 and 4 passing. The kind and its handling stay in the code (the wire vocabulary
+and the replay tables), and a future build whose prefabs carry the component brings the row back.
 
 ## Limits
 

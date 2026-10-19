@@ -3,7 +3,7 @@
 - Status: Todo — opened 2026-10-19 by the independent review of the `NetMsg.EntityEvent` drop lever
 - Priority: Low-Medium
 - Category: World sync / trap layout
-- Source: the review of `docs/backlog/todo/member-report-bounds.md`'s entity-event acceptance lever (2026-10-19):
+- Source: the review of `docs/backlog/done/member-report-bounds.md`'s entity-event acceptance lever (2026-10-19):
   the census recipe reads a crystal's effects, and the review checked the scanner that is supposed to do the
   same and found it returns nothing for every crystal
 - Related: `done/trap-layout-snapshot-recovery.md` (the layout's repair path this surfaces in),
@@ -46,6 +46,13 @@ and nothing in the assembly adds one (`AddComponent<CrystalBehaviour>` appears n
 crystal arm cannot fire on this build for a reason deeper than the runtime-type bug above — but that bug is
 still real for the day a prefab carries the component, and this ticket's fix (read the effects list) is still
 the right shape then. Evidence: `docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-b.md`.
+
+The `member-report-bounds` ticket's fragile-crystal acceptance row was withdrawn for this same build fact
+(its ruling is in `docs/backlog/done/member-report-bounds.md`). This ticket stays open because the
+runtime-type bug is a defect in code that a future build revives: the fix is still the right shape, but
+its own acceptance — the two-client effect-roll agreement and the no-churn row — is unobservable until a
+prefab carries the component, so the cycle that takes it starts by re-reading the same prefab probe
+(`hasBehaviour`) and the effect list on a real crystal.
 
 ## What it affects
 

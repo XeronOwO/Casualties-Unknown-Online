@@ -3,7 +3,7 @@
 - Status: Todo
 - Priority: Low
 - Category: Documentation / repository hygiene
-- Source: found 2026-10-18 while editing `todo/member-report-bounds.md` (its prose reads `鈥?` where the sentence needs
+- Source: found 2026-10-18 while editing `done/member-report-bounds.md` (its prose reads `鈥?` where the sentence needs
   an em dash); `done/give-item-to-a-player-command.md` had already recorded the same artifact as "the file's
   repo-wide pre-existing encoding artifact, left to the encoding cleanup" (its review finding 7), so this ticket
   gives that cleanup a target.
@@ -17,7 +17,7 @@ shape every one of these round trips leaves — and then confirming each hit by 
 
 | File | Damage |
 |---|---|
-| `docs/backlog/todo/member-report-bounds.md` | 148 spots: `鈥?` (em dash / ellipsis), `鈫?` (arrow), `脳` (`×`) |
+| `docs/backlog/done/member-report-bounds.md` | 148 spots: `鈥?` (em dash / ellipsis), `鈫?` (arrow), `脳` (`×`) |
 | `docs/backlog/done/item-and-entity-data-commands.md` | 64 spots of the same families, plus `鈭?` (`−`) |
 | `docs/decisions/active.md` | 39 spots, including `鈥揈` for "–E" in "Phase A–E" |
 | `docs/standard/document-census.txt` | 4 spots in its comment header, e.g. `# Document census 閳?one row …` |

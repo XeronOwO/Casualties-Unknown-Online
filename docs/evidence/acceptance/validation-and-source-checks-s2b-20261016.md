@@ -144,5 +144,5 @@ CUO-authored building template, but that belongs to the mod-content path and not
 - A census read inside the world's materialization window lists a partial population (run 1). The recipe now
   carries that precondition where its next caller reads it.
 - The member's break landed on a cell 122 blocks from its own body: the air write names the cell and the host
-  applies it, which is the reach surface filed in `docs/backlog/todo/member-report-bounds.md` (finding C of
+  applies it, which is the reach surface filed in `docs/backlog/done/member-report-bounds.md` (finding C of
   this cycle) rather than a property this row tested.

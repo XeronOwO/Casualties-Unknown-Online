@@ -1,6 +1,6 @@
 # Acceptance record — a member's recipe unlock is bounded to the host's own table
 
-- Ticket: `docs/backlog/todo/member-report-bounds.md` — **section B's `NetMsg.RecipeUnlock` row is CLOSED**
+- Ticket: `docs/backlog/done/member-report-bounds.md` — **section B's `NetMsg.RecipeUnlock` row is CLOSED**
   (one of the section's five). The ticket does NOT move: four section-B rows and both section-C rows are
   still undeveloped code.
 - Batch: `20261017-b`, run 1 — three clients in one world (host on the physical machine, members in the

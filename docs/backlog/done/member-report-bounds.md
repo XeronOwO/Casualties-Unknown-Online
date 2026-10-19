@@ -1,18 +1,15 @@
 # The member reports that still have no bound
 
-- Status: Todo — Rejected (batch `20261019-b`: rows 1, 2 and 4 pass; row 3 is unproven and UNPROVABLE in this build — none of the seven crystal prefabs carries a `CrystalBehaviour`, so no world generates a fragile crystal, and the row needs a product decision: drop it as an entity the shipped build does not have, or define an injected-component fixture and name it as such). The batch-a failure's root cause is fixed, verified on the machine and deployed (`+dd1fd79e`) — opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
+- Status: Done — batch `20261019-b` (2026-10-19): rows 1, 2 and 4 PASS; row 3 is WITHDRAWN by the ruling below — this build generates no fragile crystal, so the row has no subject and no injected-component fixture replaces it. The batch-a failure's root cause is fixed, verified on the machine and deployed (`+dd1fd79e`) — opened 2026-10-16 by the survey behind `docs/architecture/member-report-validation.md`
   (every row of its census marked `unbounded:` points here). S2b landed the block-break carrier's building
   drops; this ticket is the rest of the same question, one surface per row, each with its own evidence.
   Section A (the reports that name another member's identity) CLOSED 2026-10-17 鈥?its five surfaces now
-  compare against the transport sender, and the census rows say so. Sections B and C remain open, with three
-  exceptions: the container-sync row was READ on the machine 2026-10-17 (batch `20261017-d`; record
-  `docs/evidence/acceptance/member-report-bounds-container-sync-20261017-d.md`), and the
-  `NetMsg.EntityEvent` DROPS row landed 2026-10-18 (its trigger half stays unbounded on purpose) — its
-  evidence and remaining acceptance are in section C, and the `BuildingEntityDamaged` magnitude row CLOSED the same
-  day as `unbounded`: its assumed anchor does not exist (the damage values are code, not item data) and the reading
-  is in section B. The `NetMsg.TraderAction` GIVE row is IMPLEMENTED and READ ON THE MACHINE 2026-10-18 — the
-  identity anchor landed (wire field + host-side judgement + the generation-time container-contents naming it
-  exposed) and batch `20261018-z` passed all four owed rows; section B.
+  compare against the transport sender, and the census rows say so. Section B closed row by row: the
+  container-sync reading (batch `20261017-d`), the entity-event drops (batches `20261019-a`/`-b`), the trader
+  give's four rows (batch `20261018-z`) and the damaged-magnitude reading, while the reach family is
+  withdrawn by decision 265. Section C's `ItemSpawn` row stays `unbounded` (the wire carries no creating
+  cause, as the census records), and the entity-event row's fragile-crystal row is withdrawn by the ruling
+  below, which closes the ticket.
 - Priority: Medium-High
 - Category: Security / report validation
 - Source: the user's 2026-10-14 request (basic checks from the game's own mechanics, never an anti-cheat)
@@ -709,12 +706,8 @@ described above:
   world table carries `{"id":"9492956821","type":"scrapmetal"}` (`container-read mode=host,guest=auto`,
   `worldCount` 267), so the drop is an authoritative row, not presentation
   (`docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-b.md`). The fragile-crystal row
-  is **unproven, and unprovable in this build**: both layers scanned with INACTIVE objects included carry 28
-  crystal-prefab buildings and zero `CrystalBehaviour` components, and all seven prefabs
-  `WorldGeneration.PlaceCrystals` loads answer `hasBehaviour=false`; no game code adds the component
-  (`AddComponent<CrystalBehaviour>` appears nowhere), so no world can generate a fragile crystal. The ticket
-  stays open on that row and needs a product decision: drop it as an entity the shipped build does not have, or
-  define an injected-component fixture and name it as such.
+  is **withdrawn by the ruling below**: this build generates no fragile crystal, so the row has no subject,
+  and a fixture that injects the component would prove CUO against an object CUO made.
 
   Named limits of this fix: (a) `GameStateKernel.Restore` is a second, UNVALIDATED writer of
   world-entity facts — a hostile/buggy host checkpoint or a tampered save can still carry a negative/NaN
@@ -803,6 +796,35 @@ described above:
   | A known child the record holds inside somebody else's container | the row the child sits in must be the sender's own (world-rooted excluded); never the child's own recorded owner | `AContainerSyncMayNotMoveAnotherMembersContainedItem` 鈥?RED with the arm neutralised; `AContainerSync_AfterTheContainerChangedHands_StillAcceptsTheRecordedContents` 鈥?RED with the child's own owner used as the test |
   | The creation claim (`ICarriedRegistrationFacts.HasJudgedCarriedSet`) | an unjudged parent or child after the statement was judged is refused by name and answered | `AContainerSyncForAnUnjudgedParent_AfterTheCarriedSetWasStated_IsRefusedAndNothingIsMaterialized` and `AContainerSyncForAnUnjudgedChild_AfterTheCarriedSetWasStated_IsRefused` 鈥?both RED in the first run; `..._BeforeTheCarriedSetWasStated_IsStillMaterialized` is the window's guard |
   | The settlement (`ItemService.OnCommandRejected`) | every refused container report settles by the carried-set statement, never by the pickup rollback that unparents a live container | `ARefusedContainerSync_ReStatesTheCarriedSet_AndTheContentsLand` 鈥?RED in the first run |
+
+### Ruling (2026-10-19): the fragile-crystal row is WITHDRAWN — no such entity exists in this build
+
+The row asked for a fragile-crystal break read on the machine. The evidence says there is nothing to break:
+`WorldGeneration.PlaceCrystals` loads seven prefabs (`BloodCrystal`, `SoothingCrystal`, `ReliefCrystal`,
+`TurbulentCrystal`, `OxygenCrystal`, `EmissiveCrystal`, `DigestionCrystal`), all seven answer
+`hasBehaviour=false` to a runtime prefab probe, two scanned layers (inactive objects included) carry 28
+crystal-prefab buildings and ZERO `CrystalBehaviour` components, and the assembly never adds one — its only
+references to the type outside its own file are the effect classes that hold it (`CrystalEffect.crystal`) and
+one collider check (`CrystalShy`), and `AddComponent<CrystalBehaviour>` appears nowhere. The effect list is
+built only by `CrystalBehaviour.SetUpEffects`, called only from that component's own `GenerationFinished`
+(the class has no `Start`/`Awake` setup of it), so `CrystalFragile` is never rolled, and no report produced by
+the shipped game's own world can carry `CrystalFragileBroken`. Evidence:
+`docs/evidence/acceptance/member-report-bounds-entity-event-drops-20261019-b.md` (the probes
+`probe-crystal-prefabs.json`, `probe-crystals-guest.json`, `probe-crystals-layer1.json`).
+
+**Decision: drop the row; do not define an injected-component fixture.** A fixture would create an entity the
+game never creates, attach the carrier by hand and drive the patch with a CUO-made object — the result would
+be a statement about CUO's own component, not about the game, and `docs/acceptance/AGENTS.md` refuses a
+weaker check wearing the row's name. The row's honest classification is therefore "no subject in this
+build", not `unproven`, `blocked` or `pass`; it is no longer owed, and the ticket closes with rows 1, 2 and 4
+passing.
+
+**What the ruling does not change.** `EntityEventKind.CrystalFragileBroken` and its handling stay: the kind
+is part of the wire vocabulary and the replay/applier tables, it is inert while no carrier exists, and
+deleting the family would be a protocol and matrix change for no product gain. A future build whose prefabs
+carry the component makes the row provable again; the first thing to re-read then is the same prefab probe,
+not this paragraph. The sibling ticket `todo/trap-layout-crystal-rows-empty.md` records the same build fact
+for the trap-layout scanner and stays open on that day.
 
 ## Acceptance each row owes
 

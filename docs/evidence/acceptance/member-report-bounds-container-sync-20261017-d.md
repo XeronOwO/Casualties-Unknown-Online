@@ -1,6 +1,6 @@
 # Acceptance record — a member's container report may not create what the member never carried
 
-- Ticket: `docs/backlog/todo/member-report-bounds.md` — **the container-sync machine row is READ and PASSES**; the
+- Ticket: `docs/backlog/done/member-report-bounds.md` — **the container-sync machine row is READ and PASSES**; the
   ticket does NOT move, because sections B and C still hold rows with no code at all (the ticket's own list).
 - Batch: `20261017-d`, run 1 — two clients in one world (host on the physical machine, the member in the
   `<sandbox-guest>` sandbox). Two clients, because the row is about what the HOST does with one member's report.

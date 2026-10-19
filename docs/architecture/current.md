@@ -453,7 +453,7 @@ tables read at the MARK, the one moment their components still exist, keyed by t
 carries. What every other member-authored wire member is bounded against — or the anchor it lacks — is the
 census in [member-report-validation.md](member-report-validation.md); the bounds' own record is
 `done/validation-and-source-checks.md` (every stage landed and every machine row read),
-and the rows still carrying no anchor are `todo/member-report-bounds.md`'s.
+and the rows still carrying no anchor are `done/member-report-bounds.md`'s.
 
 ### 7.2 Guest prediction model (not implemented in current code)
 

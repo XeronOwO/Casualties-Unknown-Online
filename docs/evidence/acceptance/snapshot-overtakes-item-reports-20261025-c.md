@@ -58,3 +58,7 @@ top-level move), both from the one event.
   member as the owner. A host-owner repetition stays useful.
 - The craft-scope sibling the review found is not part of this row; it is
   `docs/backlog/todo/craft-carried-fact-retirement.md`.
+- The row driver's first summary counted the bag as a moved item and flagged the wear row for the bag's
+  missing applied line — a container whose contents moved owns no applied line. `judgement.txt` re-reads
+  the same windows against the moved child (keeping the bag as a divergence watch), and the rule is now
+  in `docs/acceptance/workflow.md` §6.

@@ -125,10 +125,6 @@ A numeric template casts explicitly (`(float)(__TX__)`) and a numeric recipe arg
 
 A write and its read do not share one eval: poll with bounded retries (the drop appears tens of milliseconds later, inside `OnBlockDamaged` → `ItemInstantiated` → `FlushPendingBlockBreak`) and return the first snapshot that carries it.
 
-## 2026-10-01 — A harvest written while the review runs breaks the freeze the review depends on
-
-While an independent review runs, the only writes are gitignored artifacts; the harvest, the run log and every tracked edit wait for the report, because the reviewer's contract is the WHOLE tree at the moment it started — `docs/en/contributing/review-and-delivery.md`.
-
 ## 2026-10-01 — `Settings.Get<T>` works inside the client evaluator, and a client that just changed layer answers `no-world`
 
 Arm a game setting through the game's own accessor rather than writing its static, and re-read before recording a verdict: a client that just changed layer answers `no-world`, and its own census answers `tableCount: 0` three seconds later.
@@ -519,3 +515,7 @@ Staging `MinigameBase.handPos`/`holdingSyringe` is pulled back toward the pointe
 ## 2026-10-19 — A 15 s idle window is shorter than a multi-client read loop
 
 Plan each injection increment so the next update lands inside the host's window: a four-read sequence between increments times the session out, and the row then reads a `TimedOut` terminal it did not stage — `docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261023-b.md`.
+
+## 2026-10-20 — A killed member stays dead, and a continue's first read is the pre-restore roll
+
+The death screen has no respawn, so a member's character-record restore is reached through a host leave-world → `continue-run`; read the host's panel only after the world settles (the first read can still show the fresh roll), and read every client's own values before the cycle to prove they travelled — `docs/evidence/acceptance/remote-medical-panel-header-shows-viewer-identity-20261024-a.md`.

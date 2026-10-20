@@ -120,7 +120,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — rows 1-7/9/12-19/21/23 pass; 8/10/20/22 unproven.
 - [Speech in the remote panel is not synced](review/remote-medical-panel-speech-text-desync.md) — **High** — rows 1-5/7-8 pass; trade-menu row open.
-- [The remote panel's header shows the viewer](review/remote-medical-panel-header-shows-viewer-identity.md) — **High** — the viewed player's identity.
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
@@ -354,6 +353,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical panel acceptance issues](done/remote-medical-panel-acceptance-issues.md) — **High** — accepted in `20261023-b`: ramp, breathing, ECG, icons.
 - [Remote fentanyl desync](done/remote-fentanyl-injection-and-medical-panel-desync.md) — **Critical** — accepted in `20261023-b`.
 - [The remote panel's alarm follows the viewer](done/remote-medical-panel-alarm-follows-viewed-player.md) — **High** — accepted; follows the displayed body.
+- [The remote panel's header shows the viewer](done/remote-medical-panel-header-shows-viewer-identity.md) — **High** — accepted in `20261024-a`.
 
 ### Watchlist
 

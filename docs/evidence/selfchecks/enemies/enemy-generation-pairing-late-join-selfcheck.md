@@ -1,6 +1,6 @@
 # The Late-Join Enemy Generation Pairing — Self-Check (2026-10-07)
 
-Delivery fact sheet for `docs/backlog/review/enemy-generation-pairing-late-join.md`, filed by acceptance
+Delivery fact sheet for `docs/backlog/todo/enemy-generation-pairing-late-join.md`, filed by acceptance
 batch `20261006-g`: a member that entered the world about two minutes into a run logged
 `generation spawn pairing failed (69 host vs 69 guest generated enemies)` and
 `mapping=False` once per 60 s cycle for the whole session. The cycle fixes the pairing key and moves it out

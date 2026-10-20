@@ -1,17 +1,22 @@
 # A member joining a run in progress never binds the generated enemies
 
-- Status: Review (landed 2026-10-07 — the pairing key is the fact's bind-time anchor, owned by the
-  arbitration; the runtime rows await the next batch)
+- Status: Todo — Rejected (batch `20261025-d`, 2026-10-20: both members PRESENT at world entry read
+  `generation spawn pairing failed (85 host vs 85 guest generated enemies, first key mismatch at index 52:
+  17.021 world units apart, tolerance 0.5)` and `snapshot applied: 0 generated bound, 0 runtime spawns,
+  mapping=False` on every 60 s cycle, with the same signature on both guests — the landed key fix does not
+  hold for this world; rows 1 and 5 fail, rows 2–4 were not driven)
 - Priority: High
-- Category: Enemy sync / generation baseline / late join
+- Category: Enemy sync / generation baseline / late join (now: any generation-baseline bind)
 - Source: batch `20261006-g`'s third client (2026-10-06) — a member that joined the lobby and entered the
   world AFTER the run had started logs the pairing failure once per 60 s cycle for the whole session while
   the member that was present at world entry reads the mapping as established in the same cycles. Found by
-  the acceptance run while reading that batch's inventory rows, which are unaffected.
+  the acceptance run while reading that batch's inventory rows, which are unaffected. The rejection of
+  2026-10-20 widens the trigger: members present at entry fail too, so the defect is not late-join-only.
 - Related: `done/enemy-runtime-spawn-classification.md` (the fix that made the generation baseline read
-  `mapping=True` for a member present at world entry; this ticket is the case its acceptance never drove),
-  `done/enemy-snapshot-binding-recovery.md` (the repair carrier), `done/layer-change-member-dropout.md`
-  (the other member-lifecycle defect), `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs`,
+  `mapping=True` for a member present at world entry; batch `20261025-d` shows that reading does not hold
+  in every generated world), `done/enemy-snapshot-binding-recovery.md` (the repair carrier),
+  `done/layer-change-member-dropout.md` (the other member-lifecycle defect),
+  `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySpawnArbitration.cs`,
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md`
 
@@ -127,6 +132,51 @@ which field is the key (`EnemyEntity.SpawnPosition`: "The guest pairs its frozen
   doc, so the next reader cannot "align" the two channels by analogy.
 - **No wire member, no save shape and no protocol number changed**: the anchor already travels in
   `EnemyStateMsg.SpawnPosition`; only the field a comparison reads changed.
+
+## Rejection (batch `20261025-d`, 2026-10-20)
+
+Three clients in one lobby, all three in the world from the run's start: the member and the third client
+joined the lobby before the host ran `start-run`, and both were `inWorld` when the run began. On the
+deployed artifact `0.1.0+426f71be…`, both guests logged, on every 60 s cycle (23:17:11 and 23:18:11):
+
+```text
+[WRN] [Enemy] generation spawn pairing failed (85 host vs 85 guest generated enemies, first key mismatch at index 52: 17.021 world units apart, tolerance 0.5) — generated copies stay local (generation divergence); runtime spawns are still bound.
+[INF] [Enemy] snapshot applied: 0 generated bound, 0 runtime spawns, mapping=False.
+```
+
+The host sent both members `[Enemy] snapshot sent to <member>: 85 enemies, 0 runtime spawns.` in the same
+cycles. The two guests' warnings are identical — same index, same distance — so the divergence is between
+this host's anchor set and both members' regenerated set, not a per-member or late-join artifact.
+
+What the player sees, reported by the user during the batch: the host's screen carries a `shadecrawler`
+(a generation-distributed enemy) that neither guest can see. Each guest renders its own local copy of the
+generated set; the host's copy is not the one the guests show.
+
+What this rules out:
+
+- **Not a count mismatch**: 85 host vs 85 guest on both clients, and the host's snapshot says 85.
+- **Not the runtime-spawn half**: 0 runtime spawns on both sides, and the warning says that half stays
+  bound.
+- **Not late-join-only**: both members were present at world entry; the pre-fix symptom was attributed to
+  the joiner's late attempt, and the landed key fix made the entry-time member the reference. Here the
+  reference case fails.
+- **Not the repair being skipped**: the failure repeats on consecutive 60 s cycles, so the pass runs and
+  keeps failing.
+
+Rows against this ticket's acceptance table: **row 1 fails** (the member present at world entry reads
+`mapping=False`, not the green reference line), **row 5 fails** (the same member is the regression row),
+and rows 2–4 were not driven (this session had no mid-run join, no bound enemy to move and no runtime
+spawns). The batch's own subject is the craft ticket; this reading is the rejection's evidence.
+
+What the next cycle has to read: the landing put the key in `EnemySpawnArbitration.TryPairGeneratedCopies`
+and the new diagnostics name the first divergent index; the next move is to read the two ordered anchor
+lists around index 52 on both sides — the enemy type/id at that index, the host's anchor, the member's
+generation position, and whether that enemy's first bind happened after it moved (the ticket's item 2
+limit). The reading cannot yet separate "the member's regeneration does not reproduce this world's
+generated set" from "the host's anchor for that enemy is not its generation position", and the fix depends
+on which it is. A `shadecrawler` is generation-distributed (`WorldGeneration.DistributeEntities`, and by
+`InfestedModifier` when that modifier is in play), so the family to inspect is the generated one, not the
+runtime spawn channel.
 
 ## Limits
 

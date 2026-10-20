@@ -69,6 +69,11 @@ internal static class RemoteMedicalView
 		// closed focus never inherits the last one (the display body it was driven from is destroyed below).
 		RemoteMedicalHeartbeat.Reset();
 
+		// The identity header is shared with the local panel too: give the viewer's own values back
+		// before this method can skip the rest of its work, so the next local panel (or the next
+		// focus's own first frame) never shows the player who was just viewed.
+		RemoteMedicalHeader.Restore();
+
 		// Any in-flight remote syringe or shrapnel minigame belongs to this
 		// focus. Cancel them first (restores item condition where applicable
 		// and ends only the exact native minigames), so the destroyed display

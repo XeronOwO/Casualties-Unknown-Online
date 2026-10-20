@@ -237,6 +237,19 @@ the four `SetCharDetails` takes. That floor exists because the game skips its ow
 character-details roll when a run is continued (`PlayerCamera.cs:726-729`) — the alternative is a
 continued character that quietly shows 0 cm / 0 y / #0 and a zeroed calorie counter.
 
+The same sub-message's `cInfo` has a second reader while the game runs: the remote medical
+panel's identity header shows the VIEWED player's four values, taken from the viewed client's
+snapshot (`RemoteMedicalHeader`, GameAdapter). The native panel is the only carrier of a live
+character's identity — `SetCharDetails` writes it once per character — so a borrowed panel answers
+the local snapshot's own read with the values it remembered for the viewer rather than with what
+it currently displays, and the close writes them back through the same native entry (unless the
+panel was re-authored in the meantime: that newer write stands). The other native reader that
+assumes the header describes the LOCAL character is the game's own save, which copies `cInfo` into
+`save.sv` (`SaveSystem.cs:172-175`); the adapter's `RemoteMedicalNativeSaveIdentityPatch` runs that
+save inside a window that shows the viewer's own values. The wire is unchanged: the values already
+ride every successful 1 Hz capture (a failed live read carries none), so the panel needed no new
+member.
+
 `mod-state/` is reserved and empty until its own stage.
 
 JSON is written with `System.Text.Json` (Runtime-owned package), UTF-8 without BOM, indented,

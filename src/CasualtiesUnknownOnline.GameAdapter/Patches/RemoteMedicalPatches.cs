@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
 using UnityEngine;
@@ -108,6 +109,26 @@ internal static class RemoteMedicalPatches
 			PatchBridge.Impl?.ReportRemoteMedicalHeartbeatSuppressed(clip);
 			return false;
 		}
+	}
+
+	/// <summary>
+	/// The game's own save reads the identity header and assumes it describes the LOCAL character:
+	/// <c>SaveSystem.SaveGame</c> copies <c>cInfo[0..3]</c> into the save's
+	/// <c>cHeight</c>/<c>cAge</c>/<c>cId</c>/<c>cVer</c> (<c>SaveSystem.cs:172-175</c>). While a remote
+	/// medical focus holds that header it describes the VIEWED player, so the save would persist one
+	/// character's identity as another's. The capture window shows the viewer's own values for the
+	/// duration of the native call and re-asserts the focus's display afterwards
+	/// (<see cref="RemoteMedicalHeader.EnterOwnIdentityCapture"/>); a save that throws leaves the
+	/// window open, and the next frame's refresh re-borrows the panel — self-healing, never a stuck
+	/// header.
+	/// </summary>
+	[HarmonyPatch(typeof(SaveSystem), "SaveGame")]
+	internal static class RemoteMedicalNativeSaveIdentityPatch
+	{
+		private static void Prefix(out IDisposable? __state) =>
+			__state = RemoteMedicalHeader.EnterOwnIdentityCapture();
+
+		private static void Postfix(IDisposable? __state) => __state?.Dispose();
 	}
 
 	[HarmonyPatch(typeof(MoodleManager), "UpdateMoodles")]

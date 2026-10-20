@@ -121,7 +121,10 @@ internal static class CharacterNativeFields
 				return null;
 			}
 
-			return new CharacterFieldRead(camera.caloriesConsumed, woundView.cInfo);
+			// While a remote medical focus is open the window's cInfo belongs to the VIEWED player,
+			// so the local character's own four values come from the focus's remembered copy
+			// (RemoteMedicalHeader); otherwise the window carries them itself.
+			return new CharacterFieldRead(camera.caloriesConsumed, RemoteMedicalHeader.OwnIdentity(woundView.cInfo));
 		}
 
 		public bool TryApplyCalories(int caloriesConsumed)
@@ -149,6 +152,14 @@ internal static class CharacterNativeFields
 			if (woundView == null) // Unity object — ==
 			{
 				return false;
+			}
+
+			// A borrowed panel belongs to the viewed player: the restore's own identity is remembered
+			// for the close instead of being written over the borrowed header (and restored if no
+			// focus holds the panel).
+			if (RemoteMedicalHeader.TryAdoptOwn(woundView.cInfo, details))
+			{
+				return true;
 			}
 
 			woundView.SetCharDetails(details[0], details[1], details[2], details[3]);

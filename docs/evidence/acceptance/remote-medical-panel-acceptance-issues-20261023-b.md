@@ -29,5 +29,5 @@ observation that the UI overlay covered the panel.
   `Body` fields, restored afterwards; they are not played-out medical events.
 - The panel's identity header and heartbeat alarm are NOT rows of this ticket. Two user-found findings
   from this session were filed separately while the batch ran:
-  `docs/backlog/todo/remote-medical-panel-header-shows-viewer-identity.md` and
+  `docs/backlog/review/remote-medical-panel-header-shows-viewer-identity.md` and
   `docs/backlog/done/remote-medical-panel-alarm-follows-viewed-player.md`.

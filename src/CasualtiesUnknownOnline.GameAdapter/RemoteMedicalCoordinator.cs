@@ -100,6 +100,10 @@ internal sealed class RemoteMedicalCoordinator(
 			return false;
 		}
 
+		// The panel's identity header names the character it shows, and the native panel was filled
+		// with THIS client's character: take it over in the same call that opens the focus, so even
+		// the first rendered frame shows the viewed player.
+		RemoteMedicalHeader.ShowViewedIdentity(data.NativeFields?.CharacterInfo, _log);
 		return true;
 	}
 
@@ -152,6 +156,10 @@ internal sealed class RemoteMedicalCoordinator(
 				presentation,
 				Time.deltaTime,
 				Time.unscaledDeltaTime);
+			// The panel's identity header belongs to the displayed player too: it follows the
+			// snapshot's own identity values (the viewed client's WoundView.cInfo, carried on the
+			// character snapshot's native fields), and is only rewritten when they change.
+			RemoteMedicalHeader.ShowViewedIdentity(data.NativeFields?.CharacterInfo, _log);
 			// The panel's alarm belongs to the DISPLAYED body: same heart phase the redirected ECG draws,
 			// its critical state and its fibrillation damping. The native local-body thump is refused while
 			// this focus is open (RemoteMedicalPatches.RemoteMedicalNativeHeartbeatPatch).

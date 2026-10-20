@@ -8,7 +8,7 @@
   topical half" — was checked against the native call site and does not hold; this ticket records the
   shape and the two branches the current predicate models wrongly.
 - Related: `docs/decisions/active.md` row 246,
-  `docs/backlog/review/topical-live-stack-family-order.md`,
+  `docs/backlog/done/topical-live-stack-family-order.md`,
   `src/CasualtiesUnknownOnline.GameAdapter/RemoteTopicalUseHandler.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/TopicalAdmission.cs`
 

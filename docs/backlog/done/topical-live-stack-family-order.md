@@ -1,6 +1,6 @@
 # A health-usable liquid in a drinkable container was refused by the world drag
 
-- Status: Review
+- Status: Done — both acceptance rows pass in batch `20261020-b` on the deployed artifact: the inventory entry drinks the dual-class bag (production gate `true`, family `Drink`, 100 ml measured, the host commits the drain and the member's client runs the liquid's `onDrink`), while the limb entry does not take the inventory use (no drink, the bag unchanged). Record: `docs/evidence/acceptance/topical-live-stack-family-order-20261020-b.md`.
 - Priority: Low-Medium
 - Category: Item use / family classification (the world drag versus the wound view)
 - Source: the independent review of the topical-entry correction (2026-10-08), its finding m2's

@@ -7,7 +7,7 @@
   finding M1. The drink chain's own self-check already records the limit ("the item's own action has
   already run on this client"); this ticket is the root fix, and the entry split widened the shape the
   old topical-first order shielded.
-- Related: `docs/backlog/review/topical-live-stack-family-order.md`,
+- Related: `docs/backlog/done/topical-live-stack-family-order.md`,
   `docs/evidence/selfchecks/players/cross-player-native-drink-semantics-selfcheck.md`,
   `src/CasualtiesUnknownOnline.GameAdapter/RemoteDrinkUseHandler.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/Content/GameSolidFoodFacts.cs`

@@ -329,7 +329,7 @@ docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.m
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/single-file-plugin-package.md | keep | index | docs/backlog/README.md
-docs/backlog/review/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md
+docs/backlog/done/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/topical-limb-action-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/drink-measurement-destructive-use-action.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/trap-layout-crystal-rows-empty.md | keep | index | docs/backlog/README.md
@@ -867,7 +867,7 @@ docs/evidence/selfchecks/players/remote-vitals-selfcheck.md | keep | claim | doc
 docs/evidence/selfchecks/players/remove-legacy-view-items-remote-inventory-selfcheck.md | keep | claim | docs/evidence/acceptance/remove-legacy-view-items-remote-inventory-detail-20260927.md
 docs/evidence/selfchecks/players/respawn-rules-selfcheck.md | keep | claim | docs/evidence/selfchecks/enemies/trader-recruit-selfcheck.md
 docs/evidence/selfchecks/players/topical-entry-and-named-limb-selfcheck.md | keep | claim | docs/backlog/done/limb-tool-family-protection-gaps.md
-docs/evidence/selfchecks/players/topical-live-stack-family-order-selfcheck.md | keep | claim | docs/backlog/review/topical-live-stack-family-order.md
+docs/evidence/selfchecks/players/topical-live-stack-family-order-selfcheck.md | keep | claim | docs/backlog/done/topical-live-stack-family-order.md
 docs/evidence/selfchecks/presentation/building-entity-hit-flash-sync-selfcheck.md | keep | claim | docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md
 docs/evidence/selfchecks/presentation/clone-face-presentation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/direct-placeable-arm-swing-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
@@ -1078,6 +1078,7 @@ docs/evidence/acceptance/item-data-read-commands-20261020-a.md | keep | claim | 
 docs/evidence/acceptance/offscreen-arrow-label-clipping-20261020-a.md | keep | claim | docs/backlog/done/offscreen-arrow-label-clipping.md
 docs/evidence/acceptance/limb-tool-family-protection-gaps-20261023-a.md | keep | claim | docs/backlog/done/limb-tool-family-protection-gaps.md
 docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md | keep | claim | docs/backlog/review/cross-player-item-use-random-determinism.md
+docs/evidence/acceptance/topical-live-stack-family-order-20261020-b.md | keep | claim | docs/backlog/done/topical-live-stack-family-order.md
 docs/evidence/acceptance/remote-medical-panel-header-shows-viewer-identity-20261024-a.md | keep | claim | docs/backlog/done/remote-medical-panel-header-shows-viewer-identity.md
 docs/backlog/done/remote-medical-panel-header-shows-viewer-identity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-medical-panel-alarm-follows-viewed-player.md | keep | index | docs/backlog/README.md

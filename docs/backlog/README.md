@@ -149,7 +149,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
 - [A late joiner never binds the generated enemies](review/enemy-generation-pairing-late-join.md) — **High** — the key is the anchor, not the live pose.
-- [A health-usable liquid in a drinkable container is refused](review/topical-live-stack-family-order.md) — **Low-Medium** — landed; the drag drinks.
 
 ### Future
 
@@ -178,6 +177,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [A health-usable liquid in a drinkable container](done/topical-live-stack-family-order.md) — **Low-Medium** — accepted in `20261020-b`.
 - [Limb-tool protections weaker than recorded](done/limb-tool-family-protection-gaps.md) — **High** — accepted; the picked limb is served, the other refused.
 - [Give an item to another player](done/give-item-to-another-player.md) — **Medium** — accepted; the refused container keeps the item.
 - [An item id can be re-issued after a restore](done/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — accepted; the restore resumes the counter.

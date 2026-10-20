@@ -3,10 +3,10 @@
 - Status: Todo
 - Priority: Medium
 - Category: Crafting / clone fact table (carried-fact event coverage and report ordering)
-- Source: independent adversarial review of `review/snapshot-overtakes-item-reports.md` (2026-10-20) —
+- Source: independent adversarial review of `done/snapshot-overtakes-item-reports.md` (2026-10-20) —
   the review of that fix read the craft branch and found the inversion it did not close. Code reading
   only; no craft has been driven since the finding.
-- Related: `review/snapshot-overtakes-item-reports.md` (the three-gesture fix this is the sibling of),
+- Related: `done/snapshot-overtakes-item-reports.md` (the three-gesture fix this is the sibling of),
   `src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyPatches.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyItemPatches.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/Patches/CraftingPatches.cs`,
@@ -77,6 +77,6 @@ window, and the peers' fact-table read shows the material gone before the post-c
 
 ## Limits (until the run)
 
-- Filed from code reading during the review of `review/snapshot-overtakes-item-reports.md`; no craft has
+- Filed from code reading during the review of `done/snapshot-overtakes-item-reports.md`; no craft has
   been driven against this path, so the warning is unobserved at runtime and the ids/slots of a real
   wearable recipe are not yet staged.

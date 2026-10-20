@@ -273,7 +273,7 @@ docs/backlog/review/save-native-character-field-parity.md | keep | index | docs/
 docs/backlog/review/save-native-run-field-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-restore-account-surface.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-system-mid-run-and-layer-end.md | keep | index | docs/backlog/README.md
-docs/backlog/review/snapshot-overtakes-item-reports.md | keep | index | docs/backlog/README.md
+docs/backlog/done/snapshot-overtakes-item-reports.md | keep | index | docs/backlog/README.md
 docs/backlog/review/steam-transport-send-limit-runaway.md | keep | index | docs/backlog/README.md
 docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md | keep | index | docs/backlog/README.md
 docs/backlog/review/sync-cadence-review.md | keep | index | docs/backlog/README.md
@@ -728,7 +728,7 @@ docs/evidence/selfchecks/items/heater-cook-selfcheck.md | keep | claim | docs/ev
 docs/evidence/selfchecks/items/item-cook-replay-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-identity-across-transforms-design.md | keep | claim | docs/backlog/done/item-identity-across-transforms.md
 docs/evidence/selfchecks/items/item-keyframe-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/items/item-report-order-selfcheck.md | keep | claim | docs/backlog/review/snapshot-overtakes-item-reports.md
+docs/evidence/selfchecks/items/item-report-order-selfcheck.md | keep | claim | docs/backlog/done/snapshot-overtakes-item-reports.md
 docs/evidence/selfchecks/items/item-service-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-spawn-presentation-kernel-selfcheck.md | keep | claim | docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md
 docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md | keep | claim | docs/backlog/done/layer-change-member-recovery.md
@@ -1097,3 +1097,4 @@ docs/evidence/acceptance/remote-medical-panel-acceptance-issues-20261023-b.md | 
 docs/evidence/acceptance/remote-fentanyl-injection-and-medical-panel-desync-20261023-b.md | keep | claim | docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md
 docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md | keep | claim | docs/backlog/review/remote-medical-panel-speech-text-desync.md
 docs/evidence/acceptance/remote-medical-panel-alarm-follows-viewed-player-20261023-c.md | keep | claim | docs/backlog/done/remote-medical-panel-alarm-follows-viewed-player.md
+docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | claim | docs/backlog/done/snapshot-overtakes-item-reports.md

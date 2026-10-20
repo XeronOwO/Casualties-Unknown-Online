@@ -1,6 +1,6 @@
 # The Item Fact Before the Character Snapshot — Self-Check (2026-10-20)
 
-Delivery fact sheet for backlog item `review/snapshot-overtakes-item-reports.md`: the three inventory
+Delivery fact sheet for backlog item `done/snapshot-overtakes-item-reports.md`: the three inventory
 gestures report their item fact before the immediate character snapshot, so the peers' clone fact table
 applies the event first and the snapshot that follows has nothing to warn about.
 
@@ -44,9 +44,10 @@ NARROWED-tier adversarial review, fresh context, frozen tree. Its findings and t
 
 ## 4. What this cycle did not verify
 
-- The runtime half: the ticket's three-client acceptance row (the batch after the commit) — the member
-  wears a bag child, then the hand swap and the `SwapSlots` swap over occupied slots, and every viewer's
-  window must stay at zero divergence with the carrying facts applied.
+- The runtime half is no longer open: batch `20261025-c` drove the member's bag-child wear, the hand swap
+  and the `SwapSlots` swap over occupied slots on the deployed artifact, every viewer applied each moved
+  item's fact and every window stayed at zero divergence (the record is
+  `docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md`).
 - The host-owner direction was not driven: the same patch code runs on both roles (the role only chooses
   `SendItemCarriedSync` vs `SendItemSlot`), and `20261006-g`'s host-owner reading was the pre-fix shape.
   A host-owner repetition is useful but is not this row.

@@ -53,7 +53,7 @@ row the bag's next report would have terminalized, which is what row 1 and row 4
   saw`), and the `SwitchHands` move carries its slot pair. The carrying fact IS reported and applied
   1–3 ms later (`[CarriedSync] applied …`), so the record is clean in the sense this ticket means — no
   terminal record, no refusal — while the monitor's ordering false positive is filed separately as
-  `docs/backlog/review/snapshot-overtakes-item-reports.md`. This ticket's own Limits already
+  `docs/backlog/done/snapshot-overtakes-item-reports.md`. This ticket's own Limits already
   excluded the peers' clone-fact reading for the wear.
 - The wound-view apply of a bag child (a splint out of a bag onto a limb) is the applied family's gap and
   was not driven: it stays ticketed as

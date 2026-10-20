@@ -203,6 +203,10 @@ never a residual, and never a pass.
 
 - A row whose expectation is an absence (zero `<warning>`) is read from the run mark through at least one
   full periodic cycle of the mechanism that can emit it; an entry-edge-only read is not evidence.
+- An "the event arrived" condition names the MOVED item: a container whose contents moved is watched for
+  divergence only and owns no `[CarriedSync] applied` line when its own row did not change. A judgement
+  that demands an applied line for the parent fails a clean run — batch `20261025-c`'s driver did, and the
+  window's evidence was re-judged against the child's fact.
 
 ## 7. The record
 

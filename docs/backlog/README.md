@@ -148,7 +148,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
 - [A late joiner never binds the generated enemies](review/enemy-generation-pairing-late-join.md) — **High** — the key is the anchor, not the live pose.
-- [The snapshot overtakes the item reports](review/snapshot-overtakes-item-reports.md) — **Medium** — the fact goes first; the three-client row awaits a batch.
 
 ### Future
 
@@ -177,6 +176,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [The snapshot overtakes the item reports](done/snapshot-overtakes-item-reports.md) — **Medium** — the fact now goes first; `20261025-c` read zero divergence.
 - [A container child moved into a slot loses its container fact](done/container-content-event-gap-on-repick.md) — **Medium** — accepted in `20261025-b`.
 - [A pending-drop pickup reports only a slot re-home](done/pickup-early-return-kernel-relocation.md) — **Low-Medium** — accepted in `20261025-b`.
 - [A health-usable liquid in a drinkable container](done/topical-live-stack-family-order.md) — **Low-Medium** — accepted in `20261020-b`.

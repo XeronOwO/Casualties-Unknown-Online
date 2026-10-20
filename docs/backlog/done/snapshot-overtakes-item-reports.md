@@ -1,6 +1,9 @@
 # The character snapshot is posted before the item reports, so the peers' fact table warns on every wear and swap
 
-- Status: Review
+- Status: Done (batch `20261025-c`, 2026-10-20: the member's bag-child wear, hand swap and `SwapSlots`
+  swap over occupied slots each reported the item fact before the immediate snapshot; both viewers applied
+  every moved item's fact and logged **zero** `[CharSync] divergence` across 4 s windows. Rows 1–4 pass;
+  record `docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md`).
 - Priority: Medium
 - Category: Item sync / clone fact table (carried-fact event ordering)
 - Source: batch `20261025-b` (2026-10-20) — while accepting the container-child tickets, the run drove a
@@ -93,7 +96,8 @@ is wrong.
   body and a body whose fact call exists only in a comment. The pin failed on the pre-fix tree
   (`WearWearablePatch: … is reported after the snapshot`). The runtime half is
   `CloneFactTableDivergenceMonitorTests` (an event applied before the snapshot leaves the next snapshot
-  quiet) plus the acceptance row below — the row is still unrun until the batch that follows this commit.
+  quiet) plus the acceptance row below — the row ran in batch `20261025-c` and passed on every window
+  (`docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md`).
 
 ## Acceptance
 

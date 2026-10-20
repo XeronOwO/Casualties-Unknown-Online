@@ -48,8 +48,9 @@ the entry an input of ONE classifier and has every one-shot routing site ask it.
   `序列不包含任何匹配元素` from the refused request), the host-contract case passed; focused after the
   fix `.acceptance/focused-t4.log`: 38/38.
 - Build: `dotnet build CasualtiesUnknownOnline.slnx` — 0 warnings, 0 errors (`build-final1.log`).
-- Normative gates: 751/751 (`gates-final1.log` before the doc-census fixes; the final run is cited in
-  the delivery checklist).
+- Normative gates: 751/751 (`.acceptance/gates-final2.log`, run after the documentation edits so
+  it includes the census and checklist gates; the acceptance cycle's own run is
+  `.acceptance/gates-final4.log`).
 - Full behaviour suite: 6069/6069 (`full-final1.log`).
 - The native half is not L0-reachable: whether a live client's drag drinks and its release on a limb
   does not is the acceptance batch's rows (both `machine`).

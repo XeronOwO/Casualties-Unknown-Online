@@ -18,8 +18,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// empty, so they apply positionally) and relays the WHOLE report (source
 /// excluded — never decomposed into per-entry broadcasts). Accept-with-adopt,
 /// never reject: the sender's consumption is irreversible, so untracked
-/// entries are skipped with a warning (anti-cheat out of scope). Event-driven,
-/// no pump — not an ICuoService (the ItemService/WorldService precedent).
+/// entries are skipped with a warning (anti-cheat out of scope). A Destroyed
+/// entry IS the destruction event for a carried row: the apply retires that
+/// owner's clone fact-table row (host and relay receiver alike, and the host's
+/// own craft retires its kernel row); a destroyed world row is stamped
+/// WorldDestroy for the relay's scene removal. Event-driven, no pump.
 ///
 /// The recipe-unlock SET is this domain's absolute fact (sync-coverage audit
 /// I6). The unlock is irreversible on the side that spent the blueprint and the
@@ -44,6 +47,9 @@ public sealed class CraftSyncService(
 	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly INativeWorldFacts? _nativeWorldFacts = nativeWorldFacts;
 	private readonly ILogger<CraftSyncService> _log = log;
+
+	/// <summary>The destroyed rows' attribution and the host's own-row retirement (the rule lives in one place).</summary>
+	private readonly CraftCarriedRowRetirement _carriedRows = new(session, kernelAuthority, log);
 
 	/// <summary>The set re-report's cadence: the shared pending window (the 5 s entry phase after this guest's own world entry, the steady 60 s after it; armed by the first outstanding unlock).</summary>
 	private readonly PendingReportFallback _recipeFallback = new(session);
@@ -94,22 +100,35 @@ public sealed class CraftSyncService(
 		var ownReport = sender == _session.LocalSteamId;
 		if (ownReport)
 		{
-			// The host's own craft: its scene is the fact — only the WORLD-table
-			// entries need aligning (the scene consumed/drained them; the table
-			// would otherwise keep a ghost entry). Carried items and products
-			// need nothing (the scene IS the record). The relay carries the
-			// report to the guests, who apply positionally.
+			// The host's own craft: its scene is the fact for the ITEMS — only the
+			// WORLD-table entries need aligning there (the scene consumed/drained
+			// them; the table would otherwise keep a ghost). A destroyed CARRIED row
+			// is the exception: the in-craft destroy claim kept the ordinary destroy
+			// report off its kernel row, so the report is the one event that can
+			// retire it; the relay's receivers retire the host's clone fact row.
 			foreach (var entry in msg.Entries)
 			{
 				var id = entry.Item.InstanceId;
-				if (id == 0 || !_items.IsWorldItemRegistered(id))
+				if (id == 0)
 				{
-					continue; // carried — the host's own scene is the fact
+					continue; // unbound — no table or row can hold it
+				}
+
+				if (!_items.IsWorldItemRegistered(id))
+				{
+					if (entry.Disposition == CraftEntryDisposition.Destroyed)
+					{
+						_carriedRows.RetireOwnRow(id);
+						entry.ApplyKind = CraftApplyKind.CarriedRetire; // the guests retire the HOST's clone fact row through the stamped route
+					}
+
+					continue; // carried — the scene owns the object, nothing else to align here
 				}
 
 				if (entry.Disposition == CraftEntryDisposition.Destroyed)
 				{
 					_items.RemoveWorldItemLocal(id);
+					entry.ApplyKind = CraftApplyKind.WorldDestroy; // the guests' copies leave their scene through the stamped route
 				}
 				else
 				{
@@ -146,11 +165,25 @@ public sealed class CraftSyncService(
 		foreach (var (id, verdict) in CraftReportJudge.Classify(msg, worldIds, transferredIds))
 		{
 			var entry = entriesById[id];
+			// The report IS the destruction event for a carried row — but the retirement must be ANCHORED:
+			// the transfer table says the sender owns it, or (the registration is the lost half) this host's
+			// kernel row still says the sender carries it. Anything else is skipped without touching a fact
+			// row: the sender's report may not name another member's item, and a retirement is addressed by
+			// owner, so it must never be fired on a guess.
+			var attributed = verdict == CraftVerdict.TransferredRemove
+				|| (verdict == CraftVerdict.UnknownSkip && _carriedRows.IsOwnedBy(id, sender));
+			if (attributed)
+			{
+				_items.RetireCarriedLocal(sender, id);
+				entry.ApplyKind = CraftApplyKind.CarriedRetire; // the relay's receivers retire the sender's row, never a scene copy
+			}
+
 			switch (verdict)
 			{
 				case CraftVerdict.WorldDestroy:
 					_items.RemoveWorldItemLocal(id);
 					_kernelAuthority.TryDestroy(sender, id, TerminalKind.Destroyed, out _, out _);
+					entry.ApplyKind = CraftApplyKind.WorldDestroy; // the guests' copies leave their scene through the stamped route, never the fact table's
 					break;
 				case CraftVerdict.TransferredRemove:
 					_arbitration.RemoveTransferred(sender, id);
@@ -159,8 +192,19 @@ public sealed class CraftSyncService(
 				case CraftVerdict.UnknownSkip:
 					// Never rejected (the consumption is irreversible on the
 					// sender): a race with another guest's pickup, or an item
-					// that never entered the tables. Skip + warn.
-					_log.LogWarning("[Crafting] entry {ItemId} of {Sender} is untracked — skipped.", id, sender);
+					// that never entered the tables. A destroy the authority
+					// row still attributes to the sender is retired above and
+					// named here; everything else is skipped and warned.
+					if (attributed)
+					{
+						_log.LogInformation("[Crafting] entry {ItemId} of {Sender} is absent from the transfer table but the authority row says the sender carries it — the carried fact is retired.",
+							id, sender);
+					}
+					else
+					{
+						_log.LogWarning("[Crafting] entry {ItemId} of {Sender} is untracked — skipped.", id, sender);
+					}
+
 					break;
 				case CraftVerdict.WorldChange:
 					_items.UpdateWorldItemState(id, entry.Item);
@@ -198,6 +242,9 @@ public sealed class CraftSyncService(
 	/// <summary>Guest side: the host's relay applies positionally — the guests' tables are empty, so the routing rides the host's stamps.</summary>
 	private void ApplyRelayed(CraftReportMsg msg)
 	{
+		var worldDestroys = 0;
+		var carriedRetires = 0;
+		var skipped = 0;
 		foreach (var entry in msg.Entries)
 		{
 			var id = entry.Item.InstanceId;
@@ -208,10 +255,24 @@ public sealed class CraftSyncService(
 
 			if (entry.Disposition == CraftEntryDisposition.Destroyed)
 			{
-				// Scene-query removal — a no-op when the item was carried (only
-				// the crafter ever had it; this side's clone fact table heals
-				// via the 1 Hz character snapshot).
-				_items.RemoveWorldItemLocal(id);
+				switch (entry.ApplyKind)
+				{
+					case CraftApplyKind.WorldDestroy:
+						_items.RemoveWorldItemLocal(id); // stamped by the host: a world row — its scene copy goes
+						worldDestroys++;
+						break;
+					case CraftApplyKind.CarriedRetire:
+						// Stamped by the host with the owner it attributed the id to: retire THAT owner's clone
+						// fact-table row, never a scene copy and never anybody else's row.
+						_items.RetireCarriedLocal(msg.OwnerSteamId, id);
+						carriedRetires++;
+						break;
+					default:
+						// Unstamped: the host found no record that the id was the sender's — the receivers have
+						// no tables to classify with either, so they act on nothing.
+						skipped++;
+						break;
+				}
 			}
 			else if (entry.ApplyKind == CraftApplyKind.WorldCorrection)
 			{
@@ -223,6 +284,9 @@ public sealed class CraftSyncService(
 		{
 			_items.PublishCarriedSyncLocal(msg.OwnerSteamId, product); // the crafter's clone gains the product
 		}
+
+		_log.LogInformation("[Crafting] {Kind} relay of {Sender}: {WorldDestroys} world destroy(s), {CarriedRetires} carried retirement(s), {Skipped} skipped entry/entries, {Products} product(s) applied.",
+			msg.Kind, msg.OwnerSteamId, worldDestroys, carriedRetires, skipped, msg.Products.Count);
 	}
 
 	public void SendRecipeUnlock(int recipeIndex)

@@ -429,13 +429,15 @@ internal static class BodyPatches
 			// encoding (OnItemWorn); the peer's clone re-homes it the moment
 			// the wear lands instead of waiting for the character snapshot.
 			// A wearable craft product wears during the craft — its fact rides
-			// the ONE craft report (OnInventoryChanged still fires below: the
-			// character snapshot baseline must re-report). That in-craft snapshot
-			// still overtakes the craft report, and the report retires only world
-			// rows from the peers' fact table, so the craft half is its own
-			// ticket: todo/craft-carried-fact-retirement.md.
-			if (CallContext.Current != CallContext.Origin.Craft
-				&& item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
+			// the ONE craft report, so the wear fact is not reported here either.
+			// The in-craft snapshot is withheld for the same reason (the early
+			// exit below): RecipeTryMakePatch commits the report AFTER this native
+			// call and asks for the snapshot that follows it, so a snapshot taken
+			// here would overtake the report that explains the change — a peer
+			// reads the consumed material and the product as moves without an
+			// event (ticket craft-carried-fact-retirement).
+			var inCraft = CallContext.IsWithin(CallContext.Origin.Craft);
+			if (!inCraft && item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
 			{
 				if (__state == WearOutcome.WorldItem)
 				{
@@ -445,6 +447,11 @@ internal static class BodyPatches
 				{
 					PatchBridge.Impl?.OnItemWorn(item);
 				}
+			}
+
+			if (inCraft)
+			{
+				return; // the craft postfix sends the one immediate re-report, after the report is committed
 			}
 
 			// The item fact goes FIRST and the snapshot SECOND. The peers compare an arriving

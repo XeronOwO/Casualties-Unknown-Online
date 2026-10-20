@@ -11,15 +11,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// <summary>
 /// The carried-fact table per remote owner (SteamId → the latest character
 /// snapshot) with the snapshot-divergence monitor: every carried move MUST
-/// arrive as an event (use/slot/wear/pickup/drop); a snapshot that carries a
-/// move the fact table never saw means the event chain missed it and the 1 Hz
-/// snapshot covered it up — user rule, that is a logic gap and must be loud.
-/// Events apply immediately (ApplyCarriedSync / ApplyCarriedInventory /
-/// RemoveCarriedItem); snapshots apply after the divergence check (and the 1 Hz
-/// snapshot replaces the table wholesale, which is why the event merges only
-/// need to cover the window before it). The table is CUO's own sync fact —
-/// "which items CUO tracks" is ours, "where the item is" is the game's.
-/// Split out of CharacterDataSync when the 600-line gate demanded it.
+/// arrive as an event (use/slot/wear/pickup/drop/destroy); a snapshot that
+/// carries a move the fact table never saw means the event chain missed it and
+/// the 1 Hz snapshot covered it up — user rule, that is a logic gap and must be
+/// loud. Events apply immediately (ApplyCarriedSync / ApplyCarriedInventory /
+/// RemoveCarriedItem / RetireCarriedItem); snapshots apply after the divergence
+/// check (and the 1 Hz snapshot replaces the table wholesale, which is why the
+/// event merges only need to cover the window before it). The table is CUO's
+/// own sync fact — "which items CUO tracks" is ours, "where it is" is the game's.
 /// </summary>
 internal sealed class CloneFactTable(ILogger log)
 {
@@ -162,33 +161,51 @@ internal sealed class CloneFactTable(ILogger log)
 	}
 
 	/// <summary>
-	/// A carried item left an inventory into the world (the ItemDropped event —
-	/// fired locally by the dropper and on every receiving side): remove it
-	/// from every owner's fact table, top-level or nested in a container's
-	/// contents. World-side drops (a container's spill) match nothing — harmless.
+	/// A carried item left an inventory into the world (the ItemDropped event — fired locally by
+	/// the dropper and on every receiving side): remove it from every owner's fact table.
+	/// World-side drops (a container's spill) match nothing — harmless.
 	/// </summary>
 	internal void RemoveCarriedItem(ulong itemId)
 	{
 		foreach (var owner in _cloneData.Keys)
 		{
-			var data = _cloneData[owner];
-			if (data.Items.RemoveAll(i => i.InstanceId == itemId) > 0)
+			RemoveOwnedRow(owner, itemId, "re-rendering the clone.");
+		}
+	}
+
+	/// <summary>
+	/// An operation's own report destroyed ONE owner's carried row (the <c>CarriedItemRetired</c>
+	/// event — a craft's Destroyed entry; the host attributed the id to that owner). Retire it from
+	/// THAT owner's fact table only, top-level or nested: a report may not name another member's
+	/// item, so nobody else's row is touched, and an owner whose table does not hold the id has
+	/// nothing to retire.
+	/// </summary>
+	internal void RetireCarriedItem(ulong owner, ulong itemId) =>
+		RemoveOwnedRow(owner, itemId, "the operation's report destroyed it; re-rendering the clone.");
+
+	private void RemoveOwnedRow(ulong owner, ulong itemId, string reason)
+	{
+		if (!_cloneData.TryGetValue(owner, out var data))
+		{
+			return;
+		}
+
+		if (data.Items.RemoveAll(i => i.InstanceId == itemId) > 0)
+		{
+			HeadMouthRule.Refresh(data);
+			_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot — {Reason}", itemId, owner, reason);
+			CloneSnapshotUpdated?.Invoke(owner);
+			return;
+		}
+
+		foreach (var entry in data.Items)
+		{
+			if (RemoveNested(entry, itemId))
 			{
 				HeadMouthRule.Refresh(data);
-				_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot — re-rendering the clone.", itemId, owner);
+				_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot contents — {Reason}", itemId, owner, reason);
 				CloneSnapshotUpdated?.Invoke(owner);
-				continue;
-			}
-
-			foreach (var entry in data.Items)
-			{
-				if (RemoveNested(entry, itemId))
-				{
-					HeadMouthRule.Refresh(data);
-					_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot contents — re-rendering the clone.", itemId, owner);
-					CloneSnapshotUpdated?.Invoke(owner);
-					break;
-				}
+				return;
 			}
 		}
 	}

@@ -18,8 +18,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// commits one CraftReportMsg carrying everything. The end-of-frame destroys
 /// (Unity's Object.Destroy is deferred, so OnDestroy fires AFTER the scope
 /// closes) are claimed into a set — ShouldSuppressDestroy consumes the claim,
-/// and the same fact never reports twice. The first-craft bonus and the
-/// fail-branch injuries deliberately ride the 1 Hz CharacterData snapshot.
+/// and the same fact never reports twice. A Destroyed entry is also the
+/// destruction event for a carried row on the receiving sides: the report's
+/// apply retires it from their clone fact tables, and the in-craft character
+/// snapshot is withheld (WearWearablePatch) until the report — which this
+/// postfix sends — is out, so no snapshot arrives ahead of the fact. The
+/// first-craft bonus and the fail-branch injuries deliberately ride the 1 Hz
+/// CharacterData snapshot.
 /// </summary>
 internal sealed class CraftingSync(
 	ICraftControl craft, ItemIdAllocator ids, ItemReportCommitter reports,

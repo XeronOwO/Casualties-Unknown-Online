@@ -33,6 +33,26 @@ public class CloneFactTableDivergenceMonitorTests
 	private const ulong Owner = 4001;
 	private const ulong TrashBagId = 1147077248963;
 	private const ulong DogFoodId = 1155667183555;
+	private const ulong MaterialId = 1147077248964;
+
+	[Fact]
+	public void ACarriedRowRetiredByItsReport_LeavesTheNextSnapshotUnwarned()
+	{
+		// The craft report's apply publishes CarriedItemRetired(owner, id), and the session binding routes
+		// it into RetireCarriedItem — one owner's row, never anybody else's. The post-craft snapshot then
+		// finds the row already gone instead of reporting "left the inventory without an event sync"
+		// (ticket craft-carried-fact-retirement). This half is the fact table's own contract; the report →
+		// event half is pinned by CraftSyncSimulationTests and the wiring by InventoryChangeReportOrderPinTests.
+		var recorder = new RecordingLoggerFactory();
+		var table = CreateTable(recorder);
+		Invoke(table, "ApplySnapshot", Owner, Snapshot(TopLevel(MaterialId, "cloth"), TopLevel(DogFoodId, "dogfood")));
+
+		Invoke(table, "RetireCarriedItem", Owner, MaterialId);
+
+		Invoke(table, "ApplySnapshot", Owner, Snapshot(TopLevel(DogFoodId, "dogfood")));
+
+		Assert.Empty(recorder.Messages(LogLevel.Warning, string.Empty));
+	}
 
 	[Fact]
 	public void AContainerMoveAnnouncedByItsEvent_LeavesTheNextSnapshotUnwarned()

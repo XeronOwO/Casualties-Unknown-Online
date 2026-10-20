@@ -328,8 +328,17 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>An item now lies in the world at Pos (or inside the container item ParentItemId) — move an existing object there or materialize it (Vel = drop-moment velocity, a throw's flight; ParentPos = the container's position when it needs binding).</summary>
 	event Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, float, NetVector2>? ItemDropped;
 
-	/// <summary>An item was destroyed — remove it locally.</summary>
+	/// <summary>An item was destroyed — remove it locally. A WORLD fact: a carried row is retired through <see cref="CarriedItemRetired"/> instead (a remote destroy must never kill a carried item's object).</summary>
 	event Action<ulong>? ItemDestroyed;
+
+	/// <summary>
+	/// The authority says ONE owner's carried row no longer exists (a craft report's <c>Destroyed</c> entry
+	/// applied by the host or by the relay; the id was attributed to that owner by the host's transfer table or
+	/// its kernel row) — the adapter retires the row from THAT owner's clone fact table, so the next character
+	/// snapshot finds it already gone instead of warning that it left without an event. Never a scene action:
+	/// the object is on the owner's side, not this one.
+	/// </summary>
+	event Action<ulong, ulong>? CarriedItemRetired; // (owner SteamId, item instance id)
 
 	/// <summary>The host's heater conversion arrived — kill the raw-meat copy and materialize the cooked steak atomically.</summary>
 	event Action<ulong, WorldItem>? ItemCookedReceived;

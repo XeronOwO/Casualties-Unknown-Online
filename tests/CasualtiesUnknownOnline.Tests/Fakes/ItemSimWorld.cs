@@ -294,6 +294,9 @@ internal sealed class ItemSimWorld : IDisposable
 	/// <summary>The destroyed item events a node has received so far (cumulative).</summary>
 	internal int DestroyedEvents(TestNode node) => (node == G1 ? _g1Destroyed : _g2Destroyed).Count;
 
+	/// <summary>The ids those destroy events named, in arrival order (a world removal may legitimately arrive as the apply's own event plus the committed batch's row).</summary>
+	internal List<ulong> DestroyedIds(TestNode node) => node == G1 ? [.. _g1Destroyed] : [.. _g2Destroyed];
+
 	/// <summary>The carried-fact events a node has received so far (cumulative).</summary>
 	internal List<(ulong Owner, CharacterItemMsg Item)> CarriedEvents(TestNode node) =>
 		node == G1 ? [.. _g1Carried] : [.. _g2Carried];

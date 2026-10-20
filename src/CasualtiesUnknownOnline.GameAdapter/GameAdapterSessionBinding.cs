@@ -61,6 +61,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.LayerModifierSync.BindToSession();
 		domains.Items.ItemCarriedSyncReceived += OnItemCarriedSync; // the owner's clone re-renders the moment a carried fact changes
 		domains.Items.ItemDropped += OnCarriedItemDropped; // a carried item leaving into the world leaves the fact table (recursive)
+		domains.Items.CarriedItemRetired += OnCarriedItemRetired; // a craft report's destroyed carried row leaves the fact table before the post-craft snapshot can announce it
 		domains.Items.ItemIdWatermarkReceived += OnItemIdWatermark; // the host granted the id counter — resume from watermark + 1
 		domains.Items.CarriedInventoryReceived += OnCarriedInventory; // a guest's starting supplies with self-assigned ids — seed the fact table (clone render + divergence baseline)
 		domains.PlayerInteraction.TransferReceived += playerInteraction.OnPlayerInventoryTransfer; // cross-player take: apply the local body mutation and re-report
@@ -121,6 +122,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.LayerModifierSync.Unbind();
 		domains.Items.ItemCarriedSyncReceived -= OnItemCarriedSync;
 		domains.Items.ItemDropped -= OnCarriedItemDropped;
+		domains.Items.CarriedItemRetired -= OnCarriedItemRetired;
 		domains.Items.ItemIdWatermarkReceived -= OnItemIdWatermark;
 		domains.Items.CarriedInventoryReceived -= OnCarriedInventory;
 		domains.PlayerInteraction.TransferReceived -= playerInteraction.OnPlayerInventoryTransfer;
@@ -177,4 +179,13 @@ internal sealed class GameAdapterSessionBinding(
 
 	private void OnCarriedItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos) =>
 		domains.CharacterDataSync.RemoveCarriedItem(itemId);
+
+	/// <summary>
+	/// The craft report is the destruction event for a carried row (a consumed material), and it names the
+	/// owner the host's own record attributed the id to: retire that owner's clone fact table row through the
+	/// fact table's targeted seam, before the post-craft snapshot arrives. The snapshot that follows then
+	/// finds the row already gone instead of warning that it left without an event
+	/// (<c>CloneFactTable.WarnOnDivergence</c>).
+	/// </summary>
+	private void OnCarriedItemRetired(ulong owner, ulong itemId) => domains.CharacterDataSync.RetireCarriedItem(owner, itemId);
 }

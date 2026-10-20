@@ -11,8 +11,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// Extracted so the classification is testable without a network (切离方法论);
 /// the apply (CraftSyncService) composes the verdicts. Unbound ids (0) are
 /// skipped — nothing to arbitrate. Host-only: the guests' tables are empty,
-/// their relay apply is positional (Destroyed → scene removal, stamped
-/// WorldCorrection → scene correction).
+/// their relay apply is positional (Destroyed → the host's stamp decides scene
+/// removal vs. the clone fact table's retirement, stamped WorldCorrection →
+/// scene correction).
 /// </summary>
 internal static class CraftReportJudge
 {

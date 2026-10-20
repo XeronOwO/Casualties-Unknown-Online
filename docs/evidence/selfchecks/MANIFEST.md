@@ -97,9 +97,10 @@ register is routed from `README.md` beside it and from `docs/evidence/verificati
 | protocol/hot-path-latency-instrumentation-selfcheck.md | Other | current | — |
 | ui/i18n-framework-selfcheck.md | Other | current | — |
 | protocol/ip-direct-selfcheck.md | Other | current | — |
+| items/craft-carried-fact-retirement-selfcheck.md | Items | current | a craft report's `Destroyed` entry retires the attributed owner's clone fact row on the host and on every relay receiver, and the in-craft snapshot is withheld until the report is out — `docs/backlog/review/craft-carried-fact-retirement.md` |
 | items/item-cook-replay-split-selfcheck.md | Items | current | — |
 | items/item-keyframe-state-selfcheck.md | Items | current | — |
-| items/item-report-order-selfcheck.md | Items | current | the three gesture postfixes report their item fact before the immediate character snapshot (pinned by `InventoryChangeReportOrderPinTests`); the craft-scope sibling is `docs/backlog/todo/craft-carried-fact-retirement.md` |
+| items/item-report-order-selfcheck.md | Items | current | the three gesture postfixes report their item fact before the immediate character snapshot (pinned by `InventoryChangeReportOrderPinTests`); the craft-scope sibling is `docs/backlog/review/craft-carried-fact-retirement.md` |
 | items/item-service-split-selfcheck.md | Items | current | — |
 | players/limb-presentation-selfcheck.md | Players | current | — |
 | session/lobby-leave-host-rules-editor-selfcheck.md | Other | current | — |

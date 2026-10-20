@@ -101,6 +101,9 @@ internal sealed class CharacterDataSync(
 	/// <summary>A carried item left into the world — it leaves the owner's fact table (top-level or nested in a container's contents).</summary>
 	internal void RemoveCarriedItem(ulong itemId) => _factTable.RemoveCarriedItem(itemId);
 
+	/// <summary>An operation's report destroyed one owner's carried row (a craft's Destroyed entry) — retire it from THAT owner's fact table before the next snapshot announces the disappearance.</summary>
+	internal void RetireCarriedItem(ulong owner, ulong itemId) => _factTable.RetireCarriedItem(owner, itemId);
+
 	/// <summary>An enemy bite arrived (report or relay) — update the victim's fact-table entry (limb + body fields) and re-render its clone.</summary>
 	internal void ApplyEnemyBite(EnemyBiteMsg msg) => _factTable.ApplyEnemyBite(msg);
 

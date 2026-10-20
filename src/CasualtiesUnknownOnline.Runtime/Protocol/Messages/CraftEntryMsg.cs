@@ -17,7 +17,7 @@ public sealed class CraftEntryMsg
 	[ProtoMember(2)]
 	public CharacterItemMsg Item { get; set; } = new(); // post-operation digest (id-only stub for Destroyed)
 
-	/// <summary>Host-stamped apply routing for the relay's receivers (the report side leaves it None — the host knows the table membership, the guests' tables are empty). None = 0 — the wire default, omission transparent.</summary>
+	/// <summary>Host-stamped apply routing for the relay's receivers (the report side leaves it None — the host knows the table membership, the guests' tables are empty). None = 0 — the wire default, omission transparent: no receiver action (a carried Changed entry belongs to the reporting side's own record, an unattributable Destroyed entry is skipped by both halves).</summary>
 	[ProtoMember(3)]
-	public CraftApplyKind ApplyKind { get; set; } // WorldCorrection = the Changed entry is a world item — the receivers correct their scene copy
+	public CraftApplyKind ApplyKind { get; set; } // WorldCorrection / WorldDestroy / CarriedRetire = the host's routing for this entry
 }

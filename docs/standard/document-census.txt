@@ -319,7 +319,7 @@ docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/
 docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/container-child-limb-install-keeps-a-contained-record.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/craft-carried-fact-retirement.md | keep | index | docs/backlog/README.md
+docs/backlog/review/craft-carried-fact-retirement.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
 docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/player-music-sync-playback.md | keep | index | docs/backlog/README.md
@@ -713,6 +713,7 @@ docs/evidence/selfchecks/items/container-move-event-carrier-selfcheck.md | keep 
 docs/evidence/selfchecks/items/container-move-kernel-fact-selfcheck.md | keep | claim | docs/backlog/done/pickup-early-return-kernel-relocation.md
 docs/evidence/selfchecks/items/container-move-pair-classification-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/items/container-take-out-selfcheck.md | keep | claim | docs/backlog/done/pickup-early-return-kernel-relocation.md
+docs/evidence/selfchecks/items/craft-carried-fact-retirement-selfcheck.md | keep | claim | docs/backlog/review/craft-carried-fact-retirement.md
 docs/evidence/selfchecks/items/cross-player-item-use-selfcheck.md | keep | claim | docs/backlog/todo/cross-player-drag-use-feedback.md
 docs/evidence/selfchecks/items/custom-item-data-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/display-body-query-seam-selfcheck.md | keep | claim | docs/decisions/active.md

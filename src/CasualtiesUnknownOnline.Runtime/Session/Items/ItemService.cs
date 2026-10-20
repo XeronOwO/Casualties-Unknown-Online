@@ -169,6 +169,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public event Action<ulong>? ItemDestroyed;
 
+	public event Action<ulong, ulong>? CarriedItemRetired;
+
 	public event Action<ulong, WorldItem>? ItemCookedReceived;
 
 	public event Action<ulong, ItemRejectMsg.Reason>? ItemRejected
@@ -521,6 +523,13 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_projection.ApplyUpdateState(_session.LocalSteamId, itemId, state);
 
 	internal void PublishCarriedSyncLocal(ulong owner, CharacterItemMsg item) => _carriedSync.PublishLocal(owner, item);
+
+	/// <summary>
+	/// The craft domain's retirement seam: a report's <c>Destroyed</c> entry is the destruction event for one
+	/// owner's carried row, and that owner's fact table retires it HERE — before the post-craft snapshot arrives,
+	/// whose missing entry would otherwise be the first thing that announces the disappearance.
+	/// </summary>
+	internal void RetireCarriedLocal(ulong owner, ulong itemId) => CarriedItemRetired?.Invoke(owner, itemId);
 
 	internal void FireCorrectionLocal(CharacterItemMsg item) => _arbitration.FireCorrectionReceived(item);
 

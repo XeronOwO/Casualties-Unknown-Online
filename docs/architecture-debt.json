@@ -10,9 +10,9 @@
     "Note": "The host-state cycle added the model-input publish line (the derivation itself lives in HostVitalsInputs); the planned split is the local-body publish path into a LocalBodyStatePublisher, leaving the coordinator the run phase machine and world entry."
   },
   "CasualtiesUnknownOnline.GameAdapter.Character.CharacterDataSync": {
-    "Lines": 683,
+    "Lines": 686,
     "BoolFlags": 0,
-    "Note": "The host-state cycle added the local injury trigger and the owner-state report; the heal authority fix added the applied-reset retry tick and its body/session drop (the retry state itself lives in Runtime's HealResetReportRetry). The planned split is still the trigger into LocalInjuryReporter (owning the baseline, the host-row absorption and the report call), leaving the coordinator the snapshot/restore/render seams."
+    "Note": "The host-state cycle added the local injury trigger and the owner-state report; the heal authority fix added the applied-reset retry tick and its body/session drop (the retry state itself lives in Runtime's HealResetReportRetry); the craft-report fix added the owner-addressed RetireCarriedItem delegation the session binding calls (+2 code lines and its doc), which is the domain's own seam, not new state. The planned split is still the trigger into LocalInjuryReporter (owning the baseline, the host-row absorption and the report call), leaving the coordinator the snapshot/restore/render seams."
   },
   "CasualtiesUnknownOnline.Runtime.Session.CharacterData.CharacterDataStore": {
     "Lines": 626,

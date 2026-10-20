@@ -73,5 +73,5 @@ import for the extension surface.
   one path was NOT excluded by reading: `PickupSync.OnPickedUp`'s pending-drop early return reports only a
   slot re-home (`_slotSync.OnItemRehomed`) and nothing relocates a contained record there. Reachability is
   unproven; the mechanism, the consequence and the fix direction are
-  `todo/pickup-early-return-kernel-relocation.md`, and the new `[ContainerSync]` warning is what a session
+  `review/pickup-early-return-kernel-relocation.md`, and the new `[ContainerSync]` warning is what a session
   would show if it is real.

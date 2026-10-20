@@ -53,6 +53,18 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>An item was picked up locally (world → inventory) — drop it from the table (host/solo) and report/broadcast. Evidence (digest form) rides the guest report for the host's accept-with-correction check.</summary>
 	void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null);
 
+	/// <summary>
+	/// Both sides: ONE item was taken out of a container into this client's own carried
+	/// inventory (a bag's child released onto a slot). The kernel records a container's
+	/// children as its rows, so the item is still <c>Contained</c> there and the slot report
+	/// (data only) cannot move it — this is the report that states the arrival. Same kernel
+	/// relocation as <see cref="SendItemPickedUp"/>; it travels under its own kind because a
+	/// refusal settles differently (the item is in this client's hands, so the way back is the
+	/// carried-set statement, never the pickup rollback that would unparent it into the
+	/// world).
+	/// </summary>
+	void SendItemContainerTakeOut(ulong itemId, CharacterItemMsg? evidence = null);
+
 	/// <summary>Guest only: an item was used locally (Body.UseItem) — report the used state (digest evidence) so the host validates and corrects.</summary>
 	void SendItemUse(ulong itemId, CharacterItemMsg item);
 

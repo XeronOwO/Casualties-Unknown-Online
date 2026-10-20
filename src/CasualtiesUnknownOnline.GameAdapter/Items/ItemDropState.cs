@@ -84,6 +84,27 @@ internal sealed class ItemDropState
 		return true;
 	}
 
+	/// <summary>
+	/// The same cancellation, carrying WHERE the item came from: the re-pick's arrival report
+	/// needs it to know whether the kernel holds the item as a container's child (a container
+	/// departure, which needs the arrival stated) or as carried already (a slot, which does
+	/// not). <see cref="DropPendingState.Source"/> is captured at the hook that opened the
+	/// departure precisely because the scene can no longer answer it afterwards.
+	/// </summary>
+	internal bool TryCancel(Item item, out long op, out DropPendingState.Source source)
+	{
+		if (!Take(item, out var pending, out _))
+		{
+			op = 0;
+			source = default;
+			return false;
+		}
+
+		op = pending.Op;
+		source = pending.Source;
+		return true;
+	}
+
 	/// <summary>Takes it AS the report: the game's own throw set the final velocity, so the departure's position and op are what the drop report carries.</summary>
 	internal bool TryConsumeByThrow(Item item, out Departure dropped)
 	{

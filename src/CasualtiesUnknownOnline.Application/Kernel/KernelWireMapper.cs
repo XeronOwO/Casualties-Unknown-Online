@@ -383,7 +383,12 @@ public static class KernelWireMapper
 		return command.Kind switch
 		{
 			WireCommandKind.ItemSpawn => ItemSpawnWireMapper.FromWireCommand(command, operation, actor, epoch, authority, identity),
-			WireCommandKind.ItemPickup => new PickUpItemCommand(
+			// The container take-out is the SAME kernel relocation a pickup is — the item's
+			// place becomes the sender's carried inventory — and it maps to the same command
+			// for the same reason the use, the console write and the plain state report do:
+			// one fact, one command; the WIRE kind is what makes the two claims distinguishable
+			// to the host that judges them and to the sender that settles a refusal.
+			WireCommandKind.ItemPickup or WireCommandKind.ItemContainerTakeOut => new PickUpItemCommand(
 				operation,
 				actor,
 				epoch,

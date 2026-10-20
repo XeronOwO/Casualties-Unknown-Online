@@ -36,6 +36,20 @@ public class DropPendingStateTests
 	}
 
 	[Fact]
+	public void EveryHomeARecentDepartureCanHave_TravelsThroughTheEntry()
+	{
+		// The three homes are not decoration: the arrival half of a re-pick reads this value to
+		// decide whether the kernel still holds the item inside a container, so a home that the
+		// machine did not carry would silently lose the report.
+		foreach (var source in new[] { Source.CarriedInventory, Source.CarriedContainer, Source.World })
+		{
+			var state = StateWithDrop(source: source);
+			Assert.True(state.TryTake(ItemA, out var pending));
+			Assert.Equal(source, pending.Source);
+		}
+	}
+
+	[Fact]
 	public void Take_DifferentItem_NotTaken()
 	{
 		var state = StateWithDrop();

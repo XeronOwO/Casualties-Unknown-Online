@@ -112,6 +112,45 @@ internal sealed class ItemMessageFlowService(
 		// broadcast by KernelProtocolService.
 	}
 
+	/// <summary>
+	/// ONE item came out of a container into this client's own carried inventory. The kernel
+	/// fact is the pickup's relocation (the row becomes <c>Carried(sender)</c>), but it
+	/// travels under its own kind: a refused pickup is a world item the sender may not have,
+	/// whose local copy goes back to the world, while a refused take-out is an item IN this
+	/// client's hands — unparenting it would be the opposite of a settlement, so its way back
+	/// is the carried-set statement (<see cref="ItemCommandRejectionRouter"/>). A host's own
+	/// take-out is its own authority, written locally and never reported.
+	/// </summary>
+	public void SendItemContainerTakeOut(ulong itemId, CharacterItemMsg? evidence = null)
+	{
+		_pendingCreations.SettleBeforeOperation();
+		if (_session.Role != SessionRole.Guest)
+		{
+			_projection.ApplyPickup(_session.LocalSteamId, itemId);
+		}
+
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		_recordTraffic(ItemTrafficKind.Pickup, evidence?.ItemId ?? _itemTrafficLabel(itemId));
+
+		if (_session.Role == SessionRole.Guest)
+		{
+			_kernelProtocol.SendCommand(new WireCommand
+			{
+				Kind = WireCommandKind.ItemContainerTakeOut,
+				Identity = WireIdentity(itemId, evidence?.ItemId ?? ""),
+				NewOwner = _session.LocalSteamId,
+				ExpectedRevision = 0,
+			}, WirePayloadType.ItemContainerTakeOutCommand);
+		}
+
+		// Host broadcasts are unnecessary: the accepted kernel batch is already
+		// broadcast by KernelProtocolService.
+	}
+
 	public void SendItemUse(ulong itemId, CharacterItemMsg item)
 	{
 		_pendingCreations.SettleBeforeOperation();

@@ -35,6 +35,7 @@ public enum WirePayloadType
 	ItemRemoveLimbCommand = 28,
 	ItemDataWriteCommand = 29,
 	ItemUseCommand = 30,
+	ItemContainerTakeOutCommand = 31,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,

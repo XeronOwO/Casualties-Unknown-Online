@@ -23,7 +23,8 @@ public class ContainerLoadClassifierTests
 {
 	private const int NoDeparture = -1;
 	private const int FromCarriedInventory = 0;
-	private const int FromWorld = 1;
+	private const int FromCarriedContainer = 1;
+	private const int FromWorld = 2;
 
 	private const int Pickup = 0;
 	private const int CarriedContent = 1;
@@ -37,6 +38,11 @@ public class ContainerLoadClassifierTests
 	// scene capture read (the expansion's child was captured as a world item).
 	[InlineData(false, FromCarriedInventory, true, CarriedContent)]
 	[InlineData(false, FromCarriedInventory, false, CarriedContent)]
+	// A container the body holds is the same answer one home over: a child of the carried
+	// inventory, however the scene capture read the detached item. The classifier only has to
+	// keep it OUT of the world arm; the take-out policy is what tells the two apart.
+	[InlineData(false, FromCarriedContainer, true, CarriedContent)]
+	[InlineData(false, FromCarriedContainer, false, CarriedContent)]
 	// No departure opened this load: the scene capture is the only fact there is
 	// (an item dragged off the ground, or a container's first fill).
 	[InlineData(false, NoDeparture, true, Pickup)]
@@ -66,6 +72,7 @@ public class ContainerLoadClassifierTests
 	private static Source? DepartureOf(int departure) => departure switch
 	{
 		FromCarriedInventory => Source.CarriedInventory,
+		FromCarriedContainer => Source.CarriedContainer,
 		FromWorld => Source.World,
 		_ => null,
 	};

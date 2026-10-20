@@ -18,7 +18,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// is still alive and whether it is a standalone world item.
 /// <see cref="Source"/> records where the item came from — the fact a container
 /// load reads to classify the move it completes, because the scene cannot
-/// answer it: the unload that opened the pair has already detached the item.
+/// answer it: the unload that opened the pair has already detached the item. It
+/// names THREE homes rather than two, because "the item was carried" and "the item
+/// was inside a container the body carried" are different kernel records: the first
+/// is a <c>Carried</c> row, the second the container's child row, and only the
+/// second needs the arrival restated when the departure is cancelled.
 /// The GameAdapter's ItemDropState holds the game-side mapping (Item/position)
 /// and feeds these inputs — this machine is what the tests lock.
 /// </summary>
@@ -27,10 +31,18 @@ internal sealed class DropPendingState
 	/// <summary>Where the item was before it left into the world.</summary>
 	internal enum Source
 	{
-		/// <summary>The carried inventory: a body slot, a limb, or a body-side container.</summary>
+		/// <summary>A body slot or a limb: the item was already carried by the body that released it.</summary>
 		CarriedInventory,
 
-		/// <summary>The world: a world container (a ground crate, a dropped bag).</summary>
+		/// <summary>
+		/// A container the body holds (a backpack, a held bag, a container nested inside one). The
+		/// distinction from <see cref="CarriedInventory"/> is not cosmetic: the kernel records a
+		/// container's children as the container's own rows (<c>Contained</c>), so an item that
+		/// leaves one is still recorded INSIDE it — the arrival half has to state the move.
+		/// </summary>
+		CarriedContainer,
+
+		/// <summary>A container in the world (a ground crate, a dropped bag): the item answered "world item" before the detach.</summary>
 		World,
 	}
 

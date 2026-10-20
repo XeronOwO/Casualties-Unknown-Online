@@ -222,6 +222,7 @@ docs/backlog/review/dead-player-right-click-name-suffix.md | keep | index | docs
 docs/backlog/review/enemy-generation-pairing-late-join.md | keep | index | docs/backlog/README.md
 docs/backlog/review/enemy-hit-determination-local.md | keep | index | docs/backlog/README.md
 docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md | keep | index | docs/backlog/README.md
+docs/backlog/review/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-background-ghost-item-ground-sounds.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-break-drops-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-frame-rate-lower-than-host.md | keep | index | docs/backlog/README.md
@@ -316,9 +317,9 @@ docs/backlog/todo/layer-descent-spawn-separation.md | keep | index | docs/backlo
 docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/container-child-limb-install-keeps-a-contained-record.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
 docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/player-music-sync-playback.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md | keep | index | docs/backlog/README.md
 docs/backlog/done/radiation-line-floor-stop.md | keep | index | docs/backlog/README.md
@@ -705,8 +706,9 @@ docs/evidence/selfchecks/items/applied-item-round-trip-selfcheck.md | keep | cla
 docs/evidence/selfchecks/items/building-support-drop-sync-selfcheck.md | keep | claim | docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md
 docs/evidence/selfchecks/items/container-content-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/container-move-event-carrier-selfcheck.md | keep | claim | docs/decisions/active.md
-docs/evidence/selfchecks/items/container-move-kernel-fact-selfcheck.md | keep | claim | docs/backlog/todo/pickup-early-return-kernel-relocation.md
+docs/evidence/selfchecks/items/container-move-kernel-fact-selfcheck.md | keep | claim | docs/backlog/review/pickup-early-return-kernel-relocation.md
 docs/evidence/selfchecks/items/container-move-pair-classification-selfcheck.md | keep | claim | docs/decisions/active.md
+docs/evidence/selfchecks/items/container-take-out-selfcheck.md | keep | claim | docs/backlog/review/pickup-early-return-kernel-relocation.md
 docs/evidence/selfchecks/items/cross-player-item-use-selfcheck.md | keep | claim | docs/backlog/todo/cross-player-drag-use-feedback.md
 docs/evidence/selfchecks/items/custom-item-data-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/display-body-query-seam-selfcheck.md | keep | claim | docs/decisions/active.md

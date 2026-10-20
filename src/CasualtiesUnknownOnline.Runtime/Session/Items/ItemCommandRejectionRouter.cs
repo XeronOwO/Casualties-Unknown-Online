@@ -18,6 +18,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// <item>a container report settles by re-stating the carried set — the absolute
 /// report that carries the container AND its contents — never by the pickup rollback
 /// below, which would unparent a live container into the world;</item>
+/// <item>a container TAKE-OUT (an item released out of a container into this member's
+/// hands) settles the same way, for the same reason one step smaller: the item is IN
+/// the body, so the rollback would unparent it into the world;</item>
 /// <item>a state report or a native use for an item the host never judged settles by
 /// that same statement, because the statement is the creation claim for what this
 /// member carries and the local copy is the only copy there is;</item>
@@ -86,6 +89,29 @@ internal sealed class ItemCommandRejectionRouter(
 			_log.LogInformation("Kernel command for container {ItemId} rejected ({Reason}) — container reports settle by re-stating the carried set, never by rolling the container back.", itemId, reason);
 			_idCoordinator.RequestCarriedInventoryReport("the host refused a container report");
 			return;
+		}
+
+		if (kind == WireCommandKind.ItemContainerTakeOut)
+		{
+			// A container take-out is never a pickup in the sense the rollback below means: the
+			// item is IN this client's hands (it was released out of a container onto a slot or
+			// onto a limb), so unparenting it into the world — what the pickup rollback does —
+			// would be the opposite of a settlement, and the world reconcile kills an id its table
+			// does not hold. The claim is about what this member CARRIES, so its way back is the
+			// absolute carried-set statement, which carries the item AND its place: the refusal makes
+			// the next statement due at once, and the statement is the creation claim when the host
+			// never held the id at all.
+			//
+			// One reason is NOT settled that way: InvalidTransition means the record CONTRADICTS the
+			// item's existence (it is terminal, or installed on a limb), and no carried-set statement
+			// can revive a terminal row or take an item off a limb. That is the family's oldest
+			// answer — the item reject — and it falls through to the rollback below.
+			if (reason != RejectionReason.InvalidTransition)
+			{
+				_log.LogInformation("Kernel command for item {ItemId} rejected ({Reason}) — the container take-out is settled by re-stating the carried set, never by rolling the item out into the world.", itemId, reason);
+				_idCoordinator.RequestCarriedInventoryReport("the host refused a container take-out");
+				return;
+			}
 		}
 
 		if (kind is WireCommandKind.ItemApplyLimb or WireCommandKind.ItemRemoveLimb)

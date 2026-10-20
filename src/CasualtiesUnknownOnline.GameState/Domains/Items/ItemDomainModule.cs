@@ -188,6 +188,12 @@ internal sealed class ItemDomainModule : IDomainModule
 
 		if (item.Value.Location.Kind == ItemLocationKind.Carried)
 		{
+			// Carried is NOT a no-op, and this verdict is the convergence mechanism itself: a
+			// pickup behind a LOST drop must be refused here — the host still holds the older
+			// location, the refusal rolls this side's copy back, and the drop's own re-report
+			// (which the guest keeps queued, sync-coverage row I5) is what makes the two sides
+			// agree again. Accepting the report instead would let a stale pickup stand while the
+			// older report then moves the item to the world underneath it.
 			return DomainDecision.Reject(RejectionReason.Conflict, $"item {command.InstanceId} is already carried");
 		}
 

@@ -109,6 +109,30 @@ internal sealed class KernelProtocolCommandHandler(
 			return;
 		}
 
+		// A CONTAINER TAKE-OUT is a RELOCATION and never a creation claim: the item it names
+		// has to be a row this host already holds, and an id it has never judged has nothing
+		// to move. It is answered with the reason the carried-set statement settles (that
+		// statement IS the creation claim for what a member carries) rather than with the
+		// protocol-violation answer below, and deliberately WITHOUT the state report's
+		// accept-first heal: a relocation that creates its own target would be the creation
+		// claim this kind does not carry — its payload is an identity and an owner, with no
+		// data to state a row from. The distinction is not cosmetic either: the member's
+		// statement is a CADENCE (sync-coverage row I8), so an item that entered a container
+		// since the last one legitimately has no judged creation yet.
+		if (envelope.Command.Kind == WireCommandKind.ItemContainerTakeOut
+			&& _items.FindItem(envelope.Command.Identity.InstanceId) is null)
+		{
+			if (TryRefuseRefusedCreation(sender, envelope))
+			{
+				return;
+			}
+
+			_log.LogInformation("Container take-out from {Sender} names item {ItemId}, which this host never judged — the relocation has nothing to move, and the carried-set statement is what claims the item; answering the reason the statement settles.",
+				sender, envelope.Command.Identity.InstanceId);
+			SendCommandRejected(sender, envelope.Command, RejectionReason.UnclaimedItem);
+			return;
+		}
+
 		if (TryRefuseUnjudgedOperation(sender, envelope))
 		{
 			return;
@@ -331,6 +355,7 @@ internal sealed class KernelProtocolCommandHandler(
 	private static bool IsItemOperation(WireCommandKind kind) => kind switch
 	{
 		WireCommandKind.ItemPickup => true,
+		WireCommandKind.ItemContainerTakeOut => true,
 		WireCommandKind.ItemDrop => true,
 		WireCommandKind.ItemTransfer => true,
 		WireCommandKind.ItemDestroy => true,

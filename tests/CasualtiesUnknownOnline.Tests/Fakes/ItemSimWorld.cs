@@ -177,6 +177,10 @@ internal sealed class ItemSimWorld : IDisposable
 	internal void Destroy(TestNode guest, ulong itemId) =>
 		guest.Services.GetRequiredService<IItemControl>().SendItemDestroyed(itemId);
 
+	/// <summary>The item left a container into the guest's own carried inventory (the arrival half of a cancelled container departure).</summary>
+	internal void TakeOut(TestNode guest, ulong itemId, CharacterItemMsg? evidence = null) =>
+		guest.Services.GetRequiredService<IItemControl>().SendItemContainerTakeOut(itemId, evidence);
+
 	internal void Use(TestNode guest, ulong itemId, CharacterItemMsg item) =>
 		guest.Services.GetRequiredService<IItemControl>().SendItemUse(itemId, item);
 

@@ -267,8 +267,11 @@ internal sealed class ContainerItemSync(
 		// departure waits for the frame-end flush; a load that follows consumes it
 		// and reports the move instead. `wasWorldItem` is the pre-unload fact the
 		// patch captured — where the item came from, which is what classifies the
-		// move that consumes this departure.
-		var source = wasWorldItem ? DropPendingState.Source.World : DropPendingState.Source.CarriedInventory;
+		// move that consumes this departure. The two non-world homes stay apart on
+		// purpose: a body slot's item was CARRIED in the record, while a carried
+		// container's child is one of that container's own rows, so a re-pick out of
+		// it has to state the arrival (ContainerTakeOutPolicy).
+		var source = wasWorldItem ? DropPendingState.Source.World : DropPendingState.Source.CarriedContainer;
 		_trace.Begin(op, itemId, "OnItemUnloadedFromContainer", "Unload");
 		_dropState.EnterDrop(itemId, item, item.transform.position, op, source);
 		_log.LogInformation("[ContainerUnload] {Type} (id {ItemId}) left its container into the world from the {Source} side — the drop report waits one frame (a container load in this bracket re-homes it and reports the target's fact).",

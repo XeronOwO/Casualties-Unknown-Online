@@ -242,6 +242,9 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	public void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null) =>
 		_messageFlow.SendItemPickedUp(itemId, evidence);
 
+	public void SendItemContainerTakeOut(ulong itemId, CharacterItemMsg? evidence = null) =>
+		_messageFlow.SendItemContainerTakeOut(itemId, evidence);
+
 	public void SendItemUse(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemUse(itemId, item);
 
 	public void SendItemState(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemState(itemId, item);

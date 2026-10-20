@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [A pending-drop pickup reports only a slot re-home](todo/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
 - [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
 - [The archive's two id carriers can disagree](todo/id-carriers-can-disagree-about-placement.md) — **Low** — unproven; needs a probe inside the report window.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
@@ -76,10 +75,12 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 - [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
 - [A drink measurement can run a destructive action](todo/drink-measurement-destructive-use-action.md) — **Medium-High** — a refilled blood bag draws blood.
+- [A limb install from a bag keeps a contained record](todo/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — the wound-view apply.
 ### In progress
 
 ### Review
 
+- [A pending-drop pickup reports only a slot re-home](review/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.

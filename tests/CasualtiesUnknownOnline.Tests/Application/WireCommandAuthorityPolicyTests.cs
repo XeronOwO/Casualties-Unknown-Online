@@ -27,6 +27,7 @@ public class WireCommandAuthorityPolicyTests
 	private static readonly Dictionary<WireCommandKind, AuthorityKind> Expected = new()
 	{
 		[WireCommandKind.ItemPickup] = AuthorityKind.OwnerPredictedHostValidated,
+		[WireCommandKind.ItemContainerTakeOut] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemDrop] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemDestroy] = AuthorityKind.OwnerPredictedHostValidated,
 		[WireCommandKind.ItemUpdateState] = AuthorityKind.OwnerPredictedHostValidated,

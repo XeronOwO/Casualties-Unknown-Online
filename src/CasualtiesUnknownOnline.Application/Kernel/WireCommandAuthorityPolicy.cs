@@ -50,9 +50,14 @@ public static class WireCommandAuthorityPolicy
 		//
 		// The sender is the member that owns the item's current state or gesture:
 		// ItemActionSync (a use, a slot move, a carried container's own content
-		// move), ItemMessageFlowService (a pickup, a drop, a destroy, a limb-item
-		// relocation).
+		// move), ItemMessageFlowService (a pickup, a drop, a destroy, a container
+		// take-out, a limb-item relocation).
 		WireCommandKind.ItemPickup => AuthorityKind.OwnerPredictedHostValidated,
+		// A container take-out: the member took one item out of a container into its own
+		// hands, which no other client can observe (the container's own report states what
+		// the container HOLDS, never where a child went). Same kernel fact as the pickup,
+		// same authority — the sender's own report of a native gesture it already ran.
+		WireCommandKind.ItemContainerTakeOut => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemDrop => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemDestroy => AuthorityKind.OwnerPredictedHostValidated,
 		WireCommandKind.ItemUpdateState => AuthorityKind.OwnerPredictedHostValidated,

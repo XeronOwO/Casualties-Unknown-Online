@@ -75,7 +75,8 @@ internal sealed class ItemSlotSync(
 		// owns the move. Without this edge a wear straight out of a carried container
 		// leaves an entry that can never settle, and every later inventory change on
 		// this client would lose its immediate clone re-report.
-		if (_dropState.TryCancel(item, out var rehomedOp))
+		var cancelled = _dropState.TryCancel(item, out var rehomedOp, out var departure);
+		if (cancelled)
 		{
 			_trace.End(rehomedOp, OperationTrace.IdOf(item), origin, "Cancelled", "ReHomed");
 		}
@@ -97,6 +98,25 @@ internal sealed class ItemSlotSync(
 			}
 
 			idComp = item.GetComponent<ItemInstanceId>();
+		}
+
+		// WHERE the cancelled departure came from decides whether the kernel still has to be told
+		// about the item's place: a body slot's item was already carried in the record, while an item
+		// worn straight OUT OF A CONTAINER is recorded as that container's child (or as a world row)
+		// and the carried report below carries DATA only. The statement has to precede it, so the
+		// relocation lands on the row the data update then names.
+		if (cancelled)
+		{
+			var evidence = ItemStateCodec.CaptureDigest(item, slot);
+			switch (ContainerArrivalPolicy.For(departure))
+			{
+				case ContainerArrivalPolicy.Report.TakeOut:
+					_items.SendItemContainerTakeOut(idComp!.Id, evidence);
+					break;
+				case ContainerArrivalPolicy.Report.Pickup:
+					_items.SendItemPickedUp(idComp!.Id, evidence);
+					break;
+			}
 		}
 
 		if (_session.Role == SessionRole.Host && _session.SessionActive)

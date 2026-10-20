@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1113,
+  "count": 1114,
   "entries": [
     {
       "cluster": "inline",
@@ -4029,6 +4029,12 @@
       "row": "I5",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyItemPatches.cs",
       "quote": "PatchBridge.Impl?.OnItemDropped(item);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I5",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemCommandRejectionRouter.cs",
+      "quote": "the container take-out is settled by re-stating the carried set, never by rolling the item out into the world."
     },
     {
       "cluster": "inline",

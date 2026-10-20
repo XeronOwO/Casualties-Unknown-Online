@@ -63,6 +63,24 @@ public enum WireCommandKind
 	/// </summary>
 	ItemUse = 30,
 
+	/// <summary>
+	/// A member took ONE item OUT OF A CONTAINER and into its own carried inventory. Its
+	/// kernel fact is the same relocation <see cref="ItemPickup"/> states — an item that is
+	/// now carried by the sender — and the kind exists because the two reports settle
+	/// differently when the host refuses: a refused pickup is a world item the sender may not
+	/// have (its local copy goes back to the world), while a refused take-out is an item the
+	/// sender is HOLDING (its way back is the carried-set statement, and unparenting it into
+	/// the world would be the opposite of a settlement).
+	/// <para>
+	/// The report exists because a container's children are the kernel's rows for what is
+	/// inside it: an item taken out of a container is still recorded as contained there, and
+	/// the container's own report cannot state the departure (it names what the container
+	/// holds, and the kernel destroys the children a report leaves out). The arrival is the
+	/// fact the sender can state.
+	/// </para>
+	/// </summary>
+	ItemContainerTakeOut = 31,
+
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,
 	CommandRejected = 101,

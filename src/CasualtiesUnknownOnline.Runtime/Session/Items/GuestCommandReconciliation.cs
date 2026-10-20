@@ -513,9 +513,10 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	/// <summary>
 	/// The reports this window owns: a guest item report whose native local action has
 	/// ALREADY happened, so a swallowed frame leaves the two copies of the game
-	/// disagreeing about a fact the host is the world authority for. The creation
-	/// report is included because it is the family's prerequisite — a lost creation
-	/// makes every later report about that item a refused protocol violation, so
+	/// disagreeing about a fact the host is the world authority for — the creation and the
+	/// pickup, the drop and the throw, the container take-out and the limb pair. The
+	/// creation report is included because it is the family's prerequisite — a lost
+	/// creation makes every later report about that item a refused protocol violation, so
 	/// re-reporting the operations alone could not heal the run.
 	/// <c>ItemUpdateState</c> and <c>ItemContainerSync</c> are deliberately absent:
 	/// their facts converge through the absolute fallbacks the audit matrix records for
@@ -557,6 +558,7 @@ public sealed class GuestCommandReconciliation : ICuoService, IDisposable, IKern
 	{
 		WirePayloadType.ItemSpawnCommand => true,
 		WirePayloadType.ItemPickupCommand => true,
+		WirePayloadType.ItemContainerTakeOutCommand => true,
 		WirePayloadType.ItemDropCommand => true,
 		WirePayloadType.ItemDestroyCommand => true,
 		WirePayloadType.ItemApplyLimbCommand => true,

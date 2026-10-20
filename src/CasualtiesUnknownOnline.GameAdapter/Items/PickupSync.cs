@@ -88,17 +88,37 @@ internal sealed class PickupSync(
 			item.rb.bodyType = RigidbodyType2D.Dynamic;
 		}
 
-		// The item re-entered an inventory — a pending drop of it is cancelled
-		// and NOT reported: the same-frame drag sequence (PlayerCamera.cs:1623
-		// DropItem + 1629 PickUpItem — a body-internal reorder) dropped the
-		// item from a slot and re-picked it in one player input. The drop got
-		// an instance id but the item never entered the world table, so
-		// reporting the pickup made the host refuse the unknown id and roll the
-		// item back out of the inventory ("dragged from a slot to the hand —
-		// immediately dropped, forever unpickable").
-		if (_dropState.TryCancel(item, out var pickedOp))
+		// The dropped item re-entered the world's owner within the departure frame — a
+		// pending drop of it is cancelled and NOT reported: the same-frame drag sequence
+		// (PlayerCamera.cs:1623 DropItem + 1629 PickUpItem — a body-internal reorder)
+		// dropped the item from a slot and re-picked it in one player input. The drop got
+		// an instance id but the item never entered the world table, so reporting the
+		// pickup made the host refuse the unknown id and roll the item back out of the
+		// inventory ("dragged from a slot to the hand — immediately dropped, forever
+		// unpickable").
+		if (_dropState.TryCancel(item, out var pickedOp, out var departure))
 		{
 			_trace.End(pickedOp, OperationTrace.IdOf(item), "OnItemPickedUp", "Cancelled", "RePick");
+
+			// WHERE it came from decides whether the kernel still has to be told. A body slot's item
+			// was already carried in the record; a container's is recorded as the container's child
+			// (a body-side bag) or as a world row (a ground crate), and the slot report below carries
+			// DATA only — so the arrival is stated first, under the kind that owns its settlement.
+			var takeOutId = item.GetComponent<ItemInstanceId>();
+			if (takeOutId != null && takeOutId.Id != 0) // Unity object — ==
+			{
+				var evidence = ItemStateCodec.CaptureDigest(item, ItemStateCodec.SlotOf(item));
+				switch (ContainerArrivalPolicy.For(departure))
+				{
+					case ContainerArrivalPolicy.Report.TakeOut:
+						_items.SendItemContainerTakeOut(takeOutId.Id, evidence);
+						break;
+					case ContainerArrivalPolicy.Report.Pickup:
+						_items.SendItemPickedUp(takeOutId.Id, evidence);
+						break;
+				}
+			}
+
 			// The drag-to-slot sequence (PlayerCamera.cs:1623 DropItem + 1629
 			// PickUpItem) is a body-internal reorder — the drop report is
 			// cancelled above — but the MOVE itself still must reach the peers:

@@ -52,7 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [A late joiner never binds the generated enemies](todo/enemy-generation-pairing-late-join.md) — **High** — rejected by `20261025-d`: entry-time members fail.
+- [The generated-enemy pairing scheme is rejected](todo/enemy-generation-pairing-late-join.md) — **High** — user ruling: redesign it, do not patch it.
 - [The archive's two id carriers can disagree](todo/id-carriers-can-disagree-about-placement.md) — **Low** — unproven; needs a probe inside the report window.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
 - [The receiver's placement never returns to the host](todo/placement-outcome-never-returns.md) — **Medium** — the ledger keeps what it was told.

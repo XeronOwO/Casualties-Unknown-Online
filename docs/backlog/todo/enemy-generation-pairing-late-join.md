@@ -1,12 +1,11 @@
-# A member joining a run in progress never binds the generated enemies
+# The generated-enemy pairing scheme is rejected — redesign the enemy generation sync
 
-- Status: Todo — Rejected (batch `20261025-d`, 2026-10-20: both members PRESENT at world entry read
-  `generation spawn pairing failed (85 host vs 85 guest generated enemies, first key mismatch at index 52:
-  17.021 world units apart, tolerance 0.5)` and `snapshot applied: 0 generated bound, 0 runtime spawns,
-  mapping=False` on every 60 s cycle, with the same signature on both guests — the landed key fix does not
-  hold for this world; rows 1 and 5 fail, rows 2–4 were not driven)
+- Status: Todo — Redesign (user ruling 2026-10-20: the pairing scheme itself is rejected as a design —
+  "this whole enemy pairing system is confusing, there must be a better design" — so the ticket is marked
+  for a rebuild, not patched. The `20261025-d` rejection below is the evidence that the scheme's own
+  reference case fails; no fix is attempted inside the scheme.)
 - Priority: High
-- Category: Enemy sync / generation baseline / late join (now: any generation-baseline bind)
+- Category: Enemy sync / generation baseline / design rejected (rebuild)
 - Source: batch `20261006-g`'s third client (2026-10-06) — a member that joined the lobby and entered the
   world AFTER the run had started logs the pairing failure once per 60 s cycle for the whole session while
   the member that was present at world entry reads the mapping as established in the same cycles. Found by
@@ -178,6 +177,54 @@ on which it is. A `shadecrawler` is generation-distributed (`WorldGeneration.Dis
 `InfestedModifier` when that modifier is in play), so the family to inspect is the generated one, not the
 runtime spawn channel.
 
+## Redesign ruling (user, 2026-10-20)
+
+The user rejected the generation-pairing scheme as a DESIGN, not just its latest failure: the system is
+confusing, "there must be a better design", and the ticket is to be marked as a rebuild. So the next cycle
+starts from the player-facing need and a written design proposal (options and a recommendation, put to the
+user), not from a patch inside the current scheme. The `## Landed` and `## Rejection` sections above are
+kept as the evidence for why the scheme is being replaced; its `## Acceptance` rows judge the rejected
+scheme and do not transfer to the rebuild.
+
+Why the scheme is rejected as a design (read from the code and from batch `20261025-d`):
+
+- **A position is used as an identity.** The same enemy must be recognised on two clients by where it
+  stood when it was generated, so any drift, any bind after motion, or any one-index difference makes it a
+  different enemy. The scheme then has a second, deliberately different key for runtime spawns (the live
+  pose), so "the same enemy" has two definitions in one domain.
+- **The verdict is all-or-nothing over the whole set.** One pair outside 0.5 world units — observed: 17.021
+  units at index 52, with the other 84 pairs never even reported — fails all 85, and the failure repeats
+  every repair cycle. The scheme cannot say "these 84 are the host's, this one is not".
+- **There is no adoption path.** A failed pairing leaves the member's whole generated set local forever;
+  the player then sees a different world from the host (the reported `shadecrawler`), and every consumer
+  that assumes a bound enemy — snapshot, position stream, attack judgment, health reconcile — silently
+  works on a local copy.
+- **It asks the member to reproduce a fact the host owns.** The member's regeneration is assumed to be
+  bit-identical to the host's generation order and positions; when that assumption breaks, the scheme has
+  nothing to fall back on. Other domains in this project already hand the member an absolute table and let
+  it adopt, instead of making it regenerate a key.
+
+What the rebuild has to decide (the proposal puts these to the user; none is chosen here):
+
+- **Who owns the generated roster.** Direction A: the host publishes the generated-enemy roster as an
+  absolute table (per enemy: type, a stable spawn anchor, and whatever makes it addressable), at world
+  entry and on join; the member adopts it and binds or materialises copies from the table instead of
+  reproducing the key. Direction B: the generation mints a stable identity both sides can compute (a
+  generation-order index or a seed-derived id) so matching is by identity, never by position.
+- **What an unmatched copy does.** The rebuild must answer this per copy, not per set: adopt the host's
+  row, remove the local extra, or leave it as a local-only enemy with a named reason — and the answer must
+  keep the player's view converging instead of staying different for the session.
+- **One key for both channels, or an explicit two-table model.** Generated enemies and runtime spawns are
+  the same player-facing thing; the rebuild must state whether they share one identity scheme or two
+  tables with one source of truth.
+- **Where a divergence is reported.** The failure should be per enemy and recoverable, with the host's
+  roster as the fact the receiver checks against — not a whole-set verdict with no repair.
+
+The rebuild is a design-first cycle: write the proposal (what the player sees, who owns the truth, what a
+member adopts, what happens when it cannot), get the user's choice, then implement with its own source
+pins and three-client rows (both members present at entry and a mid-run joiner, `mapping`/adoption readings
+green, zero per-set failures).
+
 ## Limits
 
 - The placing is Unity wiring, and the test assembly references the GameAdapter with
@@ -206,6 +253,10 @@ runtime spawn channel.
   `PairTolerance` at any single index still cannot bind; that verdict is unchanged by design.
 
 ## Acceptance
+
+Superseded by the redesign ruling: these rows judged the rejected scheme (row 1 and row 5 failed in batch
+`20261025-d`; see the rejection). They stay as the evidence of what the scheme claimed and could not hold;
+the rebuild states its own rows.
 
 Read on the deployed artifact, three clients, one lobby, and judged on the joining member's own window:
 

@@ -11,7 +11,7 @@
   unable to reach the next layer.
 - Related: `review/save-layer-end-save-and-restore.md` (S2 — the layer-end save itself),
   `review/save-system-mid-run-and-layer-end.md`, `review/save-mid-run-consistent-cut.md`,
-  `review/layer-change-member-recovery.md` (a member out of the world at the boundary),
+  `done/layer-change-member-recovery.md` (a member out of the world at the boundary),
   `todo/pod-descent-on-a-member-regenerates-locally.md` and `todo/layer-end-save-and-exit-native-write.md`
   (this cycle's two family siblings),
   `done/layer-mod-baseline-divergence-on-continue.md` (a Continue that reopened the wrong world)
@@ -100,7 +100,7 @@ Status after the 2026-10-07 development cycle:
    layer** is two rules: the stamp refuses a request for a layer this host has left, the native entry's own
    re-entrancy clauses refuse one that lands inside an advance already running.
 4. **The failure paths** — a member out of the world at the boundary is out of this ticket's code path (it
-   cannot click a panel it does not have) and is tracked by `review/layer-change-member-recovery.md`; a dead member
+   cannot click a panel it does not have) and is tracked by `done/layer-change-member-recovery.md`; a dead member
    cannot click either, which is why a dead HOST is the case that mattered and it is covered; a late joiner
    is covered by the same admission rule (its stamp, not its join time, decides).
 5. **Verification of the user's exact scenario** — **open**: the row needs three clients with a dead host at

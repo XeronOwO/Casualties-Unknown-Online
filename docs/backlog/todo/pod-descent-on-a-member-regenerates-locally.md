@@ -9,7 +9,7 @@
   rule "fix the family, not just the reported case" is why this is filed instead of silently left.
 - Related: `review/layer-complete-choice-for-members.md` (the panel producer, landed 2026-10-07),
   `todo/layer-descent-spawn-separation.md` (where the members arrive, the same boundary),
-  `review/layer-change-member-recovery.md` (a member out of the world at the boundary),
+  `done/layer-change-member-recovery.md` (a member out of the world at the boundary),
   `reversing/Assembly-CSharp/Assembly-CSharp/DrillPod.cs` and `WorldGeneration.cs`
 
 ## What is read

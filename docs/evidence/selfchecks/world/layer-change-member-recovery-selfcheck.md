@@ -58,5 +58,9 @@ The frozen-tree review returned FINDINGS; every one was fixed in the same change
 - **The adapter coordinator's Unity-side wiring is not unit-tested.** Its decision (`ReentryPolicy`), its
   window (`ReentryWindow`) and the Runtime channel are; its own call into `SendWorldJoinTo` is judged by
   batch `20261025-a`'s green half (the acceptance record names it when it runs).
-- **The green half of batch `20261025-a` was still pending when this sheet was written**: the red is
-  recorded above, and the acceptance record is the final verdict.
+- **The green half of batch `20261025-a` ran after this sheet's first version.** Session 2 on the fix
+  artifact (`0.1.0+8d42aca0…`) re-ran the same provocation and the member came back: four asks
+  (`(1/12)`…`(4/12)`), the fourth answer delivered after the drop window, `World join received`, the host's
+  19-segment layer generated, `container-read mode=local` `localCount: 2`, the third peer's clone census
+  naming the member's two items, and no client restarted. The acceptance record
+  `docs/evidence/acceptance/layer-change-member-recovery-20261025-a.md` is the final verdict.

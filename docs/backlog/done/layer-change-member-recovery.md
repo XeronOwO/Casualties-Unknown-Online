@@ -1,15 +1,17 @@
 # A member that lost its body to a layer change must come back without a cold restart
 
-- Status: Review — code-complete, waiting for the acceptance run's green half. The attribution reading the
-  first job asked for was taken by batch `20261007-a` (2026-10-07), so the door was chosen and the recovery
-  is what this cycle built: see `## The reading (batch 20261007-a)` below and
+- Status: Done (batch `20261025-a`, 2026-10-20: the defect was staged deterministically on the pre-fix
+  artifact — one dropped `WorldJoin`, the member still `inWorld: false` with `no-local-body` at +80 s and
+  +112 s while the control member returned — and the fix artifact brought it back into the host's new layer
+  with its carried items in one session, rows 1–4 pass; record
+  `docs/evidence/acceptance/layer-change-member-recovery-20261025-a.md`). The attribution reading the first
+  job asked for was taken by batch `20261007-a` (2026-10-07), so the door was chosen and the recovery is what
+  this cycle built: see `## The reading (batch 20261007-a)` below and
   `docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md`. Batch `20261007-c` (2026-10-07)
   re-read the held and the dropped shapes on the same fixture and changed no part of that verdict; its
-  reading is `## The second reading (batch 20261007-c)` below. The defect itself was then staged
-  deterministically by batch `20261025-a`'s first session — one dropped `WorldJoin`, the member still in the
-  menu with no local body 80 s and 112 s later while the control member with the same change came back —
-  and the recovery it drove is `## The recovery (landed 2026-10-20)` below. The same batch's second session
-  re-runs the staging against the fix artifact for the rows.
+  reading is `## The second reading (batch 20261007-c)` below. The recovery it drove is
+  `## The recovery (landed 2026-10-20)` below, and batch `20261025-a`'s second session re-ran the staging
+  against the fix artifact for the rows.
 - Priority: Medium
 - Category: World generation / layer transition / member recovery
 - Source: acceptance batch `20261005-b` (2026-10-05), observed while staging
@@ -22,6 +24,8 @@
   (the same warning from another producer — a Continue that reopened the wrong world, a genuine detector,
   NOT this shape), `done/reenter-baseline-adoption.md` (a member that never left the session generates
   before the host's restored baseline arrives)
+- Acceptance record: `docs/evidence/acceptance/layer-change-member-recovery-20261025-a.md`
+- Self-check: `docs/evidence/selfchecks/world/layer-change-member-recovery-selfcheck.md`
 
 ## What is observed (batch evidence, cause unknown)
 
@@ -29,7 +33,7 @@
 |---|---|
 | At +4.1 s after the layer change the member had no local body at all: `container-read mode=local` → `no-local-body`, so that attempt's destroy probe found nothing to destroy and row 4 had to be staged again | the batch record's Limits; the artifacts `r4b-guest-local-t2.json` / `r4b-guest-local-t3.json` (`"error": "no-local-body"`) in the batch's artifact directory |
 | During the same session the member's `state` read `role: Guest`, `inWorld: true`, `gateWaiting: false`, page `Home` — **corrected 2026-10-20**: that `inWorld` is `IWorldPresenceQuery.IsInWorldOrGenerating` (`tools/acceptance/driver/InProcessDriver.cs`: `"inWorld", presence != null && presence.IsInWorldOrGenerating`), so it is the GENERATING half of a re-entry, not a member believing it is in a world it is not in. The reading that distinguishes the two states is batch `20261007-a`'s `inWorld: false` + `no-local-body` at +60 s | `r4-guest-state.json` / `r4-alt-state.json`, same directory; the correction is the driver's own expression, quoted above |
-| A SECOND layer advance follows the first on its own about 9 s later, so one `skiplayer` command is already a consecutive change; the host's `[LayerReset]` line appears twice per attempt | the batch record's Limits, `[LayerReset] dropped the previous layer's world-rooted items; …` |
+| ~~A SECOND layer advance follows the first on its own about 9 s later, so one `skiplayer` command is already a consecutive change; the host's `[LayerReset]` line appears twice per attempt~~ — **corrected 2026-10-20 by batch `20261025-a`**: one `skiplayer` is ONE advance. The four `[LayerReset]` lines per attempt are the item and world resets firing at the generation's START and again at its END, and the host logs `[GenStream] done` once (`ev-green-host.txt`: `[LayerReset]` 20:52:20.567 and 20:52:29.117 around ONE `[GenStream] done — 19 segments` at 20:52:29.049); the decompiled `skiplayer` calls `RegenerateWorld(false)` (`ConsoleScript.cs:721`), which advances exactly one layer (`WorldGeneration.cs:1042-1067`) | the batch record's Limits was a census of the two owners' lines, not of two advances; batch `20261025-a`'s record says what the four lines are |
 | Nothing recovered on its own — the batch restarted all three clients cold and re-judged the remaining rows in a second session | the batch record's Sessions paragraph |
 | The same window carried the log storm this repository has since bounded; whether the storm and the missing body share a cause, one causes the other, or both follow from the layer change is NOT known | `docs/backlog/done/layer-change-member-dropout.md` and `docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md` |
 
@@ -121,7 +125,7 @@ unloads. The fix makes the entry convergent without inventing a second one:
 
 - **Attribute first, in one run, with the fixture the batch already used** — **done as batch `20261007-a`**,
   whose reading is recorded in `## The reading (batch 20261007-a)` above: three clients, a settled world,
-  one `skiplayer` command on the host (accepting that a second advance follows on its own), and then — this
+  one `skiplayer` command on the host (one advance, as batch `20261025-a` later established), and then — this
   is the reading that decides it — on the member that lost its body: `state` (does it still believe it is in
   the world?), `container-read mode=local` (does a local body exist?), the member's own log around the
   change (`[LayerReset]`, the world-generation lines, any exception, `[ERR][Unity:Exception]` in the rolling
@@ -138,9 +142,11 @@ unloads. The fix makes the entry convergent without inventing a second one:
   (`[LayerReset]` count and the host's world-item table read after the member's own generation finished);
   (3) the third peer sees that member's clone in the new layer; (4) no cold restart was needed — the
   session's own line count and the presence of both members' reports after the change prove it stayed up.
-  **Status after the first session of batch `20261025-a`**: row 1 is RED on the pre-fix artifact (the
-  stranded member above); rows 1–4 are unjudged until that batch's second session re-runs the same
-  provocation against the fix artifact.
+  **Status after batch `20261025-a`**: GREEN — session 1 staged the defect on the pre-fix artifact (the
+  stranded member above) and session 2 re-ran the same provocation on the fix artifact, where rows 1–4 all
+  pass: the member re-entered with `localCount: 2`, generated the host's 19-segment layer from the host's
+  params, appears as two carried-item proxies on the third peer, and the session never restarted. Record:
+  `docs/evidence/acceptance/layer-change-member-recovery-20261025-a.md`.
 - **Schedule this run last in its batch**: the storm and the members' exit out of the world are the
   machine's own cost, and the staging procedure, the recovery shape and the 15-second black-window ceiling
   are machine facts of the acceptance area's gitignored local files.

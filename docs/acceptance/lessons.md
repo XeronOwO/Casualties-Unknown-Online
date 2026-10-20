@@ -61,9 +61,6 @@ A forced-state probe writes the INPUT the game derives from (the limbs' pain, no
 
 A cross-client cell comparison re-derives `dx/dy` from each client's own body and asserts the recipe's returned `cellX`/`cellY` against the intended absolute cell before comparing values, retrying while the body is still falling; a whole-row comparison uses one absolute-coordinate probe — `block-read`, beside the batch's own `read-abs-cell.ps1`.
 
-## 2026-10-01 — The sound family's evidence is a Debug line, so the run sets the level live
-
-Receiver-side evidence (the sound replay lines, the relayed-break presentation lines, the repaired answer line) is written at Debug: raise the level through the config system's own editor, read the CUO rolling log, and restore `Information` before closing — `LoggingConfigEditor`, the `loglevel-*.cs` snippets.
 
 ## 2026-10-01 — An entity census must match the type, not the name
 
@@ -189,9 +186,6 @@ After a mutation pass, require the re-captured fingerprint to differ from the en
 
 Read a repeated creation line as a rebind, not a duplicate (`EntitySpawn` logs unconditionally after its find-or-create), read the snapshot's own `N runtime spawns` count rather than a first-bind label, and give `container-read` its `guest=` argument even in `mode=local`.
 
-## 2026-10-02 — The inbound blackout is the executable swallow, and it has an order
-
-Stage a lost inbound report with `net-receive-blackout`: read `mode=status` and the member's pending counts before arming, do only the marker writes while armed, then `mode=off` and re-read immediately — a blackout left armed costs every domain's traffic and the member ends its own session after 15 s without a host frame, so keep the window single-stepped and well under that.
 
 ## 2026-10-02 — An exception burst is read from the rolling log first, and a capped extract is named as capped
 
@@ -519,4 +513,9 @@ The death screen has no respawn, so a member's character-record restore is reach
 ## 2026-10-20 — A target resolved from the parked pointer cannot be chased by moving the window
 
 A row whose production path starts with a pointer-resolved target is not stageable: the run may not move the pointer, and moving the client window under it does not survive the camera/DPI arithmetic — drive the production gate, measurement and request entry the path calls and name the target model's ticket in the record's `Limits` — `docs/evidence/acceptance/topical-live-stack-family-order-20261020-b.md`.
+
+## 2026-10-20 — A `[LayerReset]` line count is not a layer-advance count
+
+One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:1042-1067`) and still emits four `[LayerReset]` lines — the item and world resets fire at the generation's START and again at its END — so a "second advance ~9 s later" read off a census of that prefix is the same advance counted twice; count the host's `[GenStream] done` lines, or read the decompiled command, before calling a change consecutive — `docs/evidence/acceptance/layer-change-member-recovery-20261025-a.md` (What this batch also corrected).
+
 

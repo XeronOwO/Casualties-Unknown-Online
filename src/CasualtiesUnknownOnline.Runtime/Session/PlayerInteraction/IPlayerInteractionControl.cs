@@ -100,7 +100,16 @@ public interface IPlayerInteractionControl
 	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter consumes the healer's item and/or applies the target's post-heal state.</summary>
 	event Action<PlayerHealResultMsg>? HealReceived;
 
-	/// <summary>Any role: request a consumable use from the Online UI (guest → host on the wire; host handles locally). ItemInstanceId 0 = host auto-selects a carried consumable; targetLimbIndex -1 = most-injured auto pick. Injectable/IV medicine is not accepted through this one-shot path. DoseMl is the ml the acting client measured from the item's own native action — a topical limb application or a drink; 0 for every family the host computes for itself and for a family this path refuses.</summary>
+	/// <summary>
+	/// Any role: request a consumable use from the Online UI (guest → host on the
+	/// wire; host handles locally). ItemInstanceId 0 = host auto-selects a carried
+	/// consumable. TargetLimbIndex is the limb the WOUND VIEW's release named; -1
+	/// means the request came through the inventory use (the world drag, this
+	/// one-shot use), which carries no limb. Injectable/IV medicine is not accepted
+	/// through this one-shot path. DoseMl is the ml the acting client measured from
+	/// the item's own native action — a topical limb application or a drink; 0 for
+	/// every family the host computes for itself and for a family this path refuses.
+	/// </summary>
 	void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1, float doseMl = 0f);
 
 	/// <summary>Host only: a consumable-use request arrived (from the wire or the host's own UI).</summary>

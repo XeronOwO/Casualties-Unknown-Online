@@ -18,10 +18,13 @@ namespace CasualtiesUnknownOnline.Tests.Fakes;
 /// (<c>bloodbag</c> and <c>bloodbaghuman</c> draw blood, <c>liquidcentrifuge</c>
 /// runs the centrifuge): the item class cannot express which native call a
 /// delegate makes, which is why the chain refuses a gesture whose own action
-/// reached no drink. The two blood bags never get that far — the injection rule is
-/// asked first at every site that could measure them
-/// (<c>LocalUseItemEligibility.FamilyOf</c> on the operator's side, the host
-/// chain's own order behind it), so their <c>DrawBlood</c> never runs here.
+/// reached no drink. The two blood bags' usual contents ARE injectable, so the
+/// injection rule (asked first by the ONE entry-aware classifier,
+/// <c>ItemUseFamilyClassifier</c>, that the operator's gate and the host's
+/// dispatch both read) keeps their <c>DrawBlood</c> from being measured; a bag
+/// refilled with a non-injectable liquid is the drink family's by its own
+/// <c>usable</c> flag and the measurement runs that action — the drink chain's
+/// recorded limit, not a claim this fake can fix.
 /// </para>
 /// </summary>
 internal sealed class FakeConsumeSemantics : IConsumeSemantics

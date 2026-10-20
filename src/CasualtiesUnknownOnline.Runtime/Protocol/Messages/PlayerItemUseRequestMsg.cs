@@ -3,14 +3,15 @@ using ProtoBuf;
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
-/// Guest → host request for the "use a carried consumable on another player"
-/// direct interaction: the local player wants to give/feed/drink a carried
-/// item to an in-world target. The host is the cross-player authority — it
-/// validates both participants against its authoritative character snapshots,
-/// chooses the item (or the caller's exact instance), consumes/updates it,
-/// applies the target-side body effect to the saved state and sends the two
-/// participants an authoritative result. An item instance id of 0 means "let
-/// the host choose the first usable consumable" (the Online UI auto button).
+/// Guest → host request for the "use a carried item on another player" direct
+/// interaction: the local player wants to drink/feed/wear/apply a carried item to
+/// an in-world target. The host is the cross-player authority — it validates both
+/// participants against its authoritative character snapshots, chooses the item
+/// (or the caller's exact instance), commits what the use spends (the measured
+/// drain, the wearable placement or nothing for a family whose whole effect runs
+/// on the affected side) and sends the two participants an authoritative result.
+/// An item instance id of 0 means "let the host choose the first usable
+/// consumable" (the Online UI auto button) and is always the inventory use.
 /// Injectable/IV medicine is NOT a direct one-shot request in the new
 /// architecture: it must go through the medical operation session so delivered
 /// ml is progressive and the host retains reservation/terminal semantics.
@@ -42,9 +43,13 @@ public sealed class PlayerItemUseRequestMsg
 	}
 
 	/// <summary>
-	/// The target limb chosen by the native medical UI, or -1 for the host's
-	/// normal most-injured-limb selection. A non-negative value is validated
-	/// against the target's snapshot and used instead of the auto pick.
+	/// The limb the WOUND VIEW's release named, or -1 when the request came through
+	/// the inventory use (the world drag, the one-shot UI use). The limb is what
+	/// identifies the entry: the wound view's gesture always names the limb it landed
+	/// on — that limb IS its native call site (decision 246) — while the inventory
+	/// use cannot name one. The host therefore dispatches a request with a limb as
+	/// the limb entry and one with -1 as the inventory entry; a limb family that
+	/// arrives with no limb is refused.
 	/// </summary>
 	public int LimbIndex
 	{

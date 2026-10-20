@@ -383,10 +383,10 @@ internal static class RemoteDragMutationPatches
 			// The native call this release replaces runs the item's own
 			// <c>useLimbAction(this.selectedLimb, dragItem)</c>; measuring it on the
 			// same limb keeps the amount the game's own delegate literal. A DRINK
-			// container dragged onto this view belongs to the one-shot consume
-			// family instead — the host dispatches by the item's own data, not by
-			// the gesture — so it measures its own use action against the body that
-			// would drink it: the requester's own.
+			// container dragged onto this view is the one-shot consume family's only
+			// when the item's own limb action reaches no topical application (the
+			// wound view's limb entry asks the topical rule first), so it measures its
+			// own use action against the body that would drink it: the requester's own.
 			var doseMl = 0f;
 			if (__instance.dragItem != null) // Unity object — ==
 			{

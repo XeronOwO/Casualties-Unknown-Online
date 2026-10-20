@@ -23,10 +23,13 @@ internal static class CarriedItemUseTree
 	/// <summary>
 	/// The first carried item the one-shot path would auto-select, in tree order:
 	/// an item in a real slot whose own data puts it in one of the families the
-	/// host computes for itself.
+	/// request's entry carries. Auto-select is the inventory use (the Online UI's
+	/// "let the host choose" shape), so it must never offer a limb family the wound
+	/// view alone carries.
 	/// </summary>
 	internal static CharacterItemMsg? FindFirstUsable(
 		IReadOnlyList<CharacterItemMsg> items,
+		ItemUseEntry entry,
 		ILimbUseSemantics limbSemantics,
 		IConsumeSemantics consumeSemantics,
 		IWearSemantics wearSemantics,
@@ -36,12 +39,12 @@ internal static class CarriedItemUseTree
 		{
 			if (candidate.SlotIndex >= 0
 				&& candidate.InstanceId != 0
-				&& IsActuallyUsable(candidate, limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics))
+				&& IsActuallyUsable(candidate, entry, limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics))
 			{
 				return candidate;
 			}
 
-			var nested = FindFirstUsable(candidate.Contents, limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics);
+			var nested = FindFirstUsable(candidate.Contents, entry, limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics);
 			if (nested is not null)
 			{
 				return nested;
@@ -52,35 +55,30 @@ internal static class CarriedItemUseTree
 	}
 
 	/// <summary>
-	/// True when the item's own data still puts it in a family this path carries
-	/// (and, for the condition-costing families, it has condition left). The
-	/// solid-food arm asks the item's own use-action shape: an item whose action
-	/// hands the eater a replacement object is NOT carried, which is what keeps the
-	/// host's auto-select from offering one the family chain must refuse.
+	/// True when the item's own data puts it in a family the request's entry carries
+	/// (and, for the condition-costing families, it has condition left). The family
+	/// is the ONE classifier's answer for the same entry the host will dispatch on.
+	/// The INJECTION family is excluded on purpose: it is a refusal the host answers
+	/// by name, never something auto-select may offer — an injectable-only container
+	/// would make the whole auto-select request be refused instead of picking the next
+	/// usable item (the family the old OR-of-rules tree also never offered).
 	/// </summary>
 	internal static bool IsActuallyUsable(
 		CharacterItemMsg item,
+		ItemUseEntry entry,
 		ILimbUseSemantics limbSemantics,
 		IConsumeSemantics consumeSemantics,
 		IWearSemantics wearSemantics,
 		ISolidFoodSemantics solidFoodSemantics)
 	{
-		var wearable = WearAdmission.IsWearable(wearSemantics, item.ItemId);
-		var solidFood = SolidFoodAdmission.IsFeedable(solidFoodSemantics, item.ItemId);
-		var limbTool = LimbToolAdmission.IsLimbTool(limbSemantics, solidFoodSemantics, item.ItemId);
-		if (item.Condition <= 0f
-			&& (wearable
-				|| solidFood
-				|| limbTool))
+		var family = ItemUseFamilyClassifier.Classify(entry, item.ItemId, item.Liquids, limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics);
+		if (family is ItemUseFamily.None or ItemUseFamily.Injection)
 		{
 			return false;
 		}
 
-		return wearable
-			|| solidFood
-			|| ConsumeAdmission.IsDrinkContainer(consumeSemantics, item.ItemId, item.Liquids)
-			|| TopicalAdmission.IsTopicalContainer(limbSemantics, item.ItemId, item.Liquids)
-			|| limbTool;
+		return item.Condition > 0f
+			|| family is not (ItemUseFamily.Wear or ItemUseFamily.SolidFood or ItemUseFamily.LimbTool);
 	}
 
 	/// <summary>

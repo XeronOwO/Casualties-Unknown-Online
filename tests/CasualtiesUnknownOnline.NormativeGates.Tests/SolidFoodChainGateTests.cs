@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
@@ -56,11 +57,13 @@ public class SolidFoodChainGateTests
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ItemActionGrants.cs",
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemActionOutcomeService.cs",
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseCommit.cs",
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseExecution.cs",
+		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ItemUseFamilyClassifier.cs",
 	];
 
-	private const string UseServiceFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs";
+	private const string ExecutionFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseExecution.cs";
 
-	private const string UseTreeFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/CarriedItemUseTree.cs";
+	private const string ClassifierFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ItemUseFamilyClassifier.cs";
 
 	private const string FactsFile = "src/CasualtiesUnknownOnline.GameAdapter/Content/GameSolidFoodFacts.cs";
 
@@ -84,6 +87,13 @@ public class SolidFoodChainGateTests
 		CSharpSyntaxTree
 			.ParseText(RepositoryPaths.ReadText(relativePath), new CSharpParseOptions(LanguageVersion.Preview))
 			.GetRoot();
+
+	/// <summary>Everything declared inside the named member, so a question can be asked of one arm rather than of a whole file.</summary>
+	private static IEnumerable<SyntaxNode> Members(SyntaxNode root, string methodName) =>
+		root.DescendantNodes()
+			.OfType<MethodDeclarationSyntax>()
+			.Where(method => method.Identifier.ValueText == methodName)
+			.SelectMany(method => method.DescendantNodes());
 
 	[Fact]
 	public void TheRuntimeSolidFoodChain_HoldsNoIdKeyedItemTable()
@@ -163,7 +173,7 @@ public class SolidFoodChainGateTests
 
 		// The host asks for that by name on the request half, and only there: the
 		// second result it publishes from the eater's report must not ask again.
-		var useService = Parse(UseServiceFile);
+		var useService = Parse(ExecutionFile);
 		Assert.Contains(
 			useService.DescendantNodes().OfType<AssignmentExpressionSyntax>(),
 			assignment => assignment.Left.ToString() == "TargetEatsTheItem" && assignment.Right.ToString() == "true");
@@ -196,12 +206,13 @@ public class SolidFoodChainGateTests
 			report.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "SolidFoodAdmission.IsFeedable");
 
-		// And the tree's gate asks the ADMISSION rather than a catalog, which is what
-		// keeps the shape that hands the eater a replacement object out of the
-		// auto-select and out of the host's reach.
-		var tree = Parse(UseTreeFile);
+		// And the ONE classifier's inventory arm asks the admission rather than a
+		// catalog, which is what keeps the shape that hands the eater a replacement
+		// object out of the auto-select and out of the host's reach.
+		var inventoryFamilies = Members(Parse(ClassifierFile), "ClassifyInventory").ToList();
+		Assert.True(inventoryFamilies.Count > 0, $"{ClassifierFile}: ClassifyInventory not found — the solid-food gate read nothing");
 		Assert.Contains(
-			tree.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
+			inventoryFamilies.OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "SolidFoodAdmission.IsFeedable");
 	}
 

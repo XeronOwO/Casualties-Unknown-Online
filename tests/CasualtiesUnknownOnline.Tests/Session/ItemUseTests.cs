@@ -424,6 +424,101 @@ public class ItemUseTests
 	}
 
 	[Fact]
+	public void Guest_DrinksFromADualClassContainerThroughTheInventoryEntry()
+	{
+		// The container is legitimately BOTH: its item data says the game can use it
+		// (`saline`, `usable` and `usableOnLimb`, whose own use action is
+		// `Drink(body, 100f, "drink")`, Item.cs:1867-1870), and the health-usable liquid
+		// poured into it makes its live stacks topical-admissible. The two entries must
+		// then answer by the gesture rather than by one order: the world drag IS the
+		// inventory use (`Body.UseItem` → `useAction`, Body.cs:2475-2481), so it drinks.
+		// Before the entry split the topical rule was asked first here and the drag fell
+		// through to the native drop. The wound view's own half for this container is a
+		// different, unreachable shape (its limb action is the syringe path) and is filed
+		// as `topical-limb-action-shape.md`; the sibling case below pins only the host's
+		// dispatch contract for that entry.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var dual = new CharacterItemMsg
+		{
+			InstanceId = 42,
+			ItemId = "saline",
+			SlotIndex = 0,
+			Condition = 1f,
+			Liquids = [new LiquidStackMsg { LiquidId = "disinfectant", Amount = 750f }],
+		};
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, dual));
+		items.AdoptTransferredItem(GuestId, 42, dual);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, doseMl: 100f);
+
+		var result = UseResult(received);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.False(result.ItemDestroyed);
+
+		// The drink family's own path: the committed drain names the liquid and rides
+		// DrinkDose; the topical member stays empty because this gesture never reached
+		// a limb.
+		var dose = Assert.Single(result.DrinkDose);
+		Assert.Equal("disinfectant", dose.LiquidId);
+		Assert.True(Math.Abs(dose.Amount - 100f) < 0.001f);
+		Assert.Empty(result.AppliedDose);
+		Assert.Null(result.Health);
+
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "disinfectant").Amount - 650f) < 0.001f);
+		Assert.True(Math.Abs(saved.Condition - (650f / 750f)) < 0.001f);
+	}
+
+	[Fact]
+	public void Use_TheDualClassContainerOnTheLimbEntry_AppliesTheTopicalHalfNotTheDrink()
+	{
+		// The HOST's dispatch contract for the other entry: a limb request for the
+		// container both entries admit applies the topical half and commits no drink.
+		// The dose is the operator's input by contract, and the request is the only one
+		// the medicinal view can send — but this vanilla container cannot reach it in
+		// production: its own limb action is the syringe path (`saline`'s
+		// `useLimbAction` starts a `SyringeMinigame` that calls
+		// `WaterContainerItem.Inject`, Item.cs:1859-1866), so the topical measurement
+		// captures no `ApplyToLimb` and refuses. That shape is the separate gap filed as
+		// `docs/backlog/todo/topical-limb-action-shape.md`; what THIS case pins is that
+		// the host, given the limb entry and a dose, never diverts it to the drink its
+		// own data also admits.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var dual = new CharacterItemMsg
+		{
+			InstanceId = 42,
+			ItemId = "saline",
+			SlotIndex = 0,
+			Condition = 1f,
+			Liquids = [new LiquidStackMsg { LiquidId = "disinfectant", Amount = 750f }],
+		};
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, dual));
+		items.AdoptTransferredItem(GuestId, 42, dual);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, targetLimbIndex: 0, doseMl: 10f);
+
+		var result = UseResult(received);
+		Assert.Equal(0, result.LimbIndex);
+		var applied = Assert.Single(result.AppliedDose);
+		Assert.Equal("disinfectant", applied.LiquidId);
+		Assert.True(Math.Abs(applied.Amount - 10f) < 0.001f);
+		Assert.Empty(result.DrinkDose);
+
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "disinfectant").Amount - 740f) < 0.001f);
+	}
+
+	[Fact]
 	public void Use_ATopicalRequestThatNamesNoLimb_IsRefused()
 	{
 		// A topical application IS the wound view's action: its native call site is

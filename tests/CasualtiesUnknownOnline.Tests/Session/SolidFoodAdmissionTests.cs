@@ -35,6 +35,7 @@ public sealed class SolidFoodAdmissionTests
 	private static bool ActuallyUsable(CharacterItemMsg item) =>
 		CarriedItemUseTree.IsActuallyUsable(
 			item,
+			ItemUseEntry.Inventory,
 			FakeLimbUseSemantics.Instance,
 			FakeConsumeSemantics.Instance,
 			FakeWearSemantics.Instance,
@@ -128,6 +129,7 @@ public sealed class SolidFoodAdmissionTests
 
 		var picked = CarriedItemUseTree.FindFirstUsable(
 			[bucket, bread],
+			ItemUseEntry.Inventory,
 			FakeLimbUseSemantics.Instance,
 			FakeConsumeSemantics.Instance,
 			FakeWearSemantics.Instance,
@@ -140,6 +142,7 @@ public sealed class SolidFoodAdmissionTests
 		// named refusal rather than a request the host would refuse by name afterwards.
 		var onlyBucket = CarriedItemUseTree.FindFirstUsable(
 			[bucket],
+			ItemUseEntry.Inventory,
 			FakeLimbUseSemantics.Instance,
 			FakeConsumeSemantics.Instance,
 			FakeWearSemantics.Instance,

@@ -65,9 +65,12 @@ public class LimbToolChainGateTests
 
 	private const string DragUseFile = "src/CasualtiesUnknownOnline.GameAdapter/CrossPlayerDragUse.cs";
 
-	private const string UseServiceFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs";
+	private const string UseServiceFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseExecution.cs";
 
 	private const string EligibilityFile = "src/CasualtiesUnknownOnline.GameAdapter/LocalUseItemEligibility.cs";
+
+	/// <summary>The ONE entry-aware family order the world-drag gate and the host's dispatch both read.</summary>
+	private const string ClassifierFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ItemUseFamilyClassifier.cs";
 
 	private const string ResultApplyFile = "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs";
 
@@ -340,36 +343,45 @@ public class LimbToolChainGateTests
 	[Fact]
 	public void TheWorldDragGate_AsksNoLimbRuleAndTheMedicalGateIsWhereItIsAsked()
 	{
-		var eligibility = Parse(EligibilityFile);
+		var classifier = Parse(ClassifierFile);
 
-		// The world drag's question is `IsUseItem` over `FamilyOf`, and a limb tool has
-		// no useAction at all — so asking the limb rule HERE is exactly the cross-player
-		// reach the user rejected, and on an item both entries could claim it would
-		// decide by the order of a family chain instead of by the item's own data.
-		// Scoped to those two members on purpose: this same file's medical gate
-		// legitimately asks the rule, and a doc comment that explains the exclusion is
-		// not a call (the walk reads nodes, so comments are deliberately outside it).
-		var useItem = Members(eligibility, "IsUseItem").ToList();
-		var familyOf = Members(eligibility, "FamilyOf").ToList();
-		Assert.True(useItem.Count > 0, $"{EligibilityFile}: IsUseItem not found — the isolation scan read nothing");
-		Assert.True(familyOf.Count > 0, $"{EligibilityFile}: FamilyOf not found — the isolation scan read nothing");
-		var worldDragGate = useItem.Concat(familyOf).ToList();
+		// The world drag's question is the inventory entry's family set, and a limb
+		// tool has no useAction at all — so asking the limb rule HERE is exactly the
+		// cross-player reach the user rejected, and on an item both entries could claim
+		// it would decide by the order of a family chain instead of by the gesture.
+		// The entry split moved the order into ONE classifier; the scan follows it
+		// there so the rule cannot creep back in through the adapter's side.
+		var inventoryFamilies = Members(classifier, "ClassifyInventory").ToList();
+		Assert.True(inventoryFamilies.Count > 0, $"{ClassifierFile}: ClassifyInventory not found — the isolation scan read nothing");
 		Assert.DoesNotContain(
-			worldDragGate.OfType<IdentifierNameSyntax>(),
-			identifier => identifier.Identifier.ValueText == "LimbToolAdmission");
+			inventoryFamilies.OfType<IdentifierNameSyntax>(),
+			identifier => identifier.Identifier.ValueText == "LimbTool");
 
 		// Identifiers are what the walk reads, so a spelling that hides the name would
 		// walk past it: the set is resolved from the file's own directives instead of
 		// being assumed (decision 245 closed the same loophole in the content-kind
 		// gate, where an alias-driven probe stayed green).
-		var ruleNames = RuleSpellings(eligibility);
+		var ruleNames = RuleSpellings(classifier);
 		Assert.DoesNotContain(
-			worldDragGate.OfType<IdentifierNameSyntax>(),
+			inventoryFamilies.OfType<IdentifierNameSyntax>(),
 			identifier => ruleNames.Contains(identifier.Identifier.ValueText));
 
+		// The adapter's side must not grow its own copy either: the entry split moved
+		// the ORDER into the classifier, and the mutation this gate was written for —
+		// `IsUseItem` gaining `LimbToolAdmission.IsLimbTool`, plain or behind an alias —
+		// must still redden at the site the world drag actually asks.
+		var adapterGate = Members(Parse(EligibilityFile), "IsUseItem")
+			.Concat(Members(Parse(EligibilityFile), "FamilyOf"))
+			.ToList();
+		Assert.True(adapterGate.Count > 0, $"{EligibilityFile}: IsUseItem/FamilyOf not found — the adapter half of the isolation scan read nothing");
+		var adapterRuleNames = RuleSpellings(Parse(EligibilityFile));
+		Assert.DoesNotContain(
+			adapterGate.OfType<IdentifierNameSyntax>(),
+			identifier => adapterRuleNames.Contains(identifier.Identifier.ValueText));
+
 		// ...and the medical view is where it IS asked, so the two entries stay
-		// isolated by the item's own data rather than by a chain's order.
-		var medicalGate = Members(eligibility, "IsMedicalLimbUseItem").ToList();
+		// isolated by the gesture rather than by a chain's order.
+		var medicalGate = Members(Parse(EligibilityFile), "IsMedicalLimbUseItem").ToList();
 		Assert.True(medicalGate.Count > 0, $"{EligibilityFile}: IsMedicalLimbUseItem not found — the medical half of the isolation scan read nothing");
 		Assert.Contains(
 			medicalGate.OfType<MemberAccessExpressionSyntax>(),

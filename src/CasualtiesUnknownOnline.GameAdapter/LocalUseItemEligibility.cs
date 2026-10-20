@@ -11,97 +11,59 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// item. Split out of <see cref="PlayerInteractionApply"/> at the 600-line gate;
 /// no game state beyond the item it is handed.
 /// <para>
+/// The FAMILY of a gesture is not this file's judgement: it is
+/// <see cref="ItemUseFamilyClassifier"/>'s, asked with the entry the gesture was
+/// made through, so the operator's verdict, the host's dispatch and the medical
+/// view's dose measurement are one answer. This file only maps the live
+/// <see cref="Item"/> onto the classifier's inputs (its id, its live liquid
+/// stacks) and keeps the two narrow questions the medical view asks on its own
+/// (<see cref="IsMedicalLimbUseItem"/>, the measurement handlers' predicates).
+/// </para>
+/// <para>
 /// The wear family is asked through the same <see cref="IWearSemantics"/> seam the
 /// host's chain asks (<see cref="WearAdmission"/>), so "is this a wearable" has
-/// one answer on both sides; it is deliberately NOT a
-/// <see cref="Family"/> member, because a wear gesture has nothing to measure —
-/// the operator sends the request and the host does the placement.
+/// one answer on both sides; it is a classifier family rather than a family that
+/// is measured, because a wear gesture has nothing to measure — the operator
+/// sends the request and the host does the placement.
 /// </para>
 /// </summary>
 internal static class LocalUseItemEligibility
 {
 	/// <summary>
-	/// The families the one-shot path carries, in the order the host's chain asks
-	/// them (<c>PlayerItemUseService</c>: wear, the injection refusal, topical,
-	/// drink, solid food, limb tool). <see cref="FamilyOf"/> is the ONE answer to
-	/// "which family is this gesture" on the operator's side, so a measurement site
-	/// can never run an item's own native action for a family the host will refuse.
+	/// The family this item's one-shot gesture belongs to on the given ENTRY, asked
+	/// through the ONE classifier. The measurement sites ask THIS rather than one
+	/// family's predicate on its own: a family the host will refuse is never measured,
+	/// and a family the entry does not carry is never admitted — which is what keeps
+	/// a container the game marks both ways (a drinkable bag holding a health-usable
+	/// liquid) on the action its gesture made.
 	/// </summary>
-	internal enum Family
+	internal static ItemUseFamily FamilyOf(
+		Item item,
+		ItemUseEntry entry,
+		ILimbUseSemantics limbSemantics,
+		IConsumeSemantics consumeSemantics,
+		IWearSemantics wearSemantics,
+		ISolidFoodSemantics solidFoodSemantics)
 	{
-		/// <summary>No family this path carries; the host refuses it by name and nothing may be measured here.</summary>
-		None,
+		if (item == null) // Unity object — ==
+		{
+			return ItemUseFamily.None;
+		}
 
-		/// <summary>The medical operation session's family: this path refuses it by name, and its own action must NOT run here — a blood bag's <c>useAction</c> draws blood.</summary>
-		Injection,
-
-		/// <summary>
-		/// Measured through the item's own limb action (a limb application) — which is
-		/// the WOUND VIEW's action rather than this gesture's. It stays in the verdict
-		/// because the host chain and the medical view's own measurement ask the same
-		/// question; <see cref="IsWorldDragFamily"/> is what keeps it off the world drag.
-		/// </summary>
-		Topical,
-
-		/// <summary>Measured through the item's own use action (a drink).</summary>
-		Drink,
-
-		/// <summary>
-		/// The solid-food family: nothing is measured and nothing runs here. The eat is
-		/// the whole use action, and the host runs it on the AFFECTED side's client —
-		/// running it here to measure it would feed the operator, take the item out of
-		/// their hands (the container-swap foods drop and replace it) and play its
-		/// sounds at the wrong body.
-		/// </summary>
-		SolidFood,
+		return ItemUseFamilyClassifier.Classify(entry, item.id, LiquidsOf(item), limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics);
 	}
 
 	/// <summary>
-	/// The family this item's one-shot gesture belongs to, asked in the host
-	/// chain's own order. The measurement sites ask THIS rather than one family's
-	/// predicate on its own: the ordering is what keeps a container the game marks
-	/// both ways on the family the host will dispatch, and what keeps a family the
-	/// host REFUSES from being measured at all.
-	/// </summary>
-	internal static Family FamilyOf(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics, ISolidFoodSemantics solidFoodSemantics)
-	{
-		if (IsInjectableRemoteItem(item, limbSemantics))
-		{
-			return Family.Injection;
-		}
-
-		if (IsTopicalRemoteItem(item, limbSemantics))
-		{
-			return Family.Topical;
-		}
-
-		if (IsDrinkRemoteItem(item, consumeSemantics))
-		{
-			return Family.Drink;
-		}
-
-		return IsSolidFoodRemoteItem(item, solidFoodSemantics) ? Family.SolidFood : Family.None;
-	}
-
-	/// <summary>
-	/// The families in the order the host's one-shot chain asks them, so an item
-	/// this gate admits is an item the host will either handle or refuse by name —
-	/// never one it does not recognise. The wear rule comes first (the host's chain
-	/// asks it before the injection refusal, because a wearable is a wearable
-	/// whatever else its data says); the limb rules then come before the drink rule
-	/// because the containers both admit (saline, ringersolution, a blood bag) are
-	/// the medical family's, and because a mod container the game marks as a drink
-	/// AND a topical carrier must measure the call the host will run.
+	/// The world drag's question — the cross-player form of USING an item from the
+	/// inventory — asked as the inventory entry's own families: wear, the injection
+	/// refusal, drink and solid food, never a limb rule (decision 246). A limb tool
+	/// and a topical carrier are deliberately absent: their native call site is the
+	/// wound view's release, which carries the limb the operator picked, and
+	/// <see cref="IsMedicalLimbUseItem"/> is their entry.
 	/// <para>
-	/// The LIMB-TOOL family is deliberately NOT admitted here, and that is a rule about
-	/// this gesture rather than about the family: a world drag is the cross-player form
-	/// of USING an item from the inventory, so it carries what the game can use that way
-	/// (`ItemInfo.usable` → the item's own `useAction`), and a limb tool has no
-	/// `useAction` at all — only a `useLimbAction`, whose whole meaning is which limb it
-	/// lands on. Those belong to the medical view, whose release carries the limb the
-	/// operator picked (<see cref="IsMedicalLimbUseItem"/>), and the host refuses the
-	/// family outright when a request names no limb, so neither entry can be reached
-	/// through the other.
+	/// The injection family is admitted only so the host can refuse it BY NAME: its
+	/// native use action draws blood into the operator's bag, which is the one thing
+	/// this gesture must never run.
 	/// </para>
 	/// </summary>
 	public static bool IsUseItem(Item item, ILimbUseSemantics limbSemantics, IConsumeSemantics consumeSemantics, IWearSemantics wearSemantics, ISolidFoodSemantics solidFoodSemantics)
@@ -111,35 +73,8 @@ internal static class LocalUseItemEligibility
 			return false;
 		}
 
-		if (WearAdmission.IsWearable(wearSemantics, item.id))
-		{
-			return true;
-		}
-
-		return IsWorldDragFamily(FamilyOf(item, limbSemantics, consumeSemantics, solidFoodSemantics));
+		return FamilyOf(item, ItemUseEntry.Inventory, limbSemantics, consumeSemantics, wearSemantics, solidFoodSemantics) != ItemUseFamily.None;
 	}
-
-	/// <summary>
-	/// The families the world drag carries — the ones whose native call site IS the
-	/// inventory use: the item's own <c>useAction</c> through <c>Body.UseItem</c> (a
-	/// drink, a meal). The wear placement is admitted before this verdict
-	/// (<see cref="WearAdmission.IsWearable"/>), because a wear gesture has nothing to
-	/// measure and is deliberately not a <see cref="Family"/> member. The INJECTION
-	/// family is admitted only so the host can refuse it BY NAME: its native use action
-	/// draws blood into the operator's bag, which is the one thing this gesture must
-	/// never run.
-	/// <para>
-	/// The TOPICAL family is absent for exactly the reason the LIMB-TOOL family is: its
-	/// native call site is the wound view's release onto a limb
-	/// (<c>PlayerCamera.ApplyWoundItem</c>, which runs the item's own
-	/// <c>useLimbAction(this.selectedLimb, item)</c>), so it is the MEDICAL view's
-	/// action, and the limb it lands on is the one piece of information a world drag
-	/// cannot carry. <see cref="IsMedicalLimbUseItem"/> is its entry, and it carries the
-	/// limb the operator picked (decision 246).
-	/// </para>
-	/// </summary>
-	private static bool IsWorldDragFamily(Family family) =>
-		family is Family.Injection or Family.Drink or Family.SolidFood;
 
 	/// <summary>
 	/// The narrower eligibility for the native WoundView remote-limb treatment
@@ -240,17 +175,20 @@ internal static class LocalUseItemEligibility
 		&& ConsumeAdmission.IsDrinkContainer(semantics, item.id, ToLiquidStacks(container));
 
 	/// <summary>
-	/// The solid-food family's eligibility, over <see cref="ISolidFoodSemantics"/>:
-	/// the item's own use action feeds a body and does not hand the eater a
-	/// replacement object (<see cref="SolidFoodAdmission.IsFeedable"/>). No table
-	/// answers it — the deleted <c>RemoteConsumeCatalog</c> carried 25 ids with
-	/// hand-transcribed numbers, while the game's own content has 41 body-feeding
-	/// items plus the component-driven can, and their amounts are literals inside
-	/// each delegate. Nothing is measured here: the host runs this item's whole
-	/// action on the affected side, so the operator's client must not run it at all.
+	/// The item's live stacks in the shape the classifier reads, or null when it is
+	/// not a container holding liquid to draw — the same gate the three predicate
+	/// wrappers above use, so the classifier and the medical view's predicates read
+	/// one item the same way.
 	/// </summary>
-	internal static bool IsSolidFoodRemoteItem(Item item, ISolidFoodSemantics semantics) =>
-		item != null && SolidFoodAdmission.IsFeedable(semantics, item.id); // Unity object — ==
+	private static List<LiquidStackMsg>? LiquidsOf(Item item)
+	{
+		if (item.condition <= 0f || !HasDrawableContainer(item, out var container))
+		{
+			return null;
+		}
+
+		return ToLiquidStacks(container);
+	}
 
 	/// <summary>An item that can still be drawn from: alive and holding liquid.</summary>
 	private static bool HasDrawableContainer(Item item, out WaterContainerItem container)

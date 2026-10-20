@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -52,21 +53,23 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return false;
 		}
 
-		// The measurement follows the ONE family verdict (LocalUseItemEligibility.FamilyOf):
-		// the DRINK family is the one measured here, because it is the only family this
-		// gesture runs whose dose the host needs. An item the INJECTION rule claims is
-		// measured by nothing — the host refuses it by name and this client must not run
-		// its own action, which for the two vanilla blood bags would draw blood into the
-		// operator's bag and out of the treated limb — and a WEARABLE lands in the default
-		// arm for the same reason: it has no dose, and running its own use action here
-		// would take the item out of the operator's hands for a gesture the host may still
-		// refuse. The TOPICAL family does not reach this method at all: its action is the
-		// wound view's, so `IsUseItem` refuses the release here and the native drop runs,
-		// instead of a dose landing on a limb the operator never picked (decision 246).
+		// The measurement follows the ONE family verdict for THIS gesture's entry
+		// (LocalUseItemEligibility.FamilyOf with ItemUseEntry.Inventory): the DRINK
+		// family is the one measured here, because it is the only family this gesture
+		// runs whose dose the host needs. An item the INJECTION rule claims is measured
+		// by nothing — the host refuses it by name and this client must not run its own
+		// action, which for the two vanilla blood bags would draw blood into the
+		// operator's bag and out of the treated limb — and a WEARABLE lands in the
+		// default arm for the same reason: it has no dose, and running its own use
+		// action here would take the item out of the operator's hands for a gesture the
+		// host may still refuse. The TOPICAL family is not asked on this entry at all
+		// (decision 246), so a container whose data also admits a limb application is
+		// measured as the drink its own `useAction` is — the wound view keeps its
+		// topical half, and no dose lands on a limb this gesture never picked.
 		var doseMl = 0f;
-		switch (LocalUseItemEligibility.FamilyOf(dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.SolidFoodSemantics))
+		switch (LocalUseItemEligibility.FamilyOf(dragItem, ItemUseEntry.Inventory, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.WearSemantics, domains.SolidFoodSemantics))
 		{
-			case LocalUseItemEligibility.Family.Drink:
+			case ItemUseFamily.Drink:
 				var drinker = ResolveDrinkBody(targetSteamId);
 				if (drinker == null // Unity object — ==
 					|| !RemoteDrinkUseHandler.TryMeasure(dragItem, drinker, domains.ConsumeSemantics, domains.Log, out doseMl))

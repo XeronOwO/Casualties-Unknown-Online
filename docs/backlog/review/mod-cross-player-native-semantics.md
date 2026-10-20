@@ -235,9 +235,12 @@ decides nothing: native `WaterContainerItem.Drink` has no liquid-level gate at a
 liquid's own `onDrink`, so a liquid the deleted 14-row allowlist never carried is the game's own case
 rather than a reason to refuse.
 
-The limb rules are asked BEFORE this one at every routing site, and that order is what keeps the
-containers the game marks both ways (`saline`, `ringersolution`, `bloodbag`, `bloodbaghuman` — `usable`
-AND `usableOnLimb`) on the medical family, exactly as they behaved before this chain migrated. The two
+The injection rule is asked BEFORE this one on both entries, and the topical rule before it on the
+limb entry only (the entry-aware classifier, decision 246), and that order is what keeps the
+containers whose usual contents are injectable (`saline`, `ringersolution`, `bloodbag`, `bloodbaghuman`
+— `usable` AND `usableOnLimb`) on the medical family. A drinkable container holding a health-usable
+liquid and no injectable stack is the INVENTORY use's drink by its own `usable` flag
+(`topical-live-stack-family-order`), while the wound view asks the topical rule first for it. The two
 rules are not disjoint, which `ConsumeSemanticsTests` states and
 `ItemUseTests.Use_ADrinkableInjectableContainer_IsRefusedByTheInjectionFirstOrder` pins where it is
 observable.
@@ -587,17 +590,23 @@ have to go looking for:
   on the operator's client and is then refused.** The class is the game's own
   flag and nothing in the data says which native call a delegate makes, so the
   measurement finds out by running it. The measurement sites ask the injection rule
-  first (`LocalUseItemEligibility.FamilyOf`), so the two vanilla blood bags — whose
-  `useAction` is `Item.DrawBlood`, a real fill of the operator's bag and a real
-  drain of the treated limb — are never measured and are refused by name exactly as
-  before this chain migrated (the independent review's blocker was that this order
-  was missing at the measurement sites while the host, the eligibility gate and the
-  medical handler all had it). What remains exposed is `liquidcentrifuge`: a usable
-  `LiquidItemInfo` whose `useAction` runs the centrifuge, reachable from BOTH the
-  world drag and the wound-view release, so dragging it onto a teammate separates
-  the operator's own centrifuge contents before the use is refused. A mod item in
-  that state is exposed the same way; the alternative is the hand-written "which
-  usable containers are drinks" list this ticket exists to delete.
+  first (through the entry-aware classifier), so the two vanilla blood bags' usual
+  injectable contents — whose `useAction` is `Item.DrawBlood`, a real fill of the
+  operator's bag and a real drain of the treated limb — are never measured and are
+  refused by name, exactly as before this chain migrated (the independent review's
+  blocker was that this order was missing at the measurement sites while the host,
+  the eligibility gate and the medical handler all had it). A blood bag REFILLED with
+  a non-injectable liquid is a different shape: the injection rule's stack test
+  declines it, its own `usable` flag admits it as a drink, and `DrawBlood` runs
+  before the measurement refuses — pre-existing for a water refill, widened to a
+  health-usable refill by the entry split; filed as
+  `todo/drink-measurement-destructive-use-action.md`. What remains exposed in the
+  ordinary shape is `liquidcentrifuge`: a usable `LiquidItemInfo` whose `useAction`
+  runs the centrifuge, reachable from BOTH the world drag and the wound-view release,
+  so dragging it onto a teammate separates the operator's own centrifuge contents
+  before the use is refused. A mod item in that state is exposed the same way; the
+  alternative is the hand-written "which usable containers are drinks" list this
+  ticket exists to delete.
 - **The mindwipe health gate moved from the host's mirror to the operator's own
   native run.** It reads the drinking body's vitals, which belong to the patient,
   so it runs on the operator's client against the affected player's displayed
@@ -615,8 +624,10 @@ have to go looking for:
   the item's flag instead of the deleted liquid allowlist: a limb-usable container
   the game cannot USE (`spraybottle`, `syringe`) refilled with a drinkable liquid
   is no longer fed to a teammate and now falls through to the native drop, and
-  the containers the game marks both ways stay refused on the one-shot path by
-  the routing order, as before.
+  a container the game marks both ways is classified by its ENTRY rather than by the
+  rules' order — the wound view asks the topical rule first, while the inventory use
+  asks the item's own `useAction` — so a drinkable bag holding a health-usable liquid
+  is drunk by the world drag (`topical-live-stack-family-order`).
 - **The native drink's trailing item-level clip is not replayed** (the `sound`
   argument `Drink` plays at the end); no cross-player drink clip played before
   this chain migrated either. The liquid-level clips some `onDrink` bodies play
@@ -709,11 +720,13 @@ chain, after the same rule landed for the limb tool — closed the last place in
 player's client chose another player's limb. (The heal slice still auto-selects on the host; that is its
 own long-recorded rule, pinned by its own cases, and this cycle does not touch it.)
 
-- The world drag no longer carries the family. `LocalUseItemEligibility.IsWorldDragFamily` admits the
+- The world drag no longer carries the family. `ItemUseFamilyClassifier`'s inventory arm admits the
   families whose native call site IS the inventory use (a drink, a meal, the wear placement) plus
   injection, which is admitted only so the host can refuse it by name; a topical carrier released on a
   teammate now falls through to the native drop, which is what the inventory use means for an item the game
-  marks `usable=false`. The topical dose measurement and `ResolveMeasureLimb` are deleted with it.
+  marks `usable=false`. The topical dose measurement and `ResolveMeasureLimb` are deleted with it. (The
+  order moved from `LocalUseItemEligibility` into the Runtime classifier in
+  `topical-live-stack-family-order`, which is also where the entry became an input.)
 - The host refuses a topical request that names no limb, and the affected side applies to the limb the
   request named or refuses (`NativeTopicalApply` asks `NativeLimbTarget.ResolveNamed`). `TopicalUseBranch`
   holds the host's half, split out of `PlayerItemUseService` at the 600-line gate.

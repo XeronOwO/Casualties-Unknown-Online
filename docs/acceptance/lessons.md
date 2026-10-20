@@ -317,10 +317,6 @@ A park is the wall clock between arming and clearing it, and a SEQUENCE of drive
 
 The holder parks everything at the world origin, which on this world is a solid, unlit cell at the map's corner hundreds of units below the inhabited floor: a presentation row driven there is judged on the machine read (every renderer, collider and sound component in the subtree off — read a source's `isPlaying`, not only its `enabled`) with the frame offered to the user as a residual, and a decay row is not reachable while parked at all.
 
-## 2026-10-08 — Batch `20261008-a`: the drag gesture needs the pointer ON the target, and the camera sits below the body
-
-The camera sits ~3.8 world units BELOW the player's body, so a world point derived from the pointer is below the feeder's feet and the product's line-of-sight gate refuses it: drive that chain through the production entry the gesture itself calls (`IPlayerInteractionControl.SendUseRequest`), keep the committed `remote-gesture` recipe for the gesture's own half, and remember that a release the gesture refuses still runs the native path and DROPS the item.
-
 ## 2026-10-08 — Batch `20261008-a`: the host's own starting supplies carry no instance id until they enter the domain
 
 A standing-object fixture binds the host's own items first (`item-provide … mode=create`, whose pickup allocates the id, or any local slot move): the host's supplies are the authority and get their ids lazily on first domain entry, so an id-less carried row is exactly the row `StandingItemPlan` leaves out — and the record says the plan excluded it rather than the materializer missing it.
@@ -519,3 +515,8 @@ Plan each injection increment so the next update lands inside the host's window:
 ## 2026-10-20 — A killed member stays dead, and a continue's first read is the pre-restore roll
 
 The death screen has no respawn, so a member's character-record restore is reached through a host leave-world → `continue-run`; read the host's panel only after the world settles (the first read can still show the fresh roll), and read every client's own values before the cycle to prove they travelled — `docs/evidence/acceptance/remote-medical-panel-header-shows-viewer-identity-20261024-a.md`.
+
+## 2026-10-20 — A target resolved from the parked pointer cannot be chased by moving the window
+
+A row whose production path starts with a pointer-resolved target is not stageable: the run may not move the pointer, and moving the client window under it does not survive the camera/DPI arithmetic — drive the production gate, measurement and request entry the path calls and name the target model's ticket in the record's `Limits` — `docs/evidence/acceptance/topical-live-stack-family-order-20261020-b.md`.
+

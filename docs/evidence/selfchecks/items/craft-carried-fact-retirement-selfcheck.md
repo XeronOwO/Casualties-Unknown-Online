@@ -1,6 +1,6 @@
 # The Craft Report Retires the Carried Row — Self-Check (2026-10-20)
 
-Delivery fact sheet for backlog item `review/craft-carried-fact-retirement.md`: a craft report's
+Delivery fact sheet for backlog item `done/craft-carried-fact-retirement.md`: a craft report's
 `Destroyed` entry now retires the owner's clone fact-table row on the host and on every relay receiver,
 and the in-craft character snapshot no longer leaves before the report that explains it.
 
@@ -60,8 +60,11 @@ FULL-tier adversarial review, fresh context, frozen tree. Findings and dispositi
 
 ## 4. What this cycle did not verify
 
-- The runtime half is the acceptance batch (`20261025-d`) after the commit; its record is the citation a
-  reader of the done ticket opens. Until then the ticket stays in `review/`.
+- The runtime half is no longer open: batch `20261025-d` drove both variations on the deployed artifact —
+  four carried destroyable materials consumed and the product worn, then the same craft with the wear slot
+  occupied (native refusal) — every viewer applied the report's four removals, the host apply line and the
+  third peer's relay line are in the window, and **zero** `[CharSync] divergence` appears in any of the
+  three 6 s windows (`docs/evidence/acceptance/craft-carried-fact-retirement-20261025-d.md`).
 - The host-as-owner craft direction is covered by the simulation half only (kernel row + stamps); the
   batch drives a member as the owner.
 - The real Unity patch firing order, the deferred `Object.Destroy` and a genuinely transport-refused

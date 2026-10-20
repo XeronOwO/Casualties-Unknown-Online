@@ -80,7 +80,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [A craft report never retires a carried material](review/craft-carried-fact-retirement.md) — **Medium** — the report retires the owner's fact row.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
@@ -177,6 +176,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 - [The snapshot overtakes the item reports](done/snapshot-overtakes-item-reports.md) — **Medium** — the fact now goes first; `20261025-c` read zero divergence.
+- [A craft report never retires a carried material](done/craft-carried-fact-retirement.md) — **Medium** — `20261025-d` read the removals at zero divergence.
 - [A container child moved into a slot loses its container fact](done/container-content-event-gap-on-repick.md) — **Medium** — accepted in `20261025-b`.
 - [A pending-drop pickup reports only a slot re-home](done/pickup-early-return-kernel-relocation.md) — **Low-Medium** — accepted in `20261025-b`.
 - [A health-usable liquid in a drinkable container](done/topical-live-stack-family-order.md) — **Low-Medium** — accepted in `20261020-b`.

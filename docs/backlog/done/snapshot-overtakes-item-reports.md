@@ -88,7 +88,10 @@ is wrong.
   still runs before the craft report, and the craft report retires only WORLD rows from the peers' clone
   fact table, so by code reading a destroyable carried material — and a wearable the auto-pickup
   displaces — leaves the fact table only on the next snapshot and trips the monitor's "left the
-  inventory" warning. Filed as `todo/craft-carried-fact-retirement.md` with the code path and its own
+  inventory" warning. Filed as `done/craft-carried-fact-retirement.md` with the code path and its own
+  acceptance row; that cycle's native re-read also corrected the "wearable the auto-pickup displaces"
+  clause above (`Body.DropItem` is a no-op for a limb-parented item, and `WearWearable` refuses the
+  product instead).
   acceptance row.
 - **The order is pinned in source.** `InventoryChangeReportOrderPinTests` reads the two patch files,
   removes whole-line, inline and block comments and requires every fact call of each gesture postfix to

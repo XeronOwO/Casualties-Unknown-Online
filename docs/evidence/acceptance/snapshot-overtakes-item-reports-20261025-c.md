@@ -7,7 +7,7 @@
   pre-fix pair batch `20261025-b` read — two `[CharSync] divergence` lines 1–3 ms before
   `[CarriedSync] applied` — does not reproduce.
 - Batch: `20261025-c` — this ticket only. The sibling the review filed
-  (`review/craft-carried-fact-retirement.md`) needs a craft fixture and is not in this batch.
+  (`done/craft-carried-fact-retirement.md`) needs a craft fixture and is not in this batch.
 - Commit: `1401eb24` · Deployed artifact: `CasualtiesUnknownOnline.dll`, ProductVersion
   `0.1.0+1401eb2489177de12e2d41bf8777fa52e3dca78d` (`prelude-verify-deploy.txt`; `tools/verify-deploy.ps1`
   exit 0).
@@ -57,7 +57,7 @@ top-level move), both from the one event.
   `SendItemCarriedSync` vs `SendItemSlot`), and the batch that filed the ticket (`20261025-b`) had the
   member as the owner. A host-owner repetition stays useful.
 - The craft-scope sibling the review found is not part of this row; it is
-  `docs/backlog/review/craft-carried-fact-retirement.md`.
+  `docs/backlog/done/craft-carried-fact-retirement.md` (accepted in batch `20261025-d`).
 - The row driver's first summary counted the bag as a moved item and flagged the wear row for the bag's
   missing applied line — a container whose contents moved owns no applied line. `judgement.txt` re-reads
   the same windows against the moved child (keeping the bag as a divergence watch), and the rule is now

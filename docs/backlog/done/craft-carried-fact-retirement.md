@@ -1,6 +1,10 @@
 # A craft report never retires a carried material
 
-- Status: Review (code complete; awaiting the acceptance batch)
+- Status: Done (batch `20261025-d`, 2026-10-20: the member crafted the `slingbag` from four carried
+  destroyable materials and again with the wear slot occupied; every viewer applied the report's four
+  `[CarriedSync] removed …` lines, the host apply line and the third peer's relay line sit in the same
+  window, and **zero** `[CharSync] divergence` appears in any of the three 6 s windows. Rows 1–2 pass;
+  record `docs/evidence/acceptance/craft-carried-fact-retirement-20261025-d.md`)
 - Priority: Medium
 - Category: Crafting / clone fact table (carried-fact event coverage and report ordering)
 - Source: independent adversarial review of `done/snapshot-overtakes-item-reports.md` (2026-10-20) —
@@ -131,8 +135,11 @@ zero-divergence row is judged for the incumbent and the consumed materials.
 
 - This cycle's self-check, mechanism × change × evidence table and the independent review's dispositions:
   `docs/evidence/selfchecks/items/craft-carried-fact-retirement-selfcheck.md`.
-- The acceptance record (`docs/evidence/acceptance/craft-carried-fact-retirement-20261025-d.md`) is the
-  runtime half, written by the batch that follows this commit.
+- The runtime half: `docs/evidence/acceptance/craft-carried-fact-retirement-20261025-d.md` — the member
+  crafted the wearable `slingbag` from four carried destroyable materials, and again with the wear slot
+  occupied (native refusal); every viewer applied the report's four removals, the host apply line and the
+  third peer's relay line are in the window, and **zero** divergence appears in any of the three 6 s
+  windows.
 
 ## Limits
 

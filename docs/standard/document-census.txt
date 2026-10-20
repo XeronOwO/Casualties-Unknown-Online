@@ -319,7 +319,7 @@ docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/
 docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/container-child-limb-install-keeps-a-contained-record.md | keep | index | docs/backlog/README.md
-docs/backlog/review/craft-carried-fact-retirement.md | keep | index | docs/backlog/README.md
+docs/backlog/done/craft-carried-fact-retirement.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
 docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/player-music-sync-playback.md | keep | index | docs/backlog/README.md
@@ -453,6 +453,7 @@ docs/evidence/acceptance/carry-piggyback-rider-position-smoothing-20260927.md | 
 docs/evidence/acceptance/carry-piggyback-rider-position-smoothing-20260930.md | keep | claim | docs/backlog/done/carry-piggyback-rider-position-smoothing.md
 docs/evidence/acceptance/carry-piggyback-vertical-placement-asymmetry-20260927.md | keep | claim | docs/backlog/done/carry-piggyback-vertical-placement-asymmetry.md
 docs/evidence/acceptance/catalogue-and-manifest-census-drift-20260927.md | keep | claim | docs/backlog/done/catalogue-and-manifest-census-drift.md
+docs/evidence/acceptance/craft-carried-fact-retirement-20261025-d.md | keep | claim | docs/backlog/done/craft-carried-fact-retirement.md
 docs/evidence/acceptance/checkpoint-run-epoch-validation-20260927.md | keep | claim | docs/backlog/done/checkpoint-run-epoch-validation.md
 docs/evidence/acceptance/command-id-name-completion-20260927.md | keep | claim | docs/backlog/done/command-id-name-completion.md
 docs/evidence/acceptance/command-registration-attribute-refactor-20260927.md | keep | claim | docs/backlog/done/command-registration-attribute-refactor.md
@@ -713,7 +714,7 @@ docs/evidence/selfchecks/items/container-move-event-carrier-selfcheck.md | keep 
 docs/evidence/selfchecks/items/container-move-kernel-fact-selfcheck.md | keep | claim | docs/backlog/done/pickup-early-return-kernel-relocation.md
 docs/evidence/selfchecks/items/container-move-pair-classification-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/items/container-take-out-selfcheck.md | keep | claim | docs/backlog/done/pickup-early-return-kernel-relocation.md
-docs/evidence/selfchecks/items/craft-carried-fact-retirement-selfcheck.md | keep | claim | docs/backlog/review/craft-carried-fact-retirement.md
+docs/evidence/selfchecks/items/craft-carried-fact-retirement-selfcheck.md | keep | claim | docs/backlog/done/craft-carried-fact-retirement.md
 docs/evidence/selfchecks/items/cross-player-item-use-selfcheck.md | keep | claim | docs/backlog/todo/cross-player-drag-use-feedback.md
 docs/evidence/selfchecks/items/custom-item-data-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/display-body-query-seam-selfcheck.md | keep | claim | docs/decisions/active.md

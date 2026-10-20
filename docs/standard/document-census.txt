@@ -310,7 +310,7 @@ docs/evidence/acceptance/member-report-bounds-trader-give-20261018-z.md | keep |
 docs/backlog/done/heal-reset-does-not-restore-host-owned-vitals.md | keep | index | docs/backlog/README.md
 docs/backlog/done/validation-and-source-checks.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/layer-change-member-recovery.md | keep | index | docs/backlog/README.md
+docs/backlog/review/layer-change-member-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/review/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
@@ -524,8 +524,8 @@ docs/evidence/acceptance/item-id-counter-is-not-resumed-by-a-restore-20261021-a.
 docs/evidence/acceptance/item-data-write-verbs-20261018.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/loading-screen-wait-text-20261018.md | keep | claim | docs/backlog/todo/loading-screen-progress-detail.md
 docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md | keep | claim | docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md
-docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md | keep | claim | docs/backlog/todo/layer-change-member-recovery.md
-docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md | keep | claim | docs/backlog/todo/layer-change-member-recovery.md
+docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md | keep | claim | docs/backlog/review/layer-change-member-recovery.md
+docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md | keep | claim | docs/backlog/review/layer-change-member-recovery.md
 docs/evidence/acceptance/layer-mod-baseline-divergence-on-continue-20261002-l.md | keep | claim | docs/backlog/done/layer-mod-baseline-divergence-on-continue.md
 docs/evidence/acceptance/legacy-wire-dto-slice-20260927.md | keep | claim | docs/backlog/done/legacy-wire-dto-slice.md
 docs/evidence/acceptance/local-item-into-remote-display-20261006-e.md | keep | claim | docs/evidence/selfchecks/items/local-item-into-remote-display-selfcheck.md
@@ -723,7 +723,7 @@ docs/evidence/selfchecks/items/item-identity-across-transforms-design.md | keep 
 docs/evidence/selfchecks/items/item-keyframe-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-service-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-spawn-presentation-kernel-selfcheck.md | keep | claim | docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md
-docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md | keep | claim | docs/backlog/todo/layer-change-member-recovery.md
+docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md | keep | claim | docs/backlog/review/layer-change-member-recovery.md
 docs/evidence/selfchecks/items/local-item-into-remote-display-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/pickup-inflight-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/remote-backpack-container-take-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
@@ -972,6 +972,7 @@ docs/evidence/selfchecks/world/blueprint-popup-selfcheck.md | keep | claim | doc
 docs/evidence/selfchecks/world/cactus-selfdamage-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/guest-hears-only-some-block-break-sounds-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/world/heater-xaloris-local-body-effect-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
+docs/evidence/selfchecks/world/layer-change-member-recovery-selfcheck.md | keep | claim | docs/backlog/review/layer-change-member-recovery.md
 docs/evidence/selfchecks/world/layer-complete-choice-for-members-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/world/openable-keypad-prefabs-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/quake-direct-write-selfcheck.md | keep | claim | docs/decisions/active.md

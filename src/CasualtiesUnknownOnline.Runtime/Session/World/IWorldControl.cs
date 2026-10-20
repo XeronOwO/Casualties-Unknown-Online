@@ -27,6 +27,14 @@ public interface IWorldControl
 	/// <summary>Host: send a targeted world-join instruction (a reconnecting member's re-entry).</summary>
 	void SendWorldJoinTo(ulong steamId);
 
+	/// <summary>
+	/// Host: whether a run baseline is committed in the kernel — the fact <see cref="SendWorldJoinTo"/>
+	/// makes its baseline promise from (<c>RunBaselineFollows</c>), and the condition a re-entry answer
+	/// is admitted on. With no committed baseline the instruction promises nothing and the member's
+	/// generation waits on params that never arrive, so the answer is refused by name instead.
+	/// </summary>
+	bool HasCommittedRunBaseline { get; }
+
 	/// <summary>Host only: a run started (click moment) but the host is not in the world yet — mid-generation handshakes may follow immediately.</summary>
 	bool HostRunPending { get; }
 

@@ -7,7 +7,7 @@
   are not together.
 - Related: `reversing/Assembly-CSharp/Assembly-CSharp/WorldGeneration.cs` (the generation's own last step for
   placement), `reversing/Assembly-CSharp/Assembly-CSharp/Body.cs` (`PlaceBody`), the layer-transition tickets
-  `done/layer-change-member-dropout.md` and `todo/layer-change-member-recovery.md` (the same boundary, other
+  `done/layer-change-member-dropout.md` and `review/layer-change-member-recovery.md` (the same boundary, other
   symptoms), `done/reenter-baseline-adoption.md` (a member entering after the host)
 
 ## What is observed
@@ -42,12 +42,12 @@
    re-enters after a dropout must land by the same rule.
 3. Cover the failure paths: a layer whose entry point is blocked, a member who is dead or being carried when
    the group descends, and a member whose body is out of the world at that moment
-   (`todo/layer-change-member-recovery.md`'s state).
+   (`review/layer-change-member-recovery.md`'s state).
 4. Verify on three clients: after a descent every member reads the same entry point (within the tolerance the
    rule names), and no member is left in the previous layer's geometry.
 
 ## Non-goals
 
 - Not a spawn-selection feature (choosing where to enter): the ask is that the group stays together.
-- Not a fix for the member-dropout family: that is `todo/layer-change-member-recovery.md`; this ticket owns
+- Not a fix for the member-dropout family: that is `review/layer-change-member-recovery.md`; this ticket owns
   where an in-world member ends up.

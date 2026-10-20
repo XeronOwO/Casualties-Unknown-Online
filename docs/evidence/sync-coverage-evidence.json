@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1104,
+  "count": 1113,
   "entries": [
     {
       "cluster": "inline",
@@ -6627,6 +6627,60 @@
       "row": "E2",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/ItemRejectMsg.cs",
       "quote": "TrapDropUnaccounted = 3,"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "ReentryRequest = 156, // guest → host: this member was pulled out of the world by the host's own exit and asks to be taken back in"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/ReentryRequestMsg.cs",
+      "quote": "public sealed class ReentryRequestMsg"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/ReentryRequestHandler.cs",
+      "quote": "[PacketHandler(NetMsg.ReentryRequest, NetMessageDirection.GuestToHost)]"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/ReentryRequestChannel.cs",
+      "quote": "if (!_session.TryGetMember(senderId, out var member) || !member.Handshaken)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/ReentryRequestChannel.cs",
+      "quote": "if (_lastSpokenMs.TryGetValue(senderId, out var lastMs) && lastMs <= nowMs && nowMs - lastMs < MinIntervalMs)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Composition/WorldComposition.cs",
+      "quote": "services.AddSingleton<IReentryControl>(p => p.GetRequiredService<ReentryRequestChannel>());"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/ReentryPolicy.cs",
+      "quote": "return runBaselinePublished ? ReentryDecision.Invite : ReentryDecision.NoRunBaseline;"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/ReentryCoordinator.cs",
+      "quote": "_session.RemoteSceneChanged += OnRemoteSceneChanged;"
+    },
+    {
+      "cluster": "inline",
+      "row": "R11",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/ReentryCoordinator.cs",
+      "quote": "_world.SendWorldJoinTo(sender);"
     }
   ]
 }

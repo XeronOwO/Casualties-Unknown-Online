@@ -423,4 +423,21 @@ public enum NetMsg : byte
 	// events and applies the row to its own body, so this is not a body write by the host)
 	PlayerVitals = 154, // host → client: the host-computed bleeding row (blood volume + total speed + per-limb bleed, 10 Hz, unreliable; also answers a refused report by field name)
 
+	// The world-entry instruction is an EDGE: the host sends it once per entry (at its own
+	// world-entry transition and at the click), and the member's state at that instant can make
+	// it vanish — one that arrives while the member is still in its old world waits at the entry
+	// gate and is discarded when that world unloads, and one the member never received has no
+	// second chance. A layer change is the case that exposes it: the host regenerates (its world
+	// leaves the scene, every member is pulled to the menu), the members follow the host's
+	// re-entry invite, and a member whose invite was lost is still in the menu a minute later
+	// with no body (batch `20261007-a`'s unprotected member).
+	//
+	// So the member REPORTS the one fact the host cannot see — it is out of the world and its
+	// exit was the host's own transition (a member that chose the menu must stay there) — and
+	// the host answers with the SAME instruction every other entry uses: the targeted
+	// `WorldJoin` and the run-baseline checkpoint that follows it. The host's own facts bound it
+	// (handshaken member, held OUT of the world, a live world, a published run baseline), and a
+	// per-sender cooldown keeps a spammer from making the host ship a checkpoint set per frame.
+	ReentryRequest = 156, // guest → host: this member was pulled out of the world by the host's own exit and asks to be taken back in
+
 }

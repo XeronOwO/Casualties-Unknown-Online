@@ -226,6 +226,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 140 | `RunFacts` | host → guest | the run clock as read at the send point and the layer's radiation-timer accounting, stamped with the run-baseline generation (the receiver maps the reading onto its own world's base) |
 | 141 | `ItemImpact` | host → guest | the authority's own world-item landing presentation (the drop clip, the landing block's step sound, the dust or a plush's squeak) at a position |
 | 142 | `LayerAdvanceRequest` | guest → host | a member reached the end of the layer and chose to continue, stamped with its own kernel generation — the host drives the layer's advance when the stamp is the generation it is in |
+| 156 | `ReentryRequest` | guest → host | a member the host's own world exit pulled into the menu asks to be taken back in; the host answers with the ordinary targeted `WorldJoin` and its run-baseline checkpoint, so the entry instruction is not a one-shot |
 
 **Fluid, world time and the tutorial**
 

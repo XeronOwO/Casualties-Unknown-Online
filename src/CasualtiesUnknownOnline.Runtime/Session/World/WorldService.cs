@@ -52,6 +52,9 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		set => _messages.WorldParams = value;
 	}
 
+	/// <summary>Host: a committed kernel run baseline exists — the fact the targeted world-join's baseline promise is made from, read from the same source the instruction reads it.</summary>
+	public bool HasCommittedRunBaseline => _messages.Generations.Current is not null;
+
 	public RadiationLineStateMsg? RadiationLineState => _messages.RadiationLineState;
 
 	/// <summary>Guest: the host released the start gate — start playing (or, for a late joiner, enter directly).</summary>

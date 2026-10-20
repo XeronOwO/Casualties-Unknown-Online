@@ -25,6 +25,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
 	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw,
 	IKernelProtocolControl kernelProtocol, ILayerAdvanceControl layerAdvance,
+	IReentryControl reentry,
 	IWorldSummonControl worldSummon,
 	IHealResetControl healReset,
 	AnnouncedHostRules hostRules, AnnouncedCheatPermissions cheatPermissions) :
@@ -47,6 +48,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ITutorialSessionHandlerContext,
 	IWorldTimeHandlerContext,
 	ILayerAdvanceHandlerContext,
+	IReentryHandlerContext,
 	IKernelProtocolContext,
 	IHostRulesHandlerContext,
 	ICheatPermissionHandlerContext,
@@ -65,6 +67,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The end-of-layer choice's domain (a member's choice drives the host's own layer advance).</summary>
 	public ILayerAdvanceControl LayerAdvance { get; } = layerAdvance;
+
+	/// <summary>The world re-entry request's domain (a member pulled out by the host's own exit asks to be taken back in; the host answers with the ordinary entry instruction).</summary>
+	public IReentryControl Reentry { get; } = reentry;
 
 	/// <summary>The direct player-interaction domain (take items from another player, host-authoritative).</summary>
 	public IPlayerInteractionControl PlayerInteraction { get; } = playerInteraction;

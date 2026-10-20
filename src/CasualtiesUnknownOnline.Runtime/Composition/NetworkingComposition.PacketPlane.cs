@@ -77,6 +77,7 @@ internal static class NetworkingPacketPlaneComposition
 			p.GetRequiredService<ITutorialClawControl>(),
 			p.GetRequiredService<IKernelProtocolControl>(),
 			p.GetRequiredService<ILayerAdvanceControl>(),
+			p.GetRequiredService<IReentryControl>(),
 			p.GetRequiredService<IWorldSummonControl>(),
 			p.GetRequiredService<IHealResetControl>(),
 			p.GetRequiredService<AnnouncedHostRules>(),

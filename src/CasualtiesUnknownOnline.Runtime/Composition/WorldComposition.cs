@@ -36,6 +36,8 @@ internal static class WorldComposition
 		services.AddSingleton<IWorldTimeControl>(p => p.GetRequiredService<WorldTimeChannel>());
 		services.AddSingleton<LayerAdvanceRequestChannel>(); // the end-of-layer choice's request flow (one guest → host request per member click)
 		services.AddSingleton<ILayerAdvanceControl>(p => p.GetRequiredService<LayerAdvanceRequestChannel>());
+		services.AddSingleton<ReentryRequestChannel>(); // the world re-entry request: a member pulled out by the host's own exit asks to be taken back in
+		services.AddSingleton<IReentryControl>(p => p.GetRequiredService<ReentryRequestChannel>());
 		services.AddSingleton<EntityEventChannel>(); // the entity-event channel + the consumption/opened/health/layout registries
 		services.AddSingleton<RuntimeEntityChannel>(); // the runtime entity-creation channel + its E3 recovery tables
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)

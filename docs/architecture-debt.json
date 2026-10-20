@@ -1,7 +1,8 @@
 {
   "CasualtiesUnknownOnline.GameAdapter.GameAdapter": {
-    "Lines": 622,
-    "BoolFlags": 5
+    "Lines": 624,
+    "BoolFlags": 5,
+    "Note": "The world re-entry recovery added two lines only: the IReentryControl constructor parameter and the one-line pump call of a step that lives in its own domain (ReentryCoordinator), which is the watchlist's rule for this file. The seam a split owes is still the patch-bridge forwarding half."
   },
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
     "Lines": 611,
@@ -17,5 +18,10 @@
     "Lines": 626,
     "BoolFlags": 0,
     "Note": "The heal authority event added the applied-reset send seam (whose verdict the caller must see) after the event-merge seams moved into CharacterEventMerges. The planned split is still the host-model companion (advance marks + refusal window) fed by this store, leaving the table the save/restore and the report filter."
+  },
+  "CasualtiesUnknownOnline.Runtime.Session.World.WorldService": {
+    "Lines": 602,
+    "BoolFlags": 0,
+    "Note": "The world re-entry recovery added the HasCommittedRunBaseline read (the fact the targeted world-join's baseline promise is made from) to the world facade, which stood at 598 across its two partial files. The next change here owes the split the second partial's own comment names: the report-recovery pass-throughs (WorldService.ReportRecovery.cs) against the world-fact lifecycle and the entry fan-out the facade drives."
   }
 }

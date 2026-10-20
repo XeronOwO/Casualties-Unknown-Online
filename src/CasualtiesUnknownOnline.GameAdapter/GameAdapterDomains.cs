@@ -136,6 +136,9 @@ internal sealed class GameAdapterDomains
 
 	/// <summary>The end-of-layer choice's world half: a member's choice reaches the host, and the host drives the game's own layer advance for it.</summary>
 	internal readonly LayerAdvanceCoordinator LayerAdvance;
+
+	/// <summary>The world-entry instruction's recovery: a member pulled out by the host's own exit asks for the invite again, and the host answers with the ordinary entry instruction.</summary>
+	internal readonly ReentryCoordinator Reentry;
 	internal readonly SpeechSync SpeechSync;
 	internal readonly CraftingSync CraftingSync;
 	internal readonly RecipeUnlockApply RecipeUnlockApply;
@@ -176,6 +179,7 @@ internal sealed class GameAdapterDomains
 		EnemySyncService enemies,
 		IWorldTimeControl worldTime,
 		ILayerAdvanceControl layerAdvance,
+		IReentryControl reentry,
 		IPlayerInteractionControl playerInteraction,
 		ITutorialClawControl tutorialClaw,
 		IWorldSaveControl worldSaves,
@@ -399,6 +403,10 @@ internal sealed class GameAdapterDomains
 		// Built after the run: the spectator camera reads the run's own local body, this client's clone
 		// renderer and the rule surface, and the run is constructed here.
 		Spectator = new SpectatorCameraService(Run, Renderer, HostRules, session, entities, loggerFactory.CreateLogger<SpectatorCameraService>());
+		// The run-follow's recovery half: the member's bounded ask for the entry instruction it may
+		// have missed, and the host's answer with the same instruction every other entry uses. Built
+		// after the run because the window reads the run's own phase and world facts.
+		Reentry = new ReentryCoordinator(session, world, reentry, Run, time, loggerFactory.CreateLogger<ReentryCoordinator>());
 		// The frame-end cut seam is the LAST domain of the pump: it is where every
 		// cut trigger is taken (the armed /save request and the deliberate menu
 		// return of a host or a solo player), after every domain has finished this

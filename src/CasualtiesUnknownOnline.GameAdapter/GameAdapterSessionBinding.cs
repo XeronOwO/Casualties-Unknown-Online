@@ -41,6 +41,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.TraderRecruit.BindToSession();
 		domains.Respawn.BindToSession();
 		domains.LayerAdvance.BindToSession();
+		domains.Reentry.BindToSession();
 		domains.SpeechSync.BindToSession();
 		domains.RecipeUnlockApply.BindToSession();
 		domains.EnemySync.BindToSession();
@@ -100,6 +101,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.TraderRecruit.Unbind();
 		domains.Respawn.Unbind();
 		domains.LayerAdvance.Unbind();
+		domains.Reentry.Unbind();
 		domains.SpeechSync.Unbind();
 		domains.RecipeUnlockApply.Unbind();
 		domains.EnemySync.Unbind();

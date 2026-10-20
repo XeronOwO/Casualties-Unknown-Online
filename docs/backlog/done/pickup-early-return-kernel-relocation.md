@@ -1,6 +1,10 @@
 # A pending-drop pickup reports only a slot re-home, so a contained kernel record can survive
 
-- Status: Review
+- Status: Done (batch `20261025-b`, 2026-10-20: the member took a bag child onto a ring slot, then loaded
+  another item into the bag — the bag's report did not charge the child, the host's kernel record stayed
+  `Carried`, and a later slot move of it was accepted; the radial wear of a bag child landed on the limb and
+  left the same clean record. Rows 1–4 pass; record
+  `docs/evidence/acceptance/pickup-early-return-kernel-relocation-20261025-b.md`).
 - Priority: Low-Medium
 - Category: Item sync / kernel locations (the host's own carried-fact carriers)
 - Source: the independent adversarial review of the container-move kernel-fact fix (2026-10-06), which
@@ -10,8 +14,8 @@
 - Related: `done/container-move-snapshot-only-sync.md` (the change that made the consequence reachable from
   more paths), `done/remote-inventory-native-parity-rework.md` (the gesture family),
   `done/member-report-bounds.md` (the container-changed-hands rule the eligibility test below follows),
-  `todo/container-content-event-gap-on-repick.md` (the same gesture read on the PEERS' fact table — a
-  different carrier, still open), `todo/container-child-limb-install-keeps-a-contained-record.md` (the
+  `done/container-content-event-gap-on-repick.md` (the same gesture read on the PEERS' fact table — a
+  different carrier, closed by batch `20261025-b`), `todo/container-child-limb-install-keeps-a-contained-record.md` (the
   applied family's sibling, found while fixing this one)
 - Evidence: `docs/evidence/selfchecks/items/container-take-out-selfcheck.md` (this cycle) and
   `docs/evidence/selfchecks/items/container-move-kernel-fact-selfcheck.md` (the review that filed this
@@ -159,27 +163,27 @@ New behaviour tests, run green on the deployed-artifact commit's tree:
 - Full suite: 6113 behavioural tests and 751 normative gates pass; build 0 warnings 0 errors; `dotnet format`
   clean.
 
-## What a session must still read (the acceptance row)
+## What the session read (batch `20261025-b`, 2026-10-20)
 
-Two clients (host + one member), the member carrying a bag with an item in it. The member takes the item out
-of the bag onto a ring slot, then puts another item INTO the bag (the container report that used to
-terminalize the first child). Read on the host: no `[ContainerSync] the report for <bag> no longer names …`
-warning for that child, and the child stays usable (a slot move after the report is accepted, not refused).
-Read on the third client: the child is at the slot, not inside the bag. The same run drives the RADIAL WEAR
-of a bag child, which must land on the limb and leave the same clean record.
-
-The driver has no mouse (`todo/cross-player-drag-use-feedback.md`), so the batch drives both gestures
-in-process — a recipe of `tools/acceptance/recipes/body-call.cs`'s shape calling `Body.PickUpItem` and
-`Body.WearWearable` on the owner's body — and reads the host's kernel row plus the two logs.
+Three clients, one world. On the owner's body, in process (`Body.PickUpItem` / `Body.WearWearable`, the
+`body-call` shape the note below names): the member took the bag child out onto a ring slot, then loaded
+another item INTO the bag. The host logged no `[ContainerSync] … no longer names …` warning for the child,
+the child's kernel row stayed `Carried` (`a1b-host-table.json`), and a slot move after the report was
+accepted (`a1c-*`). The third client read the child at its slot, not inside the bag (`a1-alt-clone.json`).
+The radial wear of a bag child landed on the limb (`parentAfter: UpTorso`, `origin: limb1`, `wearable:
+true`) and left the same clean record (`a2-*`). The wear's window does carry the clone-fact monitor's
+in-flight pair — the carrying fact is applied 1–3 ms after the snapshot — which is a separate ordering
+defect filed as `todo/snapshot-overtakes-item-reports.md`, not a terminal record. Full
+reading: `docs/evidence/acceptance/pickup-early-return-kernel-relocation-20261025-b.md`.
 
 ## Limits
 
-- No session was run in this cycle, so the acceptance row above is open.
 - The wound-view apply of a container child (a splint out of a bag onto a limb) is the APPLIED family's gap
   and stays ticketed (`todo/container-child-limb-install-keeps-a-contained-record.md`); it is a different
   native entry (`PlayerCamera.ApplyWoundItem` → `useLimbAction`) and a different kernel destination.
-- The peers' clone fact table learning the bag's own change from an EVENT (the sibling ticket's row, with
-  zero `[CharSync] divergence`) is still unread; this change states the child's arrival, which the clone
-  fact table prunes from wherever it held the child, but the sibling's three-client reading stands.
+- The peers' clone fact table learning the bag's own change from an EVENT, with zero `[CharSync]
+  divergence`, is read by the sibling ticket's batch (`done/container-content-event-gap-on-repick.md`):
+  its drag rows and the owner-local control are clean; the radial wear's own monitor pair is the ordering
+  defect above.
 - The send order (report before the slot fact) is a design choice, not an observed requirement: both orders
   end with the data on the owner's row, and no test distinguishes them.

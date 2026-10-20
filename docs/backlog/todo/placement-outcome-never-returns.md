@@ -9,8 +9,9 @@
   2026-10-19 when that ticket's row-4 item loss was fixed, because the slot fallback is now the path the fix
   itself produces, and the finding needs its own home.
 - Related: `done/give-item-to-another-player.md` (the custody path and its acceptance rows),
-  `todo/container-content-event-gap-on-repick.md` (the adjacent event-carrier gap: a container child moved
-  into a slot announces nothing to the peers' fact tables), `done/item-identity-across-transforms.md`
+  `done/container-content-event-gap-on-repick.md` (the adjacent event-carrier gap: a container child moved
+  into a slot announces nothing to the peers' fact tables — closed by batch `20261025-b`),
+  `done/item-identity-across-transforms.md`
 
 ## What it is
 

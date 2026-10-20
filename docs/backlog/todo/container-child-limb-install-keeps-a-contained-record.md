@@ -3,11 +3,11 @@
 - Status: Todo
 - Priority: Low-Medium
 - Category: Item sync / kernel locations (the applied family's eligibility rule)
-- Source: found while fixing `review/pickup-early-return-kernel-relocation.md` (2026-10-20), which took the
+- Source: found while fixing `done/pickup-early-return-kernel-relocation.md` (2026-10-20), which took the
   radial-wear half of the same cancelled departure and left this one — the WOUND-VIEW apply, a different
   native entry and a different kernel destination.
-- Related: `review/pickup-early-return-kernel-relocation.md` (the carried destinations: re-pick and radial
-  wear, both fixed), `done/container-move-snapshot-only-sync.md`
+- Related: `done/pickup-early-return-kernel-relocation.md` (the carried destinations: re-pick and radial
+  wear, both accepted by batch `20261025-b`), `done/container-move-snapshot-only-sync.md`
 - Evidence: `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:739-763` and `:1656-1659`,
   `src/CasualtiesUnknownOnline.Application/Kernel/KernelCommandGateway.cs` (`MayInstallOnOwnLimb`),
   `src/CasualtiesUnknownOnline.GameState/Domains/Items/LimbItemLocationRules.cs` (`DecideApply`)

@@ -415,10 +415,6 @@ A change that alters a default is only observable in the states the OLD default 
 
 Drive a fixture known to throw LAST in its session, and restart a client whose scope guard has latched (`CallContext.Enter depth 16 exceeded`) rather than fighting it. The lesson inside the lesson: a mechanism sentence is built from the ARTIFACT, not from the frame the log happens to print first — this batch's first attribution named two frames that carry no CUO scope, and its own review caught it.
 
-## 2026-10-11 — Write probes as files on this channel, not as inline snippets
-
-An inline `--code` submission has to survive the shell, the argument quoting and the client's parser at once, while the file form has none of that and leaves the probe in the batch directory where a record can cite it: every cited probe is its own file, reusable ones are promoted into `tools/acceptance/recipes/` before the batch closes, and `ok` WITHOUT a value is a failed probe rather than a passing one.
-
 ## 2026-10-11 — Batch `20261011-c`: an exception census names the known startup line, and an artifact is checked before it is cited
 
 Count exceptions per peer AND name the one known startup line with its timestamp (every client throws the `DataAnnotations` `TypeLoadException` once at plugin startup), so the record separates "the session was quiet" from "the client logged its usual line"; count the MECHANISM (the exception type or its message) rather than the `[Unity:Exception]` marker as a second dimension, since the marker is part of every such line and two equal columns are one reading twice; and list the batch directory to check each cited artifact exists BEFORE writing the record, because a reading that lives only in the transcript is not evidence a later reader can open.
@@ -490,10 +486,6 @@ A container item answers `GetComponentInParent<Container>()` for itself, so a pr
 
 After `quit` a host can log `Steam API shut down` and still hold the process: read the path, stop only the process this run started once the shutdown line is there, then relaunch — a save batch's archives have already committed — `docs/evidence/acceptance/item-id-counter-is-not-resumed-by-a-restore-20261021-a.md`.
 
-## 2026-10-19 — A batch-local probe sender is not the driver: placeholders are verbatim and the leftover check misses `{{n:...}}`
-
-A batch probe template spells a string placeholder with its own quotes and the sender is invoked in-process (`& probe.ps1 -Arg @('s:x=...','n:y=...')`); `-File` binds the comma list as one string and the sender's leftover regex does not match a colon, so a mis-bound argument reaches the client as a compile error with no value. Read the expanded `x-<name>.cs` once before trusting an empty answer — `.acceptance/20261023-a/probe.ps1`, `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md`.
-
 ## 2026-10-19 — A member joining a run in progress is in the world before its session is
 
 The driver's `state` reads the game's own world (`inWorld:true`) while `SessionService.LocalInWorld` is still false and the host has not published the member yet, so a remote view opened on the join's first answer refuses (`opened:false`, `isRemoteInWorld:false`): retry the production open after the member's own `PlayerJoin` line, and read the session predicates rather than the scene — `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md`.
@@ -517,5 +509,13 @@ A row whose production path starts with a pointer-resolved target is not stageab
 ## 2026-10-20 — A `[LayerReset]` line count is not a layer-advance count
 
 One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:1042-1067`) and still emits four `[LayerReset]` lines — the item and world resets fire at the generation's START and again at its END — so a "second advance ~9 s later" read off a census of that prefix is the same advance counted twice; count the host's `[GenStream] done` lines, or read the decompiled command, before calling a change consecutive — `docs/evidence/acceptance/layer-change-member-recovery-20261025-a.md` (What this batch also corrected).
+
+## 2026-10-20 — A ticket's "the driver cannot drag" note is stale: the committed release recipe IS the lever
+
+`remote-gesture mode=release` stages `dragItem`, `clickPos` and one `uiCasts` entry and invokes the game's own `HandleReleaseDragging`, so a ring-slot release needs no OS pointer — read the recipe's modes before planning around a ticket's missing-mouse note, open the remote view first (`mode=open`), take the cast index from `mode=list`'s own button table (slot and occupant), then drive the release — `docs/evidence/acceptance/container-content-event-gap-on-repick-20261025-b.md`.
+
+## 2026-10-20 — A per-row log excerpt is a time window, not mark-to-end
+
+`log.ps1`'s `read` returns everything after the mark, so one mark reused for several rows mixes their lines into an earlier row's absence claim — filter the excerpt by the row's own seconds and print its first and last timestamp before citing it (a first count read four divergences in a window that had none) — `docs/evidence/acceptance/container-content-event-gap-on-repick-20261025-b.md`.
 
 

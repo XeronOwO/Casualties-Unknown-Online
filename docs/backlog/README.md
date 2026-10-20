@@ -52,7 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [A container child moved into a slot loses its container fact](todo/container-content-event-gap-on-repick.md) — **Medium** — the re-pick cancels it.
+- [The snapshot overtakes the item reports](todo/snapshot-overtakes-item-reports.md) — **Medium** — the peers' monitor warns a beat before the fact lands.
 - [The archive's two id carriers can disagree](todo/id-carriers-can-disagree-about-placement.md) — **Low** — unproven; needs a probe inside the report window.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
 - [The receiver's placement never returns to the host](todo/placement-outcome-never-returns.md) — **Medium** — the ledger keeps what it was told.
@@ -80,7 +80,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [A pending-drop pickup reports only a slot re-home](review/pickup-early-return-kernel-relocation.md) — **Low-Medium** — a contained kernel record can survive.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
@@ -177,6 +176,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [A container child moved into a slot loses its container fact](done/container-content-event-gap-on-repick.md) — **Medium** — accepted in `20261025-b`.
+- [A pending-drop pickup reports only a slot re-home](done/pickup-early-return-kernel-relocation.md) — **Low-Medium** — accepted in `20261025-b`.
 - [A health-usable liquid in a drinkable container](done/topical-live-stack-family-order.md) — **Low-Medium** — accepted in `20261020-b`.
 - [A member that lost its body to a layer change](done/layer-change-member-recovery.md) — **Medium** — accepted in `20261025-a`; the entry is re-asked.
 - [Limb-tool protections weaker than recorded](done/limb-tool-family-protection-gaps.md) — **High** — accepted; the picked limb is served, the other refused.

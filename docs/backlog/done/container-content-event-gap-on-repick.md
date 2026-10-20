@@ -1,6 +1,10 @@
 # A container child moved into a slot loses its container fact when the pick-up cancels the departure
 
-- Status: Todo
+- Status: Done (batch `20261025-b`, 2026-10-20: the operator's release of a focused owner's container
+  child onto an occupied and an empty ring slot gave zero `[CharSync] divergence` on every client, the bag
+  reading one child fewer on the owner's tree, the host's kernel record and the third client's proxy tree,
+  with the child in the destination slot; the owner-local control is clean too. Rows 1–4 pass; record
+  `docs/evidence/acceptance/container-content-event-gap-on-repick-20261025-b.md`).
 - Priority: Medium
 - Category: Item sync / event carriers (container contents vs the clone fact table)
 - Source: batch `20261006-f`'s readings (2026-10-06) — the operator's and the third peer's clone-fact
@@ -132,7 +136,9 @@ expansion loop, the local container-child drag, the `TransferToBody` half), and 
 "a new carried item the fact table never saw" judgement alone — it is the watchdog doing its job, and this ticket
 is about the fact going unreported, not about the judgement being wrong.
 
-**What still blocks the acceptance row**: the readings need a drag, and the driver has no mouse — the native
-release decides its target from the cursor position, so setting `PlayerCamera.dragItem` alone cannot aim it. That
-lever is already recorded on `cross-player-drag-use-feedback.md`, so this ticket does not re-record it; what it
-records is that the same lever unblocks this row too.
+**What the batch read (2026-10-20)**: the lever was the committed `remote-gesture` release
+(`mode=release` with a staged `uiCasts` entry), which drives the game's own `HandleReleaseDragging` with no
+OS pointer — the drag the note above was waiting for. Batch `20261025-b` released a bag child onto an
+occupied and an empty ring slot of its owner, and every client read zero divergence with the bag one child
+fewer; the same run's owner-local control (`Body.PickUpItem` in process) is clean too. Record:
+`docs/evidence/acceptance/container-content-event-gap-on-repick-20261025-b.md`.

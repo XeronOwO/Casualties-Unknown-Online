@@ -99,6 +99,7 @@ register is routed from `README.md` beside it and from `docs/evidence/verificati
 | protocol/ip-direct-selfcheck.md | Other | current | — |
 | items/item-cook-replay-split-selfcheck.md | Items | current | — |
 | items/item-keyframe-state-selfcheck.md | Items | current | — |
+| items/item-report-order-selfcheck.md | Items | current | the three gesture postfixes report their item fact before the immediate character snapshot (pinned by `InventoryChangeReportOrderPinTests`); the craft-scope sibling is `docs/backlog/todo/craft-carried-fact-retirement.md` |
 | items/item-service-split-selfcheck.md | Items | current | — |
 | players/limb-presentation-selfcheck.md | Players | current | — |
 | session/lobby-leave-host-rules-editor-selfcheck.md | Other | current | — |

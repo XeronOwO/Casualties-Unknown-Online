@@ -202,11 +202,11 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	}
 
 	/// <summary>
-	/// A patch observed a local inventory change and asks for the immediate clone re-report. The order
-	/// rule lives here because this is the patch layer's ONE entry point for it: while a drop report is
-	/// registered but not yet sent, the snapshot would reach the peers ahead of the event that explains
-	/// the change (batch `20261005-e` read exactly that as "left the inventory without an event sync").
-	/// The drop carrier announces it on the next frame; the periodic snapshot converges what it misses.
+	/// A patch observed a local inventory change and asks for the immediate clone re-report. The order rule
+	/// lives here because this is the patch layer's ONE entry point for it: the caller reports the change's
+	/// item FACT first (slot move, wear, pickup, craft report), then the snapshot — a peer compares an
+	/// arriving snapshot against the facts it already holds, so one that overtakes its event reads as a move
+	/// without a report and fires the divergence pair (`20261005-e` read the drop's single line, `20261025-b` one pair per wear/swap); while a DROP report is registered but not yet sent, the snapshot is deferred, and the periodic one converges.
 	/// </summary>
 	public void OnInventoryChanged()
 	{

@@ -60,7 +60,7 @@ contents. The bag's own report taken after the gesture (`a1b-*`) charges the chi
   caller posts the character snapshot before the item report: the radial wear out of the bag (`a2-*`) and
   the `SwitchHands` slot move (`a1c-*`). The event itself is reported and applied 1–3 ms later
   (`[CarriedSync] applied …` on both viewers), so this is not the gap this ticket closes; it is filed as
-  `docs/backlog/todo/snapshot-overtakes-item-reports.md`.
+  `docs/backlog/review/snapshot-overtakes-item-reports.md`.
 - An unrelated `[Enemy] generation spawn pairing failed (71 host vs 73 guest generated enemies …)` warning
   appears once on the owner and once on the third client after the rows; it is outside this ticket and is
   not judged here.

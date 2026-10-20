@@ -52,7 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The snapshot overtakes the item reports](todo/snapshot-overtakes-item-reports.md) — **Medium** — the peers' monitor warns a beat before the fact lands.
+- [A craft report never retires a carried material](todo/craft-carried-fact-retirement.md) — **Medium** — it leaves only on the next snapshot, which warns.
 - [The archive's two id carriers can disagree](todo/id-carriers-can-disagree-about-placement.md) — **Low** — unproven; needs a probe inside the report window.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
 - [The receiver's placement never returns to the host](todo/placement-outcome-never-returns.md) — **Medium** — the ledger keeps what it was told.
@@ -148,6 +148,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
 - [A late joiner never binds the generated enemies](review/enemy-generation-pairing-late-join.md) — **High** — the key is the anchor, not the live pose.
+- [The snapshot overtakes the item reports](review/snapshot-overtakes-item-reports.md) — **Medium** — the fact goes first; the three-client row awaits a batch.
 
 ### Future
 

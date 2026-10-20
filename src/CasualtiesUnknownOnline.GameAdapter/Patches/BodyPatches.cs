@@ -417,7 +417,6 @@ internal static class BodyPatches
 				return;
 			}
 
-			PatchBridge.Impl?.OnInventoryChanged();
 			// Report only a wear that actually landed: the item is parented to
 			// a limb (Body.cs:1508). Failed paths (already worn, limb missing,
 			// DoPickupCheck fail) never move the item — it stays a world item,
@@ -430,8 +429,11 @@ internal static class BodyPatches
 			// encoding (OnItemWorn); the peer's clone re-homes it the moment
 			// the wear lands instead of waiting for the character snapshot.
 			// A wearable craft product wears during the craft — its fact rides
-			// the ONE craft report (OnInventoryChanged still fires above: the
-			// character snapshot baseline must re-report).
+			// the ONE craft report (OnInventoryChanged still fires below: the
+			// character snapshot baseline must re-report). That in-craft snapshot
+			// still overtakes the craft report, and the report retires only world
+			// rows from the peers' fact table, so the craft half is its own
+			// ticket: todo/craft-carried-fact-retirement.md.
 			if (CallContext.Current != CallContext.Origin.Craft
 				&& item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
 			{
@@ -444,6 +446,14 @@ internal static class BodyPatches
 					PatchBridge.Impl?.OnItemWorn(item);
 				}
 			}
+
+			// The item fact goes FIRST and the snapshot SECOND. The peers compare an arriving
+			// snapshot against the facts they already hold, so a snapshot carrying this wear
+			// before its event reads as a move the fact table never saw and fires the
+			// divergence pair on every viewer (batch 20261025-b, one pair per wear). The
+			// pending-drop deferral inside OnInventoryChanged still owns the drop carrier,
+			// whose report cannot be sent from this call site.
+			PatchBridge.Impl?.OnInventoryChanged();
 		}
 	}
 

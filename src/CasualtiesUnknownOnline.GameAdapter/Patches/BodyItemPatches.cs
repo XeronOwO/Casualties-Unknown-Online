@@ -60,9 +60,13 @@ internal static class BodyItemPatches
 				return;
 			}
 
-			PatchBridge.Impl?.OnInventoryChanged();
+			// The slot facts go FIRST and the snapshot SECOND: the peers compare an arriving
+			// snapshot against the facts they already hold, so a snapshot carrying the two
+			// new slots ahead of their events reads as a carried move without an event sync
+			// and fires the divergence pair (batch 20261025-b).
 			PatchBridge.Impl?.OnSlotMoved(__instance, slot1, "Swap");
 			PatchBridge.Impl?.OnSlotMoved(__instance, slot2, "Swap");
+			PatchBridge.Impl?.OnInventoryChanged();
 		}
 	}
 
@@ -97,9 +101,11 @@ internal static class BodyItemPatches
 			}
 
 			__state.Dispose();
-			PatchBridge.Impl?.OnInventoryChanged();
+			// Same order as SwapSlots: the two slot facts, then the snapshot that re-reports
+			// the baseline they just explained.
 			PatchBridge.Impl?.OnSlotMoved(__instance, 0, "Hands");
 			PatchBridge.Impl?.OnSlotMoved(__instance, 1, "Hands");
+			PatchBridge.Impl?.OnInventoryChanged();
 		}
 	}
 

@@ -273,6 +273,7 @@ docs/backlog/review/save-native-character-field-parity.md | keep | index | docs/
 docs/backlog/review/save-native-run-field-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-restore-account-surface.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-system-mid-run-and-layer-end.md | keep | index | docs/backlog/README.md
+docs/backlog/review/snapshot-overtakes-item-reports.md | keep | index | docs/backlog/README.md
 docs/backlog/review/steam-transport-send-limit-runaway.md | keep | index | docs/backlog/README.md
 docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md | keep | index | docs/backlog/README.md
 docs/backlog/review/sync-cadence-review.md | keep | index | docs/backlog/README.md
@@ -318,6 +319,7 @@ docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/
 docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/container-child-limb-install-keeps-a-contained-record.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/craft-carried-fact-retirement.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
 docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/player-music-sync-playback.md | keep | index | docs/backlog/README.md
@@ -330,7 +332,6 @@ docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.m
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/single-file-plugin-package.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/snapshot-overtakes-item-reports.md | keep | index | docs/backlog/README.md
 docs/backlog/done/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/topical-limb-action-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/drink-measurement-destructive-use-action.md | keep | index | docs/backlog/README.md
@@ -727,6 +728,7 @@ docs/evidence/selfchecks/items/heater-cook-selfcheck.md | keep | claim | docs/ev
 docs/evidence/selfchecks/items/item-cook-replay-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-identity-across-transforms-design.md | keep | claim | docs/backlog/done/item-identity-across-transforms.md
 docs/evidence/selfchecks/items/item-keyframe-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
+docs/evidence/selfchecks/items/item-report-order-selfcheck.md | keep | claim | docs/backlog/review/snapshot-overtakes-item-reports.md
 docs/evidence/selfchecks/items/item-service-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/item-spawn-presentation-kernel-selfcheck.md | keep | claim | docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md
 docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md | keep | claim | docs/backlog/done/layer-change-member-recovery.md

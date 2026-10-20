@@ -23,7 +23,7 @@
   single slot untenable: the pair's unload half registers a departure per expanded child, so a refused child
   load would have been overwritten by the next child), `done/second-drop-report-loses-its-world-object.md`
   (the failure batch `20261006-h` read on this row's world half — attributed to the materialization adopt
-  path and fixed there), `todo/container-content-event-gap-on-repick.md` (the
+  path and fixed there), `done/container-content-event-gap-on-repick.md` (the
   carrier gap a RE-PICK-cancelled departure leaves — the re-scoped row has no re-pick, see point 6 below),
   `docs/evidence/selfchecks/items/remote-intent-drop-report-order-selfcheck.md`
 - Acceptance record: `docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261007-b.md`
@@ -199,7 +199,7 @@ peer, and both viewers' clone-fact monitor at zero. The staging is a run's step,
 every piece of it.
 
 **6. The carrier-gap dependency is measurement, not construction.**
-`todo/container-content-event-gap-on-repick.md` files the gap a RE-PICK-cancelled departure leaves — the
+`done/container-content-event-gap-on-repick.md` files the gap a RE-PICK-cancelled departure leaves — the
 source container's content change reaches the peers only on the periodic snapshot. The re-scoped row has no
 re-pick: the refused children's own drop reports are the events that explain the source container's change,
 and the target container's contents do not change at all. Whether that is enough for a zero-monitor row is
@@ -278,11 +278,11 @@ third peer = the alternate sandbox). What it read, in the order it matters to th
    `[CharSync] divergence` lines per viewer per gesture (operator and third peer, in both the occupied and
    the empty configurations) — the container's contents change and the child's new carried slot reach the
    peers only through the periodic snapshot, because the cancelled departure sends no report. Filed as
-   `todo/container-content-event-gap-on-repick.md` with its own acceptance.
+   `done/container-content-event-gap-on-repick.md` with its own acceptance.
 5. **What was left for this ticket, and where it went.** Re-scope the runtime row onto a shape that really
    produces two report-needing departures in one frame, and fix the carrier gap before a zero-monitor row can
    pass. The re-scope is `## The row's producer` above; the carrier gap is
-   `todo/container-content-event-gap-on-repick.md`'s own work, and point 6 above records why the re-scoped row
+   `done/container-content-event-gap-on-repick.md`'s own work, and point 6 above records why the re-scoped row
    does not depend on it by construction — only by measurement.
 
 ## Acceptance readings (batch `20261006-h`, 2026-10-06)

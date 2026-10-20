@@ -1,6 +1,6 @@
 # The character snapshot is posted before the item reports, so the peers' fact table warns on every wear and swap
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Item sync / clone fact table (carried-fact event ordering)
 - Source: batch `20261025-b` (2026-10-20) — while accepting the container-child tickets, the run drove a
@@ -61,6 +61,40 @@ is wrong.
   `ContainerArrivalPolicyTests.TheTwoDepartureSites_SendThePolicysReport` uses), plus the acceptance row
   below.
 
+## The fix (this cycle)
+
+- **Order, not deferral.** `WearWearablePatch`, `SwapSlotsPatch` and `SwitchHandsPatch` now send their
+  item fact first and call `OnInventoryChanged` last. These three gestures report in the same frame
+  (`OnItemWorn` / `OnItemPickedUp` / `OnSlotMoved` send immediately), so the order is exact and costs no
+  clone latency. The one-frame deferral the pending-drop case uses would still need the pending check for
+  a deferred drop and would delay every immediate re-report. `OnInventoryChanged`'s own summary now states
+  the caller order, and `IPatchBridge` names it where a caller reads the method.
+- **The other inventory-re-report sites were read; none needs the same change.** Most of the audit touched
+  the sites that call `CharacterDataSync.ReportInventoryChanged` directly; the patch layer's
+  `OnInventoryChanged` callers are exactly six: the three changed postfixes, `DropWearablePatch` (the
+  pending-drop case the entry point already defers), and `RecipeTryMakePatch` / `BodyCombinePatch` (the
+  craft report is committed by `OnCraftEnd` / `OnCombineEnd` before the snapshot). The receiver-side
+  re-reports (`PlayerInteractionApply`'s transfer / heal / use results, `PlayerPushApply`,
+  `MedicalOperationApply`, `TraderRecruitCoordinator.ApplyRevive`) apply a host-broadcast fact whose
+  kernel commit already reached every peer, so the local snapshot is the convergence copy, not the
+  event's first carrier, and those sites send no item fact of their own to order against. `LocalBodyReset`
+  sends its heal-reset authority event first by design, and `RemoteIntentApplier` is the intent path's
+  model — the item carriers report inside the native call, then the snapshot follows under the same
+  pending-drop hold.
+- **The craft-scope wear inside `WearWearablePatch` is NOT benign and is not closed here.** That snapshot
+  still runs before the craft report, and the craft report retires only WORLD rows from the peers' clone
+  fact table, so by code reading a destroyable carried material — and a wearable the auto-pickup
+  displaces — leaves the fact table only on the next snapshot and trips the monitor's "left the
+  inventory" warning. Filed as `todo/craft-carried-fact-retirement.md` with the code path and its own
+  acceptance row.
+- **The order is pinned in source.** `InventoryChangeReportOrderPinTests` reads the two patch files,
+  removes whole-line, inline and block comments and requires every fact call of each gesture postfix to
+  precede exactly one `OnInventoryChanged`; a theory feeds the same checker a correct body, an inverted
+  body and a body whose fact call exists only in a comment. The pin failed on the pre-fix tree
+  (`WearWearablePatch: … is reported after the snapshot`). The runtime half is
+  `CloneFactTableDivergenceMonitorTests` (an event applied before the snapshot leaves the next snapshot
+  quiet) plus the acceptance row below — the row is still unrun until the batch that follows this commit.
+
 ## Acceptance
 
 Three clients on the deployed artifact, the owner wearing a bag child and swapping two occupied slots
@@ -72,4 +106,5 @@ same window (so the row cannot pass by the event never arriving).
 
 `20261025-b/` under the directory named by `acceptance-artifacts-dir` — `ev-a2-host.txt`, `ev-a2-alt.txt`,
 `ev-a2-guest-order.txt`, `ev-a2-host-order.txt` (the wear), `ev-a1c-host.txt` (the swap), `a2-guest-wear.json`
-and `a1c-guest-switch.json` (the gestures).
+and `a1c-guest-switch.json` (the gestures). The cycle's self-check, its mechanism × change × evidence
+table and the review's dispositions are `docs/evidence/selfchecks/items/item-report-order-selfcheck.md`.

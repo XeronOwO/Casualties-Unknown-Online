@@ -289,7 +289,7 @@ internal interface IPatchBridge
 	/// </summary>
 	void ResetGenStreamToBaseline();
 
-	/// <summary>An inventory-internal move completed (SwapSlots/SwitchHands) — re-report the character snapshot immediately so the peer's clone updates in real time (the 1 Hz throttle alone reads as a 1-2 s delay).</summary>
+	/// <summary>An inventory change completed (a slot move, a wear, a pickup, a craft report) — re-report the character snapshot immediately so the peer's clone updates in real time (the 1 Hz throttle alone reads as a 1-2 s delay). Call it AFTER the change's own item event: a snapshot that overtakes its event fires the peers' clone fact table divergence warning. The pending-drop deferral lives in the bridge.</summary>
 	void OnInventoryChanged();
 
 	// ---- World items (runtime-generated item entities) ----

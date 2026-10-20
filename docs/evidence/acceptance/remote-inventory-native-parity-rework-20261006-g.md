@@ -48,7 +48,7 @@ Three readings in one session, all on the deployed artifact:
 2. **The same swap done by the OWNER, purely locally, warns identically.** The owner dragged its own slot
    item onto its own occupied slot (the native path, no CUO intent involved): the owner reports the two
    `(Swap)` moves, and both viewers log the same two divergence lines. This is the reference reading
-   `todo/container-content-event-gap-on-repick.md` names in its acceptance — for an item move, the warning
+   `done/container-content-event-gap-on-repick.md` names in its acceptance — for an item move, the warning
    is the native path's own behaviour, **not** an artifact of the intent replay.
 3. **A move onto an EMPTY destination warns on nobody** (row 6a), and the custody transfer warns once per
    viewer with its own message (`left the inventory without an event sync`).
@@ -56,7 +56,7 @@ Three readings in one session, all on the deployed artifact:
 Read together, the discriminator is the move's shape, not who drove it: a slot move whose destination
 displaces another item, and a custody move that removes an item, leave the viewers to learn the change from
 the periodic snapshot; a plain slot move reports an event that reaches them. The three readings are filed on
-`todo/container-content-event-gap-on-repick.md`.
+`done/container-content-event-gap-on-repick.md`.
 
 ## A finding outside this ticket: a late joiner never binds the host's generated enemies
 

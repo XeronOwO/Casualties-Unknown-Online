@@ -24,7 +24,7 @@
   staged no battery receiver, no combineable pair, no favourite key and no treatable limb, so the ticket
   stays open on them alone. Record:
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md`; the swap's own monitor
-  reading is filed on `todo/container-content-event-gap-on-repick.md`. Previous rejection, batch
+  reading is filed on `done/container-content-event-gap-on-repick.md`. Previous rejection, batch
   `20261006-f`, 2026-10-06, drove matrix row 6's two halves on three clients:
   the EMPTY-destination half passes (the item lands in the owner's slot, no divergence), and the
   OCCUPIED-destination half — the swap on the owner's body — could not run at all. The operator's release aborted
@@ -38,7 +38,7 @@
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md`. Rows 7 (battery-load,
   combine, favourite halves) and 8 (held remote item from the medical panel) stay `unproven`, and the
   container-child route's carried facts carry a monitor gap filed as
-  `todo/container-content-event-gap-on-repick.md`; the swap half's seam asymmetry is fixed in the cycle
+  `done/container-content-event-gap-on-repick.md`; the swap half's seam asymmetry is fixed in the cycle
   below, and its re-read is the next batch's row)
 - Priority: Critical
 - Category: Remote inventory / native interaction parity / architecture rework
@@ -429,7 +429,7 @@ host, owner = sandbox guest, third peer = the alternate sandbox):
    failure is specific to the ring-button path.
 4. **A container child moved into a ring slot lands, but the peers' fact tables warn twice each** about the
    container's contents change and the child's new carried slot; filed as
-   `todo/container-content-event-gap-on-repick.md`. Row 4's take-out reads unaffected (it reports the drop),
+   `done/container-content-event-gap-on-repick.md`. Row 4's take-out reads unaffected (it reports the drop),
    and the slot-item control is clean.
 5. **Rows 7 and 8 stay undriven**: this session staged no battery receiver, no combineable pair, no favourite
    key and no treatable limb fixture, so the battery-load half, the combine half, the favourite sub-kind and
@@ -458,7 +458,7 @@ What this means for the rows, stated as verdicts rather than expectations:
   (`RemoteIntentApplier.ApplySwapSlots`, unchanged by this cycle). The batch re-drove `20261006-f`'s own
   recipe and read the operator's capture line and the owner's replay instead of the exception. It also
   produced the swap's monitor half, which is a finding of its own: the viewers converge, but through the
-  periodic snapshot rather than an event (`todo/container-content-event-gap-on-repick.md`).
+  periodic snapshot rather than an event (`done/container-content-event-gap-on-repick.md`).
 - **The R8 route's reachability is settled for `done/drop-pending-single-slot-overwrite.md`.** Its owner-side replay is
   `Body.SwapSlots`, i.e. two `Body.DropItem` and — when both slots held an item — two `Body.PickUpItem` inside
   one frame (`Body.cs:1413-1428`) — but the whole call runs inside `SwapSlotsPatch`'s `InternalReorder` scope,
@@ -498,7 +498,7 @@ alternate sandbox:
 3. **The swap converges on the viewers, but only through the periodic snapshot**: the operator and the third
    peer each log two `[CharSync] divergence … a carried move without an event sync` lines. The same two lines
    appear when the OWNER performs the same swap purely locally, so the intent replay is not their cause —
-   filed on `todo/container-content-event-gap-on-repick.md` with the reading.
+   filed on `done/container-content-event-gap-on-repick.md` with the reading.
 4. **Matrix row 2's transfer half (`TransferToBody`, the double-Tab take) was driven for the first time and
    passes**: with the operator's own ring open and the remote backpack view closed, one call drags the
    owner's proxy and releases it onto the operator — `TransferToBody captured … (container 0, slot 2, body

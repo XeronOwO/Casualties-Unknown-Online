@@ -173,7 +173,7 @@ accepted (`a1c-*`). The third client read the child at its slot, not inside the 
 The radial wear of a bag child landed on the limb (`parentAfter: UpTorso`, `origin: limb1`, `wearable:
 true`) and left the same clean record (`a2-*`). The wear's window does carry the clone-fact monitor's
 in-flight pair — the carrying fact is applied 1–3 ms after the snapshot — which is a separate ordering
-defect filed as `todo/snapshot-overtakes-item-reports.md`, not a terminal record. Full
+defect filed as `review/snapshot-overtakes-item-reports.md`, not a terminal record. Full
 reading: `docs/evidence/acceptance/pickup-early-return-kernel-relocation-20261025-b.md`.
 
 ## Limits

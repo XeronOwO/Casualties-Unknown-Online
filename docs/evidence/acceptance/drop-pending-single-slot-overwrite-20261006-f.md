@@ -46,7 +46,7 @@
 - **The monitor criterion failed on a carrier gap, not on the machine.** The cancelled departure sends no
   unload report, and the slot carrier's own report does not carry the container's contents change, so both
   facts reach the peers only through the periodic character snapshot and the clone-fact table says so. Filed
-  as `todo/container-content-event-gap-on-repick.md` with these readings and their attribution.
+  as `done/container-content-event-gap-on-repick.md` with these readings and their attribution.
 
 ## Residuals for the user
 

@@ -32,6 +32,15 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 	/// <summary>Host only: the armed start gate — SteamIds still loading, armed at world entry.</summary>
 	private HashSet<ulong>? _armed;
 
+	/// <summary>
+	/// Host only: the members a layer descent was announced to — expected back in the new world even
+	/// while their presence table still says InWorld (their own exit report has not arrived yet). A
+	/// member that reports InWorld removes itself, so a member that finished before the host entered is
+	/// NOT waited on; the set only covers the stale-InWorld window and a member whose descent edge was
+	/// lost (it follows the ordinary menu re-entry instead).
+	/// </summary>
+	private HashSet<ulong>? _descentPending;
+
 	private long _armedMs;
 
 	/// <summary>Host only: the gate was released (everyone started, or the 30 s fallback fired).</summary>
@@ -53,6 +62,14 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 		_armed = null;
 	}
 
+	/// <summary>Host only: a layer descent was announced to these members — the next gate must wait for them even if their presence still reads InWorld, and the PREVIOUS run's release must not pass one of them before this descent's gate arms.</summary>
+	internal void ExpectDescent(IReadOnlyCollection<ulong> members)
+	{
+		_released = false;
+		_descentPending = [.. members];
+		_log.LogInformation("Start gate expects {Count} member(s) back from the layer descent.", members.Count);
+	}
+
 	/// <summary>Host only: everyone enters the world together — arm the gate (waits for every guest's InWorld, or 30 s). Returns whether anyone is being waited on.</summary>
 	internal bool Arm()
 	{
@@ -62,8 +79,11 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 		}
 
 		_released = false;
+		var descentPending = _descentPending;
+		_descentPending = null; // consumed by this arm: from here the armed set is the wait
 		var waiting = _session.Members
-			.Where(m => m.Handshaken && !m.InWorld && m.SteamId != _session.LocalSteamId)
+			.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId
+				&& (!m.InWorld || (descentPending?.Contains(m.SteamId) ?? false)))
 			.Select(m => m.SteamId).ToHashSet();
 		if (waiting.Count == 0)
 		{
@@ -90,6 +110,10 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 		{
 			return;
 		}
+
+		// A descenting member that is already back in the new world must not be waited on: its arrival
+		// removes it from the expectation set even when the gate has not armed yet.
+		_descentPending?.Remove(steamId);
 
 		if (_armed is null)
 		{
@@ -143,8 +167,15 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 	/// callers check <c>_armed</c> first), and a host still entering a fresh layer has
 	/// LocalInWorld false, so the gate that arms at its own entry still covers that
 	/// entry's members.
+	/// <para>
+	/// A DESCENT expectation suspends the late-joiner pass entirely: between the host's
+	/// edge and its new-world entry the host may still read LocalInWorld (its own exit
+	/// report has not run yet), and the previous run's release is not this descent's
+	/// verdict — a member that finishes its new layer first must wait for the descent's
+	/// gate, not be passed by either rule.
+	/// </para>
 	/// </summary>
-	private bool LateJoinerPasses => _released || (_armed is null && _session.LocalInWorld);
+	private bool LateJoinerPasses => _descentPending is null && (_released || (_armed is null && _session.LocalInWorld));
 
 	/// <summary>Host only: the gate is armed (the host is waiting too) — the driver pumps this for the 30 s fallback.</summary>
 	internal void PumpTimeout()
@@ -177,6 +208,7 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 	{
 		HostRunPending = false;
 		_armed = null;
+		_descentPending = null;
 		_armedMs = 0;
 		_released = false;
 	}
@@ -188,6 +220,7 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 			return;
 		}
 
+		_descentPending = null;
 		_released = true;
 		var msg = new WorldReadyMsg();
 		foreach (var member in _session.Members)

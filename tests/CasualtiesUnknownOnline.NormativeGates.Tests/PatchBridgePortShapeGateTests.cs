@@ -223,6 +223,7 @@ public class PatchBridgePortShapeGateTests
 		]),
 		("ILayerAdvancePatchPort", AdapterDir + "ILayerAdvancePatchPort.cs", false,
 		[
+			"OnHostDescent",
 			"TryDelegateLocalAdvance",
 		]),
 		("IItemCategoryPatchPort", AdapterDir + "IItemCategoryPatchPort.cs", false,

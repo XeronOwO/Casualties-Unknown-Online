@@ -57,6 +57,7 @@ public class PatchBridgePortContractTests
 	/// <summary>The layer-transition port's whole surface, as the port declares it.</summary>
 	private static readonly string[] LayerAdvanceMembers =
 	[
+		"OnHostDescent",
 		"TryDelegateLocalAdvance",
 	];
 

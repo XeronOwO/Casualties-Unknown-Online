@@ -7,10 +7,13 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
-/// The end-of-layer choice's world half: a member's choice reaches the host as
-/// one request (the request channel and its arbitration are the Runtime's — see
+/// The layer advance's world half, both directions.
+/// <para>
+/// A member's choice reaches the host as one request (the request channel and its
+/// arbitration are the Runtime's — see
 /// <see cref="ILayerAdvanceControl.LayerAdvanceRequested"/>), and the host drives
 /// the game's own entry for it.
+/// </para>
 /// <para>
 /// The native entry is <c>WorldGeneration.ContinueRun</c> (WorldGeneration.cs:1011-1020),
 /// and it belongs to the client whose OWN body stands at the layer's bottom. A
@@ -22,9 +25,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// therefore not a polish: it is what keeps the member ON the session's transition
 /// path. The entry's local steps are still the game's — its guard, the panel close,
 /// the walk release and the deepest-layer record all run in <c>ContinueRun</c> before
-/// the sink — and the one step whose carrier is suppressed, the layer's own
-/// progression (<c>IncreaseDepthByLayer</c>, called inside <c>RegenerateWorld</c>),
-/// is run here instead, once per layer.
+/// the sink. The suppressed step is only the immediate regeneration: the member's
+/// own new-layer generation runs when the host's descent edge arrives (the native
+/// coroutine, progression step included), once per layer — a click-time progression
+/// grant as well would pay the member twice (independent review major-2).
 /// </para>
 /// <para>
 /// When ANOTHER member's choice is what arrives, the host drives the same entry
@@ -39,31 +43,45 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// generation path is introduced: the host's own click and a member's request drive
 /// the same coroutine.
 /// </para>
+/// <para>
+/// The other direction is the host's own descent (<see cref="OnHostDescent"/>): it is
+/// announced to the members before the regeneration starts
+/// (<see cref="IWorldControl.SendLayerDescent"/>), and each member runs the SAME
+/// native coroutine locally through <see cref="BeginLocalDescent"/>, with the host's
+/// captured baseline arriving at its generation boundary exactly as it does for a run
+/// start. That is why the member no longer has to be pulled to the menu and
+/// re-invited after the host has finished: the whole group generates in parallel and
+/// the start gate releases it together.
+/// </para>
 /// </summary>
 internal sealed class LayerAdvanceCoordinator(
 	ISessionControl session,
+	IWorldControl world,
 	ILayerAdvanceControl layerAdvance,
 	ILogger<LayerAdvanceCoordinator> log)
 {
 	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
 	private readonly ILayerAdvanceControl _layerAdvance = layerAdvance;
 	private readonly ILogger<LayerAdvanceCoordinator> _log = log;
 
-	/// <summary>The local layer whose descent progression was already granted (see <see cref="GrantLocalDescentProgression"/>).</summary>
-	private int _progressionGrantedAtLayer = int.MinValue;
-
 	internal void BindToSession() => _layerAdvance.LayerAdvanceRequested += OnLayerAdvanceRequested;
 
-	internal void Unbind()
-	{
-		_layerAdvance.LayerAdvanceRequested -= OnLayerAdvanceRequested;
-		_progressionGrantedAtLayer = int.MinValue;
-	}
+	internal void Unbind() => _layerAdvance.LayerAdvanceRequested -= OnLayerAdvanceRequested;
 
 	/// <summary>
 	/// The local player chose to continue and the game's own entry has run its guard
 	/// and its local steps — see the type comment for why the local regeneration must
-	/// not follow. Returns true when the caller must suppress it.
+	/// not follow YET. Returns true when the caller must suppress it.
+	/// <para>
+	/// No progression step is taken here. The member's own regeneration runs for the
+	/// session's descent at the host's edge (<see cref="BeginLocalDescent"/>), and that
+	/// is the native coroutine's own <c>IncreaseDepthByLayer</c> — granting one at the
+	/// click as well would pay the member twice. A click whose edge is later lost (the
+	/// degraded path, re-entered through the host's world join and <c>StartRun</c>) is
+	/// the one path that does not take the step; that cost is named in the ticket's
+	/// Limits.
+	/// </para>
 	/// </summary>
 	internal bool TryDelegateLocalAdvance()
 	{
@@ -82,37 +100,54 @@ internal sealed class LayerAdvanceCoordinator(
 			return false;
 		}
 
-		GrantLocalDescentProgression();
 		return true;
 	}
 
 	/// <summary>
-	/// The native descent's own progression step (<c>IncreaseDepthByLayer</c>, called
-	/// inside the regeneration this side suppresses), run here because the member DOES
-	/// descend with the session: its own body keeps the step it would have taken.
-	/// Latched per local layer, because nothing is generating on this side while the
-	/// session's transition is in flight — the native panel re-shows (its condition
-	/// holds again) and a second click must not grant a second time. The layer's own
-	/// rarity multipliers and depth are NOT touched here: they arrive with the host's
-	/// baseline, which is applied at this member's next generation boundary.
+	/// Host only: a local regeneration this side owns is starting. The members in the world are told NOW —
+	/// this hook runs at the regeneration's sink, before its scene transition can reach a member as an exit
+	/// — so each generates its own new layer in parallel. Solo play and a guest's own descent are not the
+	/// session's step and send nothing.
 	/// </summary>
-	private void GrantLocalDescentProgression()
+	internal void OnHostDescent(bool twice)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			_log.LogDebug("[LayerDescent] this side's descent ({Role}, session active: {SessionActive}) is not the session's to announce.", _session.Role, _session.SessionActive);
+			return;
+		}
+
+		_world.SendLayerDescent(twice);
+	}
+
+	/// <summary>
+	/// Guest: the host announced its descent and the run state accepted it. Run the native entry's own
+	/// local steps and the game's own regeneration locally: the baseline is the host's (dropped from this
+	/// side so the generation boundary holds for the kernel layer-advance), so the member builds the same
+	/// layer as the host while keeping its body and carried items — it never loads the menu.
+	/// </summary>
+	internal void BeginLocalDescent(bool twice)
 	{
 		var world = WorldGeneration.world;
 		if (world == null) // Unity object — ==
 		{
+			_log.LogWarning("[LayerDescent] the host descended but this member has no world to regenerate — it follows through the ordinary entry instead.");
 			return;
 		}
 
-		var layer = HarmonyTraverse.ReadBiomeDepth();
-		if (layer == _progressionGrantedAtLayer)
+		// The native entry's own steps, in its own order (WorldGeneration.cs:1015-1018), minus its
+		// local-body clause: that clause ties the descent to the body standing at the layer's bottom,
+		// and the body there is the host's, not this member's.
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body != null)
 		{
-			return;
+			body.forceWalk = false;
 		}
 
-		_progressionGrantedAtLayer = layer;
-		world.IncreaseDepthByLayer();
-		_log.LogInformation("[LayerChoice] the delegated descent granted this member's own layer progression at depth {Layer}.", layer);
+		world.savePanel.SetActive(false);
+		PlayerPrefs.SetInt("deepestlayer", Math.Max(HarmonyTraverse.ReadBiomeDepth() + 1, PlayerPrefs.GetInt("deepestlayer")));
+		world.StartCoroutine(world.RegenerateWorld(twice));
+		_log.LogInformation("[LayerDescent] this member starts its own new-layer generation (twice: {Twice}) from the host's descent edge.", twice);
 	}
 
 	/// <summary>Host only: an admitted member choice (handshaken member, this host's generation) — drive the layer's advance unless the world cannot take it.</summary>

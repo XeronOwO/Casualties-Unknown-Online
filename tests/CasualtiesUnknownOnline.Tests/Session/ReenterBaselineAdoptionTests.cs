@@ -266,4 +266,46 @@ public class ReenterBaselineAdoptionTests
 
 		Assert.Same(parameters, world.WorldParams);
 	}
+
+	[Fact]
+	public void ARefusedJoin_CancelsTheBaselineItsPromiseDropped()
+	{
+		// The host's world-entry invite reaches a member that is still generating the same layer from
+		// the descent: the run-follow refuses the instruction, and the baseline its promise dropped must
+		// come back rather than change the params that generation is using.
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var guestWorld = guest.Services.GetRequiredService<IWorldControl>();
+		var parameters = new WorldStartParams { RandomState = [4, 5, 6] };
+		guestWorld.WorldParams = parameters;
+		guestWorld.WorldJoinReceived += _ => guestWorld.CancelWorldJoinBaselineDrop();
+
+		host.Services.GetRequiredService<PacketSender>().Send(GuestId, NetMsg.WorldJoin, new WorldJoinMsg { RunEpoch = 1, RunBaselineFollows = true });
+
+		Assert.Same(parameters, guestWorld.WorldParams);
+	}
+
+	[Fact]
+	public void ACancelAfterTheJoinEvent_HasNothingLeftToRestore()
+	{
+		// The dropped instance lives for the event only: an instruction that WAS followed must not leave
+		// a stale baseline that a much later cancel could write over the live one.
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var guestWorld = guest.Services.GetRequiredService<IWorldControl>();
+		guestWorld.WorldParams = new WorldStartParams { RandomState = [4, 5, 6] };
+
+		host.Services.GetRequiredService<PacketSender>().Send(GuestId, NetMsg.WorldJoin, new WorldJoinMsg { RunEpoch = 1, RunBaselineFollows = true });
+		Assert.Null(guestWorld.WorldParams);
+
+		guestWorld.CancelWorldJoinBaselineDrop(); // the event is over — nothing to put back
+
+		Assert.Null(guestWorld.WorldParams);
+	}
 }

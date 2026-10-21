@@ -19,6 +19,7 @@ public class HostToGuestDirectionTests(DirectionProbe probe) : IClassFixture<Dir
 		NetMsg.HandshakeAck,
 		NetMsg.WorldJoin,
 		NetMsg.WorldReady,
+		NetMsg.LayerDescent,
 		NetMsg.PlayerJoin,
 		NetMsg.PlayerLeave,
 		NetMsg.WorldBlockState,

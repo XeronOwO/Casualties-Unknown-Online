@@ -40,6 +40,8 @@ internal sealed class RunCoordinator(
 	WorldRestoreAudit? restoreAudit,
 	StartingSupplyCoordinator startingSupplies,
 	RunMenuReturnCoordinator menuReturn,
+	LayerAdvanceCoordinator layerAdvance,
+	DescentBodyPreservation descentBody,
 	ILogger<RunCoordinator> log)
 {
 	/// <summary>Guest run-follow phases — one enum replaces the scattered booleans (pending/started/ready/frozen).</summary>
@@ -49,8 +51,22 @@ internal sealed class RunCoordinator(
 		JoinPending,  // WorldJoin received, waiting for PreRunScript to start the run
 		Starting,     // StartRun/StartTutorial called — transition/loading underway
 		Generating,   // the generation boundary passed (the gen wrapper engaged)
+		Descending,   // the host announced its own layer advance — this member generates its new layer in parallel
 		WaitingReady, // world generated — waiting for the host's WorldReady (gate freeze)
 		Playing,      // WorldReady received — playing
+	}
+
+	/// <summary>
+	/// Guest: the host descent follow's own state — the piece the run phase does not carry (the phase
+	/// says what the CLIENT shows, this says how far the descent's generation got).
+	/// </summary>
+	private enum DescentPhase
+	{
+		None,          // not following a host descent
+		Accepted,      // the edge was taken; the local regeneration has not launched yet (the baseline hold)
+		Launched,      // the generation actually started (the gen wrapper left its hold)
+		ReleasedEarly, // the host released the gate while this generation was still running
+		WaitingReady,  // the generation settled — waiting for the host's release
 	}
 
 	private readonly ISessionControl _session = session;
@@ -63,6 +79,8 @@ internal sealed class RunCoordinator(
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
 	private readonly StartingSupplyCoordinator _startingSupplies = startingSupplies;
 	private readonly RunSaveCoordinator _save = new(session, world, worldSaves, worldParams, characterData, items, restoreAudit, startingSupplies, log);
+	private readonly LayerAdvanceCoordinator _layerAdvance = layerAdvance;
+	private readonly DescentBodyPreservation _descentBody = descentBody;
 	private readonly ILogger<RunCoordinator> _log = log;
 
 	private RunPhase _phase = RunPhase.Idle;
@@ -77,6 +95,22 @@ internal sealed class RunCoordinator(
 
 	/// <summary>One-shot world fingerprint logged at world entry (peer log comparison).</summary>
 	private bool _worldFingerprintLogged;
+
+	/// <summary>
+	/// Guest: how far the host descent follow got. Non-<see cref="DescentPhase.None"/> from the edge
+	/// until the gate releases; it is what keeps the world's not-live edge a descent instead of a menu
+	/// exit and what makes the host's InMenu report expected rather than a pull back to the menu.
+	/// </summary>
+	private DescentPhase _descent;
+
+	/// <summary>Guest: when the descent edge was accepted — the anchor for the follow's bounded waits (baseline hold, settle).</summary>
+	private int _descentAcceptedAtMs;
+
+	/// <summary>
+	/// Host: this host's own regeneration is under way. It opens the presentation window before the
+	/// loading screen is visible (the descent's own fade) and closes with the gate release.
+	/// </summary>
+	private bool _hostDescentPending;
 
 	/// <summary>
 	/// Pending return-to-menu after a session teardown. Session-ended events
@@ -102,7 +136,10 @@ internal sealed class RunCoordinator(
 	/// window before the world object exists, so it must be HELD, not dropped (adversarial review
 	/// major-1); <see cref="GeneratedItemApplication"/> consumes this fact with its hold condition.
 	/// </summary>
-	internal bool IsEnteringWorld => _phase is RunPhase.JoinPending or RunPhase.Starting or RunPhase.Generating;
+	internal bool IsEnteringWorld => _phase is RunPhase.JoinPending or RunPhase.Starting or RunPhase.Generating or RunPhase.Descending;
+
+	/// <summary>Guest: this member is following the host's own layer advance — its not-live world is the descent, not a menu exit (read by the re-entry window and the menu-return path).</summary>
+	internal bool IsDescending => _descent != DescentPhase.None;
 
 	/// <summary>Guest: the world is generated and the gate holds (read by StartGateCoordinator).</summary>
 	internal bool GuestWaitingForReady => _phase == RunPhase.WaitingReady;
@@ -120,8 +157,8 @@ internal sealed class RunCoordinator(
 	/// patch skips the fade entirely inside this window.
 	/// </summary>
 	internal bool IsInGateWindow =>
-		(_session.Role == SessionRole.Guest && _phase is RunPhase.Generating or RunPhase.WaitingReady)
-		|| (_session.Role == SessionRole.Host && _session.SessionActive && HarmonyTraverse.IsLoadingVisible());
+		(_session.Role == SessionRole.Guest && _phase is RunPhase.Descending or RunPhase.Generating or RunPhase.WaitingReady)
+		|| (_session.Role == SessionRole.Host && _session.SessionActive && (_hostDescentPending || HarmonyTraverse.IsLoadingVisible()));
 
 	/// <summary>
 	/// The start-gate alert window — PlayerCamera.DoAlert popups are deferred
@@ -132,7 +169,7 @@ internal sealed class RunCoordinator(
 	/// WaitingReady cover the same span on the follower side.
 	/// </summary>
 	internal bool IsStartGateAlertWindow =>
-		(_session.Role == SessionRole.Guest && _phase is RunPhase.Generating or RunPhase.WaitingReady)
+		(_session.Role == SessionRole.Guest && _phase is RunPhase.Descending or RunPhase.Generating or RunPhase.WaitingReady)
 		|| (_session.Role == SessionRole.Host && _hostStartGateAlertPending);
 
 	/// <summary>Guest: when the host finished loading — the countdown anchor (read by StartGateCoordinator).</summary>
@@ -145,6 +182,7 @@ internal sealed class RunCoordinator(
 		_session.SessionActivated += OnSessionActivated;
 		_world.WorldJoinReceived += OnWorldJoin;
 		_world.WorldReadyReceived += OnRemoteWorldReady;
+		_world.LayerDescentReceived += OnLayerDescent;
 	}
 
 	internal void Unbind()
@@ -154,11 +192,14 @@ internal sealed class RunCoordinator(
 		_session.SessionActivated -= OnSessionActivated;
 		_world.WorldJoinReceived -= OnWorldJoin;
 		_world.WorldReadyReceived -= OnRemoteWorldReady;
+		_world.LayerDescentReceived -= OnLayerDescent;
 	}
 
 	/// <summary>Pump: scene state, guest menu lock, the WorldJoin follow retry, body state publishing. The menu return and the cuts are taken by <see cref="SaveCutSeam"/> at the frame-end seam.</summary>
 	internal void Update()
 	{
+		UpdateDescentAbort();
+		UpdateDescent();
 		UpdateSceneState();
 		if (_phase == RunPhase.JoinPending)
 		{
@@ -170,6 +211,197 @@ internal sealed class RunCoordinator(
 			PublishBodyState(_localBody);
 			_characterData.Update(_localBody);
 			_characterData.UpdateRestore(_localBody);
+		}
+	}
+
+	// ---- Host layer descent ----
+
+	/// <summary>
+	/// The follow's ways out besides the settle: the member left the world (a real leave or the death
+	/// menu destroys the world object — the follow must then hand the client back to the ordinary entry
+	/// path, because its phase refuses every WorldJoin), or one of its own waits outlived its bound (the
+	/// host's baseline never arrived, the generation never settled). Without this a member that leaves
+	/// mid-descent stays out of the session for good (the independent review's blocker).
+	/// </summary>
+	private void UpdateDescentAbort()
+	{
+		if (_descent == DescentPhase.None)
+		{
+			return;
+		}
+
+		var elapsedMs = Environment.TickCount - _descentAcceptedAtMs;
+		var holdTimedOut = _descent == DescentPhase.Accepted && elapsedMs > LayerDescentPolicy.HoldTimeoutMs;
+		var settleTimedOut = _descent is DescentPhase.Launched or DescentPhase.ReleasedEarly && elapsedMs > LayerDescentPolicy.SettleTimeoutMs;
+		var hasWorld = HarmonyTraverse.HasWorld;
+		if (!LayerDescentPolicy.ShouldAbort(hasWorld, holdTimedOut, settleTimedOut))
+		{
+			return;
+		}
+
+		AbortDescent(
+			!hasWorld ? "the world was left (a leave or a scene change) mid-descent"
+			: holdTimedOut ? "the host's baseline for the new layer never arrived"
+			: "the new layer's generation never settled",
+			leaveToMenu: hasWorld);
+	}
+
+	/// <summary>Ends the follow and hands the member back to the ordinary entry path; a half-built world with no way forward is left to the menu, the same exit the start gate's valve uses.</summary>
+	private void AbortDescent(string reason, bool leaveToMenu)
+	{
+		_descent = DescentPhase.None;
+		_descentBody.Clear();
+		_phase = RunPhase.Idle;
+		_log.LogWarning("[LayerDescent] the follow is abandoned — {Reason}; the ordinary entry path takes over.", reason);
+		if (leaveToMenu && PlayerCamera.main != null) // Unity object — ==
+		{
+			PlayerCamera.main.ToMainMenu();
+		}
+	}
+
+	/// <summary>Accepts the host's descent and starts this member's own new-layer generation (the runtime already dropped the baseline for the layer being left).</summary>
+	private void AcceptDescent(bool twice)
+	{
+		_descent = DescentPhase.Accepted;
+		_descentAcceptedAtMs = Environment.TickCount;
+		var descentBody = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		_descentBody.Note(descentBody != null ? descentBody.GetInstanceID() : 0);
+		_phase = RunPhase.Descending;
+		_log.LogInformation("[LayerDescent] host descent accepted (twice: {Twice}) — this member runs its own new-layer generation and waits for the gate instead of returning to the menu.", twice);
+		_layerAdvance.BeginLocalDescent(twice);
+	}
+
+	/// <summary>
+	/// The descent's state machine. Guest: the settle edge — the generation actually started (the gen
+	/// wrapper left its baseline hold) and the world is live again — moves the member to
+	/// <see cref="RunPhase.WaitingReady"/>, or straight to Playing when the host released the gate while
+	/// this member was still generating. Runs BEFORE the scene-state edge so the settle frame's
+	/// transition is evaluated with the phase it belongs to (and so no report is sent for the transient
+	/// "world object exists but the generation has not launched" frame of the wrapper's hold).
+	/// </summary>
+	private void UpdateDescent()
+	{
+		if (_descent is DescentPhase.None or DescentPhase.WaitingReady)
+		{
+			return;
+		}
+
+		if (!LayerDescentPolicy.IsSettled(_descent != DescentPhase.Accepted, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating(), HarmonyTraverse.HasLiveWorld))
+		{
+			return;
+		}
+
+		if (_descent == DescentPhase.ReleasedEarly)
+		{
+			_descent = DescentPhase.None;
+			_phase = RunPhase.Playing;
+			_log.LogInformation("[LayerDescent] the new layer is generated and the host's release was already in hand — this member starts playing.");
+			return;
+		}
+
+		_descent = DescentPhase.WaitingReady;
+		_phase = RunPhase.WaitingReady;
+		_log.LogInformation("[LayerDescent] this member's new layer is generated — waiting for the host's release on the loading screen.");
+	}
+
+	/// <summary>
+	/// Guest: the host's descent edge. Accepted from a member that is PLAYING (or waiting on this
+	/// descent's gate when the host advances again) in a live world; a member in the menu, mid-entry, or
+	/// with its own generation in flight follows the ordinary entry path instead. A pending menu return
+	/// is cancelled only when it came from the host's own InMenu report — the player's own leave is never
+	/// consumed by a descent.
+	/// </summary>
+	private void OnLayerDescent(bool twice)
+	{
+		if (_descent == DescentPhase.WaitingReady)
+		{
+			// The host advanced again before releasing this group: the first layer is already generated
+			// and only the release was outstanding, so this edge starts the next one.
+			if (!TryClearHostPullMenuReturn())
+			{
+				return;
+			}
+
+			AcceptDescent(twice);
+			return;
+		}
+
+		var generationInFlight = _descent is DescentPhase.Accepted or DescentPhase.Launched or DescentPhase.ReleasedEarly;
+		var decision = LayerDescentPolicy.DecideFollow(
+			_session.Role,
+			_session.SessionActive,
+			_inWorld,
+			_phase is RunPhase.Playing or RunPhase.WaitingReady,
+			generationInFlight,
+			HarmonyTraverse.HasWorld);
+		switch (decision)
+		{
+			case LayerDescentDecision.Follow:
+				break;
+
+			case LayerDescentDecision.NotThisSides:
+				_log.LogDebug("[LayerDescent] a descent edge reached a side that is not a live guest — dropped.");
+				return;
+
+			case LayerDescentDecision.AlreadyDescending:
+				_log.LogWarning("[LayerDescent] a second descent edge arrived while this member's generation is still in flight — ignored; it generates the layer the host announced first.");
+				return;
+
+			case LayerDescentDecision.NotPlaying:
+				_log.LogInformation("[LayerDescent] the host descended but this member is not playing in its world ({Phase}, in world: {InWorld}) — it keeps the ordinary entry path.", _phase, _inWorld);
+				return;
+
+			default:
+				_log.LogWarning("[LayerDescent] the host descended but this member has no world object to regenerate — it keeps the ordinary entry path.");
+				return;
+		}
+
+		if (!TryClearHostPullMenuReturn())
+		{
+			return;
+		}
+
+		AcceptDescent(twice);
+	}
+
+	/// <summary>
+	/// The descent may cancel a menu return recorded from the host's own InMenu report (the edge and the
+	/// report travel one reliable lane, edge first, but a frame-end seam must never load the menu under a
+	/// descent). Any other origin is not the descent's to consume — in particular the player's own leave,
+	/// which must still strand nobody. Returns false when the member must not follow the edge.
+	/// </summary>
+	private bool TryClearHostPullMenuReturn()
+	{
+		if (!_menuReturn.IsPending)
+		{
+			return true;
+		}
+
+		if (_menuReturn.Origin != RunMenuReturnOrigin.HostPull)
+		{
+			_log.LogInformation("[LayerDescent] the player's own leave is pending — the descent does not pull this member through it.");
+			return false;
+		}
+
+		_menuReturn.Clear();
+		return true;
+	}
+
+	/// <summary>Guest: the descent's generation actually started — the runtime's generation-stream reset is the launch edge, after the wrapper's baseline hold has ended.</summary>
+	internal void OnLocalGenerationStarted()
+	{
+		if (_descent == DescentPhase.Accepted)
+		{
+			_descent = DescentPhase.Launched;
+		}
+	}
+
+	/// <summary>Host: a local regeneration this side owns is starting — open the presentation window before the loading screen is visible, so the descent's own fade is skipped instead of reading as a black frame.</summary>
+	internal void OnHostDescentStarted()
+	{
+		if (_session.Role == SessionRole.Host && _session.SessionActive)
+		{
+			_hostDescentPending = true;
 		}
 	}
 
@@ -253,7 +485,20 @@ internal sealed class RunCoordinator(
 	{
 		if (_phase != RunPhase.Idle)
 		{
-			return; // already following a run — duplicate instruction ignored
+			// Already following a run — duplicate instruction ignored.
+			if (_descent != DescentPhase.None)
+			{
+				// This is the host's own world-entry invite, sent to members it still reads as out of
+				// the world: this member is NOT following it (it is generating the same layer from the
+				// descent). The invite's baseline promise dropped the params its generation is using —
+				// put them back. The kernel checkpoint that follows is the host's current session state;
+				// its world projections are deferred by their own generation guards until this member's
+				// generation settles, so it cannot replay into the rebuilding world.
+				_world.CancelWorldJoinBaselineDrop();
+				_log.LogInformation("[LayerDescent] ignored the host's world-entry invite while following the descent — the baseline its promise dropped was restored.");
+			}
+
+			return;
 		}
 
 		_joinIsTutorial = isTutorial;
@@ -311,7 +556,12 @@ internal sealed class RunCoordinator(
 		// == null on Unity singletons (is null misses scene-reload-destroyed objects).
 		// The expression is shared with the seams that act on the same edge (the
 		// menu-exit scene-load interception) so "in world" cannot drift.
-		var inWorld = HarmonyTraverse.HasLiveWorld;
+		// A descent that is still generating is NOT in a world even when the game's object exists: the
+		// generation wrapper can hold GenerateWorld with generatingWorld already down (the baseline hold),
+		// and reporting that frame as InWorld would let the host release the gate before this member's
+		// new layer exists.
+		var descentUnsettled = _descent is DescentPhase.Accepted or DescentPhase.Launched or DescentPhase.ReleasedEarly;
+		var inWorld = HarmonyTraverse.HasLiveWorld && !descentUnsettled;
 		if (inWorld == _inWorld)
 		{
 			if (inWorld && _localBody == null) // Unity object — ==
@@ -327,8 +577,14 @@ internal sealed class RunCoordinator(
 		{
 			// Leaving the world (death, menu) — the run-follow resets: a
 			// future WorldJoin may follow a new run, and the gate can never
-			// release us here.
-			_phase = RunPhase.Idle;
+			// release us here. A descent's not-live edge is the transition it
+			// is here to make, so its phase survives it.
+			if (_descent == DescentPhase.None)
+			{
+				_phase = RunPhase.Idle;
+				_descentBody.Clear(); // a real exit: the next body is not the descent's
+			}
+
 			_hostStartGateAlertPending = false; // a stale deferred layer-title must not replay into the menu
 		}
 
@@ -397,7 +653,10 @@ internal sealed class RunCoordinator(
 			_phase = RunPhase.WaitingReady;
 		}
 
-		var sceneName = inWorld ? SceneManager.GetActiveScene().name : "PreGen";
+		// The report names the ACTUAL active scene, role and state included: "not in world" is not
+		// synonymous with the menu — during a layer descent this member is still in the world's scene
+		// with no live world, and the old hardcoded "PreGen" made that read as a menu exit in every log.
+		var sceneName = SceneManager.GetActiveScene().name;
 		var pos = inWorld && _localBody != null // Unity object — ==
 			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)
 			: (NetVector2?)null;
@@ -416,6 +675,24 @@ internal sealed class RunCoordinator(
 	/// <summary>Guest side: the host released the start gate — start playing.</summary>
 	private void OnRemoteWorldReady()
 	{
+		if (_descent is DescentPhase.Accepted or DescentPhase.Launched)
+		{
+			// The gate's 30 s force-start (or a host that finished first) can release before this
+			// member's own generation settles: remember the release and go playing at the settle,
+			// instead of leaving the member frozen on a gate that is no longer there.
+			_descent = DescentPhase.ReleasedEarly;
+			_log.LogInformation("[LayerDescent] the host released the gate while this member's new layer is still generating — it starts playing as soon as its own generation settles.");
+			return;
+		}
+
+		if (_descent == DescentPhase.WaitingReady)
+		{
+			_descent = DescentPhase.None;
+			_phase = RunPhase.Playing;
+			_log.LogInformation("World ready — start playing (the descent's new layer was already generated).");
+			return;
+		}
+
 		if (_phase == RunPhase.WaitingReady)
 		{
 			_phase = RunPhase.Playing;
@@ -433,6 +710,7 @@ internal sealed class RunCoordinator(
 	{
 		_phase = RunPhase.Playing;
 		_hostStartGateAlertPending = false;
+		_hostDescentPending = false; // the gate released — the descent's presentation window closes with it
 	}
 
 	// ---- Session wiring ----
@@ -482,6 +760,12 @@ internal sealed class RunCoordinator(
 
 		if (!inWorld && steamId == _session.HostSteamId && _session.Role == SessionRole.Guest)
 		{
+			if (_descent != DescentPhase.None)
+			{
+				_log.LogInformation("[LayerDescent] the host left the world — this is the descent this member is following, not a menu exit.");
+				return;
+			}
+
 			_phase = RunPhase.Idle;
 			_menuReturn.Request(_session.Role, RunMenuReturnOrigin.HostPull, _inWorld);
 		}
@@ -501,6 +785,9 @@ internal sealed class RunCoordinator(
 		_hostStartGateAlertPending = false;
 		_hostInWorldSinceMs = 0;
 		_worldFingerprintLogged = false;
+		_descent = DescentPhase.None;
+		_descentBody.Clear();
+		_hostDescentPending = false;
 		_params.ResetSessionState();
 		// The starting-supplies record is session-scoped: the bodies it holds belong to a world
 		// this client is leaving, and a later run must judge its own. It is cleared here as well

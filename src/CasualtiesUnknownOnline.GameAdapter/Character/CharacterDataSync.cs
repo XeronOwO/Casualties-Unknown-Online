@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -28,6 +29,7 @@ internal sealed class CharacterDataSync(
 	ICharacterNativeSystem nativeSystem,
 	LocalCharacterRestoreQueue restore,
 	HealResetReportRetry healResetReports,
+	DescentBodyPreservation descentBody,
 	ILogger<CharacterDataSync> log)
 {
 	private readonly ISessionControl _session = session;
@@ -38,6 +40,12 @@ internal sealed class CharacterDataSync(
 	private readonly CharacterRestoreApplier _restoreApplier = restoreApplier;
 	private readonly WearableRestorer _wearables = wearables;
 	private readonly ILogger<CharacterDataSync> _log = log;
+
+	/// <summary>The descent follow's one-shot handback fact, shared with the run coordinator that notes the body.</summary>
+	private readonly DescentBodyPreservation _descentBody = descentBody;
+
+	/// <summary>The local body the 1 Hz pump last saw — the handback guard compares it to the descent's preserved body.</summary>
+	private int _localBodyId;
 
 	/// <summary>The reset result's retry (the transport can suppress the one event that carries the host-owned values).</summary>
 	private readonly HealResetReportRetry _healResetReports = healResetReports;
@@ -232,6 +240,16 @@ internal sealed class CharacterDataSync(
 		// character BEFORE the WorldJoin instruction that starts the follow, and
 		// that restore belongs to exactly the run the follow is starting — so a
 		// run-start cancel must never touch it.
+		if (_descentBody.TryConsume(_localBodyId, data))
+		{
+			// This body never left the world: it came through the host's own layer descent, which kept
+			// it and its carried items. The handback is for a member that left — applying it would move
+			// the body to its old layer's position and wipe/reapply the items it already holds. The
+			// consumption is one-shot, and a revive handback (no position) is never consumed.
+			_log.LogInformation("[LayerDescent] dropped the saved-character handback: this body came through the descent and never left.");
+			return;
+		}
+
 		_restore.Queue(data, ownRun: false);
 		// The position applies on the body's first frame (TryApplyCharacterRestore)
 		// — the gate is NOT reset here: a re-sent restore (the handshake and the
@@ -259,6 +277,7 @@ internal sealed class CharacterDataSync(
 		// The applied reset's authority event retries on this cadence while this body exists: it is
 		// the only carrier of the three host-owned values, and the transport may not have accepted it.
 		_healResetReports.Tick();
+		_localBodyId = localBody != null ? localBody.GetInstanceID() : 0; // Unity object — ==
 
 		if (localBody == null) // Unity object — ==
 		{
@@ -454,6 +473,7 @@ internal sealed class CharacterDataSync(
 		// The result belongs to the body that left: re-offering it on a later body would write a
 		// stale health/limb set onto the new one.
 		_healResetReports.Clear();
+		_localBodyId = 0; // the descent's preserved-body compare must not survive the body itself
 		if (_restore.WipePending)
 		{
 			// The body that took the restore's FIRST pass is leaving: the second pass can never

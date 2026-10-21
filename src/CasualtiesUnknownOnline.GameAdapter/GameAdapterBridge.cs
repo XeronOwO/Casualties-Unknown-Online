@@ -230,7 +230,15 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool EnsureGuestWorldParams() => domains.WorldParams.EnsureGuestApplied();
 
-	public void ResetGenStreamToBaseline() => domains.WorldParams.ResetGenStreamToBaseline();
+	public void ResetGenStreamToBaseline()
+	{
+		domains.WorldParams.ResetGenStreamToBaseline();
+		// This runs in the generation coroutine's first step, after the guest's params hold has ended:
+		// the descent's settle detection needs "the generation actually started", not "GenerateWorld was
+		// called" (the wrapper can hold the call for the host's baseline while the previous world's
+		// generatingWorld flag is already down).
+		domains.Run.OnLocalGenerationStarted();
+	}
 
 	public IEnumerator WrapStructureWorldGen(IEnumerator original, WorldGeneration world) =>
 		domains.StructureWorldGen.Wrap(original, world);
@@ -433,6 +441,13 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	/// <summary>The member's own end-of-layer choice: the game's entry ran its guard and its local steps, and the local regeneration must not follow (the layer is the host's capture).</summary>
 	public bool TryDelegateLocalAdvance() => domains.LayerAdvance.TryDelegateLocalAdvance();
+
+	/// <summary>A local descent that is NOT suppressed: on the host of a live session it is the shared edge every member follows, and the presentation window opens with it.</summary>
+	public void OnHostDescent(bool twice)
+	{
+		domains.Run.OnHostDescentStarted();
+		domains.LayerAdvance.OnHostDescent(twice);
+	}
 
 	public void UpdateDragUseCue(Item? dragItem) => domains.DragUseCue.Update(dragItem);
 

@@ -60,6 +60,13 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	/// <summary>Guest: the host released the start gate — start playing (or, for a late joiner, enter directly).</summary>
 	public event Action? WorldReadyReceived;
 
+	/// <summary>Guest: the host's own layer advance for this side's generation arrived — the member starts its new-layer generation.</summary>
+	public event Action<bool>? LayerDescentReceived
+	{
+		add => _messages.LayerDescentReceived += value;
+		remove => _messages.LayerDescentReceived -= value;
+	}
+
 	public WorldService(
 		ISessionControl session,
 		PacketSender sender,
@@ -378,6 +385,8 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public void FireWorldJoinReceived(bool isTutorial, bool baselineFollows) => _messages.FireWorldJoinReceived(isTutorial, baselineFollows);
 
+	public void CancelWorldJoinBaselineDrop() => _messages.CancelWorldJoinBaselineDrop();
+
 	public event Action? WorldSnapshotCompleteReceived { add => _messages.WorldSnapshotCompleteReceived += value; remove => _messages.WorldSnapshotCompleteReceived -= value; }
 
 	public void FireWorldSnapshotCompleteReceived() => _messages.FireWorldSnapshotCompleteReceived();
@@ -533,6 +542,19 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	public void SendWorldJoin(bool isTutorial) => _messages.SendWorldJoin(isTutorial, _kernelAuthority.CurrentRunEpoch.Value);
 
 	public void SendWorldJoinTo(ulong steamId) => _messages.SendWorldJoinTo(steamId, _kernelAuthority.CurrentRunEpoch.Value);
+
+	/// <summary>Host: announce the layer advance to the members in the world, then record them on the start gate as expected back — the two facts are one edge, so they are set together.</summary>
+	public void SendLayerDescent(bool twice)
+	{
+		var members = _messages.SendLayerDescent(twice);
+		if (members.Count > 0)
+		{
+			_startGate.ExpectDescent(members);
+		}
+	}
+
+	public void FireLayerDescentReceived(bool twice, WorldGenerationMsg? generation) =>
+		_messages.FireLayerDescentReceived(twice, generation);
 
 	public void PublishWorldParams(WorldStartParams parameters)
 	{

@@ -315,6 +315,36 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void LayerDescent_RoundTripsTheTwiceFlagAndTheGenerationStamp()
+	{
+		// The member generates the layer the stamp names and advances the number of layers the native step
+		// did: a lost twice flag would leave a pod descent one layer short, and a lost stamp would be refused.
+		var decoded = NetPacket.DecodePayload<LayerDescentMsg>(
+			NetPacket.Encode(NetMsg.LayerDescent, new LayerDescentMsg
+			{
+				Twice = true,
+				Generation = new WorldGenerationMsg { RunEpoch = 11UL, LayerIndex = 5 },
+			}));
+
+		Assert.True(decoded.Twice);
+		Assert.NotNull(decoded.Generation);
+		Assert.Equal(11UL, decoded.Generation!.RunEpoch);
+		Assert.Equal(5, decoded.Generation.LayerIndex);
+	}
+
+	[Fact]
+	public void LayerDescent_WithoutAStamp_DecodesAsNull()
+	{
+		// A host with no committed run baseline must not announce a descent (it has no layer to name), and
+		// the absent stamp is what the member refuses — the shape must survive as "absent", not as zeros.
+		var decoded = NetPacket.DecodePayload<LayerDescentMsg>(
+			NetPacket.Encode(NetMsg.LayerDescent, new LayerDescentMsg { Twice = false }));
+
+		Assert.False(decoded.Twice);
+		Assert.Null(decoded.Generation);
+	}
+
+	[Fact]
 	public void WorldJoin_RunEpoch_RoundTrips()
 	{
 		// The identity a member validates its checkpoint sets against: a value that

@@ -118,6 +118,14 @@ internal sealed class ReentryCoordinator(
 		}
 
 		var memberInWorldOrEntering = _run.IsInWorld || _run.IsEnteringWorld || HarmonyTraverse.IsGenerating();
+		if (_run.IsDescending)
+		{
+			// The host "left" the world because it is advancing a layer and this member is generating its
+			// own new layer in parallel — nothing was lost, so there is no menu to arm a window against.
+			_log.LogDebug("[Reentry] the host left the world on its way to the next layer and this member is generating its own — no re-entry window is armed.");
+			return;
+		}
+
 		if (!_window.TryArm(_time.NowMs, memberInWorldOrEntering))
 		{
 			_log.LogDebug("[Reentry] the host left the world but this member was already in the menu — its menu is its own, so no re-entry window is armed.");

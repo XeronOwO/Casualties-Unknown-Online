@@ -62,21 +62,56 @@ internal sealed class WorldStateMessageService(
 
 	public event Action<bool>? WorldJoinReceived;
 
+	/// <summary>The host's own layer advance, its own message family (the send is paired with the start gate's expectation by the facade).</summary>
+	private LayerDescentChannel? _descent;
+
+	private LayerDescentChannel Descent => _descent ??= new LayerDescentChannel(_session, _sender, _generations, () => WorldParams = null, _log);
+
+	/// <summary>Guest: the host's own layer advance for this side's generation arrived — start the local new-layer generation.</summary>
+	public event Action<bool>? LayerDescentReceived
+	{
+		add => Descent.Descended += value;
+		remove => Descent.Descended -= value;
+	}
+
 	/// <summary>
 	/// Guest: the enter-the-world instruction arrived. When it promises the run
 	/// baseline behind it, the params this side still holds are a PREVIOUS run's —
 	/// drop them, and the existing params wait at the generation boundary holds
-	/// until the promised checkpoint set restores the host's baseline.
+	/// until the promised checkpoint set restores the host's baseline. The dropped
+	/// instance is kept for the length of this event only: a receiver that REFUSES
+	/// the instruction (it is already in the world the invite is about) cancels the
+	/// drop, so an invite it does not follow cannot take the baseline its own
+	/// generation is using.
 	/// </summary>
 	public void FireWorldJoinReceived(bool isTutorial, bool baselineFollows)
 	{
+		_joinDroppedParams = null;
 		if (baselineFollows && _session.Role == SessionRole.Guest)
 		{
+			_joinDroppedParams = WorldParams;
 			WorldParams = null;
 		}
 
 		WorldJoinReceived?.Invoke(isTutorial);
+		_joinDroppedParams = null; // one instruction, one chance to cancel — no stale baseline outlives the event
 	}
+
+	/// <summary>Guest: the world join was REFUSED by the run-follow (already in or entering a world) — put back the baseline its drop took, so the generation in flight keeps its params.</summary>
+	public void CancelWorldJoinBaselineDrop()
+	{
+		if (_joinDroppedParams is not { } parameters)
+		{
+			return;
+		}
+
+		WorldParams = parameters;
+		_joinDroppedParams = null;
+		_log.LogInformation("World join not followed — the baseline its promise dropped was restored.");
+	}
+
+	/// <summary>The baseline the current (synchronous) world-join event dropped — only while the event is running.</summary>
+	private WorldStartParams? _joinDroppedParams;
 
 	public event Action? WorldSnapshotCompleteReceived;
 
@@ -437,6 +472,10 @@ internal sealed class WorldStateMessageService(
 
 		_log.LogInformation("[Respawn] sent targeted world join to {Peer} (tutorial: {Tutorial}, run {Epoch}, baseline follows: {Baseline}).", steamId, tutorial, runEpoch, baselineFollows);
 	}
+
+	public IReadOnlyList<ulong> SendLayerDescent(bool twice) => Descent.Send(twice);
+
+	public void FireLayerDescentReceived(bool twice, WorldGenerationMsg? generation) => Descent.Receive(twice, generation);
 
 	public void PublishWorldParams(WorldStartParams parameters)
 	{

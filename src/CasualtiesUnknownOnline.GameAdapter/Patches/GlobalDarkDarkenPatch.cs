@@ -3,14 +3,12 @@ using HarmonyLib;
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// The finish-generation fade (WorldGeneration.cs:3620) would black out the
-/// guest's kept loading screen during the start-gate wait — it reads as
-/// "black, then the wait" (the fade runs ~1.3 s: in, auto-out; the gate wait
-/// and the kept loading screen are both underneath it). Skip the fade
-/// entirely while the gate window holds (generation done or waiting for the
-/// host's release) — the loading screen stays visible, the wait reads as
-/// "still loading". Layer switches (RegenerateWorld.cs:1045, outside the gate
-/// window) keep their own fade.
+/// The generation fades must not black out the loading screen the group is waiting on.
+/// Two fades land inside the gate window: the finish-generation fade
+/// (WorldGeneration.cs:3620) during the start-gate wait, and the layer descent's own
+/// opening fade (WorldGeneration.cs:1045) on both roles once the descent edge opens the
+/// window — the descent is a loading-screen transition now, not a black flash. Skipping
+/// them keeps "still loading" continuous. Every other fade runs as shipped.
 /// </summary>
 [HarmonyPatch(typeof(GlobalDark), "Darken")]
 internal static class GlobalDarkDarkenPatch

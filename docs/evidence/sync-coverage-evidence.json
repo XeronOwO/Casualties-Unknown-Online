@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1114,
+  "count": 1119,
   "entries": [
     {
       "cluster": "inline",
@@ -3536,7 +3536,7 @@
       "cluster": "inline",
       "row": "W1",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs",
-      "quote": "var inWorld = HarmonyTraverse.HasLiveWorld;"
+      "quote": "var inWorld = HarmonyTraverse.HasLiveWorld && !descentUnsettled;"
     },
     {
       "cluster": "inline",
@@ -4748,7 +4748,7 @@
       "cluster": "inline",
       "row": "R4",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStartGate.cs",
-      "quote": ".Where(m => m.Handshaken && !m.InWorld && m.SteamId != _session.LocalSteamId)"
+      "quote": "&& (!m.InWorld || (descentPending?.Contains(m.SteamId) ?? false)))"
     },
     {
       "cluster": "inline",
@@ -6291,6 +6291,36 @@
       "row": "R10",
       "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
       "quote": "LayerAdvanceRequest = 142, // guest → host: a member reached the end of the layer and chose to continue"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "LayerDescent = 157, // host → guest: this host is advancing a layer now — generate your own new layer from its baseline and wait for the gate"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/LayerDescentMsg.cs",
+      "quote": "public bool Twice { get; set; }"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/LayerDescentHandler.cs",
+      "quote": "[PacketHandler(NetMsg.LayerDescent, NetMessageDirection.HostToGuest)]"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/LayerDescentChannel.cs",
+      "quote": "var relation = WorldReportGeneration.Relate(_generations.Current, generation);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R10",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStartGate.cs",
+      "quote": "_descentPending = [.. members];"
     },
     {
       "cluster": "inline",

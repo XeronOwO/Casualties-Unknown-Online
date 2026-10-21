@@ -77,6 +77,9 @@ internal sealed class GameAdapterDomains
 
 	internal readonly CloneFactTable FactTable;
 	internal readonly CharacterDataSync CharacterDataSync;
+
+	/// <summary>The descent follow's one-shot saved-character handback fact — noted by the run, consumed by the character domain.</summary>
+	internal readonly DescentBodyPreservation DescentBody;
 	internal readonly LocalBodyReset LocalBodyReset;
 	internal readonly StartingSupplyCoordinator StartingSupplies;
 	internal readonly RemotePlayerRenderer Renderer;
@@ -270,6 +273,10 @@ internal sealed class GameAdapterDomains
 		// The applied reset's authority event retries here because the transport can suppress a send
 		// locally; it is the only carrier of the three values the host owns.
 		var healResetReports = new HealResetReportRetry(characterData, time, loggerFactory.CreateLogger<HealResetReportRetry>());
+		// The descent follow's one-shot handback fact: the run notes the preserved body at the edge and
+		// the character domain consumes the single handback that answers its InWorld. One leaf, both
+		// readers — a delegate wired after construction would be the same fact with a cycle trap.
+		DescentBody = new DescentBodyPreservation();
 		CharacterDataSync = new CharacterDataSync(session, characterData, mapper,
 			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
 			FactTable,
@@ -278,6 +285,7 @@ internal sealed class GameAdapterDomains
 			nativeCharacterSystem,
 			localRestore,
 			healResetReports,
+			DescentBody,
 			loggerFactory.CreateLogger<CharacterDataSync>());
 		// The console /heal verb's body half: the full reset applied to this client's own body and
 		// re-reported. It is the adapter's port because only this side has the live Body and the
@@ -378,7 +386,7 @@ internal sealed class GameAdapterDomains
 		TraderSwingSync = new TraderSwingSync(world, session, loggerFactory.CreateLogger<TraderSwingSync>());
 		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, InteractionVisibility, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		Respawn = new RespawnCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());
-		LayerAdvance = new LayerAdvanceCoordinator(session, layerAdvance, loggerFactory.CreateLogger<LayerAdvanceCoordinator>());
+		LayerAdvance = new LayerAdvanceCoordinator(session, world, layerAdvance, loggerFactory.CreateLogger<LayerAdvanceCoordinator>());
 		SpeechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		CraftingSync = new CraftingSync(craft, ItemIds, itemReports, OperationTrace, loggerFactory.CreateLogger<CraftingSync>());
 		RecipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());
@@ -399,7 +407,7 @@ internal sealed class GameAdapterDomains
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, NativeWorldFacts, RunClockFacts, loggerFactory.CreateLogger<WorldParamsService>());
 		MenuReturn = new RunMenuReturnCoordinator(loggerFactory.CreateLogger<RunMenuReturnCoordinator>());
-		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, StartingSupplies, MenuReturn, loggerFactory.CreateLogger<RunCoordinator>());
+		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, StartingSupplies, MenuReturn, LayerAdvance, DescentBody, loggerFactory.CreateLogger<RunCoordinator>());
 		// Built after the run: the spectator camera reads the run's own local body, this client's clone
 		// renderer and the rule surface, and the run is constructed here.
 		Spectator = new SpectatorCameraService(Run, Renderer, HostRules, session, entities, loggerFactory.CreateLogger<SpectatorCameraService>());

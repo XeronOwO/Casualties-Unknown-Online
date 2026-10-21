@@ -440,4 +440,16 @@ public enum NetMsg : byte
 	// per-sender cooldown keeps a spammer from making the host ship a checkpoint set per frame.
 	ReentryRequest = 156, // guest → host: this member was pulled out of the world by the host's own exit and asks to be taken back in
 
+	// The host's own layer advance is a SHARED EDGE, not an exit: while the host regenerates, its world
+	// stops being live for a few frames (the round trip through the menu is what every member used to
+	// follow) and then comes back one layer deeper. A member that instead follows the edge generates its
+	// OWN new layer from the host's captured baseline at the same time as the host, so the group loads in
+	// parallel and enters together through the ordinary start gate. The message is sent at the START of
+	// the host's regeneration, before the transition reaches any member as a scene report, so a member can
+	// never mistake it for the host leaving. It carries the native two-layer flag (the drill pod steps two
+	// layers) and the host's generation stamp: a descent for any generation but this member's own is
+	// refused rather than guessed at. A lost edge is not fatal — the host's ordinary world join at its new
+	// entry still invites the member, which is the pre-edge recovery path.
+	LayerDescent = 157, // host → guest: this host is advancing a layer now — generate your own new layer from its baseline and wait for the gate
+
 }

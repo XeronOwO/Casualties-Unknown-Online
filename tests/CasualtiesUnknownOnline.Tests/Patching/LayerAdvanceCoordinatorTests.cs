@@ -20,9 +20,9 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// Runtime interface standing in as the double (the shape
 /// <c>StartingSupplyCoordinatorTests</c> established).
 /// <para>
-/// No live world exists in this host, so the progression step the delegation
-/// would grant returns before it touches anything — what these cases pin is the
-/// decision and the wire call, not the game-side grant.
+/// These cases pin the delegation decision and the wire call, not the member's
+/// descent: that runs from the host's edge (<c>LayerDescentTests</c> /
+/// <c>LayerDescentPolicyTests</c>).
 /// </para>
 /// </summary>
 [Trait("Category", "Integration")]
@@ -68,9 +68,12 @@ public class LayerAdvanceCoordinatorTests
 	private static ConstructorInfo Constructor() =>
 		Coordinator.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single();
 
-	private static object Resolve(Type dependency, ISessionControl session, ILayerAdvanceControl advance, ILoggerFactory factory) =>
+	private static object? Resolve(Type dependency, ISessionControl session, ILayerAdvanceControl advance, ILoggerFactory factory) =>
 		dependency == typeof(ISessionControl) ? session
 		: dependency == typeof(ILayerAdvanceControl) ? advance
+		// The host's descent send is the other direction and needs a live world; these cases exercise the
+		// member's own choice, which never reads it.
+		: dependency == typeof(IWorldControl) ? null
 		: dependency.IsGenericType && dependency.GetGenericTypeDefinition() == typeof(ILogger<>)
 			? Activator.CreateInstance(typeof(Logger<>).MakeGenericType(dependency.GetGenericArguments()[0]), factory)!
 			: throw new InvalidOperationException($"LayerAdvanceCoordinator gained a dependency this fixture does not know: {dependency.FullName}.");

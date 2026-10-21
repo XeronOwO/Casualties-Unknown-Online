@@ -35,6 +35,21 @@ public interface IWorldControl
 	/// </summary>
 	bool HasCommittedRunBaseline { get; }
 
+	/// <summary>
+	/// Host only: this host's world is advancing a layer now — tell every handshaken member currently in
+	/// it to generate its own new layer from this host's baseline, and record them on the start gate as
+	/// expected back so the gate holds until they are all in. <paramref name="twice"/> is the native
+	/// two-layer step (the drill pod). Nothing is sent without a committed run baseline: that is the
+	/// baseline the members generate from, and an unstamped edge has no layer to accept it for.
+	/// </summary>
+	void SendLayerDescent(bool twice);
+
+	/// <summary>Guest: the host's descent edge arrived — raised only for the generation this member is in, after the held baseline is dropped so the local generation waits for the host's new one.</summary>
+	void FireLayerDescentReceived(bool twice, WorldGenerationMsg? generation);
+
+	/// <summary>Guest: the host announced its own layer advance for the generation this side is in — start the local new-layer generation now and wait for the gate.</summary>
+	event Action<bool>? LayerDescentReceived;
+
 	/// <summary>Host only: a run started (click moment) but the host is not in the world yet — mid-generation handshakes may follow immediately.</summary>
 	bool HostRunPending { get; }
 
@@ -53,6 +68,14 @@ public interface IWorldControl
 
 	/// <summary>Guest side of the enter-the-world instruction. <paramref name="baselineFollows"/> is the instruction's promise that the run-baseline checkpoint set follows it: the receiver drops the params it still holds (a previous run's) and its generation waits for that set to restore the host's baseline.</summary>
 	void FireWorldJoinReceived(bool isTutorial, bool baselineFollows);
+
+	/// <summary>
+	/// Guest: the run-follow REFUSED the join it just received (this member is already in, entering, or
+	/// generating a world) — put back the baseline the instruction's drop took. An invite a member does
+	/// not follow must not change the params its own generation is using; the host's entry invite reaches
+	/// a member that is still following a layer descent for exactly this case.
+	/// </summary>
+	void CancelWorldJoinBaselineDrop();
 
 	event Action<bool>? WorldJoinReceived;
 

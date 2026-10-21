@@ -30,7 +30,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(WorldGeneration), "RegenerateWorld")]
 internal static class WorldGenerationRegenerateWorldPatch
 {
-	private static bool Prefix(ref IEnumerator __result)
+	private static bool Prefix(ref IEnumerator __result, object[] __args)
 	{
 		// The mark is consumed here (not merely read): this is the entry's last step, so the window ends with
 		// this call even if the entry's body threw on its way here.
@@ -41,6 +41,12 @@ internal static class WorldGenerationRegenerateWorldPatch
 		var delegated = fromPanelEntry && (PatchBridge.LayerAdvance?.TryDelegateLocalAdvance() ?? false);
 		if (!LayerAdvancePolicy.ShouldSuppressLocalDescent(fromPanelEntry, delegated))
 		{
+			// This descent is not suppressed, so it runs on this client. On the host of a live session it is
+			// the session's shared edge and must reach the members NOW — before the regeneration's own scene
+			// transition reaches them as an exit — so each generates its new layer in parallel. On a guest
+			// (its own pod/console descent, or no session) the port names that this is not the session's step
+			// and sends nothing. The native two-layer flag (the drill pod) rides along.
+			PatchBridge.LayerAdvance?.OnHostDescent(__args is { Length: > 0 } && __args[0] is bool twice && twice);
 			return true;
 		}
 

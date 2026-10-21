@@ -227,6 +227,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 | 141 | `ItemImpact` | host → guest | the authority's own world-item landing presentation (the drop clip, the landing block's step sound, the dust or a plush's squeak) at a position |
 | 142 | `LayerAdvanceRequest` | guest → host | a member reached the end of the layer and chose to continue, stamped with its own kernel generation — the host drives the layer's advance when the stamp is the generation it is in |
 | 156 | `ReentryRequest` | guest → host | a member the host's own world exit pulled into the menu asks to be taken back in; the host answers with the ordinary targeted `WorldJoin` and its run-baseline checkpoint, so the entry instruction is not a one-shot |
+| 157 | `LayerDescent` | host → guest | the host is advancing a layer now, sent at the start of its own regeneration and stamped with its kernel generation; every member in the world generates its own new layer in parallel from the host's baseline and waits for the start gate instead of returning to the menu (the `twice` flag carries the drill pod's two-layer step) |
 
 **Fluid, world time and the tutorial**
 

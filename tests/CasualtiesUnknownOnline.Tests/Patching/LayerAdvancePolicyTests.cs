@@ -97,8 +97,10 @@ public class LayerAdvancePolicyTests
 
 		var parameters = prefix.GetParameters();
 		Assert.True(
-			parameters.Length == 1 && parameters[0].Name == "__result" && parameters[0].ParameterType == typeof(IEnumerator).MakeByRefType(),
-			$"the sink prefix must take ref IEnumerator __result, got {string.Join(", ", parameters.Select(parameter => parameter.ToString()))}");
+			parameters.Length == 2
+				&& parameters[0].Name == "__result" && parameters[0].ParameterType == typeof(IEnumerator).MakeByRefType()
+				&& parameters[1].Name == "__args" && parameters[1].ParameterType == typeof(object[]),
+			$"the sink prefix must take ref IEnumerator __result and object[] __args (the native twice flag), got {string.Join(", ", parameters.Select(parameter => parameter.ToString()))}");
 	}
 
 	/// <summary>The marker's own shape: a void prefix and a void postfix (it marks a window; it never blocks the entry), and the marker field the sink reads.</summary>
@@ -124,11 +126,11 @@ public class LayerAdvancePolicyTests
 
 		// The marker off (the pod's and the console's own calls) is the first refusal.
 		Marker().SetValue(null, false);
-		Assert.True((bool)prefix.Invoke(null, [null])!, "a descent that is not the panel's click must keep the game's own path");
+		Assert.True((bool)prefix.Invoke(null, [null, Array.Empty<object>()])!, "a descent that is not the panel's click must keep the game's own path");
 
 		// The marker on but no bound bridge (no GameAdapter in this process): the same answer.
 		Marker().SetValue(null, true);
-		Assert.True((bool)prefix.Invoke(null, [null])!, "with no session the game must descend as it always did");
+		Assert.True((bool)prefix.Invoke(null, [null, Array.Empty<object>()])!, "with no session the game must descend as it always did");
 		Marker().SetValue(null, false);
 	}
 

@@ -18,10 +18,10 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
 /// The enemy-sync stream (EnemySyncService): the host publishes its simulated
-/// enemies, the world-entry fan-out delivers the full snapshot (ids + positions
-/// for binding), and the 20 Hz broadcast reaches in-world guests — with the
-/// unreliable-stream seq gate dropping stale/duplicate batches. Locked through
-/// the real handlers over the fake network.
+/// enemies, the world-entry fan-out delivers the authoritative roster (a row per
+/// enemy, empty included) and the 20 Hz broadcast reaches in-world guests — with
+/// the unreliable-stream seq gate dropping stale/duplicate batches. Locked
+/// through the real handlers over the fake network.
 /// </summary>
 [Trait("Category", "Integration")]
 public class EnemySyncServiceTests
@@ -136,8 +136,11 @@ public class EnemySyncServiceTests
 
 
 	[Fact]
-	public void WorldEntry_NoEnemies_SendsNothing()
+	public void WorldEntry_NoEnemies_SendsTheAuthoritativeEmptyRoster()
 	{
+		// An empty host table is a fact, not a no-op: the member's own generated
+		// enemies are a different world, and suppressing the snapshot kept the
+		// divergent set for the whole session.
 		using var w = ItemSimWorld.Create();
 		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
 		var received = 0;
@@ -147,7 +150,7 @@ public class EnemySyncServiceTests
 		w.Driver.Tick(33);
 
 		Assert.Empty(g1Enemies.Enemies);
-		Assert.True(received == 0, "an empty enemy table must not fire the received event");
+		Assert.True(received > 0, "the empty roster must fire the received event");
 	}
 
 	[Fact]
@@ -361,7 +364,7 @@ public class EnemySyncServiceTests
 			EnemyStates = [Enemy(6, 1f, 1f).ToWireEnemyStreamState()],
 		});
 		ApplyKernelRemoval(w.G1, new EntityId(id.Epoch, id.Counter, id.Generation));
-		control.ApplyEnemySnapshot(new EnemySnapshotMsg
+		control.ApplyEnemySnapshot(HostId, new EnemySnapshotMsg
 		{
 			Enemies = [Enemy(6, 3f, 3f).ToEnemyStateMsg()],
 		});
@@ -390,7 +393,7 @@ public class EnemySyncServiceTests
 		{
 			EnemyStates = [Enemy(6, 2f, 2f).ToWireEnemyStreamState()],
 		});
-		control.ApplyEnemySnapshot(new EnemySnapshotMsg
+		control.ApplyEnemySnapshot(HostId, new EnemySnapshotMsg
 		{
 			Enemies = [Enemy(6, 3f, 3f).ToEnemyStateMsg()],
 		});
@@ -452,7 +455,7 @@ public class EnemySyncServiceTests
 			out _,
 			out var rejection), rejection?.Message);
 
-		control.ApplyEnemySnapshot(new EnemySnapshotMsg
+		control.ApplyEnemySnapshot(HostId, new EnemySnapshotMsg
 		{
 			Enemies =
 			[

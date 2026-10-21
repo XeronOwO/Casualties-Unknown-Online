@@ -263,7 +263,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 
 | Id | Message | Direction | What it carries |
 |---|---|---|---|
-| 81 | `EnemySnapshot` | host → guest | the full enemy snapshot (ids, spawn positions, runtime spawns) |
+| 81 | `EnemySnapshot` | host → guest | the absolute enemy roster — one row per enemy (id, prefab, match hint, current state) stamped with the world/layer generation, with the runtime rows' creation key and tint in the detail list; an empty roster is authoritative |
 | 83 | `EnemyAttack` | host → guest | an announced attack (enemy, kind, per-enemy sequence); each guest judges on its own view and reports the terminal state through kernel combat events |
 | 76 | `CraftReport` | report plus relay | one whole crafting operation: consumed/changed materials plus products |
 | 77 | `RecipeUnlock` | report plus relay | a blueprint unlock |

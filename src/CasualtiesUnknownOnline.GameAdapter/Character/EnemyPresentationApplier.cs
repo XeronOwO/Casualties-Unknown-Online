@@ -11,11 +11,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// it writes one buffered enemy state onto the copy bound to that id, and it
 /// remembers the damage a local attack already dealt so the next host batch does
 /// not flash the copy's health back up for a round-trip. It owns NO identity —
-/// which copy is which id, the spawn anchor and the copy lifecycle stay in the
-/// coordinator — which is what makes it the right home for the next
-/// presentation field instead of the coordinator growing past the 600-line
-/// architecture gate (extracted 2026-09-18: the coordinator sat exactly at the
-/// cap before the enemy binding-recovery change landed in it).
+/// which copy is which id lives in <see cref="EnemyBindingTable"/>, the match
+/// hint and the copy lifecycle stay in the coordinator/binder — which is what
+/// makes it the right home for the next presentation field instead of the
+/// coordinator growing past the 600-line architecture gate.
 /// </summary>
 internal sealed class EnemyPresentationApplier(ILogger<EnemySyncCoordinator> log)
 {

@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// BuildingEntity a creation record binds to. Extracted from the adapter's
 /// <c>EntitySpawnSync.FindExisting</c> so the identity contract is
 /// unit-testable without a game scene, exactly like <c>TrapLayoutAlign</c> and
-/// <c>EnemyRuntimeSpawnArbitration</c>.
+/// <c>EnemyRosterAdoption</c>.
 /// <para>
 /// ONE pass: the record's OWN copy — the candidate carrying the record's exact
 /// <see cref="RuntimeEntityKey"/> (prefab id + creation cell + creation-instance

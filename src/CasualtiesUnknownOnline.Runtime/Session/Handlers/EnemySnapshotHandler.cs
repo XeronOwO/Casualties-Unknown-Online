@@ -3,7 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
-/// <summary>Host → guest: the full enemy snapshot (world entry / late joiner) — ids + spawn positions for binding.</summary>
+/// <summary>Host → guest: the full enemy roster (world entry / late joiner / the 60 s repair) — every row's id, prefab, match hint and current state.</summary>
 [PacketHandler(NetMsg.EnemySnapshot, NetMessageDirection.HostToGuest)]
 public sealed class EnemySnapshotHandler : PacketHandlerBase<EnemySnapshotMsg, IEnemySessionHandlerContext>
 {
@@ -14,6 +14,6 @@ public sealed class EnemySnapshotHandler : PacketHandlerBase<EnemySnapshotMsg, I
 			return;
 		}
 
-		ctx.Enemies.ApplyEnemySnapshot(msg);
+		ctx.Enemies.ApplyEnemySnapshot(sender, msg);
 	}
 }

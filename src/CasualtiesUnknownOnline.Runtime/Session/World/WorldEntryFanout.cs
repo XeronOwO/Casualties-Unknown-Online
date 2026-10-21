@@ -123,12 +123,12 @@ public sealed class WorldEntryFanout(
 	/// re-sent on its own generation/entry edges, and the completion marker is an
 	/// entry-group contract.
 	///
-	/// The ENEMY snapshot rides here since the N1 recovery (2026-09-18): a
-	/// repeat snapshot is idempotent because the guest pairs its frozen copies on
-	/// the host's bind-time spawn anchor rather than on the live position, so a
-	/// repair landing long after generation still binds (before the anchor it
-	/// could not pair at all, and a failed pairing even cleared the guest's
-	/// mapping flag).
+	/// The ENEMY snapshot rides here since the N1 recovery (2026-09-18) and is
+	/// the absolute roster since the 2026-10-21 rebuild: a repeat snapshot is
+	/// idempotent because the guest adopts it ROW BY ROW (reuse a local copy,
+	/// materialize a missing row, destroy a surplus copy), so a repair landing
+	/// long after generation adopts every row instead of failing a whole sorted
+	/// set. A held snapshot is flushed when the host's roster becomes ready.
 	///
 	/// Adding an absolute in-world table means adding it HERE as well: a
 	/// swallowed entry send has no second chance until the next world-entry

@@ -7,7 +7,7 @@
   in any of the three windows over 6 s (six 1 Hz snapshots), and the post-craft records/clone trees show the
   consumed materials gone and the product exactly where the game put it.
 - Batch: `20261025-d` — this ticket only. The same session read the enemy generation pairing failure both
-  guests log; that is the separate ticket `todo/enemy-generation-pairing-late-join.md` (rejected on this
+  guests log; that is the separate ticket `review/enemy-generation-pairing-late-join.md` (rejected on this
   batch), not a row here.
 - Commit: `426f71be` · Deployed artifact: `CasualtiesUnknownOnline.dll`, ProductVersion
   `0.1.0+426f71beb856fb50487b5075daa5fb7551f46bc1` (`prelude-verify-deploy.txt`; `tools/verify-deploy.ps1`

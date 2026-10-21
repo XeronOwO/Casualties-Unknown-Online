@@ -48,16 +48,13 @@ assembly), and its interface keeps growing with every feature (see
   extract next (it is what pushed the file from 538 to 570): it needs only the appliers and the
   sibling sessions, so it can become a collaborator that the service hands the winner.
 
-- `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (+ its
-  `EnemySyncCoordinator.RuntimeSpawns.cs` partial — 587 aggregate measured 2026-10-07, after the
-  pairing-key cycle; the same two files read 573 before it, and the entry's older "584" was a
-  measurement that had already rotted) — the
-  host capture (id allocation in the deterministic `EnemySpawnArbitration` order, the bind-time
-  spawn anchor, the per-frame state capture) and the guest binding half (the pairing that now takes
-  its key from the host facts in `EnemySpawnArbitration.TryPairGeneratedCopies`, the runtime-spawn
-  materialization, the frozen-copy lifecycle). What is left to extract next is
-  the HOST CAPTURE half (`CaptureHostEnemies` / `EnsureMapping` / `Bind` / `Capture` ≈ 110 lines);
-  the shared entity↔id table is what currently ties it to the guest binding half.
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (395) with
+  `EnemyBindingTable.cs` (96) and `EnemyRosterBinder.cs` (333) — the enemy-roster rebuild split what
+  was a 730-line coordinator (the 2026-10-07 measurement was 587; the rebuild's growth crossed the
+  cap) into the identity table, the guest adoption applier and the host capture/lifecycle. The class
+  is under the cap now; what it still owns is the host capture
+  (`CaptureHostEnemies` / `EnsureMapping` / `BindHost` ≈ 100 lines) and the generation/lifecycle
+  pump. No extraction is owed; re-measure if a new responsibility lands in it.
 - `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (~573) — the pump order is the seam
   contract, so any further per-frame step should go into a domain, not into `Update`. (The Online UI's
   native-facts port added one field and one explicit member; the per-frame reading lives in its own

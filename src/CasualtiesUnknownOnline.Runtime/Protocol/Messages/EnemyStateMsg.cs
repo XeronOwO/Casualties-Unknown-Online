@@ -61,15 +61,26 @@ public sealed class EnemyStateMsg
 	public NetVector2Msg? CrystalLineEnd { get; set; }
 
 	/// <summary>
-	/// Where this enemy stood when the HOST first bound it — its generation
-	/// position for a generated animal, its creation position for a runtime
-	/// spawn. This is the key the guest pairs its frozen copies on, never
-	/// <see cref="Position"/>: the live position keeps moving with the host's
-	/// simulation, so pairing on it only holds in the instant after generation
-	/// and a repair snapshot published later cannot bind at all (audit row N1).
+	/// The host's MATCH HINT: where this enemy stood when the host first bound
+	/// it (its generation position for a generated animal, its creation
+	/// position for a runtime spawn — but only when the host bound it before it
+	/// moved). It is NOT an identity and NOT a correctness bound: the member
+	/// uses it only to pick a local copy worth REUSING; a row whose hint does
+	/// not sit near any local copy is materialized at <see cref="Position"/>, so
+	/// a moved hint or a divergent generation can never leave an enemy unbound.
 	/// </summary>
 	[ProtoMember(10)]
 	public NetVector2Msg SpawnPosition { get; set; } = new();
+
+	/// <summary>
+	/// The prefab to materialize when this row has no local copy. It travels on
+	/// the row (not only in the member's kernel fact) so a deferred adoption can
+	/// still identify and create every row even if a stream frame rebuilt the
+	/// buffer in between; the kernel fact remains the durable authority and
+	/// overwrites it on the guest.
+	/// </summary>
+	[ProtoMember(11)]
+	public string PrefabId { get; set; } = string.Empty;
 
 	/// <summary>Wire → domain; the reverse lives in <see cref="EnemyEntity.ToEnemyStateMsg"/>.</summary>
 	public void ApplyTo(EnemyEntity target)
@@ -77,6 +88,7 @@ public sealed class EnemyStateMsg
 		target.EntityId = Id.ToNetworkEntityId();
 		target.Position = Position.ToNetVector2();
 		target.SpawnPosition = SpawnPosition.ToNetVector2();
+		target.PrefabId = PrefabId;
 		target.Velocity = Velocity.ToNetVector2();
 		target.Rotation = Rotation;
 		target.Health = Health;

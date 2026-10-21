@@ -48,12 +48,14 @@ part is a kernel fact rather than a stream value, a guest that joins late, drops
 same answer as one that was there all along.
 
 The absolute snapshot is not only a join-time message: the host also re-sends it on the in-session
-repair cadence, so a member that never left the world still re-binds after an entry send that the lazy
-session swallowed. A repeat is harmless, because the guest pairs its frozen copy on the host's
-bind-time spawn anchor rather than on the live position — by the time the repeat arrives, the live
-position has moved on. The repeat also pairs only the copies that have no host id yet: a copy that is
-already bound has its identity, and re-pairing it would compare the host's anchor against the driven
-position and fail the whole set.
+repair cadence, so a member that never left the world still converges after an entry send that the lazy
+session swallowed. The snapshot is a ROSTER — one row per enemy keyed by the host id — and a repeat is
+harmless because the member adopts it row by row: it reuses the local copy a row plausibly is (the same
+prefab near the host's match hint), materializes a row it has no copy for at the host's current
+position, and destroys local copies the roster does not contain. The match hint is only a reuse hint,
+never an identity: a row the hint cannot place is materialized, so drift cannot leave an enemy unbound.
+An empty roster is authoritative too — a member destroys its surplus copies instead of keeping a
+different world — and a roster stamped with another world generation is refused.
 
 ## An attack is announced, not decided
 
@@ -84,14 +86,17 @@ the client's own screen and its own timeline.
 
 ## Runtime spawns and removal
 
-Most enemies come from world generation: the generation stream distributes them deterministically, so
-both sides already agree on where they are and only the live behaviour needs syncing.
+Most enemies come from world generation: the generation stream distributes them, but physics decides the
+exact placements, so the guest's regenerated layout can differ from the host's. The guest therefore does
+not treat its own generation as the identity: the host's roster is the truth, and the guest adopts it
+per row — reuse when a local copy is plausibly the same animal, materialize when it is not, destroy the
+surplus.
 
 An enemy created during play is a [runtime spawn](../reference/glossary.md) — a cave-tick spawner is the usual case.
-It travels as a spawn report and is bound to the generated baseline by position, all-or-nothing: the
-positional key is scoped to the moment of creation, so a spawn the host binds a few frames later keeps
-that scope. Removal is a kernel fact too, and a session-scoped guard stops a stale stream value from
-rolling back an enemy the kernel has already removed.
+It is a row of the same roster: the creation report creates the member's copy, and the host's next
+snapshot carries the row's creation key, so a keyed row binds the copy carrying that key (or
+materializes it on a member that missed the creation). Removal is a kernel fact too, and a
+session-scoped guard stops a stale stream value from rolling back an enemy the kernel has already removed.
 
 ## What a game update can move
 

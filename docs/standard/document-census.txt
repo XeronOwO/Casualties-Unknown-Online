@@ -219,7 +219,7 @@ docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/b
 docs/backlog/review/concurrent-medical-operations.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cross-player-item-use-random-determinism.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-right-click-name-suffix.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/enemy-generation-pairing-late-join.md | keep | index | docs/backlog/README.md
+docs/backlog/review/enemy-generation-pairing-late-join.md | keep | index | docs/backlog/README.md
 docs/backlog/review/enemy-hit-determination-local.md | keep | index | docs/backlog/README.md
 docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md | keep | index | docs/backlog/README.md
 docs/backlog/done/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
@@ -585,7 +585,7 @@ docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-c.md | k
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-d.md | keep | claim | docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-e.md | keep | claim | docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md | keep | claim | docs/backlog/done/container-content-event-gap-on-repick.md
-docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md | keep | claim | docs/backlog/todo/enemy-generation-pairing-late-join.md
+docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md | keep | claim | docs/backlog/review/enemy-generation-pairing-late-join.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md | keep | claim | docs/evidence/acceptance/20261011-e-scope.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md | keep | claim | docs/backlog/review/document-corpus-audit.md
 docs/evidence/acceptance/remove-legacy-view-items-remote-inventory-detail-20260927.md | keep | claim | docs/backlog/done/remove-legacy-view-items-remote-inventory-detail.md
@@ -694,7 +694,8 @@ docs/evidence/selfchecks/enemies/crystal-ticking-selfcheck.md | keep | claim | d
 docs/evidence/selfchecks/enemies/crystal-windup-telegraph-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/enemies/enemy-combat-replay-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/enemies/enemy-effects-selfcheck.md | keep | claim | docs/evidence/selfchecks/enemies/enemy-targeting-selfcheck.md
-docs/evidence/selfchecks/enemies/enemy-generation-pairing-late-join-selfcheck.md | keep | claim | docs/backlog/todo/enemy-generation-pairing-late-join.md
+docs/evidence/selfchecks/enemies/enemy-generation-pairing-late-join-selfcheck.md | keep | claim | docs/backlog/review/enemy-generation-pairing-late-join.md
+docs/evidence/selfchecks/enemies/enemy-roster-adoption-selfcheck.md | keep | claim | docs/backlog/review/enemy-generation-pairing-late-join.md
 docs/evidence/selfchecks/enemies/enemy-hit-determination-local-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/enemies/enemy-stun-presentation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/enemies/enemy-targeting-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

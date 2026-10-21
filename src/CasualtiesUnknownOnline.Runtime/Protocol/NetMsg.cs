@@ -91,7 +91,7 @@ public enum NetMsg : byte
 	// Enemies/NPCs (host authority — the host simulates the AI + physics, the
 	// guests render the frozen copies from the snapshot; same pattern as the
 	// player entity stream)
-	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding + RuntimeSpawns for materializing runtime-created enemies)
+	EnemySnapshot = 81, // host → guest: the absolute enemy roster (world entry / late joiner / the 60 s repair — one generation-stamped row per enemy: id, prefab, match hint, state; RuntimeSpawns carries the runtime rows' creation key and tint)
 	EnemyAttack = 83, // host → guest: the host's enemy simulation ANNOUNCED an attack (broadcast to every in-world guest — which enemy, which kind, the per-enemy attack seq); each guest judges on its own view whether it was hit and reports the terminal state through kernel combat-result events
 
 	// Mod host commands (Phase 4b Mod API — command execution is host-authoritative:

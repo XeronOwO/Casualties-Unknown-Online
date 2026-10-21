@@ -31,7 +31,7 @@
     {
       "cluster": "enemies-trade",
       "row": "N1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyRosterPublisher.cs",
       "quote": "_sender.Send(steamId, NetMsg.EnemySnapshot, payload);"
     },
     {
@@ -4459,8 +4459,8 @@
     {
       "cluster": "inline",
       "row": "N1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySpawnArbitration.cs",
-      "quote": "OrderBy(fact => fact.SpawnPosition, comparer)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyRosterAdoption.cs",
+      "quote": "internal static AdoptionPlan Plan(IReadOnlyList<RosterRow> rows, IReadOnlyList<LocalCopy> copies)"
     },
     {
       "cluster": "inline",
@@ -4471,8 +4471,8 @@
     {
       "cluster": "inline",
       "row": "N1",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs",
-      "quote": "return; // an empty table is a no-op — the member's own generated enemies stay"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyRosterPublisher.cs",
+      "quote": "Generation = _generations.Stamp(),"
     },
     {
       "cluster": "inline",
@@ -4507,8 +4507,8 @@
     {
       "cluster": "inline",
       "row": "N3",
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs",
-      "quote": "private void SendEnemySnapshot(ulong steamId)"
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyRosterPublisher.cs",
+      "quote": "internal void Send(ulong steamId)"
     },
     {
       "cluster": "inline",
@@ -5053,8 +5053,8 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.RuntimeSpawns.cs",
-      "quote": "var created = RuntimeEntityFactory.TryCreate(spawn.PrefabId, pos, _log,"
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyRosterBinder.cs",
+      "quote": "var created = RuntimeEntityFactory.TryCreate(state.PrefabId, position, _log, \"EnemyRoster\");"
     },
     {
       "cluster": "inline",
@@ -5251,8 +5251,8 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.RuntimeSpawns.cs",
-      "quote": "var created = RuntimeEntityFactory.TryCreate(spawn.PrefabId, pos, _log,"
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyRosterBinder.cs",
+      "quote": "RuntimeEntityCreation.Stamp(created, RuntimeEntityKey.FromKeyMsg(keyMsg));"
     },
     {
       "cluster": "inline",
@@ -5942,7 +5942,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "docs/evidence/sync-cadence-measurements.md",
-      "quote": "| One repair pass, measured in the simulation world | 2 463 bytes"
+      "quote": "| One repair pass, measured in the simulation world | 2 464 bytes"
     },
     {
       "cluster": "cadence-review",
@@ -5972,7 +5972,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
-      "quote": "Assert.Equal(2_463L, answerBytes);"
+      "quote": "Assert.Equal(2_464L, answerBytes);"
     },
     {
       "cluster": "cadence-review",

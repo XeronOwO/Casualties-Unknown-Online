@@ -999,4 +999,47 @@ public class SourceShapeGateTests
 
 		return failures;
 	}
+
+	/// <summary>
+	/// The enemy roster adoption's adapter wiring: the host builds its published
+	/// states from the BOUND table (a scan-only list drops a live enemy's id when
+	/// the scan misses it), the guest's adoption goes through the pure judgment and
+	/// destroys surplus only against a COMPLETE roster, and an EMPTY roster is
+	/// authoritative (the old <c>if (_enemies.Count == 0) return;</c> kept every
+	/// member's divergent local set). The test assembly cannot compile against the
+	/// adapter (<c>ExcludeAssets="compile"</c>), so the wiring is pinned here by
+	/// source; the per-row judgment is pinned by <c>EnemyRosterAdoptionTests</c>
+	/// and the snapshot semantics by <c>EnemySnapshotRecoveryTests</c>.
+	/// </summary>
+	[Fact]
+	public void EnemyRosterAdoption_IsTheOnlyMatch_AndTheRosterGatesArePinned()
+	{
+		var coordinator = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs"))
+			+ File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyRosterBinder.cs"));
+		var bridge = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs"));
+		var service = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs"));
+		var publisher = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyRosterPublisher.cs"));
+		var handler = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/Handlers/EnemySnapshotHandler.cs"));
+		var message = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/EnemySnapshotMsg.cs"));
+		var stateMessage = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/EnemyStateMsg.cs"));
+
+		Assert.True(coordinator.Contains("EnemyRosterAdoption.Plan(", StringComparison.Ordinal), "the guest's adoption must go through the pure EnemyRosterAdoption.Plan — a second matching rule is the rejected design");
+		Assert.True(coordinator.Contains("EnemyRosterAdoption.FindLiveCopy(", StringComparison.Ordinal), "the live 20 Hz adoption rule must be the pure FindLiveCopy, not an untested second loop");
+		Assert.False(coordinator.Contains("TryPairGeneratedCopies", StringComparison.Ordinal), "the all-or-nothing generated-set pairing is deleted; its return would restore the rejected scheme");
+		Assert.False(coordinator.Contains("EnemySpawnArbitration", StringComparison.Ordinal), "EnemySpawnArbitration is deleted; a reference here means the position-as-identity scheme came back");
+		Assert.False(coordinator.Contains("EnemyRuntimeSpawnArbitration", StringComparison.Ordinal), "the runtime-spawn positional arbitration is deleted; a reference here means the second identity scheme came back");
+		Assert.True(coordinator.Contains("foreach (var (id, entity) in _bindings.Bound)", StringComparison.Ordinal), "the host's states must come from the bound table, not a one-frame scene scan: a scan that misses a live enemy would drop its id and its row");
+		Assert.True(coordinator.Contains("var unresolvedCount = plan.Unresolved.Count + failed;", StringComparison.Ordinal), "the destroy gate must count BOTH unresolved rows and rows whose materialization failed — a failed row may be the only local copy of the enemy it could not create");
+		Assert.True(coordinator.Contains("if (unresolvedCount > 0)", StringComparison.Ordinal), "the destroy gate must use the combined completeness condition, not the plan's unresolved set alone");
+		Assert.True(coordinator.Contains("EnemyRosterReset +=", StringComparison.Ordinal), "the adapter must drop its bindings when the host resets the roster for a new layer");
+		Assert.True(coordinator.Contains("CanPublishRoster(HarmonyTraverse.HasWorld, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating())", StringComparison.Ordinal), "the adoption must be gated on a SETTLED world: the regeneration fade is not IsGenerating and a copy of the scene being replaced must not be adopted");
+		Assert.True(bridge.Contains("domains.EnemySync.OnWorldGenerationStarted()", StringComparison.Ordinal), "the generation boundary must reset the roster state on both roles");
+		Assert.False(publisher.Contains("if (_enemies.Count == 0)", StringComparison.Ordinal), "the empty roster is authoritative — suppressing it kept every member's divergent local set");
+		Assert.True(publisher.Contains("Generation = _generations.Stamp()", StringComparison.Ordinal), "a roster must carry the world/layer generation it was derived in");
+		Assert.True(publisher.Contains("FlushHeld();", StringComparison.Ordinal), "a held snapshot must be flushed at the ready transition — its member's entry window may already be closed");
+		Assert.True(publisher.Contains("_heldPeers.Add(steamId)", StringComparison.Ordinal), "the held peers must be recorded for that flush");
+		Assert.True(handler.Contains("ApplyEnemySnapshot(sender, msg)", StringComparison.Ordinal), "the handler must pass the sender so a stale roster's refusal names it");
+		Assert.True(message.Contains("WorldGenerationMsg? Generation", StringComparison.Ordinal), "the roster snapshot must carry its generation stamp");
+		Assert.True(stateMessage.Contains("public string PrefabId { get; set; }", StringComparison.Ordinal), "each roster row must carry its prefab: a deferred adoption cannot rely on a stream frame keeping the kernel-restored prefab");
+	}
 }

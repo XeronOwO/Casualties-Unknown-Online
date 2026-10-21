@@ -83,7 +83,7 @@ public class EntryRepairConvergenceTests
 			"the state must precede the completion marker, or the window would close on a marker whose tables never came");
 		Assert.True(requested.Count == 1 && requested[0] == w.G1.SteamId,
 			$"the repair must raise ISessionControl.EntryRepairRequested for the re-asserting member exactly once, got {requested.Count}");
-		Assert.Equal(2_463L, answerBytes); // the pass size docs/evidence/sync-cadence-measurements.md records — this assertion is what makes that number reproducible (one host-rule field wider than it was: HostRulesMsg gained RadiationLineStopsAboveTheFloor; one byte wider since: the cheat-roster announcement joined the group, an empty list being an empty payload)
+		Assert.Equal(2_464L, answerBytes); // the pass size docs/evidence/sync-cadence-measurements.md records — this assertion is what makes that number reproducible (one host-rule field wider than it was: HostRulesMsg gained RadiationLineStopsAboveTheFloor; one byte wider since: the cheat-roster announcement joined the group, an empty list being an empty payload; one byte wider now: the authoritative empty enemy roster travels too — a frame whose message byte alone is paid when no run baseline stamps it — so a member can drop a divergent local set)
 	}
 
 	[Fact]

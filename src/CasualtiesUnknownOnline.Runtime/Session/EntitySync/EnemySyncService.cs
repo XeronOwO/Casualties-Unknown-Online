@@ -10,6 +10,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 using CasualtiesUnknownOnline.Application.Kernel;
@@ -40,6 +41,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 	private readonly EnemyKernelProjection _enemyKernel;
 	private readonly EnemyKernelRestoreProjection _enemyKernelRestore;
 	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly KernelWorldGenerationSource _generations;
 	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly EnemyCombatKernelSubmitter _enemyCombatKernel;
 	private readonly EnemyCombatKernelProjection _enemyCombatProjection;
@@ -53,6 +55,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 	private uint _lastEnemyStateSeq; // guest: last applied seq (the unreliable-stream gate)
 	private ulong _epoch; // host: the enemy-id epoch (set on Initialize)
 	private uint _nextEnemyCounter; // host: enemy-id allocation counter
+	private readonly EnemyRosterPublisher _rosterPublisher; // host: the ready gate, the held peers and the absolute snapshot payload
 	private readonly Dictionary<NetworkEntityId, uint> _nextAttackSeq = []; // host: per-enemy attack announcement identity
 
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
@@ -70,6 +73,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 		_enemyKernelRestore = enemyKernelRestore;
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
+		_generations = new KernelWorldGenerationSource(kernelAuthority);
+		_rosterPublisher = new EnemyRosterPublisher(
+			session, sender, enemyKernelRestore, _generations, () => [.. _enemies.Values], log);
 		_enemyCombatKernel = new EnemyCombatKernelSubmitter(session, kernelAuthority, kernelProtocol, log);
 		_enemyCombatProjection = new EnemyCombatKernelProjection(kernelAuthority, this, characterData, session, log);
 		_kernelProtocol.EntityStateStreamReceived += OnEntityStateStreamReceived;
@@ -79,8 +85,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 		_kernelAuthority.CheckpointRestored += OnKernelCheckpointRestored;
 	}
 
-	/// <summary>Raised after the full world-entry snapshot is applied (the Game Adapter binds its local enemy copies to the host's ids on this).</summary>
+	/// <summary>Raised after the full world-entry snapshot is applied (the Game Adapter adopts its local enemy copies against the roster on this).</summary>
 	public event Action? EnemySnapshotReceived;
+
+	/// <summary>Raised when the host's committed batch resets the enemy table for a new layer — the adapter drops the bindings that name the old scene's objects. The old layer's copies are gone with the scene; nothing here destroys them.</summary>
+	public event Action? EnemyRosterReset;
 
 	/// <summary>Raised after a state-stream batch is applied (the Game Adapter drives the frozen render copies from the buffered state on this).</summary>
 	public event Action? EnemyStateReceived;
@@ -111,8 +120,34 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 	public EnemyEntity? GetEnemy(NetworkEntityId id) =>
 		_enemies.TryGetValue(id, out var entity) ? entity : null;
 
-	/// <summary>Host side: allocate the next enemy id (the host assigns ids in the deterministic EnemySpawnArbitration order).</summary>
+	/// <summary>
+	/// Guest side: the durable kernel fact's prefab for one id, used by the live
+	/// adoption pass for an id the 20 Hz stream has announced but the last
+	/// snapshot did not carry. False while the fact has not reached this member
+	/// yet — the next batch retries.
+	/// </summary>
+	public bool TryGetEnemyPrefab(NetworkEntityId id, out string prefabId)
+	{
+		var entityId = new EntityId(id.Epoch, id.Counter, id.Generation);
+		var fact = _kernelAuthority.QueryEnemies()?.Enemies.FirstOrDefault(e => e.EntityId == entityId);
+		if (fact is null)
+		{
+			prefabId = string.Empty;
+			return false;
+		}
+
+		prefabId = fact.PrefabId;
+		return true;
+	}
+
+	/// <summary>Host side: allocate the next enemy id (the roster's identity for every enemy this host simulates).</summary>
 	public NetworkEntityId AllocateEnemyId() => new(_epoch, _nextEnemyCounter++, 0);
+
+	/// <summary>Host side: the world is settled — a complete roster may be published (the adapter calls this after its capture on the generation-finished edge and while a settled world stands).</summary>
+	public void MarkRosterReady() => _rosterPublisher.MarkReady();
+
+	/// <summary>Host side: a world/layer is generating, regenerating or absent — the roster is partial, so snapshots are held rather than telling a member to delete enemies its own generation has not produced yet.</summary>
+	public void MarkRosterUnstable() => _rosterPublisher.MarkUnstable();
 
 	/// <summary>
 	/// Report an enemy bite: the victim's local body already applied the bite.
@@ -221,9 +256,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 
 	void IEnemySyncControl.ApplyEnemyStream(WireStateStream stream) => ApplyEnemyStream(stream);
 
-	void IEnemySyncControl.ApplyEnemySnapshot(EnemySnapshotMsg msg) => ApplyEnemySnapshot(msg);
+	void IEnemySyncControl.ApplyEnemySnapshot(ulong sender, EnemySnapshotMsg msg) => ApplyEnemySnapshot(sender, msg);
 
-	void IEnemySyncControl.SendEnemySnapshot(ulong steamId) => SendEnemySnapshot(steamId);
+	void IEnemySyncControl.SendEnemySnapshot(ulong steamId) => _rosterPublisher.Send(steamId);
 
 	void IEnemySyncControl.SendEnemyAttack(NetworkEntityId enemyId, EnemyAttackKind kind) => SendEnemyAttack(enemyId, kind);
 
@@ -282,33 +317,6 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 		_kernelProtocol.BroadcastStateStreamTo(targets, stream, WirePayloadType.EnemyStateStream, reliable: false);
 	}
 
-	private void SendEnemySnapshot(ulong steamId)
-	{
-		if (_enemies.Count == 0)
-		{
-			return; // an empty table is a no-op — the member's own generated enemies stay
-		}
-
-		var snapshotEnemies = _enemies.Values.ToList();
-		_enemyKernelRestore.Apply(snapshotEnemies);
-		var payload = new EnemySnapshotMsg
-		{
-			Enemies = [.. snapshotEnemies.Select(e => e.ToEnemyStateMsg())],
-			RuntimeSpawns =
-			[
-				.. snapshotEnemies
-					.Where(e => e.RuntimeSpawned && e.PrefabId.Length > 0)
-					.Select(e => e.ToEnemySpawnEntryMsg()),
-			],
-		};
-		_sender.Send(steamId, NetMsg.EnemySnapshot, payload);
-		// The entry fan-out and the 60 s in-session repair share this sender; the
-		// line is what tells a post-mortem which members were (re)bound, when and
-		// with what — the repair path is otherwise invisible in the log.
-		_log.LogInformation("[Enemy] snapshot sent to {Peer}: {Enemies} enemies, {Runtime} runtime spawns.",
-			steamId, snapshotEnemies.Count, payload.RuntimeSpawns.Count);
-	}
-
 	// ---- Apply (guest) ----
 
 	/// <summary>Update-only stream semantics: the 20 Hz batch refreshes the
@@ -351,8 +359,17 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 		}
 	}
 
-	private void ApplyEnemySnapshot(EnemySnapshotMsg msg)
+	private void ApplyEnemySnapshot(ulong sender, EnemySnapshotMsg msg)
 	{
+		// The roster is per world generation: a snapshot of another layer must
+		// never clear this side's buffer or tell it to delete the new layer's
+		// copies. Same refusal shape as every other generation-stamped table.
+		var relation = WorldReportGenerationGate.Relate(msg.Generation, _generations.Current, "EnemySnapshot", sender, _log);
+		if (relation == WorldGenerationRelation.Stale)
+		{
+			return;
+		}
+
 		_runtimeSpawns = msg.RuntimeSpawns;
 		Replace(msg.Enemies, EnemySnapshotReceived);
 	}
@@ -377,10 +394,19 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 			state.ApplyTo(entity);
 			if (_enemies.TryGetValue(id, out var existing))
 			{
-				// The stream is update-only and carries no binding anchor, so the
-				// anchor the last snapshot established must survive every 20 Hz
-				// frame — otherwise the buffer forgets how to re-pair.
+				// The stream is update-only and carries none of the snapshot-only
+				// fields, so they must survive every 20 Hz frame: the match hint the
+				// adoption reuses, the prefab a deferred adoption materializes, the
+				// runtime marker/creation key, and the tint. Without this a stream
+				// batch between the snapshot and a DEFERRED adoption makes every row
+				// look prefab-less and the adoption reports all rows unresolved.
 				entity.SpawnPosition = existing.SpawnPosition;
+				entity.PrefabId = existing.PrefabId;
+				entity.RuntimeSpawned = existing.RuntimeSpawned;
+				entity.CreationKey = existing.CreationKey;
+				entity.HasTint = existing.HasTint;
+				entity.TintColor = existing.TintColor;
+				entity.TintLightIntensity = existing.TintLightIntensity;
 				if (_terminalHealthRevision.TryGetValue(id, out var terminalRevision)
 					&& baseGlobalRevision < terminalRevision)
 				{
@@ -445,11 +471,32 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 	{
 		foreach (var @event in batch.Events)
 		{
-			if (@event is EnemyRemovedEvent removed)
+			switch (@event)
 			{
-				RemoveEnemy(ToRuntimeId(removed.EntityId));
+				case EnemyRemovedEvent removed:
+					RemoveEnemy(ToRuntimeId(removed.EntityId));
+					break;
+				case EnemiesResetEvent:
+					ResetRoster();
+					break;
 			}
 		}
+	}
+
+	/// <summary>
+	/// The host reset the enemy table for the layer being entered. The old live
+	/// rows name the scene that is gone; the adapter drops the bindings that
+	/// named them. The tombstones stay (a killed id is never resurrected), and a
+	/// stale old-layer snapshot is refused by its generation stamp before it can
+	/// repopulate the buffer.
+	/// </summary>
+	private void ResetRoster()
+	{
+		var dropped = _enemies.Count;
+		_enemies.Clear();
+		_runtimeSpawns = [];
+		_log.LogInformation("[Enemy] host reset the enemy table for a new layer — dropped {Count} live row(s), the adapter's bindings are dropped with them.", dropped);
+		EnemyRosterReset?.Invoke();
 	}
 
 	private void OnKernelCheckpointRestored(GameCheckpoint checkpoint)
@@ -503,6 +550,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 		_terminalHealthRevision.Clear();
 		_nextAttackSeq.Clear();
 		_runtimeSpawns = [];
+		_rosterPublisher.Reset();
 		_nextEnemySeq = 0;
 		_lastEnemyStateSeq = 0;
 		_nextStateSendMs = 0;

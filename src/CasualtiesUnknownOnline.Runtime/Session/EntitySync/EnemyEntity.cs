@@ -20,14 +20,13 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 	public NetVector2 Position { get; set; }
 
 	/// <summary>
-	/// The binding anchor: where this enemy stood when the HOST first bound it —
-	/// its generation position for a generated animal, its creation position for
-	/// a runtime spawn. The guest pairs its frozen copies on THIS, never on
-	/// <see cref="Position"/>: the live position keeps moving with the host's
-	/// simulation, so pairing on it only holds in the instant after generation
-	/// and a snapshot that arrives later (the 60 s in-session repair, audit row
-	/// N1) could not bind at all. The host records it at bind time;
-	/// <see cref="EnemyKernelRestoreProjection"/> never overwrites it.
+	/// The host's MATCH HINT: where this enemy stood when the host first bound
+	/// it. It is a reuse hint only — the guest pairs a row to a local copy by
+	/// prefab and this hint, and a row outside the reuse radius is materialized
+	/// at <see cref="Position"/> rather than failing. It is not an identity and
+	/// never decides whether an enemy is bound. The host records it at bind
+	/// time; <see cref="EnemyKernelRestoreProjection"/> never overwrites it, and
+	/// the 20 Hz stream (which carries no hint) preserves it.
 	/// </summary>
 	public NetVector2 SpawnPosition { get; set; }
 
@@ -99,6 +98,7 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 		Id = EntityId.ToNetworkEntityIdMsg(),
 		Position = Position.ToNetVector2Msg(),
 		SpawnPosition = SpawnPosition.ToNetVector2Msg(),
+		PrefabId = PrefabId,
 		Velocity = Velocity.ToNetVector2Msg(),
 		Rotation = Rotation,
 		Health = Health,

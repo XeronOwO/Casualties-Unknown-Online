@@ -82,6 +82,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnWorldGenerate()
 	{
 		domains.Run.OnWorldGenerate();
+		// Every enemy id and match hint names the layer being left: the roster state starts empty on BOTH roles, and the host holds snapshots until its new capture is complete.
+		domains.EnemySync.OnWorldGenerationStarted();
 		domains.Gate.AttachKeepLoading(); // both roles: while the gate waits for the others, the loading animation keeps playing
 										  // The tutorial/debug layers skip the game's ResetLayerModifiers
 										  // (WorldGeneration.cs:3280-3283 — it only runs for biomeOverride == None),

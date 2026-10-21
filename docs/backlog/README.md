@@ -61,7 +61,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — two sets for one death.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
-- [A layer change pulls members back to the menu](todo/layer-change-menu-round-trip.md) — **Medium** — the group should start loading together.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
 - [A player's own music, heard by the group](todo/player-music-sync-playback.md) — **Medium** — transfer the file, then play.
@@ -175,6 +174,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [A layer change pulls members back to the menu](done/layer-change-menu-round-trip.md) — **Medium** — accepted in `20261021-i`; the group loads together.
 - [Enemy sync per-row roster adoption](done/enemy-generation-pairing-late-join.md) — **High** — accepted in `20261021-g`.
 - [The snapshot overtakes the item reports](done/snapshot-overtakes-item-reports.md) — **Medium** — the fact now goes first; `20261025-c` read zero divergence.
 - [A craft report never retires a carried material](done/craft-carried-fact-retirement.md) — **Medium** — `20261025-d` read the removals at zero divergence.

@@ -1,6 +1,10 @@
 # A layer change pulls every member back to the menu instead of loading the group together
 
-- Status: Todo
+- Status: Done (batch `20261021-i`, 2026-10-21: all four rows pass — the members stay in the world scene,
+  run their own new-layer generation from the host's baseline and enter within 13 ms of the host; the
+  dropped-edge fallback also recovers through the ordinary `WorldJoin` with the group still released
+  together. Record: `docs/evidence/acceptance/layer-change-menu-round-trip-20261021-i.md`.)
+- Acceptance record: `docs/evidence/acceptance/layer-change-menu-round-trip-20261021-i.md`
 - Priority: Medium
 - Category: World generation / layer transition / loading choreography
 - Source: the user's 2026-10-21 report while watching batch `20261021-g` — after the host descended one

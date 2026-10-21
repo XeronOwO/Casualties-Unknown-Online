@@ -63,6 +63,7 @@ None: every row is machine-judged from this run's own log/probe evidence.
   members' own local judgments read `miss`. The row asks that announcements and bites still reach the
   bound copies, not that a member be bitten.
 - The descent row's member-side screen behaviour is where the user reported a separate problem — the
-  member is pulled to the menu through the host's layer change and rejoins after it. That is the current
-  design (`ReentryCoordinator`) and is filed as its own ticket (`todo/layer-change-menu-round-trip.md`),
-  not part of this ticket's rows.
+  member is pulled to the menu through the host's layer change and rejoins after it. That was the
+  design at the time (`ReentryCoordinator`); it was filed as its own ticket
+  (`done/layer-change-menu-round-trip.md`) and accepted in batch `20261021-i` (the group now loads
+  together), so it plays no part in this ticket's rows.

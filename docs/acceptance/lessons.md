@@ -518,4 +518,8 @@ One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:10
 
 `log.ps1`'s `read` returns everything after the mark, so one mark reused for several rows mixes their lines into an earlier row's absence claim — filter the excerpt by the row's own seconds and print its first and last timestamp before citing it (a first count read four divergences in a window that had none) — `docs/evidence/acceptance/container-content-event-gap-on-repick-20261025-b.md`.
 
+## 2026-10-21 — A dropped-message row cites the arm's own `dropped` count, and a descent row needs the native scene probe
+
+`net-drop-message`'s modes are `arm`, `status`, `off` (not `on`): the arm answer carries `armed`, `subscribers` and `dropped`, and the `off` answer is where a row's "exactly one frame was lost" number comes from (`dropped=1`); an expired `seconds` window disarms itself, so an `off` after it answers `not-armed` — that is not a failed arm. A layer-transition screen row also needs the native scene probe beside the frame: `scene`, `world`, `generating` and `loadingActive` separate "still in the world scene, generating" from the menu, which a frame alone cannot (the batch's `descent-read.cs` is the shape to copy) — `docs/evidence/acceptance/layer-change-menu-round-trip-20261021-i.md`.
+
 

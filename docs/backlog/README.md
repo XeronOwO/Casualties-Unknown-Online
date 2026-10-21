@@ -78,7 +78,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Members do not arrive together on a new layer](review/layer-descent-spawn-separation.md) — **Medium** — one native entry point; old-layer positions refused.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
@@ -174,6 +173,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Members do not arrive together on a new layer](done/layer-descent-spawn-separation.md) — **Medium** — accepted in `20261021-j`; old-layer positions refused.
 - [A layer change pulls members back to the menu](done/layer-change-menu-round-trip.md) — **Medium** — accepted in `20261021-i`; the group loads together.
 - [Enemy sync per-row roster adoption](done/enemy-generation-pairing-late-join.md) — **High** — accepted in `20261021-g`.
 - [The snapshot overtakes the item reports](done/snapshot-overtakes-item-reports.md) — **Medium** — the fact now goes first; `20261025-c` read zero divergence.

@@ -1,7 +1,10 @@
 # Members do not arrive together when the group descends a layer
 
-- Status: Review — code complete, waiting for batch `20261021-j` (three clients: one normal descent and
-  one descent with the edge dropped on a member)
+- Status: Done (batch `20261021-j`, 2026-10-21: all four staged rows pass — the normal descent lands all
+  three on one point, the dropped-edge re-entry and the mid-descent reconnect land at the new layer's own
+  spawn with the old position refused, and the dead member is revived into the new layer. Record:
+  `docs/evidence/acceptance/layer-descent-spawn-separation-20261021-j.md`.)
+- Acceptance record: `docs/evidence/acceptance/layer-descent-spawn-separation-20261021-j.md`
 - Priority: Medium
 - Category: World generation / layer transition / spawn placement
 - Source: the user's 2026-10-07 backlog request — when the group goes down a layer, the members' spawn
@@ -145,10 +148,10 @@ the send's kernel projection confirms it rather than overwriting it with the dea
 
 | # | Row | Class | Verdict | Evidence |
 |---|---|---|---|---|
-| 1 | After a normal descent the host, guest and alt read the same new-layer entry: x equal within 0.01 and `abs(dy) <= 1` block, all three `layerIndex` advanced | machine | pending | `a-after-*-read.json` / `a-after-*-gen.json` |
-| 2 | The follower's ordinary handback is refused (`dropped the saved-character handback`), its carried items are the same before/after, and no `Character restore position applied` line appears for it | machine | pending | guest log window + item census |
-| 3 | With the `LayerDescent` edge dropped on one member, that member re-enters through the ordinary `WorldJoin` and lands at the new layer's entry (`abs(dy) <= 1` block against the host), and its restore applies no previous-layer position (`Character restore position applied` absent; the layer-refusal line present if a stale stamp arrives) | machine | pending | `b-after-*-read.json` + guest log window |
-| 4 | A dead member is revived at the new layer's entry after the descent: the host logs `[Respawn] next-level respawn revived`, the guest's `health-read` answers `alive=true`, and its body reads the entry point | machine | pending | `dead-after-*` reads + guest log |
+| 1 | After a normal descent the host, guest and alt read the same new-layer entry: x equal within 0.01 and `abs(dy) <= 1` block, all three `layerIndex` advanced | machine | **pass** | `a-before-*-read.json` all `(0, 500.62, 0)`; `a-after-*-read.json` all `(0, 488.62, 1)`; `a-after-*-gen.json` layer 1 |
+| 2 | With the `LayerDescent` edge dropped on one member, that member re-enters through the ordinary `WorldJoin`, lands at the new layer's entry, and its restore applies no previous-layer position | machine | **pass** | `b-drop-{arm,off}.json` (`armed:true`, `dropped:1`); `run-b-guest-log.txt` layer 1 → 2 refusal and no `position applied`; `b-after-*-read.json` all `(0, 505.62, 2)` |
+| 3 | A member reconnecting during a descent (quit + relaunch + rejoin) lands at the new layer's entry, with the saved position refused at apply time | machine | **pass** | `r-after-*-read.json` guest `(0, 501.6, 4)` vs host/alt `(0, 501.62, 4)`; `r-guest-reconnect-lines.txt` restore before `World join`, then the layer 3 → 4 refusal, no `position applied` |
+| 4 | A dead member at the descent is revived into the new layer (alive/conscious, not left in the old layer's geometry) | machine | **pass** | `c-guest-health-{before,after}.json` (`alive:false` → `alive:true`); host `[Respawn] next-level respawn revived`; `c-after-*-read.json` all `depth:3` |
 
 ## Limits
 
@@ -167,16 +170,20 @@ the send's kernel projection confirms it rather than overwriting it with the dea
 - **The raw `Character restore position applied at spawn: (-1.5,506.6)` line is an observation from the
   guest sandbox client's `BepInEx\LogOutput.log`**, not from a tracked artifact: the batch's probe files
   are gitignored and the tracked record does not restate the line, and the batch's `b2-after-*` probes
-  read `(1.59, 507.62)` after physics had settled. It is recorded as observed-but-not-tracked, and batch
-  `20261021-j` re-stages the shape against this fix.
+  read `(1.59, 507.62)` after physics had settled. It is recorded as observed-but-not-tracked; batch
+  `20261021-j` re-staged the shape against this fix, and its record is the tracked evidence.
 - **A report received after the host's new baseline commit while its body is still in the old world** can
   carry the new layer's stamp with an old position; the stamp cannot separate those two facts. The window
   is the member's frame hitch, not a fixed duration (batch `20261021-i`'s descent ran ~12 s to the
   follower's InWorld and ~16.5 s to the degraded member's), and it is not measured.
-- **A reconnect during the descent is not staged on the machine.** Its decision is made at apply time (the
-  handshake sends the character before the baseline), covered by the pure policy test and the source pin
-  that keeps the decision in `ApplyPendingPosition`; a real crash-restart row is a future batch, not this
-  one.
+- **The follower's ordinary InWorld handback was not staged.** In session A both members reported InWorld
+  before the host's own entry, so the host never sent it (`SendSavedCharacter` requires the host in
+  world); the one-shot refusal is unit-tested (`DescentBodyPreservationTests`), and the previous ticket's
+  batch covered the follower's carried items.
+- **The dead member's body settled 12 units below the entry ledge.** It is alive, conscious and standing
+  on the floor under the ledge (`z-guest-body.json`), not at the other clients' `(0, 499.62)` point. The
+  revive handback carries no position by design; the settle is the native physics of the revived body,
+  not a restore teleport. Whether the body should be held at the ledge is a separate shape.
 - **The archive stores a snapshot's transient `Respawn` flag whole.** The ordinary restore paths do not
   read it; only the descent's one-shot refusal does, and the note is cleared with the body/session, so a
   continue cannot hand it to a preserved body. Named because the archive is a second reader of the shape.
@@ -220,8 +227,9 @@ snapshot is alive and flagged.
 the P3 row (26 anchors) plus the two new evidence quotes carry the apply/refuse and respawn facts.
 
 **Major — no post-fix machine evidence.** The deployed artifact was `0.1.0+a495c742…`; the reviewed
-change had never been deployed. **Will be verified by** this cycle's commit → deploy → batch
-`20261021-j` (the ticket stays in `review/` until its rows are judged).
+change had never been deployed. **Verified by** this cycle's commit `7b9ddfe0` → deploy
+`0.1.0+7b9ddfe0…` → batch `20261021-j` (four sessions, four rows pass; the record is
+`layer-descent-spawn-separation-20261021-j.md`).
 
 **Major/minor — the `WaitingReady` branch bypassed the new body guard.** The review quoted
 `RunCoordinator`'s `if (_descent == DescentPhase.WaitingReady) { … AcceptDescent(twice); }` and its
@@ -273,7 +281,8 @@ record use path + quote, no line numbers.
 **Verified by the second review.** 754/754 gates and 6189/6189 behaviour tests (57/57 in the affected
 classes); the protocol page hashes match `git hash-object`; P3 = 26 anchors and the evidence file's count
 = entries (1121); the debt counts; the lessons budget 65,438 ≤ 65,536; `scene-read.cs` is a real recipe;
-batch `20261021-i`'s positions and the descent timings. The review's own quote: “`PlaceBody` … x 恒为 0，
+batch `20261021-i`'s positions and the descent timings. The final tree, after this review's fixes, runs
+755/755 gates and 6190/6190 behaviour tests. The review's own quote: “`PlaceBody` … x 恒为 0，
 取‘顶部第一个从空气进入地面的高度’。所以‘同一点’是原生规则”.
 
 ## Non-goals

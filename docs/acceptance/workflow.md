@@ -202,7 +202,10 @@ the run genuinely cannot produce because a dependency is missing is `blocked`, w
 never a residual, and never a pass.
 
 - A row whose expectation is an absence (zero `<warning>`) is read from the run mark through at least one
-  full periodic cycle of the mechanism that can emit it; an entry-edge-only read is not evidence.
+  full periodic cycle of the mechanism that can emit it; an entry-edge-only read is not evidence. A mark is
+  a byte offset into the file it named, so a member's rolling log that rotates under Debug-level volume
+  makes the old offset land in unrelated lines: print the window's first and last timestamp and re-mark
+  after a rotation before judging an absence (batch `20261021-e`'s guest log).
 - An "the event arrived" condition names the MOVED item: a container whose contents moved is watched for
   divergence only and owns no `[CarriedSync] applied` line when its own row did not change. A judgement
   that demands an applied line for the parent fails a clean run — batch `20261025-c`'s driver did, and the

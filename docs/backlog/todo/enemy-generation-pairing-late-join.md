@@ -1,7 +1,8 @@
 # Enemy generation sync: the host's roster is the identity (rebuilt from the rejected pairing scheme)
 
-- Status: Review — rebuilt 2026-10-21 (the user chose all four rebuild decisions; code, tests and
-  gates are green; the three-client acceptance batch is pending)
+- Status: Todo — Rejected (batch `20261021-e`: row 4 — no member live-adopts a runtime spawn; the row is
+  adopted only by a later snapshot, and the second member never received it at all; rows 1, 2, 3, 5 and 6
+  pass. Record: `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-e.md`)
 - Priority: High
 - Category: Enemy sync / generation roster / rebuild
 - Source: batch `20261006-g`'s third client (2026-10-06) — a member that joined the lobby and entered the
@@ -13,7 +14,8 @@
   `done/layer-change-member-dropout.md`, `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyRosterAdoption.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyRosterBinder.cs`,
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md`,
-  `docs/evidence/sync-coverage-matrix.md` row N1
+  `docs/evidence/sync-coverage-matrix.md` row N1,
+  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-e.md`
 
 ## Why the old scheme was rejected
 
@@ -201,6 +203,38 @@ Minors: `OnEnemyRemoved` forgets the presentation record; the stale doc comments
 materialization failure names the enemy id; the held line is Information; `TryGetEnemyFact`'s unused
 `runtimeSpawned` out is gone. Accepted as-is: the decision register's 267 row sits above 266 (the register
 is not strictly numeric), the binder receives the coordinator's tracking sets by reference (the two halves
-of one domain; a separate tracker is a follow-up if it grows), and the `RemoveBoundEnemiesNotInRoster`
+of one domain; a separate tracker is a follow-up if it grows), and the `RemoveBoundEnemiesNotInTheLayer`
 null guard stays as defence after the prune. The review's residual risks — whether `Utils.Create` resolves
 a generated enemy prefab, the Unity transition timing, and the three-client rows — are the batch's job.
+
+## Rejection (batch `20261021-e`, 2026-10-21)
+
+Three clients in two sessions (a world-entry session with both members present at entry, and a session whose
+world had run 30 s solo before the lobby so both members joined mid-run) on `0.1.0+44ce057f…`. Rows 1, 2, 3,
+5 and 6 pass; **row 4 fails**. Full evidence: `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-e.md`.
+
+What row 4 read (three runtime spawns, zero `live-adopted` lines in any of the three logs):
+
+```text
+[2026-10-21 19:20:18.015] [WRN] [Enemy] attack SpiderBite #1 arrived for unknown enemy 8DF2F650248BED1:78:0 — the snapshot binding may not have arrived yet; the attack is dropped.
+[2026-10-21 19:20:21.035] [INF] [Enemy] roster adopted: 79 rows (78 kept, 1 reused, 0 built, 0 surplus destroyed, 0 stale bindings dropped, 0 unresolved) — aligned=True.
+```
+
+The host bound the summoned animal at 19:20:17.048; both members created their local copy at
+19:20:17.030 and still refused the attacks as "unknown enemy"; the row was adopted only by the 60 s repair
+snapshot at 19:20:21.035 (four seconds later, through the creation-key pass). A second summon repeated it.
+In the mid-run session the alt adopted a summon through an entry repair at +5 s while the **guest never
+received it at all** (its table stayed at 76 rows after the summon and 75 after the kill, while the host and
+alt held the runtime row).
+
+The leading cause, from the code: `EnemyRosterBinder.TryAdoptNewRows` takes the prefab from the kernel fact
+but `allowKeyedCopy` from the stream buffer row's `RuntimeSpawned`; `EnemyStreamWireMapper.ToWireEnemyStreamState`
+carries no prefab/runtime/key, so a freshly announced id reads `RuntimeSpawned == false` and
+`EnemyRosterAdoption.FindLiveCopy` refuses the keyed `RuntimeEntityCreation` copy the creation channel just
+made. The kernel fact does carry `RuntimeSpawned: true` (read back from the guest). The second, independent
+gap is the missing repair wave: the host's last in-session repair group for the guest is at 19:29:52.637,
+so the snapshot fallback never reached it in the rest of the session. Rows 1/2/3/5/6 and the batch's own
+shape (78-row entry adoption aligned, 76-row mid-run adoption with 4 materialized rows / 4 surplus copies
+aligned, 71-row layer adoption aligned with the old bindings dropped, damage/removal/bite/drive regression)
+are recorded there; the drift's per-animal pre-bind distance and the "no visual frame" reading are its
+Limits.

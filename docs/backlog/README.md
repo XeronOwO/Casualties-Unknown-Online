@@ -75,11 +75,11 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
 - [A drink measurement can run a destructive action](todo/drink-measurement-destructive-use-action.md) — **Medium-High** — a refilled blood bag draws blood.
 - [A limb install from a bag keeps a contained record](todo/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — the wound-view apply.
+- [Enemy sync rebuilt as per-row roster adoption](todo/enemy-generation-pairing-late-join.md) — **High** — host roster is the identity; live spawns miss.
 ### In progress
 
 ### Review
 
-- [Enemy sync rebuilt as per-row roster adoption](review/enemy-generation-pairing-late-join.md) — **High** — host roster is the identity; batch pending.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.

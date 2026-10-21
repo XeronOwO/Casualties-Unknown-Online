@@ -1,6 +1,6 @@
 # The Enemy Roster Adoption — Self-Check (2026-10-21)
 
-Delivery fact sheet for `docs/backlog/review/enemy-generation-pairing-late-join.md`: the rejected
+Delivery fact sheet for `docs/backlog/todo/enemy-generation-pairing-late-join.md`: the rejected
 position-as-identity pairing scheme is replaced by the host's roster, and a member adopts its local enemy
 copies row by row. The RED is batch `20261025-d` on the rejected scheme (85 host vs 85 guest, first key
 mismatch at index 52, 17.021 units apart, both members present at world entry, every 60 s cycle);

@@ -1,8 +1,11 @@
 # Enemy generation sync: the host's roster is the identity (rebuilt from the rejected pairing scheme)
 
-- Status: Todo — Rejected (batch `20261021-e`: row 4 — no member live-adopts a runtime spawn; the row is
-  adopted only by a later snapshot, and the second member never received it at all; rows 1, 2, 3, 5 and 6
-  pass. Record: `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-e.md`)
+- Status: Todo — Rejected (batch `20261021-f`: row 1 — on a 956-animal world the host's early capture
+  during generation put 83 rows in the kernel, the world-entry layer reset then cleared both members'
+  adoption candidates after their generation, and the entry adoption built the whole roster (946 built,
+  10 trader rows unresolved, `aligned=False`) until the next repair. Row 4's live adoption and the
+  late-join release / host-resume fixes pass. Record:
+  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-f.md`)
 - Priority: High
 - Category: Enemy sync / generation roster / rebuild
 - Source: batch `20261006-g`'s third client (2026-10-06) — a member that joined the lobby and entered the
@@ -15,7 +18,8 @@
   `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyRosterBinder.cs`,
   `docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md`,
   `docs/evidence/sync-coverage-matrix.md` row N1,
-  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-e.md`
+  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-e.md`,
+  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-f.md`
 
 ## Why the old scheme was rejected
 
@@ -355,3 +359,52 @@ logs. One major and four minors came back, all fixed in the same commit and pinn
   absence is not a judgment.
 - The host-resume pump is Unity wiring: its proof is the batch's host log (the line and the keeper's
   absence), not a unit test.
+
+## Rejection (batch `20261021-f`, 2026-10-21)
+
+The row-4 fix and the late-join fixes were re-run on `0.1.0+ecec0d5b…`, two sessions, three clients
+(session A entry, session B drift). **Rows 2, 3, 4 and 5 pass; row 1 fails; row 6's bite/announcement half
+was not driven.** Full evidence: `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-f.md`.
+
+- **Row 4 passes, both sessions.** The host's summon binds in the same frame, and both members log
+  `live-adopted` within 160–575 ms — session A `…:956:0` (guest 20:25:26.085 / alt 20:25:26.080 after a
+  20:25:25.506 host bind), session B `…:88:0` (20:29:26.299/.307 after 20:29:26.143). The three scene
+  copies then read the same moving position and health on all three clients, the tables agree, the 60 s
+  repair carries `1 runtime spawns`, and no `unknown enemy` line exists on either member in either
+  session. The leading cause of the `20261021-e` rejection is fixed.
+- **The second gap is fixed and verified.** Session B reproduced the `20261021-e` shape exactly (a solo
+  world opened to friends). The host logged `The session rose around an already-running world — the host
+  resumes playing.` at 20:28:44.645 and **no** loading-screen keep line; both members were released with
+  `Start gate pass — … enters directly (game already running)`, and both stayed `inWorld` past their
+  60 s valve (zero `WorldReady never arrived` and zero `InMenu` lines; `inWorld=true` at 20:30:10). The
+  repair pump then found them and sent the roster.
+- **Row 1 fails on a dense world.** Session A's world generated 956 animals and 10 traders. The host's
+  capture ran during generation (`host enemy baseline established over 0 animals`, 20:22:33.154), so 83
+  rows existed when the world-entry layer reset fired (`dropped the previous layer's 83 enemy row(s)`,
+  20:22:43.718). Both members applied that reset **after** their own generation (guest froze 374 copies
+  at 20:22:40.254; reset at 20:22:45.152), which cleared their tracked animal set; the entry adoption then
+  had no candidate to reuse and built the roster: `956 rows (0 kept, 0 reused, 946 built, 0 surplus
+  destroyed, 0 stale bindings dropped, 10 unresolved) — aligned=False.` at 20:22:45.409, with ten
+  `roster row … (prefab trader) could not be materialized` warnings. The ten traders were live-adopted
+  from the re-scanned scene at 20:22:49.015, and the entry repair at 20:23:47.942 destroyed the 946 surplus
+  and adopted `aligned=True`; the member held 1902 scene copies for about 2.5 s in between.
+- **A third finding in the same run.** The host's snapshot reported `291 runtime spawns` at 20:22:43.85 and
+  `873 runtime spawns` at 20:22:46.64 for a roster of generation animals: `IsRuntimeSpawn(sessionActive,
+  !generating)` classifies every animal whose `Start` runs after the generation flag flips as a runtime
+  spawn, and a dense world's generator leaves hundreds of `Start` calls to run after the flip. The
+  snapshot's runtime detail list is therefore wrong at this scale (no functional consequence observed in
+  this batch, but it is the same rule the live pass trusts).
+
+### Next cycle (in order)
+
+1. **Stop the early capture.** `EnemySyncCoordinator.CaptureHostEnemies` must not bind while the world is
+   generating (the same settled-world gate the publication uses): then a run's first layer has no kernel
+   rows for the entry reset to drop, and the members' candidates survive. This is the root cause of row 1.
+2. **Rebuild the adoption candidates from the live scene.** `AdoptRoster`'s copy list should union the
+   tracked set with a scene scan (the host already does), so a roster reset after generation cannot empty
+   it — the defence that makes the row-1 shape harmless even if a reset still fires.
+3. **Fix the runtime-spawn classification for deferred `Start`s.** The rule needs a "created by the
+   generation" fact (a marker stamped at the generation's instantiation path, or the set that existed at
+   the generation-finished edge), not the `generating` flag read at `Start`.
+4. Re-run this ticket's six rows on a dense world (the `20261021-f` session-A shape) **and** the drift
+   shape; row 6's bite/announcement half needs a spider in range of the host.

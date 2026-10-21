@@ -75,7 +75,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
 - [A drink measurement can run a destructive action](todo/drink-measurement-destructive-use-action.md) — **Medium-High** — a refilled blood bag draws blood.
 - [A limb install from a bag keeps a contained record](todo/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — the wound-view apply.
-- [Enemy sync rebuilt as per-row roster adoption](todo/enemy-generation-pairing-late-join.md) — **High** — host roster is the identity; live spawns miss.
+- [Enemy sync per-row roster adoption](todo/enemy-generation-pairing-late-join.md) — **High** — host roster is the identity; dense-world entry builds its set.
 ### In progress
 
 ### Review

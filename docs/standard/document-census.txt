@@ -478,6 +478,7 @@ docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-f.md | keep
 docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261006-h.md | keep | claim | docs/evidence/selfchecks/items/retired-display-proxy-adopt-selfcheck.md
 docs/evidence/acceptance/drop-pending-single-slot-overwrite-20261007-b.md | keep | claim | docs/backlog/done/drop-pending-single-slot-overwrite.md
 docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-e.md | keep | claim | docs/backlog/todo/enemy-generation-pairing-late-join.md
+docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-f.md | keep | claim | docs/backlog/todo/enemy-generation-pairing-late-join.md
 docs/evidence/acceptance/enemy-runtime-spawn-classification-20261002-f.md | keep | claim | docs/backlog/done/enemy-runtime-spawn-classification.md
 docs/evidence/acceptance/enemy-runtime-spawn-classification-20261002-g.md | keep | claim | docs/backlog/done/enemy-runtime-spawn-classification.md
 docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md | keep | claim | docs/backlog/done/layer-mod-baseline-divergence-on-continue.md

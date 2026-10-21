@@ -146,7 +146,12 @@ collected while its scenario is up.
   (`var mode = "{{s:mode}}"`) and its `-Arg` takes the full typed name (`s:mode=probe`), where the
   committed driver's `{{s:key}}` inserts the quotes and its `-RecipeArg` takes `key=value`; a bare word the
   raw replacement leaves in the code comes back as `(1,1): InteractiveHost` (batch `20261020-a`). The socket
-  dies with the game process, so a restart means reconnecting before the next probe.
+  dies with the game process, so a restart means reconnecting before the next probe. A probe's answer
+  travels as ONE eval value, so a full table of a dense world does not fit: batch `20261021-f`'s
+  `enemy-table-read` and `enemy-scene` on a 956-enemy world both answered `answered with a truncated value;
+  the answer is not usable`, and the rows were judged from a batch-local probe that filtered to the ids or
+  the radius under test. Read a large table through a probe that filters or aggregates it, and cite the
+  compact answer and the probe source in the record.
 - **A key message reaches the game only while the client's own window is the foreground window.** A batch
   that plans key rows checks that fact FIRST; when the client the run started is behind another window, the
   run asks the user for a one-time switch of THAT window (the message channel itself never activates a

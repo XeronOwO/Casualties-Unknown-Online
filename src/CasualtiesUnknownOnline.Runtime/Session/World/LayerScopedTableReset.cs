@@ -52,11 +52,17 @@ internal sealed class LayerScopedTableReset(
 	private readonly ILogger _log = log;
 
 	/// <summary>
-	/// Drop the two tables this type owns, for the layer being entered. A refused reset
-	/// is logged rather than thrown: aborting a world generation over one table reset is
-	/// far worse than the reset itself, the next boundary retries it, and the operator
-	/// sees which table refused and why. Nothing is written when both tables are already
-	/// empty, so an ordinary new run costs no log line and no kernel commit.
+	/// Drop the two tables this type owns, for the layer being entered. EACH table
+	/// is reset on its OWN count, never both on the pair's: the reset is not a
+	/// private host cleanup — an enemy reset commits an <c>EnemiesResetEvent</c>,
+	/// and that event tells every member to drop the enemy bindings and adoption
+	/// candidates it holds. A run's first layer has no enemy rows to drop, so a
+	/// non-empty FLUID table must not drag the empty enemy table through the reset
+	/// (batch `20261021-f`, row 1: the members were still reset at entry, and only
+	/// the scene-scan candidates kept the adoption from rebuilding the world).
+	/// A refused reset is logged rather than thrown: aborting a world generation
+	/// over one table reset is far worse than the reset itself, the next boundary
+	/// retries it, and the operator sees which table refused and why.
 	/// </summary>
 	internal void Reset()
 	{
@@ -67,21 +73,22 @@ internal sealed class LayerScopedTableReset(
 
 		var enemies = _kernelAuthority.QueryEnemies()?.Enemies.Count ?? 0;
 		var fluids = _kernelAuthority.QueryFluids()?.Regions.Count ?? 0;
-		if (enemies == 0 && fluids == 0)
-		{
-			return;
-		}
 
-		if (!_kernelAuthority.TryResetEnemies(_session.LocalSteamId, out _, out var enemyRejection))
+		if (enemies > 0 && !_kernelAuthority.TryResetEnemies(_session.LocalSteamId, out _, out var enemyRejection))
 		{
 			_log.LogWarning("[LayerReset] the enemy reset for the new layer was rejected: {Reason} ({Message}).",
 				enemyRejection!.Reason, enemyRejection.Message);
 		}
 
-		if (!_kernelAuthority.TryResetFluids(_session.LocalSteamId, out _, out var fluidRejection))
+		if (fluids > 0 && !_kernelAuthority.TryResetFluids(_session.LocalSteamId, out _, out var fluidRejection))
 		{
 			_log.LogWarning("[LayerReset] the fluid reset for the new layer was rejected: {Reason} ({Message}).",
 				fluidRejection!.Reason, fluidRejection.Message);
+		}
+
+		if (enemies == 0 && fluids == 0)
+		{
+			return;
 		}
 
 		_log.LogInformation(

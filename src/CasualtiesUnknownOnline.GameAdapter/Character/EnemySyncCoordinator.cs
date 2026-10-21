@@ -5,7 +5,6 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
-using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -27,11 +26,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// presentation write half is <see cref="EnemyPresentationApplier"/>, and the
 /// per-row judgment is the pure <see cref="EnemyRosterAdoption"/>. Both roles
 /// separate the generation baseline from a runtime spawn through the ONE rule
-/// <see cref="OnAnimalInstantiated"/> applies at the entity's own Start — a
-/// "created after my first capture" proxy cannot hold, because the host's
-/// baseline is established whenever its first frame runs, not when generation
-/// ends. Also the enemy-bite side: reports the local victim's post-bite state
-/// (EnemyBite event) and applies the received bites to the victim's clone.
+/// <see cref="OnAnimalInstantiated"/> applies at the entity's own Start, over the
+/// layer's generation-finished EDGE — the set of animals that existed when the
+/// world settled — never the <c>generatingWorld</c> flag read at that Start (a
+/// dense world's deferred Start calls read as runtime spawns, batch
+/// `20261021-f`). Also the enemy-bite side: reports the local victim's post-bite
+/// state (EnemyBite event) and applies the received bites to the victim's clone.
 /// </para>
 /// </summary>
 internal sealed class EnemySyncCoordinator
@@ -61,8 +61,10 @@ internal sealed class EnemySyncCoordinator
 	}
 
 	private readonly EnemyStateCapture _capture; // the host's native-to-DTO capture half: the per-frame state read plus the match hints (extracted 2026-10-02 with the class on the architecture watchlist)
-	private readonly HashSet<BuildingEntity> _runtimeAnimals = []; // BOTH roles: animals whose Start ran with the session active and generation finished — the ONE runtime-spawn rule, so the host's facts and the guest's adoption candidates cannot disagree (20261002-e: the old "after the first capture" proxy shipped all 80 generation enemies, 0 host vs 80 guest, mapping=false)
-	private readonly HashSet<BuildingEntity> _localAnimals = []; // BOTH roles: every animal whose Start ran (the guest's adoption candidates; the scan is the safety net for a Start that has not run yet)
+	private readonly HashSet<BuildingEntity> _runtimeAnimals = []; // BOTH roles: animals created AFTER this layer's generation-finished edge — the ONE runtime-spawn rule, so the host's facts and the guest's adoption candidates cannot disagree (20261002-e: the old "after the first capture" proxy shipped all 80 generation enemies, 0 host vs 80 guest, mapping=false)
+	private readonly HashSet<BuildingEntity> _localAnimals = []; // BOTH roles: every animal this side has tracked — a Start, or a copy an earlier tracked∪scan union wrote back (the guest's adoption candidates and the host's bind source)
+	private readonly HashSet<BuildingEntity> _generationAnimals = []; // BOTH roles: animals that existed when the layer's generation-finished edge was observed, plus every Start that ran before it — the generation-output fact (20261021-f: the generating flag read at Start made 873 of 956 generation animals read as runtime spawns)
+	private bool _generationEdgeObserved; // BOTH roles: this layer's settled-world edge has been recorded; before it, nothing can be a runtime spawn
 	private bool _mappingEstablished; // host: the first capture assigned the layer's ids
 	private bool _guestFrozen; // guest: animals frozen at generation finish (before they move, so the adoption reuses the spawn-position hint)
 	private bool _adoptionPending; // guest: a snapshot arrived while the world was generating/absent — apply it at the live-world edge
@@ -99,25 +101,54 @@ internal sealed class EnemySyncCoordinator
 
 		if (_session.Role == SessionRole.Host)
 		{
-			// Capture on EVERY frame (a runtime spawn must be reachable in the same
-			// frame it starts), but publish the authoritative roster only over a
-			// live, non-generating world: a partial table sent mid-generation would
-			// tell a member to delete enemies its own generation has not produced.
-			CaptureHostEnemies();
-			if (EnemyRosterAdoption.CanPublishRoster(HarmonyTraverse.HasWorld, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating()))
-			{
-				_enemies.MarkRosterReady();
-			}
-			else
-			{
-				_enemies.MarkRosterUnstable();
-			}
-
+			UpdateHost();
 			return;
 		}
 
+		UpdateGuest();
+	}
+
+	/// <summary>
+	/// Host frame pump: capture and publish the authoritative roster — but ONLY
+	/// over a settled world. A capture that runs while the layer generates binds
+	/// animals the world-entry layer reset must then drop, and those dropped rows
+	/// are what makes both members' entry adoption start from an empty candidate
+	/// set (batch `20261021-f`, row 1: 83 rows published during generation, cleared
+	/// at entry, 946 copies built on a 956-row world). The verdict is the SAME one
+	/// the publication uses, so capture and publication cannot disagree about the
+	/// roster being complete.
+	/// </summary>
+	private void UpdateHost()
+	{
+		if (!WorldIsSettled())
+		{
+			_enemies.MarkRosterUnstable();
+			return;
+		}
+
+		// The animals that exist NOW are this layer's generation output, whatever
+		// their Start timing; record the edge before the capture classifies them.
+		MarkAnimalsCreatedByGeneration();
+		CaptureHostEnemies();
+		_enemies.MarkRosterReady();
+	}
+
+	/// <summary>
+	/// Guest frame pump: freeze the local copies at generation finish and apply the
+	/// snapshot held across the transition. The settled-world edge is also where
+	/// this side learns which animals its own generation created — the fact the
+	/// runtime-spawn classification reads instead of the generating flag at Start.
+	/// </summary>
+	private void UpdateGuest()
+	{
+		var settled = WorldIsSettled();
+		if (settled)
+		{
+			MarkAnimalsCreatedByGeneration();
+		}
+
 		FreezeOnGenerationComplete();
-		if (_adoptionPending && EnemyRosterAdoption.CanPublishRoster(HarmonyTraverse.HasWorld, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating()))
+		if (_adoptionPending && settled)
 		{
 			_adoptionPending = false;
 			_binder.AdoptRoster();
@@ -142,6 +173,8 @@ internal sealed class EnemySyncCoordinator
 		_binder.ForgetAll();
 		_capture.Clear();
 		_presentation.Clear();
+		_generationAnimals.Clear();
+		_generationEdgeObserved = false;
 		_mappingEstablished = false;
 		_guestFrozen = false;
 		_adoptionPending = false;
@@ -167,7 +200,7 @@ internal sealed class EnemySyncCoordinator
 
 		_runtimeAnimals.Remove(entity);
 		_localAnimals.Remove(entity);
-		Object.Destroy(entity.gameObject);
+		_binder.DestroyCopy(entity);
 		_log.LogInformation("[Enemy] guest destroyed removed enemy {Enemy}.", id);
 	}
 
@@ -181,18 +214,60 @@ internal sealed class EnemySyncCoordinator
 	private BuildingEntity? FindEntityById(NetworkEntityId id) => _bindings.Find(id);
 
 	/// <summary>
-	/// Patch-bridge entry: an animal BuildingEntity started with the session up —
-	/// a runtime spawn if generation has finished, generation output otherwise.
-	/// BOTH roles classify it HERE, through this one guard. The guest freezes a
-	/// runtime copy before its AI/physics can move it, so the adoption's
-	/// spawn-position hint still points at where the creation report placed it.
+	/// The game's settled-world verdict — one expression for the capture gate, the
+	/// generation-edge pass, the adoption gate and the live pass, so no two of them
+	/// can disagree about whether the layer's roster is complete.
 	/// </summary>
-	internal void OnAnimalInstantiated(BuildingEntity entity)
+	private static bool WorldIsSettled() =>
+		EnemyRosterAdoption.CanPublishRoster(HarmonyTraverse.HasWorld, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating());
+
+	/// <summary>
+	/// Record the generation-finished edge ONCE per layer: every animal in the
+	/// scene at the first settled frame is generation output, whatever its
+	/// <c>Start</c> timing. A dense world's generator leaves hundreds of Start
+	/// calls to run over the seconds after <c>generatingWorld</c> flips, so the
+	/// flag read at Start is not the creation fact (batch `20261021-f`: 291 → 873
+	/// runtime spawns on a 956-animal layer of generation output).
+	/// </summary>
+	private void MarkAnimalsCreatedByGeneration()
 	{
-		_localAnimals.Add(entity);
-		if (!EnemyRosterAdoption.IsRuntimeSpawn(_session.SessionActive, HarmonyTraverse.IsGenerating()))
+		if (_generationEdgeObserved)
 		{
 			return;
+		}
+
+		var animals = LocalAnimals();
+		foreach (var entity in animals)
+		{
+			_generationAnimals.Add(entity);
+		}
+
+		_generationEdgeObserved = true;
+		_log.LogInformation("[Enemy] generation finished: {Count} animal(s) exist at the settled edge and are this layer's generation output — a later Start does not make them runtime spawns.",
+			animals.Count);
+	}
+
+	/// <summary>
+	/// Patch-bridge entry: an animal BuildingEntity started with the session up.
+	/// The classification is the generation's finished EDGE, read through the ONE
+	/// rule both roles share — NEVER the generating flag at this Start. Returns
+	/// whether the animal is this layer's generation output: the entity-creation
+	/// channel reads that same verdict (<see cref="GameAdapterBridge.OnEntityInstantiated"/>)
+	/// so a deferred Start is not reported as a runtime creation and materialized a
+	/// second time on every member. The guest freezes a runtime copy before its
+	/// AI/physics can move it, so the adoption's spawn-position hint still points at
+	/// where the creation report placed it.
+	/// </summary>
+	internal bool OnAnimalInstantiated(BuildingEntity entity)
+	{
+		_localAnimals.Add(entity);
+		if (!EnemyRosterAdoption.IsRuntimeSpawn(_session.SessionActive, _generationEdgeObserved, _generationAnimals.Contains(entity)))
+		{
+			// Generation output, or a Start that ran before the edge was recorded:
+			// either way the animal belongs to this layer's generation set, so the
+			// scan at the edge (and any later pass) cannot reclassify it.
+			_generationAnimals.Add(entity);
+			return true;
 		}
 
 		_runtimeAnimals.Add(entity);
@@ -200,6 +275,8 @@ internal sealed class EnemySyncCoordinator
 		{
 			EnemyRosterBinder.Freeze(entity);
 		}
+
+		return false;
 	}
 
 	// ---- Host capture ----
@@ -299,26 +376,8 @@ internal sealed class EnemySyncCoordinator
 		_capture.RecordMatchHint(entity, new NetVector2(entity.transform.position.x, entity.transform.position.y));
 	}
 
-	/// <summary>Every animal this side knows about: the tracked set plus a scene scan (a just-instantiated copy whose Start has not run yet, or an inert scan result). Prunes the destroyed entries.</summary>
-	private List<BuildingEntity> LocalAnimals()
-	{
-		_localAnimals.RemoveWhere(entity => entity == null); // Unity object — ==
-		var union = new HashSet<BuildingEntity>(_localAnimals);
-		foreach (var entity in FindAnimals())
-		{
-			union.Add(entity);
-		}
-
-		foreach (var entity in union)
-		{
-			_localAnimals.Add(entity);
-		}
-
-		return [.. union];
-	}
-
-	private static List<BuildingEntity> FindAnimals() =>
-		[.. Object.FindObjectsOfType<BuildingEntity>().Where(static e => e.animal)];
+	/// <summary>Every animal this side knows about: the tracked set ∪ a scene scan (a just-instantiated copy whose Start has not run yet, or a set a roster reset cleared while the copies are still in the scene). Prunes the destroyed entries.</summary>
+	private List<BuildingEntity> LocalAnimals() => EnemyAnimalScan.Union(_localAnimals);
 
 	// ---- Guest: freeze at generation finish, then adopt on the snapshot ----
 
@@ -353,7 +412,7 @@ internal sealed class EnemySyncCoordinator
 
 	private void OnEnemySnapshotReceived()
 	{
-		if (!EnemyRosterAdoption.CanPublishRoster(HarmonyTraverse.HasWorld, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating()))
+		if (!WorldIsSettled())
 		{
 			// The member's world is still being generated, is in the regeneration
 			// fade, or is not up: a roster applied now would materialize enemies the
@@ -376,7 +435,7 @@ internal sealed class EnemySyncCoordinator
 		// replaced, so a copy of the old scene could be bound and driven to the new
 		// layer's positions. The snapshot adopted after the transition owns the
 		// first pass; the next 20 Hz batch resumes the live pass.
-		if (!EnemyRosterAdoption.CanPublishRoster(HarmonyTraverse.HasWorld, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating()))
+		if (!WorldIsSettled())
 		{
 			return;
 		}

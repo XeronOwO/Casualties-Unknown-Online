@@ -57,6 +57,14 @@ never an identity: a row the hint cannot place is materialized, so drift cannot 
 An empty roster is authoritative too — a member destroys its surplus copies instead of keeping a
 different world — and a roster stamped with another world generation is refused.
 
+The host captures only over a SETTLED world, and while that does not hold neither the snapshot nor
+the 20 Hz stream is published: a row bound while the layer is still generating is a row the
+world-entry layer reset must drop, and a dropped row is a member's candidate lost for nothing. The
+member builds its adoption candidates from its tracked copies PLUS a live scene scan, so a reset
+that empties the tracked set cannot empty the candidates while the copies are still in the scene
+(batch `20261021-f`: the host's early capture put 83 rows into the kernel, the entry reset dropped
+them, and the candidates' loss rebuilt 946 copies of a 956-row world).
+
 ## An attack is announced, not decided
 
 The host cannot apply an attack to a remote body directly: another player's clone has its colliders
@@ -93,6 +101,13 @@ per row — reuse when a local copy is plausibly the same animal, materialize wh
 surplus.
 
 An enemy created during play is a [runtime spawn](../reference/glossary.md) — a cave-tick spawner is the usual case.
+"During play" is a boundary both sides record as a SET, not the game's `generatingWorld` flag read
+when the animal's `Start` runs: the edge is the ACTIVE animals that existed when the world settled, and
+anything that appears after it while the session is up is a runtime spawn. The flag read at `Start`
+cannot carry that fact — a dense world's generator leaves hundreds of `Start` calls to run after the flag
+flips, and every one of them read as a runtime spawn (873 of 956 generation animals, batch `20261021-f`).
+The same edge fact reaches the general entity-creation channel, so a generation animal is never reported
+there as a runtime creation either.
 It is a row of the same roster: the creation report creates the member's copy, and the host's next
 snapshot carries the row's creation key, so a keyed row binds the copy carrying that key (or
 materializes it on a member that missed the creation). A runtime row can reach the member twice: the

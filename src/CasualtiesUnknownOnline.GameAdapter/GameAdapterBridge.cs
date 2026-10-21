@@ -135,14 +135,11 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnEntityInstantiated(BuildingEntity entity)
 	{
-		// Enemy copies freeze at their spawn position before any AI/physics
-		// moves them; the generic spawn channel then reports the creation.
-		if (entity.animal)
-		{
-			domains.EnemySync.OnAnimalInstantiated(entity);
-		}
-
-		domains.EntitySpawnSync.OnEntityInstantiated(entity); // the spawn-channel report (runtime creations; creation-time data rides the same message, #128)
+		// Enemy copies freeze before any AI/physics moves them, and the enemy
+		// domain's generation-finished edge is what the spawn channel needs: a
+		// generation copy's deferred Start must not be reported as a runtime creation.
+		var generationAnimal = entity.animal && domains.EnemySync.OnAnimalInstantiated(entity);
+		domains.EntitySpawnSync.OnEntityInstantiated(entity, generationAnimal); // the spawn-channel report (runtime creations; creation-time data rides the same message, #128)
 	}
 
 	public void OnBuildingEntityDestroyed(BuildingEntity entity) =>

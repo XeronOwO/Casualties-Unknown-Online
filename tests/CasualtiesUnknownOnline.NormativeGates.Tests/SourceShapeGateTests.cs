@@ -1049,6 +1049,115 @@ public class SourceShapeGateTests
 	}
 
 	/// <summary>
+	/// The host's capture waits for a SETTLED world, and the runtime-spawn classification is the
+	/// generation's finished EDGE rather than the generating flag read at an animal's <c>Start</c>.
+	///
+	/// Batch `20261021-f`, session A: the host's capture ran during generation, so 83 rows existed
+	/// when the world-entry layer reset fired (<c>[LayerReset] dropped the previous layer's 83 enemy
+	/// row(s)</c>), and that reset cleared both members' tracked adoption candidates after their own
+	/// generation — the entry adoption built 946 copies of a 956-row world, left ten traders
+	/// unresolved and read <c>aligned=False</c> until the next repair. The same run reported 291 →
+	/// 873 <c>runtime spawns</c> for a roster of generation output: a dense world's generator leaves
+	/// the <c>Start</c> calls to run over the seconds after <c>generatingWorld</c> flips, so the flag
+	/// read at <c>Start</c> is not the creation fact. The adapter is not compilable in this suite, so
+	/// the wiring is pinned by source; the pure classification matrix is in
+	/// <c>EnemyRosterAdoptionTests</c> and the behaviour on a real world is the batch's job.
+	/// </summary>
+	[Fact]
+	public void EnemyRosterCapture_WaitsForASettledWorld_AndTheGenerationEdgeOwnsTheRuntimeClassification()
+	{
+		var coordinator = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs"));
+		var binder = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyRosterBinder.cs"));
+
+		var host = SourceScan.MethodBody(coordinator, "private void UpdateHost(");
+		Assert.False(string.IsNullOrEmpty(host), "the host's frame pump (UpdateHost) was not found — this rule would pass by checking nothing");
+		Assert.True(host.Contains("WorldIsSettled()", StringComparison.Ordinal),
+			"the host must ask the settled-world verdict before it captures");
+		var unstable = host.IndexOf("MarkRosterUnstable();", StringComparison.Ordinal);
+		var earlyReturn = host.IndexOf("return;", StringComparison.Ordinal);
+		var capture = host.IndexOf("CaptureHostEnemies();", StringComparison.Ordinal);
+		Assert.True(unstable >= 0 && earlyReturn > unstable,
+			"the not-settled branch must mark the roster unstable and RETURN: without the early return the capture still runs while the layer generates");
+		Assert.True(capture > earlyReturn,
+			"the host must NOT capture while its world is generating or regenerating — a row bound during generation is a row the world-entry layer reset must drop (batch 20261021-f, row 1: 83 rows dropped at entry, both members' candidates cleared, 946 copies built, aligned=False)");
+
+		var verdict = coordinator.IndexOf("private static bool WorldIsSettled() =>", StringComparison.Ordinal);
+		Assert.True(verdict >= 0, "the settled-world verdict method was not found");
+		var expression = coordinator.IndexOf(
+			"EnemyRosterAdoption.CanPublishRoster(HarmonyTraverse.HasWorld, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating())",
+			verdict,
+			StringComparison.Ordinal);
+		Assert.True(expression > verdict && expression - verdict < 200,
+			"the capture gate must be the SAME settled-world verdict the publication uses (CanPublishRoster), not a second notion of readiness");
+
+		var edge = SourceScan.MethodBody(coordinator, "private void MarkAnimalsCreatedByGeneration(");
+		Assert.False(string.IsNullOrEmpty(edge), "the generation-finished edge pass was not found — nothing marks the animals that already existed when the world settled");
+		Assert.True(edge.Contains("LocalAnimals()", StringComparison.Ordinal) && edge.Contains("_generationEdgeObserved = true", StringComparison.Ordinal),
+			"the edge pass must record every animal the scene holds at the settled edge (LocalAnimals: the tracked set ∪ the scan) and that the edge was seen");
+		Assert.True(host.Contains("MarkAnimalsCreatedByGeneration();", StringComparison.Ordinal),
+			"the host must run the edge pass over the frame that binds the layer, so its capture classifies the generation correctly");
+
+		var guest = SourceScan.MethodBody(coordinator, "private void UpdateGuest(");
+		Assert.False(string.IsNullOrEmpty(guest), "the guest's frame pump (UpdateGuest) was not found");
+		Assert.True(guest.Contains("MarkAnimalsCreatedByGeneration();", StringComparison.Ordinal),
+			"the guest must run the edge pass at its first settled frame too — it freezes runtime copies and adopts rows through the same facts");
+
+		var started = SourceScan.MethodBody(coordinator, "internal bool OnAnimalInstantiated(");
+		Assert.False(string.IsNullOrEmpty(started), "OnAnimalInstantiated's body was not found with its generation verdict");
+		Assert.False(started.Contains("IsGenerating()", StringComparison.Ordinal),
+			"the runtime-spawn classification must NOT read the generating flag at the animal's Start: a dense world's generator leaves hundreds of Start calls to run after the flag flips, and every one of them read as a runtime spawn (batch 20261021-f: 291 → 873 on a 956-animal layer)");
+		Assert.True(started.Contains("EnemyRosterAdoption.IsRuntimeSpawn(_session.SessionActive, _generationEdgeObserved, _generationAnimals.Contains(entity))", StringComparison.Ordinal),
+			"the classification must be the pure IsRuntimeSpawn over the edge facts (session active, edge observed, existed at the edge) — an animal that appears after the edge is a runtime spawn, one that existed at or before it is generation output");
+
+		var adopt = SourceScan.MethodBody(binder, "internal void AdoptRoster(");
+		Assert.False(string.IsNullOrEmpty(adopt), "AdoptRoster's body was not found");
+		Assert.True(adopt.Contains("EnemyAnimalScan.Union(_localAnimals)", StringComparison.Ordinal),
+			"the adoption's candidate list must be the tracked set ∪ a LIVE scene scan: a roster reset clears the tracked set while the copies are still in the scene, and reading only the tracked set built 946 copies on a 956-row world (batch 20261021-f, row 1)");
+
+		var scanPath = RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyAnimalScan.cs");
+		Assert.True(File.Exists(scanPath),
+			"the one local-animal union (tracked set ∪ scene scan) must live in EnemyAnimalScan — a second copy of the scan is how the host's capture and the guest's adoption drift apart");
+		Assert.True(File.ReadAllText(scanPath).Contains("FindObjectsOfType<BuildingEntity>()", StringComparison.Ordinal),
+			"EnemyAnimalScan must actually scan the scene: without the scan a reset-empty tracked set stays empty");
+
+		var update = SourceScan.MethodBody(coordinator, "internal void Update(");
+		Assert.False(string.IsNullOrEmpty(update), "Update's body was not found");
+		Assert.True(update.Contains("UpdateHost();", StringComparison.Ordinal) && update.Contains("UpdateGuest();", StringComparison.Ordinal),
+			"the frame pump must dispatch to the two role pumps — a capture left inline in Update could run before the settled gate again");
+		var edgeCall = host.IndexOf("MarkAnimalsCreatedByGeneration();", StringComparison.Ordinal);
+		Assert.True(edgeCall >= 0 && edgeCall < capture,
+			"the edge pass must run BEFORE the capture in the same frame: the capture classifies the animals it binds from that set");
+
+		var destroy = SourceScan.MethodBody(binder, "internal void DestroyCopy(");
+		Assert.False(string.IsNullOrEmpty(destroy), "the one copy-destruction path (DestroyCopy) was not found");
+		Assert.True(destroy.Contains("entity.gameObject.SetActive(false);", StringComparison.Ordinal),
+			"a copy being destroyed must be DEACTIVATED first: Unity destroys at the end of the frame, and the adoption's scene scan would otherwise adopt a copy this same pass unbound as a different row, logging aligned while the enemy vanishes at frame end");
+		foreach (var path in new[] { "private int RemoveBoundEnemiesNotInRoster(", "private void DestroySurplus(" })
+		{
+			var body = SourceScan.MethodBody(binder, path);
+			Assert.False(string.IsNullOrEmpty(body), $"{path}'s body was not found");
+			Assert.True(body.Contains("DestroyCopy(entity);", StringComparison.Ordinal),
+				$"{path} must destroy through DestroyCopy — a raw Object.Destroy leaves the doomed copy visible to the same frame's scene scan");
+			Assert.False(body.Contains("Object.Destroy(", StringComparison.Ordinal),
+				$"{path} must not call Object.Destroy itself: the deactivation is the part that hides the copy from the scan");
+		}
+
+		Assert.True(coordinator.Contains("_binder.DestroyCopy(entity);", StringComparison.Ordinal),
+			"the removed-enemy path must destroy through the same deactivating call");
+
+		var bridge = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs"));
+		Assert.True(bridge.Contains("var generationAnimal = entity.animal && domains.EnemySync.OnAnimalInstantiated(entity);", StringComparison.Ordinal)
+			&& bridge.Contains("domains.EntitySpawnSync.OnEntityInstantiated(entity, generationAnimal)", StringComparison.Ordinal),
+			"the creation channel must receive the enemy domain's generation verdict: a generation animal's deferred Start was otherwise reported as a runtime creation and materialized a second time on every member");
+		var spawn = SourceScan.MethodBody(
+			File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/World/EntitySpawnSync.cs")),
+			"internal void OnEntityInstantiated(BuildingEntity entity, bool createdByGeneration)");
+		Assert.False(string.IsNullOrEmpty(spawn), "EntitySpawnSync.OnEntityInstantiated's body was not found with the generation fact parameter");
+		Assert.True(spawn.Contains("if (createdByGeneration)", StringComparison.Ordinal),
+			"the creation channel must skip a generation copy by the passed fact — its own generating-flag read is the shape that misreported deferred Starts");
+	}
+
+	/// <summary>
 	/// The host's run phase around a session that rises LATE: a host that played solo and opened the
 	/// lobby from inside that running world must be marked playing. Otherwise the loading-screen
 	/// keeper (<c>ShouldKeep = SessionActive &amp;&amp; !IsPlaying</c>) pulls the native loading screen up

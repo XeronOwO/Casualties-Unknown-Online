@@ -47,26 +47,66 @@ public class LayerBoundaryKernelResetTests
 	}
 
 	[Fact]
+	public void LayerReset_AnEmptyEnemyTable_CommitsNoEnemyReset()
+	{
+		// A layer being entered can have fluid chunks and NO captured enemies — a
+		// run's FIRST layer, where the host does not capture while the world
+		// generates. The reset must not drag the empty enemy table through it: an
+		// enemy reset commits an `EnemiesResetEvent`, and that event tells every
+		// member to drop the bindings and adoption candidates of the layer being
+		// ENTERED (batch `20261021-f`, row 1: the members were still reset at entry
+		// and only the scene-scan adoption candidates saved the pass).
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var world = host.Services.GetRequiredService<WorldService>();
+		var kernel = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		Assert.True(kernel.TryUpdateFluidRegion(
+			HostId, new FluidRegionState(1, 2, 7, 1, 50), out _, out _));
+
+		var enemyResets = 0;
+		kernel.BatchCommitted += batch =>
+		{
+			foreach (var @event in batch.Events)
+			{
+				if (@event is EnemiesResetEvent)
+				{
+					enemyResets++;
+				}
+			}
+		};
+
+		world.ResetDamagedBlocks();
+
+		Assert.Equal(0, enemyResets);
+		Assert.Empty(kernel.QueryFluids()!.Regions); // the fluid half still ran
+	}
+
+	[Fact]
 	public void LayerReset_KeepsTheEnemyTombstones()
 	{
 		// A tombstone is a terminal fact the killer earned, not a fact about one
 		// layer's layout: "the enemy standing here was killed" must keep stopping a
 		// stale live row from resurrecting it on the next descent. The acceptance rule
 		// is that a killed enemy never comes back, so the layer reset drops the live
-		// rows and leaves the tombstones standing.
+		// rows and leaves the tombstones standing. A LIVE row rides along: without
+		// one, an empty live table is (correctly) not reset at all and this case
+		// would pass without ever exercising the reset.
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var world = host.Services.GetRequiredService<WorldService>();
 		var kernel = host.Services.GetRequiredService<ItemKernelAuthority>();
-		var enemyId = new EntityId(1UL, 7U, 0);
+		var removedId = new EntityId(1UL, 7U, 0);
+		var liveId = new EntityId(1UL, 8U, 0);
 
 		Assert.True(kernel.TryUpsertEnemy(
-			HostId, new EnemyState(enemyId, "spider", 4f, false, false), out _, out _));
-		Assert.True(kernel.TryRemoveEnemy(HostId, enemyId, out _, out _));
+			HostId, new EnemyState(removedId, "spider", 4f, false, false), out _, out _));
+		Assert.True(kernel.TryRemoveEnemy(HostId, removedId, out _, out _));
+		Assert.True(kernel.TryUpsertEnemy(
+			HostId, new EnemyState(liveId, "shadecrawler", 4f, false, false), out _, out _));
 
 		world.ResetDamagedBlocks();
 
 		Assert.Empty(kernel.QueryEnemies()!.Enemies);
-		Assert.Equal(enemyId, Assert.Single(kernel.QueryEnemies()!.Removed));
+		Assert.Equal(removedId, Assert.Single(kernel.QueryEnemies()!.Removed));
 	}
 
 	[Fact]

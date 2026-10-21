@@ -159,9 +159,10 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	}
 
 	/// <summary>
-	/// Patch-bridge entry: a world entity just started. Inside world generation
-	/// = deterministic (both sides generate the same entity — nothing to do); a
-	/// RemoteApply create = a replay of this very channel (nothing to do);
+	/// Patch-bridge entry: a world entity just started. A copy the generation
+	/// created (<paramref name="createdByGeneration"/>, the enemy domain's
+	/// generation-finished edge fact) is deterministic on both sides — nothing to
+	/// do; a RemoteApply create is a replay of this very channel (nothing to do);
 	/// anything else in a session = a runtime creation — report it with a fresh
 	/// creation-instance token. A geyser's report is deferred ONE frame: its
 	/// liquid type rolls at the CHILD's Start (GeyserScript.cs:12), which runs
@@ -169,7 +170,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	/// once it exists. A created keypad's code is generated HOST-side now (the
 	/// host's Random stream is the authority).
 	/// </summary>
-	internal void OnEntityInstantiated(BuildingEntity entity)
+	internal void OnEntityInstantiated(BuildingEntity entity, bool createdByGeneration)
 	{
 		// A tutorial-claw prop is per-player course state: each side's
 		// TutorialHandler creates its own copy (TutorialHandler.cs:255-271)
@@ -184,6 +185,16 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 
 		if (entity.GetComponent<SpawnReplayMarker>() != null) // Unity object — ==; a replay of this channel must not re-report
 		{
+			return;
+		}
+
+		if (createdByGeneration)
+		{
+			// Both sides generated this copy. Its Start can run seconds after
+			// `generatingWorld` flips (batch `20261021-f`'s deferred Starts), so the
+			// flag read below CANNOT carry this fact — a generation copy would be
+			// reported as a runtime creation, and the receiver's creation-key match has
+			// no positional fallback: every member would materialize a duplicate.
 			return;
 		}
 

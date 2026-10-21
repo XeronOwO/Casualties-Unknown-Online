@@ -172,6 +172,33 @@ public class EnemySyncServiceTests
 	}
 
 	[Fact]
+	public void RosterUnstable_HoldsThePeriodicStream_NotJustTheSnapshots()
+	{
+		// A layer transition: the rows in the host's buffer name the layer being
+		// LEFT. The snapshot path is already held while the roster is not ready, and
+		// the stream must be held with it — an old-layer row announced as live state
+		// is what the member's adoption would bind to a copy of the new scene (and
+		// then destroy as stale against the new roster).
+		using var w = ItemSimWorld.Create();
+		var hostEnemies = w.Host.Services.GetRequiredService<EnemySyncService>();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33);
+
+		hostEnemies.PublishEnemyStates([Enemy(12, 6f, 7f)]);
+		var received = 0;
+		g1Enemies.EnemyStateReceived += () => received++;
+		w.Driver.Tick(60); // past the 50 ms throttle
+		Assert.True(received > 0, "the row must reach the member while the roster is ready");
+
+		hostEnemies.MarkRosterUnstable();
+		received = 0;
+		w.Driver.Tick(120);
+		Assert.Equal(0, received);
+	}
+
+	[Fact]
 	public void StaleAndDuplicateSequences_Dropped_NewerPass()
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);

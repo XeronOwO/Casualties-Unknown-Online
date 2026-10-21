@@ -62,8 +62,10 @@ finished** (the guest froze 374 copies at 20:22:40.254; the reset arrived at 20:
 [2026-10-21 20:22:45.409] [INF] [EnemySyncCoordinator] [Enemy] roster adopted: 956 rows (0 kept, 0 reused, 946 built, … 10 unresolved) — aligned=False.
 ```
 
-`ClearRosterState` clears the member's tracked animal set, and nothing rebuilds it for that layer, so the
-entry snapshot had no local copy to reuse: it materialized 946 copies and could not materialize the ten
+`ClearRosterState` clears the member's tracked animal set, and the entry adoption ran SYNCHRONOUSLY from
+the
+snapshot event — before the next frame's freeze pass could rebuild the set from a scene scan — so the
+adoption had no local copy to reuse: it materialized 946 copies and could not materialize the ten
 `trader` rows (the runtime-creation path has no trader prefab), which stayed unresolved. The member then
 held 1902 scene copies (`guest froze 1902 enemy copies` at 20:22:48.447) until the next adoption pass
 destroyed the 946 surplus and adopted the materialized set (`956 rows (956 kept, … 946 surplus destroyed,

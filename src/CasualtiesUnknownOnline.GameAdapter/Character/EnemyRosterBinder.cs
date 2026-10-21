@@ -39,7 +39,10 @@ internal sealed class EnemyRosterBinder(
 	/// <summary>
 	/// Adopt the last applied roster (world entry, late join, the 60 s repair):
 	/// drop bindings the roster no longer contains, then per row reuse, materialize
-	/// or report; only a COMPLETE roster destroys the unclaimed local copies.
+	/// or report; only a COMPLETE roster destroys the unclaimed local copies. The
+	/// copies it judges are the tracked set ∪ a live scene scan, so a roster reset
+	/// that cleared the tracking cannot empty the candidate set while the copies
+	/// are still in the scene.
 	/// </summary>
 	internal void AdoptRoster()
 	{
@@ -54,7 +57,6 @@ internal sealed class EnemyRosterBinder(
 		}
 
 		var dropped = RemoveBoundEnemiesNotInRoster(rosterIds);
-		PruneLocalAnimals();
 
 		var unboundStates = roster.Where(state => !_bindings.Contains(state.EntityId)).ToList();
 		var rows = new List<EnemyRosterAdoption.RosterRow>(unboundStates.Count);
@@ -66,11 +68,18 @@ internal sealed class EnemyRosterBinder(
 			rows.Add(new EnemyRosterAdoption.RosterRow(state.EntityId, state.PrefabId, state.SpawnPosition, state.Position, key));
 		}
 
-		var candidates = new List<BuildingEntity>();
-		var copies = new List<EnemyRosterAdoption.LocalCopy>(_localAnimals.Count);
-		foreach (var entity in _localAnimals)
+		// The candidates are the tracked set ∪ a LIVE scene scan, never the tracked
+		// set alone: a roster reset (the host's world-entry/layer boundary) clears
+		// the tracked set while the member's copies are still in the scene, and
+		// reading only the tracked set then built 946 copies of a 956-row world
+		// (batch `20261021-f`, row 1). The scan also sees a copy whose Start has not
+		// run yet, which the tracked set alone would have materialized a second time.
+		var tracked = EnemyAnimalScan.Union(_localAnimals);
+		var candidates = new List<BuildingEntity>(tracked.Count);
+		var copies = new List<EnemyRosterAdoption.LocalCopy>(tracked.Count);
+		foreach (var entity in tracked)
 		{
-			if (entity == null || _bindings.IsBound(entity)) // Unity object — ==
+			if (_bindings.IsBound(entity))
 			{
 				continue;
 			}
@@ -168,6 +177,26 @@ internal sealed class EnemyRosterBinder(
 	/// <summary>Drop the binding of one enemy the host removed (or the adoption found stale). Returns the local object so the caller can destroy it.</summary>
 	internal BuildingEntity? Unbind(NetworkEntityId id) => _bindings.Unbind(id);
 
+	/// <summary>
+	/// Destroy one local copy on this side's behalf. The object is DEACTIVATED
+	/// first: Unity defers the destruction to the end of the frame, and an adoption
+	/// pass later in that same frame builds its candidates from a live scene scan
+	/// (<see cref="EnemyAnimalScan"/>) — a copy this pass just unbound is still in
+	/// the scene, would be adopted by a DIFFERENT row, and would vanish at frame end
+	/// while the log counted the row as reused and the roster as aligned. Inactive
+	/// objects are outside that scan, so the rule needs no bookkeeping.
+	/// </summary>
+	internal void DestroyCopy(BuildingEntity entity)
+	{
+		if (entity == null) // Unity object — ==
+		{
+			return;
+		}
+
+		entity.gameObject.SetActive(false);
+		Object.Destroy(entity.gameObject);
+	}
+
 	/// <summary>Remove the bindings whose Unity object no longer exists (a missed explicit removal, or a scene change).</summary>
 	private void PruneDeadBindings()
 	{
@@ -187,13 +216,15 @@ internal sealed class EnemyRosterBinder(
 		{
 			var entity = _bindings.Unbind(id);
 			_presentation.Forget(id);
-			if (entity != null) // Unity object — ==
+			if (entity == null) // Unity object — ==
 			{
-				_runtimeAnimals.Remove(entity);
-				_localAnimals.Remove(entity);
-				Object.Destroy(entity.gameObject);
-				_log.LogInformation("[Enemy] guest destroyed local enemy {Enemy} — it is not in the host's roster (a missed removal).", id);
+				continue;
 			}
+
+			_runtimeAnimals.Remove(entity);
+			_localAnimals.Remove(entity);
+			DestroyCopy(entity);
+			_log.LogInformation("[Enemy] guest destroyed local enemy {Enemy} — it is not in the host's roster (a missed removal).", id);
 		}
 
 		return stale.Count;
@@ -240,7 +271,7 @@ internal sealed class EnemyRosterBinder(
 		_runtimeAnimals.Remove(entity);
 		_log.LogInformation("[Enemy] destroyed surplus local enemy (prefab {Prefab}) at ({X:F1},{Y:F1}) — it is not in the host's roster.",
 			entity.id, position.x, position.y);
-		Object.Destroy(entity.gameObject);
+		DestroyCopy(entity);
 	}
 
 	private void TryAdoptNewRows()

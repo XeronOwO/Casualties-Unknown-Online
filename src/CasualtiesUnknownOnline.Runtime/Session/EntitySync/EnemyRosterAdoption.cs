@@ -33,10 +33,19 @@ internal static class EnemyRosterAdoption
 
 	/// <summary>
 	/// The ONE runtime-spawn rule, applied by BOTH roles at the animal's own
-	/// <c>BuildingEntity.Start</c>: created during play means the session is up
-	/// and world generation has finished; anything else is generation output.
+	/// <c>BuildingEntity.Start</c>: an animal is a runtime spawn only when the
+	/// session was up AND it appeared AFTER this layer's generation-finished edge.
+	/// The edge is the SET of animals that existed when the world settled (the
+	/// caller records it at its first <see cref="CanPublishRoster"/> frame), never
+	/// the <c>generatingWorld</c> flag read at <c>Start</c>: a dense world's
+	/// generator leaves hundreds of <c>Start</c> calls to run over the seconds
+	/// after that flag flips, and every one of them read as a runtime spawn (batch
+	/// `20261021-f`: 291 → 873 runtime spawns on a 956-animal layer whose rows were
+	/// all generation output). Before the edge has been observed on a side, nothing
+	/// is a runtime spawn — every animal present then belongs to the generation.
 	/// </summary>
-	internal static bool IsRuntimeSpawn(bool sessionActive, bool generating) => sessionActive && !generating;
+	internal static bool IsRuntimeSpawn(bool sessionActive, bool generationEdgeObserved, bool existedAtGenerationEdge) =>
+		sessionActive && generationEdgeObserved && !existedAtGenerationEdge;
 
 	/// <summary>
 	/// When the world is SETTLED: it exists, is not generating, and is not in the

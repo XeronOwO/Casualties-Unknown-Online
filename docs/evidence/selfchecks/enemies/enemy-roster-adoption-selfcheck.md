@@ -12,11 +12,11 @@ mismatch at index 52, 17.021 units apart, both members present at world entry, e
 |---|---|---|
 | 1 | The host's durable enemy facts: id, prefab, runtime flag, health | `EnemyState` / `EnemyKernelProjection` (the host commits upserts/removals; the member's kernel is the replay and the checkpoint carries the table) |
 | 2 | The absolute state projection the member adopts | `EnemySnapshotMsg` (one generation-stamped row per enemy: id, prefab, match hint, current state; the runtime rows' creation key/tint ride the runtime-spawn detail list; sent at entry and on the 60 s repair) |
-| 3 | The host's capture | `EnemySyncCoordinator.CaptureHostEnemies` walks the bound table (`EnemyBindingTable`) and prunes only Unity-destroyed objects — a scan-only list drops a live enemy's id |
+| 3 | The host's capture | `EnemySyncCoordinator.UpdateHost` captures ONLY over a settled world (`WorldIsSettled` = `EnemyRosterAdoption.CanPublishRoster`; the not-settled branch returns before the capture) and `CaptureHostEnemies` walks the bound table (`EnemyBindingTable`), pruning only Unity-destroyed objects — a scan-only state list drops a live enemy's id |
 | 4 | The member's judgment | `EnemyRosterAdoption.Plan` (creation key first, then nearest same-prefab inside the reuse radius; unmatched rows materialize; unclaimed copies are surplus; a row without a prefab is unresolved) |
 | 5 | The member's Unity apply | `EnemyRosterBinder` (reuse and freeze, materialize at the host's current position with creation key/tint, destroy surplus, live-adopt a stream-announced new id from the kernel fact's prefab AND runtime marker — the stream frame carries neither) |
 | 6 | The identity table both roles share | `EnemyBindingTable` (one removal operation over both directions; `PruneDead` is the confirmed death) |
-| 7 | The empty and stale gates | `EnemySyncService` sends an empty roster; refuses a roster of another generation (`WorldReportGenerationGate`); the host holds snapshots while its world is generating or absent (`MarkRosterReady`/`MarkRosterUnstable`) |
+| 7 | The empty and stale gates | `EnemySyncService` sends an empty roster; refuses a roster of another generation (`WorldReportGenerationGate`); the host holds BOTH the snapshot and the 20 Hz stream while its world is generating or absent (`EnemyRosterPublisher.IsReady` read by `EnemySyncService.BroadcastEnemyState`; `MarkRosterReady`/`MarkRosterUnstable`) |
 | 8 | The layer lifecycle | `GameAdapterBridge.OnWorldGenerate` → `EnemySyncCoordinator.OnWorldGenerationStarted`; `EnemiesResetEvent` clears the member's buffer and bindings |
 | 9 | The family this replaced | `EnemySpawnArbitration` (all-or-nothing generated pairing), `EnemyRuntimeSpawnArbitration`'s positional passes, the empty-snapshot no-op, the scan-only state list — all gone, pinned absent by the source-shape gate |
 
@@ -46,7 +46,7 @@ snapshot is stamped; the generation boundary resets the roster).
 has no pre-fix tree to fail against — the old entry point is deleted, so a regression case would have to
 re-create the scheme; the source-shape gate refuses its names instead.
 
-**Runs:** the focused filter over `EnemyRosterAdoptionTests|EnemySnapshotRecoveryTests|EnemySyncServiceTests|EnemyStateRoundtripTests|EntryRepairConvergenceTests` 67/67 on this tree (the class gained `KernelFact_SuppliesBothLiveRowIdentityFields` in §4); the full suite and normative gates are recorded at the cycle's final run (the delivery checklist's build row). The independent review's dispositions are the ticket's `## Review (2026-10-21, before the rerun)` section.
+**Runs:** the focused filter over `EnemyRosterAdoptionTests|EnemySnapshotRecoveryTests|EnemySyncServiceTests|EnemyStateRoundtripTests|EntryRepairConvergenceTests` 70/70 on this tree (§5's fixes included); the full suite and normative gates are recorded at the cycle's final run (the delivery checklist's build row). The independent review's dispositions are the ticket's `## Review (2026-10-21, before the rerun)` section.
 
 ## 4. The row-4 fix (2026-10-21, after batch `20261021-e`)
 
@@ -89,7 +89,54 @@ recorded in `.acceptance/red-20261021-f.log`:
 
 **Runs:** the focused filter over `WorldStartGateTests|EnemySyncServiceTests|EnemyRosterAdoption_IsTheOnlyMatch|RunLifecycle_ResumesAHostWhoseSessionRoseAroundARunningWorld` 21/21; the full suite and normative gates are recorded at the cycle's final run (the delivery checklist's build row). The independent review's dispositions are the ticket's `## Review (2026-10-21, before the rerun)` section.
 
-## 5. Limits
+## 5. The batch-`20261021-f` fixes (2026-10-21)
+
+Batch `20261021-f` rejected row 1 on a 956-animal world (the host's early capture put 83 rows in the
+kernel, the world-entry reset dropped them and cleared both members' tracked candidates, and the entry
+adoption built 946 copies; `aligned=False` until the repair) and found the runtime-spawn classification
+wrong at that scale (291 → 873 runtime spawns for a roster of generation output). The three fixes:
+
+- **The capture waits for a settled world.** `EnemySyncCoordinator.UpdateHost` asks `WorldIsSettled`
+  first and returns after `MarkRosterUnstable`; the capture is unreachable before that return. A run's
+  first layer then has no kernel rows, and `LayerScopedTableReset.Reset` gates each table on its OWN
+  count, so the empty enemy table commits no `EnemiesResetEvent` and the members are not reset at entry.
+  The 20 Hz stream is held while the roster is not ready, because the buffer still names the layer being
+  left.
+- **The candidates are the tracked set ∪ a live scene scan.** `EnemyRosterBinder.AdoptRoster` reads
+  `EnemyAnimalScan.Union(_localAnimals)`, the same union the host's capture and the guest's freeze pass
+  use, so a reset that clears the tracking loses nothing while the copies stand in the scene.
+- **The runtime-spawn rule is the generation's finished edge.**
+  `EnemyRosterAdoption.IsRuntimeSpawn(sessionActive, generationEdgeObserved, existedAtGenerationEdge)`
+  over the set both roles record once per layer in `MarkAnimalsCreatedByGeneration`; a deferred `Start`
+  of a generation animal no longer reads as a runtime spawn.
+
+RED, all in `.acceptance/red-20261021-g-*.log`:
+`SourceShapeGateTests.EnemyRosterCapture_WaitsForASettledWorld_AndTheGenerationEdgeOwnsTheRuntimeClassification`
+failed on the old tree (*"the host's frame pump (UpdateHost) was not found"*),
+`EnemySyncServiceTests.RosterUnstable_HoldsThePeriodicStream_NotJustTheSnapshots` failed with
+`Expected: 0, Actual: 1`, and `LayerBoundaryKernelResetTests.LayerReset_AnEmptyEnemyTable_CommitsNoEnemyReset`
+failed with `Expected: 0, Actual: 1` (the review's MAJOR 1: the entry reset still committed an
+`EnemiesResetEvent` over an empty enemy table when the fluid table was not empty — `Reset` now gates each
+table on its own count). GREEN: the same three, plus the classification matrix
+`EnemyRosterAdoptionTests.IsRuntimeSpawn_OnlyAfterTheGenerationEdgeInASession` and the untouched
+adoption/snapshot suites.
+
+The independent review of this cycle (frozen tree, FULL tier: 0 blockers, 3 majors, 7 minors) is
+dispositioned in the ticket's `## Fix cycle after batch 20261021-f` → `### Independent review`. Two
+review fixes are structural and pinned rather than judged by a batch: `EnemyRosterBinder.DestroyCopy`
+deactivates a copy before destroying it (a Unity destruction lands at the end of the frame, and the
+adoption's scene scan would otherwise adopt a copy the same pass had just unbound — MAJOR 2), and
+`EntitySpawnSync.OnEntityInstantiated` takes the enemy domain's generation fact so a generation animal's
+deferred `Start` is not reported as a runtime creation (MAJOR 3; the non-animal half is the ticket's
+limit).
+
+**Runs:** the focused filter over
+`EnemyRosterAdoptionTests|EnemySnapshotRecoveryTests|EnemySyncServiceTests|EnemyStateRoundtripTests|EntryRepairConvergenceTests`
+70/70 on this tree; `LayerBoundaryKernelResetTests` 5/5 (the mixed-table case and the tombstone case now
+carrying a live row); `WorldStartGateTests|EnemySyncServiceTests|EnemyRosterAdoption_IsTheOnlyMatch|RunLifecycle_ResumesAHostWhoseSessionRoseAroundARunningWorld`
+21/21; the full suite and normative gates at the cycle's final run (the delivery checklist's build row).
+
+## 6. Limits
 
 - The adapter is Unity wiring (`ExcludeAssets="compile"`): the pure judgment is tested, the apply is judged
   by the batch and pinned by source shape.

@@ -5,7 +5,8 @@
   adoption candidates after their generation, and the entry adoption built the whole roster (946 built,
   10 trader rows unresolved, `aligned=False`) until the next repair. Row 4's live adoption and the
   late-join release / host-resume fixes pass. Record:
-  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-f.md`)
+  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-f.md`). The next cycle's three
+  fixes are landed (see `## Fix cycle after batch 20261021-f`); the six-row rerun is pending.
 - Priority: High
 - Category: Enemy sync / generation roster / rebuild
 - Source: batch `20261006-g`'s third client (2026-10-06) — a member that joined the lobby and entered the
@@ -408,3 +409,133 @@ was not driven.** Full evidence: `docs/evidence/acceptance/enemy-generation-pair
    the generation-finished edge), not the `generating` flag read at `Start`.
 4. Re-run this ticket's six rows on a dense world (the `20261021-f` session-A shape) **and** the drift
    shape; row 6's bite/announcement half needs a spider in range of the host.
+
+## Fix cycle after batch `20261021-f` (2026-10-21)
+
+The three fixes land together; the batch's rerun is the next acceptance, and the rows stay unjudged
+until it runs.
+
+### 1. The host captures only over a settled world (row 1's root cause)
+
+`EnemySyncCoordinator.UpdateHost` asks the settled-world verdict first (`WorldIsSettled`, the same
+`EnemyRosterAdoption.CanPublishRoster` the publication uses), marks the roster unstable and RETURNS
+when it fails; `CaptureHostEnemies` is reachable only after that early return. The 20 Hz stream is held
+with the snapshot while the roster is not ready (`EnemyRosterPublisher.IsReady` read by
+`EnemySyncService.BroadcastEnemyState`): the buffer still holds the layer being left, and announcing
+those rows as live state would let a member's live pass bind an old-layer id to a copy of the new scene,
+which the next roster would then destroy as stale.
+
+The entry reset itself needed its own fix, found by the independent review: `LayerScopedTableReset`
+returned early only when BOTH tables were empty and otherwise reset both — so an empty enemy table with
+non-empty fluid chunks still committed an `EnemiesResetEvent`, and that event is exactly what made every
+member drop its bindings and candidates at entry (the reset's gate is the pair, not the table). `Reset`
+now gates each table on its own count ("a table with no rows is not reset"), which is the rule the
+`0 enemy row(s)` log line states. `LayerReset_KeepsTheEnemyTombstones` was vacuous for the same reason
+(its only enemy was removed, so nothing was reset); it now carries a live row.
+
+RED: `LayerBoundaryKernelResetTests.LayerReset_AnEmptyEnemyTable_CommitsNoEnemyReset` — on the old
+`Reset` the batch carried one `EnemiesResetEvent` (`Expected: 0, Actual: 1`; an earlier revision-delta
+form of the same test read `Expected: 2, Actual: 6`, the extra commit). RED
+(`SourceShapeGateTests.EnemyRosterCapture_WaitsForASettledWorld_AndTheGenerationEdgeOwnsTheRuntimeClassification`):
+on the old tree the gate read *"the host's frame pump (UpdateHost) was not found — this rule would pass
+by checking nothing"*. RED (`EnemySyncServiceTests.RosterUnstable_HoldsThePeriodicStream_NotJustTheSnapshots`):
+`Expected: 0, Actual: 1` — the 20 Hz stream still reached the in-world member after `MarkRosterUnstable`.
+
+### 2. The adoption candidates are the tracked set ∪ a live scene scan
+
+`EnemyRosterBinder.AdoptRoster` builds its candidates through the new `EnemyAnimalScan.Union` (the
+tracked set plus `FindObjectsOfType<BuildingEntity>` over `animal`), the same union the host's capture
+and the guest's freeze pass already used. A roster reset that clears the tracked set loses nothing while
+the copies are still in the scene, so the row-1 shape is harmless even if a reset fires (a descent still
+commits the host's reset, because that layer's rows exist to drop — the union is the defence there). The
+scan also sees a copy whose `Start` has not run yet, which the tracked set alone would have materialized
+a second time.
+
+A copy being destroyed is DEACTIVATED first (`EnemyRosterBinder.DestroyCopy`, used by the stale-binding
+removal, the surplus destruction and the host-ordered removal): Unity destroys at the end of the frame,
+and the same pass's scene scan would otherwise adopt a copy it had just unbound for a different row —
+logging `reused`/`aligned` while the enemy vanished at frame end (review finding).
+
+### 3. The runtime-spawn rule is the generation's finished edge
+
+`EnemyRosterAdoption.IsRuntimeSpawn(sessionActive, generationEdgeObserved, existedAtGenerationEdge)`: an
+animal is a runtime spawn only when the session was up and it appeared AFTER the layer's
+generation-finished edge. Both roles record the edge once per layer in
+`EnemySyncCoordinator.MarkAnimalsCreatedByGeneration` — every ACTIVE animal in the scene at the first
+settled frame (tracked ∪ scanned) — and `OnAnimalInstantiated` consults that set instead of reading
+`IsGenerating()`. The batch proves the Starts ran after the flip (the only writer of the runtime set is
+the Start postfix, and the host's count grew 291 → 873 over 2.8 s); why the generator's placement left
+them deferred is not derivable from the decompiled coroutine, and the rerun's `0 runtime spawns` is the
+proof. Before the edge is recorded nothing is a runtime spawn, so an animal the session found already in
+the world is generation output by construction.
+
+The entity-creation channel had the same shape: `EntitySpawnSync.OnEntityInstantiated` also read
+`IsGenerating()` at `Start` and would have reported every one of those generation animals as a runtime
+creation — and its receive path matches a creation by key only, so each report materializes a duplicate
+on every member. The channel now takes the enemy domain's fact
+(`GameAdapterBridge.OnEntityInstantiated` → `EnemySyncCoordinator.IsGenerationAnimal` →
+`OnEntityInstantiated(entity, createdByGeneration)`) and skips a generation copy. The NON-animal half is
+not covered and is named in `## Limits`.
+
+### What the rerun must read
+
+On the dense entry world: `host enemy baseline established over N animals` (N = the whole layer, not
+`over 0`); `generation finished: N animal(s) exist at the settled edge`; either no `[LayerReset]` line or
+one naming **0 enemy row(s)**, and **no** `[Enemy] host reset the enemy table for a new layer` on either
+member; `snapshot sent … N enemies, 0 runtime spawns`; no `[EntitySpawn] reporting … (animal` on the
+dense entry; and both members `N rows (…, 0 built, 0 surplus destroyed, 0 unresolved) — aligned=True` on
+the entry snapshot. On the descent: the reset still fires with the old layer's rows, and the new layer's
+adoption still reuses. The drift, mid-run and runtime rows are unchanged and re-drive as before.
+
+### Independent review (2026-10-21, before the commit)
+
+One independent adversarial review on the frozen tree (fresh context, FULL tier): **0 blockers, 3 majors,
+7 minors**, all dispositioned in this change.
+
+- **MAJOR 1 — the entry reset still fired.** `LayerScopedTableReset.Reset` returned early only when both
+  tables were empty and reset BOTH otherwise, so an empty enemy table with non-empty fluid chunks still
+  committed an `EnemiesResetEvent` and the members were still reset at entry; the claim in the first
+  draft of this section (and in the selfcheck) was false. Fixed with the per-table gate described in 1
+  above, the mixed-table RED, and the corrected wording. Its coupled finding — `LayerReset_KeepsTheEnemyTombstones`
+  passed without exercising the reset — is fixed in the same test.
+- **MAJOR 2 — the adoption could bind a copy the same pass had destroyed.** The stale-binding removal
+  destroys copies, and the same pass's scene scan still saw them (Unity defers destruction to the end of
+  the frame), so a row could be bound to a doomed copy and the pass log `reused`/`aligned` while the
+  enemy vanished. Fixed with `DestroyCopy` (deactivate, then destroy) used by the stale removal, the
+  surplus destruction and the removed-enemy path; pinned by the source-shape gate.
+- **MAJOR 3 — the entity-creation channel had the same rule.** `EntitySpawnSync.OnEntityInstantiated`
+  read `IsGenerating()` at `Start` too, and its creation-key-only receive path would materialize a
+  duplicate for every misreported generation animal. Fixed for ANIMALS by passing the enemy domain's
+  generation fact through the bridge; the non-animal half is a named limit.
+- **MINOR 1** — the `_localAnimals` field comment and the `EnemyAnimalScan` class doc still described
+  the tracked set as "Start ran only" while the union writes scanned copies back. Fixed.
+- **MINOR 2** — `EnemySyncService.MarkRosterUnstable`'s doc still said snapshots only. Fixed (stream too).
+- **MINOR 3** — the selfcheck's run counts stopped reproducing once the classification matrix grew and the
+  new service fact landed. Re-measured at this cycle's final run.
+- **MINOR 4** — the batch-`20261021-f` record's causal sentence ("`ClearRosterState` clears the tracked
+  set, and nothing rebuilds it") was wrong: the next frame's freeze pass does rebuild it; the adoption
+  ran synchronously from the snapshot event first. Corrected in the record.
+- **MINOR 5** — the architecture watchlist's line measurements for `EnemySyncCoordinator` /
+  `EnemyRosterBinder` were stale. Re-measured and the new responsibility named.
+- **MINOR 6** — "every animal in the scene" overstates the edge: `FindObjectsOfType` returns ACTIVE
+  objects only. The wording now says active, and the limit below names the residue.
+- **MINOR 7** — the new source-shape gate did not pin the edge pass's ordering before the capture nor the
+  `Update` dispatch, and its message overstated what it enforced. Both pins added.
+
+The review's unconfirmed suspicions, recorded as such: whether batch `20261021-f`'s misreported
+generation animals had actually materialized duplicates (the batch's 1902 = 2×956 copy count says they
+did not — the generation stamp may have refused those reports), and why the generator left hundreds of
+`Start` calls deferred (not derivable from the decompiled coroutine). The rerun reads the creation
+channel's report counts and the `0 runtime spawns` line for both.
+
+## Limits added by the fix (2026-10-21)
+
+- The edge set is the ACTIVE scene at the settled frame. An animal the generation leaves inactive until
+  later would not be in the set and would be classified a runtime spawn at its `Start`; no such animal
+  was observed (the host's capture scan bound all 956 of the dense world), and the batch reads the edge
+  count.
+- The entity-creation channel's generation fact covers ANIMALS only: a non-animal generation entity (a
+  plant, a crate, a geyser) whose `Start` runs after `generatingWorld` flips is still reported as a
+  runtime creation. No duplicate was observed in the batch's counts; the rerun reads
+  `[EntitySpawn] reporting` lines without the animal suffix.
+

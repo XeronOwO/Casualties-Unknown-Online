@@ -15,8 +15,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 /// when the held-peer flush crossed the service's line cap, and because the
 /// host's publication policy is a responsibility of its own: the service keeps
 /// the enemy buffers and the stream, this class decides when a buffer may be
-/// published as the authoritative roster and makes sure a held member is not
-/// left waiting for the next repair wave.
+/// published as the authoritative roster — the snapshot AND the 20 Hz stream,
+/// because a row of the layer being left is no more publishable as live state
+/// than as a roster — and makes sure a held member is not left waiting for the
+/// next repair wave.
 /// </summary>
 internal sealed class EnemyRosterPublisher(
 	ISessionControl session,
@@ -36,6 +38,9 @@ internal sealed class EnemyRosterPublisher(
 	private bool _rosterReady = true;
 	private readonly HashSet<ulong> _heldPeers = [];
 
+	/// <summary>Whether the host's roster may be published at all — the snapshot path and the 20 Hz state stream both read this.</summary>
+	internal bool IsReady => _rosterReady;
+
 	/// <summary>Host side: the world is settled — a complete roster may be published. The first ready transition flushes every peer whose snapshot was held.</summary>
 	internal void MarkReady()
 	{
@@ -49,7 +54,7 @@ internal sealed class EnemyRosterPublisher(
 		FlushHeld();
 	}
 
-	/// <summary>Host side: a world/layer is generating, regenerating or absent — snapshots are held rather than telling a member to delete enemies its own generation has not produced yet.</summary>
+	/// <summary>Host side: a world/layer is generating, regenerating or absent — the rows in the buffer name the layer being left, so neither the snapshot nor the 20 Hz stream may be published until the new layer's capture is complete.</summary>
 	internal void MarkUnstable()
 	{
 		if (!_rosterReady)
@@ -58,7 +63,8 @@ internal sealed class EnemyRosterPublisher(
 		}
 
 		_rosterReady = false;
-		_log.LogInformation("[Enemy] host roster is unstable (transition boundary) — snapshots are held until the new layer's capture is complete.");
+		_log.LogInformation("[Enemy] host roster is unstable (transition boundary) over {Count} published row(s) — snapshots and the 20 Hz stream are held until the new layer's capture is complete.",
+			_currentEnemies().Count);
 	}
 
 	/// <summary>Host side: send the absolute roster to one member (entry, reconnect or the 60 s repair). Held while the roster is not ready; the peer is recorded for the ready-transition flush.</summary>

@@ -219,12 +219,14 @@ public class EnemyRosterAdoptionTests
 	}
 
 	[Theory]
-	[InlineData(true, false, true)] // created during play — a runtime spawn
-	[InlineData(true, true, false)] // Start ran during generation — generation output
-	[InlineData(false, false, false)] // the world as it already stood before the session
-	[InlineData(false, true, false)]
-	public void IsRuntimeSpawn_OnlyDuringPlayInASession(bool sessionActive, bool generating, bool expected) =>
-		Assert.Equal(expected, EnemyRosterAdoption.IsRuntimeSpawn(sessionActive, generating));
+	[InlineData(true, true, false, true)] // a session-up animal that appeared AFTER the generation edge — a runtime spawn
+	[InlineData(true, true, true, false)] // it existed at the edge — generation output, however late its Start ran (batch 20261021-f)
+	[InlineData(true, false, false, false)] // no edge observed yet — nothing can be a runtime spawn
+	[InlineData(true, false, true, false)]
+	[InlineData(false, true, false, false)] // no session — nothing to classify
+	[InlineData(false, false, false, false)]
+	public void IsRuntimeSpawn_OnlyAfterTheGenerationEdgeInASession(bool sessionActive, bool edgeObserved, bool existedAtEdge, bool expected) =>
+		Assert.Equal(expected, EnemyRosterAdoption.IsRuntimeSpawn(sessionActive, edgeObserved, existedAtEdge));
 
 	[Theory]
 	[InlineData(true, false, false, true)] // a live, settled world — the roster is complete

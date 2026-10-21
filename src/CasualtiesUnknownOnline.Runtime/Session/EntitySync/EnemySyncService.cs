@@ -153,7 +153,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 	/// <summary>Host side: the world is settled — a complete roster may be published (the adapter calls this after its capture on the generation-finished edge and while a settled world stands).</summary>
 	public void MarkRosterReady() => _rosterPublisher.MarkReady();
 
-	/// <summary>Host side: a world/layer is generating, regenerating or absent — the roster is partial, so snapshots are held rather than telling a member to delete enemies its own generation has not produced yet.</summary>
+	/// <summary>Host side: a world/layer is generating, regenerating or absent — the rows in the buffer name the layer being left, so neither the snapshot nor the 20 Hz stream is published until the new layer's capture is complete.</summary>
 	public void MarkRosterUnstable() => _rosterPublisher.MarkUnstable();
 
 	/// <summary>
@@ -314,6 +314,16 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 
 	private void BroadcastEnemyState()
 	{
+		if (!_rosterPublisher.IsReady)
+		{
+			// The buffer still holds the layer being LEFT (the host does not capture
+			// while its world generates): announcing those rows as live state would
+			// let a member's live pass bind an old-layer id to a copy of the new
+			// scene, which the next roster then destroys as stale. The snapshot path
+			// is held for the same reason; the first settled capture republishes.
+			return;
+		}
+
 		var stream = new WireStateStream
 		{
 			Seq = ++_nextEnemySeq,

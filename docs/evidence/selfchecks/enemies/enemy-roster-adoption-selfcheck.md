@@ -1,6 +1,6 @@
 # The Enemy Roster Adoption — Self-Check (2026-10-21)
 
-Delivery fact sheet for `docs/backlog/todo/enemy-generation-pairing-late-join.md`: the rejected
+Delivery fact sheet for `docs/backlog/done/enemy-generation-pairing-late-join.md`: the rejected
 position-as-identity pairing scheme is replaced by the host's roster, and a member adopts its local enemy
 copies row by row. The RED is batch `20261025-d` on the rejected scheme (85 host vs 85 guest, first key
 mismatch at index 52, 17.021 units apart, both members present at world entry, every 60 s cycle);
@@ -134,7 +134,18 @@ limit).
 `EnemyRosterAdoptionTests|EnemySnapshotRecoveryTests|EnemySyncServiceTests|EnemyStateRoundtripTests|EntryRepairConvergenceTests`
 70/70 on this tree; `LayerBoundaryKernelResetTests` 5/5 (the mixed-table case and the tombstone case now
 carrying a live row); `WorldStartGateTests|EnemySyncServiceTests|EnemyRosterAdoption_IsTheOnlyMatch|RunLifecycle_ResumesAHostWhoseSessionRoseAroundARunningWorld`
-21/21; the full suite and normative gates at the cycle's final run (the delivery checklist's build row).
+21/21; the full suite 6142/6142 and the normative gates 754/754 at the cycle's final run (the delivery
+checklist's build row).
+
+**Batch `20261021-g` (2026-10-21): all six rows pass**, so the ticket moved to `done/`. The readings this
+selfcheck's mechanisms depend on: `host enemy baseline established over 375 animals` with NO earlier bind
+and `[LayerReset] … 0 enemy row(s)` (the capture gate and the per-table reset), `0 runtime spawns` in the
+dense entry's detail list (the edge rule), both members `375 rows (0 kept, 375 reused, 0 built, 0
+unresolved) — aligned=True` with no member roster reset (the candidate union), the drift entry
+`81 rows (75 reused, 6 built, 6 surplus) — aligned=True`, the descent `77 rows (77 reused) — aligned=True`,
+the runtime row live-adopted within ~340 ms and following the stream, and row 6's damage/kill/announcement
+half driven for the first time. Record:
+`docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-g.md`.
 
 ## 6. Limits
 

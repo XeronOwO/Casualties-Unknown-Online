@@ -61,6 +61,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — two sets for one death.
 - [Members do not arrive together on a new layer](todo/layer-descent-spawn-separation.md) — **Medium** — one entry point for the group.
+- [A layer change pulls members back to the menu](todo/layer-change-menu-round-trip.md) — **Medium** — the group should start loading together.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
 - [A player's own music, heard by the group](todo/player-music-sync-playback.md) — **Medium** — transfer the file, then play.
@@ -75,7 +76,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
 - [A drink measurement can run a destructive action](todo/drink-measurement-destructive-use-action.md) — **Medium-High** — a refilled blood bag draws blood.
 - [A limb install from a bag keeps a contained record](todo/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — the wound-view apply.
-- [Enemy sync per-row roster adoption](todo/enemy-generation-pairing-late-join.md) — **High** — host roster is the identity; dense-world entry builds its set.
 ### In progress
 
 ### Review
@@ -175,6 +175,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Enemy sync per-row roster adoption](done/enemy-generation-pairing-late-join.md) — **High** — accepted in `20261021-g`.
 - [The snapshot overtakes the item reports](done/snapshot-overtakes-item-reports.md) — **Medium** — the fact now goes first; `20261025-c` read zero divergence.
 - [A craft report never retires a carried material](done/craft-carried-fact-retirement.md) — **Medium** — `20261025-d` read the removals at zero divergence.
 - [A container child moved into a slot loses its container fact](done/container-content-event-gap-on-repick.md) — **Medium** — accepted in `20261025-b`.

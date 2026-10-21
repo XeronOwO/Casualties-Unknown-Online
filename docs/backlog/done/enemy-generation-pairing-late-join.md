@@ -1,12 +1,19 @@
 # Enemy generation sync: the host's roster is the identity (rebuilt from the rejected pairing scheme)
 
-- Status: Todo — Rejected (batch `20261021-f`: row 1 — on a 956-animal world the host's early capture
-  during generation put 83 rows in the kernel, the world-entry layer reset then cleared both members'
-  adoption candidates after their generation, and the entry adoption built the whole roster (946 built,
-  10 trader rows unresolved, `aligned=False`) until the next repair. Row 4's live adoption and the
-  late-join release / host-resume fixes pass. Record:
-  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-f.md`). The next cycle's three
-  fixes are landed (see `## Fix cycle after batch 20261021-f`); the six-row rerun is pending.
+- Status: Done (batch `20261021-g`, 2026-10-21: all six rows pass on `0.1.0+03cc1099…` — the host's
+  capture ran only at the settled edge (`generation finished: 375 animal(s)` then `host enemy baseline
+  established over 375 animals`, no early binds, the entry reset dropped `0 enemy row(s)`), the entry
+  adoption read `375 rows (0 kept, 375 reused, 0 built, 0 surplus destroyed, 0 unresolved) — aligned=True`
+  on both members with no member roster reset and `0 runtime spawns` in the dense entry's detail list, the
+  drift entry adopted `81 rows (75 reused, 6 built, 6 surplus) — aligned=True`, the mid-run entry matched
+  and a killed enemy left all three views, the runtime spawn live-adopted within one stream pass with the
+  same position/health on all three clients, the descent adopted `77 rows (77 reused) — aligned=True`, and
+  row 6's damage/kill/announcement/bite half was driven for the first time. Record:
+  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-g.md`. History: the previous
+  rejection (batch `20261021-f`: row 1 on a 956-animal world — the host's early capture during generation
+  put 83 rows in the kernel, the entry reset cleared both members' adoption candidates, and the entry
+  adoption built 946 copies) is recorded below and in
+  `docs/evidence/acceptance/enemy-generation-pairing-late-join-20261021-f.md`.)
 - Priority: High
 - Category: Enemy sync / generation roster / rebuild
 - Source: batch `20261006-g`'s third client (2026-10-06) — a member that joined the lobby and entered the

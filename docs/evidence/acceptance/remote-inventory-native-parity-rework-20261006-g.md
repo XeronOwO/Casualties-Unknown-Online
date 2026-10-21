@@ -68,7 +68,7 @@ same cycles, and the host sends both peers the same `69 enemies, 0 runtime spawn
 
 The counts agree, so this is not a counting defect: the late joiner's copies never bind to the host's
 anchors, which is the failure shape the closed `done/enemy-runtime-spawn-classification.md` fixed for a
-member present at world entry. It is filed as `todo/enemy-generation-pairing-late-join.md` (it sat in the
+member present at world entry. It is filed as `done/enemy-generation-pairing-late-join.md` (it sat in the
 `todo/` folder when this batch read it, the 2026-10-07 cycle landed the fix, and batch `20261025-d` moved it
 back: entry-time members fail too); this batch's
 inventory rows are unaffected by it.

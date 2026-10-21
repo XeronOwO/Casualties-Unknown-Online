@@ -95,8 +95,14 @@ surplus.
 An enemy created during play is a [runtime spawn](../reference/glossary.md) — a cave-tick spawner is the usual case.
 It is a row of the same roster: the creation report creates the member's copy, and the host's next
 snapshot carries the row's creation key, so a keyed row binds the copy carrying that key (or
-materializes it on a member that missed the creation). Removal is a kernel fact too, and a
-session-scoped guard stops a stale stream value from rolling back an enemy the kernel has already removed.
+materializes it on a member that missed the creation). A runtime row can reach the member twice: the
+20 Hz stream announces its id — for a member already in the world, before the next snapshot does — and
+the live pass that answers it takes the row's prefab and its runtime marker from the SAME durable kernel
+fact (the stream frame carries presentation only, so its buffer row has neither), which binds the
+creation copy on the next batch instead of leaving the enemy unknown to the member's attacks until a
+snapshot arrives. The snapshot's creation key is the exact backfill when that live pass cannot bind.
+Removal is a kernel fact too, and a session-scoped guard stops a stale stream value from rolling back an
+enemy the kernel has already removed.
 
 ## What a game update can move
 

@@ -121,22 +121,29 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 		_enemies.TryGetValue(id, out var entity) ? entity : null;
 
 	/// <summary>
-	/// Guest side: the durable kernel fact's prefab for one id, used by the live
-	/// adoption pass for an id the 20 Hz stream has announced but the last
-	/// snapshot did not carry. False while the fact has not reached this member
+	/// Guest side: the durable kernel fact's identity columns for one id, used by
+	/// the live adoption pass for an id the 20 Hz stream has announced but the last
+	/// snapshot did not carry. BOTH fields come from the SAME fact: the stream frame
+	/// carries presentation only, so the buffer row of an id no snapshot has
+	/// introduced yet reads <see cref="EnemyEntity.RuntimeSpawned"/> false and has no
+	/// prefab — taking either from that row would judge a runtime spawn as generation
+	/// output and refuse the creation-channel copy that is the one bindable copy
+	/// (batch 20261021-e, row 4). False while the fact has not reached this member
 	/// yet — the next batch retries.
 	/// </summary>
-	public bool TryGetEnemyPrefab(NetworkEntityId id, out string prefabId)
+	public bool TryGetEnemyFacts(NetworkEntityId id, out string prefabId, out bool runtimeSpawned)
 	{
 		var entityId = new EntityId(id.Epoch, id.Counter, id.Generation);
 		var fact = _kernelAuthority.QueryEnemies()?.Enemies.FirstOrDefault(e => e.EntityId == entityId);
 		if (fact is null)
 		{
 			prefabId = string.Empty;
+			runtimeSpawned = false;
 			return false;
 		}
 
 		prefabId = fact.PrefabId;
+		runtimeSpawned = fact.RuntimeSpawned;
 		return true;
 	}
 

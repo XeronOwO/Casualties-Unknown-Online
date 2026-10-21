@@ -285,13 +285,19 @@ internal sealed class EnemyRosterBinder(
 		var adopted = 0;
 		foreach (var state in unbound)
 		{
-			if (!_enemies.TryGetEnemyPrefab(state.EntityId, out var prefab) || string.IsNullOrEmpty(prefab))
+			// Prefab AND runtime marker come from the SAME kernel fact: the 20 Hz
+			// frame carries presentation only, so the buffer row of an id no snapshot
+			// has introduced yet reads RuntimeSpawned=false — reading it here made
+			// FindLiveCopy refuse the creation-channel copy the member had just
+			// created, and the row waited for the next snapshot (batch 20261021-e,
+			// row 4). The fact's absence is the retry case, not a judgment.
+			if (!_enemies.TryGetEnemyFacts(state.EntityId, out var prefab, out var runtimeSpawned) || string.IsNullOrEmpty(prefab))
 			{
 				continue; // the kernel fact has not reached this member yet — the next batch retries
 			}
 
 			var key = keyByRow.TryGetValue(state.EntityId, out var knownKey) ? knownKey : (RuntimeEntityKey?)null;
-			var bestIndex = EnemyRosterAdoption.FindLiveCopy(state.Position, prefab, key, state.RuntimeSpawned, copies, used);
+			var bestIndex = EnemyRosterAdoption.FindLiveCopy(state.Position, prefab, key, runtimeSpawned, copies, used);
 			if (bestIndex < 0)
 			{
 				continue;

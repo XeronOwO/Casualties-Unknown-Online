@@ -1014,8 +1014,9 @@ public class SourceShapeGateTests
 	[Fact]
 	public void EnemyRosterAdoption_IsTheOnlyMatch_AndTheRosterGatesArePinned()
 	{
+		var binder = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyRosterBinder.cs"));
 		var coordinator = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs"))
-			+ File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyRosterBinder.cs"));
+			+ binder;
 		var bridge = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs"));
 		var service = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs"));
 		var publisher = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyRosterPublisher.cs"));
@@ -1025,6 +1026,10 @@ public class SourceShapeGateTests
 
 		Assert.True(coordinator.Contains("EnemyRosterAdoption.Plan(", StringComparison.Ordinal), "the guest's adoption must go through the pure EnemyRosterAdoption.Plan — a second matching rule is the rejected design");
 		Assert.True(coordinator.Contains("EnemyRosterAdoption.FindLiveCopy(", StringComparison.Ordinal), "the live 20 Hz adoption rule must be the pure FindLiveCopy, not an untested second loop");
+		Assert.True(binder.Contains("TryGetEnemyFacts(state.EntityId, out var prefab, out var runtimeSpawned)", StringComparison.Ordinal), "the live pass must take BOTH of its identity inputs — the prefab and the runtime marker — from the same kernel fact: the 20 Hz frame carries presentation only, so a buffer row for an id no snapshot has introduced reads RuntimeSpawned=false, and `FindLiveCopy` would then refuse the creation-channel copy that is the one bindable copy (batch 20261021-e, row 4)");
+		Assert.True(service.Contains("public bool TryGetEnemyFacts(NetworkEntityId id, out string prefabId, out bool runtimeSpawned)", StringComparison.Ordinal), "the service must expose the kernel fact's two identity columns TOGETHER — a prefab-only accessor is the shape that let the live pass take the runtime marker from the presentation buffer");
+		Assert.True(binder.Contains("EnemyRosterAdoption.FindLiveCopy(state.Position, prefab, key, runtimeSpawned, copies, used)", StringComparison.Ordinal), "the fact's runtime marker must be the judgement's allowKeyedCopy argument — a call kept intact with the marker dropped would leave the old bug's shape in place");
+		Assert.False(binder.Contains("state.RuntimeSpawned", StringComparison.Ordinal), "the live pass must not read the runtime marker off the stream buffer row: that field is a snapshot-only column, default-false for a row the stream announced first");
 		Assert.False(coordinator.Contains("TryPairGeneratedCopies", StringComparison.Ordinal), "the all-or-nothing generated-set pairing is deleted; its return would restore the rejected scheme");
 		Assert.False(coordinator.Contains("EnemySpawnArbitration", StringComparison.Ordinal), "EnemySpawnArbitration is deleted; a reference here means the position-as-identity scheme came back");
 		Assert.False(coordinator.Contains("EnemyRuntimeSpawnArbitration", StringComparison.Ordinal), "the runtime-spawn positional arbitration is deleted; a reference here means the second identity scheme came back");
@@ -1041,5 +1046,44 @@ public class SourceShapeGateTests
 		Assert.True(handler.Contains("ApplyEnemySnapshot(sender, msg)", StringComparison.Ordinal), "the handler must pass the sender so a stale roster's refusal names it");
 		Assert.True(message.Contains("WorldGenerationMsg? Generation", StringComparison.Ordinal), "the roster snapshot must carry its generation stamp");
 		Assert.True(stateMessage.Contains("public string PrefabId { get; set; }", StringComparison.Ordinal), "each roster row must carry its prefab: a deferred adoption cannot rely on a stream frame keeping the kernel-restored prefab");
+	}
+
+	/// <summary>
+	/// The host's run phase around a session that rises LATE: a host that played solo and opened the
+	/// lobby from inside that running world must be marked playing. Otherwise the loading-screen
+	/// keeper (<c>ShouldKeep = SessionActive &amp;&amp; !IsPlaying</c>) pulls the native loading screen up
+	/// and pins it over the running game for the rest of the session — the host plays blind while the
+	/// members enter the same world (batch `20261021-e`, session B: the host log shows
+	/// <c>[Gate] keeping the loading screen up while waiting for the host</c> at 19:28:45.502, half a
+	/// second after the lobby was created, and no line ever releases it). Both existing
+	/// <c>MarkPlayingForHost</c> call sites are unreachable for that run: the world-entry edge was
+	/// taken with no session (a solo run), and the gate-release branch requires an armed gate. The
+	/// adapter is not compilable in this suite, so the pump is pinned by source; the batch reads the
+	/// line and the keeper's absence.
+	/// </summary>
+	[Fact]
+	public void RunLifecycle_ResumesAHostWhoseSessionRoseAroundARunningWorld()
+	{
+		var gate = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Run/StartGateCoordinator.cs"));
+		var run = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs"));
+
+		Assert.True(gate.Contains("ResumeHostPlayingIfTheSessionRoseAroundTheRun();", StringComparison.Ordinal),
+			"the gate presentation pump must ask every frame whether a session rose around an already-running world — without it the host's phase stays Idle and the keeper never lets go");
+
+		var body = SourceScan.MethodBody(gate, "private void ResumeHostPlayingIfTheSessionRoseAroundTheRun(");
+		Assert.False(string.IsNullOrEmpty(body), "the host-resume pump's body was not found — this rule would pass by checking nothing");
+		foreach (var guard in new[] { "_session.Role != SessionRole.Host", "!_session.SessionActive", "!_session.LocalInWorld", "_run.IsPlaying", "_world.StartGateActive" })
+		{
+			Assert.True(body!.Contains(guard, StringComparison.Ordinal),
+				$"the host-resume pump must only fire for a host already in the world, not yet playing and with no armed gate (missing `{guard}`): an armed gate's release owns the phase");
+		}
+
+		Assert.True(body!.Contains("_run.MarkPlayingForHost();", StringComparison.Ordinal),
+			"the pump must mark the host playing — that is the fact the loading-screen keeper reads, not a presentation call of its own");
+
+		Assert.True(run.Contains("internal void MarkPlayingForHost()", StringComparison.Ordinal),
+			"the phase transition the pump calls must stay the run's own (MarkPlayingForHost), not a second write of the phase from the presentation layer");
+		Assert.True(gate.Contains("keeper.ShouldKeep = () => _session.SessionActive && !_run.IsPlaying;", StringComparison.Ordinal),
+			"the keeper's release condition changed shape — re-judge the host-resume pump against whatever it reads now");
 	}
 }

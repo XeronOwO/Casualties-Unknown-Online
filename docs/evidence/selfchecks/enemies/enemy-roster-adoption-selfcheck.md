@@ -14,7 +14,7 @@ mismatch at index 52, 17.021 units apart, both members present at world entry, e
 | 2 | The absolute state projection the member adopts | `EnemySnapshotMsg` (one generation-stamped row per enemy: id, prefab, match hint, current state; the runtime rows' creation key/tint ride the runtime-spawn detail list; sent at entry and on the 60 s repair) |
 | 3 | The host's capture | `EnemySyncCoordinator.CaptureHostEnemies` walks the bound table (`EnemyBindingTable`) and prunes only Unity-destroyed objects — a scan-only list drops a live enemy's id |
 | 4 | The member's judgment | `EnemyRosterAdoption.Plan` (creation key first, then nearest same-prefab inside the reuse radius; unmatched rows materialize; unclaimed copies are surplus; a row without a prefab is unresolved) |
-| 5 | The member's Unity apply | `EnemyRosterBinder` (reuse and freeze, materialize at the host's current position with creation key/tint, destroy surplus, live-adopt a stream-announced new id) |
+| 5 | The member's Unity apply | `EnemyRosterBinder` (reuse and freeze, materialize at the host's current position with creation key/tint, destroy surplus, live-adopt a stream-announced new id from the kernel fact's prefab AND runtime marker — the stream frame carries neither) |
 | 6 | The identity table both roles share | `EnemyBindingTable` (one removal operation over both directions; `PruneDead` is the confirmed death) |
 | 7 | The empty and stale gates | `EnemySyncService` sends an empty roster; refuses a roster of another generation (`WorldReportGenerationGate`); the host holds snapshots while its world is generating or absent (`MarkRosterReady`/`MarkRosterUnstable`) |
 | 8 | The layer lifecycle | `GameAdapterBridge.OnWorldGenerate` → `EnemySyncCoordinator.OnWorldGenerationStarted`; `EnemiesResetEvent` clears the member's buffer and bindings |
@@ -39,23 +39,68 @@ snapshot is stamped; the generation boundary resets the roster).
 | 4 | Determinism | same-prefab ties are resolved by position, not by the caller's candidate order | `…_EquidistantCopies_PickTheSameCopyRegardlessOfInputOrder`, `…_OneCopyServesOneRow` |
 | 5 | Snapshot semantics | the empty roster travels and fires; the match hint survives the stream; a stale generation is refused; the reset clears the buffer | `EnemySnapshotRecoveryTests.EmptyEnemyTable_TheRepairSendsTheAuthoritativeEmptyRoster`, `…_StreamFrames_DoNotForgetTheMatchHint`, `…_SnapshotOfAnotherGeneration_IsRefused`, `…_RosterReset_ClearsTheGuestBufferAndRaisesTheAdapterEvent` |
 | 6 | The service's absolute table | entry and repair deliver the rows; a repeat does not duplicate; the empty table is authoritative | `EnemySyncServiceTests.WorldEntry_ReceivesFullEnemySnapshot`, `…_WorldEntry_NoEnemies_SendsTheAuthoritativeEmptyRoster`, `…_EnemySnapshot_Overwrites_PreviousBuffer`, `EnemySnapshotRecoveryTests.EnemiesPublishedAfterTheEntryEdge_StillReachAStayingMember` |
-| 7 | Adapter wiring | the host states come from the bound table; the binder is the only match; the old names are gone; the empty roster and the stamps are in place | `SourceShapeGateTests.EnemyRosterAdoption_IsTheOnlyMatch_AndTheEmptyRosterIsAuthoritative` |
-| 8 | The whole pass | three clients, entry and mid-run join, drift, runtime spawn, layer descent | the ticket's `## Acceptance`; NOT RUN in this cycle (the batch is the next step) |
+| 7 | Adapter wiring | the host states come from the bound table; the binder is the only match; the old names are gone; the empty roster and the stamps are in place; the live pass's identity inputs come from the kernel fact | `SourceShapeGateTests.EnemyRosterAdoption_IsTheOnlyMatch_AndTheRosterGatesArePinned` |
+| 8 | The whole pass | three clients, entry and mid-run join, drift, runtime spawn, layer descent | the ticket's `## Acceptance`; batch `20261021-e` judged rows 1/2/3/5/6 pass and row 4 fail |
 
 **The RED** is batch `20261025-d` on the rejected artifact (the ticket's `## Rejection`). The rebuild itself
 has no pre-fix tree to fail against — the old entry point is deleted, so a regression case would have to
 re-create the scheme; the source-shape gate refuses its names instead.
 
-**Runs:** the focused filter over `EnemyRosterAdoptionTests|EnemySnapshotRecoveryTests|EnemySyncServiceTests|EnemyStateRoundtripTests|EntryRepairConvergenceTests` 66/66; the full suite and normative gates are recorded at the cycle's final run (the delivery checklist's build row). The independent review's dispositions are the ticket's `## Review (2026-10-21)` section.
+**Runs:** the focused filter over `EnemyRosterAdoptionTests|EnemySnapshotRecoveryTests|EnemySyncServiceTests|EnemyStateRoundtripTests|EntryRepairConvergenceTests` 67/67 on this tree (the class gained `KernelFact_SuppliesBothLiveRowIdentityFields` in §4); the full suite and normative gates are recorded at the cycle's final run (the delivery checklist's build row). The independent review's dispositions are the ticket's `## Review (2026-10-21, before the rerun)` section.
 
-## 4. Limits
+## 4. The row-4 fix (2026-10-21, after batch `20261021-e`)
+
+Batch `20261021-e` rejected row 4: no member live-adopted a runtime spawn, the attack was dropped as an
+unknown enemy and the row was adopted only by the next snapshot. The fix has two halves, each with its RED
+recorded in `.acceptance/red-20261021-f.log`:
+
+- **The live pass's identity inputs.** `EnemyRosterBinder.TryAdoptNewRows` read the prefab from the kernel
+  fact but the runtime marker from the 20 Hz buffer row, which is default-false for an id no snapshot has
+  introduced; `FindLiveCopy` then refused the creation-channel copy that was the only bindable copy. Fixed:
+  `EnemySyncService.TryGetEnemyFacts` returns the prefab and the runtime marker from the SAME kernel fact,
+  and the binder passes that marker. RED: the source-shape gate failed on the old binder (the pin is now
+  in place and also refuses `state.RuntimeSpawned` there). GREEN:
+  `EnemySyncServiceTests.KernelFact_SuppliesBothLiveRowIdentityFields`.
+- **The start gate's late-joiner verdict.** The batch's "second gap" (no repair group after 19:29:52) was
+  the members being returned to the menu by their 60 s valve: the run had started before the session
+  existed, so no gate was ever armed for it and neither answer path released the arriving member. Fixed:
+  `WorldStartGate.LateJoinerPasses` passes an in-world-arriving member when the gate was released OR when
+  no gate was armed over the run and the host is already in the world; an armed gate still holds its
+  members. RED: `WorldStartGateTests.RunAlreadyPlayingWhenTheMemberArrived_PassesWithoutAnArmedGate` and
+  `…_SwallowedReleaseIntoAnAlreadyPlayingRun_IsAnsweredOnTheRepeat` failed before the fix;
+  `…_AnArmedGate_StillHoldsTheMemberUntilItsOwnRelease` passed before and after.
+- **The host's phase in that same run (found by the independent review of this fix).** The same skipped
+  world-entry edge and never-armed gate also skip every `MarkPlayingForHost`, so the loading-screen keeper
+  pinned the native loading screen over the host's running game for the rest of the session (the host log's
+  `[Gate] keeping the loading screen up while waiting for the host.` at 19:28:45.502, with nothing ever
+  releasing it). Fixed:
+  `StartGateCoordinator.ResumeHostPlayingIfTheSessionRoseAroundTheRun` marks the host playing when a
+  session rises around an already-running world (host, active session, in the world, not yet playing, no
+  armed gate); pinned by
+  `SourceShapeGateTests.RunLifecycle_ResumesAHostWhoseSessionRoseAroundARunningWorld`. The rerun reads the
+  line and the keeper's absence from the host log.
+- **The gate's per-run flags (same review).** `_released`/`_armed` survived into the next run of one session
+  until the host's own entry armed it, so a member whose world came up first could be passed by the previous
+  run's verdict. `SetHostRunPending(true)` (the host's click) now clears both; pinned by
+  `WorldStartGateTests.ANewRun_ForgetsThePreviousRunsRelease`.
+- **The source-shape pin's hand-off (same review).** The pin now also asserts the `TryGetEnemyFacts` call's
+  two-column signature and the `FindLiveCopy(..., runtimeSpawned, ...)` argument, so the call cannot stay
+  intact while the marker is dropped.
+
+**Runs:** the focused filter over `WorldStartGateTests|EnemySyncServiceTests|EnemyRosterAdoption_IsTheOnlyMatch|RunLifecycle_ResumesAHostWhoseSessionRoseAroundARunningWorld` 21/21; the full suite and normative gates are recorded at the cycle's final run (the delivery checklist's build row). The independent review's dispositions are the ticket's `## Review (2026-10-21, before the rerun)` section.
+
+## 5. Limits
 
 - The adapter is Unity wiring (`ExcludeAssets="compile"`): the pure judgment is tested, the apply is judged
   by the batch and pinned by source shape.
+- The host-resume pump and the gate's per-run reset are Unity/session wiring too: the pump's proof is the
+  batch's host log, the reset's is the session test above.
 - A materialized generated enemy is created through the runtime-creation path; presentation, damage and drop
   ownership are batch rows, not unit tests.
-- The match hint is a reuse heuristic; a copy outside the radius is replaced (one-frame pop), never bound
-  far away.
+- The match hint is a reuse heuristic; a copy outside the radius is replaced, never bound far away. The live
+  pass may provisionally bind a keyless same-prefab copy for a runtime row whose key it has not seen yet; the
+  snapshot then destroys the creation copy and materializes the generated row's replacement (a same-prefab
+  swap with a one-frame pop, identity stays by row).
 - A row without a prefab is retried; the surplus destruction is deferred while any row is unresolved.
 - The batch cannot force a generation divergence; the drift row depends on the host's world running before
   the session.

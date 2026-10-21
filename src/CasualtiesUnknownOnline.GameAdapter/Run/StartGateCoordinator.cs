@@ -142,6 +142,8 @@ internal sealed class StartGateCoordinator(
 			_world.MaybeForceStartGate();
 		}
 
+		ResumeHostPlayingIfTheSessionRoseAroundTheRun();
+
 		if (WaitingForReady)
 		{
 			if (!_gateFrozen)
@@ -224,6 +226,29 @@ internal sealed class StartGateCoordinator(
 		// replay once the run is actually playing. A window that closed without
 		// playing (world left, session ended) discards them instead.
 		ReplayDeferredAlerts();
+	}
+
+	/// <summary>
+	/// Host: a session can rise around a run that is ALREADY playing — the host played solo and
+	/// opened the lobby from inside that world. The world-entry edge (where a fresh run marks itself
+	/// playing and where the start gate arms) is long past, so neither
+	/// <see cref="RunCoordinator.MarkPlayingForHost"/> call site can reach this run, and the keeper's
+	/// <c>!IsPlaying</c> gate pulls the native loading screen up and pins it over the running game for
+	/// the rest of the session (batch 20261021-e, session B: the host log shows the keep at
+	/// 19:28:45.502 and no line ever releases it). The host's phase machine only has Idle and Playing
+	/// — the follow phases belong to the guest — so <c>!IsPlaying</c> is this run's "not told yet". An
+	/// armed gate keeps ownership of the phase: its release marks the host playing.
+	/// </summary>
+	private void ResumeHostPlayingIfTheSessionRoseAroundTheRun()
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld
+			|| _run.IsPlaying || _world.StartGateActive)
+		{
+			return;
+		}
+
+		_log.LogInformation("The session rose around an already-running world — the host resumes playing.");
+		_run.MarkPlayingForHost();
 	}
 
 	/// <summary>Replay the popups captured during the wait, in capture order. The

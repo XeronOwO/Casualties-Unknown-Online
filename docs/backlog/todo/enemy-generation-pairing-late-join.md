@@ -238,3 +238,120 @@ shape (78-row entry adoption aligned, 76-row mid-run adoption with 4 materialize
 aligned, 71-row layer adoption aligned with the old bindings dropped, damage/removal/bite/drive regression)
 are recorded there; the drift's per-animal pre-bind distance and the "no visual frame" reading are its
 Limits.
+
+## Root cause and fix (2026-10-21, after batch `20261021-e`)
+
+### Row 4's leading cause, confirmed
+
+The live pass took half of its identity input from the wrong layer. `TryAdoptNewRows` read the prefab from
+the durable kernel fact but the runtime marker from the 20 Hz buffer row, and the stream frame carries
+presentation only (`EnemyStreamWireMapper.ToWireEnemyStreamState` sends position/velocity/rotation/health/
+flags/presentation, and its `ApplyTo` leaves `PrefabId`/`RuntimeSpawned`/`CreationKey` at their defaults for
+an id the buffer does not already hold). For the id the stream has just announced, the buffer row therefore
+reads `RuntimeSpawned == false`, `FindLiveCopy` treats the row as generation output, refuses the keyed
+creation-channel copy — the only copy that exists for it — and the row waits for the next snapshot. The
+kernel fact for the same id reads `RuntimeSpawned: true` (the batch's `a-row4-guest-kernel.json`).
+
+Fix: `EnemySyncService.TryGetEnemyFacts(id, out prefabId, out runtimeSpawned)` replaces
+`TryGetEnemyPrefab`; both columns come from the same `EnemyState` row, and `TryAdoptNewRows` passes the
+fact's marker into `FindLiveCopy` instead of the buffer row's. The fact's absence remains the retry case
+(the next 20 Hz batch retries), and the snapshot's creation-key pass remains the exact backfill.
+
+RED before the fix (recorded, `.acceptance/red-20261021-f.log`): the source-shape gate's new pin fails on
+the old binder — *"the live pass must take BOTH of its identity inputs — the prefab and the runtime marker —
+from the same kernel fact"* — and the gate now also refuses `state.RuntimeSpawned` in the binder. GREEN:
+`EnemySyncServiceTests.KernelFact_SuppliesBothLiveRowIdentityFields` pins the fact's two columns together,
+and `SourceShapeGateTests.EnemyRosterAdoption_IsTheOnlyMatch_AndTheRosterGatesArePinned` pins the binder's
+source.
+
+### The second gap was NOT the repair pump — it was the start gate
+
+The batch read "the guest received no repair group after 19:29:52.637" as a second, independent gap. The
+host's log shows the pump working: at **19:29:45.262 / 19:29:45.294** one 60 s cycle sent the in-session
+repair group to BOTH members (`Sending the in-session repair group to <guest>` → `[Enemy] snapshot sent to
+<guest>: 76 enemies, 0 runtime spawns, run 1 layer 0.`). It never sent again because it had nobody to send
+to: at **19:29:58.292** the guest itself reported `Scene state: InMenu (PreGen)`, and at **19:30:04.259** the
+alt did the same. The reason is on the guest, one line earlier:
+
+```text
+[2026-10-21 19:29:57.763] [WRN] [CasualtiesUnknownOnline.GameAdapter.Run.StartGateCoordinator] WorldReady never arrived within 60s — back to the menu.
+```
+
+Both members had been returned to the menu by their own start-gate valve. The host never released them
+because the run had started BEFORE the session existed: the host started the run solo at 19:27:42 and created
+the lobby from inside the running world at 19:28:45. `WorldStartGate.Arm()` is called only on the host's own
+InWorld edge under the host role (`RunCoordinator.UpdateSceneState` → `_world.StartStartGate()`), so it never
+ran for that run; `_released` stayed false for the whole session, and both answer paths
+(`NotifyMemberInWorld`, `AnswerRepeatInWorld`) treat "no armed gate and not released" as "say nothing". The
+guest re-asserted its InWorld report twelve times inside its 60 s budget and got only the entry-group marker,
+never the release.
+
+Fix: the gate's verdict for a member that is already in the world (`WorldStartGate.LateJoinerPasses`) is
+"pass" when the gate was released OR when no gate was ever armed over this run and the host is already in
+the world (`ISessionControl.LocalInWorld`). Both answer paths use it; the `_armed` check still comes first,
+so a gate that IS armed over the run holds its members as before. `AnswerRepeatInWorld` therefore also
+answers a swallowed release into an already-playing run.
+
+RED before the fix (same log): `WorldStartGateTests.RunAlreadyPlayingWhenTheMemberArrived_PassesWithoutAnArmedGate`
+(`Expected: 1, Actual: 0` — no release reached the guest) and
+`SwallowedReleaseIntoAnAlreadyPlayingRun_IsAnsweredOnTheRepeat` (`simulation did not converge within 8000 ms`
+— the repeat was never answered); `AnArmedGate_StillHoldsTheMemberUntilItsOwnRelease` passed before and after,
+pinning that the armed path is unchanged. The acceptance record's "missing repair wave" wording is
+corrected there.
+
+## Review (2026-10-21, before the rerun)
+
+Independent adversarial review of the uncommitted fix (fresh context, frozen tree, FULL tier): **no blocker**
+in the change set; both behavioural claims were substantiated against the code, the tests and the batch's
+logs. One major and four minors came back, all fixed in the same commit and pinned:
+
+- **MAJOR (fixed here) — the host is left on the native loading screen when the lobby opens around its
+  running solo world.** `StartGateCoordinator` keeps the screen while
+  `SessionActive && !RunCoordinator.IsPlaying`; both `MarkPlayingForHost` call sites are unreachable for a
+  run whose world entry happened with no session (the world-entry branch requires the host role) and whose
+  gate never arms (the gate-release branch requires `_gateFrozen`). The `SessionActivated` host branch cannot
+  fire either: a host-created lobby sets `SessionActive = true` in `OnLobbyCreated`, so `HandshakeHandler`'s
+  `!wasActive` guard never calls `FireSessionActivated`. The batch's own session-B host log shows the
+  consequence — `[2026-10-21 19:28:45.502] [INF] … StartGateCoordinator [Gate] keeping the loading screen
+  up while waiting for the host.` — and no line ever releases it: the fix for the members alone would have
+  had them enter a world their host cannot see. Fixed with
+  `StartGateCoordinator.ResumeHostPlayingIfTheSessionRoseAroundTheRun` (host, session active, in the
+  world, not yet playing, no armed gate → `RunCoordinator.MarkPlayingForHost()`), pinned by
+  `SourceShapeGateTests.RunLifecycle_ResumesAHostWhoseSessionRoseAroundARunningWorld`. The batch's session-B
+  host log is the runtime proof to read on the rerun (`the session rose around an already-running world`,
+  no `keeping the loading screen up` line).
+- **MINOR (fixed here) — the gate's flags were not reset per run.** `_released` was only cleared in `Arm()`,
+  which runs at the host's own world entry, so a second run in one session began with the previous run's
+  release until then, and a member whose world came up first could be passed by the old run's verdict.
+  `SetHostRunPending(true)` (the host's click) now clears `_released` and `_armed`; pinned by
+  `WorldStartGateTests.ANewRun_ForgetsThePreviousRunsRelease`.
+- **MINOR (fixed here) — the new source-shape pin was weaker than its message.** It asserted the
+  `TryGetEnemyFacts` call and the absence of `state.RuntimeSpawned`, but not that the marker reaches
+  `FindLiveCopy`. The pin now includes the call with `runtimeSpawned` as the argument, and the service
+  accessor's two-column signature.
+- **MINOR (fixed here) — a stale count.** The selfcheck's `66/66` for the older focused filter is 67/67 on
+  this tree (the new service test); the selfcheck is re-measured at the cycle's final run.
+- **MINOR (fixed here) — a log line stated the opposite of its premise.** `AnswerRepeatInWorld` said "the
+  gate is released" while the new branch answers exactly when it is not; reworded to "the member passes: the
+  gate is released, or this run never armed one".
+- **Nits (fixed here):** the ticket's trailing blank line; the batch's start-run time is 19:27:42 (19:27:40 is
+  the client start); the internals pages no longer claim the stream always announces a runtime row before
+  any snapshot; the new test fixture is documented as reproducing the gate's flags, not the production flow.
+- **Accepted as-is:** the guest-side `EnemyEntity.RuntimeSpawned` now has no reader on the guest (it is
+  preserved in `Merge` and projected by the kernel restore, and the host publishes from it — the buffer
+  mirrors the row); the live pass may still bind a keyless same-prefab copy provisionally for a runtime row
+  whose creation key is not yet known — the Limits now state its cost precisely (a destroy of the
+  creation-channel copy plus a materialization of the generated row's replacement, same prefab, corrected
+  by the snapshot; identity stays by row).
+
+## Limits added by the fix (2026-10-21)
+
+- The live pass binds a runtime row whose creation key the member has not seen yet provisionally, by
+  nearest same-prefab copy inside the reuse radius. If that copy is a keyless generated copy, the next
+  snapshot's plan destroys the creation-channel copy and materializes the generated row's replacement —
+  a same-prefab swap with a one-frame pop, never a wrong identity (both rows stay bound, and damage,
+  removal and attacks follow the host id).
+- A runtime row whose fact has not reached the member is retried on the next 20 Hz batch; the fact's
+  absence is not a judgment.
+- The host-resume pump is Unity wiring: its proof is the batch's host log (the line and the keeper's
+  absence), not a unit test.

@@ -441,6 +441,30 @@ public class EnemySyncServiceTests
 	}
 
 	[Fact]
+	public void KernelFact_SuppliesBothLiveRowIdentityFields()
+	{
+		// The live 20 Hz pass judges an unbound row from the durable kernel fact, not
+		// from the presentation buffer: the runtime marker and the prefab must come out
+		// TOGETHER, or a runtime row is judged as generation output and the creation
+		// copy is refused (batch 20261021-e, row 4).
+		using var w = ItemSimWorld.Create();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var authority = w.G1.Services.GetRequiredService<ItemKernelAuthority>();
+
+		Assert.True(authority.TryUpsertEnemy(
+			w.G1.SteamId,
+			new EnemyState(new EntityId(1, 76, 0), "cavetick", 100f, true, false),
+			out _,
+			out var rejection), rejection?.Message);
+
+		Assert.True(g1Enemies.TryGetEnemyFacts(new NetworkEntityId(1, 76, 0), out var prefab, out var runtimeSpawned));
+		Assert.Equal("cavetick", prefab);
+		Assert.True(runtimeSpawned);
+
+		Assert.False(g1Enemies.TryGetEnemyFacts(new NetworkEntityId(1, 99, 0), out _, out _));
+	}
+
+	[Fact]
 	public void GuestApplyEnemySnapshot_ProjectsKernelTerminalFacts()
 	{
 		using var w = ItemSimWorld.Create();

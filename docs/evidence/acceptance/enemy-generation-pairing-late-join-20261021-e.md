@@ -25,7 +25,7 @@ Session A: host + both members were in the lobby before the host started the run
 78 generation animals at 19:19:19.444, `[GenStream] done — 19 segments` at 19:19:19.585, and both entry
 snapshots were sent (`snapshot sent to <member>: 78 enemies, 0 runtime spawns, run 1 layer 0`).
 
-Session B: the host started a run alone at 19:27:40, its world ran until 19:28:24 (30 s solo; `prelude-b.log`
+Session B: the host started a run alone at 19:27:42, its world ran until 19:28:24 (30 s solo; `prelude-b.log`
 `host body ready` 19:27:54 → `host solo-world run window closed` 19:28:24), it created the lobby from inside
 that running world at 19:28:45, and both members joined mid-run (`b-row2-*-adopt.txt`; the host's first bind
 happened at the lobby's session start, after the world had run).
@@ -60,6 +60,33 @@ The live pass cannot bind a runtime spawn that a snapshot has not yet introduced
   `19:29:52.637` (the host's last `Sending the in-session repair group` for the guest; the alt got one at
   19:30:03 and adopted the runtime row, the guest did not), so the row that the live pass missed never
   reached the guest at all in the rest of the session.
+
+## Correction (read back after the batch)
+
+The row-4 finding above named "the missing repair wave" as a second, independent gap. The host's log shows
+the 60 s pump working; the members had already left the world, so there was nobody to repair:
+
+- **19:29:45.262 / 19:29:45.294** — one pump cycle sent the in-session repair group to BOTH members
+  (`Sending the in-session repair group to <member>` → `[Enemy] snapshot sent to <member>: 76 enemies, 0
+  runtime spawns, run 1 layer 0.`). The later entry-repair sends to the alt (19:30:03.643) are the alt's
+  readiness window, not a second pump cycle.
+- **19:30:45** — the next pump cycle found no in-world member (`[ItemKeyframe] skipped: no in-world member`
+  from 19:30:05 on; `[EnemyAttack] no in-world guest to announce … to.`).
+- **19:29:58.292** — the guest reported `Scene state: InMenu (PreGen)`; **19:30:04.259** the alt did. Each
+  was returned to the menu by its own valve, one line earlier:
+  `[2026-10-21 19:29:57.763] [WRN] … StartGateCoordinator WorldReady never arrived within 60s — back to the menu.`
+
+The cause is the start gate, not the repair pump: the run started before the session existed (host solo at
+19:27:42, lobby created inside the running world at 19:28:45), so `WorldStartGate.Arm()` never ran for that
+run, `_released` stayed false, and neither `NotifyMemberInWorld` nor `AnswerRepeatInWorld` answered the
+members' InWorld reports. The guest re-asserted twelve times (`Re-reported the scene state to the host
+(11/12)`, `(12/12)`) and got the entry-group marker but never the release. The same run exposes a HOST-side
+defect the batch could not see (it captured no frames): the same skipped entry edge and never-armed gate
+also skip every `MarkPlayingForHost`, so the loading-screen keeper pulls the native loading screen up and
+pins it — the host log reads `[Gate] keeping the loading screen up while waiting for the host.` at
+19:28:45.502 and no line releases it. Both halves are fixed and reviewed in the ticket's
+`## Root cause and fix` / `## Review` sections; the batch's own readings stand, but its row-4 "second gap"
+sentence must be read as this start-gate defect.
 
 ## Residuals for the user
 

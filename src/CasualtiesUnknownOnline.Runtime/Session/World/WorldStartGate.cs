@@ -37,7 +37,21 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 	/// <summary>Host only: the gate was released (everyone started, or the 30 s fallback fired).</summary>
 	private bool _released;
 
-	internal void SetHostRunPending(bool pending) => HostRunPending = pending;
+	internal void SetHostRunPending(bool pending)
+	{
+		HostRunPending = pending;
+		if (!pending)
+		{
+			return;
+		}
+
+		// A new run begins at the host's click: the previous run's verdict is not this one's. A
+		// stale release would pass a member whose world came up before the host's own entry (the new
+		// gate arms there, and until it does this run has no verdict of its own), and a stale armed
+		// set would hold it for slots that belong to the run being left.
+		_released = false;
+		_armed = null;
+	}
 
 	/// <summary>Host only: everyone enters the world together — arm the gate (waits for every guest's InWorld, or 30 s). Returns whether anyone is being waited on.</summary>
 	internal bool Arm()
@@ -79,7 +93,7 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 
 		if (_armed is null)
 		{
-			if (_released)
+			if (LateJoinerPasses)
 			{
 				SendWorldReadyTo(steamId);
 			}
@@ -98,14 +112,16 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 
 	/// <summary>
 	/// Host only: a member re-asserted its InWorld state (its readiness window has not
-	/// seen the host's answer). Re-answer with the gate's CURRENT verdict — released: the
-	/// same targeted WorldReady a late joiner gets; still armed: nothing, because the
-	/// release broadcast covers every handshaken member; no gate at all (the host is not
-	/// in a run): nothing. Never releases the gate — a repeat is not a new arrival.
+	/// seen the host's answer). Re-answer with the gate's CURRENT verdict — a released
+	/// gate: the same targeted WorldReady a late joiner gets; still armed: nothing,
+	/// because the release broadcast covers every handshaken member; no gate over a run
+	/// that is already playing (see <see cref="LateJoinerPasses"/>): the same targeted
+	/// WorldReady, because its first copy may be the frame the lazy session swallowed.
+	/// Never releases the gate — a repeat is not a new arrival.
 	/// </summary>
 	internal void AnswerRepeatInWorld(ulong steamId)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || _armed is not null || !_released)
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || _armed is not null || !LateJoinerPasses)
 		{
 			return;
 		}
@@ -113,8 +129,22 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 		// The same message as the late-joiner pass; the log line differs because this is
 		// an ANSWER to a re-asserted report, not a member arriving for the first time.
 		_sender.Send(steamId, NetMsg.WorldReady, new WorldReadyMsg());
-		_log.LogInformation("Start-gate state re-answered to {Peer} — the gate is released.", steamId);
+		_log.LogInformation("Start-gate state re-answered to {Peer} — the member passes: the gate is released, or this run never armed one.", steamId);
 	}
+
+	/// <summary>
+	/// The gate's verdict for a member that is already in the world. A RELEASED gate
+	/// lets it in; so does a run whose gate was never armed for it — the host entered
+	/// the world before this session existed (it played solo and opened the lobby from
+	/// inside the running world), so no release was ever broadcast and the arriving
+	/// member would wait out its whole 60 s valve and be returned to the menu (batch
+	/// 20261021-e, session B). The host being in the world is the fact that makes the
+	/// wait meaningless: a gate that IS armed over the run still holds its members (the
+	/// callers check <c>_armed</c> first), and a host still entering a fresh layer has
+	/// LocalInWorld false, so the gate that arms at its own entry still covers that
+	/// entry's members.
+	/// </summary>
+	private bool LateJoinerPasses => _released || (_armed is null && _session.LocalInWorld);
 
 	/// <summary>Host only: the gate is armed (the host is waiting too) — the driver pumps this for the 30 s fallback.</summary>
 	internal void PumpTimeout()

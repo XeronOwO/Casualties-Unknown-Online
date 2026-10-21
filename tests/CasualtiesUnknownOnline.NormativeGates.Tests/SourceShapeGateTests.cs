@@ -799,6 +799,29 @@ public class SourceShapeGateTests
 	}
 
 	/// <summary>
+	/// The restore's layer decision belongs to the APPLY, not the receive. A reconnecting member's saved
+	/// character is sent BEFORE the run-baseline checkpoint (the handshake's own order), so at arrival this
+	/// side has no current generation and the comparison answers "unknown"; by the time the body exists the
+	/// baseline names the layer the body was generated in. The adapter is compile-excluded, so the wiring is
+	/// pinned here rather than by a behaviour test (the policy itself is pinned by
+	/// <c>CharacterRestorePositionPolicyTests</c>): a later edit that moves the check back to the receive
+	/// path would silently re-open the old-layer teleport this ticket exists to close.
+	/// </summary>
+	[Fact]
+	public void CharacterRestoreLayer_IsDecidedWhenThePositionIsApplied()
+	{
+		const string check = "CharacterRestorePositionPolicy.IsFromAnotherLayer(pending.Generation, _world.CurrentGeneration)";
+		var sync = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs"));
+		var apply = MethodBody(sync, "private bool ApplyPendingPosition");
+		var receive = MethodBody(sync, "private void OnCharacterDataReceived");
+
+		Assert.False(string.IsNullOrEmpty(apply), "ApplyPendingPosition is gone — the position write has no pinned home");
+		Assert.False(string.IsNullOrEmpty(receive), "OnCharacterDataReceived is gone");
+		Assert.Contains(check, apply, StringComparison.Ordinal);
+		Assert.DoesNotContain("CharacterRestorePositionPolicy.IsFromAnotherLayer", receive, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A container destination has ONE policy in both directions: the container's own rules on the RECEIVING client
 	/// decide, and a refusal falls back to a slot there. The flag that used to send a created item to the give
 	/// ladder's drop rung is gone — the host records the item's id as carried BEFORE it publishes the transfer (and

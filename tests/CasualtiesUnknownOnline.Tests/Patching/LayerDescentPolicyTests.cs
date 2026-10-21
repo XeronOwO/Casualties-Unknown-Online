@@ -28,9 +28,9 @@ public class LayerDescentPolicyTests
 		throwOnError: true)!;
 
 	private static string DecideFollow(
-		SessionRole role, bool sessionActive, bool inWorld, bool playingOrWaiting, bool generationInFlight, bool hasWorld) =>
+		SessionRole role, bool sessionActive, bool inWorld, bool playingOrWaiting, bool generationInFlight, bool hasWorld, bool hasBody) =>
 		Policy.GetMethod("DecideFollow", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)!
-			.Invoke(null, [role, sessionActive, inWorld, playingOrWaiting, generationInFlight, hasWorld])!
+			.Invoke(null, [role, sessionActive, inWorld, playingOrWaiting, generationInFlight, hasWorld, hasBody])!
 			.ToString()!;
 
 	private static bool IsSettled(bool generationStarted, bool generating, bool regenerating, bool liveWorld) =>
@@ -43,40 +43,40 @@ public class LayerDescentPolicyTests
 
 	[Fact]
 	public void Follow_OnlyForAGuestPlayingInALiveWorldItStillHas() =>
-		Assert.Equal("Follow", DecideFollow(SessionRole.Guest, sessionActive: true, inWorld: true, playingOrWaiting: true, generationInFlight: false, hasWorld: true));
-
-	[Fact]
-	public void Follow_AlsoForAMemberWaitingOnThisDescentForTheNextLayer() =>
-		// A second host descent while the member's first layer is generated and only the release is
-		// outstanding: the edge starts the next layer instead of being refused as a duplicate.
-		Assert.Equal("Follow", DecideFollow(SessionRole.Guest, true, inWorld: true, playingOrWaiting: true, generationInFlight: false, hasWorld: true));
+		Assert.Equal("Follow", DecideFollow(SessionRole.Guest, sessionActive: true, inWorld: true, playingOrWaiting: true, generationInFlight: false, hasWorld: true, hasBody: true));
 
 	[Theory]
 	[InlineData(SessionRole.Host)]
 	[InlineData(SessionRole.None)]
 	public void Follow_RefusesASideThatIsNotAGuest(SessionRole role) =>
-		Assert.Equal("NotThisSides", DecideFollow(role, true, true, true, false, true));
+		Assert.Equal("NotThisSides", DecideFollow(role, true, true, true, false, true, true));
 
 	[Fact]
 	public void Follow_RefusesAGuestWithNoLiveSession() =>
-		Assert.Equal("NotThisSides", DecideFollow(SessionRole.Guest, sessionActive: false, inWorld: true, playingOrWaiting: true, generationInFlight: false, hasWorld: true));
+		Assert.Equal("NotThisSides", DecideFollow(SessionRole.Guest, sessionActive: false, inWorld: true, playingOrWaiting: true, generationInFlight: false, hasWorld: true, hasBody: true));
 
 	[Theory]
 	[InlineData(false, true)] // in the menu
 	[InlineData(false, false)] // entering / generating
 	[InlineData(true, false)] // the menu-return phase of a session that ended
 	public void Follow_RefusesAMemberThatIsNotPlaying(bool inWorld, bool playingOrWaiting) =>
-		Assert.Equal("NotPlaying", DecideFollow(SessionRole.Guest, true, inWorld, playingOrWaiting, false, true));
+		Assert.Equal("NotPlaying", DecideFollow(SessionRole.Guest, true, inWorld, playingOrWaiting, false, true, true));
 
 	[Fact]
 	public void Follow_RefusesAPlayingMemberWithNoWorldObject() =>
-		Assert.Equal("NoWorld", DecideFollow(SessionRole.Guest, true, true, true, false, false));
+		Assert.Equal("NoWorld", DecideFollow(SessionRole.Guest, true, true, true, false, false, true));
+
+	[Fact]
+	public void Follow_RefusesAPlayingMemberWithNoLocalBody() =>
+		// The native regeneration places PlayerCamera.main.body: with no body there is nothing to place and
+		// the follow would start a generation that throws, so the ordinary entry path takes the member instead.
+		Assert.Equal("NoBody", DecideFollow(SessionRole.Guest, true, true, true, false, true, false));
 
 	[Fact]
 	public void Follow_ReportsTheDuplicateBeforeTheTransientNotInWorldState() =>
 		// A second edge arrives while the member's own generation is in flight (its world is down): it
 		// is a duplicate, not a member in the menu.
-		Assert.Equal("AlreadyDescending", DecideFollow(SessionRole.Guest, true, inWorld: false, playingOrWaiting: true, generationInFlight: true, hasWorld: true));
+		Assert.Equal("AlreadyDescending", DecideFollow(SessionRole.Guest, true, inWorld: false, playingOrWaiting: true, generationInFlight: true, hasWorld: true, hasBody: false));
 
 	[Theory]
 	[InlineData(true, false, false, true, true)]   // started, generation idle, world live — settled

@@ -53,6 +53,10 @@ internal static class RespawnPolicy
 		}
 
 		respawn.Position = null;
+		// The handback names itself: the receiver must apply a respawn even to a body that came through
+		// a descent follow (that body never left, so its ordinary handback is refused — the revive is
+		// the one handback it still needs).
+		respawn.Respawn = true;
 		return respawn;
 	}
 }

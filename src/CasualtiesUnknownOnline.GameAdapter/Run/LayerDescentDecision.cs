@@ -17,4 +17,7 @@ internal enum LayerDescentDecision
 
 	/// <summary>Playing but no world object to regenerate: the member falls back to the ordinary entry.</summary>
 	NoWorld,
+
+	/// <summary>Playing in a world but with no local body: the native regeneration would place a body that is not there, so the follow is refused and the ordinary entry path takes over.</summary>
+	NoBody,
 }

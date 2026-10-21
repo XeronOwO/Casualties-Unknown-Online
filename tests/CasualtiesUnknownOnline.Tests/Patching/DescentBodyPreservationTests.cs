@@ -8,9 +8,11 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// <summary>
 /// The descent follow's one-shot saved-character handback rule (independent review
 /// major-3): the body that came through the host's regeneration never left, so the
-/// handback that answers its InWorld is refused — exactly once — while a revive
-/// handback (the respawn's null-position snapshot) and anything after the first
-/// refusal are applied normally. The type is compile-excluded adapter code, so it is
+/// handback that answers its InWorld is refused — exactly once — while a RESPAWN
+/// handback (flagged by the host) and anything after the first refusal are applied
+/// normally. The flag, not the presence of a position, names the revive: a handback can
+/// arrive positionless for other reasons (an older snapshot, a later layer refusal), so
+/// a position's presence is not the tell. The type is compile-excluded adapter code, so it is
 /// driven reflectively.
 /// </summary>
 [Trait("Category", "Integration")]
@@ -38,8 +40,8 @@ public class DescentBodyPreservationTests
 	private static CharacterDataMsg WithPosition() =>
 		new() { Position = new NetVector2Msg { X = 4f, Y = 5f } };
 
-	private static CharacterDataMsg Revive() =>
-		new() { Position = null };
+	private static CharacterDataMsg Respawn() =>
+		new() { Position = null, Respawn = true };
 
 	[Fact]
 	public void TheDescentHandback_IsRefusedExactlyOnce()
@@ -52,6 +54,18 @@ public class DescentBodyPreservationTests
 	}
 
 	[Fact]
+	public void TheDescentHandbackWithoutAPosition_IsStillTheDescents()
+	{
+		// A handback can arrive positionless for other reasons (an older snapshot, a receiver-side layer
+		// refusal). It is still the handback this body must NOT take: the body came through the
+		// regeneration with its items, and the snapshot's item set is the old one.
+		var preservation = Create();
+		Note(preservation, bodyId: 77);
+
+		Assert.True(TryConsume(preservation, 77, new CharacterDataMsg { Position = null }));
+	}
+
+	[Fact]
 	public void AHandbackForAnotherBody_IsNeverRefused()
 	{
 		var preservation = Create();
@@ -61,14 +75,14 @@ public class DescentBodyPreservationTests
 	}
 
 	[Fact]
-	public void AReviveHandback_IsNotConsumedAndTheDescentHandbackStillIs()
+	public void ARespawnHandback_IsNotConsumedAndTheDescentHandbackStillIs()
 	{
-		// The respawn handback has no position on purpose (it lands at the current spawn): it is a
-		// handback this body DOES need, so it must neither be dropped nor spend the descent's one shot.
+		// The respawn names itself (the host's next-level revive): it is a handback this body DOES need,
+		// so it must neither be dropped nor spend the descent's one shot.
 		var preservation = Create();
 		Note(preservation, bodyId: 77);
 
-		Assert.False(TryConsume(preservation, 77, Revive()));
+		Assert.False(TryConsume(preservation, 77, Respawn()));
 		Assert.True(TryConsume(preservation, 77, WithPosition()));
 	}
 

@@ -253,7 +253,10 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			// The kernel is the authority for terminal player facts; project it
 			// over the saved snapshot so a reconnect restores the latest
 			// alive/conscious/limb/body facts even if the last 1 Hz report was
-			// captured before a dedicated terminal event landed.
+			// captured before a dedicated terminal event landed. A respawn snapshot
+			// is already in the kernel: SaveCharacterData projected its alive/
+			// conscious/limb/body facts there before this send (PlayerKernelLimbProjection),
+			// so this projection confirms the revive instead of overwriting it.
 			_playerKernelRestore.Apply(steamId, data);
 			_sender.Send(steamId, NetMsg.CharacterData, data);
 			_log.LogInformation("Sent saved character data to {Peer} ({Items} items).", steamId, data.Items.Count);

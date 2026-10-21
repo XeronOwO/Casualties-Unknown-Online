@@ -60,6 +60,26 @@ public sealed class PlayerCharacterAccessTests
 	}
 
 	[Fact]
+	public void CloneCharacter_CarriesTheLayerStampAndTheRespawnIdentity()
+	{
+		// Same hazard as the fields above: these interaction services SAVE the clone over the stored
+		// character. A dropped layer stamp makes the next restore apply a position from a layer the
+		// player is no longer in; a dropped respawn flag turns the next-level revive back into an
+		// ordinary handback a descent-preserved body refuses.
+		var source = new CharacterDataMsg
+		{
+			Generation = new WorldGenerationMsg { RunEpoch = 5, LayerIndex = 3 },
+			Respawn = true,
+		};
+
+		var clone = PlayerCharacterAccess.CloneCharacter(source);
+
+		Assert.Same(source.Generation, clone.Generation);
+		Assert.Equal(3, clone.Generation!.LayerIndex);
+		Assert.True(clone.Respawn);
+	}
+
+	[Fact]
 	public void CloneCharacter_IsAnIndependentCopyOfTheMutableTables()
 	{
 		var source = new CharacterDataMsg

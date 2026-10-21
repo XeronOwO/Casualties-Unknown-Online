@@ -30,7 +30,8 @@ internal static class LayerDescentPolicy
 		bool inWorld,
 		bool playingOrWaiting,
 		bool generationInFlight,
-		bool hasWorld)
+		bool hasWorld,
+		bool hasBody)
 	{
 		if (role != SessionRole.Guest || !sessionActive)
 		{
@@ -47,7 +48,9 @@ internal static class LayerDescentPolicy
 			return LayerDescentDecision.NotPlaying;
 		}
 
-		return hasWorld ? LayerDescentDecision.Follow : LayerDescentDecision.NoWorld;
+		return hasWorld
+			? hasBody ? LayerDescentDecision.Follow : LayerDescentDecision.NoBody
+			: LayerDescentDecision.NoWorld;
 	}
 
 	/// <summary>

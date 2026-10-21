@@ -8,7 +8,7 @@
   end-of-layer choice (the panel); the sweep found the same sink reachable from a world object, and the
   rule "fix the family, not just the reported case" is why this is filed instead of silently left.
 - Related: `review/layer-complete-choice-for-members.md` (the panel producer, landed 2026-10-07),
-  `todo/layer-descent-spawn-separation.md` (where the members arrive, the same boundary),
+  `review/layer-descent-spawn-separation.md` (where the members arrive, the same boundary),
   `done/layer-change-member-recovery.md` (a member out of the world at the boundary),
   `reversing/Assembly-CSharp/Assembly-CSharp/DrillPod.cs` and `WorldGeneration.cs`
 
@@ -62,5 +62,5 @@ the game's own path.)
 ## Non-goals
 
 - The end-of-layer panel: landed in `review/layer-complete-choice-for-members.md`.
-- Where the members arrive after a descent: `todo/layer-descent-spawn-separation.md`.
+- Where the members arrive after a descent: `review/layer-descent-spawn-separation.md`.
 - Removing the debug console's `skiplayer` (the game's own command).

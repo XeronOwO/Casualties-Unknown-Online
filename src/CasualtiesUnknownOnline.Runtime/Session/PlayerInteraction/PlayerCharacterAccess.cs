@@ -78,6 +78,13 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		// dropped list would silently unmark every item this player starred in a
 		// world they are still playing in.
 		FavouriteMarks = source.FavouriteMarks,
+		// The capture layer and the respawn identity ride along for the same reason:
+		// the clone is saved over the stored snapshot, so a dropped layer stamp would
+		// make the next restore apply a position from a layer this player is no longer
+		// in, and a dropped respawn flag would turn the next-level revive back into an
+		// ordinary handback a preserved body refuses.
+		Generation = source.Generation,
+		Respawn = source.Respawn,
 	};
 
 	public static CharacterItemMsg CloneItem(CharacterItemMsg item) => new()

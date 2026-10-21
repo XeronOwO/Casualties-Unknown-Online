@@ -817,6 +817,8 @@ public class NetPacketTests
 			OwnerSteamId = 42UL,
 			HandSlot = 3,
 			Position = new NetVector2Msg(12.5f, 34.75f),
+			Respawn = true,
+			Generation = new WorldGenerationMsg { RunEpoch = 9, LayerIndex = 4 },
 			Skills = new CharacterSkillsMsg
 			{
 				Strength = 7,
@@ -889,6 +891,9 @@ public class NetPacketTests
 		Assert.Equal(3, decoded.HandSlot);
 		Assert.Equal(12.5f, decoded.Position!.X);
 		Assert.Equal(34.75f, decoded.Position.Y);
+		Assert.True(decoded.Respawn, "the respawn flag must survive the round-trip");
+		Assert.Equal(9UL, decoded.Generation!.RunEpoch);
+		Assert.Equal(4, decoded.Generation.LayerIndex);
 		Assert.Equal(7, decoded.Skills!.Strength);
 		Assert.Equal(9.75f, decoded.Skills.ExpIntelligence);
 		Assert.Equal(61.5f, decoded.Health!.Hunger);

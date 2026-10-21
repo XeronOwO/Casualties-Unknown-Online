@@ -6,18 +6,21 @@ namespace CasualtiesUnknownOnline.GameAdapter.Run;
 /// The one handback a descent follow must refuse: the saved-character restore the host
 /// sends when the member reports InWorld at the end of its own layer generation. The
 /// body came through the regeneration (the member never reloaded the scene), so that
-/// restore would move it to its old layer's position and wipe/reapply the items it
-/// already holds.
+/// restore would move it to old coordinates and wipe/reapply the items it already holds.
 /// <para>
 /// It is a leaf shared by <see cref="RunCoordinator"/> (which notes the body at the
 /// descent's edge) and <c>CharacterDataSync</c> (which sees the restore arrive) — the
 /// fact belongs to neither alone and a delegate wired after construction would be the
 /// same fact with a temporal-coupling trap. The suppression is ONE-SHOT: only the
-/// handback that answers that one InWorld edge is refused, and a revive handback (the
-/// host's respawn sets <see cref="CharacterDataMsg.Position"/> to null on purpose) is
-/// never refused — it is a real handback to the same body. The preserved body's own
-/// identity bounds it: the host sends a saved character only on an InWorld edge, and a
-/// body that actually left is a different object (or the note is cleared with it).
+/// handback that answers that one InWorld edge is refused. The handback's own
+/// <see cref="CharacterDataMsg.Respawn"/> flag is the exception: the host's next-level
+/// respawn is a real revive of this body (it lands at the current spawn, not at an old
+/// position), so it is applied and does not spend the one shot. The position's presence
+/// must NOT be the tell: the handback may carry the saved snapshot's old-layer position (the
+/// receiver's layer check would refuse it, but the whole handback is refused here first), so
+/// a positionless handback is not what identifies the respawn. The preserved body's identity
+/// bounds the refusal: the host sends a saved character only on an InWorld edge, and a body
+/// that actually left is a different object (or the note is cleared with it).
 /// </para>
 /// </summary>
 internal sealed class DescentBodyPreservation
@@ -33,8 +36,8 @@ internal sealed class DescentBodyPreservation
 
 	/// <summary>
 	/// True exactly once, for the handback that answers the descent's InWorld edge on the preserved
-	/// body. A handback for another body, a revive handback (no position), or anything after the first
-	/// refused one returns false and is applied normally.
+	/// body. A handback for another body, a respawn (its <see cref="CharacterDataMsg.Respawn"/> flag),
+	/// or anything after the first refused one returns false and is applied normally.
 	/// </summary>
 	public bool TryConsume(int localBodyId, CharacterDataMsg handback)
 	{
@@ -43,7 +46,7 @@ internal sealed class DescentBodyPreservation
 			return false;
 		}
 
-		if (handback.Position is null)
+		if (handback.Respawn)
 		{
 			// The revive/respawn handback lands at the current world's spawn point by design: it is a
 			// handback this body DOES need, not the "put the leaver back" snapshot.

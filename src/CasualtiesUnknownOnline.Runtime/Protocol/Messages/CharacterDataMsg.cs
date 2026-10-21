@@ -85,6 +85,28 @@ public sealed class CharacterDataMsg
 	public List<CharacterFavouriteMarkMsg>? FavouriteMarks { get; set; }
 
 	/// <summary>
+	/// This handback is the next-level RESPAWN of a dead character, not a snapshot handed back to a
+	/// member that left. The receiver applies it even to a body that never left the world: the
+	/// descent follow preserves a body that came through the host's regeneration, and the
+	/// respawn is the one handback that body still needs (its revive is a real state change).
+	/// It is set on the respawn snapshot itself and stays there until the member's next report
+	/// replaces the snapshot, so a re-send of that same snapshot is still the respawn. False for
+	/// every report and for a reconnect/re-entry restore of an ordinary snapshot.
+	/// </summary>
+	[ProtoMember(11)]
+	public bool Respawn { get; set; }
+
+	/// <summary>
+	/// The world/layer generation this snapshot was CAPTURED in (the capturing client's kernel run
+	/// baseline: run epoch + layer). The position is a coordinate in that layer; a receiver that is
+	/// no longer in that layer must not apply it, or a member re-entering after a descent would land
+	/// at the previous layer's coordinates. Set on every report and on a local cut; null = the sender
+	/// had no committed run baseline (unknown, never treated as another layer).
+	/// </summary>
+	[ProtoMember(12)]
+	public WorldGenerationMsg? Generation { get; set; }
+
+	/// <summary>
 	/// LOCAL-ONLY mutation counter, never serialized (no <c>ProtoMember</c>): the host's stored
 	/// snapshot is mutated in place by the event appliers (a bite, a limb latch, an injury), and a
 	/// host clone's input map must notice that mutation even though the object reference did not

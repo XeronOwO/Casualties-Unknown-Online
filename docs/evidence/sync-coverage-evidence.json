@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1119,
+  "count": 1121,
   "entries": [
     {
       "cluster": "inline",
@@ -1761,6 +1761,18 @@
       "row": "P3",
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
       "quote": "_savedCharacters[steamId] = msg;"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs",
+      "quote": "CharacterRestorePositionPolicy.IsFromAnotherLayer(pending.Generation, _world.CurrentGeneration)"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/DescentBodyPreservation.cs",
+      "quote": "if (handback.Respawn)"
     },
     {
       "cluster": "players",
@@ -4160,7 +4172,7 @@
       "cluster": "inline",
       "row": "P3",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs",
-      "quote": "_characterData.ReportCharacterData(_favouriteMarks.Capture(prevBody, out _));"
+      "quote": "_characterData.ReportCharacterData(StampGeneration(_favouriteMarks.Capture(prevBody, out _)));"
     },
     {
       "cluster": "inline",

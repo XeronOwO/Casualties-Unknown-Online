@@ -5,24 +5,29 @@
     "Note": "The world re-entry recovery added two lines only: the IReentryControl constructor parameter and the one-line pump call of a step that lives in its own domain (ReentryCoordinator), which is the watchlist's rule for this file. The seam a split owes is still the patch-bridge forwarding half."
   },
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
-    "Lines": 898,
+    "Lines": 922,
     "BoolFlags": 5,
-    "Note": "The host-descent follow added the descent state machine, its scene-state guards, the settle edge, the abort paths (world lost, hold/settle timeouts) and the release branches; the independent review's blocker and majors then added the abort policy, the menu-return origin guard and the baseline-cancel branch — the guest's new-layer generation itself remains the game's own coroutine, started from LayerAdvanceCoordinator. The planned split now owes three extractions, in this order: HostDescentFollow (the DescentPhase enum, the accept/settle/abort transitions, the bounded waits and the preserved-body note; the run keeps only the phase mapping), the local-body publish path into LocalBodyStatePublisher, and the remaining jump table (bind/unbind, session edges) into a small coordinator. This is the top of this file's split list."
+    "Note": "The host-descent follow added the descent state machine, its scene-state guards, the settle edge, the abort paths (world lost, hold/settle timeouts) and the release branches; the independent review's blocker and majors then added the abort policy, the menu-return origin guard and the baseline-cancel branch — the guest's new-layer generation itself remains the game's own coroutine, started from LayerAdvanceCoordinator. The descent-spawn follow added the bodyless-follow guard input and the same guard on the WaitingReady branch (the native placement dereferences PlayerCamera.main.body). The planned split now owes three extractions, in this order: HostDescentFollow (the DescentPhase enum, the accept/settle/abort transitions, the bounded waits and the preserved-body note; the run keeps only the phase mapping), the local-body publish path into LocalBodyStatePublisher, and the remaining jump table (bind/unbind, session edges) into a small coordinator. This is the top of this file's split list."
   },
   "CasualtiesUnknownOnline.GameAdapter.Character.CharacterDataSync": {
-    "Lines": 706,
+    "Lines": 738,
     "BoolFlags": 0,
-    "Note": "The host-state cycle added the local injury trigger and the owner-state report; the heal authority fix added the applied-reset retry tick and its body/session drop (the retry state itself lives in Runtime's HealResetReportRetry); the craft-report fix added the owner-addressed RetireCarriedItem delegation the session binding calls (+2 code lines and its doc), which is the domain's own seam, not new state; the host-descent follow added the saved-character handback refusal for the body that came through it (a Func seam the composition binds to the run's preserved-body fact). The planned split is still the trigger into LocalInjuryReporter (owning the baseline, the host-row absorption and the report call), leaving the coordinator the snapshot/restore/render seams."
+    "Note": "The host-state cycle added the local injury trigger and the owner-state report; the heal authority fix added the applied-reset retry tick and its body/session drop (the retry state itself lives in Runtime's HealResetReportRetry); the craft-report fix added the owner-addressed RetireCarriedItem delegation the session binding calls (+2 code lines and its doc), which is the domain's own seam, not new state; the host-descent follow added the saved-character handback refusal for the body that came through it (a Func seam the composition binds to the run's preserved-body fact), and the descent-spawn follow added the snapshot's layer stamp (reports and the local cut) and the restore's stale-layer position refusal. The planned split is still the trigger into LocalInjuryReporter (owning the baseline, the host-row absorption and the report call), leaving the coordinator the snapshot/restore/render seams."
   },
   "CasualtiesUnknownOnline.Runtime.Session.CharacterData.CharacterDataStore": {
-    "Lines": 626,
+    "Lines": 629,
     "BoolFlags": 0,
-    "Note": "The heal authority event added the applied-reset send seam (whose verdict the caller must see) after the event-merge seams moved into CharacterEventMerges. The planned split is still the host-model companion (advance marks + refusal window) fed by this store, leaving the table the save/restore and the report filter."
+    "Note": "The heal authority event added the applied-reset send seam (whose verdict the caller must see) after the event-merge seams moved into CharacterEventMerges; the descent-spawn follow only expanded the handback's comment (the save's kernel projection makes the respawn alive before this send, so the send's projection confirms it). The planned split is still the host-model companion (advance marks + refusal window) fed by this store, leaving the table the save/restore and the report filter."
   },
   "CasualtiesUnknownOnline.Runtime.Session.World.WorldService": {
-    "Lines": 624,
+    "Lines": 627,
     "BoolFlags": 0,
-    "Note": "The world re-entry recovery added the HasCommittedRunBaseline read (the fact the targeted world-join's baseline promise is made from) to the world facade, which stood at 598 across its two partial files. The host-descent edge added its three pass-throughs (send, fire, event) whose flow lives in LayerDescentChannel; the next split here takes those pass-throughs with the report-recovery ones the second partial's own comment names."
+    "Note": "The world re-entry recovery added the HasCommittedRunBaseline read (the fact the targeted world-join's baseline promise is made from) to the world facade, which stood at 598 across its two partial files. The host-descent edge added its three pass-throughs (send, fire, event) whose flow lives in LayerDescentChannel; the descent-spawn follow added the CurrentGeneration read (the kernel run baseline stamp a character snapshot is captured in). The next split here takes those pass-throughs with the report-recovery ones the second partial's own comment names."
+  },
+  "CasualtiesUnknownOnline.Runtime.Session.World.IWorldControl": {
+    "Lines": 604,
+    "BoolFlags": 0,
+    "Note": "The world surface's contract. The descent-spawn follow added the CurrentGeneration read — the kernel run baseline stamp a character snapshot is captured in, which the CharacterData restore compares against its own layer. The interface has no state; its size is the world/persistence surface collected here, and the next grower owes the per-domain port extraction the facade's own split plan names."
   },
   "CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge": {
     "Lines": 612,

@@ -543,6 +543,9 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 
 	public void SendWorldJoinTo(ulong steamId) => _messages.SendWorldJoinTo(steamId, _kernelAuthority.CurrentRunEpoch.Value);
 
+	/// <summary>This side's committed run generation (see <see cref="IWorldControl.CurrentGeneration"/>).</summary>
+	public WorldGenerationMsg? CurrentGeneration => _messages.Generations.Stamp();
+
 	/// <summary>Host: announce the layer advance to the members in the world, then record them on the start gate as expected back — the two facts are one edge, so they are set together.</summary>
 	public void SendLayerDescent(bool twice)
 	{

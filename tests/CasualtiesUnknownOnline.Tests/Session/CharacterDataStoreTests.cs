@@ -5,7 +5,9 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -147,6 +149,72 @@ public class CharacterDataStoreTests
 
 			Assert.True(received.Count == 1, $"the saved snapshot must reach the reconnecting guest, got {received.Count}");
 			Assert.Null(received[0].Position);
+		}
+	}
+
+	[Fact]
+	public void SendSavedCharacter_CarriesTheReportsLayerAndTheRespawnFlag()
+	{
+		// The restore is layer-aware: the snapshot's position names the layer it was captured in, so a
+		// client in another layer refuses the position; the respawn flag names the one handback a
+		// descent-preserved body still accepts.
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			var snapshot = Snapshot(GuestId);
+			snapshot.Generation = new WorldGenerationMsg { RunEpoch = 3, LayerIndex = 2 };
+			snapshot.Respawn = true;
+			host.Services.GetRequiredService<CharacterDataStore>().SaveCharacterData(GuestId, snapshot);
+			MarkHostInWorld(host);
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			Assert.True(received.Count == 1, $"the saved snapshot must reach the re-entering guest, got {received.Count}");
+			var generation = received[0].Generation;
+			Assert.NotNull(generation);
+			Assert.Equal(3UL, generation!.RunEpoch);
+			Assert.Equal(2, generation.LayerIndex);
+			Assert.True(received[0].Respawn);
+		}
+	}
+
+	[Fact]
+	public void SendSavedCharacter_RespawnRevivesTheKernelAndSurvivesTheHandback()
+	{
+		// The revive path in one place: the host's kernel holds the death the member reported, the
+		// respawn snapshot is saved (which projects its alive/conscious/limb facts into the kernel), and
+		// the handback the preserved body accepts still carries the revive. If the save stopped
+		// projecting, the kernel's dead fact would overwrite the handback and the member would stay dead.
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			// A committed run is the kernel's command epoch; then stage the member's death as the host's
+			// own simulated body reported it.
+			host.Services.GetRequiredService<IWorldControl>().PublishWorldParams(new WorldStartParams { RandomState = [1, 2, 3] });
+			host.Services.GetRequiredService<PlayerKernelStatusProjection>().Sync(GuestId, alive: false, conscious: false);
+			var kernelAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+			Assert.Contains(kernelAuthority.QueryPlayers()!.Players, player => player.SteamId == GuestId && !player.Alive);
+
+			var respawn = RespawnPolicy.PrepareRespawn(Snapshot(GuestId), keepInventory: true, keepSkills: true);
+			host.Services.GetRequiredService<CharacterDataStore>().SaveCharacterData(GuestId, respawn);
+			Assert.Contains(kernelAuthority.QueryPlayers()!.Players, player => player.SteamId == GuestId && player.Alive);
+
+			MarkHostInWorld(host);
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			Assert.True(received.Count == 1, $"the respawn handback must reach the member, got {received.Count}");
+			Assert.True(received[0].Respawn);
+			var health = received[0].Health;
+			Assert.NotNull(health);
+			Assert.True(health!.Alive, "the respawn's revive must survive the handback");
+			Assert.True(health.Conscious);
 		}
 	}
 

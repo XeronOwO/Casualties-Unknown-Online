@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// </summary>
 internal sealed class CharacterDataSync(
 	ISessionControl session,
+	IWorldControl world,
 	ICharacterDataControl characterData,
 	IMapper mapper,
 	CloneInventoryRenderer inventoryRenderer,
@@ -33,6 +35,7 @@ internal sealed class CharacterDataSync(
 	ILogger<CharacterDataSync> log)
 {
 	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
 	private readonly ICharacterDataControl _characterData = characterData;
 	private readonly IMapper _mapper = mapper;
 	private readonly CloneInventoryRenderer _inventoryRenderer = inventoryRenderer;
@@ -244,8 +247,8 @@ internal sealed class CharacterDataSync(
 		{
 			// This body never left the world: it came through the host's own layer descent, which kept
 			// it and its carried items. The handback is for a member that left — applying it would move
-			// the body to its old layer's position and wipe/reapply the items it already holds. The
-			// consumption is one-shot, and a revive handback (no position) is never consumed.
+			// the body to old coordinates and wipe/reapply the items it already holds. The consumption is
+			// one-shot, and a respawn handback (the host's next-level revive) is never consumed.
 			_log.LogInformation("[LayerDescent] dropped the saved-character handback: this body came through the descent and never left.");
 			return;
 		}
@@ -391,6 +394,10 @@ internal sealed class CharacterDataSync(
 
 	private void ReportCharacterData(CharacterDataMsg data, bool throttled, string? nativeFailure = null)
 	{
+		// The position in this snapshot belongs to the layer that captured it — stamp it so a
+		// receiver still in another layer refuses to apply it.
+		data.Generation = _world.CurrentGeneration;
+
 		if (_session.Role == SessionRole.Host)
 		{
 			// Host → guests: their clones of the host render its carried items.
@@ -430,10 +437,17 @@ internal sealed class CharacterDataSync(
 		}
 	}
 
+	/// <summary>Name the layer a snapshot's position belongs to — the capturing client's current world generation.</summary>
+	private CharacterDataMsg StampGeneration(CharacterDataMsg data)
+	{
+		data.Generation = _world.CurrentGeneration;
+		return data;
+	}
+
 	/// <summary>Capture the LOCAL body's character snapshot right now — the save system's cut needs the state at the instant the host leaves the world, not the last 1 Hz report.</summary>
 	internal CharacterDataMsg CaptureLocal(Body body)
 	{
-		var captured = _favouriteMarks.Capture(body, out var nativeFailure);
+		var captured = StampGeneration(_favouriteMarks.Capture(body, out var nativeFailure));
 		if (nativeFailure is not null)
 		{
 			// The cut's own snapshot: this is the one a later continue restores, so its
@@ -485,7 +499,7 @@ internal sealed class CharacterDataSync(
 		}
 		else if (!_restore.HasPending)
 		{
-			_characterData.ReportCharacterData(_favouriteMarks.Capture(prevBody, out _));
+			_characterData.ReportCharacterData(StampGeneration(_favouriteMarks.Capture(prevBody, out _)));
 		}
 
 		// The body left the world — the next body's restore position applies
@@ -657,6 +671,24 @@ internal sealed class CharacterDataSync(
 		}
 
 		_positionGate.MarkPositionApplied();
+
+		// The comparison belongs HERE, not in OnCharacterDataReceived: a reconnecting member's saved
+		// character is sent BEFORE the run-baseline checkpoint (the handshake's own order), so at arrival
+		// this side has no current generation and the comparison would answer "unknown". By the time the
+		// body exists, the baseline names the layer this body was generated in.
+		if (CharacterRestorePositionPolicy.IsFromAnotherLayer(pending.Generation, _world.CurrentGeneration))
+		{
+			// The snapshot's position belongs to the layer it was captured in, and this client has
+			// generated a new one since: those coordinates now describe terrain nobody stood on, so
+			// applying them would land the member away from the group. The body stays where its own
+			// generation placed it; the snapshot's other facts still restore.
+			_log.LogInformation(
+				"[Character] the restore's saved position belongs to layer {Saved} while this client is in layer {Current} — it is not applied; the body stays at this layer's own spawn.",
+				pending.Generation?.LayerIndex,
+				_world.CurrentGeneration?.LayerIndex);
+			return false;
+		}
+
 		body.transform.position = new Vector3(pos.X, pos.Y, 0f);
 		body.rb.velocity = Vector2.zero;
 		_log.LogInformation("Character restore position applied at spawn: ({X:F1},{Y:F1}).", pos.X, pos.Y);

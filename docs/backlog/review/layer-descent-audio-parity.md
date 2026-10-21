@@ -9,7 +9,7 @@
 - Related: `review/unhooked-item-and-body-sound-families.md` (local-only one-shot sounds outside the ingest
   family), `review/suppressed-native-call-sounds-stay-unheard.md` (a sound whose native call CUO suppresses),
   `docs/backlog/done/host-eating-sound-not-heard-on-guest.md` (the family's established shape),
-  `todo/layer-descent-spawn-separation.md` (the same transition, another symptom)
+  `review/layer-descent-spawn-separation.md` (the same transition, another symptom)
 
 ## What is observed so far
 

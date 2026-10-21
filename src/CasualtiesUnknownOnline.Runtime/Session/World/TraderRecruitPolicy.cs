@@ -211,6 +211,9 @@ internal static class TraderRecruitPolicy
 			OwnerSteamId = source.OwnerSteamId,
 			Position = source.Position,
 			SlotCount = source.SlotCount,
+			// The layer the snapshot's position belongs to rides along: a revive is not a layer change,
+			// and dropping the stamp here would turn the position into an "unknown" one for the restore.
+			Generation = source.Generation,
 			// The native character fields ride along like every other field this
 			// clone copies: a death → revive cycle is not a new run, so the
 			// happiness history, the calorie counter and the wound window's details

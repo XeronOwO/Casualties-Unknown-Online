@@ -193,7 +193,7 @@ source of truth; the identifier is what code uses and the id is what the wire ca
 
 | Id | Message | Direction | What it carries |
 |---|---|---|---|
-| 37 | `CharacterData` | guest → host report, host → guest restore | the 1 Hz character snapshot |
+| 37 | `CharacterData` | guest → host report, host → guest restore | the 1 Hz character snapshot; a restore also names the snapshot's world/layer stamp (a position from another layer is not applied) and whether it is a respawn |
 | 53 | `HostCharacterData` | host → guest | the host's own 1 Hz character snapshot |
 | 93 | `LimbStateEvent` | guest → host report, host → guest relay | a limb latch OR a client-judged injury changed the owner's limb/body state (the injury trigger is a rise in a limb's bleed); full post-event limb and health state; the host keeps its own two continuous blood values |
 | 94 | `CharacterSound` | report plus relay | a one-shot action sound (gun fire also carries the recoil kick) |

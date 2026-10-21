@@ -108,6 +108,7 @@ public class RespawnPolicyTests
 		Assert.NotNull(respawn.Skills);
 		Assert.Equal(5, respawn.Skills!.Strength);
 		Assert.Null(respawn.Position); // respawn lands at the current world's spawn point, not the old layer
+		Assert.True(respawn.Respawn); // and it says so: the receiver applies it even to a descent-preserved body
 	}
 
 	[Fact]

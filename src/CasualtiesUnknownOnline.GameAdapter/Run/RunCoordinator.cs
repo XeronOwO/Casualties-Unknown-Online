@@ -259,6 +259,18 @@ internal sealed class RunCoordinator(
 		}
 	}
 
+	/// <summary>The native regeneration places <c>PlayerCamera.main.body</c>: without one the follow would start a generation that throws, so the member keeps the ordinary entry path.</summary>
+	private bool HasLocalBodyForDescent()
+	{
+		if (PlayerCamera.main != null && PlayerCamera.main.body != null) // Unity objects — ==
+		{
+			return true;
+		}
+
+		_log.LogWarning("[LayerDescent] the host descended but this member has no local body to place — it keeps the ordinary entry path.");
+		return false;
+	}
+
 	/// <summary>Accepts the host's descent and starts this member's own new-layer generation (the runtime already dropped the baseline for the layer being left).</summary>
 	private void AcceptDescent(bool twice)
 	{
@@ -316,7 +328,13 @@ internal sealed class RunCoordinator(
 		if (_descent == DescentPhase.WaitingReady)
 		{
 			// The host advanced again before releasing this group: the first layer is already generated
-			// and only the release was outstanding, so this edge starts the next one.
+			// and only the release was outstanding, so this edge starts the next one. The body guard is
+			// the same one the normal branch gets from DecideFollow — this branch does not pass through it.
+			if (!HasLocalBodyForDescent())
+			{
+				return;
+			}
+
 			if (!TryClearHostPullMenuReturn())
 			{
 				return;
@@ -327,13 +345,15 @@ internal sealed class RunCoordinator(
 		}
 
 		var generationInFlight = _descent is DescentPhase.Accepted or DescentPhase.Launched or DescentPhase.ReleasedEarly;
+		var localBody = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
 		var decision = LayerDescentPolicy.DecideFollow(
 			_session.Role,
 			_session.SessionActive,
 			_inWorld,
 			_phase is RunPhase.Playing or RunPhase.WaitingReady,
 			generationInFlight,
-			HarmonyTraverse.HasWorld);
+			HarmonyTraverse.HasWorld,
+			localBody != null);
 		switch (decision)
 		{
 			case LayerDescentDecision.Follow:
@@ -349,6 +369,10 @@ internal sealed class RunCoordinator(
 
 			case LayerDescentDecision.NotPlaying:
 				_log.LogInformation("[LayerDescent] the host descended but this member is not playing in its world ({Phase}, in world: {InWorld}) — it keeps the ordinary entry path.", _phase, _inWorld);
+				return;
+
+			case LayerDescentDecision.NoBody:
+				_log.LogWarning("[LayerDescent] the host descended but this member has no local body to place — it keeps the ordinary entry path.");
 				return;
 
 			default:

@@ -277,7 +277,7 @@ internal sealed class GameAdapterDomains
 		// the character domain consumes the single handback that answers its InWorld. One leaf, both
 		// readers — a delegate wired after construction would be the same fact with a cycle trap.
 		DescentBody = new DescentBodyPreservation();
-		CharacterDataSync = new CharacterDataSync(session, characterData, mapper,
+		CharacterDataSync = new CharacterDataSync(session, world, characterData, mapper,
 			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
 			FactTable,
 			restoreApplier,

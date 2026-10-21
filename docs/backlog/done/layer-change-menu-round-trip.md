@@ -15,7 +15,7 @@
 - Related: `done/layer-change-member-dropout.md` (the family's dropout half: its park experiment
   `20261007-c` is the evidence that a member CAN be kept in the world through the host's regeneration),
   `done/layer-change-member-recovery.md` (the member that lost its body to the same boundary),
-  `todo/layer-descent-spawn-separation.md` and `todo/pod-descent-on-a-member-regenerates-locally.md` (the
+  `review/layer-descent-spawn-separation.md` and `todo/pod-descent-on-a-member-regenerates-locally.md` (the
   same boundary, other symptoms), `todo/loading-screen-progress-detail.md` (what the screen says while it
   waits), `src/CasualtiesUnknownOnline.GameAdapter/Run/ReentryCoordinator.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/World/LayerAdvanceCoordinator.cs`

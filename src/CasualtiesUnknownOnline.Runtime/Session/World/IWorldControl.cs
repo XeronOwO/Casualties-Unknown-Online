@@ -36,6 +36,14 @@ public interface IWorldControl
 	bool HasCommittedRunBaseline { get; }
 
 	/// <summary>
+	/// This side's committed world/layer generation — the kernel run baseline every direct world report is
+	/// stamped with (run epoch + layer). A character snapshot stamps the same identity when it is captured;
+	/// a restore compares it with this value so a position from another layer is not applied. Null = this
+	/// side holds no committed run baseline yet (the stamp is then unknown, never another layer).
+	/// </summary>
+	WorldGenerationMsg? CurrentGeneration { get; }
+
+	/// <summary>
 	/// Host only: this host's world is advancing a layer now — tell every handshaken member currently in
 	/// it to generate its own new layer from this host's baseline, and record them on the start gate as
 	/// expected back so the gate holds until they are all in. <paramref name="twice"/> is the native

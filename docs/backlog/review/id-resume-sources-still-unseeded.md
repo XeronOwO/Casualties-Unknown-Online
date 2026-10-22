@@ -131,7 +131,7 @@ present-member case asserts the untouched other member).
   for one item can land in different windows, so the checkpoint row and the character row may place it
   differently). This landing makes the seed read both, which is about WHICH ids exist, not about that
   disagreement; the restore has no rule for it, and its reachability is unproven. Filed with the finding
-  as `review/id-carriers-can-disagree-about-placement.md` by the adversarial review of this cycle, where
+  as `done/id-carriers-can-disagree-about-placement.md` by the adversarial review of this cycle, where
   the cut now settles it against the kernel.
 
 ## What the adversarial review changed in this commit

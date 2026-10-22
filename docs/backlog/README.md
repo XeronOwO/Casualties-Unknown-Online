@@ -144,7 +144,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
-- [The archive's two id carriers can disagree](review/id-carriers-can-disagree-about-placement.md) — **Low** — the cut settles the placement.
 
 ### Future
 
@@ -173,6 +172,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [The archive's two id carriers can disagree](done/id-carriers-can-disagree-about-placement.md) — **Low** — accepted in `20261022-c`; one placement per id.
 - [Members do not arrive together on a new layer](done/layer-descent-spawn-separation.md) — **Medium** — accepted in `20261021-j`; old-layer positions refused.
 - [A layer change pulls members back to the menu](done/layer-change-menu-round-trip.md) — **Medium** — accepted in `20261021-i`; the group loads together.
 - [Enemy sync per-row roster adoption](done/enemy-generation-pairing-late-join.md) — **High** — accepted in `20261021-g`.

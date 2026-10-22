@@ -16,10 +16,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// <param name="Kind">The cut kind the payload will carry.</param>
 /// <param name="CutPhase">The manifest's cut phase (which seam the cut was taken at).</param>
 /// <param name="Characters">Every member's character as collected at the cut instant.</param>
+/// <param name="CharacterOwners">The transport peer id each collected character belongs to, keyed by its player key — the ownership half of the cut's one-placement reconcile (the character file keys by identity, the item rows by peer id).</param>
 internal sealed record WorldCutWriteRequest(
 	string WorldId,
 	string DisplayName,
 	WorldCutReason Reason,
 	WorldCutKind Kind,
 	string CutPhase,
-	IReadOnlyList<SavedCharacter> Characters);
+	IReadOnlyList<SavedCharacter> Characters,
+	IReadOnlyDictionary<string, ulong> CharacterOwners);

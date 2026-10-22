@@ -212,7 +212,8 @@ internal sealed class WorldCutTrigger(
 			reason,
 			WorldCutWriter.KindOf(reason),
 			PhaseOf(reason),
-			collected.Characters));
+			collected.Characters,
+			collected.Owners));
 
 		// A character the cut could not carry is drawn from the same well as an
 		// in-flight class it left behind: the player is told at the cut, never only
@@ -231,9 +232,12 @@ internal sealed class WorldCutTrigger(
 		// oldest-first and can never delete the newest).
 		var prune = _writer.Prune(target.WorldId, keepBackups);
 
+		var corrections = write.PlacementCorrections == 0
+			? string.Empty
+			: $", {write.PlacementCorrections} member-item placement correction(s) (the cut landed inside a character-report window)";
 		var summary = $"world {target.WorldId} at revision {write.Revision}, layer {write.Layer} "
 			+ $"({write.Files} file(s), {write.BlockRows} world-block row(s), {write.TransientRows} transient row(s), "
-			+ $"backup {write.BackupPath}, {RetentionNote(prune)})";
+			+ $"backup {write.BackupPath}, {RetentionNote(prune)}{corrections})";
 		return new WorldCutReport(WorldCutResult.Captured, reason, target.WorldId, summary, notCarried);
 	}
 

@@ -83,6 +83,24 @@ internal sealed class WorldCutWriter(
 			return WorldCutWriteResult.Refused(facts.Failure);
 		}
 
+		// ONE placement per item id: the kernel checkpoint says WHO holds an item, the member's
+		// character file says which body slot it sits in, and the two are written at different moments
+		// (a member's file is its last 1 Hz report, and a pickup/drop reports the item fact without an
+		// immediate character re-report). The reconcile runs HERE, on the frozen checkpoint, while
+		// both carriers are known at one instant — see CutCharacterPlacement for the rule.
+		var placement = CutCharacterPlacement.Reconcile(request.Characters, request.CharacterOwners, checkpoint.Items, _log);
+		foreach (var note in placement.Notes)
+		{
+			_log.LogInformation("Cut {Reason} character placement: {Note}.", request.Reason, note);
+		}
+
+		if (placement.Added + placement.Removed > 0)
+		{
+			_log.LogInformation(
+				"Cut {Reason} reconciled the member-item placement: {Added} item(s) the character files were missing and {Removed} their stale copy, so the archive states one placement per id (the kernel's).",
+				request.Reason, placement.Added, placement.Removed);
+		}
+
 		IReadOnlyList<SavePayloadFile> files;
 		WorldSnapshotCounts counts;
 		SaveManifestMeta meta;
@@ -90,7 +108,7 @@ internal sealed class WorldCutWriter(
 		{
 			var payload = new WorldSnapshotPayload(
 				checkpoint,
-				request.Characters,
+				placement.Characters,
 				request.DisplayName,
 				SaveArchiveFormat.CutReasonName(request.Reason),
 				request.CutPhase,
@@ -103,7 +121,7 @@ internal sealed class WorldCutWriter(
 			var encoded = _encoder.EncodeWithCounts(payload);
 			files = encoded.Files;
 			counts = encoded.Counts;
-			meta = MetaOf(checkpoint, request.DisplayName, request.Characters.Count, request.Reason, request.CutPhase);
+			meta = MetaOf(checkpoint, request.DisplayName, placement.Characters.Count, request.Reason, request.CutPhase);
 		}
 		catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NotSupportedException)
 		{
@@ -147,7 +165,7 @@ internal sealed class WorldCutWriter(
 		// different numbers for one cut.
 		return WorldCutWriteResult.Captured(
 			checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, files.Count,
-			counts.WorldBlocks, counts.WorldTransients, write.BackupArchivePath ?? string.Empty);
+			counts.WorldBlocks, counts.WorldTransients, placement.Added + placement.Removed, write.BackupArchivePath ?? string.Empty);
 	}
 
 	/// <summary>

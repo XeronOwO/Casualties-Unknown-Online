@@ -39,10 +39,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// and a container content's own entry always states it — the parent is the
 /// snapshot's fact, and this record cannot state one (the entry's ParentItemId is
 /// 0 where the table builds it, <c>ItemArbitration</c>). Such an entry is COUNTED
-/// as unplaced and named by the caller instead of being appended: an appended
-/// content goes to the restore's wearable path, which drops it while blaming the
-/// limb encoding. The reachable case is an item moved into a container after the
-/// guest's last 1 Hz report; it is a declared loss, not a silent one.
+/// as unplaced and named by the caller instead of being appended: appending it at
+/// the top level would put an item the snapshot says is INSIDE a container (or in
+/// the world) into a body slot this record never chose, and unlike an archive row
+/// the transfer table cannot say which one it was. The reachable case is an item
+/// moved into a container after the guest's last 1 Hz report; it is a declared
+/// loss, not a silent one.
 /// </para>
 /// </summary>
 internal static class TransferTableRestoreMerge

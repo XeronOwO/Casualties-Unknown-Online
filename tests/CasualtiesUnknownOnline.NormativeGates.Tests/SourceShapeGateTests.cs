@@ -867,7 +867,8 @@ public class SourceShapeGateTests
 	{
 		var failures = ContainerRefusalHandoverFailures(
 			File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Items/ItemStateCodec.cs")),
-			File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInventoryPlacement.cs")),
+			File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/LocalBodyPlacement.cs"))
+				+ File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/PlayerInventoryPlacement.cs")),
 			File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Items/RestoredContent.cs")));
 		Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
 	}
@@ -970,10 +971,13 @@ public class SourceShapeGateTests
 			}
 		}
 
-		var slot = SourceScan.MethodBody(placement, "private bool TryPlaceInBodySlot(");
+		// The loop's single home is LocalBodyPlacement (the restore's unplaced row uses it too, so the
+		// give ladder and the restore cannot disagree about what a body accepts); the scan reads the
+		// placement sources with that file first, and the method it names is the one carrying the loop.
+		var slot = SourceScan.MethodBody(placement, "bool TryPlaceInBodySlot(");
 		if (slot.Length == 0)
 		{
-			failures.Add("PlayerInventoryPlacement.TryPlaceInBodySlot's body was not found — this rule would pass by checking nothing");
+			failures.Add("the placement's TryPlaceInBodySlot body was not found — this rule would pass by checking nothing");
 		}
 		else
 		{

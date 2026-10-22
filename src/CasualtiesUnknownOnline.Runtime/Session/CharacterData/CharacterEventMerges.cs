@@ -91,8 +91,8 @@ internal sealed class CharacterEventMerges
 	/// <summary>
 	/// A limb-latch/injury event's full terminal state: merge it into the owner's saved snapshot and
 	/// project the limb/body facts into the kernel. False when the event was refused (non-finite), so
-	/// the caller skips the adapter event and the relay — the fact table shares the stored object
-	/// reference and would otherwise apply and relay the refused values.
+	/// the caller skips the adapter event and the relay, which would otherwise apply and relay the
+	/// refused values to the reporter's clone and the peers.
 	/// </summary>
 	internal bool ApplyLimbStateEvent(LimbStateEventMsg msg)
 	{

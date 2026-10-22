@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -169,55 +168,12 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 	}
 
 	/// <summary>
-	/// Puts an item that already exists into a slot this body accepts, verifying each attempt by reading the slot
-	/// back: the game's own placement refuses a native <c>onlyHoldInHands</c> item outside a hand slot EVEN with
-	/// <c>force</c> (Body.cs:1390), so a placement that trusts the call can log a slot the item never entered. The
-	/// transfer's named slot is a preference; every other free slot is tried in index order.
+	/// Puts an item that already exists into a slot this body accepts. The rule lives in
+	/// <see cref="LocalBodyPlacement"/> because the character restore's unplaced row needs the same
+	/// one (an item the archive carries with no body slot).
 	/// </summary>
-	private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed)
-	{
-		var requested = item.SlotIndex;
-		foreach (var slot in SlotCandidates(body, item))
-		{
-			body.PickUpItem(placed, slot, force: true);
-			if (body.GetItem(slot) != placed) // Unity objects — ==
-			{
-				continue;
-			}
-
-			item.SlotIndex = slot;
-			if (requested >= 0 && requested != slot)
-			{
-				_domains.Log.LogWarning("[PlayerInteraction] destination slot {Requested} is not usable for {ItemId} (id {InstanceId}) — using slot {Slot} instead.",
-					requested, item.ItemId, item.InstanceId, slot);
-			}
-
-			_domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) in local slot {Slot}.", item.ItemId, item.InstanceId, slot);
-			return true;
-		}
-
-		return false;
-	}
-
-	/// <summary>The slots to try, in order: the one the transfer named when it is free, then every other free slot.</summary>
-	private static List<int> SlotCandidates(Body body, CharacterItemMsg item)
-	{
-		var candidates = new List<int>(body.slots.Length);
-		if (item.SlotIndex >= 0 && item.SlotIndex < body.slots.Length && !body.HoldingItem(item.SlotIndex))
-		{
-			candidates.Add(item.SlotIndex);
-		}
-
-		for (var slot = 0; slot < body.slots.Length; slot++)
-		{
-			if (!body.HoldingItem(slot) && !candidates.Contains(slot))
-			{
-				candidates.Add(slot);
-			}
-		}
-
-		return candidates;
-	}
+	private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) =>
+		LocalBodyPlacement.TryPlaceInSlot(body, item, placed, _domains.Log, "PlayerInteraction", out _);
 
 	/// <summary>
 	/// Nothing on this body accepts the item. It has already left the giver and no destination here can hold it, so

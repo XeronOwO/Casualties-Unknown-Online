@@ -137,13 +137,22 @@ internal sealed class CharacterRestoreApplier(
 		{
 			foreach (var itemData in data.Items)
 			{
-				if (itemData.SlotIndex < 0)
+				if (itemData.SlotIndex >= 0)
+				{
+					ItemStateCodec.RestoreItem(itemData, body);
+				}
+				else if (itemData.SlotIndex <= -2)
 				{
 					_wearables.RestoreWearable(itemData, body);
 				}
 				else
 				{
-					ItemStateCodec.RestoreItem(itemData, body);
+					// The archive states NO body slot for it: the cut landed while this member's body
+					// carried the item and the report that states its slot had not arrived, so the
+					// archive kept the kernel's placement and left the slot to the body it restores
+					// onto (the format's unplaced row, -1). The body's own rules decide, exactly as
+					// they do for a handed-over item — the archive never guesses a slot.
+					PlaceUnplacedItem(itemData, body);
 				}
 			}
 
@@ -153,6 +162,34 @@ internal sealed class CharacterRestoreApplier(
 				body.handSlot = handSlot;
 			}
 		}
+	}
+
+	/// <summary>
+	/// One item the archive carried with no body slot (<see cref="CharacterItemMsg.SlotIndex"/> -1):
+	/// materialize it and let this body's own slot rules place it. A body with no acceptable free slot
+	/// is the one case that cannot land it; destroying the object ends the item on this client, so the
+	/// refusal is NAMED here — the archive already named which item it was, and the kernel's row is
+	/// the only carrier left.
+	/// </summary>
+	private void PlaceUnplacedItem(CharacterItemMsg itemData, Body body)
+	{
+		if (ItemStateCodec.MaterializeItem(itemData, body.transform.position) is not { } item)
+		{
+			_log.LogWarning(
+				"Restore: unplaced {ItemId} (id {InstanceId}) could not be created on this client — it is not on the body.",
+				itemData.ItemId, itemData.InstanceId);
+			return;
+		}
+
+		if (LocalBodyPlacement.TryPlaceInSlot(body, itemData, item, _log, "CharacterRestore", out _))
+		{
+			return;
+		}
+
+		_log.LogWarning(
+			"Restore: unplaced {ItemId} (id {InstanceId}) found no body slot this body accepts — its copy is destroyed; the cut carried no slot for it and this body refused every free one.",
+			itemData.ItemId, itemData.InstanceId);
+		Object.Destroy(item.gameObject);
 	}
 
 	/// <summary>

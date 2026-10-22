@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The archive's two id carriers can disagree](todo/id-carriers-can-disagree-about-placement.md) — **Low** — unproven; needs a probe inside the report window.
 - [Who may operate another player's backpack](todo/remote-backpack-access-policy.md) — **Medium** — allow / unconscious-only / deny.
 - [The receiver's placement never returns to the host](todo/placement-outcome-never-returns.md) — **Medium** — the ledger keeps what it was told.
 - [A refused child of a restored container keeps its id](todo/restore-refused-child-keeps-its-id.md) — **Low-Medium** — the bulk restore discards it.
@@ -145,6 +144,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
+- [The archive's two id carriers can disagree](review/id-carriers-can-disagree-about-placement.md) — **Low** — the cut settles the placement.
 
 ### Future
 

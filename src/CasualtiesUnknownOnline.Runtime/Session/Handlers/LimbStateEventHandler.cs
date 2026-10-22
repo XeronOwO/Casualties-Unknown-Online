@@ -45,9 +45,8 @@ public sealed class LimbStateEventHandler(ILogger<LimbStateEventHandler> log) : 
 		if (ctx.Session.Role == SessionRole.Host)
 		{
 			// The store's merge can refuse a non-finite event; the handler must then skip BOTH the
-			// adapter event and the relay — the fact table shares the stored object reference, so
-			// firing would apply the refused limbs there and the relay would push them to every
-			// guest.
+			// adapter event and the relay — the adapter would apply the refused limbs to the
+			// reporter's clone and the relay would push them to every guest.
 			if (!ctx.CharacterData.ApplyLimbStateEvent(msg))
 			{
 				_log.LogWarning("[LimbEvent] refused a non-finite owner event from {Sender} for {Owner}.", sender, msg.OwnerSteamId);

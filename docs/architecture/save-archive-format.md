@@ -223,6 +223,32 @@ its bodies stood in, so its position is the one to restore. Restoring the LOCAL 
 the adapter's job and not the Runtime's — it is handed back with the continue outcome and queued on
 the same local restore path a next-level respawn uses (decision 170).
 
+**A cut writes ONE placement per item id.** The two carriers state different halves of one fact: the
+kernel checkpoint's item rows own WHO holds an item (and what contains it), and this file owns the
+body SLOT it occupies. They are written at different moments — a mid-run cut's host character is a
+live capture while a member's file is its last 1 Hz report, and a native pickup or drop reports the
+ITEM fact at once while `Body.PickUpItem`/`DropItem` do not fire the immediate character re-report
+(`OnInventoryChanged`). A cut landing inside that window would store one id in two places, and the
+restore applies both halves independently: a carried row the body's file does not carry becomes a
+phantom nothing ever materializes, and a body item the kernel placed in the world becomes a second
+object under an id that already exists. The cut therefore reconciles the member files against the
+checkpoint before the payload is encoded (`CutCharacterPlacement`): an id the kernel places outside
+that body (world, another owner, a limb, terminal) is REMOVED from the file, and an id the kernel
+holds for that body but the file is missing is ADDED from the kernel's own row — at the kernel's
+slot when it states one, and with slot `-1` (unplaced) when it does not, because a pickup command
+carries no item data and its row keeps the world item's `-1`. The file's own slot always stands where
+it has one (the body's local fact), an id the kernel has never judged is left exactly where the
+report put it (the report is then its only carrier, the same rule the restored-id seed follows), and
+the cut names what it corrected: a line per correction in the log, and the NET count (ids added and
+ids removed, never one per action) in the cut report. A file the cut cannot attribute to a peer is
+left untouched and named, never guessed at. One kind is an explicit exception to the removal half: a
+`layer-end` cut is taken AFTER the layer-boundary reset dropped the replaced layer's world-rooted
+rows, so a bound id the file still carries but the kernel no longer names falls under the
+"never judged" rule and stays. That is deliberate — the layer it lay in is being replaced, and
+removing the body copy would destroy the item rather than move it. The file's identity is its NAME:
+the embedded `ownerSteamId` is the reporter's own value (0 for a report that never carried one) and
+is never read to decide whose character a file is.
+
 The character file also carries the **native character fields** the game's own save kept for one
 character (`CharacterDataMsg.NativeFields`, decision 171): the body's happiness history
 (`Body.lastHappiness`), the per-run calorie counter (`PlayerCamera.caloriesConsumed`) and the wound
@@ -609,6 +635,14 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   `WorldGeneration.WorldPlacePlayer` hands out the starting supplies only on the run's first layer
   (`WorldGeneration.cs:1891-1919`), and the live 1 Hz character snapshot writes the character-table
   slot within a second, so the archive's copy would be gone before anything read it.
+- **An item the file states no slot for is placed by the body's own rules.** A cut that lands inside
+  a member's character-report window writes a kernel-held item into that member's file with slot `-1`
+  (§3.4): the host knows the item exists and whose body holds it, not which slot the body had put it
+  in. The local restore materializes that row and runs the same slot rules a handed-over item uses —
+  the slot the row states when it has one (a `-1` row states none), then every other free slot, each
+  write verified by reading the slot back — rather than guessing a slot in the archive. A body whose
+  free slots all refuse it destroys the copy and names the item: the archive could not state a slot it
+  never knew, and the kernel's row is the only carrier that still describes it.
 - **The character's native fields** (`lastHappiness`, `caloriesConsumed`, `WoundView.cInfo`) land on
   the same local restore path, on its SECOND pass — after the body exists, after the wipe and after
   the items, which is the point the native load wrote them (`SaveSystem.cs:438-441`, decision 171).

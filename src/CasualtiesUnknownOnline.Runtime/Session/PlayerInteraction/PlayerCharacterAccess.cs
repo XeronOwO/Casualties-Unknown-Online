@@ -57,73 +57,10 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		return -1;
 	}
 
-	public static CharacterDataMsg CloneCharacter(CharacterDataMsg source) => new()
-	{
-		Skills = source.Skills,
-		Health = source.Health,
-		Limbs = [.. source.Limbs.Select(CloneLimb)],
-		Items = [.. source.Items.Select(CloneItem)],
-		HandSlot = source.HandSlot,
-		OwnerSteamId = source.OwnerSteamId,
-		Position = source.Position,
-		SlotCount = source.SlotCount,
-		// The native character fields ride along like every other field this clone
-		// copies. Losing them here is not cosmetic: the interaction services SAVE the
-		// clone over the stored character snapshot (a heal, a transfer, a remote
-		// application all end in one), so a dropped field would silently degrade the
-		// next cut, the next reconnect restore and the next continue (S3.4b).
-		NativeFields = source.NativeFields,
-		// The local favourite marks ride along for the same reason and with the same
-		// consequence: this clone is SAVED over the stored character snapshot, so a
-		// dropped list would silently unmark every item this player starred in a
-		// world they are still playing in.
-		FavouriteMarks = source.FavouriteMarks,
-		// The capture layer and the respawn identity ride along for the same reason:
-		// the clone is saved over the stored snapshot, so a dropped layer stamp would
-		// make the next restore apply a position from a layer this player is no longer
-		// in, and a dropped respawn flag would turn the next-level revive back into an
-		// ordinary handback a preserved body refuses.
-		Generation = source.Generation,
-		Respawn = source.Respawn,
-	};
+	/// <summary>The deep copy lives in <see cref="CharacterDataClone"/> — the one field list every writer and consumer of a snapshot shares. Kept as a delegate here so the interaction services' call sites do not move.</summary>
+	public static CharacterDataMsg CloneCharacter(CharacterDataMsg source) => CharacterDataClone.Of(source);
 
-	public static CharacterItemMsg CloneItem(CharacterItemMsg item) => new()
-	{
-		InstanceId = item.InstanceId,
-		ItemId = item.ItemId,
-		Condition = item.Condition,
-		SlotIndex = item.SlotIndex,
-		Favourited = item.Favourited,
-		Components = item.Components,
-		Contents = [.. item.Contents.Select(CloneItem)],
-		Liquids = [.. item.Liquids],
-	};
+	public static CharacterItemMsg CloneItem(CharacterItemMsg item) => CharacterDataClone.Item(item);
 
-	public static CharacterLimbMsg CloneLimb(CharacterLimbMsg limb) => new()
-	{
-		Index = limb.Index,
-		SkinHealth = limb.SkinHealth,
-		MuscleHealth = limb.MuscleHealth,
-		Broken = limb.Broken,
-		Dislocated = limb.Dislocated,
-		Splinted = limb.Splinted,
-		Infected = limb.Infected,
-		InfectionAmount = limb.InfectionAmount,
-		BleedAmount = limb.BleedAmount,
-		DisinfectionTime = limb.DisinfectionTime,
-		Pain = limb.Pain,
-		DislocationTimer = limb.DislocationTimer,
-		BoneHealTimer = limb.BoneHealTimer,
-		BlockedBleeding = limb.BlockedBleeding,
-		Shrapnel = limb.Shrapnel,
-		FurBloodAmount = limb.FurBloodAmount,
-		BandageSlowAmount = limb.BandageSlowAmount,
-		SkinHealAmount = limb.SkinHealAmount,
-		Dismembered = limb.Dismembered,
-		Components = [.. limb.Components],
-		IsHead = limb.IsHead,
-		IsVital = limb.IsVital,
-		ConnectedLimbIndices = [.. limb.ConnectedLimbIndices],
-		DistanceToHeart = limb.DistanceToHeart,
-	};
+	public static CharacterLimbMsg CloneLimb(CharacterLimbMsg limb) => CharacterDataClone.Limb(limb);
 }

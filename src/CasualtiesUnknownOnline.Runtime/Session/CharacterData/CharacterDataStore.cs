@@ -189,7 +189,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		// Preserve can copy a non-finite stored value into this report only if an earlier path
 		// bypassed both guards; the inner save refuses it and THIS return must tell the caller, or
 		// the handler would relay a snapshot the store never kept.
-		return SaveCharacterData(steamId, msg);
+		return SaveCharacterData(steamId, CharacterDataClone.Of(msg)); // the store owns its copy: the presentation mutates its own (see CharacterDataClone)
 	}
 
 	/// <summary>Host side: merge an enemy bite's post-bite terminal state into the victim's saved snapshot immediately (the rules live in <see cref="CharacterEventMerges"/>).</summary>
@@ -571,10 +571,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			return;
 		}
 
-		// Stamping the shared instance is safe: it is the SAVED copy (the
-		// handler saved the same reference), and the only later senders of it
-		// are the owner's own restore — the receiver's owner check restores
-		// exactly for OwnerSteamId == itself.
+		// Stamping the message is safe: it is the PRESENTATION copy (the store keeps its own copy of
+		// a report), and the only later senders of it are the owner's own restore — the receiver's
+		// owner check restores exactly for OwnerSteamId == itself.
 		msg.OwnerSteamId = ownerSteamId;
 		_session.BroadcastExcept(ownerSteamId, NetMsg.CharacterData, msg);
 		_log.LogDebug("Relayed character data of {Owner} to the other guests ({Items} items).", ownerSteamId, msg.Items.Count);

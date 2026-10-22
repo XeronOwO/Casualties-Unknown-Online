@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// <param name="Files">Payload files written.</param>
 /// <param name="BlockRows">World-block rows (the block diff plus the game's own damage rows).</param>
 /// <param name="TransientRows">World-transient rows.</param>
+/// <param name="PlacementCorrections">Member-item placements the cut reconciled between the kernel and the character file (one per id added or removed) — named in the report because it means a cut landed inside a report window.</param>
 /// <param name="BackupPath">The backup archive the transaction produced.</param>
 internal sealed record WorldCutWriteResult(
 	bool Success,
@@ -22,11 +23,12 @@ internal sealed record WorldCutWriteResult(
 	int Files,
 	int BlockRows,
 	int TransientRows,
+	int PlacementCorrections,
 	string BackupPath)
 {
-	internal static WorldCutWriteResult Refused(string detail) => new(false, detail, 0, -1, 0, 0, 0, string.Empty);
+	internal static WorldCutWriteResult Refused(string detail) => new(false, detail, 0, -1, 0, 0, 0, 0, string.Empty);
 
 	internal static WorldCutWriteResult Captured(
-		ulong revision, int layer, int files, int blockRows, int transientRows, string backupPath) =>
-		new(true, string.Empty, revision, layer, files, blockRows, transientRows, backupPath);
+		ulong revision, int layer, int files, int blockRows, int transientRows, int placementCorrections, string backupPath) =>
+		new(true, string.Empty, revision, layer, files, blockRows, transientRows, placementCorrections, backupPath);
 }

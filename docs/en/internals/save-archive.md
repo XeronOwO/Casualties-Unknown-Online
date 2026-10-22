@@ -32,6 +32,13 @@ plus `characters/<playerKey>.json` per player. A player key is transport-scoped,
 `name-<display name>`, so a Steam world is never silently claimed by a name collision in an IP-direct
 session.
 
+One cut writes ONE placement per item id. The kernel's item rows say who holds an item and what
+contains it; a character file says which body slot it sits in — and a member's file is its last 1 Hz
+report, which a pickup or drop does not immediately refresh. A cut that lands in that window
+reconciles the file against the kernel before writing it: an item the kernel places elsewhere leaves
+the body, an item the kernel holds on that body is added (with no slot when the kernel states none,
+so the restored body's own rules place it), and the cut names what it corrected.
+
 The DTOs are the same shapes a late-joining guest receives, so a restored host holds exactly what a
 join would have given it. A new domain adds a file inside the archive; it never rewrites an existing
 one. And every payload file is a JSON array of entries — the decoder is handed one entry at a time,

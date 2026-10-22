@@ -34,11 +34,14 @@ internal sealed class WorldCharacterBinder(
 	/// predicate: a layer boundary is a LOADING moment, where every peer's scene
 	/// state reads as "not in the world".
 	///
-	/// A key TWO present players map to is carried by NEITHER, and named: the
+	/// A key TWO present players WITH A SNAPSHOT map to is carried by NEITHER, and named: the
 	/// archive holds one file per key, so writing one of the two would leave a file
 	/// a later restore could hand to the wrong player — the collision the claim side
 	/// refuses (decision 177) is refused on the way IN as well. A roster that lists
-	/// one peer twice is not a collision: the claimants are counted per PEER ID.
+	/// one peer twice is not a collision: the claimants are counted per PEER ID. (A
+	/// key only ONE of two same-named present players has a snapshot for is written
+	/// for that peer — the pair is not a collision the write side can see, and the
+	/// restore's claim still refuses the ambiguous key rather than guess.)
 	/// </summary>
 	internal WorldCharacterCutSet Collect(CharacterDataMsg? hostCharacter)
 	{
@@ -46,6 +49,7 @@ internal sealed class WorldCharacterBinder(
 		var space = LiveKeySpace();
 		var localPeerId = LocalPeerId;
 		var collected = new List<SavedCharacter>(peers.Count);
+		var ownerByKey = new Dictionary<string, ulong>(StringComparer.Ordinal);
 		var claimants = new Dictionary<string, List<ulong>>(StringComparer.Ordinal);
 		var keysInOrder = new List<string>(peers.Count);
 		foreach (var peer in peers)
@@ -62,6 +66,7 @@ internal sealed class WorldCharacterBinder(
 			}
 
 			var key = peer.KeyIn(space);
+			ownerByKey[key] = peer.PeerId;
 			if (!claimants.TryGetValue(key, out var sharers))
 			{
 				sharers = [];
@@ -95,7 +100,15 @@ internal sealed class WorldCharacterBinder(
 			collected.RemoveAll(character => claimants[character.PlayerKey].Count > 1);
 		}
 
-		return new WorldCharacterCutSet(collected, notCarried);
+		// Only the files this cut actually writes carry an owner: a shared key was carried by
+		// neither claimant, so the reconcile must not be handed one of them.
+		var owners = new Dictionary<string, ulong>(collected.Count, StringComparer.Ordinal);
+		foreach (var character in collected)
+		{
+			owners[character.PlayerKey] = ownerByKey[character.PlayerKey];
+		}
+
+		return new WorldCharacterCutSet(collected, owners, notCarried);
 	}
 
 	/// <summary>

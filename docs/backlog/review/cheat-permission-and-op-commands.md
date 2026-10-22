@@ -16,7 +16,7 @@
 - Related: `docs/backlog/done/give-item-to-a-player-command.md` (the verb this permission ships with),
   `docs/backlog/done/item-and-entity-data-commands.md` (the cheat verb family this gates — `spawn` next),
   `docs/backlog/done/host-rules-replication.md` (the announcement pattern a
-  member's client reads to refuse a closed rule locally), `docs/backlog/review/remote-backpack-access-policy.md` (a
+  member's client reads to refuse a closed rule locally), `docs/backlog/done/remote-backpack-access-policy.md` (a
   host policy that gates a gesture, the same shape one level down), `docs/en/internals/permissions-and-security.md`
   (the admission seam and what a console verb may assume), `docs/decisions/active.md` decision 265 (a member's
   report is bounded by data; a permission list is a host ruling, not a client-enforced boundary), decision 241

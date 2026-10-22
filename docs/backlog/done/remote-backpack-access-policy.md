@@ -1,11 +1,15 @@
 # Who may open and operate another player's backpack: an access policy, not one switch
 
-- Status: Review — implementation, independent review fixes and the gates landed 2026-10-22; the
-  acceptance run below is what remains. The user's rulings: 2026-10-06 (a three-way policy should exist —
-  allow / only an unconscious (or dead) one / deny — and the option labels are the agent's to choose) and
-  2026-10-22 (the middle value keeps the backpack OPEN but view-only, with the game's own red slot look
-  as the hint and one red alert line; only an unconscious or dead owner may be operated on, which
-  includes giving items in). The audit below is what stood on 2026-10-06, before the change.
+- Status: Done — batch `20261022-d` read all eight rows on artifact
+  `0.1.0+cda1b5d29d1d546ddcadd1f85ffce720dbe51897` (record:
+  `docs/evidence/acceptance/remote-backpack-access-policy-20261022-d.md`); every row passed, with the
+  record's limits named (the row-2 red slots are machine-read plus the frame; row 3's unconscious window is
+  short by the game's own regeneration; the double-Tab variant is covered by the unit path, not the run).
+  The user's rulings: 2026-10-06 (a three-way policy should exist — allow / only an unconscious (or dead)
+  one / deny — and the option labels are the agent's to choose) and 2026-10-22 (the middle value keeps the
+  backpack OPEN but view-only, with the game's own red slot look as the hint and one red alert line; only
+  an unconscious or dead owner may be operated on, which includes giving items in). The audit below is what
+  stood on 2026-10-06, before the change.
 - Priority: Medium
 - Category: Host rules / remote inventory access / user-visible policy
 - Source: User message (2026-10-06), raised while the remote-inventory rework's rows were being read: "check
@@ -130,6 +134,11 @@ value:
 | 6 | A guest whose local config differs from the host's | The host's policy wins and the refusal names it |
 | 7 | Policy = UnconsciousOrDeadOnly, a conscious giver hands an item to an unconscious teammate | The give succeeds; the same give to a conscious receiver is refused by the policy, naming the destination |
 | 8 | The host changes the rule (allow → unconscious_or_dead → deny) while a view is open | The open view becomes view-only, then closes, on the host's announcement — the same live-change path the rest of the host rules use |
+
+Batch `20261022-d` read every row on the deployed artifact; the verdicts and their evidence pointers are in
+`docs/evidence/acceptance/remote-backpack-access-policy-20261022-d.md`, together with the limits the run
+names (the row-2 red slots as a machine read plus the frame, row 3's short unconscious window, and the
+double-Tab take variant covered by the unit path rather than driven).
 
 ## Non-goals now
 

@@ -76,7 +76,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Who may operate another player's backpack](review/remote-backpack-access-policy.md) — **Medium** — allow / view-only / deny.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
@@ -172,6 +171,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [Who may operate another player's backpack](done/remote-backpack-access-policy.md) — **Medium** — accepted in `20261022-d`; one three-way rule.
 - [The archive's two id carriers can disagree](done/id-carriers-can-disagree-about-placement.md) — **Low** — accepted in `20261022-c`; one placement per id.
 - [Members do not arrive together on a new layer](done/layer-descent-spawn-separation.md) — **Medium** — accepted in `20261021-j`; old-layer positions refused.
 - [A layer change pulls members back to the menu](done/layer-change-menu-round-trip.md) — **Medium** — accepted in `20261021-i`; the group loads together.

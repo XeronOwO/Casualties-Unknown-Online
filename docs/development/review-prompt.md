@@ -30,7 +30,7 @@ Adversarially verify:
 - **A0. The PREMISE, before anything else — and this check is mandatory for any change whose behaviour
   crosses players, mirrors a native action, or changes something a player can do.** Do not accept the
   design as given: write down, yourself, the mapping the change depends on and check it against the
-  game's own call sites. For each entry the change touches, answer three questions in this order and
+  game's own call sites. For each entry the change touches, answer four questions in this order and
   report each answer as a finding if it is wrong or missing:
   1. **Which native action is this CUO gesture the counterpart of?** Name the decompiled call site
      (a gesture is a call site, not a family name) and quote it. A CUO entry with no native
@@ -44,10 +44,16 @@ Adversarially verify:
      code decides by ORDER (a family chain, an if-else ladder), the finding is the shared decision, not
      the order: the two entries are meant to be isolated, and the item's own data has to say which
      action each entry runs.
+  4. **Can the player physically perform this input sequence?** Write down the exact inputs — which
+     mouse button is held, which window is open, and what can still be clicked or pressed while it is
+     held — then walk them through the game's own control flow (`PlayerCamera`'s drag bracket and its UI
+     hit tests). A gesture that needs two inputs the controls cannot combine (a right-button drag that
+     also needs a right-click to open the target window) is a BLOCKER: no player can reach it, however
+     clean the seam behind it. A seam a probe can drive is not evidence that the interaction exists.
   An earlier cycle shipped a cross-player limb tool reachable from the inventory-use gesture (which
   names no limb) with the limb resolved to the target's most-injured one, and this section exists
   because the review of that cycle was scoped to attack the implementation and could not see the wrong
-  premise. Ask the same three questions of the change in front of you.
+  premise. Ask the same four questions of the change in front of you.
 - **A0a. The PLAYER-FACING PREMISE — what does "connecting it" mean?** Before the mapping, write down
   yourself what problem the change solves for a player, and what the design is: who uses it, what it
   does, what it costs, what it refuses, what the player sees. A compatible service, a matching signature

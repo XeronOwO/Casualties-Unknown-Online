@@ -3,6 +3,8 @@
 - Status: Todo
 - Priority: Medium
 - Category: Item sync / kernel item facts / cross-player custody
+- Blocked by: the give gesture is not performable with the game's controls (see *Design defect* below,
+  2026-10-22); the gesture must be defined before this ticket's design is re-derived.
 - Source: Read on the machine in 2026-10-18's give session, while the container half of
   `done/give-item-to-another-player.md` was being verified (`[PlayerInteraction] bandage … not placed into
   container … falling back to a slot.` on the receiver, `bandage [carried]` on the host). Split out on
@@ -12,6 +14,22 @@
   `done/container-content-event-gap-on-repick.md` (the adjacent event-carrier gap: a container child moved
   into a slot announces nothing to the peers' fact tables — closed by batch `20261025-b`),
   `done/item-identity-across-transforms.md`
+
+## Design defect: the give interaction this ticket assumes cannot be performed (2026-10-22)
+
+The premise below — the receiving client runs a placement for a destination the giver named on the other
+player's inventory — is not an interaction the player can perform. A give starts from the giver's own
+backpack: the backpack is open and the item is dragged with the right mouse button held. Opening another
+player's backpack needs a right-click on that player, and the held right button cannot also make that
+click. The give readings this ticket rests on — and the drag half of
+`done/give-item-to-another-player.md` — came from a probe calling the release seam directly, never from
+a real gesture.
+
+The user's ruling of 2026-10-22: this is a design defect, not an acceptance gap, and the process must start
+every player-facing behaviour from the real keyboard/mouse sequence (root `AGENTS.md`, *Engineering
+Discipline*, and the adversarial review's A0). The ticket is therefore blocked on the give gesture's
+definition: it is re-derived from an input the player can actually perform, and the user decides which
+one. Everything below records the code as it stands; it is not a design to implement.
 
 ## What it is
 

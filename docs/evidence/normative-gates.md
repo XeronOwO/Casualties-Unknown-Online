@@ -66,6 +66,7 @@ Automation status legend:
 | Core + edge/failure test coverage | dotnet test | Existing xUnit suite; coverage breadth is a review/size question. |
 | Every key path observable | Review / process | Logging discipline; not a single source-shape gate. |
 | Acceptance-readiness audit | Review / process | `docs/evidence/delivery-checklist.md`. |
+| The interaction is designed from the player's real INPUT sequence (Engineering Discipline): a new or changed player-facing gesture records the exact inputs — which button is held, which window is open, what can still be clicked while it is held — and walks them through the game's own control flow before the design exists; a gesture the controls cannot perform is a design defect, and a probe-driven call seam is never evidence that a player can reach it | Review / process | The adversarial review's A0 asks for the sequence and walks it through `PlayerCamera`'s drag bracket (`docs/development/review-prompt.md`); no source gate can judge whether a player can perform an input. |
 | User-found issues are hard blockers | Review / process | Backlog/human process. |
 | Independent adversarial self-check | Review / process | Human/process. |
 | Delivery checklist | dotnet test (C# port) | `DeliveryChecklistGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes` + `DeliveryChecklistGateTests.DeliveryChecklist_DeclaresEveryRequiredBox` (its census: every step the process requires is still declared, reported by name). |

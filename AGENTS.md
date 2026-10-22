@@ -71,6 +71,16 @@ not the goal.
   change that names only the code it touches is the "code for code's sake" this rule refuses. A design
   with user-visible trade-offs goes to the user (Development Workflow rule 9); the implementation's own
   help text or doc comment is never the design.
+- `[CRITICAL]` **The interaction is designed from the player's INPUT, never from the code's
+  opportunity.** Before a player-facing gesture exists, write down the exact input sequence the player
+  performs — which mouse button is held, which window is open, and what can still be clicked or pressed
+  while it is held — and check it against the game's own control flow (`PlayerCamera`'s drag bracket and
+  its UI hit tests are the reference for a drag). A gesture whose input sequence cannot be performed is a
+  design defect found at design time, not an implementation detail: opening another player's inventory
+  needs the same right button the drag already holds, so "drag an item into that inventory" is not an
+  interaction the player can execute. A design that needs a new input, a new window or a changed control
+  scheme is user-visible and goes to the user before it is built. A call seam that a probe can drive is
+  never evidence that a player can reach it.
 - `[CRITICAL]` No shortcuts: take the proper path when one exists.
 - `[CRITICAL]` Pragmatism is not a shield: a suboptimal choice needs an architectural reason. Do the
   right thing once.
@@ -200,6 +210,10 @@ self-check → structure review → commit.
 4. `[CRITICAL]` **Map CUO's entry points to the game's own, one line each, before designing anything that
    crosses players or mirrors a native action** — and treat a missing mapping as a design defect, not an
    implementation detail:
+   - Write the INPUT SEQUENCE of every gesture — which mouse button is held, which window is open, and
+     what can still be clicked or pressed while it is held — and walk it through the game's own control
+     flow BEFORE the entry is accepted. A gesture the player cannot perform has no entry: it is a design
+     defect, and the adversarial review's A0 asks for the sequence.
    - Name the native CALL SITE each CUO gesture is the counterpart of (a gesture is a call site, not a
      family name; `PlayerCamera.TryPerformSpecialUIAction`'s `WoundViewLimb` branch is the counterpart of
      the medical panel, the radial's `UseItem`/`WearWearable` of the inventory use). An entry with no

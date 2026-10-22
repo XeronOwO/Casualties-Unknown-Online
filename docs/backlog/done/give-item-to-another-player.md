@@ -12,6 +12,14 @@
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
 - Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `todo/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `todo/restore-refused-child-keeps-its-id.md` and `todo/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
 
+> **Design defect found 2026-10-22**: the push gesture this ticket's rows rest on — releasing the giver's
+> own item onto the other player's open backpack — is not an interaction the player can perform. The
+> other player's backpack is opened with the right button the item drag already holds, and while that view
+> is open the inventory ring answers from the focused clone (`InvButtonBodyPatch`), so the giver's own
+> items are not on screen to drag. The readings below are probe-driven, not player-driven. The design must
+> be re-derived from a performable input before it is trusted; see the *Design defect* section of
+> `todo/placement-outcome-never-returns.md` and the input rule in the root `AGENTS.md`.
+
 ## What exists today (both directions of one hand-over, only one carried)
 
 - **The receiver takes it — landed.** The operator opens the other player's backpack, drags a display proxy and

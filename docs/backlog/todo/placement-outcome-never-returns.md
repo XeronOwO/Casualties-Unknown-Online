@@ -127,6 +127,14 @@ does not, and neither have the machine rows been run. What landed:
   `docs/architecture/member-report-validation.md`.
 - **The ticket's status.** It stays `todo/` for row 6 and the anchor. The give ticket's rows 3 and 4 passed in
   the same run; both tickets cite the same record.
+- **A return the host cannot make is logged, not answered.** When the item is gone from the receiver's snapshot
+  or the giver has no free slot, `HandleFailed` logs the reason at Error and the reporter is not answered; the
+  committed entry is already dropped. A receiver re-report in that window, or a full giver, leaves the kernel row
+  with no object until the next report converges it. Recorded here rather than claimed away.
+- **A full giver's body receives the return as a DROP.** The `Returned` flag makes the giver's client drop the
+  item at its feet instead of destroying it, and the drop's own creation report is what brings it back into the
+  world; the host's row is the giver's inventory until that report. That is the non-destructive outcome, not
+  "in the giver's inventory".
 - **What a future reading would need.** Batch `20261022-i` tried twice and established the mechanical reason:
   both clients' gestures need the same physical right button and the same single foreground window, so the
   receiver's own body change cannot be made inside the answer→transfer window (~540 ms) — the two holds are

@@ -38,7 +38,8 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 	/// A release of this client's OWN item onto another player's displayed inventory. When it can be classified it
 	/// becomes the give-direction intent — the mirror of the take direction, where the item's owner is the ACTOR
 	/// and the destination body is the other player — and when it cannot, the release keeps its refusal and the line
-	/// that names why, which is what the acceptance table reads.
+	/// that names why, which is what the acceptance table reads. It answers whether the intent went out, because the
+	/// release bracket keeps the drag-opened backpack only for a give that actually happened.
 	///
 	/// <para>
 	/// Both branches exist because the native body must not run either way: the container branch would load THIS
@@ -47,7 +48,7 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 	/// clone's own slot index.
 	/// </para>
 	/// </summary>
-	internal void ReportLocalReleaseOntoProxy(Item? dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex)
+	internal bool ReportLocalReleaseOntoProxy(Item? dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex)
 	{
 		var local = domains.Session.LocalSteamId;
 
@@ -60,7 +61,7 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 				dragItem != null ? dragItem.id : "null", // Unity object — ==
 				targetOwnerSteamId);
 			domains.BackpackNotice.Show(domains.Localization.T("remote_backpack.gesture_refused"));
-			return;
+			return false;
 		}
 
 		// The giver's own identity comes from the item's OWN component, never from the display-proxy marker: this
@@ -73,7 +74,7 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 				dragItem != null ? dragItem.id : "null", // Unity object — ==
 				target,
 				targetOwnerSteamId);
-			return;
+			return false;
 		}
 
 		// The two destinations are mutually exclusive operands: a pointer on an item means "into that container",
@@ -88,6 +89,7 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 		};
 
 		Send(intent, local);
+		return true;
 	}
 
 	internal void ReportGestureNotCarried(string gesture) =>

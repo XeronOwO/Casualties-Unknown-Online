@@ -36,7 +36,7 @@ public class DragUseCuePolicyTests
 
 	[Fact]
 	public void NoPlayerUnderTheCursor_ShowsNothing() =>
-		Assert.False(DragUseCuePolicy.Decide(true, true, true, nearestTargetSteamId: null).Showing);
+		Assert.False(DragUseCuePolicy.Decide(true, true, true, targetSteamId: null).Showing);
 
 	// A row without an identity cannot be named, and naming it would be the label disagreeing
 	// with the release.

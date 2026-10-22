@@ -23,18 +23,19 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// release cannot leak the window into the next frame.
 ///
 /// Three outcomes are decided here rather than by the window: a proxy that cannot
-/// be resolved is cancelled before the native body can mutate it (fail closed), a
-/// LOCAL item whose release target is another player's display proxy is cancelled
-/// the same way (the reported item loss — see <c>ResolveDisplayProxyTarget</c>),
-/// and a local item released over an in-world remote player keeps the landed
+/// be resolved is cancelled before the native body can mutate it (fail closed); a
+/// LOCAL item released on another player's displayed backpack is a GIVE, decided
+/// before the in-range USE the same release could otherwise be (the user's
+/// 2026-10-22 ruling — the release's landing place decides, not the item); and a
+/// local item released over an in-world remote player keeps the landed
 /// cross-player use route.
 /// </summary>
 [HarmonyPatch(typeof(PlayerCamera), "HandleReleaseDragging")]
 internal static class PlayerCameraDragUsePatch
 {
-	private static void Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts, out bool __state)
+	private static void Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts, out ReleaseState __state)
 	{
-		__state = false;
+		__state = new ReleaseState { AutoOpened = RemoteBackpackView.AutoOpened };
 		var dragItem = __instance.dragItem;
 		if (dragItem == null) // Unity object — ==
 		{
@@ -43,6 +44,24 @@ internal static class PlayerCameraDragUsePatch
 
 		if (dragItem.GetComponent<RemoteCloneRender>() == null) // Unity object — ==
 		{
+			// The displayed backpack comes FIRST: a release on it is the GIVE, even when the cursor's world
+			// point is also inside the player's detection range (where a release would be a USE). The player's
+			// 2026-10-22 ruling separates the two outcomes by where the release lands, not by the item. The
+			// target resolution is the ONE shared with the cue, so the label and the release cannot name
+			// different players.
+			if (PatchBridge.Impl is { } giveBridge)
+			{
+				var proxyTarget = DragGiveTargetResolver.Resolve(dragItem, __instance, uiCasts);
+				if (proxyTarget is { } target)
+				{
+					// The answer says whether the intent actually went out: a refused give (a view-only pack, an
+					// item with no authoritative id) must not keep the drag-opened backpack open.
+					__state.Give = giveBridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description, target.TargetItemInstanceId, target.TargetSlotIndex);
+					ClearDrag(__instance);
+					return;
+				}
+			}
+
 			// A LOCAL item released over an in-world remote player is the landed
 			// cross-player use-by-drag gesture: it consumes the release here,
 			// before the native body can treat it as a local drop.
@@ -50,27 +69,6 @@ internal static class PlayerCameraDragUsePatch
 			{
 				ClearDrag(__instance);
 				return;
-			}
-
-			// The proxy-drag guard's mirror, on the TARGET side. While the remote
-			// backpack view is open the ring and the container window render the
-			// FOCUSED CLONE, so the item this release points at can be another
-			// player's display proxy — and the native container branch would then
-			// load THIS client's item into it (`container.LoadItem(this.dragItem)`,
-			// PlayerCamera.cs:1568, and its R5 per-child loop at `:1590`), which is
-			// the reported item loss: the child leaves its own bag, sits in the
-			// proxy, and the clone rebuild unloads and destroys it. No intent can
-			// name that move — the item is this client's own and the vocabulary
-			// moves the OWNER's items — so the release fails closed here, before the
-			// native body can mutate anything, and the item stays where it is.
-			if (PatchBridge.Impl is { } bridge)
-			{
-				var proxyTarget = ResolveDisplayProxyTarget(__instance, uiCasts);
-				if (proxyTarget is { } target)
-				{
-					bridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description, target.TargetItemInstanceId, target.TargetSlotIndex);
-					ClearDrag(__instance);
-				}
 			}
 
 			return;
@@ -100,101 +98,37 @@ internal static class PlayerCameraDragUsePatch
 			PatchBridge.Impl?.LocalSteamId ?? 0,
 			RemoteBackpackView.IsOpen,
 			ClassifyNoOp(__instance, dragItem, uiCasts));
-		__state = true;
+		__state.ProxyWindow = true;
 	}
 
-	private static void Finalizer(bool __state)
+	private static void Finalizer(ReleaseState __state)
 	{
-		if (__state)
+		if (__state.ProxyWindow)
 		{
 			PatchBridge.Impl?.EmitRemoteDragIntents(RemoteDragIntentWindow.Current.Close());
+			return;
+		}
+
+		// The drag opened the displayed backpack by itself; a release that gave the item away keeps it (the
+		// item's landing is what the giver is looking at), every other outcome closes it so the player's own
+		// inventory comes back. A view the player opened from the player panel is not the drag's and stays.
+		if (__state.AutoOpened && !__state.Give && RemoteBackpackView.IsOpen)
+		{
+			RemoteBackpackView.Close();
 		}
 	}
 
 	/// <summary>
-	/// The other side of a release this client makes: what the pointer resolves to,
-	/// when that belongs to another player's displayed inventory. Both reads are the
-	/// native release body's own — the first overlapping inventory button's item
-	/// (the gate and the value <c>TryPerformInventoryAction</c> itself reads,
-	/// <c>PlayerCamera.cs:1532</c>, <c>:1540</c>) and the container window's back
-	/// panel, whose branch loads into <c>currentContainer</c> (<c>:1666</c>) — and a
-	/// third for the one target that carries no item: a body slot of the displayed
-	/// clone, whose index the native R8/R9 branch would run against the LOCAL body
-	/// (<c>:1614-1631</c>), swapping or dropping items of this client's own body that
-	/// the player never aimed at.
-	///
-	/// The ring is what makes those targets the clone's: <c>InvButtonBodyPatch</c>
-	/// answers every button's <c>get_body</c> from the focused clone exactly while
-	/// the view is open, so a body button is the displayed inventory's, and the
-	/// container window's entries carry the proxy container's own children as their
-	/// <c>refItem</c>.
-	///
-	/// The world fallback needs no read here: <c>CloneInventoryRenderer</c> disables
-	/// every proxy collider ("never pickable/blocking"), so the release's own
-	/// <c>Physics2D.OverlapPoint</c> (<c>:1702</c>) cannot reach one.
+	/// The release's own state across the native body: whether the display-proxy intent window was opened
+	/// (the finalizer must close and emit it), whether the view open at the release was the drag's own, and
+	/// whether the release actually gave the item away (a give keeps that view).
 	/// </summary>
-	private static DisplayProxyTarget? ResolveDisplayProxyTarget(PlayerCamera camera, List<RaycastResult>? uiCasts)
+	private struct ReleaseState
 	{
-		if (uiCasts is null)
-		{
-			return null;
-		}
-
-		foreach (var raycastResult in uiCasts)
-		{
-			var button = raycastResult.gameObject.GetComponent<InvButton>();
-			if (button != null && button.Overlaps(uiCasts)) // Unity object — ==; the native gate (PlayerCamera.cs:1532)
-			{
-				var item = button.GetItem();
-				if (item != null && RemoteDragProxyQuery.IsProxy(item)) // Unity objects — ==
-				{
-					// What the pointer hit decides the OPERAND, and this is the only side that can tell: the item
-					// shown here is a real object with (or without) a Container component, while the host's snapshot
-					// of the other player carries no such flag. An item that really is a container is named as the
-					// destination; anything else is not a container, so the release means that RING SLOT — naming a
-					// container the host would then have to nest into a plain item is what left the host's ledger
-					// stating a location the receiver never used.
-					var container = item.GetComponent<Container>();
-					return container != null // Unity object — ==
-						? new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy container item {item.id}", TargetItemInstanceId: RemoteDragProxyQuery.InstanceId(item))
-						: new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy item {item.id} in slot {button.slot}", TargetSlotIndex: button.slot);
-				}
-
-				if (button.isBody && RemoteBackpackView.IsOpen)
-				{
-					// A body slot the ring reads from the clone: the item shown there
-					// is a proxy (handled above), and an EMPTY one still names the
-					// clone's slot index, which is what the native body would act on.
-					return new DisplayProxyTarget(RemoteBackpackView.FocusedSteamId, $"slot {button.slot} of the displayed inventory", TargetSlotIndex: button.slot);
-				}
-			}
-
-			if (raycastResult.gameObject.CompareTag("ContainerBack")
-				&& camera.currentContainer != null) // Unity object — ==; the native gate (PlayerCamera.cs:1666)
-			{
-				var containerItem = camera.currentContainer.GetComponent<Item>();
-				if (containerItem != null && RemoteDragProxyQuery.IsProxy(containerItem)) // Unity objects — ==
-				{
-					return new DisplayProxyTarget(RemoteDragProxyQuery.OwnerSteamId(containerItem), $"display proxy container {containerItem.id}", TargetItemInstanceId: RemoteDragProxyQuery.InstanceId(containerItem));
-				}
-			}
-		}
-
-		return null;
+		internal bool ProxyWindow;
+		internal bool AutoOpened;
+		internal bool Give;
 	}
-
-	/// <summary>The player whose display proxy a local release pointed at, and what the pointer was on.</summary>
-	/// <summary>
-	/// The player whose display proxy a local release pointed at, what the pointer was on, and the operands a
-	/// give-direction intent needs: the item shown there (0 for a body slot), and the slot index of the ring that
-	/// was hit (-1 when the pointer was on a container). The description stays for the refusal line, which names
-	/// both ends whether or not the release turned out to be classifiable.
-	/// </summary>
-	private readonly record struct DisplayProxyTarget(
-		ulong OwnerSteamId,
-		string Description,
-		ulong TargetItemInstanceId = 0,
-		int TargetSlotIndex = -1);
 
 	/// <summary>
 	/// The native release outcomes that are deliberately nothing, so a release

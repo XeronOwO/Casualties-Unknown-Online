@@ -208,13 +208,8 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 	/// screen position and the use/wear circle stays hidden. The native body still
 	/// runs and still colours that circle — only where it sits is CUO's.
 	/// </summary>
-	private static void AnchorRadialToTheFocusedClone(PlayerCamera camera, Body focused)
-	{
-		var screen = (Vector2)Camera.main.WorldToScreenPoint(focused.transform.position);
-		RemoteBackpackView.UpdateSmoothPosition(screen);
-		camera.radialMenu.transform.position = RemoteBackpackView.SmoothPosition;
-		camera.radialCircle.enabled = false;
-	}
+	private static void AnchorRadialToTheFocusedClone(PlayerCamera camera, Body focused) =>
+		RemoteBackpackView.AnchorRadialToFocus(camera, focused);
 
 	/// <summary>One inventory button's item and the <c>favourited</c> value it carried before the frame ran.</summary>
 	private readonly record struct FavouriteCandidate(Item Item, bool Favourited);

@@ -529,17 +529,20 @@ check is the compatibility boundary; no dual shape is kept.
     judgement item.
   - W4 (a world container under the pointer) resolves that container on the owner's side by instance
     id. A container the owner's scene cannot resolve is refused with one logged line.
-  - A LOCAL item dragged while the remote backpack view is open runs the native branch, EXCEPT when its
-    release targets a display proxy: the ring's body buttons and the container window render the focused
-    clone, so such a release is cancelled with one line before the native body runs
-    (`Patches/PlayerCameraDragUsePatch.ResolveDisplayProxyTarget`, ticket
-    `done/local-item-into-remote-display.md`). Stage 1 recorded this corner as "its slot operand comes
-    from the ring (the owner's body)" and left it running; batch `20261006-d` measured what that cost —
-    the native container branch loaded this client's OWN item into the proxy, the clone rebuild unloaded
-    it into the world and the game destroyed it — and this cycle replaced the corner with a refusal on
-    both halves: a slot holding a proxy item, and an EMPTY slot of the displayed body, whose index the
-    native R8/R9 sequence would otherwise run against the local body (swapping, or dropping, items of
-    this client's own body that the player never aimed at).
+  - A LOCAL item dragged while the remote backpack view is open is a GIVE when its release targets the
+    displayed inventory: the ring's body buttons and the container window render the focused clone, so the
+    release names that player's slot or container and is resolved before the native body runs, which must not
+    load this client's item into a proxy (`DragGiveTargetResolver`, read by
+    `Patches/PlayerCameraDragUsePatch` and by the drag cue, ticket `todo/give-item-to-another-player.md`).
+    The release lands on a display proxy only when the pointer is on the displayed backpack; a release on the
+    player's body stays the in-range USE. A proxy target that cannot be named still keeps the refusal line
+    (`done/local-item-into-remote-display.md`): stage 1 recorded this corner as "its slot operand comes from
+    the ring (the owner's body)" and left it running, and batch `20261006-d` measured what that cost — the
+    native container branch loaded this client's OWN item into the proxy, the clone rebuild unloaded it into
+    the world and the game destroyed it. A slot holding a proxy item, and an EMPTY slot of the displayed
+    body, are the two shapes the give resolution claims; the native R8/R9 sequence must never run them
+    against the local body (swapping, or dropping, items of this client's own body that the player never
+    aimed at).
   - The favourite store's frame snapshot (`Patches/PlayerCameraHandleWhileDraggingPatch`) is no longer
     gated on the view being open. The focus can already be cleared while the game still shows the
     container window it opened, and in that frame state the native body's write on a proxy child was

@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using HarmonyLib;
+using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -8,9 +10,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// read that as a feature that does not exist and a misfire as a bug (finding 2026-10-06),
 /// and the ruling that followed is that the cue must NAME the player.
 /// <para>
-/// It reads the game's own dragged item and nothing else: a null item is a drag that has
-/// ended, which is what clears the cue, so this one hook covers both the appearance and the
-/// disappearance. The decision itself is the tracker's, and the drawing is the plugin's.
+/// It reads the game's own dragged item and UI raycasts and nothing else: a null item is a
+/// drag that has ended, which is what clears the cue, and the raycasts are what the tracker's
+/// give check reads — the same resolution the release uses, so a release that would GIVE
+/// shows no USE label. The decision itself is the tracker's, and the drawing is the plugin's.
 /// </para>
 /// <para>
 /// It is its OWN patch class rather than another arm of
@@ -22,6 +25,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(PlayerCamera), "HandleWhileDragging")]
 internal static class PlayerCameraDragUseCuePatch
 {
-	private static void Prefix(PlayerCamera __instance) =>
-		PatchBridge.DragUseCue?.UpdateDragUseCue(__instance.dragItem);
+	private static void Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts) =>
+		PatchBridge.DragUseCue?.UpdateDragUseCue(__instance.dragItem, uiCasts);
 }

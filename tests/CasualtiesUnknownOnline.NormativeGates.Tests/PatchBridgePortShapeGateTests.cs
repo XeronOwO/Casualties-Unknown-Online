@@ -170,6 +170,7 @@ public class PatchBridgePortShapeGateTests
 	[
 		("IRemoteBackpackPatchBridge", AdapterDir + "IRemoteBackpackPatchBridge.cs", true,
 		[
+			"AutoOpenRemoteBackpackForDrag",
 			"EmitRemoteDragIntents",
 			"EmitRemoteWhileDraggingFrame",
 			"LocalSteamId",

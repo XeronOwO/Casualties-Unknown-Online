@@ -14,6 +14,14 @@ internal interface IRemoteBackpackPatchBridge
 	/// <summary>The local player's SteamId — the destination identity a slot release produces when the ring is back on the local body.</summary>
 	ulong LocalSteamId { get; }
 
+	/// <summary>
+	/// The give gesture's entry: a LOCAL dragged item entered a remote player's detection range, so that
+	/// player's backpack is opened for the drag (the user's 2026-10-22 ruling). A refusal — the access rule,
+	/// line of sight, or no render clone — is logged by the coordinator and leaves the drag untouched; a proxy
+	/// drag (the take direction) opens nothing.
+	/// </summary>
+	void AutoOpenRemoteBackpackForDrag(Item? dragItem);
+
 	/// <summary>A display proxy was released but carries no authoritative identity, so the gesture cannot become an intent — reported, never silently dropped.</summary>
 	void ReportRemoteDragUnresolved(Item dragItem);
 
@@ -26,14 +34,16 @@ internal interface IRemoteBackpackPatchBridge
 	/// by the caller and is printed as it was resolved.
 	///
 	/// <para>
-	/// It either becomes a give-direction intent or keeps the refusal line; it answers nothing, because the caller
-	/// clears the drag either way — the native body must not run on a display proxy at all, so a return value would
-	/// have no reader. <paramref name="targetItemInstanceId"/> is the item shown where the pointer landed (0 for a
-	/// body slot) and <paramref name="targetSlotIndex"/> is the ring slot that was hit (-1 when the pointer was on a
+	/// It either becomes a give-direction intent or keeps the refusal line. It answers whether the intent
+	/// actually went out: the caller clears the drag either way (the native body must not run on a display
+	/// proxy at all), and the release bracket reads the answer to decide whether the drag-opened backpack
+	/// stays — a REFUSED give produced no give, so its view closes. <paramref name="targetItemInstanceId"/>
+	/// is the item shown where the pointer landed (0 for a body slot) and
+	/// <paramref name="targetSlotIndex"/> is the ring slot that was hit (-1 when the pointer was on a
 	/// container); exactly one of the two is set.
 	/// </para>
 	/// </summary>
-	void ReportLocalReleaseOntoProxy(Item dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex);
+	bool ReportLocalReleaseOntoProxy(Item dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex);
 
 	/// <summary>
 	/// One closed release bracket: log the native calls this stage could not

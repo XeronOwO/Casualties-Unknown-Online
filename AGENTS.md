@@ -76,11 +76,15 @@ not the goal.
   performs — which mouse button is held, which window is open, and what can still be clicked or pressed
   while it is held — and check it against the game's own control flow (`PlayerCamera`'s drag bracket and
   its UI hit tests are the reference for a drag). A gesture whose input sequence cannot be performed is a
-  design defect found at design time, not an implementation detail: opening another player's inventory
-  needs the same right button the drag already holds, so "drag an item into that inventory" is not an
-  interaction the player can execute. A design that needs a new input, a new window or a changed control
-  scheme is user-visible and goes to the user before it is built. A call seam that a probe can drive is
-  never evidence that a player can reach it.
+  design defect found at design time, not an implementation detail. **An impossibility claim is a claim
+  about every entrance**: enumerate the surfaces that open the window the gesture needs and the button each
+  needs before declaring the sequence unperformable — a conflict on one entrance is not a property of the
+  control scheme (the player panel opens a backpack with a LEFT click, so a drag holding the right button
+  can reach it). **An entry behind a hotkey the player has no reason to know is not the primary entry**: the
+  gesture must open what it needs from the act itself (dragging an item onto a player opens that player's
+  backpack). A design that needs a new input, a new window or a changed control scheme is user-visible and
+  goes to the user before it is built. A call seam that a probe can drive is never evidence that a player
+  can reach it.
 - `[CRITICAL]` No shortcuts: take the proper path when one exists.
 - `[CRITICAL]` Pragmatism is not a shield: a suboptimal choice needs an architectural reason. Do the
   right thing once.

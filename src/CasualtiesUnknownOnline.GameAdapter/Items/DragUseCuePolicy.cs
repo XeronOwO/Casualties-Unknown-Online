@@ -7,8 +7,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// The user's requirement is that the cue NAMES the player, and that is not decoration:
 /// two players standing on each other cannot be told apart by a highlight, so a named
 /// label is what makes a release a decision instead of a guess (user ruling 2026-10-06).
-/// The target here is the same nearest-player the release itself resolves, so the label
-/// and the release cannot disagree about who the item would go to.
+/// The target here is the same last-entered range the release itself uses for the USE, and
+/// the caller hides the cue when the pointer is on the displayed backpack (where the release
+/// is a GIVE), so the label and the release cannot disagree about what the release does.
 /// </para>
 /// <para>
 /// The cue appears only for an item the family gate ACCEPTS — the ticket's own
@@ -18,9 +19,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// </summary>
 internal static class DragUseCuePolicy
 {
-	internal static DragUseCue Decide(bool sessionActive, bool hasDraggedItem, bool itemIsEligible, ulong? nearestTargetSteamId)
+	internal static DragUseCue Decide(bool sessionActive, bool hasDraggedItem, bool itemIsEligible, ulong? targetSteamId)
 	{
-		if (!sessionActive || !hasDraggedItem || !itemIsEligible || nearestTargetSteamId is not { } target || target == 0)
+		if (!sessionActive || !hasDraggedItem || !itemIsEligible || targetSteamId is not { } target || target == 0)
 		{
 			return DragUseCue.Hidden;
 		}

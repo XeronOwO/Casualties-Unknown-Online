@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
@@ -10,6 +11,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -309,9 +311,11 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public ulong LocalSteamId => _remoteDragIntents.LocalSteamId;
 
+	public void AutoOpenRemoteBackpackForDrag(Item? dragItem) => domains.DragUse.AutoOpenFor(dragItem);
+
 	public void ReportRemoteDragUnresolved(Item dragItem) => _remoteDragIntents.ReportUnresolved(dragItem);
 
-	public void ReportLocalReleaseOntoProxy(Item dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex) =>
+	public bool ReportLocalReleaseOntoProxy(Item dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex) =>
 		_remoteDragIntents.ReportLocalReleaseOntoProxy(dragItem, targetOwnerSteamId, target, targetItemInstanceId, targetSlotIndex);
 
 	public void EmitRemoteDragIntents(RemoteDragOutcome outcome) => _remoteDragIntents.Emit(outcome);
@@ -449,7 +453,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		domains.LayerAdvance.OnHostDescent(twice);
 	}
 
-	public void UpdateDragUseCue(Item? dragItem) => domains.DragUseCue.Update(dragItem);
+	public void UpdateDragUseCue(Item? dragItem, List<RaycastResult>? uiCasts) => domains.DragUseCue.Update(dragItem, uiCasts);
 
 	public void OnFluidDrinkReported(Vector2Int pos) => domains.FluidSync.OnDrinkReported(pos);
 

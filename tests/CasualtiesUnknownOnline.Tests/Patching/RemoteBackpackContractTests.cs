@@ -76,10 +76,11 @@ public class RemoteBackpackContractTests
 		var ontoProxy = remoteBridge.GetMethod("ReportLocalReleaseOntoProxy");
 		Assert.NotNull(ontoProxy);
 
-		// It either classifies the release as a give-direction intent or keeps the refusal line. It answers nothing:
-		// the caller clears the drag either way, because the native body must not run on a display proxy at all, so
-		// a return value would have no reader — and a mechanism without one is a guess.
-		Assert.Equal(typeof(void), ontoProxy!.ReturnType);
+		// It either classifies the release as a give-direction intent or keeps the refusal line. It answers
+		// whether the intent actually went out: the caller clears the drag either way (the native body must not
+		// run on a display proxy at all), and the release bracket keeps the drag-opened backpack only for a give
+		// that happened — a refused give closes the view it opened.
+		Assert.Equal(typeof(bool), ontoProxy!.ReturnType);
 		var ontoProxyParameters = ontoProxy.GetParameters();
 		Assert.Equal(5, ontoProxyParameters.Length);
 		Assert.Equal("Item", ontoProxyParameters[0].ParameterType.Name);

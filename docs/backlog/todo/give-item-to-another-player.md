@@ -1,21 +1,160 @@
 # Give an item to another player (the push direction)
 
-- Status: Todo
+- Status: Todo — the gesture is defined by the user's 2026-10-22 ruling (below). Unit 1 is that gesture; unit 2
+  is the receiver-side placement answer, shared with `todo/placement-outcome-never-returns.md`.
 - Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
-- Blocked by: the push gesture is not performable with the game's controls (2026-10-22); the design must be
-  re-derived from a real input sequence before any code. See the *Design defect* note below and
-  `todo/placement-outcome-never-returns.md`.
+- Blocked by: nothing external. The two units are sequential: unit 1 changes no wire member and unit 2 carries
+  the answer that keeps a refused item with the giver.
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
-- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `done/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `todo/restore-refused-child-keeps-its-id.md` and `todo/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
+- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `done/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `todo/cross-player-drag-use-model-bounds.md` (the detection shape, and the last-entered target this ruling introduces), `todo/cross-player-drag-use-feedback.md` (the cue that must name the same target), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `todo/restore-refused-child-keeps-its-id.md` and `todo/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
 
-> **Design defect found 2026-10-22**: the push gesture this ticket's rows rest on — releasing the giver's
-> own item onto the other player's open backpack — is not an interaction the player can perform. The
-> other player's backpack is opened with the right button the item drag already holds, and while that view
-> is open the inventory ring answers from the focused clone (`InvButtonBodyPatch`), so the giver's own
-> items are not on screen to drag. The readings below are probe-driven, not player-driven. The design must
-> be re-derived from a performable input before it is trusted; see the *Design defect* section of
-> `todo/placement-outcome-never-returns.md` and the input rule in the root `AGENTS.md`.
+## Design (2026-10-22 — the user's ruling; this is the current design)
+
+The gesture starts from the giver's own backpack and uses the game's existing drag. The user's ruling defines
+the whole input sequence, because the order the earlier design assumed — the other player's backpack already
+open when the drag starts — is not how the player reaches it.
+
+### The input sequence (what the player actually does)
+
+1. Open the player's own backpack (the native inventory ring) and hold the right button on an item. The game's
+   own drag starts (`PlayerCamera.HandleStartDragging`; `iteminteract` is Mouse1).
+2. Drag the item into another player's detection range — the same 1.5-unit circle the landed use-by-drag
+   gesture uses (`CrossPlayerDragUse.OverlapRadius`). **That player's backpack opens by itself**, as the native
+   remote backpack view: their ring slots, and the containers their slots hold.
+3. Passing over several players: the target is the player whose range the cursor entered last, and the
+   displayed backpack follows it (the previous player's closes and the new one opens). A target whose range
+   the cursor has already left does not stay the target while another player is still under the cursor. When
+   the cursor leaves every range — the path onto the displayed backpack — the last target is kept, so the give
+   still names it.
+4. Release inside the target's detection range, not on the displayed backpack: the item is USED on that player
+   — the landed use-by-drag gesture — and the backpack closes.
+5. Move the cursor from the range onto the displayed backpack (a ring slot, or a container item shown in the
+   ring) along a path that does not pass through another player's range, and release there: the item is GIVEN
+   to that player. The destination is the slot or the container the release names; the receiver's own native
+   rules decide whether it fits.
+6. Release anywhere else (outside every range, not on the displayed backpack): the native drop, unchanged.
+
+The player panel's "open backpack" stays as a second entry — open it while the item is dragged, then release
+on the displayed backpack — but it is not the primary entry: it needs a hotkey no player has a reason to know.
+The world gesture teaches itself by opening the backpack when the item reaches the player.
+
+### Use and give on the same release
+
+The use-by-drag gesture keeps its meaning and becomes the entry that opens the backpack. The two outcomes are
+separated by WHERE the release lands, not by the item: a release on the displayed backpack is a give, a release
+in the player's range but not on their backpack is a use. The item's own use eligibility still decides whether
+a use is possible (an item with no use action is dropped, as today). The target is the last-entered range
+described above, which replaces the nearest-only pick and its list-order tie-break.
+
+### What the receiver sees
+
+Native, unchanged, and the 2026-10-17/18 destination ruling below still governs it: a ring slot puts the item
+on the receiver's body, a container item shown in the ring puts it inside that container when the receiver's
+own `Container.CanHoldItem` allows it, and the receiver sees what it would see picking the item up itself.
+
+### When the destination cannot take it
+
+The user's 2026-10-22 ruling: **the item stays with the giver.** A give is therefore not committed until the
+receiver's own client has accepted the placement; the answer — the destination the receiver resolved, or its
+refusal — travels back before any custody moves, and the host records the receiver's answer rather than the
+giver's request. That answer is the whole subject of `todo/placement-outcome-never-returns.md`; the two tickets
+share it. The common refusals (no free slot, a container's weight/tag rule, an item only a hand can hold) are
+answered before the item leaves; the rare race where the body changes between the answer and the transfer is
+that ticket's residual and still returns the item.
+
+**Unit 2 is not implemented yet.** Until it lands, a give whose destination refuses on the receiver's own
+client still follows the old path — the item can be lost in the narrow hand-only/no-slot shape — and no index
+row claims otherwise. That is the next cycle's work, not a limit of this one.
+
+
+### Acceptance (the rows a run must read, with the real gesture)
+
+A two-client run on the deployed artifact, the giver driven with the real mouse and keyboard sequence above —
+no probe may stand in for the gesture:
+
+| # | Scenario | Expected |
+|---|---|---|
+| 1 | Drag the giver's own item into the receiver's detection range | The receiver's backpack opens by itself, with no other key pressed |
+| 2 | Release inside the range with an item that can be used on a player | The item is used on the receiver, and the backpack closes |
+| 3 | Drag from the range onto a ring slot of the displayed backpack and release | The give intent is sent; the item lands in a slot the receiver's own rules accept, and the host's row names that slot |
+| 4 | Drag onto a container item shown in the displayed backpack | The item enters that container when the receiver's own rules allow it, and the host's row names the container |
+| 5 | Drag across two players, then release | The player whose range was entered last is the target, for both the backpack and the use |
+| 6 | The receiver's body or container refuses (full, too heavy, hand-only with no hand) | The give fails, one line names why, and the item is still in the giver's inventory |
+| 7 | The same release onto the giver's OWN backpack | The native local move, unchanged |
+| 8 | Host policy `deny` / `unconscious_or_dead` | The open is refused (`deny`) or the give is refused with one line (view-only), nothing moves, and the drag-opened backpack closes after the refusal |
+| 9 | Cursor inside the target's range, on their body | The use label names that player (unit 1's cue) |
+| 10 | Cursor on the displayed backpack | No use label — the release there is a give (unit 1's cue) |
+
+### The units
+
+- **Unit 1 — the gesture** (this ticket's first cycle): the last-entered target selection, the automatic open
+  of the target's backpack on a range entry, the release order that makes a displayed-backpack release a GIVE
+  before an in-range release is a USE, the close of the backpack the drag opened, and the cue following the
+  same target. It changes no wire member and leaves the custody path untouched.
+- **Unit 2 — the receiver's placement answer**, shared with `todo/placement-outcome-never-returns.md`: the
+  hand-over commits only after the receiver's own client accepts, and the host records the accepted
+  destination. Rows 3, 4 and 6, and the ledger rows, land there.
+
+### How unit 1 landed (2026-10-22)
+
+- **The target and the give are two resolutions, each shared by every reader.** The target of a USE is
+  `DragTargetSelection` (last-entered range; the adapter feeds it the in-world remotes and the cursor, the
+  release and the cue read the same instance). The target of a GIVE is `DragGiveTargetResolver`, read by the
+  release patch AND by the cue (the cue patch passes the frame's UI raycasts), so the label can neither
+  promise a use where the release would give nor name a player the release would not use.
+- **The automatic open**: `PlayerCameraDragGiveOpenPatch` (its own patch on the game's while-dragging frame)
+  forwards to `CrossPlayerDragUse.AutoOpenFor`, which opens through `RemoteBackpackCoordinator.Open` — so the
+  access rule and the line-of-sight check are the same ones every other entry uses. A proxy drag opens
+  nothing. The open also anchors the radial menu to the clone and rebuilds the wear strip itself, because
+  the native ring-activation path that would do both does not run mid-drag; a missing render clone is retried
+  on the next frame instead of spending the drag's entry on it.
+- **The release order is pinned**: the displayed backpack is resolved before the in-range use, and the pin is
+  `GiveGestureGateTests.ADisplayedBackpackRelease_IsResolvedBeforeTheInRangeUse` (with its matcher contract).
+- **The close rule**: the drag-opened backpack stays only for a give whose intent actually went out — the
+  patch reads the seam's answer, so a refused give (a view-only pack, an item with no authoritative id)
+  closes it. A use closes whatever backpack is showing the target; a drop closes the drag-opened one. A
+  player-opened backpack is not closed by a drop.
+- **The cue**: `DragUseCueTracker` names the target while the cursor is inside its range and the displayed
+  backpack does not claim the release; on the displayed backpack it hides, because the release is a give.
+
+> **The 2026-10-22 defect note, kept as history**: the order the earlier design assumed — the other player's
+> backpack already open when the giver's drag starts — is not performable: while that view is open the ring
+> answers from the focused clone (`InvButtonBodyPatch`), so the giver's own items are not on screen. The
+> readings below are probe-driven and are not evidence for the gesture; they remain evidence for the custody
+> path and its destination semantics. The input order above supersedes them; see the input rule in the root
+> `AGENTS.md`.
+
+### The independent review's findings, and what each one changed (2026-10-22)
+
+The review ran in a fresh context against the frozen tree. Every finding is recorded here with the code it
+named, because a fixed finding that is not written down is one the next cycle re-learns.
+
+- **Major — the cue could promise a USE where the release gives.** The cue read only the target selection,
+  while the release's first branch is the displayed backpack. **Changed:** one shared give resolution
+  (`DragGiveTargetResolver`) is read by the release patch and by the cue (whose port now carries the frame's
+  UI raycasts), and the cue hides on the displayed backpack. Pin:
+  `GiveGestureGateTests.TheCueAndTheRelease_ReadTheSameGiveResolution`.
+- **Major — a REFUSED give kept the drag-opened backpack.** The release recorded "gave" as soon as a target
+  resolved, before the dispatcher's refusals (a view-only pack, an item with no authoritative id).
+  **Changed:** the seam answers `bool` (intent sent / refused) and the close flag reads that answer; the
+  seam's doc and the compiled contract (`RemoteBackpackContractTests.PatchBridge_ExposesTheReleaseWindowSurface`)
+  follow. Pin: `GiveGestureGateTests.TheGiveFlag_IsTheSeamsAnswer_AndTheCloseRuleReadsIt`.
+- **Major — two live documents stated the opposite.** `docs/architecture/remote-inventory-native-parity.md`'s
+  local-item bullet still said such releases were cancelled, and this ticket's "What exists today"/"What it
+  would take" still described the refusal and the missing intent kind. **Changed:** the spec bullet describes
+  the give-first order, and those ticket sections are marked history with the false sentences corrected.
+- **Major — the delivery checklist was the previous cycle's** (its entry-mapping evidence said "no new
+  gesture"). **Changed:** reset and re-filled line by line for this cycle, with the input sequence in the
+  entry-mapping line.
+- **Minors, each fixed:** `_openedFor` no longer spends a target on an open that is only waiting for its
+  render clone; the drag-open rebuilds the wear strip and anchors the radial itself (the native activation
+  path does not run mid-drag, and an undeclared Harmony prefix order must not decide whether the ring
+  survives into the native body); `AutoOpened` is cleared when the drag ends, so a later drag cannot close a
+  view a give kept; dead surface removed (the selection's stored position fields, an over-wide `EndDrag`, and
+  a one-value setter); the give/use order and the seam's answer are pinned by `GiveGestureGateTests`; stale
+  "nearest" restatements are fixed in the cue policy and the two sibling tickets; the one file written with
+  bare LF is a working-tree format detail (git normalizes it on commit).
 
 ## Previous acceptance (2026-10-22) — superseded by the design defect
 
@@ -27,7 +166,11 @@ variant was never run); row 5 passed in batch `20261021-a`. The fix changed no w
 `docs/evidence/acceptance/give-item-to-another-player-20261022-a.md` (the re-read) and
 `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md` (the rejection it answers).
 
-## What exists today (both directions of one hand-over, only one carried)
+## What exists today (both directions of one hand-over, only one carried) — history, pre-2026-10-22
+
+> This section records the code as it stood before the gesture above landed; its tense is history. The give
+> is no longer refused: a release on the displayed backpack is a give (`GiveToBody`, which had already landed
+> by 2026-10-18), and only a proxy target that cannot be named keeps the refusal line.
 
 - **The receiver takes it — landed.** The operator opens the other player's backpack, drags a display proxy and
   releases it with the ring back on its OWN body (the double-Tab flow): the window classifies that release as
@@ -48,7 +191,10 @@ variant was never run); row 5 passed in batch `20261021-a`. The fix changed no w
 - **The routes that do work today**: the receiver takes it (above), or the item is dropped and the other player
   picks it up (or auto-picks it up by walking over it) — normal world pickup, host-validated as always.
 
-## What it would take
+## What it would take — history, superseded by the 2026-10-22 design above
+
+> The intent kind below landed as `GiveToBody = 16` on 2026-10-18; the gesture above is what now reaches it.
+> Kept because the custody rules it states are still the design's constraints.
 
 - **A new intent kind** whose operands are the item, the destination body and the destination slot or container —
   the mirror of `TransferToBody`, where the item's owner is the ACTOR and the destination body belongs to the
@@ -97,8 +243,12 @@ A three-client run (operator = the giver, owner = the receiver, third peer = a w
   `done/remote-inventory-native-parity-rework.md` depends on it.
 - Not a change to the receiver-initiated take (`TransferToBody`), which stays as it is.
 - Not the access policy itself: the three-way host rule that must gate this gesture is
-  `todo/remote-backpack-access-policy.md`, and it lands separately (this ticket obeys whatever that rule says).
+  `done/remote-backpack-access-policy.md`, and it landed separately (this ticket obeys whatever that rule says).
 ## Design decided (2026-10-17 — the two questions above, answered by the user)
+
+> The two DESTINATION answers below still stand (a ring slot of the displayed backpack, or a container item
+> shown in it). The input order this section assumed is superseded by the 2026-10-22 design above: the
+> backpack is opened by the gesture itself, not before the drag.
 
 The gesture and the presentation were the user's call because this gesture has no native counterpart to
 inherit. Both were answered:
@@ -156,7 +306,7 @@ this ticket's design; a goal or a session note is not where a decision is record
 
 ## What this ticket still owes, and what it does not
 
-- It obeys the access policy of `todo/remote-backpack-access-policy.md`; that ticket lands separately and this
+- It obeys the access policy of `done/remote-backpack-access-policy.md`; that ticket landed separately and this
   one does not build the policy.
 - The receiver-initiated half (`TransferToBody`) is not touched.
 - A new intent kind with a client half on both sides is the largest shape this family has, so it carries the

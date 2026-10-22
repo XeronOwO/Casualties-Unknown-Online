@@ -1,13 +1,17 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
-using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
 /// Answers the gesture's cue every frame the game is dragging something. It reads the same
-/// facts the release reads — the dragged item, the family gate's verdict on it, and the
-/// nearest remote player under the cursor — and hands the plugin a decision it can draw.
+/// facts the release reads — the dragged item, the family gate's verdict on it, the
+/// gesture's ONE target (the last-entered detection range, <see cref="CrossPlayerDragUse"/>),
+/// and the SAME displayed-backpack resolution the release uses — and hands the plugin a
+/// decision it can draw. The cue shows only while the release would be a USE: the cursor is
+/// inside the target's range and not on the displayed backpack (where the release is a give).
 /// <para>
 /// The reading is taken in the while-dragging frame rather than in the release, because the
 /// cue has to appear and move BEFORE the operator lets go: a cue that only existed at the
@@ -24,10 +28,11 @@ internal sealed class DragUseCueTracker(GameAdapterDomains domains) : IDragUseCu
 
 	/// <summary>
 	/// Recompute this frame's cue. Called once per while-dragging frame with the game's own
-	/// dragged item, which is the only place it is known.
+	/// dragged item and UI hits, which are the only places they are known.
 	/// </summary>
-	internal void Update(Item? dragItem)
+	internal void Update(Item? dragItem, List<RaycastResult>? uiCasts)
 	{
+		var target = domains.DragUse.Observe(dragItem);
 		if (dragItem == null) // Unity object — ==
 		{
 			_cue = DragUseCue.Hidden;
@@ -36,33 +41,17 @@ internal sealed class DragUseCueTracker(GameAdapterDomains domains) : IDragUseCu
 
 		// `IsUseItem` is the same gate the release passes, so an item that would be dropped
 		// shows no cue: the cue teaches what can be handed over rather than promising a target
-		// it will not use.
+		// it will not use. The displayed backpack is the ONE give resolution the release uses,
+		// so a release that would give shows no USE label.
 		var eligible = LocalUseItemEligibility.IsUseItem(
 			dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.WearSemantics, domains.SolidFoodSemantics);
-		var target = ResolveTarget(dragItem, eligible);
+		var onDisplayedBackpack = eligible
+			&& DragGiveTargetResolver.Resolve(dragItem, PlayerCamera.main, uiCasts) is not null;
 		_cue = DragUseCuePolicy.Decide(
-			domains.Session.SessionActive && domains.Session.LocalInWorld, true, eligible, target);
-	}
-
-	/// <summary>
-	/// The player under the cursor, asked of the gesture's OWN resolution when the item is
-	/// eligible. An ineligible item answers no target at all rather than a target it would
-	/// not use.
-	/// </summary>
-	private ulong? ResolveTarget(Item dragItem, bool eligible)
-	{
-		if (!eligible || domains.Session.SessionActive is false)
-		{
-			return null;
-		}
-
-		var camera = Camera.main;
-		if (camera == null) // Unity object — ==
-		{
-			return null;
-		}
-
-		return domains.DragUse.ResolveTargetSteamId(camera.ScreenToWorldPoint(Input.mousePosition));
+			domains.Session.SessionActive && domains.Session.LocalInWorld,
+			true,
+			eligible,
+			!onDisplayedBackpack && eligible && domains.DragUse.IsTargetInRange ? target : null);
 	}
 
 	/// <summary>Clear the cue when the drag ends, so a label cannot outlive the gesture that produced it.</summary>

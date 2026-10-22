@@ -46,17 +46,16 @@
    body pass is skipped; its limbs DO follow the streamed pose. If the collider rectangle is used, the
    owner's `Crouching` wire flag should drive the same lerp the native body applies, or the sprite-bounds
    variant should be preferred instead.
-3. **Overlap (the user's question).** Recommended rule: *what you see is what you get* — the pointer must be
-   inside the target's rectangle, and when it is inside two rectangles the player drawn ON TOP under the
-   pointer wins (the highest sprite sorting order, which is what the eye reads as "in front"); the chosen
-   one and the number of candidates go into the log line, so an unexpected pick is a readable record rather
-   than a mystery. **The player-visible half of this rule is the named cue** (user ruling 2026-10-06,
-   `todo/cross-player-drag-use-feedback.md`): the label names the player the release will apply to, so the
-   operator can see the pick BEFORE letting go — the resolution rule and the label must always agree, and a
-   cue that only highlights without naming cannot separate two players standing on each other. The
-   alternative — refuse when two players are under the pointer, and say so — is a
-   deliberate choice and would have to be taken on purpose; what must NOT survive is the current tie-break
-   by list order, which no player can predict.
+3. **Overlap (the user's question — answered 2026-10-22).** The rule is now the user's: the target is the
+   player whose detection range the cursor entered LAST; a player whose range the cursor has left does not stay
+   the target while another player is still under the cursor, and when the cursor leaves every range the last
+   target is kept (the give path continues onto the displayed backpack). The cue must name that same target, so
+   the label and the release cannot disagree. This replaces the earlier recommendation ("the one drawn on top")
+   and the list-order tie-break: what must NOT survive is a pick no player can predict. The detection SHAPE is
+   still this ticket's (the model instead of a fixed circle); the last-entered rule is now the picking model
+   the USE release and its cue read (`todo/give-item-to-another-player.md`, "The input sequence"). The GIVE's
+   player is resolved from the displayed backpack instead, because that is what the player sees and releases
+   on (`DragGiveTargetResolver`, shared with the cue's give check).
 4. **What stays as it is.** The eligibility list (`LocalUseItemEligibility`), the wire (`PlayerItemUseRequestMsg`
    116 / `PlayerItemUseResultMsg` 117) and the host's own validation are untouched: this ticket changes where
    the release lands, not what may be used.

@@ -82,10 +82,13 @@
 ## The cue's rule landed (2026-10-18), and the reading that shaped it
 
 `DragUseCue` and `DragUseCuePolicy` decide WHEN the gesture announces a target and WHOM it names: an item the
-family gate accepts, dragged over a player the same nearest-player resolution the release uses, shows a label
+family gate accepts, dragged over a player the same target resolution the release uses, shows a label
 carrying that player's steam id. Six cases pin it, including the two that keep the cue honest — an item the
 release would drop shows nothing (so the cue teaches what can be handed over rather than promising a target it
 will not use), and a row without an identity shows nothing (so the label cannot disagree with the release).
+The 2026-10-22 give gesture added two facts the cue must honour, both in the same tracker: the target is the
+last-entered detection range (not the nearest walk), and on the displayed backpack the release is a GIVE, so
+the cue asks the same `DragGiveTargetResolver` the release does and hides its USE label there.
 
 **Three things the reading settled, so the wiring does not have to re-derive them:**
 
@@ -99,9 +102,10 @@ will not use), and a row without an identity shows nothing (so the label cannot 
   (`OnlineUiContext.DisplayName`), next to `RemoteBackpackView`'s and `RemoteMedicalView`'s copies of the same
   fallback. So the cue carries the steam id and the overlay resolves the name; a name decided in the adapter
   would be a fourth answer to that question.
-- **The target must be the release's own resolution.** `CrossPlayerDragUse` walks the remote players for the
-  nearest inside `OverlapRadius`; the cue has to read that same walk, not a second one, or the label and the
-  release can name different players — which is exactly the overlap case the ticket says the label exists for.
+- **The target must be the release's own resolution.** `CrossPlayerDragUse` reads the last-entered detection
+  range from `DragTargetSelection`; the cue has to read that same selection, not a second one, or the label and
+  the release can name different players — and it must also read the release's give resolution
+  (`DragGiveTargetResolver`), because on the displayed backpack the release is a give and the USE label lies.
 
 ## Limits this stage leaves
 

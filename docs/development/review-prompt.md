@@ -47,9 +47,15 @@ Adversarially verify:
   4. **Can the player physically perform this input sequence?** Write down the exact inputs — which
      mouse button is held, which window is open, and what can still be clicked or pressed while it is
      held — then walk them through the game's own control flow (`PlayerCamera`'s drag bracket and its UI
-     hit tests). A gesture that needs two inputs the controls cannot combine (a right-button drag that
-     also needs a right-click to open the target window) is a BLOCKER: no player can reach it, however
-     clean the seam behind it. A seam a probe can drive is not evidence that the interaction exists.
+     hit tests). A gesture that needs two inputs the controls cannot combine is a BLOCKER: no player can
+     reach it, however clean the seam behind it. A seam a probe can drive is not evidence that the
+     interaction exists. The impossibility claim itself needs an ENTRY CENSUS: list every surface that
+     opens the window the gesture needs and the button each one requires before saying the sequence cannot
+     be performed — a conflict on one entrance is not a property of the control scheme (the world
+     right-click menu cannot open a backpack during a right-button drag; the player panel opens the same
+     backpack with a left click). And an entry that exists only behind a hotkey the player has no reason
+     to know is not a player-facing entry: the gesture has to open what it needs from the act itself
+     (dragging an item onto a player opens that player's backpack).
   An earlier cycle shipped a cross-player limb tool reachable from the inventory-use gesture (which
   names no limb) with the limb resolved to the target's most-injured one, and this section exists
   because the review of that cycle was scoped to attack the implementation and could not see the wrong

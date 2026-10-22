@@ -22,6 +22,7 @@ internal static class RemoteBackpackView
 	private static ulong _openContainerInstanceId;
 	private static bool _readOnly;
 	private static bool _readOnlyDrag;
+	private static bool _autoOpened;
 
 	internal static Body? FocusedBody
 	{
@@ -65,6 +66,22 @@ internal static class RemoteBackpackView
 	/// </summary>
 	internal static bool ReadOnlyDrag => _readOnlyDrag;
 
+	/// <summary>
+	/// Whether the open view was opened by the DRAG gesture (the item entered the target's detection
+	/// range), not by the player from the player panel. The drag's own release closes it unless the
+	/// release gave the item away; a view the player opened is not closed by a release.
+	/// </summary>
+	internal static bool AutoOpened => _autoOpened;
+
+	/// <summary>Marks the view just opened by the drag gesture (the gesture's own close rule reads it).</summary>
+	internal static void MarkAutoOpened() => _autoOpened = true;
+
+	/// <summary>
+	/// Ends the drag's claim on the view. Called when the drag ends, because a give keeps the view open for
+	/// the giver and a later drag must not treat that view as its own.
+	/// </summary>
+	internal static void ClearAutoOpened() => _autoOpened = false;
+
 	internal static void SetReadOnly(bool readOnly) => _readOnly = readOnly;
 
 	/// <summary>A display proxy was picked up: remember whether the view it came from was view only.</summary>
@@ -83,6 +100,7 @@ internal static class RemoteBackpackView
 			: Vector2.zero;
 		_readOnly = readOnly;
 		_readOnlyDrag = false;
+		_autoOpened = false;
 		PlayerCamera.main.radialOpen = true;
 	}
 
@@ -111,6 +129,7 @@ internal static class RemoteBackpackView
 		_containerRefreshPending = false;
 		_containerRefreshDueFrame = -1;
 		_readOnly = false;
+		_autoOpened = false;
 
 		// Closing the focus also exits the native radial-open state. This keeps
 		// the remote backpack and remote medical views mutually exclusive: if the
@@ -125,6 +144,26 @@ internal static class RemoteBackpackView
 
 	internal static void UpdateSmoothPosition(Vector2 target) =>
 		_smoothPosition = Vector2.Lerp(_smoothPosition, target, 5f * Time.deltaTime);
+
+	/// <summary>
+	/// Anchors the native radial menu to the focused clone and hides the use/wear circle. The game anchors
+	/// the menu to the LOCAL body; with a remote backpack open the ring belongs to the clone. Shared by the
+	/// while-dragging frame and the drag's automatic open, so the anchoring does not depend on which patch
+	/// happened to run first on the frame the view opened — the native while-dragging body closes the ring
+	/// when the menu is far from the pointer, which the stale local anchor would cause for a far target.
+	/// </summary>
+	internal static void AnchorRadialToFocus(PlayerCamera camera, Body focused)
+	{
+		if (focused == null || Camera.main == null) // Unity objects — ==
+		{
+			return;
+		}
+
+		var screen = (Vector2)Camera.main.WorldToScreenPoint(focused.transform.position);
+		UpdateSmoothPosition(screen);
+		camera.radialMenu.transform.position = SmoothPosition;
+		camera.radialCircle.enabled = false;
+	}
 
 	/// <summary>
 	/// The remote clone's open container contents were re-rendered by the

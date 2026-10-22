@@ -113,11 +113,20 @@ does not, and neither have the machine rows been run. What landed:
 - **Row 6 is `UNPROVEN`.** Batch `20261022-h` read rows 1-5 on the deployed artifact `0.1.0+fb782e5c` and all
   five passed (the container refusal, the no-free-slot refusal, the substituted slot the host records, the
   accepted container, the deny arm); the residual's window is the answer→transfer round trip (the batch measured
-  ~540 ms), which neither the run nor the receiver's player can change by hand, so the row is recorded
-  `unproven` in `docs/evidence/acceptance/placement-outcome-never-returns-20261022-h.md`. The return path's code
-  and behaviour test exist; its machine reading is what is missing.
-- **The ticket's status.** It stays `todo/` for that one row. The give ticket's rows 3 and 4 passed in the same
-  run; both tickets cite the same record.
+  ~540 ms), which the run could not stage (batch `20261022-i`). The independent review of `fb782e5c` then found
+  the residual's branch unreachable at that commit — the exact flag stopped at the kernel projection and the
+  adapter never received the resolver — so no client could have produced the report at all. That wiring is fixed
+  in the review's own fix commit (the flag rides `RecordPlayerInventoryTransferCommand`/the event/the codec, the
+  resolver is injected by `GameAdapter`, the answer deadline runs per frame, and a `Returned` transfer makes a
+  full giver's body drop the item instead of destroying it); the row's machine reading is still owed.
+- **The failure report has no anchor (decision 265).** The host can bound the transactional half (a committed
+  give to that sender, the item in its snapshot) but not the claim itself (the receiver's live body cannot take
+  the place), so the census row for `NetMsg.PlayerPlacementFailed` is `unbounded` and a malicious receiver that
+  keeps its copy can make the host write a second one. The anchor it would need is a receiver-reported placement
+  OUTCOME the host compares with the row it wrote — the next design step on this ticket, recorded in
+  `docs/architecture/member-report-validation.md`.
+- **The ticket's status.** It stays `todo/` for row 6 and the anchor. The give ticket's rows 3 and 4 passed in
+  the same run; both tickets cite the same record.
 - **What a future reading would need.** Batch `20261022-i` tried twice and established the mechanical reason:
   both clients' gestures need the same physical right button and the same single foreground window, so the
   receiver's own body change cannot be made inside the answer→transfer window (~540 ms) — the two holds are

@@ -172,6 +172,9 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 	public void HandlePlacementFailed(ulong sender, PlayerPlacementFailedMsg msg) =>
 		_placement.HandleFailed(sender, msg);
 
+	/// <summary>Per frame: the placement service refuses a question whose deadline passed.</summary>
+	public void Update() => _placement.Tick();
+
 	/// <summary>The one session-teardown stage: the give's unanswered placement questions die with the world.</summary>
 	public void ResetSessionState() => _placement.ResetSessionState();
 

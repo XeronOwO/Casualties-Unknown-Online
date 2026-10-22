@@ -916,6 +916,10 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
+		public void Update()
+		{
+		}
+
 		public void FireRemoteInventoryIntentReceived(RemoteInventoryIntentMsg msg)
 		{
 		}

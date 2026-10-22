@@ -93,6 +93,18 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 				{
 					// The host recorded the destination this client ANSWERED before it wrote the row, so this
 					// client may not substitute: if its live body can no longer take that exact place, it reports
+					// a return comes home: any slot on this body is acceptable, and a body that accepts none must
+					// not consume the item — it falls at this client's feet, the user's ruling being that the item
+					// ends with the giver, never that a full body destroys it.
+					if (msg.Returned && _placementResolver is not null && !_placementResolver.Resolve(item, item.SlotIndex, 0).Accepted)
+					{
+						domains.Log.LogWarning(
+							"[PlayerInteraction] {ItemId} (id {InstanceId}) came back to a body with no room — dropping it at this client's feet.",
+							item.ItemId, item.InstanceId);
+						_placement.DropCreatedItemAtLocalBody(body, item);
+						return;
+					}
+
 					// the failure and creates nothing — the host moves the row back to the giver.
 					if (msg.ExactDestination && !CanTakeExactDestination(item, msg, out var exactRefusal))
 					{

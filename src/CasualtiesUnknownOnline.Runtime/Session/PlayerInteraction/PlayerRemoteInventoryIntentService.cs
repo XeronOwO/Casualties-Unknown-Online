@@ -360,10 +360,10 @@ internal sealed class PlayerRemoteInventoryIntentService(
 					return false;
 				}
 
-				// A slot that does not exist is NOT refused here: the host path substitutes the first empty slot and
-				// logs the substitution ("destination slot … is not free …; using slot … instead"). A container the
-				// receiver does not carry IS refused there, by name, against the receiver's own snapshot — this
-				// static check cannot see that snapshot.
+				// A slot that does not exist is NOT refused here: a give's destination is the RECEIVING client's own
+				// answer (the placement question), and whether that slot is free is its resolution — the host never
+				// substitutes for it. A container the receiver does not carry IS refused there, by name, against the
+				// receiver's own snapshot — this static check cannot see that snapshot.
 				refusal = string.Empty;
 				return true;
 			case RemoteInventoryIntentKind.ApplyToLimb:

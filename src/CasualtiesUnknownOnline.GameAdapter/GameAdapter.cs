@@ -118,7 +118,8 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		ISolidFoodSemantics solidFoodSemantics,
 		IShrapnelGripSlipRandom gripSlipRandom,
 		ITimeSource time,
-		ItemIdAllocator itemIds)
+		ItemIdAllocator itemIds,
+		IRemotePlacementResolver placementResolver)
 	{
 		_patches = new PatchInstallLifecycle(log);
 		_onlineUiSurface = new OnlineUiSurfaceHost(log);
@@ -132,7 +133,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		// always judges an item's creation before any operation on it (no hold window).
 		items.RegisterPendingCreationSource(new PendingItemCreationReports(_domains.ItemWorldSync, _domains.EntityEventSync, _domains.BlockBreakSync));
 		_bridge = new GameAdapterBridge(_domains);
-		_playerInteraction = new PlayerInteractionApply(_domains);
+		_playerInteraction = new PlayerInteractionApply(_domains, placementResolver);
 		_remoteInventoryApply = new RemoteIntentApplier(_domains);
 		var pushApply = new PlayerPushApply(_domains);
 		var medicalOperationApply = new MedicalOperationApply(_domains);
@@ -202,6 +203,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 			_domains.Run.Update();
 		}
 		_domains.Reentry.Update(); // guest: the bounded ask for the entry instruction it may have missed; host: the answer rides the event
+		_domains.PlayerInteraction.Update(); // host: a placement question nobody answered is refused at its deadline, not at the next give
 
 		using (_latency.Measure("WorldTime"))
 		{

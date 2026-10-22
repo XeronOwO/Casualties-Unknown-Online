@@ -1,4 +1,5 @@
 using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -231,5 +232,36 @@ public class PlacementAnswerTests
 		// Neither report matched, so the committed give stands: the giver does not have the item back.
 		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	/// <summary>
+	/// The two transfer flags must SURVIVE the kernel boundary: the host builds the message, but the receiving
+	/// client is fed the reconstructed one from the committed event. A flag dropped here is a branch that never
+	/// runs in production (the review's blocker), so the projection is pinned directly.
+	/// </summary>
+	[Fact]
+	public void TheTransferFlags_SurviveTheKernelProjection()
+	{
+		var item = PlayerInteractionKernelCodec.FromCharacterItem(new CharacterItemMsg { InstanceId = 42, ItemId = "bandage" });
+		var message = PlayerInteractionKernelCodec.ToTransferMessage(new PlayerInventoryTransferEvent(
+			FromSteamId: HostId,
+			ToSteamId: GuestId,
+			Item: item,
+			TargetParentItemId: 0,
+			Destination: PlayerInventoryDestination.BodySlot,
+			ExactDestination: true,
+			Returned: false));
+
+		Assert.True(message.ExactDestination);
+		Assert.False(message.Returned);
+
+		var returned = PlayerInteractionKernelCodec.ToTransferMessage(new PlayerInventoryTransferEvent(
+			FromSteamId: GuestId,
+			ToSteamId: HostId,
+			Item: item,
+			Destination: PlayerInventoryDestination.BodySlot,
+			Returned: true));
+		Assert.True(returned.Returned);
+		Assert.False(returned.ExactDestination);
 	}
 }

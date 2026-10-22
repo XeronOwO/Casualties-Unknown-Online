@@ -30,12 +30,22 @@ public class GiveGestureGateTests
 		// The give's answer-first custody: the transfer carries the ANSWERED destination, and the receiving
 		// client must not substitute another slot or container when its live body cannot take it — it reports
 		// the failure and the host returns the row. The branch is adapter code (a Unity body), so it is pinned
-		// by its shape here; the host half's behaviour is `PlacementAnswerTests`.
+		// by its shape here; the kernel projection and the host half's behaviour are `PlacementAnswerTests`.
 		var source = RepositoryPaths.ReadText(ApplyFile);
 
 		Assert.Contains("msg.ExactDestination", source, StringComparison.Ordinal);
 		Assert.Contains("CanTakeExactDestination(", source, StringComparison.Ordinal);
 		Assert.Contains("SendPlacementFailed(", source, StringComparison.Ordinal);
+
+		// The port must also be INJECTED by the one production construction, and the flag must be carried by
+		// the kernel projection: a branch with a null port or a discarded flag never runs (the review's
+		// blocker), and neither omission is visible from the apply file alone.
+		var adapter = RepositoryPaths.ReadText("src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs");
+		Assert.Contains("new PlayerInteractionApply(_domains, placementResolver)", adapter, StringComparison.Ordinal);
+
+		var codec = RepositoryPaths.ReadText("src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInteractionKernelCodec.cs");
+		Assert.Contains("ExactDestination = e.ExactDestination", codec, StringComparison.Ordinal);
+		Assert.Contains("Returned = e.Returned", codec, StringComparison.Ordinal);
 	}
 
 	[Fact]

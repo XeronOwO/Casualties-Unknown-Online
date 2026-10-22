@@ -104,7 +104,8 @@ internal sealed class PlayerInventoryTakeService(
 	/// <summary>
 	/// Host-only native-intent half of <c>GiveToBody</c> — the same custody transfer as
 	/// <see cref="HandleRemoteBackpackTransferToBody"/> with the two ends swapped: the item belongs to the player who
-	/// is giving it away, and it lands on the other player's body, in the slot their release named. Running the one
+	/// is giving it away, and it lands on the other player's body at the destination THAT client answered (the
+	/// give's placement answer), or is refused by name when that destination no longer holds. Running the one
 	/// core the other direction is what makes the two halves agree about custody rather than merely resemble each
 	/// other.
 	/// </summary>
@@ -224,7 +225,7 @@ internal sealed class PlayerInventoryTakeService(
 					: $"{to} has no empty inventory slot.";
 			}
 
-			transferred.SlotIndex = targetSlot; // the host picks a concrete empty slot; the recipient's immediate re-report confirms it
+			transferred.SlotIndex = targetSlot; // exact mode: the ANSWERED slot, or the give is refused; the recipient's immediate re-report confirms it
 			newTarget.Items.Add(transferred);
 		}
 
@@ -576,7 +577,7 @@ internal sealed class PlayerInventoryTakeService(
 	/// Operates on the caller's already-cloned tree; never mutates the live
 	/// snapshot directly.
 	/// </summary>
-	private static bool TryFindAndRemove(List<CharacterItemMsg> items, ulong instanceId, out CharacterItemMsg removed)
+	internal static bool TryFindAndRemove(List<CharacterItemMsg> items, ulong instanceId, out CharacterItemMsg removed)
 	{
 		for (var i = 0; i < items.Count; i++)
 		{
@@ -613,6 +614,8 @@ internal sealed class PlayerInventoryTakeService(
 			PlayerInteractionKernelCodec.FromCharacterItem(msg.Item!),
 			msg.TargetParentItemId,
 			msg.Destination,
+			msg.ExactDestination,
+			msg.Returned,
 			out _,
 			out var rejection))
 		{

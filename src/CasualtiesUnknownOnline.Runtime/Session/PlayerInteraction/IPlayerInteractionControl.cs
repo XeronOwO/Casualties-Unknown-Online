@@ -51,6 +51,9 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: the receiving client reported that the answered destination is gone; the row goes back to the giver.</summary>
 	void HandlePlacementFailed(ulong sender, PlayerPlacementFailedMsg msg);
 
+	/// <summary>Per frame: the host refuses a placement question nobody answered when its deadline passes.</summary>
+	void Update();
+
 	/// <summary>Raise a received transfer for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireTransferReceived(PlayerInventoryTransferMsg msg);
 

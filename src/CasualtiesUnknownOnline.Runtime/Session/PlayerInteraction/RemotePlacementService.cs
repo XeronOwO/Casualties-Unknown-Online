@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -22,7 +23,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// what the receiving client resolved, never the giver's request. A destination that changed between the answer
 /// and the commit (the receiver picked something up in that window) is refused by the host before any custody
 /// moves and answered to the giver with the reason; the deeper race — the receiver's LIVE body differing from
-/// the snapshot the host just wrote — is the ticket's residual and is not claimed away here.
+/// the snapshot the host just wrote — is the ticket's residual and is implemented by the failure report
+/// (<c>SendFailed</c>/<c>HandleFailed</c>) plus the return service, not claimed away here.
 /// </para>
 /// </summary>
 internal sealed class RemotePlacementService(
@@ -103,14 +105,17 @@ internal sealed class RemotePlacementService(
 			return;
 		}
 
-		_pending.Remove(msg.QueryId);
-
 		// The answer is a claim about the destination body's own body: it is only worth reading from THAT client.
+		// The sender is checked BEFORE the question is consumed, so a stray answer cannot abort another pair's
+		// give (a guessed query id would otherwise remove the real pending entry).
 		if (sender != pending.Msg.TargetBodySteamId)
 		{
-			RefuseGiver(pending.Giver, pending.Msg, $"the placement answer came from {sender}, not the destination body {pending.Msg.TargetBodySteamId}.");
+			_log.LogWarning("[Placement] dropped a placement answer for query {Query} from {Sender}: the destination body is {Receiver}.",
+				msg.QueryId, sender, pending.Msg.TargetBodySteamId);
 			return;
 		}
+
+		_pending.Remove(msg.QueryId);
 
 		if (_time.NowMs > pending.DeadlineMs)
 		{
@@ -121,6 +126,14 @@ internal sealed class RemotePlacementService(
 		if (!msg.Accepted)
 		{
 			RefuseGiver(pending.Giver, pending.Msg, string.IsNullOrWhiteSpace(msg.Reason) ? "the destination body refused the placement." : msg.Reason);
+			return;
+		}
+
+		// An "accepted" answer must NAME its destination: a slot index or a container. One that names neither is
+		// malformed and is refused by name rather than committed as "slot -1".
+		if (msg.Slot < 0 && msg.ContainerInstanceId == 0)
+		{
+			RefuseGiver(pending.Giver, pending.Msg, "the destination body accepted the placement without naming a slot or a container.");
 			return;
 		}
 
@@ -152,9 +165,9 @@ internal sealed class RemotePlacementService(
 			Accepted = answer.Accepted,
 			Slot = answer.Slot,
 			ContainerInstanceId = answer.ContainerId,
-			Reason = answer.Reason,
+			Reason = ClampReason(answer.Reason),
 		});
-		_log.LogInformation("[Placement] answered query {Query} for item {ItemId} (id {InstanceId}): {Answer}.",
+		_log.LogInformation("[Placement] answered query {Query} for item {ItemId} (id {InstanceId}): {Answer}",
 			msg.QueryId, msg.Item.ItemId, msg.Item.InstanceId, Describe(answer));
 	}
 
@@ -190,17 +203,30 @@ internal sealed class RemotePlacementService(
 	/// <summary>Commit the answer the receiving client gave; the host's exact mode refuses a destination that changed meanwhile.</summary>
 	private void Commit(ulong giver, RemoteInventoryIntentMsg msg, RemotePlacementResolution answer)
 	{
+		// The receiving client may still find its LIVE body unable to take the answered destination (it changed
+		// after the answer). The pair is recorded BEFORE the commit publishes the transfer: when the host is the
+		// receiving body, its own apply runs synchronously inside the commit and its failure report must find this
+		// entry already there.
+		PruneCommitted();
+		_committed[msg.ItemInstanceId] = new CommittedPlacement(giver, msg.TargetBodySteamId, _time.NowMs);
 		var refusal = _take.HandleRemoteGiveToBody(giver, msg.TargetBodySteamId, msg.ItemInstanceId, answer.Slot, answer.ContainerId, exactDestination: true);
 		if (refusal is not null)
 		{
+			_committed.Remove(msg.ItemInstanceId);
 			RefuseGiver(giver, msg, refusal);
+		}
+	}
+
+	/// <summary>Per frame: a question nobody answered is refused at its deadline, and a committed placement stops being matchable.</summary>
+	internal void Tick()
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
 			return;
 		}
 
-		// The receiving client may still find its LIVE body unable to take the answered destination (it changed
-		// after the answer). Keep the pair so its failure report can be matched to this exact commit.
+		PruneExpired();
 		PruneCommitted();
-		_committed[msg.ItemInstanceId] = new CommittedPlacement(giver, msg.TargetBodySteamId, _time.NowMs);
 	}
 
 	/// <summary>Receiving client: report that the answered destination is gone, so the host can return the row.</summary>
@@ -211,7 +237,7 @@ internal sealed class RemotePlacementService(
 			return;
 		}
 
-		var msg = new PlayerPlacementFailedMsg { ItemInstanceId = itemInstanceId, Reason = reason };
+		var msg = new PlayerPlacementFailedMsg { ItemInstanceId = itemInstanceId, Reason = ClampReason(reason) };
 		if (_session.Role == SessionRole.Host)
 		{
 			HandleFailed(_session.LocalSteamId, msg);
@@ -255,7 +281,7 @@ internal sealed class RemotePlacementService(
 		}
 
 		_log.LogInformation("[Placement] returned item {ItemId} to {Giver}: {Receiver} could not take the answered destination ({Reason}).",
-			msg.ItemInstanceId, committed.Giver, sender, msg.Reason);
+			msg.ItemInstanceId, committed.Giver, sender, ClampReason(msg.Reason));
 	}
 
 	private void PruneCommitted()
@@ -289,7 +315,8 @@ internal sealed class RemotePlacementService(
 	/// <summary>Answer the giver with the receiving side's own sentence; a host giver already printed its line.</summary>
 	private void RefuseGiver(ulong giver, RemoteInventoryIntentMsg msg, string reason)
 	{
-		_log.LogWarning("[RemoteIntent] refused {Kind}: {Reason}", msg.Kind, reason);
+		var clamped = ClampReason(reason);
+		_log.LogWarning("[RemoteIntent] refused {Kind}: {Reason}", msg.Kind, clamped);
 		if (giver == _session.LocalSteamId)
 		{
 			return;
@@ -299,8 +326,34 @@ internal sealed class RemotePlacementService(
 		{
 			Kind = (int)msg.Kind,
 			ItemInstanceId = msg.ItemInstanceId,
-			Reason = reason,
+			Reason = clamped,
 		});
+	}
+
+	/// <summary>
+	/// The wire and the logs carry this string verbatim, so a member-authored reason is capped and stripped of
+	/// control characters before it reaches another player's UI or the log (the chat row's shape-bound rule).
+	/// </summary>
+	internal static string ClampReason(string? reason)
+	{
+		const int maxLength = 200;
+		if (string.IsNullOrWhiteSpace(reason))
+		{
+			return string.Empty;
+		}
+
+		var trimmed = reason!.Trim();
+		var builder = new StringBuilder(trimmed.Length);
+		foreach (var c in trimmed)
+		{
+			if (!char.IsControl(c))
+			{
+				builder.Append(c);
+			}
+		}
+
+		var clean = builder.ToString();
+		return clean.Length <= maxLength ? clean : clean.Substring(0, maxLength) + "…";
 	}
 
 	private void PruneExpired()
@@ -338,7 +391,8 @@ internal sealed class RemotePlacementService(
 	private static string Describe(RemotePlacementResolution answer) => answer switch
 	{
 		{ Accepted: true, ContainerId: not 0 } => $"inside container {answer.ContainerId}",
-		{ Accepted: true } => $"slot {answer.Slot}",
+		{ Accepted: true, Slot: >= 0 } => $"slot {answer.Slot}",
+		{ Accepted: true } => "accepted without a named destination",
 		_ => $"refused: {answer.Reason}",
 	};
 }

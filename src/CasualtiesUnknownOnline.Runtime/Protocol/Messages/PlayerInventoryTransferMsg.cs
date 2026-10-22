@@ -6,11 +6,10 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// <summary>
 /// Host → participant(s) authoritative result of a cross-player inventory
 /// transfer. One operation = one message: the item's full captured fact leaves
-/// FromSteamId's body and enters ToSteamId's body. The receiving Game Adapter
-/// is responsible for choosing the local target slot (the host does not know
-/// the peer's live slot layout), applying the mutation inside a RemoteApply
-/// scope and immediately re-reporting the character snapshot so every clone
-/// learns the real slot within the same run.
+/// FromSteamId's body and enters ToSteamId's body. For a give the destination is the one the RECEIVING client
+/// answered (<see cref="ExactDestination"/>); every other transfer names the host's own choice. The receiving Game
+/// Adapter applies that destination inside a RemoteApply scope, refuses to substitute when the flag is set, and
+/// immediately re-reports the character snapshot so every clone learns the real place within the same run.
 /// </summary>
 [ProtoContract]
 public sealed class PlayerInventoryTransferMsg
@@ -37,14 +36,12 @@ public sealed class PlayerInventoryTransferMsg
 	public ulong TargetParentItemId { get; set; }
 
 	/// <summary>
-	/// The destination rung the host chose for the created item. <see cref="PlayerInventoryDestination.BodySlot"/>
-	/// is every pre-existing transfer (and the only one an older producer sets); a container rung also names
-	/// <see cref="TargetParentItemId"/>; a drop carries no destination slot and no parent, and the receiving
-	/// client materializes the item into its own world at its own position and reports the creation. The
-	/// receiving client applies the named rung rather than choosing one — with one exception it cannot avoid:
-	/// its LIVE container is the final judge of what it can hold, and a give whose live container refuses is
-	/// answered by the drop rung there (the answer already named the container; the window is the limit the
-	/// ticket records), never by a silent different slot.
+	/// The destination rung of this transfer. <see cref="PlayerInventoryDestination.BodySlot"/> is the ordinary
+	/// slot rung (for a give: the slot the receiver answered); a container rung also names
+	/// <see cref="TargetParentItemId"/> and is the receiver's own answered container; a drop carries no slot and no
+	/// parent, and the receiving client materializes the item into its own world at its own position and reports
+	/// the creation. The receiving client applies the named rung rather than choosing one: an exact give whose
+	/// live destination no longer takes the item is refused by the receiver, not silently re-slotted.
 	/// </summary>
 	[ProtoMember(5)]
 	public PlayerInventoryDestination Destination { get; set; }
@@ -58,4 +55,13 @@ public sealed class PlayerInventoryTransferMsg
 	/// </summary>
 	[ProtoMember(6)]
 	public bool ExactDestination { get; set; }
+
+	/// <summary>
+	/// True when this transfer is the RETURN of a give whose answered destination the receiver could not take
+	/// (the design's residual). The receiving client is the original giver: any slot on its body is acceptable,
+	/// and when its live body accepts none the item falls at its feet instead of being destroyed — the user's
+	/// 2026-10-22 ruling is that the item ends with the giver, never that a full body consumes it.
+	/// </summary>
+	[ProtoMember(7)]
+	public bool Returned { get; set; }
 }

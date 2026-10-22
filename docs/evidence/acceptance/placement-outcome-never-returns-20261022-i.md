@@ -37,7 +37,10 @@ Two staging designs, both with real pointer input:
 
 **UNPROVEN**, and now with a mechanical reason rather than a timing guess: with one physical pointer and one
 foreground window per client, the receiver's own body change cannot be made inside the answer→transfer window.
-A future reading needs either a second independent pointer device, or a designed seam whose evidence the
+The later review of the batch's artifact (`fb782e5c`) added a deeper reason: at that commit the residual's
+branch could not run at all (the exact flag was dropped at the kernel projection and the adapter never received
+the resolver), so no client could have produced the report even inside the window. The wiring landed after this
+batch. A future reading needs either a second independent pointer device, or a designed seam whose evidence the
 acceptance rules accept for this row — that is a user ruling. The row stays `UNPROVEN` and the ticket stays in
 `todo/`.
 

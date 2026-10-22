@@ -272,6 +272,8 @@ public static class PlayerInteractionKernelCodec
 			Item = ToCharacterItem(e.Item),
 			TargetParentItemId = e.TargetParentItemId,
 			Destination = e.Destination,
+			ExactDestination = e.ExactDestination,
+			Returned = e.Returned,
 		};
 
 	public static PlayerHealResultMsg ToHealMessage(PlayerHealResultEvent e) =>

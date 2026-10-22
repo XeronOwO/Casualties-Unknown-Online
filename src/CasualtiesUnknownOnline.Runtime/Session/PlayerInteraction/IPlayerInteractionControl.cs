@@ -45,6 +45,12 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: the receiving client answered a placement question — commit the answered destination or refuse the giver.</summary>
 	void HandlePlacementAnswer(ulong sender, PlayerPlacementAnswerMsg msg);
 
+	/// <summary>Receiving client: the answered destination cannot be used any more — report it so the host returns the row.</summary>
+	void SendPlacementFailed(ulong itemInstanceId, string reason);
+
+	/// <summary>Host only: the receiving client reported that the answered destination is gone; the row goes back to the giver.</summary>
+	void HandlePlacementFailed(ulong sender, PlayerPlacementFailedMsg msg);
+
 	/// <summary>Raise a received transfer for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireTransferReceived(PlayerInventoryTransferMsg msg);
 

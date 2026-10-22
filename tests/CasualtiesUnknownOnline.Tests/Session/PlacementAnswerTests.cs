@@ -163,4 +163,73 @@ public class PlacementAnswerTests
 		var refused = NetPacket.DecodePayload<PlayerInventoryIntentRefusedMsg>(answer.Frame);
 		Assert.Contains("no game adapter", refused.Reason);
 	}
+
+	/// <summary>
+	/// The residual: the receiver answered a destination, the host committed it, and the receiver's LIVE body
+	/// then cannot take it. The receiver reports the failure instead of substituting; the host moves the row back
+	/// to the giver and publishes the return, so the item ends with the giver — the user's ruling, even across the
+	/// answer-to-transfer window.
+	/// </summary>
+	[Fact]
+	public void AFailedExactPlacement_ReturnsTheItemToTheGiver()
+	{
+		var resolver = new FixedPlacementResolver { Resolution = RemotePlacementResolution.ToSlot(2) };
+		var (host, guest, received) = CreateSession(s => s.AddSingleton<IRemotePlacementResolver>(resolver));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = GuestId,
+				TargetSlotIndex = 0,
+			});
+
+		// The give committed at the answered slot; the receiver's live body then changed and it reports it.
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPlacementFailed(42, "the answered slot is no longer free.");
+
+		// The host moved the row back: the giver has it again, the receiver's copy lost it, and the kernel saw the
+		// give and the return (two transfer events, the second the return).
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		var transfers = KernelEvents(received).Where(e => e.Kind == WireEventKind.PlayerInventoryTransfer).ToList();
+		Assert.Equal(2, transfers.Count);
+	}
+
+	/// <summary>
+	/// A failure report is a claim about the reporter's own body: the host admits it only from the receiving body
+	/// it committed the placement to, and only for a commit it still remembers.
+	/// </summary>
+	[Fact]
+	public void AFailureFromAnotherPeer_OrForNoCommittedGive_ChangesNothing()
+	{
+		var resolver = new FixedPlacementResolver { Resolution = RemotePlacementResolution.ToSlot(2) };
+		var (host, guest, _) = CreateSession(s => s.AddSingleton<IRemotePlacementResolver>(resolver));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = GuestId,
+				TargetSlotIndex = 0,
+			});
+
+		var control = host.Services.GetRequiredService<IPlayerInteractionControl>();
+		control.HandlePlacementFailed(HostId, new PlayerPlacementFailedMsg { ItemInstanceId = 42, Reason = "not the receiver" });
+		control.HandlePlacementFailed(GuestId, new PlayerPlacementFailedMsg { ItemInstanceId = 999, Reason = "no such give" });
+
+		// Neither report matched, so the committed give stands: the giver does not have the item back.
+		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
 }

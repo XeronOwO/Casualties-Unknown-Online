@@ -48,4 +48,14 @@ public sealed class PlayerInventoryTransferMsg
 	/// </summary>
 	[ProtoMember(5)]
 	public PlayerInventoryDestination Destination { get; set; }
+
+	/// <summary>
+	/// True when the destination is the ANSWERED one: the receiving client resolved it before the host wrote the
+	/// row (the give's placement answer), so this client must NOT substitute another slot or container when its
+	/// live body cannot take that exact destination. It reports the failure instead and the host returns the row
+	/// to the giver; a substitution here would be the drift the answer exists to remove, and the host's row would
+	/// state a destination this client never used.
+	/// </summary>
+	[ProtoMember(6)]
+	public bool ExactDestination { get; set; }
 }

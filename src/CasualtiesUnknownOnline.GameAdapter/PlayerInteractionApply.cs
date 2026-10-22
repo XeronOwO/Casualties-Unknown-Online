@@ -20,11 +20,12 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// It also owns the carry-follow transform update and the Online UI heal-item
 /// projection.
 /// </summary>
-internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
+internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemotePlacementResolver? placementResolver = null)
 {
 	private PlayerCarryStateMsg? _pendingCarryState;
 	private readonly CarrySimulationTrace _carryTrace = new();
 	private readonly PlayerInventoryPlacement _placement = new(domains);
+	private readonly IRemotePlacementResolver? _placementResolver = placementResolver;
 
 	public void OnPlayerInventoryTransfer(PlayerInventoryTransferMsg msg)
 	{
@@ -90,6 +91,18 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 
 				if (msg.ToSteamId == domains.Session.LocalSteamId && msg.Item is { } item)
 				{
+					// The host recorded the destination this client ANSWERED before it wrote the row, so this
+					// client may not substitute: if its live body can no longer take that exact place, it reports
+					// the failure and creates nothing — the host moves the row back to the giver.
+					if (msg.ExactDestination && !CanTakeExactDestination(item, msg, out var exactRefusal))
+					{
+						domains.Log.LogWarning(
+							"[PlayerInteraction] {ItemId} (id {InstanceId}) cannot take the answered destination: {Reason} — reporting the failure instead of substituting.",
+							item.ItemId, item.InstanceId, exactRefusal);
+						domains.PlayerInteraction.SendPlacementFailed(item.InstanceId, exactRefusal);
+						return;
+					}
+
 					if (msg.TargetParentItemId != 0)
 					{
 						// One policy for both directions of a container destination: the container's own rules on this
@@ -112,6 +125,33 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		{
 			domains.CharacterDataSync.ReportInventoryChanged(body);
 		}
+	}
+
+	/// <summary>
+	/// Whether this client's live body can still take the exact destination it answered. It asks the same
+	/// adapter port the answer came from — one resolution, so the answer and this check cannot drift — and a
+	/// resolution that names a DIFFERENT slot is a refusal here: the host's row already states the answered place.
+	/// </summary>
+	private bool CanTakeExactDestination(CharacterItemMsg item, PlayerInventoryTransferMsg msg, out string reason)
+	{
+		reason = "";
+		if (_placementResolver is null)
+		{
+			return true;
+		}
+
+		var answer = _placementResolver.Resolve(item, item.SlotIndex, msg.TargetParentItemId);
+		var accepted = msg.TargetParentItemId != 0
+			? answer.Accepted && answer.ContainerId == msg.TargetParentItemId
+			: answer.Accepted && answer.Slot == item.SlotIndex;
+		if (!accepted)
+		{
+			reason = string.IsNullOrWhiteSpace(answer.Reason)
+				? "the answered destination is no longer available."
+				: answer.Reason;
+		}
+
+		return accepted;
 	}
 
 	public void OnCarryStateChanged(PlayerCarryStateMsg msg)

@@ -266,6 +266,7 @@ internal sealed class PlayerInventoryTakeService(
 			Item = transferred,
 			TargetParentItemId = requestedContainerId,
 			Destination = requestedContainerId != 0 ? PlayerInventoryDestination.Container : PlayerInventoryDestination.BodySlot,
+			ExactDestination = exactDestination,
 		});
 
 		return null; // applied
@@ -540,7 +541,7 @@ internal sealed class PlayerInventoryTakeService(
 	/// adopt path; the host has no transfer-table row, so this keeps the item
 	/// kernel authoritative when the host is the recipient.
 	/// </summary>
-	private void CommitCarriedToHost(ulong itemId, CharacterItemMsg item)
+	internal void CommitCarriedToHost(ulong itemId, CharacterItemMsg item)
 	{
 		var current = _kernelAuthority.FindItem(itemId);
 		if (current is null)

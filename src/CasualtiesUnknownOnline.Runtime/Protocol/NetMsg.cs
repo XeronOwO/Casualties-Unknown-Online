@@ -460,4 +460,9 @@ public enum NetMsg : byte
 	PlayerPlacementQuery = 158, // host → receiver: resolve this give's destination with your own rules (no custody moves yet)
 	PlayerPlacementAnswer = 159, // receiver → host: the destination this client will use, or the reason it refuses
 
+	// The answered destination is no longer available on the receiving client (its live body changed after the
+	// answer). It reports the failure instead of substituting, and the host moves the row back to the giver and
+	// publishes the return, so the item ends where the user's 2026-10-22 ruling asks it to stay.
+	PlayerPlacementFailed = 160, // receiver → host: the answered destination cannot be used; return the row to the giver
+
 }

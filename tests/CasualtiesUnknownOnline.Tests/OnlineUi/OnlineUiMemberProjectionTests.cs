@@ -908,6 +908,14 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
+		public void SendPlacementFailed(ulong itemInstanceId, string reason)
+		{
+		}
+
+		public void HandlePlacementFailed(ulong sender, PlayerPlacementFailedMsg msg)
+		{
+		}
+
 		public void FireRemoteInventoryIntentReceived(RemoteInventoryIntentMsg msg)
 		{
 		}

@@ -101,16 +101,18 @@ does not, and neither have the machine rows been run. What landed:
 
 **Still owed by this ticket:**
 
-- **The residual (row 6).** A receiving client whose LIVE body differs from the snapshot the host just wrote — it
-  picked something up after answering — still falls into its own placement fallback, and the host's row would name
-  the answered destination. The designed answer is the reverse report: the receiving client refuses to substitute,
-  reports the failure, and the host returns the row to the giver and publishes the return. Not implemented; the
-  next cycle on this ticket starts here.
-- **The machine rows 1-5.** A two-client batch on the deployed artifact, with the real give gesture, reading the
+- **The residual (row 6) has its code, not its reading.** The receiving client's exact branch now reports
+  instead of substituting (`PlayerInteractionApply`'s `CanTakeExactDestination` → `SendPlacementFailed`), the
+  host matches the report to the placement it committed to that sender (`RemotePlacementService`'s committed
+  table) and `GivenItemReturnService` moves the row back to the giver in both snapshots and publishes the return.
+  The behaviour is covered by `PlacementAnswerTests`; the machine row — a body that changes between the answer
+  and the transfer, ending with the item back in the giver's inventory and a line naming the return — has not
+  been read.
+- **The machine rows 1-6.** A two-client batch on the deployed artifact, with the real give gesture, reading the
   container refusal, the no-free-slot refusal, the substituted slot the host records, the accepted container
-  destination, and the deny arm. Row 6 waits for the residual.
-- **The ticket's status.** It stays `todo/` until the residual and the batch are done; the code half is committed
-  on its own so the batch runs against a named artifact.
+  destination, the deny arm, and the residual. The ticket stays `todo/` until that batch is judged.
+- **The ticket's status.** It stays `todo/` until the batch is done; the code half is committed on its own so the
+  batch runs against a named artifact.
 
 ## Design defect: the give interaction this ticket assumes cannot be performed (2026-10-22)
 

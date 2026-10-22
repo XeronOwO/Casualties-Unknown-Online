@@ -22,6 +22,22 @@ public class GiveGestureGateTests
 
 	private const string CueTrackerFile = "src/CasualtiesUnknownOnline.GameAdapter/DragUseCueTracker.cs";
 
+	private const string ApplyFile = "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs";
+
+	[Fact]
+	public void TheReceiversExactPlacementBranch_ReportsInsteadOfSubstituting()
+	{
+		// The give's answer-first custody: the transfer carries the ANSWERED destination, and the receiving
+		// client must not substitute another slot or container when its live body cannot take it — it reports
+		// the failure and the host returns the row. The branch is adapter code (a Unity body), so it is pinned
+		// by its shape here; the host half's behaviour is `PlacementAnswerTests`.
+		var source = RepositoryPaths.ReadText(ApplyFile);
+
+		Assert.Contains("msg.ExactDestination", source, StringComparison.Ordinal);
+		Assert.Contains("CanTakeExactDestination(", source, StringComparison.Ordinal);
+		Assert.Contains("SendPlacementFailed(", source, StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void ADisplayedBackpackRelease_IsResolvedBeforeTheInRangeUse()
 	{

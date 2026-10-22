@@ -29,6 +29,7 @@ internal sealed class RemotePlacementService(
 	ISessionControl session,
 	PacketSender sender,
 	PlayerInventoryTakeService take,
+	GivenItemReturnService givenReturn,
 	IRemotePlacementResolver? resolver,
 	ITimeSource time,
 	ILogger log) : ISessionReset
@@ -39,14 +40,22 @@ internal sealed class RemotePlacementService(
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly PlayerInventoryTakeService _take = take;
+	private readonly GivenItemReturnService _givenReturn = givenReturn;
 	private readonly IRemotePlacementResolver? _resolver = resolver;
 	private readonly ITimeSource _time = time;
 	private readonly ILogger _log = log;
 	private readonly Dictionary<ulong, PendingGive> _pending = [];
+	private readonly Dictionary<ulong, CommittedPlacement> _committed = [];
 	private ulong _nextQueryId = 1;
 
 	/// <summary>Host only: one validated give intent is waiting on the receiving client's placement answer.</summary>
 	private sealed record PendingGive(ulong Giver, RemoteInventoryIntentMsg Msg, long DeadlineMs);
+
+	/// <summary>Host only: one committed give, kept so the receiving client's failure report can be matched to it.</summary>
+	private sealed record CommittedPlacement(ulong Giver, ulong Receiver, long AtMs);
+
+	/// <summary>How long a committed placement stays matchable by a failure report; the report follows the transfer immediately.</summary>
+	internal const long CommittedPlacementTtlMs = 60000;
 
 	/// <summary>Host only: ask the receiving client where this give would land, or answer in-process when the host is the receiver.</summary>
 	internal void BeginGive(ulong giver, RemoteInventoryIntentMsg msg, CharacterItemMsg item)
@@ -149,7 +158,7 @@ internal sealed class RemotePlacementService(
 			msg.QueryId, msg.Item.ItemId, msg.Item.InstanceId, Describe(answer));
 	}
 
-	/// <summary>Host only: a session boundary invalidates every question — a late answer must never commit into the next world.</summary>
+	/// <summary>Host only: a session boundary invalidates every question and every committed placement it could still receive a failure for.</summary>
 	public void ResetSessionState()
 	{
 		if (_pending.Count > 0)
@@ -158,6 +167,7 @@ internal sealed class RemotePlacementService(
 		}
 
 		_pending.Clear();
+		_committed.Clear();
 	}
 
 	/// <summary>The host's own body is the receiver: its resolver answers in-process, with no round trip.</summary>
@@ -184,6 +194,95 @@ internal sealed class RemotePlacementService(
 		if (refusal is not null)
 		{
 			RefuseGiver(giver, msg, refusal);
+			return;
+		}
+
+		// The receiving client may still find its LIVE body unable to take the answered destination (it changed
+		// after the answer). Keep the pair so its failure report can be matched to this exact commit.
+		PruneCommitted();
+		_committed[msg.ItemInstanceId] = new CommittedPlacement(giver, msg.TargetBodySteamId, _time.NowMs);
+	}
+
+	/// <summary>Receiving client: report that the answered destination is gone, so the host can return the row.</summary>
+	internal void SendFailed(ulong itemInstanceId, string reason)
+	{
+		if (!_session.SessionActive || !_session.LocalInWorld)
+		{
+			return;
+		}
+
+		var msg = new PlayerPlacementFailedMsg { ItemInstanceId = itemInstanceId, Reason = reason };
+		if (_session.Role == SessionRole.Host)
+		{
+			HandleFailed(_session.LocalSteamId, msg);
+			return;
+		}
+
+		_log.LogWarning("[Placement] answered destination for item {ItemId} is no longer available: {Reason} — asking the host to return it.",
+			itemInstanceId, reason);
+		_sender.Send(_session.HostSteamId, NetMsg.PlayerPlacementFailed, msg);
+	}
+
+	/// <summary>Host only: the receiving client cannot take the answered destination — move the row back to the giver and publish the return.</summary>
+	internal void HandleFailed(ulong sender, PlayerPlacementFailedMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		{
+			return;
+		}
+
+		if (!_committed.TryGetValue(msg.ItemInstanceId, out var committed))
+		{
+			_log.LogWarning("[Placement] dropped a placement failure for item {ItemId} from {Sender}: no give this host committed is waiting on it.",
+				msg.ItemInstanceId, sender);
+			return;
+		}
+
+		if (committed.Receiver != sender)
+		{
+			_log.LogWarning("[Placement] dropped a placement failure for item {ItemId}: {Sender} is not the receiving body {Receiver}.",
+				msg.ItemInstanceId, sender, committed.Receiver);
+			return;
+		}
+
+		_committed.Remove(msg.ItemInstanceId);
+		var refusal = _givenReturn.Return(sender, committed.Giver, msg.ItemInstanceId);
+		if (refusal is not null)
+		{
+			_log.LogError("[Placement] could not return item {ItemId} to {Giver} after {Receiver}'s failed placement: {Reason}",
+				msg.ItemInstanceId, committed.Giver, sender, refusal);
+			return;
+		}
+
+		_log.LogInformation("[Placement] returned item {ItemId} to {Giver}: {Receiver} could not take the answered destination ({Reason}).",
+			msg.ItemInstanceId, committed.Giver, sender, msg.Reason);
+	}
+
+	private void PruneCommitted()
+	{
+		if (_committed.Count == 0)
+		{
+			return;
+		}
+
+		var now = _time.NowMs;
+		List<ulong>? expired = null;
+		foreach (var pair in _committed)
+		{
+			if (now - pair.Value.AtMs > CommittedPlacementTtlMs)
+			{
+				(expired ??= []).Add(pair.Key);
+			}
+		}
+
+		if (expired is null)
+		{
+			return;
+		}
+
+		foreach (var itemId in expired)
+		{
+			_committed.Remove(itemId);
 		}
 	}
 

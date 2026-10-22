@@ -120,7 +120,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, itemContainerFit, log);
-		_placement = new RemotePlacementService(session, sender, _take, placementResolver, time, log);
+		var givenReturn = new GivenItemReturnService(session, items, access, _take, resultAuthority, log);
+		_placement = new RemotePlacementService(session, sender, _take, givenReturn, placementResolver, time, log);
 		session.SessionEnded += ResetSessionState;
 		_give = new PlayerItemGiveService(session, sender, _take, itemCreation, itemStateLanguage, memberCommandRules, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, kernelAuthority, resultAuthority, log);
@@ -164,6 +165,12 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 
 	public void HandlePlacementAnswer(ulong sender, PlayerPlacementAnswerMsg msg) =>
 		_placement.HandleAnswer(sender, msg);
+
+	public void SendPlacementFailed(ulong itemInstanceId, string reason) =>
+		_placement.SendFailed(itemInstanceId, reason);
+
+	public void HandlePlacementFailed(ulong sender, PlayerPlacementFailedMsg msg) =>
+		_placement.HandleFailed(sender, msg);
 
 	/// <summary>The one session-teardown stage: the give's unanswered placement questions die with the world.</summary>
 	public void ResetSessionState() => _placement.ResetSessionState();

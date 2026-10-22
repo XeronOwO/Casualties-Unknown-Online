@@ -155,9 +155,10 @@ and refuses the giver — with the receiving side's own sentence — when that a
 refusal, so the item stays with the giver. The gesture itself is unchanged.
 
 For this ticket's rows that means row 3 (a give into a container the destination cannot take) and row 4's
-substitution shape now run through the receiving client's answer instead of the host's own pick. Rows 3, 4 and 6
-are still unread on the machine, and the residual (a body that changes between the answer and the transfer) is
-still owed on the sibling ticket; the unit-2 two-client batch is the next step here.
+substitution shape now run through the receiving client's answer instead of the host's own pick, and the sibling
+ticket's residual (a body that changes between the answer and the transfer) has its code too: the receiver reports
+and the host returns the row. Rows 3, 4 and 6 are still unread on the machine; the unit-2 two-client batch is the
+next step here.
 
 ### How unit 1 landed (2026-10-22)
 

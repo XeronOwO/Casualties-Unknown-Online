@@ -31,10 +31,10 @@ cannot overlap the giver's on one physical pointer and one foreground window.
 
 ## Verdict
 
-**UNPROVEN**, and now for a measured reason: the window is 60 ms, shorter than any external call and shorter than
-the two-client input switch. The row needs either a deliberately delayed in-client action (a seam the acceptance
-rules refuse as evidence) or a user ruling that the behaviour test plus the wired return is the accepted reading.
-The ticket stays in `todo/` and records this.
+**UNPROVEN** at this batch — the row was later closed by the user's ruling (2026-10-23): the behaviour test plus
+the wired return chain is its reading (`placement-outcome-never-returns-20261023-ruling.md`). What this batch
+measured: the answer→apply span is **60 ms** (`00:18:25.155` → `00:18:25.215`), so no external call can aim
+inside it.
 
 ## Limits
 

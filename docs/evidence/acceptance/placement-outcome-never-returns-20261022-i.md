@@ -35,8 +35,11 @@ Two staging designs, both with real pointer input:
 
 ## Verdict
 
-**UNPROVEN**, and now with a mechanical reason rather than a timing guess: with one physical pointer and one
-foreground window per client, the receiver's own body change cannot be made inside the answer→transfer window.
+**UNPROVEN** at this batch — and the row was later closed by the user's ruling (2026-10-23): the behaviour test
+plus the wired return chain is its reading, because no hand can produce the window
+(`placement-outcome-never-returns-20261023-ruling.md`). The mechanical reason this batch established: with one
+physical pointer and one foreground window per client, the receiver's own body change cannot be made inside the
+answer→transfer window.
 The later review of the batch's artifact (`fb782e5c`) added a deeper reason: at that commit the residual's
 branch could not run at all (the exact flag was dropped at the kernel projection and the adapter never received
 the resolver), so no client could have produced the report even inside the window. The wiring landed after this

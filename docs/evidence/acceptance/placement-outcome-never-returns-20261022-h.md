@@ -32,3 +32,9 @@
   rule at `deny`, the value the machine held before the batch.
 - One window-level frame (`host-final.png`) records the host's screen after the run; the row evidence is the log
   and state readings above.
+
+## Addendum (2026-10-23)
+
+The user ruled that row 6's reading is the behaviour test plus the wired return chain, because the row's 60 ms
+window cannot be produced by hand (batches `20261022-i`/`-j`). The `UNPROVEN` verdict above stays as this batch's
+machine reading; the row's closure is `placement-outcome-never-returns-20261023-ruling.md`.

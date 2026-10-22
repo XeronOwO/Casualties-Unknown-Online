@@ -18,3 +18,9 @@ are `20261022-h-scope.md`.
   re-run here.
 - Row 6 is not judgeable by hand in this design; its reading would need a staging seam, which the acceptance
   rules refuse as evidence of player reachability.
+
+## Addendum (2026-10-23)
+
+The user ruled that row 6's reading is the behaviour test plus the wired return chain (see
+`placement-outcome-never-returns-20261023-ruling.md`); the `UNPROVEN` verdict above stays as this batch's machine
+reading.

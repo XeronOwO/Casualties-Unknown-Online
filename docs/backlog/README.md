@@ -52,8 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The receiver's placement never returns to the host](todo/placement-outcome-never-returns.md) — **Medium** — the receiver's answer must precede custody.
-- [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — gesture defined; drag onto the player opens their backpack.
+- [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — needs an outcome report.
 - [A refused child of a restored container keeps its id](todo/restore-refused-child-keeps-its-id.md) — **Low-Medium** — the bulk restore discards it.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
@@ -78,6 +77,8 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Review
 
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
+- [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
+- [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.

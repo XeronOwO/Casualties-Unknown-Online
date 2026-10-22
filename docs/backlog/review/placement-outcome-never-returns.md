@@ -1,23 +1,25 @@
 # The host's ledger keeps the destination it was told, not where the item went
 
-- Status: Todo — the design is the receiver's placement answer BEFORE custody moves (2026-10-22, below); the
-  gesture it serves is defined in `todo/give-item-to-another-player.md`.
+- Status: Review — every row has a verdict: rows 1-5 read on the machine (batch `20261022-h`), row 6 judged by
+  the user's 2026-10-23 ruling (the behaviour test, because the 60 ms window cannot be produced by hand). The
+  gesture it serves is defined in `review/give-item-to-another-player.md`; the two follow-ups are filed
+  separately.
 - Priority: Medium
 - Category: Item sync / kernel item facts / cross-player custody
-- Blocked by: nothing external. It shares its wire change with `todo/give-item-to-another-player.md` unit 2.
+- Blocked by: nothing external. It shares its wire change with `review/give-item-to-another-player.md` unit 2.
 - Source: Read on the machine in 2026-10-18's give session, while the container half of
-  `todo/give-item-to-another-player.md` was being verified (`[PlayerInteraction] bandage … not placed into
+  `review/give-item-to-another-player.md` was being verified (`[PlayerInteraction] bandage … not placed into
   container … falling back to a slot.` on the receiver, `bandage [carried]` on the host). Split out on
   2026-10-19 when that ticket's row-4 item loss was fixed, because the slot fallback is now the path the fix
   itself produces, and the finding needs its own home.
-- Related: `todo/give-item-to-another-player.md` (the custody path, the gesture and its acceptance rows),
+- Related: `review/give-item-to-another-player.md` (the custody path, the gesture and its acceptance rows),
   `done/container-content-event-gap-on-repick.md` (the adjacent event-carrier gap: a container child moved
   into a slot announces nothing to the peers' fact tables — closed by batch `20261025-b`),
   `done/item-identity-across-transforms.md`
 
 ## Design (2026-10-22 — the receiver's answer comes BEFORE custody; this supersedes the routes below)
 
-The give gesture is defined (`todo/give-item-to-another-player.md`), and the user's 2026-10-22 ruling on the
+The give gesture is defined (`review/give-item-to-another-player.md`), and the user's 2026-10-22 ruling on the
 no-room case is part of its design: **when the receiver's own rules cannot take the item, the item stays with
 the giver.** That settles the route this ticket exists to choose: the host asks the receiving client BEFORE it
 records anything, and the receiver's answer is the placement.
@@ -78,8 +80,13 @@ Batch `20261022-h` read these rows on `0.1.0+fb782e5c`; the record is
 5. The same refusal shape under the access policy's deny arm: refused on the actor's side, no row written. —
    **PASS** (`[BackpackView] refused open ... deny`, the view never opened, no question or transfer followed).
 6. The residual: a body that changes between the answer and the transfer ends with the item back in the
-   giver's inventory and a line naming the return. — **UNPROVEN**: the window is one host round trip (~540 ms in
-   this run) and neither the batch nor the receiver's player can change the body inside it without a call seam.
+   giver's inventory and a line naming the return. — **PASS by the user's ruling (2026-10-23)**: the machine
+   reading is impossible by hand (batches `20261022-i`/`-j`: one pointer and one foreground window for two
+   clients; the answer→apply window measured 60 ms), so the user ruled that the behaviour test plus the wired
+   return chain is this row's reading. Evidence: `PlacementAnswerTests.AFailedExactPlacement_ReturnsTheItemToTheGiver`
+   (the row goes back), `TheTransferFlags_SurviveTheKernelProjection` (both flags cross the kernel), the
+   `Returned` drop fallback, and the fix commit `e3cdc117` wiring the report end to end. The ruling and the
+   attempts are in `docs/evidence/acceptance/placement-outcome-never-returns-20261023-ruling.md`.
 
 ## The answer-first half landed (2026-10-22)
 
@@ -108,42 +115,29 @@ does not, and neither have the machine rows been run. What landed:
   sync-coverage row (P14), its member-report census row and the three direction classifications. Build/format/full
   suite are green (behaviour 6253, gates 763).
 
-**Still owed by this ticket:**
+**Closure (2026-10-23):**
 
-- **Row 6 is `UNPROVEN`.** Batch `20261022-h` read rows 1-5 on the deployed artifact `0.1.0+fb782e5c` and all
-  five passed (the container refusal, the no-free-slot refusal, the substituted slot the host records, the
-  accepted container, the deny arm); the residual's window is the answer→transfer round trip (the batch measured
-  ~540 ms), which the run could not stage (batch `20261022-i`). The independent review of `fb782e5c` then found
-  the residual's branch unreachable at that commit — the exact flag stopped at the kernel projection and the
-  adapter never received the resolver — so no client could have produced the report at all. That wiring is fixed
-  in the review's own fix commit (the flag rides `RecordPlayerInventoryTransferCommand`/the event/the codec, the
-  resolver is injected by `GameAdapter`, the answer deadline runs per frame, and a `Returned` transfer makes a
-  full giver's body drop the item instead of destroying it); the row's machine reading is still owed.
-- **The failure report has no anchor (decision 265).** The host can bound the transactional half (a committed
-  give to that sender, the item in its snapshot) but not the claim itself (the receiver's live body cannot take
-  the place), so the census row for `NetMsg.PlayerPlacementFailed` is `unbounded` and a malicious receiver that
-  keeps its copy can make the host write a second one. The anchor it would need is a receiver-reported placement
-  OUTCOME the host compares with the row it wrote — the next design step on this ticket, recorded in
-  `docs/architecture/member-report-validation.md`.
-- **The ticket's status.** It stays `todo/` for row 6 and the anchor. The give ticket's rows 3 and 4 passed in
-  the same run; both tickets cite the same record.
-- **A return the host cannot make is logged, not answered.** When the item is gone from the receiver's snapshot
-  or the giver has no free slot, `HandleFailed` logs the reason at Error and the reporter is not answered; the
-  committed entry is already dropped. A receiver re-report in that window, or a full giver, leaves the kernel row
-  with no object until the next report converges it. Recorded here rather than claimed away.
-- **A full giver's body receives the return as a DROP.** The `Returned` flag makes the giver's client drop the
-  item at its feet instead of destroying it, and the drop's own creation report is what brings it back into the
-  world; the host's row is the giver's inventory until that report. That is the non-destructive outcome, not
-  "in the giver's inventory".
-- **What a future reading would need.** Batch `20261022-i` established the input half: the receiver's own gesture
-  cannot overlap the giver's on one physical pointer and one foreground window. Batch `20261022-j` then measured
-  the window itself on the fixed artifact: the answer→apply span is **60 ms** (`00:18:25.155` → `00:18:25.215`),
-  and a console `item-provide` aimed at the receiver right after the release arrived after the item had already
-  landed (`no-free-slot`). A 60 ms window is shorter than any external call, so the row needs a deliberately
-  delayed in-client action (a seam the acceptance rules refuse as evidence) or a user ruling that the behaviour
-  test plus the wired return is the accepted reading. Records:
+- **Row 6: judged by the user's ruling.** Rows 1-5 passed on the machine (batch `20261022-h`). For row 6 the
+  user ruled (2026-10-23) that the behaviour test plus the wired return chain is its reading, after two staging
+  attempts established that no hand can produce the 60 ms window (batches `20261022-i`/`-j`; one pointer and one
+  foreground window for two clients). A third option — a second pointer device — the user ruled out. The record
+  is `docs/evidence/acceptance/placement-outcome-never-returns-20261023-ruling.md`, with the two attempts in
   `docs/evidence/acceptance/placement-outcome-never-returns-20261022-i.md` and
-  `docs/evidence/acceptance/placement-outcome-never-returns-20261022-j.md`. The ticket stays in `todo/`.
+  `docs/evidence/acceptance/placement-outcome-never-returns-20261022-j.md`.
+- **The wiring the review found missing is fixed** in `e3cdc117`: the exact/returned flags ride the kernel
+  command, event and codec; `GameAdapter` injects the resolver into the receiving apply; the committed placement
+  is recorded before the commit publishes; the answer deadline runs per frame; the resolver mirrors the
+  placement's container sequence; and a `Returned` transfer drops rather than destroys.
+- **The failure report's missing anchor is filed separately:**
+  `docs/backlog/todo/placement-failure-report-anchor.md` — the host can bound the transactional half but not the
+  claim itself, so the census row is `unbounded` and the next design step is a receiver-reported placement
+  outcome the host can compare with its own row.
+- **Two limits are recorded, not claimed away.** A return the host cannot make is logged at Error and the
+  reporter is not answered (the committed entry is already dropped); and a full giver's body receives the return
+  as a DROP at its feet (the `Returned` flag) rather than destroying it — the non-destructive outcome, not "in the
+  giver's inventory".
+- **Status.** This ticket moves to `review/`: its code is complete and every row has a verdict (five machine
+  readings, one by ruling).
 
 ## Design defect: the give interaction this ticket assumes cannot be performed (2026-10-22)
 
@@ -157,7 +151,7 @@ player's inventory — is not an interaction the player can perform. A give star
 backpack: the backpack is open and the item is dragged with the right mouse button held. Opening another
 player's backpack needs a right-click on that player, and the held right button cannot also make that
 click. The give readings this ticket rests on — and the drag half of
-`todo/give-item-to-another-player.md` — came from a probe calling the release seam directly, never from
+`review/give-item-to-another-player.md` — came from a probe calling the release seam directly, never from
 a real gesture.
 
 The user's ruling of 2026-10-22: this is a design defect, not an acceptance gap, and the process must start

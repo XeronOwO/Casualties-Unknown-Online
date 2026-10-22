@@ -533,7 +533,7 @@ check is the compatibility boundary; no dual shape is kept.
     displayed inventory: the ring's body buttons and the container window render the focused clone, so the
     release names that player's slot or container and is resolved before the native body runs, which must not
     load this client's item into a proxy (`DragGiveTargetResolver`, read by
-    `Patches/PlayerCameraDragUsePatch` and by the drag cue, ticket `todo/give-item-to-another-player.md`).
+    `Patches/PlayerCameraDragUsePatch` and by the drag cue, ticket `review/give-item-to-another-player.md`).
     The release lands on a display proxy only when the pointer is on the displayed backpack; a release on the
     player's body stays the in-range USE. A proxy target that cannot be named still keeps the refusal line
     (`done/local-item-into-remote-display.md`): stage 1 recorded this corner as "its slot operand comes from

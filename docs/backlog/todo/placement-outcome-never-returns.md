@@ -142,8 +142,8 @@ does not, and neither have the machine rows been run. What landed:
   landed (`no-free-slot`). A 60 ms window is shorter than any external call, so the row needs a deliberately
   delayed in-client action (a seam the acceptance rules refuse as evidence) or a user ruling that the behaviour
   test plus the wired return is the accepted reading. Records:
-  `docs/evidence/acceptance/placement-outcome-never-returns-20261022-i.md` and `-j.md`. The ticket stays in
-  `todo/`.
+  `docs/evidence/acceptance/placement-outcome-never-returns-20261022-i.md` and
+  `docs/evidence/acceptance/placement-outcome-never-returns-20261022-j.md`. The ticket stays in `todo/`.
 
 ## Design defect: the give interaction this ticket assumes cannot be performed (2026-10-22)
 

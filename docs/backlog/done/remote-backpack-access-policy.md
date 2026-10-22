@@ -16,7 +16,7 @@
   whether operations on another player's backpack all have a switch — e.g. a dropdown in the multiplayer
   config with allow / unconscious-only / deny".
 - Related: `done/remote-inventory-native-parity-rework.md` (the operation surface this gates),
-  `done/give-item-to-another-player.md` (the new push gesture must obey the same policy),
+  `todo/give-item-to-another-player.md` (the new push gesture must obey the same policy),
   `src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRulesService.cs`, decisions 154 (cross-player
   take/heal/use are host-validated), 218 (the native-intent window), `review/remote-interaction-local-gating.md`
   (the reach/sight verdict is the actor's own client's), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md`.
@@ -145,7 +145,7 @@ double-Tab take variant covered by the unit path rather than driven).
 - Not a new permission system per player or per item: one host-wide enumerated rule, enforced host-side.
 - Not a change to the medical surfaces (the remote WoundView and the medical operation sessions keep their own
   gates), and not the carry relation.
-- Not the push gesture itself, which is `done/give-item-to-another-player.md`; this ticket only decides the
+- Not the push gesture itself, which is `todo/give-item-to-another-player.md`; this ticket only decides the
   policy both obey.
 
 ## Independent review (2026-10-22) and what each finding changed

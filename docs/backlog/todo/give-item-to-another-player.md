@@ -1,16 +1,13 @@
 # Give an item to another player (the push direction)
 
-- Status: Done — row 4 re-read on the fixed artifact (batch `20261022-a`) and it passes: the receiver's own
-  container rule refuses the handed-over item, one line is written, and the item is alive in a slot afterwards
-  with the host's kernel keeping it non-terminal. Rows 1 (both shapes), 2 and 6 were read whole in earlier
-  batches; row 3 was read on its refusal half only (the "receiver's view closes mid-drag" variant was never
-  run); row 5 passed in batch `20261021-a`. The fix changed no wire member. Records:
-  `docs/evidence/acceptance/give-item-to-another-player-20261022-a.md` (the re-read) and
-  `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md` (the rejection it answers).
+- Status: Todo
 - Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
+- Blocked by: the push gesture is not performable with the game's controls (2026-10-22); the design must be
+  re-derived from a real input sequence before any code. See the *Design defect* note below and
+  `todo/placement-outcome-never-returns.md`.
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
-- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `todo/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `todo/restore-refused-child-keeps-its-id.md` and `todo/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
+- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `done/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `todo/restore-refused-child-keeps-its-id.md` and `todo/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
 
 > **Design defect found 2026-10-22**: the push gesture this ticket's rows rest on — releasing the giver's
 > own item onto the other player's open backpack — is not an interaction the player can perform. The
@@ -19,6 +16,16 @@
 > items are not on screen to drag. The readings below are probe-driven, not player-driven. The design must
 > be re-derived from a performable input before it is trusted; see the *Design defect* section of
 > `todo/placement-outcome-never-returns.md` and the input rule in the root `AGENTS.md`.
+
+## Previous acceptance (2026-10-22) — superseded by the design defect
+
+Before the defect was found, row 4 was re-read on the fixed artifact (batch `20261022-a`) and passed: the
+receiver's own container rule refuses the handed-over item, one line is written, and the item is alive in a
+slot afterwards with the host's kernel keeping it non-terminal. Rows 1 (both shapes), 2 and 6 were read
+whole in earlier batches; row 3 was read on its refusal half only (the "receiver's view closes mid-drag"
+variant was never run); row 5 passed in batch `20261021-a`. The fix changed no wire member. Records:
+`docs/evidence/acceptance/give-item-to-another-player-20261022-a.md` (the re-read) and
+`docs/evidence/acceptance/give-item-to-another-player-20261021-a.md` (the rejection it answers).
 
 ## What exists today (both directions of one hand-over, only one carried)
 

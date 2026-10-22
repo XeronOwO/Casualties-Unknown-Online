@@ -53,6 +53,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [The receiver's placement never returns to the host](todo/placement-outcome-never-returns.md) — **Medium** — **blocked**: the give gesture is not performable.
+- [Give an item to another player](todo/give-item-to-another-player.md) — **Medium** — **blocked**: the push gesture is not performable.
 - [A refused child of a restored container keeps its id](todo/restore-refused-child-keeps-its-id.md) — **Low-Medium** — the bulk restore discards it.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
@@ -183,7 +184,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A health-usable liquid in a drinkable container](done/topical-live-stack-family-order.md) — **Low-Medium** — accepted in `20261020-b`.
 - [A member that lost its body to a layer change](done/layer-change-member-recovery.md) — **Medium** — accepted in `20261025-a`; the entry is re-asked.
 - [Limb-tool protections weaker than recorded](done/limb-tool-family-protection-gaps.md) — **High** — accepted; the picked limb is served, the other refused.
-- [Give an item to another player](done/give-item-to-another-player.md) — **Medium** — accepted; the refused container keeps the item.
 - [An item id can be re-issued after a restore](done/item-id-counter-is-not-resumed-by-a-restore.md) — **High** — accepted; the restore resumes the counter.
 - [Guest frame rate lower than host](done/guest-frame-rate-lower-than-host.md) — **Medium** — accepted; the guest's pump was not lower.
 - [The off-screen arrow's label escapes the screen edge](done/offscreen-arrow-label-clipping.md) — **Low** — accepted; four edge frames, corner clamp.

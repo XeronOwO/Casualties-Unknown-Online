@@ -9,7 +9,7 @@
   the vocabulary answers in the same way, and the family's rule
   (`AGENTS.md`, "Member reports are bounded, or the gap is named") says a refusal must be answered so both sides
   end up agreeing.
-- Related: `done/give-item-to-another-player.md` (where it was found; its readings show the actor's screen),
+- Related: `todo/give-item-to-another-player.md` (where it was found; its readings show the actor's screen),
   `done/remote-inventory-native-parity-rework.md` (the family this applies to), `docs/architecture/member-report-validation.md`
   (the census that asks, per wire member, whether a report is checked and whether the check is answered)
 
@@ -53,7 +53,7 @@ answered, or the two sides do not "end up agreeing"; they end up with one side b
 
 - Not the intent vocabulary itself: no new kind, no new operand.
 - Not the host's authority: this ticket adds no validation, only the answer to a validation that already happens.
-- Not the give feature (`done/give-item-to-another-player.md`), which is judged by its own acceptance table.
+- Not the give feature (`todo/give-item-to-another-player.md`), which its own ticket judges.
 
 ## Acceptance (the rows a run must read)
 

@@ -131,6 +131,22 @@ decision is cleared on a scene load, on a session end and when the game's own in
 players with identical display names still read one label, and a CUO modal that swallows the release leaves the
 game's own drag stuck until the next right-click.
 
+### Rows 9 and 10 re-read on the fixed artifact (2026-10-22, batch `20261022-g`)
+
+The cue's drawer was wired in `1f4d3ca5`, and the two rows were read again with the same real drag (record:
+`docs/evidence/acceptance/give-item-to-another-player-20261022-g.md`):
+
+- **Row 9 passes.** The label `Use on 萧稔` is drawn beside the cursor with the pointer inside the receiver's range,
+  the cue's own state reads `showing:true` with the receiver's SteamId in the same moment, and the receiver's
+  backpack is the open one.
+- **Row 10 passes.** The label is gone while the pointer sits on the receiver's displayed item button, and it
+  returns when the cursor comes back into the range; the release then lands as a use, the receiver eats it, and the
+  drag-opened backpack closes.
+
+Unit 1's rows are now all read (1, 2, 5, 7 and 8 in batch `20261022-f`; 9 and 10 here). The ticket still stays in
+`todo/`: unit 2's rows 3, 4 and 6 are not implemented, which is the next cycle's work on this ticket and on
+`todo/placement-outcome-never-returns.md`.
+
 ### How unit 1 landed (2026-10-22)
 
 - **The target and the give are two resolutions, each shared by every reader.** The target of a USE is

@@ -118,9 +118,13 @@ does not, and neither have the machine rows been run. What landed:
   and behaviour test exist; its machine reading is what is missing.
 - **The ticket's status.** It stays `todo/` for that one row. The give ticket's rows 3 and 4 passed in the same
   run; both tickets cite the same record.
-- **What a future reading would need.** A legitimate way to change the receiver's body inside the window without
-  a call seam — a second real gesture that lands in that round trip, or a user ruling that the behaviour test
-  plus the logged return is the accepted reading for a race this narrow.
+- **What a future reading would need.** Batch `20261022-i` tried twice and established the mechanical reason:
+  both clients' gestures need the same physical right button and the same single foreground window, so the
+  receiver's own body change cannot be made inside the answer→transfer window (~540 ms) — the two holds are
+  mutually exclusive and the foreground switch plus the two calls cost more than the window. The record is
+  `docs/evidence/acceptance/placement-outcome-never-returns-20261022-i.md`. A future reading needs either a
+  second independent pointer device or a designed seam whose evidence the acceptance rules accept; that choice is
+  the user's.
 
 ## Design defect: the give interaction this ticket assumes cannot be performed (2026-10-22)
 

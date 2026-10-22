@@ -28,7 +28,7 @@ public readonly record struct HostRuleSet(
 	bool PvpEnabled,
 	bool AutoContinue,
 	bool AllowLateJoin,
-	bool AllowRemoteInventoryTake,
+	RemoteBackpackAccess RemoteBackpackAccess,
 	bool AllowMemberCheatVerbs,
 	bool WidenRunSettings,
 	float PiggybackWeightMultiplier,
@@ -47,7 +47,7 @@ public readonly record struct HostRuleSet(
 		rules.PvpEnabled,
 		rules.AutoContinue,
 		rules.AllowLateJoin,
-		rules.AllowRemoteInventoryTake,
+		rules.RemoteBackpackAccess,
 		rules.AllowMemberCheatVerbs,
 		rules.WidenRunSettings,
 		rules.PiggybackWeightMultiplier,
@@ -66,7 +66,7 @@ public readonly record struct HostRuleSet(
 		hostRules.PvpEnabled,
 		hostRules.AutoContinue,
 		hostRules.AllowLateJoin,
-		hostRules.AllowRemoteInventoryTake,
+		hostRules.RemoteBackpackAccess,
 		hostRules.AllowMemberCheatVerbs,
 		hostRules.WidenRunSettings,
 		hostRules.PiggybackWeightMultiplier,
@@ -90,7 +90,6 @@ public readonly record struct HostRuleSet(
 		HostRuleId.PvpEnabled => PvpEnabled,
 		HostRuleId.AutoContinue => AutoContinue,
 		HostRuleId.AllowLateJoin => AllowLateJoin,
-		HostRuleId.AllowRemoteInventoryTake => AllowRemoteInventoryTake,
 		HostRuleId.AllowMemberCheatVerbs => AllowMemberCheatVerbs,
 		HostRuleId.WidenRunSettings => WidenRunSettings,
 		HostRuleId.SaveInventory => SaveInventory,
@@ -116,5 +115,12 @@ public readonly record struct HostRuleSet(
 	{
 		HostRuleId.NativeBindingParity => NativeBindingParity,
 		_ => throw new ArgumentOutOfRangeException(nameof(rule), rule, "host rule is not the parity level"),
+	};
+
+	/// <summary>The value of the remote-backpack access rule, by id.</summary>
+	public RemoteBackpackAccess Access(HostRuleId rule) => rule switch
+	{
+		HostRuleId.RemoteBackpackAccess => RemoteBackpackAccess,
+		_ => throw new ArgumentOutOfRangeException(nameof(rule), rule, "host rule is not the backpack access level"),
 	};
 }

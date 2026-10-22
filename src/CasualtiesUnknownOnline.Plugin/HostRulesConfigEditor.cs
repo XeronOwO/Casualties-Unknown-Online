@@ -17,7 +17,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _pvp;
 	private readonly ConfigEntry<bool> _autoContinue;
 	private readonly ConfigEntry<bool> _allowLateJoin;
-	private readonly ConfigEntry<bool> _allowRemoteInventoryTake;
+	private readonly ConfigEntry<string> _remoteBackpackAccess;
 	private readonly ConfigEntry<bool> _allowMemberCheatVerbs;
 	private readonly ConfigEntry<bool> _widenRunSettings;
 	private readonly ConfigEntry<double> _piggybackWeight;
@@ -37,7 +37,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> pvp,
 		ConfigEntry<bool> autoContinue,
 		ConfigEntry<bool> allowLateJoin,
-		ConfigEntry<bool> allowRemoteInventoryTake,
+		ConfigEntry<string> remoteBackpackAccess,
 		ConfigEntry<bool> allowMemberCheatVerbs,
 		ConfigEntry<bool> widenRunSettings,
 		ConfigEntry<double> piggybackWeight,
@@ -56,7 +56,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_pvp = pvp;
 		_autoContinue = autoContinue;
 		_allowLateJoin = allowLateJoin;
-		_allowRemoteInventoryTake = allowRemoteInventoryTake;
+		_remoteBackpackAccess = remoteBackpackAccess;
 		_allowMemberCheatVerbs = allowMemberCheatVerbs;
 		_widenRunSettings = widenRunSettings;
 		_piggybackWeight = piggybackWeight;
@@ -78,7 +78,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 
 	internal void SetAllowLateJoin(bool value) => Set(_allowLateJoin, value);
 
-	internal void SetAllowRemoteInventoryTake(bool value) => Set(_allowRemoteInventoryTake, value);
+	internal void SetRemoteBackpackAccess(RemoteBackpackAccess value) => Set(_remoteBackpackAccess, RemoteBackpackAccessText.Format(value));
 
 	internal void SetAllowMemberCheatVerbs(bool value) => Set(_allowMemberCheatVerbs, value);
 
@@ -116,8 +116,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 				return TrySetBool(_autoContinue, value, out error);
 			case "allowlatejoin":
 				return TrySetBool(_allowLateJoin, value, out error);
-			case "allowremoteinventorytake":
-				return TrySetBool(_allowRemoteInventoryTake, value, out error);
+			case "remotebackpackaccess":
+				return TrySetRemoteBackpackAccess(_remoteBackpackAccess, value, out error);
 			case "allowmembercheatverbs":
 				return TrySetBool(_allowMemberCheatVerbs, value, out error);
 			case "widenrunsettings":
@@ -180,6 +180,19 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		}
 
 		Set(entry, NativeBindingParityText.Format(parsed));
+		error = null;
+		return true;
+	}
+
+	private bool TrySetRemoteBackpackAccess(ConfigEntry<string> entry, string value, out string? error)
+	{
+		if (!RemoteBackpackAccessText.TryParse(value, out var parsed))
+		{
+			error = $"'{value}' is not one of allow/unconscious_or_dead/deny.";
+			return false;
+		}
+
+		Set(entry, RemoteBackpackAccessText.Format(parsed));
 		error = null;
 		return true;
 	}

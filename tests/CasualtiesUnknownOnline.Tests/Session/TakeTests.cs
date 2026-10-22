@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
@@ -241,11 +242,11 @@ public class TakeTests
 	}
 
 	[Fact]
-	public void Take_RemoteInventoryTakeDisabled_RefusesEvenUnconsciousTarget()
+	public void Take_RemoteBackpackAccessDenied_RefusesEvenUnconsciousTarget()
 	{
 		var (host, guest, received) = CreateSession(s => s.Replace(
 			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
-				new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowRemoteInventoryTake = false }))));
+				new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.Deny }))));
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, Item(42)));
 
@@ -255,6 +256,40 @@ public class TakeTests
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 	}
+
+	[Fact]
+	public void Take_UnconsciousOrDeadOnly_RefusesAConsciousTarget()
+	{
+		var (host, guest, received) = CreateSession(UnconsciousOrDeadOnly());
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Take_UnconsciousOrDeadOnly_AllowsAnUnconsciousTarget()
+	{
+		var (host, guest, received) = CreateSession(UnconsciousOrDeadOnly());
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		var transfer = TransferResult(received);
+		Assert.Equal(42UL, transfer.Item!.InstanceId);
+		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	private static Action<IServiceCollection> UnconsciousOrDeadOnly() => s => s.Replace(
+		ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
+			new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.UnconsciousOrDeadOnly })));
 
 	[Fact]
 	public void Take_UnknownItem_IsRefused()

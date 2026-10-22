@@ -128,8 +128,8 @@ public sealed class HostRulesAnnouncer : IHostRulesAnnouncement, ICuoService
 
 		var msg = CurrentMessage();
 		_sender.Send(steamId, NetMsg.HostRules, msg);
-		_log.LogInformation("[Rules] announced the host rules to {Peer}: remoteTake={RemoteTake} memberCheatVerbs={MemberCheat} piggybackWeight={Weight:F2}.",
-			steamId, msg.AllowRemoteInventoryTake, msg.AllowMemberCheatVerbs, msg.PiggybackWeightMultiplier);
+		_log.LogInformation("[Rules] announced the host rules to {Peer}: remoteAccess={RemoteAccess} memberCheatVerbs={MemberCheat} piggybackWeight={Weight:F2}.",
+			steamId, RemoteBackpackAccessText.Format((RemoteBackpackAccess)msg.RemoteBackpackAccess), msg.AllowMemberCheatVerbs, msg.PiggybackWeightMultiplier);
 	}
 
 	/// <summary>The one place the live rule surface becomes a wire message: the set is read at the SEND point, so an announcement always carries the values in force when it left.</summary>

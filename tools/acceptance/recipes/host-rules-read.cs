@@ -1,7 +1,7 @@
 // recipe: host-rules-read
 // args: none
 // serves: host-rules-replication
-// returns: ok, role, sessionActive, announced, allowRemoteInventoryTake, allowMemberCheatVerbs,
+// returns: ok, role, sessionActive, announced, remoteBackpackAccess, allowMemberCheatVerbs,
 //          piggybackWeightMultiplier, nativeBindingParity, permadeath, reviveFromTrader,
 //          forbidsMemberCheatVerbs, error
 //
@@ -25,7 +25,7 @@
 		.Append(",\"role\":\"").Append(control.Role.ToString()).Append('"')
 		.Append(",\"sessionActive\":").Append(control.SessionActive ? "true" : "false")
 		.Append(",\"announced\":").Append(announced.Current.HasValue ? "true" : "false")
-		.Append(",\"allowRemoteInventoryTake\":").Append(inForce.AllowRemoteInventoryTake ? "true" : "false")
+		.Append(",\"remoteBackpackAccess\":\"").Append(CasualtiesUnknownOnline.Runtime.Configuration.RemoteBackpackAccessText.Format(inForce.RemoteBackpackAccess)).Append('"')
 		.Append(",\"allowMemberCheatVerbs\":").Append(inForce.AllowMemberCheatVerbs ? "true" : "false")
 		.Append(",\"piggybackWeightMultiplier\":").Append(inForce.PiggybackWeightMultiplier.ToString(System.Globalization.CultureInfo.InvariantCulture))
 		.Append(",\"nativeBindingParity\":\"").Append(inForce.NativeBindingParity.ToString()).Append('"')

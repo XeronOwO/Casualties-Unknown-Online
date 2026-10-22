@@ -245,7 +245,7 @@ internal sealed class OnlineUiPlayerContextMenu
 			return actions;
 		}
 
-		if (ctx.OpenRemoteBackpack is { } open)
+		if (row.CanOpenBackpack && ctx.OpenRemoteBackpack is { } open)
 		{
 			actions.Add(new MenuAction(ctx.T("member.open_backpack"), () => open(row.SteamId, ctx.DisplayName(row.SteamId))));
 		}

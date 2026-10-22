@@ -150,13 +150,46 @@ not the owner's. So the *call* travels, and the guard is evaluated where the obj
 | Role | Decides | Never does |
 |---|---|---|
 | Requester's client (the viewer) | which native gesture happened, what the intent is, and whether the target is visible and reachable *from its own view* | mutate a display proxy; predict the owner's item state; ask the host to judge its own sight |
-| Host | what is genuinely its own: the session permission policy, membership, the ownership fact, first-writer-wins arbitration between competing intents, and the commit/broadcast of the resulting fact | model inventory contents; edit a clone of the owner's character data; judge the actor's reach or the owner's body from stale streamed positions |
+| Host | what is genuinely its own: the session permission policy (§3.1.1), membership, the ownership fact, first-writer-wins arbitration between competing intents, and the commit/broadcast of the resulting fact | model inventory contents; edit a clone of the owner's character data; judge the actor's reach or the owner's body from stale streamed positions |
 | Owner's client | the operation itself: the native call on the real objects, with the real guards, animations and sounds; and the authoritative report of the result | execute a peer's intent that the session did not admit |
 
 Who judges what follows the landed rule for this family (`docs/backlog/review/remote-interaction-local-gating.md`): the
 actor's client judges reach and sight, the target's client judges what its own body and inventory
 allow, and the host keeps arbitration and the commit of the effect. Decision 154's explicit
 cross-player authority policies still decide *whether* this family of operations is enabled at all.
+
+### 3.1.1 Who may operate a remote backpack
+
+The family's one permission is the host rule `RemoteBackpackAccess`
+(`allow` / `unconscious_or_dead` / `deny`, default `allow`), announced to every member with the
+rest of the host rules (decision 263), and it gates the whole family: opening the view, every
+native intent captured from it, the cross-player take, and the give direction.
+
+| Value | Opens | Operates |
+|---|---|---|
+| `allow` | any visible member | whatever the native guards accept — the cooperative rule the mod has always had |
+| `unconscious_or_dead` | any visible member | only an UNCONSCIOUS or DEAD other player (`!Conscious || !Alive`, the landed take rule) |
+| `deny` | nobody | nothing |
+
+The middle value is not "hide the pack": a conscious owner's backpack opens **view only**, with the
+LOOK the native game gives an unconscious player looking at their own pack — items visible and red
+body slots — though the native state also refuses the PICKUP (`PlayerCamera.HandleStartDragging`
+returns when the acting body is unconscious), while this design permits the pickup and refuses the
+release. Every operation (take, move, drop, use, give) is refused; `InvButton.UpdateGraphic` is
+recoloured red for the focused clone's body slots WITHOUT changing `InventorySlot.canPickUp`, so the
+display can never fire the native drop-on-unconscious branch on a conscious clone. The open and the
+refused gestures say why in one red native alert line. The double-Tab take closes the remote view
+before it releases the proxy onto the local body, so the read-only state is captured at the proxy's
+pickup and consulted at the release.
+
+The host is the verdict at two seams: `PlayerRemoteInventoryIntentService` for every intent, and
+`PlayerInventoryTakeService.HandleTakeCore` for the custody transfer (the card's take included).
+Both judge the OTHER player — the owner for a take, the DESTINATION body for a give. The middle value
+fails closed when that player's health block is not known; `allow` needs no state and `deny` refuses
+regardless. The client's own refusal is an interception based on the HOST's announced set (with none
+announced the local check is skipped, decision 263), never the reason something is allowed. The
+Online-UI card's direct take rows keep their own stricter rule (an unconscious/dead body only) under
+every value: the policy can only close a surface, never open one the landed take rule keeps shut.
 
 ### 3.2 The capture seam
 

@@ -37,8 +37,9 @@ public sealed class HostRulesMsg
 	[ProtoMember(3)]
 	public bool AllowLateJoin { get; set; }
 
+	/// <summary>The three-way remote-backpack access level, as its enum value (allow / unconscious_or_dead / deny).</summary>
 	[ProtoMember(4)]
-	public bool AllowRemoteInventoryTake { get; set; }
+	public int RemoteBackpackAccess { get; set; }
 
 	[ProtoMember(5)]
 	public bool AllowMemberCheatVerbs { get; set; }
@@ -83,7 +84,7 @@ public sealed class HostRulesMsg
 		PvpEnabled = set.PvpEnabled,
 		AutoContinue = set.AutoContinue,
 		AllowLateJoin = set.AllowLateJoin,
-		AllowRemoteInventoryTake = set.AllowRemoteInventoryTake,
+		RemoteBackpackAccess = (int)set.RemoteBackpackAccess,
 		AllowMemberCheatVerbs = set.AllowMemberCheatVerbs,
 		WidenRunSettings = set.WidenRunSettings,
 		PiggybackWeightMultiplier = set.PiggybackWeightMultiplier,
@@ -103,7 +104,7 @@ public sealed class HostRulesMsg
 		PvpEnabled,
 		AutoContinue,
 		AllowLateJoin,
-		AllowRemoteInventoryTake,
+		(RemoteBackpackAccess)RemoteBackpackAccess,
 		AllowMemberCheatVerbs,
 		WidenRunSettings,
 		PiggybackWeightMultiplier,
@@ -118,14 +119,22 @@ public sealed class HostRulesMsg
 		SpectateWhileWaitingToJoin);
 
 	/// <summary>
-	/// Why this announcement cannot be applied, or null when it is well formed. The one
-	/// field that carries a CLOSED set is checked: a level this build does not know is
+	/// Why this announcement cannot be applied, or null when it is well formed. The
+	/// fields that carry a CLOSED set are checked: a level this build does not know is
 	/// refused WHOLE rather than clamped, because the receiver keeps the set it holds (or
 	/// none) and names the value — a member that quietly read a neighbouring level would
-	/// render the wrong rule, and the Admin summary indexes the level straight into its
-	/// label list.
+	/// render the wrong rule, and both the Admin summary and the member card index the
+	/// level straight into their label list.
 	/// </summary>
-	public string? Malformed() => Enum.IsDefined(typeof(NativeBindingParity), NativeBindingParity)
-		? null
-		: $"NativeBindingParity={NativeBindingParity} is not a level this build knows (allow / warn / require)";
+	public string? Malformed()
+	{
+		if (!Enum.IsDefined(typeof(NativeBindingParity), NativeBindingParity))
+		{
+			return $"NativeBindingParity={NativeBindingParity} is not a level this build knows (allow / warn / require)";
+		}
+
+		return Enum.IsDefined(typeof(RemoteBackpackAccess), RemoteBackpackAccess)
+			? null
+			: $"RemoteBackpackAccess={RemoteBackpackAccess} is not a level this build knows (allow / unconscious_or_dead / deny)";
+	}
 }

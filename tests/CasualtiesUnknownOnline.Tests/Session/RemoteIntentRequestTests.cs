@@ -1,10 +1,14 @@
+using System;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Xunit;
 using static CasualtiesUnknownOnline.Tests.Session.PlayerInteractionTestSession;
 
@@ -740,4 +744,177 @@ public class RemoteIntentRequestTests
 		Assert.Null(intent);
 		Assert.DoesNotContain(received, r => r.Msg == NetMsg.RemoteInventoryIntent);
 	}
+
+	// ---- The host's RemoteBackpackAccess rule on the intent path -------------------------------
+
+	[Fact]
+	public void ConsciousOwner_UnderUnconsciousOrDeadOnly_RefusesTheIntent()
+	{
+		var (host, guest, received) = CreateSession(Access(RemoteBackpackAccess.UnconsciousOrDeadOnly));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.DropItem,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+			});
+
+		Assert.Null(intent);
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.RemoteInventoryIntent);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+
+		// The refusal is answered to the actor and names the rule — the host's verdict is what decides it.
+		var answer = received.Single(r => r.Msg == NetMsg.InventoryIntentRefused);
+		var refused = NetPacket.DecodePayload<PlayerInventoryIntentRefusedMsg>(answer.Frame);
+		Assert.Contains("RemoteBackpackAccess=unconscious_or_dead", refused.Reason);
+	}
+
+	[Fact]
+	public void UnconsciousOwner_UnderUnconsciousOrDeadOnly_AdmitsTheIntent()
+	{
+		var (host, guest, _) = CreateSession(Access(RemoteBackpackAccess.UnconsciousOrDeadOnly));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.DropItem,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+			});
+
+		Assert.NotNull(intent);
+		Assert.Equal(RemoteInventoryIntentKind.DropItem, intent!.Kind);
+	}
+
+	[Fact]
+	public void UnknownOwnerHealth_UnderUnconsciousOrDeadOnly_IsRefused()
+	{
+		// No health block is "not established", never "not conscious": the middle value fails closed.
+		var (host, guest, received) = CreateSession(Access(RemoteBackpackAccess.UnconsciousOrDeadOnly));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(new CharacterDataMsg { OwnerSteamId = HostId, Items = [Item(42)] });
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.DropItem,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+			});
+
+		Assert.Null(intent);
+		var answer = received.Single(r => r.Msg == NetMsg.InventoryIntentRefused);
+		Assert.Contains("no health snapshot", NetPacket.DecodePayload<PlayerInventoryIntentRefusedMsg>(answer.Frame).Reason);
+	}
+
+	[Fact]
+	public void Deny_RefusesEvenAnUnconsciousOwner()
+	{
+		var (host, guest, received) = CreateSession(Access(RemoteBackpackAccess.Deny));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryIntentMsg? intent = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryIntentReceived += m => intent = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.DropItem,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+			});
+
+		Assert.Null(intent);
+		var answer = received.Single(r => r.Msg == NetMsg.InventoryIntentRefused);
+		Assert.Contains("RemoteBackpackAccess=deny", NetPacket.DecodePayload<PlayerInventoryIntentRefusedMsg>(answer.Frame).Reason);
+	}
+
+	[Fact]
+	public void GiveToBody_UnderUnconsciousOrDeadOnly_JudgesTheDestination()
+	{
+		// The give direction's OTHER player is the destination (the item belongs to the giver): a conscious
+		// receiver makes it a view-only pack, so handing an item in is refused; an unconscious receiver takes it.
+		var (host, guest, received) = CreateSession(Access(RemoteBackpackAccess.UnconsciousOrDeadOnly));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = HostId,
+				TargetSlotIndex = 2,
+			});
+
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.Empty(characters.GetHostCharacterData()!.Items);
+		var refused = NetPacket.DecodePayload<PlayerInventoryIntentRefusedMsg>(received.Single(r => r.Msg == NetMsg.InventoryIntentRefused).Frame);
+		Assert.Contains("RemoteBackpackAccess=unconscious_or_dead", refused.Reason);
+	}
+
+	/// <summary>
+	/// The other half of the give gate: a CONSCIOUS giver handing an item to an UNCONSCIOUS
+	/// receiver is the legal middle-value give. It reaches the host's take core with the
+	/// receiver as the watched player; a core that read the GIVER instead would refuse every
+	/// such give, and the refusal-only case above cannot see that because the intent handler
+	/// refuses it first.
+	/// </summary>
+	[Fact]
+	public void GiveToBody_UnderUnconsciousOrDeadOnly_ToAnUnconsciousReceiver_MovesTheItem()
+	{
+		var (host, guest, received) = CreateSession(Access(RemoteBackpackAccess.UnconsciousOrDeadOnly));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(new RemoteInventoryIntentMsg
+			{
+				Kind = RemoteInventoryIntentKind.GiveToBody,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetBodySteamId = HostId,
+				TargetSlotIndex = 1,
+			});
+
+		var transfer = TransferResult(received);
+		Assert.Equal(GuestId, transfer.FromSteamId);
+		Assert.Equal(HostId, transfer.ToSteamId);
+		Assert.Equal(42UL, transfer.Item!.InstanceId);
+		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	/// <summary>The host-rule monitor a case needs, with the access rule set.</summary>
+	private static Action<IServiceCollection> Access(RemoteBackpackAccess access) => services => services.Replace(
+		ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
+			new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { RemoteBackpackAccess = access })));
 }

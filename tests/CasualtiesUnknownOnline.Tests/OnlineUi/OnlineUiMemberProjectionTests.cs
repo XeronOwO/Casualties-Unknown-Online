@@ -136,7 +136,7 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
-	public void RemoteInventoryTakeDisabled_HidesNonLocalTakeActions()
+	public void RemoteBackpackDenied_HidesNonLocalTakeActions()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
 		{
@@ -162,10 +162,49 @@ public sealed class OnlineUiMemberProjectionTests
 			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
 			getInventory: id => inventory.TryGetValue(id, out var inv) ? inv : null,
-			allowRemoteInventoryTake: false);
+			remoteBackpackDenied: true);
 
 		Assert.False(rows[1].CanTake);
 		Assert.Empty(rows[1].TakeableItems);
+	}
+
+	/// <summary>
+	/// Opening is NOT operating: the middle access value keeps the backpack button for a
+	/// conscious owner (the view opens view-only), while deny removes it. The card's take
+	/// rows stay the unconscious/dead rule either way.
+	/// </summary>
+	[Fact]
+	public void RemoteBackpackOpensForAConsciousOwner_UnlessTheRuleDenies()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+		var inventory = new Dictionary<ulong, RemoteInventorySnapshot>
+		{
+			[Remote] = RemoteInventorySnapshot.From(new CharacterDataMsg
+			{
+				Items =
+				{
+					new CharacterItemMsg { InstanceId = 42, ItemId = "Bandage", SlotIndex = 2 },
+				},
+			})!,
+		};
+		IReadOnlyList<OnlineUiMemberRow> BuildRows(bool denied) => Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			localInWorld: true,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
+			getInventory: id => inventory.TryGetValue(id, out var inv) ? inv : null,
+			remoteBackpackDenied: denied);
+
+		var openable = BuildRows(denied: false);
+		Assert.True(openable[1].CanOpenBackpack);
+		Assert.False(openable[1].CanTake, "a conscious owner's items are not offered as direct take rows");
+
+		var denied = BuildRows(denied: true);
+		Assert.False(denied[1].CanOpenBackpack);
 	}
 
 	[Fact]
@@ -763,7 +802,7 @@ public sealed class OnlineUiMemberProjectionTests
 		Func<ulong, RemoteVitalsSnapshot?>? getVitals = null,
 		Func<ulong, RemoteInventorySnapshot?>? getInventory = null,
 		IReadOnlyList<LocalHealItem>? healItems = null,
-		bool allowRemoteInventoryTake = true,
+		bool remoteBackpackDenied = false,
 		bool reviveFromTrader = true,
 		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
@@ -789,7 +828,7 @@ public sealed class OnlineUiMemberProjectionTests
 			localInWorld: localInWorld,
 			hasHealItem: hasHealItem,
 			healItems: healItems ?? [],
-			allowRemoteInventoryTake: allowRemoteInventoryTake,
+			remoteBackpackDenied: remoteBackpackDenied,
 			reviveFromTrader: reviveFromTrader,
 			permadeath: permadeath,
 			hasLineOfSight: hasLineOfSight,

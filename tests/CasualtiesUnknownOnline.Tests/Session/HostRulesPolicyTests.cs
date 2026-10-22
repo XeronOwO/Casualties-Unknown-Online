@@ -63,6 +63,69 @@ public class HostRulesPolicyTests
 	}
 
 	[Fact]
+	public void DefaultRemoteBackpackAccess_IsAllow() =>
+		Assert.Equal(RemoteBackpackAccess.Allow, new HostRulesOptions().RemoteBackpackAccess);
+
+	[Theory]
+	[InlineData("allow", RemoteBackpackAccess.Allow)]
+	[InlineData("Unconscious_Or_Dead", RemoteBackpackAccess.UnconsciousOrDeadOnly)]
+	[InlineData("  deny  ", RemoteBackpackAccess.Deny)]
+	public void RemoteBackpackAccessText_ParsesTheThreeLevelsAndRoundTrips(string text, RemoteBackpackAccess expected)
+	{
+		Assert.True(RemoteBackpackAccessText.TryParse(text, out var access));
+		Assert.Equal(expected, access);
+		Assert.True(RemoteBackpackAccessText.TryParse(RemoteBackpackAccessText.Format(expected), out var roundTripped));
+		Assert.Equal(expected, roundTripped);
+	}
+
+	[Theory]
+	[InlineData("")]
+	[InlineData("owner")]
+	[InlineData(null)]
+	public void RemoteBackpackAccessText_UnknownValue_FailsAndFallsBackToAllow(string? text)
+	{
+		Assert.False(RemoteBackpackAccessText.TryParse(text, out var access));
+		Assert.Equal(RemoteBackpackAccess.Allow, access);
+	}
+
+	[Theory]
+	[InlineData(RemoteBackpackAccess.Allow, false, false, false, true)] // allow needs no state at all
+	[InlineData(RemoteBackpackAccess.Deny, true, true, true, false)]
+	[InlineData(RemoteBackpackAccess.UnconsciousOrDeadOnly, true, true, true, false)] // conscious/alive
+	[InlineData(RemoteBackpackAccess.UnconsciousOrDeadOnly, true, false, true, true)] // unconscious
+	[InlineData(RemoteBackpackAccess.UnconsciousOrDeadOnly, true, false, false, true)] // dead
+	[InlineData(RemoteBackpackAccess.UnconsciousOrDeadOnly, false, false, false, false)] // unknown fails closed
+	[InlineData(RemoteBackpackAccess.Deny, false, false, false, false)]
+	public void RemoteBackpackAccessPolicy_OperatesOnlyOnWhatTheRuleAllows(
+		RemoteBackpackAccess access,
+		bool healthKnown,
+		bool conscious,
+		bool alive,
+		bool expected) =>
+		Assert.Equal(expected, RemoteBackpackAccessPolicy.MayOperate(access, healthKnown, conscious, alive));
+
+	[Theory]
+	[InlineData(RemoteBackpackAccess.Allow, true)]
+	[InlineData(RemoteBackpackAccess.UnconsciousOrDeadOnly, true)] // opens view only, but opens
+	[InlineData(RemoteBackpackAccess.Deny, false)]
+	public void RemoteBackpackAccessPolicy_OpensEverythingButDeny(RemoteBackpackAccess access, bool expected) =>
+		Assert.Equal(expected, RemoteBackpackAccessPolicy.MayOpen(access));
+
+	[Theory]
+	[InlineData(RemoteBackpackAccess.Allow, false, true, true, false)]
+	[InlineData(RemoteBackpackAccess.UnconsciousOrDeadOnly, true, true, true, true)]
+	[InlineData(RemoteBackpackAccess.UnconsciousOrDeadOnly, true, false, true, false)]
+	[InlineData(RemoteBackpackAccess.UnconsciousOrDeadOnly, false, false, false, true)]
+	[InlineData(RemoteBackpackAccess.Deny, true, true, true, false)] // a closed view is not "view only"
+	public void RemoteBackpackAccessPolicy_ViewOnlyIsAnOpenViewThatMayNotOperate(
+		RemoteBackpackAccess access,
+		bool healthKnown,
+		bool conscious,
+		bool alive,
+		bool expected) =>
+		Assert.Equal(expected, RemoteBackpackAccessPolicy.IsViewOnly(access, healthKnown, conscious, alive));
+
+	[Fact]
 	public void HostRulesService_ComposesNewFlagsAndRespawnFlags()
 	{
 		var service = new HostRulesService(
@@ -71,7 +134,7 @@ public class HostRulesPolicyTests
 				PvpEnabled = true,
 				AutoContinue = true,
 				AllowLateJoin = false,
-				AllowRemoteInventoryTake = false,
+				RemoteBackpackAccess = RemoteBackpackAccess.Deny,
 				WidenRunSettings = true,
 				PiggybackWeightMultiplier = 1.25f,
 				NativeBindingParity = NativeBindingParity.Require,
@@ -89,7 +152,7 @@ public class HostRulesPolicyTests
 		Assert.True(service.PvpEnabled);
 		Assert.True(service.AutoContinue);
 		Assert.False(service.AllowLateJoin);
-		Assert.False(service.AllowRemoteInventoryTake);
+		Assert.Equal(RemoteBackpackAccess.Deny, service.RemoteBackpackAccess);
 		Assert.True(service.WidenRunSettings);
 		Assert.True(Math.Abs(service.PiggybackWeightMultiplier - 1.25f) < 0.001f);
 		Assert.Equal(NativeBindingParity.Require, service.NativeBindingParity);
@@ -107,12 +170,12 @@ public class HostRulesPolicyTests
 			new MutableOptionsMonitor<RespawnOptions>(new RespawnOptions()),
 			new AnnouncedHostRules(new FakeSessionControl(), NullLogger<AnnouncedHostRules>.Instance));
 		Assert.True(service.AllowLateJoin);
-		Assert.True(service.AllowRemoteInventoryTake);
+		Assert.Equal(RemoteBackpackAccess.Allow, service.RemoteBackpackAccess);
 
-		hostRules.Set(new HostRulesOptions { AllowLateJoin = false, AllowRemoteInventoryTake = false, PvpEnabled = true });
+		hostRules.Set(new HostRulesOptions { AllowLateJoin = false, RemoteBackpackAccess = RemoteBackpackAccess.UnconsciousOrDeadOnly, PvpEnabled = true });
 
 		Assert.False(service.AllowLateJoin);
-		Assert.False(service.AllowRemoteInventoryTake);
+		Assert.Equal(RemoteBackpackAccess.UnconsciousOrDeadOnly, service.RemoteBackpackAccess);
 		Assert.True(service.PvpEnabled);
 	}
 }

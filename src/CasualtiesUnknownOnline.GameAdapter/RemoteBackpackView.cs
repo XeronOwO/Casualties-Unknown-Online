@@ -20,6 +20,8 @@ internal static class RemoteBackpackView
 	private static bool _containerRefreshPending;
 	private static int _containerRefreshDueFrame = -1;
 	private static ulong _openContainerInstanceId;
+	private static bool _readOnly;
+	private static bool _readOnlyDrag;
 
 	internal static Body? FocusedBody
 	{
@@ -47,7 +49,31 @@ internal static class RemoteBackpackView
 		&& PlayerCamera.main != null // Unity object — ==
 		&& PlayerCamera.main.radialOpen;
 
-	internal static void Open(Body body, ulong steamId, string displayName)
+	/// <summary>
+	/// Whether the open focus is VIEW ONLY: the host's access rule opens a conscious
+	/// owner's backpack for looking but refuses every operation on it. The native
+	/// inventory buttons already draw the same state (red) for an unconscious body.
+	/// </summary>
+	internal static bool IsReadOnly => _readOnly;
+
+	/// <summary>
+	/// The read-only state the current proxy drag started under. It outlives the
+	/// focus because the double-Tab transfer closes the remote view BEFORE the release:
+	/// without it a drag that began on a view-only pack could release into the local
+	/// backpack as a cross-player take. Set on every proxy pickup, cleared when the drag
+	/// ends or the next one starts.
+	/// </summary>
+	internal static bool ReadOnlyDrag => _readOnlyDrag;
+
+	internal static void SetReadOnly(bool readOnly) => _readOnly = readOnly;
+
+	/// <summary>A display proxy was picked up: remember whether the view it came from was view only.</summary>
+	internal static void BeginProxyDrag() => _readOnlyDrag = _readOnly;
+
+	/// <summary>The proxy drag ended (released, refused or reset): a later gesture starts clean.</summary>
+	internal static void EndProxyDrag() => _readOnlyDrag = false;
+
+	internal static void Open(Body body, ulong steamId, string displayName, bool readOnly)
 	{
 		_focusedBody = body;
 		_focusedSteamId = steamId;
@@ -55,6 +81,8 @@ internal static class RemoteBackpackView
 		_smoothPosition = Camera.main != null
 			? (Vector2)Camera.main.WorldToScreenPoint(body.transform.position)
 			: Vector2.zero;
+		_readOnly = readOnly;
+		_readOnlyDrag = false;
 		PlayerCamera.main.radialOpen = true;
 	}
 
@@ -82,6 +110,7 @@ internal static class RemoteBackpackView
 		_openContainerInstanceId = 0;
 		_containerRefreshPending = false;
 		_containerRefreshDueFrame = -1;
+		_readOnly = false;
 
 		// Closing the focus also exits the native radial-open state. This keeps
 		// the remote backpack and remote medical views mutually exclusive: if the

@@ -36,8 +36,7 @@ public static class OnlineUiMemberProjection
 		bool localInWorld,
 		bool hasHealItem,
 		IReadOnlyList<LocalHealItem> healItems,
-		bool allowRemoteInventoryTake = true,
-		bool reviveFromTrader = true,
+		bool remoteBackpackDenied = false, bool reviveFromTrader = true,
 		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
 		Func<ulong, PlayerColorValue>? getColor = null,
@@ -141,7 +140,13 @@ public static class OnlineUiMemberProjection
 				&& vitals is { Alive: false }
 				&& reviveFromTrader
 				&& !permadeath;
-			var takeable = canTake(inventory, vitals, isLocal, member, allowRemoteInventoryTake, canSee);
+			var takeable = canTake(inventory, vitals, isLocal, member, remoteBackpackDenied, canSee);
+			var canOpenBackpack = !remoteBackpackDenied
+				&& !isLocal
+				&& member is { InWorld: true }
+				&& localInWorld
+				&& canSee
+				&& inventory is not null;
 			var canAdminMember = canAdmin && !isLocal && member is not null;
 
 			var name = displayName(memberId);
@@ -172,6 +177,7 @@ public static class OnlineUiMemberProjection
 				CanPush = canPush,
 				CanRecruit = canRecruit,
 				CanTake = takeable.Count > 0,
+				CanOpenBackpack = canOpenBackpack,
 				CanKick = canAdminMember,
 				CanBan = canAdminMember,
 				IsBanned = hostBan?.IsBanned(memberId) ?? false,
@@ -196,10 +202,10 @@ public static class OnlineUiMemberProjection
 		RemoteVitalsSnapshot? vitals,
 		bool isLocal,
 		MemberPresenceTable.MemberPresence? member,
-		bool allowRemoteInventoryTake,
+		bool remoteBackpackDenied,
 		bool canSee)
 	{
-		if (!allowRemoteInventoryTake
+		if (remoteBackpackDenied
 			|| isLocal
 			|| !canSee
 			|| member is not { InWorld: true }

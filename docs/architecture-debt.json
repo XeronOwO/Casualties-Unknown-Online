@@ -1,8 +1,8 @@
 {
   "CasualtiesUnknownOnline.GameAdapter.GameAdapter": {
-    "Lines": 624,
+    "Lines": 629,
     "BoolFlags": 5,
-    "Note": "The world re-entry recovery added two lines only: the IReentryControl constructor parameter and the one-line pump call of a step that lives in its own domain (ReentryCoordinator), which is the watchlist's rule for this file. The seam a split owes is still the patch-bridge forwarding half."
+    "Note": "The world re-entry recovery added two lines only: the IReentryControl constructor parameter and the one-line pump call of a step that lives in its own domain (ReentryCoordinator), which is the watchlist's rule for this file. The remote-backpack access rule added the RemoteVitalsService/ILocalizationService/AnnouncedHostRules constructor parameters plus the one-line notice wiring they feed (+5 lines): all three feed the coordinator and the drag dispatcher, and the announced rules are what a MEMBER's local check reads (decision 263), so the adapter passes them through rather than owning them. The seam a split owes is still the patch-bridge forwarding half."
   },
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
     "Lines": 922,

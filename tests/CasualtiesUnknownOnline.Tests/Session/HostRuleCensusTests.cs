@@ -79,6 +79,25 @@ public class HostRuleCensusTests
 	}
 
 	[Fact]
+	public void EveryMemberRule_WireFieldCarriesTheRulesValueShape()
+	{
+		// The name check above catches a rule whose field is missing; this one catches a field
+		// whose TYPE drifted. An enum-valued rule travels as its integer value, so the wire type
+		// is int for an enum and the property's own type otherwise (the bool-to-int change of the
+		// remote-backpack rule is the shape this pins).
+		var surface = Properties<IHostRules>().ToDictionary(property => property.Name, property => property.PropertyType);
+		var wire = Properties<HostRulesMsg>().ToDictionary(property => property.Name, property => property.PropertyType);
+
+		foreach (var rule in HostRuleCensus.MemberRows)
+		{
+			var name = rule.Id.ToString();
+			Assert.True(wire.TryGetValue(name, out var wireType), $"{name} has no wire field on {nameof(HostRulesMsg)}");
+			var surfaceType = surface[name];
+			Assert.Equal(surfaceType.IsEnum ? typeof(int) : surfaceType, wireType);
+		}
+	}
+
+	[Fact]
 	public void EveryCensusLabel_IsTranslatedInBothLanguages()
 	{
 		foreach (var row in HostRuleCensus.Rows)
@@ -110,6 +129,7 @@ public class HostRuleCensusTests
 		var set = Set();
 		Assert.Throws<ArgumentOutOfRangeException>(() => set.Boolean(HostRuleId.PiggybackWeightMultiplier));
 		Assert.Throws<ArgumentOutOfRangeException>(() => set.Boolean(HostRuleId.NativeBindingParity));
+		Assert.Throws<ArgumentOutOfRangeException>(() => set.Boolean(HostRuleId.RemoteBackpackAccess));
 	}
 
 	[Fact]
@@ -118,6 +138,9 @@ public class HostRuleCensusTests
 		var set = Set();
 		Assert.Throws<ArgumentOutOfRangeException>(() => set.Number(HostRuleId.NativeBindingParity));
 		Assert.Throws<ArgumentOutOfRangeException>(() => set.Parity(HostRuleId.AllowLateJoin));
+		Assert.Throws<ArgumentOutOfRangeException>(() => set.Number(HostRuleId.RemoteBackpackAccess));
+		Assert.Throws<ArgumentOutOfRangeException>(() => set.Access(HostRuleId.NativeBindingParity));
+		Assert.Throws<ArgumentOutOfRangeException>(() => set.Access(HostRuleId.AllowLateJoin));
 	}
 
 	[Fact]
@@ -128,6 +151,7 @@ public class HostRuleCensusTests
 		Assert.True(set.Boolean(HostRuleId.Permadeath));
 		Assert.Equal(1.25f, set.Number(HostRuleId.PiggybackWeightMultiplier));
 		Assert.Equal(NativeBindingParity.Require, set.Parity(HostRuleId.NativeBindingParity));
+		Assert.Equal(RemoteBackpackAccess.UnconsciousOrDeadOnly, set.Access(HostRuleId.RemoteBackpackAccess));
 	}
 
 	[Fact]
@@ -143,7 +167,7 @@ public class HostRuleCensusTests
 		PvpEnabled: true,
 		AutoContinue: true,
 		AllowLateJoin: false,
-		AllowRemoteInventoryTake: false,
+		RemoteBackpackAccess: RemoteBackpackAccess.UnconsciousOrDeadOnly,
 		AllowMemberCheatVerbs: true,
 		WidenRunSettings: false,
 		PiggybackWeightMultiplier: 1.25f,

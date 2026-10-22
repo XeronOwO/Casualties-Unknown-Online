@@ -51,7 +51,7 @@ public sealed class HostRulesService(
 
 	public bool AllowLateJoin => Current.AllowLateJoin;
 
-	public bool AllowRemoteInventoryTake => Current.AllowRemoteInventoryTake;
+	public RemoteBackpackAccess RemoteBackpackAccess => Current.RemoteBackpackAccess;
 
 	public bool AllowMemberCheatVerbs => Current.AllowMemberCheatVerbs;
 

@@ -116,6 +116,12 @@ internal static class AdapterCapabilityCatalog
 				typeof(LimbItemTransformPatches.LimbApplyWoundItemPatch),
 				typeof(LimbItemTransformPatches.SplintTakeOffPatch),
 				typeof(LimbItemTransformPatches.TourniquetTakeOffPatch),
+				// The host's access rule on the VIEW: the middle value opens a conscious
+				// owner's pack view only, so the game's own red slot fill (recoloured
+				// without changing canPickUp, whose false answer would drop a slot item
+				// on an unconscious-clone path) is the hint, and the drag state remembers
+				// whether the gesture started on such a view.
+				typeof(ReadOnlyBackpackSlotPatch), typeof(ReadOnlyBackpackDragStartPatch),
 			],
 			[],
 			[],

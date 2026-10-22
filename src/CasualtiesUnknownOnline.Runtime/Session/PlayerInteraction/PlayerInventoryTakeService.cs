@@ -82,9 +82,10 @@ internal sealed class PlayerInventoryTakeService(
 	/// <summary>
 	/// Host-only remote-backpack Tab-transfer path. The remote backpack is an
 	/// explicit co-op inventory surface, so transferring an item to the opener's
-	/// own inventory is allowed for a conscious remote owner as long as
-	/// <c>AllowRemoteInventoryTake</c> is enabled; the Online UI's unconscious-only
-	/// take rules are not applied to this dedicated gesture.
+	/// own inventory is allowed for a conscious remote owner when the host's
+	/// <see cref="IHostRules.RemoteBackpackAccess"/> rule allows it; the Online UI's
+	/// unconscious-only take rules are not applied to this dedicated gesture, while
+	/// the access rule still is.
 	/// </summary>
 	public void HandleRemoteBackpackTake(ulong requester, ulong owner, ulong itemId) =>
 		HandleTakeCore(requester, owner, itemId, allowConsciousSource: true, requestedSlot: -1);
@@ -108,7 +109,7 @@ internal sealed class PlayerInventoryTakeService(
 	/// other.
 	/// </summary>
 	public string? HandleRemoteGiveToBody(ulong giver, ulong receiver, ulong itemId, int targetSlot, ulong targetContainerId) =>
-		HandleTakeCore(sender: receiver, owner: giver, itemId, allowConsciousSource: true, requestedSlot: targetSlot, requestedContainerId: targetContainerId);
+		HandleTakeCore(sender: receiver, owner: giver, itemId, allowConsciousSource: true, requestedSlot: targetSlot, requestedContainerId: targetContainerId, watchedIsDestination: true);
 
 	private string? HandleTakeCore(
 		ulong sender,
@@ -116,7 +117,8 @@ internal sealed class PlayerInventoryTakeService(
 		ulong itemId,
 		bool allowConsciousSource,
 		int requestedSlot = -1,
-		ulong requestedContainerId = 0)
+		ulong requestedContainerId = 0,
+		bool watchedIsDestination = false)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -130,9 +132,9 @@ internal sealed class PlayerInventoryTakeService(
 			return $"malformed transfer (from {from}, to {to}, item id {itemId}).";
 		}
 
-		if (!_hostRules.AllowRemoteInventoryTake)
+		if (!RemoteBackpackAccessPolicy.MayOpen(_hostRules.RemoteBackpackAccess))
 		{
-			return "host has disabled cross-player inventory take (rule AllowRemoteInventoryTake=false).";
+			return "host rule RemoteBackpackAccess=deny forbids all remote inventory manipulation.";
 		}
 
 		if (!_characters.IsInWorld(from) || !_characters.IsInWorld(to))
@@ -145,6 +147,21 @@ internal sealed class PlayerInventoryTakeService(
 		if (source is null || target is null)
 		{
 			return $"no character snapshot for {from}/{to}.";
+		}
+
+		// The rule judges the OTHER player — the one whose inventory is touched: the owner for a take, and
+		// the RECEIVER for a give (the item belongs to the giver, so the destination is the other side).
+		// The middle value refuses a conscious/alive target and fails closed when its health is unknown; the
+		// actor's own client already refused the same gesture locally, and this is the host's verdict.
+		var watched = watchedIsDestination ? to : from;
+		var watchedHealth = (watchedIsDestination ? target : source).Health;
+		if (!RemoteBackpackAccessPolicy.MayOperate(
+			_hostRules.RemoteBackpackAccess,
+			watchedHealth is not null,
+			watchedHealth?.Conscious ?? false,
+			watchedHealth?.Alive ?? false))
+		{
+			return $"{watched} {RemoteBackpackAccessPolicy.DescribeState(watchedHealth is not null, watchedHealth?.Conscious ?? false, watchedHealth?.Alive ?? false)}; host rule RemoteBackpackAccess=unconscious_or_dead allows operating only an unconscious or dead player's backpack.";
 		}
 
 		// The game's direct-interaction rule (KrokMP-compatible default): a

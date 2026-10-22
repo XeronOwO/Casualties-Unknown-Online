@@ -83,8 +83,10 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("Reserved host-rule surface for automatic next-layer continuation; not wired yet."));
 		var allowLateJoin = config.Bind("HostRules", "AllowLateJoin", true,
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
-		var allowRemoteInventoryTake = config.Bind("HostRules", "AllowRemoteInventoryTake", true,
-			new ConfigDescription("True = other players may take carried items from a remote player's inventory (unconscious/dead loot remains the default rule; false disables cross-player inventory take entirely)."));
+		var remoteBackpackAccess = config.Bind("HostRules", "RemoteBackpackAccess", "allow",
+			new ConfigDescription(
+				"Host-only: who may open and operate another player's backpack. allow = anyone (today's cooperative rule); unconscious_or_dead = a conscious owner's pack opens view-only and only an unconscious or dead body may be operated on; deny = nobody. Enforced on the host; a member's client reads the announced value.",
+				new AcceptableValueList<string>("allow", "unconscious_or_dead", "deny")));
 		var allowMemberCheatVerbs = config.Bind("HostRules", "AllowMemberCheatVerbs", false,
 			new ConfigDescription("Host-only: the cheat switch — true = members may run the cheat verbs (/data's write verbs, /give) at all. It is one of TWO rulings: the member must ALSO be on this host's cheat roster (granted with /op). False (default) = every member's cheat verb is refused by name, the reason is named back, and the member's client puts back the value it had already applied. The host's own verbs ignore both: its standing is the online switch."));
 		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
@@ -113,7 +115,7 @@ internal static class PluginDependencyRegistrar
 					PvpEnabled = pvpEnabled.Value,
 					AutoContinue = autoContinue.Value,
 					AllowLateJoin = allowLateJoin.Value,
-					AllowRemoteInventoryTake = allowRemoteInventoryTake.Value,
+					RemoteBackpackAccess = ParseRemoteBackpackAccess(remoteBackpackAccess.Value),
 					AllowMemberCheatVerbs = allowMemberCheatVerbs.Value,
 					RadiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor.Value,
 					SpectatorFreeFly = spectatorFreeFly.Value,
@@ -124,7 +126,7 @@ internal static class PluginDependencyRegistrar
 					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value),
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
-				allowRemoteInventoryTake.Definition,
+				remoteBackpackAccess.Definition,
 				allowMemberCheatVerbs.Definition,
 				widenRunSettings.Definition, piggybackWeight.Definition,
 				radiationLineStopsAboveTheFloor.Definition,
@@ -191,7 +193,7 @@ internal static class PluginDependencyRegistrar
 			pvpEnabled,
 			autoContinue,
 			allowLateJoin,
-			allowRemoteInventoryTake,
+			remoteBackpackAccess,
 			allowMemberCheatVerbs,
 			widenRunSettings,
 			piggybackWeight,
@@ -296,4 +298,10 @@ internal static class PluginDependencyRegistrar
 	/// throwing during composition.</summary>
 	private static NativeBindingParity ParseNativeBindingParity(string text) =>
 		NativeBindingParityText.TryParse(text, out var parity) ? parity : NativeBindingParity.Warn;
+
+	/// <summary>A hand-edited config file bypasses the entry's AcceptableValueList, so an
+	/// unparseable access value fails CLOSED (deny) rather than widening the access a typo was
+	/// meant to narrow; the entry's own documented default stays allow.</summary>
+	private static RemoteBackpackAccess ParseRemoteBackpackAccess(string text) =>
+		RemoteBackpackAccessText.TryParse(text, out var access) ? access : RemoteBackpackAccess.Deny;
 }

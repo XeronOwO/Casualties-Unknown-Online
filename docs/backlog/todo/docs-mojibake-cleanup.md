@@ -30,6 +30,12 @@ Two other English docs read as hits by the same scan and are NOT damage: `review
 `done/give-item-to-a-player-command.md` quote a Chinese review comment, and a Chinese sentence ending in `?` is the
 ordinary question mark. Leave them alone.
 
+Found 2026-10-22 during the remote-backpack access-policy review: the same artifact is also in one tracked
+SOURCE file — `src/CasualtiesUnknownOnline.Application/Kernel/KernelCommandGateway.cs` (39 occurrences of the
+`鈥?`/`鈫?` family). It is source, not a document, and it is named here so the cleanup's carrier owns it instead of
+a later cycle rediscovering it; the per-sentence method below applies unchanged. `docs/decisions/active.md` measured
+41 occurrences on the same scan (the table's 39 were measured at `2afbb61f`).
+
 ## Why it is worth fixing
 
 These are documents a reader opens directly: `docs/decisions/active.md` is the record every design argument cites,

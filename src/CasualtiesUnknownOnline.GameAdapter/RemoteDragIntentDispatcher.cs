@@ -27,9 +27,12 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 
 	internal ulong LocalSteamId => domains.Session.LocalSteamId;
 
-	internal void ReportUnresolved(Item? dragItem) =>
+	internal void ReportUnresolved(Item? dragItem)
+	{
+		RemoteBackpackView.EndProxyDrag();
 		domains.Log.LogWarning("[RemoteIntent] refused the release of {Item}: the display proxy carries no authoritative instance id/owner — the drag is cancelled before the native body can mutate it.",
 			dragItem != null ? dragItem.id : "null"); // Unity object — ==
+	}
 
 	/// <summary>
 	/// A release of this client's OWN item onto another player's displayed inventory. When it can be classified it
@@ -47,6 +50,18 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 	internal void ReportLocalReleaseOntoProxy(Item? dragItem, ulong targetOwnerSteamId, string target, ulong targetItemInstanceId, int targetSlotIndex)
 	{
 		var local = domains.Session.LocalSteamId;
+
+		// A view-only pack takes no hand-over either: "view only" means every operation,
+		// including giving into it. The gesture is refused before the wire, with the same
+		// red line the take direction gets.
+		if (RemoteBackpackView.IsReadOnly)
+		{
+			domains.Log.LogInformation("[RemoteIntent] refused the give of this client's own item {Item} onto {Owner}'s backpack: host rule RemoteBackpackAccess=unconscious_or_dead makes it view only.",
+				dragItem != null ? dragItem.id : "null", // Unity object — ==
+				targetOwnerSteamId);
+			domains.BackpackNotice.Show(domains.Localization.T("remote_backpack.gesture_refused"));
+			return;
+		}
 
 		// The giver's own identity comes from the item's OWN component, never from the display-proxy marker: this
 		// branch exists precisely because the dragged item is not a proxy. An item with no identity cannot be named
@@ -95,6 +110,19 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 				refusal, outcome.DraggedItemId, outcome.OwnerSteamId);
 		}
 
+		// The double-Tab release closes the remote view BEFORE it releases, so the flag
+		// captured at pickup is what survives to this point. Either way a view-only pack
+		// produces no intent: the host would refuse it, and the actor is told here.
+		var readOnly = RemoteBackpackView.ReadOnlyDrag || RemoteBackpackView.IsReadOnly;
+		RemoteBackpackView.EndProxyDrag();
+		if (readOnly)
+		{
+			domains.Log.LogInformation("[RemoteIntent] refused the release of item {Item} (owner {Owner}): the remote backpack is view only under host rule RemoteBackpackAccess=unconscious_or_dead, so no intent was sent.",
+				outcome.DraggedItemId, outcome.OwnerSteamId);
+			domains.BackpackNotice.Show(domains.Localization.T("remote_backpack.gesture_refused"));
+			return;
+		}
+
 		if (outcome.OwnerSteamId == 0 || outcome.DraggedItemId == 0)
 		{
 			// The refusals above are the only "why" this release has, so they are
@@ -123,6 +151,14 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 	/// </summary>
 	internal void EmitWhileDraggingFrame(RemoteDragOutcome outcome)
 	{
+		if (RemoteBackpackView.ReadOnlyDrag || RemoteBackpackView.IsReadOnly)
+		{
+			// A continuous tick arrives every frame; the notice's own repeat window keeps
+			// this to one line, and no intent leaves the client.
+			domains.BackpackNotice.Show(domains.Localization.T("remote_backpack.gesture_refused"));
+			return;
+		}
+
 		ReportFrameRefusalsOnce(outcome);
 		if (outcome.OwnerSteamId == 0 || outcome.DraggedItemId == 0)
 		{

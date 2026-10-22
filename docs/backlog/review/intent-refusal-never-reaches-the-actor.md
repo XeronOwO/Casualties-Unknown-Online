@@ -17,7 +17,8 @@
 
 Two live readings, both on the deployed artifact, both with the actor watching:
 
-- **A policy refusal never reaches the actor.** With the host's `AllowRemoteInventoryTake` off, the giver's release
+- **A policy refusal never reaches the actor.** With the host's `AllowRemoteInventoryTake` off (the rule
+  is now `RemoteBackpackAccess=deny`; this reading predates the rename), the giver's release
   is refused on its OWN side — `[RemoteIntent] refused GiveToBody: host has disabled remote inventory manipulation`
   — and the player sees nothing: the item does not move, and no line appears on their screen.
 - **A host-side refusal never reaches the actor either.** With the receiver out of world, the host refuses by name

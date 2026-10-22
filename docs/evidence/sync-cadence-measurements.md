@@ -48,17 +48,18 @@ worst case at 10 s stays in the low KB/s against the profile's 1 MB/s budget.
 | First repair after the entry edge | the member's first repeat ≈ 5 000 ms after the edge |
 | Repairs for an entry whose window closed on BOTH control facts | 0 |
 | Repairs for an entry whose gate release is held (nothing swallowed) | ≤ 3 inside the gate's 30 s force-start (≤ 4 over the ~36 s the test runs) — the host cannot tell that window from a swallowed one, so it is answered and bounded (`EntryRepairConvergenceTests.HeldGate_PaysBoundedRepairsWithoutASwallow`) |
-| One repair pass, measured in the simulation world | 2 464 bytes (`EntryRepairConvergenceTests.SwallowedEntryGroup_IsHealedByTheRepeatAnswer` asserts exactly this number, so it is reproducible and a change in the pass's cost fails loudly) |
+| One repair pass, measured in the simulation world | 2 462 bytes (`EntryRepairConvergenceTests.SwallowedEntryGroup_IsHealedByTheRepeatAnswer` asserts exactly this number, so it is reproducible and a change in the pass's cost fails loudly) |
 
-The 2 464-byte figure (2 458 before the host-rule message gained its first field, 2 460 after it, 2 462 after the three spectator rules — the two of those whose value differs from the wire format's own default are the only ones written, which is why three fields cost two bytes; 2 463 once the cheat-roster announcement joined the group, whose empty payload costs the frame's message byte alone; 2 464 once the authoritative empty enemy roster joined it too — the enemy snapshot now travels even with no enemies so a member can drop a divergent local set, and an empty snapshot's frame costs its message byte alone when no run baseline stamps it) is the whole answer to the swallowed entry group in
+The 2 462-byte figure (2 458 before the host-rule message gained its first field, 2 460 after it, 2 462 after the three spectator rules — the two of those whose value differs from the wire format's own default are the only ones written, which is why three fields cost two bytes; 2 463 once the cheat-roster announcement joined the group, whose empty payload costs the frame's message byte alone; 2 464 once the authoritative empty enemy roster joined it too — the enemy snapshot now travels even with no enemies so a member can drop a divergent local set, and an empty snapshot's frame costs its message byte alone when no run baseline stamps it; 2 462 after the boolean remote-inventory-take field became the three-way `RemoteBackpackAccess`, whose `allow` default the absolute message omits) is the whole answer to the swallowed entry group in
 `EntryRepairConvergenceTests.SwallowedEntryGroup_IsHealedByTheRepeatAnswer` — the absolute
 in-session tables (kernel checkpoint, block state, block damage, trap layout, enemy snapshot,
 runtime entities, recipe unlocks, roster) plus the host's rule announcement, the cheat-roster
 announcement, the start-gate answer and the completion marker. The two announcements are the
 members of the group that are not world tables: they are what a member's own client checks its
 gestures against, so they converge here like the tables do (`done/host-rules-replication.md`,
-+20 bytes of the pass — the absolute rule set in one frame; +1 byte for the roster, an empty list
-being an empty payload). The simulation world is deliberately minimal; the dominant term in a real
++18 bytes of the pass — the absolute rule set in one frame, two bytes narrower since the
+remote-inventory-take flag became the three-way access rule whose default is omitted; +1 byte for
+the roster, an empty list being an empty payload). The simulation world is deliberately minimal; the dominant term in a real
 session is the kernel checkpoint, which the traffic baseline pins (< 24 KB for 600 items).
 
 ## Carried-inventory registration (row I8)

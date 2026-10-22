@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.Configuration;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -87,6 +88,12 @@ internal sealed class GameAdapterDomains
 	/// <summary>The host's per-remote-player simulated bodies (stage 2 of the health-authority ticket) — attached to the render clones that exist anyway.</summary>
 	internal readonly HostVitalsBodies HostVitals;
 	internal readonly RemoteBackpackCoordinator RemoteBackpack;
+
+	/// <summary>The one red refusal line the remote-backpack family shows (access rule), shared by the coordinator and the drag dispatcher.</summary>
+	internal readonly RemoteBackpackNotice BackpackNotice;
+
+	/// <summary>The one localization table the remote-backpack refusals are rendered from (the notice shows the sentence, the callers own the key).</summary>
+	internal readonly ILocalizationService Localization;
 	internal readonly RemoteMedicalCoordinator RemoteMedical;
 	internal readonly DropProtectionGuard DropGuard;
 	internal readonly StandingItemMaterializer StandingMaterializer;
@@ -190,6 +197,9 @@ internal sealed class GameAdapterDomains
 		IStartingSupplyPublisher startingSupplies,
 		IOptionsMonitor<RespawnOptions> respawnOptions,
 		IHostRules hostRules,
+		AnnouncedHostRules announced,
+		RemoteVitalsService remoteVitals,
+		ILocalizationService localization,
 		WorldEntityKernelProjection worldEntityKernel,
 		WorldEntryFanout worldBackfill,
 		ILogger<GameAdapter> log,
@@ -249,6 +259,8 @@ internal sealed class GameAdapterDomains
 			loggerFactory.CreateLogger<ModStatusMoodleProjection>());
 		Entities = entities;
 		HostRules = hostRules;
+		Localization = localization;
+		BackpackNotice = new RemoteBackpackNotice(loggerFactory.CreateLogger<RemoteBackpackNotice>());
 		PlayerInteraction = playerInteraction;
 		WorldSaves = worldSaves;
 		InteractionVisibility = new PlayerInteractionVisibility(session, entities, loggerFactory.CreateLogger<PlayerInteractionVisibility>());
@@ -304,7 +316,7 @@ internal sealed class GameAdapterDomains
 			loggerFactory.CreateLogger<StartingSupplyCoordinator>());
 		HostVitals = new HostVitalsBodies(session, entities, characterData, restoreApplier, time, loggerFactory.CreateLogger<HostVitalsBodies>());
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), HostVitals, playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
-		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
+		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, hostRules, announced, remoteVitals, BackpackNotice, localization, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
 		RemoteMedical = new RemoteMedicalCoordinator(session, CharacterDataSync, mapper, loggerFactory.CreateLogger<RemoteMedicalCoordinator>());
 		DropGuard = new DropProtectionGuard(world.IsBreakDropPending);
 		// The carried rows' local incarnation (ticket mod-cross-player-solid-food-semantics, §6 step 2):

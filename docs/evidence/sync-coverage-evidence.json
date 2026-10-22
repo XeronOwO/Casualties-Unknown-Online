@@ -5954,7 +5954,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "docs/evidence/sync-cadence-measurements.md",
-      "quote": "| One repair pass, measured in the simulation world | 2 464 bytes"
+      "quote": "| One repair pass, measured in the simulation world | 2 462 bytes"
     },
     {
       "cluster": "cadence-review",
@@ -5984,7 +5984,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
-      "quote": "Assert.Equal(2_464L, answerBytes);"
+      "quote": "Assert.Equal(2_462L, answerBytes);"
     },
     {
       "cluster": "cadence-review",

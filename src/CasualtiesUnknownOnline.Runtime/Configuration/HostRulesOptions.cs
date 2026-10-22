@@ -30,13 +30,14 @@ public sealed class HostRulesOptions
 	public bool AllowLateJoin { get; set; } = true;
 
 	/// <summary>
-	/// Host-only: whether other players may take carried items from a remote
-	/// player's inventory at all. Keeping the default true preserves the
-	/// cooperative rule (an unconscious/dead body may be looted); turning it
-	/// off disables the cross-player take buttons and the host-side authority
-	/// path completely.
+	/// Host-only: who may open and operate another player's backpack
+	/// (<see cref="RemoteBackpackAccess"/>). The default is <see cref="RemoteBackpackAccess.Allow"/>,
+	/// which is the cooperative rule the mod has always had; the middle value keeps a
+	/// conscious owner's backpack view-only and lets only an unconscious or dead body be
+	/// operated on; deny closes the whole family. Enforced on the host, read by a member's
+	/// client from the announced set, and named in every refusal.
 	/// </summary>
-	public bool AllowRemoteInventoryTake { get; set; } = true;
+	public RemoteBackpackAccess RemoteBackpackAccess { get; set; } = RemoteBackpackAccess.Allow;
 
 	/// <summary>
 	/// Host-only: widen the native custom run-settings sliders in co-op so the

@@ -136,6 +136,14 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 			}
 
 			item.favourited = candidate.Favourited;
+			if (RemoteBackpackView.ReadOnlyDrag || RemoteBackpackView.IsReadOnly)
+			{
+				// A view-only pack takes no gesture, not even this local mark: the star must
+				// not flip where nothing may be operated. The proxy's own field is already
+				// back to the value the frame started with.
+				continue;
+			}
+
 			var itemId = RemoteDragProxyQuery.InstanceId(item);
 			if (itemId == 0)
 			{

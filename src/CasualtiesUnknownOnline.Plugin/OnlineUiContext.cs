@@ -45,6 +45,10 @@ internal sealed class OnlineUiContext
 	/// host, the host's announced set on a member.</summary>
 	internal HostRulesService HostRules = null!;
 
+	/// <summary>The member side of the host-rule replication: the announced set, or null when this
+	/// client has received none. A member's local refusal reads THIS, never its own config (decision 263).</summary>
+	internal AnnouncedHostRules AnnouncedRules = null!;
+
 	/// <summary>The in-game command/chat console surface (slash commands + chat send).</summary>
 	internal ICommandControl Commands = null!;
 

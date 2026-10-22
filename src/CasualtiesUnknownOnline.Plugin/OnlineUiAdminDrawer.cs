@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline;
 /// Since ticket online-ui-art-and-controls-overhaul (S2b) the page builds a display list instead of
 /// drawing itself, and each rule is the game's own settings row: a label with the rule's name and the
 /// game's control beside it — a checkbox for a flag, a slider for the weight multiplier and the game's
-/// dropdown for the three-way parity level (the IMGUI toolbar it replaces was the "choice drawn as
+/// dropdown for a three-way level (the IMGUI toolbar it replaces was the "choice drawn as
 /// buttons" shape the overhaul exists to remove).
 /// </para>
 /// </summary>
@@ -39,7 +39,7 @@ internal static class OnlineUiAdminDrawer
 			BuildEditableRule(ctx, page, "admin.rule_pvp", rules.PvpEnabled, editor.SetPvpEnabled);
 			BuildEditableRule(ctx, page, "admin.rule_auto_continue", rules.AutoContinue, editor.SetAutoContinue);
 			BuildEditableRule(ctx, page, "admin.rule_allow_late_join", rules.AllowLateJoin, editor.SetAllowLateJoin);
-			BuildEditableRule(ctx, page, "admin.rule_allow_remote_inventory_take", rules.AllowRemoteInventoryTake, editor.SetAllowRemoteInventoryTake);
+			BuildEditableAccessRule(ctx, page, "admin.rule_remote_backpack_access", rules.RemoteBackpackAccess, editor.SetRemoteBackpackAccess);
 			BuildEditableRule(ctx, page, "admin.rule_allow_member_cheat_verbs", rules.AllowMemberCheatVerbs, editor.SetAllowMemberCheatVerbs);
 			BuildEditableRule(ctx, page, "admin.rule_widen_run_settings", rules.WidenRunSettings, editor.SetWidenRunSettings);
 			BuildEditableNumberRule(ctx, page, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier, value => editor.SetPiggybackWeightMultiplier(value), 0f, 3f);
@@ -94,6 +94,7 @@ internal static class OnlineUiAdminDrawer
 	{
 		HostRuleKind.Number => set.Number(row.Id).ToString("F2", CultureInfo.InvariantCulture),
 		HostRuleKind.Parity => ParityLabels(ctx)[(int)set.Parity(row.Id)],
+		HostRuleKind.Access => AccessLabels(ctx)[(int)set.Access(row.Id)],
 		_ => TwoTone(ctx, set.Boolean(row.Id)),
 	};
 
@@ -143,4 +144,21 @@ internal static class OnlineUiAdminDrawer
 
 	private static string[] ParityLabels(OnlineUiContext ctx) =>
 		[ctx.T("admin.parity_allow"), ctx.T("admin.parity_warn"), ctx.T("admin.parity_require")];
+
+	/// <summary>The remote-backpack access rule as the game's own dropdown row, in the enum's own order.</summary>
+	private static void BuildEditableAccessRule(
+		OnlineUiContext ctx,
+		OnlineUiPageBuilder page,
+		string labelKey,
+		RemoteBackpackAccess value,
+		Action<RemoteBackpackAccess> setter) =>
+		page.Dropdown(
+			labelKey,
+			ctx.T(labelKey),
+			AccessLabels(ctx),
+			(int)value,
+			index => setter((RemoteBackpackAccess)index));
+
+	private static string[] AccessLabels(OnlineUiContext ctx) =>
+		[ctx.T("admin.access_allow"), ctx.T("admin.access_unconscious_or_dead"), ctx.T("admin.access_deny")];
 }

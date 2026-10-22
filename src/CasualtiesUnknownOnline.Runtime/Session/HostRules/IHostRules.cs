@@ -30,8 +30,8 @@ public interface IHostRules
 	/// <summary>A brand-new player may join the host's already-running world.</summary>
 	bool AllowLateJoin { get; }
 
-	/// <summary>Host-only: other players may take carried items from a remote player's inventory.</summary>
-	bool AllowRemoteInventoryTake { get; }
+	/// <summary>Host-only: who may open and operate another player's backpack — allow, an unconscious or dead owner only (a conscious owner's pack opens view-only), or deny.</summary>
+	RemoteBackpackAccess RemoteBackpackAccess { get; }
 
 	/// <summary>Host-only: the cheat switch — members may run the cheat verbs (<c>/data</c>'s write verbs, <c>/give</c>) at all, and only those this host's roster (<c>/op</c>) also names. Off by default, and enforced on both sides: the member's own console against the announced value, the host at the admission seam.</summary>
 	bool AllowMemberCheatVerbs { get; }

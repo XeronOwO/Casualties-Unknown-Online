@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using UnityEngine;
@@ -58,7 +59,11 @@ internal static class OnlineUiMemberListDrawer
 			sessionActive: ctx.Session.SessionActive,
 			watchingSteamId: ctx.WatchingSteamId,
 			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],
-			allowRemoteInventoryTake: ctx.HostRules.AllowRemoteInventoryTake,
+			// The card is a presentation of the rule in force: the host's own config on a host, and on
+			// a member ONLY the announced set — no announcement means no local refusal (decision 263).
+			remoteBackpackDenied: ctx.Session.Role == SessionRole.Host
+				? ctx.HostRules.RemoteBackpackAccess == RemoteBackpackAccess.Deny
+				: ctx.AnnouncedRules.Current?.RemoteBackpackAccess == RemoteBackpackAccess.Deny,
 			reviveFromTrader: ctx.HostRules.ReviveFromTrader,
 			permadeath: ctx.HostRules.Permadeath,
 			hasLineOfSight: ctx.Visibility is null
@@ -273,7 +278,7 @@ internal static class OnlineUiMemberListDrawer
 				() => ctx.HealWithItem?.Invoke(steamId, item.InstanceId)));
 		}
 
-		if (row.InventoryText is not null && row.CanSee && !row.IsLocal && row.InWorld && ctx.OpenRemoteBackpack is { } open)
+		if (row.CanOpenBackpack && ctx.OpenRemoteBackpack is { } open)
 		{
 			actions.Add(new OnlineUiMemberAction(
 				$"member.open_backpack.{steamId:X}",

@@ -74,6 +74,13 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when this member has at least one slot item the local player may take.</summary>
 	public bool CanTake { get; init; }
 
+	/// <summary>
+	/// True when this non-local, visible, in-world member's backpack may be OPENED at
+	/// all: the host's access rule is not <c>Deny</c>. The middle value keeps this true
+	/// and the opened view decides whether it is view-only — opening is not operating.
+	/// </summary>
+	public bool CanOpenBackpack { get; init; }
+
 	/// <summary>Host-only: true when this non-local member can be kicked.</summary>
 	public bool CanKick { get; init; }
 

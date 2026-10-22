@@ -14,4 +14,7 @@ public enum HostRuleKind
 
 	/// <summary>The three-way native-binding parity level (<see cref="HostRuleSet.Parity"/>).</summary>
 	Parity,
+
+	/// <summary>The three-way remote-backpack access level (<see cref="HostRuleSet.Access"/>).</summary>
+	Access,
 }

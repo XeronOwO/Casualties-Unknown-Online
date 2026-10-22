@@ -120,9 +120,9 @@ internal sealed class PlayerRemoteInventoryIntentService(
 			return;
 		}
 
-		if (!_hostRules.AllowRemoteInventoryTake)
+		if (!RemoteBackpackAccessPolicy.MayOpen(_hostRules.RemoteBackpackAccess))
 		{
-			Refuse(msg, requester, "host has disabled remote inventory manipulation (AllowRemoteInventoryTake=false).");
+			Refuse(msg, requester, "host rule RemoteBackpackAccess=deny forbids all remote inventory manipulation.");
 			return;
 		}
 
@@ -140,6 +140,24 @@ internal sealed class PlayerRemoteInventoryIntentService(
 		if (source is null)
 		{
 			Refuse(msg, requester, $"no character snapshot for {owner}.");
+			return;
+		}
+
+		// The rule judges the OTHER player — the one whose inventory is touched. For the take direction
+		// that is the owner; for the give direction the item belongs to the requester, so the other player
+		// is the DESTINATION body, which is a different player and therefore read separately. The middle
+		// value opens a conscious owner's view but refuses every operation on it; the host enforces that
+		// here, behind whatever the actor's client already refused locally.
+		var watched = ownerIsTheSender ? msg.TargetBodySteamId : owner;
+		var watchedHealth = (ownerIsTheSender ? _characters.GetCharacterData(watched) : source)?.Health;
+		if (!RemoteBackpackAccessPolicy.MayOperate(
+			_hostRules.RemoteBackpackAccess,
+			watchedHealth is not null,
+			watchedHealth?.Conscious ?? false,
+			watchedHealth?.Alive ?? false))
+		{
+			Refuse(msg, requester,
+				$"{watched} {RemoteBackpackAccessPolicy.DescribeState(watchedHealth is not null, watchedHealth?.Conscious ?? false, watchedHealth?.Alive ?? false)}; host rule RemoteBackpackAccess=unconscious_or_dead allows operating only an unconscious or dead player's backpack.");
 			return;
 		}
 

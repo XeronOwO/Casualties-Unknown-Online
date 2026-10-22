@@ -57,12 +57,12 @@ public sealed class HostRulesHandler(ILogger<HostRulesHandler> log) : PacketHand
 			return;
 		}
 
-		log.LogInformation("[Rules] the host's rules arrived from {Sender}: pvp={Pvp} autoContinue={AutoContinue} lateJoin={LateJoin} remoteTake={RemoteTake} memberCheatVerbs={MemberCheat} widenRunSettings={Widen} piggybackWeight={Piggyback:F2} parity={Parity} saveInventory={SaveInventory} reviveTrader={ReviveTrader} reviveNextLevel={ReviveNextLevel} permadeath={Permadeath}.",
+		log.LogInformation("[Rules] the host's rules arrived from {Sender}: pvp={Pvp} autoContinue={AutoContinue} lateJoin={LateJoin} remoteAccess={RemoteAccess} memberCheatVerbs={MemberCheat} widenRunSettings={Widen} piggybackWeight={Piggyback:F2} parity={Parity} saveInventory={SaveInventory} reviveTrader={ReviveTrader} reviveNextLevel={ReviveNextLevel} permadeath={Permadeath}.",
 			sender,
 			set.PvpEnabled,
 			set.AutoContinue,
 			set.AllowLateJoin,
-			set.AllowRemoteInventoryTake,
+			set.RemoteBackpackAccess,
 			set.AllowMemberCheatVerbs,
 			set.WidenRunSettings,
 			set.PiggybackWeightMultiplier,

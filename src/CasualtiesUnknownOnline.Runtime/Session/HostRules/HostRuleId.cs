@@ -18,7 +18,7 @@ public enum HostRuleId
 	PvpEnabled,
 	AutoContinue,
 	AllowLateJoin,
-	AllowRemoteInventoryTake,
+	RemoteBackpackAccess,
 	AllowMemberCheatVerbs,
 	WidenRunSettings,
 	PiggybackWeightMultiplier,

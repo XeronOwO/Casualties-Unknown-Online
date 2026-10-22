@@ -39,19 +39,19 @@ public class HostRuleReplicationTests
 	[Fact]
 	public void AMemberWhoseOwnConfigDiffers_ReadsTheHostsRules()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = false, AllowMemberCheatVerbs = true, PiggybackWeightMultiplier = 1.5f });
-		var guestRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberCheatVerbs = false, PiggybackWeightMultiplier = 0.1f });
+		var hostRules = Monitor(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.UnconsciousOrDeadOnly, AllowMemberCheatVerbs = true, PiggybackWeightMultiplier = 1.5f });
+		var guestRules = Monitor(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.Allow, AllowMemberCheatVerbs = false, PiggybackWeightMultiplier = 0.1f });
 		var (host, guest, network) = CreatePair(hostRules, guestRules);
 		Handshake(host, guest, network);
 
 		var member = guest.Services.GetRequiredService<IHostRules>();
-		Assert.False(member.AllowRemoteInventoryTake);
+		Assert.Equal(RemoteBackpackAccess.UnconsciousOrDeadOnly, member.RemoteBackpackAccess);
 		Assert.True(member.AllowMemberCheatVerbs);
 		Assert.Equal(1.5f, member.PiggybackWeightMultiplier);
 
 		// The announcement travels one way: the host keeps enforcing its own config.
 		var onTheHost = host.Services.GetRequiredService<IHostRules>();
-		Assert.False(onTheHost.AllowRemoteInventoryTake);
+		Assert.Equal(RemoteBackpackAccess.UnconsciousOrDeadOnly, onTheHost.RemoteBackpackAccess);
 		Assert.True(onTheHost.AllowMemberCheatVerbs);
 		Assert.Equal(1.5f, onTheHost.PiggybackWeightMultiplier);
 	}
@@ -59,20 +59,20 @@ public class HostRuleReplicationTests
 	[Fact]
 	public void AHostFlippingARule_ReachesTheMemberAtThatMoment()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = true });
-		var guestRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = true });
+		var hostRules = Monitor(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.Allow });
+		var guestRules = Monitor(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.Allow });
 		var (host, guest, network) = CreatePair(hostRules, guestRules);
 		Handshake(host, guest, network);
-		Assert.True(guest.Services.GetRequiredService<IHostRules>().AllowRemoteInventoryTake);
+		Assert.Equal(RemoteBackpackAccess.Allow, guest.Services.GetRequiredService<IHostRules>().RemoteBackpackAccess);
 
-		hostRules.Set(new HostRulesOptions { AllowRemoteInventoryTake = false });
+		hostRules.Set(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.Deny });
 
 		// The write happens wherever the config entry is written; the announcement leaves
 		// on the host's next frame, which is ONE frame — not a world entry, not a repair
 		// cycle. One tick is the whole interval.
 		host.Update();
 
-		Assert.False(guest.Services.GetRequiredService<IHostRules>().AllowRemoteInventoryTake);
+		Assert.Equal(RemoteBackpackAccess.Deny, guest.Services.GetRequiredService<IHostRules>().RemoteBackpackAccess);
 	}
 
 	/// <summary>
@@ -143,6 +143,26 @@ public class HostRuleReplicationTests
 		Assert.False(guest.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs);
 	}
 
+	/// <summary>The other closed set: the access rule is refused whole the same way, and the admin summary's label list is why.</summary>
+	[Fact]
+	public void AnAnnouncementWithAnUnknownRemoteBackpackAccess_IsRefusedWhole()
+	{
+		var hostRules = Monitor(new HostRulesOptions { AllowMemberCheatVerbs = true });
+		var guestRules = Monitor(new HostRulesOptions());
+		var (host, guest, network) = CreatePair(hostRules, guestRules, swallowToGuest: NetMsg.HostRules);
+		Handshake(host, guest, network);
+		Assert.Null(guest.Services.GetRequiredService<AnnouncedHostRules>().Current);
+
+		host.Services.GetRequiredService<PacketSender>().Send(GuestId, NetMsg.HostRules, new HostRulesMsg
+		{
+			AllowMemberCheatVerbs = true,
+			RemoteBackpackAccess = 9,
+		});
+
+		Assert.Null(guest.Services.GetRequiredService<AnnouncedHostRules>().Current);
+		Assert.False(guest.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs);
+	}
+
 	[Fact]
 	public void TheRespawnHalfOfTheSurface_ChangesLiveToo()
 	{
@@ -165,19 +185,19 @@ public class HostRuleReplicationTests
 	[Fact]
 	public void AMemberChangingItsOwnConfig_AnnouncesNothing()
 	{
-		var hostRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = false, AllowMemberCheatVerbs = false });
-		var guestRules = Monitor(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberCheatVerbs = false });
+		var hostRules = Monitor(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.Deny, AllowMemberCheatVerbs = false });
+		var guestRules = Monitor(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.Allow, AllowMemberCheatVerbs = false });
 		var (host, guest, network) = CreatePair(hostRules, guestRules);
 		Handshake(host, guest, network);
 
-		guestRules.Set(new HostRulesOptions { AllowRemoteInventoryTake = true, AllowMemberCheatVerbs = true });
+		guestRules.Set(new HostRulesOptions { RemoteBackpackAccess = RemoteBackpackAccess.Allow, AllowMemberCheatVerbs = true });
 
 		// The member's own entries are its own: they neither travel to the host nor
 		// overrule the set the host announced.
 		Assert.False(host.Services.GetRequiredService<IHostRules>().AllowMemberCheatVerbs);
 		var member = guest.Services.GetRequiredService<IHostRules>();
 		Assert.False(member.AllowMemberCheatVerbs);
-		Assert.False(member.AllowRemoteInventoryTake);
+		Assert.Equal(RemoteBackpackAccess.Deny, member.RemoteBackpackAccess);
 	}
 
 	[Fact]

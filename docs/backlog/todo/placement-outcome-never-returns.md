@@ -135,13 +135,15 @@ does not, and neither have the machine rows been run. What landed:
   item at its feet instead of destroying it, and the drop's own creation report is what brings it back into the
   world; the host's row is the giver's inventory until that report. That is the non-destructive outcome, not
   "in the giver's inventory".
-- **What a future reading would need.** Batch `20261022-i` tried twice and established the mechanical reason:
-  both clients' gestures need the same physical right button and the same single foreground window, so the
-  receiver's own body change cannot be made inside the answer→transfer window (~540 ms) — the two holds are
-  mutually exclusive and the foreground switch plus the two calls cost more than the window. The record is
-  `docs/evidence/acceptance/placement-outcome-never-returns-20261022-i.md`. A future reading needs either a
-  second independent pointer device or a designed seam whose evidence the acceptance rules accept; that choice is
-  the user's.
+- **What a future reading would need.** Batch `20261022-i` established the input half: the receiver's own gesture
+  cannot overlap the giver's on one physical pointer and one foreground window. Batch `20261022-j` then measured
+  the window itself on the fixed artifact: the answer→apply span is **60 ms** (`00:18:25.155` → `00:18:25.215`),
+  and a console `item-provide` aimed at the receiver right after the release arrived after the item had already
+  landed (`no-free-slot`). A 60 ms window is shorter than any external call, so the row needs a deliberately
+  delayed in-client action (a seam the acceptance rules refuse as evidence) or a user ruling that the behaviour
+  test plus the wired return is the accepted reading. Records:
+  `docs/evidence/acceptance/placement-outcome-never-returns-20261022-i.md` and `-j.md`. The ticket stays in
+  `todo/`.
 
 ## Design defect: the give interaction this ticket assumes cannot be performed (2026-10-22)
 

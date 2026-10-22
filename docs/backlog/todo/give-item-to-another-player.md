@@ -160,6 +160,20 @@ ticket's residual (a body that changes between the answer and the transfer) has 
 and the host returns the row. Rows 3, 4 and 6 are still unread on the machine; the unit-2 two-client batch is the
 next step here.
 
+### Batch 20261022-h read rows 3, 4 and 6 (2026-10-22)
+
+The two-client run on `0.1.0+fb782e5c` (record:
+`docs/evidence/acceptance/give-item-to-another-player-20261022-h.md`) read the unit-2 rows:
+
+- **Row 3 — PASS.** The `toolbox` released on the receiver's `plasticbag`: one line naming the container's own
+  reason, the item still on the giver's body, no transfer and no row on either side.
+- **Row 4 — PASS.** Released on the receiver's occupied slot 1: the receiver answered `slot 2`, the host's
+  snapshot for it names `bandage@2`, and the receiver's own client logged `in local slot 2` — host row and
+  receiver tree agree.
+- **Row 6 — UNPROVEN.** The residual's window is one host round trip (~540 ms in this run); it cannot be changed
+  by hand without a call seam, which is not evidence of player reachability. The sibling ticket carries the same
+  reading and the ticket stays in `todo/` for it.
+
 ### How unit 1 landed (2026-10-22)
 
 - **The target and the give are two resolutions, each shared by every reader.** The target of a USE is

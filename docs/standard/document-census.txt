@@ -1080,6 +1080,9 @@ docs/evidence/acceptance/20261022-f-scope.md | keep | claim | docs/evidence/acce
 docs/evidence/acceptance/20261022-g-scope.md | keep | claim | docs/evidence/acceptance/give-item-to-another-player-20261022-g.md
 docs/evidence/acceptance/give-item-to-another-player-20261022-f.md | keep | claim | docs/backlog/todo/give-item-to-another-player.md
 docs/evidence/acceptance/give-item-to-another-player-20261022-g.md | keep | claim | docs/backlog/todo/give-item-to-another-player.md
+docs/evidence/acceptance/20261022-h-scope.md | keep | claim | docs/evidence/acceptance/placement-outcome-never-returns-20261022-h.md
+docs/evidence/acceptance/placement-outcome-never-returns-20261022-h.md | keep | claim | docs/backlog/todo/placement-outcome-never-returns.md
+docs/evidence/acceptance/give-item-to-another-player-20261022-h.md | keep | claim | docs/backlog/todo/give-item-to-another-player.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-q.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-s2.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md

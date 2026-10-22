@@ -61,16 +61,25 @@ a refusal creates nothing on the receiving side. The ticket records this instead
 
 ### Acceptance (a two-client run on the deployed artifact, real gestures)
 
+Batch `20261022-h` read these rows on `0.1.0+fb782e5c`; the record is
+`docs/evidence/acceptance/placement-outcome-never-returns-20261022-h.md`.
+
 1. A give into a container that refuses the item (weight/tag): the item never leaves the giver, one line names
-   the container's reason, and neither side has a row for it.
-2. A give to a body with no free slot: same, with "no room" named.
+   the container's reason, and neither side has a row for it. — **PASS** (the `toolbox` refused by the receiver's
+   `plasticbag`; the line carried the container's own sentence; the item stayed on the giver's body).
+2. A give to a body with no free slot: same, with "no room" named. — **PASS** ("does not fit any free slot on this
+   client's body"; the item stayed with the giver).
 3. A give whose requested slot is occupied so the receiver substitutes another: the host's row names the
-   substituted slot, and the receiver's tree agrees.
+   substituted slot, and the receiver's tree agrees. — **PASS** (the receiver answered `slot 2`; the host's
+   snapshot names `bandage@2`; the receiver's own client logged `in local slot 2`).
 4. An accepted give into a container: the host's row names the container and its child, and the receiver's
-   tree agrees.
-5. The same refusal shape under the access policy's deny arm: refused on the actor's side, no row written.
+   tree agrees. — **PASS** (answer `inside container 9492956821`; the host's row nests it; the receiver logged
+   `into container plasticbag`).
+5. The same refusal shape under the access policy's deny arm: refused on the actor's side, no row written. —
+   **PASS** (`[BackpackView] refused open ... deny`, the view never opened, no question or transfer followed).
 6. The residual: a body that changes between the answer and the transfer ends with the item back in the
-   giver's inventory and a line naming the return.
+   giver's inventory and a line naming the return. — **UNPROVEN**: the window is one host round trip (~540 ms in
+   this run) and neither the batch nor the receiver's player can change the body inside it without a call seam.
 
 ## The answer-first half landed (2026-10-22)
 
@@ -101,18 +110,17 @@ does not, and neither have the machine rows been run. What landed:
 
 **Still owed by this ticket:**
 
-- **The residual (row 6) has its code, not its reading.** The receiving client's exact branch now reports
-  instead of substituting (`PlayerInteractionApply`'s `CanTakeExactDestination` → `SendPlacementFailed`), the
-  host matches the report to the placement it committed to that sender (`RemotePlacementService`'s committed
-  table) and `GivenItemReturnService` moves the row back to the giver in both snapshots and publishes the return.
-  The behaviour is covered by `PlacementAnswerTests`; the machine row — a body that changes between the answer
-  and the transfer, ending with the item back in the giver's inventory and a line naming the return — has not
-  been read.
-- **The machine rows 1-6.** A two-client batch on the deployed artifact, with the real give gesture, reading the
-  container refusal, the no-free-slot refusal, the substituted slot the host records, the accepted container
-  destination, the deny arm, and the residual. The ticket stays `todo/` until that batch is judged.
-- **The ticket's status.** It stays `todo/` until the batch is done; the code half is committed on its own so the
-  batch runs against a named artifact.
+- **Row 6 is `UNPROVEN`.** Batch `20261022-h` read rows 1-5 on the deployed artifact `0.1.0+fb782e5c` and all
+  five passed (the container refusal, the no-free-slot refusal, the substituted slot the host records, the
+  accepted container, the deny arm); the residual's window is the answer→transfer round trip (the batch measured
+  ~540 ms), which neither the run nor the receiver's player can change by hand, so the row is recorded
+  `unproven` in `docs/evidence/acceptance/placement-outcome-never-returns-20261022-h.md`. The return path's code
+  and behaviour test exist; its machine reading is what is missing.
+- **The ticket's status.** It stays `todo/` for that one row. The give ticket's rows 3 and 4 passed in the same
+  run; both tickets cite the same record.
+- **What a future reading would need.** A legitimate way to change the receiver's body inside the window without
+  a call seam — a second real gesture that lands in that round trip, or a user ruling that the behaviour test
+  plus the logged return is the accepted reading for a race this narrow.
 
 ## Design defect: the give interaction this ticket assumes cannot be performed (2026-10-22)
 

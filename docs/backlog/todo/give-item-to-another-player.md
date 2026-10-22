@@ -96,6 +96,37 @@ no probe may stand in for the gesture:
   hand-over commits only after the receiver's own client accepts, and the host records the accepted
   destination. Rows 3, 4 and 6, and the ledger rows, land there.
 
+### The 20261022-f batch: the seven rows read, and the cue's missing drawer (2026-10-22)
+
+The real right-button drag ran on `0a0fb171` (the deployed artifact's own identity), giver in the first sandbox,
+receiver the host, second target the alternate sandbox. Record:
+`docs/evidence/acceptance/give-item-to-another-player-20261022-f.md`.
+
+- **Rows 1 and 2 pass.** Entering the receiver's range re-anchored the ring on the receiver with the receiver's own
+  items and wrote the entry's two lines; releasing on the receiver's body (inside the range, not on a ring button)
+  sent the use, the receiver's own client ate the bread, and the drag-opened backpack was closed on the next read.
+- **Row 5 passes.** Two range entries in one drag switched the displayed backpack from the first player to the
+  second and the release named the second — the last-entered target, for both halves.
+- **Row 7 passes.** A release on the giver's own ring moved the item between its own slots and wrote nothing of
+  CUO's, which is the untouched native local move.
+- **Row 8 passes in both shapes.** `deny` refused the open with one line and left the ring on the giver's own body;
+  `unconscious_or_dead` opened a conscious receiver's pack view-only, the release on it was refused with one line,
+  and the drag-opened backpack closed — the item stayed in the giver's slot.
+- **Row 9 fails: the cue is decided but never drawn.** With the cursor on the receiver's body and the backpack
+  open, the cue's own state read `showing: true, target: <receiver>`, and the captured frame carries no label.
+  `DragUseCueOverlay.Draw` has no caller anywhere: `git log -S 'DragUseCueOverlay.Draw' --all -- src` is empty, so
+  the drawing was never wired — the 2026-10-18 cue ticket's "the label is drawn" claim was false from its first
+  commit. The decision (`DragUseCueTracker` + `DragUseCuePolicy`) ran and answered correctly; only the draw is
+  missing.
+- **Row 10 is unproven behind row 9.** The frame with the pointer on the receiver's displayed slot carries no
+  label, but nothing ever draws one, so the absence cannot distinguish a correct hide from the missing drawer.
+
+**The fix this cycle owes:** wire the plugin's `OnGUI` to `IDragUseCueState` (draw
+`DragUseCueOverlay.Draw(<display name>)`, with the `player-{steamId:X}` fallback the other views use) and flip the
+overlay's cursor y to IMGUI's top-down space (it passed `Input.mousePosition.y` straight through, whose origin is
+the bottom-left). A source-shape gate pins the caller and the y-flip, because a compiled overlay with no caller is
+exactly what the suite could not see.
+
 ### How unit 1 landed (2026-10-22)
 
 - **The target and the give are two resolutions, each shared by every reader.** The target of a USE is
@@ -116,7 +147,9 @@ no probe may stand in for the gesture:
   closes it. A use closes whatever backpack is showing the target; a drop closes the drag-opened one. A
   player-opened backpack is not closed by a drop.
 - **The cue**: `DragUseCueTracker` names the target while the cursor is inside its range and the displayed
-  backpack does not claim the release; on the displayed backpack it hides, because the release is a give.
+  backpack does not claim the release; on the displayed backpack it hides, because the release is a give. The
+  DECISION was correct; the DRAWING did not exist — the plugin never called `DragUseCueOverlay.Draw`, which is what
+  the 20261022-f batch's row 9 found (see that section above). The wiring is part of the same cycle's fix.
 
 > **The 2026-10-22 defect note, kept as history**: the order the earlier design assumed — the other player's
 > backpack already open when the giver's drag starts — is not performable: while that view is open the ring

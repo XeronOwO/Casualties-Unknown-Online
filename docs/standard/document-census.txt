@@ -1076,6 +1076,8 @@ docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md | keep | cl
 docs/evidence/acceptance/give-item-to-a-player-command-20261018-r.md | keep | claim | docs/backlog/done/give-item-to-a-player-command.md
 docs/evidence/acceptance/give-item-to-another-player-20261021-a.md | keep | claim | docs/backlog/todo/give-item-to-another-player.md
 docs/evidence/acceptance/give-item-to-another-player-20261022-a.md | keep | claim | docs/backlog/todo/give-item-to-another-player.md
+docs/evidence/acceptance/20261022-f-scope.md | keep | claim | docs/evidence/acceptance/give-item-to-another-player-20261022-f.md
+docs/evidence/acceptance/give-item-to-another-player-20261022-f.md | keep | claim | docs/backlog/todo/give-item-to-another-player.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-q.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-s2.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md

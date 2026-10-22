@@ -131,6 +131,25 @@ medical views already use, so there is no fourth answer to that question.
 
 Two facts are now runtime-visible for the next run: the label is drawn LAST in the frame so a mod window cannot
 hide it, and a null dragged item clears it, so the label cannot outlive the gesture.
+## The 2026-10-22 finding: the label was never drawn (corrects the section above)
+
+Batch `20261022-f` read the give gesture's row 9 with the real pointer, on the deployed `0a0fb171`: the cue's own
+state answered `{"showing":true,"target":<the receiver>}` while the captured frame carries no label
+(`docs/evidence/acceptance/give-item-to-another-player-20261022-f.md`). The cause is a code fact:
+**`DragUseCueOverlay.Draw` has no caller anywhere in the tree and never had one** —
+`git log -S 'DragUseCueOverlay.Draw' --all -- src` is empty, including the 2026-10-18 commit that added the
+overlay. The port, the tracker, the patch and the overlay all landed and load; nothing resolves the port in the
+plugin and nothing calls the overlay, so "the label is drawn" was false from that commit, and the live evidence
+above proved loading, not drawing. That is exactly the gap this project's "a mechanism needs a named consumer"
+rule names, and the suite could not see it because a compiled class with no caller is still green.
+
+**The wiring is fixed in the same cycle**: the plugin resolves `IDragUseCueState` (drawing only while it says
+showing), resolves the name from `ISessionControl` with the `player-{steamId:X}` fallback the other views use, and
+`DragUseCueOverlay`'s cursor y is flipped into IMGUI's top-down space (it passed `Input.mousePosition.y` straight
+through, whose origin is the bottom-left — on a cursor in the lower half the label landed tens of pixels away).
+`SourceShapeGateTests` pins the caller and the flip, because this is the shape a source gate can hold and a
+behaviour test cannot (IMGUI over Unity statics).
+
 ## Live evidence for the wiring, and one unresolved log finding (2026-10-18)
 
 A two-client batch ran on the deployed artifact `0.1.0+efa4c49d` (`.acceptance/20261018-b/run3.log`): host and

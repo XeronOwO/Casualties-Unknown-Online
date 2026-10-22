@@ -109,46 +109,79 @@ the cue asks the same `DragGiveTargetResolver` the release does and hides its US
 
 ## Limits this stage leaves
 
-- **Nothing is drawn yet.** The decision exists and is tested; the cross-layer wiring (a port the plugin reads
-  each frame, the patch that fills it, and the overlay that draws the label) is the next step, and the label
-  has no runtime reading until it lands.
+- **Historical (2026-10-18 stage): nothing was drawn yet.** The decision existed and was tested; the cross-layer
+  wiring (a port the plugin reads each frame, the patch that fills it, and the overlay that draws the label) was the
+  next step. That step landed as the 2026-10-22 fix below — the label is now drawn, and it is still unread on a
+  frame until the post-deploy two-client batch.
 - **The sound is not implemented**, nor the refusal reaching the operator's screen (the ticket's items 3 and
   4), nor the scope question of item 5 (whether the naming rule spreads to the medical drag and the give
   gesture). All three have the ticket's own recommendations recorded; none is decided here.
 - **The acceptance rows are unrun.** Rows 1–7 need a session with a dragged item and two players, and row 5 in
   particular (two players standing on each other) is the one the naming rule exists for.
-## The label is drawn (2026-10-18)
+## The claimed 2026-10-18 "the label is drawn": FALSE (found 2026-10-22)
 
-The cue decision now reaches the screen. `IDragUseCueState` is the port the plugin reads; the game adapter
-fills it from `DragUseCueTracker`, which recomputes once per while-dragging frame in
-`PlayerCameraDragUseCuePatch` — its OWN patch class on the same method the favourite-mark patch uses, because
-that one already carries a different concern. `DragUseCueOverlay` draws `Use on <name>` beside the cursor,
-inside the window edges, as a second IMGUI surface beside the start-gate panel.
+> Kept as the falsified claim, because the cycle that wrote it and the review that passed it both read the type
+> list, not the call graph. What actually landed on 2026-10-18 was the DECISION (`IDragUseCueState`,
+> `DragUseCueTracker`, `PlayerCameraDragUseCuePatch`) and the overlay CLASS; the plugin never resolved the port
+> and never called `DragUseCueOverlay.Draw`.
 
-The name is the session's own display name for that player, resolved by the overlay: the adapter carries the
-steam id and the presentation side answers the name with the `player-{steamId:X}` fallback the backpack and
-medical views already use, so there is no fourth answer to that question.
-
-Two facts are now runtime-visible for the next run: the label is drawn LAST in the frame so a mod window cannot
-hide it, and a null dragged item clears it, so the label cannot outlive the gesture.
+The original paragraph said the cue decision "now reaches the screen", that the overlay "draws `Use on <name>`
+beside the cursor", that the overlay itself resolved the name, that the label was "drawn LAST in the frame", and
+that "a null dragged item clears it, so the label cannot outlive the gesture". Every one of those was wrong or
+unproven: nothing called the overlay (`git log -S 'DragUseCueOverlay.Draw' --all -- src` is empty), the overlay
+takes a string and cannot resolve a name, "last" could only mean last inside `Plugin.OnGUI`, and a null item only
+clears the state while the game's while-dragging frame still runs.
 ## The 2026-10-22 finding: the label was never drawn (corrects the section above)
 
 Batch `20261022-f` read the give gesture's row 9 with the real pointer, on the deployed `0a0fb171`: the cue's own
 state answered `{"showing":true,"target":<the receiver>}` while the captured frame carries no label
 (`docs/evidence/acceptance/give-item-to-another-player-20261022-f.md`). The cause is a code fact:
-**`DragUseCueOverlay.Draw` has no caller anywhere in the tree and never had one** —
-`git log -S 'DragUseCueOverlay.Draw' --all -- src` is empty, including the 2026-10-18 commit that added the
-overlay. The port, the tracker, the patch and the overlay all landed and load; nothing resolves the port in the
-plugin and nothing calls the overlay, so "the label is drawn" was false from that commit, and the live evidence
-above proved loading, not drawing. That is exactly the gap this project's "a mechanism needs a named consumer"
-rule names, and the suite could not see it because a compiled class with no caller is still green.
+**`DragUseCueOverlay.Draw` has no caller anywhere in the tree and never had one**, so "the label is drawn" was
+false from its first commit. The port, the tracker, the patch and the overlay all landed and load; nothing resolved
+the port in the plugin and nothing called the overlay, so the live evidence above proved loading, not drawing. That
+is exactly the gap this project's "a mechanism needs a named consumer" rule names, and the suite could not see it
+because a compiled class with no caller is still green.
 
-**The wiring is fixed in the same cycle**: the plugin resolves `IDragUseCueState` (drawing only while it says
-showing), resolves the name from `ISessionControl` with the `player-{steamId:X}` fallback the other views use, and
-`DragUseCueOverlay`'s cursor y is flipped into IMGUI's top-down space (it passed `Input.mousePosition.y` straight
-through, whose origin is the bottom-left — on a cursor in the lower half the label landed tens of pixels away).
-`SourceShapeGateTests` pins the caller and the flip, because this is the shape a source gate can hold and a
-behaviour test cannot (IMGUI over Unity statics).
+**The wiring is fixed in the same cycle**, and every one of the review's follow-ups landed with it:
+
+- **The frame draws it.** `Plugin.OnGUI` calls `_onlineUi.Draw()` and then `DrawDragUseCue()`; the draw method
+  returns first on `_dragUseCue is not { Showing: true }`, so the label can never paint when the decision says no.
+- **The name is the Online UI's own resolution.** `OnlineUiHost.DisplayName` delegates to the frame's
+  `OnlineUiContext.DisplayName` (IP-direct name, Steam persona, `player-{steamId:X}` fallback) — the same answer
+  the member list shows, not a fourth copy.
+- **The sentence is localized.** `cue.use_on` = `Use on {0}` / `对{0}使用`, formatted by the plugin
+  (`ILocalizationService.Format`), so a Chinese client no longer reads a mixed-language label.
+- **A stale decision cannot outlive the gesture.** `DragUseCueTracker.Clear` is now called from
+  `GameAdapterBridge.OnSceneLoadBegin` and `GameAdapterSessionBinding.OnSessionEnded`; the tracker also hides the
+  moment the game's own `iteminteract` bind is no longer held (a modal can swallow the release), and the plugin
+  refuses to draw outside a live world (`SessionActive && LocalInWorld`) or while any CUO surface owns the input
+  (`IsAnySurfaceOpen`).
+- **The cursor is placed in IMGUI's space.** `DragUseCueOverlay` flips `Input.mousePosition.y` against
+  `Screen.height` and clamps BOTH axes, so a pointer outside the window still leaves the label inside the frame.
+- **The pin is structural.** `DragUseCueGateTests` (its own class, not the give gesture's) scans the flattened,
+  literal-stripped source: `OnGUI` calls the draw after the Online UI pass, the draw's early return precedes the
+  overlay call, the liveness/modal guards are in the same method, and the overlay's rect is built from the
+  flipped, clamped cursor. Its matcher contract refuses the shipped shapes (a call in a method OnGUI no longer
+  calls, a draw inside the guard, a call spelled in a log literal, a rect left on the raw y).
+
+**Limits this fix leaves, named rather than buried:**
+
+- **Two players with the SAME display name still read one label.** The member list disambiguates a collision by
+  appending the peer id (`OnlineUiMemberProjection`'s `duplicateNames`/`PeerIdHex`), but the cue renders the bare
+  name. That is the overlap case the naming rule exists for, so it is a real gap; it stays a limit because a
+  one-line label's disambiguation FORMAT is a new visible wording and the user's call, not a review's.
+- **A CUO modal that swallows the release leaves the game's own drag stuck** (a pre-existing shape: the game's
+  `HandleInput` is suspended, so its `GetKeyUp` branch never runs). The label hides the moment the game's own
+  `iteminteract` bind is no longer held, and the tracker clears on the first resumed frame; the stuck game drag
+  itself is not this ticket's mechanism, ends with the next right-click, and is recorded here as this fix's limit
+  rather than deferred to a ticket nobody has opened.
+- **The display-name rule still has no unit test.** `OnlineUiContext.DisplayName` (IP-direct name, Steam persona,
+  `player-{id:X}`) cannot be reached from either test project — the Plugin assembly is referenced by neither — and
+  the cue now delegates to it through `OnlineUiHost.DisplayName`. The visible path is the member list's own
+  resolution and a frame will judge it; the untested part is the rule itself, and the seam that would fix it is a
+  Runtime `PlayerDisplayName` helper shared by `OnlineUiContext`, `RemoteBackpackView.Open` and
+  `RemoteMedicalView.Open` (three copies of the fallback today), which is a cross-assembly refactor of its own.
+
 
 ## Live evidence for the wiring, and one unresolved log finding (2026-10-18)
 

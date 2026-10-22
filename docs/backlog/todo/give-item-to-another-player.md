@@ -121,11 +121,15 @@ receiver the host, second target the alternate sandbox. Record:
 - **Row 10 is unproven behind row 9.** The frame with the pointer on the receiver's displayed slot carries no
   label, but nothing ever draws one, so the absence cannot distinguish a correct hide from the missing drawer.
 
-**The fix this cycle owes:** wire the plugin's `OnGUI` to `IDragUseCueState` (draw
-`DragUseCueOverlay.Draw(<display name>)`, with the `player-{steamId:X}` fallback the other views use) and flip the
-overlay's cursor y to IMGUI's top-down space (it passed `Input.mousePosition.y` straight through, whose origin is
-the bottom-left). A source-shape gate pins the caller and the y-flip, because a compiled overlay with no caller is
-exactly what the suite could not see.
+**The fix, landed in the same cycle:** the plugin's `OnGUI` now draws the cue from `IDragUseCueState`, only while
+the decision says showing, only inside a live world and only with no CUO surface up; the name is the Online UI's own
+resolution (`OnlineUiHost.DisplayName` → `OnlineUiContext.DisplayName`, with the `player-{steamId:X}` fallback); the
+sentence is localized (`cue.use_on`); the overlay's cursor y is flipped into IMGUI's top-down space (it passed
+`Input.mousePosition.y` straight through, whose origin is the bottom-left) and both axes are clamped; and the
+decision is cleared on a scene load, on a session end and when the game's own interact bind is no longer held.
+`DragUseCueGateTests` pins the chain structurally. Two limits stay open and are recorded on the cue ticket: two
+players with identical display names still read one label, and a CUO modal that swallows the release leaves the
+game's own drag stuck until the next right-click.
 
 ### How unit 1 landed (2026-10-22)
 

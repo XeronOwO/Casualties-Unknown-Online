@@ -85,6 +85,22 @@ internal sealed class OnlineUiHost
 	private bool _launcherLabelOpen;
 	private string? _launcherLabel;
 
+	/// <summary>
+	/// The display name for a player, as the member list shows it: the frame's own resolution (IP-direct name,
+	/// Steam persona, then the stable player-id fallback). The drag cue asks here rather than resolving a second
+	/// time, so the label and the roster cannot disagree.
+	/// </summary>
+	internal string DisplayName(ulong steamId) =>
+		_context is { } context ? context.DisplayName(steamId) : $"player-{steamId:X}";
+
+	/// <summary>
+	/// Whether a CUO surface that takes over the game's own input is up this frame: the Online UI window and the
+	/// command console set the native input modal, and under it the game's while-dragging frame that would clear
+	/// the cue does not run. The quick panel is deliberately NOT here — it is non-modal, the game's drag keeps
+	/// running under it, and hiding the label there would drop a cue the release still honours.
+	/// </summary>
+	internal bool IsModalSurfaceOpen => _onlineUi.IsWindowVisible || _onlineUi.IsCommandConsoleOpen;
+
 	internal OnlineUiHost(IServiceProvider services, ConfigEntry<string> quickPanelKey, LobbySwitchActions lobby)
 	{
 		_lobby = lobby;

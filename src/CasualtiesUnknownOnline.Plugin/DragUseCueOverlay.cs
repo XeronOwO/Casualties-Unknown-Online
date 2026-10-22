@@ -18,9 +18,9 @@ internal static class DragUseCueOverlay
 {
 	private const float CursorOffset = 18f;
 
-	internal static void Draw(string targetName)
+	internal static void Draw(string text)
 	{
-		if (string.IsNullOrEmpty(targetName))
+		if (string.IsNullOrEmpty(text))
 		{
 			return;
 		}
@@ -33,15 +33,16 @@ internal static class DragUseCueOverlay
 		};
 		style.normal.textColor = Color.white;
 
-		var text = $"Use on {targetName}";
 		var size = style.CalcSize(new GUIContent(text));
-		var mouse = Input.mousePosition;
 
-		// The cursor is measured from the TOP-left and IMGUI from the top-left too, so the
-		// label follows the cursor directly; it is pulled back inside the window when the
-		// cursor is near an edge, so the name is never the part that goes off screen.
-		var x = Mathf.Min(mouse.x + CursorOffset, Screen.width - size.x);
-		var y = Mathf.Max(mouse.y - CursorOffset - size.y, 0f);
+		// Input.mousePosition is measured from the BOTTOM-left and IMGUI from the TOP-left, so the y is
+		// flipped before the label is placed: passing the cursor's y straight through (as the first version
+		// did) put the label a mirror-image distance away from the pointer, and off the screen for a cursor
+		// in the lower half. Both axes are clamped, so a pointer outside the window (the drag continues while
+		// the game is in the background) still leaves the label inside the frame.
+		var mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+		var x = Mathf.Clamp(mouse.x + CursorOffset, 0f, Mathf.Max(0f, Screen.width - size.x));
+		var y = Mathf.Clamp(mouse.y - CursorOffset - size.y, 0f, Mathf.Max(0f, Screen.height - size.y));
 		var rect = new Rect(x, y, size.x, size.y);
 
 		var previous = GUI.color;

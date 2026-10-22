@@ -16,12 +16,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// recommendation — so the cue itself teaches what can be handed over, and an item that
 /// cannot be shows nothing positive rather than promising a target it will not use.
 /// </para>
+/// <para>
+/// The gesture's own release condition is one of the facts: the game's <c>iteminteract</c>
+/// bind must still be held. A CUO console or window suspends the game's input, so a release
+/// made under one is never seen by the game's own release branch; without this fact the label
+/// would keep naming a player after the button is up.
+/// </para>
 /// </summary>
 internal static class DragUseCuePolicy
 {
-	internal static DragUseCue Decide(bool sessionActive, bool hasDraggedItem, bool itemIsEligible, ulong? targetSteamId)
+	internal static DragUseCue Decide(bool sessionActive, bool hasDraggedItem, bool interactHeld, bool itemIsEligible, ulong? targetSteamId)
 	{
-		if (!sessionActive || !hasDraggedItem || !itemIsEligible || targetSteamId is not { } target || target == 0)
+		if (!sessionActive || !hasDraggedItem || !interactHeld || !itemIsEligible || targetSteamId is not { } target || target == 0)
 		{
 			return DragUseCue.Hidden;
 		}

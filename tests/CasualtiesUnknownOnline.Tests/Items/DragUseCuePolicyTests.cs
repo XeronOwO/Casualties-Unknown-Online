@@ -17,7 +17,7 @@ public class DragUseCuePolicyTests
 	[Fact]
 	public void AnEligibleItemOverAPlayer_NamesThatPlayer()
 	{
-		var cue = DragUseCuePolicy.Decide(sessionActive: true, hasDraggedItem: true, itemIsEligible: true, Target);
+		var cue = DragUseCuePolicy.Decide(sessionActive: true, hasDraggedItem: true, interactHeld: true, itemIsEligible: true, Target);
 
 		Assert.True(cue.Showing);
 		Assert.Equal(Target, cue.TargetSteamId);
@@ -28,7 +28,7 @@ public class DragUseCuePolicyTests
 	{
 		// The cue teaches what can be handed over: showing it for an item the release would
 		// drop instead would promise a target the gesture will not use.
-		var cue = DragUseCuePolicy.Decide(true, true, itemIsEligible: false, Target);
+		var cue = DragUseCuePolicy.Decide(true, true, true, itemIsEligible: false, Target);
 
 		Assert.False(cue.Showing);
 		Assert.Equal(0UL, cue.TargetSteamId);
@@ -36,20 +36,29 @@ public class DragUseCuePolicyTests
 
 	[Fact]
 	public void NoPlayerUnderTheCursor_ShowsNothing() =>
-		Assert.False(DragUseCuePolicy.Decide(true, true, true, targetSteamId: null).Showing);
+		Assert.False(DragUseCuePolicy.Decide(true, true, true, true, targetSteamId: null).Showing);
 
 	// A row without an identity cannot be named, and naming it would be the label disagreeing
 	// with the release.
 	[Fact]
 	public void AZeroTarget_ShowsNothing() =>
-		Assert.False(DragUseCuePolicy.Decide(true, true, true, 0UL).Showing);
+		Assert.False(DragUseCuePolicy.Decide(true, true, true, true, 0UL).Showing);
 
 	[Fact]
 	public void NothingDragged_ShowsNothing() =>
-		Assert.False(DragUseCuePolicy.Decide(true, hasDraggedItem: false, true, Target).Showing);
+		Assert.False(DragUseCuePolicy.Decide(true, hasDraggedItem: false, true, true, Target).Showing);
+
+	/// <summary>
+	/// A release the game never saw — a CUO console or window suspends the game's input, so the
+	/// game's own release branch never runs — leaves the drag item set with the button already up.
+	/// The label must not keep naming a player the release would no longer reach.
+	/// </summary>
+	[Fact]
+	public void AReleasedBind_ShowsNothing() =>
+		Assert.False(DragUseCuePolicy.Decide(true, true, interactHeld: false, true, Target).Showing);
 
 	// Solo play is unchanged by this feature, and there is nobody to name.
 	[Fact]
 	public void WithoutASession_ShowsNothing() =>
-		Assert.False(DragUseCuePolicy.Decide(sessionActive: false, true, true, Target).Showing);
+		Assert.False(DragUseCuePolicy.Decide(sessionActive: false, true, true, true, Target).Showing);
 }

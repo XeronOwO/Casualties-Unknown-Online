@@ -167,7 +167,13 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnWorldJoinRequested(bool isTutorial) => domains.Run.OnWorldJoinRequested(isTutorial);
 
-	public void OnSceneLoadBegin() => domains.ItemWorldSync.SuppressDestroys();
+	public void OnSceneLoadBegin()
+	{
+		domains.ItemWorldSync.SuppressDestroys();
+		// A scene change destroys the PlayerCamera the drag lived on: no while-dragging frame will clear the
+		// cue ever again, so the load does it. The label is drawn by the plugin, which outlives the scene.
+		domains.DragUseCue.Clear();
+	}
 
 	/// <summary>
 	/// Decide the interception of the game's own "leave the world" action. The

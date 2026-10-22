@@ -158,6 +158,9 @@ internal sealed class GameAdapterSessionBinding(
 		domains.FluidSync.ResetSessionState();
 		domains.TradeSync.ResetSessionState();
 		domains.Renderer.DestroyAllClones();
+		// The drag gesture's label belongs to the world that is ending: a drag the session's end interrupts
+		// never sees another while-dragging frame, so nothing else would clear it.
+		domains.DragUseCue.Clear();
 	}
 
 	private void OnItemCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown) =>

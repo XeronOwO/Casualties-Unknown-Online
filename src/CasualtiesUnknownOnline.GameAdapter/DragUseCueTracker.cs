@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -47,9 +48,15 @@ internal sealed class DragUseCueTracker(GameAdapterDomains domains) : IDragUseCu
 			dragItem, domains.LimbUseSemantics, domains.ConsumeSemantics, domains.WearSemantics, domains.SolidFoodSemantics);
 		var onDisplayedBackpack = eligible
 			&& DragGiveTargetResolver.Resolve(dragItem, PlayerCamera.main, uiCasts) is not null;
+
+		// The gesture's own release condition, read from the game's binding (never the label's own idea of
+		// the input): a CUO console or window suspends PlayerCamera.HandleInput, so a release made under one
+		// is never seen by HandleDragging's GetKeyUp branch and the drag item stays set with the button up.
+		var interactHeld = Input.GetKey(KeyBinds.GetBind("iteminteract"));
 		_cue = DragUseCuePolicy.Decide(
 			domains.Session.SessionActive && domains.Session.LocalInWorld,
 			true,
+			interactHeld,
 			eligible,
 			!onDisplayedBackpack && eligible && domains.DragUse.IsTargetInRange ? target : null);
 	}

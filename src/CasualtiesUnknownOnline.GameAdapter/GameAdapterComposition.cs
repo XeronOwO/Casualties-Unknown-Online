@@ -221,6 +221,14 @@ public static class GameAdapterComposition
 		services.AddSingleton<ItemContainerFit>();
 		services.Replace(ServiceDescriptor.Singleton<IItemContainerFit>(
 			p => p.GetRequiredService<ItemContainerFit>()));
+		// The receiving client's placement answer: the same standalone seam shape and the same cycle
+		// reason as the two seams above — the Runtime's placement service is built inside
+		// PlayerInteractionService, which the aggregate's own constructor depends on. It reads the live
+		// local body, the prefab's serialized rules and the item table, so it needs nothing the domain
+		// graph owns, and it answers a QUESTION (it writes nothing on either side).
+		services.AddSingleton<RemotePlacementResolver>();
+		services.Replace(ServiceDescriptor.Singleton<IRemotePlacementResolver>(
+			p => p.GetRequiredService<RemotePlacementResolver>()));
 		// The world-summon seam behind the console /summon verb: the native command's position words and ONE
 		// object summoned at a point (an item entity through the creation port above and the shared world-item
 		// creation — the same the give ladder's drop makes — or an entity through Utils.Create). The console

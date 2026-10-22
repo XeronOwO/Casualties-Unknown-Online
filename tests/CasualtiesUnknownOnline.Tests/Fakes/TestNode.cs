@@ -116,6 +116,11 @@ internal sealed class TestNode : IDisposable
 					LocalDisplayName = $"Player-{steamId}",
 				}));
 				TestLogging.RemoveFileSink(s); // before the test's overrides, so a test may still re-add a sink
+											   // The receiving half of a give's placement answer: a test node has no game scene, so the
+											   // suite's stand-in answers with the destination the query named — the shape the landed give
+											   // tests rely on. A test that needs a refusal, a substitution or no answer at all replaces this
+											   // registration in its own extraRegistrations (they run after this one and win).
+				s.AddSingleton<IRemotePlacementResolver>(PermissivePlacementResolver.Instance);
 				extraRegistrations?.Invoke(s); // the test's overrides (e.g. stub mod control surfaces) — last, so they win
 			});
 

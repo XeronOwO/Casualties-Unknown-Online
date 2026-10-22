@@ -108,8 +108,8 @@ internal sealed class PlayerInventoryTakeService(
 	/// core the other direction is what makes the two halves agree about custody rather than merely resemble each
 	/// other.
 	/// </summary>
-	public string? HandleRemoteGiveToBody(ulong giver, ulong receiver, ulong itemId, int targetSlot, ulong targetContainerId) =>
-		HandleTakeCore(sender: receiver, owner: giver, itemId, allowConsciousSource: true, requestedSlot: targetSlot, requestedContainerId: targetContainerId, watchedIsDestination: true);
+	public string? HandleRemoteGiveToBody(ulong giver, ulong receiver, ulong itemId, int targetSlot, ulong targetContainerId, bool exactDestination = false) =>
+		HandleTakeCore(sender: receiver, owner: giver, itemId, allowConsciousSource: true, requestedSlot: targetSlot, requestedContainerId: targetContainerId, watchedIsDestination: true, exactDestination: exactDestination);
 
 	private string? HandleTakeCore(
 		ulong sender,
@@ -118,7 +118,8 @@ internal sealed class PlayerInventoryTakeService(
 		bool allowConsciousSource,
 		int requestedSlot = -1,
 		ulong requestedContainerId = 0,
-		bool watchedIsDestination = false)
+		bool watchedIsDestination = false,
+		bool exactDestination = false)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -210,10 +211,17 @@ internal sealed class PlayerInventoryTakeService(
 		}
 		else
 		{
-			var targetSlot = ResolveDestinationSlot(target, to, requestedSlot);
+			// The give direction records the destination the RECEIVING client answered — never a substitution of
+			// the host's own, which is the drift this path exists to end. The take direction keeps its landed
+			// substitution rule.
+			var targetSlot = exactDestination
+				? ExactDestinationSlot(target, requestedSlot)
+				: ResolveDestinationSlot(target, to, requestedSlot);
 			if (targetSlot < 0)
 			{
-				return $"{to} has no empty inventory slot.";
+				return exactDestination
+					? $"{to} can no longer take the item at slot {requestedSlot} (the destination changed after its placement answer)."
+					: $"{to} has no empty inventory slot.";
 			}
 
 			transferred.SlotIndex = targetSlot; // the host picks a concrete empty slot; the recipient's immediate re-report confirms it
@@ -500,6 +508,30 @@ internal sealed class PlayerInventoryTakeService(
 		}
 
 		return fallback;
+	}
+
+	/// <summary>
+	/// The slot the receiving client ANSWERED, or -1 when it is no longer free. The give path never substitutes
+	/// on its own: the host records the receiver's resolution, and a destination that changed between the answer
+	/// and the commit is refused before any custody moves, so the item stays with the giver.
+	/// </summary>
+	private static int ExactDestinationSlot(CharacterDataMsg target, int answeredSlot)
+	{
+		var count = target.SlotCount > 0 ? target.SlotCount : 3;
+		if (answeredSlot < 0 || answeredSlot >= count)
+		{
+			return -1;
+		}
+
+		foreach (var item in target.Items)
+		{
+			if (item.SlotIndex == answeredSlot)
+			{
+				return -1;
+			}
+		}
+
+		return answeredSlot;
 	}
 
 	/// <summary>

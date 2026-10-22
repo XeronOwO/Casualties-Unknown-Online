@@ -1,0 +1,245 @@
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Time;
+using Microsoft.Extensions.Logging;
+
+namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+
+/// <summary>
+/// The give gesture's answer-first custody (the user's 2026-10-22 ruling): before the host records anything, the
+/// RECEIVING client resolves where its own rules would put the item, and the host commits the destination that
+/// answer names. A refusal writes nothing, so an item the destination cannot take never leaves the giver.
+/// <para>
+/// The host half owns one pending question per give (the requester, the intent and a deadline). The receiving
+/// half asks the adapter's own <see cref="IRemotePlacementResolver"/> — the same rules the placement runs — and
+/// answers. When the host IS the receiver there is no round trip: the resolver answers in-process.
+/// </para>
+/// <para>
+/// The answer is the placement: the host passes the ANSWERED slot or container to
+/// <see cref="PlayerInventoryTakeService.HandleRemoteGiveToBody"/> in its exact mode, so the ledger row states
+/// what the receiving client resolved, never the giver's request. A destination that changed between the answer
+/// and the commit (the receiver picked something up in that window) is refused by the host before any custody
+/// moves and answered to the giver with the reason; the deeper race — the receiver's LIVE body differing from
+/// the snapshot the host just wrote — is the ticket's residual and is not claimed away here.
+/// </para>
+/// </summary>
+internal sealed class RemotePlacementService(
+	ISessionControl session,
+	PacketSender sender,
+	PlayerInventoryTakeService take,
+	IRemotePlacementResolver? resolver,
+	ITimeSource time,
+	ILogger log) : ISessionReset
+{
+	/// <summary>How long the host waits for the receiving client's answer before refusing the give by name.</summary>
+	internal const long AnswerTimeoutMs = 15000;
+
+	private readonly ISessionControl _session = session;
+	private readonly PacketSender _sender = sender;
+	private readonly PlayerInventoryTakeService _take = take;
+	private readonly IRemotePlacementResolver? _resolver = resolver;
+	private readonly ITimeSource _time = time;
+	private readonly ILogger _log = log;
+	private readonly Dictionary<ulong, PendingGive> _pending = [];
+	private ulong _nextQueryId = 1;
+
+	/// <summary>Host only: one validated give intent is waiting on the receiving client's placement answer.</summary>
+	private sealed record PendingGive(ulong Giver, RemoteInventoryIntentMsg Msg, long DeadlineMs);
+
+	/// <summary>Host only: ask the receiving client where this give would land, or answer in-process when the host is the receiver.</summary>
+	internal void BeginGive(ulong giver, RemoteInventoryIntentMsg msg, CharacterItemMsg item)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		{
+			return;
+		}
+
+		PruneExpired();
+
+		var receiver = msg.TargetBodySteamId;
+		if (receiver == _session.LocalSteamId)
+		{
+			ResolveHere(giver, msg, item);
+			return;
+		}
+
+		var queryId = _nextQueryId++;
+		_pending[queryId] = new PendingGive(giver, msg, _time.NowMs + AnswerTimeoutMs);
+		_sender.Send(receiver, NetMsg.PlayerPlacementQuery, new PlayerPlacementQueryMsg
+		{
+			QueryId = queryId,
+			Item = item,
+			RequestedSlot = msg.TargetSlotIndex,
+			RequestedContainerInstanceId = msg.TargetContainerInstanceId,
+		});
+		_log.LogInformation(
+			"[Placement] asked {Receiver} where item {ItemId} (id {InstanceId}) can go (query {Query}, slot {Slot}, container {Container}).",
+			receiver, item.ItemId, item.InstanceId, queryId, msg.TargetSlotIndex, msg.TargetContainerInstanceId);
+	}
+
+	/// <summary>Host only: the receiving client answered a placement question — commit the ANSWERED destination or refuse the giver.</summary>
+	internal void HandleAnswer(ulong sender, PlayerPlacementAnswerMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		{
+			return;
+		}
+
+		if (!_pending.TryGetValue(msg.QueryId, out var pending))
+		{
+			_log.LogDebug("[Placement] answer to query {Query} from {Sender} has no pending give (already answered, timed out or from a dead session).",
+				msg.QueryId, sender);
+			return;
+		}
+
+		_pending.Remove(msg.QueryId);
+
+		// The answer is a claim about the destination body's own body: it is only worth reading from THAT client.
+		if (sender != pending.Msg.TargetBodySteamId)
+		{
+			RefuseGiver(pending.Giver, pending.Msg, $"the placement answer came from {sender}, not the destination body {pending.Msg.TargetBodySteamId}.");
+			return;
+		}
+
+		if (_time.NowMs > pending.DeadlineMs)
+		{
+			RefuseGiver(pending.Giver, pending.Msg, "the destination body did not answer the placement question in time, so nothing moved.");
+			return;
+		}
+
+		if (!msg.Accepted)
+		{
+			RefuseGiver(pending.Giver, pending.Msg, string.IsNullOrWhiteSpace(msg.Reason) ? "the destination body refused the placement." : msg.Reason);
+			return;
+		}
+
+		Commit(pending.Giver, pending.Msg, new RemotePlacementResolution(true, msg.Slot, msg.ContainerInstanceId, string.Empty));
+	}
+
+	/// <summary>Receiving client: the host asks where this give would land — answer with this client's own rules.</summary>
+	internal void HandleQuery(ulong sender, PlayerPlacementQueryMsg msg)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive || !_session.LocalInWorld)
+		{
+			return;
+		}
+
+		// The wire direction only proves the local role: a placement question is the host's, and a frame from
+		// anyone else is a claim about this body.
+		if (sender != _session.HostSteamId)
+		{
+			_log.LogWarning("[Placement] dropped a placement question from {Sender}: this session's host is {Host}.", sender, _session.HostSteamId);
+			return;
+		}
+
+		var answer = _resolver is null
+			? RemotePlacementResolution.Refused("this client has no game adapter, so it cannot answer where an item would land.")
+			: _resolver.Resolve(msg.Item, msg.RequestedSlot, msg.RequestedContainerInstanceId);
+		_sender.Send(_session.HostSteamId, NetMsg.PlayerPlacementAnswer, new PlayerPlacementAnswerMsg
+		{
+			QueryId = msg.QueryId,
+			Accepted = answer.Accepted,
+			Slot = answer.Slot,
+			ContainerInstanceId = answer.ContainerId,
+			Reason = answer.Reason,
+		});
+		_log.LogInformation("[Placement] answered query {Query} for item {ItemId} (id {InstanceId}): {Answer}.",
+			msg.QueryId, msg.Item.ItemId, msg.Item.InstanceId, Describe(answer));
+	}
+
+	/// <summary>Host only: a session boundary invalidates every question — a late answer must never commit into the next world.</summary>
+	public void ResetSessionState()
+	{
+		if (_pending.Count > 0)
+		{
+			_log.LogInformation("[Placement] dropped {Count} unanswered placement question(s) at the session boundary.", _pending.Count);
+		}
+
+		_pending.Clear();
+	}
+
+	/// <summary>The host's own body is the receiver: its resolver answers in-process, with no round trip.</summary>
+	private void ResolveHere(ulong giver, RemoteInventoryIntentMsg msg, CharacterItemMsg item)
+	{
+		var answer = _resolver is null
+			? RemotePlacementResolution.Refused("this client has no game adapter, so it cannot resolve the placement.")
+			: _resolver.Resolve(item, msg.TargetSlotIndex, msg.TargetContainerInstanceId);
+		_log.LogInformation("[Placement] resolved item {ItemId} (id {InstanceId}) on the host's own body: {Answer}.",
+			item.ItemId, item.InstanceId, Describe(answer));
+		if (!answer.Accepted)
+		{
+			RefuseGiver(giver, msg, answer.Reason);
+			return;
+		}
+
+		Commit(giver, msg, answer);
+	}
+
+	/// <summary>Commit the answer the receiving client gave; the host's exact mode refuses a destination that changed meanwhile.</summary>
+	private void Commit(ulong giver, RemoteInventoryIntentMsg msg, RemotePlacementResolution answer)
+	{
+		var refusal = _take.HandleRemoteGiveToBody(giver, msg.TargetBodySteamId, msg.ItemInstanceId, answer.Slot, answer.ContainerId, exactDestination: true);
+		if (refusal is not null)
+		{
+			RefuseGiver(giver, msg, refusal);
+		}
+	}
+
+	/// <summary>Answer the giver with the receiving side's own sentence; a host giver already printed its line.</summary>
+	private void RefuseGiver(ulong giver, RemoteInventoryIntentMsg msg, string reason)
+	{
+		_log.LogWarning("[RemoteIntent] refused {Kind}: {Reason}", msg.Kind, reason);
+		if (giver == _session.LocalSteamId)
+		{
+			return;
+		}
+
+		_sender.Send(giver, NetMsg.InventoryIntentRefused, new PlayerInventoryIntentRefusedMsg
+		{
+			Kind = (int)msg.Kind,
+			ItemInstanceId = msg.ItemInstanceId,
+			Reason = reason,
+		});
+	}
+
+	private void PruneExpired()
+	{
+		if (_pending.Count == 0)
+		{
+			return;
+		}
+
+		var now = _time.NowMs;
+		List<ulong>? expired = null;
+		foreach (var pair in _pending)
+		{
+			if (now > pair.Value.DeadlineMs)
+			{
+				(expired ??= []).Add(pair.Key);
+			}
+		}
+
+		if (expired is null)
+		{
+			return;
+		}
+
+		foreach (var queryId in expired)
+		{
+			if (_pending.TryGetValue(queryId, out var pending))
+			{
+				_pending.Remove(queryId);
+				RefuseGiver(pending.Giver, pending.Msg, "the destination body did not answer the placement question in time, so nothing moved.");
+			}
+		}
+	}
+
+	private static string Describe(RemotePlacementResolution answer) => answer switch
+	{
+		{ Accepted: true, ContainerId: not 0 } => $"inside container {answer.ContainerId}",
+		{ Accepted: true } => $"slot {answer.Slot}",
+		_ => $"refused: {answer.Reason}",
+	};
+}

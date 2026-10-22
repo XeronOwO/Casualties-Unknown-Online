@@ -72,6 +72,46 @@ a refusal creates nothing on the receiving side. The ticket records this instead
 6. The residual: a body that changes between the answer and the transfer ends with the item back in the
    giver's inventory and a line naming the return.
 
+## The answer-first half landed (2026-10-22)
+
+The sequence's first three steps and its commit-on-acceptance (steps 1-4) now exist; the residual (row 6 below)
+does not, and neither have the machine rows been run. What landed:
+
+- **The wire pair.** `NetMsg.PlayerPlacementQuery` (host → receiving client: the item's `CharacterItemMsg`, the
+  requested slot or container) and `NetMsg.PlayerPlacementAnswer` (the resolved slot or container, or the reason
+  the receiving rules refused). Both are reliable; the host asks once per give and answers nothing itself until the
+  answer arrives.
+- **The host's pending question.** `RemotePlacementService` parks one question per give (the requester, the intent
+  and a 15 s deadline), admits only an answer from the destination body it asked and only before the deadline, and
+  drops the whole table on the session end (`ISessionReset`). When the host IS the destination, its own resolver
+  answers in-process and no wire is involved.
+- **The receiving client's own rules.** `IRemotePlacementResolver` is the standalone adapter seam (the same shape
+  and cycle reason as `IItemContainerFit`): it asks `LocalBodyPlacement.WouldAccept` — the game's own pickup gate
+  with `force`, now the source of the placement loop's candidates too — and `Container.CanHoldItem`, on a
+  throwaway prefab instance with no instance id, so the question changes nothing on this client.
+- **The host records the ANSWERED destination.** `PlayerInventoryTakeService.HandleRemoteGiveToBody` takes an
+  exact-destination mode: the answered slot is used as-is or the give is refused ("the destination changed after
+  its placement answer"); a substitution is never made on the host's own initiative. A refusal writes no row on
+  either side and answers the giver through the existing `InventoryIntentRefused` wire with the receiving side's
+  own sentence.
+- **The proof so far.** `PlacementAnswerTests` covers the answered-slot row, the receiving refusal, the
+  destination that changed, and a composition without a resolver (refused, not fallen back); the wire pair has its
+  sync-coverage row (P14), its member-report census row and the three direction classifications. Build/format/full
+  suite are green (behaviour 6253, gates 763).
+
+**Still owed by this ticket:**
+
+- **The residual (row 6).** A receiving client whose LIVE body differs from the snapshot the host just wrote — it
+  picked something up after answering — still falls into its own placement fallback, and the host's row would name
+  the answered destination. The designed answer is the reverse report: the receiving client refuses to substitute,
+  reports the failure, and the host returns the row to the giver and publishes the return. Not implemented; the
+  next cycle on this ticket starts here.
+- **The machine rows 1-5.** A two-client batch on the deployed artifact, with the real give gesture, reading the
+  container refusal, the no-free-slot refusal, the substituted slot the host records, the accepted container
+  destination, and the deny arm. Row 6 waits for the residual.
+- **The ticket's status.** It stays `todo/` until the residual and the batch are done; the code half is committed
+  on its own so the batch runs against a named artifact.
+
 ## Design defect: the give interaction this ticket assumes cannot be performed (2026-10-22)
 
 > **Superseded 2026-10-22 by the design above.** The defect was real: the order the earlier design assumed

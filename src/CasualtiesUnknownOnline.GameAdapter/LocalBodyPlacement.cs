@@ -33,6 +33,42 @@ internal static class LocalBodyPlacement
 		TryPlaceInBodySlot(body, item, placed, log, source, out placedSlot);
 
 	/// <summary>
+	/// The first slot this body WOULD accept the item in, the requested one first — asked without placing
+	/// anything. The give's placement answer runs before the item exists on this client, and the host records
+	/// what this returns, so the answer and the placement must be the same rule: <see cref="WouldAccept"/> is
+	/// that rule, and the placement loop below builds its candidates from it.
+	/// </summary>
+	internal static int FirstAcceptingSlot(Body body, Item probe, int requestedSlot)
+	{
+		if (WouldAccept(body, probe, requestedSlot))
+		{
+			return requestedSlot;
+		}
+
+		for (var slot = 0; slot < body.slots.Length; slot++)
+		{
+			if (slot != requestedSlot && WouldAccept(body, probe, slot))
+			{
+				return slot;
+			}
+		}
+
+		return -1;
+	}
+
+	/// <summary>
+	/// The game's own pickup gate with <c>force</c> (<c>Body.cs:1390</c>): the slot is free, and an
+	/// <c>onlyHoldInHands</c> item may only enter a hand. <c>force</c> bypasses the canPickUp, holding and
+	/// distance guards, so those three are what a placement has left to satisfy — and a placement that trusted
+	/// the call alone would log a slot the item never entered.
+	/// </summary>
+	internal static bool WouldAccept(Body body, Item probe, int slot) =>
+		slot >= 0
+		&& slot < body.slots.Length
+		&& !body.HoldingItem(slot)
+		&& (!probe.Stats.onlyHoldInHands || body.slots[slot].isHand);
+
+	/// <summary>
 	/// The loop itself — private, one level below the entry, because the source-shape gate pins this
 	/// exact body: the object the caller materialized is the object handed to the body, and every
 	/// attempt is verified by reading the slot back.
@@ -46,7 +82,7 @@ internal static class LocalBodyPlacement
 		out int placedSlot)
 	{
 		var requested = item.SlotIndex;
-		foreach (var slot in SlotCandidates(body, item))
+		foreach (var slot in SlotCandidates(body, placed, requested))
 		{
 			body.PickUpItem(placed, slot, force: true);
 			if (body.GetItem(slot) != placed) // Unity objects — ==
@@ -71,18 +107,18 @@ internal static class LocalBodyPlacement
 		return false;
 	}
 
-	/// <summary>The slots to try, in order: the one the item states when it is free, then every other free slot.</summary>
-	private static List<int> SlotCandidates(Body body, CharacterItemMsg item)
+	/// <summary>The slots to try, in order: the one the item states when this body would accept it, then every other acceptable slot.</summary>
+	private static List<int> SlotCandidates(Body body, Item placed, int requestedSlot)
 	{
 		var candidates = new List<int>(body.slots.Length);
-		if (item.SlotIndex >= 0 && item.SlotIndex < body.slots.Length && !body.HoldingItem(item.SlotIndex))
+		if (requestedSlot >= 0 && WouldAccept(body, placed, requestedSlot))
 		{
-			candidates.Add(item.SlotIndex);
+			candidates.Add(requestedSlot);
 		}
 
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
-			if (!body.HoldingItem(slot) && !candidates.Contains(slot))
+			if (!candidates.Contains(slot) && WouldAccept(body, placed, slot))
 			{
 				candidates.Add(slot);
 			}

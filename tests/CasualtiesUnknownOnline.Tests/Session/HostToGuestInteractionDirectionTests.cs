@@ -17,6 +17,7 @@ public class HostToGuestInteractionDirectionTests(DirectionProbe probe) : IClass
 	{
 		NetMsg.ModCommandResult,
 		NetMsg.RemoteInventoryIntent,
+		NetMsg.PlayerPlacementQuery,
 		NetMsg.TraderRecruitResult,
 		NetMsg.MedicalOperationStartAck,
 		NetMsg.MedicalOperationState,

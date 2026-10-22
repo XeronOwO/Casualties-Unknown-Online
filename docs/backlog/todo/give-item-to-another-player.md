@@ -147,6 +147,18 @@ Unit 1's rows are now all read (1, 2, 5, 7 and 8 in batch `20261022-f`; 9 and 10
 `todo/`: unit 2's rows 3, 4 and 6 are not implemented, which is the next cycle's work on this ticket and on
 `todo/placement-outcome-never-returns.md`.
 
+### Unit 2's answer-first half landed (2026-10-22)
+
+`todo/placement-outcome-never-returns.md` now implements the ruling's first half: the host asks the RECEIVING
+client where its own rules would put the item before it writes anything, records the ANSWERED slot or container,
+and refuses the giver — with the receiving side's own sentence — when that answer is a refusal. Nothing moves on a
+refusal, so the item stays with the giver. The gesture itself is unchanged.
+
+For this ticket's rows that means row 3 (a give into a container the destination cannot take) and row 4's
+substitution shape now run through the receiving client's answer instead of the host's own pick. Rows 3, 4 and 6
+are still unread on the machine, and the residual (a body that changes between the answer and the transfer) is
+still owed on the sibling ticket; the unit-2 two-client batch is the next step here.
+
 ### How unit 1 landed (2026-10-22)
 
 - **The target and the give are two resolutions, each shared by every reader.** The target of a USE is

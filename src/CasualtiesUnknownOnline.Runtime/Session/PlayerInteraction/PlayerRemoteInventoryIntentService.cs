@@ -26,6 +26,7 @@ internal sealed class PlayerRemoteInventoryIntentService(
 	IPlayerInteractionVisibility visibility,
 	PlayerItemUseService itemUse,
 	PlayerInventoryTakeService take,
+	RemotePlacementService placement,
 	ITimeSource time,
 	ILogger log)
 {
@@ -36,6 +37,7 @@ internal sealed class PlayerRemoteInventoryIntentService(
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly PlayerItemUseService _itemUse = itemUse;
 	private readonly PlayerInventoryTakeService _take = take;
+	private readonly RemotePlacementService _placement = placement;
 	private readonly ITimeSource _time = time;
 	private readonly ILogger _log = log;
 
@@ -225,12 +227,12 @@ internal sealed class PlayerRemoteInventoryIntentService(
 			// The same custody transfer read the other way round: the item belongs to the REQUESTER, who is giving
 			// it away, and the destination body is the other player's. It runs the identical host path with the two
 			// ends swapped, so both directions of one hand-over agree about custody by construction.
+			// The give direction is answered before custody moves (the user's 2026-10-22 ruling): the receiving
+			// client resolves the placement with its own rules and the host commits the destination THAT client
+			// named, so an item the destination cannot take never leaves the giver. The placement service owns
+			// the question, the answer and the refusal; this service has already validated everything it can.
 			case RemoteInventoryIntentKind.GiveToBody:
-				if (_take.HandleRemoteGiveToBody(requester, msg.TargetBodySteamId, msg.ItemInstanceId, msg.TargetSlotIndex, msg.TargetContainerInstanceId) is { } takeRefusal)
-				{
-					Refuse(msg, requester, takeRefusal);
-				}
-
+				_placement.BeginGive(requester, msg, original);
 				break;
 			case RemoteInventoryIntentKind.ApplyToLimb:
 				_itemUse.HandleRemoteHeldItemUse(requester, owner, msg.ItemInstanceId, msg.TargetLimbIndex, msg.Amount);

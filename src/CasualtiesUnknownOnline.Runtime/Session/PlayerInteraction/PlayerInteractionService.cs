@@ -20,9 +20,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// validation/state/event surface so the domain can grow without turning this
 /// class into a mixed god-object.
 /// </summary>
-public sealed class PlayerInteractionService : IPlayerInteractionControl, IDisposable
+public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessionReset, IDisposable
 {
 	private readonly PlayerInventoryTakeService _take;
+	private readonly RemotePlacementService _placement;
+	private readonly ISessionControl _session;
 	private readonly PlayerItemGiveService _give;
 	private readonly PlayerRemoteInventoryIntentService _remoteInventory;
 	private readonly PlayerCarryService _carry;
@@ -109,17 +111,21 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		IMemberCommandRules memberCommandRules,
 		IItemContainerFit itemContainerFit,
 
-		ILogger<PlayerInteractionService> log)
+		ILogger<PlayerInteractionService> log,
+		IRemotePlacementResolver? placementResolver = null)
 	{
 		_medicalOperations = medicalOperations;
+		_session = session;
 
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, itemContainerFit, log);
+		_placement = new RemotePlacementService(session, sender, _take, placementResolver, time, log);
+		session.SessionEnded += ResetSessionState;
 		_give = new PlayerItemGiveService(session, sender, _take, itemCreation, itemStateLanguage, memberCommandRules, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, kernelAuthority, resultAuthority, log);
 		_itemUse.BindToSession(); // the admitted-eat table is session-scoped
-		_remoteInventory = new PlayerRemoteInventoryIntentService(session, sender, access, hostRules, visibility, _itemUse, _take, time, log);
+		_remoteInventory = new PlayerRemoteInventoryIntentService(session, sender, access, hostRules, visibility, _itemUse, _take, _placement, time, log);
 		_carry = new PlayerCarryService(
 			session,
 			sender,
@@ -152,6 +158,15 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 
 	public void FireRemoteInventoryIntentReceived(RemoteInventoryIntentMsg msg) =>
 		_remoteInventory.FireRemoteInventoryIntentReceived(msg);
+
+	public void HandlePlacementQuery(ulong sender, PlayerPlacementQueryMsg msg) =>
+		_placement.HandleQuery(sender, msg);
+
+	public void HandlePlacementAnswer(ulong sender, PlayerPlacementAnswerMsg msg) =>
+		_placement.HandleAnswer(sender, msg);
+
+	/// <summary>The one session-teardown stage: the give's unanswered placement questions die with the world.</summary>
+	public void ResetSessionState() => _placement.ResetSessionState();
 
 	public void FireTransferReceived(PlayerInventoryTransferMsg msg) =>
 		_take.FireTransferReceived(msg);
@@ -215,6 +230,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 
 	public void Dispose()
 	{
+		_session.SessionEnded -= ResetSessionState;
 		_itemUse.Dispose();
 		_carry.Dispose();
 		_carryKernelProjection.Dispose();

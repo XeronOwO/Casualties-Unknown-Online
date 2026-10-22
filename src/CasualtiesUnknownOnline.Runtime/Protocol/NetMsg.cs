@@ -452,4 +452,12 @@ public enum NetMsg : byte
 	// entry still invites the member, which is the pre-edge recovery path.
 	LayerDescent = 157, // host → guest: this host is advancing a layer now — generate your own new layer from its baseline and wait for the gate
 
+	// The give gesture's placement answer. The host asks the RECEIVING client where its own rules would put
+	// the item BEFORE any custody moves, and the receiver answers with the destination it will use or the
+	// reason it refuses. The user's 2026-10-22 ruling — the item stays with the giver when the destination
+	// cannot take it — needs that answer before the ledger row is written: the host then records the
+	// receiver's RESOLVED destination, never the giver's request, and a refusal writes nothing at all.
+	PlayerPlacementQuery = 158, // host → receiver: resolve this give's destination with your own rules (no custody moves yet)
+	PlayerPlacementAnswer = 159, // receiver → host: the destination this client will use, or the reason it refuses
+
 }

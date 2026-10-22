@@ -35,6 +35,16 @@ public interface IPlayerInteractionControl
 	/// <summary>An authoritative host-validated native inventory intent arrived for the local player's own body.</summary>
 	event Action<RemoteInventoryIntentMsg>? RemoteInventoryIntentReceived;
 
+	/// <summary>
+	/// Receiving client: the host asks where this give would land on THIS client's body, so it can answer with
+	/// its own rules before any custody moves (the user's 2026-10-22 ruling). The answer names the slot or the
+	/// container this client will use, or the reason it refuses.
+	/// </summary>
+	void HandlePlacementQuery(ulong sender, PlayerPlacementQueryMsg msg);
+
+	/// <summary>Host only: the receiving client answered a placement question — commit the answered destination or refuse the giver.</summary>
+	void HandlePlacementAnswer(ulong sender, PlayerPlacementAnswerMsg msg);
+
 	/// <summary>Raise a received transfer for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireTransferReceived(PlayerInventoryTransferMsg msg);
 

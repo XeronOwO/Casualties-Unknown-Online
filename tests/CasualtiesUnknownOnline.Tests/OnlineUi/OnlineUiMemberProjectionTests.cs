@@ -900,6 +900,14 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
+		public void HandlePlacementQuery(ulong sender, PlayerPlacementQueryMsg msg)
+		{
+		}
+
+		public void HandlePlacementAnswer(ulong sender, PlayerPlacementAnswerMsg msg)
+		{
+		}
+
 		public void FireRemoteInventoryIntentReceived(RemoteInventoryIntentMsg msg)
 		{
 		}

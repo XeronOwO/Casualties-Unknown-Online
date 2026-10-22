@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every ref is a full path plus the quoted source text; SyncCoverageGateTests verifies every quote is still present in the file it names. Line numbers are deliberately not recorded: they drift with every edit above them and would have to be re-pointed by hand.",
-  "count": 1121,
+  "count": 1126,
   "entries": [
     {
       "cluster": "inline",
@@ -6729,6 +6729,36 @@
       "row": "R11",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/ReentryCoordinator.cs",
       "quote": "_world.SendWorldJoinTo(sender);"
+    },
+    {
+      "cluster": "players",
+      "row": "P14",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemotePlacementService.cs",
+      "quote": "_sender.Send(receiver, NetMsg.PlayerPlacementQuery, new PlayerPlacementQueryMsg"
+    },
+    {
+      "cluster": "players",
+      "row": "P14",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/RemotePlacementService.cs",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerPlacementAnswer, new PlayerPlacementAnswerMsg"
+    },
+    {
+      "cluster": "players",
+      "row": "P14",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs",
+      "quote": "PlayerPlacementQuery = 158,"
+    },
+    {
+      "cluster": "players",
+      "row": "P14",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInventoryTakeService.cs",
+      "quote": "ExactDestinationSlot(target, requestedSlot)"
+    },
+    {
+      "cluster": "players",
+      "row": "P14",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryIntentService.cs",
+      "quote": "_placement.BeginGive(requester, msg, original);"
     }
   ]
 }

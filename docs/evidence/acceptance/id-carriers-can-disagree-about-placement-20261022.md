@@ -14,8 +14,9 @@
   (`prelude.log`, `prelude-verify-deploy.txt`), the row logs (`accept.log`, `accept-result.json`), the
   per-row driver answers (`r1a1-*`, `r2-*`, `r3-*`, `r4-*`), the archive copies (`r1-pickup-cut-*`,
   `r3-drop-cut-*`), the host log windows naming the corrections (`r1a1-host-log.txt`, `r3-host-log.txt`),
-  the stored-character probes (`r5-store.json`, `r3-store.json`), and the body/kernel reads
-  (`r2-body.json`, `r2-kernel.json`, `r4-body.json`, `r4-kernel.json`). The red's artifacts are in
+  the stored-character probes (`r5-store-store.json`, `r3-store-store.json`), and the body/kernel reads
+  (`r2-body-body.json`, `r2-kernel-kernel.json`, `r4-body-body.json`, `r4-kernel-kernel.json`). The red's
+  artifacts are in
   `20261022-b/`: `p1-red-pickup-items.json`, `p1-red-pickup-character.json`, `probe.log`,
   `red-host-window.txt`, `red-guest-window.txt`.
 
@@ -35,10 +36,10 @@ drop's `[CarriedSync] removed <id> from <peer>'s snapshot` mutated it, and the 1
 | # | Row | Class | Verdict | Evidence |
 |---|---|---|---|---|
 | 1 | The fixed build, the member creates+carries an item and the host cuts inside the report window | machine | **pass** | `r1a1-create.json` `ok:true id:<item> slot:0`; the host parked the family (`r1a1-freeze-arm.json` `armed:true`) and released it after the cut (`r1a1-freeze-off.json` `dropped:8`); `r1-pickup-cut-items.json` row `location.kind=2`, owner = the member, `data.slotIndex=-1`; `r1-pickup-cut-character.json` carries the item with `slotIndex=-1`; `r1a1-host-log.txt` — `Cut Command character placement: added item <id> (bandage) at no body slot (the body places it)` and `reconciled the member-item placement: 1 item(s) the character files were missing and 0 their stale copy` |
-| 2 | Continue the cut and let the member receive its character | machine | **pass** | `r2-leave.json` (`inWorld:false`), `r2-continue.json` (`ok:true`), all three clients back `inWorld` (`state-host.json`, and the guest/alt reads in `accept.log` at t+22.1 s); `r2-body.json`: the member's body carries the item exactly once (local count 2, one row for the id); `r2-kernel.json`: kernel `carried` holds it once and `world` holds it zero times |
-| 3 | The member drops the item and the host cuts inside the window (the store still carries it) | machine | **pass** | `r3-drop.json` `ok:true slot:0 dropped:true`; `r3-store.json` still carries the item right before the cut (`count:2`, the item at slot 0); `r3-drop-cut-items.json` row `location.kind=1` (World); `r3-drop-cut-character.json` has no row for the id; `r3-host-log.txt` — `removed item <id> (bandage) (the kernel holds it in the world)` and `0 item(s) the character files were missing and 1 their stale copy` |
-| 4 | Continue the drop cut | machine | **pass** | `r4-continue.json` (`ok:true`), all three back in world; `r4-body.json` has no row for the id (onBody=0); `r4-kernel.json` holds it in `world` exactly once (world=1) |
-| 5 | The host's stored character after the clone presentation removed a carried item | machine | **pass** | `r5-store.json` after the pickup cut: `count:2` with the item at slot 0 (the presentation's own copy was mutated, the store's was not); `r3-store.json` after the drop's carried-sync: still `count:2` with the item, so the next cut had to correct the file (row 3) |
+| 2 | Continue the cut and let the member receive its character | machine | **pass** | `r2-leave.json` (`inWorld:false`), `r2-continue.json` (`ok:true`), all three clients back `inWorld` (`state-host.json`, and the guest/alt reads in `accept.log` at t+22.1 s); `r2-body-body.json`: the member's body carries the item exactly once (local count 2, one row for the id); `r2-kernel-kernel.json`: kernel `carried` holds it once and `world` holds it zero times |
+| 3 | The member drops the item and the host cuts inside the window (the store still carries it) | machine | **pass** | `r3-drop.json` `ok:true slot:0 dropped:true`; `r3-store-store.json` still carries the item right before the cut (`count:2`, the item at slot 0); `r3-drop-cut-items.json` row `location.kind=1` (World); `r3-drop-cut-character.json` has no row for the id; `r3-host-log.txt` — `removed item <id> (bandage) (the kernel holds it in the world)` and `0 item(s) the character files were missing and 1 their stale copy` |
+| 4 | Continue the drop cut | machine | **pass** | `r4-continue.json` (`ok:true`), all three back in world; `r4-body-body.json` has no row for the id (onBody=0); `r4-kernel-kernel.json` holds it in `world` exactly once (world=1) |
+| 5 | The host's stored character after the clone presentation removed a carried item | machine | **pass** | `r5-store-store.json` after the pickup cut: `count:2` with the item at slot 0 (the presentation's own copy was mutated, the store's was not); `r3-store-store.json` after the drop's carried-sync: still `count:2` with the item, so the next cut had to correct the file (row 3) |
 
 ## Residuals for the user
 

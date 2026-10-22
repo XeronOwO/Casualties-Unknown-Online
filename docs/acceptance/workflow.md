@@ -145,7 +145,12 @@ collected while its scenario is up.
   `{{key}}` text VERBATIM: its template spells a string placeholder with its own quotes
   (`var mode = "{{s:mode}}"`) and its `-Arg` takes the full typed name (`s:mode=probe`), where the
   committed driver's `{{s:key}}` inserts the quotes and its `-RecipeArg` takes `key=value`; a bare word the
-  raw replacement leaves in the code comes back as `(1,1): InteractiveHost` (batch `20261020-a`). The socket
+  raw replacement leaves in the code comes back as `(1,1): InteractiveHost` (batch `20261020-a`). A window
+  whose two carriers are written at different moments — an item report at once, the member's 1 Hz character
+  report up to a second later — is held OPEN by parking the receiving family (`net-drop-message` on the
+  host), never raced: one driver call's own gap exceeds the 1 Hz period, so a cut issued "right after" the
+  action lands outside the window and reads as agreement (batch `20261022-c`; the stored carrier is
+  `tools/acceptance/recipes/saved-character-read.cs`). The socket
   dies with the game process, so a restart means reconnecting before the next probe. A probe's answer
   travels as ONE eval value, so a full table of a dense world does not fit: batch `20261021-f`'s
   `enemy-table-read` and `enemy-scene` on a 956-enemy world both answered `answered with a truncated value;

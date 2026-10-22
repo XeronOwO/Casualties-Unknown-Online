@@ -74,10 +74,10 @@ carriers name, never about narrowing which ids exist.
 | # | Scenario | Expected | State |
 |---|---|---|---|
 | 1 | The fixed build, the member creates+carries an item and the host cuts inside the report window (the host's `CharacterData` receive closed for the attempt) | The member's character file carries the item (slot -1, unplaced) while `items.json` says carried, and the cut report names the placement correction | pass (`20261022-c`: `r1-pickup-cut-items.json` kind 2/slot -1, `r1-pickup-cut-character.json` slot -1, `r1a1-host-log.txt` names the add) |
-| 2 | Continue the cut of row 1 and let the member receive its character | The item is on the member's body (placed by the body's own rules) and no second copy of it exists in the world | pass (`r2-body.json` carries it once, `r2-kernel.json` carried=1 world=0) |
+| 2 | Continue the cut of row 1 and let the member receive its character | The item is on the member's body (placed by the body's own rules) and no second copy of it exists in the world | pass (`r2-body-body.json` carries it once, `r2-kernel-kernel.json` carried=1 world=0) |
 | 3 | The member drops the item and the host cuts inside the window (the store still carries it) | The member's file no longer carries it, `items.json` says World, and the cut names the correction | pass (`r3-drop-cut-items.json` kind 1, `r3-drop-cut-character.json` no row, `r3-host-log.txt` names the removal) |
-| 4 | Continue the cut of row 3 | The item is in the world (not in the member's body) — one placement, no duplicate and no phantom | pass (`r4-body.json` no row, `r4-kernel.json` world=1) |
-| 5 | The probe reads the host's stored character after the clone presentation removed a carried item | The stored snapshot still carries it (the store's copy is its own), and the next cut corrects the file | pass (`r5-store.json` count 2 after the pickup cut, `r3-store.json` count 2 after the drop's carried-sync) |
+| 4 | Continue the cut of row 3 | The item is in the world (not in the member's body) — one placement, no duplicate and no phantom | pass (`r4-body-body.json` no row, `r4-kernel-kernel.json` world=1) |
+| 5 | The probe reads the host's stored character after the clone presentation removed a carried item | The stored snapshot still carries it (the store's copy is its own), and the next cut corrects the file | pass (`r5-store-store.json` count 2 after the pickup cut, `r3-store-store.json` count 2 after the drop's carried-sync) |
 
 Rows 1–5 are the batch's judgement. The layer-end cut's reconcile is covered in shape by
 `WorldCutCharacterReconcileTests.ALayerEndCutReconcilesTheMemberFileToo`; the batch stages a mid-run

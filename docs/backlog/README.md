@@ -109,7 +109,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [S4 — Multiplayer restore and backups](review/save-multiplayer-restore-and-backups.md) — **High** — stage 4 (S4.1–S4.4).
-- [S4.1 — Restore claim](review/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — three-valued claim; legacy store deleted.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — rows 1-7/9/12-19/21/23 pass; 8/10/20/22 unproven.
@@ -170,6 +169,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [S4.1 — Restore claim](done/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — accepted 2026-10-24: the IP-direct claim rows.
 - [S4.2 — The restore account surface](done/save-restore-account-surface.md) — **High** — accepted 2026-10-24: row 2's ambiguous claim.
 - [A drink measurement can run a destructive action](done/drink-measurement-destructive-use-action.md) — **Medium-High** — accepted: classified first.
 - [Four tracked docs carry code-page mojibake](done/docs-mojibake-cleanup.md) — **Low** — restored 2026-10-24; six files, no damaged bytes left.

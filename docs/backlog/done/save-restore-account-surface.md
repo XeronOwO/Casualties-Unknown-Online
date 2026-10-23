@@ -13,7 +13,7 @@
 - Related: decision 163 (repair mode, per-entry salvage), decision 168 (a restore reports its
   live-world halves), decision 177 (the claim verdict), decision 179 (this stage's surface and
   observability rule), `docs/architecture/save-archive-format.md` §6,
-  `docs/backlog/review/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1)
+  `docs/backlog/done/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1)
 
 ## The gap
 

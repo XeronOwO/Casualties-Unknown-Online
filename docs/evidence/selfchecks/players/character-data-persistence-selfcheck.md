@@ -6,7 +6,7 @@
 > `CharacterDataStore` is filled by the live 1 Hz reports plus a restore's claim. This sheet is kept
 > as the historical delivery record of a mechanism that no longer exists; do not treat its file
 > layout, paths or test names as current. See
-> `docs/backlog/review/save-guest-restore-claim-and-legacy-store-retirement.md`.
+> `docs/backlog/done/save-guest-restore-claim-and-legacy-store-retirement.md`.
 
 Status: delivered — the self-review found a menu-handshake staging hazard after the first deploy; the host-in-world restore gate is folded into the same cycle, re-deployed, and the cycle is closed. Build + format + architecture/event-replay/entity-dispatch gates green, 878 tests green (L0), runtime verification = L0 simulation + static evidence (no manual acceptance), structure review done.
 

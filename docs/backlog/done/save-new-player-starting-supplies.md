@@ -13,7 +13,7 @@
 - Related: decision 162 (transport-scoped identity; an absent player is a NEW character),
   decision 179 (the save system's player-visible surface: one notification plus the account),
   decision 180 (the supplies rule this stage implements), decision 165 (a continue never falls
-  back to the native regenerate path), `review/save-guest-restore-claim-and-legacy-store-retirement.md`
+  back to the native regenerate path), `done/save-guest-restore-claim-and-legacy-store-retirement.md`
   (S4.1, the claim), `done/save-restore-account-surface.md` (S4.2, the surface)
 
 ## The gap

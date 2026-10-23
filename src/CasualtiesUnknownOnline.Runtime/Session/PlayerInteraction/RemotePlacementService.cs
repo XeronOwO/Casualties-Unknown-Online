@@ -22,9 +22,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// <see cref="PlayerInventoryTakeService.HandleRemoteGiveToBody"/> in its exact mode, so the ledger row states
 /// what the receiving client resolved, never the giver's request. A destination that changed between the answer
 /// and the commit (the receiver picked something up in that window) is refused by the host before any custody
-/// moves and answered to the giver with the reason; the deeper race — the receiver's LIVE body differing from
-/// the snapshot the host just wrote — is the ticket's residual and is implemented by the failure report
-/// (<c>SendFailed</c>/<c>HandleFailed</c>) plus the return service, not claimed away here.
+/// moves and answered to the giver with the reason.
+/// </para>
+/// <para>
+/// The deeper race — the receiver's LIVE body differing from the snapshot the host just wrote — is closed by the
+/// placement OUTCOME (<c>SendOutcome</c>/<c>HandleOutcome</c>): the receiving client reports the place its own
+/// placement actually used, and the host compares that with the row it wrote. A match settles the give and writes
+/// nothing; a different place, or none at all, is refused by name and the return service moves the row back to
+/// the giver. The comparison is the point: the host never writes durable state from the receiver's word alone, it
+/// either confirms the fact it wrote or reverses its own commit.
 /// </para>
 /// </summary>
 internal sealed class RemotePlacementService(
@@ -53,8 +59,8 @@ internal sealed class RemotePlacementService(
 	/// <summary>Host only: one validated give intent is waiting on the receiving client's placement answer.</summary>
 	private sealed record PendingGive(ulong Giver, RemoteInventoryIntentMsg Msg, long DeadlineMs);
 
-	/// <summary>Host only: one committed give, kept so the receiving client's failure report can be matched to it.</summary>
-	private sealed record CommittedPlacement(ulong Giver, ulong Receiver, long AtMs);
+	/// <summary>Host only: one committed give, kept so the receiving client's outcome report can be compared with the place this host wrote.</summary>
+	private sealed record CommittedPlacement(ulong Giver, ulong Receiver, long AtMs, int Slot, ulong ContainerId);
 
 	/// <summary>How long a committed placement stays matchable by a failure report; the report follows the transfer immediately.</summary>
 	internal const long CommittedPlacementTtlMs = 60000;
@@ -204,11 +210,11 @@ internal sealed class RemotePlacementService(
 	private void Commit(ulong giver, RemoteInventoryIntentMsg msg, RemotePlacementResolution answer)
 	{
 		// The receiving client may still find its LIVE body unable to take the answered destination (it changed
-		// after the answer). The pair is recorded BEFORE the commit publishes the transfer: when the host is the
-		// receiving body, its own apply runs synchronously inside the commit and its failure report must find this
-		// entry already there.
+		// after the answer). The pair — and the place this host is about to write — is recorded BEFORE the commit
+		// publishes the transfer: when the host is the receiving body, its own apply runs synchronously inside the
+		// commit and its outcome report must find this entry already there.
 		PruneCommitted();
-		_committed[msg.ItemInstanceId] = new CommittedPlacement(giver, msg.TargetBodySteamId, _time.NowMs);
+		_committed[msg.ItemInstanceId] = new CommittedPlacement(giver, msg.TargetBodySteamId, _time.NowMs, answer.Slot, answer.ContainerId);
 		var refusal = _take.HandleRemoteGiveToBody(giver, msg.TargetBodySteamId, msg.ItemInstanceId, answer.Slot, answer.ContainerId, exactDestination: true);
 		if (refusal is not null)
 		{
@@ -229,28 +235,42 @@ internal sealed class RemotePlacementService(
 		PruneCommitted();
 	}
 
-	/// <summary>Receiving client: report that the answered destination is gone, so the host can return the row.</summary>
-	internal void SendFailed(ulong itemInstanceId, string reason)
+	/// <summary>
+	/// Receiving client: report what this client's placement really did — the place it used, or that it placed
+	/// nothing — so the host can compare the outcome with the row it wrote. One outcome per give.
+	/// </summary>
+	internal void SendOutcome(ulong itemInstanceId, bool applied, int slot, ulong containerInstanceId, string reason)
 	{
-		if (!_session.SessionActive || !_session.LocalInWorld)
+		if (!_session.SessionActive || !_session.LocalInWorld || itemInstanceId == 0)
 		{
 			return;
 		}
 
-		var msg = new PlayerPlacementFailedMsg { ItemInstanceId = itemInstanceId, Reason = ClampReason(reason) };
+		var msg = new PlayerPlacementOutcomeMsg
+		{
+			ItemInstanceId = itemInstanceId,
+			Applied = applied,
+			Slot = applied ? slot : -1,
+			ContainerInstanceId = applied ? containerInstanceId : 0,
+			Reason = ClampReason(reason),
+		};
 		if (_session.Role == SessionRole.Host)
 		{
-			HandleFailed(_session.LocalSteamId, msg);
+			HandleOutcome(_session.LocalSteamId, msg);
 			return;
 		}
 
-		_log.LogWarning("[Placement] answered destination for item {ItemId} is no longer available: {Reason} — asking the host to return it.",
-			itemInstanceId, reason);
-		_sender.Send(_session.HostSteamId, NetMsg.PlayerPlacementFailed, msg);
+		_log.LogInformation("[Placement] item {ItemId}: {Outcome} — reporting it to the host.", itemInstanceId, DescribeOutcome(msg));
+		_sender.Send(_session.HostSteamId, NetMsg.PlayerPlacementOutcome, msg);
 	}
 
-	/// <summary>Host only: the receiving client cannot take the answered destination — move the row back to the giver and publish the return.</summary>
-	internal void HandleFailed(ulong sender, PlayerPlacementFailedMsg msg)
+	/// <summary>
+	/// Host only: the receiving client reported what its placement did. The place it names is compared with the
+	/// row this host wrote from the answer: a match settles the give and writes nothing, and anything else — a
+	/// different place, an applied outcome that names no place, or nothing applied — is refused by name and the
+	/// row goes back to the giver. A report matching no committed give moves nothing at all.
+	/// </summary>
+	internal void HandleOutcome(ulong sender, PlayerPlacementOutcomeMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -259,29 +279,50 @@ internal sealed class RemotePlacementService(
 
 		if (!_committed.TryGetValue(msg.ItemInstanceId, out var committed))
 		{
-			_log.LogWarning("[Placement] dropped a placement failure for item {ItemId} from {Sender}: no give this host committed is waiting on it.",
+			_log.LogWarning("[Placement] refused the placement outcome for item {ItemId} from {Sender}: no give this host committed is waiting on it, so nothing moved.",
 				msg.ItemInstanceId, sender);
 			return;
 		}
 
 		if (committed.Receiver != sender)
 		{
-			_log.LogWarning("[Placement] dropped a placement failure for item {ItemId}: {Sender} is not the receiving body {Receiver}.",
+			_log.LogWarning("[Placement] refused the placement outcome for item {ItemId} from {Sender}: this host wrote that row to the receiving body {Receiver}, so nothing moved.",
 				msg.ItemInstanceId, sender, committed.Receiver);
 			return;
 		}
 
+		// One outcome per committed give: the record is taken before anything moves, so a repeated or late report
+		// cannot return the same item twice.
 		_committed.Remove(msg.ItemInstanceId);
-		var refusal = _givenReturn.Return(sender, committed.Giver, msg.ItemInstanceId);
-		if (refusal is not null)
+
+		if (msg.Applied && PlaceMatches(committed, msg))
 		{
-			_log.LogError("[Placement] could not return item {ItemId} to {Giver} after {Receiver}'s failed placement: {Reason}",
-				msg.ItemInstanceId, committed.Giver, sender, refusal);
+			_log.LogInformation("[Placement] item {ItemId} is where this host wrote it ({Place}): the placement outcome matches, nothing moved.",
+				msg.ItemInstanceId, DescribePlace(committed.Slot, committed.ContainerId));
 			return;
 		}
 
-		_log.LogInformation("[Placement] returned item {ItemId} to {Giver}: {Receiver} could not take the answered destination ({Reason}).",
-			msg.ItemInstanceId, committed.Giver, sender, ClampReason(msg.Reason));
+		// The reason is member-authored, so it is capped and stripped of control characters HERE as well as on the
+		// sending side: the host's log is the one that must not take a member's control characters, and a sender
+		// that skips its own clamp must not be able to write them into it.
+		ReturnToGiver(msg.ItemInstanceId, committed, sender, DescribeMismatch(committed, msg, ClampReason(msg.Reason)));
+	}
+
+	/// <summary>Host only: the outcome contradicts the row — refuse it by name and publish the return to the giver.</summary>
+	private void ReturnToGiver(ulong itemInstanceId, CommittedPlacement committed, ulong receiver, string why)
+	{
+		_log.LogWarning("[Placement] refused the placement outcome from {Receiver} for item {ItemId}: {Why} — returning the row to {Giver}.",
+			receiver, itemInstanceId, why, committed.Giver);
+		var refusal = _givenReturn.Return(receiver, committed.Giver, itemInstanceId);
+		if (refusal is not null)
+		{
+			_log.LogError("[Placement] could not return item {ItemId} to {Giver} after {Receiver}'s refused placement outcome: {Reason}",
+				itemInstanceId, committed.Giver, receiver, refusal);
+			return;
+		}
+
+		_log.LogInformation("[Placement] returned item {ItemId} to {Giver} after {Receiver}'s refused placement outcome.",
+			itemInstanceId, committed.Giver, receiver);
 	}
 
 	private void PruneCommitted()
@@ -395,4 +436,35 @@ internal sealed class RemotePlacementService(
 		{ Accepted: true } => "accepted without a named destination",
 		_ => $"refused: {answer.Reason}",
 	};
+
+	/// <summary>The one comparison: does the place the receiver used equal the place this host wrote?</summary>
+	private static bool PlaceMatches(CommittedPlacement written, PlayerPlacementOutcomeMsg msg) =>
+		msg.ContainerInstanceId != 0
+			? written.ContainerId == msg.ContainerInstanceId
+			: written.ContainerId == 0 && written.Slot == msg.Slot;
+
+	private static string DescribePlace(int slot, ulong containerId) =>
+		containerId != 0 ? $"container {containerId}" : slot >= 0 ? $"slot {slot}" : "no place";
+
+	private static string DescribeMismatch(CommittedPlacement written, PlayerPlacementOutcomeMsg msg, string reason)
+	{
+		if (!msg.Applied)
+		{
+			return string.IsNullOrWhiteSpace(reason) ? "it placed nothing" : $"it placed nothing ({reason})";
+		}
+
+		return msg.Slot < 0 && msg.ContainerInstanceId == 0
+			? "it reports an applied placement that names neither a slot nor a container"
+			: $"it placed the item at {DescribePlace(msg.Slot, msg.ContainerInstanceId)} instead of {DescribePlace(written.Slot, written.ContainerId)}";
+	}
+
+	private static string DescribeOutcome(PlayerPlacementOutcomeMsg msg)
+	{
+		if (msg.Applied)
+		{
+			return $"placed it at {DescribePlace(msg.Slot, msg.ContainerInstanceId)}";
+		}
+
+		return string.IsNullOrWhiteSpace(msg.Reason) ? "placed nothing" : $"placed nothing ({msg.Reason})";
+	}
 }

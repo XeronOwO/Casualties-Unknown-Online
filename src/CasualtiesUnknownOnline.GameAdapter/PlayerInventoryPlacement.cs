@@ -94,8 +94,11 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 
 	/// <summary>
 	/// A transferred item enters a container. The container's own rules are the final judge: when it refuses, the
-	/// item falls back to a slot on this body with one Warning naming the container's reason — the user's ruling for
-	/// a handed-over item ("the receiver's own rules refuse it and one observable line is written").
+	/// item falls back to a slot on this body with one Warning naming the container's reason — the older ruling for
+	/// a handed-over item ("the receiver's own rules refuse it and one observable line is written"). Since the give's
+	/// OUTCOME landed, the ruling that governs this race arm is the 2026-10-22 one: this method answers where the
+	/// item really landed, the receiving client reports that place, and a place that is not the answered one sends
+	/// the item back to the giver — so the fallback is no longer a silent local answer.
 	///
 	/// <para>
 	/// The fallback PLACES the object the restore materialized, never a second one:
@@ -104,18 +107,24 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 	/// fallback used to build with the same id was then swept, and the handed-over item was gone from both players
 	/// (batch <c>20261021-a</c>, row 4).
 	/// </para>
+	/// <para>
+	/// <paramref name="suppressUnplacedEnd"/> is the GIVE's own arm: the host returns the row on the outcome this
+	/// client is about to report, so an item it could place nowhere must not announce its end
+	/// (<see cref="UnplacedGiveItemOrigin"/>). A returned item that finds no place has nothing behind it and keeps
+	/// its honest end report, which is why the flag is the CALLER's and not this class's.
+	/// </para>
 	/// </summary>
-	internal bool AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId)
+	internal LocalPlacement AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId, bool suppressUnplacedEnd = false)
 	{
 		var parent = CarriedItemLocator.FindById(body, parentItemId);
 		var container = parent == null ? null : parent.GetComponent<Container>(); // Unity object — ==
 		if (container == null) // Unity object — ==
 		{
 			// Nothing was materialized, so the fallback must create the item itself.
+			var why = parent == null ? "the parent is not on the local body" : "the target is not a container";
 			_domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) not placed into container {ParentId} ({Why}) — falling back to a slot.",
-				item.ItemId, item.InstanceId, parentItemId,
-				parent == null ? "the parent is not on the local body" : "the target is not a container"); // Unity object — ==
-			return AddCarriedItemToLocalBody(body, item);
+				item.ItemId, item.InstanceId, parentItemId, why);
+			return FallBackToSlot(body, item, why, suppressUnplacedEnd);
 		}
 
 		var restored = ItemStateCodec.RestoreContent(parent!, container, item);
@@ -123,7 +132,7 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 		{
 			_domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) into container {Parent} ({ParentId}).",
 				item.ItemId, item.InstanceId, parent!.id, parentItemId);
-			return true;
+			return LocalPlacement.InContainer(parentItemId);
 		}
 
 		if (restored.Item is not { } materialized)
@@ -132,39 +141,50 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 			// object to hand on — and a rung that would create it from the message fails for the same reason.
 			_domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) not placed into container {ParentId} — the item could not be created on this client, so there is nothing to place.",
 				item.ItemId, item.InstanceId, parentItemId);
-			return false;
+			return LocalPlacement.NotPlaced("the item could not be created on this client");
 		}
 
+		var refusal = restored.Refusal ?? "the container's own rules refused it";
 		_domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) not placed into container {ParentId} ({Why}) — falling back to a slot.",
-			item.ItemId, item.InstanceId, parentItemId, restored.Refusal ?? "the container's own rules refused it");
+			item.ItemId, item.InstanceId, parentItemId, refusal);
 
 		// The item's own slot is not what a container destination named: the message carries the PARENT's slot for a
 		// nested item, and letting the placement read that as a request would log a substitution nobody asked for.
 		item.SlotIndex = -1;
-		if (TryPlaceInBodySlot(body, item, materialized))
+		if (TryPlaceInBodySlot(body, item, materialized, out var placedSlot))
 		{
-			return true;
+			return LocalPlacement.InSlot(placedSlot, refusal);
 		}
 
-		ReportUnplaceableItem(item, materialized);
-		return false;
+		DiscardUnplaceableItem(item, materialized, suppressUnplacedEnd);
+		return LocalPlacement.NotPlaced("nothing on this client's body accepted the item");
 	}
 
 	/// <summary>A transferred item enters a body slot: the one the transfer named when it is free, else the first free one.</summary>
-	internal bool AddCarriedItemToLocalBody(Body body, CharacterItemMsg item)
+	internal LocalPlacement AddCarriedItemToLocalBody(Body body, CharacterItemMsg item, bool suppressUnplacedEnd = false)
 	{
 		if (ItemStateCodec.MaterializeItem(item, body.transform.position) is not { } created)
 		{
-			return false;
+			return LocalPlacement.NotPlaced("the item could not be created on this client");
 		}
 
-		if (TryPlaceInBodySlot(body, item, created))
+		if (TryPlaceInBodySlot(body, item, created, out var placedSlot))
 		{
-			return true;
+			return LocalPlacement.InSlot(placedSlot);
 		}
 
-		ReportUnplaceableItem(item, created);
-		return false;
+		DiscardUnplaceableItem(item, created, suppressUnplacedEnd);
+		return LocalPlacement.NotPlaced("nothing on this client's body accepted the item");
+	}
+
+	/// <summary>
+	/// The container is not on this body at all, so nothing was materialized: place the item in a slot instead, and
+	/// keep the container's own sentence as the reason the place differs from the one this client answered.
+	/// </summary>
+	private LocalPlacement FallBackToSlot(Body body, CharacterItemMsg item, string reason, bool suppressUnplacedEnd)
+	{
+		var placed = AddCarriedItemToLocalBody(body, item, suppressUnplacedEnd);
+		return placed.Applied ? placed with { Reason = reason } : placed;
 	}
 
 	/// <summary>
@@ -172,21 +192,30 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 	/// <see cref="LocalBodyPlacement"/> because the character restore's unplaced row needs the same
 	/// one (an item the archive carries with no body slot).
 	/// </summary>
-	private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed) =>
-		LocalBodyPlacement.TryPlaceInSlot(body, item, placed, _domains.Log, "PlayerInteraction", out _);
+	private bool TryPlaceInBodySlot(Body body, CharacterItemMsg item, Item placed, out int placedSlot) =>
+		LocalBodyPlacement.TryPlaceInSlot(body, item, placed, _domains.Log, "PlayerInteraction", out placedSlot);
 
 	/// <summary>
-	/// Nothing on this body accepts the item. It has already left the giver and no destination here can hold it, so
-	/// its END is reported — a loud, consistent loss on both clients — instead of leaving an object nothing names (a
-	/// guest's copy of that is deleted by the next world-item keyframe, silently). The world-drop answer for this
-	/// case needs the host to re-record the item, which is
-	/// <c>todo/placement-outcome-never-returns.md</c>; a spawn report from here is refused by the kernel, because the
-	/// id is already a carried row (the finding that removed the first version of this rung).
+	/// Nothing on this body accepts the item, so its object is discarded. On the GIVE's arm the item's END is NOT
+	/// reported (<paramref name="suppressUnplacedEnd"/>): the client reports that nothing was placed, the host
+	/// returns the row to the giver, and a deferred <c>Item.OnDestroy</c> would report that id as dead while the
+	/// host is putting it back (the marker keeps the hook silent, the same shape as the limb-component marker). A
+	/// returned item that finds no place is the other arm — no outcome follows, so the item really is gone and its
+	/// end report stands. A world drop is not the answer for either: the id is already a carried row on the host,
+	/// so a spawn report for it is refused by the kernel as a conflict.
 	/// </summary>
-	private void ReportUnplaceableItem(CharacterItemMsg item, Item placed)
+	private void DiscardUnplaceableItem(CharacterItemMsg item, Item placed, bool suppressUnplacedEnd)
 	{
-		_domains.Log.LogWarning("[PlayerInteraction] {ItemId} (id {InstanceId}) found no slot this body accepts — reporting the item's end so both sides agree it is gone.",
+		_domains.Log.LogWarning(
+			suppressUnplacedEnd
+				? "[PlayerInteraction] {ItemId} (id {InstanceId}) found no place this body accepts — reporting that nothing was placed so the host returns it to the giver."
+				: "[PlayerInteraction] {ItemId} (id {InstanceId}) found no place this body accepts, and nothing will return it — reporting the item's end so both sides agree it is gone.",
 			item.ItemId, item.InstanceId);
+		if (suppressUnplacedEnd)
+		{
+			placed.gameObject.AddComponent<UnplacedGiveItemOrigin>();
+		}
+
 		Object.Destroy(placed.gameObject);
 	}
 

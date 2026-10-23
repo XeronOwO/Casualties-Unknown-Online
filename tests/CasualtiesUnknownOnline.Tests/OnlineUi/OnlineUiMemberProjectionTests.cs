@@ -908,11 +908,11 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
-		public void SendPlacementFailed(ulong itemInstanceId, string reason)
+		public void SendPlacementOutcome(ulong itemInstanceId, bool applied, int slot, ulong containerInstanceId, string reason)
 		{
 		}
 
-		public void HandlePlacementFailed(ulong sender, PlayerPlacementFailedMsg msg)
+		public void HandlePlacementOutcome(ulong sender, PlayerPlacementOutcomeMsg msg)
 		{
 		}
 

@@ -37,6 +37,8 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 		}
 
 		var changed = false;
+		ulong? outcomeItemId = null;
+		LocalPlacement? outcome = null;
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			if (msg.Destination == PlayerInventoryDestination.Drop)
@@ -91,9 +93,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 
 				if (msg.ToSteamId == domains.Session.LocalSteamId && msg.Item is { } item)
 				{
-					// The host recorded the destination this client ANSWERED before it wrote the row, so this
-					// client may not substitute: if its live body can no longer take that exact place, it reports
-					// a return comes home: any slot on this body is acceptable, and a body that accepts none must
+					// A RETURN comes home: any slot on this body is acceptable, and a body that accepts none must
 					// not consume the item — it falls at this client's feet, the user's ruling being that the item
 					// ends with the giver, never that a full body destroys it.
 					if (msg.Returned && _placementResolver is not null && !_placementResolver.Resolve(item, item.SlotIndex, 0).Accepted)
@@ -105,30 +105,21 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 						return;
 					}
 
-					// the failure and creates nothing — the host moves the row back to the giver.
-					if (msg.ExactDestination && !CanTakeExactDestination(item, msg, out var exactRefusal))
+					// The give's OUTCOME, owed for every give: the host wrote the row from the destination this
+					// client answered, so this client may not substitute — a live body that can no longer take that
+					// exact place reports that it placed NOTHING, and the host returns the row to the giver. Any
+					// other place the placement really used is reported too, so a fallback cannot pass as the
+					// answered destination: the host compares the place with its own row.
+					var placed = msg.ExactDestination && !CanTakeExactDestination(item, msg, out var exactRefusal)
+						? RefusePlacement(item, exactRefusal)
+						: PlaceCarriedItem(body, item, msg.TargetParentItemId, msg.ExactDestination);
+					if (msg.ExactDestination)
 					{
-						domains.Log.LogWarning(
-							"[PlayerInteraction] {ItemId} (id {InstanceId}) cannot take the answered destination: {Reason} — reporting the failure instead of substituting.",
-							item.ItemId, item.InstanceId, exactRefusal);
-						domains.PlayerInteraction.SendPlacementFailed(item.InstanceId, exactRefusal);
-						return;
+						outcomeItemId = item.InstanceId;
+						outcome = placed;
 					}
 
-					if (msg.TargetParentItemId != 0)
-					{
-						// One policy for both directions of a container destination: the container's own rules on this
-						// client decide, and a refusal falls back to a slot here. A drop is NOT the answer for a
-						// handed-over item — the host has already recorded its id as carried, so the spawn report a
-						// drop needs is refused by the kernel and the object would be swept.
-						_placement.AddCarriedItemToLocalContainer(body, item, msg.TargetParentItemId);
-					}
-					else
-					{
-						_placement.AddCarriedItemToLocalBody(body, item);
-					}
-
-					changed = true;
+					changed = placed.Applied;
 				}
 			}
 		}
@@ -137,7 +128,38 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 		{
 			domains.CharacterDataSync.ReportInventoryChanged(body);
 		}
+
+		// AFTER the re-report, deliberately: the character report states the body's own items at the places they are
+		// in now, and a host that returned the row on the outcome must not then re-learn the item as this body's from
+		// a report that was already in flight. The outcome is a comparison against the host's own row, so it can
+		// follow the snapshot it describes.
+		if (outcomeItemId is { } announced && outcome is { } result)
+		{
+			domains.PlayerInteraction.SendPlacementOutcome(announced, result.Applied, result.Slot, result.ContainerInstanceId, result.Reason);
+		}
 	}
+
+	/// <summary>Log the refusal and answer the not-applied outcome — this client creates nothing, so the row goes home.</summary>
+	private LocalPlacement RefusePlacement(CharacterItemMsg item, string reason)
+	{
+		domains.Log.LogWarning(
+			"[PlayerInteraction] {ItemId} (id {InstanceId}) cannot take the answered destination: {Reason} — reporting that nothing was placed instead of substituting.",
+			item.ItemId, item.InstanceId, reason);
+		return LocalPlacement.NotPlaced(reason);
+	}
+
+	/// <summary>
+	/// Put a handed-over item into the destination the transfer named — a container, or a body slot. One policy for
+	/// both directions of a container destination: the container's own rules on this client decide, and a refusal
+	/// falls back to a slot here. A drop is NOT the answer for a handed-over item — the host has already recorded
+	/// its id as carried, so the spawn report a drop needs is refused by the kernel and the object would be swept.
+	/// <paramref name="suppressUnplacedEnd"/> is the give's own arm: only there does an outcome follow, so only
+	/// there may an unplaceable item's destroy stay unreported (the host is about to return it).
+	/// </summary>
+	private LocalPlacement PlaceCarriedItem(Body body, CharacterItemMsg item, ulong parentItemId, bool suppressUnplacedEnd) =>
+		parentItemId != 0
+			? _placement.AddCarriedItemToLocalContainer(body, item, parentItemId, suppressUnplacedEnd)
+			: _placement.AddCarriedItemToLocalBody(body, item, suppressUnplacedEnd);
 
 	/// <summary>
 	/// Whether this client's live body can still take the exact destination it answered. It asks the same

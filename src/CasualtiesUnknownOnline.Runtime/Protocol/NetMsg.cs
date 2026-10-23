@@ -460,9 +460,12 @@ public enum NetMsg : byte
 	PlayerPlacementQuery = 158, // host → receiver: resolve this give's destination with your own rules (no custody moves yet)
 	PlayerPlacementAnswer = 159, // receiver → host: the destination this client will use, or the reason it refuses
 
-	// The answered destination is no longer available on the receiving client (its live body changed after the
-	// answer). It reports the failure instead of substituting, and the host moves the row back to the giver and
-	// publishes the return, so the item ends where the user's 2026-10-22 ruling asks it to stay.
-	PlayerPlacementFailed = 160, // receiver → host: the answered destination cannot be used; return the row to the giver
+	// The give's placement OUTCOME, reported by the client that ran the placement. The host wrote the row from
+	// the answer; this message states the place the placement ACTUALLY used, so the host compares the claim with
+	// the fact it already holds. A match settles the give and writes nothing; a different place — or none at all,
+	// the residual where the live body no longer takes the answered destination — is refused by name and the row
+	// goes back to the giver, so the item still ends where the user's 2026-10-22 ruling asks it to stay. One
+	// outcome per give: the failure used to be a bare claim, and now it rides this message as the not-applied arm.
+	PlayerPlacementOutcome = 160, // receiver → host: where this client's placement really put the item, or why it put it nowhere
 
 }

@@ -52,7 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — needs an outcome report.
+- [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
 - [A refused child of a restored container keeps its id](todo/restore-refused-child-keeps-its-id.md) — **Low-Medium** — the bulk restore discards it.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.

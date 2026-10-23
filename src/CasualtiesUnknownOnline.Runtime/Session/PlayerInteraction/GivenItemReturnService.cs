@@ -6,12 +6,13 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// The give's RETURN half — the design's residual (<c>todo/placement-outcome-never-returns.md</c>): the receiving
-/// client answered a destination, the host committed it, and the receiver's LIVE body then cannot take it. The
-/// receiver refuses to substitute and reports the failure; this service moves the row back to the giver in both
-/// snapshots and publishes the return transfer, so the item ends where the user's 2026-10-22 ruling asks it to
-/// stay — with the giver. The return carries the <see cref="PlayerInventoryTransferMsg.Returned"/> flag, so the
-/// giver's client drops the item at its feet rather than destroying it when its own live body has no room.
+/// The give's RETURN half (<c>review/placement-outcome-never-returns.md</c>): the receiving client answered a
+/// destination, the host committed it, and the receiver's own placement then did something else — it placed nothing,
+/// or placed the item somewhere other than the place the answer named. The receiver reports that outcome; this
+/// service moves the row back to the giver in both snapshots and publishes the return transfer, so the item ends
+/// where the user's 2026-10-22 ruling asks it to stay — with the giver. The return carries the
+/// <see cref="PlayerInventoryTransferMsg.Returned"/> flag, so the giver's client drops the item at its feet rather
+/// than destroying it when its own live body has no room.
 /// <para>
 /// Its own class rather than another arm of <see cref="PlayerInventoryTakeService"/>: the take core is the forward
 /// custody (validation, the two snapshots, the destination rungs) and it is already at its size limit, while this
@@ -90,7 +91,7 @@ internal sealed class GivenItemReturnService(
 			_take.CommitCarriedToHost(itemId, ledger);
 		}
 
-		_log.LogWarning("[Placement] returned {ItemId} (id {InstanceId}) to {Giver} after {Receiver}'s exact placement failed.",
+		_log.LogWarning("[Placement] returned {ItemId} (id {InstanceId}) to {Giver}: {Receiver}'s placement did not match the row this host wrote.",
 			item.ItemId, itemId, giver, receiver);
 		PublishReturn(receiver, giver, returned);
 		return null;

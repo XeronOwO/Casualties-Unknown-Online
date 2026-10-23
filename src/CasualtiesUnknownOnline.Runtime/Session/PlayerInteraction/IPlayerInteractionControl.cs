@@ -45,11 +45,14 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: the receiving client answered a placement question — commit the answered destination or refuse the giver.</summary>
 	void HandlePlacementAnswer(ulong sender, PlayerPlacementAnswerMsg msg);
 
-	/// <summary>Receiving client: the answered destination cannot be used any more — report it so the host returns the row.</summary>
-	void SendPlacementFailed(ulong itemInstanceId, string reason);
+	/// <summary>
+	/// Receiving client: report where this client's placement really put a given item, or that it placed nothing,
+	/// so the host can compare it with the row it wrote from the answer. One outcome per give.
+	/// </summary>
+	void SendPlacementOutcome(ulong itemInstanceId, bool applied, int slot, ulong containerInstanceId, string reason);
 
-	/// <summary>Host only: the receiving client reported that the answered destination is gone; the row goes back to the giver.</summary>
-	void HandlePlacementFailed(ulong sender, PlayerPlacementFailedMsg msg);
+	/// <summary>Host only: the receiving client's placement outcome arrived — settle the give, or refuse it by name and return the row.</summary>
+	void HandlePlacementOutcome(ulong sender, PlayerPlacementOutcomeMsg msg);
 
 	/// <summary>Per frame: the host refuses a placement question nobody answered when its deadline passes.</summary>
 	void Update();

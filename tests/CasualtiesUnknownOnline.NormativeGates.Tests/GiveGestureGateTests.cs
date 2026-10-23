@@ -29,13 +29,28 @@ public class GiveGestureGateTests
 	{
 		// The give's answer-first custody: the transfer carries the ANSWERED destination, and the receiving
 		// client must not substitute another slot or container when its live body cannot take it — it reports
-		// the failure and the host returns the row. The branch is adapter code (a Unity body), so it is pinned
-		// by its shape here; the kernel projection and the host half's behaviour are `PlacementAnswerTests`.
+		// that it placed nothing (the not-applied outcome) and the host returns the row. The branch is adapter
+		// code (a Unity body), so it is pinned by its shape here; the kernel projection and the host half's
+		// behaviour are `PlacementAnswerTests`.
 		var source = RepositoryPaths.ReadText(ApplyFile);
 
 		Assert.Contains("msg.ExactDestination", source, StringComparison.Ordinal);
 		Assert.Contains("CanTakeExactDestination(", source, StringComparison.Ordinal);
-		Assert.Contains("SendPlacementFailed(", source, StringComparison.Ordinal);
+		Assert.Contains("LocalPlacement.NotPlaced(", source, StringComparison.Ordinal);
+		Assert.Contains("SendPlacementOutcome(", source, StringComparison.Ordinal);
+
+		// The reported place must be the PLACEMENT's own answer, never the transfer's request: a body that
+		// placed the item somewhere else has to say so, or the host's comparison would always agree.
+		Assert.Contains("outcome = placed", source, StringComparison.Ordinal);
+		Assert.Contains("PlaceCarriedItem(body, item, msg.TargetParentItemId, msg.ExactDestination)", source, StringComparison.Ordinal);
+
+		// The one destroy the give's outcome makes safe: an unplaceable handed-over item is discarded WITHOUT
+		// claiming its id ended, because the host is about to return that id to the giver. The marker is only
+		// worth attaching if the deferred destroy hook reads it, and only the give's arm may attach it (a
+		// returned item that finds no place has nothing behind it and must keep its end report).
+		var patches = RepositoryPaths.ReadText("src/CasualtiesUnknownOnline.GameAdapter/Patches/ItemPatches.cs");
+		Assert.Contains("GetComponent<UnplacedGiveItemOrigin>() != null", patches, StringComparison.Ordinal);
+		Assert.Contains("suppressUnplacedEnd", source, StringComparison.Ordinal);
 
 		// The port must also be INJECTED by the one production construction, and the flag must be carried by
 		// the kernel projection: a branch with a null port or a discarded flag never runs (the review's

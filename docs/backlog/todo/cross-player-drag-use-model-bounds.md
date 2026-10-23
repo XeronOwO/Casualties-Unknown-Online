@@ -53,7 +53,7 @@
    the label and the release cannot disagree. This replaces the earlier recommendation ("the one drawn on top")
    and the list-order tie-break: what must NOT survive is a pick no player can predict. The detection SHAPE is
    still this ticket's (the model instead of a fixed circle); the last-entered rule is now the picking model
-   the USE release and its cue read (`todo/give-item-to-another-player.md`, "The input sequence"). The GIVE's
+   the USE release and its cue read (`review/give-item-to-another-player.md`, "The input sequence"). The GIVE's
    player is resolved from the displayed backpack instead, because that is what the player sees and releases
    on (`DragGiveTargetResolver`, shared with the cue's give check).
 4. **What stays as it is.** The eligibility list (`LocalUseItemEligibility`), the wire (`PlayerItemUseRequestMsg`

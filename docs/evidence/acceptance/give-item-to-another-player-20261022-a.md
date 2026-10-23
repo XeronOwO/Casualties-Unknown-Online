@@ -54,7 +54,7 @@ None.
   host's kernel table.
 - **The host's item row still says "carried, no slot"** for the placed item (`carried` in
   `g4-host-ledger.json`), not slot 1: the receiving client's placement does not travel back. That is the
-  recorded finding of `todo/placement-outcome-never-returns.md`, not a row-4 failure — row 4 asks for the
+  recorded finding of `review/placement-outcome-never-returns.md`, not a row-4 failure — row 4 asks for the
   receiver's refusal and an observable line, and both are read.
 - **The fixture ids are this session's.** `1215796725699` and `9492956821` are the ids this run's fixtures
   got (the toolbox id is the same value batch `20261021-a` saw); the claim is about the chain, not the

@@ -83,8 +83,8 @@ Batch `20261022-h` read these rows on `0.1.0+fb782e5c`; the record is
    giver's inventory and a line naming the return. — **PASS by the user's ruling (2026-10-23)**: the machine
    reading is impossible by hand (batches `20261022-i`/`-j`: one pointer and one foreground window for two
    clients; the answer→apply window measured 60 ms), so the user ruled that the behaviour test plus the wired
-   return chain is this row's reading. Evidence: `PlacementAnswerTests.AFailedExactPlacement_ReturnsTheItemToTheGiver`
-   (the row goes back), `TheTransferFlags_SurviveTheKernelProjection` (both flags cross the kernel), the
+   return chain is this row's reading. Evidence: `PlacementAnswerTests.APlacementThatAppliedNothing_ReturnsTheItemToTheGiver`
+   (renamed from `AFailedExactPlacement_ReturnsTheItemToTheGiver` when the placement outcome landed; the row goes back), `TheTransferFlags_SurviveTheKernelProjection` (both flags cross the kernel), the
    `Returned` drop fallback, and the fix commit `e3cdc117` wiring the report end to end. The ruling and the
    attempts are in `docs/evidence/acceptance/placement-outcome-never-returns-20261023-ruling.md`.
 
@@ -129,9 +129,11 @@ does not, and neither have the machine rows been run. What landed:
   is recorded before the commit publishes; the answer deadline runs per frame; the resolver mirrors the
   placement's container sequence; and a `Returned` transfer drops rather than destroys.
 - **The failure report's missing anchor is filed separately:**
-  `docs/backlog/todo/placement-failure-report-anchor.md` — the host can bound the transactional half but not the
-  claim itself, so the census row is `unbounded` and the next design step is a receiver-reported placement
-  outcome the host can compare with its own row.
+  `docs/backlog/todo/placement-failure-report-anchor.md` — the host could bound the transactional half but not the
+  claim itself, so the census row was `unbounded`. That ticket's first half has since landed
+  (`NetMsg.PlayerPlacementOutcome`: the receiver reports the place its own placement used, the host compares it
+  with the row it wrote and refuses a mismatch), so the row is bounded for the APPLIED arm and still `unbounded`
+  for the not-applied one — the ticket stays in `todo/` for that half.
 - **Two limits are recorded, not claimed away.** A return the host cannot make is logged at Error and the
   reporter is not answered (the committed entry is already dropped); and a full giver's body receives the return
   as a DROP at its feet (the `Returned` flag) rather than destroying it — the non-destructive outcome, not "in the

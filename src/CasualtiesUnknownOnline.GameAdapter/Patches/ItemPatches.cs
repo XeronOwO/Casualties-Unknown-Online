@@ -63,9 +63,17 @@ internal static class ItemPatches
 			// is installed on that limb and keeps its id, and the apply seam has already
 			// reported the relocation. The marker is attached there, before this deferred
 			// destroy lands, so this hook stays silent without a claim to consume.
+			//
+			// An UNPLACED GIVE's destroy is the third: the receiving client found nowhere on its
+			// body for the handed-over item, reports that placement outcome, and the host returns
+			// the row to the giver — the object is discarded but the item did NOT end, so the
+			// deferred destroy must not report its id dead while the host is putting it back.
+			// Only the give's own arm attaches that marker (a returned item that finds no place
+			// has no return behind it and keeps its honest end report).
 			if (CallContext.Current == CallContext.Origin.Craft
 				|| PatchBridge.Impl?.ShouldSuppressDestroy(__instance) == true
-				|| __instance.GetComponent<LimbAppliedItemOrigin>() != null) // Unity object — ==
+				|| __instance.GetComponent<LimbAppliedItemOrigin>() != null // Unity object — ==
+				|| __instance.GetComponent<UnplacedGiveItemOrigin>() != null) // Unity object — ==
 			{
 				return;
 			}

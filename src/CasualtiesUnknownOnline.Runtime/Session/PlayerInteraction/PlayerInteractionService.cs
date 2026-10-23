@@ -166,11 +166,11 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 	public void HandlePlacementAnswer(ulong sender, PlayerPlacementAnswerMsg msg) =>
 		_placement.HandleAnswer(sender, msg);
 
-	public void SendPlacementFailed(ulong itemInstanceId, string reason) =>
-		_placement.SendFailed(itemInstanceId, reason);
+	public void SendPlacementOutcome(ulong itemInstanceId, bool applied, int slot, ulong containerInstanceId, string reason) =>
+		_placement.SendOutcome(itemInstanceId, applied, slot, containerInstanceId, reason);
 
-	public void HandlePlacementFailed(ulong sender, PlayerPlacementFailedMsg msg) =>
-		_placement.HandleFailed(sender, msg);
+	public void HandlePlacementOutcome(ulong sender, PlayerPlacementOutcomeMsg msg) =>
+		_placement.HandleOutcome(sender, msg);
 
 	/// <summary>Per frame: the placement service refuses a question whose deadline passed.</summary>
 	public void Update() => _placement.Tick();

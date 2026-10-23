@@ -53,7 +53,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
-- [The decision register cannot take another decision](todo/decision-register-budget.md) — **Low-Medium** — over the budget since decision 269; split it.
 - [Command refusals render as successes](todo/console-command-refusals-render-green.md) — **Low-Medium** — a refused verb still prints green.
 
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
@@ -155,6 +154,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The decision register cannot take another decision](done/decision-register-budget.md) — **Low-Medium** — done: split by number.
 - [Interaction gates judged by the two clients](done/remote-interaction-local-gating.md) — **Medium-High** — accepted: actor and target judge their own side.
 - [Single-file package for the core plugin](done/single-file-plugin-package.md) — **Low-Medium** — accepted: one DLL packs the core; extensions stay separate.
 - [Descent ambience parity](done/layer-descent-audio-parity.md) — **Low-Medium** — accepted: first-layer by design; the member hears it.

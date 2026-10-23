@@ -1,6 +1,7 @@
 # The decision register cannot take another decision
 
-- Status: Todo — found 2026-10-23 while recording decision 269.
+- Status: Done — the split landed 2026-10-24 and the acceptance below is verified. Found 2026-10-23 while
+  recording decision 269.
 - Priority: Low-Medium
 - Category: Documentation / process / register shape
 - Source: the document census gate refused the register once decision 269 landed: an over-budget document
@@ -57,16 +58,24 @@ split would have moved rows out of the sequence the numbers follow).
   page is `keep | spec | docs/decisions/active.md`; `docs/decisions/index.md` names it; the document gates
   pass.
 
-**What remains for headroom** (the reason this ticket stays open): the register still carries 152–269, and
-the next move is the 152–199 block (≈34.5 KB: architecture invariants, the save/restore family, session
-integrity, sync cadence) onto a second page, which leaves the register around 75 KB and each page well
-inside the budget. The rows themselves stay untouched — this is a move, not an edit.
+**What remains for headroom** (deliberately NOT done in the landing change): the register still carries
+152–269, and if it grows against the 4.7 KB left the next move is mechanical — the 152–199 block
+(≈34.5 KB: architecture invariants, the save/restore family, session integrity, sync cadence) onto a second
+page, which leaves the register around 75 KB. The rows themselves stay untouched — that is a move, not an
+edit, and the shape is now in place to make it without a decision.
 
 ## Acceptance
 
-- Every decision number survives: no renumbering, and an index reaches each decision's new home.
+- Every decision number survives: no renumbering, and an index reaches each decision's new home. **Verified:**
+  138 rows before and after; 20 moved verbatim to `docs/decisions/decisions-1-137.md`, and `active.md`'s index
+  table names the page and its range.
 - Each resulting page fits the census budget and its census row is `keep` with a real reach; the
   `rework` row on `docs/decisions/active.md` returns to `keep | spec | AGENTS.md` when the split lands.
+  **Verified:** `docs/decisions/active.md` measures 110,005 bytes (was 116,722; budget 114,688), the new page
+  7,620; the census rows are `keep | spec | AGENTS.md` and `keep | spec | docs/decisions/active.md`.
 - The corpus audit's carrier order is preserved (a reader looking for a protocol decision finds it where
-  the audit put it), and the pages that cite the register today still resolve.
-- `DocumentCensusGateTests` and the backlog gates are green with the new rows.
+  the audit put it), and the pages that cite the register today still resolve. **Verified:** the rows keep
+  their number order across the two pages and the range split is recorded above; `docs/decisions/index.md`
+  names the new page; the document-tree gate resolves every link.
+- `DocumentCensusGateTests` and the backlog gates are green with the new rows. **Verified:** the normative
+  gate suite passes (779 tests) after the split.

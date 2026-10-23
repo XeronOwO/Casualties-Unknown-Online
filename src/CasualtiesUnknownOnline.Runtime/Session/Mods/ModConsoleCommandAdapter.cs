@@ -57,6 +57,9 @@ internal sealed class ModConsoleCommandAdapter(
 			command.Name,
 			command.Description,
 			command.Permission,
+			// A mod's own runtime gate is not knowable to the console, so only its declared permission
+			// can be applied: a mod command is never classified as a cheat verb here.
+			ConsoleCommandGate.Open,
 			command.Usage,
 			command.ArgumentKinds,
 			args => Execute(command, args));

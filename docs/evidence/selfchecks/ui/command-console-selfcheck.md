@@ -24,7 +24,7 @@ message or protocol version was added.
 | 10 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` is used only for non-open-panel notifications; while the console panel is open all command/chat history renders at full alpha with no fading. |
 | 11 | Standalone overlay | `CommandConsoleOverlay` draws a compact translucent bottom panel with full history and a focused input only when the input session is open; recent console lines are also shown as fading notifications while the panel is closed. |
 | 12 | Slash and Enter hotkeys / modal routing | `Plugin.Update` opens the console on `KeyCode.Slash` (command mode, the prefix pre-filled) or on `KeyCode.Return`/`KeypadEnter` (plain chat, the field empty), and calls `INativeInputBlocker.SetOnlineUiModal` for the console as well as the Online UI window. Both openers are claimed only while no CUO surface is up and the game's own keyboard focus is not a text field (`INativeInputBlocker.IsTheGamesOwnTextInputFocused`). |
-| 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay handles Escape. `CuoEscCloseSuppression` + `Plugin.Update` keep the modal guard active for the first frame after any CUO ESC-closing surface closes, and `IsNonModalEscapeSurfaceOpen` suppresses the pause toggle while the non-modal quick panel is open. This issue is now tracked at `docs/backlog/review/command-console-esc-not-intercepted.md`. |
+| 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay handles Escape. `CuoEscCloseSuppression` + `Plugin.Update` keep the modal guard active for the first frame after any CUO ESC-closing surface closes, and `IsNonModalEscapeSurfaceOpen` suppresses the pause toggle while the non-modal quick panel is open. This issue is now tracked at `docs/backlog/done/command-console-esc-not-intercepted.md`. |
 | 14 | Console page polish (DELETED 2026-09-26) | `OnlineUiConsoleDrawer` removed the instruction hint and rendered full history with no fade, matching the standalone console; the page itself was deleted with `docs/backlog/done/remove-the-online-ui-console-page.md` (decision 228), so the slash-opened overlay above is the only command and chat surface. |
 | 15 | Selection/clipboard | `ConsoleInputSession` owns selection ranges; the overlay renders selection highlight and wires Ctrl+A/C/X/V to the Unity system clipboard. |
 | 16 | Undo/redo | `ConsoleInputSession` keeps bounded undo/redo stacks; Ctrl+Z/Ctrl+Y restore editing state. |
@@ -38,25 +38,27 @@ message or protocol version was added.
 | 24 | Bracketed selector filters | `CommandSelectorFilter`/`CommandSelectorFilterParser` parse `type`, `name`, `distance`, `limit`, `sort` inside `@a[...]`; resolver applies filters and sort/limit, and `CommandSelectorSuggestions` guides bracket entry. |
 | 25 | ESC one-frame modal suppression | `CuoEscCloseSuppression` is a Unity-free frame-state policy for command console, Online UI window, and quick panel; `Plugin.Update` keeps `SetOnlineUiModal(true)` for the first frame after any of them closes, so the closing ESC is swallowed by the existing native input guard. |
 | 26 | Non-modal ESC surface pause guard | `INativeInputBlocker.SetOnlineUiEscapeSurfaceVisible` feeds `IPatchBridge.IsNonModalEscapeSurfaceOpen`; while the quick panel is visible, `PauseHandlerTogglePausePatch` suppresses only `PauseHandler.TogglePause`, keeping the panel non-modal. |
+| 27 | Role-filtered completion and help (2026-10-24) | `ConsoleCommandGate` on `[ConsoleCommand]` classifies the cheat verbs; `ConsoleCommandAuthority` answers "may this caller run this command" from the declared permission plus the cheat gate's QUIET query (`CheatVerbGate.MayRun`/`TryRefuseQuiet`, one `Judge` shared with the refusing path). `CommandConsoleCompletion` filters the command word, a hidden command's argument completions and the help list; `/help <hidden>` answers the refusal the verb would meet. Hiding is a courtesy — the handler still refuses the typed line. |
+| 28 | Command-specific vocabularies (2026-10-24) | `HostRuleCompletion` completes `/gamerule`'s rule names (census order, the value in force as the description) and that rule's `HostRuleValueText.Choices`; `ItemDataVerbCompletion` completes `/data`'s verbs, with `merge`/`modify`/`remove` admitted by the same gate and the write verbs' SNBT state completion suppressed for a refused caller. `ItemDataVerbParser.IsWriteVerb` is the per-verb classification both the dispatch and the completion read. |
 
 ## 2. Self-check table
 
 | Mechanism | Change | Evidence |
 |---|---|---|
-| Help lists commands | `/help` returns command names/descriptions | `CommandConsoleServiceTests.Help_ReturnsAvailableCommands` |
-| Unknown command handled | Unknown slash command adds an error line | `CommandConsoleServiceTests.UnknownCommand_AddsErrorLine` |
-| Chat send through console | Plain text goes through `IChatControl` and echoes in console output | `CommandConsoleServiceTests.PlainText_SendsChatAndEchoesInConsole` |
-| Host-only permission | Guest `/kick` gets a host-only refusal | `CommandConsoleServiceTests.HostOnlyCommand_IsRefusedForGuest` |
-| Kick/ban/unban commands | Host admin commands round-trip through real session/ban paths | `CommandConsoleServiceTests.HostKick_RemovesMember`, `HostBan_And_Unban_RoundTrip` |
+| Help lists commands | `/help` returns command names/descriptions | `CommandConsoleDispatchTests.Help_ReturnsAvailableCommands` |
+| Unknown command handled | Unknown slash command adds an error line | `CommandConsoleDispatchTests.UnknownCommand_AddsErrorLine` |
+| Chat send through console | Plain text goes through `IChatControl` and echoes in console output | `CommandConsoleDispatchTests.PlainText_SendsChatAndEchoesInConsole` |
+| Host-only permission | Guest `/kick` gets a host-only refusal | `CommandConsoleHostAdminTests.HostOnlyCommand_IsRefusedForGuest` |
+| Kick/ban/unban commands | Host admin commands round-trip through real session/ban paths | `CommandConsoleHostAdminTests.HostKick_RemovesMember`, `HostBan_And_Unban_RoundTrip` |
 | Output bounded | Buffer caps at `MaxLines` | code review: `AddLine` removes oldest |
-| Command-name completion | `/k` suggests `kick` | `CommandConsoleServiceTests.Suggest_ReturnsCommandNamesForPrefix` |
-| Rich suggestion descriptions | Command suggestions carry a non-empty description | `CommandConsoleServiceTests.Suggest_IncludesDescriptionForCommand` |
-| Argument provider selectors | `Selector` argument kind returns `@a`/`@p`/... candidates | `CommandConsoleServiceTests.ArgumentSuggestions_SelectorKind_ReturnsSelectors` |
-| Argument provider JSON | `Json` argument kind returns JSON scaffold candidates | `CommandConsoleServiceTests.ArgumentSuggestions_JsonKind_ReturnsTemplates` |
-| Real selector completion | `/heal @` suggests selector candidates on a real command | `CommandConsoleServiceTests.Suggest_ForHealSelectorArgument_ReturnsSelectors` |
-| Real selector heal | `/heal @p` resolves the nearest remote and runs the host heal path | `CommandConsoleServiceTests.Heal_WithSelector_SendsRequestToGuest` |
+| Command-name completion | `/k` suggests `kick` | `CommandConsoleDispatchTests.Suggest_ReturnsCommandNamesForPrefix` |
+| Rich suggestion descriptions | Command suggestions carry a non-empty description | `CommandConsoleDispatchTests.Suggest_IncludesDescriptionForCommand` |
+| Argument provider selectors | `Selector` argument kind returns `@a`/`@p`/... candidates | `CommandConsoleCompletionTests.ArgumentSuggestions_SelectorKind_ReturnsSelectors` |
+| Argument provider JSON | `Json` argument kind returns JSON scaffold candidates | `CommandConsoleCompletionTests.ArgumentSuggestions_JsonKind_ReturnsTemplates` |
+| Real selector completion | `/heal @` suggests selector candidates on a real command | `CommandConsoleCompletionTests.Suggest_ForHealSelectorArgument_ReturnsSelectors` |
+| Real selector heal | `/heal @p` resolves the nearest remote and runs the host heal path | `CommandConsoleMemberHealResetTests.Host_HealsAMember_InstructsThatClientsOwnBody` |
 | Selector resolver core/edge | `@a`/`@e`/`@s`/`@p`/`@r`, unknown, empty, case-insensitive, no-remote paths | `CommandSelectorResolverTests` (10 cases) |
-| Heal argument validation | Missing selector shows usage; unknown selector adds a no-match line | `CommandConsoleServiceTests.Heal_WithoutSelector_ShowsUsage`, `Heal_UnknownSelector_AddsNoMatchLine` |
+| Heal argument validation | Missing selector shows usage; unknown selector adds a no-match line | `CommandConsoleHealResetTests.Host_HealsWithoutASelector_ShowsUsage`, `Host_HealsAnUnknownSelector_AddsNoMatchLine` |
 | IME composition gate | Initial/active/empty/null/clear composition states are deterministic | `ConsoleImeStateTests` (5 cases) |
 | IME overlay wiring | IME mode toggled on open/close, composition rendered, raw keys swallowed while composing, caret position fed to Input | static review: `CommandConsoleOverlay.Open/Close/HandleKeys/DrawImeComposition/UpdateImeCursorPosition`; OS IME behavior is user-acceptance territory |
 | Real JSON completion (removed 2026-10-23) | `/hostrules {` suggested a JSON object template on a real command; removed with the verb — the `Json` kind still completes for mod commands | — |
@@ -64,11 +66,11 @@ message or protocol version was added.
 | JSON parser core/edge (removed 2026-10-23) | Flat object, empty object, case-insensitive keys, quoted values, malformed/trailing/empty input; deleted with the parser | — |
 | JSON applier (removed 2026-10-23) | Valid object applies pairs; editor rejection and malformed input return errors; deleted with the applier | — |
 | Host-rule command validation (replaced 2026-10-23) | `/gamerule` refuses an unknown rule by listing the known names, an invalid value by naming the accepted set, and the numeric rule's value outside its declared range | `CommandConsoleCommandTests.GameRule_*` |
-| Specific help command | `/help kick` shows the command usage | `CommandConsoleServiceTests.Help_WithCommandName_ShowsUsage` |
+| Specific help command | `/help kick` shows the command usage | `CommandConsoleDispatchTests.Help_WithCommandName_ShowsUsage` |
 | Clickable suggestion acceptance | Clicking a suggestion applies it and clears the list | `ConsoleInputSessionTests.AcceptSuggestion_AppliesSpecificCandidateAndClearsList` |
 | Live suggestions on `/` | Open/typed input exposes completions without Tab; closed session returns none | `ConsoleInputSessionTests.LiveSuggestions_ReturnsCurrentCompletionWithoutTab`, `LiveSuggestions_AreEmptyWhenClosed` |
-| Member completion | `/kick <id>` suggests the member id | `CommandConsoleServiceTests.Suggest_ReturnsMemberIdForKickArgument` |
-| Usage hint | `/kick` returns a usage hint | `CommandConsoleServiceTests.GetHint_ReturnsUsageForKnownCommand` |
+| Member completion | `/kick <id>` suggests the member id | `CommandConsoleHostAdminTests.Suggest_ReturnsMemberIdForKickArgument` |
+| Usage hint | `/kick` returns a usage hint | `CommandConsoleDispatchTests.GetHint_ReturnsUsageForKnownCommand` |
 | Tokenizer quoting | Quoted spaces remain one token and unquote cleanly | `CommandLineTokenizerTests.Tokenize_RespectsDoubleQuotedSpaces`, `Unquote_StripsMatchingQuotes` |
 | Tokenizer JSON/selector group | Brace groups stay one token even with spaces | `CommandLineTokenizerTests.Tokenize_KeepsBraceGroupAsSingleToken` |
 | Token at cursor | A token under an arbitrary cursor is found, whitespace returns empty | `CommandLineTokenizerTests.TokenAtCursor_ReturnsTokenUnderCursor`, `TokenAtCursor_ReturnsEmptyAtWhitespace` |
@@ -85,18 +87,24 @@ message or protocol version was added.
 | Basic syntax highlighting | Command/plain/quoted tokens render with different colors | static review: `CommandConsoleOverlay.DrawHighlightedInput`, `TokenColor`; Unity rendering is user-acceptance territory |
 | Auto-scroll | History area scrolls to newest line when line count changes | static review: `CommandConsoleOverlay.DrawHistory`, `_lastLineCount` |
 | Focus/mouse block/ESC in Unity | Focus enforcement and modal routing are in the overlay/plugin path; one-frame modal suppression after any CUO ESC-closing surface close plus the non-modal pause guard (while quick panel is open) prevent the closing ESC from reaching the native pause input | static review: `CommandConsoleOverlay`, `Plugin.Update`, `OnlineUiOverlay`, `CuoEscCloseSuppression`, `PauseHandlerTogglePausePatch`; regression tests: `CuoEscCloseSuppressionTests` (9 cases) + 2 input-guard contract tests; surface ESC-consumed logs added for console/window/quick-panel; deployed-artifact runtime confirmation is still part of the user's final dual-client acceptance |
-| Attribute-discovered built-ins | All existing built-ins still register/execute/complete/help through the reflection registry | `CommandConsoleServiceTests` (all command-contract cases) |
+| Attribute-discovered built-ins | All existing built-ins still register/execute/complete/help through the reflection registry | the console suites (`CommandConsoleDispatchTests`, `CommandConsoleCommandTests`, `CommandConsoleCompletionTests`, `CommandConsoleHostAdminTests`) |
 | Mod console command local execution | `/cping` executes locally, enters completion, and hands the mod context local args/SteamId | `ModConsoleCommandTests.ModConsoleCommand_ExecutesLocallyAndAppearsInCompletion` |
 | Mod console metadata | Mod-registered name/description/usage/permission/argument kinds surface through `ICommandCompletionSource.Commands` | `ModConsoleCommandTests.ModConsoleCommand_MetadataIsAvailableToConsoleSurface` |
 | Mod host-only enforcement | A mod host-only console command is refused on a guest | `ModConsoleCommandTests.ModConsoleCommand_HostOnly_IsRefusedForGuest` |
 | Mod permission gates | A permissionless mod cannot register ordinary or host-only local console commands | `ModConsoleCommandTests.PermissionlessMod_CannotRegisterConsoleCommands` |
 | Mod duplicate/unregister policy | Duplicate registrations are refused; unregister removes only the local mod's own command and refuses foreign/unknown names | `ModConsoleCommandTests.DuplicateConsoleCommand_IsRefused`, `Unregister_RemovesOwnConsoleCommand`, `Unregister_ForeignOrUnknownName_IsRefused` |
 | Command tree foundation | Argument/order nodes are built from declared kinds; out-of-range and literal nodes are covered | `ConsoleCommandTreeTests` (3 cases) |
-| Resource-location provider | `ResourceLocation` kind returns catalog candidates through the argument seam | `CommandConsoleServiceTests.ArgumentSuggestions_ResourceLocationKind_ReturnsCatalog` |
+| Resource-location provider | `ResourceLocation` kind returns catalog candidates through the argument seam | `CommandConsoleCompletionTests.ArgumentSuggestions_ResourceLocationKind_ReturnsCatalog` |
 | Mod resource-location completion | A mod command with `ResourceLocation` completes and executes locally | `ModConsoleCommandTests.ModConsoleCommand_ResourceLocationCompletion_ReturnsCatalog`, `ModConsoleCommand_ResourceLocation_ExecutesLocally` |
-| Selector bracket completion | `/heal @a[` suggests filter keys; `@a[type=`/`@a[sort=` suggest values | `CommandConsoleServiceTests.Suggest_ForHealSelectorBracket_ReturnsFilterKeys`, `CommandSelectorSuggestionsTests` |
+| Selector bracket completion | `/heal @a[` suggests filter keys; `@a[type=`/`@a[sort=` suggest values | `CommandConsoleCompletionTests.Suggest_ForHealSelectorBracket_ReturnsFilterKeys`, `CommandSelectorSuggestionsTests` |
 | Selector filter parser | Known keys parse; unknown/malformed/negative/zero fail; quoted names work | `CommandSelectorFilterTests` (7 cases) |
 | Selector filter resolution | `type`/`name`/`distance`/`limit`/`sort` filter remote player targets; incomplete/unknown brackets fail closed | `CommandSelectorResolverTests.BracketedTypeFilter_AcceptsPlayerAndRejectsOtherTypes`, `BracketedNameFilter_MatchesCaseInsensitively`, `BracketedDistanceLimitSort_FilterAndOrder`, `IncompleteOrUnknownBracketFilters_ReturnEmpty` |
+| Role-filtered command word | A plain member's `/ga`, `/k`, `/gi`, `/op`, `/trader` offer nothing; the host's and a granted member's offer their verbs; the switch closing drops the granted member's cheat verbs | `CommandConsolePermissionCompletionTests.PlainMember_IsOfferedNoAuthorityCommand`, `Host_IsOfferedTheAuthorityCommands`, `GrantedMember_IsOfferedTheCheatVerbsButNotTheHostOnlyOnes`, `GrantedMember_WhoseSwitchCloses_LosesTheCheatCompletion` |
+| Role-filtered help | `/help` omits hidden verbs; `/help gamerule` answers the gate refusal, `/help kick` the host-only refusal; `/help ` does not complete hidden names | `CommandConsolePermissionCompletionTests.PlainMember_HelpOmitsTheAuthorityCommands`, `PlainMember_HelpForAHiddenCheatVerb_AnswersTheGateRefusal`, `PlainMember_HelpForAHostOnlyVerb_AnswersTheHostOnlyRefusal`, `PlainMember_HelpCompletion_DoesNotOfferHiddenCommandNames` |
+| `/gamerule` two-level completion | The rule names in census order with the value in force, each rule's exact value list, no candidate for the numeric rule, and every offered value accepted by the parser the handler runs | `CommandConsolePermissionCompletionTests.Host_GameRuleCompletion_OffersTheRuleNamesWithTheirValues`, `Host_GameRuleCompletion_OffersExactlyThatRulesAcceptedValues`, `EveryOfferedGameRuleValue_IsAcceptedByTheSameParserTheHandlerRuns` |
+| `/data` verb completion | `get` for everyone at the verb position; `merge`/`modify`/`remove` only for an authorised caller (the host or a granted member) | `CommandConsolePermissionCompletionTests.DataCompletion_OffersTheReadVerbToEveryone_AndTheWriteVerbsOnlyToTheAuthorised` |
+| Quiet filter | A suggestion writes no `[Cheat]`/`[Command]` log line | `CommandConsolePermissionCompletionTests.Suggestions_WriteNoLog` |
+| Hiding is not enforcement | A hidden command typed directly still reaches the handler and is refused by name | `CommandConsolePermissionCompletionTests.HiddenCommand_TypedDirectly_IsStillRefusedByName` |
 
 ## 3. Known remaining gaps
 
@@ -125,13 +133,9 @@ message or protocol version was added.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 2335 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 6335 behaviour cases + 777 gate cases, 0 failed (2026-10-24, the completion change) |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
-| `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
-| `tools/check-event-replay.ps1` | pass (33 events) |
-| `tools/check-entity-event-dispatch.ps1` | pass (33 kinds × 3 tables) |
-| `tools/check-no-absolute-paths.ps1` | pass |
-| `tools/check-delivery.ps1` | pass (7 boxes) |
+| `dotnet test tests/CasualtiesUnknownOnline.NormativeGates.Tests --no-build` | the former `tools/check-*.ps1` gates, as the C# ports: architecture, event replay, entity-event dispatch, no-absolute-paths, delivery — 777 cases green (rule-to-gate map: `docs/evidence/normative-gates.md`) |
 | Protocol | unchanged |
 
 ## 5. Structure review
@@ -141,6 +145,11 @@ message or protocol version was added.
   still owned by the command registry. It composes the narrow
   `IPlayerInteractionControl`/`IEntitySyncControl` seams for the real selector
   command while keeping command/history policy out of the Unity overlay.
+- The completion side is its own collaborator since 2026-10-24: `CommandConsoleCompletion`
+  owns the suggestion and hint surfaces (including the two contextual vocabularies and
+  the per-argument-kind providers), `ConsoleCommandAuthority` owns the one authority
+  predicate, and the service keeps dispatch, answers and its own commands — which put
+  the service back under the 600-line aggregate gate.
 - `ConsoleCommandRegistry` owns command storage/lookup/attribute discovery; the
   service only composes it and does not hold a mutable registration list.
   `ConsoleCommandAttribute`/`CommandDefinition` keep metadata beside handlers.

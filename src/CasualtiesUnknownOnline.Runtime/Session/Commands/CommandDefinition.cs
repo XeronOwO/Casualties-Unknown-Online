@@ -13,9 +13,10 @@ internal sealed record CommandDefinition(
 	string Name,
 	string Description,
 	CommandPermission Permission,
+	ConsoleCommandGate Gate,
 	string Usage,
 	IReadOnlyList<CommandArgumentKind> ArgumentKinds,
 	Func<IReadOnlyList<string>, string?> Handler)
 {
-	public CommandSpec ToSpec() => new(Name, Description, Usage, Permission, ArgumentKinds);
+	public CommandSpec ToSpec() => new(Name, Description, Usage, Permission, Gate, ArgumentKinds);
 }

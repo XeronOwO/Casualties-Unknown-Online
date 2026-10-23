@@ -10,7 +10,9 @@
   strings, so they render green. Since the verb joined the op family (2026-10-24) its PERMISSION refusal is
   a handler return too, so a member the host did not grant now reads it in the positive colour as well —
   the pre-handler host-only line that used to colour that case as an error no longer applies to this verb.
-  The verb's tests assert the text because the handler has no way to return a kind.
+  `/help <hidden>` is a second new instance (2026-10-24): its permission answer is a handler return, so a
+  hidden command's refusal is green too. The verb's tests assert the text because the handler has no way to
+  return a kind.
 - Related: `done/gamerule-host-rule-command.md`, the console's own record
   (`done/in-game-command-console-interactive.md`, `docs/evidence/selfchecks/ui/command-console-selfcheck.md`),
   and the mod-facing console command (`ModConsoleCommand.Handler` returns `string?`).
@@ -45,8 +47,8 @@ just its text.
 ## Acceptance
 
 - A refused `/gamerule` (the cheat gate's permission sentence, unknown rule, invalid value, out of range, the
-  editor's refusal) renders as an error line and a successful set/query as a success line, read from the
-  console's own output.
+  editor's refusal) and a refused `/help <hidden command>` render as error lines; a successful set/query and
+  a visible command's help render as success lines, read from the console's own output.
 - The chosen mechanism covers mod console commands and is recorded in the console selfcheck; a test pins the
   kind of a refusal and of a success for at least one built-in and one mod command.
 - No verb is left with a refusal that still renders as success.

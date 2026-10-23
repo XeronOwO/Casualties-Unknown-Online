@@ -9,7 +9,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 public interface ICommandCompletionSource
 {
-	/// <summary>Read-only command metadata, ordered by registration.</summary>
+	/// <summary>
+	/// Read-only command metadata, ordered by registration and FILTERED to what this caller may run: a
+	/// command the console would hide from the suggestion list is not named here either. The enforcement is
+	/// still the handler's; this projection exists so a presentation surface cannot leak the word.
+	/// </summary>
 	IReadOnlyList<CommandSpec> Commands { get; }
 
 	/// <summary>

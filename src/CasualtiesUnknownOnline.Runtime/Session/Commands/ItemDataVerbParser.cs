@@ -37,6 +37,15 @@ internal static class ItemDataVerbParser
 
 	internal const string RemoveOperation = "remove";
 
+	/// <summary>
+	/// Whether a verb word is one of the WRITE half — the half the cheat gate guards, and the half the
+	/// console's completion withholds from a caller the gate refuses. It reads the same verb constants
+	/// <c>ItemDataCommands</c> dispatches on, so the two call sites cannot disagree about the NAMES; a verb
+	/// added to one side has to be classified on the other.
+	/// </summary>
+	internal static bool IsWriteVerb(string? verb) =>
+		verb?.ToLowerInvariant() is MergeOperation or ModifyOperation or RemoveOperation;
+
 	/// <summary><c>get</c>: a target and an OPTIONAL path that ends the line.</summary>
 	internal static bool TryParseGet(IReadOnlyList<string> tokens, out ItemDataGetRequest request, out string? error)
 	{

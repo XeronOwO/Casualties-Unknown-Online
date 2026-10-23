@@ -38,7 +38,7 @@ internal sealed class AcceptanceCommands(ISessionControl session, IWorldControl 
 	private readonly IWorldControl _world = world;
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 
-	[ConsoleCommand("traderreport", "Acceptance only: publish one give report (item instance + claimed credit) at a trader position.", CommandPermission.Anyone, "/traderreport <x> <y> <itemInstanceId> <value>")]
+	[ConsoleCommand("traderreport", "Acceptance only: publish one give report (item instance + claimed credit) at a trader position.", CommandPermission.Anyone, "/traderreport <x> <y> <itemInstanceId> <value>", Gate = ConsoleCommandGate.Cheat)]
 	private string TraderReport(IReadOnlyList<string> args)
 	{
 		if (args.Count < 5

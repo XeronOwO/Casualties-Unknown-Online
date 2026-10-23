@@ -37,7 +37,7 @@ internal sealed class HealResetCommands(
 	private readonly ISessionControl _session = session;
 	private readonly IEntitySyncControl _entities = entities;
 
-	[ConsoleCommand("heal", "Immediately fully reset the selected player(s): health, limbs, severed limbs and the hollow debuff (a cheat verb).", CommandPermission.Anyone, "/heal <selector>", CommandArgumentKind.Selector)]
+	[ConsoleCommand("heal", "Immediately fully reset the selected player(s): health, limbs, severed limbs and the hollow debuff (a cheat verb).", CommandPermission.Anyone, "/heal <selector>", CommandArgumentKind.Selector, Gate = ConsoleCommandGate.Cheat)]
 	internal string Heal(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)

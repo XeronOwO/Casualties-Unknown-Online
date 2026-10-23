@@ -26,5 +26,14 @@ internal sealed class ConsoleCommandAttribute(
 
 	public CommandPermission Permission { get; } = permission;
 
+	/// <summary>
+	/// How this verb's authority is decided beyond <see cref="Permission"/>. Default
+	/// <see cref="ConsoleCommandGate.Open"/>; a cheat-family verb sets
+	/// <see cref="ConsoleCommandGate.Cheat"/> so the console can hide its word, its arguments and
+	/// its help row from a caller the handler's <c>CheatVerbGate</c> would refuse. A mod command
+	/// cannot declare it (its own runtime gate is not knowable to the console).
+	/// </summary>
+	public ConsoleCommandGate Gate { get; set; } = ConsoleCommandGate.Open;
+
 	public IReadOnlyList<CommandArgumentKind> ArgumentKinds { get; } = argumentKinds;
 }

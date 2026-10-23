@@ -39,13 +39,13 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 	private readonly IChatControl _chat;
 	private readonly ISessionControl _session;
-	private readonly IHostBanService _hostBans;
 	private readonly IPlayerInteractionControl _playerInteraction;
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly List<ConsoleLine> _lines = [];
 	private readonly ConsoleCommandRegistry _commands;
-	private readonly IResourceLocationCatalog _resourceLocations;
+	private readonly CommandConsoleCompletion _completion;
+	private readonly ConsoleCommandAuthority _authority;
 	private readonly IWorldSaveControl _saves;
 	private readonly WorldRestoreAudit _restoreAudit;
 	private readonly IStartingSupplyControl _startingSupplies;
@@ -54,7 +54,6 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IHealResetControl _healReset;
 	private readonly AnnouncedHostRules _hostRules;
 	private readonly IHostRuleChangeControl _hostRuleChanges;
-	private readonly ItemStateCompletion _itemStateCompletion;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -87,12 +86,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	{
 		_chat = chat;
 		_session = session;
-		_hostBans = hostBans;
 		_playerInteraction = playerInteraction;
 		_time = time;
 		_log = log;
 		_commands = commandRegistry;
-		_resourceLocations = resourceLocations;
 		_saves = worldSaves;
 		_restoreAudit = restoreAudit;
 		_startingSupplies = startingSupplies;
@@ -140,6 +137,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// resolver: /data writes this client's own item, /give makes a new one, and
 		// both answer the same cheat rulings and the same selector verdict.
 		var cheatVerbs = new CheatVerbGate(session, _hostRules, cheatPermissions, log);
+		_authority = new ConsoleCommandAuthority(session, cheatVerbs);
 		// The host-rule verb is the cheat family's too (the user's 2026-10-24 ruling); its own group holds the gate.
 		_commands.AddBuiltIns(new HostRuleCommands(hostRuleSurface, hostRuleChanges, cheatVerbs, log));
 		var targets = new ItemDataTargets(kernelItems, session, entities, localItems);
@@ -152,99 +150,28 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// owner registers itself through the same attribute scan as every other group above. The cheat
 		// gate is the permission: a lever that can move a trader's credit is not a player's shortcut.
 		_commands.AddBuiltIns(new AcceptanceCommands(session, world, cheatVerbs));
-		_itemStateCompletion = new ItemStateCompletion(kernelItems, itemStateLanguage, targets);
+		// The completion side is its own collaborator (this class is at the aggregate-size gate): it owns
+		// the contextual sources and asks the same authority predicate the dispatcher and /help use.
+		_completion = new CommandConsoleCompletion(
+			_commands, session, hostBans, resourceLocations, _authority, cheatVerbs,
+			kernelItems, itemStateLanguage, targets, hostRuleSurface);
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 
 	public IReadOnlyList<ConsoleLine> Lines => _lines;
 
-	public IReadOnlyList<CommandSpec> Commands => _commands.ToSpecs();
+	/// <summary>
+	/// The command metadata projection for the UI, filtered by the same authority the suggestions use: a
+	/// surface that renders this list must not name a command the caller cannot run, or the list becomes the
+	/// leak the completion filter closes. A hidden command typed in full still reaches its handler.
+	/// </summary>
+	public IReadOnlyList<CommandSpec> Commands => [.. _commands.All.Where(_authority.MayRun).Select(command => command.ToSpec())];
 
-	public IReadOnlyList<CommandSuggestion> Suggest(string input)
-	{
-		if (string.IsNullOrWhiteSpace(input))
-		{
-			return [];
-		}
+	public IReadOnlyList<CommandSuggestion> Suggest(string input) => _completion.Suggest(input);
 
-		var tokens = CommandLineTokenizer.Tokenize(input);
-		if (tokens.Count == 0)
-		{
-			return [];
-		}
+	public IReadOnlyList<CommandSuggestion> Suggest(CommandArgumentKind kind, string prefix) => _completion.Suggest(kind, prefix);
 
-		var isCommand = input.StartsWith("/", StringComparison.Ordinal);
-		if (isCommand && tokens.Count == 1 && IsCommandTokenAtEnd(input, tokens[0]))
-		{
-			var partial = tokens[0].Unquoted;
-			if (partial.StartsWith("/", StringComparison.Ordinal))
-			{
-				partial = partial.Substring(1);
-			}
-
-			return [.. _commands.All
-				.Where(c => c.Name.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
-				.Select(c => new CommandSuggestion(c.Name, c.Description))
-				.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
-		}
-
-		if (!isCommand)
-		{
-			return [];
-		}
-
-		var command = FindCommand(tokens[0].Unquoted);
-		if (command is null)
-		{
-			return [];
-		}
-
-		var current = CommandLineTokenizer.CurrentToken(input);
-		if (_itemStateCompletion.TrySuggest(command.Name, tokens, current, out var stateSuggestions))
-		{
-			return stateSuggestions;
-		}
-
-		var argumentIndex = current.Length == 0 ? tokens.Count : tokens.Count - 1;
-		if (argumentIndex < 1 || argumentIndex > command.ArgumentKinds.Count)
-		{
-			return [];
-		}
-
-		var tree = ConsoleCommandTree.FromArgumentKinds(command.ArgumentKinds);
-		var kind = tree.GetArgumentKind(argumentIndex - 1);
-		if (kind is null)
-		{
-			return [];
-		}
-
-		var prefix = current.Length == 0 ? "" : current.Unquoted;
-		return SuggestFor(kind.Value, prefix);
-	}
-
-	public IReadOnlyList<CommandSuggestion> Suggest(CommandArgumentKind kind, string prefix) => SuggestFor(kind, prefix);
-
-	public string? GetHint(string input)
-	{
-		if (string.IsNullOrWhiteSpace(input) || !input.StartsWith("/", StringComparison.Ordinal))
-		{
-			return null;
-		}
-
-		var tokens = CommandLineTokenizer.Tokenize(input);
-		if (tokens.Count == 0)
-		{
-			return null;
-		}
-
-		var command = FindCommand(tokens[0].Unquoted);
-		if (command is null)
-		{
-			return $"Unknown command '{tokens[0].Unquoted}'. Type /help for available commands.";
-		}
-
-		return $"Usage: {command.Usage} — {command.Description}";
-	}
+	public string? GetHint(string input) => _completion.GetHint(input);
 
 	public bool TryExecute(string input)
 	{
@@ -412,9 +339,13 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			return false;
 		}
 
+		// The declaration half of the authority is enforced here, before the handler runs. The cheat half
+		// deliberately is NOT: a gated verb must reach its handler, which runs its own grammar and then the
+		// gate, so the refusal it prints is the family's own (and typing a hidden command is still refused
+		// by name rather than as unknown).
 		if (command.Permission == CommandPermission.HostOnly && _session.Role != SessionRole.Host)
 		{
-			AddLine("Permission denied: this command is host-only.", ConsoleLineKind.Error);
+			AddLine(ConsoleCommandAuthority.HostOnlyRefusal, ConsoleLineKind.Error);
 			return false;
 		}
 
@@ -445,9 +376,16 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		}
 
 		var command = FindCommand(args[1]);
-		return command is null
-			? $"Unknown command '{args[1]}'. Type /help for available commands."
-			: $"/{command.Name} — {command.Description}\nUsage: {command.Usage}";
+		if (command is null)
+		{
+			return $"Unknown command '{args[1]}'. Type /help for available commands.";
+		}
+
+		// A command this caller may not run answers the refusal it would meet, not "unknown": the console
+		// must not teach a word by help and then pretend it does not exist. The list above hides the same
+		// commands, so a player who reads /help never learns one the console would refuse.
+		return _authority.TryRefusal(command)
+			?? $"/{command.Name} — {command.Description}\nUsage: {command.Usage}";
 	}
 
 	[ConsoleCommand("clear", "Clear the console output.", CommandPermission.Anyone, "/clear")]
@@ -526,39 +464,6 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return _commands.Find(name);
 	}
 
-	private static bool IsCommandTokenAtEnd(string input, CommandLineTokenizer.Token token)
-	{
-		var current = CommandLineTokenizer.CurrentToken(input);
-		return current.Length == token.Length && current.Start == token.Start;
-	}
-
-	private static readonly CommandSuggestion[] JsonSuggestions =
-	[
-		new("{}", "Empty JSON object"),
-		new("{\"key\": \"value\"}", "JSON object template"),
-	];
-
-	private IReadOnlyList<CommandSuggestion> SuggestFor(CommandArgumentKind kind, string prefix) => kind switch
-	{
-		CommandArgumentKind.CommandName => CommandSuggestions.CommandNames(_commands.All, prefix),
-		CommandArgumentKind.PlayerOrSteamId => CommandSuggestions.Members(_session, prefix),
-		CommandArgumentKind.SteamId => CommandSuggestions.BannedSteamIds(_hostBans, prefix),
-		CommandArgumentKind.Selector => CommandSelectorSuggestions.Suggest(prefix),
-		CommandArgumentKind.Json => [.. JsonSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
-		CommandArgumentKind.ResourceLocation => SuggestResourceLocations(prefix),
-		_ => [],
-	};
-
-	/// <summary>
-	/// Resource/id completion from the content-id catalog: the user may type a
-	/// canonical id prefix, the bare content id, or the localized display name,
-	/// but every suggestion is the canonical <c>namespace:path</c> id (the
-	/// catalog owns matching/ranking; this method only projects it for the UI).
-	/// </summary>
-	private IReadOnlyList<CommandSuggestion> SuggestResourceLocations(string prefix) =>
-		[.. _resourceLocations.Suggest(prefix)
-			.Select(entry => new CommandSuggestion(entry.Id.ToString(), $"{entry.Kind} · {entry.DisplayName}"))];
-
 	public void ResetSessionState()
 	{
 		_lines.Clear();
@@ -591,7 +496,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		var names = new List<string>(_commands.All.Count);
 		foreach (var command in _commands.All)
 		{
-			names.Add($"/{command.Name} — {command.Description}");
+			if (_authority.MayRun(command))
+			{
+				names.Add($"/{command.Name} — {command.Description}");
+			}
 		}
 
 		return string.Join("\n", names);

@@ -46,7 +46,7 @@ internal sealed class HostRuleCommands(
 	/// every member on the next pump. A member's write is a request to the host: its local
 	/// config is never touched, and the host's answer prints where the verb was typed.
 	/// </summary>
-	[ConsoleCommand("gamerule", "Read or set one host rule, shaped like Minecraft's /gamerule (a cheat verb: the host, or a member the host granted).", CommandPermission.Anyone, "/gamerule <rule name> [<value>]", CommandArgumentKind.Text, CommandArgumentKind.Text)]
+	[ConsoleCommand("gamerule", "Read or set one host rule, shaped like Minecraft's /gamerule (a cheat verb: the host, or a member the host granted).", CommandPermission.Anyone, "/gamerule <rule name> [<value>]", CommandArgumentKind.Text, CommandArgumentKind.Text, Gate = ConsoleCommandGate.Cheat)]
 	internal string GameRule(IReadOnlyList<string> args)
 	{
 		if (args.Count is < 2 or > 3)

@@ -23,8 +23,6 @@ public sealed class ConsoleCommandRegistry
 	internal CommandDefinition? Find(string name) =>
 		_commandsByName.TryGetValue(name, out var command) ? command : null;
 
-	internal IReadOnlyList<CommandSpec> ToSpecs() => [.. _commands.Select(c => c.ToSpec())];
-
 	/// <summary>
 	/// Scans <paramref name="owner"/>'s type for <see cref="ConsoleCommandAttribute"/>
 	/// methods and registers them as immutable built-in entries. Validation is
@@ -63,6 +61,7 @@ public sealed class ConsoleCommandRegistry
 				attribute.Name,
 				attribute.Description,
 				attribute.Permission,
+				attribute.Gate,
 				attribute.Usage,
 				attribute.ArgumentKinds,
 				handler);

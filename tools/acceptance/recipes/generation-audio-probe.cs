@@ -1,7 +1,7 @@
 // recipe: generation-audio-probe
 // args: mode=s
 //        mode is `read` (the only mode today). Each token on the args line must be <key>=s or <key>=n.
-// serves: review/layer-descent-audio-parity.md - the descent whoosh is played by whichever client runs its own
+// serves: done/layer-descent-audio-parity.md - the descent whoosh is played by whichever client runs its own
 //         generation, under `biomeDepth == 0 && biomeOverride == None`, so the question a run has to answer is
 //         whether a MEMBER reaches that branch at all. Sampling during the member's own load is the reading.
 // returns: ok, mode, generatingWorld, instantiatingWorld, biomeDepth, biomeOverride, genTimePassed,

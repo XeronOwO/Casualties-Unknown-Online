@@ -340,7 +340,7 @@ docs/backlog/todo/launch-intro-cover-policy.md | keep | index | docs/backlog/REA
 docs/backlog/done/layer-change-member-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-change-menu-round-trip.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md
-docs/backlog/review/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
+docs/backlog/done/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
@@ -801,6 +801,7 @@ docs/evidence/selfchecks/mod-api/mod-content-declaration-contract-selfcheck.md |
 docs/evidence/acceptance/mod-content-attribute-declarations-20261024-a.md | keep | claim | docs/backlog/done/mod-content-attribute-declarations.md
 docs/evidence/acceptance/intent-refusal-never-reaches-the-actor-20261024-a.md | keep | claim | docs/backlog/done/intent-refusal-never-reaches-the-actor.md
 docs/evidence/acceptance/heal-restores-severed-limbs-20261024-a.md | keep | claim | docs/backlog/done/heal-restores-severed-limbs.md
+docs/evidence/acceptance/layer-descent-audio-parity-20261024-a.md | keep | claim | docs/backlog/done/layer-descent-audio-parity.md
 docs/evidence/selfchecks/mod-api/mod-content-fingerprint-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-content-fingerprint-selfcheck.md | keep | claim | docs/backlog/done/mod-content-fingerprint.md
 docs/evidence/acceptance/mod-content-fingerprint-20261024-a.md | keep | claim | docs/backlog/done/mod-content-fingerprint.md

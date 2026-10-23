@@ -8,7 +8,7 @@
   (see below); row 3 awaits the re-run.
 - Priority: High
 - Category: Persistence / save system
-- Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scope 1 (second half),
+- Source: `docs/backlog/done/save-multiplayer-restore-and-backups.md` scope 1 (second half),
   acceptance row 3
 - Related: decision 162 (transport-scoped identity; an absent player is a NEW character),
   decision 179 (the save system's player-visible surface: one notification plus the account),

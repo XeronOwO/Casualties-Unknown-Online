@@ -25,7 +25,7 @@
   produced the finding), `docs/architecture/remote-inventory-native-parity.md` §3.2.7–§3.2.9 (the
   while-dragging frame and the new rule), `docs/evidence/selfchecks/items/favourite-marks-local-and-saved-selfcheck.md`
   (the cycle's own record), `review/save-native-character-field-parity.md` and
-  `review/save-multiplayer-restore-and-backups.md` (the save surfaces a local mark rides)
+  `done/save-multiplayer-restore-and-backups.md` (the save surfaces a local mark rides)
 
 ## Required behaviour (settled by the ruling)
 

@@ -122,7 +122,7 @@ implementation work.
 | S2 | `review/save-layer-end-save-and-restore.md` | Layer-end capture/restore via the native continue entry | landed (review) |
 | S3 | `review/save-mid-run-consistent-cut.md` | Mid-run consistent cut, all domains, world diff, transient policy; S3.1-S3.6 landed, the four recorded gaps fixed, and S3.5 (the exactly-once claim + documentation + re-anchoring) closed 2026-09-17 | landed (review) |
 | S3.6 | `done/save-solo-menu-exit-trigger.md` | The solo menu-exit trigger for the mid-run cut (split out of S3's scope list) | landed (review) |
-| S4 | `review/save-multiplayer-restore-and-backups.md` | Guest restore claim, validation/recovery, scheduled autosave + retention (also owns scope 7's decode-level refusal recovery, landed with S4.4) | landed (review) (S4.1-S4.4 landed 2026-09-14) |
+| S4 | `done/save-multiplayer-restore-and-backups.md` | Guest restore claim, validation/recovery, scheduled autosave + retention (also owns scope 7's decode-level refusal recovery, landed with S4.4) | done (S4.1–S4.4, closed 2026-10-24) |
 
 ## Mid-run semantics: the hard part
 

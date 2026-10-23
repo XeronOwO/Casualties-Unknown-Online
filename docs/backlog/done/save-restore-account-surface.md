@@ -9,7 +9,7 @@
   the one the 2026-10-24 run closed.
 - Priority: High
 - Category: Persistence / save system
-- Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scopes 2 and 3
+- Source: `docs/backlog/done/save-multiplayer-restore-and-backups.md` scopes 2 and 3
 - Related: decision 163 (repair mode, per-entry salvage), decision 168 (a restore reports its
   live-world halves), decision 177 (the claim verdict), decision 179 (this stage's surface and
   observability rule), `docs/architecture/save-archive-format.md` §6,

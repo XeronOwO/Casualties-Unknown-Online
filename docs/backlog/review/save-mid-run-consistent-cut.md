@@ -61,7 +61,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/review/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
-- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `review/save-multiplayer-restore-and-backups.md` (S4), `done/restore-account-arm-release.md` (the restore-account residuals this ticket records)
+- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `done/save-multiplayer-restore-and-backups.md` (S4), `done/restore-account-arm-release.md` (the restore-account residuals this ticket records)
 
 ## Approved decisions (2026-09-10)
 
@@ -977,7 +977,7 @@ matrix above are NOT a precondition for the move, exactly as S2 landed its conti
 in-game rows open.
 
 - [x] **Scope closure**: scopes 1-6 and 8 are landed and documented here; scope 7 is owned by S4
-      (`review/save-multiplayer-restore-and-backups.md`) and landed with S4.4; scope 9 is owned by S3.6
+      (`done/save-multiplayer-restore-and-backups.md`) and landed with S4.4; scope 9 is owned by S3.6
       and landed (`done/save-solo-menu-exit-trigger.md`). No scope is silently dropped — evidence:
       the scope-closure table in *S3.5 closure* above, re-read against the tree on this commit.
 - [x] **The exactly-once claim is stated at the level it is proven**: the machine evidence above is

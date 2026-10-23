@@ -5,7 +5,7 @@
   `../evidence/acceptance/save-interval-autosave-and-backup-recovery-20261001-p.md`
 - Priority: High
 - Category: Persistence / save system
-- Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scope 4 + 5, plus S3's
+- Source: `docs/backlog/done/save-multiplayer-restore-and-backups.md` scope 4 + 5, plus S3's
   scope 7 (`docs/backlog/review/save-mid-run-consistent-cut.md`), acceptance rows 4, 5 and 6
 - Related: decision 25 (BepInEx `ConfigFile` → `IOptionsMonitor`), decision 164 (the multi-world
   repository; the host is the only save authority), decision 165 (the native save is never read),

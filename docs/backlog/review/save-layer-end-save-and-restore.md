@@ -7,7 +7,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 2 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
-- Related: `docs/architecture/save-archive-format.md`, `done/save-format-and-world-repository.md` (S1), `review/save-mid-run-consistent-cut.md` (S3), `review/save-multiplayer-restore-and-backups.md` (S4)
+- Related: `docs/architecture/save-archive-format.md`, `done/save-format-and-world-repository.md` (S1), `review/save-mid-run-consistent-cut.md` (S3), `done/save-multiplayer-restore-and-backups.md` (S4)
 
 ## Scope
 
@@ -299,7 +299,7 @@ ticket's own text).
 - Two persistent copies of a member's character now exist: the archive's `characters/<key>.json`
   (durable, per-world) and the legacy `CasualtiesUnknownOnline.character-data.bin` reconnect store
   (session-scoped, fed by the same restore path). Folding the reconnect store into the archive needs
-  the guest-claim machinery, so it is S4's (`review/save-multiplayer-restore-and-backups.md`).
+  the guest-claim machinery, so it is S4's (`done/save-multiplayer-restore-and-backups.md`).
 - A fatal continue refusal (e.g. an unreadable run baseline) currently reaches the log and the
   returned outcome only; the player-visible surface for repair/refusal reports is S4's decision, and
   S2 deliberately did not invent one.

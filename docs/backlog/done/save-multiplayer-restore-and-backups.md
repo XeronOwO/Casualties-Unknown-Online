@@ -1,7 +1,13 @@
 # S4 — Multiplayer restore, validation/recovery, scheduled backups
 
-- Status: Review (all four stages landed 2026-09-14; awaiting the final unified acceptance pass)
-- Acceptance (20261001-o, 20261001-p): rows 4–6 pass in batch `20261001-p`; rows 1–2 and 7 were judged in batch `20261001-o` with row 2 unproven (no IP-direct session staged); row 3's fix is open in `done/save-new-player-starting-supplies.md`. Records: `docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261001-o.md`, `docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261001-p.md`
+- Status: Done 2026-10-24 — all four stages are done and every row has a passing judgement. Row 2 (the
+  cross-space claim) passed on `0.1.0+7b02e9d3`; row 3's fix is the done S4.3 ticket. Records:
+  `docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261024-a.md` (this close),
+  `save-multiplayer-restore-and-backups-20261001-o.md` and `save-multiplayer-restore-and-backups-20261001-p.md`
+  (the earlier rows), and the stage tickets' own records.
+- Acceptance (20261001-o, 20261001-p): rows 4–6 pass in batch `20261001-p`; rows 1–2 and 7 were judged in
+  batch `20261001-o` with row 2 unproven at that run (no IP-direct session staged); row 3's fix was open in
+  `done/save-new-player-starting-supplies.md`, now done; the 2026-10-24 batch closed row 2.
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 4 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (the backup half is the user's Q3/Q6 answer: "可配置的定时备份")
@@ -17,8 +23,8 @@ begins. This file stays the roadmap and holds no implementation work of its own.
 |---|---|---|---|
 | S4.1 | `done/save-guest-restore-claim-and-legacy-store-retirement.md` | Scope 1's claim rules (transport-scoped, collision-safe) + scope 6 (retire the legacy `.bin` reconnect store) | done (rows 1–3 passed 2026-10-24) |
 | S4.2 | `done/save-restore-account-surface.md` | Scope 2 + 3: the player-visible restore account (repair/recovery reporting of §6, the S4.1 claim refusals), and one account log line per save/restore with the per-domain record counts | done (row 2 passed 2026-10-24) |
-| S4.3 | `done/save-new-player-starting-supplies.md` | A player the world has no character for joins as a NEW player: the run's configured starting supplies, granted once per body | landed (review) |
-| S4.4 | `done/save-interval-autosave-and-backup-recovery.md` | Interval autosave, retention, the config surface, the failure-degradation matrix, and the decode-level refusal's backup-promotion recovery (acceptance row 6) | landed (review) |
+| S4.3 | `done/save-new-player-starting-supplies.md` | A player the world has no character for joins as a NEW player: the run's configured starting supplies, granted once per body | done |
+| S4.4 | `done/save-interval-autosave-and-backup-recovery.md` | Interval autosave, retention, the config surface, the failure-degradation matrix, and the decode-level refusal's backup-promotion recovery (acceptance row 6) | done |
 
 ## Design decisions frozen with the user
 
@@ -91,6 +97,7 @@ out of `WorldRepository` (one world's files), and `SaveSalvagePass` (§6's per-e
 without a split.
 
 ## Verification limits
-The multi-client rows (1–3) cannot be machine-verified: they need the sandbox dual-client pass and
-the user's acceptance run. Each stage's completion report must separate machine-verified rows from
-user-verified rows, and must not claim dual-client verification before the user runs it.
+The multi-client rows (1–3) were machine-verified on 2026-10-24 (the IP-direct roster and the Steam-over-
+IP-direct snapshot; `save-multiplayer-restore-and-backups-20261024-a.md`), so the earlier statement that they
+needed the user's dual-client pass is retired. The look/feel of the player-visible surfaces remains the user's
+judgement where a stage records it.

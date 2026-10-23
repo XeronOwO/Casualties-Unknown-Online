@@ -5,23 +5,25 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Music;
 
 /// <summary>
-/// The local console verbs: <c>/music play &lt;path&gt;</c> plays a WAV file from this machine's disk,
-/// <c>/music stop</c> stops it, and <c>/music status</c> answers whether anything plays. Local-only — the
-/// sharing half's verbs land with the transfer stage, and this half deliberately works with or without a
-/// session, which is what makes the decoder verifiable on one client.
+/// The local console verbs: <c>/music play &lt;path&gt;</c> plays a WAV file on this client,
+/// <c>/music share &lt;path&gt;</c> shares one with the session (the host in this stage),
+/// <c>/music stop</c> stops both, and <c>/music status</c> answers what this client is doing. Local-only: the
+/// verbs never travel, and the sharing itself rides the mod's declared packets.
 /// </summary>
 internal static class MusicCommand
 {
-	private static MusicDevice? _device;
+	private static MusicShareService? _share;
 
-	private static MusicDevice Device => _device ??= new MusicDevice();
+	internal static MusicDevice Device { get; } = new();
+
+	internal static void Bind(MusicShareService share) => _share = share;
 
 	internal static string? Execute(IModConsoleCommandContext context)
 	{
 		var arguments = context.Arguments;
 		if (arguments.Count == 0)
 		{
-			return "usage: /music play <path> | /music stop | /music status";
+			return "usage: /music play <path> | share <path> | stop | status";
 		}
 
 		switch (arguments[0].ToLowerInvariant())
@@ -31,17 +33,21 @@ internal static class MusicCommand
 					? "usage: /music play <path>"
 					: Play(string.Join(" ", arguments.Skip(1)));
 
+			case "share":
+				return arguments.Count < 2
+					? "usage: /music share <path>"
+					: _share?.Share(string.Join(" ", arguments.Skip(1))) ?? "sharing is unavailable (the mod is not bound)";
+
 			case "stop":
+				_share?.Stop();
 				Device.Stop();
 				return "stopped.";
 
 			case "status":
-				return Device.Playing
-					? $"playing ({Device.Position:0.0}s of {Device.Length:0.0}s)."
-					: "not playing.";
+				return _share?.Status() ?? "not playing.";
 
 			default:
-				return $"unknown verb '{arguments[0]}' — usage: /music play <path> | /music stop | /music status";
+				return $"unknown verb '{arguments[0]}' — usage: /music play <path> | share <path> | stop | status";
 		}
 	}
 

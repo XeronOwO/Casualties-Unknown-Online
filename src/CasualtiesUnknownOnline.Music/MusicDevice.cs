@@ -39,8 +39,11 @@ internal sealed class MusicDevice : IDisposable
 		return PlayBytes(Path.GetFileName(path), bytes, volume);
 	}
 
-	/// <summary>Decode WAV bytes and play them. Returns null on success, or the reason it did not play.</summary>
-	internal string? PlayBytes(string name, byte[] bytes, float volume = 1f)
+	/// <summary>
+	/// Decode WAV bytes and play them from <paramref name="offsetSeconds"/> (a shared start that has already
+	/// passed starts where the group is, not at zero). Returns null on success, or the reason it did not play.
+	/// </summary>
+	internal string? PlayBytes(string name, byte[] bytes, float volume = 1f, double offsetSeconds = 0)
 	{
 		var wav = WavFile.Decode(bytes);
 		if (!wav.Decoded)
@@ -59,7 +62,12 @@ internal sealed class MusicDevice : IDisposable
 		_source!.clip = _clip;
 		_source.volume = Mathf.Clamp01(volume);
 		_source.Play();
-		Report(name, wav);
+		if (offsetSeconds > 0.01d && offsetSeconds < wav.Seconds)
+		{
+			_source.time = (float)offsetSeconds;
+		}
+
+		Report(name, wav, offsetSeconds);
 		return null;
 	}
 
@@ -102,9 +110,11 @@ internal sealed class MusicDevice : IDisposable
 		_source.spatialBlend = 0f;
 	}
 
-	private static void Report(string name, WavFile wav) =>
+	private static void Report(string name, WavFile wav, double offsetSeconds) =>
 		MusicGate.Log?.LogInformation(
-			$"[Music] playing {name}: {wav.Seconds:0.0}s at {wav.SampleRate} Hz, {wav.Channels} channel(s).");
+			offsetSeconds > 0.01d
+				? $"[Music] playing {name} from {offsetSeconds:0.00}s: {wav.Seconds:0.0}s at {wav.SampleRate} Hz, {wav.Channels} channel(s)."
+				: $"[Music] playing {name}: {wav.Seconds:0.0}s at {wav.SampleRate} Hz, {wav.Channels} channel(s).");
 
 	/// <inheritdoc />
 	public void Dispose()

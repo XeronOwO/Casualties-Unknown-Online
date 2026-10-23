@@ -121,10 +121,33 @@ session.
 | `/music play <missing path>` | `refused: no file at …` |
 | `/music play <a text file>` | `refused: not playable: the file is not a RIFF/WAVE container` |
 
-What remains: the SHARING half — the mod's declared packets (`music.announce`/`music.chunk`/`music.ack`), the
-transfer driving those packets per receiver, the shared start instant and the late-joiner offset, and then the
-two-client row (a listener hears the same track at the same offset). The listener controls stay the user's
-decision.
+What remains: the late-joiner path (a member joining after the announce needs the host's copy to cache and
+re-serve the file — the guest-sharer and late-join cases are the same next stage), and the listener controls,
+which stay the user's decision.
+
+## Stage B landed (2026-10-24) — the track is shared and the group starts together
+
+The mod's four declared packets (`music.announce`, `music.chunk`, `music.ack`, `music.play`, all
+`EveryOtherMember`) carry the transfer: the sharer slices the file with the capability's `BulkSender`, broadcasts
+one chunk per 40 ms (so the rate yields to gameplay), and counts a chunk as acknowledged only when EVERY peer has
+acked it; a receiver fills a `BulkReceiver`, acks, verifies the whole-file hash, and plays the verified bytes.
+Playback is armed for the agreed instant and, if the instant has already passed, starts at the offset the group
+is at — one rule for the sharer and every receiver, so a client that completes late joins the track where the
+group is rather than at zero.
+
+**Read on two clients (host + guest, the real mod on both, the sandboxed Steam clients):**
+
+| side | log |
+|---|---|
+| host | `sharing test-tone.wav: 176444 bytes in 11 chunk(s), 2.0s, starting at 23:50:07Z.` → `test-tone.wav delivered to every member; playback starts at the agreed instant.` → `playing test-tone.wav from 0.21s: 2.0s at 44100 Hz, 1 channel(s).` |
+| guest | `receiving test-tone.wav: 11 chunk(s) from <host>.` → `test-tone.wav verified (176444 bytes); waiting for the start instant.` → `playing test-tone.wav at the agreed instant.` → `playing test-tone.wav from 0.22s: …` |
+
+The two offsets differ by 0.01 s and both sides show the same clip shape, so the "same track at the same offset"
+row is met for a host-shared track. `/music status` reports the share progress and the playback together.
+
+**Stage B's limits, stated:** the SHARER must be the host (a guest's transfer needs the host's copy to cache and
+re-serve the file, which is also what a LATE JOINER needs — one next stage, not two); and a transfer that does
+not complete inside its 60 s deadline is abandoned with a log line rather than wedging the session.
 
 **Where the files come from:** the player's own disk, picked through the mod's own path field (the game has no
 file picker for this); nothing is shipped with the mod and nothing is uploaded beyond the session's own peers.

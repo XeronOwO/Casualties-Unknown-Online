@@ -57,6 +57,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A typo in a rule's config value silently widens it](todo/config-clamp-silently-widens-rule-levels.md) — **Medium-High** — BepInEx clamps to allow.
 - [Live tickets cite the deleted `docs/api/` pages](todo/stale-api-doc-paths-in-live-tickets.md) — **Low** — paths and section numbers both stale.
 - [Command refusals render as successes](todo/console-command-refusals-render-green.md) — **Low-Medium** — a refused verb still prints green.
+- [/gamerule joins the op family](todo/gamerule-joins-the-op-family.md) — **Medium-High** — a granted member changes rules through the host.
+- [The console completes only what you may run](todo/console-completion-hides-what-you-cannot-run.md) — **Medium-High** — hidden word; role-aware values.
 
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.

@@ -176,6 +176,14 @@ centre release of a view-only displayed backpack refused with its one line, and 
   `todo/console-command-refusals-render-green.md`): the console adds every handler return as a success line,
   so `/gamerule`'s refusals are green; the text names the refusal, the kind does not.
 
+## Superseded in part (2026-10-24)
+
+The user ruled that the verb joins the op family (a member the host has granted may change a rule through a
+host round trip) and that the console must not offer the command — not even its word — to a caller without
+that authority. The host-only implementation and the batch `20261023-j` acceptance above stand as the record
+of what was built; the follow-ups are `todo/gamerule-joins-the-op-family.md` and
+`todo/console-completion-hides-what-you-cannot-run.md`, and decision 269 carries the amendment.
+
 ## Independent review (2026-10-24) — every finding and what changed
 
 An independent reviewer read the change set in a fresh context and attacked its claims. It found no blocker

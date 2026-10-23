@@ -88,6 +88,14 @@ destructive action running. Until this lands, the widened shape stays recorded i
   capture window opening and the `info.useAction` invocation), and its food fact was updated to pin the
   shared reader's single Harmony call site; `GameDrinkActionFacts.cs` was added to the no-id-table scan.
   Build 0/0 and the gate 12/12 green.
+- **The live registry agrees (machine probe, 2026-10-24, deployed `0.1.0+6ee2f683`).** One client in a world,
+  the deployed classifier asked through an in-process probe over the real `Item.GlobalItems`: `waterbottle` →
+  `Drinks`, `naltrexone` → `Drinks`, `bloodbag` → `NotADrink`, `bloodbaghuman` → `NotADrink`,
+  `liquidcentrifuge` → `NotADrink`; the summary over all 139 usable definitions is **33 `Drinks`, 106
+  `NotADrink`, 0 `Unreadable`** — the independent review's decompiled count (33 usable liquid containers call
+  `WaterContainerItem.Drink`) reproduced on the running client, so no vanilla drink is refused and the
+  destructive three are refused by definition. This is the CLASSIFIER half only; the drag row below is still
+  owed.
 - **What the machine still owes.** The two-client row above: drain/refill a blood bag with water and with a
   health-usable liquid, drag it onto a teammate, and read the operator's bag, the target's blood volume and
   the render clone's blood volume before/after. The drag is a native mouse gesture the driver's UI cannot

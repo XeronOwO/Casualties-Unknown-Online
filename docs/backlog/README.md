@@ -78,7 +78,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Enter opens the console as plain chat](review/enter-key-opens-plain-chat.md) — **Low** — guard fixed; the green re-run is owed.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.
@@ -173,6 +172,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Enter opens the console as plain chat](done/enter-key-opens-plain-chat.md) — **Low** — accepted 2026-10-24: E2 passes after the guard fix.
 - [Native-binding session parity](done/mod-native-binding-handshake-parity.md) — **Medium** — accepted 2026-10-24: the Admin row renders.
 - [Cheat permission and the op commands](done/cheat-permission-and-op-commands.md) — **Medium-High** — accepted 2026-10-24: the IP-direct row passed.
 - [A typo in a rule's config value silently widens it](done/config-clamp-silently-widens-rule-levels.md) — **Medium-High** — accepted: fallback first.

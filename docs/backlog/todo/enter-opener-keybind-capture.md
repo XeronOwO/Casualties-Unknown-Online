@@ -3,10 +3,10 @@
 - Status: Todo — found by the independent review of the Enter-guard fix (2026-10-24); pre-existing.
 - Priority: Low-Medium
 - Category: Online UI / input / native keyboard ownership
-- Source: the review of `docs/backlog/review/enter-key-opens-plain-chat.md` read the game's settings
+- Source: the review of `docs/backlog/done/enter-key-opens-plain-chat.md` read the game's settings
   key-bind capture and found it is not a text field, so the guard the opener asks cannot see it: the
   capture is a button-driven coroutine that binds whichever key is pressed.
-- Related: `docs/backlog/review/enter-key-opens-plain-chat.md` (the guard and its pause-menu limit),
+- Related: `docs/backlog/done/enter-key-opens-plain-chat.md` (the guard and its pause-menu limit),
   `src/CasualtiesUnknownOnline.GameAdapter/OnlineUiKeyboardFacts.cs` (the reading),
   `src/CasualtiesUnknownOnline.Plugin/OnlineUiHost.cs` (`/` and Enter share one opener gate).
 

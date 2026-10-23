@@ -1,9 +1,11 @@
 # Enter should open the console as plain chat
 
-- Status: Review — the guard fixed 2026-10-24 (the active-in-hierarchy reading); awaiting the green
-  re-run of row E2 on the fixed artifact. The earlier rejection (batch `20261018-t`: row E2 **fails** — after
+- Status: Done — the guard fixed 2026-10-24 and row E2 **passes** on the fixed artifact in batch
+  `20261024-a` (`docs/evidence/acceptance/enter-key-opens-plain-chat-20261024-a.md`: the closed game console
+  reads `guard=false` where the pre-fix build read `true`, and Return opens the CUO console with an empty
+  field). The earlier rejection (batch `20261018-t`: row E2 **fails** — after
   the game's own console has been opened and closed, the event system still names its input as the selected object, so
-  `OnlineUiKeyboardFacts.IsATextFieldFocused` stays true and the Enter/Slash opener is refused until
+  `IsATextFieldFocused` stayed true and the Enter/Slash opener was refused until
   something else takes the selection. The clean-state opener, the swallow, the submit, the chat delivery and
   both no-open surfaces pass; record
   `docs/evidence/acceptance/enter-key-opens-plain-chat-20261018-t.md`).
@@ -142,3 +144,11 @@ game's own console is toggled with the existing `key-hold bind=console`.
 - **A disabled text field that keeps the selection still answers true.** A field that cannot take keys over-blocks
   the opener; no game surface was observed doing that, and the alternative (reading `isFocused` per component)
   would miss the console's stale field, which is the defect this fix exists for.
+
+## Accepted (batch `20261024-a`, 2026-10-24)
+
+Row E2 passed on `0.1.0+575ea2e3…`: in a two-client world, after the game's own console had been opened and
+closed through its `console` bind, the guard read `false` (the pre-fix build read `true` in the same state) and
+a posted Return opened the CUO console in plain-chat mode — the frame shows the console's banner with an empty
+input line. E6's premise was re-read in the same run (`active=true` → `guard=true`). Record:
+`docs/evidence/acceptance/enter-key-opens-plain-chat-20261024-a.md`.

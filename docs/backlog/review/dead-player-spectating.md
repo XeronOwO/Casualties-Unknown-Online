@@ -12,7 +12,7 @@
   rules surface, where KrokMP's three spectator switches belong), `src/CasualtiesUnknownOnline.GameAdapter/World/RespawnCoordinator.cs`
   and `src/CasualtiesUnknownOnline.Runtime/Session/World/RespawnPolicy.cs` (the revive/respawn paths that
   must put the camera back), `docs/backlog/review/middle-click-location-marker.md` (its recorded
-  "Dead/spectating" clause), `docs/backlog/review/enter-key-opens-plain-chat.md` (its input-context list
+  "Dead/spectating" clause), `docs/backlog/done/enter-key-opens-plain-chat.md` (its input-context list
   already names a death/spectator panel)
 
 ## What the game already gives us

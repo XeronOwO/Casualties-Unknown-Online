@@ -1,9 +1,13 @@
 # A limb component installed straight out of a bag leaves a contained kernel record behind
 
-- Status: Review — the seam rule fixed 2026-10-24 (a contained child whose container chain is rooted in the
+- Status: Done 2026-10-24 — the seam rule fixed (a contained child whose container chain is rooted in the
   sender's own carried inventory is admitted; the owner-field sibling in `MayReportOn` and the handler's home
-  check were aligned in the same cycle); the machine row below is owed, and the WORLD-item half is a decision
-  point (see below).
+  check were aligned in the same cycle), and the machine row passed on `0.1.0+7b02e9d3`
+  (`docs/evidence/acceptance/container-child-limb-install-keeps-a-contained-record-20261024-a.md`): a
+  contained tourniquet installed through the game's own `ApplyWoundItem` became `Applied` (revision 5), the
+  bag's next report left it alone, and the native `TakeOff` relocated the same id to the operator (revision 6,
+  condition kept). The WORLD-item half below stays a decision point for the user; it does not block this
+  ticket's defect, which was the contained record.
 - Priority: Low-Medium
 - Category: Item sync / kernel locations (the applied family's eligibility rule)
 - Source: found while fixing `done/pickup-early-return-kernel-relocation.md` (2026-10-20), which took the

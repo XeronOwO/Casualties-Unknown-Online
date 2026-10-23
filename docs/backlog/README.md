@@ -75,7 +75,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [A limb install from a bag keeps a contained record](review/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — seam fixed; row owed.
 
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
@@ -168,6 +167,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Limb install from a bag](done/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — accepted.
 - [S4 — Multiplayer restore and backups](done/save-multiplayer-restore-and-backups.md) — **High** — closed 2026-10-24: all stages and rows.
 - [S4.1 — Restore claim](done/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — accepted 2026-10-24: the IP-direct claim rows.
 - [S4.2 — The restore account surface](done/save-restore-account-surface.md) — **High** — accepted 2026-10-24: row 2's ambiguous claim.

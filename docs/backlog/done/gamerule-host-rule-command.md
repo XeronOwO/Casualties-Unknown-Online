@@ -209,8 +209,8 @@ config defect. Every finding is recorded here with what changed.
 - **MAJOR — the ticket claimed a compile-time switch guarantee that does not exist.** The plugin's switch
   has a discard arm, so a new rule compiles and fails at the console instead. **Fixed:** the design
   paragraph states the runtime refusal and the missing build-time check, and the limit is recorded.
-- **MAJOR — live documents still described the deleted `/hostrules`.** `review/cheat-permission-and-op-commands.md`
-  (the verb list and the stale-switch sentence), `review/mod-native-binding-handshake-parity.md` (the console
+- **MAJOR — live documents still described the deleted `/hostrules`.** `done/cheat-permission-and-op-commands.md`
+  (the verb list and the stale-switch sentence), `done/mod-native-binding-handshake-parity.md` (the console
   command, plus a pre-existing dangling `docs/api/mod-api.md` path) and the console selfcheck's structure
   bullet still named the old verb or the deleted types as current. **Fixed in part:** the three pages
   point at `/gamerule` (with a value where an edit is meant) and at the current types. The ticket's

@@ -1,7 +1,7 @@
 # Native-binding parity in the session handshake
 
-- Status: Review
-  **Batch `20261012-c` (offline) judged the three rows above: all pass** (`docs/evidence/acceptance/mod-native-binding-handshake-parity-20261012-c.md`). **One row is still unjudged and keeps this ticket open**: the Online UI's native-binding-parity row. The offline run claimed it as a user residual and was wrong to: the machine is free and a two-client run decides it, so it is the next session batch's row, not a person's.
+- Status: Done
+  **Batch `20261012-c` (offline) judged the three rows above: all pass** (`docs/evidence/acceptance/mod-native-binding-handshake-parity-20261012-c.md`). **The Online UI's native-binding-parity row passed in batch `20261024-a`** on `0.1.0+2dfe2071…`: the host's Admin page rendered the row (`原生绑定一致性`, value `警告`) in a real two-client world, and the page's control list named `admin.rule_native_binding_parity` (`docs/evidence/acceptance/mod-native-binding-handshake-parity-20261024-a.md`).
 - Priority: Medium
 - Category: Protocol / Mod API
 - Depends on: [Native-binding mods declare it instead of hiding](../done/mod-native-binding-declaration.md)
@@ -83,3 +83,14 @@ clean.
 - An equal declaration does not prove equal behaviour: the same name may cover different patches.
 - The Online UI row and the config entry are not covered by automated tests (the Plugin layer has no
   test host), so that surface is verified by the user on the physical machine.
+
+## Accepted (2026-10-24)
+
+The UI row passed in batch `20261024-a` on `0.1.0+2dfe2071…`: in a real two-client world the host's
+Online UI Admin page rendered the `原生绑定一致性` row with its value in force (`警告` = warn), and the
+page's offered controls named `admin.rule_native_binding_parity`; the frame is
+`parity-ui-admin.png` and the record is
+`docs/evidence/acceptance/mod-native-binding-handshake-parity-20261024-a.md`. The other three rows were
+judged in `20261012-c`. The row's EDIT path was not driven (the value stayed at its default); the three
+levels are covered by `HostRulesPolicyTests` and the console's `/gamerule` acceptance, and the Limits
+above still hold.

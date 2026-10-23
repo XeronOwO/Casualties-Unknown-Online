@@ -85,7 +85,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
-- [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — rows 2/4/5 pass; row 3 open.
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
@@ -173,6 +172,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Native-binding session parity](done/mod-native-binding-handshake-parity.md) — **Medium** — accepted 2026-10-24: the Admin row renders.
 - [Cheat permission and the op commands](done/cheat-permission-and-op-commands.md) — **Medium-High** — accepted 2026-10-24: the IP-direct row passed.
 - [A typo in a rule's config value silently widens it](done/config-clamp-silently-widens-rule-levels.md) — **Medium-High** — accepted: fallback first.
 - [The delivery-checklist gate reads no census](done/delivery-checklist-gate-census.md) — **Low** — accepted 2026-10-24; two censuses now guard it.

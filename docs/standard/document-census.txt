@@ -245,7 +245,7 @@ docs/backlog/review/mod-content-nested-member-contracts.md | keep | index | docs
 docs/backlog/review/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
-docs/backlog/review/mod-native-binding-handshake-parity.md | keep | index | docs/backlog/README.md
+docs/backlog/done/mod-native-binding-handshake-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-art-and-controls-overhaul.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
 docs/backlog/done/heal-cheat-command-state-reset.md | keep | index | docs/backlog/README.md
@@ -585,7 +585,8 @@ docs/evidence/acceptance/mod-item-authored-actions-20261011-k.md | keep | claim 
 docs/evidence/acceptance/mod-item-declaration-parity-20261011-j.md | keep | claim | docs/evidence/acceptance/20261011-j-scope.md
 docs/evidence/acceptance/mod-item-with-no-declared-tags-throws-20261012-b.md | keep | claim | docs/backlog/done/mod-item-with-no-declared-tags-throws.md
 docs/evidence/acceptance/mod-native-binding-declaration-20260927.md | keep | claim | docs/backlog/done/mod-native-binding-declaration.md
-docs/evidence/acceptance/mod-native-binding-handshake-parity-20261012-c.md | keep | claim | docs/backlog/review/mod-native-binding-handshake-parity.md
+docs/evidence/acceptance/mod-native-binding-handshake-parity-20261012-c.md | keep | claim | docs/backlog/done/mod-native-binding-handshake-parity.md
+docs/evidence/acceptance/mod-native-binding-handshake-parity-20261024-a.md | keep | claim | docs/backlog/done/mod-native-binding-handshake-parity.md
 docs/evidence/acceptance/mod-payload-null-collection-tolerance-20261012-c.md | keep | claim | docs/backlog/done/mod-payload-null-collection-tolerance.md
 docs/evidence/acceptance/mod-service-gameadapter-di-cycle-20260927.md | keep | claim | docs/backlog/done/mod-service-gameadapter-di-cycle.md
 docs/evidence/acceptance/network-traffic-baseline-20260927.md | keep | claim | docs/backlog/done/network-traffic-baseline.md

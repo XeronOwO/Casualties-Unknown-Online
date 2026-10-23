@@ -5,10 +5,10 @@
 - Priority: Low
 - Category: Documentation / reference integrity
 - Source: the first review of the `/gamerule` change found that
-  `review/mod-native-binding-handshake-parity.md` cites `docs/api/mod-api.md`, a path the documentation
+  `done/mod-native-binding-handshake-parity.md` (then in `review/`) cites `docs/api/mod-api.md`, a path the documentation
   reorganisation deleted. The second review corrected the inventory: a sweep of the live folders finds
   NINE references in FOUR tickets, and the deleted tree also carries the old modification-policy page.
-- Related: `review/mod-native-binding-handshake-parity.md`, `review/recipe-unlock-fallback.md`,
+- Related: `done/mod-native-binding-handshake-parity.md`, `review/recipe-unlock-fallback.md`,
   `review/pinyin-search-standalone-mod.md`, `resolved/bilingual-human-docs.md`, the pages that replaced the
   old tree (`docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md` and their Chinese
   pairs), and `docs/AGENTS.md` (the document standard and the census).
@@ -17,7 +17,7 @@
 
 The live backlog still points at the deleted tree, and at section numbers that no longer exist:
 
-- `review/mod-native-binding-handshake-parity.md` — three references to `docs/api/mod-api.md` §5 (the
+- `done/mod-native-binding-handshake-parity.md` (then in `review/`) — three references to `docs/api/mod-api.md` §5 (the
   handshake-matrix paragraph, the honest-boundary bullet, and the "handshake matrix gains the declaration
   column" bullet);
 - `review/recipe-unlock-fallback.md` — two references to `docs/api/mod-api.md` §7;
@@ -37,7 +37,7 @@ scope.
 - **Scope.** Every live folder — `todo/`, `review/`, `in-progress/`, `future/`, `watchlist/` — scanned for
   `docs/<path>.<ext>` references and checked against the tree; `done/`, `resolved/` and `evidence/` are
   point-in-time records and were excluded by design.
-- **Fixed (the nine).** `review/mod-native-binding-handshake-parity.md` — three references now name
+- **Fixed (the nine).** `done/mod-native-binding-handshake-parity.md` (then in `review/`) — three references now name
   `docs/en/reference/mod-api.md` and its "Handshake consistency" section;
   `review/recipe-unlock-fallback.md` — two now name the "Versioning discipline" section;
   `review/pinyin-search-standalone-mod.md` — three now name `docs/en/reference/mod-api.md`'s "Resource

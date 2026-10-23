@@ -72,8 +72,12 @@ The rules it makes explicit, each pinned by `CraftChainResolverTests` (11 cases)
   first and the target's own click last (not listed);
 - a recipe already on the chain's path is never reused (a cycle is not a chain), a line naming a quality takes
   only units carrying it, and the depth limit (8) ends a chain rather than hanging it;
-- the line that stops a chain is returned as its blocker id, so the panel can say why instead of only
-  "cannot be crafted".
+- the model mirrors the game's OWN two ingredient shapes: a SPECIFIC line (an item id) and a TAG line (a
+  crafting quality any unit carrying it satisfies, `CraftIngredient.OfQuality`, with an item carrying several
+  tags matching any of them). A tag line is satisfied only from what is held — the model does not know what tags
+  a crafted unit would carry, so it names the tag as the blocker instead of inventing one;
+- the line that stops a chain is returned as its blocker id (or, for a tag line, the quality), so the panel can
+  say why instead of only "cannot be crafted".
 
 What remains for the ticket: the plug-in half that reads the game's recipe table and the player's inventory
 (the adapter), the panel's third state drawn through the existing recipe UI, the favourite mark (a UI filter the

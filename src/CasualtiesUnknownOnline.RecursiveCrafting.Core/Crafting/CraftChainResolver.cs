@@ -56,7 +56,7 @@ public static class CraftChainResolver
 				StringComparer.Ordinal);
 
 		var attempt = new Attempt(
-			[.. inventory.Select(stack => new HeldItem(stack.ItemId, stack.Amount, stack.Condition, stack.Quality))],
+			[.. inventory.Select(stack => new HeldItem(stack.ItemId, stack.Amount, stack.Condition, [.. stack.Qualities]))],
 			[]);
 		var path = new List<string> { target.Id };
 		var blocker = TrySatisfyAll(target.Ingredients, depth: 0, path, byResult, attempt);
@@ -88,6 +88,11 @@ public static class CraftChainResolver
 		return null;
 	}
 
+	/// <summary>
+	/// Null when every line was satisfied; otherwise the id (or, for a tag line, the quality) that stopped the
+	/// chain. A TAG line is satisfied only from the inventory: this model does not know what qualities a crafted
+	/// unit carries, so it never invents one — the honest answer is "not in hand", with the tag named.
+	/// </summary>
 	private static string? TrySatisfyLine(
 		CraftIngredient ingredient,
 		int depth,
@@ -95,6 +100,7 @@ public static class CraftChainResolver
 		Dictionary<string, CraftRecipe[]> byResult,
 		Attempt attempt)
 	{
+		var blockerName = ingredient.ItemId ?? ingredient.Quality ?? "?";
 		while (true)
 		{
 			if (TryConsume(attempt.Held, ingredient))
@@ -102,14 +108,14 @@ public static class CraftChainResolver
 				return null;
 			}
 
-			if (depth >= MaximumDepth || !byResult.TryGetValue(ingredient.ItemId, out var candidates))
+			if (depth >= MaximumDepth || ingredient.ItemId is null || !byResult.TryGetValue(ingredient.ItemId, out var candidates))
 			{
-				return ingredient.ItemId;
+				return blockerName;
 			}
 
 			if (!TryCraftOne(candidates, depth, path, byResult, attempt))
 			{
-				return ingredient.ItemId;
+				return blockerName;
 			}
 		}
 	}
@@ -136,7 +142,7 @@ public static class CraftChainResolver
 				continue;
 			}
 
-			trial.Held.Add(new HeldItem(candidate.ResultItemId, candidate.ResultAmount, 1f, quality: null));
+			trial.Held.Add(new HeldItem(candidate.ResultItemId, candidate.ResultAmount, 1f, []));
 			trial.Steps.Add(new CraftStep(candidate.Id, 1));
 			attempt.ReplaceWith(trial);
 			return true;
@@ -149,10 +155,12 @@ public static class CraftChainResolver
 	private static bool TryConsume(List<HeldItem> held, CraftIngredient ingredient)
 	{
 		var matches = held
-			.Where(stack => string.Equals(stack.Id, ingredient.ItemId, StringComparison.Ordinal))
-			.Where(stack => ingredient.Quality is null || string.Equals(stack.Quality, ingredient.Quality, StringComparison.Ordinal))
+			.Where(stack => ingredient.ItemId is null || string.Equals(stack.Id, ingredient.ItemId, StringComparison.Ordinal))
+			.Where(stack => ingredient.Quality is null || stack.Qualities.Contains(ingredient.Quality, StringComparer.Ordinal))
 			.OrderByDescending(stack => stack.Condition)
-			.ThenBy(stack => stack.Quality ?? string.Empty, StringComparer.Ordinal)
+			// Deterministic across stacks of equal condition: by id, then the tag list's own first tag.
+			.ThenBy(stack => stack.Id, StringComparer.Ordinal)
+			.ThenBy(stack => stack.Qualities.Length > 0 ? stack.Qualities[0] : string.Empty, StringComparer.Ordinal)
 			.ToList();
 
 		var plan = new List<(HeldItem Stack, int Take)>();
@@ -192,7 +200,7 @@ public static class CraftChainResolver
 	}
 
 	/// <summary>One mutable held stack; the public model is immutable, this is the resolver's working copy.</summary>
-	private sealed class HeldItem(string id, int amount, float condition, string? quality)
+	private sealed class HeldItem(string id, int amount, float condition, string[] qualities)
 	{
 		internal string Id { get; } = id;
 
@@ -200,9 +208,9 @@ public static class CraftChainResolver
 
 		internal float Condition { get; } = condition;
 
-		internal string? Quality { get; } = quality;
+		internal string[] Qualities { get; } = qualities;
 
-		internal HeldItem Copy() => new(Id, Amount, Condition, Quality);
+		internal HeldItem Copy() => new(Id, Amount, Condition, [.. Qualities]);
 	}
 
 	/// <summary>One attempt's working state: what is held and the steps taken so far.</summary>

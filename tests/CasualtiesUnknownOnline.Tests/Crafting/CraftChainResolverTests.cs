@@ -22,8 +22,11 @@ public class CraftChainResolverTests
 	private static CraftIngredient Line(string id, int amount = 1, string? quality = null, float condition = 1f) =>
 		new(id, amount, quality, condition);
 
-	private static CraftStack Held(string id, int amount = 1, float condition = 1f, string? quality = null) =>
-		new(id, amount, condition, quality);
+	private static CraftStack Held(string id, int amount = 1, float condition = 1f, params string[] qualities) =>
+		new(id, amount, condition, qualities);
+
+	/// <summary>A tag line: no item id, a crafting quality any held unit carrying it may satisfy.</summary>
+	private static CraftIngredient Tag(string quality, float condition = 1f) => CraftIngredient.OfQuality(quality, condition);
 
 	private static CraftResolution Resolve(CraftRecipe target, IEnumerable<CraftRecipe> recipes, params CraftStack[] inventory) =>
 		CraftChainResolver.Resolve(target, recipes.ToList(), inventory.ToList());
@@ -104,8 +107,34 @@ public class CraftChainResolverTests
 	{
 		var target = Recipe("bandage", "bandage", Line("herb", quality: "strong"));
 
-		Assert.Equal(CraftReachability.Now, Resolve(target, [], Held("herb", quality: "strong")).Reachability);
-		Assert.Equal(CraftReachability.Unreachable, Resolve(target, [], Held("herb", quality: "weak")).Reachability);
+		Assert.Equal(CraftReachability.Now, Resolve(target, [], Held("herb", qualities: ["strong"])).Reachability);
+		Assert.Equal(CraftReachability.Unreachable, Resolve(target, [], Held("herb", qualities: ["weak"])).Reachability);
+	}
+
+	/// <summary>
+	/// A TAG line names no item: any unit carrying the quality satisfies it, and a crafted unit (no qualities in
+	/// this model) cannot — so the tag is reported as the blocker instead of being invented.
+	/// </summary>
+	[Fact]
+	public void ATagLine_IsSatisfiedByAnyUnitCarryingTheQuality()
+	{
+		var target = Recipe("rope", "rope", Tag("foliage", condition: 2f));
+
+		Assert.Equal(CraftReachability.Now, Resolve(target, [], Held("leaf", condition: 1f, qualities: ["foliage", "soft"]), Held("vine", condition: 1f, qualities: ["foliage"])).Reachability);
+		Assert.Equal(CraftReachability.Unreachable, Resolve(target, [], Held("stone", qualities: ["hard"])).Reachability);
+	}
+
+	/// <summary>A tag line is not produced by a recipe in this model: the resolver says so rather than guessing what a crafted unit would carry.</summary>
+	[Fact]
+	public void ATagLineWithNoHeldUnit_NamesTheTag()
+	{
+		var target = Recipe("rope", "rope", Tag("foliage"));
+		var recipe = Recipe("weave-vine", "vine", Line("fiber"));
+
+		var result = Resolve(target, [recipe], Held("fiber"));
+
+		Assert.Equal(CraftReachability.Unreachable, result.Reachability);
+		Assert.Equal("foliage", result.Blocker);
 	}
 
 	[Fact]

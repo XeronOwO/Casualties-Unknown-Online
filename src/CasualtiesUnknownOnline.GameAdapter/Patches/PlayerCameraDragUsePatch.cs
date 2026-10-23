@@ -22,13 +22,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// finalizer closes the window even when the native body throws, so a failed
 /// release cannot leak the window into the next frame.
 ///
-/// Three outcomes are decided here rather than by the window: a proxy that cannot
-/// be resolved is cancelled before the native body can mutate it (fail closed); a
-/// LOCAL item released on another player's displayed backpack is a GIVE, decided
-/// before the in-range USE the same release could otherwise be (the user's
-/// 2026-10-22 ruling — the release's landing place decides, not the item); and a
-/// local item released over an in-world remote player keeps the landed
-/// cross-player use route.
+/// Three outcomes are decided here rather than by the window: a proxy that cannot be resolved is cancelled before
+/// the native body can mutate it (fail closed); a LOCAL-item drag inside the player's OWN UI is left entirely to
+/// the native local action (user ruling 2026-10-23 — the detection range is not read there); and, while another
+/// player's backpack is DISPLAYED, a release on one of its slots is a GIVE (user ruling 2026-10-22 — the landing
+/// place decides, not the item) while a release on its CENTRE is the USE/WEAR of the displayed player (the range no
+/// longer decides a use). A release anywhere else keeps the native drop.
 /// </summary>
 [HarmonyPatch(typeof(PlayerCamera), "HandleReleaseDragging")]
 internal static class PlayerCameraDragUsePatch
@@ -44,33 +43,50 @@ internal static class PlayerCameraDragUsePatch
 
 		if (dragItem.GetComponent<RemoteCloneRender>() == null) // Unity object — ==
 		{
-			// The displayed backpack comes FIRST: a release on it is the GIVE, even when the cursor's world
-			// point is also inside the player's detection range (where a release would be a USE). The player's
-			// 2026-10-22 ruling separates the two outcomes by where the release lands, not by the item. The
-			// target resolution is the ONE shared with the cue, so the label and the release cannot name
-			// different players.
-			if (PatchBridge.Impl is { } giveBridge)
+			// A drag inside the player's OWN UI is theirs alone (user ruling 2026-10-23): no other player's range
+			// is read, so the release keeps the game's local action even when the cursor's world point happens to
+			// sit inside somebody's detection range.
+			var mode = GiveGestureModePolicy.Read(__instance);
+			if (mode == GiveGestureMode.OwnUi)
 			{
-				var proxyTarget = DragGiveTargetResolver.Resolve(dragItem, __instance, uiCasts);
-				if (proxyTarget is { } target)
-				{
-					// The answer says whether the intent actually went out: a refused give (a view-only pack, an
-					// item with no authoritative id) must not keep the drag-opened backpack open.
-					__state.Give = giveBridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description, target.TargetItemInstanceId, target.TargetSlotIndex);
-					ClearDrag(__instance);
-					return;
-				}
-			}
-
-			// A LOCAL item released over an in-world remote player is the landed
-			// cross-player use-by-drag gesture: it consumes the release here,
-			// before the native body can treat it as a local drop.
-			if (PatchBridge.Impl?.TryHandleDraggedItemUseOnRemote(dragItem, __instance.body) == true)
-			{
-				ClearDrag(__instance);
 				return;
 			}
 
+			if (mode == GiveGestureMode.DisplayedBackpack)
+			{
+				// The displayed backpack comes FIRST: a release on it is the GIVE, even when the cursor's world
+				// point is also inside the player's detection range (user ruling 2026-10-22). The target
+				// resolution is the ONE shared with the cue, so the label and the release cannot name different
+				// players.
+				if (PatchBridge.Impl is { } giveBridge)
+				{
+					var proxyTarget = DragGiveTargetResolver.Resolve(dragItem, __instance, uiCasts);
+					if (proxyTarget is { } target)
+					{
+						// The answer says whether the intent actually went out: a refused give (a view-only pack, an
+						// item with no authoritative id) must not keep the drag-opened backpack open.
+						__state.Give = giveBridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description, target.TargetItemInstanceId, target.TargetSlotIndex);
+						ClearDrag(__instance);
+						return;
+					}
+				}
+
+				// The displayed backpack's CENTRE is the use/wear target (user ruling 2026-10-23): the detection
+				// range no longer decides a use. An item with no use/wear action is still consumed here — the
+				// native centre would otherwise use or wear it on the GIVER.
+				if (DragUseCenter.IsUnderPointer(__instance))
+				{
+					PatchBridge.Impl?.TryHandleDraggedItemUseOnRemote(dragItem, __instance.body);
+					__state.Center = true;
+					ClearDrag(__instance);
+					return;
+				}
+
+				// Anywhere else the game's own drop semantics run: the range only chose whose backpack is shown.
+				return;
+			}
+
+			// World: no displayed backpack, so nothing of this family applies; the native release keeps the drop.
 			return;
 		}
 
@@ -101,7 +117,7 @@ internal static class PlayerCameraDragUsePatch
 		__state.ProxyWindow = true;
 	}
 
-	private static void Finalizer(ReleaseState __state)
+	private static void Finalizer(PlayerCamera __instance, ReleaseState __state)
 	{
 		if (__state.ProxyWindow)
 		{
@@ -109,8 +125,18 @@ internal static class PlayerCameraDragUsePatch
 			return;
 		}
 
+		if (__state.Center)
+		{
+			// Keep the displayed backpack open after a centre use/wear (the vanilla single-player ring stays open).
+			// The native body just ran its "release with no drag left" branch, which only keeps the ring while a UI
+			// graphic is under the pointer — and the centre graphic is HIDDEN in the remote view, so it cleared
+			// radialOpen. Re-assert the ring here, before the stale path can close the focus on the next frame.
+			__instance.radialOpen = true;
+			return;
+		}
+
 		// The drag opened the displayed backpack by itself; a release that gave the item away keeps it (the
-		// item's landing is what the giver is looking at), every other outcome closes it so the player's own
+		// item's landing is what the giver is looking at). Every other outcome closes it so the player's own
 		// inventory comes back. A view the player opened from the player panel is not the drag's and stays.
 		if (__state.AutoOpened && !__state.Give && RemoteBackpackView.IsOpen)
 		{
@@ -120,14 +146,16 @@ internal static class PlayerCameraDragUsePatch
 
 	/// <summary>
 	/// The release's own state across the native body: whether the display-proxy intent window was opened
-	/// (the finalizer must close and emit it), whether the view open at the release was the drag's own, and
-	/// whether the release actually gave the item away (a give keeps that view).
+	/// (the finalizer must close and emit it), whether the view open at the release was the drag's own, whether the
+	/// release actually gave the item away (a give keeps that view), and whether it was a centre use/wear (which
+	/// keeps it too and re-asserts the native ring).
 	/// </summary>
 	private struct ReleaseState
 	{
 		internal bool ProxyWindow;
 		internal bool AutoOpened;
 		internal bool Give;
+		internal bool Center;
 	}
 
 	/// <summary>

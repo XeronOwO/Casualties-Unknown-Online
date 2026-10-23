@@ -4,21 +4,22 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
-/// The give gesture's release-order pin (user ruling 2026-10-22): a release on the displayed backpack is a
-/// GIVE even when the cursor's world point is also inside the player's detection range, where the same
-/// release would be a USE. The order lives in one <c>if</c> that a later edit can silently swap, and a scene
-/// test is the only other thing that could see it, so it is pinned here.
+/// The give gesture's context and release-order pins. The user's ruling of 2026-10-23 splits the drag by context:
+/// inside the player's own UI nothing crosses to another player; in the world the detection range chooses whose
+/// backpack is displayed; and a displayed backpack gives on a slot and uses/wears on its centre. The 2026-10-22
+/// ruling still orders the displayed backpack before anything else.
 ///
 /// <para>
-/// The second check is the refusal half: the close rule keeps the drag-opened backpack only for a give that
-/// actually went out. The seam's answer is what proves it — a refused give (view-only pack, an item with no
-/// authoritative id) must close the view, so the flag must come from the call's answer and the finalizer must
-/// read it.
+/// The refusal half stays: the close rule keeps the drag-opened backpack only for a give that actually went out
+/// and for a centre use/wear (the vanilla ring stays open), so the flag must come from the call's answer and the
+/// finalizer must read it.
 /// </para>
 /// </summary>
 public class GiveGestureGateTests
 {
 	private const string ReleasePatchFile = "src/CasualtiesUnknownOnline.GameAdapter/Patches/PlayerCameraDragUsePatch.cs";
+
+	private const string OpenPatchFile = "src/CasualtiesUnknownOnline.GameAdapter/Patches/PlayerCameraDragGiveOpenPatch.cs";
 
 	private const string CueTrackerFile = "src/CasualtiesUnknownOnline.GameAdapter/DragUseCueTracker.cs";
 
@@ -64,13 +65,89 @@ public class GiveGestureGateTests
 	}
 
 	[Fact]
-	public void ADisplayedBackpackRelease_IsResolvedBeforeTheInRangeUse()
+	public void AReleaseInsideThePlayersOwnUi_IsNeverCrossPlayer()
+	{
+		// The own-UI gate must run BEFORE any cross-player resolution: while the player's own ring or a panel is
+		// open, a drag means the local body, whatever the cursor's world point is (user ruling 2026-10-23).
+		var release = RepositoryPaths.ReadText(ReleasePatchFile);
+		Assert.Contains("GiveGestureModePolicy.Read(", release, StringComparison.Ordinal);
+		Assert.Contains("GiveGestureMode.OwnUi", release, StringComparison.Ordinal);
+		Assert.True(
+			OrderHolds(release, "GiveGestureModePolicy.Read", "DragGiveTargetResolver.Resolve"),
+			"the own-UI gate must run before the displayed backpack's give resolution");
+
+		var open = RepositoryPaths.ReadText(OpenPatchFile);
+		Assert.Contains("GiveGestureModePolicy.Read(", open, StringComparison.Ordinal);
+		Assert.Contains("GiveGestureMode.OwnUi", open, StringComparison.Ordinal);
+		Assert.True(
+			OrderHolds(open, "GiveGestureMode.OwnUi", "AutoOpenRemoteBackpackForDrag"),
+			"the range must not be read while the player's own UI is open");
+
+		// The drag's selection must still END when the drag stops in the own UI: that path never reaches the
+		// item branch, and without this call the next gesture keeps the previous target's opened-for state.
+		Assert.Contains("AutoOpenRemoteBackpackForDrag(null)", open, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The displayed backpack's centre is the use/wear target (user ruling 2026-10-23): the detection range no
+	/// longer decides a use. The release consumes the centre even when the seam refuses, so the native centre can
+	/// never use or wear the item on the GIVER, and a centre release re-asserts the native ring (the native body
+	/// clears it because the centre graphic is hidden in the remote view).
+	/// </summary>
+	[Fact]
+	public void AReleaseOnTheDisplayedCentre_IsTheUse_AndKeepsTheBackpackOpen()
 	{
 		var source = RepositoryPaths.ReadText(ReleasePatchFile);
 
-		Assert.True(
-			OrderHolds(source, "DragGiveTargetResolver.Resolve", "TryHandleDraggedItemUseOnRemote"),
-			"the give resolution must run before the in-range use: a release on the displayed backpack is a GIVE even when the cursor is also inside the player's detection range");
+		Assert.Contains("DragUseCenter.IsUnderPointer(__instance)", source, StringComparison.Ordinal);
+		Assert.Contains("TryHandleDraggedItemUseOnRemote(dragItem, __instance.body);", source, StringComparison.Ordinal);
+		Assert.Contains("__state.Center = true;", source, StringComparison.Ordinal);
+		Assert.Contains("if (__state.Center)", source, StringComparison.Ordinal);
+		Assert.Contains("__instance.radialOpen = true;", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The centre hit test must NOT depend on the tagged Graphic: CUO's remote view hides the `RadialCenter` circle
+	/// (`AnchorRadialToFocus` disables it), so a UI raycast can never reach it while a displayed backpack is open.
+	/// The native guard's GEOMETRY is the judgment (ring open, pointer inside the centre circle); the batch
+	/// `20261023-e` review found the tag-gated version could never fire.
+	/// </summary>
+	[Fact]
+	public void TheCentreHitTest_DoesNotNeedTheHiddenTaggedGraphic()
+	{
+		var source = RepositoryPaths.ReadText("src/CasualtiesUnknownOnline.GameAdapter/DragUseCenter.cs");
+
+		Assert.Contains("inventoryUseLeniency", source, StringComparison.Ordinal);
+		Assert.Contains("radialCircle.transform.position", source, StringComparison.Ordinal);
+		Assert.Contains("rectTransform.sizeDelta.x * 0.5f", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("CompareTag(\"RadialCenter\")", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The centre use targets the DISPLAYED player (never a range target), the view-only pack refuses it, and the
+	/// live mode read names the four own panels: these are the three facts the pure matrix test cannot see.
+	/// </summary>
+	[Fact]
+	public void TheCentreUse_IsTheDisplayedPlayer_AndTheLiveModeReadsTheOwnPanels()
+	{
+		var cross = RepositoryPaths.ReadText("src/CasualtiesUnknownOnline.GameAdapter/CrossPlayerDragUse.cs");
+		Assert.Contains("TryUseOnDisplayed(", cross, StringComparison.Ordinal);
+		Assert.Contains("RemoteBackpackView.FocusedSteamId", cross, StringComparison.Ordinal);
+		Assert.Contains("RemoteBackpackView.IsReadOnly", cross, StringComparison.Ordinal);
+		Assert.Contains("!IsTargetInRange", cross, StringComparison.Ordinal);
+
+		var mode = RepositoryPaths.ReadText("src/CasualtiesUnknownOnline.GameAdapter/GiveGestureModePolicy.cs");
+		Assert.Contains("woundView.activeSelf", mode, StringComparison.Ordinal);
+		Assert.Contains("containerMenu.activeSelf", mode, StringComparison.Ordinal);
+		Assert.Contains("craftingPanel.activeSelf", mode, StringComparison.Ordinal);
+		Assert.Contains("tradeMenu.activeSelf", mode, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void TheCueAndTheRelease_ReadTheSameDisplayedCentre()
+	{
+		Assert.Contains("DragUseCenter.IsUnderPointer(", RepositoryPaths.ReadText(ReleasePatchFile), StringComparison.Ordinal);
+		Assert.Contains("DragUseCenter.IsUnderPointer(", RepositoryPaths.ReadText(CueTrackerFile), StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -80,13 +157,6 @@ public class GiveGestureGateTests
 
 		Assert.Contains("__state.Give = giveBridge.ReportLocalReleaseOntoProxy(", source, StringComparison.Ordinal);
 		Assert.Contains("__state.AutoOpened && !__state.Give", source, StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void TheCueAndTheRelease_ReadTheSameGiveResolution()
-	{
-		Assert.Contains("DragGiveTargetResolver.Resolve", RepositoryPaths.ReadText(ReleasePatchFile), StringComparison.Ordinal);
-		Assert.Contains("DragGiveTargetResolver.Resolve", RepositoryPaths.ReadText(CueTrackerFile), StringComparison.Ordinal);
 	}
 
 	[Fact]

@@ -76,6 +76,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [The give gesture respects the player's own UI](review/give-gesture-own-ui-and-center-use.md) — **Medium-High** — own UI stays local; the centre uses/wears.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.

@@ -88,7 +88,11 @@ release would drop shows nothing (so the cue teaches what can be handed over rat
 will not use), and a row without an identity shows nothing (so the label cannot disagree with the release).
 The 2026-10-22 give gesture added two facts the cue must honour, both in the same tracker: the target is the
 last-entered detection range (not the nearest walk), and on the displayed backpack the release is a GIVE, so
-the cue asks the same `DragGiveTargetResolver` the release does and hides its USE label there.
+the cue asks the same `DragGiveTargetResolver` the release does and hides its USE label there. **Re-based
+2026-10-23:** the USE moved from the range to the displayed backpack's CENTRE (`review/give-gesture-own-ui-and-center-use.md`),
+so the cue now names the displayed player only while the pointer is on that centre (`DragUseCenter`, the same
+hit test the release reads) and shows nothing on a slot (a give). The range now only chooses whose backpack is
+displayed.
 
 **Three things the reading settled, so the wiring does not have to re-derive them:**
 
@@ -102,10 +106,11 @@ the cue asks the same `DragGiveTargetResolver` the release does and hides its US
   (`OnlineUiContext.DisplayName`), next to `RemoteBackpackView`'s and `RemoteMedicalView`'s copies of the same
   fallback. So the cue carries the steam id and the overlay resolves the name; a name decided in the adapter
   would be a fourth answer to that question.
-- **The target must be the release's own resolution.** `CrossPlayerDragUse` reads the last-entered detection
-  range from `DragTargetSelection`; the cue has to read that same selection, not a second one, or the label and
-  the release can name different players — and it must also read the release's give resolution
-  (`DragGiveTargetResolver`), because on the displayed backpack the release is a give and the USE label lies.
+- **The target must be the release's own resolution.** The 2026-10-23 ruling moved the USE to the displayed
+  backpack's centre, so the cue reads that centre (`DragUseCenter`) exactly as the release does; the
+  last-entered detection range (`DragTargetSelection`/`CrossPlayerDragUse`) now only feeds the automatic open of
+  the displayed backpack. A second copy of either resolution would let the label and the release name different
+  players.
 
 ## Limits this stage leaves
 

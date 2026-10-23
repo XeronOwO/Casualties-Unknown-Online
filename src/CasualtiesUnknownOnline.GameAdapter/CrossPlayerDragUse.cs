@@ -7,18 +7,18 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
-/// KrokMP-style cross-player item use by drag: when the local player releases a
-/// usable inventory item over an in-world remote player, this routes the existing
-/// cross-player use request instead of letting the native drop path run. Remote
-/// render clones deliberately have no colliders, so overlap is a world-space radius
-/// around the authoritative stream position rather than Physics2D.OverlapPoint.
+/// KrokMP-style cross-player item use by drag: when the local player releases a dragged item on the DISPLAYED
+/// backpack's centre, this routes the existing cross-player use request instead of letting the native local action
+/// run. The detection range no longer decides the release (user ruling 2026-10-23): it only chooses whose backpack
+/// is displayed. Remote render clones deliberately have no colliders, so overlap is a world-space radius around
+/// the authoritative stream position rather than Physics2D.OverlapPoint.
 ///
 /// <para>
-/// The target is the user's 2026-10-22 rule (<see cref="DragTargetSelection"/>): the player whose detection
-/// range the cursor entered last and still occupies. The same selection also opens that player's backpack
-/// for the drag, which is the give gesture's entry: entering a range opens the backpack, releasing inside
-/// the range uses the item on the player, and moving onto the displayed backpack gives it to them. One
-/// resolution feeds the release, the cue and the open, so the three cannot disagree about the target.
+/// The target is the player whose backpack is displayed. The same selection opens that backpack when the cursor
+/// enters a range, which is the give gesture's entry: entering a range opens the backpack, releasing on one of its
+/// slots gives, releasing on its centre uses or wears the item on that player, and a release anywhere else keeps
+/// the game's own drop semantics. The give gesture's own-UI gate lives at the two patches
+/// (<see cref="GiveGestureModePolicy"/>): while the player's own ring or a panel is open, nothing here runs.
 /// </para>
 /// </summary>
 internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
@@ -30,13 +30,17 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 	private bool _dragActive;
 	private ulong _openedFor;
 
-	/// <summary>Whether the cursor is inside the current target's detection range — the condition for a USE.</summary>
+	/// <summary>
+	/// Whether the cursor is inside the current target's detection range — the condition the give's automatic open
+	/// reads. A USE is no longer decided by the range: it is the displayed backpack's centre (user ruling
+	/// 2026-10-23).
+	/// </summary>
 	internal bool IsTargetInRange => _selection.IsTargetInRange;
 
 	/// <summary>
-	/// The single per-frame read of the gesture: starts a drag, ends one, and returns this frame's target.
-	/// Both the while-dragging cue and the automatic backpack open call it; the second call in one frame sees
-	/// the same ranges and returns the same target.
+	/// The single per-frame read of the targeting gesture: starts a drag, ends one, and returns this frame's target.
+	/// The automatic backpack open calls it every while-dragging frame; the second call in one frame sees the same
+	/// ranges and returns the same target. (The cue no longer reads the range: it names the displayed centre.)
 	/// </summary>
 	internal ulong? Observe(Item? dragItem)
 	{
@@ -101,7 +105,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return;
 		}
 
-		if (Observe(dragItem) is not { } target || target == _openedFor)
+		if (Observe(dragItem) is not { } target || !IsTargetInRange || target == _openedFor)
 		{
 			return;
 		}
@@ -166,7 +170,14 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		RemoteBackpackView.ClearAutoOpened();
 	}
 
-	public bool TryHandleRelease(Item? dragItem, Body? localBody)
+	/// <summary>
+	/// The displayed backpack's centre release (user ruling 2026-10-23): the item is used or worn on the player whose
+	/// backpack is displayed. The detection range plays no part here — the displayed player IS the target; an item
+	/// with no use/wear action is consumed by the caller and nothing happens, so the native centre can never use or
+	/// wear it on the giver instead. A successful use does NOT close the backpack: the vanilla single-player ring
+	/// stays open after a centre use and this follows it.
+	/// </summary>
+	public bool TryUseOnDisplayed(Item? dragItem, Body? localBody)
 	{
 		if (dragItem == null || localBody == null) // Unity objects — ==
 		{
@@ -175,6 +186,23 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 
 		if (!domains.Session.SessionActive || !domains.Session.LocalInWorld)
 		{
+			return false;
+		}
+
+		var targetSteamId = RemoteBackpackView.FocusedSteamId;
+		if (targetSteamId == 0)
+		{
+			return false;
+		}
+
+		// The access contract says a view-only pack refuses EVERY operation, use and wear included
+		// (`RemoteBackpackAccess`: "every operation (take, move, drop, use, give) is refused"); the give path gets
+		// that from its intent, the centre use asks here.
+		if (RemoteBackpackView.IsReadOnly)
+		{
+			domains.Log.LogWarning(
+				"[DragUse] refused the use of {ItemId} on {Target}: the displayed backpack is view only.",
+				dragItem.id, targetSteamId);
 			return false;
 		}
 
@@ -190,12 +218,6 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		}
 
 		if (Camera.main == null) // Unity object — ==
-		{
-			return false;
-		}
-
-		// The release point counts: a release on a player the cursor has just reached is aimed at THAT player.
-		if (Observe(dragItem) is not { } targetSteamId || !IsTargetInRange)
 		{
 			return false;
 		}
@@ -228,24 +250,16 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 
 				break;
 			default:
-				// Injection, solid food and None: nothing to measure, the host answers by
-				// name. Solid food is the one family whose WHOLE action runs on the
-				// affected side — measuring it here would feed the operator, take the
+				// Injection, solid food, wearable and None: nothing to measure, the host
+				// answers by name. Solid food is the one family whose WHOLE action runs on
+				// the affected side — measuring it here would feed the operator, take the
 				// item out of their hands and play its sounds at the wrong body.
 				break;
 		}
 
 		domains.PlayerInteraction.SendUseRequest(targetSteamId, instanceId.Id, doseMl: doseMl);
-		domains.Log.LogInformation("[DragUse] dropped {ItemId} on {Target} (instance {Instance}).",
+		domains.Log.LogInformation("[DragUse] used {ItemId} on {Target} (instance {Instance}).",
 			dragItem.id, targetSteamId, instanceId.Id);
-
-		// The use ends the gesture's backpack (user's 2026-10-22 ruling): the release inside the range is a
-		// USE, not a look at the player's inventory.
-		if (RemoteBackpackView.IsOpen && RemoteBackpackView.FocusedSteamId == targetSteamId)
-		{
-			RemoteBackpackView.Close();
-		}
-
 		return true;
 	}
 

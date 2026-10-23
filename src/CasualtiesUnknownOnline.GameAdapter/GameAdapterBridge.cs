@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
@@ -11,7 +10,6 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -276,7 +274,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		domains.Log.LogWarning("[DragFlow] release fell through to the WORLD path (no UI target hit).");
 
 	public bool TryHandleDraggedItemUseOnRemote(Item dragItem, Body localBody) =>
-		domains.DragUse.TryHandleRelease(dragItem, localBody);
+		domains.DragUse.TryUseOnDisplayed(dragItem, localBody);
 
 	public bool TryHandleRemoteMedicalLimbUse(Item dragItem, int limbIndex) =>
 		_remoteMedicalOps.TryHandleLimbUse(dragItem, limbIndex);
@@ -459,7 +457,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		domains.LayerAdvance.OnHostDescent(twice);
 	}
 
-	public void UpdateDragUseCue(Item? dragItem, List<RaycastResult>? uiCasts) => domains.DragUseCue.Update(dragItem, uiCasts);
+	public void UpdateDragUseCue(Item? dragItem) => domains.DragUseCue.Update(dragItem);
 
 	public void OnFluidDrinkReported(Vector2Int pos) => domains.FluidSync.OnDrinkReported(pos);
 

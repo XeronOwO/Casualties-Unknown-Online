@@ -13,6 +13,11 @@
 
 ## Design (2026-10-22 — the user's ruling; this is the current design)
 
+**Superseded in part on 2026-10-23** by the user's own review: the entry and the use target now follow
+`review/give-gesture-own-ui-and-center-use.md` — the detection range is read only outside the player's own UI, the
+displayed backpack's CENTRE is the use/wear target, and a use no longer closes the backpack. The steps below are the
+2026-10-22 record; the row table is re-based to the current model.
+
 The gesture starts from the giver's own backpack and uses the game's existing drag. The user's ruling defines
 the whole input sequence, because the order the earlier design assumed — the other player's backpack already
 open when the drag starts — is not how the player reaches it.
@@ -77,16 +82,16 @@ no probe may stand in for the gesture:
 
 | # | Scenario | Expected |
 |---|---|---|
-| 1 | Drag the giver's own item into the receiver's detection range | The receiver's backpack opens by itself, with no other key pressed |
-| 2 | Release inside the range with an item that can be used on a player | The item is used on the receiver, and the backpack closes |
+| 1 | Close the giver's own backpack during the drag (the game's own toggle), then drag the item into the receiver's detection range | The receiver's backpack opens by itself, with no other key pressed; while the giver's own backpack is still open the range is not read at all |
+| 2 | Release on the CENTRE of the displayed backpack with an item that can be used or worn | The item is used/worn on the receiver, and the backpack stays open (the vanilla ring's behaviour) |
 | 3 | Drag from the range onto a ring slot of the displayed backpack and release | The give intent is sent; the item lands in a slot the receiver's own rules accept, and the host's row names that slot |
 | 4 | Drag onto a container item shown in the displayed backpack | The item enters that container when the receiver's own rules allow it, and the host's row names the container |
-| 5 | Drag across two players, then release | The player whose range was entered last is the target, for both the backpack and the use |
+| 5 | Drag across two players, then release | The player whose range was entered last is the target: their backpack replaces the first player's |
 | 6 | The receiver's body or container refuses (full, too heavy, hand-only with no hand) | The give fails, one line names why, and the item is still in the giver's inventory |
-| 7 | The same release onto the giver's OWN backpack | The native local move, unchanged |
-| 8 | Host policy `deny` / `unconscious_or_dead` | The open is refused (`deny`) or the give is refused with one line (view-only), nothing moves, and the drag-opened backpack closes after the refusal |
-| 9 | Cursor inside the target's range, on their body | The use label names that player (unit 1's cue) |
-| 10 | Cursor on the displayed backpack | No use label — the release there is a give (unit 1's cue) |
+| 7 | The same release onto the giver's OWN backpack | The native local move, unchanged (the own UI is local-only) |
+| 8 | Host policy `deny` / `unconscious_or_dead` | `deny`: the open is refused and no view exists, so the release keeps the native drop; view-only: the give is refused with one line and the drag-opened backpack closes after the refusal |
+| 9 | Cursor on the CENTRE of the displayed backpack | The use label names the displayed player (unit 1's cue) |
+| 10 | Cursor on a slot of the displayed backpack | No use label — the release there is a give (unit 1's cue) |
 
 ### The units
 
@@ -180,27 +185,31 @@ The two-client run on `0.1.0+fb782e5c` (record:
 
 ### How unit 1 landed (2026-10-22)
 
-- **The target and the give are two resolutions, each shared by every reader.** The target of a USE is
-  `DragTargetSelection` (last-entered range; the adapter feeds it the in-world remotes and the cursor, the
-  release and the cue read the same instance). The target of a GIVE is `DragGiveTargetResolver`, read by the
-  release patch AND by the cue (the cue patch passes the frame's UI raycasts), so the label can neither
-  promise a use where the release would give nor name a player the release would not use.
+- **The target and the give are two resolutions, each shared by every reader.** The display target is
+  `DragTargetSelection` (last-entered range; the adapter feeds it the in-world remotes and the cursor, and the
+  automatic open reads it). The target of a GIVE is `DragGiveTargetResolver`, read by the release patch; the use
+  target is the displayed backpack's centre (`DragUseCenter`, re-based 2026-10-23), read by the release patch and
+  by the cue. So the label can neither promise a use where the release would give nor name a player the release
+  would not use.
 - **The automatic open**: `PlayerCameraDragGiveOpenPatch` (its own patch on the game's while-dragging frame)
   forwards to `CrossPlayerDragUse.AutoOpenFor`, which opens through `RemoteBackpackCoordinator.Open` — so the
   access rule and the line-of-sight check are the same ones every other entry uses. A proxy drag opens
   nothing. The open also anchors the radial menu to the clone and rebuilds the wear strip itself, because
   the native ring-activation path that would do both does not run mid-drag; a missing render clone is retried
   on the next frame instead of spending the drag's entry on it.
-- **The release order is pinned**: the displayed backpack is resolved before the in-range use, and the pin is
-  `GiveGestureGateTests.ADisplayedBackpackRelease_IsResolvedBeforeTheInRangeUse` (with its matcher contract).
-- **The close rule**: the drag-opened backpack stays only for a give whose intent actually went out — the
-  patch reads the seam's answer, so a refused give (a view-only pack, an item with no authoritative id)
-  closes it. A use closes whatever backpack is showing the target; a drop closes the drag-opened one. A
-  player-opened backpack is not closed by a drop.
-- **The cue**: `DragUseCueTracker` names the target while the cursor is inside its range and the displayed
-  backpack does not claim the release; on the displayed backpack it hides, because the release is a give. The
-  DECISION was correct; the DRAWING did not exist — the plugin never called `DragUseCueOverlay.Draw`, which is what
-  the 20261022-f batch's row 9 found (see that section above). The wiring is part of the same cycle's fix.
+- **The context and the centre are pinned**: the own-UI gate runs before every cross-player resolution, and the
+  displayed backpack's centre is the use/wear target — `GiveGestureGateTests.AReleaseInsideThePlayersOwnUi_IsNeverCrossPlayer`
+  and `AReleaseOnTheDisplayedCentre_IsTheUse_AndKeepsTheBackpackOpen` (with the matcher contract).
+- **The close rule**: the drag-opened backpack stays for a give whose intent actually went out (the patch reads
+  the seam's answer, so a refused give — a view-only pack, an item with no authoritative id — closes it) and for a
+  CENTRE use/wear, whose native ring stays open by vanilla behaviour (re-based 2026-10-23; the finaliser re-asserts
+  the ring because CUO hides the centre graphic). A drop closes the drag-opened one. A player-opened backpack is
+  not closed by a drop.
+- **The cue**: `DragUseCueTracker` names the displayed player only while the pointer is on the displayed
+  backpack's CENTRE — the use/wear target (re-based 2026-10-23; it named the range target before). On a slot it
+  hides, because the release there is a give. The DECISION was correct; the DRAWING did not exist — the plugin never
+  called `DragUseCueOverlay.Draw`, which is what the 20261022-f batch's row 9 found (see that section above). The
+  wiring is part of the same cycle's fix.
 
 > **The 2026-10-22 defect note, kept as history**: the order the earlier design assumed — the other player's
 > backpack already open when the giver's drag starts — is not performable: while that view is open the ring
@@ -215,10 +224,11 @@ The review ran in a fresh context against the frozen tree. Every finding is reco
 named, because a fixed finding that is not written down is one the next cycle re-learns.
 
 - **Major — the cue could promise a USE where the release gives.** The cue read only the target selection,
-  while the release's first branch is the displayed backpack. **Changed:** one shared give resolution
+  while the release's first branch is the displayed backpack. **Changed (2026-10-22):** one shared give resolution
   (`DragGiveTargetResolver`) is read by the release patch and by the cue (whose port now carries the frame's
-  UI raycasts), and the cue hides on the displayed backpack. Pin:
-  `GiveGestureGateTests.TheCueAndTheRelease_ReadTheSameGiveResolution`.
+  UI raycasts). **Re-based (2026-10-23):** the use target moved from the range to the displayed backpack's centre,
+  so the cue now names the displayed player only while the pointer is on that centre. Pin:
+  `GiveGestureGateTests.TheCueAndTheRelease_ReadTheSameDisplayedCentre`.
 - **Major — a REFUSED give kept the drag-opened backpack.** The release recorded "gave" as soon as a target
   resolved, before the dispatcher's refusals (a view-only pack, an item with no authoritative id).
   **Changed:** the seam answers `bool` (intent sent / refused) and the close flag reads that answer; the

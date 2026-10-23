@@ -333,10 +333,10 @@ internal interface IPatchBridge
 	void OnDragReleasedToWorld();
 
 	/// <summary>
-	/// PlayerCamera.HandleReleaseDragging released a dragged item over an
-	/// in-world remote player. Returns true when the cross-player use request was
-	/// sent (the native drop must be skipped), false to let the original drop
-	/// path run.
+	/// PlayerCamera.HandleReleaseDragging released a dragged item on the DISPLAYED backpack's centre (user ruling
+	/// 2026-10-23). The return says whether the cross-player use/wear request went out; it is false when no request
+	/// could be sent (no displayed target, the session is not live, the item has no use/wear action, or the pack is
+	/// view only). The caller consumes the release either way, so the native centre can never act on the giver.
 	/// </summary>
 	bool TryHandleDraggedItemUseOnRemote(Item dragItem, Body localBody);
 

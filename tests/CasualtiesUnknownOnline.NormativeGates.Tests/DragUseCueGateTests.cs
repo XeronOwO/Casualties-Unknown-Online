@@ -98,7 +98,7 @@ public class DragUseCueGateTests
 			StringComparison.Ordinal);
 		Assert.Contains(
 			"Input.GetKey(KeyBinds.GetBind(\"iteminteract\"))",
-			SourceScan.MethodBody(tracker, "internal void Update(Item? dragItem, List<RaycastResult>? uiCasts)"),
+			SourceScan.MethodBody(tracker, "internal void Update(Item? dragItem)"),
 			StringComparison.Ordinal);
 	}
 

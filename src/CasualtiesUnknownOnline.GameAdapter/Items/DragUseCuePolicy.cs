@@ -7,9 +7,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// The user's requirement is that the cue NAMES the player, and that is not decoration:
 /// two players standing on each other cannot be told apart by a highlight, so a named
 /// label is what makes a release a decision instead of a guess (user ruling 2026-10-06).
-/// The target here is the same last-entered range the release itself uses for the USE, and
-/// the caller hides the cue when the pointer is on the displayed backpack (where the release
-/// is a GIVE), so the label and the release cannot disagree about what the release does.
+/// The target here is the player whose backpack is DISPLAYED, passed only while the pointer is on
+/// its centre — the use/wear target (user ruling 2026-10-23). A release on a slot is a give and
+/// shows no use label, and the detection range no longer names a use at all.
 /// </para>
 /// <para>
 /// The cue appears only for an item the family gate ACCEPTS — the ticket's own

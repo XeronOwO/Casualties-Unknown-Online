@@ -298,6 +298,7 @@ docs/backlog/review/give-item-to-another-player.md | keep | index | docs/backlog
 docs/backlog/todo/restore-refused-child-keeps-its-id.md | keep | index | docs/backlog/README.md
 docs/backlog/review/placement-outcome-never-returns.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/placement-failure-report-anchor.md | keep | index | docs/backlog/README.md
+docs/backlog/review/give-gesture-own-ui-and-center-use.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
 docs/backlog/done/give-item-to-a-player-command.md | keep | index | docs/backlog/README.md

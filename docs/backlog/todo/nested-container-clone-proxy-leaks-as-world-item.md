@@ -84,3 +84,19 @@ reading has not followed that path.
 - **Family**: the sweep that fixed the sibling ticket covered the four classifiers that take authority over an
   "id-less standalone world item" (`AdoptTargetGateTests`); this path's entry is `ItemWorldSync.OnItemInstantiated`,
   which is the fifth, and the fix's regression case belongs beside that gate.
+
+## The fixture, searched for on the machine (2026-10-24)
+
+The ticket's first job is a runtime confirmation, and the precondition is a container that HOLDS a container
+whose own contents are non-empty. A read-only probe walked the live world's item tree (`Item` objects, their
+`Container` components, and each content's own `transform.childCount` — `Container.itemCount` IS the child
+count):
+
+- first read while the layer was still generating: 0 items;
+- second read once the layer was up: **269 items, 6 containers, 0 containers holding a container with contents.**
+
+So on a freshly generated layer of this build, the world-generation source the ticket names does not produce the
+shape in this run: the precondition has to come from a declared/scene fixture or a hand-built one, which the
+ticket's own reachability section lists but no batch has staged. The defect stays unconfirmed at runtime, as the
+ticket says; the scan is the cheapest repeatable way to check a future world or a future game build. The ticket
+stays `todo` for the confirmation (and then the fix at the door the reading names).

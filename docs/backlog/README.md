@@ -71,10 +71,11 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The opener can claim a key the game is rebinding](todo/enter-opener-keybind-capture.md) — **Low-Medium** — the key-bind capture is not a text field.
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 - [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
-- [A drink measurement can run a destructive action](todo/drink-measurement-destructive-use-action.md) — **Medium-High** — a refilled blood bag draws blood.
 ### In progress
 
 ### Review
+
+- [A drink measurement can run a destructive action](review/drink-measurement-destructive-use-action.md) — **Medium-High** — classified first; row owed.
 
 - [A limb install from a bag keeps a contained record](review/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — seam fixed; row owed.
 

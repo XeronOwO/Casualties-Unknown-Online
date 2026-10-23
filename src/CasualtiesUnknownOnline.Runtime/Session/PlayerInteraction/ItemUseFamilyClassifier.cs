@@ -20,9 +20,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// usable liquid container can also be injectable (a blood bag's own use action
 /// draws blood) and the drink measurement must not run that action. That refusal is
 /// keyed on the STACKS; a usable container whose stacks carry no injectable flag is
-/// a drink by its own data, and the measurement runs its action before it can
-/// refuse — the drink chain's recorded limit
-/// (<see cref="ItemUseFamily.Injection"/>).
+/// a drink by its own data, and the drink measurement classifies the DEFINITION
+/// before running it, so a non-drink action is refused unrun
+/// (`review/drink-measurement-destructive-use-action.md`).
 /// </para>
 /// <para>
 /// An item whose data satisfies one entry's family and the other entry's is not a

@@ -27,7 +27,7 @@ the entry an input of ONE classifier and has every one-shot routing site ask it.
 | Wound view | its entry asks topical before drink; the dual-class container's topical half is NOT reachable for a vanilla container (its own limb action is the syringe path) — filed `todo/topical-limb-action-shape.md` |
 | Host | one classifier call per request; no branch re-asks a predicate to decide a different family |
 | Auto-select | the inventory entry's families only; Injection, topical and limb tool are not offered |
-| Injection | asked first on both entries; the warning names the medical session; its stack-keyed scope and the refilled-bag limit are recorded (`todo/drink-measurement-destructive-use-action.md`) |
+| Injection | asked first on both entries; the warning names the medical session; its stack-keyed scope is recorded, and the refilled-bag limit was closed by the definition-level drink classification (`review/drink-measurement-destructive-use-action.md`) |
 | Medical measurement | asks `FamilyOf(Limb)`; the topical measurement still runs the item's own limb action |
 
 ## 3. Self-check table

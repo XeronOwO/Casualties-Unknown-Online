@@ -1,9 +1,5 @@
-using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Reflection.Emit;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
-using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using Object = UnityEngine.Object;
 
@@ -95,7 +91,7 @@ internal sealed class GameSolidFoodFacts(ILogger<GameSolidFoodFacts> log) : ISol
 			return SolidFoodVerdict.NotSolidFood;
 		}
 
-		var instructions = ReadUseAction(info.useAction);
+		var instructions = UseActionInstructions.Read(info.useAction);
 		if (instructions is null)
 		{
 			// Fail closed AND loud: an unreadable delegate means this side cannot say
@@ -105,104 +101,18 @@ internal sealed class GameSolidFoodFacts(ILogger<GameSolidFoodFacts> log) : ISol
 			return SolidFoodVerdict.NotSolidFood;
 		}
 
-		if (!Calls(instructions, typeof(Body), BodyFeedingMethods))
+		if (!UseActionInstructions.Calls(instructions, typeof(Body), BodyFeedingMethods))
 		{
 			return SolidFoodVerdict.NotSolidFood;
 		}
 
-		if (Calls(instructions, typeof(Body), HandOverMethods)
-			|| Calls(instructions, typeof(Object), "Instantiate")
-			|| Calls(instructions, typeof(Utils), "Create"))
+		if (UseActionInstructions.Calls(instructions, typeof(Body), HandOverMethods)
+			|| UseActionInstructions.Calls(instructions, typeof(Object), "Instantiate")
+			|| UseActionInstructions.Calls(instructions, typeof(Utils), "Create"))
 		{
 			return SolidFoodVerdict.EatsAndReplaces;
 		}
 
-		return Calls(instructions, typeof(Object), "Destroy") ? SolidFoodVerdict.EatsAndDestroys : SolidFoodVerdict.Eats;
-	}
-
-	/// <summary>
-	/// The instruction set the shape questions are asked over: the use action's own
-	/// body, plus the body of every game method it CALLS directly (the call/callvirt
-	/// operands only — a method merely loaded as a delegate or type token is not part
-	/// of what the action does). Null when the use action's own body cannot be read —
-	/// the answer is then "not a solid food" rather than a guess.
-	/// </summary>
-	private static List<CodeInstruction>? ReadUseAction(Delegate useAction)
-	{
-		var own = OriginalInstructions(useAction.Method);
-		if (own is null)
-		{
-			return null;
-		}
-
-		var instructions = new List<CodeInstruction>(own);
-		foreach (var instruction in own)
-		{
-			if (instruction.opcode != OpCodes.Call && instruction.opcode != OpCodes.Callvirt)
-			{
-				continue;
-			}
-
-			if (instruction.operand is not MethodBase called || called.DeclaringType is null)
-			{
-				continue;
-			}
-
-			// One level, and the game's own assembly only: a method a mod ships is not
-			// the game's content, and following further would turn this into a
-			// decompiler rather than a classification.
-			if (called.DeclaringType.Assembly != typeof(Item).Assembly)
-			{
-				continue;
-			}
-
-			var callee = OriginalInstructions(called);
-			if (callee is not null)
-			{
-				instructions.AddRange(callee);
-			}
-		}
-
-		return instructions;
-	}
-
-	/// <summary>Harmony's own reader, the same one every transpiler in this adapter is handed instructions by.</summary>
-	private static List<CodeInstruction>? OriginalInstructions(MethodBase method)
-	{
-		try
-		{
-			return PatchProcessor.GetOriginalInstructions(method, null);
-		}
-		catch (Exception)
-		{
-			// A dynamic or otherwise body-less method: reported by the caller's line.
-			return null;
-		}
-	}
-
-	private static bool Calls(List<CodeInstruction> instructions, Type declaringType, params string[] methodNames)
-	{
-		foreach (var instruction in instructions)
-		{
-			if (instruction.opcode != OpCodes.Call && instruction.opcode != OpCodes.Callvirt)
-			{
-				continue;
-			}
-
-			if (instruction.operand is not MethodInfo called || called.DeclaringType != declaringType)
-			{
-				continue;
-			}
-
-			foreach (var name in methodNames)
-			{
-				if (called.Name == name)
-				{
-					return true;
-				}
-			}
-		}
-
-		return false;
+		return UseActionInstructions.Calls(instructions, typeof(Object), "Destroy") ? SolidFoodVerdict.EatsAndDestroys : SolidFoodVerdict.Eats;
 	}
 }

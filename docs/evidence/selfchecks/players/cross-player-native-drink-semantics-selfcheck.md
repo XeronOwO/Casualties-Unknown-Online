@@ -94,23 +94,18 @@ and the item directly and needs an item instance the affected side does not have
 
 ## 5. Limits recorded
 
-- **An item in the drink class whose delegate is not a drink runs its own action
-  on the operator's client and is then refused — except the two the injection rule
-  claims.** The class is the game's own flag, and no data says which native call a
-  delegate makes, so the measurement can only find out by running it: the divert
-  captures a `Drink` call or it does not, and when it does not the gesture is
-  refused by name — after the delegate's own action has already run there. The
-  measurement sites ask the injection rule FIRST (`FamilyOf`), so the two vanilla
-  blood bags (`bloodbag`, `bloodbaghuman`, whose `useAction` is `Item.DrawBlood` —
-  a real fill of the operator's bag and a real drain of the treated limb) are
-  never measured: the host refuses them by name, exactly as before this chain
-  migrated. What remains exposed is `liquidcentrifuge`: a usable `LiquidItemInfo`
-  whose `useAction` runs the centrifuge (`Item.cs:5667`), reachable from BOTH the
-  world drag and the wound-view release. Dragging a liquid centrifuge onto a
-  teammate therefore separates the operator's own centrifuge contents and then
-  refuses the use. A mod item in the same state is exposed the same way. The
-  alternative — a hand-written list of which usable containers are drinks — is the
-  table this ticket deletes.
+- **An item in the drink class whose delegate is not a drink used to run its own
+  action on the operator's client and be refused afterwards — fixed 2026-10-24.**
+  The class is the game's own flag, and no data says which native call a delegate
+  makes, so the measurement used to find out by running it. The measurement now
+  classifies the DEFINITION's compiled body (`GameDrinkActionFacts`) before running
+  anything and refuses a non-drink action unrun; the two vanilla blood bags
+  (`bloodbag`, `bloodbaghuman`, whose `useAction` is `Item.DrawBlood`) and
+  `liquidcentrifuge` are refused that way on both callers, and the injection rule
+  still refuses an injectable container first. The residual the classifier cannot
+  close is named in `review/drink-measurement-destructive-use-action.md`: a
+  definition classified Drinks whose run still skips the diverted call is refused
+  after it ran (the mindwipe health-gate shape).
 - **The mindwipe health gate moved from the host's mirror to the operator's own
   native run.** The item-level gate reads the DRINKING body's
   `totalHappiness`/`brainHealth`/`strokeAmount` and therefore runs on the

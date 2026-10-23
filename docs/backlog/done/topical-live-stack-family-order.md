@@ -97,8 +97,10 @@ A two-client run on the deployed artifact:
   non-injectable liquid — water, or now a health-usable one — is admitted as a Drink, and
   `Item.DrawBlood` runs on the operator's client before the refusal. The pre-change topical-first
   order shielded the health-usable refill only; the water refill was already exposed. Filed as
-  `todo/drink-measurement-destructive-use-action.md`. This change must not claim a blood bag's action
-  can never be measured.
+  `review/drink-measurement-destructive-use-action.md` — **closed 2026-10-24**: the measurement now
+  classifies the DEFINITION's compiled body before running anything and refuses a non-drink action
+  unrun. The residual (a definition classified Drinks whose run skips the diverted call) is named in
+  that ticket, so this record's warning still holds for it alone.
 - The world drag's target resolution (the fixed 1.5-unit circle) belongs to
   `todo/cross-player-drag-use-model-bounds.md`; the acceptance drives the production release with the
   peer under the pointer.

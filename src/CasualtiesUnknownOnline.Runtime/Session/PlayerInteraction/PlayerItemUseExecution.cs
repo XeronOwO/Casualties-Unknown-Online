@@ -192,13 +192,12 @@ internal sealed class PlayerItemUseExecution(
 			// (usableOnLimb) while this chain asks `usable`, so the order — not the data
 			// — is what keeps a dual-class container on the family the gesture was made
 			// for. The refusal is what keeps an INJECTABLE container's own use action
-			// away from the drink measurement; it is not a proof that no destructive
-			// use action can ever be measured: a usable container whose stacks carry no
+			// away from the drink measurement. A usable container whose stacks carry no
 			// injectable flag (a blood bag refilled with water or a health-usable
-			// liquid) is admitted as a drink by the item's own `usable` flag, and the
-			// measurement runs that action before it can refuse — the drink chain's
-			// recorded limit, filed as
-			// `docs/backlog/todo/drink-measurement-destructive-use-action.md`.
+			// liquid) still reaches the drink family, but the measurement classifies the
+			// DEFINITION before running it and refuses a non-drink action unrun
+			// (`review/drink-measurement-destructive-use-action.md`), so this refusal is
+			// not the only thing between a destructive action and the one-shot path.
 			_log.LogWarning("[ItemUse] refused: injectable/IV medicine {ItemId} (id {InstanceId}) must use the medical operation session, not the one-shot request path.",
 				originalItem.ItemId, originalItem.InstanceId);
 			return false;

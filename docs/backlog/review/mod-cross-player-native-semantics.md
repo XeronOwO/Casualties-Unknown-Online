@@ -586,27 +586,23 @@ case per claim, and the new `LimbToolChainGateTests` keeps a successor table fro
 The full list is in the self-check; the ones a reader of this ticket should not
 have to go looking for:
 
-- **An item in the drink class whose delegate is not a drink runs its own action
-  on the operator's client and is then refused.** The class is the game's own
-  flag and nothing in the data says which native call a delegate makes, so the
-  measurement finds out by running it. The measurement sites ask the injection rule
-  first (through the entry-aware classifier), so the two vanilla blood bags' usual
-  injectable contents — whose `useAction` is `Item.DrawBlood`, a real fill of the
-  operator's bag and a real drain of the treated limb — are never measured and are
-  refused by name, exactly as before this chain migrated (the independent review's
-  blocker was that this order was missing at the measurement sites while the host,
-  the eligibility gate and the medical handler all had it). A blood bag REFILLED with
-  a non-injectable liquid is a different shape: the injection rule's stack test
-  declines it, its own `usable` flag admits it as a drink, and `DrawBlood` runs
-  before the measurement refuses — pre-existing for a water refill, widened to a
-  health-usable refill by the entry split; filed as
-  `todo/drink-measurement-destructive-use-action.md`. What remains exposed in the
-  ordinary shape is `liquidcentrifuge`: a usable `LiquidItemInfo` whose `useAction`
-  runs the centrifuge, reachable from BOTH the world drag and the wound-view release,
-  so dragging it onto a teammate separates the operator's own centrifuge contents
-  before the use is refused. A mod item in that state is exposed the same way; the
-  alternative is the hand-written "which usable containers are drinks" list this
-  ticket exists to delete.
+- **The drink class's non-drink delegate used to run its own action before the
+  refusal — fixed 2026-10-24.** The class is the game's own flag and nothing in the
+  data says which native call a delegate makes, so the measurement used to find out
+  by running it. The measurement sites ask the injection rule first (through the
+  entry-aware classifier), so the two vanilla blood bags' usual injectable contents —
+  whose `useAction` is `Item.DrawBlood`, a real fill of the operator's bag and a real
+  drain of the treated limb — are never measured and are refused by name. A blood bag
+  REFILLED with a non-injectable liquid was the exposed shape (the injection rule's
+  stack test declines it, its own `usable` flag admitted it as a drink, and
+  `DrawBlood` ran before the measurement refused); the measurement now classifies
+  the DEFINITION's compiled body before running it and refuses a non-drink action
+  unrun, with `liquidcentrifuge` refused the same way on both callers (its
+  `usableOnLimb = false` already kept it off the wound view). The residual is named
+  in the ticket: a definition classified Drinks whose run still skips the diverted
+  call is refused after it ran. Filed and closed by
+  `review/drink-measurement-destructive-use-action.md`; the ticket's machine row is
+  still owed.
 - **The mindwipe health gate moved from the host's mirror to the operator's own
   native run.** It reads the drinking body's vitals, which belong to the patient,
   so it runs on the operator's client against the affected player's displayed

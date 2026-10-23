@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 
@@ -29,9 +30,12 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// The delegate must deliver synchronously, and it must be a drink. That holds
 /// for every vanilla item the game can use as a drink; the item class alone
 /// cannot prove it (a liquid centrifuge is a usable <c>LiquidItemInfo</c> too),
-/// so a delegate that reaches no <c>Drink</c> call is refused by name — with its
-/// own action having already run on this client, which the ticket records as the
-/// family's limit rather than hides.
+/// so the DEFINITION's compiled body is classified BEFORE anything runs
+/// (<see cref="GameDrinkActionFacts"/>, the same read <see cref="GameSolidFoodFacts"/>
+/// uses for food): a usable item whose action is not a drink is refused by name
+/// with its action never run. An action whose body cannot be read is refused the
+/// same way, with its own line. The old "the action has already run" limit is
+/// retired for definitions.
 /// </para>
 /// </summary>
 internal static class RemoteDrinkUseHandler
@@ -74,6 +78,22 @@ internal static class RemoteDrinkUseHandler
 		{
 			log.LogWarning("[ItemUse] refused drink use: {ItemId} has no native use action to run.", dragItem.id);
 			return false;
+		}
+
+		// Ask the definition's compiled body BEFORE running it. A usable item whose action is not a drink (the
+		// two blood bags draw blood; a liquid centrifuge acts on the world) would otherwise write its effect on
+		// the OPERATOR's client while this measurement is only finding out that it drinks nothing. Three
+		// verdicts, and both non-drink ones fail closed with their own line.
+		switch (GameDrinkActionFacts.Classify(dragItem.id))
+		{
+			case GameDrinkActionFacts.Verdict.Drinks:
+				break;
+			case GameDrinkActionFacts.Verdict.Unreadable:
+				log.LogWarning("[ItemUse] refused drink use: {ItemId} has a use action whose compiled body could not be read — it was not run on this client.", dragItem.id);
+				return false;
+			default:
+				log.LogWarning("[ItemUse] refused drink use: {ItemId}'s own use action does not drink, so it was not run on this client.", dragItem.id);
+				return false;
 		}
 
 		// The window is saved and restored, not cleared: a nested measurement (none

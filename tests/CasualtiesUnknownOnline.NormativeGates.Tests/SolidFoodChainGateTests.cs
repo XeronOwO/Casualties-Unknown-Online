@@ -59,6 +59,7 @@ public class SolidFoodChainGateTests
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseCommit.cs",
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseExecution.cs",
 		"src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ItemUseFamilyClassifier.cs",
+		"src/CasualtiesUnknownOnline.GameAdapter/Content/GameDrinkActionFacts.cs",
 	];
 
 	private const string ExecutionFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseExecution.cs";
@@ -66,6 +67,12 @@ public class SolidFoodChainGateTests
 	private const string ClassifierFile = "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ItemUseFamilyClassifier.cs";
 
 	private const string FactsFile = "src/CasualtiesUnknownOnline.GameAdapter/Content/GameSolidFoodFacts.cs";
+
+	private const string DrinkFactsFile = "src/CasualtiesUnknownOnline.GameAdapter/Content/GameDrinkActionFacts.cs";
+
+	private const string UseActionReaderFile = "src/CasualtiesUnknownOnline.GameAdapter/Content/UseActionInstructions.cs";
+
+	private const string DrinkHandlerFile = "src/CasualtiesUnknownOnline.GameAdapter/RemoteDrinkUseHandler.cs";
 
 	private const string EatFile = "src/CasualtiesUnknownOnline.GameAdapter/NativeSolidFoodEat.cs";
 
@@ -120,6 +127,7 @@ public class SolidFoodChainGateTests
 	public void TheFamilyVerdict_IsTheItemsOwnUseActionReadByTheGamesOwnInstructionReader()
 	{
 		var facts = Parse(FactsFile);
+		var reader = Parse(UseActionReaderFile);
 
 		// The registry is what mod content registers into: an answer from anywhere
 		// else would re-create the ceiling this family exists to remove.
@@ -130,13 +138,18 @@ public class SolidFoodChainGateTests
 		// The use action is a delegate, so its own compiled body is the only place
 		// that knows what it does — read through the reader this adapter's own
 		// transpilers are handed instructions by, never by RUNNING it (a food action
-		// writes the body, the item, sounds and, for two of them, a new object).
+		// writes the body, the item, sounds and, for two of them, a new object). The
+		// reader is shared with the drink classifier, so the gate pins BOTH the call
+		// site and the one place that names Harmony's reader.
 		Assert.Contains(
 			facts.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
-			access => access.ToString() == "PatchProcessor.GetOriginalInstructions");
+			access => access.ToString() == "UseActionInstructions.Read");
 		Assert.Contains(
 			facts.DescendantNodes().OfType<IdentifierNameSyntax>(),
 			identifier => identifier.Identifier.ValueText == "useAction");
+		Assert.Contains(
+			reader.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "PatchProcessor.GetOriginalInstructions");
 
 		// The three questions, by the native calls they look for: does it feed the
 		// body, does it hand the eater a replacement object, does it destroy the item.
@@ -147,6 +160,66 @@ public class SolidFoodChainGateTests
 		{
 			Assert.Contains(expected, literals);
 		}
+	}
+
+	/// <summary>
+	/// The DRINK family's definition check, the same shape one chain over: the answer must come from the
+	/// item's own use action read through the shared instruction reader, and it must look for the game's own
+	/// <c>WaterContainerItem.Drink</c> call — never a hand list of the two blood bags, and never the action
+	/// itself run to find out (running it is the destructive defect the classifier exists to prevent).
+	/// </summary>
+	[Fact]
+	public void TheDrinkVerdict_IsTheItemsOwnUseActionReadByTheGamesOwnInstructionReader()
+	{
+		var facts = Parse(DrinkFactsFile);
+
+		Assert.Contains(
+			facts.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "Item.GlobalItems");
+		Assert.Contains(
+			facts.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "UseActionInstructions.Read");
+		Assert.Contains(
+			facts.DescendantNodes().OfType<IdentifierNameSyntax>(),
+			identifier => identifier.Identifier.ValueText == "useAction");
+
+		var literals = facts.DescendantNodes().OfType<LiteralExpressionSyntax>()
+			.Select(literal => literal.Token.ValueText)
+			.ToHashSet(StringComparer.Ordinal);
+		Assert.Contains("Drink", literals);
+		Assert.Contains(
+			facts.DescendantNodes().OfType<IdentifierNameSyntax>(),
+			identifier => identifier.Identifier.ValueText == "WaterContainerItem");
+	}
+
+	/// <summary>
+	/// The fix's actual claim: the definition is classified BEFORE anything runs. A source gate is the only
+	/// executable check here (the IL and the Unity objects cannot be built in this host), so it pins the ORDER
+	/// of the three sites inside <c>TryMeasure</c>: the classifier call, the capture window opening and the
+	/// native action invocation. Moving the switch back after either one is the destructive defect returning
+	/// with every other check green.
+	/// </summary>
+	[Fact]
+	public void TheDrinkRefusal_HappensBeforeTheActionRuns()
+	{
+		var handler = Parse(DrinkHandlerFile);
+
+		var classify = handler.DescendantNodes().OfType<InvocationExpressionSyntax>()
+			.FirstOrDefault(invocation => invocation.Expression.ToString() == "GameDrinkActionFacts.Classify");
+		Assert.True(classify is not null, "the handler must classify the definition before measuring a dose");
+
+		var captureOpens = handler.DescendantNodes().OfType<AssignmentExpressionSyntax>()
+			.Where(assignment => assignment.Left.ToString() == "_capture")
+			.Select(assignment => assignment.SpanStart)
+			.FirstOrDefault();
+		Assert.True(captureOpens > classify!.SpanStart,
+			"the capture window must open only after the definition is classified");
+
+		var actionRuns = handler.DescendantNodes().OfType<InvocationExpressionSyntax>()
+			.FirstOrDefault(invocation => invocation.Expression.ToString() == "info.useAction");
+		Assert.True(actionRuns is not null, "the dose measurement runs the item's own use action");
+		Assert.True(actionRuns!.SpanStart > classify.SpanStart,
+			"the item's own use action must run only after the definition is classified");
 	}
 
 	[Fact]

@@ -26,9 +26,9 @@ public enum ItemUseFamily
 	/// be run by a measurement. The refusal is keyed on the STACKS (an injectable
 	/// liquid present), not on the definition — a container refilled with a
 	/// non-injectable liquid is the drink family's by its own <c>usable</c> flag, and
-	/// its action is then run by the drink measurement before that measurement can
-	/// refuse; the drink chain records that limit (see
-	/// <c>docs/backlog/todo/drink-measurement-destructive-use-action.md</c>).
+	/// the drink measurement classifies the DEFINITION before running it, so a
+	/// non-drink action is refused unrun (see
+	/// <c>docs/backlog/review/drink-measurement-destructive-use-action.md</c>).
 	/// </summary>
 	Injection,
 

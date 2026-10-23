@@ -11,8 +11,8 @@
   and this verb is it), decisions 263 (a host rule is the host's and reaches the members that read
   it) and 264 (a console command's shape follows Minecraft's current template, fetched not remembered),
   `docs/en/reference/configuration.md` (the `[HostRules]` and `[Respawn]` values this verb writes), and
-  `todo/config-clamp-silently-widens-rule-levels.md` (the adjacent pre-existing clamp defect its review
-  found).
+  `done/config-clamp-silently-widens-rule-levels.md` (the adjacent pre-existing clamp defect its review
+  found; closed 2026-10-24 in batch `20261024-a`).
 
 ## Problem
 
@@ -173,12 +173,13 @@ centre release of a view-only displayed backpack refused with its one line, and 
 - **The plugin editor's canonical re-parse has no unit test.** The plugin assembly is not in the test
   project; the runtime grammar it calls is tested, and the real write path is exercised by the acceptance
   rows.
-- **The config entry still clamps an unparseable file value to its list's first entry** (pre-existing, filed
-  as `todo/config-clamp-silently-widens-rule-levels.md`): a hand-edited `Deny` or `Require` silently becomes
-  `allow`, and the runtime parsers' conservative fallbacks are unreachable for file values. This change
-  binds the lists from the census so they cannot drift from the verb, but does not change the clamp
-  semantics.
-- **A refusal line renders in the console's success colour** (pre-existing console-wide, filed as
+- **The config entry clamped an unparseable file value to its list's first entry** (pre-existing then;
+  filed as `done/config-clamp-silently-widens-rule-levels.md` (then in `todo/`) and **closed 2026-10-24 in batch
+  `20261024-a`**, which moved each list's declared fallback (`deny`, `warn`) to the first position and
+  derived the parser fallback from the census): back then a hand-edited `Deny` or `Require` silently
+  became `allow`, and the runtime parsers' conservative fallbacks were unreachable for file values. This
+  change binds the lists from the census so they cannot drift from the verb; the clamp semantics were
+  fixed by that later ticket.- **A refusal line renders in the console's success colour** (pre-existing console-wide, filed as
   `todo/console-command-refusals-render-green.md`): the console adds every handler return as a success line,
   so `/gamerule`'s refusals are green; the text names the refusal, the kind does not.
 
@@ -222,8 +223,10 @@ config defect. Every finding is recorded here with what changed.
   bound from the census row and `HostRuleValueText.Choices`.
 - **MAJOR (pre-existing, adjacent) — BepInEx clamps a hand-edited value to the list's first entry**, so the
   plugin's documented conservative fallbacks are unreachable and `Deny`/`Require` can silently become
-  `allow`. Not introduced here; **filed** as `todo/config-clamp-silently-widens-rule-levels.md` with the
-  decompiled evidence, and recorded as a limit above.
+  `allow`. Not introduced here; **filed** as `done/config-clamp-silently-widens-rule-levels.md` (then in
+  `todo/`) with the
+  decompiled evidence, and recorded as a limit above. **Closed 2026-10-24** by
+  `done/config-clamp-silently-widens-rule-levels.md` (batch `20261024-a`).
 - **MINOR — the mod-api sentence named a query as an edit.** `/gamerule native_binding_parity` only queries;
   **fixed** to `/gamerule native_binding_parity <value>` in both languages.
 - **MINOR — the register ticket misattributed the history.** The corpus audit left the register at 102,335

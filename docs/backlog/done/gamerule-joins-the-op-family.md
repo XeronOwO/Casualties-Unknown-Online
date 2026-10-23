@@ -145,7 +145,7 @@ and the host's log names the member's request as its actor (`[Rules] <member> se
   The same is true of a member's `/give`/`/summon`/`/heal` (the host logs those, its console does not).
 - A clamped write is answered with the value in force (and logged as a warning), not with a second error:
   the config accepted the write, the operator reads what the entry really holds, and the clamp itself stays
-  the pre-existing `todo/config-clamp-silently-widens-rule-levels.md`.
+  the pre-existing `done/config-clamp-silently-widens-rule-levels.md` (closed 2026-10-24).
 - The member's query reads `IHostRules` rather than asking the host: the announced set when one arrived, and
   this process's own config otherwise (the documented pre-announcement fallback the local checks share). It is
   as fresh as the last announcement, and a member that missed it converges on the next entry or repair

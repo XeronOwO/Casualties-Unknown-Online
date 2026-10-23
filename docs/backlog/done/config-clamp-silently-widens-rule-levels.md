@@ -1,7 +1,8 @@
 # A typo in a rule's config value silently widens it
 
-- Status: Review — implemented 2026-10-24 (shape 1); awaiting the green acceptance on the deployed
-  artifact (the red was observed on the pre-fix build, `.acceptance/20261024-c/clamp-red.log`).
+- Status: Done — implemented 2026-10-24 (shape 1) and accepted in batch `20261024-a`
+  (`docs/evidence/acceptance/config-clamp-silently-widens-rule-levels-20261024-a.md`): the capitalised
+  spellings and the typo case read `deny`/`warn` on `0.1.0+2dfe2071…`.
 - Priority: Medium-High
 - Category: Configuration / host rules / fail-closed
 - Source: the review decompiled the referenced BepInEx 5.4.20.0 (`ConfigEntry<T>.set_Value` calls
@@ -161,3 +162,11 @@ carries enums). All findings are dispositioned below; everything was fixed in th
   case-insensitive `debug` becoming `Information` is a usability nit, not a fail-open.
 - The red observation was recorded from the deployed pre-fix artifact beside the batch's `verify.log`
   identity; the green run repeats it on the fixed artifact and prints the artifact line in its own log.
+
+## Accepted (batch `20261024-a`, 2026-10-24)
+
+The single-host probe ran twice on `0.1.0+2dfe2071…`, once with the capitalised spellings
+(`RemoteBackpackAccess = Deny`, `NativeBindingParity = Require`) and once with a typo
+(`unconcious`/`strict`): the running process read `access=deny parity=Warn` in both cases, where the
+pre-fix artifact had read `allow`/`Allow` for the same edit. The stock values were restored and the
+client closed. Record: `docs/evidence/acceptance/config-clamp-silently-widens-rule-levels-20261024-a.md`.

@@ -301,7 +301,8 @@ docs/backlog/review/placement-outcome-never-returns.md | keep | index | docs/bac
 docs/backlog/todo/placement-failure-report-anchor.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-gesture-own-ui-and-center-use.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/decision-register-budget.md | keep | index | docs/backlog/README.md
-docs/backlog/review/config-clamp-silently-widens-rule-levels.md | keep | index | docs/backlog/README.md
+docs/backlog/done/config-clamp-silently-widens-rule-levels.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/config-clamp-silently-widens-rule-levels-20261024-a.md | keep | claim | docs/backlog/done/config-clamp-silently-widens-rule-levels.md
 docs/backlog/done/stale-api-doc-paths-in-live-tickets.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-command-refusals-render-green.md | keep | index | docs/backlog/README.md
 docs/backlog/done/gamerule-joins-the-op-family.md | keep | index | docs/backlog/README.md

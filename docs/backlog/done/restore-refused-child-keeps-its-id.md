@@ -1,7 +1,7 @@
 # A restored container's refused child is destroyed and its instance id reported dead
 
-- Status: Review — the refused child now FALLS TO THE GROUND (user ruling 2026-10-23; implemented and
-  gate-pinned); the three machine rows below are owed.
+- Status: Done — the refused child is dropped into the world and reported (`52e3bde3`); batch `20261023-i` read
+  all three rows (record `docs/evidence/acceptance/restore-refused-child-keeps-its-id-20261023-i.md`).
 - Priority: Low-Medium
 - Category: Items / restore paths / item identity
 - Source: Split out of the give ticket (`review/give-item-to-another-player.md`) when its row-4 loss was fixed (2026-10-19,

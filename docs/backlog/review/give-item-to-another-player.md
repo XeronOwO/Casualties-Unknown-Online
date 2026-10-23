@@ -9,7 +9,7 @@
 - Blocked by: nothing external. The two units are sequential: unit 1 changes no wire member and unit 2 carries
   the answer that keeps a refused item with the giver.
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
-- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `done/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `todo/cross-player-drag-use-model-bounds.md` (the detection shape, and the last-entered target this ruling introduces), `todo/cross-player-drag-use-feedback.md` (the cue that must name the same target), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `review/restore-refused-child-keeps-its-id.md` and `review/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
+- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `done/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `todo/cross-player-drag-use-model-bounds.md` (the detection shape, and the last-entered target this ruling introduces), `todo/cross-player-drag-use-feedback.md` (the cue that must name the same target), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `done/restore-refused-child-keeps-its-id.md` and `review/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
 
 ## Design (2026-10-22 — the user's ruling; this is the current design)
 
@@ -802,7 +802,7 @@ container's reason (the user's ruling).
 - **The bulk restore's policy now drops too.** `ItemStateCodec.RestoreContentDropping` replaced the discarding
   policy on 2026-10-23 (the user's ruling: a legitimate item falls to the ground, it does not vanish): the
   character restore, a world item's contents and `RemoteItemSceneOps.ApplyAuthoritativeState` report a refused
-  child as a world item instead of destroying it — `review/restore-refused-child-keeps-its-id.md`.
+  child as a world item instead of destroying it — `done/restore-refused-child-keeps-its-id.md`.
 
 **The regression test, and its red.** The behaviour suite cannot host this path — a refusal needs real Unity
 objects and a container that really refuses — so the invariant is pinned at the source by
@@ -878,7 +878,7 @@ with the code it named, because a fixed finding that is not written down is one 
   item in a slot — and the "no room at all" case is exactly the drop the host would have to re-record. Filed
   as `review/placement-outcome-never-returns.md` with the readings it was found from.
 - **The restore paths' discard policy** (the same destroy shape, one call site over) was
-  `review/restore-refused-child-keeps-its-id.md`; since the 2026-10-23 ruling that path drops the child into the
+  `done/restore-refused-child-keeps-its-id.md`; since the 2026-10-23 ruling that path drops the child into the
   world as well.
 - **Two limits this change leaves, named rather than buried.** An item that cannot be created on the receiving
   client at all (its prefab does not load there — mod content, differing builds) is lost with one Warning, and

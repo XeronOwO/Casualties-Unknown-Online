@@ -76,7 +76,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [A refused child of a restored container keeps its id](review/restore-refused-child-keeps-its-id.md) — **Low-Medium** — dropped into the world; rows owed.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.
@@ -174,6 +173,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [A refused child of a restored container keeps its id](done/restore-refused-child-keeps-its-id.md) — **Low-Medium** — `20261023-i`; it falls to the ground.
 - [Who may operate another player's backpack](done/remote-backpack-access-policy.md) — **Medium** — accepted in `20261022-d`; one three-way rule.
 - [The archive's two id carriers can disagree](done/id-carriers-can-disagree-about-placement.md) — **Low** — accepted in `20261022-c`; one placement per id.
 - [Members do not arrive together on a new layer](done/layer-descent-spawn-separation.md) — **Medium** — accepted in `20261021-j`; old-layer positions refused.

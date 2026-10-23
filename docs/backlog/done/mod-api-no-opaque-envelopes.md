@@ -1,10 +1,12 @@
 # No opaque payloads in the mod API: a typed data model instead of a byte envelope
 
-- Status: Review — **raised 2026-10-08 by the user**: "什么运走存下来，我觉得就不应该存在字节形式的啊 /
+- Status: Done 2026-10-24 — **raised 2026-10-08 by the user**: "什么运走存下来，我觉得就不应该存在字节形式的啊 /
   完全不应该存在！！！". It is the second half of the ruling that produced
   `mod-content-typed-registration.md`, and it covers the surfaces where the payload really does cross a
   boundary — the half the first ticket deliberately left alone. Both stages landed 2026-10-09; the
-  mod-visible contract now carries no `byte[]` outside the model's own binary leaf.
+  mod-visible contract now carries no `byte[]` outside the model's own binary leaf, verified against the
+  recorded API baseline (37 `byte[]` tombstone lines, zero live members; the leaf is
+  `ReadOnlyMemory<byte>`): `docs/evidence/acceptance/mod-api-no-opaque-envelopes-20261024-a.md`.
 - Priority: Critical
 - Category: Mod platform / protocol / architecture
 - Related: `docs/backlog/done/mod-content-typed-registration.md` (step 1 of the same ruling),

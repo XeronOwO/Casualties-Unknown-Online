@@ -1,6 +1,6 @@
 # Self-check — the typed value model (stage B: the stores and the last byte-shaped surfaces)
 
-Cycle: 2026-10-09. Ticket: `docs/backlog/review/mod-api-no-opaque-envelopes.md` (stage A landed earlier the
+Cycle: 2026-10-09. Ticket: `docs/backlog/done/mod-api-no-opaque-envelopes.md` (stage A landed earlier the
 same day; this cycle is the second half, and it is the half that empties the census). Scope landed:
 `IModData`, `IModState` and its file, `IModNativeApi`'s admitted value surface, and the last `byte[]` on the
 mod-visible contract.

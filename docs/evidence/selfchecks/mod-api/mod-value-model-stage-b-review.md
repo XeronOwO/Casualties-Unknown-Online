@@ -8,7 +8,7 @@ mod-visible contract, a save file's version and two stores move together. Read-o
 review writes is this report. The change's claims were attacked, never the evidence for them; every claim
 was re-opened in the tree, and every suite and probe that can run without the game was run.
 
-Ticket: `docs/backlog/review/mod-api-no-opaque-envelopes.md` (*What landed (2026-10-09, stage B)*).
+Ticket: `docs/backlog/done/mod-api-no-opaque-envelopes.md` (*What landed (2026-10-09, stage B)*).
 Self-check: `docs/evidence/selfchecks/mod-api/mod-value-model-stage-b-selfcheck.md`. Decision: entry 249.
 
 ## 1. Verdict

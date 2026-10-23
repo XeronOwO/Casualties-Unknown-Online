@@ -14,7 +14,7 @@
 - Priority: High
 - Category: Mod platform / mod API
 - Related: `docs/backlog/done/mod-content-typed-registration.md` (the typed contract this sits on),
-  `docs/backlog/review/mod-api-no-opaque-envelopes.md` and `docs/backlog/done/mod-api-typed-seams.md` (both
+  `docs/backlog/done/mod-api-no-opaque-envelopes.md` and `docs/backlog/done/mod-api-typed-seams.md` (both
   change the shape this scanner reads, so they land first),
   `docs/backlog/done/mod-authored-effects.md` (its code-registration surface is the same question),
   `docs/backlog/done/mod-content-nested-member-contracts.md` and
@@ -148,7 +148,7 @@ things the game can address and delete on their own.**
   is no stable shape to write down. The save keeps content IDS, and an id whose definition is gone is
   salvaged per entry (`DamageReport.EntryReason.ContentMissing`).
 - **CUO's own envelopes stay typed and versioned** (`ModStatusUpdate`, the two projections). The data model
-  for a mod's runtime value is `docs/backlog/review/mod-api-no-opaque-envelopes.md`'s subject, not this
+  for a mod's runtime value is `docs/backlog/done/mod-api-no-opaque-envelopes.md`'s subject, not this
   ticket's, and the discriminator is the modification policy's own: a shape CUO owns must be typed, while a
   shape the MOD owns (`IModState`'s value bytes, the mod's half of a status value) is honestly bytes plus a
   `SchemaVersion`, with the mod owning its reader and writer.

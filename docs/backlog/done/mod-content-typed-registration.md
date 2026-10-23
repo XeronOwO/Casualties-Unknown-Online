@@ -7,7 +7,7 @@
   **Accepted 2026-10-12 in batch `20261012-c`** (`docs/evidence/acceptance/mod-content-typed-registration-20261012-c.md`): every row passes — the typed registration, the provider cast refusal and the tombstoned serialization surface hold.
 - Priority: Critical
 - Category: Mod platform / mod API
-- Related: `docs/backlog/review/mod-api-no-opaque-envelopes.md` (step 2 of the same ruling: the surfaces where a
+- Related: `docs/backlog/done/mod-api-no-opaque-envelopes.md` (step 2 of the same ruling: the surfaces where a
   payload does cross a boundary), `docs/backlog/done/mod-authored-effects.md` (the code-registration surface
   this one must precede — it is an API over the same contract),
   `docs/backlog/done/mod-declared-behaviour-with-no-function.md`,

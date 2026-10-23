@@ -252,7 +252,7 @@ line naming the pair.
 The change amended the English policy page to:
 
 > "The three `Critical` tickets this rule produced (`done/mod-content-typed-registration.md`,
-> `review/mod-api-no-opaque-envelopes.md`, `done/mod-api-typed-seams.md`) have all landed, so the contract
+> `done/mod-api-no-opaque-envelopes.md`, `done/mod-api-typed-seams.md`) have all landed, so the contract
 > carries none of the debt it was written for; what keeps it that way is this review and the baseline gate,
 > not a scan."
 

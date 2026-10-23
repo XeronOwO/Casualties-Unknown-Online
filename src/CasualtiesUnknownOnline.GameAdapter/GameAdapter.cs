@@ -379,7 +379,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	void INativeInputBlocker.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
 
-	bool INativeInputBlocker.IsTheGamesOwnTextInputFocused => OnlineUiKeyboardFacts.IsATextFieldFocused();
+	bool INativeInputBlocker.IsTheGamesOwnTextInputFocused => OnlineUiKeyboardFacts.IsTheGameUsingTheKeyboard();
 
 	bool ISpectatorControl.IsWatching => _domains.Spectator.IsWatching;
 

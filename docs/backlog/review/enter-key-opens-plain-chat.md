@@ -1,7 +1,8 @@
 # Enter should open the console as plain chat
 
-- Status: Todo — Rejected (batch `20261018-t`: row E2 **fails** — after the game's own console has been
-  opened and closed, the event system still names its input as the selected object, so
+- Status: Review — the guard fixed 2026-10-24 (the active-in-hierarchy reading); awaiting the green
+  re-run of row E2 on the fixed artifact. The earlier rejection (batch `20261018-t`: row E2 **fails** — after
+  the game's own console has been opened and closed, the event system still names its input as the selected object, so
   `OnlineUiKeyboardFacts.IsATextFieldFocused` stays true and the Enter/Slash opener is refused until
   something else takes the selection. The clean-state opener, the swallow, the submit, the chat delivery and
   both no-open surfaces pass; record
@@ -66,14 +67,15 @@ Two openers, two entry modes, one input surface:
 | The Online UI window's own text fields | yes | gated on the window being hidden |
 | The quick panel | yes | gated on the panel being hidden — it carries no text field, so that check is defensive |
 | The quick-panel hotkey, configurable to ANY key | yes | `/` and Enter are claimed first, so a panel bound to Enter is shadowed — a limit, below |
-| **The game's own in-world console** (it runs `Input.GetKeyDown(13)` with its field focused) | yes | asked through `INativeInputBlocker.IsTheGamesOwnTextInputFocused` |
-| **The game's settings key-bind capture** (it binds whichever key the player presses) | yes | the same reading |
-| **The game's crafting recipe filter** (the game suppresses its own hotkey there) | yes | the same reading |
+| **The game's own in-world console** (it executes Enter whenever the console is `active`, with no focus test) | yes | asked through `INativeInputBlocker.IsTheGamesOwnTextInputFocused`; the reading is the console's own `active` flag, so it holds even if the selection moves while the console stays open |
+| **The game's settings key-bind capture** (it binds whichever key the player presses) | yes | **NOT covered** — it is a button-driven coroutine with no text field, and no capture-state fact is readable; filed as `todo/enter-opener-keybind-capture.md` (the pause-wide gate it would need changes when the opener works, so it is a decision) |
+| **The game's crafting recipe filter** (the game suppresses its own hotkey there) | yes | the same reading (an active selected text field) |
 
-The rule: CUO claims Enter only while no CUO surface is up AND the game's own keyboard focus is not a text field.
-The last three are what an adversarial review added to this list before the commit — a first cut guarded only
-CUO's own surfaces, which would have made an in-world console command submit twice and a key-bind capture open
-chat over the pause menu.
+The rule: CUO claims Enter only while no CUO surface is up AND the game does not own the keyboard (its console
+is open, or an active selected text field has the keys). The last three are what an adversarial review added to
+this list before the commit — a first cut guarded only CUO's own surfaces, which would have made an in-world
+console command submit twice. The settings key-bind capture is the one row the reading cannot see, and it has
+its own ticket; this ticket's Limits state it rather than claiming coverage.
 
 ### What landed
 
@@ -100,3 +102,43 @@ chat over the pause menu.
 - A `/` and a numpad Enter in the SAME frame still reach the empty-command path (pre-existing, contrived).
 - `GameAdapter` crossed the 600-line architecture gate by two lines with this cycle's port; it is recorded in
   `docs/architecture-debt.json` rather than split mid-cycle, next to the one entry that was already there.
+
+## The guard fixed (2026-10-24) — the lifetime reading and the console's own flag
+
+`OnlineUiKeyboardFacts` now answers "the game owns the keyboard" from two facts, and its method name says so
+(`IsTheGameUsingTheKeyboard`):
+
+- the game's in-world console is OPEN, read from `ConsoleScript.instance.active` — the console's Enter path has
+  no focus test, so its field holding the selection is not what makes it dangerous (the review of this fix found
+  the selection can move while the console stays open, a pause menu or a click on a non-selectable area);
+- OR the event system's selected object is an ACTIVE text field (`activeInHierarchy` plus one of the two input
+  components), which is the lifetime half: the console selects its input when it opens and never clears the
+  selection when it closes, so the event system keeps naming a field whose canvas is inactive — an object that
+  cannot receive a key. Asking only "does the selected object carry a text field" kept the CUO Enter/Slash
+  opener refused after one use of the game console.
+
+The red was observed on the deployed pre-fix artifact `0.1.0+2dfe2071…` with a two-client world
+(`.acceptance/20261024-c/enter-red2.log`): baseline `guard=false`; the game console opened through its
+`console` bind (`active=true`, `selected=Console`, `selectedActive=true`, `guard=true`); closed
+(`active=false`, `selected=Console`, **`selectedActive=false`**, `guard=true`); after Return `guard=true` and no
+CUO console in the frame (`enter-red2-after-enter.png`). The green repeats the same steps on the fixed artifact.
+
+Two committed probe recipes carry it, because no unit host can build the game console or the event system:
+`game-console-focus` reads the console's flag, the selection, its active state, the selected object's two input
+components and the guard (through reflection, the guard being adapter-internal; a guard it cannot find is an
+error, never a false green), and `key-tap` posts a raw virtual key through the `window-key` declaration; the
+game's own console is toggled with the existing `key-hold bind=console`.
+
+### Limits this fix names
+
+- **The game's settings key-bind capture is not covered.** It is a button-driven coroutine that binds whichever
+  key is pressed and carries no text field; the pause-wide gate it would need changes when the player can open
+  CUO's console, so it is a decision and is filed as `todo/enter-opener-keybind-capture.md`. The guard's own doc
+  comment names the gap.
+- **The slide-out window is dead, not double-used.** After the console's `active` flag flips false, its canvas
+  stays active for ~0.29 s (the console rect has to cross 150 px), so the guard stays true and Enter is ignored
+  for that moment; the game ignores Enter in the same window (`if (!this.active) return`). The opening window is
+  about one frame.
+- **A disabled text field that keeps the selection still answers true.** A field that cannot take keys over-blocks
+  the opener; no game surface was observed doing that, and the alternative (reading `isFocused` per component)
+  would miss the console's stale field, which is the defect this fix exists for.

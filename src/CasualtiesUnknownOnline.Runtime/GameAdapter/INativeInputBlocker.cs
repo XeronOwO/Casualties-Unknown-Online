@@ -33,11 +33,18 @@ public interface INativeInputBlocker
 	void SetOnlineUiEscapeSurfaceVisible(bool visible);
 
 	/// <summary>
-	/// True while a text field the GAME owns holds the keyboard. The Enter opener has to ask before it claims the
-	/// key, and this is the only place it can: the game's own in-world console executes a command on Enter while
-	/// its field is focused, its settings menu binds whichever key the player presses, and its crafting panel
-	/// suppresses its own hotkey while the recipe filter is focused. The plugin references no game assembly, so
-	/// the reading rides this seam rather than a direct type reference.
+	/// True while the GAME owns the keyboard. Two facts: its in-world console is open (the console's own flag, not
+	/// the selection — its Enter path has no focus test), or its event system has selected an active text field
+	/// (the settings number fields, the crafting recipe filter). The Enter/Slash opener has to ask before it
+	/// claims a key, and this is the only place it can: the plugin references no game assembly, so the reading
+	/// rides this seam rather than a direct type reference.
+	///
+	/// <para>
+	/// Known over-blocks and a known gap. A disabled text field that keeps the selection still answers true; so
+	/// does a field under an inactive parent only until it deactivates. The game's settings KEY-BIND CAPTURE is
+	/// NOT covered: it is a button-driven coroutine that binds whichever key is pressed and carries no text field,
+	/// so while it waits the opener can still claim the key — filed as `todo/enter-opener-keybind-capture.md`.
+	/// </para>
 	/// </summary>
 	bool IsTheGamesOwnTextInputFocused { get; }
 }

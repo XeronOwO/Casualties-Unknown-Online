@@ -293,7 +293,7 @@ docs/backlog/todo/docs-mojibake-cleanup.md | keep | index | docs/backlog/README.
 docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/done/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
+docs/backlog/review/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/review/give-item-to-another-player.md | keep | index | docs/backlog/README.md
 docs/backlog/done/restore-refused-child-keeps-its-id.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/restore-refused-child-keeps-its-id-20261023-i.md | keep | claim | docs/backlog/done/restore-refused-child-keeps-its-id.md
@@ -305,6 +305,7 @@ docs/backlog/done/config-clamp-silently-widens-rule-levels.md | keep | index | d
 docs/evidence/acceptance/config-clamp-silently-widens-rule-levels-20261024-a.md | keep | claim | docs/backlog/done/config-clamp-silently-widens-rule-levels.md
 docs/backlog/done/stale-api-doc-paths-in-live-tickets.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-command-refusals-render-green.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/enter-opener-keybind-capture.md | keep | index | docs/backlog/README.md
 docs/backlog/done/gamerule-joins-the-op-family.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/gamerule-joins-the-op-family-20261024-b.md | keep | claim | docs/backlog/done/gamerule-joins-the-op-family.md
 docs/backlog/done/console-completion-hides-what-you-cannot-run.md | keep | index | docs/backlog/README.md
@@ -1120,7 +1121,7 @@ docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261019-c.md | 
 docs/evidence/acceptance/in-game-command-console-interactive-20261018-t.md | keep | claim | docs/backlog/done/in-game-command-console-interactive.md
 docs/evidence/acceptance/command-console-esc-not-intercepted-20261018-t.md | keep | claim | docs/backlog/done/command-console-esc-not-intercepted.md
 docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261018-t.md | keep | claim | docs/backlog/done/online-ui-paired-controls-and-page-scroll.md
-docs/evidence/acceptance/enter-key-opens-plain-chat-20261018-t.md | keep | claim | docs/backlog/todo/enter-key-opens-plain-chat.md
+docs/evidence/acceptance/enter-key-opens-plain-chat-20261018-t.md | keep | claim | docs/backlog/review/enter-key-opens-plain-chat.md
 docs/evidence/acceptance/20261018-u-scope.md | keep | claim | docs/evidence/acceptance/heal-cheat-command-state-reset-20261018.md
 docs/evidence/acceptance/heal-cheat-command-state-reset-20261018.md | keep | claim | docs/backlog/done/heal-cheat-command-state-reset.md
 docs/evidence/acceptance/item-identity-across-transforms-20261018.md | keep | claim | docs/backlog/done/item-identity-across-transforms.md

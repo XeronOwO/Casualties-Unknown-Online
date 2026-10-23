@@ -12,7 +12,9 @@
 // message pump turns into the input state the game reads:
 //   - the OS input queue is never touched (the OS key state reads 0 while the key reads held),
 //   - no other window is addressed and no window is activated (the foreground window is read, never set),
-//   - only a key the game itself has bound is queued, and the recipe reads the state back per call.
+//   - the key is one the game itself has bound (`key-hold` resolves a bind name) or a raw virtual key a
+//     recipe posts deliberately (`key-tap`, whose caller pairs a state read with it; it does not read the
+//     state back itself), and the caller passes the key the bind resolved to.
 // The gate pins that: the four raw APIs below are PRIVATE to this class and are the only names of their
 // kind anywhere under tools/acceptance/ - the surface the recipes call is this class's own vocabulary
 // (QueueKeyDown, QueueKeyUp, ScanCodeOf, OsKeyState, ForegroundWindow). Of those four, the window message

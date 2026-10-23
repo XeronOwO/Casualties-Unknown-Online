@@ -68,7 +68,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Single-file package for the core plugin](todo/single-file-plugin-package.md) — **Low-Medium** — extensions stay separate.
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
-- [Enter opens the console as plain chat](todo/enter-key-opens-plain-chat.md) — **Low** — rejected: the guard latches on the game console's stale selection.
+- [The opener can claim a key the game is rebinding](todo/enter-opener-keybind-capture.md) — **Low-Medium** — the key-bind capture is not a text field.
 - [Four tracked docs carry code-page mojibake](todo/docs-mojibake-cleanup.md) — **Low** — punctuation damaged by a code-page round trip; restore it by meaning.
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 - [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
@@ -78,6 +78,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [Enter opens the console as plain chat](review/enter-key-opens-plain-chat.md) — **Low** — guard fixed; the green re-run is owed.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.

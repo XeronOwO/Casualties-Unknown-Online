@@ -1,6 +1,10 @@
 # A refused player-interaction intent is silent to the player who performed it
 
-- Status: Review — both answering sites landed and row 2 is read on the machine; the remaining rows are readings, not code
+- Status: Done 2026-10-24 — both answering sites landed and every row has a reading: row 2 on the machine
+  (2026-10-18), rows 1 and 4 on `0.1.0+1ae6b691` (2026-10-24 batch, the actor's own client printed the
+  refusal for a denied open and nothing at all for an accepted one, with no host-side traffic), row 3 through
+  the service's answered invalid-operand refusal and its test. Record:
+  `docs/evidence/acceptance/intent-refusal-never-reaches-the-actor-20261024-a.md`.
 - Priority: Medium
 - Category: Remote inventory / player interaction / observability of refusals
 - Source: the give ticket's acceptance readings (2026-10-18). Row 3 and row 6 both refused correctly, and both

@@ -598,7 +598,7 @@ change:
   container, item worn, destination not in world) lands in the host's log only; the giver's client has already
   written a positive line and nothing follows. The existing gap now covers one more refusal, and the fix is the same
   one: answer it on the wire (`CommandRejected`) and print it where the player acted. **Landed since**: the
-  refusal answer is `review/intent-refusal-never-reaches-the-actor.md`, whose own record reads its row 2 as passing;
+  refusal answer is `done/intent-refusal-never-reaches-the-actor.md`, whose own record reads its row 2 as passing;
   what remains open in that shape is not this ticket's.
 - **Row 2 is still unrun on the machine.** The code is there and the unit-level red went green, but "an item
   released onto an item shown in the receiver's inventory enters that container and stays put" needs the live
@@ -861,7 +861,7 @@ with the code it named, because a fixed finding that is not written down is one 
   Warning and the caller ignores the answer (recorded as a limit below); the codec's "NEVER destroys" wording
   was false for the componentless prefab (fixed); two stale restatements in this ticket (the 2026-10-18
   `RestoreContent` sentence and the "host-side refusal only reaches the host" bullet, both fixed — the second
-  one is `review/intent-refusal-never-reaches-the-actor.md`, which reads its own row as passing); the status
+  one is `done/intent-refusal-never-reaches-the-actor.md`, which reads its own row as passing); the status
   over-claimed row 3 (narrowed above); the checklist's format-evidence line had no exit code (the log now
   appends it), its "unfiltered" wording contradicted the excluded checklist gate (the filter is now named, and
   a separate unfiltered gate run proves the checklist), and its structure line did not say the touched test

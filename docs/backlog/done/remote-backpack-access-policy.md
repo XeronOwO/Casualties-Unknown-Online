@@ -92,7 +92,7 @@
   the reason at the gesture, but that check is an interception: the host's refusal is the one that
   settles the record, and the INTENT path answers the actor by name. The direct card take and the
   `TransferToBody` replay discard the core's reason string — a pre-existing gap owned by
-  `review/intent-refusal-never-reaches-the-actor.md`, named here rather than re-claimed as answered.
+  `done/intent-refusal-never-reaches-the-actor.md`, named here rather than re-claimed as answered.
 - **The Online-UI member card** reads the rule in force: the host's own config on the host, and on a
   member the announced set (with none announced the local check is skipped, decision 263) — the
   backpack button is offered unless that rule is `deny`, and its direct take rows keep their own
@@ -164,7 +164,7 @@ whole here, because a finding fixed without its record is one the next cycle re-
 | m2 | minor | `architecture` said both seams fail closed when health is unknown; `allow` needs no state. | **Fixed** in §3.1.1: middle fails closed, `allow` needs no state, `deny` refuses regardless. |
 | m3 | minor | "Native body-search rule" was an unverified game fact. | **Fixed**: the enum and policy docs now name the landed CUO take rule (`!Conscious || !Alive`) only. |
 | m4 | minor | "The same state the native game gives" over-claimed: the native state also refuses the pickup. | **Fixed**: the pages now say this design reproduces the LOOK and permits the pickup, refusing the release. |
-| m5 | minor | The card-take and `TransferToBody` refusals are silent; the ticket claimed every host refusal answers by name. | **Fixed in the ticket's wording**, scoped to the intent path; the pre-existing gap stays owned by `review/intent-refusal-never-reaches-the-actor.md`. |
+| m5 | minor | The card-take and `TransferToBody` refusals are silent; the ticket claimed every host refusal answers by name. | **Fixed in the ticket's wording**, scoped to the intent path; the pre-existing gap stays owned by `done/intent-refusal-never-reaches-the-actor.md`. |
 | m6 | minor | An unparseable config value fell back to `allow` (the widest) while calling it conservative. | **Fixed**: `ParseRemoteBackpackAccess` fails closed to `deny`; the entry's documented default stays `allow`. |
 | m7 | minor | A 2 s notice window kept the game's 6 s alert alive. | **Fixed**: 7 s, longer than the alert's own life. |
 | m8 | minor | The backlog index still said "unconscious-only". | **Fixed** in `docs/backlog/README.md`. |

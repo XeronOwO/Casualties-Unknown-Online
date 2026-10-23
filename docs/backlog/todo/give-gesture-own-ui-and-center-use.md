@@ -1,14 +1,15 @@
 # The give gesture respects the player's own UI
 
-- Status: Todo — Rejected (batch `20261023-f`, record `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md`:
-  row 4 fails — the centre WEAR is refused on every target by a pre-existing defect in the placement resolver
-  (`GameWearPlacement.TryResolve` never writes the resolved limb index, `d0fcfa27`); row 7 unproven — a
-  view-only display needs the host rule `RemoteBackpackAccess=unconscious_or_dead`, which the run cannot
-  stage). Rows 1, 2, 3, 5, 6, 8, 9 and 10 pass on the record's evidence; row 4's fix is ordinary development
-  work with a red test on the resolver's success path.
+- Status: Todo — row 4's defect is fixed and re-read (`b232be74`, batch `20261023-g`), and rows 1, 2, 3, 5, 6,
+  8, 9 and 10 passed in batch `20261023-f` (records
+  `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md` and
+  `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-g.md`); the ticket stays open for row 7
+  only, which is `blocked` on a driveable host-rule switch (the admin page's dropdown options carry no control
+  ids and no console verb writes `RemoteBackpackAccess`).
 - Priority: Medium-High
 - Category: Cross-player gesture / UI precedence / native parity
-- Blocked by: nothing external. The machine reading needs one two-client session.
+- Blocked by: row 7 only — the host-rule switch a view-only display needs is not driveable in-process (see
+  the acceptance section). Every other row is read.
 - Source: The user's review of the give gesture's entry (2026-10-23): a drag inside the player's own backpack must
   never be judged against another player, the displayed backpack's centre is the use/wear target, and the detection
   range only chooses whose backpack is displayed.
@@ -156,28 +157,34 @@ lines and artifacts.
 | 1 | Own ring open, cursor through a teammate's range — their backpack stays closed, the release stays local | pass |
 | 2 | Tab during the drag enters the world; a slot gives, off the ring drops | pass |
 | 3 | Centre use of a usable item on the displayed player — the target executes it, the bag stays open | pass |
-| 4 | Centre wear of a wearable on the displayed player | **fail** — refused on every target |
+| 4 | Centre wear of a wearable on the displayed player | pass — re-read on `b232be74`, batch `20261023-g` |
 | 5 | Centre with an item that has no use/wear action — nothing happens, the item stays in hand | pass |
 | 6 | A centre release is a USE/WEAR (`[DragUse] used …`), and the cue names the displayed player | pass |
-| 7 | View-only displayed backpack — the centre use/wear is refused with one line | **unproven** — the rule could not be staged |
+| 7 | View-only displayed backpack — the centre use/wear is refused with one line | **blocked** — no driveable rule switch |
 | 8 | B → C — the last entered range displays | pass |
 | 9 | The local wound panel open — no remote backpack | pass |
 | 10 | One press closes the displayed bag, the second opens the own ring | pass |
 
-**Row 4 is a product defect, not a fixture gap.** `GameWearPlacement.TryResolve`
-(`src/CasualtiesUnknownOnline.GameAdapter/Content/GameWearFacts.cs`) resolves the limb layout with
-`TryResolveLimbIndex(…, out _)` and then returns `true` without ever writing its own `limbIndex` out
-parameter: `wearSlotId = info.wearSlotId; return true;`. `GameWearSemantics.TryGetWearPlacement` therefore
-answers `-1` on every success, and `RemoteWearApplication.TryCreateWornItem` refuses at its first guard — the
-machine's own line was `[ItemUse] refused: bikehelmet … cannot be placed on <member> — target limb
-missing/dismembered or wear slot already occupied` while the target's stored snapshot had all 15 limbs
-attached. `git blame` puts the lost assignment on `d0fcfa27` (2026-10-11); no test covers the success path's
-index. The fix is a regression test that fails on this tree plus the missing assignment.
+**Row 4 was a product defect, not a fixture gap — fixed and read.** `GameWearPlacement.TryResolve`
+(`src/CasualtiesUnknownOnline.GameAdapter/Content/GameWearFacts.cs`) resolved the limb layout with
+`TryResolveLimbIndex(…, out _)` and then returned `true` without ever writing its own `limbIndex` out
+parameter, so `GameWearSemantics.TryGetWearPlacement` answered `-1` on every success and
+`RemoteWearApplication.TryCreateWornItem` refused at its first guard — the machine's own line was
+`[ItemUse] refused: bikehelmet … cannot be placed on <member> — target limb missing/dismembered or wear slot
+already occupied` while the target's stored snapshot had all 15 limbs attached. `git blame` put the lost
+assignment on `d0fcfa27` (2026-10-11). Fixed in `b232be74`: the resolver now hands the index out through the
+same `TryResolveLimbIndex` call, and `WearChainContentGateTests.ThePlacementResolver_HandsOutTheLimbIndexItResolved`
+(the syntax gate with its matcher samples, since a live `Body` cannot exist in the test host) pins it. Batch
+`20261023-g` then re-read the row on the fixed artifact — `<host>` wrote `[ItemUse] <host> wears bikehelmet
+(id …) on <member>; slot -2.`, `<member>`'s own client wrote `[ItemUse] local body wears bikehelmet from
+<host>.`, and the target's worn set carried it on limb 0 while the giver wore nothing.
 
-**Row 7's staging gap** is tooling, not product: the admin page's rule row is a native `TMP_Dropdown` whose
+**Row 7 is `blocked` on tooling, not product**: the admin page's rule row is a native `TMP_Dropdown` whose
 options carry no CUO control ids, the driver has no value-carrying selection, and no console verb writes the
-rule — so the only state that makes a display view-only cannot be reached by an in-process run. A driveable
-rule switch (a control id per option, or a console verb) is what the row needs.
+rule — so the only state that makes a display view-only (`RemoteBackpackAccess=unconscious_or_dead`) cannot be
+reached by an in-process run. What unblocks it is a driveable rule switch: a control id per dropdown option,
+or a console verb that sets a host rule. Until then the row is not judged, never passed by a weaker check
+(`docs/acceptance/workflow.md`'s Limits names the gap).
 
 ## Limits (recorded, not claimed away)
 

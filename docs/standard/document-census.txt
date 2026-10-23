@@ -303,6 +303,7 @@ docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md | keep | 
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
 docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md | keep | claim | docs/backlog/todo/give-gesture-own-ui-and-center-use.md
+docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-g.md | keep | claim | docs/backlog/todo/give-gesture-own-ui-and-center-use.md
 docs/backlog/done/give-item-to-a-player-command.md | keep | index | docs/backlog/README.md
 docs/backlog/review/intent-refusal-never-reaches-the-actor.md | keep | index | docs/backlog/README.md
 docs/backlog/done/heal-command-limb-and-hollow-restore.md | keep | index | docs/backlog/README.md

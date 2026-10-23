@@ -53,7 +53,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
-- [The give gesture respects the player's own UI](todo/give-gesture-own-ui-and-center-use.md) — **Medium-High** — rejected: the centre wear is refused.
+- [The give gesture respects the player's own UI](todo/give-gesture-own-ui-and-center-use.md) — **Medium-High** — row 7 blocked: no driveable rule switch.
 - [A refused child of a restored container keeps its id](todo/restore-refused-child-keeps-its-id.md) — **Low-Medium** — the bulk restore discards it.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.

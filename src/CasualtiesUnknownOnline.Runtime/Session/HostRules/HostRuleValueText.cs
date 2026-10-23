@@ -55,6 +55,33 @@ public static class HostRuleValueText
 	};
 
 	/// <summary>
+	/// The choices to HAND BepInEx's <c>AcceptableValueList</c>: the same set as <see cref="Choices"/>,
+	/// with the row's <see cref="HostRuleCensus.Row.ConservativeValue"/> FIRST, because BepInEx replaces a
+	/// config text the list does not accept with the list's FIRST entry — so the first entry is what a typo
+	/// or a different capitalisation clamps to. It must be the rule's declared fallback, never the open
+	/// level; for parity that fallback is the documented default (warn), so a miscased <c>require</c>
+	/// becomes warn rather than refusing. The console's own order stays <see cref="Choices"/>; only the
+	/// config binding reorders. A row that declares a fallback outside its own choices is a census defect,
+	/// not a runtime fallback: it throws.
+	/// </summary>
+	public static IReadOnlyList<string> ChoicesForClamp(HostRuleCensus.Row row)
+	{
+		var choices = Choices(row);
+		if (row.ConservativeValue is not { Length: > 0 } conservative)
+		{
+			return choices;
+		}
+
+		if (!choices.Contains(conservative, StringComparer.Ordinal))
+		{
+			throw new InvalidOperationException(
+				$"host rule '{row.Name}' declares conservative value '{conservative}', which is not one of its choices");
+		}
+
+		return [conservative, .. choices.Where(choice => !string.Equals(choice, conservative, StringComparison.Ordinal))];
+	}
+
+	/// <summary>
 	/// Parses <paramref name="text"/> as the value of the rule <paramref name="row"/> describes.
 	/// <paramref name="value"/> is the canonical text a write takes (and a query prints); a refusal
 	/// names the accepted set — the value names, or the numeric rule's range.

@@ -25,9 +25,12 @@ internal static class PluginDependencyRegistrar
 	{
 		// BepInEx ConfigFile → IOptionsMonitor bridge: the plugin owns
 		// the ConfigEntry declarations, the Runtime owns the options
-		// snapshots and the hot-reload monitor. Invalid/out-of-range
-		// values are clamped by BepInEx (range) or by the defensive
-		// parser below (log level falls back to Information).
+		// snapshots and the hot-reload monitor. BepInEx clamps a file
+		// value before it is read: an out-of-range number becomes the
+		// bound, an unacceptable text becomes the list's first entry
+		// (a log level outside the list therefore becomes Information).
+		// The parsers below are the defence for a value that did not
+		// come through the entry.
 		var stateStreamHz = config.Bind("Sync", "StateStreamHz",
 			StateStreamOptions.DefaultStateStreamHz,
 			new ConfigDescription(
@@ -85,16 +88,19 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
 		// The closed sets and the numeric range are bound from the census row the console's /gamerule
 		// verb reads, so a canonical write from the console cannot be clamped and the accepted sets
-		// cannot drift from the verb. The verb answers the value the entry holds AFTER the write, so a
-		// second declaration here would surface as a clamp in that answer — the binding is what makes
-		// the clamp impossible in the first place.
+		// cannot drift from the verb. The ORDER is the clamp's, not the console's: BepInEx replaces a
+		// config text the acceptable list does not accept with the list's FIRST entry, so
+		// ChoicesForClamp puts the census's declared fallback first (deny / warn) — an unrecognised value
+		// lands there, never on the open allow, and the console's own order stays allow-first. The verb
+		// answers the value the entry holds AFTER the write, so a second declaration here would surface as
+		// a clamp in that answer — the binding is what makes the clamp impossible in the first place.
 		var remoteBackpackRow = HostRuleCensus.Of(HostRuleId.RemoteBackpackAccess);
 		var nativeBindingRow = HostRuleCensus.Of(HostRuleId.NativeBindingParity);
 		var weightRow = HostRuleCensus.Of(HostRuleId.PiggybackWeightMultiplier);
 		var remoteBackpackAccess = config.Bind("HostRules", "RemoteBackpackAccess", "allow",
 			new ConfigDescription(
 				"Host-only: who may open and operate another player's backpack. allow = anyone (today's cooperative rule); unconscious_or_dead = a conscious owner's pack opens view-only and only an unconscious or dead body may be operated on; deny = nobody. Enforced on the host; a member's client reads the announced value.",
-				new AcceptableValueList<string>([.. HostRuleValueText.Choices(remoteBackpackRow)])));
+				new AcceptableValueList<string>([.. HostRuleValueText.ChoicesForClamp(remoteBackpackRow)])));
 		var allowMemberCheatVerbs = config.Bind("HostRules", "AllowMemberCheatVerbs", false,
 			new ConfigDescription("Host-only: the cheat switch — true = members may run the cheat verbs (/data's write verbs, /give, /summon, /heal, /gamerule) at all. It is one of TWO rulings: the member must ALSO be on this host's cheat roster (granted with /op). False (default) = every member's cheat verb is refused by name, the reason is named back, and the member's client puts back the value it had already applied. The host's own verbs ignore both: its standing is the online switch."));
 		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
@@ -106,7 +112,7 @@ internal static class PluginDependencyRegistrar
 		var nativeBindingParity = config.Bind("HostRules", "NativeBindingParity", "warn",
 			new ConfigDescription(
 				"Host-only: how a member's declared native binding is judged when it differs from the host's own for a mod both sides list. allow = no check; warn = admit the member and record the mismatch in the host's log (default); require = refuse the member.",
-				new AcceptableValueList<string>([.. HostRuleValueText.Choices(nativeBindingRow)])));
+				new AcceptableValueList<string>([.. HostRuleValueText.ChoicesForClamp(nativeBindingRow)])));
 		var radiationLineStopsAboveTheFloor = config.Bind("HostRules", "RadiationLineStopsAboveTheFloor", true,
 			new ConfigDescription("True = the radiation line stops a margin above the layer floor instead of descending past it, so the bottom of a layer stays livable and a group can share supplies and rest. False = the game's own uncapped descent."));
 		var spectatorFreeFly = config.Bind("HostRules", "SpectatorFreeFly", true,
@@ -123,7 +129,7 @@ internal static class PluginDependencyRegistrar
 					PvpEnabled = pvpEnabled.Value,
 					AutoContinue = autoContinue.Value,
 					AllowLateJoin = allowLateJoin.Value,
-					RemoteBackpackAccess = ParseRemoteBackpackAccess(remoteBackpackAccess.Value),
+					RemoteBackpackAccess = ParseRemoteBackpackAccess(remoteBackpackAccess.Value, remoteBackpackRow),
 					AllowMemberCheatVerbs = allowMemberCheatVerbs.Value,
 					RadiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor.Value,
 					SpectatorFreeFly = spectatorFreeFly.Value,
@@ -131,7 +137,7 @@ internal static class PluginDependencyRegistrar
 					SpectateWhileWaitingToJoin = spectateWhileWaitingToJoin.Value,
 					WidenRunSettings = widenRunSettings.Value,
 					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
-					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value),
+					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value, nativeBindingRow),
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
 				remoteBackpackAccess.Definition,
@@ -145,10 +151,11 @@ internal static class PluginDependencyRegistrar
 
 		// World archive policy (S4.4, decision 25): the interval autosave and the backup
 		// retention. The runtime reads the monitor at each decision, so a config edit
-		// hot-reloads without a restart. BepInEx's range validation is the first clamp
-		// and SaveOptions is the second: a hand-edited config file bypasses the first,
-		// and neither "autosave every 0 minutes" nor "keep 0 archives" is a policy this
-		// system may execute.
+		// hot-reloads without a restart. BepInEx's range validation clamps a file value
+		// to the bound as well, so SaveOptions' own clamp is a second line of defence:
+		// neither "autosave every 0 minutes" nor "keep 0 archives" is a policy this
+		// system may execute, and a caller that builds SaveOptions directly never passes
+		// through the entry.
 		var autosaveEnabled = config.Bind("Save", "AutosaveEnabled", true,
 			new ConfigDescription(
 				"Host-only: write an interval autosave while a world is being played. Off leaves the player's /save, the layer-end cut and the menu-return cut in place."));
@@ -299,15 +306,36 @@ internal static class PluginDependencyRegistrar
 			? level
 			: MelLogLevel.Information;
 
-	/// <summary>A hand-edited config file bypasses the entry's AcceptableValueList, so an
-	/// unparseable parity value falls back to the conservative default (warn) instead of
-	/// throwing during composition.</summary>
-	private static NativeBindingParity ParseNativeBindingParity(string text) =>
-		NativeBindingParityText.TryParse(text, out var parity) ? parity : NativeBindingParity.Warn;
+	/// <summary>A config file value outside the entry's AcceptableValueList is clamped by BepInEx to the
+	/// list's FIRST entry, which <see cref="HostRuleValueText.ChoicesForClamp"/> puts at the rule's
+	/// declared fallback (warn). The parser's own fallback is not declared here: it is the same census
+	/// value, parsed through the same text form, so the list's order and this path cannot disagree. A
+	/// rule whose census fallback does not parse is a census defect and throws during composition.</summary>
+	private static NativeBindingParity ParseNativeBindingParity(string text, HostRuleCensus.Row row)
+	{
+		if (NativeBindingParityText.TryParse(text, out var parity))
+		{
+			return parity;
+		}
 
-	/// <summary>A hand-edited config file bypasses the entry's AcceptableValueList, so an
-	/// unparseable access value fails CLOSED (deny) rather than widening the access a typo was
-	/// meant to narrow; the entry's own documented default stays allow.</summary>
-	private static RemoteBackpackAccess ParseRemoteBackpackAccess(string text) =>
-		RemoteBackpackAccessText.TryParse(text, out var access) ? access : RemoteBackpackAccess.Deny;
+		return NativeBindingParityText.TryParse(row.ConservativeValue, out var fallback)
+			? fallback
+			: throw new InvalidOperationException($"host rule '{row.Name}' has no parseable fallback value");
+	}
+
+	/// <summary>A config file value outside the entry's AcceptableValueList is clamped by BepInEx to the
+	/// list's FIRST entry, which <see cref="HostRuleValueText.ChoicesForClamp"/> puts at the rule's
+	/// declared fallback (deny); the entry's own documented default stays allow. The parser's fallback is
+	/// the same census value parsed through the same text form, so the two cannot disagree.</summary>
+	private static RemoteBackpackAccess ParseRemoteBackpackAccess(string text, HostRuleCensus.Row row)
+	{
+		if (RemoteBackpackAccessText.TryParse(text, out var access))
+		{
+			return access;
+		}
+
+		return RemoteBackpackAccessText.TryParse(row.ConservativeValue, out var fallback)
+			? fallback
+			: throw new InvalidOperationException($"host rule '{row.Name}' has no parseable fallback value");
+	}
 }

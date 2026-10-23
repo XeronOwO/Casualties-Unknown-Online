@@ -27,9 +27,16 @@ in [Logs](logs.md).
 - **[Hot reload](glossary.md)**: the runtime reads an options monitor at each decision, so editing the
   file takes effect without restarting the game. The online panel's admin page and the console's
   `/gamerule` command write the same entries.
-- BepInEx range annotations are the first clamp and the options object is the second: a hand-edited file
-  bypasses the first, and neither "autosave every 0 minutes" nor "keep 0 archives" is a policy this
-  system may execute, so the save options clamp again.
+- BepInEx's annotations clamp a file value BEFORE CUO reads it, and the clamping is exact: an
+  `AcceptableValueRange` replaces an out-of-range number with the bound, and an `AcceptableValueList`
+  replaces any text it does not accept — a typo, or a different capitalisation, because matching is
+  ordinal — with the list's FIRST entry. The two three-way host rules therefore declare a fallback and
+  the plugin puts it first (`deny` for `RemoteBackpackAccess`, `warn` for `NativeBindingParity`), so an
+  unrecognised value lands there and never on the open `allow`; for `NativeBindingParity` that fallback
+  is the documented default, not the strictest level, so a miscased `require` becomes `warn` rather than
+  refusing. The declaration is `HostRuleCensus.ConservativeValue` and the order is
+  `HostRuleValueText.ChoicesForClamp`; the save options clamp again on their own, a second line of
+  defence for a caller that builds them directly rather than what makes a file value safe.
 - A **configuration profile** is a named snapshot of every bound entry. Capturing writes one
   `.profile` file (schema version 1); applying sets each stored entry, counts what it applied and
   skipped, and reports the entries it could not set. A profile name is 1–64 characters and may not

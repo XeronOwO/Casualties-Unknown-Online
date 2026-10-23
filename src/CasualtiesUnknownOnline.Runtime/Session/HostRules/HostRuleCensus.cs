@@ -56,8 +56,22 @@ public static class HostRuleCensus
 	/// console name a player types, and the localization key its label uses. The member's read-only
 	/// Admin summary, the numeric row's slider bounds and the console's <c>/gamerule</c> verb all
 	/// read it; the host's Admin rows stay explicit because each one binds its own setter.
+	/// <see cref="ConservativeValue"/> is a named set's DECLARED FALLBACK: the value an unrecognised
+	/// config text becomes, never the open level, and — for parity — the documented default (warn)
+	/// rather than the strictest level (require). The plugin puts it FIRST in the config entry's
+	/// acceptable-value list because BepInEx replaces a text the list does not accept with the list's
+	/// first entry, and binds the parser's fallback to the same value. It is null for a rule that needs
+	/// no fallback (a flag or a number), and a row that declares one must be a member of
+	/// <see cref="HostRuleValueText.Choices"/> (the helper enforces it).
 	/// </summary>
-	public sealed record Row(HostRuleId Id, Audience Audience, HostRuleKind Kind, string Name, string LabelKey, ValueRange? Range = null);
+	public sealed record Row(
+		HostRuleId Id,
+		Audience Audience,
+		HostRuleKind Kind,
+		string Name,
+		string LabelKey,
+		ValueRange? Range = null,
+		string? ConservativeValue = null);
 
 	/// <summary>The census, in the order the Admin page renders it.</summary>
 	public static IReadOnlyList<Row> Rows { get; } =
@@ -65,11 +79,11 @@ public static class HostRuleCensus
 		new(HostRuleId.PvpEnabled, Audience.Members, HostRuleKind.Boolean, "pvp_enabled", "admin.rule_pvp"),
 		new(HostRuleId.AutoContinue, Audience.Members, HostRuleKind.Boolean, "auto_continue", "admin.rule_auto_continue"),
 		new(HostRuleId.AllowLateJoin, Audience.Members, HostRuleKind.Boolean, "allow_late_join", "admin.rule_allow_late_join"),
-		new(HostRuleId.RemoteBackpackAccess, Audience.Members, HostRuleKind.Access, "remote_backpack_access", "admin.rule_remote_backpack_access"),
+		new(HostRuleId.RemoteBackpackAccess, Audience.Members, HostRuleKind.Access, "remote_backpack_access", "admin.rule_remote_backpack_access", ConservativeValue: "deny"),
 		new(HostRuleId.AllowMemberCheatVerbs, Audience.Members, HostRuleKind.Boolean, "allow_member_cheat_verbs", "admin.rule_allow_member_cheat_verbs"),
 		new(HostRuleId.WidenRunSettings, Audience.Members, HostRuleKind.Boolean, "widen_run_settings", "admin.rule_widen_run_settings"),
 		new(HostRuleId.PiggybackWeightMultiplier, Audience.Members, HostRuleKind.Number, "piggyback_weight_multiplier", "admin.rule_piggyback_weight", new ValueRange(0f, 3f)),
-		new(HostRuleId.NativeBindingParity, Audience.Members, HostRuleKind.Parity, "native_binding_parity", "admin.rule_native_binding_parity"),
+		new(HostRuleId.NativeBindingParity, Audience.Members, HostRuleKind.Parity, "native_binding_parity", "admin.rule_native_binding_parity", ConservativeValue: "warn"),
 		new(HostRuleId.SaveInventory, Audience.Members, HostRuleKind.Boolean, "save_inventory", "admin.rule_save_inventory"),
 		new(HostRuleId.ReviveFromTrader, Audience.Members, HostRuleKind.Boolean, "revive_from_trader", "admin.rule_revive_trader"),
 		new(HostRuleId.ReviveOnNextLevel, Audience.Members, HostRuleKind.Boolean, "revive_on_next_level", "admin.rule_revive_next_level"),

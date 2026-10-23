@@ -9,10 +9,11 @@ namespace CasualtiesUnknownOnline.Runtime.Configuration;
 /// written into the format doc §7: an interval autosave every 10 minutes, the newest
 /// 10 archives kept.
 ///
-/// The bounds are clamped HERE rather than trusted to the caller: a hand-edited config
-/// file bypasses BepInEx's own range validation, and neither "autosave every 0 minutes"
-/// nor "keep 0 archives" is a policy this system may execute — the first would cut every
-/// frame, the second would delete the world's whole history.
+/// The bounds are clamped HERE as well as by BepInEx: the config entry's range already
+/// replaces a file value outside the bounds with the bound, and this second clamp is
+/// the defence for a caller that builds SaveOptions directly — neither "autosave every
+/// 0 minutes" nor "keep 0 archives" is a policy this system may execute, the first would
+/// cut every frame, the second would delete the world's whole history.
 /// </summary>
 public sealed class SaveOptions
 {

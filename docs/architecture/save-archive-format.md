@@ -701,8 +701,9 @@ verified in-game — an adapter-level reflection host can read the real game lis
 - The interval, the retention count and the autosave switch are configuration, defaulting to an
   interval-based autosave the host can turn off. The surface is the BepInEx `ConfigFile` bridged to
   `IOptionsMonitor<SaveOptions>` (decision 25, `[Save]` section), read at each decision, so an edit
-  hot-reloads without a restart; the bounds are clamped in `SaveOptions` as well as by BepInEx,
-  because a hand-edited file bypasses the latter.
+  hot-reloads without a restart; the bounds are clamped by the entry's range AND in `SaveOptions` —
+  the entry clamp rewrites a file value before anything reads it, and the second clamp is the defence
+  for a caller that builds the options directly.
 
 ## 8. Non-goals
 

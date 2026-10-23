@@ -18,7 +18,7 @@
 - 插件在启动时绑定全部配置项并保存文件，所以某个更新新加的段（比如 `[UI]`）会出现在老安装里，而不是悄悄藏着。
 - 下表的默认值、取值范围与合法取值都是精确的；文字说明是本页对 BepInEx 写在配置文件里那一行旁白的转述。声明本身在 `src/CasualtiesUnknownOnline.Plugin/PluginDependencyRegistrar.cs`（`[Session] InteractionPanelKey` 绑在 `Plugin.cs` 里）。
 - **[热重载](glossary.md)**：运行时在每次做决定时读一次选项监视器，所以改完文件不用重启游戏就生效。联机界面的管理页与控制台的 `/gamerule` 命令改的是同一批配置项。
-- BepInEx 的范围校验是第一道夹子，选项对象是第二道：手改文件能绕过第一道，而「每 0 分钟自动存档」和「保留 0 份备份」都不是这套系统可以执行的策略，所以存档选项会再夹一次。
+- BepInEx 的注解会在 CUO 读到文件值之前先夹一次，而且夹得很硬：`AcceptableValueRange` 把越界数字替换成边界值；`AcceptableValueList` 把任何它不接受的文本——拼写错误，或者只是大小写不同，因为匹配是逐字符的——替换成列表的**第一项**。所以两条三档主机规则各自声明一个回退档，插件把它放在第一位（`RemoteBackpackAccess` 是 `deny`，`NativeBindingParity` 是 `warn`），不认识的取值只会落在这个回退档上，绝不会落在开放的 `allow`；对 `NativeBindingParity` 来说这个回退档就是文档里的默认档，不是最严档，所以把 `require` 写成别的形式会变成 `warn`，而不是继续拒绝。声明在 `HostRuleCensus.ConservativeValue`，顺序由 `HostRuleValueText.ChoicesForClamp` 决定；存档选项自己还会再夹一次，那是给直接构建选项的调用方的第二道防线，而不是文件值之所以安全的原因。
 - **配置档案**是全部已绑定配置项的一份带名字的快照。抓取时写一个 `.profile` 文件（结构版本 1）；套用时逐条写入，统计成功与跳过的条数，并报告写不进去的那些。档案名 1–64 个字符，不能包含路径分隔符。
 
 ## `[Sync]`

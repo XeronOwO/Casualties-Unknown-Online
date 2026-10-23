@@ -89,7 +89,7 @@ will not use), and a row without an identity shows nothing (so the label cannot 
 The 2026-10-22 give gesture added two facts the cue must honour, both in the same tracker: the target is the
 last-entered detection range (not the nearest walk), and on the displayed backpack the release is a GIVE, so
 the cue asks the same `DragGiveTargetResolver` the release does and hides its USE label there. **Re-based
-2026-10-23:** the USE moved from the range to the displayed backpack's CENTRE (`todo/give-gesture-own-ui-and-center-use.md`),
+2026-10-23:** the USE moved from the range to the displayed backpack's CENTRE (`done/give-gesture-own-ui-and-center-use.md`),
 so the cue now names the displayed player only while the pointer is on that centre (`DragUseCenter`, the same
 hit test the release reads) and shows nothing on a slot (a give). The range now only chooses whose backpack is
 displayed.

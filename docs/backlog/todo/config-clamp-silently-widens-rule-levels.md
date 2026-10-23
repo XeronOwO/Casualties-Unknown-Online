@@ -7,7 +7,7 @@
   `ConfigEntryBase.ClampValue`; `AcceptableValueList<string>.Clamp` returns `AcceptableValues[0]` when the
   text is not an exact acceptable value), so a config file value BepInEx does not recognise is replaced by
   the list's FIRST entry before CUO ever reads it.
-- Related: `review/gamerule-host-rule-command.md` (its review found this; it binds the same lists from the
+- Related: `done/gamerule-host-rule-command.md` (its review found this; it binds the same lists from the
   host-rule census, which this fix must keep), decision 263 (the rules are the host's), the `[HostRules]`
   and `[Respawn]` sections of `docs/en/reference/configuration.md` and `docs/zh/reference/configuration.md`.
 

@@ -9,7 +9,7 @@
   `/gamerule` refusals (unknown rule, invalid value, out of range, the editor's refusal) are returned
   strings, so they render green; only the pre-handler host-only gate is `Error`. The verb's tests assert the
   text because the handler has no way to return a kind.
-- Related: `review/gamerule-host-rule-command.md`, the console's own record
+- Related: `done/gamerule-host-rule-command.md`, the console's own record
   (`done/in-game-command-console-interactive.md`, `docs/evidence/selfchecks/ui/command-console-selfcheck.md`),
   and the mod-facing console command (`ModConsoleCommand.Handler` returns `string?`).
 

@@ -1,6 +1,6 @@
 # Live tickets cite the deleted `docs/api/` pages
 
-- Status: Todo — found by the reviews of `review/gamerule-host-rule-command.md` (2026-10-23/24);
+- Status: Todo — found by the reviews of `done/gamerule-host-rule-command.md` (2026-10-23/24);
   pre-existing.
 - Priority: Low
 - Category: Documentation / reference integrity

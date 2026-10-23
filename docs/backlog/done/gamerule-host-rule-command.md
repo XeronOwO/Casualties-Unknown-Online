@@ -1,13 +1,14 @@
 # A host rule is read and changed with `/gamerule`
 
-- Status: Review — implemented 2026-10-23; awaiting the acceptance batch.
+- Status: Done — implemented in `a2ba208d`, accepted in batch `20261023-j` (record
+  `docs/evidence/acceptance/gamerule-host-rule-command-20261023-j.md`).
 - Priority: Medium-High
 - Category: Host rules / console command / native parity
 - Source: the user's 2026-10-23 ruling — changing a host rule is a console command, shaped like
   Minecraft's `/gamerule`; the live syntax was fetched and cross-checked before this design was written
   (rule 17 of `AGENTS.md`).
-- Related: `todo/give-gesture-own-ui-and-center-use.md` (its row 7 is `blocked` on a driveable rule switch
-  and unblocks with this verb), decisions 263 (a host rule is the host's and reaches the members that read
+- Related: `done/give-gesture-own-ui-and-center-use.md` (its row 7 was blocked on a driveable rule switch
+  and this verb is it), decisions 263 (a host rule is the host's and reaches the members that read
   it) and 264 (a console command's shape follows Minecraft's current template, fetched not remembered),
   `docs/en/reference/configuration.md` (the `[HostRules]` and `[Respawn]` values this verb writes), and
   `todo/config-clamp-silently-widens-rule-levels.md` (the adjacent pre-existing clamp defect its review
@@ -129,24 +130,27 @@ family.
 - Tests: `HostRuleValueTextTests`, the `/gamerule` matrix in `CommandConsoleCommandTests`, and the
   census name/range pins in `HostRuleCensusTests`.
 
-## Acceptance rows
+## Acceptance rows (batch `20261023-j`, 2026-10-24)
 
-One two-client session against the deployed artifact; the host's console is driven in-process and the
-member's announced set is read with the existing `host-rules-read` recipe. The member's `remote_backpack_access`
-and `piggyback_weight_multiplier` values are the ones the member's own client is acting on.
+One two-client session against the deployed artifact; the host's console was driven in-process and the
+member's announced set read with the existing `host-rules-read` recipe. The record
+`docs/evidence/acceptance/gamerule-host-rule-command-20261023-j.md` carries each verdict with its
+artifact and log line. The member's `remote_backpack_access` and `piggyback_weight_multiplier` values are
+the ones the member's own client is acting on.
 
 | # | Row | Verdict |
 |---|---|---|
-| 1 | `/gamerule remote_backpack_access` on the host queries the value in force (`allow` on a fresh config) | — |
-| 2 | `/gamerule remote_backpack_access unconscious_or_dead` sets it; the answer names the new value; a second query reads it; the member's announced rule becomes `unconscious_or_dead` on the next pump | — |
-| 3 | `/gamerule remote_backpack_access maybe` is refused, names `allow`, `unconscious_or_dead` and `deny`, and the value stays | — |
-| 4 | `/gamerule nope` is refused and prints the known rule names | — |
-| 5 | A member's `/gamerule remote_backpack_access deny` answers the host-only refusal and the member's announced set is unchanged | — |
-| 6 | `/gamerule piggyback_weight_multiplier 5` is refused with the 0–3 range; `/gamerule piggyback_weight_multiplier 0.5` sets it and the member reads 0.5 | — |
-| 7 | The rules are restored (`allow`, `0.8`) and the member reads both back | — |
+| 1 | `/gamerule remote_backpack_access` on the host queries the value in force (`allow` on a fresh config) | **pass** — the install's value was `allow` |
+| 2 | `/gamerule remote_backpack_access unconscious_or_dead` sets it; the answer names the new value; a second query reads it; the member's announced rule becomes `unconscious_or_dead` on the next pump | **pass** — `announced=true` on the member, `unconscious_or_dead` |
+| 3 | `/gamerule remote_backpack_access maybe` is refused, names `allow`, `unconscious_or_dead` and `deny`, and the value stays | **pass** |
+| 4 | `/gamerule nope` is refused and prints the known rule names | **pass** — all 16 names |
+| 5 | A member's `/gamerule remote_backpack_access deny` answers the host-only refusal and the member's announced set is unchanged | **pass** — `Permission denied: this command is host-only.` |
+| 6 | `/gamerule piggyback_weight_multiplier 5` is refused with the 0–3 range; `/gamerule piggyback_weight_multiplier 0.5` sets it and the member reads 0.5 | **pass** |
+| 7 | The rules are restored to the values the install carried before the run (`allow`, `0.65`) and the member reads both back | **pass** — the run's starting values, read in row 1 and the pre-run rules probe |
 
-The same batch re-reads `give-gesture-own-ui-and-center-use` row 7 on the fixed artifact: the rule set by
-this verb, the centre release of a view-only displayed backpack refused with its one line, and nothing moved.
+The same batch re-read `give-gesture-own-ui-and-center-use` row 7 on the fixed artifact (record
+`docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-j.md`): the rule set by this verb, the
+centre release of a view-only displayed backpack refused with its one line, and nothing moved.
 
 ## Limits (recorded, not claimed away)
 

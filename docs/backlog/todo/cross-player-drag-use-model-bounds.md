@@ -2,7 +2,7 @@
 
 - Status: Todo — **re-scoped 2026-10-23**: the USE no longer lands by the detection range (it is the displayed
   backpack's centre); this ticket's remaining question is the detection range's SHAPE as the DISPLAY selector —
-  which player's backpack opens (`todo/give-gesture-own-ui-and-center-use.md`). The 2026-10-06 finding below is
+  which player's backpack opens (`done/give-gesture-own-ui-and-center-use.md`). The 2026-10-06 finding below is
   the original record.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / targeting geometry

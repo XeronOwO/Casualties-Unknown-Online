@@ -1,16 +1,14 @@
 # The give gesture respects the player's own UI
 
-- Status: Todo — row 4's defect is fixed and re-read (`b232be74`, batch `20261023-g`), and rows 1, 2, 3, 5, 6,
-  8, 9 and 10 passed in batch `20261023-f` (records
-  `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md` and
-  `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-g.md`); the ticket stays open for row 7
-  only, which is now UNBLOCKED: the console verb `/gamerule remote_backpack_access unconscious_or_dead`
-  (`review/gamerule-host-rule-command.md`) is the driveable host-rule switch, and the row awaits the next
-  acceptance batch.
+- Status: Done — rows 1, 2, 3, 5, 6, 8, 9 and 10 passed in batch `20261023-f`, row 4's defect was fixed in
+  `b232be74` and re-read in batch `20261023-g`, and row 7 passed in batch `20261023-j` on the artifact that
+  carries `/gamerule` (`a2ba208d`; records
+  `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md`,
+  `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-g.md` and
+  `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-j.md`).
 - Priority: Medium-High
 - Category: Cross-player gesture / UI precedence / native parity
-- Blocked by: nothing — row 7's tooling gap is closed by `/gamerule` and the row is waiting for the next
-  batch (see the acceptance section). Every other row is read.
+- Blocked by: nothing — all ten rows are read.
 - Source: The user's review of the give gesture's entry (2026-10-23): a drag inside the player's own backpack must
   never be judged against another player, the displayed backpack's centre is the use/wear target, and the detection
   range only chooses whose backpack is displayed.
@@ -161,7 +159,7 @@ lines and artifacts.
 | 4 | Centre wear of a wearable on the displayed player | pass — re-read on `b232be74`, batch `20261023-g` |
 | 5 | Centre with an item that has no use/wear action — nothing happens, the item stays in hand | pass |
 | 6 | A centre release is a USE/WEAR (`[DragUse] used …`), and the cue names the displayed player | pass |
-| 7 | View-only displayed backpack — the centre use/wear is refused with one line | **blocked** — no driveable rule switch |
+| 7 | View-only displayed backpack — the centre use/wear is refused with one line | pass — batch `20261023-j` (record `give-gesture-own-ui-and-center-use-20261023-j.md`) |
 | 8 | B → C — the last entered range displays | pass |
 | 9 | The local wound panel open — no remote backpack | pass |
 | 10 | One press closes the displayed bag, the second opens the own ring | pass |
@@ -183,9 +181,10 @@ same `TryResolveLimbIndex` call, and `WearChainContentGateTests.ThePlacementReso
 **Row 7's tooling gap is CLOSED (2026-10-23)**: the admin page's rule row is a native `TMP_Dropdown` whose
 options carry no CUO control ids and the driver has no value-carrying selection, so the only state that makes a
 display view-only (`RemoteBackpackAccess=unconscious_or_dead`) could not be reached by an in-process run. The
-console verb `/gamerule remote_backpack_access unconscious_or_dead` (`review/gamerule-host-rule-command.md`)
-is the driveable switch the row needed; it is re-read in the next batch, never passed by a weaker check
-(`docs/acceptance/workflow.md`'s Limits names the gap this waited on).
+console verb `/gamerule remote_backpack_access unconscious_or_dead` (`done/gamerule-host-rule-command.md`)
+is the driveable switch the row needed; batch `20261023-j` set the rule with it, opened the view-only
+display, released on the centre and read the one refusal line, with the item still in the giver's slot —
+never passed by a weaker check (`docs/acceptance/workflow.md`'s Limits names the gap this waited on).
 
 ## Limits (recorded, not claimed away)
 

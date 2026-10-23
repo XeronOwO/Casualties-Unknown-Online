@@ -27,7 +27,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// move a trader's credit is a cheat verb, so it goes through <see cref="CheatVerbGate"/> like
 /// <c>/give</c>, <c>/summon</c> and <c>/heal</c> — the host's cheat switch must be open and its roster
 /// must name the client, and each refusal names its own ground. A run therefore enables the switch
-/// (<c>/hostrules</c>) and grants the acting member (<c>/op</c>) before the lever can fire. The verb is
+/// (<c>/gamerule allow_member_cheat_verbs true</c>) and grants the acting member (<c>/op</c>) before the
+/// lever can fire. The verb is
 /// member-only and refuses the host, which never reports its own trade actions.
 /// </para>
 /// </summary>

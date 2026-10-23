@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 /// </summary>
 internal sealed class DisabledHostRulesEditor : IHostRulesEditor
 {
-	public bool TrySet(string property, string value, out string? error)
+	public bool TrySet(HostRuleId rule, string value, out string? error)
 	{
 		error = "Host-rule editing is unavailable in this composition.";
 		return false;

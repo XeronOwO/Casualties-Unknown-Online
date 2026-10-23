@@ -83,10 +83,17 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("Reserved host-rule surface for automatic next-layer continuation; not wired yet."));
 		var allowLateJoin = config.Bind("HostRules", "AllowLateJoin", true,
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
+		// The closed sets and the numeric range are bound from the census row the console's /gamerule
+		// verb reads, so a canonical write from the console cannot be clamped and the accepted sets
+		// cannot drift from the verb. A second declaration here would let the config clamp a value the
+		// verb had just accepted while the verb reported the requested value.
+		var remoteBackpackRow = HostRuleCensus.Of(HostRuleId.RemoteBackpackAccess);
+		var nativeBindingRow = HostRuleCensus.Of(HostRuleId.NativeBindingParity);
+		var weightRow = HostRuleCensus.Of(HostRuleId.PiggybackWeightMultiplier);
 		var remoteBackpackAccess = config.Bind("HostRules", "RemoteBackpackAccess", "allow",
 			new ConfigDescription(
 				"Host-only: who may open and operate another player's backpack. allow = anyone (today's cooperative rule); unconscious_or_dead = a conscious owner's pack opens view-only and only an unconscious or dead body may be operated on; deny = nobody. Enforced on the host; a member's client reads the announced value.",
-				new AcceptableValueList<string>("allow", "unconscious_or_dead", "deny")));
+				new AcceptableValueList<string>([.. HostRuleValueText.Choices(remoteBackpackRow)])));
 		var allowMemberCheatVerbs = config.Bind("HostRules", "AllowMemberCheatVerbs", false,
 			new ConfigDescription("Host-only: the cheat switch — true = members may run the cheat verbs (/data's write verbs, /give) at all. It is one of TWO rulings: the member must ALSO be on this host's cheat roster (granted with /op). False (default) = every member's cheat verb is refused by name, the reason is named back, and the member's client puts back the value it had already applied. The host's own verbs ignore both: its standing is the online switch."));
 		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
@@ -94,11 +101,11 @@ internal static class PluginDependencyRegistrar
 		var piggybackWeight = config.Bind("HostRules", "PiggybackWeightMultiplier", 0.8,
 			new ConfigDescription(
 				"Host-only: fraction of a carried/rider player's full encumbrance added to the carrier while a carry/piggyback relation is active. 0 disables the movement penalty.",
-				new AcceptableValueRange<double>(0.0, 3.0)));
+				new AcceptableValueRange<double>(weightRow.Range!.Value.Minimum, weightRow.Range.Value.Maximum)));
 		var nativeBindingParity = config.Bind("HostRules", "NativeBindingParity", "warn",
 			new ConfigDescription(
 				"Host-only: how a member's declared native binding is judged when it differs from the host's own for a mod both sides list. allow = no check; warn = admit the member and record the mismatch in the host's log (default); require = refuse the member.",
-				new AcceptableValueList<string>("allow", "warn", "require")));
+				new AcceptableValueList<string>([.. HostRuleValueText.Choices(nativeBindingRow)])));
 		var radiationLineStopsAboveTheFloor = config.Bind("HostRules", "RadiationLineStopsAboveTheFloor", true,
 			new ConfigDescription("True = the radiation line stops a margin above the layer floor instead of descending past it, so the bottom of a layer stays livable and a group can share supplies and rest. False = the game's own uncapped descent."));
 		var spectatorFreeFly = config.Bind("HostRules", "SpectatorFreeFly", true,
@@ -185,9 +192,9 @@ internal static class PluginDependencyRegistrar
 				"Player marker colour. Empty = an automatic per-SteamId palette colour; #RRGGBB = a chosen colour, or #RRGGBBAA to make the marker translucent."));
 		services.AddSingleton(new PlayerColorConfigEditor(config, playerColor));
 
-		// Host-rule write path for the Online UI Admin page. The runtime reads
-		// through IOptionsMonitor; this editor holds the ConfigEntry references
-		// so the UI can toggle and persist the same entries.
+		// Host-rule write path for the Online UI's Admin page and the console's /gamerule verb. The
+		// runtime reads through IOptionsMonitor; this editor holds the ConfigEntry references so both
+		// writers persist the same entries.
 		services.AddSingleton(new HostRulesConfigEditor(
 			config,
 			pvpEnabled,
@@ -202,14 +209,12 @@ internal static class PluginDependencyRegistrar
 			reviveFromTrader,
 			reviveOnNextLevel,
 			keepInventory,
-			keepSkills,
 			radiationLineStopsAboveTheFloor,
 			spectatorFreeFly,
 			spectateWhileUnconscious,
 			spectateWhileWaitingToJoin));
-		// The console's JSON host-rule command writes through this editor; the
-		// Runtime default is a disabled no-op so the Runtime-only composition
-		// still resolves the same interface.
+		// The console's /gamerule verb writes through this editor; the Runtime default is a disabled
+		// no-op so the Runtime-only composition still resolves the same interface.
 		services.Replace(ServiceDescriptor.Singleton<IHostRulesEditor>(
 			p => p.GetRequiredService<HostRulesConfigEditor>()));
 

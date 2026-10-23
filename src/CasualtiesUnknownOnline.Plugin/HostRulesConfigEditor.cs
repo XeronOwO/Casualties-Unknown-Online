@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Runtime.Configuration;
@@ -6,10 +7,11 @@ using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 namespace CasualtiesUnknownOnline;
 
 /// <summary>
-/// Writes the host-rule/respawn config entries from the Online UI. The runtime
-/// exposes only the read-only <c>IHostRules</c> surface; this plugin-side editor
-/// owns the concrete BepInEx <see cref="ConfigEntry{T}"/> references so the
-/// Admin page can toggle host rules and persist them immediately.
+/// Writes the host-rule/respawn config entries from the Online UI's Admin page and the console's
+/// <c>/gamerule</c> verb. The runtime exposes only the read-only <c>IHostRules</c> surface; this
+/// plugin-side editor owns the concrete BepInEx <see cref="ConfigEntry{T}"/> references so both
+/// writers change the same entries and persist them immediately (decision 263's change edge then
+/// announces the new set).
 /// </summary>
 internal sealed class HostRulesConfigEditor : IHostRulesEditor
 {
@@ -26,7 +28,6 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _reviveFromTrader;
 	private readonly ConfigEntry<bool> _reviveOnNextLevel;
 	private readonly ConfigEntry<bool> _keepInventory;
-	private readonly ConfigEntry<bool> _keepSkills;
 	private readonly ConfigEntry<bool> _radiationLineStopsAboveTheFloor;
 	private readonly ConfigEntry<bool> _spectatorFreeFly;
 	private readonly ConfigEntry<bool> _spectateWhileUnconscious;
@@ -46,7 +47,6 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> reviveFromTrader,
 		ConfigEntry<bool> reviveOnNextLevel,
 		ConfigEntry<bool> keepInventory,
-		ConfigEntry<bool> keepSkills,
 		ConfigEntry<bool> radiationLineStopsAboveTheFloor,
 		ConfigEntry<bool> spectatorFreeFly,
 		ConfigEntry<bool> spectateWhileUnconscious,
@@ -65,7 +65,6 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_reviveFromTrader = reviveFromTrader;
 		_reviveOnNextLevel = reviveOnNextLevel;
 		_keepInventory = keepInventory;
-		_keepSkills = keepSkills;
 		_radiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor;
 		_spectatorFreeFly = spectatorFreeFly;
 		_spectateWhileUnconscious = spectateWhileUnconscious;
@@ -96,8 +95,6 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 
 	internal void SetKeepInventory(bool value) => Set(_keepInventory, value);
 
-	internal void SetKeepSkills(bool value) => Set(_keepSkills, value);
-
 	internal void SetRadiationLineStopsAboveTheFloor(bool value) => Set(_radiationLineStopsAboveTheFloor, value);
 
 	internal void SetSpectatorFreeFly(bool value) => Set(_spectatorFreeFly, value);
@@ -106,93 +103,49 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 
 	internal void SetSpectateWhileWaitingToJoin(bool value) => Set(_spectateWhileWaitingToJoin, value);
 
-	public bool TrySet(string property, string value, out string? error)
+	/// <summary>
+	/// The console's write seam, keyed by the rule the census classifies. The value is re-read with the
+	/// Runtime's own value grammar before anything is written: this seam is public to the composition,
+	/// so it must not trust its caller, and the check is what makes "the canonical text" a property of
+	/// the write rather than a convention. A rule added to <see cref="HostRuleId"/> needs its entry in
+	/// the switch below; the default arm names the rule rather than writing a neighbouring entry.
+	/// </summary>
+	public bool TrySet(HostRuleId rule, string value, out string? error)
 	{
-		switch (property.Trim().ToLowerInvariant())
+		var row = HostRuleCensus.Of(rule);
+		if (!HostRuleValueText.TryParse(row, value, out var canonical, out error))
 		{
-			case "pvpenabled":
-				return TrySetBool(_pvp, value, out error);
-			case "autocontinue":
-				return TrySetBool(_autoContinue, value, out error);
-			case "allowlatejoin":
-				return TrySetBool(_allowLateJoin, value, out error);
-			case "remotebackpackaccess":
-				return TrySetRemoteBackpackAccess(_remoteBackpackAccess, value, out error);
-			case "allowmembercheatverbs":
-				return TrySetBool(_allowMemberCheatVerbs, value, out error);
-			case "widenrunsettings":
-				return TrySetBool(_widenRunSettings, value, out error);
-			case "piggybackweightmultiplier":
-				return TrySetDouble(_piggybackWeight, value, out error);
-			case "nativebindingparity":
-				return TrySetParity(_nativeBindingParity, value, out error);
-			case "permadeath":
-				return TrySetBool(_permadeath, value, out error);
-			case "revivefromtrader":
-				return TrySetBool(_reviveFromTrader, value, out error);
-			case "reviveonnextlevel":
-				return TrySetBool(_reviveOnNextLevel, value, out error);
-			case "keepinventory":
-				return TrySetBool(_keepInventory, value, out error);
-			case "radiationlinestopsabovethefloor":
-				return TrySetBool(_radiationLineStopsAboveTheFloor, value, out error);
-
-			case "keepskills":
-				return TrySetBool(_keepSkills, value, out error);
-			default:
-				error = $"Unknown host-rule property '{property}'.";
-				return false;
-		}
-	}
-
-	private bool TrySetBool(ConfigEntry<bool> entry, string value, out string? error)
-	{
-		if (!bool.TryParse(value, out var parsed))
-		{
-			error = $"'{value}' is not a boolean.";
 			return false;
 		}
 
-		Set(entry, parsed);
-		error = null;
-		return true;
-	}
-
-	private bool TrySetDouble(ConfigEntry<double> entry, string value, out string? error)
-	{
-		if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+		if (!string.Equals(canonical, value, StringComparison.Ordinal))
 		{
-			error = $"'{value}' is not a number.";
+			error = $"'{value}' is not the canonical form of {row.Name}.";
 			return false;
 		}
 
-		Set(entry, parsed);
-		error = null;
-		return true;
-	}
-
-	private bool TrySetParity(ConfigEntry<string> entry, string value, out string? error)
-	{
-		if (!NativeBindingParityText.TryParse(value, out var parsed))
+		Action write = rule switch
 		{
-			error = $"'{value}' is not one of allow/warn/require.";
-			return false;
-		}
+			HostRuleId.PvpEnabled => () => Set(_pvp, bool.Parse(value)),
+			HostRuleId.AutoContinue => () => Set(_autoContinue, bool.Parse(value)),
+			HostRuleId.AllowLateJoin => () => Set(_allowLateJoin, bool.Parse(value)),
+			HostRuleId.RemoteBackpackAccess => () => Set(_remoteBackpackAccess, value),
+			HostRuleId.AllowMemberCheatVerbs => () => Set(_allowMemberCheatVerbs, bool.Parse(value)),
+			HostRuleId.WidenRunSettings => () => Set(_widenRunSettings, bool.Parse(value)),
+			HostRuleId.PiggybackWeightMultiplier => () => Set(_piggybackWeight, double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture)),
+			HostRuleId.NativeBindingParity => () => Set(_nativeBindingParity, value),
+			HostRuleId.SaveInventory => () => Set(_keepInventory, bool.Parse(value)),
+			HostRuleId.ReviveFromTrader => () => Set(_reviveFromTrader, bool.Parse(value)),
+			HostRuleId.ReviveOnNextLevel => () => Set(_reviveOnNextLevel, bool.Parse(value)),
+			HostRuleId.Permadeath => () => Set(_permadeath, bool.Parse(value)),
+			HostRuleId.RadiationLineStopsAboveTheFloor => () => Set(_radiationLineStopsAboveTheFloor, bool.Parse(value)),
+			HostRuleId.SpectatorFreeFly => () => Set(_spectatorFreeFly, bool.Parse(value)),
+			HostRuleId.SpectateWhileUnconscious => () => Set(_spectateWhileUnconscious, bool.Parse(value)),
+			HostRuleId.SpectateWhileWaitingToJoin => () => Set(_spectateWhileWaitingToJoin, bool.Parse(value)),
+			_ => throw new ArgumentOutOfRangeException(nameof(rule), rule, "host rule has no config entry"),
+		};
 
-		Set(entry, NativeBindingParityText.Format(parsed));
-		error = null;
-		return true;
-	}
-
-	private bool TrySetRemoteBackpackAccess(ConfigEntry<string> entry, string value, out string? error)
-	{
-		if (!RemoteBackpackAccessText.TryParse(value, out var parsed))
-		{
-			error = $"'{value}' is not one of allow/unconscious_or_dead/deny.";
-			return false;
-		}
-
-		Set(entry, RemoteBackpackAccessText.Format(parsed));
+		write();
 		error = null;
 		return true;
 	}

@@ -98,24 +98,13 @@ public class CommandConsoleCompletionTests
 	}
 
 	[Fact]
-	public void Suggest_ForHostRulesJsonArgument_ReturnsTemplates()
+	public void GetHint_ForGameRule_ShowsRuleUsage()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
 
-		var suggestions = completion.Suggest("/hostrules {");
+		var hint = completion.GetHint("/gamerule");
 
-		Assert.Contains(suggestions, s => s.Text == "{\"key\": \"value\"}");
-	}
-
-	[Fact]
-	public void GetHint_ForHostRules_ShowsJsonUsage()
-	{
-		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
-		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
-
-		var hint = completion.GetHint("/hostrules");
-
-		Assert.Contains("/hostrules <json>", hint);
+		Assert.Contains("/gamerule <rule name> [<value>]", hint);
 	}
 }

@@ -4,12 +4,13 @@
   8, 9 and 10 passed in batch `20261023-f` (records
   `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md` and
   `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-g.md`); the ticket stays open for row 7
-  only, which is `blocked` on a driveable host-rule switch (the admin page's dropdown options carry no control
-  ids and no console verb writes `RemoteBackpackAccess`).
+  only, which is now UNBLOCKED: the console verb `/gamerule remote_backpack_access unconscious_or_dead`
+  (`review/gamerule-host-rule-command.md`) is the driveable host-rule switch, and the row awaits the next
+  acceptance batch.
 - Priority: Medium-High
 - Category: Cross-player gesture / UI precedence / native parity
-- Blocked by: row 7 only — the host-rule switch a view-only display needs is not driveable in-process (see
-  the acceptance section). Every other row is read.
+- Blocked by: nothing — row 7's tooling gap is closed by `/gamerule` and the row is waiting for the next
+  batch (see the acceptance section). Every other row is read.
 - Source: The user's review of the give gesture's entry (2026-10-23): a drag inside the player's own backpack must
   never be judged against another player, the displayed backpack's centre is the use/wear target, and the detection
   range only chooses whose backpack is displayed.
@@ -179,12 +180,12 @@ same `TryResolveLimbIndex` call, and `WearChainContentGateTests.ThePlacementReso
 (id …) on <member>; slot -2.`, `<member>`'s own client wrote `[ItemUse] local body wears bikehelmet from
 <host>.`, and the target's worn set carried it on limb 0 while the giver wore nothing.
 
-**Row 7 is `blocked` on tooling, not product**: the admin page's rule row is a native `TMP_Dropdown` whose
-options carry no CUO control ids, the driver has no value-carrying selection, and no console verb writes the
-rule — so the only state that makes a display view-only (`RemoteBackpackAccess=unconscious_or_dead`) cannot be
-reached by an in-process run. What unblocks it is a driveable rule switch: a control id per dropdown option,
-or a console verb that sets a host rule. Until then the row is not judged, never passed by a weaker check
-(`docs/acceptance/workflow.md`'s Limits names the gap).
+**Row 7's tooling gap is CLOSED (2026-10-23)**: the admin page's rule row is a native `TMP_Dropdown` whose
+options carry no CUO control ids and the driver has no value-carrying selection, so the only state that makes a
+display view-only (`RemoteBackpackAccess=unconscious_or_dead`) could not be reached by an in-process run. The
+console verb `/gamerule remote_backpack_access unconscious_or_dead` (`review/gamerule-host-rule-command.md`)
+is the driveable switch the row needed; it is re-read in the next batch, never passed by a weaker check
+(`docs/acceptance/workflow.md`'s Limits names the gap this waited on).
 
 ## Limits (recorded, not claimed away)
 

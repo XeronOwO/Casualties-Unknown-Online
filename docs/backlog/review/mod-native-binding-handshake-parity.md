@@ -34,7 +34,7 @@ clean.
   mod and both declarations in the same log shape every other handshake refusal uses. Warn is the
   default because the declaration is new: a host that refused by default would lock out every
   session whose host updated first. The rule is editable on the Online UI's admin page (one row,
-  three levels) and through the console's host-rule command (`nativebindingparity`); a hand-edited
+  three levels) and through the console's `/gamerule native_binding_parity <value>`; a hand-edited
   config value that does not parse falls back to warn.
 - **The honest boundary is documented**: `docs/api/mod-api.md` §5's matrix gained the parity row and
   a paragraph on what parity proves (the declarations agree) and what it does not (an undeclared

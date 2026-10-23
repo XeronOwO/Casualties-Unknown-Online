@@ -39,7 +39,7 @@ permission, and every cheat verb carries a TWO-SIDED check:
   console); the client's copy is only a prediction, never the verdict. A refusal is ANSWERED so both sides end up
   agreeing (the item-data write's way back is the precedent).
 - **The family** is the verbs that change the world or another player beyond the player's own legitimate actions:
-  `/data`'s write verbs, `/give`, `/summon` and (since the 2026-10-18 correction) the console `/heal` reset. The host-admin verbs (`/hostrules`, `/kick`, `/ban`,
+  `/data`'s write verbs, `/give`, `/summon` and (since the 2026-10-18 correction) the console `/heal` reset. The host-admin verbs (`/gamerule`, `/kick`, `/ban`,
   `/unban`) keep `HostOnly` and need no two-sided check — only the host can run them, so there is no member
   request to arbitrate; the item-data READ (`/data get`) stays `Anyone`. The item-based remote-medical
   treatment is not a console verb: it is the Online UI's action, and it keeps its own path. The
@@ -128,7 +128,7 @@ asserted the opposite were re-pointed in the same change
   the switch that would have allowed it never arrived) refuses locally without a round trip. The ways back are
   the next world entry, the repair cycle, or a repeated announcement — and the two halves differ there: a
   repeated `/op` re-announces the ROSTER half, while a stale CLOSED SWITCH is announced with the host rules and
-  can only be healed by an entry, the repair cycle, or a `/hostrules` write. Recorded on sync-coverage row H2's
+  can only be healed by an entry, the repair cycle, or a `/gamerule` write. Recorded on sync-coverage row H2's
   loss cell as well.
 - The config key was RENAMED by this change: an existing INI that still holds `AllowMemberItemDataWrite` is
   ignored and the new key defaults to closed. That is the safe direction, and decision 241 allows it pre-release,

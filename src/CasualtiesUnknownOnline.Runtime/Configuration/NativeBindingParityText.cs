@@ -1,9 +1,9 @@
 namespace CasualtiesUnknownOnline.Runtime.Configuration;
 
 /// <summary>
-/// The text forms of <see cref="NativeBindingParity"/>. The BepInEx config entry
-/// and the console's host-rule JSON both carry text, so one place owns the
-/// spelling (read case-insensitively, written lowercase).
+/// The text forms of <see cref="NativeBindingParity"/>. The BepInEx config entry and the console's
+/// <c>/gamerule</c> value both name these levels, so one place owns the lowercase spelling: the config
+/// reads it case-insensitively, while the console's arguments are ordinal and accept only this spelling.
 /// </summary>
 public static class NativeBindingParityText
 {

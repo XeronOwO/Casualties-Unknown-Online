@@ -26,7 +26,7 @@ in [Logs](logs.md).
   bound in `Plugin.cs`).
 - **[Hot reload](glossary.md)**: the runtime reads an options monitor at each decision, so editing the
   file takes effect without restarting the game. The online panel's admin page and the console's
-  host-rule command write the same entries.
+  `/gamerule` command write the same entries.
 - BepInEx range annotations are the first clamp and the options object is the second: a hand-edited file
   bypasses the first, and neither "autosave every 0 minutes" nor "keep 0 archives" is a policy this
   system may execute, so the save options clamp again.
@@ -49,9 +49,10 @@ in [Logs](logs.md).
 
 ## `[Respawn]`
 
-Host-authoritative revive and respawn rules; they are read at decision time. They are part of the
-rule set the host announces to its members — see `[HostRules]` below — because a member's Admin page
-shows the same surface.
+Host-authoritative revive and respawn rules; they are read at decision time. Four of them —
+`KeepInventory`, `ReviveFromTrader`, `ReviveOnNextLevel` and `Permadeath` — travel as host rules (see
+`[HostRules]` below) because a member's Admin page shows that surface; `KeepSkills` stays a host-local
+entry (it is not a host rule and is not announced).
 
 | Key | Default | What it does |
 |---|---|---|
@@ -63,7 +64,11 @@ shows the same surface.
 
 ## `[HostRules]`
 
-The host-rule surface that is not already owned by `[Respawn]`. Read at decision time.
+The host-rule surface that is not already owned by `[Respawn]`. Read at decision time. The console's
+host-only `/gamerule <rule name> [<value>]` reads or sets one host rule by name — the lowercase snake-case
+name the rule carries (`remote_backpack_access`, `save_inventory`; an unknown name lists every rule) — and
+omitting the value queries it. The four `[Respawn]` rules that travel as host rules are addressed the same
+way: `save_inventory`, `revive_from_trader`, `revive_on_next_level` and `permadeath`.
 
 **The values reach the members.** A member's client acts on them — the member list's take
 affordance, its own console's item-data write, the encumbrance its body gains while it carries
@@ -88,6 +93,9 @@ stays on the host: those are exactly the rows a member's client reads.
 | `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | Host-only: the fraction of a carried rider's full encumbrance added to the carrier while a carry relation is active. `0` disables the movement penalty. Read by the carrying player's own client, so a member carrying someone uses the host's value. |
 | `NativeBindingParity` | `warn` | `allow`, `warn`, `require` | Host-only: how a member's declared [native binding](glossary.md) is judged when it differs from the host's own for a mod both sides list. `allow` = no check; `warn` = admit and record the mismatch in the host's log; `require` = refuse the member. |
 | `RadiationLineStopsAboveTheFloor` | `true` | `true`, `false` | Host-only: the radiation line stops a margin above the layer floor instead of descending past it, so the bottom of a layer stays livable and a group can share supplies and rest. `false` = the game's own uncapped descent. |
+| `SpectatorFreeFly` | `true` | | Host-only: a spectating player may free-fly the camera instead of only following a teammate. On by default, aligned with the reference mod. |
+| `SpectateWhileUnconscious` | `false` | | Host-only: an UNCONSCIOUS player may spectate. Off by default: an unconscious body is still its owner's to act on. |
+| `SpectateWhileWaitingToJoin` | `false` | | Host-only: a client that has not entered the world yet may spectate. Off by default: that is the late-join case. |
 
 ## `[Save]`
 

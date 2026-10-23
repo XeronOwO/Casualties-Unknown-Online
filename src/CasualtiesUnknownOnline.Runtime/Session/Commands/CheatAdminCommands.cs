@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// <summary>
 /// The cheat-permission administration group: <c>/op</c> and <c>/deop</c>. It is its
 /// own owner because it is a separate responsibility from membership administration
-/// (<c>/kick</c>, <c>/ban</c>) and from the rules (<c>/hostrules</c>): it edits WHO
+/// (<c>/kick</c>, <c>/ban</c>) and from the rules (<c>/gamerule</c>): it edits WHO
 /// may run the cheat family, which is the roster a member's own console reads.
 ///
 /// <para>

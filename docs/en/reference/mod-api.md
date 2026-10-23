@@ -1237,7 +1237,7 @@ counterpart to compare, and the rows above already decide who may lack what. A b
 "none" on both sides (the same normalization discovery applies), so a blank and an absent declaration
 are the same answer, while a declaration against none is a difference. The rule is the host's
 `HostRules` → `NativeBindingParity` entry (`allow` / `warn` / `require`, default `warn`), editable on
-the Online UI's admin page and through the console's host-rule command. Warn is the default because the
+the Online UI's admin page and through the console's `/gamerule native_binding_parity <value>` command. Warn is the default because the
 declaration is new: a host that refused by default would lock out every session whose host updated
 first, and an undeclared binding is invisible anyway. The comparison is exact after trimming (ordinal,
 case-sensitive): two spellings that differ only in surrounding whitespace match, two casings do not —

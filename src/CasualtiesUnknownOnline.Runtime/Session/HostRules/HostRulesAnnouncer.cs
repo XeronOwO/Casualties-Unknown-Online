@@ -22,7 +22,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 /// announcement — the member is a member before it ever enters a world, and its member
 /// list and Admin page are readable from the menu. A rule changing while the session
 /// runs (the BepInEx config monitor: the config file, the Admin page and the console's
-/// host-rules command all write through it) is the second, so a mid-session flip
+/// <c>/gamerule</c> command all write through it) is the second, so a mid-session flip
 /// reaches every member at that moment rather than at the next world entry. The third
 /// edge is the world-entry fan-out's own — the entry group and the 60 s repair group
 /// call <see cref="Announce"/> like every other absolute table, which is what makes a

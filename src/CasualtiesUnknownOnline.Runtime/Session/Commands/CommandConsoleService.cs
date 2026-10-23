@@ -63,6 +63,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IEntitySyncControl entities,
 		IKernelItemFacts kernelItems,
 		IHostRulesEditor hostRulesEditor,
+		IHostRules hostRuleSurface,
 		ITimeSource time,
 		ILogger<CommandConsoleService> log,
 		ConsoleCommandRegistry commandRegistry,
@@ -127,7 +128,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_healReset.Answered += OnHealResetAnswered;
 		_healReset.Applied += OnHealResetApplied;
 		_commands.AddBuiltIns(this);
-		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
+		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRuleSurface, hostRulesEditor, log));
 		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
 		_commands.AddBuiltIns(new SpectatorCommands(session, entities, spectator, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
@@ -480,7 +481,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private string WhoAmI(IReadOnlyList<string> _) =>
 		$"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}";
 
-	// The host-administration commands (/hostrules, /kick, /ban, /unban) live in
+	// The host-administration commands (/gamerule, /kick, /ban, /unban) live in
 	// HostAdminCommands, and the save commands (/save) in WorldSaveCommands: each
 	// group is registered as its own owner, so a new command family never grows
 	// this class past the architecture gate.

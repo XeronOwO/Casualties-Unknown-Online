@@ -31,7 +31,7 @@ message or protocol version was added.
 | 17 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
 | 18 | Real selector command | `/heal <selector>` is the first real CUO command with a `Selector` argument; `CommandSelectorResolver` expands player selectors over `IEntitySyncControl` and the resolved SteamIds ride the existing heal request path. |
 | 19 | IME composition | `ConsoleImeState` is a Unity-free composition gate; the overlay enables legacy IME while open, feeds `Input.compositionCursorPos` from the caret, renders the composition string, and swallows raw keys during composition. |
-| 20 | Real JSON host-rule command | `/hostrules <json>` is the first real CUO command with a `Json` argument; `HostRulesJsonParser`/`HostRulesJsonApplier` parse and apply a flat JSON object through the narrow `IHostRulesEditor` seam. |
+| 20 | Real JSON host-rule command (DELETED 2026-10-23) | `/hostrules <json>` was the first real CUO command with a `Json` argument; `HostRulesJsonParser`/`HostRulesJsonApplier` parsed and applied a flat JSON object through the narrow `IHostRulesEditor` seam. It was superseded by the census-driven `/gamerule <rule name> [<value>]` (`docs/backlog/review/gamerule-host-rule-command.md`); the `Json` argument kind stays a mod-facing shape. |
 | 21 | Attribute/reflection command registry | `ConsoleCommandAttribute` marks built-in handler methods; `ConsoleCommandRegistry` scans them and builds the read-only command table at startup, replacing the hard-coded `RegisterBuiltIns()` list. |
 | 22 | Mod local console commands | `IModContext.ConsoleCommands` (`IModConsoleCommands`/`ModConsoleCommand`) lets mods register local-only console commands through Abstractions; they share the same registry/completion/help path and never enter the wire protocol. |
 | 23 | Command tree / resource-location completion | `CommandNode`/`ConsoleCommandTree` model argument positions; `CommandArgumentKind.ResourceLocation` + `IResourceLocationCatalog` provide canonical `namespace:path` candidates for built-ins and mod commands. The static phase-18 `ConsoleResourceLocationCatalog` was replaced by the content-driven catalog — see `docs/evidence/selfchecks/tooling/content-id-selfcheck.md`. |
@@ -59,11 +59,11 @@ message or protocol version was added.
 | Heal argument validation | Missing selector shows usage; unknown selector adds a no-match line | `CommandConsoleServiceTests.Heal_WithoutSelector_ShowsUsage`, `Heal_UnknownSelector_AddsNoMatchLine` |
 | IME composition gate | Initial/active/empty/null/clear composition states are deterministic | `ConsoleImeStateTests` (5 cases) |
 | IME overlay wiring | IME mode toggled on open/close, composition rendered, raw keys swallowed while composing, caret position fed to Input | static review: `CommandConsoleOverlay.Open/Close/HandleKeys/DrawImeComposition/UpdateImeCursorPosition`; OS IME behavior is user-acceptance territory |
-| Real JSON completion | `/hostrules {` suggests a JSON object template on a real command | `CommandConsoleServiceTests.Suggest_ForHostRulesJsonArgument_ReturnsTemplates` |
-| Real JSON host-rule update | `/hostrules {...}` parses and applies through the editor seam | `CommandConsoleServiceTests.HostRules_WithJson_UpdatesEditor` |
-| JSON parser core/edge | Flat object, empty object, case-insensitive keys, quoted values, malformed/trailing/empty input | `HostRulesJsonParserTests` (8 cases) |
-| JSON applier | Valid object applies pairs; editor rejection and malformed input return errors | `HostRulesJsonApplierTests` (3 cases) |
-| Host-rule command validation | Missing JSON shows usage; malformed JSON adds an error line | `CommandConsoleServiceTests.HostRules_WithoutJson_ShowsUsage`, `HostRules_MalformedJson_AddsError` |
+| Real JSON completion (removed 2026-10-23) | `/hostrules {` suggested a JSON object template on a real command; removed with the verb — the `Json` kind still completes for mod commands | — |
+| Real JSON host-rule update (removed 2026-10-23) | `/hostrules {...}` parsed and applied through the editor seam; replaced by the `/gamerule` matrix in `CommandConsoleCommandTests` and `HostRuleValueTextTests` | `CommandConsoleCommandTests.GameRule_Set_AppliesThroughTheEditorById` |
+| JSON parser core/edge (removed 2026-10-23) | Flat object, empty object, case-insensitive keys, quoted values, malformed/trailing/empty input; deleted with the parser | — |
+| JSON applier (removed 2026-10-23) | Valid object applies pairs; editor rejection and malformed input return errors; deleted with the applier | — |
+| Host-rule command validation (replaced 2026-10-23) | `/gamerule` refuses an unknown rule by listing the known names, an invalid value by naming the accepted set, and the numeric rule's value outside its declared range | `CommandConsoleCommandTests.GameRule_*` |
 | Specific help command | `/help kick` shows the command usage | `CommandConsoleServiceTests.Help_WithCommandName_ShowsUsage` |
 | Clickable suggestion acceptance | Clicking a suggestion applies it and clears the list | `ConsoleInputSessionTests.AcceptSuggestion_AppliesSpecificCandidateAndClearsList` |
 | Live suggestions on `/` | Open/typed input exposes completions without Tab; closed session returns none | `ConsoleInputSessionTests.LiveSuggestions_ReturnsCurrentCompletionWithoutTab`, `LiveSuggestions_AreEmptyWhenClosed` |
@@ -157,9 +157,10 @@ message or protocol version was added.
   `CommandSelectorFilter`, `CommandSelectorFilterParser`, `SelectorSort`, and
   `CommandSelectorSuggestions` each keep one selector sub-responsibility and are
   directly unit-tested.
-- `HostRulesJsonParser`/`HostRulesJsonApplier` keep JSON parsing and apply logic
-  out of `CommandConsoleService`; `IHostRulesEditor` is the narrow write seam and
-  the plugin supplies the real ConfigEntry-backed implementation.
+- `HostRuleValueText` owns the value grammar and `HostRuleCensus` the rule names and
+  range (the JSON parser/applier were deleted with `/hostrules`, 2026-10-23);
+  `IHostRulesEditor` is the narrow write seam and the plugin supplies the real
+  ConfigEntry-backed implementation.
 - `ConsoleImeState` is a small Unity-free state object; the overlay only polls
   Unity's legacy Input APIs and renders the result, so IME policy stays testable.
 - `ConsoleInputSession` is one top-level type, Unity-free, and owns all

@@ -32,11 +32,11 @@ docs/en/internals/README.md | 920362ce1450e0e8b56db0c6b7b6213716bdecec | docs/zh
 docs/en/internals/save-archive.md | 657de0a9119917931de8afde1b42d2f66bbb8aeb | docs/zh/internals/save-archive.md | 5afebc602ca238571cc1ca9f6f657129d722ba22
 docs/en/internals/state-and-snapshots.md | e74a4d1c22ac4f2460adda792fd624dab35f1d30 | docs/zh/internals/state-and-snapshots.md | 2f2168f383a2966f7b15756f47f0793658a03620
 docs/en/README.md | b1e639e3617977e06ba8d16d2f4330714592d110 | docs/zh/README.md | d9beaa00a4ac195a30e55c21c6820dc4da260240
-docs/en/reference/configuration.md | cb59185f9d06ce72b86824e0aea260219003385f | docs/zh/reference/configuration.md | 529bf7f3c006ac1f040de2ea9273130777caff3a
+docs/en/reference/configuration.md | 52fc30efa55cec0e0ae5ae5727bcafa9fb18385c | docs/zh/reference/configuration.md | 6f1a3836ab218a9306c6398bc195c4c2afc50803
 docs/en/reference/feature-matrices.md | 3546f411e3a4f4f78f02c971bb14edc9bf486e05 | docs/zh/reference/feature-matrices.md | 6a942efc0bb693925c3321ad957df26a89ef08a6
 docs/en/reference/glossary.md | 352ffa57a33bd63ce80ca68efcfbe876d550164e | docs/zh/reference/glossary.md | cd530617957089f20b18315c5316d95cb9b715a5
 docs/en/reference/logs.md | 7f9656dc7a6dc6587fec2c41588cc9677125c707 | docs/zh/reference/logs.md | 0e12de22c2a89cc10bcda0ec12d4e596c12f78e2
-docs/en/reference/mod-api.md | 20ac8a35d0ccef3b0f65a6ba6d377f51aca4c665 | docs/zh/reference/mod-api.md | 6cccd7d406c164781d70a3c65c3ae33a9e72d2f1
+docs/en/reference/mod-api.md | ac130086d15489f53132dc38be92aa15cc727a62 | docs/zh/reference/mod-api.md | 06a2c272318cd53c848e624cf0ea6474e7bec2fd
 docs/en/reference/modification-policy.md | 7fa19764575a79f943aa903534b17b7c727dc8f5 | docs/zh/reference/modification-policy.md | b11d8d0568143335f639581f3d7fb05c1197e659
 docs/en/reference/protocol-messages.md | 6a303a5888ac01de49482ab83e6e7246f12223d3 | docs/zh/reference/protocol-messages.md | f685b843cfb87a351d0e6e291c55e2197b67608d
 docs/en/reference/README.md | 746bac1e857e688d5e17a0627cc724668371f40d | docs/zh/reference/README.md | 5f6930e1bb4f0285c9640b4f1f074f6056655cec

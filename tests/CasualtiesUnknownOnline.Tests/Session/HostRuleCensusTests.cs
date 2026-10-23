@@ -162,6 +162,53 @@ public class HostRuleCensusTests
 		Assert.Equal(set, HostRulesMsg.From(set).ToSet());
 	}
 
+	[Fact]
+	public void EveryRuleName_IsLowercaseSnakeCase()
+	{
+		foreach (var row in HostRuleCensus.Rows)
+		{
+			Assert.Matches("^[a-z][a-z0-9]*(_[a-z0-9]+)*$", row.Name);
+		}
+	}
+
+	[Fact]
+	public void EveryRuleName_IsUniqueAndFoundByItsExactSpelling()
+	{
+		var names = HostRuleCensus.Rows.Select(row => row.Name).ToList();
+		Assert.Equal(names.Count, names.Distinct(StringComparer.Ordinal).Count());
+
+		foreach (var row in HostRuleCensus.Rows)
+		{
+			Assert.Same(row, HostRuleCensus.Find(row.Name));
+
+			// The config spelling and an upper-case spelling are not second accepted spellings: the
+			// verb's arguments are case-sensitive and the console names are the rule's own spelling.
+			Assert.Null(HostRuleCensus.Find(row.Id.ToString()));
+			Assert.Null(HostRuleCensus.Find(row.Name.ToUpperInvariant()));
+		}
+	}
+
+	[Fact]
+	public void TheNamesList_IsEveryNameSorted()
+	{
+		var expected = HostRuleCensus.Rows.Select(row => row.Name).OrderBy(name => name, StringComparer.Ordinal).ToList();
+
+		Assert.Equal(expected, HostRuleCensus.Names);
+	}
+
+	[Fact]
+	public void OnlyTheNumericRule_DeclaresAValueRange()
+	{
+		foreach (var row in HostRuleCensus.Rows)
+		{
+			Assert.Equal(row.Kind == HostRuleKind.Number, row.Range.HasValue);
+		}
+
+		var range = HostRuleCensus.Of(HostRuleId.PiggybackWeightMultiplier).Range!.Value;
+		Assert.Equal(0f, range.Minimum);
+		Assert.Equal(3f, range.Maximum);
+	}
+
 	/// <summary>A set with every rule away from its default, so a mapping that quietly reads the wrong field cannot pass.</summary>
 	private static HostRuleSet Set() => new(
 		PvpEnabled: true,

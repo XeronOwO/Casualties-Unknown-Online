@@ -32,7 +32,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// is refused; a STALE announced value can be (a send the host's later grant never
 /// corrected). The two halves heal differently: a repeated `/op` re-announces the
 /// ROSTER, while a stale CLOSED SWITCH is announced with the host rules and waits for
-/// the next entry, the repair cycle or a `/hostrules` write.
+/// the next entry, the repair cycle or a `/gamerule` write.
 /// </para>
 ///
 /// <para>

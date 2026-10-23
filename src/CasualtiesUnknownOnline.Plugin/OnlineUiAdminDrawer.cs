@@ -42,7 +42,7 @@ internal static class OnlineUiAdminDrawer
 			BuildEditableAccessRule(ctx, page, "admin.rule_remote_backpack_access", rules.RemoteBackpackAccess, editor.SetRemoteBackpackAccess);
 			BuildEditableRule(ctx, page, "admin.rule_allow_member_cheat_verbs", rules.AllowMemberCheatVerbs, editor.SetAllowMemberCheatVerbs);
 			BuildEditableRule(ctx, page, "admin.rule_widen_run_settings", rules.WidenRunSettings, editor.SetWidenRunSettings);
-			BuildEditableNumberRule(ctx, page, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier, value => editor.SetPiggybackWeightMultiplier(value), 0f, 3f);
+			BuildEditableNumberRule(ctx, page, "admin.rule_piggyback_weight", HostRuleCensus.Of(HostRuleId.PiggybackWeightMultiplier), rules.PiggybackWeightMultiplier, value => editor.SetPiggybackWeightMultiplier(value));
 			BuildEditableParityRule(ctx, page, "admin.rule_native_binding_parity", rules.NativeBindingParity, editor.SetNativeBindingParity);
 			BuildEditableRule(ctx, page, "admin.rule_save_inventory", rules.SaveInventory, editor.SetKeepInventory);
 			BuildEditableRule(ctx, page, "admin.rule_revive_trader", rules.ReviveFromTrader, editor.SetReviveFromTrader);
@@ -116,16 +116,22 @@ internal static class OnlineUiAdminDrawer
 
 	/// <summary>The host's numeric rule row (ticket online-ui-paired-controls-and-page-scroll): the game's own
 	/// slider with an editable value beside it, both bound to the one rule — the name on its own line above
-	/// them. The number reads to two places, which is the precision the rule itself is stored at.</summary>
+	/// them. The bounds are the census's declared range, the same one the console's <c>/gamerule</c> refusal
+	/// names, so the slider and the verb cannot disagree about what the rule accepts. The label key stays the
+	/// literal the editor passes (the localisation census counts a literal handed to a label parameter as the
+	/// key's reader); the number is DISPLAYED to two places, while the rule is stored as a float and the
+	/// console accepts its full form.</summary>
 	private static void BuildEditableNumberRule(
 		OnlineUiContext ctx,
 		OnlineUiPageBuilder page,
 		string labelKey,
+		HostRuleCensus.Row rule,
 		float value,
-		Action<float> setter,
-		float min,
-		float max) =>
-		page.NumberRule(labelKey, ctx.T(labelKey), value, min, max, setter, format: value => $"{value:F2}");
+		Action<float> setter)
+	{
+		var range = rule.Range ?? throw new InvalidOperationException($"host rule '{rule.Name}' is numeric but declares no value range");
+		page.NumberRule(labelKey, ctx.T(labelKey), value, range.Minimum, range.Maximum, setter, format: value => $"{value:F2}");
+	}
 
 	/// <summary>The three-way native-binding parity rule as the game's own dropdown row: a small closed
 	/// set the player opens, tracks and picks from — the control the IMGUI toolbar only pretended to be.</summary>

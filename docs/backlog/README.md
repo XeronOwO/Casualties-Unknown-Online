@@ -53,6 +53,10 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
+- [The decision register cannot take another decision](todo/decision-register-budget.md) — **Low-Medium** — over the budget since decision 269; split it.
+- [A typo in a rule's config value silently widens it](todo/config-clamp-silently-widens-rule-levels.md) — **Medium-High** — BepInEx clamps to allow.
+- [Live tickets cite the deleted `docs/api/` pages](todo/stale-api-doc-paths-in-live-tickets.md) — **Low** — paths and section numbers both stale.
+- [Command refusals render as successes](todo/console-command-refusals-render-green.md) — **Low-Medium** — a refused verb still prints green.
 - [The give gesture respects the player's own UI](todo/give-gesture-own-ui-and-center-use.md) — **Medium-High** — row 7 blocked: no driveable rule switch.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
@@ -76,6 +80,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [A host rule is read and changed with `/gamerule`](review/gamerule-host-rule-command.md) — **Medium-High** — one verb, Minecraft's shape; `/hostrules` goes.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.

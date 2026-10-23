@@ -1,10 +1,10 @@
 namespace CasualtiesUnknownOnline.Runtime.Configuration;
 
 /// <summary>
-/// The text forms of <see cref="RemoteBackpackAccess"/>. The BepInEx config entry
-/// and the console's host-rule JSON both carry text, so one place owns the
-/// spelling (read case-insensitively, written lowercase) — the same shape
-/// <see cref="NativeBindingParityText"/> uses for the other closed set.
+/// The text forms of <see cref="RemoteBackpackAccess"/>. The BepInEx config entry and the console's
+/// <c>/gamerule</c> value both name these levels, so one place owns the lowercase spelling: the config
+/// reads it case-insensitively, while the console's arguments are ordinal and accept only this spelling.
+/// The same shape <see cref="NativeBindingParityText"/> uses for the other closed set.
 /// </summary>
 public static class RemoteBackpackAccessText
 {

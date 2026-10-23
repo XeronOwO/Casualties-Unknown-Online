@@ -8,9 +8,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 /// (<see cref="HostRuleCensus"/>) instead of once per call site.
 ///
 /// <para>
-/// The names are the config keys the player sees (<c>HostRulesOptions</c> /
-/// <c>RespawnOptions</c>), so a refusal can name the rule it acted on in the
-/// operator's own vocabulary.
+/// The enum's names are the rule's own identity. The console's spelling (lowercase snake case) is
+/// declared per rule in <see cref="HostRuleCensus"/>, and a refusal names that spelling, so the
+/// operator learns the word the verb actually accepts.
 /// </para>
 /// </summary>
 public enum HostRuleId

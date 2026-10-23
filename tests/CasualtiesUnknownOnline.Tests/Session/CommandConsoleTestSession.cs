@@ -114,11 +114,20 @@ internal static class CommandConsoleTestSession
 
 	internal sealed class StubHostRulesEditor : IHostRulesEditor
 	{
-		internal List<(string Property, string Value)> Applied { get; } = [];
+		internal List<(HostRuleId Rule, string Value)> Applied { get; } = [];
 
-		public bool TrySet(string property, string value, out string? error)
+		/// <summary>When set, the editor refuses every write with this reason — the composition's own refusal path.</summary>
+		internal string? Refusal { get; set; }
+
+		public bool TrySet(HostRuleId rule, string value, out string? error)
 		{
-			Applied.Add((property, value));
+			if (Refusal is not null)
+			{
+				error = Refusal;
+				return false;
+			}
+
+			Applied.Add((rule, value));
 			error = null;
 			return true;
 		}

@@ -161,6 +161,61 @@ public class WearChainContentGateTests
 			parameter => parameter.Identifier.ValueText == "wearSlotId");
 	}
 
+	/// <summary>
+	/// The placement resolver must HAND OUT the index it resolved. Batch `20261023-f` found the machine
+	/// symptom — every cross-player wear refused as "target limb missing/dismembered or wear slot already
+	/// occupied" on a target whose 15 limbs were all attached — and the cause was this method answering
+	/// `true` while its `limbIndex` out parameter stayed at the initial `-1`: the Runtime application
+	/// refuses at its first guard, so the centre-WEAR row never ran. A live `Body` cannot exist in this
+	/// test host, so the rule is read from the resolver's own syntax: it must pass its `limbIndex`
+	/// parameter to a callee as an `out`, or assign it something other than the `-1` sentinel.
+	/// </summary>
+	[Fact]
+	public void ThePlacementResolver_HandsOutTheLimbIndexItResolved()
+	{
+		var source = RepositoryPaths.ReadText(SemanticsFile);
+
+		Assert.True(
+			ResolvesLimbIndexIntoTheOutParameter(source),
+			$"{SemanticsFile}'s `TryResolve` answers true with `limbIndex` left at -1 — the Runtime application refuses on that value, so every cross-player wear is refused before it can be applied (batch 20261023-f read the symptom as `[ItemUse] refused: bikehelmet … target limb missing/dismembered or wear slot already occupied` on a target with all limbs attached); the resolver must hand the resolved index out");
+	}
+
+	[Theory]
+	// The fixed shape: the resolver hands its own parameter to the index lookup.
+	[InlineData("static class G { internal static bool TryResolve(Body? body, string? itemId, out int limbIndex, out string wearSlotId) { limbIndex = -1; wearSlotId = \"\"; return TryResolveLimbIndex(body, \"head\", out limbIndex); } }", true)]
+	// The batch-f shape: true with the sentinel still in the out parameter.
+	[InlineData("static class G { internal static bool TryResolve(Body? body, string? itemId, out int limbIndex, out string wearSlotId) { limbIndex = -1; wearSlotId = \"\"; wearSlotId = \"hat\"; return true; } }", false)]
+	// An assignment that carries a real index also counts.
+	[InlineData("static class G { internal static bool TryResolve(Body? body, string? itemId, out int limbIndex, out string wearSlotId) { limbIndex = -1; wearSlotId = \"\"; if (!TryResolveLimbIndex(body, \"head\", out var index)) { return false; } limbIndex = index; return true; } }", true)]
+	public void TheLimbIndexMatcher_ReadsTheResolversOwnHandOut(string snippet, bool expected) =>
+		Assert.Equal(expected, ResolvesLimbIndexIntoTheOutParameter(snippet));
+
+	private static bool ResolvesLimbIndexIntoTheOutParameter(string source)
+	{
+		var root = CSharpSyntaxTree
+			.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview))
+			.GetRoot();
+		var resolver = root.DescendantNodes()
+			.OfType<MethodDeclarationSyntax>()
+			.FirstOrDefault(method => method.Identifier.ValueText == "TryResolve");
+		if (resolver is null)
+		{
+			return false;
+		}
+
+		var handsItOut = resolver.DescendantNodes()
+			.OfType<InvocationExpressionSyntax>()
+			.Any(invocation => invocation.ArgumentList.Arguments.Any(argument => argument.ToString() == "out limbIndex"));
+		if (handsItOut)
+		{
+			return true;
+		}
+
+		return resolver.DescendantNodes()
+			.OfType<AssignmentExpressionSyntax>()
+			.Any(assignment => assignment.Left.ToString() == "limbIndex" && assignment.Right.ToString() != "-1");
+	}
+
 	[Theory]
 	[InlineData("private static readonly Dictionary<string, P> R = new(StringComparer.Ordinal) { [\"a\"] = new(1), [\"b\"] = new(2) };", true)]
 	// The deleted table's own shape — one keyed initializer per row.

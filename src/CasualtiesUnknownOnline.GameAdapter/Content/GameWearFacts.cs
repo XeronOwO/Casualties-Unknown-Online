@@ -51,7 +51,10 @@ internal static class GameWearPlacement
 		}
 
 		wearSlotId = info.wearSlotId;
-		return true;
+		// The index this method promises must be the one it resolved: answering true with the -1 sentinel
+		// left in the out parameter refuses every cross-player wear at the Runtime application's first guard
+		// (the shape `IsPlaceable` alone produced until batch 20261023-f read it on the machine).
+		return TryResolveLimbIndex(body, info.desiredWearLimb, out limbIndex);
 	}
 
 	/// <summary>

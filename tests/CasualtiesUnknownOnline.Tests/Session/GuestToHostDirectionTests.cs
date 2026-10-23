@@ -47,6 +47,7 @@ public class GuestToHostDirectionTests(DirectionProbe probe) : IClassFixture<Dir
 		NetMsg.BlockDamageReport,
 		NetMsg.LayerAdvanceRequest,
 		NetMsg.ReentryRequest,
+		NetMsg.HostRuleChangeRequest,
 	};
 
 	[Theory]

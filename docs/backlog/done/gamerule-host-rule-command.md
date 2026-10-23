@@ -77,6 +77,8 @@ was set: `Game rule remote_backpack_access is now set to: unconscious_or_dead.`
 - a value the rule's type refuses: `Game rule <name>: '<value>' is not one of <the allowed names>.` For
   the number rule the allowed set is its range: `'5' is not a number between 0 and 3.`
 - a member: the console's own `Permission denied: this command is host-only.` (before the handler runs).
+  **(Superseded 2026-10-24: a member's refusal now comes from the cheat gate and names the switch or the
+  roster; see *Superseded in part* below.)**
 
 **`/hostrules` is deleted with its parser and applier.** Two verbs writing the same state in two
 vocabularies is the drift the project's "one rule, one place" discipline refuses, and the JSON dialect is
@@ -97,7 +99,9 @@ family.
    range is the 0–3 the Admin slider already enforces, and the refusal names that range.
 2. **The permission is the host, not an operator roster.** Minecraft's level 2 is "an operator may"; CUO's
    rules are the host's own switches (decision 263) and this build has no member→host rule-write path, so
-   the host is the only caller the verb can serve.
+   the host is the only caller the verb can serve. **(Superseded 2026-10-24: the verb joined the op family —
+   a granted member changes a rule through a host round trip; see *Superseded in part* below and
+   `review/gamerule-joins-the-op-family.md`.)**
 3. **The refusals list the known rules and the allowed values.** Minecraft's parser only says it cannot
    parse the argument; the console has no completion for rule names or values yet, so the refusal is the
    only place a player learns the vocabulary. The list is one line, printed only on a refusal.
@@ -181,7 +185,7 @@ centre release of a view-only displayed backpack refused with its one line, and 
 The user ruled that the verb joins the op family (a member the host has granted may change a rule through a
 host round trip) and that the console must not offer the command — not even its word — to a caller without
 that authority. The host-only implementation and the batch `20261023-j` acceptance above stand as the record
-of what was built; the follow-ups are `todo/gamerule-joins-the-op-family.md` and
+of what was built; the follow-ups are `review/gamerule-joins-the-op-family.md` and
 `todo/console-completion-hides-what-you-cannot-run.md`, and decision 269 carries the amendment.
 
 ## Independent review (2026-10-24) — every finding and what changed

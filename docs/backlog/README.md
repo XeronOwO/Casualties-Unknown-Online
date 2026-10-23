@@ -57,7 +57,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A typo in a rule's config value silently widens it](todo/config-clamp-silently-widens-rule-levels.md) — **Medium-High** — BepInEx clamps to allow.
 - [Live tickets cite the deleted `docs/api/` pages](todo/stale-api-doc-paths-in-live-tickets.md) — **Low** — paths and section numbers both stale.
 - [Command refusals render as successes](todo/console-command-refusals-render-green.md) — **Low-Medium** — a refused verb still prints green.
-- [/gamerule joins the op family](todo/gamerule-joins-the-op-family.md) — **Medium-High** — a granted member changes rules through the host.
 - [The console completes only what you may run](todo/console-completion-hides-what-you-cannot-run.md) — **Medium-High** — hidden word; role-aware values.
 
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
@@ -86,6 +85,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
+- [/gamerule joins the op family](review/gamerule-joins-the-op-family.md) — **Medium-High** — a granted member changes rules through the host.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.

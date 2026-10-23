@@ -6,7 +6,7 @@
 - Source: the user's 2026-10-24 ruling: in Minecraft a player without cheat permission cannot complete a
   cheat command's WORD, let alone its second or third argument — no completion at all. With the authority,
   `/gamerule` completes its rule names and that rule's values.
-- Related: `todo/gamerule-joins-the-op-family.md` (the same ruling's authority half),
+- Related: `review/gamerule-joins-the-op-family.md` (the same ruling's authority half),
   `done/gamerule-host-rule-command.md` (records "no completion" as a limit this ticket removes),
   `review/cheat-permission-and-op-commands.md` (the family), `done/in-game-command-console-interactive.md`
   and `docs/evidence/selfchecks/ui/command-console-selfcheck.md` (the console's completion design),
@@ -29,8 +29,8 @@ its `/op` roster — with the host passing without either, exactly as the gate d
 suggestion filter and the command's own gate must never disagree.
 
 **What is hidden.** For a caller without the authority, the command WORD is not offered: the `HostOnly`
-commands (`/gamerule`, `/kick`, `/ban`, `/unban`, `/op`, `/deop`) and the cheat verbs that are
-`Anyone`-at-the-console-but-gated (`/give`, `/summon`, `/heal`, `/traderreport`). Hiding is a courtesy, not
+commands (`/kick`, `/ban`, `/unban`, `/op`, `/deop`) and the cheat verbs that are
+`Anyone`-at-the-console-but-gated (`/gamerule`, `/give`, `/summon`, `/heal`, `/traderreport`). Hiding is a courtesy, not
 the enforcement: typing the line still reaches the handler and is refused by name the same way.
 
 **`/data` keeps its word.** It is one command with read verbs open to everyone and write verbs gated; hiding

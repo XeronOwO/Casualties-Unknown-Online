@@ -85,8 +85,9 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
 		// The closed sets and the numeric range are bound from the census row the console's /gamerule
 		// verb reads, so a canonical write from the console cannot be clamped and the accepted sets
-		// cannot drift from the verb. A second declaration here would let the config clamp a value the
-		// verb had just accepted while the verb reported the requested value.
+		// cannot drift from the verb. The verb answers the value the entry holds AFTER the write, so a
+		// second declaration here would surface as a clamp in that answer — the binding is what makes
+		// the clamp impossible in the first place.
 		var remoteBackpackRow = HostRuleCensus.Of(HostRuleId.RemoteBackpackAccess);
 		var nativeBindingRow = HostRuleCensus.Of(HostRuleId.NativeBindingParity);
 		var weightRow = HostRuleCensus.Of(HostRuleId.PiggybackWeightMultiplier);
@@ -95,7 +96,7 @@ internal static class PluginDependencyRegistrar
 				"Host-only: who may open and operate another player's backpack. allow = anyone (today's cooperative rule); unconscious_or_dead = a conscious owner's pack opens view-only and only an unconscious or dead body may be operated on; deny = nobody. Enforced on the host; a member's client reads the announced value.",
 				new AcceptableValueList<string>([.. HostRuleValueText.Choices(remoteBackpackRow)])));
 		var allowMemberCheatVerbs = config.Bind("HostRules", "AllowMemberCheatVerbs", false,
-			new ConfigDescription("Host-only: the cheat switch — true = members may run the cheat verbs (/data's write verbs, /give) at all. It is one of TWO rulings: the member must ALSO be on this host's cheat roster (granted with /op). False (default) = every member's cheat verb is refused by name, the reason is named back, and the member's client puts back the value it had already applied. The host's own verbs ignore both: its standing is the online switch."));
+			new ConfigDescription("Host-only: the cheat switch — true = members may run the cheat verbs (/data's write verbs, /give, /summon, /heal, /gamerule) at all. It is one of TWO rulings: the member must ALSO be on this host's cheat roster (granted with /op). False (default) = every member's cheat verb is refused by name, the reason is named back, and the member's client puts back the value it had already applied. The host's own verbs ignore both: its standing is the online switch."));
 		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
 			new ConfigDescription("Host-only: widen the native custom run-settings sliders in co-op so the run can be tuned for the actual lobby size. Values still ride the existing world-start params."));
 		var piggybackWeight = config.Bind("HostRules", "PiggybackWeightMultiplier", 0.8,

@@ -468,4 +468,16 @@ public enum NetMsg : byte
 	// outcome per give: the failure used to be a bare claim, and now it rides this message as the not-applied arm.
 	PlayerPlacementOutcome = 160, // receiver → host: where this client's placement really put the item, or why it put it nowhere
 
+	// The console /gamerule verb, after the user's 2026-10-24 ruling joined it to the op family. A host
+	// changes its own config entry exactly as before; a member the host granted (the cheat switch AND the
+	// /op roster) ASKS, and the host performs the same write on its own entry. The member's local parse is
+	// only the cheap refusal of an invalid value — the permission, the rule's existence and the value's
+	// grammar are judged where the write happens, and the answer carries the value the entry REALLY holds
+	// after it (read back, so a clamp cannot be answered as if it had landed). The member never writes its
+	// own config: its local entry would be overridden by the host's announced set (decision 263) and the
+	// change would look applied and do nothing. Every writer still ends at the same config entry, so the
+	// change edge announces the new set to every member exactly once.
+	HostRuleChangeRequest = 161, // guest → host: set this host rule to this canonical value (the member's /gamerule)
+	HostRuleChangeResult = 162, // host → requester: the value in force after the write, or the refusal that answered it
+
 }

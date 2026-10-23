@@ -65,10 +65,13 @@ entry (it is not a host rule and is not announced).
 ## `[HostRules]`
 
 The host-rule surface that is not already owned by `[Respawn]`. Read at decision time. The console's
-host-only `/gamerule <rule name> [<value>]` reads or sets one host rule by name — the lowercase snake-case
+`/gamerule <rule name> [<value>]` reads or sets one host rule by name — the lowercase snake-case
 name the rule carries (`remote_backpack_access`, `save_inventory`; an unknown name lists every rule) — and
-omitting the value queries it. The four `[Respawn]` rules that travel as host rules are addressed the same
-way: `save_inventory`, `revive_from_trader`, `revive_on_next_level` and `permadeath`.
+omitting the value queries it. It is a cheat verb: the host uses it directly, and a member the host granted
+(the cheat switch plus the `/op` roster) changes the HOST's entry through a host round trip — the member's
+own config is never written, because the announced set would override it. The four `[Respawn]` rules that
+travel as host rules are addressed the same way: `save_inventory`, `revive_from_trader`, `revive_on_next_level`
+and `permadeath`.
 
 **The values reach the members.** A member's client acts on them — the member list's take
 affordance, its own console's item-data write, the encumbrance its body gains while it carries
@@ -88,7 +91,7 @@ stays on the host: those are exactly the rows a member's client reads.
 | `AutoContinue` | `false` | | Reserved host-rule surface for automatic next-layer continuation; not wired yet. |
 | `AllowLateJoin` | `true` | | True = a brand-new player may join the host's already-running world. |
 | `RemoteBackpackAccess` | `allow` | `allow`, `unconscious_or_dead`, `deny` | Host-only: who may open and operate another player's backpack. `allow` = any visible player (the cooperative rule the mod has always had). `unconscious_or_dead` = a conscious owner's backpack opens VIEW-ONLY — its items are visible, every operation (take, move, drop, use, give) is refused, and the game's own red slot state marks it — while an unconscious or dead owner can be operated on. `deny` = nobody; the view does not open and every intent is refused. Enforced on the host, read by a member's client for the member card's backpack and take buttons, and every refusal names it. |
-| `AllowMemberCheatVerbs` | `false` | | Host-only: the cheat SWITCH — true = members may run the cheat verbs at all (`/data`'s write verbs, `/give`, `/summon` and the `/heal` reset). It is one of TWO host rulings: the member must ALSO be on this host's cheat roster, which `/op` and `/deop` edit. A granted member is refused while the switch is off, and the switch alone admits nobody; the host's own verbs ignore both (its standing is the online session). False = every member's cheat verb is refused by name; a member holding the announced value is refused on its own client BEFORE anything is applied, and one that received no announcement applies, reports and puts the value back when the host's refusal arrives. |
+| `AllowMemberCheatVerbs` | `false` | | Host-only: the cheat SWITCH — true = members may run the cheat verbs at all (`/data`'s write verbs, `/give`, `/summon`, the `/heal` reset and `/gamerule`). It is one of TWO host rulings: the member must ALSO be on this host's cheat roster, which `/op` and `/deop` edit. A granted member is refused while the switch is off, and the switch alone admits nobody; the host's own verbs ignore both (its standing is the online session). False = every member's cheat verb is refused by name; a member holding the announced value is refused on its own client BEFORE anything is applied, and one that received no announcement applies, reports and puts the value back when the host's refusal arrives. |
 | `WidenRunSettings` | `true` | | Host-only: widen the native custom run-settings sliders in co-op so the run can be tuned for the actual lobby size. Values still ride the existing world-start params. |
 | `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | Host-only: the fraction of a carried rider's full encumbrance added to the carrier while a carry relation is active. `0` disables the movement penalty. Read by the carrying player's own client, so a member carrying someone uses the host's value. |
 | `NativeBindingParity` | `warn` | `allow`, `warn`, `require` | Host-only: how a member's declared [native binding](glossary.md) is judged when it differs from the host's own for a mod both sides list. `allow` = no check; `warn` = admit and record the mismatch in the host's log; `require` = refuse the member. |

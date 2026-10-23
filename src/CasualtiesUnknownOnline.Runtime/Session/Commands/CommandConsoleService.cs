@@ -53,6 +53,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IWorldSummonControl _worldSummon;
 	private readonly IHealResetControl _healReset;
 	private readonly AnnouncedHostRules _hostRules;
+	private readonly IHostRuleChangeControl _hostRuleChanges;
 	private readonly ItemStateCompletion _itemStateCompletion;
 
 	public CommandConsoleService(
@@ -62,8 +63,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IPlayerInteractionControl playerInteraction,
 		IEntitySyncControl entities,
 		IKernelItemFacts kernelItems,
-		IHostRulesEditor hostRulesEditor,
 		IHostRules hostRuleSurface,
+		IHostRuleChangeControl hostRuleChanges,
 		ITimeSource time,
 		ILogger<CommandConsoleService> log,
 		ConsoleCommandRegistry commandRegistry,
@@ -99,6 +100,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_worldSummon = worldSummon;
 		_healReset = healReset;
 		_hostRules = hostRules;
+		_hostRuleChanges = hostRuleChanges;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += ResetSessionState;
 		// The console is the player's surface for the save system's three answers: the
@@ -127,8 +129,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 												   // body (a member's reset arrives as an instruction, never as its own command's return).
 		_healReset.Answered += OnHealResetAnswered;
 		_healReset.Applied += OnHealResetApplied;
+		// ...and the host's answer to a member's /gamerule, whose config write is the host's (never this client's).
+		_hostRuleChanges.Answered += OnGameRuleAnswered;
 		_commands.AddBuiltIns(this);
-		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRuleSurface, hostRulesEditor, log));
+		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session));
 		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
 		_commands.AddBuiltIns(new SpectatorCommands(session, entities, spectator, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
@@ -136,6 +140,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// resolver: /data writes this client's own item, /give makes a new one, and
 		// both answer the same cheat rulings and the same selector verdict.
 		var cheatVerbs = new CheatVerbGate(session, _hostRules, cheatPermissions, log);
+		// The host-rule verb is the cheat family's too (the user's 2026-10-24 ruling); its own group holds the gate.
+		_commands.AddBuiltIns(new HostRuleCommands(hostRuleSurface, hostRuleChanges, cheatVerbs, log));
 		var targets = new ItemDataTargets(kernelItems, session, entities, localItems);
 		var writes = new ItemDataWriteCommands(kernelItems, session, localItems, itemControl, itemStateLanguage, log, cheatVerbs, targets);
 		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, itemStateLanguage, log, targets, writes));
@@ -281,6 +287,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_worldSummon.Answered -= OnSummonAnswered;
 		_healReset.Answered -= OnHealResetAnswered;
 		_healReset.Applied -= OnHealResetApplied;
+		_hostRuleChanges.Answered -= OnGameRuleAnswered;
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
@@ -354,6 +361,9 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// <summary>The host's answer to this member's <c>/heal</c> — what was reset, revived or restored, or the refusal that answered it.</summary>
 	private void OnHealResetAnswered(HealResetResultMsg msg) =>
 		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+
+	/// <summary>The host's answer to this member's /gamerule — the value the host's entry holds, printed where the verb was typed.</summary>
+	private void OnGameRuleAnswered(HostRuleChangeResultMsg msg) => AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	/// <summary>
 	/// The host reset THIS client's body. A member's reset is never its own command's return — the
@@ -481,10 +491,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private string WhoAmI(IReadOnlyList<string> _) =>
 		$"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}";
 
-	// The host-administration commands (/gamerule, /kick, /ban, /unban) live in
-	// HostAdminCommands, and the save commands (/save) in WorldSaveCommands: each
-	// group is registered as its own owner, so a new command family never grows
-	// this class past the architecture gate.
+	// The membership commands (/kick, /ban, /unban) live in HostAdminCommands, the host-rule
+	// verb in HostRuleCommands and the save commands (/save) in WorldSaveCommands: each group
+	// is registered as its own owner, so a new command family never grows this class past the
+	// architecture gate.
 
 	private void OnChatLine(ChatLine line) => AddLine(FormatChatLine(line), ConsoleLineKind.Info);
 

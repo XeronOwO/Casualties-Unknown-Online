@@ -81,7 +81,8 @@ internal static class NetworkingPacketPlaneComposition
 			p.GetRequiredService<IWorldSummonControl>(),
 			p.GetRequiredService<IHealResetControl>(),
 			p.GetRequiredService<AnnouncedHostRules>(),
-			p.GetRequiredService<AnnouncedCheatPermissions>()));
+			p.GetRequiredService<AnnouncedCheatPermissions>(),
+			p.GetRequiredService<IHostRuleChangeControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 	}

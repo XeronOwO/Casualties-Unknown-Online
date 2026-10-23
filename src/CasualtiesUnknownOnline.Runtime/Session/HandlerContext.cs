@@ -28,7 +28,8 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	IReentryControl reentry,
 	IWorldSummonControl worldSummon,
 	IHealResetControl healReset,
-	AnnouncedHostRules hostRules, AnnouncedCheatPermissions cheatPermissions) :
+	AnnouncedHostRules hostRules, AnnouncedCheatPermissions cheatPermissions,
+	IHostRuleChangeControl hostRuleChanges) :
 	IWorldHandlerContext,
 	IWorldKernelHandlerContext,
 	IWorldSessionHandlerContext,
@@ -52,6 +53,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	IKernelProtocolContext,
 	IHostRulesHandlerContext,
 	ICheatPermissionHandlerContext,
+	IHostRuleChangeHandlerContext,
 	IEmptyHandlerContext
 {
 	public ISessionControl Session { get; } = session;
@@ -102,4 +104,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The host's cheat-permission roster as this client last received it (member side; the announcement handler is its only writer).</summary>
 	public AnnouncedCheatPermissions CheatPermissions { get; } = cheatPermissions;
+
+	/// <summary>The console <c>/gamerule</c> write path: the host applies a member's request and answers, the member raises the answer its console prints.</summary>
+	public IHostRuleChangeControl HostRuleChanges { get; } = hostRuleChanges;
 }

@@ -67,6 +67,13 @@ internal static class SessionComposition
 		// The host-rule write seam defaults to unavailable; the plugin replaces
 		// it with the BepInEx ConfigEntry-backed editor in extraRegistrations.
 		services.AddSingleton<IHostRulesEditor>(new DisabledHostRulesEditor());
+		// The console /gamerule write path: the host applies a change to its own
+		// entry and answers with the value in force; a member's verb is a request
+		// whose answer arrives on the wire. It sits after the rule surface and the
+		// editor because it writes through them, and before the packet plane whose
+		// handlers reach it through the per-message context.
+		services.AddSingleton<HostRuleChangeService>();
+		services.AddSingleton<IHostRuleChangeControl>(p => p.GetRequiredService<HostRuleChangeService>());
 
 		// Localization service: reads the UI language from the config-backed
 		// options monitor and falls back to English for missing keys.

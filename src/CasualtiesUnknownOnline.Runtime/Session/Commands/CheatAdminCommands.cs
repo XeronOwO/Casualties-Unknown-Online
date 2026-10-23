@@ -31,7 +31,7 @@ internal sealed class CheatAdminCommands(
 	private readonly ICheatPermissionAnnouncement _announcement = announcement;
 	private readonly ILogger _log = log;
 
-	[ConsoleCommand("op", "Host only: grant another player the cheat verbs (the /data write verbs, and /give as it lands).", CommandPermission.HostOnly, "/op <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
+	[ConsoleCommand("op", "Host only: grant another player the cheat verbs (/data's write verbs, /give, /summon, /heal, /gamerule).", CommandPermission.HostOnly, "/op <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
 	internal string Op(IReadOnlyList<string> args) => Edit(args, grant: true);
 
 	[ConsoleCommand("deop", "Host only: revoke another player's cheat verbs.", CommandPermission.HostOnly, "/deop <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]

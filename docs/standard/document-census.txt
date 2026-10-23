@@ -304,7 +304,7 @@ docs/backlog/todo/decision-register-budget.md | keep | index | docs/backlog/READ
 docs/backlog/todo/config-clamp-silently-widens-rule-levels.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/stale-api-doc-paths-in-live-tickets.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-command-refusals-render-green.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/gamerule-joins-the-op-family.md | keep | index | docs/backlog/README.md
+docs/backlog/review/gamerule-joins-the-op-family.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-completion-hides-what-you-cannot-run.md | keep | index | docs/backlog/README.md
 docs/backlog/done/gamerule-host-rule-command.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md

@@ -5,10 +5,12 @@
 - Priority: Low-Medium
 - Category: Console / output kinds / player feedback
 - Source: the review read `CommandConsoleService.ExecuteCommand`: every non-empty handler return is added as
-  `ConsoleLineKind.Success`, and `CommandConsoleOverlay` maps Success to `OnlineUiTheme.Positive`. The new
+  `ConsoleLineKind.Success`, and `CommandConsoleOverlay` maps Success to `OnlineUiTheme.Positive`. The
   `/gamerule` refusals (unknown rule, invalid value, out of range, the editor's refusal) are returned
-  strings, so they render green; only the pre-handler host-only gate is `Error`. The verb's tests assert the
-  text because the handler has no way to return a kind.
+  strings, so they render green. Since the verb joined the op family (2026-10-24) its PERMISSION refusal is
+  a handler return too, so a member the host did not grant now reads it in the positive colour as well —
+  the pre-handler host-only line that used to colour that case as an error no longer applies to this verb.
+  The verb's tests assert the text because the handler has no way to return a kind.
 - Related: `done/gamerule-host-rule-command.md`, the console's own record
   (`done/in-game-command-console-interactive.md`, `docs/evidence/selfchecks/ui/command-console-selfcheck.md`),
   and the mod-facing console command (`ModConsoleCommand.Handler` returns `string?`).
@@ -16,11 +18,12 @@
 ## Problem
 
 A command handler's signature carries text, not a verdict. Every verb that answers a refusal on a normal
-return — `/gamerule`, and before it `/hostrules`, `/kick`'s unknown member, an item verb's "this client holds
-no such item" — is printed with the same `Success` kind as a completed action, so the player reads a red-worthy
-refusal in the positive colour. Only a refusal the console itself makes before the handler (a host-only gate,
-an unknown command) is an error line. The `/gamerule` tests pin the refusal text and cannot pin the kind,
-because there is no kind to pin.
+return — `/gamerule` (its permission refusal included, since the verb became `Anyone` + gated), and before
+it `/hostrules`, `/kick`'s unknown member, an item verb's "this client holds no such item" — is printed with
+the same `Success` kind as a completed action, so the player reads a red-worthy refusal in the positive
+colour. Only a refusal the console itself makes before the handler (a host-only gate, an unknown command) is
+an error line. The `/gamerule` tests pin the refusal text and cannot pin the kind, because there is no kind
+to pin.
 
 ## The question
 
@@ -41,8 +44,9 @@ just its text.
 
 ## Acceptance
 
-- A refused `/gamerule` (unknown rule, invalid value, out of range, the editor's refusal) renders as an
-  error line and a successful set/query as a success line, read from the console's own output.
+- A refused `/gamerule` (the cheat gate's permission sentence, unknown rule, invalid value, out of range, the
+  editor's refusal) renders as an error line and a successful set/query as a success line, read from the
+  console's own output.
 - The chosen mechanism covers mod console commands and is recorded in the console selfcheck; a test pins the
   kind of a refusal and of a success for at least one built-in and one mod command.
 - No verb is left with a refusal that still renders as success.

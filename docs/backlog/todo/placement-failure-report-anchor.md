@@ -3,7 +3,9 @@
 - Status: Todo — half landed. The APPLIED arm is anchored (the receiving client reports the place its own placement
   used, the host compares it with the row it wrote and refuses anything else by name); the NOT-APPLIED arm — the
   failure claim this ticket was filed for — still reverses custody on the receiver's word, and per decision 265 it
-  stays named rather than given a behavioural bound.
+  stays named rather than given a behavioural bound. Row 1's machine reading was attempted in batch `20261023-d`
+  and not produced (the drag could not be started; record
+  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`).
 - Priority: Low-Medium
 - Category: Cross-player custody / member-report bounds / anti-duplication
 - Blocked by: nothing external. The remaining half needs an anchor for a NEGATIVE claim ("my live body placed
@@ -92,9 +94,10 @@ ticket keeps.**
 
 1. A give applied at the answered destination reports the same place; the host sees a match and writes nothing. —
    **PASS by test**: `AMatchingPlacementOutcome_SettlesTheGiveAndMovesNothing` (and the container half,
-   `AContainerGiveThatStayedInTheContainer_SettlesTheGive`). The MACHINE reading is outstanding: no deployed
-   artifact can carry this message before this change's commit, so the row is scheduled for batch `20261023-d`
-   (after the commit and the deploy), and until it is read this row has no runtime reading.
+   `AContainerGiveThatStayedInTheContainer_SettlesTheGive`). The MACHINE reading is **outstanding**: batch
+   `20261023-d` attempted it on `0.1.0+1bf7104c…` and could not start the give drag (the created item sat in a HUD
+   cell the press path does not reach; record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`),
+   so this row has no runtime reading yet — only the behaviour tests and the shape pins.
 2. A receiving client that changed its body reports a different place or a refusal; the host refuses the outcome
    by name, returns the row, and the giver sees the return. — **PASS by test**:
    `APlacementThatLandedSomewhereElse_IsRefusedAndReturned` (a container that refused on the receiver, so the
@@ -112,8 +115,8 @@ ticket keeps.**
 - The not-placed arm stays the receiver's own body judgement; the comparison bounds the applied arm only, and the
   census row says so.
 - The receiver half of rows 1-3 is shape-pinned (`GiveGestureGateTests`), not driven by a behaviour test: the test
-  host has no Unity body, so the adapter's reporting of the place is a source-shape assertion plus batch
-  `20261023-d`'s machine reading.
+  host has no Unity body, so the adapter's reporting of the place is a source-shape assertion, and batch
+  `20261023-d` could not produce the machine half either (its record says why).
 - A return the host cannot make (the item is no longer in the receiver's snapshot, or the giver has no free slot)
   is logged at Error and the reporter is not answered — the limit `review/placement-outcome-never-returns.md`
   already records.

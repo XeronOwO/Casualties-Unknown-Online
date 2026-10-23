@@ -41,7 +41,7 @@ docs/architecture/guards.md | keep | spec | docs/architecture/current.md
 docs/architecture/member-report-validation.md | keep | spec | docs/architecture/guards.md
 docs/architecture/mod-status-domain.md | keep | spec | docs/en/contributing/repository-map-and-pitfalls.md
 docs/architecture/projection-framework.md | keep | spec | docs/architecture/remote-inventory-native-parity.md
-docs/architecture/protocol.md | keep | spec | docs/backlog/review/bilingual-human-docs.md
+docs/architecture/protocol.md | keep | spec | docs/backlog/resolved/bilingual-human-docs.md
 docs/architecture/README.md | keep | spec | docs/architecture/evolution/phase-b-items-authority.md
 docs/architecture/remote-inventory-native-parity.md | keep | spec | docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md
 docs/architecture/save-archive-format.md | keep | spec | docs/backlog/review/id-resume-sources-still-unseeded.md
@@ -213,7 +213,7 @@ docs/backlog/resolved/runtime-di-feature-registration-lifecycle.md | keep | inde
 docs/backlog/resolved/runtime-log-errors-2026-08-30.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/review/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
-docs/backlog/review/bilingual-human-docs.md | keep | index | docs/backlog/README.md
+docs/backlog/resolved/bilingual-human-docs.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cheat-permission-and-op-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/backlog/README.md
 docs/backlog/review/concurrent-medical-operations.md | keep | index | docs/backlog/README.md
@@ -291,7 +291,7 @@ docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlo
 docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/docs-mojibake-cleanup.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
-docs/backlog/review/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
+docs/backlog/done/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/review/give-item-to-another-player.md | keep | index | docs/backlog/README.md
@@ -302,7 +302,7 @@ docs/backlog/todo/placement-failure-report-anchor.md | keep | index | docs/backl
 docs/backlog/done/give-gesture-own-ui-and-center-use.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/decision-register-budget.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/config-clamp-silently-widens-rule-levels.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/stale-api-doc-paths-in-live-tickets.md | keep | index | docs/backlog/README.md
+docs/backlog/done/stale-api-doc-paths-in-live-tickets.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-command-refusals-render-green.md | keep | index | docs/backlog/README.md
 docs/backlog/done/gamerule-joins-the-op-family.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/gamerule-joins-the-op-family-20261024-b.md | keep | claim | docs/backlog/done/gamerule-joins-the-op-family.md
@@ -349,7 +349,7 @@ docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md | keep | index 
 docs/backlog/done/radiation-line-floor-stop.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
-docs/backlog/review/item-identity-bridge.md | keep | index | docs/backlog/README.md
+docs/backlog/resolved/item-identity-bridge.md | keep | index | docs/backlog/README.md
 docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
@@ -364,7 +364,7 @@ docs/contracts/README.md | keep | spec | docs/en/contributing/documentation-stan
 docs/decisions/active.md | rework | none | docs/backlog/todo/decision-register-budget.md
 docs/decisions/archive.md | keep | spec | docs/backlog/done/mod-content-ceiling.md
 docs/decisions/index.md | keep | spec | docs/evidence/selfchecks/mod-api/mod-content-fingerprint-review.md
-docs/development/agent-reference.md | keep | spec | docs/backlog/review/bilingual-human-docs.md
+docs/development/agent-reference.md | keep | spec | docs/backlog/resolved/bilingual-human-docs.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md
 docs/development/review-prompt.md | keep | spec | docs/backlog/review/document-corpus-audit.md
 docs/en/AGENTS.md | keep | loaded | -
@@ -688,8 +688,8 @@ docs/evidence/acceptance/world-layer-generation-identity-20261003-b.md | keep | 
 docs/evidence/acceptance/world-state-message-service-split-20260927.md | keep | claim | docs/backlog/done/world-state-message-service-split.md
 docs/evidence/acceptance/world-time-local-initiation-20261001-u.md | keep | claim | docs/backlog/done/world-time-local-initiation.md
 docs/evidence/acceptance/world-time-local-initiation-20261001-v.md | keep | claim | docs/backlog/done/world-time-local-initiation.md
-docs/evidence/delivery-checklist.md | keep | claim | docs/backlog/review/delivery-checklist-gate-census.md
-docs/evidence/normative-gates.md | keep | claim | docs/backlog/review/bilingual-human-docs.md
+docs/evidence/delivery-checklist.md | keep | claim | docs/backlog/done/delivery-checklist-gate-census.md
+docs/evidence/normative-gates.md | keep | claim | docs/backlog/resolved/bilingual-human-docs.md
 docs/evidence/selfchecks/architecture/adapter-capability-ports-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/architecture/application-layer-first-slice-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/architecture/composite-command-sequential-semantics-selfcheck.md | keep | claim | docs/evidence/acceptance/composite-command-sequential-semantics-20260927.md

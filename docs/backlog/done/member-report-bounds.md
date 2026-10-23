@@ -268,7 +268,7 @@ play whenever the two disagree". Making the recomputation exact needs the attack
 is the gesture itself.
 
 **What the wire could carry does not bound anything.** Adding the damaging item's instance id (the reverse lookup
-`review/item-identity-bridge.md` calls one line) lets the host check that the sender holds the item it names — a real
+`resolved/item-identity-bridge.md` calls one line) lets the host check that the sender holds the item it names — a real
 DATA fact, but one about the claim's SOURCE, never its magnitude: a member holding a digging tool can still report any
 number. That is exactly the "looks defended and proves nothing" check this ticket refuses elsewhere, so no wire field
 is added.
@@ -295,7 +295,7 @@ replicated instance id of this live game item" (or the inverse map maintained wh
 open patch names `Minigame.game.currentItem` 鈥?the lockpick, per
 `reversing/.../LockpingMinigame.cs` (`NeedsItem() => this.pickLevel >= 0`, `Minigame.game.currentItem`) 鈥?and the host
 check above becomes possible. Until then the open report has no data anchor and the row stays open, honestly.
-**Prerequisite filed:** the client cannot name the tool it used 鈥?the game's `Item` has no instance id and CUO keeps no map 鈥?so both remaining rows wait on `docs/backlog/review/item-identity-bridge.md`.
+**Prerequisite filed:** the client cannot name the tool it used 鈥?the game's `Item` has no instance id and CUO keeps no map 鈥?so both remaining rows wait on `docs/backlog/resolved/item-identity-bridge.md`.
 
 ### Third attempt, reviewed and reverted: the tool claim cannot be made falsifiable (2026-10-18)
 

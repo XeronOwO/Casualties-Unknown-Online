@@ -1,6 +1,6 @@
 # Bilingual documentation: one tree, three layers, paired human-facing docs
 
-- Status: Review
+- Status: Resolved — superseded 2026-10-24 by the two-block documentation system; closed as a record.
 - Priority: Medium
 - Category: Documentation / process
 - Source: Owner session 2026-09-21 (language split by folder was considered and replaced by the DSH pairing contract; multilingual scope is the human-facing layer only)
@@ -100,7 +100,10 @@ it so a Chinese reader is never left facing a wall of English.
 4. `docs/AGENTS.md` — the soft-rule seat, kept deliberately small (see the constraint below).
 5. The human guide layer, each topic as THREE sibling files in the SAME directory:
    `foo.md` (English) + `foo.zh.md` (Chinese) + `foo.i18n.yaml` (consistency record).
-   Starting list, to be confirmed while writing:
+   Starting list, to be confirmed while writing. These are the PRE-MIGRATION paths this plan started
+   from; the landed tree keeps the same topics under `docs/en/` and `docs/zh/` (the migration is
+   recorded in `docs/evidence/selfchecks/documentation/legacy-tree-migration-selfcheck.md`), so the two
+   tables below are the design record, not live pointers.
 
    **Player guide (level 1)** — plain words, no implementation detail:
 
@@ -129,7 +132,8 @@ it so a Chinese reader is never left facing a wall of English.
    | `docs/developer/reference-map.md` | the English reference layer in reading order, so the depth is reachable |
 
    **Reference layer (level 3)** — unchanged and English-only: `docs/architecture/**`,
-   `docs/api/**`, `docs/features/**`, `docs/decisions/**`, `docs/evidence/**`.
+   `docs/en/reference/**` and `docs/zh/reference/**` (the pair replaced the old `docs/api/**` and
+   `docs/features/**`), `docs/decisions/**`, `docs/evidence/**`.
 
 6. A gate in `tests/CasualtiesUnknownOnline.NormativeGates.Tests` (no new toolchain):
    - every in-scope topic has all three files;
@@ -296,3 +300,16 @@ returned 0 blocker / 4 major / 8 minor / 3 nit. All were fixed in this commit:
   counterpart passes it, and wording stays a review duty.
 - The "every tutorial step executed once against the current build" item is **not** verified in this
   cycle — no game client was run — so the player-facing steps stay part of the user's acceptance pass.
+
+## Superseded (2026-10-24)
+
+The system this ticket designed was replaced by the two-block documentation standard, and the replacement
+is the live one: `docs/en/` and `docs/zh/` hold the same page set path for path (`docs/AGENTS.md` §1), the
+pair record is `docs/standard/alignment.txt` checked by `DocumentationTreeGateTests`, and the old
+`docs/guide`/`docs/developer` + `.i18n.yaml` tree is gone (the pre-migration plan's own tables above are
+kept only as the design record; the migration itself is recorded in
+`docs/evidence/selfchecks/documentation/legacy-tree-migration-selfcheck.md`). The topic split this ticket
+argued for survived as the blocks' sections, which is what closing it as resolved means — the design was
+absorbed, not refuted. Its unverified tutorial-execution item is moot with the pages it named; the live
+pages carry their own verification duties. Closed as `Resolved` rather than accepted, because no row of
+this ticket can be judged against the system that replaced it.

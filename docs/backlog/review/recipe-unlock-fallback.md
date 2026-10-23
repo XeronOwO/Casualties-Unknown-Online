@@ -140,7 +140,8 @@ direction, event, fallback, backfill and loss rules, the vocabulary index lists
 (`OK` 50 → 51, `Event-only gap` 5 → 4). The evidence file gained 16 anchors for the row (11 → 27) and
 its declared count followed (880 → 896); the stale W1 anchor that quoted
 `public const int Current = 30;` was re-pointed at 31, and so were the two documents #137 names
-(`docs/api/mod-api.md` §7, whose list now names this family, and the previous cycle's ticket).
+(`docs/en/reference/mod-api.md`'s "Versioning discipline" section, whose list now names this family, and
+the previous cycle's ticket).
 
 **9. Independent adversarial review** (one round, fresh context, frozen tree; verified unmodified
 before and after). It reproduced every number (focused 8/8, the neighbour decomposition 10 + 12,
@@ -155,9 +156,10 @@ It found four things, all fixed in this same commit:
 - **major** — the "no per-recipe alert" claim was cited against a test that only observes the Runtime
   seam. The claim is now stated where it is actually pinned (Runtime raises the set event only; the
   adapter's alert lives on the per-index event) and the matrix row points at that.
-- **major/minor** — stale version references in `docs/api/mod-api.md` (both the §7 number and an old
-  pre-reset number) and in the previous cycle's ticket; the batch apply's out-of-range wording now
-  matches the live path's; the guest's "could not read the table" case is logged.
+- **major/minor** — stale version references in `docs/en/reference/mod-api.md` (the "Versioning
+  discipline" section's number, and an old pre-reset number) and in the previous cycle's ticket; the batch
+  apply's out-of-range wording now matches the live path's; the guest's "could not read the table" case is
+  logged.
 
 ## Acceptance matrix (result)
 

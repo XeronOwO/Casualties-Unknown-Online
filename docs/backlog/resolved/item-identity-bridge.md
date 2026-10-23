@@ -1,6 +1,7 @@
 # Item identity bridge: a live game `Item` cannot be named by its replicated instance id
 
-- Status: Review
+- Status: Resolved — closed 2026-10-24 (no code; the resolution below is re-verified against the current
+  tree).
 - Priority: Low — resolved without code
 **Found:** 2026-10-18, while trying to give the building-open report a data anchor.
 
@@ -60,3 +61,14 @@ review of an attempt that used it, and it is wrong:
 So there is no code to develop here. If a future consumer needs "name this live item", the one-line reverse lookup is
 the whole change; nothing has to be built or maintained ahead of it. Recorded rather than kept as a pending ticket so
 nobody builds a subsystem for a consumer that does not exist.
+
+## Re-verified (2026-10-24)
+
+- `CasualtiesUnknownOnline.GameAdapter.Items.ItemInstanceId` still holds the id → component index (`ById`) and
+  registers/unregisters itself when `Id` changes, so the stated reverse lookup is one dictionary entry over
+  the map that already exists; `TryFindItem(ulong, out Item)` is the forward accessor the claim names.
+- The premise's consumer check still holds: the open report's tool claim remains unanchorable
+  (`done/member-report-bounds.md`), and no consumer of a reverse lookup exists in `src/`. Nothing was built,
+  as the resolution asks.
+- Closed as `Resolved` (the folder's meaning: a decision resolved without further code action); the record
+  stays the answer for the next reader who asks why no identity subsystem exists.

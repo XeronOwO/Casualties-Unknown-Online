@@ -1,6 +1,6 @@
 # The delivery-checklist gate reads no census, so an emptied checklist passes it
 
-- Status: Review
+- Status: Done — accepted 2026-10-24 (agent-run; see *Accepted* below).
 - Priority: Low
 - Category: Repository gates (process-record integrity)
 - Source: the independent NARROWED adversarial review of the entry-mapping record cycle (2026-10-08),
@@ -119,3 +119,17 @@ gates that merely cite a ticket in a comment are not record readers at all.
   the incomplete-box check no longer flags it (the code this replaced matched the bare `- [ ]` prefix).
   The census still reports the required step it hides, and a `- [x]FORBIDDEN` spelling leaves FORBIDDEN
   reported missing, so the escape is closed — but it is a narrowing, not a widening.
+
+## Accepted (2026-10-24, agent acceptance)
+
+- The ticket's six gate cases re-ran green in this cycle: `dotnet test
+  tests/CasualtiesUnknownOnline.NormativeGates.Tests --filter
+  "FullyQualifiedName~DeliveryChecklist|FullyQualifiedName~EventReplayMatrix"` → 6/6, 0 failed
+  (`.acceptance/20261024-c/gate-census-acceptance.log`). That set is the two census facts, the
+  incomplete-box fact and the three contract samples this record names.
+- The two emptied-record PROBES were not re-run: they require deleting the boxes from the tracked
+  checklist and the rows from the tracked matrix, which an acceptance run may not do. Their behaviour is
+  pinned by the contract samples (a checklist whose required item is deleted is reported by name; a
+  matrix missing a kind id fails), and the census cases read the REAL files and pass.
+- Limits carried into `done/`: the two listed limits above are unchanged, and the emptied-file probe
+  remains a one-time measurement recorded in this ticket rather than a repeatable acceptance step.

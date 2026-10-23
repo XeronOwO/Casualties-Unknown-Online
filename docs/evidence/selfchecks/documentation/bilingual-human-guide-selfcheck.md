@@ -1,7 +1,7 @@
 # Bilingual human guide — three layers, paired pages, and the gate that holds a pair together
 
 Date: 2026-09-22
-Scope: `review/bilingual-human-docs.md`. The repository gains the human-facing layer it never had:
+Scope: `resolved/bilingual-human-docs.md`. The repository gains the human-facing layer it never had:
 three layers declared by index, the two guide levels paired English + Chinese with a consistency
 record, and a gate that fails the moment one side moves without the pair being re-confirmed. 45 new
 paired files, two policy documents, a nested instruction file and two gate sources; no runtime code

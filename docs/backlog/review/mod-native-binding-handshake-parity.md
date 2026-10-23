@@ -12,7 +12,8 @@
 A declaration that never leaves the machine buys nothing. The reason the declared tier exists is
 that a host must be able to **see** which peers bind the game's own code, and to require parity when
 the session's integrity depends on it. Before this change the handshake carried the mod list
-(`HandshakeMsg.Mods`) with id, version and network mode (`docs/api/mod-api.md` §5) and nothing about
+(`HandshakeMsg.Mods`) with id, version and network mode (`docs/en/reference/mod-api.md`, section
+"Handshake consistency") and nothing about
 native binding, so two peers could run entirely different native modifications and still handshake
 clean.
 
@@ -36,7 +37,8 @@ clean.
   session whose host updated first. The rule is editable on the Online UI's admin page (one row,
   three levels) and through the console's `/gamerule native_binding_parity <value>`; a hand-edited
   config value that does not parse falls back to warn.
-- **The honest boundary is documented**: `docs/api/mod-api.md` §5's matrix gained the parity row and
+- **The honest boundary is documented**: `docs/en/reference/mod-api.md`'s "Handshake consistency"
+  matrix gained the parity row and
   a paragraph on what parity proves (the declarations agree) and what it does not (an undeclared
   binding is undetectable, and an equal declaration does not prove equal behaviour).
 - Decision 208 records the shape: a host rule rather than a contract, per-mod-id granularity, the
@@ -67,7 +69,8 @@ clean.
 
 - A guest whose declared bindings differ is reported or refused according to the host policy, and
   the reason names the mod.
-- The handshake matrix in `docs/api/mod-api.md` §5 gains the declaration column, and the handshake
+- The handshake matrix in `docs/en/reference/mod-api.md` (section "Handshake consistency") gains the
+  declaration column, and the handshake
   section states what parity does and does not prove.
 - Tests: the mod handshake and handshake-protocol suites cover the new rows
   (`ModHandshakeTests` / `ModHandshakeProtocolTests`), and the wire round-trip covers the new field.

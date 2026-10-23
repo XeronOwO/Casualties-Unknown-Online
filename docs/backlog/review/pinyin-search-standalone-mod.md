@@ -36,7 +36,7 @@ half binds the game's own code **by declaration**, and the console half needs a 
 Promote the console's completion extension point to the mod surface: an `Abstractions`-level,
 `Experimental` contract that lets a mod register an extra resource-completion stage, plus its
 baseline line. This is the promotion funnel working as designed
-(`docs/api/advanced-modification-policy.md` §6) with one real consumer.
+(`docs/en/reference/modification-policy.md`, section "The promotion funnel") with one real consumer.
 
 ### Stage 2 — the standalone mod — landed 2026-09-21
 
@@ -77,8 +77,8 @@ the CUO-side half the mod registers through.
   carry the throwing-stage cases and the reentrancy case (a stage that registers during a query sees
   the next query, not the running one), and `StubMatchStage` / `StubResourceSource` are the shared
   stubs.
-- **Docs.** `docs/api/mod-api.md` §4l and the §3 member table; the Abstractions baseline records the
-  new types and members.
+- **Docs.** `docs/en/reference/mod-api.md`'s "Resource completion" section and its "The manifest"
+  section; the Abstractions baseline records the new types and members.
 
 ## What landed (stages 2 and 3, 2026-09-21)
 
@@ -106,7 +106,7 @@ rewrite.
   keeps the native search untouched.
 - **The declaration.** `[CuoMod("cuo.pinyinsearch", "Pinyin Search", "0.1.0", NetworkMode =
   NetworkMode.ClientOnly, NativeBinding = "PlayerCamera.RefreshRecipeList + Recipe.simpleName
-  getter")]` — Tier 2 of `docs/api/advanced-modification-policy.md` §1.1, because the crafting half
+  getter")]` — Tier 2 of `docs/en/reference/modification-policy.md` (section "The tiers"), because the crafting half
   patches the game's own code. `ClientOnly` is the local-UI mode: the search box and the console
   completion exist on the client the player is typing on, and the handshake admits members that do not
   have the mod. The declaration's sentence and the mod's own documentation are the same claim.

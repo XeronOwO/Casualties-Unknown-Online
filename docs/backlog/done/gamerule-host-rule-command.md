@@ -215,7 +215,7 @@ config defect. Every finding is recorded here with what changed.
   point at `/gamerule` (with a value where an edit is meant) and at the current types. The ticket's
   `docs/api/mod-api.md` citations are NOT re-pointed here — the first review's note that this change fixed
   that path was wrong; the whole family (nine references in four live tickets, including
-  `docs/api/advanced-modification-policy.md`) is filed as `todo/stale-api-doc-paths-in-live-tickets.md`.
+  `docs/api/advanced-modification-policy.md`) is filed as `done/stale-api-doc-paths-in-live-tickets.md`.
 - **MAJOR — the range and the closed sets were declared twice, and the config clamps.** The census declared
   them and `PluginDependencyRegistrar` re-declared them, so a drift could let the verb report a requested
   value while the entry held a clamped one. **Fixed:** the numeric range and both acceptable-value lists are
@@ -257,10 +257,10 @@ of minor/nit inaccuracies, all fixed here in the same commit.
   **Fixed** in both languages: the four rules that travel are named and `KeepSkills` is stated host-local.
 - **MAJOR — the first review's record said the dangling `docs/api/mod-api.md` path was re-pointed.** It was
   not; only the console-command sentence changed. **Fixed:** the record now says so and points at
-  `todo/stale-api-doc-paths-in-live-tickets.md`.
+  `done/stale-api-doc-paths-in-live-tickets.md`.
 - **MAJOR — the stale-path ticket's inventory was incomplete.** The real count is NINE references in FOUR live
   tickets, including `docs/api/advanced-modification-policy.md` and `docs/api/**` in
-  `review/bilingual-human-docs.md`, and the mod-api citations are all §5 (not §5/§7). **Fixed:** the ticket
+  `resolved/bilingual-human-docs.md`, and the mod-api citations are all §5 (not §5/§7). **Fixed:** the ticket
   lists all four tickets and both replacement pages, and its acceptance covers the live folders.
 - **MINOR — the checklist still said "four deviations".** **Fixed** to five in both places, naming them.
 - **MINOR — the checklist's and this ticket's "the clamp cannot disagree" over-claimed.** The true claim is

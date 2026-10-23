@@ -55,7 +55,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
 - [The decision register cannot take another decision](todo/decision-register-budget.md) — **Low-Medium** — over the budget since decision 269; split it.
 - [A typo in a rule's config value silently widens it](todo/config-clamp-silently-widens-rule-levels.md) — **Medium-High** — BepInEx clamps to allow.
-- [Live tickets cite the deleted `docs/api/` pages](todo/stale-api-doc-paths-in-live-tickets.md) — **Low** — paths and section numbers both stale.
 - [Command refusals render as successes](todo/console-command-refusals-render-green.md) — **Low-Medium** — a refused verb still prints green.
 
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
@@ -84,12 +83,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
-- [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
-- [The delivery-checklist gate reads no census](review/delivery-checklist-gate-census.md) — **Low** — an emptied checklist passed; two gates now census it.
 - [Native-binding session parity](review/mod-native-binding-handshake-parity.md) — **Medium** — the host can require parity; its UI row awaits a session.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — rows 2/4/5 pass; row 3 open.
@@ -145,7 +142,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
-- [Bilingual human documentation](review/bilingual-human-docs.md) — **Medium** — three reading levels; the two guide levels are paired.
 
 - [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
@@ -175,8 +171,12 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Runtime DI feature lifecycle](resolved/runtime-di-feature-registration-lifecycle.md) — rewritten as the composition-root ticket.
 - [Remote backpack parity](resolved/remote-backpack-native-interaction-parity.md) — **Critical** — absorbed: its routing table is deleted.
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
+- [The item identity bridge](resolved/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
+- [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The delivery-checklist gate reads no census](done/delivery-checklist-gate-census.md) — **Low** — accepted 2026-10-24; two censuses now guard it.
+- [Live tickets cite the deleted `docs/api/` pages](done/stale-api-doc-paths-in-live-tickets.md) — **Low** — swept 2026-10-24; paths resolve.
 - [The console completes only what you may run](done/console-completion-hides-what-you-cannot-run.md) — **Medium-High** — accepted in `20261024-c`; hidden word
 - [/gamerule joins the op family](done/gamerule-joins-the-op-family.md) — **Medium-High** — accepted in `20261024-b`; a granted member changes rules.
 - [A host rule is read and changed with `/gamerule`](done/gamerule-host-rule-command.md) — **Medium-High** — accepted in `20261023-j`; `/hostrules` gone.

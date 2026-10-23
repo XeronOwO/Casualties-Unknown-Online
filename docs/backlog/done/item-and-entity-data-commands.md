@@ -844,7 +844,7 @@ number is resolved — the `CallContext` frame-boundary ruling held 262 from 202
 data-validation ruling is now decision 265, with every reference updated (`AGENTS.md` rule 16,
 `docs/architecture/member-report-validation.md`, `docs/development/review-prompt.md`,
 `docs/backlog/done/member-report-bounds.md`, `review/cheat-permission-and-op-commands.md`,
-`review/item-identity-bridge.md`).
+`resolved/item-identity-bridge.md`).
 
 **Verification of the fix commit.** `dotnet build` exit 0 (0 warnings), `dotnet format` exit 0, the behavioural
 suite 5806/5806 and the normative gates 711/711 on the frozen tree (`.acceptance/test-full-review-fixes.log`,

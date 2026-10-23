@@ -365,7 +365,8 @@ docs/backlog/todo/trap-layout-crystal-rows-empty.md | keep | index | docs/backlo
 docs/backlog/done/version-string-build-suffix.md | keep | index | docs/backlog/README.md
 docs/backlog/watchlist/architecture-watchlist.md | keep | index | docs/backlog/README.md
 docs/contracts/README.md | keep | spec | docs/en/contributing/documentation-standard.md
-docs/decisions/active.md | rework | none | docs/backlog/todo/decision-register-budget.md
+docs/decisions/active.md | keep | spec | AGENTS.md
+docs/decisions/decisions-1-137.md | keep | spec | docs/decisions/active.md
 docs/decisions/archive.md | keep | spec | docs/backlog/done/mod-content-ceiling.md
 docs/decisions/index.md | keep | spec | docs/evidence/selfchecks/mod-api/mod-content-fingerprint-review.md
 docs/development/agent-reference.md | keep | spec | docs/backlog/resolved/bilingual-human-docs.md

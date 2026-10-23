@@ -1,7 +1,8 @@
 # Tech Decisions Index
 
 Traceability index of original decision numbers. The active normative register is
-[`tech-decisions.md`](active.md); historical delivery detail is in
+[`tech-decisions.md`](active.md); decisions 1–137 live on their own page,
+[`decisions-1-137.md`](decisions-1-137.md), which the register's index reaches; historical delivery detail is in
 [`tech-decisions-archive.md`](archive.md), which also carries most of the Phase A–E
 decision rows (the ones that still constrain current work are in the active
 register); the evolution narrative is in `docs/architecture/evolution/`.

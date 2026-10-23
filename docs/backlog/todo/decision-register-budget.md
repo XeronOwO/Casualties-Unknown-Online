@@ -40,6 +40,28 @@ Three shapes, to be chosen before the split starts:
 The choice is the agent's (document structure), not a player-facing question; the ticket records the
 reason the shape it picks is the one the readers can follow.
 
+## What landed (2026-10-24) — the first page, and why the split is by NUMBER
+
+**Shape chosen: contiguous decision-number ranges, with the register as their index.** The register is
+number-ordered (`1, 2, 3, 6, 9, …`), and a decision NUMBER is what every citation in the tree carries, so a
+number range is the one split that keeps a lookup one hop: the index names the range, the range's page holds
+the row, and the pages read in sequence ARE the register — its order is preserved exactly, which is what the
+acceptance asks of the carrier order (the audit's rewrite kept the numbering as the lookup key; a carrier
+split would have moved rows out of the sequence the numbers follow).
+
+- `docs/decisions/decisions-1-137.md` (7,620 bytes) now holds decisions 1–137 — the framework, the mod
+  surface and the protocol baseline — with their rows unchanged.
+- `docs/decisions/active.md` keeps the binding table (264/265), an index naming both homes, and decisions
+  152–269. It measures 110,005 bytes (was 116,722), under the 114,688 budget.
+- The census rows moved in the same change: the register is `keep | spec | AGENTS.md` again and the new
+  page is `keep | spec | docs/decisions/active.md`; `docs/decisions/index.md` names it; the document gates
+  pass.
+
+**What remains for headroom** (the reason this ticket stays open): the register still carries 152–269, and
+the next move is the 152–199 block (≈34.5 KB: architecture invariants, the save/restore family, session
+integrity, sync cadence) onto a second page, which leaves the register around 75 KB and each page well
+inside the budget. The rows themselves stay untouched — this is a move, not an edit.
+
 ## Acceptance
 
 - Every decision number survives: no renumbering, and an index reaches each decision's new home.

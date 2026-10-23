@@ -145,4 +145,21 @@ public sealed class WirePlayerInteraction
 	/// </summary>
 	[ProtoMember(27)]
 	public bool BecameLimbComponent { get; set; }
+
+	/// <summary>
+	/// True when the transfer's destination is the one the RECEIVING client answered (the give's placement answer).
+	/// The receiving client must not substitute another slot or container when its live body cannot take that
+	/// exact destination: it reports where its placement really landed instead, and the host compares that place
+	/// with the row it wrote. Meaningful only for the transfer event; false for every other family.
+	/// </summary>
+	[ProtoMember(28)]
+	public bool ExactDestination { get; set; }
+
+	/// <summary>
+	/// True when the transfer is a give coming BACK to the giver after the receiver could not take the answered
+	/// destination. The giver's client then accepts any slot and, when its live body accepts none, drops the item
+	/// at its feet rather than consuming it. Meaningful only for the transfer event; false for every other family.
+	/// </summary>
+	[ProtoMember(29)]
+	public bool Returned { get; set; }
 }

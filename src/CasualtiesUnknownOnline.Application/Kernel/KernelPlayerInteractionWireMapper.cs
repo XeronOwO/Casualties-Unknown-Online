@@ -25,6 +25,8 @@ public static class KernelPlayerInteractionWireMapper
 			ItemContents = [.. e.Item.Children.Select(ToWireItem)],
 			TargetParentItemId = e.TargetParentItemId,
 			Destination = (int)e.Destination,
+			ExactDestination = e.ExactDestination,
+			Returned = e.Returned,
 		};
 
 	public static WirePlayerInteraction ToWire(PlayerHealResultEvent e) =>
@@ -93,7 +95,9 @@ public static class KernelPlayerInteractionWireMapper
 			// producer's zero already means, rather than a silently different rung.
 			Enum.IsDefined(typeof(PlayerInventoryDestination), p.Destination)
 				? (PlayerInventoryDestination)p.Destination
-				: PlayerInventoryDestination.BodySlot);
+				: PlayerInventoryDestination.BodySlot,
+			p.ExactDestination,
+			p.Returned);
 
 	public static PlayerHealResultEvent FromWireHealResult(WirePlayerInteraction p) =>
 		new(

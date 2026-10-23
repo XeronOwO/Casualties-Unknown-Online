@@ -63,6 +63,30 @@ public class PlacementAnswerTests
 	}
 
 	/// <summary>
+	/// The give's transfer must TELL the receiving client that its destination is the ANSWERED one: that flag is
+	/// what makes the receiver report the place its placement really used instead of substituting silently. It
+	/// has to survive the kernel wire — the form the adapter actually reads — which is the defect the machine
+	/// run of acceptance row 1 found (the flag was dropped on the way to the guest).
+	/// </summary>
+	[Fact]
+	public void TheGiveTransfer_CarriesTheAnsweredDestinationFlagToTheReceiver()
+	{
+		var resolver = new FixedPlacementResolver { Resolution = RemotePlacementResolution.ToSlot(2) };
+		var (host, guest, received) = CreateSession(s => s.AddSingleton<IRemotePlacementResolver>(resolver));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(Give(HostId, 42, GuestId));
+
+		var transfer = TransferResult(received);
+		Assert.True(transfer.ExactDestination);
+		Assert.False(transfer.Returned);
+		Assert.Equal(2, transfer.Item!.SlotIndex);
+	}
+
+	/// <summary>
 	/// The receiving client's rules refuse the item (no free slot, a container that will not take it): the host
 	/// writes nothing, so the item is still the giver's, and the giver is answered with the receiving side's own
 	/// sentence, which is what the user's ruling asks for.
@@ -253,10 +277,17 @@ public class PlacementAnswerTests
 			.SendPlacementOutcome(42, applied: false, slot: -1, containerInstanceId: 0, reason: "the answered slot is no longer free.");
 
 		// The host moved the row back: the giver has it again, the receiver's copy lost it, and the kernel saw the
-		// give and the return (two transfer events, the second the return).
+		// give and the return (two transfer events, the second the return). Both flags are read off the SERIALIZED
+		// frames the peer received, not off an in-memory event: the give names the answered destination, the return
+		// names itself as one.
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 		Assert.Equal(2, KernelEvents(received).Count(e => e.Kind == WireEventKind.PlayerInventoryTransfer));
+		var transfers = TransferResults(received);
+		Assert.True(transfers[0].ExactDestination);
+		Assert.False(transfers[0].Returned);
+		Assert.False(transfers[1].ExactDestination);
+		Assert.True(transfers[1].Returned);
 	}
 
 	/// <summary>

@@ -109,6 +109,15 @@ internal static class PlayerInteractionTestSession
 		PlayerInteractionKernelCodec.ToTransferMessage(KernelPlayerInteractionWireMapper.FromWireInventoryTransfer(
 			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerInventoryTransfer).PlayerInteraction!));
 
+	/// <summary>Every transfer result a peer received, in order — a give and its return both broadcast, so a row about the two flags reads the list rather than the single one.</summary>
+	internal static IReadOnlyList<PlayerInventoryTransferMsg> TransferResults(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
+	[
+		.. KernelEvents(received)
+			.Where(e => e.Kind == WireEventKind.PlayerInventoryTransfer)
+			.Select(e => PlayerInteractionKernelCodec.ToTransferMessage(
+				KernelPlayerInteractionWireMapper.FromWireInventoryTransfer(e.PlayerInteraction!))),
+	];
+
 	internal static PlayerHealResultMsg HealResult(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
 		PlayerInteractionKernelCodec.ToHealMessage(KernelPlayerInteractionWireMapper.FromWireHealResult(
 			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerHealResult).PlayerInteraction!));

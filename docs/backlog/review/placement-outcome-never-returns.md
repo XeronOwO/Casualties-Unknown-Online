@@ -84,8 +84,11 @@ Batch `20261022-h` read these rows on `0.1.0+fb782e5c`; the record is
    reading is impossible by hand (batches `20261022-i`/`-j`: one pointer and one foreground window for two
    clients; the answer→apply window measured 60 ms), so the user ruled that the behaviour test plus the wired
    return chain is this row's reading. Evidence: `PlacementAnswerTests.APlacementThatAppliedNothing_ReturnsTheItemToTheGiver`
-   (renamed from `AFailedExactPlacement_ReturnsTheItemToTheGiver` when the placement outcome landed; the row goes back), `TheTransferFlags_SurviveTheKernelProjection` (both flags cross the kernel), the
-   `Returned` drop fallback, and the fix commit `e3cdc117` wiring the report end to end. The ruling and the
+   (renamed from `AFailedExactPlacement_ReturnsTheItemToTheGiver` when the placement outcome landed; the row goes back), the two
+   kernel-wire round trips `WireBatchRoundTrip_PreservesExactDestinationOnTransferEvent` /
+   `WireBatchRoundTrip_PreservesReturnedOnTransferEvent` and the return test's decode of both flags from the
+   serialized frames (the projection codec alone was not the crossing — batch `20261023-e` found that gap on the
+   machine), the `Returned` drop fallback, and the fix commit `e3cdc117` wiring the report end to end. The ruling and the
    attempts are in `docs/evidence/acceptance/placement-outcome-never-returns-20261023-ruling.md`.
 
 ## The answer-first half landed (2026-10-22)

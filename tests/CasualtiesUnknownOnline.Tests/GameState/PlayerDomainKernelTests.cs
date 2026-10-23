@@ -619,6 +619,54 @@ public class PlayerDomainKernelTests
 		Assert.Equal(0UL, @event.TargetParentItemId);
 	}
 
+	/// <summary>
+	/// The give's answer-first flag rides the same transfer fact: the RECEIVING client must still know the
+	/// destination is the one it answered after the event crosses the kernel wire, because that is what makes it
+	/// report the place its placement really used instead of substituting another one. Without it the receiver
+	/// applies with a fallback and never reports an outcome (the defect the machine run of acceptance row 1
+	/// found).
+	/// </summary>
+	[Fact]
+	public void WireBatchRoundTrip_PreservesExactDestinationOnTransferEvent()
+	{
+		var source = new GameStateKernel(Epoch);
+		var item = new PlayerInteractionItem(new ItemIdentity(42, "bandage"), ItemData.Empty);
+		var batch = source.Execute(
+			new RecordPlayerInventoryTransferCommand(
+				new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2002, item,
+				0UL, PlayerInventoryDestination.BodySlot, ExactDestination: true),
+			new CommandContext(Epoch, Host)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerInventoryTransferEvent>(Assert.Single(restored.Events));
+		Assert.True(@event.ExactDestination);
+		Assert.False(@event.Returned);
+	}
+
+	/// <summary>
+	/// The return flag is the other half of the same contract: when the host moves a give back to the giver, the
+	/// giver's client must know the transfer is a RETURN, so a body that can take none of the destinations drops
+	/// the item at its feet instead of consuming it. It too must survive the kernel wire.
+	/// </summary>
+	[Fact]
+	public void WireBatchRoundTrip_PreservesReturnedOnTransferEvent()
+	{
+		var source = new GameStateKernel(Epoch);
+		var item = new PlayerInteractionItem(new ItemIdentity(42, "bandage"), ItemData.Empty);
+		var batch = source.Execute(
+			new RecordPlayerInventoryTransferCommand(
+				new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2002, item,
+				0UL, PlayerInventoryDestination.BodySlot, ExactDestination: false, Returned: true),
+			new CommandContext(Epoch, Host)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerInventoryTransferEvent>(Assert.Single(restored.Events));
+		Assert.True(@event.Returned);
+		Assert.False(@event.ExactDestination);
+	}
+
 	[Fact]
 	public void RecordPlayerHealResult_CommitsJournalEvent()
 	{

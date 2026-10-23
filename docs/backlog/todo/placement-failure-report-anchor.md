@@ -4,8 +4,10 @@
   used, the host compares it with the row it wrote and refuses anything else by name); the NOT-APPLIED arm — the
   failure claim this ticket was filed for — still reverses custody on the receiver's word, and per decision 265 it
   stays named rather than given a behavioural bound. Row 1's machine reading was attempted in batch `20261023-d`
-  and not produced (the drag could not be started; record
-  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`).
+  (the drag could not be started; record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`)
+  and `20261023-e` (the give ran and the receiver placed the item, but no outcome reached the host: the kernel wire
+  dropped the two flags, fixed with this ticket's commit — the re-read is still owed, record
+  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md`).
 - Priority: Low-Medium
 - Category: Cross-player custody / member-report bounds / anti-duplication
 - Blocked by: nothing external. The remaining half needs an anchor for a NEGATIVE claim ("my live body placed
@@ -65,11 +67,33 @@ a mismatch instead of a bare claim.
   give gesture's shape gate pins the not-applied arm, `outcome = placed`, the marker reader and
   `SendPlacementOutcome`; the protocol number is untouched before the first release (decision 241 — the change is
   recorded by this ticket and its commit).
-- **Tests.** `PlacementAnswerTests` grew to 12 cases: the answered slot recorded, the receiving-rules refusal, a
+- **Tests.** `PlacementAnswerTests` grew to 13 cases: the answered slot recorded, the receiving-rules refusal, a
   destination that changed before custody, no resolver, a MATCH settling silently, a container give matching its
   container, a placement that landed elsewhere being refused and returned, the not-applied return, an
   applied-but-place-less report being refused and returned, the unknown/wrong-sender report moving nothing, the
-  host-side clamp of a member-authored reason, and the transfer flags crossing the kernel.
+  host-side clamp of a member-authored reason, the give transfer carrying the answered-destination flag to the
+  receiver (off the serialized frames), and the return transfer carrying its own flag (both flags decoded from the
+  two committed batches). Two `KernelWireMapper` round trips pin both flags on the kernel wire itself — the gap the
+  earlier codec-only test left open (batch `20261023-e` found it on the machine).
+
+## The machine run's finding (2026-10-23, batch 20261023-e)
+
+The give was performed for real on a two-client session (host = giver, first sandbox = receiver) against
+`0.1.0+aaf89655…`: the receiver's own client answered `slot 1`, the host committed the row, and the receiver placed
+the bandage in slot 1 — but **neither client wrote a `[Placement]` line**: no `… reporting it to the host`, no
+`… is where this host wrote it`. The defect was in the carrier, not the receiver: `WirePlayerInteraction` carried the
+transfer's `Destination` but not `ExactDestination`/`Returned`, so
+`KernelPlayerInteractionWireMapper.FromWireInventoryTransfer` rebuilt the event with both false and
+`PlayerInteractionApply` skipped its exact arm — the outcome was never sent. The old
+`TheTransferFlags_SurviveTheKernelProjection` only ran `PlayerInteractionKernelCodec.ToTransferMessage` on an
+in-memory event, which is why the suite stayed green.
+
+Fixed in the commit that carries this record: two ProtoMember fields (28/29), both mapped on the way out and in, three
+tests (two kernel-wire round trips and the give/return flags decoded from the serialized frames), and sync-coverage
+row P7 now declares the two payload fields with their own anchors (14). The machine re-read of row 1 is still owed and
+was NOT run in this round: the user asked for tickets and code only on 2026-10-23 (they were taking the machine for a
+co-op session), so the row is unread on the fixed artifact — this is the one outstanding acceptance row of the
+ticket.
 
 ## What remains — the NOT-APPLIED arm
 
@@ -134,8 +158,12 @@ recorded here with the code it cites; all of them were fixed in the same commit.
    **PASS by test**: `AMatchingPlacementOutcome_SettlesTheGiveAndMovesNothing` (and the container half,
    `AContainerGiveThatStayedInTheContainer_SettlesTheGive`). The MACHINE reading is **outstanding**: batch
    `20261023-d` attempted it on `0.1.0+1bf7104c…` and could not start the give drag (the created item sat in a HUD
-   cell the press path does not reach; record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`),
-   so this row has no runtime reading yet — only the behaviour tests and the shape pins.
+   cell the press path does not reach; record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`).
+   Batch `20261023-e` performed the give on `0.1.0+aaf89655…`: the receiver answered `slot 1` and placed the bandage
+   there, but no outcome line appeared on either client; the cause was the kernel wire dropping the two flags, fixed
+   with this ticket's commit. The re-read on the fixed artifact is **owed** and was not run (the user's 2026-10-23
+   instruction: tickets and code only while the machine was needed for a co-op session), so this row still has no
+   runtime reading on the fixed artifact — only the behaviour tests and the shape pins.
 2. A receiving client that changed its body reports a different place or a refusal; the host refuses the outcome
    by name, returns the row, and the giver sees the return. — **PASS by test**:
    `APlacementThatLandedSomewhereElse_IsRefusedAndReturned` (a container that refused on the receiver, so the
@@ -155,6 +183,10 @@ recorded here with the code it cites; all of them were fixed in the same commit.
 - The receiver half of rows 1-3 is shape-pinned (`GiveGestureGateTests`), not driven by a behaviour test: the test
   host has no Unity body, so the adapter's reporting of the place is a source-shape assertion, and batch
   `20261023-d` could not produce the machine half either (its record says why).
+- The kernel wire carried the transfer without the give's two flags until this commit, so no real receiver could
+  report at all; batch `20261023-e` is the attempt that found it (record
+  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md`). The reader on the fixed artifact is
+  owed, not claimed.
 - A return the host cannot make (the item is no longer in the receiver's snapshot, or the giver has no free slot)
   is logged at Error and the reporter is not answered — the limit `review/placement-outcome-never-returns.md`
   already records.

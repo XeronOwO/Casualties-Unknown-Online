@@ -271,7 +271,7 @@ docs/backlog/review/save-mid-run-consistent-cut.md | keep | index | docs/backlog
 docs/backlog/review/save-multiplayer-restore-and-backups.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-native-character-field-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-native-run-field-parity.md | keep | index | docs/backlog/README.md
-docs/backlog/review/save-restore-account-surface.md | keep | index | docs/backlog/README.md
+docs/backlog/done/save-restore-account-surface.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-system-mid-run-and-layer-end.md | keep | index | docs/backlog/README.md
 docs/backlog/done/snapshot-overtakes-item-reports.md | keep | index | docs/backlog/README.md
 docs/backlog/review/steam-transport-send-limit-runaway.md | keep | index | docs/backlog/README.md
@@ -645,7 +645,8 @@ docs/evidence/acceptance/save-native-character-field-parity-20261001.md | keep |
 docs/evidence/acceptance/save-native-run-field-parity-20261001.md | keep | claim | docs/backlog/review/save-native-run-field-parity.md
 docs/evidence/acceptance/save-new-player-starting-supplies-20261001-o.md | keep | claim | docs/evidence/acceptance/save-new-player-starting-supplies-20261001-q.md
 docs/evidence/acceptance/save-new-player-starting-supplies-20261001-q.md | keep | claim | docs/backlog/done/save-new-player-starting-supplies.md
-docs/evidence/acceptance/save-restore-account-surface-20261001-o.md | keep | claim | docs/backlog/review/save-restore-account-surface.md
+docs/evidence/acceptance/save-restore-account-surface-20261001-o.md | keep | claim | docs/backlog/done/save-restore-account-surface.md
+docs/evidence/acceptance/save-restore-account-surface-20261024-a.md | keep | claim | docs/backlog/done/save-restore-account-surface.md
 docs/evidence/acceptance/save-run-clock-not-sent-20261001-o.md | keep | claim | docs/backlog/done/save-run-clock-not-sent.md
 docs/evidence/acceptance/save-run-clock-not-sent-20261001-q.md | keep | claim | docs/backlog/review/steam-transport-send-limit-runaway.md
 docs/evidence/acceptance/save-solo-menu-exit-trigger-20261001-q.md | keep | claim | docs/backlog/done/save-solo-menu-exit-trigger.md

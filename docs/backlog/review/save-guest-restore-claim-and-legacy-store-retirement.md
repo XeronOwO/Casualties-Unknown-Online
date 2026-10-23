@@ -111,7 +111,7 @@ NOT machine-verified, and NOT claimed here: the multi-client rows. Two real clie
 name in an IP-direct session, a reconnecting guest after a host process restart, and the in-game
 appearance of the refusals all need the user's dual-client pass. A restore refusal lands in the
 CLICK-TIME account (`WorldContinueOutcome.Summary`, logged by `RunSaveCoordinator`) — as of S4.2
-(`review/save-restore-account-surface.md`, decision 179) that whole account is player-visible: it
+(`done/save-restore-account-surface.md`, decision 179) that whole account is player-visible: it
 travels as a `WorldRestoreReport` and the command console prints its disposition as one notification
 with the itemized damage, the claim refusals and the native-field gaps in the history. The CUT-side
 refusals this stage added were already player-visible: they ride the cut report's "NOT carried" list,

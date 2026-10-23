@@ -1,7 +1,12 @@
 # S4.2 — The restore account becomes player-visible, and every save event gets one log line
 
-- Status: Review (landed 2026-09-14; awaiting the final unified acceptance pass)
-- Acceptance (20261001-o): every row passes except row 2, unproven — the claim-refused multi-client scenario needs an IP-direct roster and was not staged. Record: `docs/evidence/acceptance/save-restore-account-surface-20261001-o.md`
+- Status: Done 2026-10-24 — every row now passes. Row 2 (the ambiguous claim for two present players sharing an
+  IP-direct display name) passed on `0.1.0+7b02e9d3`: the console history carries the itemized refusal
+  `the stored character name-bob is claimed by more than one player present … so it was handed to none of them`
+  (record: `docs/evidence/acceptance/save-restore-account-surface-20261024-a.md`); the other eight rows passed
+  in the 2026-10-01 run and the suite (`save-restore-account-surface-20261001-o.md`).
+- Acceptance (20261001-o): every row passed except row 2 (the claim-refused multi-client scenario); that row is
+  the one the 2026-10-24 run closed.
 - Priority: High
 - Category: Persistence / save system
 - Source: `docs/backlog/review/save-multiplayer-restore-and-backups.md` scopes 2 and 3

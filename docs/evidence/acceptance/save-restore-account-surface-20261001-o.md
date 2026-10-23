@@ -1,8 +1,9 @@
 # Acceptance record — S4.2 the restore account becomes player-visible
 
-- Ticket: `save-restore-account-surface` — verdict: **stays in `review/`** (row 2 unproven: the
+- Ticket: `save-restore-account-surface` — verdict at this run: **stays in `review/`** (row 2 unproven: the
   claim-refused multi-client scenario needs an IP-direct roster and was not staged; the other rows
-  pass)
+  pass). **Row 2 passed later** on `0.1.0+7b02e9d3` with an IP-direct roster of two present `Bob`s —
+  `save-restore-account-surface-20261024-a.md`; the ticket is `done/`.
 - Batch: `20261001-o` (the batch `20261001-m` plan's Run B) — siblings
   `save-multiplayer-restore-and-backups`, `save-guest-restore-claim-and-legacy-store-retirement`,
   `save-new-player-starting-supplies`, `save-run-clock-not-sent`, `restore-account-arm-release`

@@ -136,3 +136,18 @@ this ticket consumes it, so the packaging work is BLOCKED on that refactor, not 
 The deployment was restored (the packed directory was a temporary replacement) and `verify-deploy.ps1` passes
 against the normal set again. The packer stays committed as the probe's tool so the next cycle can rerun the
 same reading after the entry split.
+
+## The module-initializer escape hatch, tried and refused by this runtime (2026-10-24)
+
+Before accepting the entry split, a second attempt tried to make the packed artifact work WITHOUT touching the
+plugin's shape: a `PackedAssemblyResolver` (register the `AssemblyResolve` handler, then eagerly
+`Assembly.Load` every embedded assembly) plus a packer step that injects a `<Module>` static constructor
+calling it 閳?the one hook that would run before any type of the assembly loads.
+
+The client gave the same answer as before, with one new fact: the packed assembly is accepted
+(`Loading [Casualties Unknown: Online 0.1.0]`), the injected module initializer does NOT run early enough on
+this runtime, and the plugin type still fails to instantiate 閳?`Player.log` again says only
+`The script 'CasualtiesUnknownOnline.Plugin' could not be instantiated!` while BepInEx logs nothing else. So
+Unity's Mono does not give a module initializer the "before every type" position this design needs, and the entry
+split is the ONLY route: it is a real prerequisite, not a preference. The resolver source and the packer's
+injection step were NOT committed (they cannot earn their keep until the split lands).

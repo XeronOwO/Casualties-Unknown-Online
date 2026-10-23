@@ -21,7 +21,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// </summary>
 public class DragUseCueGateTests
 {
-	private const string PluginFile = "src/CasualtiesUnknownOnline.Plugin/Plugin.cs";
+	private const string PluginFile = "src/CasualtiesUnknownOnline.Plugin/PluginHost.cs";
 
 	private const string CueOverlayFile = "src/CasualtiesUnknownOnline.Plugin/DragUseCueOverlay.cs";
 

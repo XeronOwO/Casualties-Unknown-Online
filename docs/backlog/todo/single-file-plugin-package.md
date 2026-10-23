@@ -151,3 +151,32 @@ this runtime, and the plugin type still fails to instantiate 閳?`Player.log` ag
 Unity's Mono does not give a module initializer the "before every type" position this design needs, and the entry
 split is the ONLY route: it is a real prerequisite, not a preference. The resolver source and the packer's
 injection step were NOT committed (they cannot earn their keep until the split lands).
+
+## The entry split landed, and the packed artifact runs (2026-10-24)
+
+The refactor is in `src/CasualtiesUnknownOnline.Plugin/`: `Plugin` is now the entry only (the plugin attributes,
+the static logger, a static constructor installing `PackedAssemblyResolver`, and an `Awake` that adds the host
+and hands it the logger and config), and every startup field and lifecycle handler moved to the new
+`PluginHost : MonoBehaviour`. The resolver (`PackedAssemblies.cs`) preloads every embedded assembly and serves
+anything it carries; in the normal deployment it is inert.
+
+Verified on the real client:
+
+- **Normal deployment** (the full loose set, deployed): the client starts as before 閳?`Plugin
+  CasualtiesUnknownOnline is loaded 閳?build 0.1.0+074a92bd...-dirty`, the capability report is OK, the Online UI's
+  lobby controls are available, and an agent-driven session ran (ping, create-lobby, start-run, role Host).
+- **Packed deployment** (ONE `CasualtiesUnknownOnline.dll` with 30 embedded managed assemblies plus the native
+  `steam_api64.dll`): BepInEx loads it and CUO STARTS 閳?the same `is loaded 閳?build ...`, the capability report,
+  the Online UI line, the Pinyin Search mod beside it (its `Abstractions` dependency served by the resolver), and
+  the driver's ping / create-lobby / state all work against the packed client.
+
+That answers the ticket's feasibility question completely: a single managed file carrying CUO and its
+dependencies loads and runs on this BepInEx/Unity. What remains is the package's own work 閳?its contents and
+boundary with the extension mods, the release-identity rule for `verify-deploy.ps1` (one packed file versus a
+recursive build-output comparison), the native `steam_api64.dll` staying loose and being named for the user, and
+the one-file-versus-deployment page in both language blocks. The ticket stays `todo` for that work; it is no
+longer blocked.
+
+The acceptance driver needed one lookup update in the same change (`tools/acceptance/driver/InProcessDriver.cs`):
+it used to reach the Online UI through `Plugin._onlineUi`, and now finds the `PluginHost` component on the
+entry's GameObject first.

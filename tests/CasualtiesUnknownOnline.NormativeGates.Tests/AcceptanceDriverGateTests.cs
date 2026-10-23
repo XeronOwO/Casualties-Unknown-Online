@@ -91,9 +91,10 @@ public class AcceptanceDriverGateTests
 	/// <summary>The CUO and Unity references an offline compile cannot resolve: the shared diagnostics are
 	/// pinned by census, so a typo, a wrong argument count or a duplicate declaration — each of which
 	/// changes this number — fails here instead of passing as "both versions agree". Update it deliberately
-	/// when the template legitimately gains a game or plugin reference (19 since the save batch's
-	/// continue/leave/console verbs added two `CommandConsoleService` references).</summary>
-	private const int UnresolvedReferenceCensus = 19;
+	/// when the template legitimately gains a game or plugin reference (21 since the single-file entry split
+	/// made the driver look up the `PluginHost` component by type name instead of reading `Plugin._onlineUi`,
+	/// which added two `UnityEngine.Object.FindObjectsOfType` / `MonoBehaviour` reference sites).</summary>
+	private const int UnresolvedReferenceCensus = 21;
 
 	private static readonly string[] UnresolvedReferenceIds = ["CS0246", "CS0103", "CS0234"];
 

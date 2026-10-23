@@ -119,8 +119,19 @@
 		}
 	}
 
-	var host = findField(plugin, "_onlineUi");
-	var overlay = findField(host, "_onlineUi");
+	// The BepInEx entry carries no startup fields (the single-file package requires that): the work lives on
+	// the PluginHost component beside it, so find that component by its type name. Reflection only, with the
+	// Unity calls the template already names, so the offline reference census does not move.
+	var host = (object)null;
+	if (plugin != null) {
+		var behaviours = UnityEngine.Object.FindObjectsOfType(typeof(UnityEngine.MonoBehaviour), true);
+		for (var i = 0; i < behaviours.Length; i++) {
+			var behaviour = behaviours[i];
+			if (behaviour != null && behaviour.GetType().FullName == "CasualtiesUnknownOnline.PluginHost") { host = behaviour; break; }
+		}
+	}
+	var onlineUiHost = findField(host, "_onlineUi");
+	var overlay = findField(onlineUiHost, "_onlineUi");
 	var window = findProperty(overlay, "Window");
 	var windowState = findProperty(window, "State");
 	var actions = findField(overlay, "_actions") as System.Collections.IDictionary;

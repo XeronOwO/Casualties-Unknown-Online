@@ -252,6 +252,10 @@ internal sealed class ItemSimWorld : IDisposable
 	internal void Slot(TestNode guest, ulong itemId, int slotIndex, CharacterItemMsg item) =>
 		guest.Services.GetRequiredService<IItemControl>().SendItemSlot(itemId, slotIndex, item);
 
+	/// <summary>The applied-family report a guest sends when the native limb action installed an item (the wound-view apply).</summary>
+	internal void ApplyLimb(TestNode guest, ulong itemId, int limbIndex) =>
+		guest.Services.GetRequiredService<IItemControl>().SendItemAppliedToLimb(itemId, limbIndex);
+
 	/// <summary>One crafting operation's complete terminal state (the one-operation-one-report convention).</summary>
 	internal void Craft(TestNode guest, CraftReportMsg msg) => Send(guest, NetMsg.CraftReport, msg);
 

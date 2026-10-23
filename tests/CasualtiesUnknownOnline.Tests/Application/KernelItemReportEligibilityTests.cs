@@ -129,6 +129,7 @@ public class KernelItemReportEligibilityTests
 		// The nested half of the same rule: a bag's contents are recorded under the
 		// member that holds it, so a viewer's copy may not rewrite them either.
 		var facts = new FakeItemFacts();
+		facts.CarriedBy(77, OtherMember);
 		facts.ContainedIn(42, OtherMember, parentId: 77);
 
 		Assert.Equal(CommandAdmissionKind.Ignored,
@@ -139,9 +140,38 @@ public class KernelItemReportEligibilityTests
 	public void StateOfAnItemInTheSendersOwnContainer_IsAdmitted()
 	{
 		var facts = new FakeItemFacts();
+		facts.CarriedBy(77, Member);
 		facts.ContainedIn(42, Member, parentId: 77);
 
 		Assert.True(Gateway(facts).Admit(Member, State(42, actor: Member)).IsAdmitted);
+	}
+
+	[Fact]
+	public void StateOfAChildWhoseOwnerFieldIsStale_IsAdmittedForTheNewHolder()
+	{
+		// The changed-hands shape: the bag now belongs to the sender, while the child's OWNER field
+		// still names the previous holder (the kernel stamps it at creation and never re-stamps it on
+		// a handover). The chain names who holds the root, so the new holder's report is admitted — the
+		// owner-field rule ignored it, which left the child's own holder unable to correct it.
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(77, Member);
+		facts.ContainedIn(42, OtherMember, parentId: 77);
+
+		Assert.True(Gateway(facts).Admit(Member, State(42, actor: Member)).IsAdmitted,
+			"the chain root, not the child's stamped owner, decides whose report this is");
+	}
+
+	[Fact]
+	public void StateOfAChildWhoseOwnerFieldNamesTheSender_ButLivesInAnotherMembersBag_IsIgnored()
+	{
+		// The adversarial half of the same defect: a stale owner field naming the sender must not let
+		// the sender rewrite a child the record places in somebody else's bag.
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(77, OtherMember);
+		facts.ContainedIn(42, Member, parentId: 77);
+
+		Assert.Equal(CommandAdmissionKind.Ignored,
+			Gateway(facts).Admit(Member, State(42, actor: Member)).Kind);
 	}
 
 	[Fact]

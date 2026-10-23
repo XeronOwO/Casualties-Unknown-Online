@@ -57,6 +57,6 @@ row the bag's next report would have terminalized, which is what row 1 and row 4
   excluded the peers' clone-fact reading for the wear.
 - The wound-view apply of a bag child (a splint out of a bag onto a limb) is the applied family's gap and
   was not driven: it stays ticketed as
-  `docs/backlog/todo/container-child-limb-install-keeps-a-contained-record.md`.
+  `docs/backlog/review/container-child-limb-install-keeps-a-contained-record.md`.
 - The send order (the arrival report before the slot fact) remains a design choice no test distinguishes;
   this run observed both reports in that order on every row and did not compare the reverse order.

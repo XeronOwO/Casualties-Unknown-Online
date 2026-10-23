@@ -30,4 +30,8 @@ internal sealed class FakeItemFacts : IKernelItemFacts
 
 	internal void ContainedIn(ulong instanceId, ulong owner, ulong parentId) =>
 		_items[instanceId] = new ItemState(new ItemIdentity(instanceId, "test_item"), 1, ItemLocation.Contained(new ActorId(owner), parentId));
+
+	/// <summary>A WORLD row that names the world container it sits in — the shape a world crate's child has (its location is World, and the parent id is the crate).</summary>
+	internal void WorldChildOf(ulong instanceId, ulong parentId) =>
+		_items[instanceId] = new ItemState(new ItemIdentity(instanceId, "test_item"), 1, ItemLocation.World(1f, 2f, parentId));
 }

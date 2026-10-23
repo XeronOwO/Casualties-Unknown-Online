@@ -72,10 +72,11 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 - [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
 - [A drink measurement can run a destructive action](todo/drink-measurement-destructive-use-action.md) — **Medium-High** — a refilled blood bag draws blood.
-- [A limb install from a bag keeps a contained record](todo/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — the wound-view apply.
 ### In progress
 
 ### Review
+
+- [A limb install from a bag keeps a contained record](review/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — seam fixed; row owed.
 
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.

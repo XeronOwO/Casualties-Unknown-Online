@@ -222,6 +222,68 @@ public class KernelCommandGatewayTests
 	}
 
 	[Fact]
+	public void InstallOfASendersOwnContainerChildOnItsOwnLimb_IsAdmitted()
+	{
+		// The wound-view gesture applies an item dragged out of a bag WITHOUT unloading it, so the
+		// kernel still holds the child as Contained when the report arrives. The home row decides:
+		// the bag is the sender's own carried container, so the child is the sender's to install.
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(50, Member);
+		facts.ContainedIn(42, Member, 50);
+
+		Assert.True(Gateway(facts).Admit(Member, Apply(42, owner: Member, limbIndex: 3)).IsAdmitted,
+			"an item inside the sender's own carried container is the sender's, exactly as a carried one");
+	}
+
+	[Fact]
+	public void InstallOfAContainedItemWhoseHomeIsAnotherMembersBag_IsIgnored()
+	{
+		// The child's recorded OWNER is not the fact: a bag that changed hands keeps its children under the
+		// previous holder, while the chain names who holds the root. The home row is another member's, so the
+		// claim is not this sender's.
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(50, OtherMember);
+		facts.ContainedIn(42, Member, 50);
+
+		var decision = Gateway(facts).Admit(Member, Apply(42, owner: Member, limbIndex: 3));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+	}
+
+	[Fact]
+	public void InstallOfAWorldContainersChild_IsIgnored()
+	{
+		// The other shape the ticket asked to decide: a world crate's child is a WORLD row carrying the
+		// crate's id (not a Contained row under a world parent), so the switch refuses it by kind — the
+		// home row is the world's, not the sender's own container. The child's own owner field says
+		// "Member" here on purpose: the home row, never that field, is what decides.
+		var facts = new FakeItemFacts();
+		facts.WorldChildOf(42, parentId: 50);
+
+		var decision = Gateway(facts).Admit(Member, Apply(42, owner: Member, limbIndex: 3));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+		Assert.Equal(RejectionReason.NotAuthorized, decision.Reason);
+	}
+
+	[Fact]
+	public void InstallOfAChildInANestedContainerOfAnotherMembersBag_IsIgnored()
+	{
+		// The chain, not the immediate parent: the child's direct parent is a container the sender's own
+		// owner field could name, but that parent itself sits inside ANOTHER member's bag. A one-hop read
+		// would admit this; the chain walk refuses it.
+		var facts = new FakeItemFacts();
+		facts.CarriedBy(50, OtherMember);
+		facts.ContainedIn(49, Member, 50);
+		facts.ContainedIn(42, Member, 49);
+
+		var decision = Gateway(facts).Admit(Member, Apply(42, owner: Member, limbIndex: 3));
+
+		Assert.Equal(CommandAdmissionKind.Ignored, decision.Kind);
+	}
+
+	[Fact]
 	public void InstallOnSomebodyElsesLimb_IsIgnored()
 	{
 		// The limb is the OTHER half of the same rule: an item may not be reported onto a

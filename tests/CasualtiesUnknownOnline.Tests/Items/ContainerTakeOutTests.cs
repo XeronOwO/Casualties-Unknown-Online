@@ -100,6 +100,40 @@ public class ContainerTakeOutTests
 	}
 
 	/// <summary>
+	/// The APPLIED half of the same survival: the wound-view apply destroys the item without unloading
+	/// it, so the kernel row is still Contained when the limb report arrives. The seam admits it (the
+	/// chain root is the sender's own bag), the domain relocates it, and the bag's next report no longer
+	/// reaches it — the stale walk follows CONTAINED descendants only, and this row is Applied.
+	/// </summary>
+	[Fact]
+	public void AnAppliedContainerChild_IsRelocatedAndSurvivesTheNextContainerReport()
+	{
+		using var w = ItemSimWorld.Create();
+		var bag = Item(50);
+		bag.Contents.Add(Item(51));
+		w.CarriedSet(w.G1, bag);
+		w.Driver.Tick(33);
+		Assert.Equal(ItemLocationKind.Contained, w.KernelRow(51)!.Value.Location.Kind);
+
+		w.ApplyLimb(w.G1, 51, limbIndex: 3);
+		w.Driver.Tick(33);
+
+		var applied = Assert.NotNull(w.KernelRow(51));
+		Assert.Equal(ItemLocationKind.Applied, applied.Location.Kind);
+		Assert.Equal(w.G1.SteamId, applied.Location.Owner.Value);
+		Assert.Equal(3, applied.Location.LimbIndex);
+		Assert.Equal(0, w.CommandRejectedFrames(w.G1));
+
+		// The bag's next report states the bag and nothing else; the installed child is not a descendant.
+		w.ContainerSync(w.G1, 50, Item(50));
+		w.Driver.Tick(33);
+
+		var after = Assert.NotNull(w.KernelRow(51));
+		Assert.Equal(ItemLocationKind.Applied, after.Location.Kind);
+		Assert.Equal(3, after.Location.LimbIndex);
+	}
+
+	/// <summary>
 	/// A take-out of an item the host already records as THAT member's carried item is refused
 	/// by the domain (the conflict a pickup gets, and for the same reason: the record is behind a
 	/// real report). The settlement is what makes this kind different: the refusal re-states the

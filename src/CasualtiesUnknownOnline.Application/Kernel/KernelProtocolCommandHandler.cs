@@ -299,8 +299,12 @@ internal sealed class KernelProtocolCommandHandler(
 			}
 
 			var home = _items.FindItem(current.Value.Location.ParentItemId);
+			// The chain, not the home row's owner field: a bag that changed hands leaves its
+			// interior rows stamped with the previous holder, so the owner field would refuse the
+			// new holder's own move and admit the previous holder's on a child the record places
+			// in somebody else's bag.
 			if (home is not null
-				&& home.Value.Location.Owner.Value != sender
+				&& ItemLocationChain.HolderOf(home.Value, _items.FindItem) != sender
 				&& !ItemLocationChain.IsWorldRooted(home.Value, _items.FindItem))
 			{
 				_log.LogWarning("Container sync from {Sender} refused: it lists content item {ItemId}, which this kernel records inside {HomeId} — another member's container, so it is not this sender's to move. Nothing applied, nothing relayed.",

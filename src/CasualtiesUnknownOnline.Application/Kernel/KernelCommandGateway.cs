@@ -238,7 +238,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		if (command is ApplyLimbItemCommand apply && !MayInstallOnOwnLimb(sender, apply))
 		{
 			return Ignore(sender, command, RejectionReason.NotAuthorized,
-				$"item {apply.InstanceId} is not carried by the sender, or the report installs it on somebody else's limb {apply.LimbIndex}");
+				$"item {apply.InstanceId} is not carried by the sender (nor inside a container the sender holds), or the report installs it on somebody else's limb {apply.LimbIndex}");
 		}
 
 		if (command is RemoveLimbItemCommand remove && !MayTakeOffOwnLimb(sender, remove))
@@ -338,7 +338,11 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		return row.Location.Kind switch
 		{
 			ItemLocationKind.World or ItemLocationKind.Terminal => true,
-			ItemLocationKind.Contained => row.Location.Owner.Value == sender
+			// The CHAIN names the holder, never the child's recorded owner: a container that changed
+			// hands keeps its children stamped with the previous holder, so the owner field would both
+			// refuse the new holder's own report and admit the previous holder's on a row the record
+			// places in somebody else's bag. World-rooted content stays reportable by any peer, as before.
+			ItemLocationKind.Contained => ItemLocationChain.HolderOf(row, _items.FindItem) == sender
 				|| ItemLocationChain.IsWorldRooted(row, _items.FindItem),
 			_ => row.Location.Owner.Value == sender,
 		};
@@ -425,12 +429,18 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	}
 
 	/// <summary>
-	/// The applied family's own entry rule: a member may report that an item IT
-	/// carries became the installed form of one of ITS OWN limbs. Both halves are
+	/// The applied family's own entry rule: a member may report that an item OF ITS
+	/// OWN became the installed form of one of ITS OWN limbs. Both halves are
 	/// checked against the item's recorded location rather than trusted from the
 	/// command, because the gesture itself cannot carry either fact —the applier
 	/// acts on the body it simulates —so a report that names somebody else's item
 	/// or somebody else's limb is the remote-clone shape this seam exists to drop.
+	/// "Its own" includes an item inside the sender's OWN carried container: the wound-view gesture
+	/// destroys the item without unloading it, so the kernel can still hold it as Contained when the
+	/// report arrives, and the container chain — not the child's owner field — names who may install it.
+	/// A World row (a ground item, or a world crate's child, whose location is World with the crate as
+	/// its parent) is not admitted by this rule; whether that reachable gesture should be is the ticket's
+	/// open question, recorded there rather than settled here.
 	/// A repeated observation of the same applied fact is admitted: it is a
 	/// re-assertion, and the domain advances the revision for it.
 	/// </summary>
@@ -452,6 +462,14 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		return current.Value.Location.Kind switch
 		{
 			ItemLocationKind.Carried => current.Value.Location.Owner.Value == sender,
+			// The wound-view gesture DESTROYS the item without unloading it, so the kernel can still hold
+			// the row as Contained when the limb report arrives (a lagging take-out or arrival — the bag
+			// panel and the wound view are mutually exclusive, so the report is the record catching up,
+			// not a live drag from the panel). The HOME row decides: HolderOf walks the container chain
+			// and names who holds its root — the sender's own carried inventory admits the install,
+			// another member's bag or a WORLD row refuses it. The child's recorded owner field is never
+			// the test: a container that changed hands keeps its children under the previous holder.
+			ItemLocationKind.Contained => ItemLocationChain.HolderOf(current.Value, _items.FindItem) == sender,
 			ItemLocationKind.Applied => current.Value.Location.Owner.Value == sender && current.Value.Location.LimbIndex == command.LimbIndex,
 			_ => false,
 		};

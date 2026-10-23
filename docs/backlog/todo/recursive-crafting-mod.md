@@ -119,6 +119,33 @@ bilingual `mod-api` permission table (ten flags now) and the policy tests moved 
 The 71 unsupported rows are mostly liquid lines (`isLiquid`), which the model does not carry yet; a recipe with
 one is reported as "not modelled — the recipe has a liquid ingredient line", never approximated.
 
-What remains: the panel's third state (a Harmony patch on the recipe list's own wording), the favourite mark,
-and the real-session row. The console command is the consumer that makes the resolver usable until the panel
-lands, and it stays useful afterwards for diagnosing a chain.
+## Stage 3 landed (2026-10-24) — the recipe panel's third state
+
+The native panel already draws two states itself (`PlayerCamera.RefreshRecipeList`: white when the ingredients
+are in hand, dark grey when not). The mod extends the panel's OWN two surfaces in place rather than drawing a
+parallel UI: a Harmony postfix on `Recipe.get_fullName` appends ` (+)` to an entry the resolver finds reachable
+through other crafts, and a postfix on `Recipe.get_description` appends
+`Reachable through other crafts: <steps>` to its tooltip. The colour stays the native grey, so the third state
+reads by name and tooltip text (a distinct colour is a look the user can judge in their pass; the ticket's row
+asks that it read differently, and it does).
+
+The judgement is cached per frame and keyed by the body's holdings fingerprint (`CraftingPanelState`), because the
+getters are read once per row per refresh and again per hover — an uncached resolution would re-read the recipe
+table for every row.
+
+**Measured on the real client** (the recipe's own patched getters read in-process, holdings made reachable by the
+console's `/give`): with scrapmetal, woodcube and two foliage held,
+
+- `Recipe.fullName` for `flimsyknife` reads `脆弱的刀 (+)` (`hasSteps` false for `rope`, which is craftable now);
+- `Recipe.description` ends `…\n\nReachable through other crafts: 1. rope`;
+- `/craftchain flimsyknife` agrees (`reachable through 1 step(s) — 1. rope.`), so the panel and the console read
+  one judgement.
+
+**A Harmony trap this stage paid for:** `HarmonyX`'s `PatchAll(typeof(Outer))` did NOT descend into the nested
+`[HarmonyPatch]` classes here — it reported success while `Recipe.get_fullName` stayed unpatched (measured: 0 of
+237 patched methods was the getter). `PatchAll(typeof(Installer).Assembly)` patches them; the installer now also
+logs how many targets it patched, so a silent no-op cannot recur.
+
+What remains: the favourite mark and the real-session row (a recursive entry offered, a favourite unaffected, two
+spent items merged). The panel is not yet read with the panel itself OPEN — the marker and tooltip are read from
+the same getters the panel calls, which is the mechanism under test; the on-screen look is the user's row.

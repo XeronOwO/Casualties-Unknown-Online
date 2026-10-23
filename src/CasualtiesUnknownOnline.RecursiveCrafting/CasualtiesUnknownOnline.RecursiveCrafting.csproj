@@ -30,10 +30,14 @@
     and the local body's items into the Core's model. The resolver itself stays in the Core project, which
     references nothing — this project is where every game type lives.
 
-    No Harmony patch yet: the console command is the first consumer, and the recipe panel's third state is a
-    later stage of the ticket. The game assemblies are gitignored and copied on demand (references/README.md).
+    The Harmony patch set extends the native recipe panel's own name and tooltip surfaces — no parallel UI. The
+    game assemblies are gitignored and copied on demand (references/README.md).
   -->
   <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\references\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\references\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>

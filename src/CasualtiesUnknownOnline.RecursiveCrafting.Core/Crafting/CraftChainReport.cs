@@ -27,4 +27,12 @@ public static class CraftChainReport
 				return $"{recipeName}: cannot be crafted — nothing here provides \"{resolution.Blocker}\".";
 		}
 	}
+
+	/// <summary>
+	/// Just the steps, in run order, with no recipe name — the sentence a tooltip appends under its own title
+	/// ("Reachable through other crafts: 1. rope, 2. canvas"). Empty when there is nothing to list.
+	/// </summary>
+	public static string DescribeSteps(CraftResolution resolution) =>
+		string.Join(", ", resolution.Steps.Select((step, index) =>
+			step.Times > 1 ? $"{index + 1}. {step.RecipeId} x{step.Times}" : $"{index + 1}. {step.RecipeId}"));
 }

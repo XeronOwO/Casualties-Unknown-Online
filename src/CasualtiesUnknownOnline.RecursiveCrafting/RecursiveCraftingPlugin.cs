@@ -13,5 +13,7 @@ namespace CasualtiesUnknownOnline.RecursiveCrafting;
 public sealed class RecursiveCraftingPlugin : BaseUnityPlugin
 {
 	private void Awake() =>
-		Logger.LogInfo("[Recursive] plug-in shell loaded; /craftchain is registered by the CUO mod entry when CUO discovers it.");
+		Logger.LogInfo("[Recursive] plug-in shell loaded; " + (CraftingPanelInstaller.Ensure()
+			? "recipe-panel third state installed."
+			: "recipe-panel third state FAILED to install (see the warnings).") + " /craftchain is registered by the CUO mod entry.");
 }

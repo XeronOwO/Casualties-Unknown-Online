@@ -71,3 +71,37 @@ Picked up and put back down in the same cycle, with the reason recorded so it is
 So this is a probe-plus-design-plus-docs change, not a build-script tweak: at least two cycles, with the first
 ending at a reading rather than a package. That is why the next cycle should not open it expecting a one-round
 close, and why a Medium-High ticket is the better use of the next cycle if one is closeable.
+
+## The feasibility probe, answered on the real client (2026-10-24)
+
+A BepInEx 5 plugin (`[BepInPlugin("cuo.probe.singlefile", ...)]`) was built against the game's own
+`BepInEx.dll` and Unity assemblies, with ONE file deployed: its dependency (`ProbeHelper.dll`) was embedded as a
+manifest resource and never copied beside it. An `AssemblyResolve` handler served that name from the embedded
+bytes. The deployed plugins directory held only `ProbePlugin.dll`; the real client was launched and its
+`BepInEx/LogOutput.log` read:
+
+```
+[Info   :   BepInEx] Loading [Single-file probe 0.0.1]
+[Info   :SingleFileProbe] [SingleFileProbe] static constructor: the embedded resolver is registered
+[Info   :SingleFileProbe] [SingleFileProbe] resolve requested for ProbeHelper
+[Info   :SingleFileProbe] [SingleFileProbe] loading ProbeHelper from 4608 embedded bytes
+[Info   :SingleFileProbe] [SingleFileProbe] helper says: helper loaded from the embedded resource
+```
+
+So the loader's answer is **yes**: BepInEx 5 loads a plugin assembly whose dependency is not on disk, and the
+dependency is served from the plugin's own embedded resource at the first reference. Two facts the design has to
+carry:
+
+- **The handler must be registered in a STATIC constructor, not in `Awake`.** The first attempt registered it in
+  `Awake` and failed with `FileNotFoundException: Could not load file or assembly 'ProbeHelper'`: the JIT
+  resolves the helper token while compiling the method that names it, so the handler registered inside that same
+  method runs too late. Registered in the type's static constructor it is in place before the method is compiled.
+- **The handler is asked for OTHER assemblies too** (`System.ComponentModel.DataAnnotations` in this run) and
+  must answer `null` for them so normal probing continues.
+
+The probe also names what remains open, which is the design half: whether CUO's SEVERAL assemblies can be packed
+into one (type identity across a merge, not just an embedded side-assembly), whether the Game Adapter's
+references to the game's own assemblies survive (they are the game's, not ours, and stay external), how the
+~30 loose dependencies are embedded, and how `verify-deploy.ps1`'s one-build-one-artifact check follows a packed
+file (the plugin already logs `build 0.1.0+<commit>`, so the identity itself is not the unknown 鈥?the artifact
+comparison is). No package work is started in this cycle; this section is the reading the design starts from.

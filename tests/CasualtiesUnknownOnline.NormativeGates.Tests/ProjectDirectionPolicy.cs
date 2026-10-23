@@ -56,6 +56,9 @@ internal static class ProjectDirectionPolicy
 			["CasualtiesUnknownOnline.ModExample"] = ["CasualtiesUnknownOnline.Abstractions"],
 			["CasualtiesUnknownOnline.PinyinSearch.Core"] = ["CasualtiesUnknownOnline.Abstractions"],
 			["CasualtiesUnknownOnline.PinyinSearch"] = ["CasualtiesUnknownOnline.PinyinSearch.Core"],
+			// The recursive-crafting satellite mod's game-free half: plain C# over its own model, so it takes no
+			// reference at all (not even the abstractions: the resolver promises nothing to CUO).
+			["CasualtiesUnknownOnline.RecursiveCrafting.Core"] = [],
 		};
 
 	/// <summary>

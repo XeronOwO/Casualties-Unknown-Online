@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.RecursiveCrafting.Core</AssemblyName>
+    <Product>Recursive Crafting Core</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.RecursiveCrafting.Core</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    The satellite mod's game-free half: the recursive-chain resolver a recipe panel asks "can this be reached
+    through other steps, and through which ones". Deliberately no reference at all (not even BepInEx): the
+    resolver is plain C# over the mod's own little model, so its rules can be tested and reasoned about without
+    the game, the network or CUO's runtime. The plug-in half (a later stage of the ticket) adapts the game's
+    recipe table and inventory into this model.
+  -->
+</Project>

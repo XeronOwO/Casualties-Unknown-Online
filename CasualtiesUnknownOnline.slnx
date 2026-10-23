@@ -9,6 +9,7 @@
   <Project Path="src/CasualtiesUnknownOnline.ModExample/CasualtiesUnknownOnline.ModExample.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.PinyinSearch.Core/CasualtiesUnknownOnline.PinyinSearch.Core.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.PinyinSearch/CasualtiesUnknownOnline.PinyinSearch.csproj" />
+  <Project Path="src/CasualtiesUnknownOnline.RecursiveCrafting.Core/CasualtiesUnknownOnline.RecursiveCrafting.Core.csproj" />
   <Project Path="tools/CasualtiesUnknownOnline.ContractTool/CasualtiesUnknownOnline.ContractTool.csproj" />
   <Project Path="tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.csproj" />
   <Project Path="tests/CasualtiesUnknownOnline.NormativeGates.Tests/CasualtiesUnknownOnline.NormativeGates.Tests.csproj" />

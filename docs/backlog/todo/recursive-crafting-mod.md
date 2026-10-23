@@ -55,3 +55,27 @@
 - Not a crafting overhaul in the core plugin, and not a recipe-override capability (CUO can only append
   recipes today — `done/mod-content-ceiling.md`).
 - Not an automation feature: the player still performs each craft.
+
+## Stage 1 landed (2026-10-24) — the resolver, before any UI
+
+`src/CasualtiesUnknownOnline.RecursiveCrafting.Core/` is the mod's game-free half: a plain C# model (recipe,
+ingredient, held stack) and `CraftChainResolver`, which answers the three states the panel will show and the
+steps a chain runs in order. It references NOTHING at all — not the game, not BepInEx, not CUO's abstractions —
+so its rules are testable without a session, and the plug-in half (later stages) adapts the game's recipe table
+and the player's inventory into the model.
+
+The rules it makes explicit, each pinned by `CraftChainResolverTests` (11 cases):
+
+- an ingredient line consumes matching stacks until it has the units AND the summed condition it asks for — the
+  "two into one" case: two half-spent items satisfy a fresh line, and half a condition short stays short;
+- a missing line is satisfied by a recipe producing it, resolved recursively, with the steps listed deepest
+  first and the target's own click last (not listed);
+- a recipe already on the chain's path is never reused (a cycle is not a chain), a line naming a quality takes
+  only units carrying it, and the depth limit (8) ends a chain rather than hanging it;
+- the line that stops a chain is returned as its blocker id, so the panel can say why instead of only
+  "cannot be crafted".
+
+What remains for the ticket: the plug-in half that reads the game's recipe table and the player's inventory
+(the adapter), the panel's third state drawn through the existing recipe UI, the favourite mark (a UI filter the
+resolver does not need), and the real-session row (a recursive entry offered, a favourite unaffected, two spent
+items merged). Those are the later stages; this one is the rules the UI will show.

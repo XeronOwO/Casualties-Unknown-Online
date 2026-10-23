@@ -86,7 +86,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [No opaque payloads in the mod API](review/mod-api-no-opaque-envelopes.md) — **Critical** — a typed data model where the shape is the mod's own; landed.
-- [Mod-defined wire packets](review/mod-defined-wire-packets.md) — **High** — a mod owns its packet id and chain; two-client rows need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 
@@ -162,6 +161,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Mod-defined wire packets](done/mod-defined-wire-packets.md) — **High** — accepted: example packets reach their peers.
 - [Give an item to another player](done/give-item-to-another-player.md) — **Medium** — accepted 2026-10-24; every row judged.
 - [Nested member types are contracts](done/mod-content-nested-member-contracts.md) — **Medium** — accepted: a mod's own tool.
 - [Content declarations by attribute](done/mod-content-attribute-declarations.md) — **High** — accepted: item + recipe materialize.

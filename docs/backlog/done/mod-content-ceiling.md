@@ -5,7 +5,7 @@
   starts, and the inventory stays the source of truth.
   **Drained 2026-10-18: every stage and every parkable entry has been cut and landed** — Stage 1
   (`done/mod-crafting-quality-labels.md`), Stage 2 (`review/mod-cross-player-native-semantics.md`), Stage 3
-  (`done/mod-authored-effects.md`, `review/mod-defined-wire-packets.md`), and all of Part 3.A and Part 3.B
+  (`done/mod-authored-effects.md`, `done/mod-defined-wire-packets.md`), and all of Part 3.A and Part 3.B
   (`done/mod-item-authored-actions.md`, `review/mod-item-wearable-declaration.md`,
   `done/mod-item-declaration-parity.md`, `done/mod-content-kind-with-no-provider.md`,
   `done/mod-declared-behaviour-with-no-function.md`). What remains is **Part 3.C only**: capabilities the game
@@ -20,7 +20,7 @@
 - Related: `docs/backlog/done/mod-authored-effects.md` (Stage 3, cut out on 2026-10-08 with the user's
   ruling that supersedes its consumer gate),
   `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (Part 3.A's declared-behaviour gap,
-  cut out on 2026-10-08 with its item twin), `docs/backlog/review/mod-defined-wire-packets.md` (Part 3's
+  cut out on 2026-10-08 with its item twin), `docs/backlog/done/mod-defined-wire-packets.md` (Part 3's
   custom replication domains, promoted on its own),
   `docs/backlog/review/mod-cross-player-native-semantics.md` (Part 2 stage 2, cut out on 2026-10-08),
   `docs/en/reference/mod-api.md`, `docs/en/reference/modification-policy.md`,
@@ -295,7 +295,7 @@ The 2026-09-25 ruling was that the whole finding waits in `future/`; the 2026-10
 Each entry still becomes its own ticket with a real consumer named (the promotion funnel in
 `docs/en/reference/modification-policy.md`) and is split into stages that each produce a verifiable result —
 this ticket is the inventory and the plan, not one change that lands everything at once. An entry that needs
-a wire face is promoted with its own protocol decision (`docs/backlog/review/mod-defined-wire-packets.md` is the
+a wire face is promoted with its own protocol decision (`docs/backlog/done/mod-defined-wire-packets.md` is the
 first one).
 
 Two entries are first in line, because they are defects of a surface the API already promises rather than new

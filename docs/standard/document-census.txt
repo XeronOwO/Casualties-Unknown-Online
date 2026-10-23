@@ -243,7 +243,7 @@ docs/backlog/done/mod-content-attribute-declarations.md | keep | index | docs/ba
 docs/backlog/done/mod-content-fingerprint.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-nested-member-contracts.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
-docs/backlog/review/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
+docs/backlog/done/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-native-binding-handshake-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-art-and-controls-overhaul.md | keep | index | docs/backlog/README.md
@@ -812,6 +812,7 @@ docs/evidence/selfchecks/mod-api/mod-content-registration-selfcheck.md | keep | 
 docs/evidence/selfchecks/mod-api/mod-content-typed-registration-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-crafting-quality-labels-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-defined-wire-packets-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
+docs/evidence/acceptance/mod-defined-wire-packets-20261024-a.md | keep | claim | docs/backlog/done/mod-defined-wire-packets.md
 docs/evidence/selfchecks/mod-api/mod-entity-spawn-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-game-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-item-advanced-behavior-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

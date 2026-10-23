@@ -75,7 +75,7 @@ Four sites state one miscount and one deployment fact that the tree contradicts:
   `tools/deploy.ps1` copies exactly `Get-ChildItem -LiteralPath $PluginOut -Filter *.dll`. The repository's own
   records say so independently: *"the deploy scripts do not ship `CasualtiesUnknownOnline.ModExample.dll`, so
   the batch copies it by hand"* (`docs/evidence/selfchecks/mod-api/mod-defined-wire-packets-selfcheck.md`; the
-  same sentence is in `docs/backlog/review/mod-defined-wire-packets.md`).
+  same sentence is in `docs/backlog/done/mod-defined-wire-packets.md`).
 
 The deployment half matters for the acceptance row this cycle's §6 hands over: *"the acceptance batch is where
 its item and recipe are read in the game's own tables"* — that batch has to copy the DLL by hand, exactly as

@@ -9,7 +9,7 @@
 - Category: Mod platform / protocol / architecture
 - Related: `docs/backlog/done/mod-content-typed-registration.md` (step 1 of the same ruling),
   `docs/backlog/done/mod-authored-effects.md` (follows this one, and would otherwise be built twice),
-  `docs/backlog/review/mod-defined-wire-packets.md` (the packet surface),
+  `docs/backlog/done/mod-defined-wire-packets.md` (the packet surface),
   `docs/backlog/done/mod-payload-null-collection-tolerance.md` (the rule that exists because of the payload
   step), `docs/en/reference/mod-api.md`
 - Source: the user's 2026-10-08 ruling, quoted above.

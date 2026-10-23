@@ -1,6 +1,6 @@
 # Mod-defined wire packets — attribute inventory and self-check
 
-Owner cycle: `review/mod-defined-wire-packets.md` (2026-10-07), the "custom replication domains" entry of
+Owner cycle: `done/mod-defined-wire-packets.md` (2026-10-07), the "custom replication domains" entry of
 `done/mod-content-ceiling.md` Part 3 C, promoted with its own protocol decision.
 
 Question the cycle answers, in the user's words: a mod must be able to define its own behaviour packets and

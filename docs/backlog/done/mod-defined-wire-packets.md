@@ -1,8 +1,11 @@
 # Mod-defined wire packets and custom handling chains
 
-- Status: Review — the development half landed 2026-10-07 (see *What landed*); the runtime rows need two
-  real clients and are named in *Limits* item 1. The attribute inventory this ticket's first job asked for
-  is *The attribute inventory* below, written before the design was fixed.
+- Status: Done 2026-10-24 — the development half landed 2026-10-07 and Limit 1's runtime rows passed on
+  `0.1.0+1ae6b691` over a real three-client Steam session (the example mods copied into the plugins
+  directory by hand): a guest's `/machineuse` reached the host, the host's `machine.state` reached every
+  member, and `/exampleecho` ran on both sides. Record:
+  `docs/evidence/acceptance/mod-defined-wire-packets-20261024-a.md`. The attribute inventory this ticket's
+  first job asked for is *The attribute inventory* below, written before the design was fixed.
 - Priority: High
 - Category: Mod platform / protocol extensibility
 - Source: the user's 2026-10-07 backlog request — the protocol must be extensible by mods: a mod has to be
@@ -142,10 +145,10 @@ Recorded as decision 243 (`docs/decisions/active.md`); the summary:
 
 ## Limits
 
-1. **No real-client run yet.** The two-client rows (a guest's `/machineuse` reaching the host, the host's
-   `machine.state` reaching every member, `/exampleecho` on both sides) need two clients in a session with
-   the example mods deployed — the deploy scripts do not ship `CasualtiesUnknownOnline.ModExample.dll`, so
-   the batch copies it by hand. Named for the agent's next acceptance batch, not for the user.
+1. **The real-client rows ran 2026-10-24** (batch `.acceptance/20261024-c/`, artifact `0.1.0+1ae6b691`):
+   a guest's `/machineuse` reached the host, the host's `machine.state` reached every member, and
+   `/exampleecho` ran on both sides (record: `mod-defined-wire-packets-20261024-a.md`). The deploy scripts
+   still do NOT ship `CasualtiesUnknownOnline.ModExample.dll`; the batch copies it by hand.
 2. **The two consumers are in-tree and neither is run by a test.** They are two independent `[CuoMod]`
    declarations with different policies, chains and lifecycles, but they ship in ONE example assembly,
    neither is a third-party mod, and the test project does not reference that assembly — so their

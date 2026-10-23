@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 ///
 /// <para>
 /// The case that matters most is the one with NOTHING announced: it must read as "the
-/// local check is skipped", never as "everything is allowed" and never as a guess 鈥?a
+/// local check is skipped", never as "everything is allowed" and never as a guess —a
 /// member whose belief is stale, lost or absent has to fall back to the behaviour that
 /// existed before the rules were replicated, where the host's own verdict is the only
 /// one. The other is the session BOUNDARY: the set belongs to the session that
@@ -87,8 +87,8 @@ public class HostRuleAnnouncementTests
 	/// <summary>
 	/// The session boundary: the announced set belongs to the session that announced it.
 	/// A process that was a member and later hosts would otherwise enforce the previous
-	/// host's rules as its own 鈥?its own members would be admitted, refused or judged
-	/// against rules nobody chose for it 鈥?so the store drops the set on the session-end
+	/// host's rules as its own —its own members would be admitted, refused or judged
+	/// against rules nobody chose for it —so the store drops the set on the session-end
 	/// edge and the fallback (own config, local check skipped) takes over.
 	/// </summary>
 	[Fact]
@@ -171,7 +171,7 @@ public class HostRuleAnnouncementTests
 		Assert.False(service.SaveInventory);
 	}
 
-	/// <summary>The store over a session the test drives 鈥?the fake's own SessionEnded edge is what the reset cases fire.</summary>
+	/// <summary>The store over a session the test drives —the fake's own SessionEnded edge is what the reset cases fire.</summary>
 	private static AnnouncedHostRules New() => new(new FakeSessionControl(), NullLogger<AnnouncedHostRules>.Instance);
 
 	private static HostRuleSet Set(bool allowMemberCheatVerbs) => new(

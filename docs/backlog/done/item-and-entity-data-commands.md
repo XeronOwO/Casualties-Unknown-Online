@@ -44,7 +44,7 @@ Four capabilities over the same data model, driven from CUO's console:
 | data set / merge / remove | change those properties |
 
 The user's own examples of "properties" are the ones the game already stores per item: a battery's charge, a
-container's liquid and its millilitres, and condition/durability. The stated intent is open-ended 鈥?an
+container's liquid and its millilitres, and condition/durability. The stated intent is open-ended —an
 operator or a mod author should reach the properties the game itself keeps, not a curated subset.
 
 ## The data family's syntax (2026-10-17, decision 264)
@@ -83,8 +83,8 @@ lists the ids).
 `review/item-data-read-commands.md` is the read half, and the property-by-property survey lives there. The three
 conclusions every stage below depends on:
 
-- **What is addressable at all** is one kernel payload per item 鈥?`ItemData`'s condition, favourited, slot,
-  liquid stacks and typed component fields 鈥?captured from the game's own `SavedItem` fields plus the codecs'
+- **What is addressable at all** is one kernel payload per item —`ItemData`'s condition, favourited, slot,
+  liquid stacks and typed component fields —captured from the game's own `SavedItem` fields plus the codecs'
   whitelists, and restored the same way. Outside it there is nothing for a verb to address: an item's definition
   data is content rather than per-instance state, and a component field the codec does not carry never leaves
   its process.
@@ -92,8 +92,8 @@ conclusions every stage below depends on:
   (`ItemKernelAuthority.TryUpdateState`); a member's write of its OWN item rides the existing
   `ItemUpdateState` report path, which is the one a native item use already takes. What does not exist is a
   host-side edit of another player's CARRIED item: a carried item's state is its owner's report, and the
-  correction machinery resolves world items only. A remote edit therefore needs its own mechanism 鈥?a carrier
-  that tells the owner to apply the change 鈥?and that is a decision to take, not a detail to improvise.
+  correction machinery resolves world items only. A remote edit therefore needs its own mechanism —a carrier
+  that tells the owner to apply the change —and that is a decision to take, not a detail to improvise.
 - **Racing the host** is answered by the same model: a member's report is owner-predicted and host-validated,
   the kernel keeps one revision per item, and a command write is expected to take the identical path rather
   than a second one beside it.
@@ -103,8 +103,8 @@ The read half left two questions behind, and both are answered now:
 - **The host's own carried items are in the record (2026-10-18).** A member's client registers its carried
   inventory (starting supplies and worn items included) at the generation-finished edge; the host's supplies
   used to get an id only when a native act minted one, so no verb could name an item the host was merely
-  holding. The host now registers its own carried inventory at the same edges 鈥?a local write on the ordinary
-  kernel batch (no new frame kind) 鈥?so those items have ids and rows from world entry; *The host's own carried
+  holding. The host now registers its own carried inventory at the same edges —a local write on the ordinary
+  kernel batch (no new frame kind) —so those items have ids and rows from world entry; *The host's own carried
   inventory is registered* below carries the mechanism and what the acceptance batch owes.
 - **The cursor is addressable now (2026-10-18).** The console still reads the kernel, which has no cursor, so
   the pointer is a Game Adapter answer (`ILocalItemAccess.ResolveCursorItem`, the game's own pickup query) and
@@ -119,22 +119,22 @@ accepted-creation path unchanged or needs its own admission, including what a la
 
 ## The remaining stages
 
-1. **Stage B 鈥?the write verbs** (`data set` / `merge` / `remove`) over the properties the survey lists, and the
+1. **Stage B —the write verbs** (`data set` / `merge` / `remove`) over the properties the survey lists, and the
    local-scene answer the two gaps above need. The write is the owner's own: apply it to the local item and
    report it exactly as a native use does, so the row a command writes is indistinguishable from a row the game
    wrote. Every write inherits the read half's one-item rule: a resolved selector that names more than one body
-   is refused at execution, by name, rather than by narrowing the grammar (user ruling 2026-10-14) 鈥?and for a
+   is refused at execution, by name, rather than by narrowing the grammar (user ruling 2026-10-14) —and for a
    write that rule is what keeps one typo from editing a whole team's items.
    Acceptance: a set value survives the next snapshot, a save/restore and a rejoin on both peers, and a
    refused write is answered by name. The CURSOR target the user asked for lands in the same stage, on the same
    new capability port.
    **Landed 2026-10-14:** `/data set` over condition, favourited, one liquid stack and one component field, on
    the item THIS client holds, plus the port (`ILocalItemAccess`) and the report route that makes the row the
-   game's own 鈥?`done/item-data-write-commands.md` carries its rows and its limits.
+   game's own —`done/item-data-write-commands.md` carries its rows and its limits.
    **Landed with them 2026-10-17:** `merge` and `remove` (the landing section below carries what they do and
-   what they still owe). **Landed 2026-10-18:** the cursor target, on the port the write added 鈥?the section
+   what they still owe). **Landed 2026-10-18:** the cursor target, on the port the write added —the section
    *The cursor target landed* carries its mapping, its evidence and its limits; and the host's own carried
-   inventory, which now registers at world entry 鈥?the last section carries it. **Stage B is complete.**
+   inventory, which now registers at world entry —the last section carries it. **Stage B is complete.**
 2. **Stage C — `give`**: put an item into a player's inventory with its properties already set. **Landed
    2026-10-17 and moved out** to `done/give-item-to-a-player-command.md`, which carries the design that was
    settled here, the mechanism inventory, the self-check table, the acceptance rows and the limits. The carrier
@@ -144,21 +144,21 @@ accepted-creation path unchanged or needs its own admission, including what a la
    late-joiner question answered before the verb lands. This is the only stage this ticket still owns.
 4. **The permission story, inside every stage.** Reads are `Anyone` today (the read half's own reasoning is in
    its ticket). Writes are the host's call, and the family expresses that as a host rule following the
-   existing `HostRulesOptions` flags 鈥?enforced on the HOST side, because a member's write reaches the kernel
+   existing `HostRulesOptions` flags —enforced on the HOST side, because a member's write reaches the kernel
    as a wire command and the member's own console cannot be the gate. **Landed for `/data set` 2026-10-14
    (S1b of `done/validation-and-source-checks.md`):** `HostRules.AllowMemberCheatVerbs`, off by default,
    judged at the admission seam on the write's own wire kind (`ItemDataWrite`); a refusal is answered, and the
    member's client puts the value it had already applied back onto the session's record
-   (`done/item-data-write-commands.md`). Every later write verb rides the same kind and the same rule 鈥?a
+   (`done/item-data-write-commands.md`). Every later write verb rides the same kind and the same rule —a
    new verb does not need a new gate, and it must not grow one. What the rule could not do when this was
-   written 鈥?reach the member BEFORE the write, so a closed rule was a value that appeared and went back 鈥?is
+   written —reach the member BEFORE the write, so a closed rule was a value that appeared and went back —is
    closed (`done/host-rules-replication.md`): a member holding the announced rule is refused on its own
    client before anything is applied, and the verbs that follow `/data set` inherit it. **`/give` rides the
    same rulings on its own request frame** (it is not a kernel command, so the host judges it in its request
    handler rather than at the admission seam); the permission half is
    `review/cheat-permission-and-op-commands.md`, and the verb is `done/give-item-to-a-player-command.md`.
 
-## Stage B's remaining two verbs 鈥?the design, settled by reading the landed one (2026-10-17)
+## Stage B's remaining two verbs —the design, settled by reading the landed one (2026-10-17)
 
 > **Superseded syntax (decision 264).** The `condition` / `favourited` / `liquid` / `component` vocabulary
 > this section's design was written against is replaced by the item's state as SNBT
@@ -169,9 +169,9 @@ accepted-creation path unchanged or needs its own admission, including what a la
 yet", so the two verbs are additive work on a path that exists rather than a new surface. What the reading settled:
 
 - **`merge` is `set` with more than one property.** The landed `Write` does five things before the value is applied
-  鈥?session check, the host's announced rule, target parse, target resolution, the local item 鈥?and `merge` needs
+  —session check, the host's announced rule, target parse, target resolution, the local item —and `merge` needs
   all five once, not per property. The target is therefore named once and the properties follow:
-  `merge [<selector>] slot <n> | id <n> 鈥?condition <n> favourited <yes|no> liquid <liquidId> <ml> component
+  `merge [<selector>] slot <n> | id <n> —condition <n> favourited <yes|no> liquid <liquidId> <ml> component
   <TypeName> <field> <value>` reads the properties until the tokens run out. The parser needs a repeat of its own
   body rather than a new grammar, and its refusal messages stay the ones an operator already reads.
 - **`merge` is atomic for free, and that is worth keeping.** `ItemDataWriteValues.TryApply` mutates the in-memory
@@ -183,7 +183,7 @@ yet", so the two verbs are additive work on a path that exists rather than a new
   absent state, so `remove condition` has no meaning to execute. The rule that follows the family's own habit: the
   verbs that can be removed are `liquid` (zero millilitres) and `component <TypeName> <field>` (the field's
   default), and anything else is refused BY NAME with what the verb does accept, rather than being turned into
-  "set it to zero" 鈥?which would silently mean something different for a condition than for a battery.
+  "set it to zero" —which would silently mean something different for a condition than for a battery.
 - **The permission story is inherited, not rebuilt.** All three verbs are one wire kind (`ItemDataWrite`) under
   `HostRules.AllowMemberCheatVerbs` plus the host's cheat roster (`/op`), judged at the admission seam, refused on the member's own client when the
   announced rule forbids it. The ticket's own line is that "a new verb does not need a new gate, and it must not
@@ -206,13 +206,13 @@ Both verbs are real now, built on the design recorded above: `merge` takes ONE t
 property/value pairs, `remove` takes one target and one or more properties with no value (a liquid goes to zero
 millilitres, a component field returns to its kind's own zero, and a bounded property is refused by name). The
 write path is shared, so all three verbs pass the same session check, the same announced-rule interception and
-the same one-item resolution, and a command commits once 鈥?which is what makes a merge atomic rather than
+the same one-item resolution, and a command commits once —which is what makes a merge atomic rather than
 half-applied.
 
 **An adversarial review of the frozen change ran and found no blocker: 2 major, 8 minor, 5 nits.** The two
 majors were both about evidence rather than behaviour, and one of them was the kind that flatters a change:
 the two single-property answer renderers had been kept "so the verbs that already ship print what they printed
-before", but by then nothing in `src/` called either of them 鈥?they were dead code, and the tests asserting
+before", but by then nothing in `src/` called either of them —they were dead code, and the tests asserting
 their EXACT text were defending a method no operator could reach. The exact-text cases now point at the live
 renderer and the dead pair is deleted. Fixed with it: the success log had lost the property name (a merge logged
 three values with no way to attribute them), and a bare `/data` never mentioned the two new verbs existed.
@@ -223,20 +223,20 @@ three values with no way to attribute them), and a bare `/data` never mentioned 
   now run through the real console, and one of the three cases is the atomicity proof: a merge whose first
   property is legal and whose second is not leaves the record untouched, which is the case a per-property commit
   would fail. The assertions read the kernel row rather than the local object, because the report happens after
-  the commit 鈥?so the row is what proves nothing landed.
+  the commit —so the row is what proves nothing landed.
 - **`set`'s answer changed for malformed input, and it is now pinned.** Parsing happens before the session and
   announced-rule checks, so a malformed `/data set` with no session (or from a member under a closed rule) is
-  answered with the usage line instead of the session/rule sentence. The new order is better 鈥?a static error is
-  more specific than a state complaint about a line that could never have run 鈥?and the existing parser case
+  answered with the usage line instead of the session/rule sentence. The new order is better —a static error is
+  more specific than a state complaint about a line that could never have run —and the existing parser case
   `AnythingElse_IsRefusedWithTheUsage("slot 0")` already observes it, so a later reorder has to be deliberate
   rather than incidental. Recorded here because it is a shipped verb's printed answer.
 - **`merge`'s refusals now quote the merge grammar** (third commit, same day). The property parse is shared, so
-  its messages interpolated the set usage line 鈥?telling a merge operator to write a shape merge does not accept,
+  its messages interpolated the set usage line —telling a merge operator to write a shape merge does not accept,
   while its own "no property at all" refusal quoted the right one. The verb's usage is now passed into the shared
   parse, and the case that asserted the set line asserts the merge line instead (and asserts the set line is
   absent), so the fix is pinned by the very test that caught it.
 **A real two-client run judged what it could (2026-10-18)**: the record is
-`docs/evidence/acceptance/item-data-write-verbs-20261018.md`. The host side passed every row it reached 鈥?
+`docs/evidence/acceptance/item-data-write-verbs-20261018.md`. The host side passed every row it reached —
 a merge landing both named properties and reading back, a refused merge leaving the earlier property
 unlanded (the atomicity claim, observed), and a bounded property refused by name with the REMOVE grammar.
 The member side passed too, once the batch declared its own starting conditions (third run): a member's
@@ -245,7 +245,7 @@ own client once the host announces the closed rule - the interception no unit te
 too on a waterbottle (a full stack goes to `500 ml -> 0 ml` and the container stays). What the record still
 owes is the COMPONENT half of that path, and the run that looked for it came back with a finding rather than a
 gap: the tag scan names `largebattery` and the item is granted, but an item straight from the game's grant
-carries NO component line at all 鈥?a battery's component is brought into being by `BatteryItem.LoadBattery`,
+carries NO component line at all —a battery's component is brought into being by `BatteryItem.LoadBattery`,
 so judging that row needs a fixture that loads one first. `TryResetField` is unit-covered for all six kinds and
 runtime-covered for none. The record also keeps the three runs' failures, which are all one
 mistake: a step that reported an absence from a reading it had not established it could make.
@@ -256,25 +256,25 @@ mistake: a step that reported an absence from a reading it had not established i
 ## The cursor target landed (2026-10-18)
 
 `cursor` is a target shape now: `/data get cursor` reads the item the pointer is over, and `/data modify|merge|remove
-cursor 鈥 writes it. The read still answers from the kernel row 鈥?the scene contributes only the ID, which is the
+cursor — writes it. The read still answers from the kernel row —the scene contributes only the ID, which is the
 one thing a command cannot get from the record.
 
 **Entry mapping.** The CUO target is the item the game's own pickup QUERY selects:
 `Physics2D.OverlapPoint(Camera.main.ScreenToWorldPoint(Input.mousePosition), LayerMask.GetMask(new string[] { "Item" }))`
-and then `TryGetComponent<Item>` 鈥?`PlayerCamera.TryPickupFromWorld`, `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:1423`
+and then `TryGetComponent<Item>` —`PlayerCamera.TryPickupFromWorld`, `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:1423`
 and `:1437`. The wider hover query (`:1997`, masks `Item`, `Ground`, `Descriptor`, `Limb`) is deliberately NOT
 the mapping: it answers blocks and limbs too, so it is the hover machinery's question, not "which item". The
-pickup GESTURE's own gates are not mirrored either 鈥?it runs only while unpaused, conscious and allowed to use an
-item, within ten units (`:1355`, `Body.cs:1364`-`:1375`) 鈥?because those gates judge the holding player's action,
+pickup GESTURE's own gates are not mirrored either —it runs only while unpaused, conscious and allowed to use an
+item, within ten units (`:1355`, `Body.cs:1364`-`:1375`) —because those gates judge the holding player's action,
 not "which item is under the pointer"; a target that reproduced them would refuse to name an item the operator
 can plainly see. The gesture carries the pointer and nothing else; where the pointer cannot carry an identity the
-request is refused BY NAME 鈥?no fallback supplies a nearby item.
+request is refused BY NAME —no fallback supplies a nearby item.
 
 **Mechanism inventory.**
 
 | # | Mechanism | Evidence |
 |---|---|---|
-| 1 | The pointer 鈫?item query | `PlayerCamera.cs:1423` (the `Item` layer) and `:1437` (`TryGetComponent<Item>`); replicated in `LocalItemAccess.ResolveCursorItem` with the same call and the same mask |
+| 1 | The pointer →item query | `PlayerCamera.cs:1423` (the `Item` layer) and `:1437` (`TryGetComponent<Item>`); replicated in `LocalItemAccess.ResolveCursorItem` with the same call and the same mask |
 | 2 | Instance identity | `ItemInstanceId` is READ, never minted. The current rule: the host assigns an id to every generation-time item when a generation finishes (`GeneratedItemAuthority`'s class doc; `Publish()`'s "every standalone world item without an id is a generation-time item"), its item snapshot carries them to a guest, and a runtime item gets one as it enters (`ItemIdAllocator.EnsureId`: "dropped from an inventory, unloaded from a container, picked up from the ground"). The `ItemInstanceId` comment that said generation-time items "never carry one" was stale and is corrected in this change |
 | 3 | Another member's item is NOT pointer-addressable | its local forms are non-physical by construction: `CloneInventoryRenderer` (`item.rb.simulated = false; // pure display`, `col.enabled = false; // never pickable/blocking`) and `StandingItemRecipe.MakeInert` (`collider.enabled = false`). Both carry an id in their own shape (`RemoteInventoryItemId`, and the authoritative `ItemInstanceId` in the standing recipe), which is why `id`/slot name them and the pointer query never returns either |
 | 4 | The port | `ILocalItemAccess.ResolveCursorItem` answers a classification and the ID only when it is `Resolved`; `UnavailableLocalItemAccess` answers `None`, so a build with no adapter answers the verb rather than throwing |
@@ -295,14 +295,14 @@ request is refused BY NAME 鈥?no fallback supplies a nearby item.
 | 6 | An id the pointer names that the record has no row for is refused by name | `Set_Cursor_OnAnIdTheRecordDoesNotName_IsRefusedByName` (nothing written, the capture unchanged) |
 | 7 | The grammar is one grammar | `ItemDataQueryParserTests.Cursor_AddressesTheItemUnderThePointer`, `CursorKeyword_IsCaseInsensitive`, the `cursor 5` / `@a cursor` refusals, `ItemDataVerbParserTests.CursorTarget_IsAdmittedByEveryWriteVerb` |
 | 8 | Every pointer refusal is a named answer, never a silent no-op | the five refusal cases (read: nothing / no id / not recorded; write: nothing / not recorded), each asserting the sentence it prints |
-| 9 | What did not change | the write's wire kind, the host rule (`AllowMemberCheatVerbs`, then named `AllowMemberItemDataWrite`), the report routes and the protocol number; the verdict's move shrank `ItemDataCommands` 549 鈫?460 lines and `ItemDataTargets` is new at 204, both under the 600-line gate |
-| 10 | Not covered here | the real pointer under a real mouse 鈥?the acceptance batch's rows below; the driver's ban on pointer input (decision 237) is why it cannot be driven from a test |
+| 9 | What did not change | the write's wire kind, the host rule (`AllowMemberCheatVerbs`, then named `AllowMemberItemDataWrite`), the report routes and the protocol number; the verdict's move shrank `ItemDataCommands` 549 →460 lines and `ItemDataTargets` is new at 204, both under the 600-line gate |
+| 10 | Not covered here | the real pointer under a real mouse —the acceptance batch's rows below; the driver's ban on pointer input (decision 237) is why it cannot be driven from a test |
 
 **Whole-family audit.** The family is every item-data target (selector, slot, cursor, id). What moved is the
 one-item verdict and the body/slot resolution (`ItemDataTargets`, shared by the read's slot path and the write's
 verdict); the REPORT routes (`ItemDataCommands.Report`'s world-versus-carried choice), the read refusals
 (`RefuseNotHeld`, `RefuseWrite`, `RefuseAmbiguousBody`, `EmptyBodyAnswer`) and the renderer stay where they were,
-so the cursor can only reach the same verdict and the same routes 鈥?and the world-row case now proves it takes
+so the cursor can only reach the same verdict and the same routes —and the world-row case now proves it takes
 the correction route the row's location chooses. The other pointer-driven CUO gesture, the cross-player drag
 use, resolves PLAYERS by world-space geometry of its own (`CrossPlayerDragUse`) rather than the item layer, so it
 shares nothing with this query and was checked rather than aligned.
@@ -316,16 +316,16 @@ one dependency — the machine's pointer was outside the host window (`mouseX 12
 1280x720`), so the run named that dependency instead of moving the pointer or weakening the check. The
 ticket stays in `todo/` for stage D either way.
 
-1. The host drops an item (so it has an id), points at it and runs `/data get cursor` 鈥?the row of the item
+1. The host drops an item (so it has an id), points at it and runs `/data get cursor` —the row of the item
    under the pointer, not a neighbour's.
-2. `/data modify cursor Condition set 0.5f` on that WORLD item, read back with `/data get id <id>` on BOTH peers 鈥?the world
+2. `/data modify cursor Condition set 0.5f` on that WORLD item, read back with `/data get id <id>` on BOTH peers —the world
    correction route, and the record agrees on both sides. A world row is the pointer's own shape: a carried
    item's world object stops simulating when it is picked up.
-3. An id the pointer names but the record has no row for (a guest's just-dropped item) 鈥?the named refusal and
+3. An id the pointer names but the record has no row for (a guest's just-dropped item) —the named refusal and
    nothing written.
-4. The pointer over ground, a body or a building 鈥?"nothing is under the pointer", and nothing is written.
+4. The pointer over ground, a body or a building —"nothing is under the pointer", and nothing is written.
 5. The id-less row: a guest in the window between world entry and the host's item snapshot, pointing at a
-   generation-time ground item 鈥?the named refusal. This is the row most likely to need a held window; if it
+   generation-time ground item —the named refusal. This is the row most likely to need a held window; if it
    cannot be held, the batch records it `unproven` rather than weakening the check.
 
 The pointer's world position is readable from the client (`Camera.main.ScreenToWorldPoint(Input.mousePosition)`),
@@ -340,7 +340,7 @@ replacing the check.
   than the game's own hover shows.
 - The pickup gesture's gates are not mirrored (paused, conscious, allowed to use an item, ten units): the pointer
   names what the query selects, which is the operator's question rather than the pickup action's.
-- Another member's item cannot be named by the pointer at all 鈥?its local forms are non-physical 鈥?so `id` and
+- Another member's item cannot be named by the pointer at all —its local forms are non-physical —so `id` and
   the holder's slot remain the way to reach it. This is not a refusal the target prints; the pointer simply never
   returns one.
 - An item this client has no id for yet stays unaddressable by the pointer until the id arrives (the host's
@@ -350,18 +350,18 @@ replacing the check.
   pointer position.
 - The read answers the record: the pointer can name an item whose row has not arrived yet, and then the answer
   is the record's ("no item recorded"), not the scene's.
-- No tab completion for the target keywords 鈥?the verb still declares one free-text argument, exactly as the
+- No tab completion for the target keywords —the verb still declares one free-text argument, exactly as the
   read half recorded.
 
 ## The host's own carried inventory is registered (2026-10-18)
 
-Stage B's last gap is closed: the host's own carried items 鈥?the starting supplies and the worn items 鈥?no
+Stage B's last gap is closed: the host's own carried items —the starting supplies and the worn items —no
 longer wait for a native act to mint their id. They are registered at world entry with the SAME write a native
 act of the host takes, so `/data get`, the write verbs and the members' record can name them from the moment the
 world opens.
 
 **Entry mapping.** No native call site, and that is the point: this is CUO's own record bookkeeping, not a
-gesture mirroring the game's action 鈥?the ticket's read half found the gap and the stage text froze the direction
+gesture mirroring the game's action —the ticket's read half found the gap and the stage text froze the direction
 ("the host registers its carried inventory at the generation-finished edge the way a member's client does"). What
 it adds that a member's client cannot state is the host's own authority rows; no player-visible gesture changed.
 
@@ -369,37 +369,37 @@ it adds that a member's client cannot state is the host's own authority rows; no
 
 | # | Mechanism | Evidence |
 |---|---|---|
-| 1 | The capture | `CarriedInventoryReporter` 鈥?the same capture a member's client sends (body slots plus worn-limb children, `EnsureId` per item); the host now runs it at the same edge, so the host's supplies are minted in the host's own id space |
+| 1 | The capture | `CarriedInventoryReporter` —the same capture a member's client sends (body slots plus worn-limb children, `EnsureId` per item); the host now runs it at the same edge, so the host's supplies are minted in the host's own id space |
 | 2 | The arming edges | the generation-finished edge (both sides) and the host-session rising edge (`_hostSessionActive`), which covers a world entered before the session existed (a solo world turned lobby) |
-| 3 | The registration write | `ItemOwnCarriedRegistration.Register` 鈫?`ItemService.SendItemCarriedSync` 鈫?`ItemKernelAuthority.TrySummonCarried` / `TryUpdateState`: the write a native act of the host takes, not a second route |
-| 4 | The members' record | the kernel commit is the batch a member's replay reads (`ItemKernelAuthority.TryExecute` 鈫?`BatchCommitted` 鈫?`KernelProtocolService.BroadcastCommittedBatch`); the ids the registration's `EnsureId` mints then ride the host's 1 Hz character snapshot to the members' view, and that snapshot could not carry them before 鈥?its capture reads `ItemInstanceId` and the host's items had none (`ItemStateCodec.CaptureItem`: `InstanceId = item.GetComponent<ItemInstanceId>()?.Id ?? 0`) |
+| 3 | The registration write | `ItemOwnCarriedRegistration.Register` →`ItemService.SendItemCarriedSync` →`ItemKernelAuthority.TrySummonCarried` / `TryUpdateState`: the write a native act of the host takes, not a second route |
+| 4 | The members' record | the kernel commit is the batch a member's replay reads (`ItemKernelAuthority.TryExecute` →`BatchCommitted` →`KernelProtocolService.BroadcastCommittedBatch`); the ids the registration's `EnsureId` mints then ride the host's 1 Hz character snapshot to the members' view, and that snapshot could not carry them before —its capture reads `ItemInstanceId` and the host's items had none (`ItemStateCodec.CaptureItem`: `InstanceId = item.GetComponent<ItemInstanceId>()?.Id ?? 0`) |
 | 5 | The guest's path | unchanged: the guest's report, its cadence/window and the host's judging of that statement are untouched; the only shared surface is the role branch in `SendCarriedInventory` |
-| 6 | One registration, not a cadence | the host's write is local, so it cannot be lost on the wire; a repeat would re-commit every item 鈥?the debt is armed at world entry and spent by the first capture that can read the body |
+| 6 | One registration, not a cadence | the host's write is local, so it cannot be lost on the wire; a repeat would re-commit every item —the debt is armed at world entry and spent by the first capture that can read the body |
 | 7 | No wire change (a fact, not a design input) | no frame, kind or protocol number moved; the row travels on the ordinary kernel batch |
 
 **Self-check table.**
 
 | # | Claim | Evidence |
 |---|---|---|
-| 1 | A host's own carried item has a row at world entry, owned by the host | `HostRegistration_WritesTheHostsOwnCarriedRowAndTheMembersReplayIt` 鈥?the row exists, is `Carried`, and its owner is the host |
+| 1 | A host's own carried item has a row at world entry, owned by the host | `HostRegistration_WritesTheHostsOwnCarriedRowAndTheMembersReplayIt` —the row exists, is `Carried`, and its owner is the host |
 | 2 | The member's replay receives that row | the same case, after a tick: the member's `ItemKernelAuthority.FindItem` holds it with the host as owner |
 | 3 | The registration is owed only after an arm | `HostRegistration_WithoutAnArm_WritesNothing` |
 | 4 | It is spent once, so a later capture cannot rewrite the row | `HostRegistration_IsOwedOnce_SoALaterSendCannotRewriteTheRow` |
-| 5 | The guest's registration is untouched | the class's own suite: `dotnet test 鈥?--filter "FullyQualifiedName~CarriedInventoryRegistrationTests"` 鈥?16/16, the first thirteen of them the existing guest/arbitration facts |
+| 5 | The guest's registration is untouched | the class's own suite: `dotnet test —--filter "FullyQualifiedName~CarriedInventoryRegistrationTests"` —16/16, the first thirteen of them the existing guest/arbitration facts |
 | 6 | The service stayed under the gate | `ItemService` 578 lines (548 at HEAD), the registration in its own `ItemOwnCarriedRegistration` (85) |
-| 7 | Not covered here, and the batch's | the live world-entry run (rows 1-5 below); the ID MINTING itself (`EnsureId`) is the adapter's and has no unit test 鈥?only the acceptance run can prove a host's untouched item appears with an id |
+| 7 | Not covered here, and the batch's | the live world-entry run (rows 1-5 below); the ID MINTING itself (`EnsureId`) is the adapter's and has no unit test —only the acceptance run can prove a host's untouched item appears with an id |
 
 **What the acceptance batch owes.**
 
 1. A host and a member in a session's world: the host runs `/data get` and its starting supplies and worn items
-   are listed with instance ids 鈥?the state that used to be empty for a host who had not used anything yet.
-2. The host runs `/data modify id <one of them> Condition set 0.5f` WITHOUT having used, moved or dropped that item 鈥?
+   are listed with instance ids —the state that used to be empty for a host who had not used anything yet.
+2. The host runs `/data modify id <one of them> Condition set 0.5f` WITHOUT having used, moved or dropped that item —
    the write lands and `/data get` reads it back on both peers.
-3. The member runs `/data get id <the same id>` and reads the host's row 鈥?the member's replay really received
+3. The member runs `/data get id <the same id>` and reads the host's row —the member's replay really received
    the registration.
 4. The member's own supplies still register the way they did (a regression row, not a new claim).
 5. The host takes the next-level transition (the auto-revive path): after the layer is entered, `/data get`
-   lists the host's restored carried items with ids 鈥?the registration waited for the restore instead of
+   lists the host's restored carried items with ids —the registration waited for the restore instead of
    stating an empty set.
 
 **Limits, recorded rather than hidden.**

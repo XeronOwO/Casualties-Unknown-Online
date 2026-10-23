@@ -13,11 +13,11 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// kernel-domain one.
 ///
 /// <para>
-/// SCOPE 鈥?the 2026-09-18 ruling binds it: the gateway decides ELIGIBILITY only
+/// SCOPE —the 2026-09-18 ruling binds it: the gateway decides ELIGIBILITY only
 /// (who may submit), never what happens to another player's body, reach or
 /// timing. Ownership here means "the item this member is reporting on is one it
-/// may report on at all" 鈥?a world item (it saw the item in the world, or used
-/// it in place) or the member's own carried, installed or consumed item 鈥?the
+/// may report on at all" —a world item (it saw the item in the world, or used
+/// it in place) or the member's own carried, installed or consumed item —the
 /// same rule the item domain applies to a drop; nothing about distance, state or
 /// sequence is judged here, and the kernel still owns every domain verdict.
 /// </para>
@@ -25,10 +25,10 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// <para>
 /// WHAT IS OUTSIDE IT: a guest's range request is answered in
 /// <c>KernelProtocolService</c> and never becomes a command. The container-sync
-/// report DOES reach this seam like any other member command 鈥?for a parent this
+/// report DOES reach this seam like any other member command —for a parent this
 /// host already judged it is a member-authored fact, and the kernel's
 /// <c>DecideSyncContainer</c> rewrites that parent's data, moves the listed
-/// children in and destroys the parent's descendants the report left out 鈥?so it
+/// children in and destroys the parent's descendants the report left out —so it
 /// has its own rule here. The one arm that stays the host's own materialization is
 /// the MISSING-parent heal: nothing names that parent yet, so the domain creates
 /// it as the reporter's own carried item, accept-first, exactly as before. The
@@ -40,7 +40,7 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// ORDER is part of the contract, because a refusal that runs earlier can mask
 /// one the kernel would have produced:
 /// <list type="number">
-/// <item>the command's actor must be the submitting member 鈥?the frame validator
+/// <item>the command's actor must be the submitting member —the frame validator
 /// already guarantees it for a direct peer, and this seam keeps the binding
 /// local instead of three files away;</item>
 /// <item>the declared <see cref="AuthorityKind"/> must be one a member may
@@ -48,22 +48,22 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// own simulation and <see cref="AuthorityKind.PresentationOnly"/> is never a
 /// kernel fact at all. WHICH kind declares what is
 /// <see cref="WireCommandAuthorityPolicy"/>'s table, filled from the senders this
-/// tree actually has 鈥?so a member's <c>RunStart</c> is refused here while its
+/// tree actually has —so a member's <c>RunStart</c> is refused here while its
 /// item use is not;</item>
 /// <item>the CHEAT FAMILY's two host rulings, in this order: the host's cheat SWITCH
 /// must be open to members (the family is closed regardless of who has a grant), and
 /// then the host's cheat ROSTER must name the submitting member (the switch alone
 /// admits nobody). Both are read per submission, none is cached, and each refusal is
-/// ANSWERED with its own ground 鈥?the sender has already changed its own object for
+/// ANSWERED with its own ground —the sender has already changed its own object for
 /// the console write, so a verdict it never sees would leave that change in place.
 /// The order is switch-then-roster on purpose: when both are shut the operator is told
 /// about the switch, which is the remedy that unlocks the family at all;</item>
 /// <item>a report that puts an item into another member's hands, or writes enemy
 /// damage onto another member's body, must name the SENDER as that member: the
 /// pickup destination and the enemy-combat victim are judged against the transport
-/// sender 鈥?the trusted fact 鈥?before the item rules below, because neither needs a
+/// sender —the trusted fact —before the item rules below, because neither needs a
 /// fact this seam has to look up;</item>
-/// <item>the item a report NAMES must be one this member may speak for 鈥?the
+/// <item>the item a report NAMES must be one this member may speak for —the
 /// shared rule (<see cref="MayReportOn"/>) behind a destroy report, a state
 /// report, a container take-out and a container sync's parent: world content
 /// (the item lies on the ground, or inside a container that ultimately does), the
@@ -75,7 +75,7 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// sites run their delegate behind the item's own <c>ItemInfo.usable</c>, so a
 /// use of an item that flag does not admit cannot have happened. The rule reads
 /// the DEFINITION the host's own record holds, never the report's identity, and
-/// it ANSWERS the refusal 鈥?the use already ran on the sender's own client, so
+/// it ANSWERS the refusal —the use already ran on the sender's own client, so
 /// the recorded state is put back there (<c>ItemStateSettlement</c>). It sits
 /// after the eligibility rule so a report on another member's item keeps the
 /// verdict that family already gives it;</item>
@@ -84,7 +84,7 @@ namespace CasualtiesUnknownOnline.Application.Kernel;
 /// (<see cref="MayEnterOwnContainer"/>): the parent rule alone would still let a
 /// report pull a peer's carried item into the reporter's own container;</item>
 /// <item>the applied family's two reports must name the member's own item and the
-/// member's own limb 鈥?a report that installs somebody else's item, or installs
+/// member's own limb —a report that installs somebody else's item, or installs
 /// on somebody else's limb, is the same remote-clone shape;</item>
 /// <item>an id this host never judged is NOT this seam's to answer, so it is
 /// admitted here. That branch is defensive rather than the production path: for
@@ -149,7 +149,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		if (kind == WireCommandKind.ItemDataWrite && !_memberCommandRules.AllowsCheatVerb(sender))
 		{
 			// The WHO half of the same pair: the switch is open, but this host's roster
-			// does not name the sender 鈥?a grant must still be asked for. Answered for
+			// does not name the sender —a grant must still be asked for. Answered for
 			// the same reason.
 			return Refuse(sender, command, RejectionReason.CheatPermissionDenied,
 				"the host's cheat-permission roster does not name this member, so the console write verbs are closed to it");
@@ -161,7 +161,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		// up: the TRANSPORT SENDER is the trusted fact (the rule CraftSyncService
 		// already writes down), and the identity the payload carries is a claim.
 		// Both shapes were the census's unbounded rows, and both are decided by the
-		// record this seam already holds 鈥?nothing about distance, reach, sequence
+		// record this seam already holds —nothing about distance, reach, sequence
 		// or magnitude is judged here, and every magnitude still reaches the kernel
 		// as the reporter's own once the body is its own.
 		if (command is PickUpItemCommand pickup && pickup.NewOwner.Value != sender)
@@ -171,7 +171,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		}
 
 		// The same family, one fact deeper, for BOTH pickup-shaped kinds: the plain pickup and the
-		// container take-out are one kernel command 鈥?a member takes an item into its own hands 鈥?so
+		// container take-out are one kernel command —a member takes an item into its own hands —so
 		// the item the report names must be one this member may speak for. Without this the same
 		// command under the OTHER kind was an alias: a report could relocate an item out of another
 		// member's container into the sender's hands, and the eligibility rule would only cover the
@@ -188,8 +188,8 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		{
 			// The AFFECTED member's client is the judge of its own body
 			// (done/health-simulation-and-host-authority.md), and every production
-			// sender names itself 鈥?EnemyCombatReplay and EnemyProximitySync both set
-			// msg.VictimSteamId = _session.LocalSteamId 鈥?so a report naming somebody
+			// sender names itself —EnemyCombatReplay and EnemyProximitySync both set
+			// msg.VictimSteamId = _session.LocalSteamId —so a report naming somebody
 			// else is not a report this host can place.
 			return Ignore(sender, command, RejectionReason.NotAuthorized, victimDetail);
 		}
@@ -224,7 +224,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		{
 			// Answered on purpose: the use already ran on the sender's own client, so a
 			// verdict it never sees would leave that object changed for good. Only the
-			// USE kind reaches this rule 鈥?a slot move or a gun transition reports the
+			// USE kind reaches this rule —a slot move or a gun transition reports the
 			// same shape under ItemUpdateState and claims no use, so no use precondition
 			// applies to it.
 			return Refuse(sender, command, RejectionReason.UseNotPermitted, useDetail);
@@ -255,7 +255,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// kernel command): the item a report takes into the sender's hands must be one the record lets
 	/// that member speak for.
 	/// <list type="bullet">
-	/// <item>world content 鈥?the item lies on the ground, or inside a container that ultimately does:
+	/// <item>world content —the item lies on the ground, or inside a container that ultimately does:
 	/// every peer may take it;</item>
 	/// <item>the member's OWN carried or installed item (its recorded owner is the sender);</item>
 	/// <item>an item inside a container the SENDER holds: the CONTAINED arm reads the row the child
@@ -269,8 +269,8 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// own rules above answer it (the creation-before-operation invariant, the take-out's
 	/// <c>UnclaimedItem</c> answer) or the domain does (a terminal row's own reason).</item>
 	/// </list>
-	/// What is left 鈥?an item in another member's hands, on another member's limb, or inside another
-	/// member's non-world container 鈥?is the remote-clone display proxy's shape: admitting it let a
+	/// What is left —an item in another member's hands, on another member's limb, or inside another
+	/// member's non-world container —is the remote-clone display proxy's shape: admitting it let a
 	/// report take an item out of somebody else's bag.
 	/// </summary>
 	private bool MayTakeIntoOwnHands(ulong sender, ulong itemId)
@@ -295,13 +295,13 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 
 	/// <summary>
 	/// The item a member's report NAMES is one the record lets that member speak
-	/// for. Three report families ask the same question 鈥?a destroy, a state
-	/// update and a container sync's parent 鈥?so they share this one answer:
+	/// for. Three report families ask the same question —a destroy, a state
+	/// update and a container sync's parent —so they share this one answer:
 	/// <list type="bullet">
 	/// <item>a WORLD item, and any item whose container chain is world-rooted: every
 	/// peer may pick it up, use it in place or see it leave, so the reporter claims
 	/// nobody's possession;</item>
-	/// <item>the member's OWN carried, installed or contained item 鈥?an item's
+	/// <item>the member's OWN carried, installed or contained item —an item's
 	/// recorded state and its end are its holder's own report, which is the
 	/// pre-release trust model this seam does not question;</item>
 	/// <item>an id this host never judged: nothing here to judge, and the handler's
@@ -310,8 +310,8 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// <item>a terminal row: its end is already recorded, and the domain answers a
 	/// report about it with its own reason.</item>
 	/// </list>
-	/// What is left 鈥?an item the record puts in another member's hands, on another
-	/// member's limb or in another member's container 鈥?is the remote-clone display
+	/// What is left —an item the record puts in another member's hands, on another
+	/// member's limb or in another member's container —is the remote-clone display
 	/// proxy's shape: admitting it rewrote a real owner's row, and for a destroy it
 	/// emptied a real owner's bag from a viewer's side
 	/// (<c>ItemDestroyAuthorityTests</c> pins that half).
@@ -347,7 +347,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// <summary>
 	/// The native-use family's own data anchor: a report that says it is a use must
 	/// name an item the game's own data lets a use run on. The answer is asked of the
-	/// RECORD's definition id 鈥?the identity this host already judged 鈥?never the
+	/// RECORD's definition id —the identity this host already judged —never the
 	/// report's, and the three values are kept apart: only
 	/// <see cref="ItemUsePermission.Forbidden"/> refuses, because
 	/// <see cref="ItemUsePermission.Unknown"/> means this host holds no fact about
@@ -367,7 +367,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 		return _itemUseFacts.NativeUse(definitionId) switch
 		{
 			ItemUsePermission.Forbidden =>
-				$"item {command.InstanceId} is '{definitionId}', whose own data says no native use exists (ItemInfo.usable is clear) 鈥?both of the game's use call sites would have run something else",
+				$"item {command.InstanceId} is '{definitionId}', whose own data says no native use exists (ItemInfo.usable is clear) —both of the game's use call sites would have run something else",
 			_ => null,
 		};
 	}
@@ -376,13 +376,13 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// A container sync's CHILDREN: the report claims each named item is inside the
 	/// container it sends, and the domain moves it there (creating it when the host
 	/// has never judged it). The one thing a child may not be is an item the record
-	/// puts in another member's hands or on another member's limb 鈥?the same
+	/// puts in another member's hands or on another member's limb —the same
 	/// remote-clone shape, and without this rule a report could pull a peer's
 	/// carried item into the reporter's own container. A row that is merely
 	/// CONTAINED elsewhere is admitted on purpose: that is the container-changed-
 	/// hands case above, and refusing it would refuse ordinary play. What the CHILD'S
 	/// own owner cannot answer is whose row it sits in and whose row it is being moved
-	/// to 鈥?the handler's container-sync bounds judge those two destinations
+	/// to —the handler's container-sync bounds judge those two destinations
 	/// (<c>KernelProtocolCommandHandler.TryRefuseUnclaimedContainer</c>), so this seam
 	/// stays an eligibility test and never becomes the ownership rule.
 	/// </summary>
@@ -428,8 +428,8 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// The applied family's own entry rule: a member may report that an item IT
 	/// carries became the installed form of one of ITS OWN limbs. Both halves are
 	/// checked against the item's recorded location rather than trusted from the
-	/// command, because the gesture itself cannot carry either fact 鈥?the applier
-	/// acts on the body it simulates 鈥?so a report that names somebody else's item
+	/// command, because the gesture itself cannot carry either fact —the applier
+	/// acts on the body it simulates —so a report that names somebody else's item
 	/// or somebody else's limb is the remote-clone shape this seam exists to drop.
 	/// A repeated observation of the same applied fact is admitted: it is a
 	/// re-assertion, and the domain advances the revision for it.
@@ -462,7 +462,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// sender (the component came off this client's own body and into its own
 	/// hands), and the item really is installed on that limb. A removal that hands
 	/// the item to a third party is a cross-player removal, and that one is the
-	/// HOST's commit 鈥?it never travels as a member's report.
+	/// HOST's commit —it never travels as a member's report.
 	/// </summary>
 	private bool MayTakeOffOwnLimb(ulong sender, RemoveLimbItemCommand command)
 	{
@@ -494,8 +494,8 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	/// <summary>
 	/// The enemy-combat family's own identity rule: the victim a bite, a lunge or an
 	/// effect names must be the member that reported it. The three kinds are one
-	/// answer because the affected side's client judges its own body 鈥?the limb, the
-	/// venom, the adrenaline and the effect magnitudes are all its own reading 鈥?so
+	/// answer because the affected side's client judges its own body —the limb, the
+	/// venom, the adrenaline and the effect magnitudes are all its own reading —so
 	/// the victim identity is the one part of the report that can never be a field.
 	/// The detail names the kind by its own message so the audit line says WHICH
 	/// report claimed a foreign body.
@@ -524,7 +524,7 @@ public sealed class KernelCommandGateway(IKernelItemFacts items, IMemberCommandR
 	}
 
 	private void Audit(ulong sender, GameCommand command, RejectionReason reason, string detail, bool answered) =>
-		_log.LogWarning("Command admission refused ({Answer}): {Command} actor {Actor} sender {Sender} 鈥?{Reason}: {Detail}.",
+		_log.LogWarning("Command admission refused ({Answer}): {Command} actor {Actor} sender {Sender} —{Reason}: {Detail}.",
 			answered ? "answered" : "no answer, as before",
 			command.GetType().Name,
 			command.Actor.Value,

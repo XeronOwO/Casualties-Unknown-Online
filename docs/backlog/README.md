@@ -69,7 +69,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [The opener can claim a key the game is rebinding](todo/enter-opener-keybind-capture.md) — **Low-Medium** — the key-bind capture is not a text field.
-- [Four tracked docs carry code-page mojibake](todo/docs-mojibake-cleanup.md) — **Low** — punctuation damaged by a code-page round trip; restore it by meaning.
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
 - [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
 - [A drink measurement can run a destructive action](todo/drink-measurement-destructive-use-action.md) — **Medium-High** — a refilled blood bag draws blood.
@@ -172,6 +171,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Four tracked docs carry code-page mojibake](done/docs-mojibake-cleanup.md) — **Low** — restored 2026-10-24; six files, no damaged bytes left.
 - [Enter opens the console as plain chat](done/enter-key-opens-plain-chat.md) — **Low** — accepted 2026-10-24: E2 passes after the guard fix.
 - [Native-binding session parity](done/mod-native-binding-handshake-parity.md) — **Medium** — accepted 2026-10-24: the Admin row renders.
 - [Cheat permission and the op commands](done/cheat-permission-and-op-commands.md) — **Medium-High** — accepted 2026-10-24: the IP-direct row passed.

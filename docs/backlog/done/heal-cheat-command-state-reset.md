@@ -14,8 +14,8 @@
   the CHEAT permission family (`AllowMemberCheatVerbs` + the `/op` roster; the host always), and a
   DEAD target is revived too. The revive-location question was asked and answered the same day:
   **in place** (the trader revive's semantics; no teleport to the layer spawn).
-- Related: `review/heal-command-limb-and-hollow-restore.md` (the NATIVE `heal` command and its
-  limb/hollow extension — a separate surface), `review/heal-restores-severed-limbs.md` (the limb
+- Related: `done/heal-command-limb-and-hollow-restore.md` (the NATIVE `heal` command and its
+  limb/hollow extension — a separate surface), `done/heal-restores-severed-limbs.md` (the limb
   restore the reset reuses), `done/in-game-command-console-interactive.md` (the console the command
   lives in), `review/cheat-permission-and-op-commands.md` (the cheat family's two-sided check),
   `docs/evidence/acceptance/20261018-t-scope.md` (the run that read the old wiring's behaviour)

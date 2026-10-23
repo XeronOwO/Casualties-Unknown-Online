@@ -323,7 +323,7 @@ docs/evidence/acceptance/gamerule-host-rule-command-20261023-j.md | keep | claim
 docs/backlog/done/give-item-to-a-player-command.md | keep | index | docs/backlog/README.md
 docs/backlog/done/intent-refusal-never-reaches-the-actor.md | keep | index | docs/backlog/README.md
 docs/backlog/done/heal-command-limb-and-hollow-restore.md | keep | index | docs/backlog/README.md
-docs/backlog/review/heal-restores-severed-limbs.md | keep | index | docs/backlog/README.md
+docs/backlog/done/heal-restores-severed-limbs.md | keep | index | docs/backlog/README.md
 docs/backlog/done/id-carriers-can-disagree-about-placement.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/id-carriers-can-disagree-about-placement-20261022.md | keep | claim | docs/backlog/done/id-carriers-can-disagree-about-placement.md
 docs/evidence/acceptance/remote-backpack-access-policy-20261022-d.md | keep | claim | docs/backlog/done/remote-backpack-access-policy.md
@@ -800,6 +800,7 @@ docs/evidence/selfchecks/mod-api/mod-content-declaration-contract-review.md | ke
 docs/evidence/selfchecks/mod-api/mod-content-declaration-contract-selfcheck.md | keep | claim | docs/backlog/done/mod-content-attribute-declarations.md
 docs/evidence/acceptance/mod-content-attribute-declarations-20261024-a.md | keep | claim | docs/backlog/done/mod-content-attribute-declarations.md
 docs/evidence/acceptance/intent-refusal-never-reaches-the-actor-20261024-a.md | keep | claim | docs/backlog/done/intent-refusal-never-reaches-the-actor.md
+docs/evidence/acceptance/heal-restores-severed-limbs-20261024-a.md | keep | claim | docs/backlog/done/heal-restores-severed-limbs.md
 docs/evidence/selfchecks/mod-api/mod-content-fingerprint-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-content-fingerprint-selfcheck.md | keep | claim | docs/backlog/done/mod-content-fingerprint.md
 docs/evidence/acceptance/mod-content-fingerprint-20261024-a.md | keep | claim | docs/backlog/done/mod-content-fingerprint.md

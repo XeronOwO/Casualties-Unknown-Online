@@ -76,7 +76,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Review
 
 
-- [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
@@ -159,6 +158,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Heal restores a severed limb](done/heal-restores-severed-limbs.md) — **Medium** — accepted: restore, save survival and vignette clear.
 - [A refused intent reaches the actor](done/intent-refusal-never-reaches-the-actor.md) — **Medium** — accepted: the reason reaches the player.
 - [No opaque payloads in the mod API](done/mod-api-no-opaque-envelopes.md) — **Critical** — accepted: no live `byte[]`; the leaf is typed.
 - [Mod-defined wire packets](done/mod-defined-wire-packets.md) — **High** — accepted: example packets reach their peers.

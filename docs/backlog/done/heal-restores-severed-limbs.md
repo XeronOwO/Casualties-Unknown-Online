@@ -1,8 +1,12 @@
 # Restoring a severed limb: the game has no path, so the heal needs one of its own
 
-- Status: Review — split out of `heal-command-limb-and-hollow-restore.md` on 2026-10-18, whose Stage A (clearing
-  the hollow debuff through the native `heal` command) has landed and been read on the machine. This is the
-  other half of the same user request: "the game's own `heal` command does not restore severed limbs".
+- Status: Done 2026-10-24 — split out of `heal-command-limb-and-hollow-restore.md` on 2026-10-18, whose
+  Stage A (clearing the hollow debuff through the native `heal` command) has landed and been read on the
+  machine. This is the other half of the same user request: "the game's own `heal` command does not restore
+  severed limbs". The restore itself was read on 2026-10-18 (cross-client), and the two owed rows passed on
+  `0.1.0+1ae6b691` on 2026-10-24: the restored limb survived a `/save` cut, a continue-run restore and a
+  process restart, and the hollow clear removed the `MindwipeScript` component and its canvas overlay
+  (20 → 19 children). Record: `docs/evidence/acceptance/heal-restores-severed-limbs-20261024-a.md`.
 - Priority: Medium
 - Category: Player state / body limbs / console commands
 - Source: the user's 2026-10-07 backlog request, whose limb half the parent ticket carried until the reading
@@ -171,3 +175,12 @@ still read intact. **So the restored limb survives both the same-process restore
 
 Still owed: the vignette overlay count after the hollow clear (the row above). The save half is now judged;
 the ticket stays open only for that reading.
+
+### The vignette row, read on the machine (2026-10-24)
+
+On the same artifact, a fresh client: the canvas read 19 children with no `Mindwipe` child and no
+`MindwipeScript`; the probe then staged the fixture (the component plus a `Mindwipe_fixture` child under
+`PlayerCamera.main.mainCanvas`), which read 20 children and the component present; `/heal @s` answered
+`full heal applied (hollow cleared)` and the read afterwards was 19 children, zero `Mindwipe` children and the
+component gone. **Both owed rows are now read**, so the ticket is closed; the record is
+`docs/evidence/acceptance/heal-restores-severed-limbs-20261024-a.md`.

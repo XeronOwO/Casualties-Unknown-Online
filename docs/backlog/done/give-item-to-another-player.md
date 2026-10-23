@@ -1,15 +1,18 @@
 # Give an item to another player (the push direction)
 
-- Status: Review — unit 1 and unit 2 are implemented and deployed; rows 1, 2, 5, 7, 8, 9, 10 were read in batches
-  `20261022-f`/`-g`, rows 3 and 4 in batch `20261022-h`, and row 6 by the user's 2026-10-23 ruling (the behaviour
-  test, because the residual window cannot be produced by hand). The sibling design is
-  `review/placement-outcome-never-returns.md`.
+- Status: Done 2026-10-24 — every row has a verdict: rows 1, 2, 5, 7, 8, 9, 10 were read in batches
+  `20261022-f`/`-g`, rows 3 and 4 in batch `20261022-h`, and row 6 by the user's 2026-10-23 ruling (the
+  behaviour test, because the residual window cannot be produced by hand). The sibling design is
+  `done/placement-outcome-never-returns.md`; the close record is
+  `docs/evidence/acceptance/give-and-placement-20261024-a.md` (no new machine run on the 2026-10-24 artifact:
+  the rows are pointer drags and this shell has no interactive desktop; the 2026-10-22 readings plus the
+  user's ruling are the evidence, with the full suite as the regression guard).
 - Priority: Medium
 - Category: Remote inventory / native interaction parity / new capability
 - Blocked by: nothing external. The two units are sequential: unit 1 changes no wire member and unit 2 carries
   the answer that keeps a refused item with the giver.
 - Source: User question (2026-10-06), asked right after the occupied-slot swap fix landed — "is there a way to actively put my own item into another player's backpack, e.g. drop it on the ground, open their backpack and drag it in?" The same day the user promoted it from `future/` into work. The gesture and presentation decisions below are the user's to answer at implementation time.
-- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `done/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `todo/cross-player-drag-use-model-bounds.md` (the detection shape, and the last-entered target this ruling introduces), `todo/cross-player-drag-use-feedback.md` (the cue that must name the same target), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `done/restore-refused-child-keeps-its-id.md` and `review/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
+- Related: `done/remote-inventory-native-parity-rework.md` (the rework this extends), `done/remote-backpack-access-policy.md` (the host policy that must gate this gesture too), `done/local-item-into-remote-display.md` (the refusal that stands in for it today; its own non-goals name this ticket), `docs/architecture/remote-inventory-native-parity.md` (the intent vocabulary and the `TransferToBody` row), decisions 217/218 (one mutation site, the wire carries the native intent, the viewer never mutates a proxy), `todo/cross-player-drag-use-model-bounds.md` (the detection shape, and the last-entered target this ruling introduces), `todo/cross-player-drag-use-feedback.md` (the cue that must name the same target), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md` §4.3, `done/restore-refused-child-keeps-its-id.md` and `done/placement-outcome-never-returns.md` (the two findings this ticket's row-4 fix left to their own tickets).
 
 ## Design (2026-10-22 — the user's ruling; this is the current design)
 
@@ -65,7 +68,7 @@ own `Container.CanHoldItem` allows it, and the receiver sees what it would see p
 The user's 2026-10-22 ruling: **the item stays with the giver.** A give is therefore not committed until the
 receiver's own client has accepted the placement; the answer — the destination the receiver resolved, or its
 refusal — travels back before any custody moves, and the host records the receiver's answer rather than the
-giver's request. That answer is the whole subject of `review/placement-outcome-never-returns.md`; the two tickets
+giver's request. That answer is the whole subject of `done/placement-outcome-never-returns.md`; the two tickets
 share it. The common refusals (no free slot, a container's weight/tag rule, an item only a hand can hold) are
 answered before the item leaves; the rare race where the body changes between the answer and the transfer is
 that ticket's residual and still returns the item.
@@ -99,7 +102,7 @@ no probe may stand in for the gesture:
   of the target's backpack on a range entry, the release order that makes a displayed-backpack release a GIVE
   before an in-range release is a USE, the close of the backpack the drag opened, and the cue following the
   same target. It changes no wire member and leaves the custody path untouched.
-- **Unit 2 — the receiver's placement answer**, shared with `review/placement-outcome-never-returns.md`: the
+- **Unit 2 — the receiver's placement answer**, shared with `done/placement-outcome-never-returns.md`: the
   hand-over commits only after the receiver's own client accepts, and the host records the accepted
   destination. Rows 3, 4 and 6, and the ledger rows, land there.
 
@@ -152,11 +155,11 @@ The cue's drawer was wired in `1f4d3ca5`, and the two rows were read again with 
 
 Unit 1's rows are now all read (1, 2, 5, 7 and 8 in batch `20261022-f`; 9 and 10 here). Unit 2's rows 3 and 4 were
 read in batch `20261022-h`, and row 6 is judged by the user's 2026-10-23 ruling (the behaviour test plus the wired
-return chain), so this ticket moves to `review/` with `review/placement-outcome-never-returns.md`.
+return chain), so this ticket moves to `review/` with `done/placement-outcome-never-returns.md`.
 
 ### Unit 2's answer-first half landed (2026-10-22)
 
-`review/placement-outcome-never-returns.md` now implements the ruling's first half: the host asks the RECEIVING
+`done/placement-outcome-never-returns.md` now implements the ruling's first half: the host asks the RECEIVING
 client where its own rules would put the item before it writes anything, records the ANSWERED slot or container,
 and refuses the giver — with the receiving side's own sentence — when that answer is a refusal. Nothing moves on a
 refusal, so the item stays with the giver. The gesture itself is unchanged.
@@ -792,7 +795,7 @@ container's reason (the user's ruling).
 - **A body with no room is a loud, consistent loss, not a silent one.** When no slot on the body accepts the
   item, one Warning reports the item's end (its destroy carries the id, so both clients agree it is gone).
   The world-drop answer this case wants needs the host to re-record the item — see
-  `review/placement-outcome-never-returns.md`.
+  `done/placement-outcome-never-returns.md`.
 - **The first version's drop rung was withdrawn after review.** It reported the dropped object as a new
   world-item spawn, and that report can never be applied: the host records the handed-over id as carried
   BEFORE it publishes the transfer (`HandleTakeCore`'s `AdoptTransferredItem`/`CommitCarriedToHost`, and
@@ -841,7 +844,7 @@ with the code it named, because a fixed finding that is not written down is one 
   `Carry` does the same. A guest receiver's refused spawn is then deleted by
   `ItemReconcile.OnRemoteItemSnapshot` (absent from the keyframe → `KillNow` zeroes the ids, no destroy report),
   and the host receiver's object is never broadcast. **Changed:** the rung is gone, and the no-room case
-  reports the item's end; the host-side answer is `review/placement-outcome-never-returns.md`.
+  reports the item's end; the host-side answer is `done/placement-outcome-never-returns.md`.
 - **Major — the new slot rung silently no-ops for a native `onlyHoldInHands` item.** `Body.PickUpItem`'s guard
   (Body.cs:1390) is `… && (!item.Stats.onlyHoldInHands || this.slots[slot].isHand)`, which `force` does NOT
   bypass, so the rung logged a slot the item never entered. **Changed:** `TryPlaceInBodySlot` tries the named
@@ -876,7 +879,7 @@ with the code it named, because a fixed finding that is not written down is one 
 - **The host's ledger still does not learn the receiver's own placement.** It keeps what the message said, so
   a refused container destination reads as "inside that container" on the host while the receiver placed the
   item in a slot — and the "no room at all" case is exactly the drop the host would have to re-record. Filed
-  as `review/placement-outcome-never-returns.md` with the readings it was found from.
+  as `done/placement-outcome-never-returns.md` with the readings it was found from.
 - **The restore paths' discard policy** (the same destroy shape, one call site over) was
   `done/restore-refused-child-keeps-its-id.md`; since the 2026-10-23 ruling that path drops the child into the
   world as well.

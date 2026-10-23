@@ -534,7 +534,7 @@ check is the compatibility boundary; no dual shape is kept.
     displayed inventory: the ring's body buttons and the container window render the focused clone, so the
     release names that player's slot or container and is resolved before the native body runs, which must not
     load this client's item into a proxy (`DragGiveTargetResolver`, read by
-    `Patches/PlayerCameraDragUsePatch` and by the drag cue, ticket `review/give-item-to-another-player.md`).
+    `Patches/PlayerCameraDragUsePatch` and by the drag cue, ticket `done/give-item-to-another-player.md`).
     The display's CENTRE is the use/wear target of that player (user ruling 2026-10-23), and a release anywhere
     else keeps the native drop. The detection range only chooses whose backpack is displayed, and it is read only
     OUTSIDE the player's own UI: while the own ring or a panel is open the drag means the local body and no other

@@ -1,7 +1,7 @@
 # The residual row's reading — the user's ruling (2026-10-23)
 
-- Applies to: row 6 of `docs/backlog/review/placement-outcome-never-returns.md` and row 6 of
-  `docs/backlog/review/give-item-to-another-player.md` — "a body that changes between the answer and the transfer
+- Applies to: row 6 of `docs/backlog/done/placement-outcome-never-returns.md` and row 6 of
+  `docs/backlog/done/give-item-to-another-player.md` — "a body that changes between the answer and the transfer
   ends with the item back with the giver".
 - The ruling: after two staging attempts established that the row's window cannot be produced by a hand, the user
   ruled (2026-10-23) that the behaviour test plus the wired return chain is this row's reading. A second pointer

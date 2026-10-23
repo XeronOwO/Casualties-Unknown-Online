@@ -16,10 +16,10 @@
 - Blocked by: nothing external. The remaining half needs an anchor for a NEGATIVE claim ("my live body placed
   nothing"), which is another client's own frame; nothing in the host's records can establish it.
 - Source: The independent review of `fb782e5c` (2026-10-22, finding 6) on
-  `docs/backlog/review/placement-outcome-never-returns.md`: the host can bound the transactional half of the
+  `docs/backlog/done/placement-outcome-never-returns.md`: the host can bound the transactional half of the
   report (a committed give to that sender, the item in its snapshot) but not the claim itself, so the census row
   for `NetMsg.PlayerPlacementFailed` was `unbounded`.
-- Related: `review/placement-outcome-never-returns.md` (the design whose residual this bounds),
+- Related: `done/placement-outcome-never-returns.md` (the design whose residual this bounds),
   `docs/architecture/member-report-validation.md` (the census row), decisions 184/265 (judgement belongs to the
   affected client; a report with no data anchor is named rather than given a behavioural bound),
   `docs/evidence/sync-coverage-matrix.md` (row P14).
@@ -193,7 +193,7 @@ recorded here with the code it cites; all of them were fixed in the same commit.
   clients' lines on the fixed artifact (record
   `docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md`).
 - A return the host cannot make (the item is no longer in the receiver's snapshot, or the giver has no free slot)
-  is logged at Error and the reporter is not answered — the limit `review/placement-outcome-never-returns.md`
+  is logged at Error and the reporter is not answered — the limit `done/placement-outcome-never-returns.md`
   already records.
 - A lost outcome leaves the committed row matchable for its 60 s window and then drops it. On the MATCH arm
   nothing diverges (the row already states the answer's place); on the NOT-APPLIED arm the receiver's object is

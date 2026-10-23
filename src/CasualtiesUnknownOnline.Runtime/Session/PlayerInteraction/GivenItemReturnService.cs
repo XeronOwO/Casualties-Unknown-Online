@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// The give's RETURN half (<c>review/placement-outcome-never-returns.md</c>): the receiving client answered a
+/// The give's RETURN half (<c>done/placement-outcome-never-returns.md</c>): the receiving client answered a
 /// destination, the host committed it, and the receiver's own placement then did something else — it placed nothing,
 /// or placed the item somewhere other than the place the answer named. The receiver reports that outcome; this
 /// service moves the row back to the giver in both snapshots and publishes the return transfer, so the item ends

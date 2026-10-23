@@ -1,25 +1,26 @@
 # The host's ledger keeps the destination it was told, not where the item went
 
-- Status: Review — every row has a verdict: rows 1-5 read on the machine (batch `20261022-h`), row 6 judged by
-  the user's 2026-10-23 ruling (the behaviour test, because the 60 ms window cannot be produced by hand). The
-  gesture it serves is defined in `review/give-item-to-another-player.md`; the two follow-ups are filed
-  separately.
+- Status: Done 2026-10-24 — every row has a verdict: rows 1-5 read on the machine (batch `20261022-h`), row 6
+  judged by the user's 2026-10-23 ruling (the behaviour test, because the 60 ms window cannot be produced by
+  hand). The gesture it serves is `done/give-item-to-another-player.md`; the two follow-ups are filed
+  separately. Close record: `docs/evidence/acceptance/give-and-placement-20261024-a.md` (no new machine run
+  on the 2026-10-24 artifact — pointer rows and no interactive desktop here).
 - Priority: Medium
 - Category: Item sync / kernel item facts / cross-player custody
-- Blocked by: nothing external. It shares its wire change with `review/give-item-to-another-player.md` unit 2.
+- Blocked by: nothing external. It shares its wire change with `done/give-item-to-another-player.md` unit 2.
 - Source: Read on the machine in 2026-10-18's give session, while the container half of
-  `review/give-item-to-another-player.md` was being verified (`[PlayerInteraction] bandage … not placed into
+  `done/give-item-to-another-player.md` was being verified (`[PlayerInteraction] bandage … not placed into
   container … falling back to a slot.` on the receiver, `bandage [carried]` on the host). Split out on
   2026-10-19 when that ticket's row-4 item loss was fixed, because the slot fallback is now the path the fix
   itself produces, and the finding needs its own home.
-- Related: `review/give-item-to-another-player.md` (the custody path, the gesture and its acceptance rows),
+- Related: `done/give-item-to-another-player.md` (the custody path, the gesture and its acceptance rows),
   `done/container-content-event-gap-on-repick.md` (the adjacent event-carrier gap: a container child moved
   into a slot announces nothing to the peers' fact tables — closed by batch `20261025-b`),
   `done/item-identity-across-transforms.md`
 
 ## Design (2026-10-22 — the receiver's answer comes BEFORE custody; this supersedes the routes below)
 
-The give gesture is defined (`review/give-item-to-another-player.md`), and the user's 2026-10-22 ruling on the
+The give gesture is defined (`done/give-item-to-another-player.md`), and the user's 2026-10-22 ruling on the
 no-room case is part of its design: **when the receiver's own rules cannot take the item, the item stays with
 the giver.** That settles the route this ticket exists to choose: the host asks the receiving client BEFORE it
 records anything, and the receiver's answer is the placement.
@@ -156,7 +157,7 @@ player's inventory — is not an interaction the player can perform. A give star
 backpack: the backpack is open and the item is dragged with the right mouse button held. Opening another
 player's backpack needs a right-click on that player, and the held right button cannot also make that
 click. The give readings this ticket rests on — and the drag half of
-`review/give-item-to-another-player.md` — came from a probe calling the release seam directly, never from
+`done/give-item-to-another-player.md` — came from a probe calling the release seam directly, never from
 a real gesture.
 
 The user's ruling of 2026-10-22: this is a design defect, not an acceptance gap, and the process must start

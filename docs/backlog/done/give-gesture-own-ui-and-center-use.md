@@ -12,7 +12,7 @@
 - Source: The user's review of the give gesture's entry (2026-10-23): a drag inside the player's own backpack must
   never be judged against another player, the displayed backpack's centre is the use/wear target, and the detection
   range only chooses whose backpack is displayed.
-- Related: `review/give-item-to-another-player.md` (the gesture's rows, re-based here),
+- Related: `done/give-item-to-another-player.md` (the gesture's rows, re-based here),
   `todo/placement-failure-report-anchor.md` (the receive side; unaffected by this entry change),
   `todo/cross-player-drag-use-feedback.md` (the cue this ticket re-points at the centre), decisions 217/218 (the
   native intent, the viewer never mutates a proxy) and the 2026-10-22 selection ruling this refines.

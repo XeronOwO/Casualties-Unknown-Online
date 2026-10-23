@@ -77,8 +77,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
-- [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
-- [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
@@ -167,6 +165,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Give an item to another player](done/give-item-to-another-player.md) — **Medium** — accepted 2026-10-24; every row judged.
+- [The receiver's placement never returns to the host](done/placement-outcome-never-returns.md) — **Medium** — accepted 2026-10-24; rows 1-5 + ruling.
 - [Limb install from a bag](done/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — accepted.
 - [S4 — Multiplayer restore and backups](done/save-multiplayer-restore-and-backups.md) — **High** — closed 2026-10-24: all stages and rows.
 - [S4.1 — Restore claim](done/save-guest-restore-claim-and-legacy-store-retirement.md) — **High** — accepted 2026-10-24: the IP-direct claim rows.

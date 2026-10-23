@@ -4,10 +4,10 @@
   all three rows (record `docs/evidence/acceptance/restore-refused-child-keeps-its-id-20261023-i.md`).
 - Priority: Low-Medium
 - Category: Items / restore paths / item identity
-- Source: Split out of the give ticket (`review/give-item-to-another-player.md`) when its row-4 loss was fixed (2026-10-19,
+- Source: Split out of the give ticket (`done/give-item-to-another-player.md`) when its row-4 loss was fixed (2026-10-19,
   batch `20261021-a`). That fix split one policy in two: the give ladder now HANDS ON the object a refused
   container materialized, while the bulk restore keeps discarding it. The discarded half is this ticket.
-- Related: `review/give-item-to-another-player.md` (the fix and its live reading),
+- Related: `done/give-item-to-another-player.md` (the fix and its live reading),
   `docs/evidence/acceptance/give-item-to-another-player-20261021-a.md` (the loss this family produces when a
   refused child is destroyed), `done/item-identity-across-transforms.md` (an item keeps its id across the
   moves this family makes)

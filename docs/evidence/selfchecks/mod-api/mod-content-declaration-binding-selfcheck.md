@@ -1,6 +1,6 @@
 # The `[ModContent]` scan: a declaration next to the mod, registered through the code path's own rail
 
-Cycle 2026-10-09. Ticket `docs/backlog/review/mod-content-attribute-declarations.md`, **stage B** (the
+Cycle 2026-10-09. Ticket `docs/backlog/done/mod-content-attribute-declarations.md`, **stage B** (the
 attribute and the scan). Decision 252; stage A is decision 251 and
 `mod-content-declaration-contract-selfcheck.md`. Baseline commit `08873a6c`; this record describes the
 working tree that carries the change.

@@ -1,7 +1,12 @@
 # Content declarations by attribute: a scanned declaration instead of a Bind list
 
-- Status: Review — **stage B landed 2026-10-09** (see *Stage B (landed)*): nothing is left to develop here,
-  and the acceptance batch is pending. It was **raised 2026-10-08 by the user**: "对于定义这玩意，能不能直接做成
+- Status: Done 2026-10-24 — stage B landed 2026-10-09 and every active acceptance row passed on
+  `0.1.0+6e782b7a` with the repository's own example mod: the attribute-declared dressing is in the game's item
+  table and its recipe row is in `Recipes.recipes`; `/exampleweight 3.5` plus a new run made the rebuilt table
+  carry 3.5; the code-registered trophy is present too. The nested-implementation row lives in
+  `done/mod-content-nested-member-contracts.md`. Record:
+  `docs/evidence/acceptance/mod-content-attribute-declarations-20261024-a.md`. It was **raised 2026-10-08 by the
+  user**: "对于定义这玩意，能不能直接做成
   Attribute + 反射？反射期间看实现了哪些接口决定这个东西有什么性质" — declarations live next to the code that
   owns them, the framework discovers them, and the interfaces a class implements decide what it is. The design
   below was settled in the same conversation (the multi-interface answer is the user's question and this

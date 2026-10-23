@@ -4,7 +4,7 @@ Risk tier: **FULL** (a mod-visible `Abstractions` contract, cross-module wiring,
 that executes mod-authored code). Reviewed revision: the UNCOMMITTED working tree on `master` at HEAD
 `08873a6c`, read FROZEN — no file was modified, and `dotnet format` was not run in any form (not even
 `--verify-no-changes`, because a mistake there would rewrite the tree this review's premise depends on).
-Change reviewed: `docs/backlog/review/mod-content-attribute-declarations.md` stage B, decision 252, against the
+Change reviewed: `docs/backlog/done/mod-content-attribute-declarations.md` stage B, decision 252, against the
 author's own record `docs/evidence/selfchecks/mod-api/mod-content-declaration-binding-selfcheck.md`.
 
 ## A0 — the premise, before anything else
@@ -142,11 +142,11 @@ none).
 This cycle re-pointed `docs/backlog/README.md`, the sibling ticket, decision 251's row, the code comment in
 `tests/CasualtiesUnknownOnline.Tests/Patching/ModAuthoredDefinitionBindingTests.cs` and the MANIFEST row of
 `mod-content-declaration-contract-selfcheck.md` — and left two records whose MANIFEST rows are still `current`
-naming `docs/backlog/review/mod-content-attribute-declarations.md`, which no longer exists:
+naming `docs/backlog/done/mod-content-attribute-declarations.md`, which no longer exists:
 
 - `docs/evidence/selfchecks/mod-api/mod-content-declaration-contract-review.md` — *"Change reviewed:
-  `docs/backlog/review/mod-content-attribute-declarations.md` stage A, decision 251"*.
-- `docs/evidence/selfchecks/mod-api/mod-api-typed-seams-review.md` — *"`docs/backlog/review/mod-content-attribute-declarations.md` re-points"*.
+  `docs/backlog/done/mod-content-attribute-declarations.md` stage A, decision 251"*.
+- `docs/evidence/selfchecks/mod-api/mod-api-typed-seams-review.md` — *"`docs/backlog/done/mod-content-attribute-declarations.md` re-points"*.
 
 `BacklogReferenceGateTests` exempts `evidence/selfchecks/` by design
 (`RecordPrefixes = ["backlog/done/", "backlog/resolved/", "evidence/selfchecks/"]`), which is why the gates stay

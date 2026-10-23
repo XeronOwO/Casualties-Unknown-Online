@@ -1,13 +1,13 @@
 # A declaration's nested member types are not contracts either
 
 - Status: Review — **landed 2026-10-09** (see *What landed*): nothing is left to develop here, and the
-  acceptance batch is pending. It was split out of `docs/backlog/review/mod-content-attribute-declarations.md`
+  acceptance batch is pending. It was split out of `docs/backlog/done/mod-content-attribute-declarations.md`
   when that ticket's stage B landed: that ticket's settled shape names these contracts ("the same rule applies
   one level down to every member type a provider reads"), so stage A delivered the nine KIND interfaces and
   this cycle delivered the fourteen nested ones.
 - Priority: Medium
 - Category: Mod platform / mod API
-- Related: `docs/backlog/review/mod-content-attribute-declarations.md` (the kind-level contract this completes
+- Related: `docs/backlog/done/mod-content-attribute-declarations.md` (the kind-level contract this completes
   one level down), `docs/backlog/done/mod-content-typed-registration.md` (the typed definition this hangs
   off), `docs/en/reference/modification-policy.md` (every added surface is a reviewed baseline change),
   decision 253 (the two calls this ticket left open).

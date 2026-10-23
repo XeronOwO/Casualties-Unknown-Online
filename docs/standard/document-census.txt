@@ -214,7 +214,7 @@ docs/backlog/resolved/runtime-log-errors-2026-08-30.md | keep | index | docs/bac
 docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/review/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/bilingual-human-docs.md | keep | index | docs/backlog/README.md
-docs/backlog/review/cheat-permission-and-op-commands.md | keep | index | docs/backlog/README.md
+docs/backlog/done/cheat-permission-and-op-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/backlog/README.md
 docs/backlog/review/concurrent-medical-operations.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cross-player-item-use-random-determinism.md | keep | index | docs/backlog/README.md
@@ -1089,7 +1089,8 @@ docs/evidence/acceptance/online-ui-layout-and-input-detail-pass-20261015-b.md | 
 docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-d.md | keep | claim | docs/backlog/done/online-ui-paired-controls-and-page-scroll.md
 docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261015-e.md | keep | claim | docs/backlog/done/online-ui-paired-controls-and-page-scroll.md
 docs/evidence/acceptance/20261017-q-scope.md | keep | claim | docs/evidence/acceptance/give-item-to-a-player-command-20261017-q.md
-docs/evidence/acceptance/cheat-permission-and-op-commands-20261017-q.md | keep | claim | docs/backlog/review/cheat-permission-and-op-commands.md
+docs/evidence/acceptance/cheat-permission-and-op-commands-20261017-q.md | keep | claim | docs/backlog/done/cheat-permission-and-op-commands.md
+docs/evidence/acceptance/cheat-permission-and-op-commands-20261024-a.md | keep | claim | docs/backlog/done/cheat-permission-and-op-commands.md
 docs/evidence/acceptance/give-item-to-a-player-command-20261017-q.md | keep | claim | docs/backlog/done/give-item-to-a-player-command.md
 docs/evidence/acceptance/item-and-entity-data-commands-20261017-q.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
 docs/evidence/acceptance/give-item-to-a-player-command-20261018-q.md | keep | claim | docs/backlog/done/give-item-to-a-player-command.md

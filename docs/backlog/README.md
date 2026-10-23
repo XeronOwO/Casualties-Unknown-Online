@@ -81,7 +81,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.
-- [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
@@ -174,6 +173,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Cheat permission and the op commands](done/cheat-permission-and-op-commands.md) — **Medium-High** — accepted 2026-10-24: the IP-direct row passed.
 - [A typo in a rule's config value silently widens it](done/config-clamp-silently-widens-rule-levels.md) — **Medium-High** — accepted: fallback first.
 - [The delivery-checklist gate reads no census](done/delivery-checklist-gate-census.md) — **Low** — accepted 2026-10-24; two censuses now guard it.
 - [Live tickets cite the deleted `docs/api/` pages](done/stale-api-doc-paths-in-live-tickets.md) — **Low** — swept 2026-10-24; paths resolve.

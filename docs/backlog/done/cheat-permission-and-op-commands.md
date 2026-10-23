@@ -1,15 +1,16 @@
 # Cheat permission, `/op` and `/deop`: who may run the cheat verbs
 
-- Status: Review — **filed 2026-10-18** from the user's ruling on the `/give` verb's authority question (stage C of
+- Status: Done — **filed 2026-10-18** from the user's ruling on the `/give` verb's authority question (stage C of
   `docs/backlog/done/item-and-entity-data-commands.md`), and **widened the same day** by the user's combined
   direction (below), which supersedes the "`/give` host-only first" step. The first ruling in the user's own
   words: "`/op` `/deop` 这种命令能给他人授权或剥夺作弊权限(拓展:将某人加入作弊权限白名单,需要同时考虑 Steam ID 与
   IP 直连场景,对于 IP 直连场景可能需要额外评估玩家名伪造问题),主机的作弊权限通过联机开关控制,授权与剥夺只允许主
   机对其余客机执行". **Both halves landed**: the permission mechanism — `/op`, `/deop`, the announced roster, the
   host's cheat SWITCH and the two-sided check on `/data`'s write verbs (see *The permission mechanism landed*) —
-  and `/give`, the same cycle's second half (`done/give-item-to-a-player-command.md`). The acceptance rows at
-  the end are what a real run still owes; the UI and the persistence layers are the NEXT ticket (the user's
-  direction, recorded below).
+  and `/give`, the same cycle's second half (`done/give-item-to-a-player-command.md`). **Accepted 2026-10-24**:
+  rows 1-5 in batch `20261017-q`, row 6 (the IP-direct session) in batch `20261024-a` on the current artifact
+  (`docs/evidence/acceptance/cheat-permission-and-op-commands-20261024-a.md`). The UI and the persistence
+  layers are the NEXT ticket (the user's direction, recorded below).
 - Priority: Medium-High — it shipped WITH `/give` and the two-sided check for the cheat family, so it queued
   ahead of the rest of the item-data ticket's stage C.
 - Category: Command surface / session authority / permissions
@@ -198,6 +199,15 @@ without a live session (the drop branch is now covered regardless).
 console's own sentence quoted in the record), row 6 (IP-direct) is **unproven** — no transport lever in that
 batch; the ticket stays in `review/` for it. Record:
 `docs/evidence/acceptance/cheat-permission-and-op-commands-20261017-q.md`.
+
+**Row 6 passed in batch `20261024-a`** on `0.1.0+2dfe2071…`: the two clients joined through the Online UI's
+IP-direct transport (host `ip.create_host`, member `127.0.0.1:7777` `ip.join`), the host's `/op <member>`
+answered the IP-direct sentence (`This session is IP-direct: a peer is known by the logical id its own
+connection registered, not by an account, … Cheat permission is not granted in an IP-direct session.`), and
+the member's `/gamerule pvp_enabled false` was refused by the announced roster; the host's own rule query
+still answered. Record: `docs/evidence/acceptance/cheat-permission-and-op-commands-20261024-a.md`. Rows 1-5
+were **not** re-driven on the current artifact (their wording names `/data set` and a granted member holding
+a known item); their verdicts stand from `20261017-q`, and the record says so rather than implying a re-run.
 
 1. Host + member in one world, switch closed, grant present: the member types `/data set id <its item>
    condition …` and reads the SWITCH's sentence; the host's `/data get id <it>` still shows the old value.

@@ -91,6 +91,10 @@ configurable interval) so gameplay traffic keeps priority, and the transfer's ow
 the existing traffic accounting.
 
 **Audio format, staged.** Stage A plays WAV (PCM) through `AudioClip.Create` + `SetData`, needing no decoder.
+Its decode half landed in the same capability (`BulkTransfer.Core/Audio/WavFile`): RIFF/WAVE PCM (8- or 16-bit)
+and IEEE float 32, mono or stereo, with the pad byte between chunks respected, and everything else refused with
+its reason — a compressed payload behind a WAV header, a truncated chunk, an unsupported channel count — so a
+corrupted transfer is never turned into noise; seven tests pin it.
 MP3/OGG need a decoder dependency or the game's own runtime audio loader, and that choice is Stage B; the
 ticket's "MP3 and the like" is therefore partly a later stage rather than a silent omission.
 

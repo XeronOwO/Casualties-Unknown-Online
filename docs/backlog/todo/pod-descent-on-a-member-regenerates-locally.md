@@ -1,10 +1,11 @@
 # A member's drill-pod descent regenerates a layer the session never agreed on
 
 - Status: Todo — the main routing landed 2026-10-24 (the member's pod descent is delegated with its two-layer
-  step, the host drives it, the rider follows the edge; read on two clients). The ticket stays `todo` for the
-  refusal rows (host dead, rider out of the world, the repair kit consumed by another member) and their named
-  refusal lines. Record:
-  `docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md`.
+  step, the host drives it, the rider follows the edge; read on two clients), and so did the refusal answer
+  (`NetMsg.LayerAdvanceRefused`, host → the one requester, with the host's own reason), read on the machine for
+  a request the host could not take. The ticket stays `todo` for the three NAMED failure stagings (host dead,
+  rider out of the world, the repair kit consumed by another member), which now have the answer path to ride.
+  Record: `docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md`.
 - Priority: Medium
 - Category: World generation / layer transition / descent producers
 - Source: found by the family sweep of the 2026-10-07 cycle that landed

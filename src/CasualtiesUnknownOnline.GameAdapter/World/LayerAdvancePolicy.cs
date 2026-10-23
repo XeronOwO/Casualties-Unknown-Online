@@ -53,4 +53,16 @@ internal static class LayerAdvancePolicy
 
 		return generating || regenerating ? LayerAdvanceDecision.AlreadyAdvancing : LayerAdvanceDecision.Drive;
 	}
+
+	/// <summary>
+	/// The sentence the host answers a refused request with, and the one it logs: one wording for both sides.
+	/// Kept beside <see cref="DecideDrive"/> so a new decision cannot be answered with a sentence about another.
+	/// </summary>
+	internal static string DescribeRefusal(LayerAdvanceDecision decision) => decision switch
+	{
+		LayerAdvanceDecision.NotThisSides => "this host is not in a live session.",
+		LayerAdvanceDecision.NoWorld => "this host has no live world.",
+		LayerAdvanceDecision.AlreadyAdvancing => "the layer is already advancing.",
+		_ => "the layer cannot advance right now.",
+	};
 }

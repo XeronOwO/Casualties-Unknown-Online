@@ -51,11 +51,31 @@ Before the change the same probe on a guest left the HOST at `depth:0` with 26 p
 `0 -> 2` on its own (the ticket's own earlier reading). The member no longer regenerates a layer the session
 never agreed on.
 
+## The refusal answer, read on the machine (same batch, later run)
+
+The ticket also wants a request the host cannot take to be refused ON THE MEMBER with a named line. The
+mechanism landed as `NetMsg.LayerAdvanceRefused` (host → the one requester, the host's own reason sentence) and
+was read by staging exactly that: a second pod request from the same member while the host was already in the
+transition. The two requests went out back to back (the member's log carries both
+`[LayerChoice] sent this side's end-of-layer choice to the host (run 1 layer 0, twice: True).`), and:
+
+```
+[host] [LayerChoice] <guest>'s choice drives the layer advance (twice: True) — this host regenerates the layer ...
+[host] [LayerChoice] <guest>'s choice did not drive an advance (NoWorld) — the layer stays where it is.
+[host] [LayerChoice] answered <guest> with the refusal: this host has no live world.
+[guest] [LayerChoice] the host refused this side's layer advance: this host has no live world.
+```
+
+So the second request was admitted (same generation) and answered rather than silently dropped, and the member
+— which had suppressed its own descent to ask — learned that the layer did not move, with the host's own
+sentence. The `NoWorld` decision reflects the instant (the host's `WorldGeneration.world` is null during the
+layer transition); the same answer covers a host that is already regenerating.
+
 ## Limits
 
 - The pod's producer (`DrillPod.Update`'s repair + 5 s crouch) was not staged; the probe starts the same sink
   call the producer starts, which is the behaviour under test. The producer's own UI reachability is unchanged.
-- The refusal rows (host dead, rider out of the world, the repair kit consumed by another member) are NOT yet
-  read: the delegation currently refuses by keeping the game's own descent when there is nothing to report, and
-  the ticket's named-refusal shape for those cases is still to implement.
+- The three named failure rows (host dead, rider out of the world, the repair kit consumed by another member)
+  are NOT yet staged; the refusal ANSWER they need is now in place and read on the machine for the
+  "host cannot take it now" case, which is the same path.
 - No OS-level mouse or keyboard input was used.

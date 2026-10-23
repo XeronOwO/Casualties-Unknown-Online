@@ -79,6 +79,39 @@ public class LayerAdvanceRequestTests
 		Assert.Equal([(w.G1.SteamId, true)], choices);
 	}
 
+	/// <summary>
+	/// A request the host cannot drive is ANSWERED: the member suppressed its own descent when it asked, so the
+	/// refusal line is the only way it learns the layer did not move.
+	/// </summary>
+	[Fact]
+	public void ARefusedRequest_IsAnsweredToTheRequesterWithTheHostsReason()
+	{
+		using var w = ItemSimWorld.Create();
+		var refusals = new List<string>();
+		w.G1.Services.GetRequiredService<ILayerAdvanceControl>().LayerAdvanceRefused += reason => refusals.Add(reason);
+
+		w.Host.Services.GetRequiredService<ILayerAdvanceControl>().RefuseLayerAdvance(w.G1.SteamId, "the layer is already advancing.");
+		w.Driver.Tick(33);
+
+		Assert.Equal(["the layer is already advancing."], refusals);
+	}
+
+	/// <summary>A refusal is trusted only from this session's host: a forged answer must not print on a member.</summary>
+	[Fact]
+	public void ARefusalFromAPeerThatIsNotTheHost_IsDropped()
+	{
+		using var w = ItemSimWorld.Create();
+		var refusals = new List<string>();
+		w.G1.Services.GetRequiredService<ILayerAdvanceControl>().LayerAdvanceRefused += reason => refusals.Add(reason);
+
+		const ulong Stranger = 999_000_123UL;
+		w.Driver.Network.Deliver(Stranger, w.G1.SteamId,
+			NetPacket.Encode(NetMsg.LayerAdvanceRefused, new LayerAdvanceRefusedMsg { Reason = "forged" }));
+		w.Driver.Tick(33);
+
+		Assert.Empty(refusals);
+	}
+
 	[Fact]
 	public void AChoiceForALayerTheHostHasLeft_IsRefused()
 	{

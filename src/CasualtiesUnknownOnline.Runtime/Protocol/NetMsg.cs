@@ -480,4 +480,10 @@ public enum NetMsg : byte
 	HostRuleChangeRequest = 161, // guest → host: set this host rule to this canonical value (the member's /gamerule)
 	HostRuleChangeResult = 162, // host → requester: the value in force after the write, or the refusal that answered it
 
+	// The answer to a member's layer-advance request the host could not take (no live world, or a regeneration
+	// already running). The member suppressed its own descent when it asked, so without this line the refusal is
+	// silent and the member simply stays in the layer it was in — the same "a refusal nobody reads is
+	// indistinguishable from a command that did nothing" rule the console family already follows.
+	LayerAdvanceRefused = 163, // host → requester: the layer advance was refused, with the reason the host logged
+
 }

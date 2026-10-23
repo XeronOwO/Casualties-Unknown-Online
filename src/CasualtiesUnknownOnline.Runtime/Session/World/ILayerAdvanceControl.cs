@@ -36,6 +36,19 @@ public interface ILayerAdvanceControl
 	/// <summary>Host only: a member's end-of-layer choice arrived. It is admitted only from a handshaken member and only when it names the generation this host is in; what it then means for the live world — driving the native end-of-layer entry, exactly once — is the world domain's decision.</summary>
 	void HandleLayerAdvanceRequest(ulong sender, LayerAdvanceRequestMsg msg);
 
+	/// <summary>
+	/// Host only: the admitted request could not be driven (no live world, or a regeneration already running).
+	/// The requester suppressed its own descent when it asked, so this answer is the only way it learns the
+	/// layer did not move. Sent to that requester only.
+	/// </summary>
+	void RefuseLayerAdvance(ulong requester, string reason);
+
+	/// <summary>Guest: the host answered that it could not take this side's request — the refusal line, carrying the host's own reason.</summary>
+	void HandleLayerAdvanceRefused(ulong sender, LayerAdvanceRefusedMsg msg);
+
+	/// <summary>Guest: the host's refusal of this side's layer-advance request, with the host's own reason sentence.</summary>
+	event Action<string>? LayerAdvanceRefused;
+
 	/// <summary>Host only: a member's end-of-layer choice was admitted for the layer this host is in — the world's next step is the host's to take, at the step (one or two layers) the requester's descent carries.</summary>
 	event Action<ulong, bool>? LayerAdvanceRequested;
 }

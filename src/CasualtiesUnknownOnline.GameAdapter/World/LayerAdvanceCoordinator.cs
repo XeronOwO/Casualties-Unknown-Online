@@ -176,6 +176,7 @@ internal sealed class LayerAdvanceCoordinator(
 		if (world == null) // Unity object — ==
 		{
 			_log.LogWarning("[LayerChoice] {Sender} chose to continue but this host has no live world — nothing to advance.", sender);
+			_layerAdvance.RefuseLayerAdvance(sender, "this host has no live world.");
 			return;
 		}
 
@@ -184,6 +185,7 @@ internal sealed class LayerAdvanceCoordinator(
 		if (decision != LayerAdvanceDecision.Drive)
 		{
 			_log.LogInformation("[LayerChoice] {Sender}'s choice did not drive an advance ({Decision}) — the layer stays where it is.", sender, decision);
+			_layerAdvance.RefuseLayerAdvance(sender, LayerAdvancePolicy.DescribeRefusal(decision));
 			return;
 		}
 

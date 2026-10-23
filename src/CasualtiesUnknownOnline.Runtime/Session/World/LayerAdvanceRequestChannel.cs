@@ -43,6 +43,9 @@ public sealed class LayerAdvanceRequestChannel(
 	/// <summary>Host only: a member's choice was admitted (handshaken member, this host's own generation) — the world domain drives the layer's advance, at the step the request carries.</summary>
 	public event Action<ulong, bool>? LayerAdvanceRequested;
 
+	/// <summary>Guest: the host's refusal of this side's request, with the host's own reason sentence.</summary>
+	public event Action<string>? LayerAdvanceRefused;
+
 	/// <summary>
 	/// Any role: report this side's end-of-layer choice to the host. Guest only (the host's and a solo
 	/// player's own choice IS the session's advance, so nothing travels), and nothing is sent without a
@@ -98,5 +101,36 @@ public sealed class LayerAdvanceRequestChannel(
 		_log.LogInformation("[LayerChoice] {Sender} chose to continue at {Current} — the advance is this host's to drive (twice: {Twice}).",
 			sender, WorldReportGeneration.Describe(_generations.Current), msg.Twice);
 		LayerAdvanceRequested?.Invoke(sender, msg.Twice);
+	}
+
+	/// <summary>Host only: the admitted request could not be driven — answer that requester with the host's own reason.</summary>
+	public void RefuseLayerAdvance(ulong requester, string reason)
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		_sender.Send(requester, NetMsg.LayerAdvanceRefused, new LayerAdvanceRefusedMsg { Reason = reason });
+		_log.LogInformation("[LayerChoice] answered {Requester} with the refusal: {Reason}", requester, reason);
+	}
+
+	/// <summary>Guest: the host's refusal arrived — trusted only from this session's host, like the rule-change answer.</summary>
+	public void HandleLayerAdvanceRefused(ulong sender, LayerAdvanceRefusedMsg msg)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		if (sender != _session.HostSteamId)
+		{
+			_log.LogWarning("[LayerChoice] dropped a layer-advance refusal from {Sender}: not this session's host.", sender);
+			return;
+		}
+
+		var reason = string.IsNullOrWhiteSpace(msg.Reason) ? "the host refused the layer advance." : msg.Reason!;
+		_log.LogWarning("[LayerChoice] the host refused this side's layer advance: {Reason}", reason);
+		LayerAdvanceRefused?.Invoke(reason);
 	}
 }

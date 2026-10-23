@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -54,6 +55,15 @@ public class LayerAdvanceCoordinatorTests
 		}
 
 		public void HandleLayerAdvanceRequest(ulong sender, LayerAdvanceRequestMsg msg) => LayerAdvanceRequested?.Invoke(sender, msg.Twice);
+
+		/// <summary>The refusals this side sent, so the host's answer path is checkable.</summary>
+		public List<(ulong Requester, string Reason)> Refusals { get; } = [];
+
+		public event Action<string>? LayerAdvanceRefused;
+
+		public void RefuseLayerAdvance(ulong requester, string reason) => Refusals.Add((requester, reason));
+
+		public void HandleLayerAdvanceRefused(ulong sender, LayerAdvanceRefusedMsg msg) => LayerAdvanceRefused?.Invoke(msg.Reason ?? string.Empty);
 	}
 
 	private static (object Coordinator, FakeLayerAdvance Advance) Build(SessionRole role, bool sessionActive, bool sends = true)

@@ -6,8 +6,11 @@
   stays named rather than given a behavioural bound. Row 1's machine reading was attempted in batch `20261023-d`
   (the drag could not be started; record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`)
   and `20261023-e` (the give ran and the receiver placed the item, but no outcome reached the host: the kernel wire
-  dropped the two flags, fixed with this ticket's commit — the re-read is still owed, record
-  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md`).
+  dropped the two flags, fixed with this ticket's commit). **Row 1 now reads on the fixed artifact**: batch
+  `20261023-f` saw the receiver's `[Placement] item …: placed it at slot 1 — reporting it to the host.` and the
+  host's `[Placement] item … is where this host wrote it (slot 1): the placement outcome matches, nothing moved.`
+  (record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md`). The ticket stays open for the
+  NOT-APPLIED half, which is undeveloped work.
 - Priority: Low-Medium
 - Category: Cross-player custody / member-report bounds / anti-duplication
 - Blocked by: nothing external. The remaining half needs an anchor for a NEGATIVE claim ("my live body placed
@@ -161,9 +164,10 @@ recorded here with the code it cites; all of them were fixed in the same commit.
    cell the press path does not reach; record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`).
    Batch `20261023-e` performed the give on `0.1.0+aaf89655…`: the receiver answered `slot 1` and placed the bandage
    there, but no outcome line appeared on either client; the cause was the kernel wire dropping the two flags, fixed
-   with this ticket's commit. The re-read on the fixed artifact is **owed** and was not run (the user's 2026-10-23
-   instruction: tickets and code only while the machine was needed for a co-op session), so this row still has no
-   runtime reading on the fixed artifact — only the behaviour tests and the shape pins.
+   with this ticket's commit. **The re-read on the fixed artifact is `PASS`**: batch `20261023-f` repeated the
+   gesture on `0.1.0+9226c020…` and read the receiver's own `placed it at slot 1 — reporting it to the host.` beside
+   the host's `is where this host wrote it (slot 1): the placement outcome matches, nothing moved.` (record
+   `docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md`).
 2. A receiving client that changed its body reports a different place or a refusal; the host refuses the outcome
    by name, returns the row, and the giver sees the return. — **PASS by test**:
    `APlacementThatLandedSomewhereElse_IsRefusedAndReturned` (a container that refused on the receiver, so the
@@ -185,8 +189,9 @@ recorded here with the code it cites; all of them were fixed in the same commit.
   `20261023-d` could not produce the machine half either (its record says why).
 - The kernel wire carried the transfer without the give's two flags until this commit, so no real receiver could
   report at all; batch `20261023-e` is the attempt that found it (record
-  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md`). The reader on the fixed artifact is
-  owed, not claimed.
+  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md`), and batch `20261023-f` read both
+  clients' lines on the fixed artifact (record
+  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md`).
 - A return the host cannot make (the item is no longer in the receiver's snapshot, or the giver has no free slot)
   is logged at Error and the reporter is not answered — the limit `review/placement-outcome-never-returns.md`
   already records.

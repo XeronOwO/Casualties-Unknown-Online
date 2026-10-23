@@ -1,7 +1,11 @@
 # The give gesture respects the player's own UI
 
-- Status: Review — the independent review's blocker and majors are fixed in the same change; the machine rows
-  below are owed.
+- Status: Todo — Rejected (batch `20261023-f`, record `docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md`:
+  row 4 fails — the centre WEAR is refused on every target by a pre-existing defect in the placement resolver
+  (`GameWearPlacement.TryResolve` never writes the resolved limb index, `d0fcfa27`); row 7 unproven — a
+  view-only display needs the host rule `RemoteBackpackAccess=unconscious_or_dead`, which the run cannot
+  stage). Rows 1, 2, 3, 5, 6, 8, 9 and 10 pass on the record's evidence; row 4's fix is ordinary development
+  work with a red test on the resolver's success path.
 - Priority: Medium-High
 - Category: Cross-player gesture / UI precedence / native parity
 - Blocked by: nothing external. The machine reading needs one two-client session.
@@ -140,21 +144,40 @@ here with what it changed; the blocker and the majors were fixed in the same cha
   geometrically disjoint (centre radius vs the InvButton band) and recorded as such; the centre hit test no longer
   pretends to mirror the tag.
 
-## Acceptance (machine rows, owed)
+## Acceptance (batch 20261023-f, 2026-10-23) — the machine rows
 
-1. Own ring open, drag an item and move the cursor through a teammate's range: the teammate's backpack stays closed
-   and the release keeps the local/drop action.
-2. Close the own ring during the drag (the game's own toggle): entering a teammate's range opens their backpack;
-   releasing on a slot gives; on the centre uses; in the range off the UI drops.
-3. Centre use of a usable item on the displayed player: the target executes it, and the backpack stays open.
-4. Centre wear of a wearable: the displayed player wears it, and the giver's body does not.
-5. Centre with an item that has no use/wear action: nothing happens and the item stays in the giver's hand.
-6. A release on the displayed backpack's centre is a USE/WEAR, never the native drop (`[DragUse] used …`), and the
-   use cue names the displayed player there.
-7. View-only displayed backpack: a centre use/wear is refused with one line and nothing moves.
-8. B → C: with B's backpack displayed, dragging into C's range displays C's backpack (the last entered range wins).
-9. The local wound/medical panel open: dragging an item does not open any remote backpack.
-10. Repeated toggles: one press closes the displayed backpack, a second opens the player's own; no stuck state.
+Driven on the deployed `0.1.0+9226c020abb665adda8bf676d63aac973511d39f` artifact with the real pointer in one
+two-client session (plus the alternate sandbox for row 8); the record
+`docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md` carries each verdict with its log
+lines and artifacts.
+
+| # | Row | Verdict |
+|---|---|---|
+| 1 | Own ring open, cursor through a teammate's range — their backpack stays closed, the release stays local | pass |
+| 2 | Tab during the drag enters the world; a slot gives, off the ring drops | pass |
+| 3 | Centre use of a usable item on the displayed player — the target executes it, the bag stays open | pass |
+| 4 | Centre wear of a wearable on the displayed player | **fail** — refused on every target |
+| 5 | Centre with an item that has no use/wear action — nothing happens, the item stays in hand | pass |
+| 6 | A centre release is a USE/WEAR (`[DragUse] used …`), and the cue names the displayed player | pass |
+| 7 | View-only displayed backpack — the centre use/wear is refused with one line | **unproven** — the rule could not be staged |
+| 8 | B → C — the last entered range displays | pass |
+| 9 | The local wound panel open — no remote backpack | pass |
+| 10 | One press closes the displayed bag, the second opens the own ring | pass |
+
+**Row 4 is a product defect, not a fixture gap.** `GameWearPlacement.TryResolve`
+(`src/CasualtiesUnknownOnline.GameAdapter/Content/GameWearFacts.cs`) resolves the limb layout with
+`TryResolveLimbIndex(…, out _)` and then returns `true` without ever writing its own `limbIndex` out
+parameter: `wearSlotId = info.wearSlotId; return true;`. `GameWearSemantics.TryGetWearPlacement` therefore
+answers `-1` on every success, and `RemoteWearApplication.TryCreateWornItem` refuses at its first guard — the
+machine's own line was `[ItemUse] refused: bikehelmet … cannot be placed on <member> — target limb
+missing/dismembered or wear slot already occupied` while the target's stored snapshot had all 15 limbs
+attached. `git blame` puts the lost assignment on `d0fcfa27` (2026-10-11); no test covers the success path's
+index. The fix is a regression test that fails on this tree plus the missing assignment.
+
+**Row 7's staging gap** is tooling, not product: the admin page's rule row is a native `TMP_Dropdown` whose
+options carry no CUO control ids, the driver has no value-carrying selection, and no console verb writes the
+rule — so the only state that makes a display view-only cannot be reached by an in-process run. A driveable
+rule switch (a control id per option, or a console verb) is what the row needs.
 
 ## Limits (recorded, not claimed away)
 
@@ -166,8 +189,12 @@ here with what it changed; the blocker and the majors were fixed in the same cha
   shipped cross-player transfer and is unchanged: it is not a local-item drag, so the own-UI gate does not cover it.
 - No hint was added: the discoverable step is closing the player's own bag (the same key that opened it).
 - A second Tab on the very next frame after closing a displayed backpack can re-display it for one frame before the
-  focus-clearing path runs (ordering residual).
+  focus-clearing path runs (ordering residual) — not observed in batch `20261023-f`, where the two presses were a
+  second apart and the state after each was the expected one.
 - A dual-flag wearable+usable item is worn, not used, because CUO sends one family and the classifier puts wear
-  first; the native centre would run both. Confirm against the ruling.
-- The machine rows are OWED: the round that landed this code was scoped to tickets and code only (the user's
-  2026-10-23 instruction), and the machine was in a co-op session. Nothing here is machine-verified.
+  first; the native centre would run both. Confirm against the ruling. (Batch `20261023-f` could not read this:
+  the wear arm refuses every item until row 4's resolver defect is fixed.)
+- Batches `20261022-h` and `20261022-f` read the gesture under the model this ticket replaces; their records stay
+  point-in-time and are not re-pointed.
+- Batch `20261023-f` drove each row once (row 8's third client joined a running session); a race inside the gate is
+  not excluded by one repetition per row.

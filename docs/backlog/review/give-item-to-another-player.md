@@ -14,7 +14,7 @@
 ## Design (2026-10-22 — the user's ruling; this is the current design)
 
 **Superseded in part on 2026-10-23** by the user's own review: the entry and the use target now follow
-`review/give-gesture-own-ui-and-center-use.md` — the detection range is read only outside the player's own UI, the
+`todo/give-gesture-own-ui-and-center-use.md` — the detection range is read only outside the player's own UI, the
 displayed backpack's CENTRE is the use/wear target, and a use no longer closes the backpack. The steps below are the
 2026-10-22 record; the row table is re-based to the current model.
 

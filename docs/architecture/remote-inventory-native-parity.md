@@ -538,7 +538,7 @@ check is the compatibility boundary; no dual shape is kept.
     The display's CENTRE is the use/wear target of that player (user ruling 2026-10-23), and a release anywhere
     else keeps the native drop. The detection range only chooses whose backpack is displayed, and it is read only
     OUTSIDE the player's own UI: while the own ring or a panel is open the drag means the local body and no other
-    backpack opens (`review/give-gesture-own-ui-and-center-use.md`). A proxy target that cannot be named still keeps the refusal line
+    backpack opens (`todo/give-gesture-own-ui-and-center-use.md`). A proxy target that cannot be named still keeps the refusal line
     (`done/local-item-into-remote-display.md`): stage 1 recorded this corner as "its slot operand comes from
     the ring (the owner's body)" and left it running, and batch `20261006-d` measured what that cost — the
     native container branch loaded this client's OWN item into the proxy, the clone rebuild unloaded it into

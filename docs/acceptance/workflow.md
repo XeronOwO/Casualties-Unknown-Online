@@ -301,3 +301,8 @@ Which steps of this page are executable today, and which are still being built:
 - Frames are read, not measured: a judgement call that depends on millisecond feel stays a residual.
 - The dependency table is the boundary of what a run can do. Anything outside it is not "untested" —
   it is `blocked`, with the question asked.
+- **A host rule cannot be changed from inside a run.** The admin page's rule rows are native
+  `TMP_Dropdown`s whose options carry no CUO control ids (an invoked row highlights the field, and the
+  driver has no value-carrying selection), and no console verb writes them; a row that needs a non-default
+  rule is `unproven` with the gap recorded, never approximated by editing the config under a live session
+  (batch `20261023-f`'s row 7).

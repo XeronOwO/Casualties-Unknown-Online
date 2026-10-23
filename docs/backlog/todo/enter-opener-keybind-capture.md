@@ -41,3 +41,20 @@ The pause-menu path is the ordinary way a player reaches a key-bind row in a run
 page is the other entrance. Until this lands, the guard's doc comment names the gap
 (`INativeInputBlocker.IsTheGamesOwnTextInputFocused`), so a reader of the guard does not mistake the
 coverage for complete.
+
+## Decision point (2026-10-24) — waiting on the user
+
+The shape is a design decision because the cheap one changes when the opener works:
+
+1. **A capture-state fact** (recommended): an adapter patch around `SettingsMenu.WaitForKeyPress` (or a
+   reflective read of its coroutine) exposes "a key-bind row is waiting", and the guard asks it. Precise, no
+   behaviour change outside the capture, but it patches a game coroutine.
+2. **A pause gate**: the guard answers true while the game is paused. One line (`PauseHandler.paused`), but it
+   also stops `/` and Enter from opening CUO's console whenever the game is paused — a user-visible change
+   beyond the capture, and the main-menu settings capture stays uncovered.
+3. **Patch the game's console/capture to deselect or clear** on close — fixes the root cause but changes game
+   UI behaviour for the console's own use.
+
+Recommendation: option 1 for the capture plus the guard's current console fact; option 2 only if the user
+wants "no CUO opener while paused" as its own rule. No work is started because the patch-vs-pause choice is
+user-visible.

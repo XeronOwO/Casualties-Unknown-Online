@@ -107,3 +107,17 @@ member was already in the world by the time it was read, so the roster was empty
 whether the longer lines fit the panel. The batch's own first attempt is kept in the record because it read the
 OLD wording off a stale deployment and its verification step said exactly why — a batch that reads a deployed
 artifact has to stop on a failed verification rather than log it.
+
+## Decision point (2026-10-24) — waiting on the user
+
+Two surfaces can show the wait, and the ticket's own words ("reuse the loading screen's own bottom-right
+text") point at the native one:
+
+1. **Write the native `WorldGeneration.loadingText`** (recommended: it is the surface the user named, and it
+   stops the screen drawing CUO's panel over a stale native phase). It needs an adapter binding for that
+   `TextMeshProUGUI` and a rule for when the game's own phase text owns the line again.
+2. **Keep CUO's own IMGUI panel** (today's implementation): no new binding, but it draws over the native string
+   and does not satisfy "reuse the loading screen's own text".
+
+The wording itself is already landed and tested; only the surface is open. No work is started because the
+surface is a user-visible choice.

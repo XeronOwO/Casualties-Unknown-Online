@@ -202,3 +202,19 @@ recorded here with the code it cites; all of them were fixed in the same commit.
 - The outcome is keyed by the item's instance id. The query id would tie it to one committed give, but the
   transfer the receiver applies does not carry that id, and adding it would be a second wire change; a duplicated
   frame within the 60 s window is the only way to mismatch, on a reliable channel.
+
+## Decision point (2026-10-24) — waiting on the user
+
+The APPLIED arm is anchored and accepted; the NOT-APPLIED arm can only be bounded by a new claim, and the
+options are a design decision:
+
+1. **Keep it named** (recommended): decision 265 already says a report with no data anchor is named rather
+   than given a behavioural bound; the census row says `unbounded` and the exploit is narrowed. Close the
+   remaining half as a recorded limit instead of developing it.
+2. **A "where it is NOT" claim**: the receiver must name the place it did not use even when it placed nothing;
+   that is still a negative fact about another client's body and cannot be reproduced by the host, so it would
+   be a second, weaker simulation.
+3. **A per-give echo with a nonce**: narrows replay, not the absence claim.
+
+Recommendation: option 1, with the duplication recorded as the named MVP limit (the ticket's own text already
+leans there). No code is started because the choice decides what the protocol claims.

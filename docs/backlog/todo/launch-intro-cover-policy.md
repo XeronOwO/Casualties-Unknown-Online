@@ -64,3 +64,20 @@ nothing clears, so the cover stays gone for the rest of the process.
 - Not a redesign of the intro screen itself, and not a removal of the content warning for a player who never
   joins a session: the switch decides, and the default decides for them.
 - Not a change to how a session is joined: this ticket only owns the cover's visibility.
+
+## Decision point (2026-10-24) — waiting on the user
+
+The user already prefers shape 2 (a local preference; on = skip permanently; off = nothing; the friend-join
+launch still shows the cover). Two words are still open and both are user-visible:
+
+1. **The default** — recommended `false` (off): "turn it on to skip permanently" reads as off, and a fresh
+   install keeps the content warning. The alternative (on) matches shape 1's "cover skipped for this
+   installation".
+2. **The friend-join path's confirmation** — the rule is "the cover still shows on a join launch even with the
+   preference on"; implementing it means the join intent must NOT set the skip, and the ticket's own
+   four-path verification includes a launch through Steam's join action, which an in-process acceptance run
+   cannot perform (it needs the OS/Steam handoff) — that row would be a user residual unless the user accepts
+   a simulated intent call as its evidence.
+
+No work is started because the default and that residual are the user's call. The implementation itself is
+small once they are settled: one config entry, one named decision read by both launch paths, the static gone.

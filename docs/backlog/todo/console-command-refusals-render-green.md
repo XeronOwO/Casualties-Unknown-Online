@@ -52,3 +52,13 @@ just its text.
 - The chosen mechanism covers mod console commands and is recorded in the console selfcheck; a test pins the
   kind of a refusal and of a success for at least one built-in and one mod command.
 - No verb is left with a refusal that still renders as success.
+
+## Decision point (2026-10-24) — waiting on the user
+
+The shape is a contract question: option 1 (a typed result: text + kind) is the only one a mod cannot forget,
+and it is the root-cause shape — the handler's signature currently cannot say "this is a refusal". It changes
+`ModConsoleCommand.Handler` in `Abstractions`, so the modification policy applies and the user must approve the
+contract change; options 2 (a console-side prefix/predicate convention) and 3 (a per-command kind table) keep
+the signature but are conventions the next verb can forget / too coarse for a verb with several answers.
+Recommendation: option 1, with a small `ConsoleAnswer`-style record and the built-ins migrated in the same
+change. No work is started because the contract shape is the user's call.

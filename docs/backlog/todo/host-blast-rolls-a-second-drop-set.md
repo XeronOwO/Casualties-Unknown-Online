@@ -94,3 +94,20 @@ show the host's own `[ItemSpawned]` line for a blast victim zero times when the 
 - No change to the member-report bound itself: the reported set is the claim, and that row is already bounded.
 - Not an anti-cheat measure: nothing here models what a player can do; it decides which client's roll becomes
   the world's item facts.
+
+## Decision point (2026-10-24) — waiting on the user
+
+The ownership rule is the open question, and it is a gameplay decision because it decides whose roll becomes
+the world's item facts:
+
+1. **The triggerer owns the death** (recommended — it is decision 184/265's own rule: the side that observed
+   the death rolls, the other side only removes the entity). The host's applier would mark the blast's victims
+   as remote deaths and replay a chain blast instead of letting the chained mine's `OnDestroy` run it outside
+   the scope. The cost is the chain seam.
+2. **The host owns every death its world simulates**: simplest for the direct blast, but it contradicts the
+   member's reported set and leaves the duplicate.
+
+The host-only-death case needs one word too: when the host's own damage roll kills a victim the member's blast
+did not, option 1 leaves the host's roll as the only set (no report exists) — accept that named hole, or add a
+host-authored report channel. Recommendation: option 1 + the named host-only case. No code is started because
+the rule is the user's call.

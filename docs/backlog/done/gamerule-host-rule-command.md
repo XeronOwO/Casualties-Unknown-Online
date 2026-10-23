@@ -161,7 +161,7 @@ centre release of a view-only displayed backpack refused with its one line, and 
 - **No argument completion.** `/gamerule ` does not suggest rule names and a rule name does not suggest its
   values; the refusals (rows 3 and 4) are the discovery surface. Completion is a separate usability item.
   **(Superseded 2026-10-24: the role-filtered completion and `/gamerule`'s two levels landed with
-  `review/console-completion-hides-what-you-cannot-run.md`; this limit describes the accepted batch.)**
+  `done/console-completion-hides-what-you-cannot-run.md`; this limit describes the accepted batch.)**
 - **One rule per command.** A bulk rule change is one console line per rule; Minecraft's verb is the same
   shape.
 - **The query always reads the host's own set.** The verb is host-only, so its value is the host's config;
@@ -188,7 +188,7 @@ The user ruled that the verb joins the op family (a member the host has granted 
 host round trip) and that the console must not offer the command — not even its word — to a caller without
 that authority. The host-only implementation and the batch `20261023-j` acceptance above stand as the record
 of what was built; the follow-ups are `done/gamerule-joins-the-op-family.md` and
-`review/console-completion-hides-what-you-cannot-run.md`, and decision 269 carries the amendment.
+`done/console-completion-hides-what-you-cannot-run.md`, and decision 269 carries the amendment.
 
 ## Independent review (2026-10-24) — every finding and what changed
 

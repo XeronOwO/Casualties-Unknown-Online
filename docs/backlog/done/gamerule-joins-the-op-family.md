@@ -11,7 +11,7 @@
 - Related: `done/gamerule-host-rule-command.md` (the host-only implementation this extends),
   `review/cheat-permission-and-op-commands.md` (the family this verb joins), decision 263 (a host rule is
   the host's, and the announcement is the change edge) and decision 269 (the verb's shape; its permission
-  clause is amended here), `review/console-completion-hides-what-you-cannot-run.md` (the completion half of
+  clause is amended here), `done/console-completion-hides-what-you-cannot-run.md` (the completion half of
   the same ruling), `docs/evidence/sync-coverage-matrix.md` row I14 and
   `docs/en/reference/protocol-messages.md` (the new request/answer pair).
 
@@ -93,7 +93,7 @@ host-only) into its own rule group that holds the gate.
 - The wire doc comment records why the member's config is never written and why the answer is a read-back;
   the protocol reference (both languages), sync-coverage row I14 with its evidence, the report-validation
   census row, the configuration reference (both languages) and decision 269's amendment are updated in the
-  same change. The completion half stays `review/console-completion-hides-what-you-cannot-run.md`, exactly as
+  same change. The completion half stays `done/console-completion-hides-what-you-cannot-run.md`, exactly as
   this ticket's Limits say.
 - Tests: `CommandConsoleMemberGameRuleTests` (19 cases) covers the member set (host writes, answer prints), a
   set served while the host is OUT of world, the member's own config never written, the change edge reaching
@@ -133,9 +133,9 @@ and the host's log names the member's request as its actor (`[Rules] <member> se
 
 - No completion here: the command word and its arguments are STILL offered to every caller — the console has
   no authority filter yet — so a member without the grant sees `/gamerule` in the suggestion list and in
-  `/help`, exactly as the sibling ticket records. `review/console-completion-hides-what-you-cannot-run.md` hides
+  `/help`, exactly as the sibling ticket records. `done/console-completion-hides-what-you-cannot-run.md` hides
   the word and adds the rule/value suggestions; this ticket only changes the authority. **(Landed 2026-10-24:
-  the follow-up is `review/console-completion-hides-what-you-cannot-run.md`; both halves are now in place.)**
+  the follow-up is `done/console-completion-hides-what-you-cannot-run.md`; both halves are now in place.)**
 - The member's line and the host's answer are two lines of evidence; a lost answer is a lost line, not a
   lost write (the announcement carries the outcome to everyone).
 - The host's config write fires the existing change edge; the member's request does not add a second

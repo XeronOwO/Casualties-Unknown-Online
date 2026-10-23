@@ -84,7 +84,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.
 - [Cheat permission and the op commands](review/cheat-permission-and-op-commands.md) — **Medium-High** — who may run the cheat verbs, checked on both sides.
-- [The console completes only what you may run](review/console-completion-hides-what-you-cannot-run.md) — **Medium-High** — hidden word; role-aware values.
 - [The item identity bridge](review/item-identity-bridge.md) — **Low** — resolved without code: the index already runs both ways.
 - [Heal restores a severed limb](review/heal-restores-severed-limbs.md) — **Medium** — the game has no regrow path.
 - [Descent ambience parity](review/layer-descent-audio-parity.md) — **Low-Medium** — the guest hears the descent.
@@ -178,6 +177,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack item projection](resolved/remote-backpack-item-projection-acceptance-issues.md) — **High** — absorbed by the native-intent rework.
 
 ### Done
+- [The console completes only what you may run](done/console-completion-hides-what-you-cannot-run.md) — **Medium-High** — accepted in `20261024-c`; hidden word
 - [/gamerule joins the op family](done/gamerule-joins-the-op-family.md) — **Medium-High** — accepted in `20261024-b`; a granted member changes rules.
 - [A host rule is read and changed with `/gamerule`](done/gamerule-host-rule-command.md) — **Medium-High** — accepted in `20261023-j`; `/hostrules` gone.
 - [The give gesture respects the player's own UI](done/give-gesture-own-ui-and-center-use.md) — **Medium-High** — accepted in `20261023-j`; row 7 read last.

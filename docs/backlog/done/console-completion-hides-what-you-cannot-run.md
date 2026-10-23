@@ -1,7 +1,8 @@
 # The console completes only what you may run
 
-- Status: Review — implemented on 2026-10-24; awaiting the three-client acceptance in
-  `docs/evidence/acceptance/`. The design was agreed with the user on 2026-10-24.
+- Status: Done — implemented and accepted in batch `20261024-c`
+  (`docs/evidence/acceptance/console-completion-hides-what-you-cannot-run-20261024-c.md`). The design was
+  agreed with the user on 2026-10-24.
 - Priority: Medium-High
 - Category: Console / completion / permissions
 - Source: the user's 2026-10-24 ruling: in Minecraft a player without cheat permission cannot complete a
@@ -123,6 +124,15 @@ the deployed client's own answer per role; one frame of the open suggestion list
 batch judges row 4 by ENTERING every offered value on the host (each answer must name the value in force) and
 row 6 by flipping the switch off and revoking the roster; the recipe's `trail=space` carries the
 fresh-argument inputs, because the driver trims a `-RecipeArg` pair.
+
+## Accepted (batch `20261024-c`, 2026-10-24)
+
+All seven rows and the visual row passed on the deployed artifact
+`0.1.0+77510106c0860116d68c3a48bae321a3f86dcbb6` with three clients. The record is
+`docs/evidence/acceptance/console-completion-hides-what-you-cannot-run-20261024-c.md`; the frame is
+`r8-alt-suggestions.png` (the plain member's open list: `clear, data, help, players, rtt` and the three
+below the fold, no hidden verb). The recipe's `trail=space` was smoke-tested before the rows (16 rule names
+with their values), and every rule value the completion offered was then entered and accepted.
 
 ## Limits
 

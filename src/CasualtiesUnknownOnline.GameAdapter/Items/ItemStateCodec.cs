@@ -24,8 +24,19 @@ internal static class ItemStateCodec
 {
 	private static Log? _log;
 
+	private static Action<Item, string>? _refusedContentDrop;
+
 	/// <summary>Late-bound logger (the domains pass theirs in once at startup).</summary>
 	internal static void BindLog(Log log) => _log = log;
+
+	/// <summary>
+	/// Late-bound destination for a content item its container refused (user ruling 2026-10-23: it falls to the
+	/// ground). Bound once at composition to the same world-item creation report the give ladder's drop rung uses;
+	/// the restore functions are static and recurse several frames, so the seam is a property of the codec rather
+	/// than a parameter threaded through every caller. Unbound is allowed and never destroys: the object stays
+	/// where the restore put it and the warning says its creation was not reported.
+	/// </summary>
+	internal static void BindRefusedContentDrop(Action<Item, string> drop) => _refusedContentDrop = drop;
 
 	/// <summary>
 	/// The slot or limb the item sits in on the local body: slot indices 0..n,
@@ -462,7 +473,7 @@ internal static class ItemStateCodec
 
 		foreach (var childData in contents)
 		{
-			RestoreContentDiscarding(containerItem, container, childData);
+			RestoreContentDropping(containerItem, container, childData);
 		}
 	}
 
@@ -540,17 +551,32 @@ internal static class ItemStateCodec
 	}
 
 	/// <summary>
-	/// The restore paths' policy for a content item the container refused: they have no destination to hand it to —
-	/// the snapshot says "inside this container", this client's own rules say it cannot be — so it is discarded, and
-	/// the end it announces is that discard. Ticket <c>todo/restore-refused-child-keeps-its-id.md</c> carries
-	/// the sibling this policy leaves open. The give ladder does NOT use this: it places the object it gets back (a
-	/// slot, or the world when even that has no room).
+	/// The restore paths' policy for a content item the container refused (user ruling 2026-10-23): it FALLS TO THE
+	/// GROUND. Destroying it reports the id dead and loses a legitimate item; a free slot is not a destination known
+	/// to work either, because that slot may itself be a container with no room. The object the restore already
+	/// materialized is therefore reported as a WORLD item where it was restored to, through the same creation report
+	/// the give ladder's drop rung and the console's <c>/summon</c> use, so the host keeps the id as a world item
+	/// instead of storing it terminal. The give ladder does not use this: it places the object it gets back (a slot,
+	/// or the world when even that has no room).
 	/// </summary>
-	internal static void RestoreContentDiscarding(Item containerItem, Container container, CharacterItemMsg childData)
+	internal static void RestoreContentDropping(Item containerItem, Container container, CharacterItemMsg childData)
 	{
-		if (RestoreContent(containerItem, container, childData) is { Loaded: false, Item: { } discarded })
+		if (RestoreContent(containerItem, container, childData) is not { Loaded: false, Item: { } refused })
 		{
-			Object.Destroy(discarded.gameObject);
+			return;
 		}
+
+		if (_refusedContentDrop is { } drop)
+		{
+			drop(refused, "Restore");
+			return;
+		}
+
+		// Unbound (a test host, or a composition that forgot to bind): the object stays where the restore put it and
+		// is NOT destroyed — the ruling is that an item never vanishes because a container disagreed. The warning is
+		// the observable that its creation was never reported.
+		_log?.LogWarning(
+			"Restore: {ItemId} (id {InstanceId}) was refused and is left in the world UNREPORTED — no refused-content drop is bound to this process.",
+			childData.ItemId, childData.InstanceId);
 	}
 }

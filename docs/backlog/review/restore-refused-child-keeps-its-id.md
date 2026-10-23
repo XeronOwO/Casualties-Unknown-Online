@@ -1,6 +1,7 @@
 # A restored container's refused child is destroyed and its instance id reported dead
 
-- Status: Todo
+- Status: Review — the refused child now FALLS TO THE GROUND (user ruling 2026-10-23; implemented and
+  gate-pinned); the three machine rows below are owed.
 - Priority: Low-Medium
 - Category: Items / restore paths / item identity
 - Source: Split out of the give ticket (`review/give-item-to-another-player.md`) when its row-4 loss was fixed (2026-10-19,
@@ -48,6 +49,33 @@ A two-client run on the deployed artifact:
 2. The same restore with every child accepted: unchanged, every child present with its id.
 3. A world item's contents restored on the receiving client with one child refused: the host's item table does
    not lose the id without an announced end.
+
+## The ruling (2026-10-23)
+
+**A refused restore child is DROPPED INTO THE WORLD.** The user's words: a legitimate item cannot just vanish, so
+destroying it is wrong; nor may it be pushed into "the nearest empty slot", because that slot can itself be a
+container with no room, so a slot is not a destination known to work. It falls to the ground.
+
+The three options the round had drafted (discard and announce the end, a local free slot, a whole-row refusal)
+were all rejected: the first two were read off the code's own structure instead of the player's experience, and
+the third is out of proportion. The destination that always exists is the world.
+
+What it means for the implementation: the object the restore already materialized stays alive, becomes a world
+item at the place it was being restored to, and its CREATION is reported through the same report the give
+ladder's drop rung and the console `/summon` verb use (`WorldItemCreation`) — the host's item table then keeps the
+id as a world item instead of storing it terminal. The destroy is removed from the restore policy entirely.
+
+## What landed (2026-10-23)
+
+- `ItemStateCodec.RestoreContentDropping` replaces `RestoreContentDiscarding`: a content item the container refused
+  is handed to a late-bound drop seam instead of being destroyed. Unbound (a test host, or a composition that
+  forgot), it is logged and LEFT ALIVE — never destroyed.
+- `WorldItemCreation.DropAsWorldItem` reports the existing object as a world item at its own position, with the
+  same `SendItemSpawned` the give ladder's drop rung and `/summon` make, so the host's kernel keeps the id as a
+  world item instead of storing it terminal.
+- `GameAdapterDomains` binds the seam at composition (`ItemStateCodec.BindRefusedContentDrop(...)`).
+- `RestoreContentGateTests`: three facts (the policy does not destroy, the composition binds the seam, the drop
+  reports the creation) plus a three-sample matcher; red on the pre-change tree (three failures), green after.
 
 ## Where the change lands (surveyed from the fix that split it)
 

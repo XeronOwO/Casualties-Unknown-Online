@@ -270,6 +270,9 @@ internal sealed class GameAdapterDomains
 		// application → authority/follow, one-way), run → gate (the gate reads the
 		// run's phase machine).
 		ItemStateCodec.BindLog(log);
+		// A refused restore child falls to the ground (user ruling 2026-10-23): the codec reports it through the same
+		// world-item creation the give ladder's drop rung uses, instead of destroying an id-carrying object.
+		ItemStateCodec.BindRefusedContentDrop(new WorldItemCreation(Items, log).DropAsWorldItem);
 		WorldGenRandomIsolation.Log = msg => Log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
 		LayerModifierApplyPatch.Log = msg => Log.LogInformation(msg); // layer-modifier decision trace (diagnostic)
 		FactTable = new CloneFactTable(loggerFactory.CreateLogger<CloneFactTable>());

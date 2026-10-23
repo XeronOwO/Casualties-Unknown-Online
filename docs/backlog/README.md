@@ -54,7 +54,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
 - [The give gesture respects the player's own UI](todo/give-gesture-own-ui-and-center-use.md) — **Medium-High** — row 7 blocked: no driveable rule switch.
-- [A refused child of a restored container keeps its id](todo/restore-refused-child-keeps-its-id.md) — **Low-Medium** — the bulk restore discards it.
 - [Drag-use aims at a fixed circle](todo/cross-player-drag-use-model-bounds.md) — **Medium** — judge the model; name the pick on overlap.
 - [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
@@ -77,6 +76,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
+- [A refused child of a restored container keeps its id](review/restore-refused-child-keeps-its-id.md) — **Low-Medium** — dropped into the world; rows owed.
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
 - [The receiver's placement never returns to the host](review/placement-outcome-never-returns.md) — **Medium** — rows 1-5 read on the machine.
 - [Give an item to another player](review/give-item-to-another-player.md) — **Medium** — both units landed.

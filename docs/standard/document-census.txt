@@ -295,7 +295,7 @@ docs/backlog/review/delivery-checklist-gate-census.md | keep | index | docs/back
 docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/review/give-item-to-another-player.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/restore-refused-child-keeps-its-id.md | keep | index | docs/backlog/README.md
+docs/backlog/review/restore-refused-child-keeps-its-id.md | keep | index | docs/backlog/README.md
 docs/backlog/review/placement-outcome-never-returns.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/placement-failure-report-anchor.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-gesture-own-ui-and-center-use.md | keep | index | docs/backlog/README.md

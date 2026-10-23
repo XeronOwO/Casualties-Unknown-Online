@@ -11,8 +11,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// at the end of the frame, the host's kernel stores it TERMINAL, and any object a caller then builds with that
 /// same id is swept away. That is how the handed-over toolbox disappeared from both players in batch
 /// <c>20261021-a</c> (<c>give-item-to-another-player</c> row 4). A caller therefore PLACES an object it receives
-/// with <see cref="Loaded"/> false; the only caller that discards one is the bulk restore, whose policy is named
-/// and recorded (<see cref="ItemStateCodec.RestoreContentDiscarding"/>).
+/// with <see cref="Loaded"/> false; the only caller that used to discard one is the bulk restore, whose policy is
+/// named and recorded (<see cref="ItemStateCodec.RestoreContentDropping"/> — it drops the child into the world
+/// since the user's ruling of 2026-10-23, so no caller destroys one any more).
 /// </para>
 /// </summary>
 internal readonly record struct RestoredContent(Item? Item, bool Loaded, string? Refusal)

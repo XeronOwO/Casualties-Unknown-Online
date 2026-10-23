@@ -87,4 +87,29 @@ internal sealed class WorldItemCreation(IItemControl items, ILogger log)
 			context, item.ItemId, item.InstanceId, created.transform.position.x, created.transform.position.y);
 		return true;
 	}
+
+	/// <summary>
+	/// Report an EXISTING object as a world item where it stands: the refused restored child its container would
+	/// not take (user ruling 2026-10-23 — it falls to the ground, never destroyed and never pushed into a slot).
+	/// The restore already materialized the object, stamped its id and restored its state, so this only reports it
+	/// with the same creation report <see cref="TryCreateAt"/> makes: without a report the host never learns of it
+	/// and the next world-item keyframe sweeps it away.
+	/// </summary>
+	internal void DropAsWorldItem(Item existing, string context)
+	{
+		var marker = existing.GetComponent<ItemInstanceId>();
+		var id = marker != null ? marker.Id : 0UL; // Unity object — ==
+		var position = existing.transform.position;
+		_items.SendItemSpawned(
+			id,
+			ItemStateCodec.CaptureItem(existing, -1),
+			new NetVector2(position.x, position.y),
+			new NetVector2(0f, 0f),
+			0f,
+			freshItemDrop: false,
+			angularVelocity: 0f);
+		_log.LogInformation(
+			"[{Context}] refused content item {ItemId} (id {InstanceId}) fell to the ground at ({X:F1},{Y:F1}) and its creation was reported.",
+			context, existing.id, id, position.x, position.y);
+	}
 }

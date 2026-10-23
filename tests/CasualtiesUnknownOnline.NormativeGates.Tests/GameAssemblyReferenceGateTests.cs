@@ -46,6 +46,7 @@ public class GameAssemblyReferenceGateTests
 	{
 		["CasualtiesUnknownOnline.GameAdapter"] = "the framework's only game-binding layer (architecture.md §4)",
 		["CasualtiesUnknownOnline.PinyinSearch"] = "the satellite mod's game-binding half (docs/en/contributing/repository-map-and-pitfalls.md, Where a new system belongs)",
+		["CasualtiesUnknownOnline.RecursiveCrafting"] = "the recursive-crafting satellite mod's game-binding half (reads the recipe table and the local body's items; the resolver stays game-free in its Core)",
 	};
 
 	/// <summary>The solution lists 13 projects; a scan that read fewer has broken, not improved.</summary>

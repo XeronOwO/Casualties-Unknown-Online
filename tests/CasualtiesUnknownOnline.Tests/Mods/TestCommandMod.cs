@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// </summary>
 [CuoMod("test.commands", "Test Commands", "1.0.0",
 	NetworkMode = NetworkMode.Synchronized,
-	Permissions = ModPermission.RegisterCommand | ModPermission.ExecuteHostAction)]
+	Permissions = ModPermission.RegisterCommand | ModPermission.ExecuteHostAction | ModPermission.RegisterLocalCommand)]
 public sealed class TestCommandMod : ICuoMod
 {
 	public IModContext? Context { get; private set; }

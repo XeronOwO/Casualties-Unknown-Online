@@ -32,6 +32,7 @@ public class ModPermissionPolicyTests
 	[InlineData((int)ModPermission.RegisterCommand)]
 	[InlineData((int)ModPermission.ExecuteHostAction)]
 	[InlineData((int)ModPermission.AccessNativeApi)]
+	[InlineData((int)ModPermission.RegisterLocalCommand)]
 	public void EveryPermission_IsValidOnAHostMode(int permission) =>
 		Assert.True(ModPermissionPolicy.IsValidFor(NetworkMode.HostOnly, (ModPermission)permission));
 
@@ -50,7 +51,8 @@ public class ModPermissionPolicyTests
 	[Fact]
 	public void LocalPermissions_AreAllowedOnClientOnly()
 	{
-		var local = ModPermission.ReadGameState | ModPermission.SendNetworkMessage | ModPermission.AccessNativeApi;
+		var local = ModPermission.ReadGameState | ModPermission.SendNetworkMessage | ModPermission.AccessNativeApi
+			| ModPermission.RegisterLocalCommand;
 		Assert.True(ModPermissionPolicy.IsValidFor(NetworkMode.ClientOnly, local));
 	}
 

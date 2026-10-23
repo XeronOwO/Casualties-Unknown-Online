@@ -72,8 +72,17 @@ public enum ModPermission
 	/// </summary>
 	AuthorEffects = 1 << 8,
 
+	/// <summary>
+	/// Register LOCAL console commands via <see cref="IModConsoleCommands"/>. Enforced at registration. A
+	/// separate capability from <see cref="RegisterCommand"/> on purpose: those commands execute on the HOST's
+	/// copy of the mod, while a local console command runs on the local process with no wire relay — so a
+	/// <see cref="NetworkMode.ClientOnly"/> mod may own this one (it is not one of the host/state permissions
+	/// that mode is refused for), which is what lets a local-only helper answer on the console at all.
+	/// </summary>
+	RegisterLocalCommand = 1 << 9,
+
 	/// <summary>The defined bit mask — used to reject unknown bits.</summary>
 	All = ReadGameState | WriteGameState | SpawnEntity | SendNetworkMessage
 		| RegisterContent | RegisterCommand | ExecuteHostAction | AccessNativeApi
-		| AuthorEffects,
+		| AuthorEffects | RegisterLocalCommand,
 }

@@ -39,12 +39,13 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 
 **`NetworkMode`** 默认是 `Unspecified`，并在发现阶段被拒。其他拒绝原因：id 重复、类型是抽象或非公开、缺少公开无参构造函数、版本不符合 SemVer、权限位不认识、在 `ClientOnly`／`Cosmetic` 上声明了主机／状态类权限，以及依赖不合法或无法满足（目标缺失、自依赖、重复、成环 —— 传递失败会波及依赖它的模组）。声明了 `Namespace` 还会多三条：语法不合法、占用了保留的内置命名空间 `cu`，或者该命名空间已被另一个已加载模组声明。一个被拒的模组永远不挡扫描：逐模组 fail-closed。
 
-**`Permissions`** 从不隐含 —— 默认是 `ModPermission.None`。九个可声明标志与它们真正的执行点：
+**`Permissions`** 从不隐含 —— 默认是 `ModPermission.None`。十个可声明标志与它们真正的执行点：
 
 | 标志 | 它管住什么 |
 |---|---|
 | `SendNetworkMessage` | `IModNetwork` 的**发送与接收** |
-| `RegisterCommand` | 命令注册 |
+| `RegisterCommand` | 主机命令注册（`IModCommands`） |
+| `RegisterLocalCommand` | 本地控制台命令注册（`IModConsoleCommands`）；纯本地，所以 `ClientOnly`／`Cosmetic` 模组也可以声明 |
 | `ExecuteHostAction` | 另外还管住 `ModCommand.IsHostAction` |
 | `WriteGameState` | 主机持久化的模组状态写入（`IModState`） |
 | `RegisterContent` | 模组内容注册（`IModContent`） |

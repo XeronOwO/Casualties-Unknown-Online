@@ -986,13 +986,14 @@ member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketStage.Apply|en
 member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketStage.Observe|enumvalue|= 2
 member|Experimental|CasualtiesUnknownOnline.Abstractions.ModPacketStage.Validate|enumvalue|= 0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.AccessNativeApi|enumvalue|= 1 << 7
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.All|enumvalue|= ReadGameState | WriteGameState | SpawnEntity | SendNetworkMessage | RegisterContent | RegisterCommand | ExecuteHostAction | AccessNativeApi | AuthorEffects
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.All|enumvalue|= ReadGameState | WriteGameState | SpawnEntity | SendNetworkMessage | RegisterContent | RegisterCommand | ExecuteHostAction | AccessNativeApi | AuthorEffects | RegisterLocalCommand
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.AuthorEffects|enumvalue|= 1 << 8
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.ExecuteHostAction|enumvalue|= 1 << 6
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.None|enumvalue|= 0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.ReadGameState|enumvalue|= 1 << 0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.RegisterCommand|enumvalue|= 1 << 5
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.RegisterContent|enumvalue|= 1 << 4
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.RegisterLocalCommand|enumvalue|= 1 << 9
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.SendNetworkMessage|enumvalue|= 1 << 3
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.SpawnEntity|enumvalue|= 1 << 2
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModPermission.WriteGameState|enumvalue|= 1 << 1

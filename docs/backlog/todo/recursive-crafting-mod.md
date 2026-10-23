@@ -79,7 +79,46 @@ The rules it makes explicit, each pinned by `CraftChainResolverTests` (11 cases)
 - the line that stops a chain is returned as its blocker id (or, for a tag line, the quality), so the panel can
   say why instead of only "cannot be crafted".
 
-What remains for the ticket: the plug-in half that reads the game's recipe table and the player's inventory
-(the adapter), the panel's third state drawn through the existing recipe UI, the favourite mark (a UI filter the
-resolver does not need), and the real-session row (a recursive entry offered, a favourite unaffected, two spent
-items merged). Those are the later stages; this one is the rules the UI will show.
+What remains for the ticket: the panel's third state drawn through the existing recipe UI, the favourite mark
+(a UI filter the resolver does not need), and the real-session row (a recursive entry offered, a favourite
+unaffected, two spent items merged). Those are the later stages.
+
+## Stage 2 landed (2026-10-24) — the mod's game half and its first real consumer
+
+`src/CasualtiesUnknownOnline.RecursiveCrafting/` is the game-bound half: a BepInEx plug-in shell (so the
+assembly is a normal package), the `[CuoMod]` entry that registers a LOCAL console command, and
+`GameCraftingTable`, the adapter that reads the game's own table (`Recipes.recipes`, including the
+`SetUpRecipes` post-pass that marks `specificId` lines as `specific`) and the local body's items
+(`Body.GetAllItemsThorough`, with each item's `ItemInfo.qualities` as its tags, favourited items left out
+because the game's own matching refuses to consume them).
+
+`/craftchain <itemId>` answers the ticket's question on a real client; with no argument it names the table.
+
+**The condition a line demands is the game's OWN test** (`item.condition >= line.minimumCondition`), not the
+quality amount: the amount is what `UseItem` subtracts afterwards, and using it as a floor refused a partly
+spent item the game itself accepts (measured: `rope` reported "nothing provides foliage" while three
+0.94-condition foliage items were held). The user's "two into one" rule still works on top.
+
+**A framework gap this stage had to fix:** a `NetworkMode.ClientOnly` mod could not register any console command,
+because `ModConsoleCommandAdapter` demanded `ModPermission.RegisterCommand`, which the permission policy refuses
+on local-only modes — even though `IModConsoleCommands` is documented as local-only. The new
+`ModPermission.RegisterLocalCommand` (1 << 9) is the capability the LOCAL surface demands; `RegisterCommand`
+stays the HOST-command permission and stays refused on `ClientOnly`. The reviewed Abstractions baseline, the
+bilingual `mod-api` permission table (ten flags now) and the policy tests moved with it.
+
+**Read on a real client (one host, a run, the console driven in-process):**
+
+| query | answer |
+|---|---|
+| `/craftchain` | `132 recipes read (61 supported, 71 not modelled): rope, string, canvas, …` |
+| `/craftchain rope` (three foliage held) | `rope: craftable now.` |
+| `/craftchain flimsyknife` (scrapmetal, woodcube and two foliage held) | `flimsyknife: reachable through 1 step(s) — 1. rope.` |
+| `/craftchain string` | `string: cannot be crafted — nothing here provides "cutting".` |
+| `/craftchain foliagebag` (six foliage held) | `foliagebag: cannot be crafted — nothing here provides "canvas".` — honest: its 1 rope + 2 canvas lines need eight foliage |
+
+The 71 unsupported rows are mostly liquid lines (`isLiquid`), which the model does not carry yet; a recipe with
+one is reported as "not modelled — the recipe has a liquid ingredient line", never approximated.
+
+What remains: the panel's third state (a Harmony patch on the recipe list's own wording), the favourite mark,
+and the real-session row. The console command is the consumer that makes the resolver usable until the panel
+lands, and it stays useful afterwards for diagnosing a chain.

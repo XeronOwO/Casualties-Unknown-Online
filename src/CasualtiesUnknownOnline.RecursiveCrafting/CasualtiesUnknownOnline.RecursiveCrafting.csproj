@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.RecursiveCrafting</AssemblyName>
+    <Product>Recursive Crafting</Product>
+    <Version>0.1.0</Version>
+    <BepInExPluginGuid>CasualtiesUnknownOnline.RecursiveCrafting</BepInExPluginGuid>
+    <BepInExPluginName>Recursive Crafting</BepInExPluginName>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.RecursiveCrafting</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" />
+    <PackageReference Include="BepInEx.PluginInfoProps" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CasualtiesUnknownOnline.RecursiveCrafting.Core\CasualtiesUnknownOnline.RecursiveCrafting.Core.csproj" />
+    <ProjectReference Include="..\CasualtiesUnknownOnline.Abstractions\CasualtiesUnknownOnline.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!--
+    The game-bound half of the recursive-crafting mod: the BepInEx shell (so the assembly is loaded), the
+    [CuoMod] entry that registers the console command, and the adapter that reads the game's own recipe table
+    and the local body's items into the Core's model. The resolver itself stays in the Core project, which
+    references nothing — this project is where every game type lives.
+
+    No Harmony patch yet: the console command is the first consumer, and the recipe panel's third state is a
+    later stage of the ticket. The game assemblies are gitignored and copied on demand (references/README.md).
+  -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\references\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\references\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\references\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

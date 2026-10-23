@@ -188,4 +188,32 @@ public class CraftChainResolverTests
 
 		Assert.Equal(CraftReachability.Unreachable, result.Reachability);
 	}
+
+	/// <summary>The three states read as three different sentences — the panel's third state has to be distinguishable from both others.</summary>
+	[Fact]
+	public void TheReport_WordsTheThreeStatesDifferently()
+	{
+		var now = Recipe("bandage", "bandage", Line("rag"));
+		var ripped = Recipe("rip-rag", "rag", Line("cloth"));
+
+		var nowText = CraftChainReport.Describe("bandage", Resolve(now, [], Held("rag")));
+		var stepsText = CraftChainReport.Describe("bandage", Resolve(now, [ripped], Held("cloth")));
+		var blockedText = CraftChainReport.Describe("bandage", Resolve(now, [], Held("stone")));
+
+		Assert.Equal("bandage: craftable now.", nowText);
+		Assert.Equal("bandage: reachable through 1 step(s) — 1. rip-rag.", stepsText);
+		Assert.Equal("bandage: cannot be crafted — nothing here provides \"rag\".", blockedText);
+	}
+
+	/// <summary>A step run more than once reads its count, not a repeated entry.</summary>
+	[Fact]
+	public void TheReport_ShowsHowOftenAStepRuns()
+	{
+		var target = Recipe("bandage", "bandage", Line("rag", amount: 2));
+		var single = Recipe("rip-one", "rag", Line("cloth"));
+
+		var text = CraftChainReport.Describe("bandage", Resolve(target, [single], Held("cloth", amount: 2)));
+
+		Assert.Equal("bandage: reachable through 2 step(s) — 1. rip-one, 2. rip-one.", text);
+	}
 }

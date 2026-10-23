@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// The per-mod local console command surface. A command registered here is
 /// local-only (no host relay), appears in the in-game console registry, and is
 /// scoped to one mod id so Unregister can never remove another mod's command.
-/// Registration is gated by <see cref="ModPermission.RegisterCommand"/> and, for
+/// Registration is gated by <see cref="ModPermission.RegisterLocalCommand"/> and, for
 /// HostOnly commands, <see cref="ModPermission.ExecuteHostAction"/>.
 /// </summary>
 internal sealed class ModConsoleCommandAdapter(
@@ -42,7 +42,7 @@ internal sealed class ModConsoleCommandAdapter(
 			return false;
 		}
 
-		if (!ModPermissionGate.Try(log, manifest, ModPermission.RegisterCommand))
+		if (!ModPermissionGate.Try(log, manifest, ModPermission.RegisterLocalCommand))
 		{
 			return false;
 		}

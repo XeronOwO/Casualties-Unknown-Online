@@ -65,13 +65,14 @@ propagates to the dependent). A declared `Namespace` adds three more: an invalid
 built-in namespace `cu`, or a namespace another loaded mod already declared. One rejected mod never
 blocks the scan: per-mod fail-closed.
 
-**`Permissions`** are never implicit — the default is `ModPermission.None`. The nine declared flags
+**`Permissions`** are never implicit — the default is `ModPermission.None`. The ten declared flags
 and their live enforcement points:
 
 | Flag | What it gates |
 |---|---|
 | `SendNetworkMessage` | `IModNetwork` send **and** receive |
-| `RegisterCommand` | command registration |
+| `RegisterCommand` | host command registration (`IModCommands`) |
+| `RegisterLocalCommand` | local console command registration (`IModConsoleCommands`); local-only, so a `ClientOnly`/`Cosmetic` mod may own it |
 | `ExecuteHostAction` | additionally gates `ModCommand.IsHostAction` |
 | `WriteGameState` | host-persistent mod-state writes (`IModState`) |
 | `RegisterContent` | mod content registration (`IModContent`) |

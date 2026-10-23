@@ -4,9 +4,11 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// The local in-game console command surface of <see cref="IModContext"/>.
 /// These commands are registered and executed only on the local process — no
 /// host relay and no wire message. Register during <see cref="ICuoMod.Bind"/>.
-/// Registration requires <see cref="ModPermission.RegisterCommand"/>; a
+/// Registration requires <see cref="ModPermission.RegisterLocalCommand"/>; a
 /// <see cref="CommandPermission.HostOnly"/> command additionally requires
-/// <see cref="ModPermission.ExecuteHostAction"/>.
+/// <see cref="ModPermission.ExecuteHostAction"/>. That local flag — not
+/// <see cref="ModPermission.RegisterCommand"/>, which owns HOST command registration — is what lets a
+/// <see cref="NetworkMode.ClientOnly"/> mod answer on the console without claiming host authority.
 /// </summary>
 public interface IModConsoleCommands
 {

@@ -85,6 +85,44 @@ echoed identity plus a place the receiver must name even when it placed nothing 
 still unreproducible), or accepting the duplication as the named MVP limit. **Not started; this is the half the
 ticket keeps.**
 
+## Independent review (2026-10-23) — every finding and what changed
+
+The change was reviewed in a fresh context against the frozen tree before its commit. Every blocker and major is
+recorded here with the code it cites; all of them were fixed in the same commit.
+
+- **BLOCKER — the suppressor had no reader, and its scope was wrong.** `ItemPatches.ItemOnDestroyPatch` read only
+  `__instance.GetComponent<LimbAppliedItemOrigin>() != null`, so `UnplacedGiveItemOrigin` was dead code and the
+  deferred destroy still reported the item's end. Worse, `DiscardUnplaceableItem` is also reached from the RETURN
+  path (`msg.ExactDestination == false`, where no outcome is sent), so silencing the hook for every unplaceable
+  item would have destroyed a returned item while the host's row stayed standing. Fixed: the hook reads both
+  markers (`|| __instance.GetComponent<UnplacedGiveItemOrigin>() != null`), and the flag is the CALLER's
+  (`suppressUnplacedEnd = msg.ExactDestination`), so only the give's arm attaches it — pinned by
+  `GiveGestureGateTests` (`GetComponent<UnplacedGiveItemOrigin>() != null`, `suppressUnplacedEnd`,
+  `PlaceCarriedItem(body, item, msg.TargetParentItemId, msg.ExactDestination)`).
+- **MAJOR — the census label over-claimed.** `if (msg.Applied && PlaceMatches(committed, msg))` runs only for the
+  applied arm; `ReturnToGiver` reverses custody on the not-applied arm with no comparison at all. The row was
+  `bound:` while that arm is a bare claim — the same defect this ticket exists for. Fixed: the row is
+  `unbounded:` again for the not-applied arm and names the applied one's bound, and the sentences "the host never
+  writes a second copy from the reporter's word" and "one arm of a comparison instead of a bare claim" are gone.
+- **MAJOR — the host logged a member-authored reason unclamped.** `DescribeMismatch` interpolated `msg.Reason`
+  straight into `ReturnToGiver`'s `_log.LogWarning`, while `ClampReason` ran only on the sending side (the deleted
+  handler had clamped on receipt). Fixed: `ClampReason(msg.Reason)` on receipt, pinned by
+  `AMemberAuthoredReason_IsClampedOnTheHostSide` (a raw control-character reason sent past the sender's clamp
+  reaches the host's line stripped and capped).
+- **MAJOR — the batch this ticket named was an existing, closed one.** `20261023-a` is the cross-player item-use
+  batch on `0.1.0+44e263cc…`; no deployed artifact could carry this message before the commit, so the "scheduled
+  for batch 20261023-a" claim was false. Fixed: row 1 is stated OUTSTANDING, the attempt is recorded in
+  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`, and the checklist's L1 line says the
+  same.
+- **Minors taken.** The message doc's "capped before it is logged" claim is true now that the host clamps; the
+  outcome is keyed by the item id because the transfer the receiver applies does not carry the query id (recorded
+  as a limit above, not fixed); the receiver half is shape-pinned and stated as such; row 3's reading is stated in
+  its verdict; P14's loss cell and the "nothing diverges" line were corrected for the not-placed arm;
+  `20261022-h-scope.md` now says the tickets were under `todo/` at that time (the paths were re-pointed, the
+  readings unchanged); the container-fallback doc names which ruling governs the race arm (the 2026-10-22 one);
+  the checklist says "no NEW surface" rather than "no change"; and the applied-but-place-less arm has its own
+  test (`AnAppliedOutcomeThatNamesNoPlace_IsRefusedAndReturned`).
+
 ## Non-goals
 
 - No reach/aim/timing bound (anti-cheat is out of the MVP).

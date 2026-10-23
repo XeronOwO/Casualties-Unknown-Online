@@ -101,7 +101,7 @@ family.
    rules are the host's own switches (decision 263) and this build has no member→host rule-write path, so
    the host is the only caller the verb can serve. **(Superseded 2026-10-24: the verb joined the op family —
    a granted member changes a rule through a host round trip; see *Superseded in part* below and
-   `review/gamerule-joins-the-op-family.md`.)**
+   `done/gamerule-joins-the-op-family.md`.)**
 3. **The refusals list the known rules and the allowed values.** Minecraft's parser only says it cannot
    parse the argument; the console has no completion for rule names or values yet, so the refusal is the
    only place a player learns the vocabulary. The list is one line, printed only on a refusal.
@@ -185,7 +185,7 @@ centre release of a view-only displayed backpack refused with its one line, and 
 The user ruled that the verb joins the op family (a member the host has granted may change a rule through a
 host round trip) and that the console must not offer the command — not even its word — to a caller without
 that authority. The host-only implementation and the batch `20261023-j` acceptance above stand as the record
-of what was built; the follow-ups are `review/gamerule-joins-the-op-family.md` and
+of what was built; the follow-ups are `done/gamerule-joins-the-op-family.md` and
 `todo/console-completion-hides-what-you-cannot-run.md`, and decision 269 carries the amendment.
 
 ## Independent review (2026-10-24) — every finding and what changed

@@ -6,7 +6,7 @@
 - Source: the user's 2026-10-24 ruling: in Minecraft a player without cheat permission cannot complete a
   cheat command's WORD, let alone its second or third argument — no completion at all. With the authority,
   `/gamerule` completes its rule names and that rule's values.
-- Related: `review/gamerule-joins-the-op-family.md` (the same ruling's authority half),
+- Related: `done/gamerule-joins-the-op-family.md` (the same ruling's authority half),
   `done/gamerule-host-rule-command.md` (records "no completion" as a limit this ticket removes),
   `review/cheat-permission-and-op-commands.md` (the family), `done/in-game-command-console-interactive.md`
   and `docs/evidence/selfchecks/ui/command-console-selfcheck.md` (the console's completion design),

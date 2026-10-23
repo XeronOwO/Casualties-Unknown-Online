@@ -1,7 +1,8 @@
 # `/gamerule` joins the op family
 
-- Status: Review — implemented on 2026-10-24; awaiting the three-client acceptance in
-  `docs/evidence/acceptance/`. The design was agreed with the user on 2026-10-24.
+- Status: Done — implemented and accepted in batch `20261024-b`
+  (`docs/evidence/acceptance/gamerule-joins-the-op-family-20261024-b.md`). The design was agreed with the
+  user on 2026-10-24.
 - Priority: Medium-High
 - Category: Host rules / permissions / cross-player request / console
 - Source: the user's 2026-10-24 ruling, after the host-only `/gamerule` landed and was accepted
@@ -118,6 +119,15 @@ Three clients (host, `/op`-granted member, plain member — the batch machinery 
 | 5 | With the switch off (or the roster revoked) the same granted member is refused and the rule stays |
 | 6 | After a granted member's change, the member's own config file is unchanged and the host's holds the new value |
 | 7 | The rest of the cheat family's refusals are unchanged (one `/give` or `/heal` probe as the control) |
+
+## Accepted (batch `20261024-b`, 2026-10-24)
+
+All seven rows passed on the deployed artifact `0.1.0+f90529458c42804b31cb7e80cc0b37c0907b6b0e` with three
+clients (host, granted member, plain member). The record is
+`docs/evidence/acceptance/gamerule-joins-the-op-family-20261024-b.md`. Row 2's local ground was the ROSTER
+because this install's switch was already on; row 5a drove the switch's own ground. The member's own config
+file was SHA-256- and mtime-identical across its write (row 6), the host's file and query held the new value,
+and the host's log names the member's request as its actor (`[Rules] <member> set …`).
 
 ## Limits
 

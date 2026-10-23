@@ -64,3 +64,45 @@ the game's own path.)
 - The end-of-layer panel: landed in `review/layer-complete-choice-for-members.md`.
 - Where the members arrive after a descent: `done/layer-descent-spawn-separation.md`.
 - Removing the debug console's `skiplayer` (the game's own command).
+
+## The sink, read on the machine (2026-10-24)
+
+Attribution first, as the ticket's step 1 asks. Two clients on the deployed `0.1.0+9c350df3...`, a world on
+layer 1 (24 `DrillPod` instances present on BOTH clients, bodies at the same position). The guest's client then
+started the pod's OWN sink — `WorldGeneration.world.doPod = true` plus
+`StartCoroutine("RegenerateWorld", true)`, exactly what `DrillPod.Update` starts, without the repair/crouch
+producer — and both clients were read before and after:
+
+| client | before | after |
+|---|---|---|
+| guest (the rider) | `depth:0, doPod:false, generating:false, pods:24` | `depth:2, doPod:true, generating:true, pods:0` (its own world regenerating by TWO layers) |
+| host | `depth:0, doPod:false, generating:false, pods:24` | `depth:0, doPod:false, generating:false, pods:24` (unchanged) |
+
+So a member's pod-path descent regenerates the MEMBER's world by two layers while the host and the session keep
+the layer they agreed on; the member's session then goes on receiving the host's layer-1 snapshots
+(`TrapLayoutSnapshot`, `EnemyStateStream` in its traffic) against a layer-2 world. That is the defect, confirmed
+at its own sink rather than only by reading.
+
+The producer is not the only path: `DrillPod.Update` is the world object's own trigger, and the landed panel
+fix's marker only recognizes the panel's `ContinueRun`, so the pod's call has no request in front of it.
+
+## The shape (decided 2026-10-24, before any implementation)
+
+**Route the pod like the panel, with the pod's own facts in the request.** A member's pod must not start
+`RegenerateWorld(true)` locally; it sends a descent request that carries (a) the pod's TWO-layer step — not the
+panel's one-layer advance — and (b) the pod arrival flag, because the rider's own arrival effects (hearing loss
++15, hunger -10, thirst -15, the `drillend` line, the broken pod object) belong to the RIDER's body and must not
+be silently folded into the panel's descent. The host validates the request (in world, session alive, the pod
+still repairable/its repair kit accounted for) and drives the regeneration for the session; the rider's client
+applies its own arrival effects when its world reports the arrival the host committed, so the effects run once
+on the body that rode.
+
+Refusal shape: a pod used by a member while the session cannot take the descent (the host dead, the member out
+of the world, the repair kit consumed by someone else) is refused ON THE MEMBER with a named line, and its local
+regeneration is never started — the same "actor sees the refusal" rule the intent family already uses.
+
+Failure paths this must cover: host dead when the pod is used; rider out of the world; a repair kit consumed by
+a different member than the rider. Each is a row of the implementation's acceptance, not a detail.
+
+The implementation is the next cycle for this ticket; this section is the reading and the decision it had to
+come before.

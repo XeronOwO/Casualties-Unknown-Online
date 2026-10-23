@@ -102,5 +102,29 @@ ticket's "MP3 and the like" is therefore partly a later stage rather than a sile
 player-facing decision the ticket already names as the user's. A mod-owned panel would draw through `IModUi`;
 the position and the interaction are the user's call, so none is built yet.
 
+## Stage A's local half landed (2026-10-24) — the player plays a WAV
+
+`src/CasualtiesUnknownOnline.Music/` is the satellite mod: a BepInEx shell, the `[CuoMod]` entry and a local
+console verb. It binds no game assembly at all (the engine's audio API plus `BulkTransfer.Core` and the
+abstractions), and `MusicDevice` decodes a WAV through the capability's decoder into
+`AudioClip.Create` + `SetData` on a hidden `AudioSource`, so a file on this machine's disk is audible without a
+session.
+
+**Read on a real client** (the console driven in-process):
+
+| command | answer |
+|---|---|
+| `/music status` | `not playing.` |
+| `/music play <a 2 s 440 Hz test tone>` | `playing <path> (2.0s).` and the log line `playing test-tone.wav: 2.0s at 44100 Hz, 1 channel(s).` |
+| `/music status` (a moment later) | `playing (0.5s of 2.0s).` — the clip really advances |
+| `/music stop` | `stopped.` |
+| `/music play <missing path>` | `refused: no file at …` |
+| `/music play <a text file>` | `refused: not playable: the file is not a RIFF/WAVE container` |
+
+What remains: the SHARING half — the mod's declared packets (`music.announce`/`music.chunk`/`music.ack`), the
+transfer driving those packets per receiver, the shared start instant and the late-joiner offset, and then the
+two-client row (a listener hears the same track at the same offset). The listener controls stay the user's
+decision.
+
 **Where the files come from:** the player's own disk, picked through the mod's own path field (the game has no
 file picker for this); nothing is shipped with the mod and nothing is uploaded beyond the session's own peers.

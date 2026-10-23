@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.Music</AssemblyName>
+    <Product>Music Share</Product>
+    <Version>0.1.0</Version>
+    <BepInExPluginGuid>CasualtiesUnknownOnline.Music</BepInExPluginGuid>
+    <BepInExPluginName>Music Share</BepInExPluginName>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.Music</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" />
+    <PackageReference Include="BepInEx.PluginInfoProps" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CasualtiesUnknownOnline.BulkTransfer.Core\CasualtiesUnknownOnline.BulkTransfer.Core.csproj" />
+    <ProjectReference Include="..\CasualtiesUnknownOnline.Abstractions\CasualtiesUnknownOnline.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!--
+    The music-share satellite mod. Its LOCAL half needs nothing from the game: a WAV decoded by the transfer
+    capability is handed to Unity's own audio API, so this project references the engine and CUO's abstractions
+    only - no Assembly-CSharp. The sharing half adds the mod's declared packets in a later stage of the ticket.
+  -->
+  <ItemGroup>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\references\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\references\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>..\..\references\UnityEngine.AudioModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

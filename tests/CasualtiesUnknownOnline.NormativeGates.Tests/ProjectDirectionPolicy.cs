@@ -59,6 +59,13 @@ internal static class ProjectDirectionPolicy
 			// The bulk-transfer capability: plain C# over byte arrays, deliberately no reference at all — the mod
 			// that ships the player consumes it rather than owning it.
 			["CasualtiesUnknownOnline.BulkTransfer.Core"] = [],
+			// The music-share satellite mod: the engine's audio API plus the abstractions and the transfer
+			// capability; it binds no game assembly at all (its local half plays a file, nothing else).
+			["CasualtiesUnknownOnline.Music"] =
+			[
+				"CasualtiesUnknownOnline.BulkTransfer.Core",
+				"CasualtiesUnknownOnline.Abstractions",
+			],
 			// The recursive-crafting satellite mod's game-free half: plain C# over its own model, so it takes no
 			// reference at all (not even the abstractions: the resolver promises nothing to CUO).
 			["CasualtiesUnknownOnline.RecursiveCrafting.Core"] = [],

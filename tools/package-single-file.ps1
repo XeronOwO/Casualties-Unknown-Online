@@ -2,7 +2,7 @@
 <#
 .SYNOPSIS
     Packs the CUO core into ONE managed plugin assembly for the single-file package
-    (docs/backlog/todo/single-file-plugin-package.md).
+    (docs/backlog/done/single-file-plugin-package.md).
 
 .DESCRIPTION
     Copies the built plugin DLL and adds every other managed dependency from the build output as an embedded

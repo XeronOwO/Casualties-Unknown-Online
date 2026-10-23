@@ -1,6 +1,14 @@
 # Single-file package for the core plugin
 
-- Status: Todo
+- Status: Done 2026-10-24 — the probe answered the loader's question (an embedded dependency loads), the
+  CUO-scale artifact loaded only after the entry split landed (a plugin type whose FIELDS name packed assemblies
+  cannot be loaded before a resolver exists; the entry split is in `src/CasualtiesUnknownOnline.Plugin/`), the
+  packed artifact then started CUO on the real client, `deploy.ps1 -Packed` / `verify-deploy.ps1 -Packed` carry
+  the one-build-one-artifact rule to the packed shape (every embedded resource must hash to this tree's build
+  output), and the user-facing half is on `docs/en/start/install-and-play.md` + `docs/zh/start/install-and-play.md`
+  with the term registered in `docs/standard/terminology.txt` and the glossary. Extension mods stay outside the
+  package and are served the core's libraries by the packed resolver; the native `steam_api64.dll` stays loose
+  because Steamworks loads it from disk.
 - Priority: Low-Medium
 - Category: Build / release packaging
 - Source: the user's 2026-10-07 backlog request (marked optional) — publish one file that carries CUO itself,

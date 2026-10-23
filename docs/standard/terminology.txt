@@ -127,3 +127,4 @@ instance id | 实例编号 | 实例编号（instance id） | 物品 id，唯一�
 applied item | 已装物品 | 已装物品（applied item） | 装备物品，附着物品 | an item that IS a limb component (a splint, a carcass splint or a tourniquet installed on somebody's limb); it keeps its instance id, is in no inventory, and comes back off as the same item
 recognition gate | 识别门槛 | 识别门槛（recognition） | 认知门，识别检查，认知识别 | the game's INT gate on whether an item's own name and description are shown (`ItemInfo.rec`); below it the hover reads `unknownobject` and the tooltip prints the level it asks for
 mindwipe | 洗脑 | 洗脑（mindwipe） | 记忆清除，洗脑装置 | the game's own effect that resets a body's INT to 0 and clears every recipe's made-before flag
+single-file package | 单文件包 | 单文件包（single-file package） | 打包文件，整合包 | one plugin DLL carrying the core's libraries inside it, deployed with the native `steam_api64.dll` beside it; extension mods stay separate

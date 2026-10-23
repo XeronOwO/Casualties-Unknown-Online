@@ -105,6 +105,8 @@ its first use in a page. The exact Chinese rendering of each term is registered 
 - **Promotion funnel** — how a need becomes an API: a patch, then a second consumer, then an experimental surface, then a stable one.
 - **Diagnostics** — the log lines an author may rely on; their absence is a bug worth reporting.
 - **Framework core** — a capability the framework's own operation needs; it ships with the plug-in.
+- **Single-file package** — one plugin DLL carrying the framework core and its libraries inside it; the native
+  Steam library sits beside it and extension mods stay separate.
 - **Satellite mod** — a game-facing feature that still makes sense with CUO uninstalled, so it is its own mod.
 - **Repository tool** — a development or verification tool that sits outside the plug-in's dependency graph.
 - **Reusable component** — shared machinery that waits for its second consumer before it is extracted.

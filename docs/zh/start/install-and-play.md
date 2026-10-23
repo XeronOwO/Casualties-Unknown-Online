@@ -17,10 +17,17 @@ CUO 是一个 BepInEx 插件，它不改动游戏安装目录：
 | 它的世界 | CUO 自己的存档目录 |
 | 游戏自己的存档文件 | CUO 从不写入 |
 
+CUO 有两种形态，装法一样：
+
+- **插件文件夹** —— `CasualtiesUnknownOnline.dll` 和它需要的库放在一起。
+- **[单文件包](../reference/glossary.md)** —— 只有一个 `CasualtiesUnknownOnline.dll`，那些库都装在里面；另外把原生的 `steam_api64.dll` 放在旁边，Steam 自己的封装要从磁盘加载它。
+
+扩展模组从不属于这两种形态：拼音搜索这类模组是各自的 DLL，放在插件旁边，CUO 加载时把核心的库交给它们。
+
 ## 安装
 
 1. 如果游戏目录里还没有 **BepInEx 5**，先装上。
-2. 把 CUO 的插件文件夹复制到 `BepInEx/plugins/CasualtiesUnknownOnline/`。
+2. 把 CUO 的插件文件夹复制到 `BepInEx/plugins/CasualtiesUnknownOnline/`；用单文件包的话，把那一个 `CasualtiesUnknownOnline.dll` 和 `steam_api64.dll` 放进同一个文件夹。
 3. 启动一次游戏，让 BepInEx 生成配置文件，然后关掉。
 
 ## 开一次会话

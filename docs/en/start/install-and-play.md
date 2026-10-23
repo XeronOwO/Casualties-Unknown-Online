@@ -18,10 +18,20 @@ CUO is a BepInEx plugin. It does not modify the game installation:
 | its worlds | CUO's own save folder |
 | the game's own save file | never written by CUO |
 
+CUO comes in two forms and they are installed the same way:
+
+- **The plugin folder** — `CasualtiesUnknownOnline.dll` beside the libraries it needs.
+- **The [single-file package](../reference/glossary.md)** — one `CasualtiesUnknownOnline.dll` that carries
+  those libraries inside it, plus the native `steam_api64.dll`, which Steam's own wrapper loads from disk.
+
+Extension mods are never part of either form: a mod such as Pinyin Search is its own DLL, it goes beside the
+plugin, and CUO hands it the core's libraries when it loads.
+
 ## Install
 
 1. Install **BepInEx 5** into the game folder if it is not there yet.
-2. Copy the CUO plugin folder into `BepInEx/plugins/CasualtiesUnknownOnline/`.
+2. Copy the CUO plugin folder into `BepInEx/plugins/CasualtiesUnknownOnline/`; for the single-file package,
+   copy that one `CasualtiesUnknownOnline.dll` and `steam_api64.dll` into the same folder instead.
 3. Start the game once so BepInEx writes the configuration file, then close it.
 
 ## Host a session

@@ -105,3 +105,34 @@ references to the game's own assemblies survive (they are the game's, not ours, 
 ~30 loose dependencies are embedded, and how `verify-deploy.ps1`'s one-build-one-artifact check follows a packed
 file (the plugin already logs `build 0.1.0+<commit>`, so the identity itself is not the unknown 鈥?the artifact
 comparison is). No package work is started in this cycle; this section is the reading the design starts from.
+
+## The CUO-scale packed artifact, and the shape it proves wrong (2026-10-24)
+
+`tools/package-single-file.ps1` packs the real build: the plugin DLL plus 30 managed dependencies embedded as
+`Packed.<name>.dll` (all seven CUO assemblies, the Microsoft/System/protobuf set, Mapster and Steamworks.NET),
+written to `CasualtiesUnknownOnline.dll`; `steam_api64.dll` stays loose because it is native. The deployed plugin
+directory was moved aside and replaced by that ONE file plus `steam_api64.dll`; the client was launched and the
+logs read.
+
+- BepInEx accepted the file: `[Info : BepInEx] Loading [Casualties Unknown: Online 0.1.0]` (the plugin
+  attributes are readable from the packed assembly).
+- The plugin was NOT instantiated. The game's own `Player.log` (BepInEx's log carries no error because the
+  plugin never reached its own code) says only `The script 'CasualtiesUnknownOnline.Plugin' could not be
+  instantiated!`; the main menu came up, and the HotRepl evaluator's `ping` declaration failed with
+  `(1,1): InteractiveHost` because the CUO types it names were never loaded.
+
+**Why, and what it means for the design.** The plugin type's FIELDS name CUO and dependency types
+(`ServiceProvider`, `ICuoService`, `SteamService`, `OnlineUiHost`, ...), so the runtime must resolve those types
+while LOADING the type, before any static constructor of that type can run. A resolver installed in the plugin
+class's static constructor is therefore too late for the plugin class itself; it worked in the earlier
+leaf-dependency probe only because the helper was named in a METHOD body, whose tokens resolve when the method is
+compiled, not when the type loads.
+
+So the single-file package needs the entry split first: a tiny `[BepInPlugin]` type with NO packed-type
+signatures (its static constructor installs the resolver, its `Awake` adds the real component by name), and the
+real plugin class loading only afterwards. That is the `review/plugin-host-shell.md` refactor's own shape, and
+this ticket consumes it, so the packaging work is BLOCKED on that refactor, not on anything the packer lacks.
+
+The deployment was restored (the packed directory was a temporary replacement) and `verify-deploy.ps1` passes
+against the normal set again. The packer stays committed as the probe's tool so the next cycle can rerun the
+same reading after the entry split.

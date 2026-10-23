@@ -159,3 +159,15 @@ Three owed rows in one run:
 Still owed, and verification rather than code: the save/reconnect survival of the restored limb, and the vignette
 overlay the hollow clear removes (the earlier review's second major, which would be read by counting the canvas
 children).
+
+### The save/reconnect row, read on the machine (2026-10-24)
+
+On the deployed `0.1.0+1ae6b691`, one host client, limb 4 severed through the latch (the fixture), then the
+cheat verb: `/heal @s` answered `full heal applied (1 severed limb(s) restored)` and all fifteen limbs read
+intact. `/save` wrote a mid-run cut (revision 597, 9 files, the character among them); `leave-world` +
+`continue-run` restored the world (`CUO restored world ... nothing was lost.`) and the limbs still read
+intact; the client was then RESTARTED and `continue-run` loaded the same save in a fresh process — the limbs
+still read intact. **So the restored limb survives both the same-process restore and a process reconnect.**
+
+Still owed: the vignette overlay count after the hollow clear (the row above). The save half is now judged;
+the ticket stays open only for that reading.

@@ -96,6 +96,14 @@ destructive action running. Until this lands, the widened shape stays recorded i
   `WaterContainerItem.Drink`) reproduced on the running client, so no vanilla drink is refused and the
   destructive three are refused by definition. This is the CLASSIFIER half only; the drag row below is still
   owed.
+- **The measurement itself refused on the machine, with nothing run (2026-10-24, same artifact).** A water-refilled
+  `bloodbag` in the local body, the deployed adapter's own `MeasureRemoteDrinkDose` (the method the wound-view
+  release calls → `TryMeasure`) invoked in-process: `dose=0`, the body's blood `100 → 100`, the bag's total
+  `500 → 500`, its water `500 → 500`, its blood liquid `0 → 0`, no exception — and the client log carries
+  `[ItemUse] refused drink use: bloodbag's own use action does not drink, so it was not run on this client.`
+  The comparison half is the decompiled defect (the pre-fix `DrawBlood` write at `Item.cs:7114-7125`) and the
+  self-check's recorded limit, not a machine red: the pre-fix artifact was not re-deployed for this row, so the
+  record claims only what the fixed build proves.
 - **What the machine still owes.** The two-client row above: drain/refill a blood bag with water and with a
   health-usable liquid, drag it onto a teammate, and read the operator's bag, the target's blood volume and
   the render clone's blood volume before/after. The drag is a native mouse gesture the driver's UI cannot

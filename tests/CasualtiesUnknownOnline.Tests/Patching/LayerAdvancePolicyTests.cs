@@ -50,12 +50,12 @@ public class LayerAdvancePolicyTests
 			.Invoke(null, [fromPanelEntry, delegated])!;
 
 	[Theory]
-	[InlineData(true, true, true)]   // the panel's click, and the port took the delegation: the member does not descend
-	[InlineData(true, false, false)] // the panel's click the port refused (nothing to report): the game descends
-	[InlineData(false, true, false)] // the pod's or the console's own descent: the game descends
+	[InlineData(true, true, true)]   // a session-owned call (the panel's click or the pod's descent) the port accepted: the member does not descend
+	[InlineData(true, false, false)] // the same call the port refused (nothing to report): the game descends
+	[InlineData(false, true, false)] // the console's own descent (not session-owned): the game descends
 	[InlineData(false, false, false)]
-	public void ShouldSuppressLocalDescent_NeedsBothThePanelEntryAndAnAcceptedDelegation(bool fromPanelEntry, bool delegated, bool expected) =>
-		Assert.Equal(expected, ShouldSuppressLocalDescent(fromPanelEntry, delegated));
+	public void ShouldSuppressLocalDescent_NeedsASessionOwnedCallAndAnAcceptedDelegation(bool fromSessionCall, bool delegated, bool expected) =>
+		Assert.Equal(expected, ShouldSuppressLocalDescent(fromSessionCall, delegated));
 
 	[Theory]
 	[InlineData(SessionRole.Guest, true, true)]   // the member at the layer's bottom hands the descent to the host

@@ -6386,7 +6386,7 @@
       "cluster": "inline",
       "row": "R10",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/LayerAdvanceCoordinator.cs",
-      "quote": "world.StartCoroutine(world.RegenerateWorld(false));"
+      "quote": "world.StartCoroutine(world.RegenerateWorld(twice));"
     },
     {
       "cluster": "inline",
@@ -6398,7 +6398,7 @@
       "cluster": "inline",
       "row": "R10",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationRegenerateWorldPatch.cs",
-      "quote": "if (!LayerAdvancePolicy.ShouldSuppressLocalDescent(fromPanelEntry, delegated))"
+      "quote": "if (!LayerAdvancePolicy.ShouldSuppressLocalDescent(sessionOwned, delegated))"
     },
     {
       "cluster": "inline",

@@ -26,4 +26,12 @@ public sealed class LayerAdvanceRequestMsg
 	/// <summary>The requester's kernel generation when it chose; null when this peer holds no committed run baseline.</summary>
 	[ProtoMember(1)]
 	public WorldGenerationMsg? Generation { get; set; }
+
+	/// <summary>
+	/// True when the requester's descent is the drill pod's own: the pod regenerates by TWO layers
+	/// (<c>RegenerateWorld(bool twice)</c>), and its arrival effects belong to the rider's body. Carried so the
+	/// host drives the same two-layer step and the members (the rider included) follow with the same flag.
+	/// </summary>
+	[ProtoMember(2)]
+	public bool Twice { get; set; }
 }

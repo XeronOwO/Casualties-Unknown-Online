@@ -26,12 +26,16 @@ public interface ILayerAdvanceControl
 	/// a peer that cannot name its generation has nothing to ask about — and the caller must then NOT
 	/// suppress its own descent, because a suppressed descent nobody was asked about moves neither the
 	/// session nor the member.
+	/// <para>
+	/// <paramref name="twice"/> carries the drill pod's own two-layer step, so the host drives the step the
+	/// requester's descent would have taken rather than the panel's one-layer advance.
+	/// </para>
 	/// </summary>
-	bool TrySendLayerAdvanceRequest();
+	bool TrySendLayerAdvanceRequest(bool twice);
 
 	/// <summary>Host only: a member's end-of-layer choice arrived. It is admitted only from a handshaken member and only when it names the generation this host is in; what it then means for the live world — driving the native end-of-layer entry, exactly once — is the world domain's decision.</summary>
 	void HandleLayerAdvanceRequest(ulong sender, LayerAdvanceRequestMsg msg);
 
-	/// <summary>Host only: a member's end-of-layer choice was admitted for the layer this host is in — the world's next step is the host's to take.</summary>
-	event Action<ulong>? LayerAdvanceRequested;
+	/// <summary>Host only: a member's end-of-layer choice was admitted for the layer this host is in — the world's next step is the host's to take, at the step (one or two layers) the requester's descent carries.</summary>
+	event Action<ulong, bool>? LayerAdvanceRequested;
 }

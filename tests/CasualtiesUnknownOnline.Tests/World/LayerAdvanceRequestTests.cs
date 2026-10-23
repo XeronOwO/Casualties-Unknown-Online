@@ -24,10 +24,10 @@ namespace CasualtiesUnknownOnline.Tests.World;
 [Trait("Category", "Integration")]
 public class LayerAdvanceRequestTests
 {
-	private static List<ulong> ListenForChoices(TestNode host)
+	private static List<(ulong Sender, bool Twice)> ListenForChoices(TestNode host)
 	{
-		var choices = new List<ulong>();
-		host.Services.GetRequiredService<ILayerAdvanceControl>().LayerAdvanceRequested += sender => choices.Add(sender);
+		var choices = new List<(ulong Sender, bool Twice)>();
+		host.Services.GetRequiredService<ILayerAdvanceControl>().LayerAdvanceRequested += (sender, twice) => choices.Add((sender, twice));
 		return choices;
 	}
 
@@ -42,10 +42,10 @@ public class LayerAdvanceRequestTests
 		WorldGenerationReports.CommitRun(w.Host, layerIndex: 2);
 		w.Driver.Tick(33); // the member follows this host's baseline before choosing
 
-		Assert.True(w.G1.Services.GetRequiredService<ILayerAdvanceControl>().TrySendLayerAdvanceRequest());
+		Assert.True(w.G1.Services.GetRequiredService<ILayerAdvanceControl>().TrySendLayerAdvanceRequest(twice: false));
 		w.Driver.Tick(33);
 
-		Assert.Equal([w.G1.SteamId], choices);
+		Assert.Equal([(w.G1.SteamId, false)], choices);
 	}
 
 	/// <summary>A peer with no committed run baseline cannot name the layer it is asking about, so nothing is sent and the caller is told — otherwise the member would suppress its own descent for a request that never existed.</summary>
@@ -55,10 +55,28 @@ public class LayerAdvanceRequestTests
 		using var w = ItemSimWorld.Create();
 		var choices = ListenForChoices(w.Host);
 
-		Assert.False(w.G1.Services.GetRequiredService<ILayerAdvanceControl>().TrySendLayerAdvanceRequest());
+		Assert.False(w.G1.Services.GetRequiredService<ILayerAdvanceControl>().TrySendLayerAdvanceRequest(twice: false));
 		w.Driver.Tick(33);
 
 		Assert.Empty(choices);
+	}
+
+	/// <summary>
+	/// The drill pod's own descent carries TWO layers, and that step must reach the host with the request: the
+	/// host drives the two-layer advance the requester would have taken, not the panel's one-layer step.
+	/// </summary>
+	[Fact]
+	public void ThePodsTwoLayerStep_ReachesTheHostInTheRequest()
+	{
+		using var w = ItemSimWorld.Create();
+		var choices = ListenForChoices(w.Host);
+		WorldGenerationReports.CommitRun(w.Host, layerIndex: 2);
+		w.Driver.Tick(33);
+
+		Assert.True(w.G1.Services.GetRequiredService<ILayerAdvanceControl>().TrySendLayerAdvanceRequest(twice: true));
+		w.Driver.Tick(33);
+
+		Assert.Equal([(w.G1.SteamId, true)], choices);
 	}
 
 	[Fact]
@@ -119,7 +137,7 @@ public class LayerAdvanceRequestTests
 
 		// The host's own click IS the session's advance — the adapter drives the
 		// game's entry directly, so no request is produced on either side.
-		Assert.False(w.Host.Services.GetRequiredService<ILayerAdvanceControl>().TrySendLayerAdvanceRequest());
+		Assert.False(w.Host.Services.GetRequiredService<ILayerAdvanceControl>().TrySendLayerAdvanceRequest(twice: false));
 		w.Driver.Tick(33);
 
 		Assert.Empty(choices);

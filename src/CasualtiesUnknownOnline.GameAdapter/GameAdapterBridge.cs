@@ -447,8 +447,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnFluidFixedUpdate() => domains.FluidSync.OnFluidFixedUpdate();
 
-	/// <summary>The member's own end-of-layer choice: the game's entry ran its guard and its local steps, and the local regeneration must not follow (the layer is the host's capture).</summary>
-	public bool TryDelegateLocalAdvance() => domains.LayerAdvance.TryDelegateLocalAdvance();
+	/// <summary>The member's own descent the session owns (its end-of-layer choice or the drill pod's): the local regeneration must not follow (the layer is the host's capture), and the native two-layer flag rides the request.</summary>
+	public bool TryDelegateLocalAdvance(bool twice) => domains.LayerAdvance.TryDelegateLocalAdvance(twice);
 
 	/// <summary>A local descent that is NOT suppressed: on the host of a live session it is the shared edge every member follows, and the presentation window opens with it.</summary>
 	public void OnHostDescent(bool twice)

@@ -20,15 +20,14 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal interface ILayerAdvancePatchPort
 {
 	/// <summary>
-	/// The local player chose to continue at the end of a layer: the game's own
-	/// end-of-layer entry (<c>WorldGeneration.ContinueRun</c>) has run its guard and
-	/// its local steps and is about to start the local regeneration. Returns true
-	/// when that regeneration must be SUPPRESSED — this client is a guest in a live
-	/// session, so the choice is reported to the host and the layer comes from the
-	/// host's baseline. A host, a solo player and a client with no session return
-	/// false: their own descent IS the session's advance and the game runs it.
+	/// A local descent the SESSION owns is about to start (the panel's click, or the drill pod's own descent):
+	/// report the step to the host instead of taking it. Returns true when that regeneration must be SUPPRESSED
+	/// — this client is a guest in a live session, so the choice is reported and the layer comes from the host's
+	/// baseline. A host, a solo player and a client with no session return false: their own descent IS the
+	/// session's advance and the game runs it. <paramref name="twice"/> is the native two-layer flag (the drill
+	/// pod), carried into the request so the host drives the step the requester would have taken.
 	/// </summary>
-	bool TryDelegateLocalAdvance();
+	bool TryDelegateLocalAdvance(bool twice);
 
 	/// <summary>
 	/// A local <c>WorldGeneration.RegenerateWorld</c> is about to start and the local

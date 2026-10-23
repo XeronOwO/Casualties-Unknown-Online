@@ -40,8 +40,8 @@ public sealed class LayerAdvanceRequestChannel(
 	private readonly KernelWorldGenerationSource _generations = new(kernelAuthority);
 	private readonly ILogger<LayerAdvanceRequestChannel> _log = log;
 
-	/// <summary>Host only: a member's choice was admitted (handshaken member, this host's own generation) — the world domain drives the layer's advance.</summary>
-	public event Action<ulong>? LayerAdvanceRequested;
+	/// <summary>Host only: a member's choice was admitted (handshaken member, this host's own generation) — the world domain drives the layer's advance, at the step the request carries.</summary>
+	public event Action<ulong, bool>? LayerAdvanceRequested;
 
 	/// <summary>
 	/// Any role: report this side's end-of-layer choice to the host. Guest only (the host's and a solo
@@ -49,7 +49,7 @@ public sealed class LayerAdvanceRequestChannel(
 	/// committed run baseline: an unstamped request names no layer to arbitrate against, and the caller
 	/// must be told so it does not suppress a descent nobody was asked about.
 	/// </summary>
-	public bool TrySendLayerAdvanceRequest()
+	public bool TrySendLayerAdvanceRequest(bool twice)
 	{
 		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
 		{
@@ -62,9 +62,9 @@ public sealed class LayerAdvanceRequestChannel(
 			return false;
 		}
 
-		_sender.Send(_session.HostSteamId, NetMsg.LayerAdvanceRequest, new LayerAdvanceRequestMsg { Generation = stamp });
-		_log.LogInformation("[LayerChoice] sent this side's end-of-layer choice to the host ({Generation}).",
-			WorldReportGeneration.Describe(_generations.Current));
+		_sender.Send(_session.HostSteamId, NetMsg.LayerAdvanceRequest, new LayerAdvanceRequestMsg { Generation = stamp, Twice = twice });
+		_log.LogInformation("[LayerChoice] sent this side's end-of-layer choice to the host ({Generation}, twice: {Twice}).",
+			WorldReportGeneration.Describe(_generations.Current), twice);
 		return true;
 	}
 
@@ -95,8 +95,8 @@ public sealed class LayerAdvanceRequestChannel(
 			return;
 		}
 
-		_log.LogInformation("[LayerChoice] {Sender} chose to continue at {Current} — the advance is this host's to drive.",
-			sender, WorldReportGeneration.Describe(_generations.Current));
-		LayerAdvanceRequested?.Invoke(sender);
+		_log.LogInformation("[LayerChoice] {Sender} chose to continue at {Current} — the advance is this host's to drive (twice: {Twice}).",
+			sender, WorldReportGeneration.Describe(_generations.Current), msg.Twice);
+		LayerAdvanceRequested?.Invoke(sender, msg.Twice);
 	}
 }

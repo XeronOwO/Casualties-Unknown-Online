@@ -83,7 +83,7 @@ internal sealed class LayerAdvanceCoordinator(
 	/// Limits.
 	/// </para>
 	/// </summary>
-	internal bool TryDelegateLocalAdvance()
+	internal bool TryDelegateLocalAdvance(bool twice)
 	{
 		if (!LayerAdvancePolicy.ShouldDelegateLocalAdvance(_session.Role, _session.SessionActive))
 		{
@@ -94,9 +94,9 @@ internal sealed class LayerAdvanceCoordinator(
 		// Nothing to report (no committed run baseline on this side) means nothing to suppress either: a
 		// descent nobody was asked about moves neither the session nor the member, so the game's own
 		// descent stands — the pre-change behaviour, which is the conservative side of this gap.
-		if (!_layerAdvance.TrySendLayerAdvanceRequest())
+		if (!_layerAdvance.TrySendLayerAdvanceRequest(twice))
 		{
-			_log.LogWarning("[LayerChoice] this member's choice could not be reported — it keeps the game's own descent.");
+			_log.LogWarning("[LayerChoice] this member's choice could not be reported — it keeps the game's own descent (twice: {Twice}).", twice);
 			return false;
 		}
 
@@ -146,12 +146,31 @@ internal sealed class LayerAdvanceCoordinator(
 
 		world.savePanel.SetActive(false);
 		PlayerPrefs.SetInt("deepestlayer", Math.Max(HarmonyTraverse.ReadBiomeDepth() + 1, PlayerPrefs.GetInt("deepestlayer")));
-		world.StartCoroutine(world.RegenerateWorld(twice));
+		// This call IS the host's edge, not a local choice to report: the sink patch must not delegate it a
+		// second time (the pod's `doPod` flag is still set here on purpose — the rider's own regeneration reads
+		// it for the arrival effects). The mark is consumed by the sink patch.
+		InHostEdgeDescent = true;
+		try
+		{
+			world.StartCoroutine(world.RegenerateWorld(twice));
+		}
+		finally
+		{
+			InHostEdgeDescent = false;
+		}
 		_log.LogInformation("[LayerDescent] this member starts its own new-layer generation (twice: {Twice}) from the host's descent edge.", twice);
 	}
 
+	/// <summary>
+	/// True while <see cref="BeginLocalDescent"/> starts the member's own regeneration for the HOST's descent
+	/// edge. The sink patch reads it so that call is never delegated a second time: the pod's <c>doPod</c> flag
+	/// is still set at that moment (the rider's own arrival effects need it), so without this mark the follow-up
+	/// generation would look like another pod request.
+	/// </summary>
+	internal static bool InHostEdgeDescent { get; private set; }
+
 	/// <summary>Host only: an admitted member choice (handshaken member, this host's generation) — drive the layer's advance unless the world cannot take it.</summary>
-	private void OnLayerAdvanceRequested(ulong sender)
+	private void OnLayerAdvanceRequested(ulong sender, bool twice)
 	{
 		var world = WorldGeneration.world;
 		if (world == null) // Unity object — ==
@@ -177,7 +196,10 @@ internal sealed class LayerAdvanceCoordinator(
 
 		world.savePanel.SetActive(false);
 		PlayerPrefs.SetInt("deepestlayer", Math.Max(HarmonyTraverse.ReadBiomeDepth() + 1, PlayerPrefs.GetInt("deepestlayer")));
-		world.StartCoroutine(world.RegenerateWorld(false));
-		_log.LogInformation("[LayerChoice] {Sender}'s choice drives the layer advance — this host regenerates the layer and the members follow its baseline.", sender);
+		// The step is the requester's own: the drill pod's descent is two layers, the panel's is one. The
+		// members follow through BeginLocalDescent with the same flag, so the rider's pod arrival effects run
+		// once on the body that rode.
+		world.StartCoroutine(world.RegenerateWorld(twice));
+		_log.LogInformation("[LayerChoice] {Sender}'s choice drives the layer advance (twice: {Twice}) — this host regenerates the layer and the members follow its baseline.", sender, twice);
 	}
 }

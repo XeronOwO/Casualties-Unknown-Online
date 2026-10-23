@@ -36,9 +36,12 @@ public class LayerAdvanceCoordinatorTests
 	{
 		public int Sends { get; private set; }
 
-		public event Action<ulong>? LayerAdvanceRequested;
+		/// <summary>The two-layer flag of the last request sent, so the pod's own step is checkable.</summary>
+		public bool LastTwice { get; private set; }
 
-		public bool TrySendLayerAdvanceRequest()
+		public event Action<ulong, bool>? LayerAdvanceRequested;
+
+		public bool TrySendLayerAdvanceRequest(bool twice)
 		{
 			if (!sends)
 			{
@@ -46,10 +49,11 @@ public class LayerAdvanceCoordinatorTests
 			}
 
 			Sends++;
+			LastTwice = twice;
 			return true;
 		}
 
-		public void HandleLayerAdvanceRequest(ulong sender, LayerAdvanceRequestMsg msg) => LayerAdvanceRequested?.Invoke(sender);
+		public void HandleLayerAdvanceRequest(ulong sender, LayerAdvanceRequestMsg msg) => LayerAdvanceRequested?.Invoke(sender, msg.Twice);
 	}
 
 	private static (object Coordinator, FakeLayerAdvance Advance) Build(SessionRole role, bool sessionActive, bool sends = true)
@@ -78,9 +82,9 @@ public class LayerAdvanceCoordinatorTests
 			? Activator.CreateInstance(typeof(Logger<>).MakeGenericType(dependency.GetGenericArguments()[0]), factory)!
 			: throw new InvalidOperationException($"LayerAdvanceCoordinator gained a dependency this fixture does not know: {dependency.FullName}.");
 
-	private static bool TryDelegateLocalAdvance(object coordinator) =>
+	private static bool TryDelegateLocalAdvance(object coordinator, bool twice = false) =>
 		(bool)Coordinator.GetMethod("TryDelegateLocalAdvance", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!
-			.Invoke(coordinator, null)!;
+			.Invoke(coordinator, [twice])!;
 
 	[Theory]
 	[InlineData(SessionRole.Guest, true, true)]   // the member at the layer's bottom hands the descent to the host
@@ -108,5 +112,29 @@ public class LayerAdvanceCoordinatorTests
 
 		Assert.False(TryDelegateLocalAdvance(coordinator));
 		Assert.Equal(0, advance.Sends);
+	}
+
+	/// <summary>
+	/// The drill pod's own descent carries TWO layers, and the request must carry that step: the host drives the
+	/// pod's two-layer advance rather than the panel's one-layer one.
+	/// </summary>
+	[Fact]
+	public void TryDelegateLocalAdvance_CarriesThePodsTwoLayerStep()
+	{
+		var (coordinator, advance) = Build(SessionRole.Guest, sessionActive: true);
+
+		Assert.True(TryDelegateLocalAdvance(coordinator, twice: true));
+		Assert.Equal(1, advance.Sends);
+		Assert.True(advance.LastTwice, "the pod's two-layer step must reach the request");
+	}
+
+	/// <summary>The panel's own click stays a one-layer advance in the request.</summary>
+	[Fact]
+	public void TryDelegateLocalAdvance_ThePanelStaysOneLayer()
+	{
+		var (coordinator, advance) = Build(SessionRole.Guest, sessionActive: true);
+
+		Assert.True(TryDelegateLocalAdvance(coordinator));
+		Assert.False(advance.LastTwice);
 	}
 }

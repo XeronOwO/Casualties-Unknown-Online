@@ -1,6 +1,10 @@
 # A member's drill-pod descent regenerates a layer the session never agreed on
 
-- Status: Todo
+- Status: Todo — the main routing landed 2026-10-24 (the member's pod descent is delegated with its two-layer
+  step, the host drives it, the rider follows the edge; read on two clients). The ticket stays `todo` for the
+  refusal rows (host dead, rider out of the world, the repair kit consumed by another member) and their named
+  refusal lines. Record:
+  `docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md`.
 - Priority: Medium
 - Category: World generation / layer transition / descent producers
 - Source: found by the family sweep of the 2026-10-07 cycle that landed

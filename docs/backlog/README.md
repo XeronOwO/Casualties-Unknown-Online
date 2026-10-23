@@ -64,7 +64,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A player's own music, heard by the group](todo/player-music-sync-playback.md) — **Medium** — transfer the file, then play.
 - [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.
 - [The loading screen says what it waits for](todo/loading-screen-progress-detail.md) — **Low-Medium** — reuse the game's own line.
-- [Recursive crafting as a standalone mod](todo/recursive-crafting-mod.md) — **Low-Medium** — a third recipe-panel state.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
 - [The opener can claim a key the game is rebinding](todo/enter-opener-keybind-capture.md) — **Low-Medium** — the key-bind capture is not a text field.
 - [The trap layout never carries a crystal row](todo/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the kind is read off the component, which has none.
@@ -93,6 +92,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
+- [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.

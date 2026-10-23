@@ -351,7 +351,7 @@ docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlo
 docs/backlog/todo/player-music-sync-playback.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md | keep | index | docs/backlog/README.md
 docs/backlog/done/radiation-line-floor-stop.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
+docs/backlog/review/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/item-identity-bridge.md | keep | index | docs/backlog/README.md
 docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.md

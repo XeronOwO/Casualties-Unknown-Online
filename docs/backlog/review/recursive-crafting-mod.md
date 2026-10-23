@@ -1,6 +1,8 @@
 # Recursive crafting as a standalone mod
 
-- Status: Todo
+- Status: Review — the resolver, the game half, the console command and the recipe panel's third state
+  landed and are read on the machine (including the "two into one" merge); the one row left is the
+  on-screen look, which is the user's visual pass. See *Stage 4* below.
 - Priority: Low-Medium
 - Category: Mod / crafting / UI
 - Source: the user's 2026-10-07 backlog request — recursive crafting (a recipe whose ingredients are themselves
@@ -146,6 +148,30 @@ console's `/give`): with scrapmetal, woodcube and two foliage held,
 237 patched methods was the getter). `PatchAll(typeof(Installer).Assembly)` patches them; the installer now also
 logs how many targets it patched, so a silent no-op cannot recur.
 
-What remains: the favourite mark and the real-session row (a recursive entry offered, a favourite unaffected, two
-spent items merged). The panel is not yet read with the panel itself OPEN — the marker and tooltip are read from
-the same getters the panel calls, which is the mechanism under test; the on-screen look is the user's row.
+## Stage 4 landed (2026-10-24) — the "two into one" row read on the machine, and the favourite question settled
+
+**The merge rule is load-bearing, measured on one host with the real table:** the game's own rule for
+`flimsyknife`'s scrapmetal line is `item.condition >= 0.9`, so TWO items at 0.5 each are refused by the game;
+the mod's rule sums what the line consumes.
+
+| reading (scrapmetal slots via `/data modify slot <n> Condition set …`) | answer |
+|---|---|
+| both 0.5 | `flimsyknife: reachable through 1 step(s) — 1. rope.` |
+| 0.2 + 0.5 (sum 0.7, below the 0.9 line) | `cannot be crafted — nothing here provides "scrapmetal".` |
+| 0.5 again | reachable again |
+
+and the panel's own getter still carries the marker in that state
+(`Recipe.fullName` = `脆弱的刀 (+)`), so the merge and the third state read together.
+
+**The favourite mark is MOOT in this design and is not built.** The game has no recipe-favourite concept
+(`Recipe` declares none, and the reference mod's "third state" list was a REPLACEMENT of the native list, so
+its favourites existed to keep pinned entries visible inside that replacement). This mod never replaces the
+list: every recipe the game offers stays in the native panel, and the third state is an added marker plus a
+tooltip line, so there is no filtered view for a favourite to survive. Building a favorite toggle would be a
+new player-facing gesture and a new store — a feature the user has not asked for — so the ticket records the
+reason instead.
+
+**What the ticket still leaves to the user:** the on-screen look. The marker and the tooltip line are read from
+the same getters the panel calls (the mechanism under test), but the panel was never opened on screen, so
+whether ` (+)` and the amber-free native grey read well is the user's visual pass. That is the one residual;
+everything else the ticket asked for is judged above.

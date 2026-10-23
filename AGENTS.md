@@ -70,7 +70,12 @@ not the goal.
   Every code change names the player-facing or system problem it solves and the design it implements; a
   change that names only the code it touches is the "code for code's sake" this rule refuses. A design
   with user-visible trade-offs goes to the user (Development Workflow rule 9); the implementation's own
-  help text or doc comment is never the design.
+  help text or doc comment is never the design. **The same rule governs a "where does this go" question**:
+  the answer is where the thing SHOULD end up in the fiction (the world, the player's hands), never the
+  destinations the code already has to hand (a free slot, a discard, a refused row) — an item a legitimate
+  rule cannot place still belongs somewhere a player would accept, and a menu of the code's own options is
+  not a design question but the defect restated (the user's 2026-10-23 ruling on a refused restore child:
+  it falls to the ground).
 - `[CRITICAL]` **The interaction is designed from the player's INPUT, never from the code's
   opportunity.** Before a player-facing gesture exists, write down the exact input sequence the player
   performs — which mouse button is held, which window is open, and what can still be clicked or pressed

@@ -13,7 +13,7 @@
   change the shape this scanner reads, so they land first),
   `docs/backlog/done/mod-authored-effects.md` (its code-registration surface is the same question),
   `docs/backlog/review/mod-content-nested-member-contracts.md` and
-  `docs/backlog/review/mod-content-fingerprint.md` (the two halves this ticket handed on rather than dropped; both have since landed),
+  `docs/backlog/done/mod-content-fingerprint.md` (the two halves this ticket handed on rather than dropped; both have since landed),
   `docs/en/reference/mod-api.md` (the page a mod author reads), decisions 247 and 252.
 - Source: the user's 2026-10-08 question and the follow-up ("它实现多个接口…是一个注册入口还是每个接口实现都要注册一遍？").
 - Stage A (landed 2026-10-09): the nine kind interfaces and their ready-made implementations are in,
@@ -53,7 +53,7 @@ work this ticket does not carry. Each is recorded here rather than quietly dropp
    that already has a base was never the reason for them: implementing the interface works there today,
    which is the whole point of stage A.
 3. **The content fingerprint moves OUT of this ticket**, with its acceptance row, to
-   `docs/backlog/review/mod-content-fingerprint.md`. It is a save- and handshake-side consequence of
+   `docs/backlog/done/mod-content-fingerprint.md`. It is a save- and handshake-side consequence of
    computed definitions rather than a requirement of the scanner.
 4. **The nested member contracts move OUT of this ticket**, with the acceptance row that names them, to
    `docs/backlog/review/mod-content-nested-member-contracts.md`: `IModItemTool` and its thirteen siblings
@@ -158,7 +158,7 @@ things the game can address and delete on their own.**
   version can materialize different content — a local config changes a weight — and nothing noticed. Opening
   this ceiling therefore owes the fingerprint a meaning: a hash of the materialized content, reported as a
   named mismatch instead of silently accepted. **Landed 2026-10-10** — decision 254 and
-  `review/mod-content-fingerprint.md`: the field now carries the digest of the registered content set, the
+  `done/mod-content-fingerprint.md`: the field now carries the digest of the registered content set, the
   handshake compares it per mod, and a load reports a difference.
 - **Keep the default implementations plain and settable.** The framework reads the interface; a future
   data-driven loader (a JSON content pack) would deserialize into the concrete default, which is why its
@@ -175,7 +175,7 @@ things the game can address and delete on their own.**
 - **Registration runs BEFORE `ICuoMod.Bind`**, and a declared definition is therefore registered ahead of a
   code registration of the same id: the declared half is the mod's static content, the code half is what it
   computes at bind time, and the existing duplicate rail refuses the later one.
-- **The content fingerprint left this ticket** (`review/mod-content-fingerprint.md`, landed 2026-10-10), and so did the nested
+- **The content fingerprint left this ticket** (`done/mod-content-fingerprint.md`, landed 2026-10-10), and so did the nested
   member contracts (`review/mod-content-nested-member-contracts.md`) — see *Superseded and handed on*.
 
 ## Non-goals
@@ -220,5 +220,5 @@ things the game can address and delete on their own.**
   the same definitions registered through code bind.
 - Owed by the fingerprint rule above: two clients that materialize different content under the same id and
   the same mod version are reported as a named mismatch rather than silently accepted. **Moved verbatim**
-  to `docs/backlog/review/mod-content-fingerprint.md` (landed 2026-10-10, decision 254): nothing consumed a
+  to `docs/backlog/done/mod-content-fingerprint.md` (landed 2026-10-10, decision 254): nothing consumed a
   fingerprint then, so it was a save-side ticket rather than a row of this one.

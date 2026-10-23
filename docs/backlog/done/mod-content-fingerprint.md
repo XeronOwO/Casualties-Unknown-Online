@@ -1,9 +1,12 @@
 # Two peers that materialize different content are never compared
 
-- Status: Review — **landed 2026-10-10** (see *What landed*): nothing is left to develop here, and the
-  acceptance batch is pending. Split out of `docs/backlog/review/mod-content-attribute-declarations.md`
-  when that ticket's stage B landed (2026-10-09), carrying its acceptance row verbatim. Not invented
-  here: making a definition able to COMPUTE its values is what made the field load-bearing.
+- Status: Done 2026-10-24 — landed 2026-10-10 (see *What landed*) and the acceptance row passed on
+  `0.1.0+6e782b7a`: two clients whose `cuo.example` content differed (a declared fixture) were both told by
+  name, with both fingerprints and the Synchronized mode, and both were admitted. Record:
+  `docs/evidence/acceptance/mod-content-fingerprint-20261024-a.md`. Split out of
+  `done/mod-content-attribute-declarations.md` when that ticket's stage B landed (2026-10-09), carrying its
+  acceptance row verbatim. Not invented here: making a definition able to COMPUTE its values is what made the
+  field load-bearing.
 - Priority: Medium
 - Category: Mod platform / save + handshake
 - Related: `docs/backlog/done/mod-content-typed-registration.md` (the typed contract; it already records

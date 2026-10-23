@@ -1,6 +1,6 @@
 # The content fingerprint: what a declaration produced, compared at both boundaries
 
-Scope: ticket `docs/backlog/review/mod-content-fingerprint.md` (decision 254). One canonical text over the
+Scope: ticket `docs/backlog/done/mod-content-fingerprint.md` (decision 254). One canonical text over the
 ADDRESS of every registered content entry, its digest compared between peers at the handshake and recorded by
 a cut, so two peers that materialize different content under one mod id and one mod version are named instead
 of silently accepted.

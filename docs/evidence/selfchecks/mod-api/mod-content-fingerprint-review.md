@@ -38,7 +38,7 @@ guestFingerprint, StringComparison.Ordinal)) { return true; }`). That is an **"a
 thing the decision is named after: a definition's other members may COMPUTE their values (decision 251), so
 two peers with the same four-tuple and a different computed value are admitted in silence. This is not a
 hypothetical shape — it is the ticket's own motivating example, quoted from the entry this cycle deleted
-(`docs/backlog/review/mod-content-fingerprint.md`, deleted): "With code-driven definitions two copies of the
+(`docs/backlog/done/mod-content-fingerprint.md`, deleted): "With code-driven definitions two copies of the
 same mod version can materialize different content — **a local config changes a weight** — and nothing
 notices." A weight is a member value, not an address field. See MAJOR 2.
 A second, narrower fallback: `null` on the wire is read as "this mod registered no content" (`ModInfoMsg.cs`,
@@ -119,7 +119,7 @@ with a `Bind` that throws after registering.
 
 ### MAJOR 2 — the acceptance row says "materialize different content"; the code compares the ADDRESS, so the ticket's own case stays silent
 
-`docs/backlog/review/mod-content-fingerprint.md:60-61` (the row, moved verbatim from the parent ticket):
+`docs/backlog/done/mod-content-fingerprint.md:60-61` (the row, moved verbatim from the parent ticket):
 
 > - **Two clients that materialize different content under the same id and the same mod version are reported
 >   as a named mismatch rather than silently accepted.**
@@ -129,7 +129,7 @@ The comparison is `ModContentFingerprint.Lines` (`ModContentFingerprint.cs:38-39
 computed member value under an equal four-tuple produces an **equal digest**, so it is silently accepted —
 the exact drift the ticket was filed for, whose example is "a local config changes a weight" (quoted in A0).
 The ticket's record claims the opposite: "nothing is left to develop here, and the acceptance batch is
-pending" (`docs/backlog/review/mod-content-fingerprint.md:4-5`), while the row as written cannot pass at that
+pending" (`docs/backlog/done/mod-content-fingerprint.md:4-5`), while the row as written cannot pass at that
 batch for the scenario the parent ticket used to justify it.
 
 Worse, the reader-facing page uses that very scenario as the case the new parity **catches** —
@@ -161,7 +161,7 @@ including every user-visible behaviour change it introduces: a parent ticket's f
 work order or an existing implementation are never that approval").
 
 The move itself removed the only sentence that could be read as authorizing it. The deleted
-`docs/backlog/review/mod-content-fingerprint.md` carried, under "What this ticket owes":
+`docs/backlog/done/mod-content-fingerprint.md` carried, under "What this ticket owes":
 
 > It has to be decidable what a peer can honestly assert about another peer's content: ids, kinds and schema
 > versions are stable, while a computed member's value is not hashable in general — the ticket starts by
@@ -169,7 +169,7 @@ The move itself removed the only sentence that could be read as authorizing it. 
 > hashing something unstable.
 
 The replacement ticket keeps the acceptance row, the priorities and the non-goals but drops that whole
-paragraph (`docs/backlog/review/mod-content-fingerprint.md` "What this ticket owed" reduces it to "A decision
+paragraph (`docs/backlog/done/mod-content-fingerprint.md` "What this ticket owed" reduces it to "A decision
 on WHERE the comparison happens and what it hashes — taken; see *What landed*"). So nothing in the surviving
 record says a *refusal* was owed. Disposition is the user's: approve the refusal (and say so in the row), or
 make it warn-and-admit like every other local-surface row. Either way the row and the mod-api table must say

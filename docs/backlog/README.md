@@ -87,7 +87,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [Content declarations by attribute](review/mod-content-attribute-declarations.md) — **High** — stage B landed; the scan replaces the Bind list.
 - [A declaration's nested member types are not contracts](review/mod-content-nested-member-contracts.md) — **Medium** — landed; a mod implements its own `Tool`.
-- [Two peers that materialize different content are never compared](review/mod-content-fingerprint.md) — **Medium** — landed; what a peer's content IS is named.
 - [No opaque payloads in the mod API](review/mod-api-no-opaque-envelopes.md) — **Critical** — a typed data model where the shape is the mod's own; landed.
 - [Mod-defined wire packets](review/mod-defined-wire-packets.md) — **High** — a mod owns its packet id and chain; two-client rows need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
@@ -166,6 +165,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 - [Give an item to another player](done/give-item-to-another-player.md) — **Medium** — accepted 2026-10-24; every row judged.
+- [Two peers that materialize different content are never compared](done/mod-content-fingerprint.md) — **Medium** — accepted 2026-10-24: the mismatch is named.
 - [The receiver's placement never returns to the host](done/placement-outcome-never-returns.md) — **Medium** — accepted 2026-10-24; rows 1-5 + ruling.
 - [Limb install from a bag](done/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — accepted.
 - [S4 — Multiplayer restore and backups](done/save-multiplayer-restore-and-backups.md) — **High** — closed 2026-10-24: all stages and rows.

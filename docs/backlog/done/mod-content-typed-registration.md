@@ -34,7 +34,7 @@ Nothing that needs them:
   permissions, so each client materialises its own copy of the content.
 - **They are not stored.** The save keeps content **ids** and a `SaveManifest.ContentFingerprint` string; an id
   the current content set no longer has is salvaged per entry (`DamageReport.EntryReason.ContentMissing`).
-  **Superseded 2026-10-10** (decision 254, `review/mod-content-fingerprint.md`): the
+  **Superseded 2026-10-10** (decision 254, `done/mod-content-fingerprint.md`): the
   `contentFingerprint` field is no longer written as `string.Empty` — a cut records the digest of the
   registered content set and a load compares it with the live one.
 - **They are not compared.** Nothing hashes or diffs a definition's bytes.

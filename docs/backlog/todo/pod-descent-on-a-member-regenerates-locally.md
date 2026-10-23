@@ -111,3 +111,28 @@ a different member than the rider. Each is a row of the implementation's accepta
 
 The implementation is the next cycle for this ticket; this section is the reading and the decision it had to
 come before.
+
+## What landed, and the one failure row that needs a ruling (2026-10-24)
+
+The routing and the refusal ANSWER are in (`NetMsg.LayerAdvanceRefused`, read on the machine): a member's pod
+request is delegated with its two-layer step, the host drives it, the rider follows the edge, and a request the
+host cannot take is answered on the member with the host's own sentence.
+
+The failure rows the ticket names, re-read against the rest of the backlog:
+
+- **Rider out of the world** — cannot occur: `DrillPod.Update` triggers from the LOCAL body standing next to a
+  repaired pod, and a member out of the world has no body there. Nothing to refuse.
+- **The repair kit consumed by another member than the rider** — the pod's repaired state is the world object's
+  own, not a per-member fact: whoever repaired it, the rider uses the pod. The native rule is that the REPAIR is
+  the shared cost, not that the repairer must ride. Nothing to refuse; the row is the world object's semantics.
+- **The host dead when the pod is used** — this one CONFLICTS with the panel ticket's own requirement, and the
+  conflict is the reason this row is not implemented: `review/layer-complete-choice-for-members.md` asks that a
+  dead host "cannot leave the [session] stuck" — the members must still be able to move the layer — while this
+  ticket's failure row asks for the descent to be REFUSED on the member when the host is dead. The two cannot
+  both hold for the same click. The ruling needed: does a member's descent while the host's body is dead
+  (a) advance the session through the host's client (the panel ticket's shape), or (b) get refused with a named
+  line (this ticket's row)? The refusal ANSWER can carry either; the choice decides what the protocol claims,
+  so it is the user's, not this ticket's.
+
+Until that ruling this ticket stays `todo` with the two non-cases recorded (nothing to implement) and the
+host-dead row as the open decision.

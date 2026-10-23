@@ -28,7 +28,7 @@ public enum ItemUseFamily
 	/// non-injectable liquid is the drink family's by its own <c>usable</c> flag, and
 	/// the drink measurement classifies the DEFINITION before running it, so a
 	/// non-drink action is refused unrun (see
-	/// <c>docs/backlog/review/drink-measurement-destructive-use-action.md</c>).
+	/// <c>docs/backlog/done/drink-measurement-destructive-use-action.md</c>).
 	/// </summary>
 	Injection,
 

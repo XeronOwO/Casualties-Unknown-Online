@@ -310,6 +310,7 @@ docs/backlog/done/gamerule-joins-the-op-family.md | keep | index | docs/backlog/
 docs/evidence/acceptance/gamerule-joins-the-op-family-20261024-b.md | keep | claim | docs/backlog/done/gamerule-joins-the-op-family.md
 docs/backlog/done/console-completion-hides-what-you-cannot-run.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/console-completion-hides-what-you-cannot-run-20261024-c.md | keep | claim | docs/backlog/done/console-completion-hides-what-you-cannot-run.md
+docs/evidence/acceptance/drink-measurement-destructive-use-action-20261024-a.md | keep | claim | docs/backlog/done/drink-measurement-destructive-use-action.md
 docs/backlog/done/gamerule-host-rule-command.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
@@ -358,7 +359,7 @@ docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/single-file-plugin-package.md | keep | index | docs/backlog/README.md
 docs/backlog/done/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/topical-limb-action-shape.md | keep | index | docs/backlog/README.md
-docs/backlog/review/drink-measurement-destructive-use-action.md | keep | index | docs/backlog/README.md
+docs/backlog/done/drink-measurement-destructive-use-action.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/trap-layout-crystal-rows-empty.md | keep | index | docs/backlog/README.md
 docs/backlog/done/version-string-build-suffix.md | keep | index | docs/backlog/README.md
 docs/backlog/watchlist/architecture-watchlist.md | keep | index | docs/backlog/README.md

@@ -22,7 +22,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// keyed on the STACKS; a usable container whose stacks carry no injectable flag is
 /// a drink by its own data, and the drink measurement classifies the DEFINITION
 /// before running it, so a non-drink action is refused unrun
-/// (`review/drink-measurement-destructive-use-action.md`).
+/// (`done/drink-measurement-destructive-use-action.md`).
 /// </para>
 /// <para>
 /// An item whose data satisfies one entry's family and the other entry's is not a

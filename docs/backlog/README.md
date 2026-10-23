@@ -75,8 +75,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [A drink measurement can run a destructive action](review/drink-measurement-destructive-use-action.md) — **Medium-High** — classified first; row owed.
-
 - [A limb install from a bag keeps a contained record](review/container-child-limb-install-keeps-a-contained-record.md) — **Low-Medium** — seam fixed; row owed.
 
 - [A refused intent is silent to the actor](review/intent-refusal-never-reaches-the-actor.md) — **Medium** — answered now; the host's reason reaches the player.
@@ -173,6 +171,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [A drink measurement can run a destructive action](done/drink-measurement-destructive-use-action.md) — **Medium-High** — accepted: classified first.
 - [Four tracked docs carry code-page mojibake](done/docs-mojibake-cleanup.md) — **Low** — restored 2026-10-24; six files, no damaged bytes left.
 - [Enter opens the console as plain chat](done/enter-key-opens-plain-chat.md) — **Low** — accepted 2026-10-24: E2 passes after the guard fix.
 - [Native-binding session parity](done/mod-native-binding-handshake-parity.md) — **Medium** — accepted 2026-10-24: the Admin row renders.

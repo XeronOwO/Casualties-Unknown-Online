@@ -196,7 +196,7 @@ internal sealed class PlayerItemUseExecution(
 			// injectable flag (a blood bag refilled with water or a health-usable
 			// liquid) still reaches the drink family, but the measurement classifies the
 			// DEFINITION before running it and refuses a non-drink action unrun
-			// (`review/drink-measurement-destructive-use-action.md`), so this refusal is
+			// (`done/drink-measurement-destructive-use-action.md`), so this refusal is
 			// not the only thing between a destructive action and the one-shot path.
 			_log.LogWarning("[ItemUse] refused: injectable/IV medicine {ItemId} (id {InstanceId}) must use the medical operation session, not the one-shot request path.",
 				originalItem.ItemId, originalItem.InstanceId);

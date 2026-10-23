@@ -601,7 +601,7 @@ have to go looking for:
   `usableOnLimb = false` already kept it off the wound view). The residual is named
   in the ticket: a definition classified Drinks whose run still skips the diverted
   call is refused after it ran. Filed and closed by
-  `review/drink-measurement-destructive-use-action.md`; the ticket's machine row is
+  `done/drink-measurement-destructive-use-action.md`; the ticket's machine row is
   still owed.
 - **The mindwipe health gate moved from the host's mirror to the operator's own
   native run.** It reads the drinking body's vitals, which belong to the patient,

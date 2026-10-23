@@ -97,7 +97,7 @@ A two-client run on the deployed artifact:
   non-injectable liquid — water, or now a health-usable one — is admitted as a Drink, and
   `Item.DrawBlood` runs on the operator's client before the refusal. The pre-change topical-first
   order shielded the health-usable refill only; the water refill was already exposed. Filed as
-  `review/drink-measurement-destructive-use-action.md` — **closed 2026-10-24**: the measurement now
+  `done/drink-measurement-destructive-use-action.md` — **closed 2026-10-24**: the measurement now
   classifies the DEFINITION's compiled body before running anything and refuses a non-drink action
   unrun. The residual (a definition classified Drinks whose run skips the diverted call) is named in
   that ticket, so this record's warning still holds for it alone.

@@ -103,7 +103,7 @@ and the item directly and needs an item instance the affected side does not have
   (`bloodbag`, `bloodbaghuman`, whose `useAction` is `Item.DrawBlood`) and
   `liquidcentrifuge` are refused that way on both callers, and the injection rule
   still refuses an injectable container first. The residual the classifier cannot
-  close is named in `review/drink-measurement-destructive-use-action.md`: a
+  close is named in `done/drink-measurement-destructive-use-action.md`: a
   definition classified Drinks whose run still skips the diverted call is refused
   after it ran (the mindwipe health-gate shape).
 - **The mindwipe health gate moved from the host's mirror to the operator's own

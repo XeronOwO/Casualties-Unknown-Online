@@ -1,7 +1,9 @@
 # The drink measurement runs a destructive use action before it can refuse
 
-- Status: Review — the definition-level drink classification landed 2026-10-24 (the action is refused by
-  name BEFORE anything runs); the two-client machine row below is still owed.
+- Status: Done 2026-10-24 — the definition-level drink classification landed (the action is refused by name
+  BEFORE anything runs), and the two-client release row passed on artifact `0.1.0+6ee2f683`
+  (`docs/evidence/acceptance/drink-measurement-destructive-use-action-20261024-a.md`; the refill write and the
+  staged release call are declared substitutions, the OS drag was not injected).
 - Priority: Medium-High
 - Category: Item use / the drink chain's operator-side measurement
 - Source: the independent adversarial review of `topical-live-stack-family-order` (2026-10-20),
@@ -104,13 +106,28 @@ destructive action running. Until this lands, the widened shape stays recorded i
   The comparison half is the decompiled defect (the pre-fix `DrawBlood` write at `Item.cs:7114-7125`) and the
   self-check's recorded limit, not a machine red: the pre-fix artifact was not re-deployed for this row, so the
   record claims only what the fixed build proves.
-- **What the machine still owes.** The two-client row above: drain/refill a blood bag with water and with a
-  health-usable liquid, drag it onto a teammate, and read the operator's bag, the target's blood volume and
-  the render clone's blood volume before/after. The drag is a native mouse gesture the driver's UI cannot
-  perform; the row is the next session's work (the ticket's Limits already say the gesture is real and
-  reachable, so a probe of the release seam is evidence for the BEHAVIOUR, not for the gesture).
+- **The two-client release refused, nothing written (2026-10-24, same artifact, batch `.acceptance/20261024-c/`).**
+  Three clients in one world; the operator (the Steam1 member) held a `bloodbag` placed by `item-provide` and
+  refilled by a probe's `DrainAll` + `AddLiquid` (water 500, then alcohol 200 — a DECLARED setup substitution for
+  the native liquid transfer). The release was driven as the production branch: the host's displayed backpack
+  opened through `RemoteBackpackCoordinator.Open` (the player card's own call; `opened=true`, line of sight holds)
+  and then `CrossPlayerDragUse.TryUseOnDisplayed` — exactly the branch `PlayerCameraDragUsePatch` reaches on a
+  centre release; the OS drag itself was not performed (the gesture's input sequence is the accepted ruling; this
+  is the release branch, declared). Each run: the release consumed, the operator's log carries
+  `[DragUse] refused: bloodbag could not measure a drink dose for <host>` and
+  `[ItemUse] refused drink use: bloodbag's own use action does not drink, so it was not run on this client.`;
+  the operator's own body `blood 100 → 100`, the bag `500 → 500` (water) and `200 → 200` (alcohol) with no blood
+  liquid added; the TARGET's body (host) `blood 100` and no use line in its log (nothing reached it); and the
+  operator's render clones (three bodies, one local) all `blood 100`. Both refill shapes therefore refused with
+  nothing destroyed, which is the row's substance; the substitutions are the refill write and the staged release
+  call, both named above and in the acceptance record.
+- **What the machine still owes: nothing for the destructiveness.** The OS-level drag was not performed on this
+  batch, so the record claims the production release branch and the refusal, not the pointer motion; the file
+  gesture's reachability is the user ruling of 2026-10-23 that a release on the displayed backpack's centre is the
+  use/wear. The acceptance record is
+  `docs/evidence/acceptance/drink-measurement-destructive-use-action-20261024-a.md`.
 - **Unit tests cannot reach it**: the classifier reads the game assembly's IL, which the test host does not
-  load; the gate above is the source-shape half and the machine row is the behaviour half.
+  load; the gate above is the source-shape half and the machine rows are the behaviour half.
 
 ## Limits this fix names
 

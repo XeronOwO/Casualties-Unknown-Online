@@ -193,3 +193,20 @@ which must NOT be dragged in by a prefix match).
 - Whether the container resolves the new ports is pinned by source shape plus the compile-time
   guarantee only — the test project does not reference the plugin project, so there is no
   container-level test that resolves them from the real composition.
+
+## Where the acceptance stands (2026-10-24) — only the look row is left
+
+- **The plugin references no game assembly**: verified against the project file — its references are the
+  BepInEx package and the engine modules only, and the project carries a `ProjectReference` to the adapter
+  (declared in `ProjectDirectionPolicy.AllowedReferences`, not a game assembly); `GameAssemblyReferenceGateTests`
+  is green in the full run below.
+- **`Plugin.cs` is off the watchlist for the right reason**: 327 lines, because the responsibilities left
+  (registration in the adapter host, the presentation in `OnlineUiHost`/`OnlineUiOverlay`/`CommandConsoleOverlay`,
+  the join intent on its port), not because it was reformatted.
+- **Startup and join behaviour unchanged**: the full suite is green (6357 behaviour + 779 normative gates,
+  `dotnet test CasualtiesUnknownOnline.slnx`) and the deployed artifact identity was checked on the same tree
+  (`0.1.0+7b02e9d3`, `verify-deploy` exit 0).
+- **What is left is not code**: the acceptance's last clause, "the overlay's look and feel is a user-acceptance
+  item", is the user's judgement of the current Online UI (`OnlineUiHost`'s IMGUI pass). No agent-run row can
+  judge it, so the ticket stays in `review/` for that decision and nothing else; the design decision it would
+  feed (a look change) is user-facing and belongs to the user.

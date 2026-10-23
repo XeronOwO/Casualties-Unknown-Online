@@ -18,7 +18,7 @@
 - Related: `done/remote-inventory-native-parity-rework.md` (the operation surface this gates),
   `todo/give-item-to-another-player.md` (the new push gesture must obey the same policy),
   `src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRulesService.cs`, decisions 154 (cross-player
-  take/heal/use are host-validated), 218 (the native-intent window), `review/remote-interaction-local-gating.md`
+  take/heal/use are host-validated), 218 (the native-intent window), `done/remote-interaction-local-gating.md`
   (the reach/sight verdict is the actor's own client's), `docs/evidence/selfchecks/items/remote-inventory-native-parity-acceptance-checklist.md`.
 
 ## What stands today (audited 2026-10-06, from the code)

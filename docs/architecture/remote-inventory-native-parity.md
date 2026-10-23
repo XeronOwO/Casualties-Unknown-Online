@@ -153,7 +153,7 @@ not the owner's. So the *call* travels, and the guard is evaluated where the obj
 | Host | what is genuinely its own: the session permission policy (§3.1.1), membership, the ownership fact, first-writer-wins arbitration between competing intents, and the commit/broadcast of the resulting fact | model inventory contents; edit a clone of the owner's character data; judge the actor's reach or the owner's body from stale streamed positions |
 | Owner's client | the operation itself: the native call on the real objects, with the real guards, animations and sounds; and the authoritative report of the result | execute a peer's intent that the session did not admit |
 
-Who judges what follows the landed rule for this family (`docs/backlog/review/remote-interaction-local-gating.md`): the
+Who judges what follows the landed rule for this family (`docs/backlog/done/remote-interaction-local-gating.md`): the
 actor's client judges reach and sight, the target's client judges what its own body and inventory
 allow, and the host keeps arbitration and the commit of the effect. Decision 154's explicit
 cross-player authority policies still decide *whether* this family of operations is enabled at all.

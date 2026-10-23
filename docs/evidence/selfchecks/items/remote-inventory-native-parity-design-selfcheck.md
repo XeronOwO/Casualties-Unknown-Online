@@ -57,7 +57,7 @@ An independent reviewer with a fresh context and shell access checked the design
 decompiled tree (full report: `%TEMP%/cuo-review-remote-inventory-design.md`). It verified 61 anchors:
 60 matched exactly (line, method, condition and callee), and it confirmed the branch inventory is
 neither missing a mutation nor duplicating one, the ownership model agrees with
-`review/remote-interaction-local-gating.md`, and the four ticket verdicts are supported.
+`done/remote-interaction-local-gating.md`, and the four ticket verdicts are supported.
 
 The findings were real and are fixed in the design record:
 

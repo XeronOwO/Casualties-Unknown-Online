@@ -95,7 +95,7 @@ The tests are two in-process nodes over a fake transport: no Unity, no Steam, no
 - **A loser's late end request is dropped silently.** Its session is already gone and it has
   already been answered, so no second terminal is sent.
 - **The operator's own body facts and the item authority stay host-side** (unchanged from
-  `review/remote-interaction-local-gating.md`), and a client that lies about its own progress
+  `done/remote-interaction-local-gating.md`), and a client that lies about its own progress
   remains the anti-cheat non-goal.
 - **Row 7 of the ticket's matrix** (the native UI with a second operator) is verified by the
   user's acceptance, not by these tests.

@@ -148,7 +148,7 @@ What it settled, one line each:
 5. **The host stops modelling inventory contents**: it validates session permission, membership and the
    ownership fact, arbitrates the item id first-writer-wins and records the fact the owner reports.
    One correction to principle 3 above: the reach/sight verdict is the ACTOR's own client's, per the
-   landed rule in `review/remote-interaction-local-gating.md`, so the host never judges it.
+   landed rule in `done/remote-interaction-local-gating.md`, so the host never judges it.
 6. **The protocol is bumped with stage 1** — the vocabulary replaces the wire enum, so the wire
    changes; the handshake check is the compatibility boundary and no dual shape is kept.
 

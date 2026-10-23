@@ -255,7 +255,7 @@ docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
 docs/backlog/review/recipe-unlock-fallback.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-context-menu-medical-visible-when-target-not-visible.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md | keep | index | docs/backlog/README.md
-docs/backlog/review/remote-interaction-local-gating.md | keep | index | docs/backlog/README.md
+docs/backlog/done/remote-interaction-local-gating.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-native-minigame-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-medical-panel-acceptance-issues.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-panel-hide-local-only-actions.md | keep | index | docs/backlog/README.md
@@ -816,6 +816,7 @@ docs/evidence/selfchecks/mod-api/mod-content-typed-registration-review.md | keep
 docs/evidence/selfchecks/mod-api/mod-crafting-quality-labels-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-defined-wire-packets-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/acceptance/mod-defined-wire-packets-20261024-a.md | keep | claim | docs/backlog/done/mod-defined-wire-packets.md
+docs/evidence/acceptance/remote-interaction-local-gating-20261024-a.md | keep | claim | docs/backlog/done/remote-interaction-local-gating.md
 docs/evidence/selfchecks/mod-api/mod-entity-spawn-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-game-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-item-advanced-behavior-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

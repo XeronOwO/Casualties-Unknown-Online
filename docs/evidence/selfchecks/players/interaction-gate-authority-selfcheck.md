@@ -1,7 +1,7 @@
 # Interaction gate authority — each client judges its own side
 
 Date: 2026-09-19
-Scope: both halves of `review/remote-interaction-local-gating.md` — stage 1 moved the reach gate
+Scope: both halves of `done/remote-interaction-local-gating.md` — stage 1 moved the reach gate
 to the actor's client, stage 2 moved the target-body preconditions to the TARGET's client — plus
 the prerequisite splits each half needed before it could land in the medical family's 600-line
 services (the claim bookkeeping, then the injection start path).

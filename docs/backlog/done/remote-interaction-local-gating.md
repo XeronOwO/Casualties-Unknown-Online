@@ -1,6 +1,10 @@
 # Remote interaction gates are judged by the host
 
-- Status: Review
+- Status: Done 2026-10-24 — both stages landed 2026-09-19 and every row of the acceptance matrix is judged on
+  the suite's own evidence (`InteractionGateAuthorityTests` 18 cases, `MedicalOperationConcurrencyTests` for the
+  exclusivity refusal, the unchanged third-party chain): record
+  `docs/evidence/acceptance/remote-interaction-local-gating-20261024-a.md`. The residual family items (a)-(d)
+  stay recorded in the ticket as deliberate follow-ups.
 - Priority: Medium-High
 - Category: Network / sync coverage / player interaction (gate authority)
 - Source: User ruling 2026-09-18 (design alignment session): the line-of-sight / precondition gates of remote interactions must be judged locally by the two clients involved; a host verdict on stale streamed positions refuses interactions the actor's own screen shows as valid.

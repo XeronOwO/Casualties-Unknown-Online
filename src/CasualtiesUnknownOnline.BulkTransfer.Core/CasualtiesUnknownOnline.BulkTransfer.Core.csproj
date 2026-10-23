@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.BulkTransfer.Core</AssemblyName>
+    <Product>Bulk Transfer Core</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.BulkTransfer.Core</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    The bulk-transfer capability the music ticket asked to be built as its OWN thing, not inside the player: a
+    sender that slices a file into bounded chunks, a receiver that reassembles them, resume by the indices still
+    missing, and one integrity verdict on the whole file. Deliberately no reference at all - plain C# over
+    byte arrays - so the rules are testable without a session, and the mod that ships the player is the first
+    consumer rather than the owner.
+  -->
+</Project>

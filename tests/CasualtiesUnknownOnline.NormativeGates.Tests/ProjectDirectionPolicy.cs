@@ -56,6 +56,9 @@ internal static class ProjectDirectionPolicy
 			["CasualtiesUnknownOnline.ModExample"] = ["CasualtiesUnknownOnline.Abstractions"],
 			["CasualtiesUnknownOnline.PinyinSearch.Core"] = ["CasualtiesUnknownOnline.Abstractions"],
 			["CasualtiesUnknownOnline.PinyinSearch"] = ["CasualtiesUnknownOnline.PinyinSearch.Core"],
+			// The bulk-transfer capability: plain C# over byte arrays, deliberately no reference at all — the mod
+			// that ships the player consumes it rather than owning it.
+			["CasualtiesUnknownOnline.BulkTransfer.Core"] = [],
 			// The recursive-crafting satellite mod's game-free half: plain C# over its own model, so it takes no
 			// reference at all (not even the abstractions: the resolver promises nothing to CUO).
 			["CasualtiesUnknownOnline.RecursiveCrafting.Core"] = [],

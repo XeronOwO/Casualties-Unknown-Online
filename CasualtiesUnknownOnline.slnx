@@ -8,6 +8,7 @@
   <Project Path="src/CasualtiesUnknownOnline.Plugin/CasualtiesUnknownOnline.Plugin.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.ModExample/CasualtiesUnknownOnline.ModExample.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.PinyinSearch.Core/CasualtiesUnknownOnline.PinyinSearch.Core.csproj" />
+  <Project Path="src/CasualtiesUnknownOnline.BulkTransfer.Core/CasualtiesUnknownOnline.BulkTransfer.Core.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.PinyinSearch/CasualtiesUnknownOnline.PinyinSearch.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.RecursiveCrafting.Core/CasualtiesUnknownOnline.RecursiveCrafting.Core.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.RecursiveCrafting/CasualtiesUnknownOnline.RecursiveCrafting.csproj" />

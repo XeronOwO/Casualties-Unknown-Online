@@ -145,6 +145,7 @@
          — the matcher, the switch and the console stage), while the plug-in half
          binds the game assemblies and is therefore loaded REFLECTIVELY like the
          Game Adapter (only its build output is copied here). -->
+    <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.BulkTransfer.Core\CasualtiesUnknownOnline.BulkTransfer.Core.csproj" />
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.PinyinSearch.Core\CasualtiesUnknownOnline.PinyinSearch.Core.csproj" />
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.RecursiveCrafting.Core\CasualtiesUnknownOnline.RecursiveCrafting.Core.csproj" />
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.PinyinSearch\CasualtiesUnknownOnline.PinyinSearch.csproj" ExcludeAssets="compile" Private="true" />

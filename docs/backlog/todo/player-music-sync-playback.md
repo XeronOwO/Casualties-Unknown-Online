@@ -57,3 +57,46 @@
   shipped with the mod (nothing).
 - Not part of the core plugin unless the design says so: the precedent for this family is a separate mod
   (`review/pinyin-search-standalone-mod.md`).
+
+## The design (written before code, 2026-10-24)
+
+**The transfer is its own capability, and it landed first.** `src/CasualtiesUnknownOnline.BulkTransfer.Core/`
+is game-free (it references nothing): `BulkSender` slices a byte array into bounded chunks and tracks which are
+outstanding, `BulkReceiver` reassembles by index and verifies the whole file, and `BulkTransferPolicy` holds the
+rails. Nine tests pin the rules: a round trip byte for byte, the short last chunk, a lost acknowledgement
+keeping its chunk missing and the window full (a retry re-offers it — that IS the resume story, no separate
+resume handshake), duplicates not applied twice, an out-of-shape chunk refused, an incomplete file not
+assembled, and a file whose hash does not match never handed over.
+
+**File over the wire, loaded per client.** The wire carries the FILE's bytes, not a decoded buffer: every
+listener writes the same bytes to disk and decodes locally, so the transfer has one integrity value and the
+player's own decode path is the only variable. Chunk size: 16 KB by default, capped at 24 KB — the mod packet's
+binary leaf carries at most 32 KB (`ModValueCodec.MaxBinaryBytes`), and a chunk stops short of it to leave room
+for the envelope a mod adds around the payload.
+
+**Resume and loss.** The sender keeps a window (8 chunks) of unacknowledged chunks; a lost chunk simply stays
+outstanding and is offered again, and a receiver that restarted asks for `Missing()`. Nothing is re-negotiated,
+and a stalled peer costs its own window, never the session.
+
+**Integrity.** One SHA-256 of the whole file, announced with the identity. The receiver only hands the bytes
+over when the assembled hash matches; a corrupted song never plays.
+
+**The start rule (stated explicitly, as the ticket demands).** Playback starts only after EVERY in-world member
+has acknowledged the whole file — "everyone has it, now play" — because the user's constraint is transfer first,
+then play. A member joining mid-song receives the file as a normal transfer and starts at the CURRENT offset,
+computed from the shared start instant and the track's position, rather than at zero.
+
+**Rate.** The sender's window is the in-flight bound; the mod additionally spaces its sends (one chunk per
+configurable interval) so gameplay traffic keeps priority, and the transfer's own byte count is reported next to
+the existing traffic accounting.
+
+**Audio format, staged.** Stage A plays WAV (PCM) through `AudioClip.Create` + `SetData`, needing no decoder.
+MP3/OGG need a decoder dependency or the game's own runtime audio loader, and that choice is Stage B; the
+ticket's "MP3 and the like" is therefore partly a later stage rather than a silent omission.
+
+**What still needs the user before shipping:** the listener controls (mute, volume, "only during rest") — a
+player-facing decision the ticket already names as the user's. A mod-owned panel would draw through `IModUi`;
+the position and the interaction are the user's call, so none is built yet.
+
+**Where the files come from:** the player's own disk, picked through the mod's own path field (the game has no
+file picker for this); nothing is shipped with the mod and nothing is uploaded beyond the session's own peers.

@@ -120,14 +120,18 @@
 	}
 
 	// The BepInEx entry carries no startup fields (the single-file package requires that): the work lives on
-	// the PluginHost component beside it, so find that component by its type name. Reflection only, with the
-	// Unity calls the template already names, so the offline reference census does not move.
+	// the PluginHost component beside it, so walk the ENTRY's own GameObject. FindObjectsOfType does not reach
+	// the plugin's DontDestroyOnLoad object on this runtime (measured: the plugin and its host were both absent
+	// from its answer while GetComponents on the entry's object listed them).
 	var host = (object)null;
 	if (plugin != null) {
-		var behaviours = UnityEngine.Object.FindObjectsOfType(typeof(UnityEngine.MonoBehaviour), true);
-		for (var i = 0; i < behaviours.Length; i++) {
-			var behaviour = behaviours[i];
-			if (behaviour != null && behaviour.GetType().FullName == "CasualtiesUnknownOnline.PluginHost") { host = behaviour; break; }
+		var pluginComponent = plugin as UnityEngine.Component;
+		if (pluginComponent != null) {
+			var components = pluginComponent.gameObject.GetComponents(typeof(UnityEngine.MonoBehaviour));
+			for (var i = 0; i < components.Length; i++) {
+				var candidate = components[i];
+				if (candidate != null && candidate.GetType().FullName == "CasualtiesUnknownOnline.PluginHost") { host = candidate; break; }
+			}
 		}
 	}
 	var onlineUiHost = findField(host, "_onlineUi");

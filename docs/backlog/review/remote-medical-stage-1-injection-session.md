@@ -7,6 +7,12 @@
   batch's focused suite (`MedicalOperationSessionServiceTests`, 9/9) is the behavioural evidence for the
   two disconnect shapes. Record:
   `docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261023-b.md`.
+- Acceptance (20261024-a): rows 8, 10 and 22 PASS on the deployed `0.1.0+9c350df3…` — the operator quit
+  mid-injection (`terminal Disconnected: committed 5.00 ml`, claims released), the target quit
+  (`terminal Disconnected: committed 3.00 ml`, no further dose applied), and the host left with a session in
+  flight (`Session ended`, registry cleared). Row 20 (mixed CUO versions) remains `unproven`: no old-version
+  artifact exists on this machine to launch. Record:
+  `docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261024-a.md`.
 - Priority: High
 - Category: Remote medical / medical operation session / real-time syringe
 - Parent: `remote-medical-native-minigame-parity.md`

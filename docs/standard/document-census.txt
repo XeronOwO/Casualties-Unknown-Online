@@ -1154,6 +1154,7 @@ docs/backlog/done/remote-medical-panel-header-shows-viewer-identity.md | keep | 
 docs/backlog/done/remote-medical-panel-alarm-follows-viewed-player.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-panel-speech-text-desync.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261023-b.md | keep | claim | docs/backlog/review/remote-medical-stage-1-injection-session.md
+docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261024-a.md | keep | claim | docs/backlog/review/remote-medical-stage-1-injection-session.md
 docs/evidence/acceptance/remote-medical-panel-acceptance-issues-20261023-b.md | keep | claim | docs/backlog/done/remote-medical-panel-acceptance-issues.md
 docs/evidence/acceptance/remote-fentanyl-injection-and-medical-panel-desync-20261023-b.md | keep | claim | docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md
 docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md | keep | claim | docs/backlog/review/remote-medical-panel-speech-text-desync.md

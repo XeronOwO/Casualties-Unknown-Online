@@ -69,6 +69,12 @@ public sealed class ExampleMod : ICuoMod
 			DisplayName = "Example Trophy",
 			Description = "Content registered by the CUO example mod.",
 			Category = "nospawn",
+			// The CODE half of the nested seam: the framework's data class carries the mod's own tool
+			// implementation in its Tool member, and the provider builds the game's attack from the interface.
+			Tool = ExampleComputedTool.Instance,
+			Usable = true,
+			UsableWithLmb = true,
+			TemplateId = "bandage",
 		});
 
 		// A declared flag with NO registered function, on purpose: the item says it is
@@ -301,6 +307,138 @@ public sealed class ExampleMod : ICuoMod
 		_context!.Logger.LogInformation(
 			"[Example] the declared dressing now reports weight {Weight}; the next item-table rebuild carries it.", weight);
 		return $"the declared dressing reports weight {weight} from the next item-table rebuild";
+	}
+
+	/// <summary>
+	/// The mod's OWN implementation of the nested tool contract: <see cref="IModItemDefinition.Tool"/> is
+	/// interface-typed, so a mod that computes a value hands over this class instead of filling in the
+	/// framework's sealed data class. The framework reads the interface and builds the game's own attack from
+	/// these values; nothing here is the framework's shape.
+	///
+	/// <para>
+	/// It is a plain class, not a content declaration: only a <c>[ModContent]</c> class is a declaration, so
+	/// this one needs no owner and no registration.
+	/// </para>
+	/// </summary>
+	public sealed class ExampleComputedTool : IModItemTool
+	{
+		public static ExampleComputedTool Instance { get; } = new();
+
+		public float Damage => 1000f;
+
+		public float StructuralDamage => 10f;
+
+		public float AttackCooldownMultiplier => 1f;
+
+		public float Distance => 3f;
+
+		public float KnockBack => 0f;
+
+		public float Cooldown => 0.5f;
+
+		public string AttackAnimation => "";
+
+		/// <summary>The value the machine row reads: a custom attack must drain exactly this much stamina.</summary>
+		public float StaminaUse => 30f;
+
+		public bool Piercing => false;
+
+		public List<string> SwingSounds => ["knife"];
+
+		public float Volume => 1f;
+
+		public float RotateAmount => 45f;
+
+		public bool PhysicalSwing => true;
+
+		public bool DoAttackAnimation => true;
+
+		public bool MetalMoreDamage => false;
+
+		public float ConditionLossOnHit => 0.01f;
+	}
+
+	/// <summary>
+	/// An ATTRIBUTE-declared item whose tool member is the mod's own <see cref="ExampleComputedTool"/>: the
+	/// scan reads the member, sees an <see cref="IModItemTool"/> that is not the framework's class, and the
+	/// game's item table must carry the attack those values build.
+	/// </summary>
+	[ModContent]
+	public sealed class ExampleCleaver : IModItemDefinition
+	{
+		public string Id => "example.cleaver";
+
+		public string Kind => ModContentKind.Item;
+
+		public int SchemaVersion => 1;
+
+		public string DisplayName => "Example Cleaver";
+
+		public string Description => "Declared by attribute with the mod's own tool implementation.";
+
+		public string Category => "nospawn";
+
+		public float Weight => 2f;
+
+		public int Value => 10;
+
+		public bool Usable => true;
+
+		public bool UsableWithLmb => true;
+
+		public bool UsableOnLimb => false;
+
+		public IModItemWearable? Wearable => null;
+
+		public bool DestroyAtZeroCondition => false;
+
+		public int RecognitionMinimum => 0;
+
+		public bool OnlyHoldInHands => false;
+
+		public bool Combineable => false;
+
+		public bool IgnoreDepression => false;
+
+		public bool ScaleWeightWithCondition => false;
+
+		public bool AutoAttack => false;
+
+		public float JumpHeightMultiplierChange => 0f;
+
+		public float SlotRotation => 0f;
+
+		public ModItemDecayCondition DecayConditions => ModItemDecayCondition.None;
+
+		public string Tags => "tool";
+
+		public int SpawnFrequency => 1;
+
+		public string TemplateId => "bandage";
+
+		public List<string> SpawnComponents => [];
+
+		public Dictionary<string, string> CustomData => [];
+
+		public float? WorldSpawnPerChunk => null;
+
+		public ModItemDropSource? DropSources => null;
+
+		public IModItemContainer? Container => null;
+
+		public IModItemBattery? Battery => null;
+
+		public IModItemLight? Light => null;
+
+		public IModItemTool? Tool => ExampleComputedTool.Instance;
+
+		public IModItemGun? Gun => null;
+
+		public float DecayMinutes => 0f;
+
+		public IModItemVisual? Visual => null;
+
+		public List<IModCraftingQuality> Qualities => [];
 	}
 
 	/// <summary>

@@ -241,7 +241,7 @@ docs/backlog/review/middle-click-location-marker.md | keep | index | docs/backlo
 docs/backlog/review/mod-api-no-opaque-envelopes.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-attribute-declarations.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-fingerprint.md | keep | index | docs/backlog/README.md
-docs/backlog/review/mod-content-nested-member-contracts.md | keep | index | docs/backlog/README.md
+docs/backlog/done/mod-content-nested-member-contracts.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
@@ -805,7 +805,8 @@ docs/evidence/acceptance/mod-content-fingerprint-20261024-a.md | keep | claim | 
 docs/evidence/selfchecks/mod-api/mod-content-kind-coverage-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md | keep | claim | docs/evidence/acceptance/cucorelib-migration-support-20261012-c.md
 docs/evidence/selfchecks/mod-api/mod-content-nested-member-contracts-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/mod-api/mod-content-nested-member-contracts-selfcheck.md | keep | claim | docs/backlog/review/mod-content-nested-member-contracts.md
+docs/evidence/selfchecks/mod-api/mod-content-nested-member-contracts-selfcheck.md | keep | claim | docs/backlog/done/mod-content-nested-member-contracts.md
+docs/evidence/acceptance/mod-content-nested-member-contracts-20261024-a.md | keep | claim | docs/backlog/done/mod-content-nested-member-contracts.md
 docs/evidence/selfchecks/mod-api/mod-content-owner-query-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-content-registration-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-content-typed-registration-review.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

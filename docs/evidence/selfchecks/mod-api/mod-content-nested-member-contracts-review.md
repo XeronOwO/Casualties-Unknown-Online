@@ -4,7 +4,7 @@ Review cycle 2026-10-09 (second cycle of the day). Tier **FULL**, fresh context 
 the working conversation), against the FROZEN working tree at baseline commit `acc21c2d` — the reviewer was
 told not to modify any file and did not (the tree's 70 entries were identical before and after). Subject:
 `docs/evidence/selfchecks/mod-api/mod-content-nested-member-contracts-selfcheck.md`, decision 253, ticket
-`docs/backlog/review/mod-content-nested-member-contracts.md`.
+`docs/backlog/done/mod-content-nested-member-contracts.md`.
 
 **Verdict: no blocker — 2 major, 4 minor, 4 nit, every one dispositioned in the same commit.**
 

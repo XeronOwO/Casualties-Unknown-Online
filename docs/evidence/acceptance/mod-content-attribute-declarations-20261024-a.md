@@ -28,7 +28,7 @@ is the code-registered half. The HOST was read in-process through the game's own
 |---|---|
 | A mod declares an item and a recipe by attribute only, from its own classes, with no registration call, and both materialize in game tables | pass — `example.dressing` in `Item.GlobalItems` and its row in `Recipes.recipes` |
 | A declaration whose members COMPUTE their values materializes with them and is re-read when the table is rebuilt | pass — `1.5` → command → new run → `3.5` |
-| A mod-authored nested implementation (its own `IModItemTool`) materializes | not this ticket: moved verbatim to `review/mod-content-nested-member-contracts.md` |
+| A mod-authored nested implementation (its own `IModItemTool`) materializes | not this ticket: moved verbatim to `done/mod-content-nested-member-contracts.md` |
 | The same definitions registered through code still materialize | pass — `example.trophy` present with its own values |
 
 ## Substitutions and limits

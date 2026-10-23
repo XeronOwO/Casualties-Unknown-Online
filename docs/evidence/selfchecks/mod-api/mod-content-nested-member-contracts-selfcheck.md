@@ -1,7 +1,7 @@
 # The nested member contracts: the same seam, one level down
 
 Cycle 2026-10-09 (second cycle of the day). Ticket
-`docs/backlog/review/mod-content-nested-member-contracts.md` — the half stage B handed on. Decision 253;
+`docs/backlog/done/mod-content-nested-member-contracts.md` — the half stage B handed on. Decision 253;
 decision 251 is the kind level above it and decision 252 is the scan that reads these members. Baseline
 commit `acc21c2d`; this record describes the working tree that carries the change.
 

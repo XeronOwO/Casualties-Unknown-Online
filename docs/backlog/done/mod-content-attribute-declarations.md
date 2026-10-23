@@ -17,7 +17,7 @@
   `docs/backlog/review/mod-api-no-opaque-envelopes.md` and `docs/backlog/done/mod-api-typed-seams.md` (both
   change the shape this scanner reads, so they land first),
   `docs/backlog/done/mod-authored-effects.md` (its code-registration surface is the same question),
-  `docs/backlog/review/mod-content-nested-member-contracts.md` and
+  `docs/backlog/done/mod-content-nested-member-contracts.md` and
   `docs/backlog/done/mod-content-fingerprint.md` (the two halves this ticket handed on rather than dropped; both have since landed),
   `docs/en/reference/mod-api.md` (the page a mod author reads), decisions 247 and 252.
 - Source: the user's 2026-10-08 question and the follow-up ("它实现多个接口…是一个注册入口还是每个接口实现都要注册一遍？").
@@ -61,7 +61,7 @@ work this ticket does not carry. Each is recorded here rather than quietly dropp
    `docs/backlog/done/mod-content-fingerprint.md`. It is a save- and handshake-side consequence of
    computed definitions rather than a requirement of the scanner.
 4. **The nested member contracts move OUT of this ticket**, with the acceptance row that names them, to
-   `docs/backlog/review/mod-content-nested-member-contracts.md`: `IModItemTool` and its thirteen siblings
+   `docs/backlog/done/mod-content-nested-member-contracts.md`: `IModItemTool` and its thirteen siblings
    do not exist, and the collection members are typed `List<ModT>` today, so allowing a mod-authored
    nested implementation is a DTO type change with its own consumer sweep.
 
@@ -181,7 +181,7 @@ things the game can address and delete on their own.**
   code registration of the same id: the declared half is the mod's static content, the code half is what it
   computes at bind time, and the existing duplicate rail refuses the later one.
 - **The content fingerprint left this ticket** (`done/mod-content-fingerprint.md`, landed 2026-10-10), and so did the nested
-  member contracts (`review/mod-content-nested-member-contracts.md`) — see *Superseded and handed on*.
+  member contracts (`done/mod-content-nested-member-contracts.md`) — see *Superseded and handed on*.
 
 ## Non-goals
 
@@ -214,7 +214,7 @@ things the game can address and delete on their own.**
   the same definition feeding a fresh world can carry different numbers.
 - A mod-authored nested implementation (its own `IModItemTool`, say) materializes with that tool's values:
   the seam is the interface, not the framework's class. **Moved verbatim** to
-  `docs/backlog/review/mod-content-nested-member-contracts.md`: the contracts it names do not exist, so this
+  `docs/backlog/done/mod-content-nested-member-contracts.md`: the contracts it names do not exist, so this
   ticket cannot judge it.
 - The same two definitions registered through code, as `ModItemDefinition` instances, still materialize —
   one provider, two ways to feed it.

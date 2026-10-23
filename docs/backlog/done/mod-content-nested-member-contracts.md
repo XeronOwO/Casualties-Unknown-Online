@@ -1,7 +1,11 @@
 # A declaration's nested member types are not contracts either
 
-- Status: Review — **landed 2026-10-09** (see *What landed*): nothing is left to develop here, and the
-  acceptance batch is pending. It was split out of `docs/backlog/done/mod-content-attribute-declarations.md`
+- Status: Done 2026-10-24 — landed 2026-10-09, and all three acceptance rows passed on the deployed
+  `0.1.0+a56e5d57` with the example mod extended in the same cycle (`ExampleComputedTool` used by the
+  attribute-declared `ExampleCleaver` and by the code-registered trophy; a null nested member leaves the
+  game table's defaults). Record:
+  `docs/evidence/acceptance/mod-content-nested-member-contracts-20261024-a.md`. It was split out of
+  `docs/backlog/done/mod-content-attribute-declarations.md`
   when that ticket's stage B landed: that ticket's settled shape names these contracts ("the same rule applies
   one level down to every member type a provider reads"), so stage A delivered the nine KIND interfaces and
   this cycle delivered the fourteen nested ones.

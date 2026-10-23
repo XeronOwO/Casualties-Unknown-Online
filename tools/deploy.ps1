@@ -10,15 +10,24 @@ System.*) plus Steamworks.NET.dll and steam_api64.dll from references/ into
 .PARAMETER GameDir
 Path to the game installation. If omitted, reads the CUO_GAME_DIR environment variable.
 
+.PARAMETER Packed
+Deploys the SINGLE-FILE artifact instead of the loose set: the plugin plus every managed dependency packed into
+one `CasualtiesUnknownOnline.dll` (tools/package-single-file.ps1), with `steam_api64.dll` the only loose file.
+The normal deployment is unchanged when the switch is absent.
+
 .EXAMPLE
 ./tools/deploy.ps1 -GameDir "<game-dir>"
+
+.EXAMPLE
+./tools/deploy.ps1 -GameDir "<game-dir>" -Packed
 
 .EXAMPLE
 $env:CUO_GAME_DIR = "<game-dir>"
 ./tools/deploy.ps1
 #>
 param(
-    [string]$GameDir = $env:CUO_GAME_DIR
+    [string]$GameDir = $env:CUO_GAME_DIR,
+    [switch]$Packed
 )
 
 $ErrorActionPreference = "Stop"
@@ -77,6 +86,42 @@ if ($LASTEXITCODE -ne 0) {
 
 $targetDir = Join-Path $GameDir "BepInEx\plugins\CasualtiesUnknownOnline"
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+
+if ($Packed) {
+    # The single-file package: pack this build, then leave ONLY the packed plugin and the native Steam runtime
+    # in the folder. Every other file there is a leftover of the loose deployment and is removed one level deep.
+    $packOut = Join-Path $RepoRoot "bin\packed"
+    if (Test-Path -LiteralPath $packOut) {
+        Get-ChildItem -LiteralPath $packOut -File | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+    }
+    & (Join-Path $RepoRoot "tools\package-single-file.ps1") -GameDir $GameDir -OutputDir $packOut
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Packing failed."
+        exit $LASTEXITCODE
+    }
+    $packedDll = Join-Path $packOut "CasualtiesUnknownOnline.dll"
+    if (-not (Test-Path -LiteralPath $packedDll)) {
+        Write-Error "The packer produced no CasualtiesUnknownOnline.dll in $packOut."
+        exit 1
+    }
+    Copy-Item -LiteralPath $packedDll -Destination (Join-Path $targetDir "CasualtiesUnknownOnline.dll") -Force
+    $steamApi = Join-Path $RepoRoot "references\steam_api64.dll"
+    if (-not (Test-Path -LiteralPath $steamApi)) {
+        Write-Error "Missing source: $steamApi"
+        exit 1
+    }
+    Copy-Item -LiteralPath $steamApi -Destination (Join-Path $targetDir "steam_api64.dll") -Force
+    $expected = @("CasualtiesUnknownOnline.dll", "steam_api64.dll")
+    Get-ChildItem -LiteralPath $targetDir -File |
+        Where-Object { $expected -notcontains $_.Name } |
+        ForEach-Object {
+            Remove-Item -LiteralPath $_.FullName -Force
+            Write-Host "  removed loose $($_.Name)"
+        }
+    Write-Host "Deployed CUO (packed) to $targetDir"
+    Write-Host "  packed artifact: $((Get-Item -LiteralPath (Join-Path $targetDir 'CasualtiesUnknownOnline.dll')).Length) bytes, plus the native steam_api64.dll"
+    exit 0
+}
 
 # Assemblies owned by the game's own BepInEx install (BepInEx/core) — never
 # deploy our copies (version conflicts). BepInEx.Core.targets already keeps

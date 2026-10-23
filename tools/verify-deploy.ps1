@@ -21,13 +21,22 @@ Path to the game installation whose deployed plugin folder is verified.
 .PARAMETER Configuration
 Build configuration to compare against. Default: Debug.
 
+.PARAMETER Packed
+Verifies a SINGLE-FILE deployment instead: the deployed `CasualtiesUnknownOnline.dll` must carry its managed
+dependencies as `Packed.<name>.dll` manifest resources, and every one of those resources must hash to a file this
+tree's build output produced. The native `steam_api64.dll` is the one allowed loose file.
+
 .EXAMPLE
 ./tools/verify-deploy.ps1 -GameDir "<game-dir>"
+
+.EXAMPLE
+./tools/verify-deploy.ps1 -GameDir "<game-dir>" -Packed
 #>
 param(
     [Parameter(Mandatory = $true)]
     [string]$GameDir,
-    [string]$Configuration = "Debug"
+    [string]$Configuration = "Debug",
+    [switch]$Packed
 )
 
 $ErrorActionPreference = "Stop"
@@ -101,6 +110,61 @@ $pluginDll = Join-Path $deployDir "CasualtiesUnknownOnline.dll"
 if (-not (Test-Path -LiteralPath $pluginDll)) {
     Write-Error "CasualtiesUnknownOnline.dll is not in the deployed folder."
     exit 1
+}
+
+if ($Packed) {
+    # The single-file deployment's identity: the artifact's own embedded resources must each hash to a file this
+    # tree's build produced, and nothing else may sit beside it except the native Steam runtime.
+    $allowedLoose = @("CasualtiesUnknownOnline.dll", "steam_api64.dll")
+    $unexpectedLoose = @($deployed | Where-Object { $allowedLoose -notcontains $_.Name })
+    if ($unexpectedLoose.Count -gt 0) {
+        Write-Error "Deployment mismatch (packed): $($unexpectedLoose.Name -join ', ') do not belong to the single-file deployment."
+        exit 1
+    }
+
+    $cecil = Join-Path $GameDir "BepInEx\core\Mono.Cecil.dll"
+    if (-not (Test-Path -LiteralPath $cecil)) {
+        Write-Error "Mono.Cecil is missing from the game's BepInEx core: $cecil"
+        exit 1
+    }
+    Add-Type -Path $cecil
+    $packedAssembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($pluginDll)
+    try {
+        $resources = @($packedAssembly.MainModule.Resources | Where-Object { $_.Name -like "Packed.*.dll" })
+        if ($resources.Count -lt 20) {
+            Write-Error "Deployment mismatch (packed): the deployed artifact carries only $($resources.Count) embedded assemblies."
+            exit 1
+        }
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        $mismatched = @()
+        foreach ($resource in $resources) {
+            $stream = $resource.GetResourceStream()
+            if ($stream -eq $null) {
+                $mismatched += "$($resource.Name) (no stream)"
+                continue
+            }
+            try {
+                $hashBytes = $sha.ComputeHash($stream)
+                $hash = -join ($hashBytes | ForEach-Object { $_.ToString("X2") })
+                if (-not $buildHashes.Contains($hash)) {
+                    $mismatched += $resource.Name
+                }
+            } finally {
+                $stream.Dispose()
+            }
+        }
+        $sha.Dispose()
+        Write-Host "packed artifact:  $($resources.Count) embedded assemblies, $($resources.Count - $mismatched.Count) from this tree's build output"
+        Write-Host "delivered artifact: $((Get-Item -LiteralPath $pluginDll).VersionInfo.ProductVersion)"
+        if ($mismatched.Count -gt 0) {
+            Write-Error "Deployment mismatch (packed): $($mismatched -join ', ') are not this tree's build output. Commit first, then re-run tools/deploy.ps1 -Packed."
+            exit 1
+        }
+        Write-Host "Deployment matches this tree's build output (packed)."
+        exit 0
+    } finally {
+        $packedAssembly.Dispose()
+    }
 }
 
 Write-Host "delivered artifact: $((Get-Item -LiteralPath $pluginDll).VersionInfo.ProductVersion)"

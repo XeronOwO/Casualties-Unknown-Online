@@ -180,3 +180,20 @@ longer blocked.
 The acceptance driver needed one lookup update in the same change (`tools/acceptance/driver/InProcessDriver.cs`):
 it used to reach the Online UI through `Plugin._onlineUi`, and now finds the `PluginHost` component on the
 entry's GameObject first.
+
+## The deployment and its identity story landed (2026-10-24)
+
+`tools/deploy.ps1 -Packed` packs this build and leaves ONLY `CasualtiesUnknownOnline.dll` plus the native
+`steam_api64.dll` in the plugin folder, removing the loose files one level deep; the normal deployment is
+unchanged without the switch. `tools/verify-deploy.ps1 -Packed` keeps the one-build-one-artifact rule on the
+packed shape: it opens the deployed assembly, requires at least twenty `Packed.<name>.dll` resources, and
+requires EVERY resource's SHA-256 to be one of this tree's build-output hashes 鈥?so a packed file can only pass
+if it was packed from the build in THIS tree 鈥?and it still prints the artifact's `ProductVersion` (the commit)
+exactly as the loose path does.
+
+Measured: `deploy.ps1 -Packed` left two files, `verify-deploy.ps1 -Packed` reported
+`packed artifact: 30 embedded assemblies, 30 from this tree's build output` and
+`delivered artifact: 0.1.0+0c6f7a01...`; the loose deployment was then restored and verified again. What remains
+is the bilingual one-file-versus-deployment page and the boundary sentence for the extension mods (they stay
+outside the package and are served the core's assemblies by the packed resolver, which the earlier run already
+demonstrated with Pinyin Search loading beside the packed CUO).

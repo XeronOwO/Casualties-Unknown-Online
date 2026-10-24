@@ -81,7 +81,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.
 - [Sync cadence review](review/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
-- [Recipe unlock has no fallback](review/recipe-unlock-fallback.md) — **Medium** — the absolute unlock set backs up the one-shot report.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
@@ -145,6 +144,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Recipe unlock has no fallback](done/recipe-unlock-fallback.md) — **Medium** — healed on the 60 s cycle; read in two processes.
 - [Remote Medical and visibility](done/remote-context-menu-medical-visible-when-target-not-visible.md) — **Medium** — title-only out of sight, both ways.
 - [UI text moves to embedded JSON, mods add languages](done/localization-json-resources-and-mod-languages.md) — **Medium-High** — data, not C#; read live.
 - [The console's own replies are English only](done/console-command-replies-bilingual.md) — **Medium** — keyed lines; read live.

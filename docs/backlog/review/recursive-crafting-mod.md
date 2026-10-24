@@ -11,7 +11,7 @@
   a "quality of life" mod and points at it as the reference.
 - Related: `review/pinyin-search-standalone-mod.md` (the precedent for a CUO-family mod that is not the core
   plugin), `done/mod-content-ceiling.md` (the recipe surface: CUO can append recipes, not override the
-  vanilla ones), `review/recipe-unlock-fallback.md` (the unlock half of the recipe panel),
+  vanilla ones), `done/recipe-unlock-fallback.md` (the unlock half of the recipe panel),
   `src/CasualtiesUnknownOnline.Plugin/OnlineUiActions.cs` (a mod's UI surface if it draws its own panel)
 
 ## What is asked

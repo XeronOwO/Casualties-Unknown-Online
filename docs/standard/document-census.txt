@@ -255,7 +255,8 @@ docs/backlog/done/heal-cheat-command-state-reset.md | keep | index | docs/backlo
 docs/backlog/review/pinyin-search-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
-docs/backlog/review/recipe-unlock-fallback.md | keep | index | docs/backlog/README.md
+docs/backlog/done/recipe-unlock-fallback.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/recipe-unlock-two-process-20261025-h.md | keep | claim | docs/backlog/done/recipe-unlock-fallback.md
 docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/remote-context-menu-sight-gate-20261025-f.md | keep | claim | docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md
 docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md | keep | index | docs/backlog/README.md
@@ -634,7 +635,7 @@ docs/evidence/acceptance/readme-language-pair-20261012-c.md | keep | claim | doc
 docs/evidence/acceptance/recipe-args-crlf-gate-20261002.md | keep | claim | docs/backlog/done/recipe-args-crlf-gate.md
 docs/evidence/acceptance/item-census-instance-id-20261017-c.md | keep | claim | docs/backlog/done/item-census-own-instance-id.md
 docs/evidence/acceptance/recipe-unlock-bound-20261017-b.md | keep | claim | docs/backlog/done/member-report-bounds.md
-docs/evidence/acceptance/recipe-unlock-fallback-20261003-e.md | keep | claim | docs/backlog/review/recipe-unlock-fallback.md
+docs/evidence/acceptance/recipe-unlock-fallback-20261003-e.md | keep | claim | docs/backlog/done/recipe-unlock-fallback.md
 docs/evidence/acceptance/reenter-baseline-adoption-20261002-m.md | keep | claim | docs/backlog/done/reenter-baseline-adoption.md
 docs/evidence/acceptance/remote-clone-warning-storm-on-member-dropout-20261007-c.md | keep | claim | docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-c.md | keep | claim | docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md

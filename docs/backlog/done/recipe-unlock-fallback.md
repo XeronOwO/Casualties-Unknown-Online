@@ -1,6 +1,12 @@
 # Recipe unlock has no fallback or backfill
 
-- Status: Review (batch `20261003-e`: rows 1–5 and 7 pass — the swallowed guest report healed on the steady 60 s step, the host relay via the repair set, the late joiner through the entry group, the dropped CraftReport via the 1 Hz snapshot; row 6 — the host-side refusal branch — and the declared gaps 1's open-panel half, 4 and 6 stay `unproven` — the ticket stays open) 2026-10-17: the LIVE report now compares the index against the host's own recipe table (`member-report-bounds` section B, `CraftSyncService.MayApplyReportedUnlock`) — the rows below were read before that bound.
+- Status: Done — closed 2026-10-25. Batch `20261003-e` read rows 1–5 and 7; batch `20261025-h` read the rest at the data level
+  with a new probe that reads the game's own unlock field (`recipe-unlock-read`, `Recipes.recipes[idx].INT`): a guest's report for
+  a locked index (20, `INT = 4`) left the guest's own copy untouched but the HOST applied it to `INT = 0` within seconds, and the
+  guest converged to `0` after one 60 s repair cycle — which closes declared gaps 1, 2 and 3 on a real two-process session. A
+  report for index 5000 was refused by name (`this host's table has no such recipe (132 entries) — nothing applied, nothing
+  relayed`), which is row 6. Gap 4 stays code-review only and gap 6 stays a log signal, both by the ticket's own declaration.
+  Record: `docs/evidence/acceptance/recipe-unlock-two-process-20261025-h.md`.
 - Acceptance record: `docs/evidence/acceptance/recipe-unlock-fallback-20261003-e.md` (batch scope: `docs/evidence/acceptance/20261003-e-scope.md`)
 - Priority: Medium
 - Category: Network / sync coverage / crafting

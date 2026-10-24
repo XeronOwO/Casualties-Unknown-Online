@@ -321,3 +321,18 @@ press leaves the heart stopped, ten restart it). On the machine, with the chart 
 
 The batch's next step is therefore a per-client log read (the guest's own file) plus, if needed, a probe recipe that
 reports `Body.inCardiacArrest` and the session's progress on the host.
+
+## Stage 3's first half landed (2026-10-24, deployed `0.1.0+5f8e24b0`): an over-press breaks a rib
+
+`CprRhythmPolicy.IsAnOverPress` is the line — below `DangerousIntervalFactor` (half the ideal interval) the chest gets no
+time to recoil, so the press is a shove — and `ApplyCprCompression` then sets the patient's chest limb's `Broken` flag
+(limb index 1, the one the game's own defibrillation check treats as the chest) plus the pain it carries. The cost is the
+game's OWN fracture state, so the patient's chart shows the rib rather than a number only this rule knows.
+
+The policy case is landed (`AFranticPressIsAnOverPress_AndTheIdealRhythmNeverIs`); the session-level rib case is owed
+with the stage-3 rows — the harness's host snapshot does not carry the limb the branch needs, and a first attempt was
+withdrawn rather than left red.
+
+**Still owed in stage 3**: the AED/CPR restart arbitration (both procedures claiming the same restart), and the
+`bloodPressureChangeFromMedicine` lever question the batch above left open.
+

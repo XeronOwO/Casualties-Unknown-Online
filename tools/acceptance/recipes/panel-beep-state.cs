@@ -32,6 +32,7 @@
 	return "{\"ok\":true,\"open\":true"
 		+ ",\"active\":" + (view.gameObject.activeInHierarchy ? "true" : "false")
 		+ ",\"localBody\":" + (body != null && PlayerCamera.main != null && body == PlayerCamera.main.body ? "true" : "false")
+		+ ",\"loop\":" + (audio != null && audio.loop ? "true" : "false")
 		+ ",\"playing\":" + (playing ? "true" : "false")
 		+ ",\"time\":" + time.ToString("0.###", inv)
 		+ ",\"length\":" + length.ToString("0.###", inv)

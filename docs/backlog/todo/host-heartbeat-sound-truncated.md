@@ -219,6 +219,28 @@ panel's close rule. A change that made them sound smoother would have to alter t
 is a gameplay/presentation decision for the user, not a defect in this mod — the numbers above are what such a decision
 would start from.
 
+## The mechanism, read directly (2026-10-25): the panel's alert source LOOPS a 6.000 s clip
+
+`panel-beep-state` now reports the alert source's own `loop` flag. It is **true**, and the clip's length is
+**6.000 s**; earlier, on a live critical body, its position advanced and wrapped (`5.419 → 0.336`). So the game does not
+restart the beep: it plays a 6 s clip **on loop**, and the audible "cut" is the clip's own seam — the beep pattern at the
+end of the file meets the beginning with no gap, every six seconds.
+
+This reading does not depend on the corpse problem that voided the earlier verdict (a clip's loop flag and length are
+properties of the source, and the wrap was observed on a live body), and no line of `src/` touches that source: the only
+panel patch re-points the displayed `body`, and `MusicManager.critSource` has one reader (the spectator's).
+
+## The decision this leaves for the user
+
+The seam lives in the game's own asset. Making it sound smoother is a PRESENTATION change in CUO, and it has three shapes —
+this is a user-visible choice, not an implementation detail:
+
+1. **Leave it** (the game's own sound; the ticket closes as recorded);
+2. **Smooth the seam**: play the panel alert through a CUO-owned source with a short fade at the clip boundary (masking the
+   seam without changing the pattern);
+3. **Replace the pattern**: a generated beep pattern whose cycle matches the beat, which changes how the game sounds far more
+   than (2).
+
 ## Acceptance this ticket owes
 
 A two-client session: the host's body forced critical (`body-force bloodPressure=…`), the host's log read for

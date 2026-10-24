@@ -221,4 +221,3 @@ that generated a carrier**, and there are two ways to get one:
 
 Nothing about the code changes: slices 1 and 2 are deployed and unit-pinned; this is a staging fact, recorded so the
 next batch does not repeat the attempt blind.
-

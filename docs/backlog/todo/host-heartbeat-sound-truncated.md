@@ -71,6 +71,30 @@ clip there too, the cadence is the GAME's own (its beat interval shorter than th
 The recipe is the same one; only the session changes, and leaving the world and starting a solo run uses the running
 client (no relaunch).
 
+## The third reading (2026-10-25): the panel's beep is a healthy 6 s loop on a VIEWED body
+
+The user reported the medical panel's critical beep as the more obvious instance. `tools/acceptance/recipes/panel-beep-state.cs`
+reads the open wound view's own alert source next to the flag that drives it
+(`WoundView.Update`: play while `!WorldGeneration.unchipped && body.isCriticallyDying`, stop the moment the flag drops).
+Five reads, 250 ms apart, member viewing the critical host:
+
+| read | playing | time / length | critical | pressure | consciousness |
+|---|---|---|---|---|---|
+| 0 | true | 0.606 / 6 | true | 0.09 | 0 |
+| 1 | true | 1.710 / 6 | true | 0.07 | 0 |
+| 2 | true | 2.766 / 6 | true | 0.04 | 0 |
+| 3 | true | 3.735 / 6 | true | 0.04 | 0 |
+| 4 | true | 4.699 / 6 | true | 0.03 | 0 |
+
+The loop advances monotonically and the flag never drops, so **this path does not restart the beep** on the viewing
+client. That leaves two candidates, and the next reading separates them:
+
+1. **The flag flickers on the LOCAL body** — the user's own panel, where the body is the game's own simulation and
+   `isCriticallyDying` can cross its threshold back and forth; the game then stops and restarts the loop, which is heard as
+   a cut every flicker. The probe is the same one run on the HOST with its own panel open (its body forced critical).
+2. **The asset's loop seam** — a 6 s beep clip whose own end is abrupt is not a code defect at all; the reading that
+   rules it out is a single cycle of the clip with no stop.
+
 ## Acceptance this ticket owes
 
 A two-client session: the host's body forced critical (`body-force bloodPressure=…`), the host's log read for

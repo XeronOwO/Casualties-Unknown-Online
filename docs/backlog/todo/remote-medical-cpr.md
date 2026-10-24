@@ -251,6 +251,12 @@ same control into the compression control, and each later press sends the measur
 
 **Still owed, and the ticket stays in `todo` for it — the machine row**: open the wound view on an arrested teammate,
 press the control, read the session's start and the pressure move. The staging is ready (`body-force
-heartRate=0,bloodPressure=5` lands and holds, read on the machine in batch 20261024-g-era), but the REMOTE wound view
-itself opens only from the player's own click on a teammate's body — the driver's in-process vocabulary has no control
-id for it, so the row needs either a mouse click at the body's projected screen position or a declared focus recipe.
+heartRate=0,bloodPressure=5` lands and holds, read on the machine), and the plan was to project the teammate's body to
+the guest's screen and click it with the authorized `send-input.ps1`. **That attempt failed inside the client**: a
+`screen-point` recipe (world point → `Camera.main.WorldToScreenPoint`, plus the CPR control's own screen rect) was
+refused by the client's evaluator as `(1,1): InteractiveHost` in three versions — a plain camera projection, a scene-wide
+`RectTransform` scan and a panel-child scan all failed the same way, while the same evaluator runs the existing recipes,
+so the refusal is about what that compile unit may reference, not the math. The recipe was removed rather than left
+broken; the next attempt should either (a) read the existing `cuo-ui-dump` recipe's reference set and re-add the
+projection with exactly those references, or (b) have a player click the teammate's body in a guided batch.
+

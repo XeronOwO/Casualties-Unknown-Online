@@ -367,6 +367,8 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	string IStartGateState.WaitingText => _domains.Gate.WaitingText;
 
+	bool IStartGateState.WaitingTextIsOnTheNativeScreen => _domains.Gate.WaitingTextIsOnTheNativeScreen;
+
 	bool IWorldPresenceQuery.IsInWorldOrGenerating => _domains.Run.IsInWorldOrGenerating;
 
 	void IGameIntegrationLifecycle.OnApplicationQuit() => _domains.ItemWorldSync.SuppressDestroys();

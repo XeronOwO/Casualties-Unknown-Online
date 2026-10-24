@@ -558,10 +558,17 @@ internal sealed class OnlineUiHost
 	/// </summary>
 	internal void Draw()
 	{
-		if (_gateState is { IsWaitingForReady: true })
+		if (_gateState is { IsWaitingForReady: true } gate)
 		{
-			StartGateOverlay.Draw(_gateState.WaitingText);
-			return; // the HUD is hidden behind the gate overlay
+			// The wait line goes on the game's OWN loading text when that surface exists (the line the player is
+			// already looking at); the overlay is the fallback for a screen without it, so the two never draw the
+			// same sentence twice.
+			if (!gate.WaitingTextIsOnTheNativeScreen)
+			{
+				StartGateOverlay.Draw(gate.WaitingText);
+			}
+
+			return; // the HUD is hidden behind the gate
 		}
 
 		_onlineUi.Draw(_context ??= BuildContext());

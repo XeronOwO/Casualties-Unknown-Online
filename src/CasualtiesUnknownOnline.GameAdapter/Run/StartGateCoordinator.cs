@@ -26,12 +26,14 @@ internal sealed class StartGateCoordinator(
 	IWorldControl world,
 	LifePodPresentation lifePod,
 	RunCoordinator run,
+	NativeLoadingTextSurface loadingText,
 	ILogger<StartGateCoordinator> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
 	private readonly LifePodPresentation _lifePod = lifePod;
 	private readonly RunCoordinator _run = run;
+	private readonly NativeLoadingTextSurface _loadingText = loadingText;
 	private readonly ILogger<StartGateCoordinator> _log = log;
 
 	/// <summary>The gate holds us: world timeScale=0 + movingAllowed locked — restore both on release.</summary>
@@ -92,6 +94,13 @@ internal sealed class StartGateCoordinator(
 	/// different waits.
 	/// </summary>
 	internal string WaitingText => SessionWaitText.Line(WaitingState);
+
+	/// <summary>
+	/// True when the wait line is written into the game's OWN loading-screen text, so the caller's overlay must not
+	/// draw a second copy of it. The coordinator tries that surface first because it is the line the player is
+	/// already looking at; the overlay stays for a screen without it (the menu, a build that renamed the field).
+	/// </summary>
+	internal bool WaitingTextIsOnTheNativeScreen => _loadingText.IsActive;
 
 	/// <summary>
 	/// What the session is waiting for, as one value. This getter only GATHERS the facts;
@@ -163,6 +172,7 @@ internal sealed class StartGateCoordinator(
 
 			KeepLoadingScreenForGate(); // both roles: the loading screen stays up while the gate waits
 			AnimateLoadingForGate(); // ... and keeps its loading jitter, so the wait reads as "still loading"
+			_loadingText.TryShow(WaitingText); // ... and its own bottom-right line says WHAT we wait for
 
 			if (_session.Role == SessionRole.Guest)
 			{
@@ -212,10 +222,12 @@ internal sealed class StartGateCoordinator(
 		}
 
 		// Gate released (any path) — drop the kept loading screen (only the
-		// instance we kept; a scene switch gives the game a fresh one).
+		// instance we kept; a scene switch gives the game a fresh one) and hand
+		// the screen's own line back to the game.
 		if (!WaitingForReady)
 		{
 			_worldReadyWaitMs = 0;
+			_loadingText.Release();
 			if (_keptLoadingObject != null) // Unity object — ==
 			{
 				HideLoadingScreenForGate();

@@ -1,6 +1,10 @@
 # Remote context menu Medical visible when target is not visible
 
-- Status: Review
+- Status: Done — closed 2026-10-25: batch `20261025-f` read both criteria in both directions from the production menu's own
+  `Open` plus the clients' frames (record `docs/evidence/acceptance/remote-context-menu-sight-gate-20261025-f.md`). Target
+  visible: Medical is offered together with 打开背包/骑背/背起/推 (host side) and Open backpack/Piggyback/Carry on back/Push
+  (guest side). Target 120 m away: the menu is TITLE-ONLY in both directions, so Medical is never left alone. Deployed
+  `0.1.0+7605a140`. The clipped title is the separate layout decision on the dead-suffix ticket, not this one's.
 - Priority: Medium
 - Category: Remote player context menu / interaction visibility
 - Source: User report (2026-09-05) — when the host is not visible from the guest's view, right-clicking still shows the Medical button, while other options are not shown.

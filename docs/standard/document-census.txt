@@ -256,7 +256,8 @@ docs/backlog/review/pinyin-search-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
 docs/backlog/review/recipe-unlock-fallback.md | keep | index | docs/backlog/README.md
-docs/backlog/review/remote-context-menu-medical-visible-when-target-not-visible.md | keep | index | docs/backlog/README.md
+docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/remote-context-menu-sight-gate-20261025-f.md | keep | claim | docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md
 docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-interaction-local-gating.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-native-minigame-parity.md | keep | index | docs/backlog/README.md
@@ -1041,7 +1042,7 @@ docs/evidence/selfchecks/ui/online-ui-window-family-selfcheck.md | keep | claim 
 docs/evidence/selfchecks/ui/online-ui-window-selfcheck.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
 docs/evidence/selfchecks/ui/online-ui-world-overlay-selfcheck.md | keep | claim | docs/backlog/done/middle-click-location-marker.md
 docs/evidence/selfchecks/ui/player-list-peer-id-disambiguation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/ui/remote-context-menu-medical-visibility-selfcheck.md | keep | claim | docs/backlog/review/remote-context-menu-medical-visible-when-target-not-visible.md
+docs/evidence/selfchecks/ui/remote-context-menu-medical-visibility-selfcheck.md | keep | claim | docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md
 docs/evidence/selfchecks/ui/remote-inventory-ui-followup-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/tab-backpack-instant-close-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/air-write-block-damage-cleanup-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

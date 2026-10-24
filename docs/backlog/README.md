@@ -101,7 +101,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
 - [Remote player medical panel](review/remote-player-medical-panel.md) — **Medium** — native WoundView reuse.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — **Medium** — limb drag routes through the heal path.
-- [Remote Medical and visibility](review/remote-context-menu-medical-visible-when-target-not-visible.md) — **Medium** — the shared visibility gate.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
@@ -146,6 +145,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Remote Medical and visibility](done/remote-context-menu-medical-visible-when-target-not-visible.md) — **Medium** — title-only out of sight, both ways.
 - [UI text moves to embedded JSON, mods add languages](done/localization-json-resources-and-mod-languages.md) — **Medium-High** — data, not C#; read live.
 - [The console's own replies are English only](done/console-command-replies-bilingual.md) — **Medium** — keyed lines; read live.
 - [Steam send-limit refusal floods the log and wedges the host](done/steam-transport-send-limit-runaway.md) — **High** — gated; row 5 is the platform residual.

@@ -30,6 +30,15 @@ internal static class PlayerCameraHandleInputPatch
 
 	private static bool Prefix(PlayerCamera __instance, out RagdollObservation __state)
 	{
+		// A spectator consumes the frame's player input: moving, attacking, using and every hotkey belong to the
+		// character being watched, not to the watcher (the watcher's own body stays in the world, but it is not
+		// being driven from here — the ruling's "pure observation").
+		if (SpectatorPresentationGate.IsActive)
+		{
+			__state = null!;
+			return false;
+		}
+
 		if (PatchBridge.SessionSurface is { IsOnlineUiModalOpen: true })
 		{
 			__state = null!;

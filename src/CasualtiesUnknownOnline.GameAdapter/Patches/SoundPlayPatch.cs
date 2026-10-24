@@ -45,6 +45,14 @@ internal static class SoundPlayPatch
 			return false;
 		}
 
+		// A spectator watches: the local player-state presentation is off, and the character-sound family is
+		// the biggest half of it (footsteps, swings, pain, the vital-crisis heartbeat all come through this
+		// call). The world's own ambience rides other call sites and stays audible.
+		if (SpectatorPresentationGate.IsActive)
+		{
+			return false;
+		}
+
 		// In a live session the spawn landing sound is deferred until the
 		// start-gate release: it plays at the very end of generation, before
 		// the gate freezes — WaitingForReady is not yet true there, so the

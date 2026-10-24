@@ -57,6 +57,7 @@ internal sealed class SpectatorCameraService(
 		log.LogInformation("[Spectator] session ended while watching {SteamId}; the camera state is dropped.", _watchingSteamId);
 		_watchingSteamId = 0;
 		_spectatorMode = false;
+		SpectatorPresentationGate.Set(false);
 		_freeFlyWanted = false;
 		_touchedCamera = false;
 	}
@@ -81,6 +82,7 @@ internal sealed class SpectatorCameraService(
 		}
 
 		_spectatorMode = true;
+		SpectatorPresentationGate.Set(true);
 		log.LogInformation("[Spectator] spectator mode on (local body {Local}).", session.LocalSteamId);
 		return true;
 	}
@@ -94,6 +96,7 @@ internal sealed class SpectatorCameraService(
 		}
 
 		_spectatorMode = false;
+		SpectatorPresentationGate.Set(false);
 		StopWatching();
 		_freeFlyWanted = false;
 		log.LogInformation("[Spectator] spectator mode off; normal play.");

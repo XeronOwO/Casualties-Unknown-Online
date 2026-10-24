@@ -1,10 +1,11 @@
 # A member's drill-pod descent regenerates a layer the session never agreed on
 
-- Status: Todo — the main routing landed 2026-10-24 (the member's pod descent is delegated with its two-layer
-  step, the host drives it, the rider follows the edge; read on two clients), and so did the refusal answer
-  (`NetMsg.LayerAdvanceRefused`, host → the one requester, with the host's own reason), read on the machine for
-  a request the host could not take. The ticket stays `todo` for the three NAMED failure stagings (host dead,
-  rider out of the world, the repair kit consumed by another member), which now have the answer path to ride.
+- Status: Review — the routing landed (the member's pod descent is delegated with its two-layer step, the host
+  drives it, the rider follows the edge; read on two clients), so did the refusal answer
+  (`NetMsg.LayerAdvanceRefused`, host → the one requester, with the host's own reason), and the user's 2026-10-24
+  ruling settled the remaining rows: the pod's condition is every LIVING player inside the area and then any one of
+  them repairing, so a dead host neither blocks nor changes the descent, and the other two rows are the world
+  object's own semantics. No code is left.
   Record: `docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md`.
 - Priority: Medium
 - Category: World generation / layer transition / descent producers
@@ -134,5 +135,29 @@ The failure rows the ticket names, re-read against the rest of the backlog:
   line (this ticket's row)? The refusal ANSWER can carry either; the choice decides what the protocol claims,
   so it is the user's, not this ticket's.
 
-Until that ruling this ticket stays `todo` with the two non-cases recorded (nothing to implement) and the
-host-dead row as the open decision.
+## The ruling (user, 2026-10-24): the pod's own condition, and a dead host does not hold it
+
+The user answered the open row by naming the drill pod's own judgement: **every LIVING player must be inside the
+pod's area, and then any one of them may use the repair tool** — the repair is the shared cost, whoever pays it.
+Three consequences settle the ticket:
+
+1. **The host-dead row resolves to "advance".** A dead host is not a living player waiting in the area, so its body
+   being dead neither blocks nor changes the pod's condition: the descent proceeds. The code already behaves this
+   way — `LayerAdvanceCoordinator.OnLayerAdvanceRequested` decides on `LayerAdvancePolicy.DecideDrive` over the
+   role, the session, the world's existence and the generation phase, and has no host-body check at all.
+2. **"The repair kit was used by another member than the rider" is not a failure row**, which the batch had already
+   concluded: the pod's repaired state is the world object's, not a per-member fact.
+3. **"Rider out of the world" is not a failure row either**: the trigger is a local body crouching next to the pod,
+   so a member with no body there cannot start it.
+
+The area condition itself is enforced where the game enforces it: `DrillPod.Update` is the producer and the native
+pod only offers the descent to a body next to a repaired pod, so the request that reaches the host is the same
+shape the native path produces. The host deliberately does NOT re-derive "every living player is inside the area"
+from its own copies — that would be a behavioural bound over a member report, which decision 265 excludes; the
+report carries the trigger's own verdict, and the host's acceptance is the world-state half (a live world, not
+generating, the session alive) that it CAN establish.
+
+With the ruling in, the ticket has no open code: the routing, the refusal answer, the two-layer step, the rider's
+own arrival effects and the three failure rows are all resolved, and the readings are
+`docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md`.
+

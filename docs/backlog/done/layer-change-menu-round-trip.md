@@ -15,8 +15,8 @@
 - Related: `done/layer-change-member-dropout.md` (the family's dropout half: its park experiment
   `20261007-c` is the evidence that a member CAN be kept in the world through the host's regeneration),
   `done/layer-change-member-recovery.md` (the member that lost its body to the same boundary),
-  `done/layer-descent-spawn-separation.md` and `todo/pod-descent-on-a-member-regenerates-locally.md` (the
-  same boundary, other symptoms), `todo/loading-screen-progress-detail.md` (what the screen says while it
+  `done/layer-descent-spawn-separation.md` and `review/pod-descent-on-a-member-regenerates-locally.md` (the
+  same boundary, other symptoms), `review/loading-screen-progress-detail.md` (what the screen says while it
   waits), `src/CasualtiesUnknownOnline.GameAdapter/Run/ReentryCoordinator.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/World/LayerAdvanceCoordinator.cs`
 
@@ -210,7 +210,7 @@ they are the change's own review record.
   ordinary `WorldJoin` and the gate carry it in. It may therefore enter after the host's group, and
   the ticket's rows say nothing about that shape.
 - **A guest's own drill-pod descent is still its own ticket**
-  (`todo/pod-descent-on-a-member-regenerates-locally.md`): only the HOST's descent is announced. A
+  (`review/pod-descent-on-a-member-regenerates-locally.md`): only the HOST's descent is announced. A
   guest pod still regenerates locally with its old baseline.
 - **The degraded path costs the menu round trip and one progression step.** A member whose edge is
   lost goes back to the pre-fix behaviour (the host's `WorldJoin` re-invites it) and, because the

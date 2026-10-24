@@ -354,7 +354,7 @@ docs/backlog/done/craft-carried-fact-retirement.md | keep | index | docs/backlog
 docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
 docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
 docs/backlog/review/player-music-sync-playback.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md | keep | index | docs/backlog/README.md
+docs/backlog/review/pod-descent-on-a-member-regenerates-locally.md | keep | index | docs/backlog/README.md
 docs/backlog/done/radiation-line-floor-stop.md | keep | index | docs/backlog/README.md
 docs/backlog/review/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
@@ -1144,7 +1144,7 @@ docs/evidence/acceptance/command-console-esc-not-intercepted-20261018-t.md | kee
 docs/evidence/acceptance/online-ui-paired-controls-and-page-scroll-20261018-t.md | keep | claim | docs/backlog/done/online-ui-paired-controls-and-page-scroll.md
 docs/evidence/acceptance/enter-key-opens-plain-chat-20261018-t.md | keep | claim | docs/backlog/done/enter-key-opens-plain-chat.md
 docs/evidence/acceptance/enter-key-opens-plain-chat-20261024-a.md | keep | claim | docs/backlog/done/enter-key-opens-plain-chat.md
-docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md | keep | claim | docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md
+docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md | keep | claim | docs/backlog/review/pod-descent-on-a-member-regenerates-locally.md
 docs/evidence/acceptance/20261018-u-scope.md | keep | claim | docs/evidence/acceptance/heal-cheat-command-state-reset-20261018.md
 docs/evidence/acceptance/heal-cheat-command-state-reset-20261018.md | keep | claim | docs/backlog/done/heal-cheat-command-state-reset.md
 docs/evidence/acceptance/item-identity-across-transforms-20261018.md | keep | claim | docs/backlog/done/item-identity-across-transforms.md

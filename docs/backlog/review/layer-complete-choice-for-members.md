@@ -12,7 +12,7 @@
 - Related: `review/save-layer-end-save-and-restore.md` (S2 — the layer-end save itself),
   `review/save-system-mid-run-and-layer-end.md`, `review/save-mid-run-consistent-cut.md`,
   `done/layer-change-member-recovery.md` (a member out of the world at the boundary),
-  `todo/pod-descent-on-a-member-regenerates-locally.md` and `todo/layer-end-save-and-exit-native-write.md`
+  `review/pod-descent-on-a-member-regenerates-locally.md` and `todo/layer-end-save-and-exit-native-write.md`
   (this cycle's two family siblings),
   `done/layer-mod-baseline-divergence-on-continue.md` (a Continue that reopened the wrong world)
 
@@ -81,7 +81,7 @@ carries — the kernel run baseline's generation (run epoch + layer index).
    entry, so the sink patch recognizes the panel's click by the entry's own marker and leaves both alone.
    The panel's other button (`SaveAndExit`, which writes the native `save.sv`) belongs to the save half
    (`review/save-layer-end-save-and-restore.md`). The pod and that button have their own tickets
-   (`todo/pod-descent-on-a-member-regenerates-locally.md`,
+   (`review/pod-descent-on-a-member-regenerates-locally.md`,
    `todo/layer-end-save-and-exit-native-write.md`); the console command is the game's own debug surface and
    is deliberately untouched.
 
@@ -138,7 +138,7 @@ Status after the 2026-10-07 development cycle:
   `docs/standard/alignment.txt`), sync-coverage matrix row `R10` + its wire-vocabulary index entry and
   eleven evidence anchors.
 - Two producers of a local descent are deliberately NOT routed through this path (filed rather than
-  half-fixed): `todo/pod-descent-on-a-member-regenerates-locally.md` and
+  half-fixed): `review/pod-descent-on-a-member-regenerates-locally.md` and
   `todo/layer-end-save-and-exit-native-write.md`.
 
 ## Verification (machine, this cycle)
@@ -189,7 +189,7 @@ Status after the 2026-10-07 development cycle:
 5. **The pod and the console's `skiplayer`** reach the same coroutine without the entry's marker, so both
    keep the game's own local descent; the pod in particular carries its own two-layer step and its own
    `doPod` arrival effects, which the panel's request does not express. Filed as
-   `todo/pod-descent-on-a-member-regenerates-locally.md`.
+   `review/pod-descent-on-a-member-regenerates-locally.md`, which has since routed the pod's own two-layer step.
 6. **The native entry's local steps are mirrored on the host** (panel close, walk release, `deepestlayer`
    record, `RegenerateWorld(false)`) because the entry's own local-body clause cannot hold for another
    member's body. Each of those statements IS a typed member reference (`savePanel`, `forceWalk`,

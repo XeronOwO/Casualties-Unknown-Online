@@ -1,8 +1,9 @@
 # Acceptance — a member's drill-pod descent is the session's step, and its two layers reach the host
 
-- Ticket: `docs/backlog/todo/pod-descent-on-a-member-regenerates-locally.md` — verdict: **the main row passes;
-  the ticket stays in `todo`** for the refusal rows (host dead, rider out of the world, the repair kit consumed
-  by another member), which need their own named-refusal lines.
+- Ticket: `docs/backlog/review/pod-descent-on-a-member-regenerates-locally.md` — verdict: **the main row passes;
+  the refusal rows were settled by the user's 2026-10-24 ruling** (the pod's own condition: every LIVING player
+  inside the area, then any one of them repairs; a dead host neither blocks nor changes it), so the ticket's code
+  is complete and it sits in review.
 - Batch: `.acceptance/20261024-c/` (local, gitignored; run `pr2`)
 - Artifact: the tree's build deployed for the run (the fix's own build; the deliverable commit carries it)
 - Date: 2026-10-24

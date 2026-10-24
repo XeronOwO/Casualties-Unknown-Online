@@ -19,7 +19,7 @@
 param(
 	[string]$Name = 'CasualtiesUnknown',
 	[int]$ProcessId = 0,
-	[Parameter(Mandatory = $true)][ValidateSet('click', 'key', 'drag')][string]$Action,
+	[Parameter(Mandatory = $true)][ValidateSet('click', 'key', 'drag', 'rdrag')][string]$Action,
 	[int]$X = 0,
 	[int]$Y = 0,
 	[int]$X1 = 0,
@@ -61,6 +61,8 @@ public static class CuoInput
     public const uint KEYEVENTF_KEYUP = 0x0002;
     public const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     public const uint MOUSEEVENTF_LEFTUP = 0x0004;
+    public const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+    public const uint MOUSEEVENTF_RIGHTUP = 0x0010;
     public const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
     public const uint MOUSEEVENTF_MOVE = 0x0001;
 
@@ -149,6 +151,26 @@ public static class CuoInput
         SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
     }
 
+    // The RIGHT button is the one this game's drag bracket reads: `PlayerCamera.HandleDragging` starts a drag on
+    // `Input.GetKeyDown(KeyBinds.GetBind("iteminteract"))`, and that bind is `Mouse1` (Unity's code 324). The left button does
+    // not start anything, which is why a left-button drag left `PlayerCamera.dragItem` null while the press itself arrived.
+    public static void MouseDownRight(int screenX, int screenY)
+    {
+        SetCursorPos(screenX, screenY);
+        System.Threading.Thread.Sleep(80);
+        var inputs = new INPUT[1];
+        inputs[0].type = INPUT_MOUSE; inputs[0].u.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
+
+    public static void MouseUpRight(int screenX, int screenY)
+    {
+        SetCursorPos(screenX, screenY);
+        var inputs = new INPUT[1];
+        inputs[0].type = INPUT_MOUSE; inputs[0].u.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
+        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
+
     public static void Key(ushort vk)
     {
         var inputs = new INPUT[2];
@@ -232,6 +254,22 @@ switch ($Action) {
 			Start-Sleep -Milliseconds 40
 		}
 		[CuoInput]::MouseUp($to.X, $to.Y)
+	}
+	'rdrag' {
+		# The game's own drag bracket starts on `iteminteract`, whose bind is `Mouse1`: a right-button press on the item, the
+		# pointer moved while it is held, and the right-button release over the target. The left-button `drag` above never
+		# starts one (it was tried, and `PlayerCamera.dragItem` stayed null while the press itself arrived).
+		$from = ConvertTo-Screen $X1 $Y1
+		$to = ConvertTo-Screen $X2 $Y2
+		[CuoInput]::MouseDownRight($from.X, $from.Y)
+		$steps = [Math]::Max(2, [int]($HoldMs / 40))
+		for ($i = 1; $i -le $steps; $i++) {
+			$sx = [int]($from.X + (($to.X - $from.X) * $i / $steps))
+			$sy = [int]($from.Y + (($to.Y - $from.Y) * $i / $steps))
+			[void][CuoInput]::SetCursorPos($sx, $sy)
+			Start-Sleep -Milliseconds 40
+		}
+		[CuoInput]::MouseUpRight($to.X, $to.Y)
 	}
 }
 

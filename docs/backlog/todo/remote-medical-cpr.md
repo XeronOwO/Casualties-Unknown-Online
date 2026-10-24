@@ -241,4 +241,3 @@ judgement left in it:
 (`Start`/`Compress`, localized), route its click to `SendOtherStartRequest`/`SendOtherUpdate(Compress, interval)`, and
 read the machine row (open the wound view on an arrested teammate, click, see the session start and the pressure move).
 No player can start CPR until that lands, so the ticket stays in `todo` for it.
-

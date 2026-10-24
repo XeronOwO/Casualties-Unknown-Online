@@ -353,17 +353,19 @@ operator the item and walks the three stages, which the next batch can add.
 
 ## Stage 4's open decision (blocks the operator's side)
 
-The reference gates the operator in ways this ticket has not yet ruled on, and one of them changes the RHYTHM this rule
-was tuned to:
+**The rhythm band is decided** (the user, 2026-10-24: "参考 KrokMP 的节奏范围吧"): the rule follows the reference's
+**65–220 a minute**, full gain inside the band, half below the fast edge (a shove, plus the rib), nothing past the slow
+edge. Landed in `d845e4bc` and read on the machine — 8 presses at ≈43 a minute buy nothing, 40 same-frame presses restart
+the heart (`docs/evidence/acceptance/cpr-rhythm-band-20261024-n.md`). A side effect recorded there: a driver call per press
+is 1.4 s, so a future row that needs a real rhythm reads the fast edge with `cpr-press count=…` or waits for a
+frame-spanning rhythm helper.
 
-- **Press-rate band**: the reference scores presses against **65–220 per minute**. This ticket's rule earns full gain near
-  110/min and nothing past the slow line at 1.6 s (37/min) — deliberately forgiving, because a batch presses once per
-  driver round-trip (about 1.4 s apart) and the two machine rows proved their channels that way. Adopting the reference's
-  65/min floor makes slower-than-real pressing worthless (correct for the fiction, and it would need a rhythm-driving
-  helper for acceptance), while keeping today's line keeps the fiction fuzzy.
+Still open on the operator's side:
+
 - **Strength gate**: `skills.STR * handMaxTotalForce > 6` on the operator, evaluated on the operator's OWN client (the
   gate is about their body, and the host's snapshot does not carry `handMaxTotalForce`), refusing with the existing
   refusal line and deny sound.
 - **Intelligence**: `INT < 12` makes the operator's SCREEN harder rather than refusing — a presentation rule this ticket
   would need to design (what "harder" shows).
 - **Costs**: stamina and a little temperature per press, and a rib-break roll that scales strength against intelligence.
+

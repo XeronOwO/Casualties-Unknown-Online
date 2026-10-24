@@ -164,6 +164,11 @@ collected while its scenario is up.
   see the key.
 - Capture is per row, not per run: one frame (or recording) per `visual` / `feel` row, captured from the
   client's own window (never the desktop, so the run never needs the clients in front), written to `acceptance-artifacts-dir` under an artifact id, plus the log excerpts a `machine` row needs.
+  The capture itself is [`tools/acceptance/capture-window.ps1`](../../tools/acceptance/capture-window.ps1)
+  (`-Name <process> -Out <artifacts-dir>\<artifact-id>.png`): it finds the client's own window, renders it with
+  `PrintWindow` + `PW_RENDERFULLCONTENT` (no activation), and refuses a hidden or zero-size window rather than
+  writing an empty frame (verified 2026-10-24 on the 1280x720 window: 1298x767 with the CUO overlay legible —
+  the bitmap is the whole window, title bar included, so a box row is judged on the canvas inside it).
   On a DPI-scaled display the capturing process sets its DPI awareness before `GetWindowRect`/`PrintWindow`;
   otherwise the bitmap is the physical window and the canvas's right/bottom — the launcher, a docked panel —
   are cropped out of the frame. **A frame's pixels are not the canvas's units**: the UI layer a row is about

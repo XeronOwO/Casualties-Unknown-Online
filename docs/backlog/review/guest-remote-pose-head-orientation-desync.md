@@ -16,6 +16,15 @@
   nothing — and the facing pair this row wants must be read through whatever `Limb` and the clone's root Transform expose. The
   probe is `tools/acceptance/recipes/clone-components.cs`, committed rather than deleted, because naming the clone's type is the
   step the next attempt starts from.
+
+  **Batch `20261025-ap` read the facing pair through that type, and the values AGREE where they can be compared.** A second probe,
+  `tools/acceptance/recipes/type-members.cs`, names a component type's scalar members on the objects near a point. On the HOST the
+  member `Body` of `Character_110000135D30695` carries **`isRight=True, targetLookPos=(0,0,0)`**, and on the GUEST its own
+  `Experiment/Body` carries **`isRight=True, targetLookPos=(0,0,0)`** — same left/right, same (zero) look. The clone's `Body` also
+  exists after all: the radius-3 scan reported 85 matches and the earlier reading had truncated its own list at 40, which is why it
+  concluded no `Body` was there. What this does NOT yet compare is a NON-ZERO look: moving the pointer changed neither side's
+  `targetLookPos`, so the aim the game actually reads comes from `PlayerCamera`, not the bare cursor, and that is the instrument the
+  next attempt needs. The row stays open on that one gap rather than passing on a zero-vs-zero.
 - Priority: Medium
 - Category: Player presentation / sync root cause
 - Source: User report (2026-09-05), refined reproduction — dual-instance test; the original water-current scenario is included as one observed variant.

@@ -328,3 +328,26 @@ Which steps of this page are executable today, and which are still being built:
   driver has no value-carrying selection), and no console verb writes them; a row that needs a non-default
   rule is `unproven` with the gap recorded, never approximated by editing the config under a live session
   (batch `20261023-f`'s row 7).
+
+## The drag batch (the input sequence, written down before it runs)
+
+The remaining rows of the drag family (`cross-player-drag-use-feedback`,
+`cross-player-drag-use-model-bounds`, `topical-limb-action-shape`, `remote-medical-treatment-operations`)
+all need the same gesture, so they are ONE batch with one launch and four verdicts:
+
+1. **Launch both clients once** (`tools/acceptance/launch-clients.ps1`), form the session, enter the world.
+2. **Point at the target**: `drive-in-process.ps1 -Action recipe -Recipe screen-project -RecipeArg x=…,y=…`
+   on the dragging client answers the target body's CLIENT pixel and the panel's own screen rect. The
+   recipe exists because the projection has to come from the game's own camera; a guessed pixel is not a
+   gesture.
+3. **Find the item's slot** with the inventory probe (the item's held position on the client), because a
+   drag starts on the item, not on a control id.
+4. **Perform the gesture** with `tools/acceptance/send-input.ps1 -Action drag -ProcessId <dragging client>
+   -FromX … -FromY … -ToX … -ToY …`: press on the item, move to the target body's pixel, release. Every
+   point is CLIENT coordinates; the helper brings the window forward itself.
+5. **Read the verdict from the clients' own logs**, never from the picture: the cue line and the refusal
+   line are on the operator's side, the applied/inventory result on the target's side.
+
+The sequence is recorded here because a gesture is a call site and a claim about it must be falsifiable
+before the run: a step this list cannot perform is a design defect, not a batch failure.
+

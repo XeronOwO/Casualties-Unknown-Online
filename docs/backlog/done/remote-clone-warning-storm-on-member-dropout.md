@@ -13,7 +13,7 @@
 - Related: `done/layer-change-member-dropout.md` (the batch's ticket; this is the third producer of the
   family that cycle bounded), `todo/layer-change-member-recovery.md` (the same session's attribution: the
   member is out of the world with no local body, which is the state this line repeats in),
-  `review/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family),
+  `done/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family),
   `docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md` (this reading),
   `docs/evidence/selfchecks/items/remote-clone-warning-storm-selfcheck.md` (this cycle's fact sheet),
   `docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md` (the shape the cycle bounded)

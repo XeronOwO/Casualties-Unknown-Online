@@ -73,7 +73,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
-- [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
 - [The opener can claim a key the game is rebinding](review/enter-opener-keybind-capture.md) — **Low-Medium** — the guard sees the capture; a key batch is owed.
 
 - [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
@@ -147,6 +146,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Steam send-limit refusal floods the log and wedges the host](done/steam-transport-send-limit-runaway.md) — **High** — gated; row 5 is the platform residual.
 - [Remote medical panel hides actions](done/remote-medical-panel-hide-local-only-actions.md) — **Medium** — all six rows read.
 - [Random rolls in a cross-player item use](done/cross-player-item-use-random-determinism.md) — **High** — rows 1–2 read, 3–5 settled, 8 a user residual.
 - [Remote medical CPR (KrokMP custom)](done/remote-medical-cpr.md) — **Medium** — four stages; every row read, `Good` included.

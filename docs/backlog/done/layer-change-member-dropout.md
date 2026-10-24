@@ -18,7 +18,7 @@
   `done/remote-clone-warning-storm-on-member-dropout.md` (the third producer of this family, filed by the
   2026-10-07 batch), `done/guest-generation-segments-over-host-absence.md`,
   `done/reenter-baseline-adoption.md`,
-  `review/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family),
+  `done/steam-transport-send-limit-runaway.md` (the sibling unbounded-warning family),
   `docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md` (the rejection's own record)
 - Acceptance record: `docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md`
 
@@ -180,7 +180,7 @@ Status of each item after the 2026-10-06 cycle:
    rate model: every per-frame or per-arriving-message Information line in the read surface is now either
    behind a window or demonstrably low-frequency (the trader state stream, the 5-second world-time resend,
    the 1 Hz character snapshot). A NEW high-frequency line elsewhere is caught only once it is named in
-   `LogVolumeGateTests`; `review/steam-transport-send-limit-runaway.md` stays its own ticket.
+   `LogVolumeGateTests`; `done/steam-transport-send-limit-runaway.md` stays its own ticket.
 5. **Real-machine acceptance** — **ran as batch `20261007-a` (rejected) and batch `20261007-c` (passes)**:
    the c batch's parked attempt holds both members in the world with their carried item and its unparked
    control still reproduces the dropout, see `## Acceptance readings (batch 20261007-c)` above. The

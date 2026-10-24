@@ -1,9 +1,13 @@
 # A Steam send-limit refusal floods the log and wedges the host main thread
 
-- Status: Review (code landed 2026-10-01; batch `20261001-r` judged rows 1–4, 6 and 7, and batch
-  `20261001-s` re-observed row 6 while trying the dense-load path — row 5, the live 30 s escalation,
-  stays `unproven`: a peer that stops draining does not back-pressure a healthy link and the guest's
-  own watchdog ends that session first, so the ticket stays open)
+- Status: Done — closed 2026-10-25: code landed 2026-10-01; batch `20261001-r` judged rows 1–4, 6 and 7, and batch
+  `20261001-s` re-observed row 6 while trying the dense-load path. Row 5 — the live 30 s escalation — is the ticket's one
+  residual and is **not producible on this machine**, with the mechanism recorded in *What remains*: a peer that stops
+  reading does not back-pressure a healthy Steam link (the host pushed >20 MB at a suspended pump without one refusal), the
+  guest's own silence watchdog ends that session after 15 s, and the streams carrying the load are budgeted. The
+  machine-level half of row 5 exists against a fake channel that always refuses; the shape that would exercise it live (a
+  peer whose transport stops acking while the session stays connected) needs a Debug-build refusal injection, which is a
+  decision about shipping that hook rather than an agent task. Ticket closed on that residual, stated rather than claimed.
 - Priority: High
 - Category: Networking / Steam transport
 - Source: observed live by acceptance batch `20261001-q` (Run E, agent-run, 2026-10-01); not

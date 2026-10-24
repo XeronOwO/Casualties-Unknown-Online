@@ -24,25 +24,30 @@ regenerated when a batch changes the picture, never accumulated.
 | `unified-remote-display-projection-rework.md` | every criterion is marked Met except the real dual-client visual pass, which the page itself calls the user's final unified acceptance |
 | `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
 
-## C — needs a capability an agent could still build
+## E — blocked by the ENVIRONMENT's input delivery (not by code, not by a missing fixture)
 
-**The shared blocker first, because it covers several rows below.** It is MEASURED now, not suspected: on this station **no mouse
-BUTTON event reaches Unity's `Input`**, for either button — a right hold and a left hold both read `mouseHeld=false,
-mouseDown=false` mid-hold while the pointer moved, with the bracket's own gates all open (`allowUseItem=true, conscious=true,
-minigame=false, paused=false`) and the bind confirmed as Mouse1 (`keybind-read` → `keyCode 324`). Cursor movement arrives, keys
-arrive (a real Tab press opened the ring), buttons do not — so every row that needs a clicked or dragged target waits on that
-environment fact, and a cycle that fixes delivery (elevation/UIPI, window station, or a different injection point) unblocks the drag
-rows, the melee-hit row and the treatment-drive row at once.
+**Measured, not suspected:** on this station **no mouse BUTTON event reaches Unity's `Input`**, for either button — a right hold
+and a left hold both read `mouseHeld=false, mouseDown=false` mid-hold — while the pointer MOVED through both holds, the bracket's
+own gates were all open (`allowUseItem=true, conscious=true, minigame=false, paused=false`) and the bind was confirmed as Mouse1
+(`keybind-read action=iteminteract` → `keyCode 324`). Cursor movement arrives; keys arrive (a real Tab press opened the inventory
+ring and closed the tab-backpack ticket); buttons do not. This is UIPI-style blocking or a child-window/station condition, and it
+is the one fact behind every row below. A cycle that fixes delivery unblocks them together.
+
+| Ticket | The row that needs the button |
+|---|---|
+| `cross-player-drag-use-feedback.md` | rows 1-7 are drags; the ring lists carried items on its own slots (`funguschunk` at `520,568`), so the page hypothesis is retired |
+| `cross-player-drag-use-model-bounds.md` | the same drags; its detection shape landed |
+| `host-entity-hit-red-flash-not-visible-on-guest.md` | the swing is the player's click; every attempt damaged a block or a pod fixture |
+| `remote-medical-treatment-operations.md` | its live row is a treatment performed through the wound view |
+| `concurrent-medical-operations.md` | row 7's second half: two operators START the same limb's operation through that view |
+| `enter-opener-keybind-capture.md` | a key-bind row must be clicked in the game's settings UI before the Enter/Slash press means anything |
+
+## C — needs a capability an agent could still build
 
 | Ticket | What it waits on |
 |---|---|
-| `cross-player-drag-use-feedback.md` | the shared mouse-delivery blocker above; the ring lists carried items on its own slots (`funguschunk` at `520,568`), so the page hypothesis is retired |
-| `cross-player-drag-use-model-bounds.md` | the same blocker; its detection shape landed |
-| `concurrent-medical-operations.md` | row 7's second half: two operators START the same limb's operation and the progress is read on the victim's client |
-| `enter-opener-keybind-capture.md` | a key-bind row waiting in the game's own settings UI, then a real Enter/Slash press |
 | `entity-destruction-drop-guest-fresh-state-loss.md` | a destruction fixture whose drops a FRESH guest sees |
 | `guest-break-drops-recovery.md` | rows 1-4 and 7: a swallowed report and a lost air write, forced |
-| `host-entity-hit-red-flash-not-visible-on-guest.md` | the shared mouse-delivery blocker: the swing is the player's click and every attempt this session damaged a block or a pod fixture instead of the entity |
 | `nested-container-clone-proxy-leaks-as-world-item.md` | a container ITEM that can hold another container ITEM; this build's prefab set has not produced one |
 | `runtime-entity-markerless-bind-absorption.md` | row 9 needs the live Unity world's backfill stamp |
 | `suppressed-native-call-sounds-stay-unheard.md` | rows 1-4b: the remote-medical and minigame setups |
@@ -63,10 +68,8 @@ rows, the melee-hit row and the treatment-drive row at once.
 | `remote-medical-stage-1-injection-session.md` | injection session probes |
 | `remote-medical-stage-2-shrapnel-multiplayer.md` | row 7's coroutine (the `cpr-rhythm` shape) |
 | `remote-medical-stage-3-other-actions.md` | the other-action fixtures |
-| `remote-medical-treatment-operations.md` | its live row is a treatment performed through the wound view, i.e. the shared mouse-delivery blocker; the code-level criteria are machine-verified |
 | `sync-cadence-review.md` | its remaining measurement is a longer traffic window |
 | `topical-limb-action-shape.md` | the topical parity rows |
-| `treatment-gore-presentation-carried.md` | the audio capture probes (`pant-sound`, `generation-audio-probe`) plus the treatment fixture |
 
 ## How this list is kept honest
 

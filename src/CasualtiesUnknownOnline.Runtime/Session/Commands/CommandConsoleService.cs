@@ -156,7 +156,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_completion = new CommandConsoleCompletion(
 			_commands, session, hostBans, resourceLocations, _authority, cheatVerbs,
 			kernelItems, itemStateLanguage, targets, hostRuleSurface);
-		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
+		AddKeyedLine("console.ready", "CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 
 	public IReadOnlyList<ConsoleLine> Lines => _lines;
@@ -471,10 +471,18 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	public void ResetSessionState()
 	{
 		_lines.Clear();
-		AddLine("Session ended.", ConsoleLineKind.Info);
+		AddKeyedLine("console.session_ended", "Session ended.", ConsoleLineKind.Info);
 	}
 
 	private void AddLine(string text, ConsoleLineKind kind) => AddLine(text, kind, notifiable: true);
+
+	/// <summary>
+	/// A line whose sentence the CATALOGUE owns: the English text is still carried for the log and for a client whose language
+	/// has no entry, and the key lets the UI print the same line in the client's own language. This is the funnel the console's
+	/// player-facing prose moves through family by family (see `docs/backlog/todo/console-command-replies-bilingual.md`).
+	/// </summary>
+	private void AddKeyedLine(string key, string text, ConsoleLineKind kind, params string[] args) =>
+		_lines.Add(new ConsoleLine(kind, text, _time.UtcNowTicks, true, key, args.Length == 0 ? null : args));
 
 	/// <summary>
 	/// A line that belongs in the HISTORY only: the closed console does not announce

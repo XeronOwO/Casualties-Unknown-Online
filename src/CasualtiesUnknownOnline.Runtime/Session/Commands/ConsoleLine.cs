@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
@@ -14,4 +17,4 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// history-only; its headline is the notification
 /// (<see cref="ConsoleNotificationPolicy"/> applies the rule).
 /// </summary>
-public sealed record ConsoleLine(ConsoleLineKind Kind, string Text, long CreatedAtUtcTicks, bool Notifiable = true);
+public sealed record ConsoleLine(ConsoleLineKind Kind, string Text, long CreatedAtUtcTicks, bool Notifiable = true, string? Key = null, IReadOnlyList<string>? Args = null);

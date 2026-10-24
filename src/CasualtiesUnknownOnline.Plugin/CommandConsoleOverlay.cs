@@ -126,7 +126,7 @@ internal sealed class CommandConsoleOverlay
 				now - new DateTime(line.CreatedAtUtcTicks, DateTimeKind.Utc),
 				hold,
 				fade);
-			DrawLine(line, alpha);
+			DrawLine(line, ConsoleLineText.Resolve(ctx, line), alpha);
 		}
 
 		GUILayout.EndArea();
@@ -336,7 +336,7 @@ internal sealed class CommandConsoleOverlay
 			GUILayout.ExpandHeight(true));
 		foreach (var line in ctx.Commands.Lines)
 		{
-			DrawLine(line);
+			DrawLine(line, ConsoleLineText.Resolve(ctx, line));
 		}
 
 		GUILayout.EndScrollView();
@@ -344,9 +344,9 @@ internal sealed class CommandConsoleOverlay
 		_lastLineCount = ctx.Commands.Lines.Count;
 	}
 
-	private static void DrawLine(ConsoleLine line) => DrawLine(line, 1f);
+	private static void DrawLine(ConsoleLine line, string text) => DrawLine(line, text, 1f);
 
-	private static void DrawLine(ConsoleLine line, float alpha)
+	private static void DrawLine(ConsoleLine line, string text, float alpha)
 	{
 		var previous = GUI.color;
 		var color = line.Kind switch
@@ -357,7 +357,7 @@ internal sealed class CommandConsoleOverlay
 		};
 		color.a *= alpha;
 		GUI.color = color;
-		GUILayout.Label(line.Text, OnlineUiTheme.MutedLabel());
+		GUILayout.Label(text, OnlineUiTheme.MutedLabel());
 		GUI.color = previous;
 	}
 

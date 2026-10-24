@@ -1,6 +1,10 @@
 # The Enter/Slash opener can claim a key the game is rebinding
 
-- Status: Todo — found by the independent review of the Enter-guard fix (2026-10-24); pre-existing.
+- Status: Review — the capture-state fact landed (2026-10-24, deployed `0.1.0+cb0bf017`): the guard now sees the
+  game's key-bind capture through the marker the capture itself publishes, with no patch and no pause gate. The
+  runtime row (Enter and Slash bind the key and do not open the console while a row waits) still needs a batch with
+  real key presses, which is named in the landed section. Found by the independent review of the Enter-guard fix;
+  pre-existing.
 - Priority: Low-Medium
 - Category: Online UI / input / native keyboard ownership
 - Source: the review of `docs/backlog/done/enter-key-opens-plain-chat.md` read the game's settings
@@ -42,19 +46,20 @@ page is the other entrance. Until this lands, the guard's doc comment names the 
 (`INativeInputBlocker.IsTheGamesOwnTextInputFocused`), so a reader of the guard does not mistake the
 coverage for complete.
 
-## Decision point (2026-10-24) — waiting on the user
+## Landed (2026-10-24, deployed `0.1.0+cb0bf017`): the capture-state fact, from what the game already publishes
 
-The shape is a design decision because the cheap one changes when the opener works:
+Option 1 was taken (the pause gate changes when the opener works, which nobody asked for), but its mechanism is
+lighter than the ticket's own wording: **no patch at all**. The capture writes the literal `"..."` into the row it is
+binding (`SettingsMenu.cs:198`, the only occurrence in that file) and keeps it there until a key arrives, so
+`OnlineUiKeyboardFacts` now also answers true when an OPEN settings menu carries that marker. That is a fact the game
+publishes already; a patch on the iterator's `MoveNext` would have needed the dynamic contract table and the
+capability catalogue for no extra truth, and patching `WaitForKeyPress` itself only sees the coroutine's CREATION,
+not its wait.
 
-1. **A capture-state fact** (recommended): an adapter patch around `SettingsMenu.WaitForKeyPress` (or a
-   reflective read of its coroutine) exposes "a key-bind row is waiting", and the guard asks it. Precise, no
-   behaviour change outside the capture, but it patches a game coroutine.
-2. **A pause gate**: the guard answers true while the game is paused. One line (`PauseHandler.paused`), but it
-   also stops `/` and Enter from opening CUO's console whenever the game is paused — a user-visible change
-   beyond the capture, and the main-menu settings capture stays uncovered.
-3. **Patch the game's console/capture to deselect or clear** on close — fixes the root cause but changes game
-   UI behaviour for the console's own use.
+The read is bounded to the opener's own key edge (the guard runs when Enter or Slash is pressed), not to a per-frame
+scene scan, and the settings menu has to be open for it: a closed or absent menu costs one `FindObjectOfType`.
 
-Recommendation: option 1 for the capture plus the guard's current console fact; option 2 only if the user
-wants "no CUO opener while paused" as its own rule. No work is started because the patch-vs-pause choice is
-user-visible.
+**Runtime row still owed**: "with a key-bind row waiting, Enter and Slash bind the key and do NOT open the CUO
+console; with no capture running they open the console as before". That needs a settings menu and two real key
+presses — a batch with keyboard input, which the acceptance tooling does not drive.
+

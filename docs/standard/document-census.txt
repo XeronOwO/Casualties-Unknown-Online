@@ -309,7 +309,7 @@ docs/backlog/done/config-clamp-silently-widens-rule-levels.md | keep | index | d
 docs/evidence/acceptance/config-clamp-silently-widens-rule-levels-20261024-a.md | keep | claim | docs/backlog/done/config-clamp-silently-widens-rule-levels.md
 docs/backlog/done/stale-api-doc-paths-in-live-tickets.md | keep | index | docs/backlog/README.md
 docs/backlog/review/console-command-refusals-render-green.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/enter-opener-keybind-capture.md | keep | index | docs/backlog/README.md
+docs/backlog/review/enter-opener-keybind-capture.md | keep | index | docs/backlog/README.md
 docs/backlog/done/gamerule-joins-the-op-family.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/gamerule-joins-the-op-family-20261024-b.md | keep | claim | docs/backlog/done/gamerule-joins-the-op-family.md
 docs/backlog/done/console-completion-hides-what-you-cannot-run.md | keep | index | docs/backlog/README.md

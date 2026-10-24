@@ -40,7 +40,7 @@
 - **The slide-out window is dead, not double-used**: while the console's canvas is still active
   (~0.29 s after `active` flips false) the guard stays true and Enter is ignored; the game ignores Enter in
   the same window. Recorded in the ticket's Limits.
-- **The settings key-bind capture is not covered** and is filed as `todo/enter-opener-keybind-capture.md`;
-  this run did not open a key-bind row.
+- **The settings key-bind capture is not covered** and is filed as `review/enter-opener-keybind-capture.md` (the
+  guard now sees the capture; a key-press batch is owed); this run did not open a key-bind row.
 - **Steam clients were left running**; both game clients were closed by the driver and the process list was
   empty afterwards.

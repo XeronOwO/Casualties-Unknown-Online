@@ -292,3 +292,29 @@ READS rather than the simulated value: the game's own lever for that is `bloodPr
 `Body` reads for medicinal pressure changes), with the heart-restart path being the same idea on `heartRate` /
 `fibrillation`. That is stage 1b's correction and it needs its own cases (a write to the lever moves the simulated
 pressure; a write to `BloodPressure` does not).
+
+## Batch 20261024-k (2026-10-24, deployed `0.1.0+e15a8521`): the restart is written, and the read still shows heartRate 0
+
+The correction was implemented — compressions accumulate the session's perfusion progress and, at the threshold, write
+`HeartRate = 40` (above the arrest line of 20) with fibrillation cleared; the harness case proves the two halves (one
+press leaves the heart stopped, ten restart it). On the machine, with the chart open and the control reading
+`found/active/interactable`, a start press plus ten compressions left the host at **`heartRate = 0`,
+`bloodPressure = 0.022`** — no restart.
+
+**Two candidate causes, and the next read tells them apart**:
+
+1. **The compressions may never leave the client.** The control only sends `Compress` after the host's start
+   ACKNOWLEDGEMENT arrives (`CprButtonCoordinator.OnStartAck` sets the operation id). If that ack does not reach the
+   guest's control — a message routed to the wrong handler, or the ack's `TargetSteamId`/`Kind` not matching what the
+   coordinator expects — every later press re-sends a start the host refuses as "operator already busy", and nothing
+   reaches the applier. The guest's own `[Cpr]` lines (`asked to start`, `CPR accepted …`, `compression …s sent`) decide
+   this in one read, and they live in the GUEST's log, which this batch did not collect: the shared `LogOutput.log` is
+   the host's.
+2. **`heartRate` is overwritten the same way `bloodPressure` was.** The game recomputes the simulated vitals every frame
+   on the patient's client, so a value written into the snapshot may be replaced before the model reads it, in which case
+   the restart needs the same treatment as the pressure: move an input the model reads (a forced-fibrillation/arrhythmia
+   flag or a medicine-style lever), never the derived value.
+
+The batch's next step is therefore a per-client log read (the guest's own file) plus, if needed, a probe recipe that
+reports `Body.inCardiacArrest` and the session's progress on the host.
+

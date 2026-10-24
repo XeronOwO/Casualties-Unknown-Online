@@ -139,6 +139,17 @@ internal sealed class OnlineUiContext
 	/// ruling: no distance or reachability check, only the mode).</summary>
 	internal bool IsSpectator;
 
+	/// <summary>True while the free camera is wanted: the toggle's label reads it so the button says what it will
+	/// do (the mode owns the capability; there is no host rule).</summary>
+	internal bool IsFreeFly;
+
+	/// <summary>Steps the watch to the previous (-1) or next (+1) watchable member in lobby order; false when there
+	/// was nobody to step to (a one-member lobby, or a refusal by the camera).</summary>
+	internal Func<int, bool>? CycleWatch;
+
+	/// <summary>Turns the free camera on or off by what it is now; false when nothing is being watched.</summary>
+	internal Func<bool>? ToggleFreeFly;
+
 	internal Func<ulong, bool>? BanMember;
 
 	internal Func<ulong, bool>? UnbanMember;

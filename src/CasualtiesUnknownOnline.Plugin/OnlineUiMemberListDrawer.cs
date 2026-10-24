@@ -181,6 +181,17 @@ internal static class OnlineUiMemberListDrawer
 		// while this client is still alive: CanSpectate is the projection's answer, not a second rule here.
 		if (row.IsWatched)
 		{
+			// The watched row carries the KrokMP-aligned controls: step to the neighbour, and the free camera's
+			// toggle, beside the way out. Cycling walks the lobby order the host resolved for this client.
+			actions.Add(new OnlineUiMemberAction(
+				$"member.watch.prev.{steamId:X}", ctx.T("member.watch.prev"), 92f, () => ctx.CycleWatch?.Invoke(-1)));
+			actions.Add(new OnlineUiMemberAction(
+				$"member.watch.next.{steamId:X}", ctx.T("member.watch.next"), 91f, () => ctx.CycleWatch?.Invoke(1)));
+			actions.Add(new OnlineUiMemberAction(
+				$"member.freefly.{steamId:X}",
+				ctx.T(ctx.IsFreeFly ? "member.freefly.off" : "member.freefly.on"),
+				89f,
+				() => ctx.ToggleFreeFly?.Invoke()));
 			actions.Add(new OnlineUiMemberAction($"member.watch.stop.{steamId:X}", ctx.T("member.watch.stop"), 90f, () => ctx.StopWatching?.Invoke()));
 		}
 		else if (row.CanSpectate)

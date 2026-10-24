@@ -50,6 +50,52 @@ internal sealed class OnlineUiActions(
 		return true;
 	}
 
+	/// <summary>
+	/// Steps the watch to the previous (-1) or next (+1) watchable member. The order is the session's own member
+	/// order, skipping this client and every member the camera refuses (no body on this client), and it wraps: a
+	/// one-member session has nothing to step to and answers false so the card can say nothing happened.
+	/// </summary>
+	public bool CycleWatchFromUi(int direction)
+	{
+		if (_spectator is not { IsSpectator: true } spectator || direction == 0)
+		{
+			return false;
+		}
+
+		var ids = new List<ulong>();
+		foreach (var member in _session.Members)
+		{
+			if (member.SteamId != _session.LocalSteamId)
+			{
+				ids.Add(member.SteamId);
+			}
+		}
+
+		if (ids.Count == 0)
+		{
+			return false;
+		}
+
+		var step = direction < 0 ? -1 : 1;
+		var start = ids.IndexOf(spectator.WatchingSteamId);
+		for (var offset = 1; offset <= ids.Count; offset++)
+		{
+			var index = start < 0
+				? (step > 0 ? offset - 1 : ids.Count - offset)
+				: ((start + (step * offset)) % ids.Count + ids.Count) % ids.Count;
+			if (spectator.TryWatch(ids[index]))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>Turns the free camera on or off by what it is now; the mode owns the capability, not the host.</summary>
+	public bool ToggleFreeFlyFromUi() =>
+		_spectator is { IsWatching: true } spectator && spectator.TrySetFreeFly(!spectator.IsFreeFly);
+
 	public bool TakeItemFromRemote(ulong ownerSteamId, ulong itemInstanceId)
 	{
 		if (!_session.SessionActive)

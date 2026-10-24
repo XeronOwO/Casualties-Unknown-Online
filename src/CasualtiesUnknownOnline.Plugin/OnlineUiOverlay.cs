@@ -93,6 +93,14 @@ internal sealed class OnlineUiOverlay
 	/// <summary>True while the local client is in spectator mode (the camera's own state).</summary>
 	internal bool IsSpectator;
 
+	/// <summary>True while the free camera is wanted, refreshed from the camera each frame (the toggle's label).</summary>
+	internal bool IsFreeFly;
+
+	/// <summary>The host's cycle step and free-camera toggle; the member card's watched row offers them.</summary>
+	internal Func<int, bool>? CycleWatch;
+
+	internal Func<bool>? ToggleFreeFly;
+
 	/// <summary>Read-only UI check: does the local body currently carry a heal-profile medical item?</summary>
 	internal Func<bool>? HasHealItem;
 

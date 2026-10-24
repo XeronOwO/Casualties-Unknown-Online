@@ -210,6 +210,8 @@ internal sealed class OnlineUiHost
 			HealRemote = uiActions.HealRemoteFromUi,
 			WatchMember = uiActions.WatchMemberFromUi,
 			StopWatching = uiActions.StopWatchingFromUi,
+			CycleWatch = uiActions.CycleWatchFromUi,
+			ToggleFreeFly = uiActions.ToggleFreeFlyFromUi,
 
 			HasHealItem = uiActions.HasLocalHealItem,
 			HealWithItem = uiActions.HealWithItemFromUi,
@@ -300,6 +302,7 @@ internal sealed class OnlineUiHost
 		// camera gives a watch up by itself, and a copy taken once would keep offering a stop that stops nothing.
 		_onlineUi.WatchingSteamId = _spectator?.WatchingSteamId ?? 0;
 		_onlineUi.IsSpectator = _spectator?.IsSpectator ?? false;
+		_onlineUi.IsFreeFly = _spectator?.IsFreeFly ?? false;
 		if (_ipActions.LastError is not null)
 		{
 			_lobby.LastError = _ipActions.LastError;
@@ -383,6 +386,9 @@ internal sealed class OnlineUiHost
 		Notify = _onlineUi.Notify,
 		WatchingSteamId = _onlineUi.WatchingSteamId,
 		IsSpectator = _onlineUi.IsSpectator,
+		IsFreeFly = _onlineUi.IsFreeFly,
+		CycleWatch = _onlineUi.CycleWatch,
+		ToggleFreeFly = _onlineUi.ToggleFreeFly,
 		HealWithItem = _onlineUi.HealWithItem,
 		PushRemote = _onlineUi.PushRemote,
 		RecruitPlayer = _onlineUi.RecruitPlayer,

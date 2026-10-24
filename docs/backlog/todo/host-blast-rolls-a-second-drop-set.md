@@ -312,4 +312,3 @@ carrier BOTH clients already have, which points at a worldgen mine or a host-sta
 evaluator. Everything else for the row is in place (descent, shared carriers, the reader, the trigger for mines).
 `docs/evidence/acceptance/blast-descent-and-roll-20261024-t.md` records the readings and the three evaluator shapes that
 fail.
-

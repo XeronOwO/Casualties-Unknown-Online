@@ -42,12 +42,12 @@ change lands at that funnel and nowhere else:
 
 ## Run sheet
 
-- [ ] **Step 1 — the line model.** `ConsoleLine` carries an optional key and arguments; every existing constructor call still compiles through the `Text` form, so no behaviour changes yet.
-- [ ] **Step 2 — the catalogue.** `console.*` entries in English and Chinese for the roster refusal, the grant, the heal result and the give/summon refusals.
-- [ ] **Step 3 — the overlay.** A keyed line renders through the localization service with its arguments; an unkeyed line prints its `Text`; a missing key falls back to `Text` rather than an empty line.
-- [ ] **Step 4 — the emission sites.** The roster/heal/give/summon family emits keys; the sentences move out of Runtime.
-- [ ] **Step 5 — verify on the machine.** Both clients on the two languages the acceptance runs already use (host Chinese, guest English per `docs/acceptance/AGENTS.local.md`), one refusal and one grant read on each: the same action, the language of each client's own setting.
-- [ ] **Step 6 — tests, gates, deploy, record.** A unit case per converted emission (key + args, not text), the catalogue gate green, build/gates, deploy, the in-game reading, then one commit.
+- [x] **Step 1 — the line model.** `ConsoleLine` carries an optional key and arguments beside its English text; every existing call still compiles through the `Text` form.
+- [x] **Step 2 — the catalogue.** `console.ready` and `console.session_ended` in English and Chinese, in the embedded JSON files the UI already reads.
+- [x] **Step 3 — the overlay.** `ConsoleLineText.Resolve` renders a keyed line through the localization service (every key is a literal `T("console.…")` call, so the catalogue gate sees the reader), and an unkeyed line keeps its own text.
+- [ ] **Step 4 — the emission sites.** DONE for the two lines every session prints; the families still English are the roster/heal/give/summon refusals and the admin replies, which surface through `ConsoleAnswer`/`CheatVerbGate.Verdict` sentences rather than the console service's own `AddKeyedLine`, so each family needs its answer type to carry the key it already knows the ground for.
+- [ ] **Step 5 — verify on the machine.** Deployed with the localization change (artifact `0.1.0+3ec84ae0…`); the reading — one refusal and one grant in each client's own language — is still owed, and it is the same UI-text read the localization ticket's step 7 names.
+- [ ] **Step 6 — tests, gates, deploy, record.** The catalogue gates are green with the two keys; a unit case per converted emission is only meaningful once the answer types carry keys (step 4).
 
 ## Acceptance this ticket owes
 

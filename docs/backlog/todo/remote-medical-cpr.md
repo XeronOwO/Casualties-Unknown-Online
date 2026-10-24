@@ -223,4 +223,3 @@ not through a player's hands.
 - **The reading**: a harness case starts CPR from a member on an arrested host, sends three well-timed compressions and
   reads the host's own `BloodPressure` risen and capped by the ceiling; a second case reads the beating-heart refusal by
   name.
-

@@ -1,5 +1,5 @@
 // recipe: cpr-press
-// args: mode=s control=s count=n
+// args: mode=s control=s count=n interval=n
 // serves: remote-medical-cpr (the wound view's CPR control rows: both channels, and the rhythm band's two edges)
 // returns: ok, mode, control, count, found, active, interactable, pressed, error, detail
 //
@@ -16,6 +16,7 @@
 	var mode = {{s:mode}};
 	var control = {{s:control}};
 	var count = (int)({{n:count}});
+	var intervalMs = (int)({{n:interval}});
 	if (mode != "read" && mode != "press") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be read or press\"}"; }
 	if (control != "compress" && control != "breath") { return "{\"ok\":false,\"error\":\"bad-control\",\"detail\":\"control must be compress or breath\"}"; }
 	if (count < 1) { return "{\"ok\":false,\"error\":\"bad-count\",\"detail\":\"count must be at least 1\"}"; }
@@ -39,6 +40,11 @@
 				for (var n = 0; n < count; n++) {
 					button.onClick.Invoke();
 					pressed++;
+					// The control measures its interval from REAL time, so presses dispatched in one frame all read as
+					// ~0.01 s and the band can never be hit (the residual that named this). A real gap between presses
+					// is the only way an in-process press lands inside the band; stalling the main thread is harmless
+					// here because nothing in the control measures the gap in frames.
+					if (intervalMs > 0 && n + 1 < count) { System.Threading.Thread.Sleep(intervalMs); }
 				}
 			}
 		}

@@ -84,7 +84,7 @@ tree is never edited), and the acceptance rows below are what a session has to c
 | bandage, splint/tourniquet removal, dislocation, amputation, AED, manual defib | the HOST: `OtherMedicalOperationApplier`, reached only from the host-guarded update handler | every client applies the host's state message | no — the projection copies facts into the display |
 | shrapnel | the HOST: `ShrapnelSessionStateWriter.ApplyBreakGrasp`, reached only from the host-guarded update handler | every client drives its own display `ShrapnelMinigame` | **yes — §3** |
 | heal (the heal slice) | the HOST: `PlayerHealService` calls `RemoteHealApplication.Apply` with a profile of constants | every client applies the result | no |
-| CPR | not implemented (`review/remote-medical-cpr.md`), so there is no path to read | — | — |
+| CPR | not implemented (`done/remote-medical-cpr.md`), so there is no path to read | — | — |
 
 ### 2. Every random read on those paths
 

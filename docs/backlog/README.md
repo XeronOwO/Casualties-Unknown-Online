@@ -65,7 +65,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-- [Remote medical CPR (KrokMP custom)](review/remote-medical-cpr.md) — **Medium** — all four stages landed; rows read on the machine; two machine rows named.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.
@@ -150,6 +149,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Remote medical CPR (KrokMP custom)](done/remote-medical-cpr.md) — **Medium** — four stages; every row read, `Good` included.
 - [A member's drill-pod descent regenerates a layer of its own](done/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — routed, answered, ruled.
 - [Who skips the intro cover, and when](done/launch-intro-cover-policy.md) — **Low** — one named decision; five rows read.
 - [The critical heartbeat is cut off before the clip ends](done/host-heartbeat-sound-truncated.md) — **Medium-High** — closed; doubled-beat lead recorded.

@@ -1,6 +1,6 @@
 # Batch 20261024-p — the strength gate refuses at the source
 
-- Ticket: `docs/backlog/review/remote-medical-cpr.md` (stage 4's strength gate)
+- Ticket: `docs/backlog/done/remote-medical-cpr.md` (stage 4's strength gate)
 - Artifact: `0.1.0+289d82e9`, deployed and verified against `<game-dir>` before the run
 - Session: host + one member; host forced into arrest; the member opened the chart through `medical-open`, then
   `body-force strength=0` made the OPERATOR unable to compress, and the control was pressed through `cpr-press`.

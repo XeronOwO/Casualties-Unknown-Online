@@ -1,11 +1,14 @@
 # Remote medical CPR enhancement (KrokMP custom)
 
-- Status: Review — **all four stages landed** (2026-10-24, latest deployment `0.1.0+10807c23`): stage 1's restart, stage 2's
-  oxygen channel, stage 3's rib and AED arbitration, and stage 4's reference rhythm band, per-press costs, strength gate and
-  intelligence screen — each with rows read on the machine and the readings named in its section below. **Two machine rows are
-  named as residuals**: an AED operation end to end (it needs a recipe that gives the operator the item and walks the three
-  stages) and a `Good` rhythm verdict (no press the driver can produce lands inside the band: one call is ≥1.0 s and
-  same-frame presses are 0.01 s, so the affirmation's visibility is unit-pinned only). — **promoted 2026-10-07** by the user's backlog directive (do KrokMP's CPR feature), with the
+- Status: Done — closed 2026-10-25: **all four stages landed** (stage 1's restart, stage 2's oxygen channel, stage 3's rib
+  and AED arbitration, stage 4's reference rhythm band, per-press costs, strength gate and intelligence screen), each with
+  its rows read on the machine. The two rows the status used to carry as residuals are settled in batch `20261025-a`:
+  **the `Good` rhythm verdict is read** — the new `cpr-rhythm` declaration presses on successive frames, so the game's own
+  clock spaces the presses, and five consecutive 0.55–0.56 s gaps each produced `verdict Good at INT 15` (record:
+  `docs/evidence/acceptance/cpr-good-verdict-20261025-a.md`); the same presses at intelligence 7 produced `verdict None`,
+  which is the intelligence screen working as designed, not a miss. **The AED row is out of scope, not a residual** — the
+  ticket's own section says so with its reason (a separate procedure with its own item and rhythm); the status now agrees
+  with it instead of contradicting it. — **promoted 2026-10-07** by the user's backlog directive (do KrokMP's CPR feature), with the
   mechanics the user added then: inflate after an interval to give the teammate air, an oxygen-style mechanic
   if the game's own model can carry one, and an explicit complexity assessment before the work is planned.
 - Priority: Medium

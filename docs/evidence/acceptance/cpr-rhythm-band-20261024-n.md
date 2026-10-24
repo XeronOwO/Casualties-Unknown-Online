@@ -1,6 +1,6 @@
 # Batch 20261024-n — the CPR rhythm band's two edges, read on the machine
 
-- Ticket: `docs/backlog/review/remote-medical-cpr.md` (stage 4's decided question: the reference's 65–220 a minute band)
+- Ticket: `docs/backlog/done/remote-medical-cpr.md` (stage 4's decided question: the reference's 65–220 a minute band)
 - Artifact: `0.1.0+d845e4bc`, deployed and verified against `<game-dir>` before the run
 - Session: host + one member; host forced into arrest with `body-force heartRate=0,bloodPressure=5,bloodOxygen=20`; the
   member opened the chart through `medical-open` and pressed the panel's control through `cpr-press`.

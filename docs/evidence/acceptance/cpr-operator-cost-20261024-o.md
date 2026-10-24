@@ -1,6 +1,6 @@
 # Batch 20261024-o — whose body pays: the CPR press's cost had to move to the operator's own client
 
-- Ticket: `docs/backlog/review/remote-medical-cpr.md` (stage 4's per-press costs)
+- Ticket: `docs/backlog/done/remote-medical-cpr.md` (stage 4's per-press costs)
 - First run: `0.1.0+733aedd7` (the host charged the operator) — **the charge never landed**
 - Second run: `0.1.0+3c4ab912` (the operator's own client charges) — **it lands**
 - Session each time: host + one member; host forced into arrest; the member opened the chart through `medical-open` and

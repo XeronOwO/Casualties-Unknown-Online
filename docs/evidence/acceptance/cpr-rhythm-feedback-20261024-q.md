@@ -1,6 +1,6 @@
 # Batch 20261024-q — the rhythm verdict at two intelligence levels
 
-- Ticket: `docs/backlog/review/remote-medical-cpr.md` (stage 4's intelligence rule)
+- Ticket: `docs/backlog/done/remote-medical-cpr.md` (stage 4's intelligence rule)
 - Artifact: `0.1.0+10807c23`, deployed and verified against `<game-dir>` before the run
 - Session: host + one member; host forced into arrest; the member opened the chart through `medical-open` and pressed the
   compressions control through `cpr-press`; the member's INT set with `body-force intelligence=…`; the member's own log read

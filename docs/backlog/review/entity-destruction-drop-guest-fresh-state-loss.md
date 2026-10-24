@@ -183,3 +183,13 @@ stand in (`x` in ±40, `y` in 440–560 → **0 matches**); the listed cells are
 `884,952`, `709,265` …). So the pod's own props are not `requireGround` buildings, and staging a support-loss drop means reaching
 one of those buildings — travel or a placement this station cannot do reliably. That is the fixture's real blocker, one level
 earlier than the fresh-guest half and two levels earlier than the projection problem.
+
+**Batch `20261025-ag` — SUPPORT LOSS DOES DROP, and the fixture finally has its drops.** The pod's props are not `requireGround`
+buildings, so the operator was teleported to a real one: `body-place x=508,y=412` answered `ok=true` and the body STAYED there
+(`(508.085, 412.288)`, alive) — so travel is not needed after all, a placement is enough. `building-support-cells` confirmed a
+two-building support cell exactly at `(508,412)`, and breaking it (`block-break-at x=508,y=412, dmg=999` → `blockBefore=2,
+blockAfter=0`) produced **five world items** where there were none (`item-world-read` radius 12: `0 → 5`, ids
+`1207206791107 / 1202911823811 / 1198616856515 / 1194321889219 / 1190026921923`). Note the items report positions around
+`(-3.8, -98.7)`, so `item-world-read`'s item coordinates are NOT the block-cell space of `block-break-at` — that is the space
+question an earlier batch chased, and it is answered here: the two probes speak different coordinate systems. What remains for the
+ticket's rows is the FRESH guest: a member who enters after these five drops exist must see the same ids at the same places.

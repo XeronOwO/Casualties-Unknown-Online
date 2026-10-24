@@ -282,7 +282,7 @@ docs/backlog/review/save-system-mid-run-and-layer-end.md | keep | index | docs/b
 docs/backlog/done/snapshot-overtakes-item-reports.md | keep | index | docs/backlog/README.md
 docs/backlog/done/steam-transport-send-limit-runaway.md | keep | index | docs/backlog/README.md
 docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md | keep | index | docs/backlog/README.md
-docs/backlog/review/sync-cadence-review.md | keep | index | docs/backlog/README.md
+docs/backlog/done/sync-cadence-review.md | keep | index | docs/backlog/README.md
 docs/backlog/review/sync-player-pain-vocalizations-and-bark.md | keep | index | docs/backlog/README.md
 docs/development/review-triage.md | keep | spec | docs/backlog/README.md
 docs/backlog/done/tab-backpack-open-close-immediately.md | keep | index | docs/backlog/README.md
@@ -690,7 +690,7 @@ docs/evidence/acceptance/state-stream-bandwidth-reduction-20260927.md | keep | c
 docs/evidence/acceptance/steam-transport-send-limit-runaway-20261001-r.md | keep | claim | docs/backlog/done/steam-transport-send-limit-runaway.md
 docs/evidence/acceptance/steam-transport-send-limit-runaway-20261001-s.md | keep | claim | docs/backlog/done/steam-transport-send-limit-runaway.md
 docs/evidence/acceptance/suppressed-native-call-sounds-stay-unheard-20261001-l.md | keep | claim | docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md
-docs/evidence/acceptance/sync-cadence-review-20261003-e.md | keep | claim | docs/backlog/review/sync-cadence-review.md
+docs/evidence/acceptance/sync-cadence-review-20261003-e.md | keep | claim | docs/backlog/done/sync-cadence-review.md
 docs/evidence/acceptance/sync-event-and-periodic-fallback-coverage-audit-20260927.md | keep | claim | docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md
 docs/evidence/acceptance/sync-player-pain-vocalizations-and-bark-20261001-l.md | keep | claim | docs/backlog/review/sync-player-pain-vocalizations-and-bark.md
 docs/evidence/acceptance/trade-domain-dual-side-runtime-20261003-e.md | keep | claim | docs/backlog/review/trade-domain-dual-side-runtime.md

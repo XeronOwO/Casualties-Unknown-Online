@@ -12,7 +12,7 @@ delta cannot be counted twice.
 - Priority: Low-Medium
 - Category: Network / sync coverage / world blocks
 - Source: Independent adversarial review of the W2 landing (2026-09-18) — the landing's recorded limitation described only the under-count half
-- Related: `done/guest-partial-block-damage-re-report.md` (W2 — the re-report, landed), `review/sync-cadence-review.md`
+- Related: `done/guest-partial-block-damage-re-report.md` (W2 — the re-report, landed), `done/sync-cadence-review.md`
 
 ## Problem (evidence)
 
@@ -164,4 +164,4 @@ world position they stored existed only to build the wire message).
 - The W2 recovery itself and its entry lifetime (landed; the lifetime now also drops a cell on
   any block write, which is what the per-sender accounting needs).
 - Optional members / relay re-sends (`done/sync-event-and-periodic-fallback-coverage-audit.md`).
-- Cadence tuning (`review/sync-cadence-review.md`, landed).
+- Cadence tuning (`done/sync-cadence-review.md`, landed).

@@ -1,6 +1,6 @@
 # Sync cadence measurements
 
-Evidence for `docs/backlog/review/sync-cadence-review.md` (the sync-coverage audit's cadence
+Evidence for `docs/backlog/done/sync-cadence-review.md` (the sync-coverage audit's cadence
 findings). Every number below is produced by the production code the claim is about —
 `AdaptiveStreamCatalog` + `AdaptiveRatePolicy` for the stretch caps, the simulation world for the
 byte costs — so the table can be re-derived instead of trusted, and the executable half asserts

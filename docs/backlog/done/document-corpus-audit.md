@@ -216,7 +216,7 @@ after: **91,745 bytes, the same 66 rows, average 1,150 characters and largest 1,
   statement for a re-verified one: E1 and E2 admit a lost guest report that nothing reconciles while their
   verdict stays `OK` (the same shape that made W2/W6/I5 gaps), and the rows for P8's three timed-medicine
   chains and P11's adaptive base cadence keep the previous text compressed rather than re-measured.
-  `docs/backlog/review/sync-cadence-review.md` itself is still `Review` while the matrix's gap list had
+  `docs/backlog/done/sync-cadence-review.md` itself is still `Review` while the matrix's gap list had
   called its gaps closed — the row now states the policy and names the record without claiming a status.
 - The shape is enforceable now: `SyncCoverageGateTests.SyncCoverageMatrix_EveryRowIsBounded` fails on a row
   over 1,200 characters, on a source path outside the closing-record cell and on a line number anywhere, and

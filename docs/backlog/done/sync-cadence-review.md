@@ -1,13 +1,13 @@
 # Sync cadence review: fallback stretch limits and first-resend latency
 
-- Status: Review — **every acceptance row is answered and the ticket is ready to close**; only the folder move is pending, because
-  eighteen documents cite this page and they are re-pointed in ONE pass: 1 unchanged (the change moves two `MaxIntervalMs` values,
-  no fallback is dropped), 2 measured at 30 s and tightened to 10 s, 3 measured at 30 s and tightened to 15 s, 4 measured at
-  6 667 ms and accepted (the 10 s cap never binds), 5 converges on the member's first repeat with a 5 s window step, 6
+- Status: Done — closed 2026-10-25. Every acceptance row carries its number: 1 unchanged (the change moves two `MaxIntervalMs`
+  values, no fallback is dropped), 2 measured at 30 s and tightened to 10 s, 3 measured at 30 s and tightened to 15 s, 4 measured
+  at 6 667 ms and accepted (the 10 s cap never binds), 5 converges on the member's first repeat with a 5 s window step, 6
   `NetworkTrafficBaselineTests` green with the one added repair send measured at 2 438 bytes. This cycle re-ran the pins the rows
   name — `AdaptiveStreamCatalogTests`, `SyncCadenceDecisionTests`, `NetworkTrafficBaselineTests` and the entry-repair family —
-  **24 cases, 0 failures**. The earlier status left rows 2-4 "handed to batch `20261003-l`"; that hand-off is exactly what the
-  numbers above now record.
+  **24 cases, 0 failures** — so the matrix the page asserts is the matrix that passes today. The earlier status left rows 2-4
+  "handed to batch `20261003-l`"; that hand-off is exactly what the numbers above record. The move landed with all seventeen
+  citing documents re-pointed in the same change.
 - Acceptance record: `docs/evidence/acceptance/sync-cadence-review-20261003-e.md` (batch scope: `docs/evidence/acceptance/20261003-e-scope.md`)
 - Priority: Medium
 - Category: Network / sync coverage / cadence tuning

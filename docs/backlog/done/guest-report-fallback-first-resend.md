@@ -12,8 +12,8 @@
 - Acceptance record: `docs/evidence/acceptance/guest-report-fallback-first-resend-20261003-e.md` (batch scope: `docs/evidence/acceptance/20261003-e-scope.md`)
 - Priority: Low-Medium
 - Category: Network / sync coverage / world blocks
-- Source: Sync cadence review 2026-09-19 (`review/sync-cadence-review.md`, finding 4 — the same 60 s first-resend family, opposite direction)
-- Related: `done/guest-block-mutation-re-report.md` (W1 — the guest→host report half), `done/guest-command-loss-reconciliation.md` (the item-command family's 5 s × 12 window), `done/session-control-convergence.md` (the guest's own entry window), `review/sync-cadence-review.md` (the host→guest half of the same finding)
+- Source: Sync cadence review 2026-09-19 (`done/sync-cadence-review.md`, finding 4 — the same 60 s first-resend family, opposite direction)
+- Related: `done/guest-block-mutation-re-report.md` (W1 — the guest→host report half), `done/guest-command-loss-reconciliation.md` (the item-command family's 5 s × 12 window), `done/session-control-convergence.md` (the guest's own entry window), `done/sync-cadence-review.md` (the host→guest half of the same finding)
 
 ## Problem (evidence)
 
@@ -26,7 +26,7 @@ The live report is sent immediately at the trigger, so the fallback only heals a
 but the documented lazy-P2P swallow window is up to ~30 s after world entry, and a guest mutation
 made inside it (a broken block, its drops, a runtime-created entity) stays invisible on the host
 until the 60 s mark. The host→guest direction of the same family was tightened on 2026-09-19
-(`review/sync-cadence-review.md`: the entry repair answers a still-open readiness window inside the
+(`done/sync-cadence-review.md`: the entry repair answers a still-open readiness window inside the
 guest's own 5 s window); this direction was measured there and left unchanged.
 
 The sibling item-command family already converges this way: `GuestCommandReconciliation` re-sends

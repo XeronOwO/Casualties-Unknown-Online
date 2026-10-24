@@ -80,7 +80,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
-- [Sync cadence review](review/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
@@ -140,6 +139,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Sync cadence review](done/sync-cadence-review.md) — **Medium** — every row measured; pins re-run 24/24.
 - [Treatment gore presentation carried](done/treatment-gore-presentation-carried.md) — **Low** — pins re-run: 30 + 29 green.
 - [Tab opens the backpack then closes](done/tab-backpack-open-close-immediately.md) — **Medium** — real Tab press; stays open.
 - [Remote player medical panel](done/remote-player-medical-panel.md) — **Medium** — native WoundView reuse; read on frames.

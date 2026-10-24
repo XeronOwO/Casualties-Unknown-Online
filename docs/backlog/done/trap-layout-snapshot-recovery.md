@@ -5,7 +5,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row W6, after the independent adversarial review reclassified it from OK)
-- Related: `done/runtime-entity-spawn-backfill.md`, `review/sync-cadence-review.md`, `done/trap-layout-entry-snapshot-staleness.md`
+- Related: `done/runtime-entity-spawn-backfill.md`, `done/sync-cadence-review.md`, `done/trap-layout-entry-snapshot-staleness.md`
 
 ## Problem (evidence)
 
@@ -113,7 +113,7 @@ since removed (transient — the next repair made the guest destroy the surplus)
 now happens inside BOTH group sends, through the `ILiveTrapLayoutSource` port, and is skipped
 while a layer is generating exactly as before. (2) The repair sends the full table per
 in-world member per minute; the snapshot is small and absolute, and the first-resend
-latency question is decided in `review/sync-cadence-review.md` (landed: a still-open entry window is answered with the in-session repair set).
+latency question is decided in `done/sync-cadence-review.md` (landed: a still-open entry window is answered with the in-session repair set).
 
 **Review.** The independent adversarial pass ran on the frozen code and reproduced both
 commands (10/10 focused at the time, gates green after the evidence re-point). Its findings,

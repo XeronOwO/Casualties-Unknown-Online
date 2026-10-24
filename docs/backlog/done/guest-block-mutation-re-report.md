@@ -10,7 +10,7 @@ read at snapshot time. References to `BlockDamageRegistry.cs` below are historic
 - Priority: High
 - Category: Network / sync coverage / world blocks
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` rows W1/W2); user-reported suspicion (2026-09-07) — "我印象中世界中的方块没做定时兜底同步"
-- Related: `done/block-break-first-writer-wins.md`, `done/trap-destruction-drop-quantity-desync.md`, `review/sync-cadence-review.md`
+- Related: `done/block-break-first-writer-wins.md`, `done/trap-destruction-drop-quantity-desync.md`, `done/sync-cadence-review.md`
 
 ## Problem (evidence)
 
@@ -83,7 +83,7 @@ idempotent and must never resurrect a cell the host has since overwritten.
 
 - Anti-cheat / strict validation of guest block reports.
 - New wire message ids unless the implementation proves one is required.
-- Host-side cadence tuning (landed in `review/sync-cadence-review.md`: the entry group's first resend is now the repeat-answer repair, and the first resend after a world entry follows the guest's own 5 s window).
+- Host-side cadence tuning (landed in `done/sync-cadence-review.md`: the entry group's first resend is now the repeat-answer repair, and the first resend after a world entry follows the guest's own 5 s window).
 
 ## Landed (2026-09-09)
 

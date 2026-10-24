@@ -5,7 +5,7 @@
 - Priority: Medium-High
 - Category: Network / sync coverage / world entities
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row E3)
-- Related: `done/enemy-snapshot-binding-recovery.md` (the enemy/animal half), `review/sync-cadence-review.md`, `done/guest-block-mutation-re-report.md` (the W1 sibling; this landing generalized its fallback cadence)
+- Related: `done/enemy-snapshot-binding-recovery.md` (the enemy/animal half), `done/sync-cadence-review.md`, `done/guest-block-mutation-re-report.md` (the W1 sibling; this landing generalized its fallback cadence)
 
 ## Problem (evidence)
 

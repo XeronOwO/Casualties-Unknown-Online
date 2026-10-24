@@ -163,6 +163,20 @@ panel's active flag ever flickers (native close rule vs a bounce).
 job next; if it is the panel closing on its own, the sound is the game's own and this ticket closes as recorded rather than
 fixed.
 
+## The sixth reading (2026-10-25): a blocked main thread cannot observe a sound the main thread plays
+
+`heart-hold-sample` holds the vitals by rewriting them between short sleeps and reads the thump sources in the same loop.
+With the panel actually open (`panelOpen:true`) the series was **sixty zeros** and `playing:0`: stalling the main thread with
+`Thread.Sleep` stops the very `Update` that plays the beats (`WoundView.Update` for the panel, the body's per-beat thump for
+the heartbeat), so the sampler observes the state it froze — not the one the player hears.
+
+**Therefore the frame-rate sampler this ticket needs must run in FRAMES, not in a stalled loop**: a client-side
+`MonoBehaviour` with its own `Update`/coroutine, installed through the acceptance driver's eval-declaration mechanism
+(`tools/acceptance/driver/eval-declarations/`, the sanctioned way to give the client a capability before a recipe runs), a
+ring buffer of `(playing, time)` per frame, and a recipe that starts it, holds the vitals through the same component, and
+returns the buffer once. That is the next artifact to build; every probe shape that samples from outside a frame is now
+known to answer the wrong question.
+
 ## Acceptance this ticket owes
 
 A two-client session: the host's body forced critical (`body-force bloodPressure=…`), the host's log read for

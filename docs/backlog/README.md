@@ -59,6 +59,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [UI text moves to embedded JSON, mods add languages](todo/localization-json-resources-and-mod-languages.md) — **Medium-High** — data, not C#.
 - [The console's own replies are English only](todo/console-command-replies-bilingual.md) — **Medium** — keys, not sentences; the UI's catalogue renders them.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 

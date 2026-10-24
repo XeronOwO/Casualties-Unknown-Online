@@ -63,7 +63,7 @@ internal static class AdapterCapabilityCatalog
 				// reaches (a member's choice is reported; the pod's and the console's own
 				// descents keep the game's semantics), and the panel's "Save and exit",
 				// which takes a CUO cut instead of writing the game's native save.
-				typeof(WorldGenerationContinueRunPatch), typeof(WorldGenerationRegenerateWorldPatch), typeof(WorldGenerationSaveAndExitPatch),
+				typeof(WorldGenerationContinueRunPatch), typeof(WorldGenerationRegenerateWorldPatch), typeof(WorldGenerationSaveAndExitPatch), typeof(WorldGenerationPanelClosePatch),
 				typeof(ExplosionBuildingSyncPatch), typeof(FluidSimulationPatch), typeof(FluidDrinkPatch),
 				typeof(BuildingEntityUpdatePatch), typeof(BuildingEntityStartPatch), typeof(OilPipePatch), typeof(LifepodPumpPatch),
 				typeof(OpenablePatches), typeof(LockpingSoundPatches),

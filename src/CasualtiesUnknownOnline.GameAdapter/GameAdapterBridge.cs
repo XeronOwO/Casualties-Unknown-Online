@@ -25,7 +25,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// casting the bound bridge, so this declaration is what makes it reachable.
 /// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort, ILayerPanelPatchPort
 {
 	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
@@ -449,6 +449,12 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	/// <summary>The member's own descent the session owns (its end-of-layer choice or the drill pod's): the local regeneration must not follow (the layer is the host's capture), and the native two-layer flag rides the request.</summary>
 	public bool TryDelegateLocalAdvance(bool twice) => domains.LayerAdvance.TryDelegateLocalAdvance(twice);
+
+	/// <summary>
+	/// The end-of-layer panel's close, asked right after the game's own panel write
+	/// (<see cref="Patches.WorldGenerationPanelClosePatch"/>): the native latch re-opens whatever a later phase closed.
+	/// </summary>
+	public void CloseTheLayerPanelIfTheShareIsNotMet() => domains.LayerPanel.CloseIfTheShareIsNotMet();
 
 	/// <summary>
 	/// The end-of-layer panel's "Save and exit" takes CUO's own cut instead of the game's native save (the user's

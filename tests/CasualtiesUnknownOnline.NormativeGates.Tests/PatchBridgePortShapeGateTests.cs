@@ -248,6 +248,10 @@ public class PatchBridgePortShapeGateTests
 		[
 			"TakeWorldCutInsteadOfTheNativeSave",
 		]),
+		("ILayerPanelPatchPort", AdapterDir + "ILayerPanelPatchPort.cs", false,
+		[
+			"CloseTheLayerPanelIfTheShareIsNotMet",
+		]),
 	];
 
 	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
@@ -269,6 +273,7 @@ public class PatchBridgePortShapeGateTests
 		"Impl",
 		"ItemCategory",
 		"LayerAdvance",
+		"LayerPanel",
 		"ModContent",
 		"SaveCut",
 		"SessionSurface",
@@ -308,6 +313,7 @@ public class PatchBridgePortShapeGateTests
 		"IDragUseCuePatchPort",
 		"ISpectatorPatchPort",
 		"ISaveCutPatchPort",
+		"ILayerPanelPatchPort",
 	];
 
 	public static IEnumerable<object[]> SeamCensus() =>

@@ -46,6 +46,9 @@ internal static class PatchBridge
 	/// <summary>The save half's patch port (the panel's "Save and exit" taking a CUO cut instead of the native `save.sv`). The aggregate does not declare it, so this accessor is the only way that hook reaches the save system.</summary>
 	public static ISaveCutPatchPort? SaveCut => _bound as ISaveCutPatchPort;
 
+	/// <summary>The end-of-layer panel's close port (the host rule closing what the game's own latch re-opens). Declared on the aggregate as well.</summary>
+	public static ILayerPanelPatchPort? LayerPanel => _bound as ILayerPanelPatchPort;
+
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 
 	public static void Unbind(IPatchBridge impl)

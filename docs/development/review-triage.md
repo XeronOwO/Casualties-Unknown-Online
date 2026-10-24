@@ -55,7 +55,7 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 | `trade-domain-dual-side-runtime.md` | rows 8 (recruit) and 9 (hostile swing): a recruit path and a hostile trader |
 | `unhooked-item-and-body-sound-families.md` | rows 1-2 and the nap/shake half of row 6: limb-treatment setups |
 | `remote-medical-stage-2-shrapnel-multiplayer.md` | row 7: in this state the CUO session runs with NO native minigame on either client (`minigame-end` read `before=none` on operator and patient right after `started=true`), so the piece-breaking path has nothing to act on — it needs either a state that creates the native minigame or a session-level way to remove pieces |
-| `guest-remote-pose-head-orientation-desync.md` | a probe that finds the remote clone's real type (no `Body` component answered this session) |
+| `guest-remote-pose-head-orientation-desync.md` | the clone's type is NAMED (`Character_…/Body` carries `isRight` and `targetLookPos`, same values as the guest's own body while idle), so what is left is a NON-ZERO facing: the game writes a look target only while AIMING, which is the right-button hold this station cannot deliver |
 
 ## T — closable with the instruments that already exist
 

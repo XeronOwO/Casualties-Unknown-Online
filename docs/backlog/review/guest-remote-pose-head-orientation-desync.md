@@ -25,6 +25,13 @@
   concluded no `Body` was there. What this does NOT yet compare is a NON-ZERO look: moving the pointer changed neither side's
   `targetLookPos`, so the aim the game actually reads comes from `PlayerCamera`, not the bare cursor, and that is the instrument the
   next attempt needs. The row stays open on that one gap rather than passing on a zero-vs-zero.
+
+  **Batch `20261025-aq` closes that gap as the SAME blocker the aim rows have.** Moving the GUEST's own pointer — the client's window
+  brought forward by `send-input`, the cursor driven from `(640,360)` to `(1180,360)` — left both `isRight` and `targetLookPos`
+  unchanged (`True`, `(0,0,0)`). The game only writes a look target while the player is AIMING, and aiming is the right-button hold
+  that this station cannot deliver, so a non-zero facing pair cannot be produced here at all. The reading that IS available says the
+  two sides agree in the idle state (`isRight=True` on both, zero look on both), which is the state the ticket's own fix
+  neutralizes; the live comparison of a turned body waits with the other right-button rows.
 - Priority: Medium
 - Category: Player presentation / sync root cause
 - Source: User report (2026-09-05), refined reproduction — dual-instance test; the original water-current scenario is included as one observed variant.

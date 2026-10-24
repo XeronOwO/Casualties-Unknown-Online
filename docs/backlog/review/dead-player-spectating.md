@@ -156,6 +156,13 @@ Seven unit cases cover the half that is testable without the game: the command's
 
 ## Limits this cycle names
 
+- **The two-client run's death is the staging blocker, measured 2026-10-24**: with a host and a guest in one
+  world, a probe set the guest's own `bloodVolume` and `brainHealth` to 0; a second read six seconds later showed
+  `bloodVolume` back at 100 (the host's authoritative copy re-sends it — the guest's body is simulated on the
+  host, per decision 216) while `brainHealth` stayed 0, and the game never printed a death, so no death screen
+  and no spectator state appeared. The scenario must therefore be driven where the vitals are authoritative (the
+  host's own body, or the host's copy of the member's body) or through the game's own injury path, not by editing
+  a guest client's vitals; the row stays `unproven` until a run does that.
 - **The member-list chooser now exists beside the console**, and the two read ONE rule: a member card offers the
   button on the same two terms the camera itself reads (a dead character, or an unconscious one while the host's
   rule allows it), and the row being watched carries the way out. What the card cannot know is whether the

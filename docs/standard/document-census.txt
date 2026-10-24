@@ -368,6 +368,7 @@ docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/cpr-end-to-end-20261024-l.md | keep | claim | docs/backlog/todo/remote-medical-cpr.md
 docs/evidence/acceptance/cpr-two-channels-20261024-m.md | keep | claim | docs/backlog/todo/remote-medical-cpr.md
 docs/evidence/acceptance/cpr-rhythm-band-20261024-n.md | keep | claim | docs/backlog/todo/remote-medical-cpr.md
+docs/evidence/acceptance/cpr-operator-cost-20261024-o.md | keep | claim | docs/backlog/todo/remote-medical-cpr.md
 docs/backlog/done/single-file-plugin-package.md | keep | index | docs/backlog/README.md
 docs/backlog/done/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md
 docs/backlog/review/topical-limb-action-shape.md | keep | index | docs/backlog/README.md

@@ -362,13 +362,13 @@ frame-spanning rhythm helper.
 
 Still open on the operator's side:
 
-- **Costs — LANDED** (2026-10-24, deployed `0.1.0+733aedd7`): `CprRhythmPolicy.StaminaPerPress` (2.5, a full bar is forty
-  presses ≈ twenty-two seconds at 110 a minute) and `TemperaturePerPress` (0.02) are charged on the operator's own
-  committed data by `CprApplier`, and an operator at the floor (`MinimumStamina`) earns nothing for the press — exhausted
-  muscle builds no perfusion. A missing operator snapshot never blocks the care. Unit-pinned (the constants' shape and a
-  session case reading three presses as exactly three charges); **the machine row is owed** and its open question is
-  whether a host-side charge to a MEMBER's snapshot reaches that member's own body, which is a sync-direction question
-  rather than a CPR one.
+- **Costs — LANDED and read on the machine** (2026-10-24, deployed `0.1.0+3c4ab912`, record
+  `docs/evidence/acceptance/cpr-operator-cost-20261024-o.md`): `CprRhythmPolicy.StaminaPerPress` (2.5) and
+  `TemperaturePerPress` (0.02) are charged on the operator's OWN client, where the press happens and where their body is
+  authoritative — the first attempt charged the host's snapshot of the operator and the reading proved it never landed
+  (100 → 100 after five presses; now 100 → 89.65 with the game's own regen in the gap). An operator at the floor
+  (`MinimumStamina`) has the press refused with the game's own deny sound and nothing is sent. `CprApplier` keeps no
+  operator charge, and a session case pins that boundary.
 - **Strength gate**: `skills.STR * handMaxTotalForce > 6` on the operator. `handMaxTotalForce` is the game's
   `Body.limbs[i].totalForce` and the character snapshot does NOT carry it, so — by the rule that a player's own capability
   is judged on their own client — the gate belongs in the adapter's control (where `PlayerCamera.main.body` has it), and

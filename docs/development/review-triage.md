@@ -23,6 +23,8 @@ regenerated when a batch changes the picture, never accumulated.
 | `save-system-mid-run-and-layer-end.md` | the umbrella over the save stages; it closes when S1-S4's tickets do, not on its own |
 | `unified-remote-display-projection-rework.md` | every criterion is marked Met except the real dual-client visual pass, which the page itself calls the user's final unified acceptance |
 | `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
+| `pinyin-search-standalone-mod.md` | every row machine-read (78 cases, 0 failures); only the native search box's own look is left, and that is the user's |
+| `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed — and that look is the user's visual pass, as its own status says |
 
 ## E — blocked by the ENVIRONMENT's input delivery (not by code, not by a missing fixture)
 
@@ -42,28 +44,24 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 | `concurrent-medical-operations.md` | row 7's second half: two operators START the same limb's operation through that view |
 | `enter-opener-keybind-capture.md` | a key-bind row must be clicked in the game's settings UI before the Enter/Slash press means anything |
 | `mod-cross-player-native-semantics.md` | its LOCAL native halves are already driven by the probes (`item-use` calls `Body.UseItem`, the same call a player's gesture makes), but every CROSS-player half needs the remote view's own entry — the medical chart or a drag — so it waits with the rows above |
+| `suppressed-native-call-sounds-stay-unheard.md` | rows 1-4b are the remote-medical and minigame setups, i.e. the same chart entry |
+| `sync-player-pain-vocalizations-and-bark.md` | rows 1-3 need a lockable entity and a jammed lockpick driven through the game's own interaction |
+| `trade-domain-dual-side-runtime.md` | rows 8 (recruit) and 9 (hostile swing): the recruit runs through the in-game dialogue and the swing through the aim the right button drives; `trade-drive` covers the purchase/give halves only |
+| `unhooked-item-and-body-sound-families.md` | rows 1-2 and the nap/shake half of row 6 are limb treatments through the chart |
+| `remote-medical-stage-2-shrapnel-multiplayer.md` | row 7: the CUO session runs with NO native minigame on either client here (`minigame-end` read `before=none` right after `started=true`), so the piece-breaking path has nothing to act on — and the ticket then needs a design call between a state that creates the native minigame and a session-level piece removal |
+| `guest-remote-pose-head-orientation-desync.md` | the clone's type is NAMED (`Character_…/Body` carries `isRight` and `targetLookPos`, equal to the guest's own body while idle), so what is left is a NON-ZERO facing: the game writes a look target only while AIMING, the right-button hold this station cannot deliver |
 
 ## C — needs a capability an agent could still build
 
 | Ticket | What it waits on |
 |---|---|
-| `entity-destruction-drop-guest-fresh-state-loss.md` | the drops EXIST (`body-place` to a real support cell worked, breaking it rolled five items), so the missing capability is a FRESH member entering: `continue-run` answers `continue-not-entered`, the entry gate is symmetric (each member waits for the other), and the leave/rejoin/continue sequence leaves the guest outside the session (`active=false, hostId=0`) while the host stays in world |
-| `nested-container-clone-proxy-leaks-as-world-item.md` | NOT STAGEABLE BY CONSTRUCTION: the container machinery works (`bandage` into a `trashbag` → `loaded=true`, contents 0→1) but loading a bag into a bag is refused by the game's own guard (`canHold=true, distance=0`), which is exactly the refused-call precondition the fix defends — the nested shape cannot exist through production calls |
-| `runtime-entity-markerless-bind-absorption.md` | row 9 needs a world that CARRIES a runtime creation: `runtime-entity-tables` reads `accepted=0, animals=0, pending=0` here and a real explosion at `(0,507)` added none, so there is no backfill copy to stamp |
-| `suppressed-native-call-sounds-stay-unheard.md` | rows 1-4b: the remote-medical and minigame setups |
-| `sync-player-pain-vocalizations-and-bark.md` | rows 1-3: a lockable entity and a jammed lockpick |
-| `trade-domain-dual-side-runtime.md` | rows 8 (recruit) and 9 (hostile swing): a recruit path and a hostile trader |
-| `unhooked-item-and-body-sound-families.md` | rows 1-2 and the nap/shake half of row 6: limb-treatment setups |
-| `remote-medical-stage-2-shrapnel-multiplayer.md` | row 7: in this state the CUO session runs with NO native minigame on either client (`minigame-end` read `before=none` on operator and patient right after `started=true`), so the piece-breaking path has nothing to act on — it needs either a state that creates the native minigame or a session-level way to remove pieces |
-| `guest-remote-pose-head-orientation-desync.md` | the clone's type is NAMED (`Character_…/Body` carries `isRight` and `targetLookPos`, same values as the guest's own body while idle), so what is left is a NON-ZERO facing: the game writes a look target only while AIMING, which is the right-button hold this station cannot deliver |
+## N — measured to the end: not stageable through the game's own calls
 
-## T — closable with the instruments that already exist
-
-| Ticket | How |
+| Ticket | Why it cannot be staged |
 |---|---|
-| `guest-background-ghost-item-ground-sounds.md` | audio capture + the background-item fixture |
-| `pinyin-search-standalone-mod.md` | every row machine-read (78 cases, 0 failures); only the native search box's own look is left, and that is the user's |
-| `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed — and that look is the user's visual pass |
+| `nested-container-clone-proxy-leaks-as-world-item.md` | the container machinery works (`bandage` into a `trashbag` → `loaded=true`, contents 0→1) but loading a bag into a bag is refused by the game's own guard (`canHold=true, distance=0`), which is exactly the refused-call precondition the fix defends — the nested shape cannot exist through production calls |
+| `runtime-entity-markerless-bind-absorption.md` | row 9 needs a world that CARRIES a runtime creation: `runtime-entity-tables` reads `accepted=0, animals=0, pending=0` in two separate sessions, and a real explosion added none, so there is no backfill copy to stamp |
+| `guest-background-ghost-item-ground-sounds.md` | measured to the end as an EAR question: the capture probes (`pant-sound`, `generation-audio-probe`) can record what a client plays, but the ticket's claim is what a backgrounded guest HEARS, and no instrument here turns a recording into that judgement |
 
 ## E — the medical stage tickets, whose rows are all live two-client scenarios
 

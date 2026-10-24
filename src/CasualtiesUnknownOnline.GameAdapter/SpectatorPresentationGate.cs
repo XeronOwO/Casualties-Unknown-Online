@@ -51,6 +51,21 @@ internal static class SpectatorPresentationGate
 
 	internal static void NoteWorldSound() => WorldSoundsHeard++;
 
+	/// <summary>
+	/// The body the game's own HUD must present while the mode is on: the WATCHED player's, so the status icons and
+	/// condition icons are theirs and not the watcher's — the ruling that spectating must look like playing, except
+	/// the operator is someone else. Null means "present the local body", which is what the native managers were
+	/// built with.
+	/// </summary>
+	internal static Body? HudBody { get; private set; }
+
+	internal static void SetHudBody(Body watched) => HudBody = watched;
+
+	internal static void ClearHudBody() => HudBody = null;
+
+	/// <summary>True when the gate has a watched body the HUD may present.</summary>
+	internal static bool HasHudBody => HudBody != null;
+
 	internal static void ResetWorldSounds() => WorldSoundsHeard = 0;
 
 	internal static void Set(bool active) => IsActive = active;

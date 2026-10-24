@@ -247,6 +247,9 @@ internal sealed class SpectatorCameraService(
 		}
 
 		camera.following = target.transform;
+		// The game's own status icons read this field: point them at the WATCHED body while the mode is on, so the
+		// HUD presents the player being watched (the ruling's "looks like I am playing them").
+		SpectatorPresentationGate.SetHudBody(target);
 
 		// The watched body's own screen state, mirrored for the effects patch — from the REPORTED vitals, never the
 		// render clone: the clone's own `alive`/`blood` are its local template values (blood reads 100 for everyone),
@@ -486,6 +489,7 @@ internal sealed class SpectatorCameraService(
 
 		_touchedCamera = false;
 		SpectatorPresentationGate.ClearWatched();
+		SpectatorPresentationGate.ClearHudBody();
 		if (camera.following != null) // Unity object — ==
 		{
 			camera.following = null;

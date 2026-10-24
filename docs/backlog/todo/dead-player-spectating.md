@@ -375,6 +375,13 @@ local death-hold probe, the host's strip reads
 snapshot the values come from. A graphical icon row in place of these words, and the watched player's own screen
 effects and sounds, remain open.
 
+**The icon row is decided: the text markers stay (user ruling, 2026-10-24).** Offered the three shapes — keep the
+words, colour them with TMP rich text, or extract the game's own wound/limb sprites into a real icon row — the user
+chose to keep the current text markers. That settles the presentation of the strip: no sprite extraction, no new
+art assets, and the "state icons" half of the inheritance requirement is judged done by the strip's markers. The
+watched player's own screen effects and sounds are the last open item of this ticket.
+
+
 
 
 

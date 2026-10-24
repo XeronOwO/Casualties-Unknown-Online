@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
@@ -240,6 +241,13 @@ internal sealed class SpectatorCameraService(
 
 		camera.following = target.transform;
 
+		// The watched body's own screen state, mirrored for the effects patch: a body that is out (unconscious or
+		// dead) blacks the screen, and a body bleeding out reddens the vignette — the spectator sees what the player
+		// they follow is living through instead of their own standing body's clean screen.
+		SpectatorPresentationGate.SetWatched(
+			target.alive && !target.conscious ? UnconsciousBlackAmount : 0f,
+			OpacityFor(BleedVignette, target.bloodVolume));
+
 		// The free camera is given a position the first frame it is asked for: the game's own /freecam command
 		// seeds it from wherever the camera is, and without that the follow target is dropped and the view jumps
 		// to whatever freecamPos last held — the layer origin on a fresh session.
@@ -354,6 +362,16 @@ internal sealed class SpectatorCameraService(
 	/// the game's own <c>/freecam</c> command, and clearing it on every frame of every session would switch that
 	/// command off for everyone.
 	/// </summary>
+	/// <summary>The black amount an unconscious body's screen sits at; the watched body's own screen effect.</summary>
+	private const float UnconsciousBlackAmount = 0.8f;
+
+	/// <summary>The colour the watched body's screen vignette reddens to as its blood runs out.</summary>
+	private static readonly Color BleedVignette = new(0.65f, 0.05f, 0.05f, 0f);
+
+	/// <summary>The vignette alpha for a blood volume: full at nothing left, clear at the whole five litres.</summary>
+	private static Color OpacityFor(Color colour, float bloodVolume) =>
+		new(colour.r, colour.g, colour.b, Mathf.Clamp01((5f - bloodVolume) / 5f) * 0.5f);
+
 	private void Release(PlayerCamera camera)
 	{
 		if (!_touchedCamera)
@@ -362,6 +380,7 @@ internal sealed class SpectatorCameraService(
 		}
 
 		_touchedCamera = false;
+		SpectatorPresentationGate.ClearWatched();
 		if (camera.following != null) // Unity object — ==
 		{
 			camera.following = null;

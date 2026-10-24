@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
@@ -18,5 +20,23 @@ internal static class SpectatorPresentationGate
 	/// <summary>True while the local client is in spectator mode: the player-state presentation is off.</summary>
 	internal static bool IsActive { get; private set; }
 
+	/// <summary>
+	/// The WATCHED body's own screen state, mirrored onto the spectator's camera: the black amount its consciousness
+	/// would produce and the vignette colour. The service writes it every frame it follows a body that is on this
+	/// client; the effects patch reads it instead of the local body, which is what makes the watched player's
+	/// blackout and blood-loss vignette the thing the spectator sees (the ruling's "live it with them").
+	/// </summary>
+	internal static float WatchedBlackAmount { get; private set; }
+
+	internal static Color WatchedVignette { get; private set; } = Color.clear;
+
 	internal static void Set(bool active) => IsActive = active;
+
+	internal static void SetWatched(float blackAmount, Color vignette)
+	{
+		WatchedBlackAmount = blackAmount;
+		WatchedVignette = vignette;
+	}
+
+	internal static void ClearWatched() => SetWatched(0f, Color.clear);
 }

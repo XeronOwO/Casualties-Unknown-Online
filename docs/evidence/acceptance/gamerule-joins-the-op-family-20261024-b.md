@@ -47,7 +47,7 @@
   performed on the member's request.
 - **The member's permission refusal renders green.** The console adds every handler return as a success
   line; the member's gate refusal is a handler return now (the old host-only pre-check was an error line).
-  The text names the refusal; the kind is `review/console-command-refusals-render-green.md`, which this cycle
+  The text names the refusal; the kind is `done/console-command-refusals-render-green.md`, which this cycle
   updated to carry the gate instance, and whose typed-answer fix has since made that refusal an error line.
 - **No frame was captured.** Every row is a machine reading (console history, config file, host/member
   logs); nothing in the rows is a visual judgement.

@@ -1,6 +1,6 @@
 # Command refusals render as successes
 
-- Status: Review — the user approved the typed-answer contract (2026-10-24) and it is landed: `ConsoleAnswer` in
+- Status: Done — the user approved the typed-answer contract (2026-10-24) and it is landed: `ConsoleAnswer` in
   `Abstractions`, every built-in and bundled mod migrated, two tests pinning the KIND, and machine readings for
   `/gamerule`, `/help` and `/data` (deployed `0.1.0+01ea0eec`). Found by the second review of the `/gamerule`
   change; pre-existing and console-wide, with that verb's refusals as the instance.

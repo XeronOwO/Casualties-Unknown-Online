@@ -53,12 +53,30 @@ just its text.
   kind of a refusal and of a success for at least one built-in and one mod command.
 - No verb is left with a refusal that still renders as success.
 
-## Decision point (2026-10-24) — waiting on the user
+## Decision (user, 2026-10-24): option 1, the typed result
 
-The shape is a contract question: option 1 (a typed result: text + kind) is the only one a mod cannot forget,
-and it is the root-cause shape — the handler's signature currently cannot say "this is a refusal". It changes
-`ModConsoleCommand.Handler` in `Abstractions`, so the modification policy applies and the user must approve the
-contract change; options 2 (a console-side prefix/predicate convention) and 3 (a per-command kind table) keep
-the signature but are conventions the next verb can forget / too coarse for a verb with several answers.
-Recommendation: option 1, with a small `ConsoleAnswer`-style record and the built-ins migrated in the same
-change. No work is started because the contract shape is the user's call.
+The user approved the contract change and the recommendation: a `ConsoleAnswer` (text + `ConsoleAnswerKind`) that
+every handler returns, built-ins and mods together.
+
+## Landed (2026-10-24, deployed `0.1.0+cd826ca0`)
+
+- `Abstractions` gains `ConsoleAnswer` (a plain struct — net48 has no `IsExternalInit`, so not a record) and
+  `ConsoleAnswerKind`; `ModConsoleCommand.Handler` returns it; the registry REFUSES a built-in handler that does not
+  (the reflection check is what makes the shape unforgeable); `CommandConsoleService` colours the line by the kind.
+- Every built-in handler migrated: `/gamemode`, `/spectate`, `/gamerule` (its permission refusal included), `/heal`,
+  `/give`, `/summon`, `/save`, `/op`, `/deop`, `/kick`, `/ban`, `/unban`, `/traderreport`, `/help`, `/clear`,
+  `/players`, `/rtt`, `/whoami`; the three bundled mods and the test mods follow.
+- The `Abstractions` baseline records the two new types, the replaced constructor and its tombstone.
+- Two tests pin the KIND: `/gamemode`'s unknown mode is an error line and its successful switch a success line; a
+  mod command that answers `Refused` prints an error line.
+- Machine reading, one session: `[probe] /gamerule nonsense` → line kind **Error** ("Unknown game rule 'nonsense'");
+  `/help` → kind **Success**.
+
+## Still open — the ONE verb left
+
+`/data`. Its decisions live inside the item-data family (`ItemDataCommands` + `ItemDataWriteCommands`, ~640 lines):
+`Data` wraps `Get`/`Merge`/`Modify`/`Remove` as successes because those helpers answer plain text, and their own
+refusals ("no item #N is recorded", "the cursor holds nothing", a write refused by the rules) therefore still print
+green. The fix is the same migration one level down: those helpers return `ConsoleAnswer` with their refusals marked.
+The ticket stays in `todo/` until that lands and is read.
+

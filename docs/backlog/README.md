@@ -69,7 +69,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A player can watch the run as a spectator](review/dead-player-spectating.md) — **Medium** — every pivot slice landed and read.
 - [Command refusals render as successes](review/console-command-refusals-render-green.md) — **Low-Medium** — typed answers; every verb read.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
-- [The loading screen says what it waits for](review/loading-screen-progress-detail.md) — **Low-Medium** — writes the native line; its reading is owed.
 - [Who skips the intro cover, and when](review/launch-intro-cover-policy.md) — **Low** — one named decision; four paths read.
 - [Drag-use aims at the model, not a fixed circle](review/cross-player-drag-use-model-bounds.md) — **Medium** — the model measures itself; rows need a mouse.
 - [A member's drill-pod descent regenerates a layer of its own](review/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — routed, answered, ruled.
@@ -151,6 +150,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The loading screen says what it waits for](done/loading-screen-progress-detail.md) — **Low-Medium** — the wait line is on the game's own text, read live.
 - [The spectator's three superseded host rules are still wired](done/spectator-superseded-host-rules.md) — **Low** — removed end to end.
 - [The document corpus audit: every page earns its place](done/document-corpus-audit.md) — **Critical** — accepted: a reader for every page.
 - [The mod item's wearable declaration](done/mod-item-wearable-declaration.md) — **High** — accepted: a live body wears the declared garment.

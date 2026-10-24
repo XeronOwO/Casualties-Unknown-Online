@@ -1,7 +1,7 @@
 # Acceptance — what the waiting line says, read off two clients
 
 - Date: 2026-10-18
-- Ticket: `docs/backlog/review/loading-screen-progress-detail.md`
+- Ticket: `docs/backlog/done/loading-screen-progress-detail.md`
 - Batch: `.acceptance/20261018-b/run.ps1` (two clients: host + one sandboxed member)
 - Delivered artifact: `0.1.0+c13cebff9120b57d038e9d2784171cea357e8d21` — the tree's own HEAD, confirmed by
   `verify-deploy.ps1` before the clients started

@@ -1,9 +1,10 @@
 # The loading screen should say what the session is waiting for
 
-- Status: Review — the wait line is written into the game's own `WorldGeneration.loadingText` and handed back
-  (2026-10-24, deployed `0.1.0+77d914f3`), per the user's ruling on this ticket, so no code is left. The batch
-  closed the surface question (the field is reachable and holds the game's phase text) and left the joint
-  observation — the wait ON that line, and its hand-back — unread, which the batch section names as its residual.
+- Status: Done — accepted 2026-10-24. The wait line is written into the game's own `WorldGeneration.loadingText`
+  and handed back (deployed `0.1.0+77d914f3`), and the batch that had been owed read both facts live: the native
+  field carried `Waiting for Kaguya（小号） to load… (22s). The group starts together.` and counted down sample by
+  sample, and after the gate released it held the game's own `正在生成植物及隐藏陷阱...` again. The host's NAMED
+  roster (the earlier batch's other residual) appeared in the same session.
 - Priority: Low-Medium
 - Category: Presentation / session loading
 - Source: the user's 2026-10-07 backlog request — reuse the loading screen's own bottom-right text and let it

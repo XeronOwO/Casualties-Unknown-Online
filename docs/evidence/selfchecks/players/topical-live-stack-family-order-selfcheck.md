@@ -24,7 +24,7 @@ the entry an input of ONE classifier and has every one-shot routing site ask it.
 |---|---|
 | World drag | a drinkable container drinks through its own `useAction`; the live stacks no longer preempt it |
 | Cue | `DragUseCueTracker` asks the same `IsUseItem`, so the cue appears for the newly admitted shape |
-| Wound view | its entry asks topical before drink; the dual-class container's topical half is NOT reachable for a vanilla container (its own limb action is the syringe path) — filed `todo/topical-limb-action-shape.md` |
+| Wound view | its entry asks topical before drink; the dual-class container's topical half is NOT reachable for a vanilla container (its own limb action is the syringe path) — filed `review/topical-limb-action-shape.md`, settled on native parity (`InjectionAdmission.IsInjectionShapedLimbContainer`) |
 | Host | one classifier call per request; no branch re-asks a predicate to decide a different family |
 | Auto-select | the inventory entry's families only; Injection, topical and limb tool are not offered |
 | Injection | asked first on both entries; the warning names the medical session; its stack-keyed scope is recorded, and the refilled-bag limit was closed by the definition-level drink classification (`done/drink-measurement-destructive-use-action.md`) |

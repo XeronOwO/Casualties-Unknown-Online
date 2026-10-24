@@ -1,6 +1,8 @@
 # A health-usable liquid cannot be applied through the wound view when its container's own limb action is not a topical one
 
-- Status: Todo
+- Status: Review — settled on NATIVE PARITY and landed (2026-10-24, deployed `0.1.0+c62a4a05`): a syringe released on
+  a teammate's limb follows the game's own limb action whatever liquid it holds, and the topical shapes keep their
+  own family. The ticket asked for a design choice; the answer is the game's behaviour, which needed no invention.
 - Priority: Medium
 - Category: Item use / topical admission (the wound view's limb action shape)
 - Source: the independent adversarial review of `topical-live-stack-family-order` (2026-10-20),
@@ -89,7 +91,21 @@ instead of the flag:
 - Cases: the syringe refusal (with a health-usable liquid), the waterbottle acceptance, the non-container refusal,
   and the corrected classifier row; two earlier tests that pinned the defect now pin the fix.
 
-**What is still open (the user's call, unchanged)**: what a syringe container holding only a health-usable liquid
-SHOULD do when released on a teammate's limb — run the native injection faithfully, refuse it by name, or apply it
-topically. The classifier now says "no family", so nothing claims it and the host refuses; that is the state this
-change lands, not the final design.
+**Resolved on 2026-10-24: native parity.** The open question above asked what a syringe container holding only a
+health-usable liquid should do when released on a teammate's limb. The answer is not a preference — the game answers it:
+`PlayerCamera.ApplyWoundItem` runs the item's own `useLimbAction` whenever `ActuallyUsableOnLimb` holds, so the syringe
+flow starts whatever the player filled the syringe with. What landed:
+
+- `InjectionAdmission` keeps TWO questions apart: the STACK rule (`IsInjectableContainer`, unchanged) and the SHAPE
+  rule (`IsInjectionShapedLimbContainer` — a limb-drawable liquid container whose own limb action is NOT the topical
+  apply).
+- Only the LIMB-shaped entries ask the shape: the wound view's release
+  (`LocalUseItemEligibility.IsInjectableRemoteItem`) and the family classifier's limb entry. The inventory entry of the
+  same container is still a DRINK — the first attempt asked the shape everywhere and the suite caught it with three
+  cases (a drinkable bag became an injection, a guest's drink found no result).
+- The classifier case that pinned the old refusal now pins `Injection`, and a new case pins the shape rule against the
+  topical containers (`paincream`, `disinfectant`, `waterbottle`) and against a non-container.
+
+**Still owed**: the ticket's two-client row — a `saline` bag holding a health-usable liquid released through the remote
+wound view starts the injection flow on the patient's side (no pour, no refusal), and the same release with a syringe
+holding water does too. That needs two clients and a real drag.

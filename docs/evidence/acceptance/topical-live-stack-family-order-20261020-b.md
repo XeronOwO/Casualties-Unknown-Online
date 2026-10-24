@@ -29,7 +29,7 @@ guest's own body read `sickness 0` (`r1b-guest-health.json`).
 - The entry split holds in both directions: the inventory entry reads `Drink` and measures 100 ml
   (row 1), while the limb entry's own topical measurement refuses the same item instead of drinking it
   (row 2).
-- The wound-view refusal is the shape filed as `todo/topical-limb-action-shape.md`: the container's own
+- The wound-view refusal is the shape filed as `review/topical-limb-action-shape.md`: the container's own
   limb action is the syringe path, so the topical measurement captures no `ApplyToLimb`. The run records
   it rather than presenting it as the row's expected success.
 

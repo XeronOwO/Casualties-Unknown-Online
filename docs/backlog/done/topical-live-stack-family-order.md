@@ -87,7 +87,7 @@ A two-client run on the deployed artifact:
   operator's measurement (`RemoteTopicalUseHandler.TryMeasure`) captures no `ApplyToLimb` and refuses,
   and the release is swallowed. The shape — and the mirror gap, a `usableOnLimb == false` container
   whose native `ApplyToLimb` branch CUO excludes — is filed as
-  `todo/topical-limb-action-shape.md` with the native evidence. The host's dispatch for a limb request
+  `review/topical-limb-action-shape.md` with the native evidence. The host's dispatch for a limb request
   that really carries a measured topical dose is unit-pinned
   (`ItemUseTests.Use_TheDualClassContainerOnTheLimbEntry_AppliesTheTopicalHalfNotTheDrink`); it is the
   host contract, not a production-reachability claim.

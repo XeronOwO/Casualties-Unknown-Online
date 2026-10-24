@@ -55,11 +55,11 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — two sets for one death.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
 - [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.
-- [A health-usable liquid cannot reach the wound view](todo/topical-limb-action-shape.md) — **Medium** — the action shape decides, not the flag.
 ### In progress
 
 ### Review
 
+- [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.
 - [A player can watch the run as a spectator](review/dead-player-spectating.md) — **Medium** — every pivot slice landed and read.

@@ -158,9 +158,8 @@ same reason), which is what the game's own death branch reads before it rolls. S
 host applies the blast, removes the entities and rolls nothing; the member's reported set is the world's only set.
 The scope logs how many it marked (`[TrapBlast] marked N blast victim(s) as remote deaths …`).
 
-**Still owed**: slice 2 (the chain blast replayed inside the scope instead of `MineScript.OnDestroy` running it
-natively outside) and slice 3 (the host-authored report channel for a death only the host's roll produced), plus the
-ticket's three acceptance rows, which need two clients and a mine placed next to a droppable building.
+**Still owed**: the ticket's three acceptance rows, which need two clients and a mine placed next to a droppable
+building. Slices 1–2 are landed (below) and slice 3 turned out to need no message (also below).
 
 ## Slice 3 does not need a message: the host's own roll already reaches the members (read 2026-10-24)
 
@@ -180,3 +179,24 @@ channel exists, so that half needs no new message:
 What that leaves is exactly slice 2 (the chain blast's victims falling outside the scope, so the host rolls a set for
 a death the member's own client also rolled) and the acceptance rows. A new message would have been a second way to
 say the same thing.
+
+## Slice 2 landed (2026-10-24, deployed `0.1.0+eac739c9`): the chain fires inside the scope
+
+A mine the blast drives below its firing line explodes from its OWN `OnDestroy`
+(`MineScript.cs`: `if (this.build.health < 0.5f && !this.exploded)`), and that destroy runs after the apply scope has
+closed — so the chain's victims were never captured as the event's health entries and never marked as remote deaths,
+and the host rolled a second drop set for a death the reporting member already rolled.
+
+`ChainedBlastReplay` now fires those mines inside the same scope:
+
+- `TrapBuildingHealthScope` records every entity the host's application damaged (`Damaged`), in the order it happened;
+- after `ApplyEvent`, each damaged mine that has not fired and is below the line is marked FIRED through `Traverse`
+  (the flag is private in the game's code) and exploded with the game's own `WorldGeneration.CreateExplosion` at the
+  mine's position plus up — the same call and the same position the native path uses;
+- because the scope is still open, every chain victim lands in it through the ordinary health seam, which is also the
+  place slice 1 marks victims as remote deaths, so the member's own roll stays the world's only set;
+- the iteration is over a snapshot: a chain of chains leaves the next link to its own destroy, which still explodes it
+  (the shape this game's damage numbers make rare), and the log line says how many blasts were replayed.
+
+The rule is `ChainedBlastPolicy` (five cases: below the line, exactly on it, already fired, not a mine, still healthy).
+

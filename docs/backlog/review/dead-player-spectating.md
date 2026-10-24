@@ -216,3 +216,24 @@ the switch off, unconscious with it on) and a fifth pins that no session means n
 side of the rule and the camera answers the target's, so a click it refuses is reported through the surface
 line the Online UI already uses for its own notices, in both languages. That was the last thing this ticket
 owed, which is why it moves to `review/`: what is left is the two-client run, not code.
+
+## The camera half's first two-client reading (2026-10-24)
+
+The ticket's own biggest limit — "the camera half has no test and no runtime reading" — is closed for the core
+path. Two clients in one world, the host's own body killed through its vitals (held at zero for three seconds
+so the game's own death check fired; a single edit is restored, a guest's is restored by the host's copy), then
+the dead host drove the camera:
+
+| Step | Reading |
+|---|---|
+| the death the camera needs | `alive:false`, `deathScreen:true`, the guest still `inWorld:true` |
+| follow the survivor | `/spectate @p` → `Watching <the guest>` and `following:true` |
+| free camera on | `/spectate freefly on` → `Free camera on.`, `freecam:true` |
+| free camera off, still watching | `/spectate freefly off` → `Free camera off.`, `freecam:false`, `following:true` |
+| the off exit | `/spectate off` → `Stopped watching.`, `following:false` |
+
+What this does NOT cover, and the row stays open for: target CYCLING (only two players were present, so there
+was nothing to cycle), the free camera with the host's rule OFF (`SpectatorFreeFly` is on by default), the other
+two exits (the trader revive, the next-layer respawn, and the menu-return cut), the "followed teammate dies
+first" case, and the member-list chooser as an entry. Those need a longer session with a revive path and a
+third player.

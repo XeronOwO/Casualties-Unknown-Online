@@ -312,6 +312,8 @@ internal sealed class OtherMedicalOperationSessionService(
 				_applier.ApplyAedStage(session, action, msg.Value1, out state),
 			MedicalOperationKind.ManualDefib when action == MedicalOperationUpdateAction.Shock =>
 				_applier.ApplyManualShock(session, msg.Value1, out state),
+			MedicalOperationKind.Cpr when action == MedicalOperationUpdateAction.Compress =>
+				_applier.ApplyCprCompression(session, msg.Value1, out state),
 			_ => false,
 		};
 
@@ -570,6 +572,7 @@ internal sealed class OtherMedicalOperationSessionService(
 			or MedicalOperationKind.Dislocation
 			or MedicalOperationKind.Aed
 			or MedicalOperationKind.ManualDefib
-			or MedicalOperationKind.Amputation;
+			or MedicalOperationKind.Amputation
+			or MedicalOperationKind.Cpr;
 
 }

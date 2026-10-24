@@ -92,17 +92,17 @@ public static class CprRhythmPolicy
 	/// open chest cannot be perfused past the fibrillation line, so the ceiling is lowered by the shortfall instead of
 	/// promising a pressure the physiology cannot hold.
 	/// </summary>
-	/// <param name="bloodVolumePercentage">The patient's `bloodVolumePercentage` (100 = full).</param>
+	/// <param name="bloodVolumeFraction">The patient's `bloodVolumePercentage` — the game returns 0.5 + volume/200, a FRACTION where 1 is full.</param>
 	/// <param name="hemothoraxProgress">The patient's chest-wound progress (0 = none).</param>
-	public static float CeilingFor(float bloodVolumePercentage, float hemothoraxProgress)
+	public static float CeilingFor(float bloodVolumeFraction, float hemothoraxProgress)
 	{
 		var ceiling = CompressionCeiling;
 
-		if (bloodVolumePercentage < 100f)
+		if (bloodVolumeFraction < 1f)
 		{
-			// Every missing percent of volume takes the same percent of the ceiling with it: at 50% volume the chest can
-			// hold about half the pressure CPR could otherwise build.
-			ceiling *= Clamp01(bloodVolumePercentage / 100f);
+			// The game's own scale is a fraction, so a body at three quarters of its volume keeps three quarters of the
+			// ceiling CPR could otherwise build.
+			ceiling *= Clamp01(bloodVolumeFraction);
 		}
 
 		if (hemothoraxProgress > 0f)
@@ -113,6 +113,12 @@ public static class CprRhythmPolicy
 
 		return Math.Max(ArrestPressure, ceiling);
 	}
+
+	/// <summary>
+	/// The game's own blood-volume fraction for the synced `BloodVolume` field: `Body.bloodVolumePercentage` is
+	/// `0.5f + bloodVolume / 200f`, so a full body (volume 100) reads 1 and an empty one reads 0.5.
+	/// </summary>
+	public static float BloodVolumeFraction(float bloodVolume) => 0.5f + (bloodVolume / 200f);
 
 	/// <summary>
 	/// Whether this compression restarts the heart: the perfusion reached <see cref="RestartPressure"/> (or the patient's

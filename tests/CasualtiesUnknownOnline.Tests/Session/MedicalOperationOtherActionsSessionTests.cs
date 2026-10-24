@@ -556,4 +556,61 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var end = Assert.Single(g2Ends);
 		Assert.Equal(MedicalOperationKind.Bandage, end.Kind);
 	}
+
+	[Fact]
+	public void Cpr_CompressionsLiftThePressureAndStopAtTheBodysOwnCeiling()
+	{
+		// Ticket remote-medical-cpr.md, stage 1b: a bare-hand operation on a patient in cardiac arrest (the game's own
+		// `inCardiacArrest` is heartRate < 20). Each compression writes the pressure CprRhythmPolicy computes for the
+		// operator's measured interval, and never past what this patient's own volume allows.
+		var (host, guest) = CreatePair();
+		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		var hostData = SnapshotWithLimbs(HostId, conscious: false);
+		hostData.Health!.HeartRate = 0f;
+		hostData.Health.BloodPressure = 5f;
+		hostData.Health.BloodVolume = 100f;
+		characters.SaveHostCharacterData(hostData);
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		MarkInWorld(host);
+		MarkInWorld(guest);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var gOps = Ops(guest);
+		gOps.StartAckReceived += m => ack = m;
+
+		gOps.SendOtherStartRequest(HostId, itemInstanceId: 0, targetLimbIndex: -1, MedicalOperationKind.Cpr);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted, "bare-hand CPR on an arrested patient must be accepted");
+
+		for (var i = 0; i < 3; i++)
+		{
+			gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Compress, CprRhythmPolicy.IdealInterval);
+		}
+
+		var pressure = characters.GetHostCharacterData()!.Health!.BloodPressure;
+		Assert.True(pressure > 5f, $"compressions must lift the pressure, read {pressure}");
+		Assert.True(pressure <= CprRhythmPolicy.CompressionCeiling, $"the patient's own ceiling caps the lift, read {pressure}");
+	}
+
+	[Fact]
+	public void Cpr_RefusesAPatientWhoseHeartIsStillBeating()
+	{
+		// The AED family is for the quivering heart; compressing a beating one is not the care, so the target's own client
+		// refuses it by name.
+		var (host, _) = CreatePair();
+		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		var hostData = SnapshotWithLimbs(HostId, conscious: false);
+		hostData.Health!.HeartRate = 120f;
+		characters.SaveHostCharacterData(hostData);
+
+		var accepted = MedicalTargetBodyValidator.TryValidate(
+			characters.GetHostCharacterData()!,
+			MedicalOperationKind.Cpr,
+			limbIndex: -1,
+			out _,
+			out var reason);
+
+		Assert.False(accepted);
+		Assert.Contains("heart has not stopped", reason);
+	}
 }

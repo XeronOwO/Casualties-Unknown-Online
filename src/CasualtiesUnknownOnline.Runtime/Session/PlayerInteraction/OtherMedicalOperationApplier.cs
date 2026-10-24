@@ -25,6 +25,45 @@ internal sealed class OtherMedicalOperationApplier(
 	private readonly ISessionControl _session = session;
 	private static readonly Random Rng = new();
 
+	/// <summary>
+	/// One chest compression on the patient's own authoritative data (ticket `remote-medical-cpr.md`, stage 1b): the
+	/// operator's measured interval decides how much of the press counts (`CprRhythmPolicy`), the patient's own volume and
+	/// chest wound cap what the chest can hold, and the write is the pressure alone — the game's own physiology carries it
+	/// from there (its model raises the heart rate as perfusion returns, which is why this rule does not write one).
+	/// <para>
+	/// A patient whose heart has restarted is refused: there is nothing to compress. The HOST arbitrates that outcome
+	/// (the shared trigger the ruling names), so this half only applies what the committed session still asks for.
+	/// </para>
+	/// </summary>
+	internal bool ApplyCprCompression(OtherMedicalOperationSession session, float intervalSeconds, out MedicalOperationStateMsg? state)
+	{
+		state = null;
+		var targetData = _access.GetCharacterData(session.Target);
+		if (targetData?.Health is not { } health || !health.Alive)
+		{
+			return false;
+		}
+
+		if (health.HeartRate >= 20f)
+		{
+			// `Body.inCardiacArrest` is heartRate < 20: above it the heart is beating and compressions are not the care.
+			return false;
+		}
+
+		var ceiling = CprRhythmPolicy.CeilingFor(
+			CprRhythmPolicy.BloodVolumeFraction(health.BloodVolume),
+			health.Hemothorax);
+		var gain = CprRhythmPolicy.PressureGain(intervalSeconds, health.BloodPressure, ceiling);
+		var newTarget = PlayerCharacterAccess.CloneCharacter(targetData);
+		var newHealth = newTarget.Health!;
+		newHealth.BloodPressure = Math.Min(ceiling, health.BloodPressure + gain);
+
+		session.Progress = newHealth.BloodPressure;
+		_access.SaveCharacterData(session.Target, newTarget);
+		state = BuildState(session, null, newTarget, null);
+		return true;
+	}
+
 	internal bool ApplyBandageWrap(OtherMedicalOperationSession session, out MedicalOperationStateMsg? state)
 	{
 		state = null;

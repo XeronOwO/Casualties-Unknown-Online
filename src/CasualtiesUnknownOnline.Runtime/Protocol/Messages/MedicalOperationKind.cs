@@ -27,4 +27,12 @@ public enum MedicalOperationKind : int
 	Aed = 7,
 	ManualDefib = 8,
 	Amputation = 9,
+
+	/// <summary>
+	/// Cardiopulmonary resuscitation: a bare-hand operation on a patient in cardiac arrest. Its update action is
+	/// <see cref="MedicalOperationUpdateAction.Compress"/>, whose value is the operator's measured interval between
+	/// presses, and the pressure it writes is the rule ticket `remote-medical-cpr.md` records (compressions act on blood
+	/// pressure; ventilation on oxygen; the restart is one outcome the host arbitrates).
+	/// </summary>
+	Cpr = 10,
 }

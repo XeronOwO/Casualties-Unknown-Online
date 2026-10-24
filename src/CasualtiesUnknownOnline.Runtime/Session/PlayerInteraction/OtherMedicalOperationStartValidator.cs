@@ -44,6 +44,10 @@ internal static class OtherMedicalOperationStartValidator
 			case MedicalOperationKind.Amputation:
 				reason = RemoteOtherMedicalCatalog.IsAmputationTool(itemId) ? "" : "Item is not an amputation tool.";
 				return reason.Length == 0;
+			case MedicalOperationKind.Cpr:
+				// Bare hands: CPR takes no item, so a named item is the refusal rather than the requirement.
+				reason = msg.ItemInstanceId == 0 ? "" : "CPR is a bare-hand operation and takes no item.";
+				return reason.Length == 0;
 			default:
 				reason = "Unsupported operation.";
 				return false;

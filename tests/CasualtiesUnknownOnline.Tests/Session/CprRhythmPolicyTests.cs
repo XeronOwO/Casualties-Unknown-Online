@@ -41,11 +41,11 @@ public class CprRhythmPolicyTests
 
 	[Fact]
 	public void ALostBloodVolume_LowersTheCeilingWithIt() =>
-		Assert.Equal(CprRhythmPolicy.CompressionCeiling * 0.5f, CprRhythmPolicy.CeilingFor(bloodVolumePercentage: 50f, hemothoraxProgress: 0f), 3);
+		Assert.Equal(CprRhythmPolicy.CompressionCeiling * 0.75f, CprRhythmPolicy.CeilingFor(bloodVolumeFraction: 0.75f, hemothoraxProgress: 0f), 3);
 
 	[Fact]
 	public void AnOpenChest_HalvesTheCeiling() =>
-		Assert.Equal(CprRhythmPolicy.FibrillationPressure * 0.5f, CprRhythmPolicy.CeilingFor(bloodVolumePercentage: 100f, hemothoraxProgress: 5f), 3);
+		Assert.Equal(CprRhythmPolicy.FibrillationPressure * 0.5f, CprRhythmPolicy.CeilingFor(bloodVolumeFraction: 1f, hemothoraxProgress: 5f), 3);
 
 	[Fact]
 	public void TheHeartRestartsOnlyOncePerfusionReachesTheThreshold()
@@ -57,9 +57,17 @@ public class CprRhythmPolicyTests
 	[Fact]
 	public void APatientWhoseCeilingIsBelowTheThreshold_RestartsAtItsOwnCeiling()
 	{
-		// Half the blood volume puts the ceiling at 44, below the 45 threshold: reaching the body's own limit is the best
-		// this patient can do, and the rule says that counts.
-		var ceiling = CprRhythmPolicy.CeilingFor(bloodVolumePercentage: 50f, hemothoraxProgress: 0f);
+		// A body at half volume puts the ceiling below the 45 threshold: reaching the body's own limit is the best this
+		// patient can do, and the rule says that counts.
+		var ceiling = CprRhythmPolicy.CeilingFor(bloodVolumeFraction: 0.5f, hemothoraxProgress: 0f);
 		Assert.True(CprRhythmPolicy.RestartsTheHeart(ceiling, ceiling));
+	}
+
+	[Fact]
+	public void TheGamesOwnVolumeScale_IsAFractionOfFull()
+	{
+		// Body.bloodVolumePercentage = 0.5 + bloodVolume/200: a full body (volume 100) reads 1, an empty one reads 0.5.
+		Assert.Equal(1f, CprRhythmPolicy.BloodVolumeFraction(100f), 3);
+		Assert.Equal(0.5f, CprRhythmPolicy.BloodVolumeFraction(0f), 3);
 	}
 }

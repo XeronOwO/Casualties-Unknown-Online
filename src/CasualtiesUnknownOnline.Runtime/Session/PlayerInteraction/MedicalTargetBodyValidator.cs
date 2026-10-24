@@ -40,10 +40,19 @@ internal static class MedicalTargetBodyValidator
 			return false;
 		}
 
+		// CPR is for a heart that has stopped: `Body.inCardiacArrest` is heartRate < 20, and compressing a beating heart is
+		// not the care (the AED family, not this one, is for the quivering one).
+		if (kind == MedicalOperationKind.Cpr && health.HeartRate >= 20f)
+		{
+			reason = "Target's heart has not stopped.";
+			return false;
+		}
+
 		// An injection is not a limb-scoped action (its request may carry no limb at
 		// all), so the limb gate belongs to the families that need one — the same
-		// split the per-family validators had.
-		var limbScoped = kind != MedicalOperationKind.Injection;
+		// split the per-family validators had. CPR is the second bare-hand operation: it acts on the
+		// chest, not on a limb, so a request carries no limb index and must not be refused for it.
+		var limbScoped = kind is not (MedicalOperationKind.Injection or MedicalOperationKind.Cpr);
 		if (limbScoped && (limbIndex < 0 || limbIndex >= targetData.Limbs.Count))
 		{
 			reason = "Target limb not found.";

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -25,7 +26,6 @@ public sealed class DragTargetSelection
 
 	private float _cursorX;
 	private float _cursorY;
-	private float _radius;
 
 	/// <summary>The current target, or null before any range has been entered during this drag.</summary>
 	public ulong? Target { get; private set; }
@@ -42,12 +42,15 @@ public sealed class DragTargetSelection
 		Target = null;
 	}
 
-	/// <summary>Opens one frame with the cursor point and the detection radius every remote is judged against.</summary>
-	public void BeginFrame(float cursorX, float cursorY, float radius)
+	/// <summary>
+	/// Opens one frame with the cursor point. Membership is decided per player, either by the model's own box
+	/// (<see cref="Consider(ulong, float, float, float, float)"/>) or by the square form for a player whose model is not
+	/// rendered yet; the cursor point is the same either way.
+	/// </summary>
+	public void BeginFrame(float cursorX, float cursorY)
 	{
 		_cursorX = cursorX;
 		_cursorY = cursorY;
-		_radius = radius;
 		_entered.Clear();
 		for (var i = 0; i < _entries.Count; i++)
 		{
@@ -57,12 +60,23 @@ public sealed class DragTargetSelection
 		}
 	}
 
-	/// <summary>Offers one remote player this frame. Call once per in-world remote, then <see cref="EndFrame"/>.</summary>
-	public void Consider(ulong steamId, float x, float y)
+	/// <summary>
+	/// Offers one remote player whose detection range is a SQUARE of this half extent: the fixed-range form, kept for a
+	/// player whose model is not rendered yet. Call once per remote, then <see cref="EndFrame"/>.
+	/// </summary>
+	public void Consider(ulong steamId, float x, float y, float halfExtent) =>
+		Consider(steamId, x, y, halfExtent, halfExtent);
+
+	/// <summary>
+	/// Offers one remote player whose detection range is the MODEL's own axis-aligned box: half the model collider's
+	/// size, so the range follows the prefab the game actually uses instead of a literal. A crouch halves the height at
+	/// the call site, which is the native body's own rule for its collider.
+	/// </summary>
+	public void Consider(ulong steamId, float x, float y, float halfWidth, float halfHeight)
 	{
 		var dx = x - _cursorX;
 		var dy = y - _cursorY;
-		var inRange = (dx * dx) + (dy * dy) <= _radius * _radius;
+		var inRange = Math.Abs(dx) <= halfWidth && Math.Abs(dy) <= halfHeight;
 		for (var i = 0; i < _entries.Count; i++)
 		{
 			var entry = _entries[i];

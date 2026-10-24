@@ -23,12 +23,11 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 {
-	private const float OverlapRadius = 1.5f;
-
 	private readonly DragTargetSelection _selection = new();
 
 	private bool _dragActive;
 	private ulong _openedFor;
+	private ulong? _lastLoggedTarget;
 
 	/// <summary>
 	/// Whether the cursor is inside the current target's detection range — the condition the give's automatic open
@@ -64,8 +63,9 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		}
 
 		var mouseWorld = camera.ScreenToWorldPoint(Input.mousePosition);
-		_selection.BeginFrame(mouseWorld.x, mouseWorld.y, OverlapRadius);
+		_selection.BeginFrame(mouseWorld.x, mouseWorld.y);
 		var remotes = domains.Entities.RemotePlayers;
+		var considered = 0;
 		for (var i = 0; i < remotes.Count; i++)
 		{
 			var remote = remotes[i];
@@ -74,11 +74,82 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 				continue;
 			}
 
-			_selection.Consider(remote.SteamId, remote.Position.X, remote.Position.Y);
+			// The detection range is the MODEL's own box, measured from the render clone's collider — the prefab the
+			// game actually uses — so a cursor on an arm counts and a cursor a metre away does not. A clone that is not
+			// rendered yet falls back to the local body's own model, which is the same prefab every player shares.
+			if (!TryModelHalfSize(remote.SteamId, out var halfWidth, out var halfHeight))
+			{
+				continue;
+			}
+
+			considered++;
+			_selection.Consider(remote.SteamId, remote.Position.X, remote.Position.Y, halfWidth, halfHeight);
 		}
 
 		_selection.EndFrame();
+		if (_selection.Target != _lastLoggedTarget)
+		{
+			_lastLoggedTarget = _selection.Target;
+			if (_selection.Target is { } picked)
+			{
+				// Row 3 of the ticket: the log names the pick AND how many models were under consideration, so a
+				// reading can tell "the last entered range won" from "only one player was in range".
+				domains.Log.LogDebug("[DragUse] display target {SteamId} picked among {Count} candidate(s) at ({X:0.##},{Y:0.##}).",
+					picked, considered, mouseWorld.x, mouseWorld.y);
+			}
+			else
+			{
+				domains.Log.LogDebug("[DragUse] no display target among {Count} candidate(s) at ({X:0.##},{Y:0.##}).",
+					considered, mouseWorld.x, mouseWorld.y);
+			}
+		}
+
 		return _selection.Target;
+	}
+
+	/// <summary>
+	/// Half the model's own collider size for <paramref name="steamId"/>: the render clone's box when it exists (a
+	/// disabled collider still carries its size), else the local body's box (the same prefab), with the native crouch
+	/// rule applied — the body halves its collider's height while crouching, and the clone's own box does not follow that
+	/// on its own.
+	/// </summary>
+	private bool TryModelHalfSize(ulong steamId, out float halfWidth, out float halfHeight)
+	{
+		if (domains.Renderer.TryGetRemoteBody(steamId, out var remote) && remote != null) // Unity object — ==
+		{
+			var crouching = remote.crouching;
+			if (TryColliderHalfSize(remote, crouching, out halfWidth, out halfHeight))
+			{
+				return true;
+			}
+		}
+
+		return domains.Run.LocalBody is { } local // Unity object — ==
+			? TryColliderHalfSize(local, local.crouching, out halfWidth, out halfHeight)
+			: NoModel(out halfWidth, out halfHeight);
+	}
+
+	private static bool NoModel(out float halfWidth, out float halfHeight)
+	{
+		halfWidth = 0f;
+		halfHeight = 0f;
+		return false;
+	}
+
+	private static bool TryColliderHalfSize(Body body, bool crouching, out float halfWidth, out float halfHeight)
+	{
+		var collider = body.GetComponent<BoxCollider2D>();
+		if (collider == null) // Unity object — ==
+		{
+			halfWidth = 0f;
+			halfHeight = 0f;
+			return false;
+		}
+
+		var size = collider.size;
+		halfWidth = size.x * 0.5f;
+		halfHeight = (size.y * 0.5f) * (crouching ? 0.5f : 1f);
+		return halfWidth > 0f && halfHeight > 0f;
 	}
 
 	/// <summary>
@@ -163,6 +234,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 
 		_dragActive = false;
 		_openedFor = 0;
+		_lastLoggedTarget = null;
 		_selection.Begin();
 
 		// The drag's own view outlives the drag after a give (the item's landing is what the giver is looking

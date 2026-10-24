@@ -128,12 +128,60 @@ public class DragTargetSelectionTests
 
 	private static void Frame(DragTargetSelection selection, float cursorX, float cursorY, params (ulong Id, float X, float Y)[] remotes)
 	{
-		selection.BeginFrame(cursorX, cursorY, Radius);
+		selection.BeginFrame(cursorX, cursorY);
 		foreach (var remote in remotes)
 		{
-			selection.Consider(remote.Id, remote.X, remote.Y);
+			// The fixed-range form: a square of the old radius, which is what the cases above were written against.
+			selection.Consider(remote.Id, remote.X, remote.Y, Radius);
 		}
 
 		selection.EndFrame();
+	}
+
+	/// <summary>
+	/// The shape row (ticket `cross-player-drag-use-model-bounds.md`): the detection range is the MODEL's own box, not a
+	/// fixed circle. Two cases pin the difference — the box refuses a cursor the old circle covered, and accepts one on
+	/// the model's edge — and a third keeps the last-entered rule with its distance tie-break.
+	/// </summary>
+	[Fact]
+	public void TheModelBox_DoesNotCountACursorTheOldCircleWouldHaveCovered()
+	{
+		var selection = new DragTargetSelection();
+		selection.BeginFrame(1.2f, 0f); // inside the old 1.5 circle, outside the 0.4-wide model box
+		selection.Consider(1ul, 0f, 0f, halfWidth: 0.4f, halfHeight: 0.9f);
+		selection.EndFrame();
+
+		Assert.Null(selection.Target);
+		Assert.False(selection.IsTargetInRange);
+	}
+
+	[Fact]
+	public void TheModelBox_CountsACursorOnTheModelsEdge()
+	{
+		var selection = new DragTargetSelection();
+		selection.BeginFrame(0.55f, 0f);
+		selection.Consider(1ul, 0f, 0f, halfWidth: 0.4f, halfHeight: 0.9f);
+		selection.EndFrame();
+
+		Assert.Null(selection.Target); // 0.55 > 0.4: the box decides, not the circle
+
+		selection.BeginFrame(0.35f, 0.8f);
+		selection.Consider(1ul, 0f, 0f, halfWidth: 0.4f, halfHeight: 0.9f);
+		selection.EndFrame();
+
+		Assert.Equal(1ul, selection.Target);
+	}
+
+	[Fact]
+	public void TheModelBox_KeepsTheLastEnteredRuleAndItsDistanceTieBreak()
+	{
+		var selection = new DragTargetSelection();
+		selection.BeginFrame(0f, 0f);
+		selection.Consider(1ul, 0.2f, 0f, 0.4f, 0.9f);
+		selection.Consider(2ul, 0.3f, 0f, 0.4f, 0.9f);
+		selection.EndFrame();
+
+		// Both boxes hold the cursor on the same frame: nearest wins, exactly as the circle cases pin.
+		Assert.Equal(1ul, selection.Target);
 	}
 }

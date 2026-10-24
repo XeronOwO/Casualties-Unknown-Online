@@ -77,7 +77,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
 - [The opener can claim a key the game is rebinding](review/enter-opener-keybind-capture.md) — **Low-Medium** — the guard sees the capture; a key batch is owed.
 
-- [Treatment gore presentation carried](review/treatment-gore-presentation-carried.md) — **Low** — the amputation, shrapnel and suture gore the review found.
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
@@ -141,6 +140,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Treatment gore presentation carried](done/treatment-gore-presentation-carried.md) — **Low** — pins re-run: 30 + 29 green.
 - [Tab opens the backpack then closes](done/tab-backpack-open-close-immediately.md) — **Medium** — real Tab press; stays open.
 - [Remote player medical panel](done/remote-player-medical-panel.md) — **Medium** — native WoundView reuse; read on frames.
 - [Turret stray fire after reload](done/turret-stray-fire-after-reload.md) — **Medium** — transient trap replay removed; tests re-run.

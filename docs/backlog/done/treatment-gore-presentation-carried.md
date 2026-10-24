@@ -1,6 +1,12 @@
 # The treatment family's gore presentation is carried
 
-- Status: Review
+- Status: Done — closed 2026-10-25. Every row of the acceptance table names its "Verified by" pin, and this cycle re-ran them on
+  the current tree: the behaviour class (`RemoteMedicalTreatmentSoundCatalogTests`, `CaptureScopeGuard`) — **30 cases, 0 failures**
+  — and the capture gate (`ItemAndBodySoundCaptureGateTests`) — **29 cases, 0 failures**. That is the ticket's own verification
+  scheme: the rows assert which side reports what (the step scopes for the amputation and the broken grasp, the table row for the
+  suture, `IsLocalAction()` for the replayed clip, the session guard for solo), and the pins are exactly those facts. The one thing
+  the pins cannot carry — that a human HEARS the clip at the treated limb — stays the project's standing audio residual, named
+  here rather than claimed.
 - Priority: Low
 - Category: Audio sync / report coverage
 - Source: the independent adversarial review of the `review/suppressed-native-call-sounds-stay-unheard.md` cycle (2026-09-26) — its census read the delegates of the accepted medical items but not what those delegates CALL, so two groups were recorded as "natively silent" although they play a 3D gore clip.

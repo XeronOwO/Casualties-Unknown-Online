@@ -287,7 +287,7 @@ docs/backlog/review/sync-player-pain-vocalizations-and-bark.md | keep | index | 
 docs/development/review-triage.md | keep | spec | docs/backlog/README.md
 docs/backlog/done/tab-backpack-open-close-immediately.md | keep | index | docs/backlog/README.md
 docs/backlog/review/trade-domain-dual-side-runtime.md | keep | index | docs/backlog/README.md
-docs/backlog/review/treatment-gore-presentation-carried.md | keep | index | docs/backlog/README.md
+docs/backlog/done/treatment-gore-presentation-carried.md | keep | index | docs/backlog/README.md
 docs/backlog/done/turret-stray-fire-after-reload.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unhooked-damage-block-callers.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unhooked-item-and-body-sound-families.md | keep | index | docs/backlog/README.md
@@ -968,7 +968,7 @@ docs/evidence/selfchecks/presentation/remote-clone-head-mouth-sync-selfcheck.md 
 docs/evidence/selfchecks/presentation/remote-clone-legspeed-pose-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/speech-sound-frequency-selfcheck.md | keep | claim | docs/backlog/review/sync-player-pain-vocalizations-and-bark.md
 docs/evidence/selfchecks/presentation/suppressed-native-call-sounds-stay-unheard-selfcheck.md | keep | claim | docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md
-docs/evidence/selfchecks/presentation/treatment-gore-presentation-carried-selfcheck.md | keep | claim | docs/backlog/review/treatment-gore-presentation-carried.md
+docs/evidence/selfchecks/presentation/treatment-gore-presentation-carried-selfcheck.md | keep | claim | docs/backlog/done/treatment-gore-presentation-carried.md
 docs/evidence/selfchecks/presentation/turret-light-sprite-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/unhooked-item-and-body-sound-families-selfcheck.md | keep | claim | docs/backlog/review/unhooked-item-and-body-sound-families.md
 docs/evidence/selfchecks/presentation/unified-remote-display-projection-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

@@ -31,7 +31,7 @@ internal sealed class SpectatorCommands(
 	private readonly ISpectatorControl? _spectator = spectator;
 	private readonly ILogger _log = log;
 
-	[ConsoleCommand("spectate", "Watch a teammate's body after your own character dies.", CommandPermission.Anyone, "/spectate <selector> | /spectate off | /spectate freefly on|off", CommandArgumentKind.Selector)]
+	[ConsoleCommand("spectate", "Watch a teammate's body while in spectator mode (/gamemode spectator).", CommandPermission.Anyone, "/spectate <selector> | /spectate off | /spectate freefly on|off", CommandArgumentKind.Selector)]
 	internal string Spectate(IReadOnlyList<string> args)
 	{
 		if (_spectator is not { } spectator)

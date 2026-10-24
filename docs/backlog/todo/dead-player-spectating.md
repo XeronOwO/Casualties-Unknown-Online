@@ -114,6 +114,20 @@ crosses players or mirrors a native action.
 - Reading: two clients, host dies, the receipt's button enters the mode, host is revived, the mode ends and
   the normal HUD is back; `/gamemode spectator` works for a granted member and is refused without the grant.
 
+**Slice 1 is read on three clients (2026-10-24, deployed `0.1.0+9757f22b`)**, host + guest + alt in one world:
+
+| Step | Reading |
+|---|---|
+| the receipt appears | the host's vitals held at zero until dead, then `alive:false`; the receipt shows only after the black fade — `endScreen:true` about 8 s after the hold (the probe's own sleep blocks the frame that fades, so the wait is the game's, not the mode's) |
+| its menu button enters the mode | the click on the visible button whose persistent event is `PlayerCamera.ToMainMenu` (label now the localized `spectator.receipt_enter`) → `spectator:true`, and the state right after is still `alive:false`, `endScreen:true` — **no scene load**, the world stayed up |
+| revive ends the mode immediately | `bloodVolume`/`brainHealth` restored → `alive:true`, `spectator:false`, `endScreen:false`, and the host is still `role: Host` in the world; guest and alt stayed `inWorld: true` throughout |
+| why the first attempt failed | the earlier runtime rewire could not remove the scene's persistent listener, so the click ran the native menu load as well and the session went to the menu; the method-level intercept (dead local body + receipt active + no pause menu) is what makes the button's click mean the mode |
+
+Still owed by slice 1: `/gamemode spectator` itself has only its command cases, not a live reading (the verb is
+the cheat-gated path; its mode half is the same `EnterSpectatorMode` this table proves), and the free camera's
+toggle is slice 4's detail.
+
+
 
 
 

@@ -183,3 +183,11 @@ field back (`Recipes.recipes[idx].INT`, 0 = unlocked). So the row can now craft 
 lacks is the **mid-run cut and continue** half: no committed probe takes a save at a layer boundary and continues it (the game's
 own save is the layer-end write, and `saved-character-read` only reads a character file). Row 2 therefore waits on that one
 fixture, not on crafting.
+
+**Batch `20261025-n` — the continue half EXISTS in the driver, the material half does not.** The re-entry pair the row needs is
+already in the acceptance driver: `-Action leave-world` calls the game's own `PlayerCamera.ToMainMenu` and `-Action continue-run`
+calls `PreRunScript.LoadRun` (the Continue entry), both waiting for the state that follows. What stopped this batch is earlier in
+the chain: `craft-drive mode=list` answered **`craftable=0`** on the host — nothing the body carries can make any recipe, and
+`mode=list` reports only that count, not a per-index material list, so the batch could not name the materials to grant. Row 2's
+next step is therefore a materials grant (`item-provide type=<material>` per ingredient) or a probe mode that reports a recipe's
+ingredients, and only then the craft → `leave-world` → `continue-run` → `recipe-unlock-read` sequence.

@@ -1169,6 +1169,7 @@ docs/evidence/acceptance/item-data-read-commands-20261020-a.md | keep | claim | 
 docs/evidence/acceptance/offscreen-arrow-label-clipping-20261020-a.md | keep | claim | docs/backlog/done/offscreen-arrow-label-clipping.md
 docs/evidence/acceptance/limb-tool-family-protection-gaps-20261023-a.md | keep | claim | docs/backlog/done/limb-tool-family-protection-gaps.md
 docs/evidence/acceptance/cross-player-item-use-random-determinism-20261023-a.md | keep | claim | docs/backlog/review/cross-player-item-use-random-determinism.md
+docs/evidence/acceptance/cross-player-item-use-random-determinism-20261025-b.md | keep | claim | docs/backlog/review/cross-player-item-use-random-determinism.md
 docs/evidence/acceptance/topical-live-stack-family-order-20261020-b.md | keep | claim | docs/backlog/done/topical-live-stack-family-order.md
 docs/evidence/acceptance/remote-medical-panel-header-shows-viewer-identity-20261024-a.md | keep | claim | docs/backlog/done/remote-medical-panel-header-shows-viewer-identity.md
 docs/backlog/done/remote-medical-panel-header-shows-viewer-identity.md | keep | index | docs/backlog/README.md

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -32,10 +33,13 @@ internal sealed class TrapBuildingHealthScope : IDisposable
 	private readonly BuildingEntity? _dropTableReadBeforeApply;
 	private readonly List<BuildingEntityHealthEntryMsg> _entries = [];
 	private readonly List<DropBound> _dropRows = [];
+	private readonly ILogger? _log;
+	private int _marked;
 
-	private TrapBuildingHealthScope(BuildingEntity? dropTableReadBeforeApply)
+	private TrapBuildingHealthScope(BuildingEntity? dropTableReadBeforeApply, ILogger? log)
 	{
 		_dropTableReadBeforeApply = dropTableReadBeforeApply;
+		_log = log;
 	}
 
 	/// <summary>
@@ -43,14 +47,14 @@ internal sealed class TrapBuildingHealthScope : IDisposable
 	/// whose drop table the caller already captured before the apply (the trap
 	/// entity), so this scope does not add its rows a second time.
 	/// </summary>
-	internal static TrapBuildingHealthScope Begin(BuildingEntity? dropTableReadBeforeApply = null)
+	internal static TrapBuildingHealthScope Begin(BuildingEntity? dropTableReadBeforeApply = null, ILogger? log = null)
 	{
 		if (_current is not null)
 		{
 			throw new InvalidOperationException("a trap building-health scope is already active");
 		}
 
-		var scope = new TrapBuildingHealthScope(dropTableReadBeforeApply);
+		var scope = new TrapBuildingHealthScope(dropTableReadBeforeApply, log);
 		_current = scope;
 		return scope;
 	}
@@ -82,6 +86,16 @@ internal sealed class TrapBuildingHealthScope : IDisposable
 		if (!ReferenceEquals(entity, _current._dropTableReadBeforeApply))
 		{
 			_current._dropRows.AddRange(GameBuildingDropTable.ForEntity(entity));
+
+			// The side that OBSERVED the death rolls (decision 184/265): this blast is the MEMBER's — the host is only
+			// APPLYING the event it reported — so the host's own copy must not roll a second set for the same death.
+			// Marking the entity as a remote death is what the game's death branch reads before it rolls
+			// (BuildingEntity.cs:56-123), and the support-loss path uses the same mark for the same reason.
+			if (entity.GetComponent<RemoteEntityDeath>() == null) // Unity object — ==
+			{
+				RemoteEntityDeath.Mark(entity, replayAnimalDeath: false);
+				_current._marked++;
+			}
 		}
 
 		return true;
@@ -89,6 +103,11 @@ internal sealed class TrapBuildingHealthScope : IDisposable
 
 	public void Dispose()
 	{
+		if (_marked > 0)
+		{
+			_log?.LogInformation("[TrapBlast] marked {Count} blast victim(s) as remote deaths — this host applies a member's event, so the member's own roll is the world's set and this client only removes the entities.", _marked);
+		}
+
 		_current = null;
 		_entries.Clear();
 		_dropRows.Clear();

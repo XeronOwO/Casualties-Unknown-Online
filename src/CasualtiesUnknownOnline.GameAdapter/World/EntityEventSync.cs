@@ -133,7 +133,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			var trapEntity = TrapDamageProfiles.IsDestructive(msg.Kind) ? TrapEffectApplier.FindTrap<BuildingEntity>(position) : null;
 			var trapRows = trapEntity != null ? GameBuildingDropTable.ForEntity(trapEntity) : []; // Unity object — ==
 			IReadOnlyList<TrapDropEntryMsg>? acceptedDrops;
-			using (var scope = TrapBuildingHealthScope.Begin(trapEntity))
+			using (var scope = TrapBuildingHealthScope.Begin(trapEntity, _log))
 			{
 				_applier.ApplyEvent(msg.Kind, position, msg.Extra);
 				if (scope.Entries.Count > 0)

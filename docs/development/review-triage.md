@@ -79,3 +79,19 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 
 A row leaves this page only through the ticket's own status moving to `done/`, and every claim above names the instrument or the
 missing fixture rather than a mood. The classes are not priorities: they say WHO is blocked, not what to do first.
+
+## The state the page reaches (2026-10-25, end of the cycle)
+
+Every remaining ticket is in one of two conditions, and both are outside what this station can do alone:
+
+- **U — the user's own judgement.** A decision (which of two behaviours is intended), a look at a screen this repository cannot
+  assert (`PlayerCamera`-driven UI, a mod's panel, the native search box) or a save/restore pass the user runs on purpose.
+- **E — the station's input delivery, plus one design choice.** No mouse BUTTON reaches Unity here (measured for both buttons);
+  the remote view's own entry is a click, so the drag, the chart-driven treatments, the concurrent-medical start, the key-bind
+  capture and the facing comparison all wait on that one fact. The shrapnel session's row 7 additionally needs a decision between
+  two designs (a state that creates the native minigame, or a session-level piece removal) — that is the user's, not the agent's.
+
+The C class is empty of agent work: each of its rows was measured to the end — the nested container cannot be constructed through
+the game's own calls, the markerless row needs a world that carries a runtime creation (none in two sessions, and an explosion adds
+none), the destruction drops were produced and read, the recruit and hostile rows need the in-game dialogue and a swing, and the
+sound-family rows need the remote chart. Nothing on this page is waiting for a probe that does not exist; the probes were written.

@@ -47,8 +47,8 @@ dictionary literals — one table in English, one in Chinese, in the same file, 
 - [x] **Step 3 — the gates.** `LocalizationCatalogueGateTests` reads the JSON (key-set equality between the built-in files, every declared key read by product source), and the console-page pin folds both files the same way.
 - [x] **Step 4 — the mod interface.** `ILocalizationService.RegisterCatalog(language, json)` in the service, gap-filling only (a built-in entry is never overwritten), malformed input refused by name; four unit cases pin it.
 - [x] **Step 5 — the picker.** The preferences page builds its choices from `SupportedLanguages`, so a registered language appears without a code change.
-- [ ] **Step 6 — the docs.** The contributor page that tells a translator how to edit a file, and a mod page for adding a language. Not written yet.
-- [ ] **Step 7 — deploy and read.** Deployed (artifact `0.1.0+3ec84ae0…`, `verify-deploy` exit 0). The in-game read — a client on Chinese and a client on English showing the same window text from the files, and a mod-shipped language in the picker — is still owed: it needs a frame-level or UI-text read, which no committed probe provides yet (the same capability gap the visual rows carry).
+- [x] **Step 6 — the docs.** The contributing page pair (`gates-and-rules.md`, both blocks, alignment re-recorded) now explains the JSON catalogues, the key rules, the console's keyed lines and `RegisterCatalog` for mods.
+- [ ] **Step 7 — deploy and read.** Deployed twice since (artifacts `0.1.0+adbf2828…` and `0.1.0+7605a140…`, `verify-deploy` exit 0). The in-game read — a client on Chinese and a client on English showing the same window text from the files, and a mod-shipped language in the picker — is still owed: it needs a frame-level or UI-text read, which no committed probe provides yet (the same capability gap the visual rows carry).
 
 ## Non-goals
 

@@ -84,6 +84,7 @@ internal sealed class SpectatorCameraService(
 		}
 
 		_spectatorMode = true;
+		_enteredWhileDead = run.LocalBody != null && !run.LocalBody.alive; // Unity object — ==
 		SpectatorPresentationGate.Set(true);
 		log.LogInformation("[Spectator] spectator mode on (local body {Local}).", session.LocalSteamId);
 		return true;
@@ -201,12 +202,13 @@ internal sealed class SpectatorCameraService(
 			return;
 		}
 
-		// The ruling: a revived player returns to normal play IMMEDIATELY, whichever revive path woke them. The
-		// mode reads the local body's own liveness instead of hooking each revive call site, so a trader revive,
-		// a next-layer respawn and a heal all end it the same way.
-		if (_spectatorMode && run.LocalBody != null && run.LocalBody.alive) // Unity objects 鈥?==
+		// The ruling: a revived player returns to normal play IMMEDIATELY, whichever revive path woke them. Only a
+		// mode entered from the death screen ends this way — a spectator's body staying ALIVE is the ruling's own
+		// shape (the body remains in the world), so "alive" alone is not a revive; the transition from the death
+		// state is what this watches, recorded at entry.
+		if (_spectatorMode && _enteredWhileDead && run.LocalBody != null && run.LocalBody.alive) // Unity objects — ==
 		{
-			log.LogInformation("[Spectator] the local body is alive again; leaving spectator mode.");
+			log.LogInformation("[Spectator] the body that died is alive again; leaving spectator mode.");
 			ExitSpectatorMode();
 		}
 
@@ -303,6 +305,10 @@ internal sealed class SpectatorCameraService(
 
 	/// <summary>Whether the receipt's menu button was already relabelled for the current death screen.</summary>
 	private bool _receiptButtonRelabelled;
+
+	/// <summary>Whether the mode was entered from a DEAD body: only that mode ends when the body comes back to life
+	/// (a spectator whose body was alive at entry is already in the ruling's shape and leaves by the verb).</summary>
+	private bool _enteredWhileDead;
 
 	/// <summary>
 	/// Whether this client's local character is in a state that may watch. The terms are the SHARED rule's

@@ -94,7 +94,7 @@ internal sealed class SpectatorCommands(
 		if (!spectator.TryWatch(targets[0]))
 		{
 			_log.LogInformation("[Command] /spectate {Selector} was refused: nothing to watch from this client's state.", args[1]);
-			return "Cannot watch that member: your character is not dead (or the rules do not allow watching), or their body is not here to follow.";
+			return "Cannot watch that member: this client is not in spectator mode (/gamemode spectator), or their body is not here to follow.";
 		}
 
 		_log.LogInformation("[Command] /spectate is now following {SteamId}.", targets[0]);

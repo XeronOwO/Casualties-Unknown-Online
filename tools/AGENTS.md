@@ -38,4 +38,11 @@
 - `acceptance/session-environment.ps1` is the run's gate on the install's BepInEx trees: it classifies
   each tree by its own marker DLL (never by a folder name), refuses while a game process is running, and
   swaps only when the machine is free. The marker, process and parking names are machine facts.
+- `acceptance/send-input.ps1` is the ONE sanctioned OS-level input path, and it exists by the user's own
+  authorization (2026-10-24, asked for after the drag, the end-of-layer panel, the key-bind capture and the
+  CPR button all stayed unreadable because "the tooling may not drive the mouse/keyboard"): it sends a
+  real click, key or drag to a named window, in CLIENT coordinates, after bringing that window forward.
+  The boundary it does not move: it is for an acceptance BATCH (the agent judging a ticket's rows), never a
+  shipping feature's requirement, and a gesture it performs is read from the clients' own logs and probes —
+  the input is the player's, the evidence is still theirs.
 - Build, deploy and commit rules live in [`../AGENTS.md`](../AGENTS.md).

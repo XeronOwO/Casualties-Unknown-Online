@@ -257,6 +257,19 @@ and while watching, **left/right buttons cycle the watched player in order**. Al
 The reading for this slice: two clients, one dies and enters the mode, watches the corpse and the survivor, cycles
 left and right, toggles free movement, and leaves; every step read from the camera's own state and the mode.
 
+**Landed so far in 3b (2026-10-24, deployed `0.1.0+50e09914`):** `TryResolveAnyBody` — a corpse stays watchable and
+the watch moves on only when the body is not here; the free camera no longer asks the host (`TrySetFreeFly` only
+needs something being watched). **Not landed: the cycling and the strip.** The exact change, so the next attempt is
+mechanical: `ISpectatorControl` gains `bool IsFreeFly { get; }` (the service already holds `_freeFlyWanted`); the
+adapter's explicit members and the port-shape pin move with it; `OnlineUiContext` gains `Func<int, bool>? CycleWatch`,
+`Func<bool>? ToggleFreeFly` and `bool IsFreeFly`; the host wires `CycleWatch` to the next/previous watchable member in
+lobby order (skipping the local id and members with no body here) and `ToggleFreeFly` to `TrySetFreeFly(!IsFreeFly)`;
+the member card's WATCHED row gains three actions beside the existing stop — `member.watch.prev`,
+`member.watch.next`, `member.freefly.toggle` (a labelled toggle) — with their two localization keys; `OnlineUiHost`
+fills the three context values from the camera every frame. That is the whole surface: no new drawing code, because
+the card's action row already exists.
+
+
 ### Slice 4 — free flight
 
 - How the free camera is toggled in the mode (a verb, a key, or part of the possession exit) is the one detail

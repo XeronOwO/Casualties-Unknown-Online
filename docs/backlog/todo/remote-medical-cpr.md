@@ -125,3 +125,36 @@ mirror and no existing gesture to inherit. The choice is the user's because it c
    the one this ticket would take without a ruling — it is not a player-facing design the user has approved.
 
 Nothing is implemented before that ruling; the ticket's stages above remain the plan.
+
+## The ruling (user, 2026-10-24): "参考 KrokMP" — its own entry, read from the reference
+
+The user answered the entry question with the reference itself, so this is not a new design: KrokMP's entry is a
+**button inside the wound view**, and that is what CUO mirrors. The exact shape, read from
+`reversing/KrokMP/KrokoshaCasualtiesMP/KrokoshaCasualtiesMP/PlayerCamera_ToggleWoundView_MultiplayerPatch.cs`:
+
+- The patch clones the wound view's own **`WorkoutButton`** (found by name under the view's transform), renames the
+  clone, gives it the reference's own icon and tooltip strings, inserts it at the anchor's sibling index and hides
+  the original — so the CPR entry sits exactly where the window's own action button sits, in the window the player
+  already opens for medical actions. That is native-UI reuse in the repository's sense: a clone of the game's
+  button, not a CUO panel.
+- The clone's click is gated by two of the reference's own rules, verbatim:
+  `CheckIfBodyIsNotOkAndNeedCPR(body) || …` —
+  `(heartRate < 50 && bloodOxygen < 100 && bloodPressure < 30) || heartRate < 5 || isDying || isCriticallyDying` —
+  and `IsCPRBeingPerformedOnThisBody_IsMeOrNobody(body)`, the exclusivity rule (nobody else is in a CPR/AED
+  minigame on that body). The click then ends a running defib minigame and starts `CPRMinigame(body)` on the
+  native `MinigameBase.main`.
+- A third rule of the reference is an admission gate rather than a button gate, and it belongs to Stage 1's own
+  judgement: `skills.STR * max(hand.totalForce, otherHand.totalForce) > 6`.
+
+**What that decides for CUO's stages**: the entry is a wound-view button that mirrors the anchor's own; it is
+offered only when the patient needs CPR and nobody else is performing it; and the operator's own strength gate is
+Stage 1's cadence-side check, not an entry filter. The continuous action still rides
+`MedicalOperationSession`, with the operator judging the rhythm on its own picture, the PATIENT's client owning the
+physiological write, and the host arbitrating exclusivity — the division this ticket's assessment already settled.
+
+**Next slice, in order**: (1) the wound-view button clone with its two gates and the localization keys for its
+tooltip, which is the consumer the admission policy needs; (2) the press-rhythm policy (the reference's 65–220 per
+minute window, the per-press stamina cost and the hand-force term) as the pure, testable half; (3) the throttled
+report and the patient-side oxygen/pressure write; (4) ventilation inside the same rhythm; (5) the side effects.
+Nothing is implemented by this ruling itself: it names what to build and where it attaches.
+

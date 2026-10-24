@@ -17,7 +17,7 @@
 #
 # Scope: every markdown file git tracks. Machine tables — alignment.txt, terminology.txt, the contracts — are
 # not documents and are out of scope; their own gates read them. The rule is docs/AGENTS.md §6; the audit that
-# produced this census is docs/backlog/review/document-corpus-audit.md.
+# produced this census is docs/backlog/done/document-corpus-audit.md.
 AGENTS.md | keep | loaded | -
 CLAUDE.md | keep | loaded | -
 docs/acceptance/AGENTS.md | keep | loaded | -
@@ -292,7 +292,7 @@ docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/ba
 docs/backlog/done/docs-mojibake-cleanup.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/done/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
-docs/backlog/review/document-corpus-audit.md | keep | index | docs/backlog/README.md
+docs/backlog/done/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/done/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-item-to-another-player.md | keep | index | docs/backlog/README.md
 docs/backlog/done/restore-refused-child-keeps-its-id.md | keep | index | docs/backlog/README.md
@@ -312,6 +312,7 @@ docs/backlog/done/console-completion-hides-what-you-cannot-run.md | keep | index
 docs/evidence/acceptance/console-completion-hides-what-you-cannot-run-20261024-c.md | keep | claim | docs/backlog/done/console-completion-hides-what-you-cannot-run.md
 docs/evidence/acceptance/container-child-limb-install-keeps-a-contained-record-20261024-a.md | keep | claim | docs/backlog/done/container-child-limb-install-keeps-a-contained-record.md
 docs/evidence/acceptance/drink-measurement-destructive-use-action-20261024-a.md | keep | claim | docs/backlog/done/drink-measurement-destructive-use-action.md
+docs/evidence/acceptance/document-corpus-audit-20261024-a.md | keep | claim | docs/backlog/done/document-corpus-audit.md
 docs/backlog/done/gamerule-host-rule-command.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
 docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
@@ -371,7 +372,7 @@ docs/decisions/archive.md | keep | spec | docs/backlog/done/mod-content-ceiling.
 docs/decisions/index.md | keep | spec | docs/evidence/selfchecks/mod-api/mod-content-fingerprint-review.md
 docs/development/agent-reference.md | keep | spec | docs/backlog/resolved/bilingual-human-docs.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md
-docs/development/review-prompt.md | keep | spec | docs/backlog/review/document-corpus-audit.md
+docs/development/review-prompt.md | keep | spec | docs/backlog/done/document-corpus-audit.md
 docs/en/AGENTS.md | keep | loaded | -
 docs/en/contributing/build-and-test.md | keep | index | docs/en/contributing/README.md
 docs/en/contributing/documentation-standard.md | keep | index | docs/en/contributing/README.md
@@ -620,7 +621,7 @@ docs/evidence/acceptance/remote-inventory-native-parity-rework-20261005-e.md | k
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-f.md | keep | claim | docs/backlog/done/container-content-event-gap-on-repick.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261006-g.md | keep | claim | docs/backlog/done/enemy-generation-pairing-late-join.md
 docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-d.md | keep | claim | docs/evidence/acceptance/20261011-e-scope.md
-docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md | keep | claim | docs/backlog/review/document-corpus-audit.md
+docs/evidence/acceptance/remote-inventory-native-parity-rework-20261011-f.md | keep | claim | docs/backlog/done/document-corpus-audit.md
 docs/evidence/acceptance/remove-legacy-view-items-remote-inventory-detail-20260927.md | keep | claim | docs/backlog/done/remove-legacy-view-items-remote-inventory-detail.md
 docs/evidence/acceptance/remove-the-online-ui-console-page-20261001.md | keep | claim | docs/backlog/done/remove-the-online-ui-console-page.md
 docs/evidence/acceptance/restore-account-arm-release-20261001-o.md | keep | claim | docs/backlog/done/restore-account-arm-release.md

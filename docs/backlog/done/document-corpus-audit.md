@@ -1,6 +1,9 @@
 # The document corpus audit: every page earns its place
 
-- Status: Review
+- Status: Done — accepted 2026-10-24: all five rows judged on the tree (record
+  `docs/evidence/acceptance/document-corpus-audit-20261024-a.md`; 1,135 tracked documents = 1,135 census lines,
+  both document gates green, the three deleted records uncited outside this ticket, every keep line carrying a
+  reader kind and a reach page).
 - Priority: Critical
 - Category: Documentation / process
 - Source: the user's 2026-10-12 directive, in their own words: "压根不会去读的文档,你写它有什么意义?…必须有意义,

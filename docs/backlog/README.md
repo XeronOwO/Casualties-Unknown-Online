@@ -73,7 +73,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
-- [The document corpus audit: every page earns its place](review/document-corpus-audit.md) — **Critical** — a reader for every page, or it is not landed.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — rows 2/4/5 pass; row 3 open.
 - [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
@@ -154,6 +153,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The document corpus audit: every page earns its place](done/document-corpus-audit.md) — **Critical** — accepted: a reader for every page.
 - [The decision register cannot take another decision](done/decision-register-budget.md) — **Low-Medium** — done: split by number.
 - [Interaction gates judged by the two clients](done/remote-interaction-local-gating.md) — **Medium-High** — accepted: actor and target judge their own side.
 - [Single-file package for the core plugin](done/single-file-plugin-package.md) — **Low-Medium** — accepted: one DLL packs the core; extensions stay separate.

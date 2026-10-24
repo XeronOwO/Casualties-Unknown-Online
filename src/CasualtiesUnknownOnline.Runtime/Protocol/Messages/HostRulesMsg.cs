@@ -69,6 +69,14 @@ public sealed class HostRulesMsg
 	[ProtoMember(13)]
 	public bool RadiationLineStopsAboveTheFloor { get; set; }
 
+	/// <summary>
+	/// The share of living players that must finish a layer before the host's end-of-layer panel shows its choices
+	/// (0..1). Announced like every other rule: a member's Admin page renders it, and the host's `/gamerule` readers
+	/// (including an op'd member) compare the value in force.
+	/// </summary>
+	[ProtoMember(14)]
+	public float LayerCompleteLivingShare { get; set; }
+
 	/// <summary>The wire form of one rule set (the sender's mapping).</summary>
 	public static HostRulesMsg From(HostRuleSet set) => new()
 	{
@@ -85,8 +93,7 @@ public sealed class HostRulesMsg
 		ReviveOnNextLevel = set.ReviveOnNextLevel,
 		Permadeath = set.Permadeath,
 		RadiationLineStopsAboveTheFloor = set.RadiationLineStopsAboveTheFloor,
-		// LayerCompleteLivingShare is HOST-ONLY (it gates the host's own panel), so it is deliberately not on the
-		// wire; the receiver's copy carries the rule's neutral value and nobody reads it there.
+		LayerCompleteLivingShare = set.LayerCompleteLivingShare,
 	};
 
 	/// <summary>The rule set this message carries (the receiver's mapping).</summary>
@@ -104,7 +111,7 @@ public sealed class HostRulesMsg
 		ReviveOnNextLevel,
 		Permadeath,
 		RadiationLineStopsAboveTheFloor,
-		1f); // LayerCompleteLivingShare: host-only, never announced (see From)
+		LayerCompleteLivingShare);
 
 	/// <summary>
 	/// Why this announcement cannot be applied, or null when it is well formed. The

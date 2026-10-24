@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 /// </para>
 ///
 /// <para>
-/// The answer today is <see cref="Audience.Members"/> for all sixteen, and the reason
+/// The answer today is <see cref="Audience.Members"/> for all seventeen, and the reason
 /// is the member's own Admin page: its read-only branch renders every rule
 /// (<c>OnlineUiAdminDrawer</c>), so a rule's value IS read on a member's screen. Three
 /// of them are read by behaviour as well — <see cref="HostRuleId.RemoteBackpackAccess"/>
@@ -30,8 +30,17 @@ namespace CasualtiesUnknownOnline.Runtime.Session.HostRules;
 /// A future rule that neither a member's screen nor a member's gesture reads is
 /// declared <see cref="Audience.HostOnly"/> and stays off the wire — and off the
 /// member's screen, which the read-only branch walks <see cref="MemberRows"/> for.
+///
+/// <para>
+/// <see cref="Audience.HostOnly"/> is reserved for a rule that truly changes nothing but the host's own screen and
+/// nothing about the game: a rule that shapes the GAME, or that touches other players, stays
+/// <see cref="Audience.Members"/> even when only the host's client executes it, because the command surface is the
+/// ceiling of what an operator can do — an op'd member sets it through <c>/gamerule</c> (the cheat gate), and the
+/// announcement is what makes the value the same on both screens. The user's 2026-10-24 ruling, given when
+/// `layer_complete_living_share` was first declared host-only: "玩法和他人相关的规则要支持作弊修改,只有真的只影响主机
+/// 本地、不影响玩法的才例外".
 /// </para>
-/// </summary>
+/// /// </summary>
 public static class HostRuleCensus
 {
 	/// <summary>Whether a rule's value reaches a member's client at all.</summary>
@@ -89,7 +98,7 @@ public static class HostRuleCensus
 		new(HostRuleId.ReviveOnNextLevel, Audience.Members, HostRuleKind.Boolean, "revive_on_next_level", "admin.rule_revive_next_level"),
 		new(HostRuleId.Permadeath, Audience.Members, HostRuleKind.Boolean, "permadeath", "admin.rule_permadeath"),
 		new(HostRuleId.RadiationLineStopsAboveTheFloor, Audience.Members, HostRuleKind.Boolean, "radiation_line_stops_above_the_floor", "admin.rule_radiation_line_floor"),
-		new(HostRuleId.LayerCompleteLivingShare, Audience.HostOnly, HostRuleKind.Number, "layer_complete_living_share", "admin.rule_layer_complete_share", new ValueRange(0f, 1f)),
+		new(HostRuleId.LayerCompleteLivingShare, Audience.Members, HostRuleKind.Number, "layer_complete_living_share", "admin.rule_layer_complete_share", new ValueRange(0f, 1f)),
 	];
 
 	/// <summary>The rows a MEMBER's client renders and acts on — the set the announcement carries.</summary>

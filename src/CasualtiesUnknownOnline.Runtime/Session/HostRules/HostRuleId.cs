@@ -33,7 +33,8 @@ public enum HostRuleId
 
 	/// <summary>
 	/// The end-of-layer panel's two choices appear on the HOST's screen only when this share of the LIVING players
-	/// has finished the layer (0..1). Host-only: it gates the host's own panel, and no member reads it.
+	/// has finished the layer (0..1). A member's Admin page renders it and an op'd member may set it through
+	/// `/gamerule`, so the value is announced like every other rule.
 	/// </summary>
 	LayerCompleteLivingShare,
 }

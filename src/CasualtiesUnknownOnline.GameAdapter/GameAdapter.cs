@@ -232,6 +232,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		}
 
 		_domains.LayerAdvance.UpdatePanelChoices(); // the end-of-layer panel's two choices belong to the host
+		_domains.LayerPanel.Update(); // host: the panel appears by the LIVING group's share, not the local body's position
 		_domains.GenItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_domains.GenItemApplication.Update(_domains.Run.IsEnteringWorld); // guest: apply the host's generation snapshot once the local generation finished (held while the entry loads its world)
 		_domains.StartingSupplies.Update(); // a player this world has no character for: the run's starting supplies, once per body (S4.3)

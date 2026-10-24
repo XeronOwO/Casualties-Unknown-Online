@@ -159,12 +159,7 @@ public class HostRuleCensusTests
 	{
 		var set = Set();
 
-		// Every ANNOUNCED rule round-trips. The one host-only rule does not travel by design (its row's audience says
-		// so, because only the host's own panel reads it), so the receiver's copy carries the neutral value and the
-		// comparison excludes it rather than pretending it was sent.
-		var roundTripped = HostRulesMsg.From(set).ToSet() with { LayerCompleteLivingShare = set.LayerCompleteLivingShare };
-
-		Assert.Equal(set, roundTripped);
+		Assert.Equal(set, HostRulesMsg.From(set).ToSet());
 	}
 
 	[Fact]

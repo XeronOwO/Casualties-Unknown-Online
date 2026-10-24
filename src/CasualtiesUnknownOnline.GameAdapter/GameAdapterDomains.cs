@@ -146,6 +146,7 @@ internal sealed class GameAdapterDomains
 
 	/// <summary>The end-of-layer choice's world half: a member's choice reaches the host, and the host drives the game's own layer advance for it.</summary>
 	internal readonly LayerAdvanceCoordinator LayerAdvance;
+	internal readonly LayerPanelGate LayerPanel;
 
 	/// <summary>The world-entry instruction's recovery: a member pulled out by the host's own exit asks for the invite again, and the host answers with the ordinary entry instruction.</summary>
 	internal readonly ReentryCoordinator Reentry;
@@ -402,6 +403,7 @@ internal sealed class GameAdapterDomains
 		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, InteractionVisibility, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		Respawn = new RespawnCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());
 		LayerAdvance = new LayerAdvanceCoordinator(session, world, layerAdvance, loggerFactory.CreateLogger<LayerAdvanceCoordinator>());
+		LayerPanel = new LayerPanelGate(this, remoteVitals, loggerFactory.CreateLogger<LayerPanelGate>());
 		SpeechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		CraftingSync = new CraftingSync(craft, ItemIds, itemReports, OperationTrace, loggerFactory.CreateLogger<CraftingSync>());
 		RecipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());

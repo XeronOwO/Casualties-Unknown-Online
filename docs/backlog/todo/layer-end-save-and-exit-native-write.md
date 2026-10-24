@@ -34,6 +34,41 @@
   documented leave), or "leave without saving" with the native write blocked and named. That is the save
   half's decision, taken with `review/save-layer-end-save-and-restore.md` and decision 165/167 in hand.
 
+## The attribution, read on the machine (2026-10-24)
+
+Two clients in a session, both in the world (`0.1.0+bca3f119`, host + one guest; the guest called the panel's
+own entry `WorldGeneration.SaveAndExit` — the method the button invokes — because a real click needs a cursor the
+acceptance tooling may not use):
+
+| read | before | after the guest's call |
+|---|---|---|
+| guest's world | `depth 0, worldExists true` | `depth -1, worldExists false`, page `Home`, session still `active` |
+| host's world | `depth 0, worldExists true` | unchanged, host still in the world, lobby unchanged |
+| `save.sv` (both clients read the SAME file: they share one user profile) | 1842 bytes, mtime T0 | **1806 bytes, new mtime** |
+
+So a MEMBER's click writes the native `save.sv` with the member's own world state and drops that member out of
+the session's world while the session continues. That is decision 165's enforcement gap on a surface the
+original grep-based evidence could not see, and it is native: `SaveSystem.SaveGame()` writes
+`persistentDataPath\save.sv`; CUO's own archives live under `cuo/saves/w-<date>-<hex>` and were not touched.
+
+## The ruling (user, 2026-10-24): the host owns both choices, and CUO saves are the only saves
+
+- **Only the host may press "Continue" or "Save and exit"; on a member both buttons are hidden** — a control the
+  player may not use does not belong on their screen.
+- **The save must be CUO's**: "游戏原生存档对我们 cuo 没有意义" — the native save is meaningless to CUO, so the
+  host's own "Save and exit" must take the CUO cut rather than write `save.sv`.
+
+**Landed for the first half** (deployed `0.1.0+32acadd7`): `LayerPanelChoicePolicy` (pure: a guest in an active
+session hides them) and `LayerAdvanceCoordinator.UpdatePanelChoices`, which finds the two buttons by what they
+CALL (`WorldGeneration.ContinueRun` / `SaveAndExit`) and hides them once per panel activation, logging the count.
+A member therefore cannot reach `SaveAndExit` at all.
+
+**Still owed (the second half)**: the HOST's own click must take a CUO cut instead of `SaveSystem.SaveGame()`.
+That needs a save port on the patch bridge (`IWorldSaveControl` is not reachable from a patch today) and the
+capability catalogue's row for the new patch, so it is the next slice; until it lands the host's click still
+writes the native save, which is the remaining defect this ticket keeps open for.
+
+
 ## Required work
 
 1. Attribute first, on two clients, in a live session: read what each click writes (the native save slot

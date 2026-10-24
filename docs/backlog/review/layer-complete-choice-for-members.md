@@ -1,9 +1,12 @@
 # The end-of-layer choice must be reachable by every member
 
-- Status: Review — the development half landed 2026-10-07 (see *What landed*); the runtime row (a dead host
-  at the boundary, two living members) needs three clients and is named in *Limits* item 1. The static
-  attribution this ticket's first job asked for is taken above: the native surface, who creates it, and what
-  each side does with the click.
+- Status: Review — **superseded in part (2026-10-24)**: this ticket's premise ("both the host and the guests can
+  see it and click it") was overturned by the user's later ruling recorded on
+  `todo/layer-end-save-and-exit-native-write.md`: only the HOST presses these two choices, and on a member both
+  buttons are now HIDDEN (`LayerPanelChoicePolicy`, deployed `0.1.0+32acadd7`). What remains of this ticket is the
+  dead-host row, which that ruling also answers for the panel (a member cannot click, so a dead host cannot be
+  bypassed from here; the pod keeps its own producer). The development half had landed 2026-10-07; the static
+  attribution this ticket's first job asked for is taken above.
 - Priority: High
 - Category: Layer progression / session flow
 - Source: the user's 2026-10-07 backlog request — finishing a layer offers a save-or-continue choice; they ask

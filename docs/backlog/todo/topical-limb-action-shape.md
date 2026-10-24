@@ -93,4 +93,3 @@ instead of the flag:
 SHOULD do when released on a teammate's limb — run the native injection faithfully, refuse it by name, or apply it
 topically. The classifier now says "no family", so nothing claims it and the host refuses; that is the state this
 change lands, not the final design.
-

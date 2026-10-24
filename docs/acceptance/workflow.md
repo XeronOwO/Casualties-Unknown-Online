@@ -350,4 +350,3 @@ all need the same gesture, so they are ONE batch with one launch and four verdic
 
 The sequence is recorded here because a gesture is a call site and a claim about it must be falsifiable
 before the run: a step this list cannot perform is a design defect, not a batch failure.
-

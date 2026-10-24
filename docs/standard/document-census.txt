@@ -362,6 +362,7 @@ docs/backlog/review/recursive-crafting-mod.md | keep | index | docs/backlog/READ
 docs/backlog/done/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/item-identity-bridge.md | keep | index | docs/backlog/README.md
 docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/host-heartbeat-sound-truncated.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/blast-marked-victims-20261024-r.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
 docs/evidence/acceptance/blast-descent-and-roll-20261024-t.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md

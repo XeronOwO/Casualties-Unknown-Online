@@ -52,6 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [The critical heartbeat is cut off before the clip ends](todo/host-heartbeat-sound-truncated.md) — **Medium-High** — user report; `critSource` lead.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
 ### In progress

@@ -413,6 +413,8 @@ internal sealed class OnlineUiHost
 		Notify = _onlineUi.Notify,
 		WatchingSteamId = _onlineUi.WatchingSteamId,
 		IsSpectator = _onlineUi.IsSpectator,
+		SpectatorEffects = _mirrorEffects.Value,
+		SetSpectatorEffects = value => _mirrorEffects.Value = value,
 		IsFreeFly = _onlineUi.IsFreeFly,
 		CycleWatch = _onlineUi.CycleWatch,
 		ToggleFreeFly = _onlineUi.ToggleFreeFly,

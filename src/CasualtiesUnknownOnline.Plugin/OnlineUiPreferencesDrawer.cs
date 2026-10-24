@@ -63,11 +63,29 @@ internal static class OnlineUiPreferencesDrawer
 
 		BuildLogLevel(ctx, page);
 
+		BuildSpectatorEffects(ctx, page);
+
 		BuildLanguage(ctx, page);
 
 		BuildColor(ctx, page);
 
 		BuildProfiles(ctx, page);
+	}
+
+	/// <summary>
+	/// The spectator-effects preference: the same value the config file carries, toggleable in game so a player can
+	/// try the watched body's blackout and crisis sound and turn them off without leaving the session (the plugin
+	/// writes the config, so the choice survives a restart).
+	/// </summary>
+	private static void BuildSpectatorEffects(OnlineUiContext ctx, OnlineUiPageBuilder page)
+	{
+		page.Section(ctx.T("prefs.spectator_effects"));
+		page.Toggle(
+			"prefs.spectator_effects.toggle",
+			ctx.T("prefs.spectator_effects_row"),
+			ctx.SpectatorEffects,
+			value => ctx.SetSpectatorEffects?.Invoke(value));
+		page.Muted(ctx.T("prefs.spectator_effects_hint"));
 	}
 
 	private static void BuildLogLevel(OnlineUiContext ctx, OnlineUiPageBuilder page)

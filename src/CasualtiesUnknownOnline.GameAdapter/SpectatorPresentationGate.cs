@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -29,6 +30,20 @@ internal static class SpectatorPresentationGate
 	internal static float WatchedBlackAmount { get; private set; }
 
 	internal static Color WatchedVignette { get; private set; } = Color.clear;
+
+	/// <summary>
+	/// Non-zero while the spectator's own code is starting or stopping the WATCHED body's crisis sound: the sound
+	/// patch refuses every clip while spectating (the local body's audio must not reach the watcher), and this lets
+	/// the one sound the mode plays on the watched player's behalf through — a depth, not a flag, so a nested call
+	/// cannot leave it open.
+	/// </summary>
+	internal static int WatchedSoundDepth { get; private set; }
+
+	internal static bool AllowsWatchedSound => WatchedSoundDepth > 0;
+
+	internal static void BeginWatchedSound() => WatchedSoundDepth++;
+
+	internal static void EndWatchedSound() => WatchedSoundDepth = Math.Max(0, WatchedSoundDepth - 1);
 
 	internal static void Set(bool active) => IsActive = active;
 

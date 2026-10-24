@@ -150,6 +150,13 @@ internal sealed class OnlineUiContext
 	/// <summary>Turns the free camera on or off by what it is now; false when nothing is being watched.</summary>
 	internal Func<bool>? ToggleFreeFly;
 
+	/// <summary>Whether the watched body's own screen effects reach this spectator's camera (the Preferences toggle's
+	/// current value).</summary>
+	internal bool SpectatorEffects = true;
+
+	/// <summary>Sets that preference; the plugin writes it to the config, so the change is live and survives a restart.</summary>
+	internal Action<bool>? SetSpectatorEffects;
+
 	internal Func<ulong, bool>? BanMember;
 
 	internal Func<ulong, bool>? UnbanMember;

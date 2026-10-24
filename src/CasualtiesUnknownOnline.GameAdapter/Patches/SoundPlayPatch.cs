@@ -47,8 +47,10 @@ internal static class SoundPlayPatch
 
 		// A spectator watches: the local player-state presentation is off, and the character-sound family is
 		// the biggest half of it (footsteps, swings, pain, the vital-crisis heartbeat all come through this
-		// call). The world's own ambience rides other call sites and stays audible.
-		if (SpectatorPresentationGate.IsActive)
+		// call). The world's own ambience rides other call sites and stays audible. The one exception is the
+		// crisis sound THIS client plays on the WATCHED body's behalf: the spectator service opens the depth
+		// around its own play, so the gate does not silence the very sound the ruling asks the watcher to hear.
+		if (SpectatorPresentationGate.IsActive && !SpectatorPresentationGate.AllowsWatchedSound)
 		{
 			return false;
 		}

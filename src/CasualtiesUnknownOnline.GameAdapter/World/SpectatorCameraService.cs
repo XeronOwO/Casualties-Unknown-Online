@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -177,6 +178,7 @@ internal sealed class SpectatorCameraService(
 		});
 		_watchingSteamId = 0;
 		_freeFlyWanted = false;
+		StopCrisisSound();
 	}
 
 	/// <inheritdoc />
@@ -270,6 +272,16 @@ internal sealed class SpectatorCameraService(
 			_mirrorLogged = mirror;
 			log.LogInformation("[Spectator] mirror {Mirror}.", mirror);
 		}
+
+		// The watched body's crisis sound, played on this client's speaker because the same ruling that mirrors its
+		// screen asks the watcher to hear the player they follow: the crisis drone the game plays for a body that is
+		// going out. It is the game's own clip (the MusicManager's critical source), started and stopped here, and the
+		// gate's depth window is what lets it through the patch that silences everything else.
+		var crisis = MirrorEffects
+			&& remoteVitals.TryGet(_watchingSteamId, out var watchedVitals)
+			&& watchedVitals.Alive
+			&& (!watchedVitals.Conscious || watchedVitals.BrainHealth <= CriticalBrainHealth);
+		UpdateCrisisSound(crisis);
 
 		// The free camera is given a position the first frame it is asked for: the game's own /freecam command
 		// seeds it from wherever the camera is, and without that the follow target is dropped and the view jumps
@@ -396,6 +408,65 @@ internal sealed class SpectatorCameraService(
 
 	/// <summary>The vignette's strongest alpha: at a reported brain health of zero the edges are half red.</summary>
 	private const float MaxVignetteAlpha = 0.5f;
+
+	/// <summary>The reported brain health at which the watched body counts as going out: the crisis drone starts here.</summary>
+	private const float CriticalBrainHealth = 35f;
+
+	/// <summary>The watched body's crisis drone, owned here so the same body does not stack a source per frame.</summary>
+	private AudioSource? _crisisSource;
+
+	/// <summary>
+	/// Starts or stops the watched body's crisis drone. The clip is the game's own (the MusicManager's critical
+	/// source, read rather than hardcoded), the play goes through the normal sound path inside the gate's depth window
+	/// so the spectator's silence does not swallow it, and it stops the moment the body recovers or the watch ends.
+	/// </summary>
+	private void UpdateCrisisSound(bool wanted)
+	{
+		if (!wanted)
+		{
+			StopCrisisSound();
+			return;
+		}
+
+		if (_crisisSource != null) // Unity object — ==
+		{
+			return;
+		}
+
+		var clip = MusicManager.main != null ? MusicManager.main.critSource : null; // Unity objects — ==
+		if (clip == null || clip.clip == null)
+		{
+			return;
+		}
+
+		SpectatorPresentationGate.BeginWatchedSound();
+		try
+		{
+			_crisisSource = Sound.Play(clip.clip, Vector2.zero, true, false, null, 0.6f, 1f, true, true);
+			if (_crisisSource != null) // Unity object — ==
+			{
+				_crisisSource.loop = true;
+			}
+		}
+		finally
+		{
+			SpectatorPresentationGate.EndWatchedSound();
+		}
+
+		log.LogInformation("[Spectator] crisis sound started for the watched body.");
+	}
+
+	private void StopCrisisSound()
+	{
+		if (_crisisSource == null) // Unity object — ==
+		{
+			return;
+		}
+
+		_crisisSource.Stop();
+		Object.Destroy(_crisisSource.gameObject);
+		_crisisSource = null;
+	}
 
 	/// <summary>The vignette alpha for a blood volume: full at nothing left, clear at the whole five litres.</summary>
 	private static Color OpacityFor(Color colour, float bloodVolume) =>

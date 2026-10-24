@@ -35,6 +35,11 @@ own gates were all open (`allowUseItem=true, conscious=true, minigame=false, pau
 ring and closed the tab-backpack ticket); buttons do not. This is UIPI-style blocking or a child-window/station condition, and it
 is the one fact behind every row below. A cycle that fixes delivery unblocks them together.
 
+**One correction this cycle's own runs force on that paragraph:** the remote medical VIEW is not part of this blocker — a probe
+opens it (`remote-wound-special mode=open` → `opened=true, displayBodyName=MedicalDisplay_…` once the operator is alive). What the
+buttons block is the TREATMENT GESTURE inside it, which is a drag of an item onto a limb. So the rows below fail one step later
+than "cannot open the chart", and a future cycle should start from the open chart rather than re-testing the entry.
+
 | Ticket | The row that needs the button |
 |---|---|
 | `cross-player-drag-use-feedback.md` | rows 1-7 are drags; the ring lists carried items on its own slots (`funguschunk` at `520,568`), so the page hypothesis is retired |

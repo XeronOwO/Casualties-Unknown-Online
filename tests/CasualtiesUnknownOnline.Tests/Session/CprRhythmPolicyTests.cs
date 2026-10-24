@@ -20,12 +20,13 @@ public class CprRhythmPolicyTests
 		Assert.Equal(CprRhythmPolicy.CompressionGain * 0.5f, CprRhythmPolicy.PressureGain(0.15f, currentPressure: 10f, CprRhythmPolicy.CompressionCeiling));
 
 	[Fact]
-	public void ALatePress_ScalesDownAndAPressPastTheSlowLine_AddsNothing()
+	public void ALatePressInsideTheBand_StillEarnsFull_AndPastTheSlowEdgeItAddsNothing()
 	{
-		var late = CprRhythmPolicy.PressureGain(1.1f, currentPressure: 10f, CprRhythmPolicy.CompressionCeiling);
-		Assert.True(late > 0f && late < CprRhythmPolicy.CompressionGain);
-
-		Assert.Equal(0f, CprRhythmPolicy.PressureGain(CprRhythmPolicy.TooSlowInterval, currentPressure: 10f, CprRhythmPolicy.CompressionCeiling));
+		// The band is the reference's own (65-220 a minute): the slow HALF of it scores full, because the reference scores
+		// the rate rather than rewarding only the sweet spot. 1.1 s is 55 a minute - under the floor, so worthless.
+		Assert.Equal(CprRhythmPolicy.CompressionGain, CprRhythmPolicy.PressureGain(0.85f, currentPressure: 10f, CprRhythmPolicy.CompressionCeiling));
+		Assert.Equal(0f, CprRhythmPolicy.PressureGain(1.1f, currentPressure: 10f, CprRhythmPolicy.CompressionCeiling));
+		Assert.Equal(0f, CprRhythmPolicy.PressureGain(CprRhythmPolicy.SlowestInterval + 0.01f, currentPressure: 10f, CprRhythmPolicy.CompressionCeiling));
 	}
 
 	[Fact]
@@ -74,10 +75,11 @@ public class CprRhythmPolicyTests
 	[Fact]
 	public void AFranticPressIsAnOverPress_AndTheIdealRhythmNeverIs()
 	{
-		// Stage 3's rib cost: under half the ideal interval the chest gets no time to recoil, so the press is a shove.
-		Assert.True(CprRhythmPolicy.IsAnOverPress(CprRhythmPolicy.IdealInterval * 0.2f));
+		// Stage 3's rib cost: faster than the band's own fast edge (220 a minute) the chest gets no time to recoil, so
+		// the press is a shove. The edge is the reference band's, not a separate invented line.
+		Assert.True(CprRhythmPolicy.IsAnOverPress(CprRhythmPolicy.FastestInterval * 0.5f));
+		Assert.False(CprRhythmPolicy.IsAnOverPress(CprRhythmPolicy.FastestInterval));
 		Assert.False(CprRhythmPolicy.IsAnOverPress(CprRhythmPolicy.IdealInterval));
-		Assert.False(CprRhythmPolicy.IsAnOverPress(CprRhythmPolicy.IdealInterval * CprRhythmPolicy.DangerousIntervalFactor));
 		Assert.False(CprRhythmPolicy.IsAnOverPress(0f));
 	}
 }

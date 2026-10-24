@@ -42,50 +42,58 @@ public static class CprRhythmPolicy
 	/// <summary>The best interval between compressions in seconds (about 110 presses a minute).</summary>
 	public const float IdealInterval = 0.55f;
 
-	/// <summary>Beyond this interval a press is too late to keep circulation going: it adds nothing.</summary>
-	public const float TooSlowInterval = 1.6f;
+	/// <summary>
+	/// The slow edge of the rhythm band: 65 compressions a minute, the reference implementation's own floor. A press later
+	/// than this adds nothing — circulation has fallen between the presses, so the effort buys no perfusion.
+	/// </summary>
+	public const float SlowestInterval = 60f / 65f;
+
+	/// <summary>
+	/// The fast edge of the rhythm band: 220 compressions a minute. A press faster than this is a shove — the chest never
+	/// recoils, so it earns half AND breaks the patient's rib (<see cref="IsAnOverPress"/>).
+	/// </summary>
+	public const float FastestInterval = 60f / 220f;
 
 	/// <summary>The pressure a compression may not lift past while the body is still in arrest (above it the chest is working).</summary>
 	public const float CompressionCeiling = FibrillationPressure;
 
 	/// <summary>
-	/// How much pressure one compression adds for an interval: full <see cref="CompressionGain"/> near
-	/// <see cref="IdealInterval"/>, the same gain scaled down when the presses are too fast (recoil is lost) or too slow
-	/// (circulation falls between them), nothing at all past <see cref="TooSlowInterval"/>.
+	/// How much pressure one compression adds for an interval, on the reference's own rhythm band (65–220 a minute, the
+	/// user's 2026-10-24 ruling to follow it): full <see cref="CompressionGain"/> inside the band, half below the fast edge
+	/// (a shove, which also costs a rib), nothing past the slow edge, and nothing once the chest is at this patient's own
+	/// ceiling.
 	/// </summary>
 	public static float PressureGain(float intervalSeconds, float currentPressure, float pressureCeiling)
 	{
-		if (intervalSeconds <= 0f || intervalSeconds >= TooSlowInterval || currentPressure >= pressureCeiling)
+		if (intervalSeconds <= 0f || intervalSeconds > SlowestInterval || currentPressure >= pressureCeiling)
 		{
 			return 0f;
 		}
 
-		// A press that arrives too fast earns half (there is no time for the chest to refill), one near the ideal
-		// interval earns the full gain, and one that is late scales down linearly to nothing at the slow line.
-		var cadence = intervalSeconds < IdealInterval
-			? 0.5f
-			: 1f - ((intervalSeconds - IdealInterval) / (TooSlowInterval - IdealInterval));
-
-		return CompressionGain * Clamp01(cadence);
+		return CompressionGain * CadenceFactor(intervalSeconds);
 	}
 
 	/// <summary>
-	/// How much oxygen one ventilation adds: the same cadence shape, and nothing at all when the patient's oxygen is at
-	/// its own ceiling (a chest that cannot exchange air gains nothing from more air).
+	/// How much oxygen one ventilation adds: the same band shape, and nothing at all when the patient's oxygen is at its
+	/// own ceiling (a chest that cannot exchange air gains nothing from more air).
 	/// </summary>
 	public static float OxygenGain(float intervalSeconds, float currentOxygen, float oxygenCeiling)
 	{
-		if (intervalSeconds <= 0f || intervalSeconds >= TooSlowInterval || currentOxygen >= oxygenCeiling)
+		if (intervalSeconds <= 0f || intervalSeconds > SlowestInterval || currentOxygen >= oxygenCeiling)
 		{
 			return 0f;
 		}
 
-		var cadence = intervalSeconds < IdealInterval
-			? 0.5f
-			: 1f - ((intervalSeconds - IdealInterval) / (TooSlowInterval - IdealInterval));
-
-		return VentilationGain * Clamp01(cadence);
+		return VentilationGain * CadenceFactor(intervalSeconds);
 	}
+
+	/// <summary>
+	/// The band's own share of a press: a full one inside 65–220 a minute, half below the fast edge. The reference scores
+	/// the RATE, so this is a band rather than a slope — with the slow half of the range (65 to about 110 a minute) already
+	/// scoring full, which is why the ideal interval sits inside it instead of at its edge.
+	/// </summary>
+	public static float CadenceFactor(float intervalSeconds) =>
+		intervalSeconds < FastestInterval ? 0.5f : 1f;
 
 	/// <summary>
 	/// The pressure ceiling this patient's own body allows: a body the game already marks as losing its blood or with an
@@ -128,13 +136,6 @@ public static class CprRhythmPolicy
 	public const float PerfusingHeartRate = 40f;
 
 	/// <summary>
-	/// The fastest press that is still a compression rather than a shove: below this fraction of
-	/// <see cref="IdealInterval"/> the chest gets no time to recoil and the ribs take the force (ticket
-	/// `remote-medical-cpr.md`, stage 3's "rib breaks on over-pressing").
-	/// </summary>
-	public const float DangerousIntervalFactor = 0.5f;
-
-	/// <summary>
 	/// The oxygen ceiling this patient's own body allows: the game's circulation rule clamps oxygen at
 	/// `100 - hemothorax * 0.3` (`Body.HandleCirculation`'s own chest-wound cap), so a ventilation cannot promise more
 	/// than an open chest would let the blood carry.
@@ -142,11 +143,12 @@ public static class CprRhythmPolicy
 	public static float OxygenCeilingFor(float hemothoraxProgress) => Math.Max(0f, 100f - (hemothoraxProgress * 0.3f));
 
 	/// <summary>
-	/// Whether this press was fast enough to hurt: below half the ideal interval the gain is halved AND the patient's
-	/// chest pays for it (the applier breaks the chest limb), which is the cost the ruling's rhythm is supposed to carry.
+	/// Whether this press was fast enough to hurt: faster than the band's own fast edge (220 a minute) the chest gets no
+	/// time to recoil, so the press is a shove — half the gain AND the patient's rib (the applier breaks the chest limb).
+	/// The edge is the reference band's, not a separate invented line.
 	/// </summary>
 	public static bool IsAnOverPress(float intervalSeconds) =>
-		intervalSeconds > 0f && intervalSeconds < IdealInterval * DangerousIntervalFactor;
+		intervalSeconds > 0f && intervalSeconds < FastestInterval;
 
 	/// <summary>
 	/// Whether this compression restarts the heart: the perfusion reached <see cref="RestartPressure"/> (or the patient's

@@ -6,6 +6,15 @@
 - Parent: `remote-medical-native-minigame-parity.md`
 - Source: User confirmation (2026-09-06) — shrapnel removal must support multiple players simultaneously, following the multi-player model from KrokMP.
 
+## Run sheet (cycle 2026-10-25: what a live session could and could not judge)
+
+Batch `20261025-d`, one live session with three clients (host, guest operator, alt). Artifact `0.1.0+c08c99ad…`.
+
+- [x] **The break-grasp path is drivable** (row 8's substance): `grip-slip-drive` seeds shrapnel, starts the shared special session and breaks the grasp, and the slip's damage appears identically on the patient's own limb and the operator's display (recorded in `cross-player-item-use-random-determinism-20261025-b.md`).
+- [ ] **Row 7 — all pieces removed — NOT driven, and the missing capability is exact.** The `pieces` probe shows the started minigame's piece count, but the minigame's lifetime is shorter than one driver round trip in this state: a `start` immediately followed by `pieces` answered `-1` twice tonight, and the next `pieces` call answered `current=none`, so a batch cannot break piece after piece inside the window. What the row needs is a single in-process drive that starts the session and breaks every piece while the game keeps running (a coroutine shaped like `cpr-rhythm`, not a sequence of driver calls).
+- [ ] **Rows 1–6 and 9** need two operators acting on the same limb inside that same window (leases, force-ungrab, cancel and disconnect), so they inherit row 7's capability.
+- [ ] **Row 10** is a code question (the old snapshot hack's removal) and is judged by reading the path, not by a session.
+
 ## Objective
 
 Implement a shared multiplayer `ShrapnelMinigame` remote path so multiple players can remove different shrapnel pieces from the same remote limb concurrently, with per-piece ownership, conflict arbitration, force-ungrab, progress propagation, third-party visibility and correct cancellation/disconnect behavior.

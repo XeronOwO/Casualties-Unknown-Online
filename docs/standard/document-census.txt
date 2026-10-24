@@ -213,6 +213,7 @@ docs/backlog/resolved/runtime-di-feature-registration-lifecycle.md | keep | inde
 docs/backlog/resolved/runtime-log-errors-2026-08-30.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/review/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim | docs/backlog/review/adapter-capability-catalog.md
 docs/backlog/resolved/bilingual-human-docs.md | keep | index | docs/backlog/README.md
 docs/backlog/done/cheat-permission-and-op-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/backlog/README.md

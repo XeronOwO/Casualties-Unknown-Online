@@ -1,6 +1,11 @@
 # Adapter capability catalog and probe aggregation
 
-- Status: Review
+- Status: Review — **stage 1's acceptance row passed 2026-10-24** on the deployed artifact: the startup probe
+  prints all 13 capabilities with their class and contract count, its report text is the one
+  `ProbeGame_KeepsItsVerdictAndReportText` pins, and both suites are green (record
+  `docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md`). The ticket stays here because stages 2
+  (degradation, with its player-visible notice) and 3 (install units) are gated on the game update landing, as
+  the staging below says.
 - Priority: High
 - Category: Architecture / game-update adaptation
 - Source: Loomi architecture review (2026-09-20), item 1; degradation ruling by the user, 2026-09-20

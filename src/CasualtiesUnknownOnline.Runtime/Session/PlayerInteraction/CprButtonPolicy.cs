@@ -33,4 +33,18 @@ public static class CprButtonPolicy
 		var interval = nowSeconds - previousPressSeconds;
 		return interval <= 0f ? 0.01f : interval;
 	}
+
+	/// <summary>
+	/// The refusal an operator's own body causes, or <see cref="CprOperatorRefusal.None"/> when the press may proceed. The
+	/// line the player sees is the CLIENT's, from its own catalogue keys, so this rule stays free of presentation strings.
+	/// </summary>
+	public static CprOperatorRefusal OperatorRefusal(bool canCompress, bool hasStamina)
+	{
+		if (!canCompress)
+		{
+			return CprOperatorRefusal.TooWeak;
+		}
+
+		return hasStamina ? CprOperatorRefusal.None : CprOperatorRefusal.Exhausted;
+	}
 }

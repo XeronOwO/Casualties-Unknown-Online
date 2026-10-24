@@ -206,27 +206,34 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 
 		// The press is paid for HERE, not on the host: a member's own vitals are authoritative on their own client, so a
 		// charge the host writes into its snapshot of the member never reaches the member's body (read on the machine, batch
-		// 20261024-o: five host-charged presses left the operator's own stamina at 100). An operator at the floor cannot
-		// compress — the refusal is the game's own deny sound, and nothing is sent, so the patient is not given a press
-		// nobody made.
-		if (!TryPayForThePress())
+		// 20261024-o: five host-charged presses left the operator's own stamina at 100). The strength gate is answered in the
+		// same place and for the same reason — it asks about THIS operator's own hands. Either refusal is the operator's own
+		// line plus the game's deny sound (NotifyUseRefused publishes both), and nothing is sent, so the patient is not given
+		// a press nobody made.
+		var refusal = CprButtonPolicy.OperatorRefusal(
+			canCompress: CanThisOperatorCompress(),
+			hasStamina: HasStaminaForAPress());
+		if (refusal != CprOperatorRefusal.None)
 		{
-			_domains.PlayerInteraction.FireUseRefused();
-			_domains.Log.LogInformation("[Cpr] the press was refused: this operator has no stamina left.");
+			var line = refusal == CprOperatorRefusal.TooWeak
+				? _domains.Localization.T("medical.cpr_too_weak")
+				: _domains.Localization.T("medical.cpr_exhausted");
+			_domains.PlayerInteraction.NotifyUseRefused(line);
+			_domains.Log.LogInformation("[Cpr] the press was refused by this operator's own body: {Refusal}.", refusal);
 			return;
 		}
 
+		PayForThePress();
 		_lastPressSeconds = Time.unscaledTime;
 		operations.SendOtherUpdate(_operationId, MedicalOperationUpdateAction.Compress, interval);
 		_domains.Log.LogInformation("[Cpr] compression {Interval:F2}s sent to operation {Operation}.", interval, _operationId);
 	}
 
 	/// <summary>
-	/// Charges this operator's own body for one press — stamina and a little heat, the reference's per-press cost — and
-	/// answers whether the body could afford it. The numbers come from `CprRhythmPolicy`, the same rule the host reads for
-	/// the patient's side, so the two halves cannot drift.
+	/// The strength gate's answer for THIS body: the reference's `skills.STR * handMaxTotalForce > 6`, with the hand force
+	/// read from the game's own `limbs[i].totalForce` on the two hand limbs (`Body` treats 5 and 8 as the hands).
 	/// </summary>
-	private bool TryPayForThePress()
+	private bool CanThisOperatorCompress()
 	{
 		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
 		if (body == null) // Unity object — ==
@@ -234,14 +241,32 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 			return true;
 		}
 
-		if (body.stamina < CprRhythmPolicy.MinimumStamina)
+		var handForce = Math.Max(body.limbs[5].totalForce, body.limbs[8].totalForce);
+		return CprOperatorGate.CanCompress(body.skills.STR, handForce);
+	}
+
+	/// <summary>Whether this operator's own body has the stamina for another press (the policy's floor).</summary>
+	private bool HasStaminaForAPress()
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		return body == null || body.stamina >= CprRhythmPolicy.MinimumStamina; // Unity object — ==
+	}
+
+	/// <summary>
+	/// Charges this operator's own body for one press — stamina and a little heat, the reference's per-press cost. The
+	/// numbers come from `CprRhythmPolicy`, the same rule the host reads for the patient's side, so the two halves cannot
+	/// drift.
+	/// </summary>
+	private void PayForThePress()
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body == null) // Unity object — ==
 		{
-			return false;
+			return;
 		}
 
 		body.stamina = Math.Max(0f, body.stamina - CprRhythmPolicy.StaminaPerPress);
 		body.temperature += CprRhythmPolicy.TemperaturePerPress;
-		return true;
 	}
 
 	/// <summary>

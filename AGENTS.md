@@ -285,9 +285,12 @@ self-check → structure review → commit.
     definition, and the failure branch of each step. Then execute it in one continuous cycle.
     **Between steps only tool calls are allowed**: a message that ends the cycle is reserved for exactly
     three cases — the sheet is complete, a step needs a decision only the user can make, or the user
-    asked a question. "The item is too big" is a reason to SPLIT the sheet, never to end the cycle; "the
-    context is probably spent" must be MEASURED (a reported limit or a truncated tool result) before it
-    may be said, and otherwise the work continues. **A commit is a middle step, never a settlement**: the
+    asked a question. "The item is too big" is a reason to SPLIT the sheet, never to end the cycle.
+    **"The context is spent" does not exist as a fact about this harness** (user's ruling, 2026-10-25: the
+    context handed to the agent is the full, complete one and is never insufficient): the phrase, or any
+    paraphrase of it — "out of room", "budget blown", "too much to hold" — may not be written, offered as a
+    reason to stop, or used to justify a smaller step. Work continues until the sheet is complete; the only
+    things that end a cycle are the three above. **A commit is a middle step, never a settlement**: the
     sheet's next step runs in the same cycle. A cycle that ends without its sheet complete is a FAILED
     cycle — record on the ticket where it stopped and why, and let the next cycle resume from that line.
     The cost this rule prices is asymmetric: a stop costs the user a whole round and costs the agent

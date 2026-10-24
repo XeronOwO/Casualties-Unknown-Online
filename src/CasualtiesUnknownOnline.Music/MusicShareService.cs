@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.BulkTransfer.Core;
 using CasualtiesUnknownOnline.BulkTransfer.Core.Audio;
@@ -26,9 +27,15 @@ namespace CasualtiesUnknownOnline.Music;
 /// </summary>
 internal sealed class MusicShareService
 {
-	private const int ChunkBytes = BulkTransferPolicy.DefaultChunkBytes;
+	private const int ChunkBytes = BulkTransferPolicy.MaximumChunkBytes;
 	private const int Window = 16;
-	private const double SendIntervalSeconds = 0.04d;
+
+	/// <summary>
+	/// One chunk per 60 ms ≈ 16.7 frames a second, inside the mod channel's 20 frames per sender per second
+	/// (<c>ModRateLimitPolicy.ModMessagesPerSecond</c>): the interval is what keeps the transfer from being
+	/// dropped as a burst, and it is what yields the channel to gameplay traffic.
+	/// </summary>
+	private const double SendIntervalSeconds = 0.06d;
 	private const double TransferDeadlineSeconds = 60d;
 	private const double StartDelaySeconds = 4d;
 
@@ -55,6 +62,16 @@ internal sealed class MusicShareService
 	private readonly ulong _localId;
 	private bool _guest;
 
+	/// <summary>The host's re-serve cache: the last complete, verified transfer, so a late joiner can catch up.</summary>
+	private string _cacheTransfer = string.Empty;
+	private string _cacheName = string.Empty;
+	private byte[]? _cacheBytes;
+	private long _cacheStartTicks = long.MaxValue;
+	private int _cacheChunkBytes = ChunkBytes;
+
+	/// <summary>Per late joiner, a fresh sender and the instant its next chunk may leave.</summary>
+	private readonly Dictionary<ulong, CatchUp> _catchUp = [];
+
 	internal MusicShareService(IModContext context, MusicDevice device)
 	{
 		_context = context;
@@ -70,12 +87,19 @@ internal sealed class MusicShareService
 
 		context.PlayerJoined += member =>
 		{
-			if (member != _localId)
+			if (member == _localId)
 			{
-				_peers.Add(member);
+				return;
 			}
+
+			_peers.Add(member);
+			ServeLateJoiner(member);
 		};
-		context.PlayerLeft += member => _peers.Remove(member);
+		context.PlayerLeft += member =>
+		{
+			_peers.Remove(member);
+			_catchUp.Remove(member);
+		};
 	}
 
 	/// <summary>True while this client shares a track.</summary>
@@ -107,11 +131,6 @@ internal sealed class MusicShareService
 	/// <summary>Start sharing a WAV file (host only in this stage).</summary>
 	internal string Share(string path)
 	{
-		if (_guest)
-		{
-			return "only the host can share a track in this stage (a guest sharer needs the host's cache for late joiners).";
-		}
-
 		if (!File.Exists(path))
 		{
 			return $"no file at {path}";
@@ -168,7 +187,60 @@ internal sealed class MusicShareService
 		_file = null;
 		_received = null;
 		_ackedBy.Clear();
+		_catchUp.Clear();
 		_device.Stop();
+	}
+
+	/// <summary>
+	/// Host only: a member joined while a track is known — start a private catch-up transfer to that member, so a
+	/// late joiner hears the SAME track at the offset the group is at rather than nothing or the wrong place.
+	/// </summary>
+	private void ServeLateJoiner(ulong member)
+	{
+		if (_guest || _cacheBytes is null || _cacheStartTicks == long.MaxValue)
+		{
+			return;
+		}
+
+		var sender = new BulkSender(_cacheTransfer, _cacheBytes, _cacheChunkBytes);
+		if (!_context.Packets.SendToPeer(member, MusicWire.Announce,
+				MusicWire.AnnounceValue(_cacheTransfer, _cacheName, _cacheBytes.Length, sender.File.Sha256, _cacheChunkBytes, _cacheStartTicks)))
+		{
+			_context.Logger.LogWarning($"[Music] a late joiner could not be sent the announce of {_cacheName}.");
+			return;
+		}
+
+		_catchUp[member] = new CatchUp(sender, Time.realtimeSinceStartupAsDouble);
+		_context.Logger.LogInformation($"[Music] serving {_cacheName} to late joiner {member}.");
+	}
+
+	/// <summary>Send one chunk per interval to each late joiner still catching up.</summary>
+	private void TickCatchUp(double now)
+	{
+		foreach (var member in _catchUp.Keys.ToArray())
+		{
+			var catchUp = _catchUp[member];
+			if (now < catchUp.NextSendAt)
+			{
+				continue;
+			}
+
+			catchUp.NextSendAt = now + SendIntervalSeconds;
+			if (catchUp.Sender.Next(Window) is { } chunk)
+			{
+				_context.Packets.SendToPeer(member, MusicWire.Chunk, MusicWire.ChunkValue(_cacheTransfer, chunk.Index, chunk.Bytes));
+				continue;
+			}
+
+			if (!catchUp.Sender.Complete)
+			{
+				continue;
+			}
+
+			_context.Packets.SendToPeer(member, MusicWire.Play, MusicWire.PlayValue(_cacheTransfer, _cacheStartTicks));
+			_catchUp.Remove(member);
+			_context.Logger.LogInformation($"[Music] late joiner {member} received {_cacheName}; the start instant was sent.");
+		}
 	}
 
 	/// <summary>Per-frame tick: send the next chunks, start the playback, enforce the deadlines.</summary>
@@ -176,6 +248,7 @@ internal sealed class MusicShareService
 	{
 		var now = Time.realtimeSinceStartupAsDouble;
 		TryStartPending();
+		TickCatchUp(now);
 		if (_sender is not null)
 		{
 			TickSender(now);
@@ -220,7 +293,31 @@ internal sealed class MusicShareService
 		_started = true;
 		_context.Packets.Broadcast(MusicWire.Play, MusicWire.PlayValue(_transfer, _startTicks));
 		_context.Logger.LogInformation($"[Music] {_name} delivered to every member; playback starts at the agreed instant.");
+		Cache(_transfer, _name, _file, _startTicks, ChunkBytes);
 		ArmOrPlay(_file, _name, _startTicks);
+	}
+
+	/// <summary>Remember the last complete transfer so a late joiner can be served (the host is the only server).</summary>
+	private void Cache(string transfer, string name, byte[]? bytes, long startTicks, int chunkBytes)
+	{
+		if (bytes is null || _guest)
+		{
+			return;
+		}
+
+		_cacheTransfer = transfer;
+		_cacheName = name;
+		_cacheBytes = bytes;
+		_cacheStartTicks = startTicks;
+		_cacheChunkBytes = chunkBytes;
+	}
+
+	/// <summary>One late joiner's private catch-up transfer.</summary>
+	private sealed class CatchUp(BulkSender sender, double nextSendAt)
+	{
+		internal BulkSender Sender { get; } = sender;
+
+		internal double NextSendAt { get; set; } = nextSendAt;
 	}
 
 	/// <summary>
@@ -312,7 +409,14 @@ internal sealed class MusicShareService
 			return;
 		}
 
-		_context.Packets.SendToHost(MusicWire.Ack, MusicWire.AckValue(transfer, index));
+		// Acks are BATCHED: the receiver reports its contiguous high-water mark every 8 chunks and once at the
+		// end, because one frame per chunk would double the host's traffic (its relay of every ack) and the mod
+		// channel's 20 frames per sender per second would drop the transfer into retransmits.
+		var prefix = _receiver.ContiguousPrefix();
+		if (prefix > 0 && (prefix == _receiver.File.ChunkCount || prefix % 8 == 0))
+		{
+			_context.Packets.SendToHost(MusicWire.Ack, MusicWire.AckValue(transfer, prefix - 1));
+		}
 
 		if (!_receiver.Complete)
 		{
@@ -328,35 +432,51 @@ internal sealed class MusicShareService
 		}
 
 		_received = assembled;
+		Cache(_receiver.File.Id, _name, assembled, _startTicks, _receiver.File.ChunkBytes);
 		_context.Logger.LogInformation($"[Music] {_name} verified ({assembled.Length} bytes); waiting for the start instant.");
 	}
 
 	internal void OnAck(IModPacketContext context)
 	{
-		if (_sender is null || !MusicWire.TryReadAck(context.Value, out var transfer, out var index))
+		if (!MusicWire.TryReadAck(context.Value, out var transfer, out var highWater))
 		{
 			return;
 		}
 
-		if (!string.Equals(transfer, _transfer, StringComparison.Ordinal) || _sender.Complete)
+		// An ack names the receiver's contiguous high-water mark: every chunk up to it is held by that member.
+		if (_catchUp.TryGetValue(context.SenderSteamId, out var catchUp)
+			&& string.Equals(transfer, _cacheTransfer, StringComparison.Ordinal))
+		{
+			for (var i = 0; i <= highWater; i++)
+			{
+				catchUp.Sender.Acknowledged(i);
+			}
+
+			return;
+		}
+
+		if (_sender is null || !string.Equals(transfer, _transfer, StringComparison.Ordinal) || _sender.Complete)
 		{
 			return;
 		}
 
-		if (!_ackedBy.TryGetValue(index, out var acked))
+		for (var index = 0; index <= highWater; index++)
 		{
-			acked = [];
-			_ackedBy[index] = acked;
-		}
+			if (!_ackedBy.TryGetValue(index, out var acked))
+			{
+				acked = [];
+				_ackedBy[index] = acked;
+			}
 
-		acked.Add(context.SenderSteamId);
-		if (_peers.Count == 0 || acked.Count < _peers.Count)
-		{
-			return;
-		}
+			acked.Add(context.SenderSteamId);
+			if (_peers.Count == 0 || acked.Count < _peers.Count)
+			{
+				continue;
+			}
 
-		_ackedBy.Remove(index);
-		_sender.Acknowledged(index);
+			_ackedBy.Remove(index);
+			_sender.Acknowledged(index);
+		}
 	}
 
 	internal void OnPlay(IModPacketContext context)

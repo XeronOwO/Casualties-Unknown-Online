@@ -145,9 +145,33 @@ group is rather than at zero.
 The two offsets differ by 0.01 s and both sides show the same clip shape, so the "same track at the same offset"
 row is met for a host-shared track. `/music status` reports the share progress and the playback together.
 
-**Stage B's limits, stated:** the SHARER must be the host (a guest's transfer needs the host's copy to cache and
-re-serve the file, which is also what a LATE JOINER needs — one next stage, not two); and a transfer that does
-not complete inside its 60 s deadline is abandoned with a log line rather than wedging the session.
+**Stage B's limits, stated:** a transfer that does not complete inside its 60 s deadline is abandoned with a log
+line rather than wedging the session.
+
+## Stage C landed (2026-10-24) — the rate the channel allows, batched acks, and the host's cache
+
+The two-client run measured what the mod channel will actually carry and forced three corrections:
+
+- **The channel's rate is the ceiling.** `ModRateLimitPolicy.ModMessagesPerSecond` is 20 frames per sender per
+  second, and the host's RELAY of a member's acks spends its own budget: the first design (one ack per chunk, one
+  chunk per 40 ms) pushed the host past 20/s and the transfer fell to ~3 chunks a second through drops and
+  retries. Chunks are now **24 KB** (the largest the binary leaf allows before the mod envelope) and spaced
+  **60 ms** (≈16.7/s, one sender's budget), and acks are BATCHED: a receiver reports its contiguous
+  high-water mark every 8 chunks and once at the end (`BulkReceiver.ContiguousPrefix`). A 1,764,044-byte WAV
+  (72 chunks) then completed in about 4 s instead of stalling at 34/72.
+- **The role is learned live.** The session snapshot is BIND time (before any session exists), so `IsHost` read
+  from it is always false: the mod now treats `SessionActivated` as the guest signal (the host never fires it),
+  which is what let the host share at all.
+- **The host caches the complete, verified transfer** (`Cache`) and serves a late joiner with a private
+  `SendToPeer` catch-up: announce, one chunk per interval, then the original start instant. This also lifts the
+  guest-sharer restriction — a guest's share is verified and cached by the host's copy the same way — though the
+  guest-sharer and late-joiner paths are implemented and NOT yet read end-to-end; that is the next stage's first
+  job.
+
+**Read on two clients (re-measured with log timestamps, not sequential status reads):** with a 5 s tone whose
+transfer completed before the agreed instant, both sides logged `armed; it starts in …s at the agreed instant`
+and then `playing test-tone-5s.wav` at **07:58:46.403** (host) and **07:58:46.416** (guest) — 13 ms apart. The
+earlier apparent 0.6–0.7 s skew was the two sequential status reads, not the playback.
 
 **Where the files come from:** the player's own disk, picked through the mod's own path field (the game has no
 file picker for this); nothing is shipped with the mod and nothing is uploaded beyond the session's own peers.

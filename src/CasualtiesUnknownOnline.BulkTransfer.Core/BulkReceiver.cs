@@ -59,6 +59,22 @@ public sealed class BulkReceiver(BulkFile file)
 	}
 
 	/// <summary>
+	/// The number of chunks held from the file's start without a gap — the receiver's high-water mark, which one
+	/// acknowledgement can report instead of one frame per chunk (the transport delivers them in order, so a
+	/// prefix is all a sender needs to retire).
+	/// </summary>
+	public int ContiguousPrefix()
+	{
+		var prefix = 0;
+		while (prefix < _received.Length && _received[prefix])
+		{
+			prefix++;
+		}
+
+		return prefix;
+	}
+
+	/// <summary>
 	/// The completed file, or null when it is incomplete or its hash does not match the announcement. The hash is
 	/// the whole file's, so one flipped bit anywhere refuses the transfer rather than handing over a bad song.
 	/// </summary>

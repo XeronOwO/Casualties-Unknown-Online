@@ -379,8 +379,16 @@ effects/sounds are still open.
 
 ### Slice 4 — free flight
 
-- How the free camera is toggled in the mode (a verb, a key, or part of the possession exit) is the one detail
-  left open; it keeps using `PlayerCamera.isFreecam` and stops being a host rule.
+- **Settled (2026-10-24, deployed `0.1.0+28026a91`)**: the free camera has BOTH entries — the member card's labelled
+  toggle (read on the machine, see slice 3b) and a configurable hotkey, `Session/SpectatorFreeFlyKey` (`F7` by
+  default, the same binding pattern as `InteractionPanelKey`). The hotkey is ignored while the command console or the
+  modal window owns the keyboard, and it only acts for a client in spectator mode that is watching someone; the
+  camera's own gates decide the rest, and the host rule is gone.
+- **Runtime verification of the hotkey stays with the user**: driving a key press would need OS-level input, which
+  the acceptance rules forbid the agent to inject, so the code path is covered by the card toggle's reading (same
+  capability, same camera call) and the key binding itself is confirmed by the config entry existing and the build
+  passing. A future acceptance helper that can press a key would close it.
+
 
 
 

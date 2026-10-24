@@ -157,3 +157,29 @@ tooltip, which is the consumer the admission policy needs; (2) the press-rhythm 
 minute window, the per-press stamina cost and the hand-force term) as the pure, testable half; (3) the throttled
 report and the patient-side oxygen/pressure write; (4) ventilation inside the same rhythm; (5) the side effects.
 Nothing is implemented by this ruling itself: it names what to build and where it attaches.
+
+## CPR and AED at once — the user's 2026-10-24 rulings on the three conflicts
+
+The user asked whether the two may run together and ruled on the conflicts this ticket raised:
+
+1. **One person does one thing, but the RESCUE can be two people.** A single operator never runs two actions at
+   once (the native one-minigame-per-client rule stands). The combined CPR + AED procedure exists, and it needs **at
+   least two other living, conscious players** besides the patient — one compresses, one defibrillates. CUO's claim
+   model already allows it: `MedicalOperationClaims` locks the operator slot and the item, not the patient or the
+   limb, so two operators on one victim is the family's existing shape.
+2. **What each half does to the physiology.** Compressions act on **blood pressure**; ventilation acts on
+   **oxygen** — the user's own reading was that compression's breathing effect was unclear to them and their ruling
+   is that it does affect it, so ventilation is a real oxygen intervention rather than decoration. Both read the
+   patient's existing ceilings (a hemothorax or lost blood volume caps what either can achieve), which the
+   assessment above already recorded.
+3. **The one real conflict is the heart-restart trigger: first to the host wins, the loser corrects.** When CPR's
+   kickstart and the AED's shock would both restore the rhythm, the HOST arbitrates the first arrival and that one
+   stands; the later one is **rolled back and corrected** against the authoritative state rather than replayed (the
+   same "one resolving unit, arbitrated against the authoritative value" shape `MedicalOperationUnitRules` already
+   uses). Neither client decides the outcome on its own picture.
+
+With these three, the design has no open question left: the entry, the parties, the physiology each half owns and
+the arbitration of the single shared trigger are all decided. The next slice remains (1) above — the button — and
+then the rhythm policy, which now has the two channels it writes (pressure from presses, oxygen from ventilation)
+and a named arbitration rule for the one outcome both halves can claim.
+

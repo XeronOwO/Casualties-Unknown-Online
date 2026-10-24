@@ -274,9 +274,16 @@ member card's own control ids from inside the host's process: after `/gamemode s
 `member.watch.next.<guest>` moved the camera to the alt (`[Spectator] following 76561199526807662`), `member.watch.prev.<alt>`
 moved it back to the guest, `member.freefly.<guest>` answered `free-fly on by this client's own request`, and
 `member.watch.stop.<guest>` ended with `stopped following`. Every click answered `offered=True, applied=True`.
-**Still unread at runtime:** watching a CORPSE (the code accepts any body — `TryResolveAnyBody` — but the reading's
-death step returned an empty probe result and the id selector did not resolve, so it was not proven), and the
-free-movement OFF half of the toggle's label. Both are the next reading's first two steps.
+**Both leftovers are read (2026-10-24, same deployed build, second run):** the watched guest was killed with the
+local death-hold probe (`held: 3`, blood volume and brain health 0), and after eight seconds the host's card
+stepped **next** to the alt and then **prev** straight back onto the dead guest —
+`[Spectator] following 76561198863287957` at 13:47:05 — which is only possible because the cycle's `TryWatch`
+accepts a corpse (it skips every member the camera refuses, so a refusal would have left the camera on the alt).
+The free-movement toggle was then clicked twice: `free-fly on by this client's own request` at 13:47:08 and
+`free-fly off by this client's own request` at 13:47:09, so both halves of the labelled toggle are read. The dead
+guest's own state probe answered nothing (its client was behind the death screen), which is why the proof here is
+the host's follow line rather than the corpse's own state.
+
 
 
 

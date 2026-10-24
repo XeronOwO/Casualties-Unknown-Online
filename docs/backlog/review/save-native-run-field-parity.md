@@ -207,3 +207,11 @@ nothing else. `item-provide type=emergencylight mode=drop` freed one (the census
 NOT simply "one of six body slots is empty": with only two items on a six-slot body, the refusal names a rule the probe does not
 yet express (a hand slot, an item size, or a pickup precondition). That is the fixture's next question, and it is a question about
 `item-provide`'s own gate rather than about the save row under test.
+
+**Batch `20261025-q` — the gate is `slot.canPickUp`, and this host's slots all report false.** The refusal comes from
+`item-provide`'s own slot pick: it takes the first slot where `body.slots[i] != null && body.slots[i].canPickUp &&
+!body.HoldingItem(i)` and refuses with `no-free-slot` when none qualifies. With two items carried on a six-slot body, every
+remaining slot therefore reports `canPickUp == false` (or null). Closing the trade menu and the inventory ring did NOT change it
+(`radialOpen=false`, `tradeMenu=false` at the retry), and neither did standing the body up — the host now reads
+`ExperimentIdleCrouch`, `standing=false`, which is a state worth testing next: the grant needs ONE slot whose `canPickUp` is true,
+and the next attempt should read `body.slots[i].canPickUp` per slot instead of guessing which state flips it.

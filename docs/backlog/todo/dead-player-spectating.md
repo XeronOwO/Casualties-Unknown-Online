@@ -429,6 +429,15 @@ VIGNETTE never shows (`gateVignetteA=0.00` — the colour constant's alpha is ze
 the reported brain health), and the client-local switch `Session/SpectatorMirrorEffects` is not landed yet, so the
 effects are still unconditional.
 
+**The vignette's opacity is landed (2026-10-24, deployed `0.1.0+b538d570`); its low-health reading is not.** The
+colour now carries a real alpha from the watched member's reported brain health — clear at full health, half red at
+zero — and the reading that DID run shows the healthy half exactly as designed: a reported
+`alive=True conscious=True` member gives `gateVignetteA=0.00`, so a healthy body leaves the spectator's screen clear
+while the blackout (read last round at `black: 0.8`) still follows the reported liveness. The low-health half was NOT
+read: the staging run that was meant to kill the watched member first lost its `/spectate` to a not-yet-settled
+world, and the retry watched a member the host still reports healthy, so no `gateVignetteA > 0` sample exists yet.
+The client-local `Session/SpectatorMirrorEffects` switch also remains to land.
+
 
 
 

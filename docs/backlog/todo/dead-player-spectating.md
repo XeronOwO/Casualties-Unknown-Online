@@ -92,27 +92,22 @@ crosses players or mirrors a native action.
   is the first code question (`ConsoleCommandAttribute`'s permission today is `Anyone`/`HostOnly`; the cheat
   family is gated in the service by `IMemberCommandRules`, so the verb must be declared the way the cheat family
   is, and the refusal must name its ground).
-- The death screen: patch the menu-return button so it enters spectator mode instead (the sprite and click stay
-  native; only the action changes). The exit stays what a revive already does, and every revive path
-  (`RespawnCoordinator`, `RespawnPolicy`) calls `ExitSpectatorMode` before anything else.
-  **The native sites, read 2026-10-24:** the receipt is `PlayerCamera.EndSequence(0)` — it activates `endScreen`,
-  fills `deathStats` children 0–13, and its own Button just rips the receipt off (`clicked = true`); the
-  menu-return paths in the game are `PlayerCamera.ToMainMenu()` (a `PreGen` scene load), reached from
-  `PauseHandler.TryQuit` (the pause menu's give-up button, double-press), `WorldGeneration.SaveAndExit`, and
-  `ConsoleScript`'s quit verb. **The button the ruling means is therefore the pause menu's give-up button as it
-  appears to a dead player**, not the receipt itself; the patch belongs on `PauseHandler.TryQuit` (enter
-  spectator mode instead of loading the menu when the local body is dead) with the label
-  (`Locale.GetOther("pausegiveup")` → the spectator-mode wording) as the same patch's visual half.
-  **The exact change, listed so the next step needs no re-reading:** a new
-  `src/CasualtiesUnknownOnline.GameAdapter/ISpectatorPatchPort.cs` (one member,
-  `bool TryEnterFromDeathScreen()`), the accessor `PatchBridge.Spectator => _bound as ISpectatorPatchPort`, the
-  explicit implementation on `GameAdapter` (local body dead → `_domains.Spectator.EnterSpectatorMode()`), and the
-  patch class `PauseHandlerTryQuitPatch` (prefix: when the port enters the mode, return false so the menu load
-  never runs). The gates that pin this seam then need their tables extended in the same change:
-  `PatchBridgePortShapeGateTests`' `Seams` row, `BridgePorts`, `BridgeImplementationMembers` and the PatchBridge
-  accessor census, plus `PatchBridgePortContractTests` if it enumerates the ports.
-- Reading: two clients, host dies, the death screen's button enters the mode, host is revived, the mode ends and
+- The death screen's receipt: **the exploration receipt (结算单) carries its own text button that returns to the
+  main menu, and THAT button becomes the spectator-mode entry** (the user's correction of 2026-10-24; the pause
+  menu's give-up button is NOT it). The receipt is `PlayerCamera.EndSequence(0)` — it activates `endScreen`, fills
+  `deathStats` children 0–13, and its own Button only rips the receipt off; the menu-return button is a separate
+  scene-wired control on that screen (no decompiled call site: the scene's UnityEvent names
+  `PlayerCamera.ToMainMenu` or `WorldGeneration.SaveAndExit`, which is why a code grep never shows it). The
+  change is therefore RUNTIME, not a Harmony prefix: when `didDeathScreen` holds and `endScreen` is active, walk
+  the screen's Buttons, find the one whose persistent event targets the menu return, relabel it to the
+  spectator wording (CUO's own text service) and replace its action with `EnterSpectatorMode()`. The rewire is
+  done once per death and undone with the screen.
+- The exit stays what a revive already does, and every revive path (`RespawnCoordinator`, `RespawnPolicy`) calls
+  `ExitSpectatorMode` before anything else; `SpectatorCameraService.Update` already leaves the mode the moment the
+  local body is alive again.
+- Reading: two clients, host dies, the receipt's button enters the mode, host is revived, the mode ends and
   the normal HUD is back; `/gamemode spectator` works for a granted member and is refused without the grant.
+
 
 
 

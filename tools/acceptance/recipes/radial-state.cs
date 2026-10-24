@@ -14,11 +14,42 @@
 	var buttons = UnityEngine.Object.FindObjectsOfType<InvButton>();
 	var active = 0;
 	for (var i = 0; i < buttons.Length; i++) { if (buttons[i] != null && buttons[i].gameObject.activeInHierarchy) { active++; } }
+	// The toggle branch sits behind three early returns in PlayerCamera.Update: an open crafting panel, an open trade menu,
+	// and any active minigame all stop the frame before the inventory key is read. A "the key does nothing" reading that
+	// does not report these three is not a reading of the key at all.
+	var crafting = false;
+	var trade = false;
+	var minigame = "none";
+	var craftingPanel = typeof(PlayerCamera).GetField("craftingPanel", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+	if (craftingPanel != null) {
+		var panel = craftingPanel.GetValue(camera) as UnityEngine.GameObject;
+		crafting = panel != null && panel.activeSelf;
+	}
+	var tradeMenu = typeof(PlayerCamera).GetField("tradeMenu", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+	if (tradeMenu != null) {
+		var menu = tradeMenu.GetValue(camera) as UnityEngine.GameObject;
+		trade = menu != null && menu.activeSelf;
+	}
+	if (MinigameBase.main != null && MinigameBase.main.currentMinigame != null) { minigame = MinigameBase.main.currentMinigame.GetType().Name; }
+	var cameras = UnityEngine.Object.FindObjectsOfType<PlayerCamera>();
+	var live = "none";
+	for (var i = 0; i < cameras.Length; i++) {
+		var candidate = cameras[i];
+		if (candidate == null) { continue; }
+		if (candidate == camera) { live = "main"; }
+	}
 	return "{\"ok\":true"
+		+ ",\"cameras\":" + cameras.Length.ToString(inv)
+		+ ",\"mainIsLive\":\"" + live + "\""
+		+ ",\"enabled\":" + (camera.enabled ? "true" : "false")
+		+ ",\"frame\":" + UnityEngine.Time.frameCount.ToString(inv)
 		+ ",\"radialOpen\":" + (camera.radialOpen ? "true" : "false")
 		+ ",\"paused\":" + (PauseHandler.paused ? "true" : "false")
 		+ ",\"focused\":" + (UnityEngine.Application.isFocused ? "true" : "false")
 		+ ",\"timeScale\":" + UnityEngine.Time.timeScale.ToString("0.###", inv)
 		+ ",\"bind\":\"" + KeyBinds.GetBind("toggleinventory").ToString() + "\""
+		+ ",\"craftingPanel\":" + (crafting ? "true" : "false")
+		+ ",\"tradeMenu\":" + (trade ? "true" : "false")
+		+ ",\"minigame\":\"" + minigame + "\""
 		+ ",\"buttons\":" + active.ToString(inv) + "}";
 }))()

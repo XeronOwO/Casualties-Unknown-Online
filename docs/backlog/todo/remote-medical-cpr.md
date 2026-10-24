@@ -369,11 +369,14 @@ Still open on the operator's side:
   (100 → 100 after five presses; now 100 → 89.65 with the game's own regen in the gap). An operator at the floor
   (`MinimumStamina`) has the press refused with the game's own deny sound and nothing is sent. `CprApplier` keeps no
   operator charge, and a session case pins that boundary.
-- **Strength gate**: `skills.STR * handMaxTotalForce > 6` on the operator. `handMaxTotalForce` is the game's
-  `Body.limbs[i].totalForce` and the character snapshot does NOT carry it, so — by the rule that a player's own capability
-  is judged on their own client — the gate belongs in the adapter's control (where `PlayerCamera.main.body` has it), and
-  it needs a LINE surface the adapter does not have (the refusal SOUND exists through
-  `IPlayerInteractionControl.FireUseRefused`). Two dependencies, both named.
+- **Strength gate — LANDED and read on the machine** (2026-10-24, deployed `0.1.0+289d82e9`, record
+  `docs/evidence/acceptance/cpr-strength-gate-20261024-p.md`): `CprOperatorGate.CanCompress` is the reference's
+  `skills.STR * handMaxTotalForce > 6`, the hand force being the game's own `limbs[i].totalForce` on the two hand limbs
+  (5 and 8). It is answered on the operator's client (their own body; `totalForce` is not in the snapshot) and BEFORE the
+  start request, so a weak operator opens no operation at all: the run's member log holds a single `TooWeak` refusal line
+  and the host's log holds no `started Cpr` line. The two refusals have their own lines
+  (`medical.cpr_too_weak` / `medical.cpr_exhausted`) and the game's deny sound.
+  `body-force` gained `strength` to make a weak operator reachable at all.
 - **Intelligence**: `INT < 12` makes the operator's SCREEN harder rather than refusing — a presentation rule this ticket
   would need to design (what "harder" shows). With no minigame screen in CUO's version, the natural translation is a
   narrower rhythm band for a low-INT operator, which is a gameplay change and goes to the user before it is built.

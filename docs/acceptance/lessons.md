@@ -518,6 +518,17 @@ One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:10
 
 `log.ps1`'s `read` returns everything after the mark, so one mark reused for several rows mixes their lines into an earlier row's absence claim — filter the excerpt by the row's own seconds and print its first and last timestamp before citing it (a first count read four divergences in a window that had none) — `docs/evidence/acceptance/container-content-event-gap-on-repick-20261025-b.md`.
 
+## 2026-10-25 — A forced vital state decays before the next probe can sample it
+
+`body-force` writes the local body once, and the game's own simulation resumes immediately: forcing
+`consciousness=90,heartRate=170,bloodPressure=60,bloodOxygen=40` and opening the panel produced
+`bloodPressure 60 → 11` and `consciousness 90 → 9.6` within the first two probe calls, so the body was already
+unconscious (and the panel already closed) by the time the beats could be sampled. A row about a SUSTAINED critical
+state therefore needs either a repeated write inside the same eval, or an in-client sampler that reads at frame rate
+and is collected afterwards — one probe per driver call is about 1.3 s apart and the state does not survive that long.
+`docs/backlog/todo/host-heartbeat-sound-truncated.md`.
+
+
 ## 2026-10-21 — A layer-transition screen row needs the native scene probe, not only the frame
 
 `tools/acceptance/recipes/scene-read.cs` answers the native scene/world/generating/loading state a frame cannot separate from the menu — `docs/evidence/acceptance/layer-change-menu-round-trip-20261021-i.md`.

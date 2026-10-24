@@ -112,6 +112,8 @@ public class CommandConsoleSpectatorTests
 
 		public ulong WatchingSteamId { get; set; }
 
+		public bool IsSpectator { get; set; }
+
 		public bool RefusesWatch { get; init; }
 
 		public bool RefusesFreeFly { get; init; }
@@ -136,5 +138,17 @@ public class CommandConsoleSpectatorTests
 		}
 
 		public bool TrySetFreeFly(bool wanted) => !RefusesFreeFly;
+
+		public bool EnterSpectatorMode()
+		{
+			IsSpectator = true;
+			return true;
+		}
+
+		public void ExitSpectatorMode()
+		{
+			IsSpectator = false;
+			IsWatching = false;
+		}
 	}
 }

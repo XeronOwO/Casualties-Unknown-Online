@@ -132,6 +132,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session));
 		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
 		_commands.AddBuiltIns(new SpectatorCommands(session, entities, spectator, log));
+		_commands.AddBuiltIns(new GamemodeCommands(spectator, log));
 		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
 		// The item-data family's two verb groups share one gate and one target
 		// resolver: /data writes this client's own item, /give makes a new one, and

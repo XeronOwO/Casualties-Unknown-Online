@@ -1,8 +1,8 @@
 {
   "CasualtiesUnknownOnline.GameAdapter.GameAdapter": {
-    "Lines": 631,
+    "Lines": 637,
     "BoolFlags": 5,
-    "Note": "The world re-entry recovery added two lines only: the IReentryControl constructor parameter and the one-line pump call of a step that lives in its own domain (ReentryCoordinator), which is the watchlist's rule for this file. The remote-backpack access rule added the RemoteVitalsService/ILocalizationService/AnnouncedHostRules constructor parameters plus the one-line notice wiring they feed (+5 lines): all three feed the coordinator and the drag dispatcher, and the announced rules are what a MEMBER's local check reads (decision 263), so the adapter passes them through rather than owning them. The give's answer-first wiring added the IRemotePlacementResolver constructor parameter and the one per-frame placement pump (+2 lines), both pass-throughs to a domain that owns the behaviour. The seam a split owes is still the patch-bridge forwarding half."
+    "Note": "The world re-entry recovery added two lines only: the IReentryControl constructor parameter and the one-line pump call of a step that lives in its own domain (ReentryCoordinator), which is the watchlist's rule for this file. The remote-backpack access rule added the RemoteVitalsService/ILocalizationService/AnnouncedHostRules constructor parameters plus the one-line notice wiring they feed (+5 lines): all three feed the coordinator and the drag dispatcher, and the announced rules are what a MEMBER's local check reads (decision 263), so the adapter passes them through rather than owning them. The give's answer-first wiring added the IRemotePlacementResolver constructor parameter and the one per-frame placement pump (+2 lines), both pass-throughs to a domain that owns the behaviour. The spectator-mode ruling added three one-line forwardings of the mode (IsSpectator, EnterSpectatorMode, ExitSpectatorMode) to SpectatorCameraService, which owns the state (+3 lines, plus the separating blank lines). The seam a split owes is still the patch-bridge forwarding half."
   },
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
     "Lines": 922,

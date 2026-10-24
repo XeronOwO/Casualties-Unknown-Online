@@ -18,6 +18,21 @@ public interface ISpectatorControl
 	/// <summary>True while this client's camera is following someone.</summary>
 	bool IsWatching { get; }
 
+	/// <summary>True while this client is in spectator MODE: its own player-state presentation is suppressed and
+	/// possession may be entered. Independent of following anyone — a spectator who has not possessed a member is
+	/// still in the mode, and the mode is what the death screen's button and the cheat verb switch on.</summary>
+	bool IsSpectator { get; }
+
+	/// <summary>
+	/// Enter spectator mode. False when this client cannot: no active session, no world entered, or no local body.
+	/// The mode starts with no possession; a target is chosen separately.
+	/// </summary>
+	bool EnterSpectatorMode();
+
+	/// <summary>Leave spectator mode, giving up possession and the free camera. Idempotent, and called by every
+	/// revive path: a revived player returns to normal play immediately.</summary>
+	void ExitSpectatorMode();
+
 	/// <summary>
 	/// The member this client is following, or 0. Published so a surface can mark the watched row and offer its
 	/// way out WITHOUT keeping a copy: the camera gives a watch up on its own when the followed member dies,

@@ -383,6 +383,12 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	bool ISpectatorControl.IsWatching => _domains.Spectator.IsWatching;
 
+	bool ISpectatorControl.IsSpectator => _domains.Spectator.IsSpectator;
+
+	bool ISpectatorControl.EnterSpectatorMode() => _domains.Spectator.EnterSpectatorMode();
+
+	void ISpectatorControl.ExitSpectatorMode() => _domains.Spectator.ExitSpectatorMode();
+
 	bool ISpectatorControl.TryWatch(ulong steamId) => _domains.Spectator.TryWatch(steamId);
 
 	ulong ISpectatorControl.WatchingSteamId => _domains.Spectator.WatchingSteamId;

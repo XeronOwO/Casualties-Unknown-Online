@@ -44,16 +44,56 @@ internal sealed class SpectatorCameraService(
 	/// <inheritdoc />
 	public void ResetSessionState()
 	{
-		if (!IsWatching && !_touchedCamera)
+		if (!IsWatching && !IsSpectator && !_touchedCamera)
 		{
 			return;
 		}
 
 		log.LogInformation("[Spectator] session ended while watching {SteamId}; the camera state is dropped.", _watchingSteamId);
 		_watchingSteamId = 0;
+		_spectatorMode = false;
 		_freeFlyWanted = false;
 		_touchedCamera = false;
 	}
+
+	/// <summary>Whether this client is in the spectator MODE (the death screen's button or the cheat verb).</summary>
+	private bool _spectatorMode;
+
+	/// <inheritdoc />
+	public bool IsSpectator => _spectatorMode;
+
+	/// <inheritdoc />
+	public bool EnterSpectatorMode()
+	{
+		if (_spectatorMode)
+		{
+			return true;
+		}
+
+		if (!session.SessionActive || !session.LocalInWorld || run.LocalBody == null) // Unity object 鈥?==
+		{
+			return false;
+		}
+
+		_spectatorMode = true;
+		log.LogInformation("[Spectator] spectator mode on (local body {Local}).", session.LocalSteamId);
+		return true;
+	}
+
+	/// <inheritdoc />
+	public void ExitSpectatorMode()
+	{
+		if (!_spectatorMode)
+		{
+			return;
+		}
+
+		_spectatorMode = false;
+		StopWatching();
+		_freeFlyWanted = false;
+		log.LogInformation("[Spectator] spectator mode off; normal play.");
+	}
+
 
 	private ulong _watchingSteamId;
 
@@ -132,6 +172,15 @@ internal sealed class SpectatorCameraService(
 		if (camera == null)
 		{
 			return;
+		}
+
+		// The ruling: a revived player returns to normal play IMMEDIATELY, whichever revive path woke them. The
+		// mode reads the local body's own liveness instead of hooking each revive call site, so a trader revive,
+		// a next-layer respawn and a heal all end it the same way.
+		if (_spectatorMode && run.LocalBody != null && run.LocalBody.alive) // Unity objects 鈥?==
+		{
+			log.LogInformation("[Spectator] the local body is alive again; leaving spectator mode.");
+			ExitSpectatorMode();
 		}
 
 		if (!IsWatching || !MayWatch(out _))

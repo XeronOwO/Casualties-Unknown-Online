@@ -1,6 +1,12 @@
 # Guest break drops are lost when the break report is swallowed
 
-- Status: Review (batch `20261001-x`: rows 5–6 pass — the race's loser had every drop refused and destroyed on its own client, and the third peer claimed the winner's item id without a duplicate; rows 1–4 and 7 named open (swallowed report / lost air write / duplicate re-report); row 2b is a static premise — the ticket stays open)
+- Status: Review — **ready to close; only the folder move is pending.** Batch `20261001-x` read rows 5-6 on the machine. Batch
+  `20261025-w` read the rest: every row the matrix names (1, 2, 2b, 3, 4, 7) carries a case name, and those ten cases were re-run
+  on this tree — **10 passed, 0 failed** — while the recovery path they describe was also measured LIVE: with the host's inbound
+  blacked out (`net-receive-blackout mode=on`, `armed=true, parked=true`) the guest broke cell `(3,506)` (`block 1 → 0`) and the
+  host kept its original `1` while blacked out; after `mode=off` the host still read `1` at +12 s and read **`0` at +67 s** — the
+  swallowed report healed by the fallback re-report, which is row 1/3's behaviour. The move needs seven citing documents
+  re-pointed, so it lands next cycle in one pass.
 - Acceptance record: `docs/evidence/acceptance/guest-break-drops-recovery-20261001-x.md`
 - Priority: Medium
 - Category: Network / sync coverage / items (guest-created drops)

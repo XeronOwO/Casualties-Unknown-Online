@@ -77,12 +77,29 @@ public class InjectionSemanticsTests
 	[Fact]
 	public void Admission_RefusesALimbUsableContainerWithNoInjectableLiquid()
 	{
-		// A syringe full of water: the item may be drawn from, but nothing in it
-		// is injectable, so this is not the injection chain's business.
+		// A syringe full of water: the STACK rule does not admit it (nothing in it is injectable). The container's own
+		// limb action still makes the wound view's release an injection (the next case), and the two questions stay
+		// apart on purpose: the inventory entry of the same container is a drink, never an injection.
 		Assert.False(InjectionAdmission.IsInjectableContainer(
 			FakeLimbUseSemantics.Instance,
 			"syringe",
 			Stacks([("water", 100f)])));
+	}
+
+	[Fact]
+	public void TheInjectionShapedLimbContainer_IsTheContainerWhoseOwnActionInjects()
+	{
+		// Native parity, the ruling on `topical-limb-action-shape.md`: `PlayerCamera.ApplyWoundItem` runs the item's own
+		// limb action whatever liquid it holds, so a syringe is the injection shape with ANY liquid, and a topical
+		// container (or one with no limb action at all — the native ApplyToLimb fallback) never is.
+		Assert.True(InjectionAdmission.IsInjectionShapedLimbContainer(FakeLimbUseSemantics.Instance, "syringe"));
+
+		foreach (var topical in new[] { "paincream", "disinfectant", "waterbottle" })
+		{
+			Assert.False(InjectionAdmission.IsInjectionShapedLimbContainer(FakeLimbUseSemantics.Instance, topical));
+		}
+
+		Assert.False(InjectionAdmission.IsInjectionShapedLimbContainer(FakeLimbUseSemantics.Instance, "bandage"));
 	}
 
 	[Fact]

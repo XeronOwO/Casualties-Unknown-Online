@@ -145,7 +145,8 @@ internal static class LocalUseItemEligibility
 	/// </summary>
 	internal static bool IsInjectableRemoteItem(Item item, ILimbUseSemantics semantics) =>
 		HasDrawableContainer(item, out var container)
-		&& InjectionAdmission.IsInjectableContainer(semantics, item.id, ToLiquidStacks(container));
+		&& (InjectionAdmission.IsInjectableContainer(semantics, item.id, ToLiquidStacks(container))
+			|| InjectionAdmission.IsInjectionShapedLimbContainer(semantics, item.id));
 
 	/// <summary>
 	/// The topical family's eligibility, the mirror of

@@ -100,6 +100,7 @@ public static class ItemUseFamilyClassifier
 		WearAdmission.IsWearable(wearSemantics, itemId)
 			? ItemUseFamily.Wear
 			: InjectionAdmission.IsInjectableContainer(limbSemantics, itemId, liquids)
+				|| InjectionAdmission.IsInjectionShapedLimbContainer(limbSemantics, itemId)
 				? ItemUseFamily.Injection
 				: TopicalAdmission.IsTopicalContainer(limbSemantics, itemId, liquids)
 					? ItemUseFamily.Topical

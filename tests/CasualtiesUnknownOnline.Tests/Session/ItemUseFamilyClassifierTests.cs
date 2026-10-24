@@ -36,16 +36,15 @@ public sealed class ItemUseFamilyClassifierTests
 	}
 
 	[Fact]
-	public void TheDrinkableBagHoldingAHealthUsableLiquid_IsTheInventoryDrinkAndTheLimbTopical()
+	public void TheDrinkableBagHoldingAHealthUsableLiquid_IsTheInventoryDrinkAndTheLimbInjection()
 	{
-		// The container this rule was extracted for, corrected by ticket `topical-limb-action-shape.md`'s finding B1:
-		// `saline` is usable AND usableOnLimb and its own use action drinks, so the INVENTORY entry is a drink — but a
-		// health-usable liquid poured into it does NOT make the wound view's topical half legitimate, because that
-		// release runs the item's LIMB action, which for this bag starts an injection. So the limb entry is claimed by
-		// no family: not topical (the action injects), not injection (the liquid is not injectable), and not the drink
-		// either (the drink rule models the use action, which this entry never runs).
+		// The container this rule was extracted for, resolved by ticket `topical-limb-action-shape.md`: `saline` is
+		// usable AND usableOnLimb and its own use action drinks, so the INVENTORY entry is a drink — while the WOUND
+		// VIEW's release runs the item's LIMB action, which for this bag is the injection flow. Native
+		// `PlayerCamera.ApplyWoundItem` runs that action whatever the player filled the bag with, so the limb entry is the
+		// injection family (the operator's client starts it and the host arbitrates), not a pour and not a refusal.
 		Assert.Equal(ItemUseFamily.Drink, Classify(ItemUseEntry.Inventory, "saline", ("disinfectant", 750f)));
-		Assert.Equal(ItemUseFamily.None, Classify(ItemUseEntry.Limb, "saline", ("disinfectant", 750f)));
+		Assert.Equal(ItemUseFamily.Injection, Classify(ItemUseEntry.Limb, "saline", ("disinfectant", 750f)));
 	}
 
 	[Fact]

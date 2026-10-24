@@ -324,6 +324,7 @@ internal sealed class OnlineUiHost
 	{
 		while (_notices.TryTake(out var notice))
 		{
+			_log.LogInformation("[OnlineUi] status line: {Text}", notice.Text);
 			_onlineUi.Notify(notice.Text);
 		}
 	}

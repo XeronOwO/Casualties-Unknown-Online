@@ -126,7 +126,7 @@ internal sealed class CommandConsoleOverlay
 				now - new DateTime(line.CreatedAtUtcTicks, DateTimeKind.Utc),
 				hold,
 				fade);
-			DrawLine(line, ConsoleLineText.Resolve(ctx, line), alpha);
+			DrawLine(line, ConsoleLineText.Resolve(ctx.T, line), alpha);
 		}
 
 		GUILayout.EndArea();
@@ -336,7 +336,7 @@ internal sealed class CommandConsoleOverlay
 			GUILayout.ExpandHeight(true));
 		foreach (var line in ctx.Commands.Lines)
 		{
-			DrawLine(line, ConsoleLineText.Resolve(ctx, line));
+			DrawLine(line, ConsoleLineText.Resolve(ctx.T, line));
 		}
 
 		GUILayout.EndScrollView();

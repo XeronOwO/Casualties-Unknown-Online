@@ -30,7 +30,12 @@ public sealed class LocalizationCatalogueGateTests
 	/// instead of reporting a census that quietly stopped seeing call sites.</summary>
 	private const int UnresolvedCeiling = 60;
 
-	private static readonly string[] Accessors = ["T", "F", "Format"];
+	/// <summary>
+	/// Every call shape that reads a catalogue key. `lookup` is the console resolver's own parameter: a console line is rendered by
+	/// calling the localization service's lookup it is handed, which is the same read one indirection later, so a key reached only
+	/// through it is still read by product source.
+	/// </summary>
+	private static readonly string[] Accessors = ["T", "F", "Format", "lookup"];
 
 	/// <summary>
 	/// The name a helper parameter carries when the helper is handed a catalogue KEY rather than a

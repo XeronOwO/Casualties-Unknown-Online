@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 
@@ -11,7 +12,13 @@ namespace CasualtiesUnknownOnline;
 /// </summary>
 internal static class ConsoleLineText
 {
-	internal static string Resolve(OnlineUiContext ctx, ConsoleLine line)
+	/// <summary>
+	/// Resolves one line through <paramref name="lookup"/> (the localization service's own lookup, so the line follows the
+	/// client's language). Kept as a pure function of the lookup so the behaviour is unit-testable without a running UI: a
+	/// keyed line takes the catalogue's sentence and formats its arguments, an unkeyed line and a key the catalogue does not
+	/// answer keep the English text — a missing entry must never blank a line.
+	/// </summary>
+	internal static string Resolve(Func<string, string> lookup, ConsoleLine line)
 	{
 		if (line.Key is null)
 		{
@@ -20,12 +27,12 @@ internal static class ConsoleLineText
 
 		var template = line.Key switch
 		{
-			"console.ready" => ctx.T("console.ready"),
-			"console.session_ended" => ctx.T("console.session_ended"),
-			"console.command.host_only" => ctx.T("console.command.host_only"),
-			"console.command.empty" => ctx.T("console.command.empty"),
-			"console.command.unknown" => ctx.T("console.command.unknown"),
-			"console.chat.not_sent" => ctx.T("console.chat.not_sent"),
+			"console.ready" => lookup("console.ready"),
+			"console.session_ended" => lookup("console.session_ended"),
+			"console.command.host_only" => lookup("console.command.host_only"),
+			"console.command.empty" => lookup("console.command.empty"),
+			"console.command.unknown" => lookup("console.command.unknown"),
+			"console.chat.not_sent" => lookup("console.chat.not_sent"),
 			_ => line.Text,
 		};
 

@@ -86,6 +86,23 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 			"OnlineUiWindowState must not carry the console page's input field");
 
 	[Fact]
+	public void EveryConsoleKeyTheCatalogueDeclaresIsResolvedByTheOverlay()
+	{
+		// A console key the catalogue declares but the overlay never reads would print its English text forever, which is the exact
+		// defect this ticket is about. The readers are the overlay itself and its resolver, both internal to the plugin and reached
+		// by name, so the pin reads their sources and requires every catalogued console.* key to appear in one of them.
+		var sources = File.ReadAllText(Path.Combine(PluginDirectory(), "ConsoleLineText.cs"))
+			+ File.ReadAllText(Path.Combine(PluginDirectory(), "CommandConsoleOverlay.cs"));
+		var consoleKeys = DeclaredUiKeys(ReadCatalogueSource()).Where(key => key.StartsWith("console.", StringComparison.Ordinal)).ToArray();
+
+		Assert.NotEmpty(consoleKeys);
+		foreach (var key in consoleKeys)
+		{
+			Assert.Contains($"\"{key}\"", sources, StringComparison.Ordinal);
+		}
+	}
+
+	[Fact]
 	public void TheCatalogueDeclaresExactlyTheTabAndConsoleKeysTheSourceReferences()
 	{
 		var declared = DeclaredUiKeys(ReadCatalogueSource());
@@ -258,7 +275,9 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	private const string UiKeyPattern = "(?:tab|console)\\.[a-zA-Z_.]+";
 
 	private static readonly Regex DeclaredKeyPattern = new($@"\""({UiKeyPattern})\""\s*:", RegexOptions.Compiled);
-	private static readonly Regex ReferencedKeyPattern = new($@"\bT\(""({UiKeyPattern})""\)", RegexOptions.Compiled);
+	// A key is "referenced" by the UI when it is read through the localization accessor (`T("…")`) or through the console
+	// resolver's own lookup parameter (`lookup("…")`), which is the same read one indirection later.
+	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|lookup)\(""({UiKeyPattern})""\)", RegexOptions.Compiled);
 	private static readonly Regex ConsoleInputFieldPattern = new(@"\bConsoleInput\b", RegexOptions.Compiled);
 
 	/// <summary>

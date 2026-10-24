@@ -52,7 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [A player can watch the run as a spectator](todo/dead-player-spectating.md) — **Medium** — `/gamemode spectator`; possess from the right-click menu.
+- [The spectator's three superseded host rules are still wired](todo/spectator-superseded-host-rules.md) — **Low** — switches that change nothing.
 - [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
 - [Command refusals render as successes](todo/console-command-refusals-render-green.md) — **Low-Medium** — a refused verb still prints green.
 
@@ -73,6 +73,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Review
 
 
+- [A player can watch the run as a spectator](review/dead-player-spectating.md) — **Medium** — every pivot slice landed and read.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — rows 2/4/5 pass; row 3 open.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.

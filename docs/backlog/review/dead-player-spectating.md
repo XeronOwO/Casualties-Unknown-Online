@@ -1,8 +1,9 @@
 # A player can watch the run as a spectator, and possess a teammate to see through their eyes
 
-- Status: Todo — the user's 2026-10-24 design (below) supersedes the death-screen entry and the `/spectate`
-  command this ticket was built on; the camera half and the three host switches stay as its foundation, and the
-  parts the new design replaces are named in the pivot section.
+- Status: Review — every slice of the 2026-10-24 pivot is landed and read on the machine (mode and its two
+  entrances, pure observation, possession, the KrokMP-aligned controls, the mirrored screen effects and sounds, the
+  native status icons presenting the watched body). One cleanup this ticket's own supersession created is tracked
+  separately in `todo/spectator-superseded-host-rules.md`: the three host rules the pivot retired are still wired.
 - Priority: Medium
 - Category: Player interaction / presentation / KrokMP parity
 - Source: the user's 2026-10-13 backlog request, in their own words: "操控的角色死亡后，能观战他人，参考

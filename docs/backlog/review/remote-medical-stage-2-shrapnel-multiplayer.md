@@ -44,6 +44,16 @@ driver round trip even when the session was just started successfully — which 
 measured from the other side (start → break, not start → pieces). The coroutine is not an optimisation here; it is the only shape
 that can act inside the window.
 
+**Batch `20261025-ab` — the declaration is written, declared, and does NOT break yet; the session turns out to be LONG-LIVED.**
+The `shrapnel-break` declaration (a coroutine that waits for the minigame, posts the grab report, sets the held slot, waits two
+frames and calls `BreakGrasp()` per piece) plus its thin recipe were written and declared (`-Action declare -Declare
+shrapnel-break` → `sent=true`). The batch then started the coroutine FIRST (`count=3`, answered `started`) and started the session
+after it (`mode=open` → `opened=true`, `mode=special` → `started=true, shrapnel=3`), and 3 s later `pieces` answered **5** — the
+session is alive and holds five pieces, so it does NOT die in 0.4 s as the earlier note inferred: that earlier `currentMinigame is
+null` had another cause. The coroutine nevertheless broke nothing, which points at its own reflection (the CUDA type lookups or the
+`ShrapnelMinigame` cast) failing silently into a `yield break`; the next cycle instruments the declaration's first steps instead of
+re-testing the window.
+
 ## Objective
 
 Implement a shared multiplayer `ShrapnelMinigame` remote path so multiple players can remove different shrapnel pieces from the same remote limb concurrently, with per-piece ownership, conflict arbitration, force-ungrab, progress propagation, third-party visibility and correct cancellation/disconnect behavior.

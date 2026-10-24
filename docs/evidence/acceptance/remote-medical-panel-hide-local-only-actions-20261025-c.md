@@ -48,3 +48,12 @@ The same read on the host's own panel (independent of the guest) agreed: nap and
   the HUD switch graphic.
 - **Row 6 is not read**: inventory reporting around a blocked window needs a hand switch and an item move on either side of
   the focus, and no instrument for that sequence was driven in this batch. The ticket stays open on it.
+
+## Row 6's attempt, and why it is still open
+
+A second pass added `remote-hand` (every non-local `Body` with its hand slot and both slots' item ids) and read the host's
+clones: both clones reported `handSlot:0` with `s0=none s1=none` before **and** after a `body-call kind=switch` on the guest,
+because the guest held nothing — `item-provide create bandage` answered with an empty result, so no item id was accepted and
+the slots had nothing to move. The row therefore still cannot be read: it needs a held item first (an item id this build
+accepts) and then the switch on either side of the focus. The probe is committed so the next pass starts from it instead of
+rebuilding it.

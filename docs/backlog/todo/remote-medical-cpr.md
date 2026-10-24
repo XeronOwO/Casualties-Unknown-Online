@@ -266,4 +266,3 @@ What batch 20261024-i established, so the next attempt starts further along:
   thing to read, not the CPR code.
 - **`send-input.ps1`'s `-Vk` was mandatory for every action** (a click with no key was refused by PowerShell's own
   binder); it is now optional and validated per action.
-

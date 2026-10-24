@@ -1,6 +1,9 @@
 # Middle-click location marker (circle → exclamation)
 
-- Status: Review
+- Status: Done — accepted 2026-10-24 on two clients: the peer saw the sender's circle at the same position and
+  type, a quick second placement upgraded and retargeted it to an exclamation, and both clients pruned it after
+  the lifetime (record `docs/evidence/acceptance/middle-click-location-marker-20261024-a.md`). The marker's look
+  stays the user's judgement.
 - Priority: Medium
 - Category: Player interaction / UI / co-op coordination
 - Source: KrokMP feature comparison — do not blind-copy; use the behaviour as a reference only

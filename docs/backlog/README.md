@@ -113,7 +113,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
 - [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
-- [Middle-click location marker](review/middle-click-location-marker.md) — **Medium** — the one-shot location ping.
 - [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
 - [The host decides enemy hits on remote players](review/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
@@ -154,6 +153,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Done
 - [The document corpus audit: every page earns its place](done/document-corpus-audit.md) — **Critical** — accepted: a reader for every page.
 - [The mod item's wearable declaration](done/mod-item-wearable-declaration.md) — **High** — accepted: a live body wears the declared garment.
+- [Middle-click location marker](done/middle-click-location-marker.md) — **Medium** — accepted: the peer sees the same ping.
 - [The decision register cannot take another decision](done/decision-register-budget.md) — **Low-Medium** — done: split by number.
 - [Interaction gates judged by the two clients](done/remote-interaction-local-gating.md) — **Medium-High** — accepted: actor and target judge their own side.
 - [Single-file package for the core plugin](done/single-file-plugin-package.md) — **Low-Medium** — accepted: one DLL packs the core; extensions stay separate.

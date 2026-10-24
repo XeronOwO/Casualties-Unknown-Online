@@ -11,7 +11,7 @@
   (KrokMP's spectator mode), `src/CasualtiesUnknownOnline.Runtime/Session/HostRules/IHostRules.cs` (the host
   rules surface, where KrokMP's three spectator switches belong), `src/CasualtiesUnknownOnline.GameAdapter/World/RespawnCoordinator.cs`
   and `src/CasualtiesUnknownOnline.Runtime/Session/World/RespawnPolicy.cs` (the revive/respawn paths that
-  must put the camera back), `docs/backlog/review/middle-click-location-marker.md` (its recorded
+  must put the camera back), `docs/backlog/done/middle-click-location-marker.md` (its recorded
   "Dead/spectating" clause), `docs/backlog/done/enter-key-opens-plain-chat.md` (its input-context list
   already names a death/spectator panel)
 
@@ -104,7 +104,7 @@ it starts:
 - Not spectating the enemy or the world through the kernel: the followed subject is a member's body, and a
   free camera moves a client's own view rather than reading state it was not sent.
 - Not a change to what a dead player may *do*: a spectator places no ping, performs no action and drives no
-  possession, which is the clause `review/middle-click-location-marker.md` recorded for the dead case and
+  possession, which is the clause `done/middle-click-location-marker.md` recorded for the dead case and
   this ticket keeps.
 ## Step 1 landed (2026-10-17): the three host rules
 

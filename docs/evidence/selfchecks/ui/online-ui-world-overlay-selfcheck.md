@@ -82,7 +82,7 @@ around it, what the independent review found, and what only a game run can judge
 | Focused run (`OnlineUi`) | 369 / 369, exit 0 | `%TEMP%/cuo-s6-focus6.txt` |
 | Normative gates | 288 / 288, exit 0 (two earlier red runs are recorded rather than hidden: 287/288 while the fully-qualified-name gate held `System.StringComparison.Ordinal` in a new test file, and 286/288 while this stage's own documentation was still being written — the review's BL1) | `%TEMP%/cuo-s6-gates3.txt` |
 | Format | `dotnet format` exit 0 | `%TEMP%/cuo-s6-format2.txt` |
-| Line endings | every touched file re-checked at byte level after `dotnet format` and the last edits: the new and modified files are CRLF with 0 bare LF and 0 `\r\r`. Two touched markdown files (`review/middle-click-location-marker.md`, `ui/location-ping-selfcheck.md`) were LF-only BEFORE this change and stayed as they were — 179 of the tree's `docs/**.md` files are LF-only, so that is the repository's own mixture and not this stage's | shell check recorded in this session |
+| Line endings | every touched file re-checked at byte level after `dotnet format` and the last edits: the new and modified files are CRLF with 0 bare LF and 0 `\r\r`. Two touched markdown files (`done/middle-click-location-marker.md`, `ui/location-ping-selfcheck.md`) were LF-only BEFORE this change and stayed as they were — 179 of the tree's `docs/**.md` files are LF-only, so that is the repository's own mixture and not this stage's | shell check recorded in this session |
 | Mutation controls | 26 real-source mutation rows in `OnlineUiWorldOverlayPinTests`, each re-run on the frozen tree (every anchor present, every matcher false on its own broken source) | the pin class's own run |
 
 ### 4.1 Full suite
@@ -163,7 +163,7 @@ one behaviour the first cut introduced silently (N2: a bad nameplate could blind
 | N20 | NIT — the suppression pin duplicated the surface pin's frame expression | **Fixed**: this pin owns the CONDITION (the gate and console test); `OnlineUiSurfacePinTests` owns the push it guards |
 | N1 | NIT — mutation row 2 (`BuildWorldOverlay` → `BuildWorldFrame`) would also break the build | **Fixed**: the row is now "the frame always pushes an empty overlay", which compiles |
 | N3 | NIT — the surface's comment called the apply order "draw order" | **Fixed**: reading order, with the draw order named as the sibling index |
-| N4 | NIT — `review/middle-click-location-marker.md` still described the ping as IMGUI | **Fixed** with N8 |
+| N4 | NIT — `done/middle-click-location-marker.md` still described the ping as IMGUI | **Fixed** with N8 |
 | N6 | NIT — the marker test used the `\u25CF` escape while production writes the literal `●`, so a plugin-side glyph change would not fail it | **Fixed**: the production spelling is pinned in the plugin's own fact, with a mutation row |
 | N7 | NIT — the marker's doc says the glyph is empty for a nameplate while the view decides by `Kind` | **Fixed (wording)**: the doc names `Kind` as what decides and the factories as the only production constructors |
 

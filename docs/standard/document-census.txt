@@ -238,7 +238,8 @@ docs/backlog/done/item-id-counter-is-not-resumed-by-a-restore.md | keep | index 
 docs/backlog/done/item-identity-across-transforms.md | keep | index | docs/backlog/README.md
 docs/backlog/review/layer-complete-choice-for-members.md | keep | index | docs/backlog/README.md
 docs/backlog/done/limb-tool-family-protection-gaps.md | keep | index | docs/backlog/README.md
-docs/backlog/review/middle-click-location-marker.md | keep | index | docs/backlog/README.md
+docs/backlog/done/middle-click-location-marker.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/middle-click-location-marker-20261024-a.md | keep | claim | docs/backlog/done/middle-click-location-marker.md
 docs/backlog/done/mod-api-no-opaque-envelopes.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-attribute-declarations.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-fingerprint.md | keep | index | docs/backlog/README.md
@@ -1004,7 +1005,7 @@ docs/evidence/selfchecks/ui/command-console-selfcheck.md | keep | claim | docs/b
 docs/evidence/selfchecks/ui/cuo-launcher-idle-fade-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/dead-player-context-menu-title-selfcheck.md | keep | claim | docs/backlog/review/dead-player-right-click-name-suffix.md
 docs/evidence/selfchecks/ui/i18n-framework-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/ui/location-ping-selfcheck.md | keep | claim | docs/backlog/review/middle-click-location-marker.md
+docs/evidence/selfchecks/ui/location-ping-selfcheck.md | keep | claim | docs/backlog/done/middle-click-location-marker.md
 docs/evidence/selfchecks/ui/name-tag-ui-polish-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/online-ui-console-page-removal-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/ui/online-ui-free-color-selfcheck.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
@@ -1019,7 +1020,7 @@ docs/evidence/selfchecks/ui/online-ui-scoped-passthrough-selfcheck.md | keep | c
 docs/evidence/selfchecks/ui/online-ui-selfcheck.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
 docs/evidence/selfchecks/ui/online-ui-window-family-selfcheck.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
 docs/evidence/selfchecks/ui/online-ui-window-selfcheck.md | keep | claim | docs/backlog/done/online-ui-art-and-controls-overhaul.md
-docs/evidence/selfchecks/ui/online-ui-world-overlay-selfcheck.md | keep | claim | docs/backlog/review/middle-click-location-marker.md
+docs/evidence/selfchecks/ui/online-ui-world-overlay-selfcheck.md | keep | claim | docs/backlog/done/middle-click-location-marker.md
 docs/evidence/selfchecks/ui/player-list-peer-id-disambiguation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/remote-context-menu-medical-visibility-selfcheck.md | keep | claim | docs/backlog/review/remote-context-menu-medical-visible-when-target-not-visible.md
 docs/evidence/selfchecks/ui/remote-inventory-ui-followup-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

@@ -1,5 +1,5 @@
 // recipe: body-force
-// args: consciousness=n energy=n brainHealth=n badSleepAmount=n idleTime=n intelligence=n heartRate=n bloodPressure=n bloodOxygen=n
+// args: consciousness=n energy=n brainHealth=n badSleepAmount=n idleTime=n intelligence=n heartRate=n bloodPressure=n bloodOxygen=n strength=n
 // serves: carried-unconscious-body-simulation, carried-rider-own-body-stops-simulating,
 //         host-severe-sleepiness-posture-desync, host-fall-injury-mouth-expression-desync,
 //         carried-player-idle-sit-suppression, carrier-sit-when-carrying,
@@ -35,6 +35,7 @@
 	var heartRate = {{n:heartRate}};
 	var bloodPressure = {{n:bloodPressure}};
 	var bloodOxygen = {{n:bloodOxygen}};
+	var strength = {{n:strength}};
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-local-body\"}"; }
 	if (consciousness >= 0f) { body.consciousness = consciousness; }
@@ -43,6 +44,7 @@
 	if (badSleepAmount >= 0f) { body.badSleepAmount = badSleepAmount; }
 	if (idleTime >= 0f) { body.idleTime = idleTime; }
 	if (intelligence >= 0f) { body.skills.INT = (int)intelligence; body.skills.UpdateExpBoundaries(); }
+	if (strength >= 0f) { body.skills.STR = (int)strength; body.skills.UpdateExpBoundaries(); }
 	if (heartRate >= 0f) { body.heartRate = heartRate; }
 	if (bloodPressure >= 0f) { body.bloodPressure = bloodPressure; }
 	if (bloodOxygen >= 0f) { body.bloodOxygen = bloodOxygen; }
@@ -52,6 +54,7 @@
 		+ ",\"badSleepAmount\":" + num(body.badSleepAmount)
 		+ ",\"idleTime\":" + num(body.idleTime)
 		+ ",\"intelligence\":" + body.skills.INT.ToString(System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"strength\":" + body.skills.STR.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"heartRate\":" + num(body.heartRate)
 		+ ",\"bloodPressure\":" + num(body.bloodPressure)
 		+ ",\"bloodOxygen\":" + num(body.bloodOxygen)

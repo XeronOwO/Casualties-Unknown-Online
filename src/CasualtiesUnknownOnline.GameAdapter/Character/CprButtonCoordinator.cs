@@ -193,6 +193,22 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 
 		var operations = _domains.PlayerInteraction.MedicalOperations;
 
+		// The operator's own body is asked FIRST, for the start as well as the presses: a body that cannot compress must
+		// never open an operation the patient's side would then honour. The refusal is the operator's own line plus the
+		// game's deny sound (NotifyUseRefused publishes both) and nothing leaves the client.
+		var refusal = CprButtonPolicy.OperatorRefusal(
+			canCompress: CanThisOperatorCompress(),
+			hasStamina: HasStaminaForAPress());
+		if (refusal != CprOperatorRefusal.None)
+		{
+			var line = refusal == CprOperatorRefusal.TooWeak
+				? _domains.Localization.T("medical.cpr_too_weak")
+				: _domains.Localization.T("medical.cpr_exhausted");
+			_domains.PlayerInteraction.NotifyUseRefused(line);
+			_domains.Log.LogInformation("[Cpr] the gesture was refused by this operator's own body: {Refusal}.", refusal);
+			return;
+		}
+
 		if (_operationId == 0)
 		{
 			_target = target;
@@ -206,23 +222,8 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 
 		// The press is paid for HERE, not on the host: a member's own vitals are authoritative on their own client, so a
 		// charge the host writes into its snapshot of the member never reaches the member's body (read on the machine, batch
-		// 20261024-o: five host-charged presses left the operator's own stamina at 100). The strength gate is answered in the
-		// same place and for the same reason — it asks about THIS operator's own hands. Either refusal is the operator's own
-		// line plus the game's deny sound (NotifyUseRefused publishes both), and nothing is sent, so the patient is not given
-		// a press nobody made.
-		var refusal = CprButtonPolicy.OperatorRefusal(
-			canCompress: CanThisOperatorCompress(),
-			hasStamina: HasStaminaForAPress());
-		if (refusal != CprOperatorRefusal.None)
-		{
-			var line = refusal == CprOperatorRefusal.TooWeak
-				? _domains.Localization.T("medical.cpr_too_weak")
-				: _domains.Localization.T("medical.cpr_exhausted");
-			_domains.PlayerInteraction.NotifyUseRefused(line);
-			_domains.Log.LogInformation("[Cpr] the press was refused by this operator's own body: {Refusal}.", refusal);
-			return;
-		}
-
+		// 20261024-o: five host-charged presses left the operator's own stamina at 100). The gate above already answered the
+		// strength and stamina questions for this gesture, so this only spends what it allowed.
 		PayForThePress();
 		_lastPressSeconds = Time.unscaledTime;
 		operations.SendOtherUpdate(_operationId, MedicalOperationUpdateAction.Compress, interval);

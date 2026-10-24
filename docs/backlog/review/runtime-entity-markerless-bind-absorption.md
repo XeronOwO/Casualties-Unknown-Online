@@ -207,3 +207,8 @@ The re-review of the fixes rejected the cycle again; all findings were fixed and
   host — it needs the live Unity world. Those branches rest on code review plus the unified
   dual-client pass; the wire identity, the pure match judgment, the key-first arbitration
   and the dedup judgment are covered by tests.
+- **Batch `20261025-z` — the live half has nothing to read in this session.** `runtime-entity-tables` answered
+  `accepted=0, animals=0, pending=0` on the host, and a real explosion at `(0,507)` (`blast-at` → `ok=true, found=true`) added none:
+  this world contains no runtime-created entity, so the backfill stamp (row 9) has no fact to stamp. Row 9 therefore waits on a
+  world that CARRIES a runtime creation — an enemy spawn or a member-created entity — not on another read; the code review and the
+  unified dual-client pass remain its only evidence until such a world is staged.

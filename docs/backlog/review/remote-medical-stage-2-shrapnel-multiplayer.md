@@ -62,12 +62,20 @@ even now: no later value was ever written, which means the iterator never resume
 MonoBehaviour the game itself owns (or a patch-driven tick), not from the declaration's static Start: the break path is already
 proven to work when it runs, so only the scheduling is missing.
 
-**Batch `20261025-ae` — after a timed-out session the remote view will not open again.** With the victim moved next to the operator
+**Batch `20261025-ae` — NOT a stuck view: the operator's body was DEAD.** With the victim moved next to the operator
 (`body-place` → `(1,506)`), `seed-shrapnel limb=4 count=3` → `shrapnel=3`, the operator's `remote-wound-special mode=open` answered
-**`opened=false, viewOpen=false, displayBodyName=null`** while the member facts were plainly present (`hasSnapshot=true,
-hasHealth=true`), and a retry 2 s later answered the same. So the earlier session's timeout left the remote view unable to build its
-display body — a state the ticket's rows 5/6 (cancel, disconnect) are about, and one a later cycle should read on its own rather
-than as a side effect of this batch. Row 7 still waits on the same scheduling fix.
+`opened=false, viewOpen=false, displayBodyName=null` while the member facts were present (`hasSnapshot=true, hasHealth=true`), and a
+retry answered the same. The host log then named the cause plainly — `native WoundView did not open for 76561198863287957 — local
+body is not alive/available` — i.e. the OPERATOR had died, the same trap an earlier cycle hit on the pickup grant. After `/heal @s`
+the same call answered `opened=true, displayBodyName=MedicalDisplay_110000135D30695`, so nothing was stuck and the previous
+paragraph's suspicion is withdrawn: a failed open on this surface must be read with the operator's own body state first.
+
+**Right after that heal, the start-then-break gap is still there and is now precise.** With the view open and the operator alive,
+`mode=special` answered `started=true, shrapnel=3`, and a `grip-slip-drive mode=break` sent **0.3 s later** answered
+`no-shrapnel-minigame / "currentMinigame is null"` again. So the minigame the coordinator reports starting is not what
+`MinigameBase.main.currentMinigame` holds on the operator's client a third of a second later — the scheduling fix for the coroutine
+and this gap are the same question, and the next cycle starts by reading what `currentMinigame` actually is on each client during
+the session rather than assuming the host's minigame base is the one.
 
 **Batch `20261025-ab` — the declaration is written, declared, and does NOT break yet; the session turns out to be LONG-LIVED.**
 The `shrapnel-break` declaration (a coroutine that waits for the minigame, posts the grab report, sets the held slot, waits two

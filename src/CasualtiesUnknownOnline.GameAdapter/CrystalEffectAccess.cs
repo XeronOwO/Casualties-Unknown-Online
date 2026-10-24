@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 
@@ -45,6 +46,38 @@ internal static class CrystalEffectAccess
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// Every effect this crystal carries, by RUNTIME TYPE NAME — the list a crystal's kinds are derived from. A
+	/// crystal rolls one or more effects at generation, so the scanner needs all of them (a `Find` per known name
+	/// would read the list once per effect and still miss an unknown one). The sequence is de-duplicated and in
+	/// list order, so a caller that maps names to kinds gets each kind once.
+	/// </summary>
+	internal static List<string> EffectTypeNames(CrystalBehaviour crystal)
+	{
+		var effectsField = Traverse.Create(crystal).Field("effects");
+		if (!effectsField.FieldExists() || effectsField.GetValue() is not IEnumerable effects)
+		{
+			return [];
+		}
+
+		var names = new List<string>();
+		foreach (var effect in effects)
+		{
+			if (effect is null)
+			{
+				continue;
+			}
+
+			var name = effect.GetType().Name;
+			if (!names.Contains(name))
+			{
+				names.Add(name);
+			}
+		}
+
+		return names;
 	}
 
 	/// <summary>The latch as this copy holds it (false when the crystal carries no such

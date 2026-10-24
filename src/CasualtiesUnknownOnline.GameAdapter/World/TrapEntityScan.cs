@@ -121,16 +121,44 @@ internal static class TrapEntityScan
 			: name;
 	}
 
-	/// <summary>The crystal family: the kinds live on the behaviour's private
-	/// `effects` list (plain-class CrystalFragile, CrystalUnstable, …), NOT on the
-	/// component's type name, which is always `CrystalBehaviour` — so this row
-	/// currently yields NO crystal entries, and the layout carries no crystal kind.
-	/// Filed as `docs/backlog/todo/trap-layout-crystal-rows-empty.md`; the fix owes
-	/// reading the effects and answering whether the host's and the guest's effect
-	/// rolls agree, because enabling the rows makes the guest align (and possibly
-	/// destroy/materialize) crystals. Non-event crystal kinds (CrystalDripping)
-	/// produce nothing.</summary>
-	private static EntityEventKind[] CrystalKinds(Component component) => component.GetType().Name switch
+	/// <summary>
+	/// The crystal family: the kinds live on the behaviour's private `effects` list (plain-class `CrystalFragile`,
+	/// `CrystalUnstable`, …), never on the component's type name — a `CrystalBehaviour` component's type name is
+	/// always `CrystalBehaviour`, which is why the old switch yielded nothing for every crystal. Each effect the
+	/// crystal rolled contributes its kinds, de-duplicated: a crystal can carry several effects and the alignment
+	/// must not materialize a kind twice. Non-event effects (`CrystalDripping`) contribute nothing.
+	///
+	/// <para>
+	/// The rows are live again as of `trap-layout-crystal-rows-empty.md`'s fix. On the build this was written
+	/// against no prefab carries the component at all (the acceptance record names the probe), so the arm is
+	/// correct but unobservable there; a build that adds the component turns it on without another change, which is
+	/// why the two-client effect-roll agreement that ticket still owes stays its own acceptance row.
+	/// </para>
+	/// </summary>
+	private static EntityEventKind[] CrystalKinds(Component component)
+	{
+		if (component is not CrystalBehaviour crystal)
+		{
+			return [];
+		}
+
+		var kinds = new List<EntityEventKind>();
+		foreach (var effect in CrystalEffectAccess.EffectTypeNames(crystal))
+		{
+			foreach (var kind in KindsOfEffect(effect))
+			{
+				if (!kinds.Contains(kind))
+				{
+					kinds.Add(kind);
+				}
+			}
+		}
+
+		return [.. kinds];
+	}
+
+	/// <summary>The kinds one effect name answers, by the effect's own runtime type name.</summary>
+	private static EntityEventKind[] KindsOfEffect(string effectTypeName) => effectTypeName switch
 	{
 		"CrystalFragile" => [EntityEventKind.CrystalFragileBroken],
 		"CrystalElectric" => [EntityEventKind.CrystalElectricShocked],

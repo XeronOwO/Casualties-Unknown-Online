@@ -19,7 +19,8 @@ internal sealed class WorldChannelRelay(
 	TradeChannel tradeChannel,
 	SpeechChannel speechChannel,
 	ChatChannel chatChannel,
-	LocationPingChannel locationPingChannel)
+	LocationPingChannel locationPingChannel,
+	SpectatorNoticeChannel spectatorNoticeChannel)
 {
 	private readonly EntityEventChannel _eventChannel = eventChannel;
 	private readonly RuntimeEntityChannel _runtimeEntityChannel = runtimeEntityChannel;
@@ -27,6 +28,7 @@ internal sealed class WorldChannelRelay(
 	private readonly SpeechChannel _speechChannel = speechChannel;
 	private readonly ChatChannel _chatChannel = chatChannel;
 	private readonly LocationPingChannel _locationPingChannel = locationPingChannel;
+	private readonly SpectatorNoticeChannel _spectatorNoticeChannel = spectatorNoticeChannel;
 
 	public event Action<ulong, EntityEventMsg>? EntityEventReceived { add => _eventChannel.EntityEventReceived += value; remove => _eventChannel.EntityEventReceived -= value; }
 
@@ -164,6 +166,18 @@ internal sealed class WorldChannelRelay(
 	public event Action<ulong, ChatMsg>? ChatReceived { add => _chatChannel.ChatReceived += value; remove => _chatChannel.ChatReceived -= value; }
 
 	public void FireChatReceived(ulong sender, ChatMsg msg) => _chatChannel.FireChatReceived(sender, msg);
+
+	public void SendSpectatorNotice(SpectatorNoticeMsg msg) => _spectatorNoticeChannel.SendNotice(msg);
+
+	public void RelaySpectatorNotice(SpectatorNoticeMsg msg) => _spectatorNoticeChannel.RelayToTarget(msg);
+
+	public void FireSpectatorNoticeReceived(ulong sender, SpectatorNoticeMsg msg) => _spectatorNoticeChannel.FireNoticeReceived(sender, msg);
+
+	public event Action<ulong, SpectatorNoticeMsg>? SpectatorNoticeReceived
+	{
+		add => _spectatorNoticeChannel.NoticeReceived += value;
+		remove => _spectatorNoticeChannel.NoticeReceived -= value;
+	}
 
 	public void SendLocationPing(LocationPingMsg msg) => _locationPingChannel.SendLocationPing(msg);
 

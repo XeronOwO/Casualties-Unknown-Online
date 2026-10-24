@@ -486,4 +486,8 @@ public enum NetMsg : byte
 	// indistinguishable from a command that did nothing" rule the console family already follows.
 	LayerAdvanceRefused = 163, // host → requester: the layer advance was refused, with the reason the host logged
 
+	// Watcher → host report, then the host → the watched member alone: the ruling that the watched player is TOLD.
+	// Pre-release the number is not frozen (decision 241), so the change records itself here.
+	SpectatorNotice = 164,
+
 }

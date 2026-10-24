@@ -586,6 +586,17 @@ public interface IWorldControl
 
 	event Action<ulong, ChatMsg>? ChatReceived;
 
+	/// <summary>Watcher: report the start or the end of watching a member to the host.</summary>
+	void SendSpectatorNotice(SpectatorNoticeMsg msg);
+
+	/// <summary>Host only: relay a spectator notice to the watched member alone.</summary>
+	void RelaySpectatorNotice(SpectatorNoticeMsg msg);
+
+	/// <summary>A spectator notice arrived: a watcher's report on the host, a relay on the watched member.</summary>
+	void FireSpectatorNoticeReceived(ulong sender, SpectatorNoticeMsg msg);
+
+	event Action<ulong, SpectatorNoticeMsg>? SpectatorNoticeReceived;
+
 	/// <summary>
 	/// Report a locally-placed co-op location ping: guest → host as a report
 	/// (the host adds it to its own UI and relays), host → broadcast to all

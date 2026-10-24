@@ -43,6 +43,7 @@ internal static class WorldComposition
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
 		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)
 		services.AddSingleton<ChatChannel>(); // the text-chat channel (co-op communication)
+		services.AddSingleton<SpectatorNoticeChannel>(); // the spectator notice: watcher → host, host → the watched member only
 		services.AddSingleton<LocationPingChannel>(); // the transient middle-click location-ping channel (co-op presentation)
 		services.AddSingleton<FluidKernelProjection>();
 		services.AddSingleton<FluidKernelReadProjection>();
@@ -69,6 +70,7 @@ internal static class WorldComposition
 			p.GetRequiredService<SpeechChannel>(),
 			p.GetRequiredService<ChatChannel>(),
 			p.GetRequiredService<LocationPingChannel>(),
+			p.GetRequiredService<SpectatorNoticeChannel>(),
 			p.GetService<INativeWorldFacts>(),
 			p.GetRequiredService<IKernelProtocolControl>(),
 			p.GetRequiredService<ItemKernelAuthority>(),

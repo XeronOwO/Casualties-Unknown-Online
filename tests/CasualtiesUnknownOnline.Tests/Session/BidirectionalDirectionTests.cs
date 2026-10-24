@@ -40,6 +40,7 @@ public class BidirectionalDirectionTests(DirectionProbe probe) : IClassFixture<D
 		NetMsg.WorldBloodSpawn,
 		NetMsg.DynamiteExplosion,
 		NetMsg.Chat,
+		NetMsg.SpectatorNotice,
 		NetMsg.TraderSwing,
 		NetMsg.KernelEnvelope,
 		NetMsg.PlayerColorUpdate,

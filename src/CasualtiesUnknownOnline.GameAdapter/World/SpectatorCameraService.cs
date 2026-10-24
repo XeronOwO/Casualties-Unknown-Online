@@ -2,6 +2,7 @@ using System;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.Runtime.Localization;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -39,6 +40,7 @@ internal sealed class SpectatorCameraService(
 	ISessionControl session,
 	IEntitySyncControl entities,
 	ILocalizationService localization,
+	IWorldControl world,
 	ILogger<SpectatorCameraService> log) : ISpectatorControl, ISessionReset
 {
 	/// <summary>Subscribes the teardown this service owes the session: a session that ends while someone is watching must not leave that state alive for the next one.</summary>
@@ -135,6 +137,13 @@ internal sealed class SpectatorCameraService(
 
 		_watchingSteamId = steamId;
 		_freeFlyWanted = false;
+		// The watched player is TOLD (the ruling): the host relays this to that member alone.
+		world.SendSpectatorNotice(new SpectatorNoticeMsg
+		{
+			WatcherSteamId = session.LocalSteamId,
+			TargetSteamId = steamId,
+			Watching = true,
+		});
 		log.LogInformation("[Spectator] following {SteamId} (local body {Local} is {State}).",
 			steamId, session.LocalSteamId, Describe(run.LocalBody));
 		return true;
@@ -149,6 +158,13 @@ internal sealed class SpectatorCameraService(
 		}
 
 		log.LogInformation("[Spectator] stopped following {SteamId}.", _watchingSteamId);
+		// The watched player is told it ended, by the same targeted path the start took.
+		world.SendSpectatorNotice(new SpectatorNoticeMsg
+		{
+			WatcherSteamId = session.LocalSteamId,
+			TargetSteamId = _watchingSteamId,
+			Watching = false,
+		});
 		_watchingSteamId = 0;
 		_freeFlyWanted = false;
 	}

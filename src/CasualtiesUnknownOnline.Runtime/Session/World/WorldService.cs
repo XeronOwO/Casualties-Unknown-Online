@@ -78,6 +78,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		SpeechChannel speechChannel,
 		ChatChannel chatChannel,
 		LocationPingChannel locationPingChannel,
+		SpectatorNoticeChannel spectatorNoticeChannel,
 		INativeWorldFacts? nativeWorldFacts,
 		IKernelProtocolControl kernelProtocol,
 		ItemKernelAuthority kernelAuthority,
@@ -87,7 +88,7 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		ProjectionHealthCoordinator projectionHealth)
 	{
 		_session = session;
-		_channels = new WorldChannelRelay(eventChannel, runtimeEntityChannel, tradeChannel, speechChannel, chatChannel, locationPingChannel);
+		_channels = new WorldChannelRelay(eventChannel, runtimeEntityChannel, tradeChannel, speechChannel, chatChannel, locationPingChannel, spectatorNoticeChannel);
 
 		// The message surface is this facade's own collaborator, not a DI singleton:
 		// the world-fact lifecycle (which the save layer resolves) is built over the
@@ -366,6 +367,18 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 	public event Action<ulong, ChatMsg>? ChatReceived { add => _channels.ChatReceived += value; remove => _channels.ChatReceived -= value; }
 
 	public void FireChatReceived(ulong sender, ChatMsg msg) => _channels.FireChatReceived(sender, msg);
+
+	public void SendSpectatorNotice(SpectatorNoticeMsg msg) => _channels.SendSpectatorNotice(msg);
+
+	public void RelaySpectatorNotice(SpectatorNoticeMsg msg) => _channels.RelaySpectatorNotice(msg);
+
+	public void FireSpectatorNoticeReceived(ulong sender, SpectatorNoticeMsg msg) => _channels.FireSpectatorNoticeReceived(sender, msg);
+
+	public event Action<ulong, SpectatorNoticeMsg>? SpectatorNoticeReceived
+	{
+		add => _channels.SpectatorNoticeReceived += value;
+		remove => _channels.SpectatorNoticeReceived -= value;
+	}
 
 	public void SendLocationPing(LocationPingMsg msg) => _channels.SendLocationPing(msg);
 

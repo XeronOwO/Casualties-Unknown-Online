@@ -1,6 +1,6 @@
 # The radiation line descends at each client's own rate between the host's resends
 
-- Status: Review — FIXED and read on the machine (2026-10-24, deployed `0.1.0+8b5baee6`): with the member's body forced
+- Status: Done — FIXED and read on the machine (2026-10-24, deployed `0.1.0+8b5baee6`): with the member's body forced
   unconscious and the host's conscious, both lines advanced at the host's rate (delta 6.142 vs 6.174 over the same
   window) instead of the member's own `0.3` units/s. Record
   `docs/evidence/acceptance/radiation-rate-and-panel-20261024-h.md`. **User finding (2026-10-24)**: watching a member's

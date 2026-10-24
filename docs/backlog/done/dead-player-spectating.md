@@ -1,6 +1,6 @@
 # A player can watch the run as a spectator, and possess a teammate to see through their eyes
 
-- Status: Review — every slice of the 2026-10-24 pivot is landed and read on the machine (mode and its two
+- Status: Done — every slice of the 2026-10-24 pivot is landed and read on the machine (mode and its two
   entrances, pure observation, possession, the KrokMP-aligned controls, the mirrored screen effects and sounds, the
   native status icons presenting the watched body). The cleanup this ticket's own supersession created is done
   too: `done/spectator-superseded-host-rules.md` removed the three retired host rules end to end.

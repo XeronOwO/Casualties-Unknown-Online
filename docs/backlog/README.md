@@ -59,12 +59,9 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Review
 
 - [Remote medical CPR (KrokMP custom)](review/remote-medical-cpr.md) — **Medium** — all four stages landed; rows read on the machine; two machine rows named.
-- [The panel's save-and-exit writes the native save](review/layer-end-save-and-exit-native-write.md) — **Medium** — every row read; CUO cut and host gate.
-- [The radiation line descends at the member's own rate](review/radiation-line-descent-rate-per-side.md) — **Medium** — fixed; read on the machine.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.
-- [A player can watch the run as a spectator](review/dead-player-spectating.md) — **Medium** — every pivot slice landed and read.
 - [Command refusals render as successes](review/console-command-refusals-render-green.md) — **Low-Medium** — typed answers; every verb read.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 - [Who skips the intro cover, and when](review/launch-intro-cover-policy.md) — **Low** — one named decision; four paths read.
@@ -149,6 +146,9 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The panel's save-and-exit writes the native save](done/layer-end-save-and-exit-native-write.md) — **Medium** — every row read; CUO cut and host gate.
+- [The radiation line descends at the member's own rate](done/radiation-line-descent-rate-per-side.md) — **Medium** — fixed; read on the machine.
+- [A player can watch the run as a spectator](done/dead-player-spectating.md) — **Medium** — every pivot slice landed and read.
 - [The placement failure report has no anchor](done/placement-failure-report-anchor.md) — **Low-Medium** — closed; the not-applied arm is the named limit.
 - [The loading screen says what it waits for](done/loading-screen-progress-detail.md) — **Low-Medium** — the wait line is on the game's own text, read live.
 - [The spectator's three superseded host rules are still wired](done/spectator-superseded-host-rules.md) — **Low** — removed end to end.

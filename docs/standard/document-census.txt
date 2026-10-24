@@ -293,7 +293,7 @@ docs/backlog/done/container-content-event-gap-on-repick.md | keep | index | docs
 docs/backlog/review/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/done/docs-mojibake-cleanup.md | keep | index | docs/backlog/README.md
-docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
+docs/backlog/done/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/done/spectator-superseded-host-rules.md | keep | index | docs/backlog/README.md
 docs/backlog/done/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/done/document-corpus-audit.md | keep | index | docs/backlog/README.md
@@ -346,9 +346,9 @@ docs/backlog/done/layer-change-member-recovery.md | keep | index | docs/backlog/
 docs/backlog/done/layer-change-menu-round-trip.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
-docs/backlog/review/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
-docs/evidence/acceptance/layer-panel-visibility-20261024-g.md | keep | claim | docs/backlog/review/layer-end-save-and-exit-native-write.md
-docs/evidence/acceptance/radiation-rate-and-panel-20261024-h.md | keep | claim | docs/backlog/review/layer-end-save-and-exit-native-write.md
+docs/backlog/done/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/layer-panel-visibility-20261024-g.md | keep | claim | docs/backlog/done/layer-end-save-and-exit-native-write.md
+docs/evidence/acceptance/radiation-rate-and-panel-20261024-h.md | keep | claim | docs/backlog/done/layer-end-save-and-exit-native-write.md
 docs/backlog/done/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-child-limb-install-keeps-a-contained-record.md | keep | index | docs/backlog/README.md
@@ -366,7 +366,7 @@ docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/ba
 docs/evidence/acceptance/blast-marked-victims-20261024-r.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
 docs/evidence/acceptance/blast-descent-and-roll-20261024-t.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
 docs/evidence/acceptance/blast-one-set-20261024-u.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
-docs/backlog/review/radiation-line-descent-rate-per-side.md | keep | index | docs/backlog/README.md
+docs/backlog/done/radiation-line-descent-rate-per-side.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/cpr-end-to-end-20261024-l.md | keep | claim | docs/backlog/review/remote-medical-cpr.md
 docs/evidence/acceptance/cpr-two-channels-20261024-m.md | keep | claim | docs/backlog/review/remote-medical-cpr.md

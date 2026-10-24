@@ -306,6 +306,19 @@ Detail: `docs/en/contributing/review-and-delivery.md`.
   acceptance row from the evidence its own run collects and moves the ticket; a row it cannot judge is
   named as a residual for the user, a missing dependency is asked about rather than replaced by a weaker
   check, and a row that needs a capability not yet executable stays `blocked` — no ticket is closed on it.
+- `[CRITICAL]` **A blocked row never becomes the whole cycle.** When a row cannot be read with the
+  capabilities at hand, the ticket stays open with the row and the missing capability named, and the agent
+  moves to the NEXT ticket in the same pass — grinding on one row across cycles is the failure the user has
+  reported twice (a cycle that stops after every step, and time spent on one row while the backlog waits).
+  At most two batches per row, and the second must be preceded by the code that was missing; when no code
+  is missing, the row is blocked and the ticket moves on.
+- `[CRITICAL]` **Re-entering is not relaunching.** A new layer or a fresh world comes from the RUNNING
+  client (leave-world then continue-run, or the in-session layer advance), never by closing and starting
+  the clients again; a client restart belongs to a deploy and to nothing else. A batch that ends without a
+  judged row is a failed batch: record it and change the capability before the next attempt.
+- `[RULE]` **Ticket progress is judged rows and moved tickets, not tooling.** A cycle that only adds
+  acceptance recipes or records a finding has not advanced the backlog; tooling counts when it unblocks a
+  row in the same pass, and the review block advances by judging rows and moving tickets to `done/`.
 - `[CRITICAL]` **Acceptance-readiness audit before review**, answered with evidence: does the game
   already have a native UI for this surface (reuse it); was the whole family audited across roles,
   directions, participants and third-party views; was the exact reproduction covered by a test or runtime

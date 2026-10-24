@@ -1,6 +1,6 @@
 # The end-of-layer panel's "Save and exit" still writes the native save
 
-- Status: Review — every row read on the machine (2026-10-24): the save half takes a CUO cut and leaves `save.sv`
+- Status: Done — every row read on the machine (2026-10-24): the save half takes a CUO cut and leaves `save.sv`
   untouched (record `layer-end-save-and-exit-reading-20261024.md`), the host's panel follows the living share (records
   `layer-panel-visibility-20261024-g.md`, `radiation-rate-and-panel-20261024-h.md`), the dead host's panel still appears
   (batch g), and a member's own panel is gone entirely (batch h, after the member-panel fix `0.1.0+d0b38521`).

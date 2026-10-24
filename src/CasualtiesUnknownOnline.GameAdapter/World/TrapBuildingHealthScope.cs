@@ -33,6 +33,7 @@ internal sealed class TrapBuildingHealthScope : IDisposable
 	private readonly BuildingEntity? _dropTableReadBeforeApply;
 	private readonly List<BuildingEntityHealthEntryMsg> _entries = [];
 	private readonly List<DropBound> _dropRows = [];
+	private readonly List<BuildingEntity> _damaged = [];
 	private readonly ILogger? _log;
 	private int _marked;
 
@@ -65,6 +66,12 @@ internal sealed class TrapBuildingHealthScope : IDisposable
 	internal IReadOnlyList<DropBound> DropRows => _dropRows;
 
 	/// <summary>
+	/// Every entity this host's application damaged while the scope was open, in the order it happened. The chain
+	/// replay reads it: a MINE among these may have to fire inside this same scope instead of on its own destroy.
+	/// </summary>
+	internal IReadOnlyList<BuildingEntity> Damaged => _damaged;
+
+	/// <summary>
 	/// Adds a health observation and the entity's own drop rows when a scope is
 	/// active; returns false when no scope is active so the caller keeps the
 	/// normal direct kernel report. The entity is read HERE, while it still
@@ -83,6 +90,7 @@ internal sealed class TrapBuildingHealthScope : IDisposable
 			Y = y,
 			Health = health,
 		});
+		_current._damaged.Add(entity);
 		if (!ReferenceEquals(entity, _current._dropTableReadBeforeApply))
 		{
 			_current._dropRows.AddRange(GameBuildingDropTable.ForEntity(entity));
@@ -111,5 +119,6 @@ internal sealed class TrapBuildingHealthScope : IDisposable
 		_current = null;
 		_entries.Clear();
 		_dropRows.Clear();
+		_damaged.Clear();
 	}
 }

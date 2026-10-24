@@ -136,6 +136,12 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			using (var scope = TrapBuildingHealthScope.Begin(trapEntity, _log))
 			{
 				_applier.ApplyEvent(msg.Kind, position, msg.Extra);
+
+				// A mine this blast drove below its firing line would chain on its OWN OnDestroy, after this scope has
+				// closed, so its victims would be neither captured nor marked and the host would roll a set for a death
+				// the member's client already rolled. Firing it here keeps the chain inside the same capture.
+				_ = ChainedBlastReplay.Replay(scope.Damaged, _log);
+
 				if (scope.Entries.Count > 0)
 				{
 					additionalHealth = [.. scope.Entries];

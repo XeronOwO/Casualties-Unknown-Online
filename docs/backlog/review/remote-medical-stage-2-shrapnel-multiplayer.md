@@ -21,6 +21,22 @@ Batch `20261025-d`, one live session with three clients (host, guest operator, a
   injecting), and the 2026-10-11 shrapnel limb write that "vanished" is recorded there as the omission that caused it. No direct
   shrapnel-removal snapshot write remains outside the session path, so row 10 is satisfied by the code as it stands.
 
+## Run sheet for the row-7 coroutine (next cycle executes this, in order)
+
+1. **Declaration.** Add `tools/acceptance/driver/eval-declarations/shrapnel-break.cs` declaring `AcceptanceShrapnelBreak` with a
+   `Start(limb, pieceCount)` that starts a coroutine (the `cpr-rhythm` shape: the starter returns at once, frames do the waiting).
+   It reuses `grip-slip-drive`'s two proven pieces — the `objects`/`currentlyHeld` fields on `ShrapnelMinigame` and the
+   ownership report a grab must post first — by invoking the same report path before each `BreakGrasp()`.
+2. **Recipe.** Add `tools/acceptance/recipes/shrapnel-break.cs` (`args: limb=n count=n`) that resolves the declaration and calls
+   `Start`, exactly like `cpr-rhythm` does; the recipe returns immediately.
+3. **Drive.** `seed-shrapnel limb=<n> count=<k>` on the patient, `remote-wound-special mode=open` then `mode=special` on the
+   operator (proven tonight: `started=true, shrapnel=3`), then `shrapnel-break limb=<n> count=<k>`.
+4. **Read.** `pieces` and the limb read on BOTH clients: the pieces must go `k → 0` and the session must END with the limb's final
+   state agreed on the patient and the operator (row 7). Rows 1-6 and 9 then run inside the same window: two operators acting on the
+   same limb (leases, force-ungrab, cancel, disconnect).
+5. **Failure branch.** If the coroutine's first frame still reports `current=none`, the session died before the coroutine's first
+   tick — record that and stop rather than re-running step 3 a third time.
+
 ## Objective
 
 Implement a shared multiplayer `ShrapnelMinigame` remote path so multiple players can remove different shrapnel pieces from the same remote limb concurrently, with per-piece ownership, conflict arbitration, force-ungrab, progress propagation, third-party visibility and correct cancellation/disconnect behavior.

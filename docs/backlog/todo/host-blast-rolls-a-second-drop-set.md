@@ -312,3 +312,26 @@ carrier BOTH clients already have, which points at a worldgen mine or a host-sta
 evaluator. Everything else for the row is in place (descent, shared carriers, the reader, the trigger for mines).
 `docs/evidence/acceptance/blast-descent-and-roll-20261024-t.md` records the readings and the three evaluator shapes that
 fail.
+
+## Batch 20261024-u: the count row PASSES, with one set of instance ids on both clients
+
+The staging trick that unlocked it: a turret below **350** health starts its OWN two-second countdown (`TurretScript`),
+which ends in the game's own explosion — so writing the health value (not zero) runs the carrier's native path, event and
+drop roll included. `building-health-set` does that write; two descents reached a layer both clients share.
+
+| reading | value |
+|---|---|
+| member's own roll | `[TrapDropPending] kind=TurretSelfDestructed pos=(-373.0,-90.7)` → `[TrapDropFlush] … drops=4` |
+| host applied it | `origin=HostApply from <member>`, then four `[TrapDropPresentation] … enriched` lines for the MEMBER's ids (scrapmetal ×3, circuitboard) |
+| host's own roll | **none** — no `[ItemSpawned]` line for that death |
+| both worlds after | **290 items each, the same four ids present on both** |
+
+So **row 1 passes** (exactly one set of that building's drops, identical ids on every client) and **row 3 passes** (the
+host's own `[ItemSpawned]` line for that victim: zero times). Record:
+`docs/evidence/acceptance/blast-one-set-20261024-u.md`.
+
+**Row 2 (the chain) is still owed and here is exactly why**: the layers this session reached carry turrets only — four
+more descents gave 8 turrets, 8 turrets, then two empty layers, and **no `MineExploded` carrier**, while a hand-staged mine
+lives only on the host's client. The chain shape needs a generated layer with mines (or a generation-time placement); its
+code (slice 2, `ChainedBlastReplay`) is landed and unit-pinned. The ticket therefore stays in todo for that one shape.
+

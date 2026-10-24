@@ -365,6 +365,7 @@ docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.m
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/blast-marked-victims-20261024-r.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
 docs/evidence/acceptance/blast-descent-and-roll-20261024-t.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
+docs/evidence/acceptance/blast-one-set-20261024-u.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
 docs/backlog/review/radiation-line-descent-rate-per-side.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/cpr-end-to-end-20261024-l.md | keep | claim | docs/backlog/review/remote-medical-cpr.md

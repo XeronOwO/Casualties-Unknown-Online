@@ -381,6 +381,18 @@ chose to keep the current text markers. That settles the presentation of the str
 art assets, and the "state icons" half of the inheritance requirement is judged done by the strip's markers. The
 watched player's own screen effects and sounds are the last open item of this ticket.
 
+**The watched body's screen effects are mirrored, but the reading does not show them yet (2026-10-24, deployed
+`0.1.0+46090c70`).** The effects patch no longer forces zeros: the gate carries the watched body's black amount and a
+vignette that reddens with its blood volume, the service writes both every frame it follows a body and clears them on
+release, and the patch applies them instead of the local body's state. The reading, however, shows no change on the
+spectator's own camera: `spectator-probe` on the host reported `black 0, vignette 0` before the watched guest was
+killed and `black 0, vignette 0` afterwards. So either the prefix is not reached in the frames probed, or the watch
+target's blood volume is not what the host's clone carries (the guest reports blood as an OUTPUT value the host
+preserves rather than receiving), or the write is overwritten later in the frame. The next attempt logs the three
+facts together in the service's own follow loop — the resolved body's blood volume and consciousness, the values it
+writes into the gate, and the camera's `blackAmount` right after the patch — before touching the patch again.
+
+
 
 
 

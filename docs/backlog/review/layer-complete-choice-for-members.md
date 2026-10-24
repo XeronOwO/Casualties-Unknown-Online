@@ -2,7 +2,7 @@
 
 - Status: Review — **superseded in part (2026-10-24)**: this ticket's premise ("both the host and the guests can
   see it and click it") was overturned by the user's later ruling recorded on
-  `todo/layer-end-save-and-exit-native-write.md`: only the HOST presses these two choices, and on a member both
+  `review/layer-end-save-and-exit-native-write.md`: only the HOST presses these two choices, and on a member both
   buttons are now HIDDEN (`LayerPanelChoicePolicy`, deployed `0.1.0+32acadd7`). What remains of this ticket is the
   dead-host row, which that ruling also answers for the panel (a member cannot click, so a dead host cannot be
   bypassed from here; the pod keeps its own producer). The development half had landed 2026-10-07; the static
@@ -15,7 +15,7 @@
 - Related: `review/save-layer-end-save-and-restore.md` (S2 — the layer-end save itself),
   `review/save-system-mid-run-and-layer-end.md`, `review/save-mid-run-consistent-cut.md`,
   `done/layer-change-member-recovery.md` (a member out of the world at the boundary),
-  `review/pod-descent-on-a-member-regenerates-locally.md` and `todo/layer-end-save-and-exit-native-write.md`
+  `review/pod-descent-on-a-member-regenerates-locally.md` and `review/layer-end-save-and-exit-native-write.md`
   (this cycle's two family siblings),
   `done/layer-mod-baseline-divergence-on-continue.md` (a Continue that reopened the wrong world)
 
@@ -85,7 +85,7 @@ carries — the kernel run baseline's generation (run epoch + layer index).
    The panel's other button (`SaveAndExit`, which writes the native `save.sv`) belongs to the save half
    (`review/save-layer-end-save-and-restore.md`). The pod and that button have their own tickets
    (`review/pod-descent-on-a-member-regenerates-locally.md`,
-   `todo/layer-end-save-and-exit-native-write.md`); the console command is the game's own debug surface and
+   `review/layer-end-save-and-exit-native-write.md`); the console command is the game's own debug surface and
    is deliberately untouched.
 
 ## Required work
@@ -142,7 +142,7 @@ Status after the 2026-10-07 development cycle:
   eleven evidence anchors.
 - Two producers of a local descent are deliberately NOT routed through this path (filed rather than
   half-fixed): `review/pod-descent-on-a-member-regenerates-locally.md` and
-  `todo/layer-end-save-and-exit-native-write.md`.
+  `review/layer-end-save-and-exit-native-write.md`.
 
 ## Verification (machine, this cycle)
 
@@ -200,5 +200,5 @@ Status after the 2026-10-07 development cycle:
    the SET: a game update that adds, drops or reorders a step of that entry must change the host's drive by
    hand.
 7. **The panel's other button** (`SaveAndExit`) is untouched and writes the native `save.sv` —
-   `todo/layer-end-save-and-exit-native-write.md`.
+   `review/layer-end-save-and-exit-native-write.md`.
 

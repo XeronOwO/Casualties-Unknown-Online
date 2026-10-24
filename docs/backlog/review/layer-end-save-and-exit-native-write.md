@@ -1,6 +1,9 @@
 # The end-of-layer panel's "Save and exit" still writes the native save
 
-- Status: Todo
+- Status: Review — every row read on the machine (2026-10-24): the save half takes a CUO cut and leaves `save.sv`
+  untouched (record `layer-end-save-and-exit-reading-20261024.md`), the host's panel follows the living share (records
+  `layer-panel-visibility-20261024-g.md`, `radiation-rate-and-panel-20261024-h.md`), the dead host's panel still appears
+  (batch g), and a member's own panel is gone entirely (batch h, after the member-panel fix `0.1.0+d0b38521`).
 - Priority: Medium
 - Category: Persistence / save system / session flow
 - Source: found by the family sweep of the 2026-10-07 cycle that landed
@@ -105,6 +108,13 @@ does not come back.
   choice drives the host's advance).
 - Re-deciding decision 165 itself: the question here is its ENFORCEMENT on a surface the original evidence
   could not see, not whether CUO should own its saves.
+
+## Batch 20261024-h: the member's panel is gone, the host's still follows the share (deployed `0.1.0+8b5baee6`)
+
+Three consecutive reads with both living bodies at the floor: the host's panel **active** with its two choices
+visible, the member's panel **inactive**. Then the member back up top (1/2): the host's panel **inactive**. So the
+choice is the host's alone, and the panel is the host's gate — record
+`docs/evidence/acceptance/radiation-rate-and-panel-20261024-h.md`.
 
 ## The panel's visibility rows, read on the machine (2026-10-24, deployed `0.1.0+d4994cca`)
 

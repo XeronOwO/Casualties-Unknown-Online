@@ -1,6 +1,6 @@
 # Batch 20261024-g — the end-of-layer panel's visibility rows, read on the machine
 
-- Ticket: `docs/backlog/todo/layer-end-save-and-exit-native-write.md` (the panel half)
+- Ticket: `docs/backlog/review/layer-end-save-and-exit-native-write.md` (the panel half)
 - Artifact: `0.1.0+d4994cca`, deployed and verified against `<game-dir>` before the run
 - Session: host + one guest, two clients, formed by the driver (`leave-world` → `create-lobby` → `join-lobby` →
   `start-run`); world up (`halfHeight = 512`, so the native floor line `-halfHeight + 3.1` is `-508.9`)

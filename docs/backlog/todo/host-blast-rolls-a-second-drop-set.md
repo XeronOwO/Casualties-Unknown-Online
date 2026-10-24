@@ -199,4 +199,3 @@ and the host rolled a second drop set for a death the reporting member already r
   (the shape this game's damage numbers make rare), and the log line says how many blasts were replayed.
 
 The rule is `ChainedBlastPolicy` (five cases: below the line, exactly on it, already fired, not a mine, still healthy).
-

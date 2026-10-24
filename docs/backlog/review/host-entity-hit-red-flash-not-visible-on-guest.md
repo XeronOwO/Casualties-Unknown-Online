@@ -109,3 +109,11 @@ entry rather than entity damage, which is the fact the next attempt has to expla
 inside the pod, and the click-time swing may break the pod floor instead). The reading therefore needs an entity the melee path
 actually damages — a wall/rock-style `BuildingEntity` outside the pod — placed in view and clicked, with the host's own damage
 line as the confirmation before the guest's replay line is read.
+
+A `prefab` filter was added for exactly that (`entity-attack mode=place,prefab=leadbush`) and it closed the question by
+elimination: the nearest `leadbush` on this world is **61 units from the pod**, at `(-31.5, 453.6)`, and its screen point is
+`(135.8, -213.8)` — off the bottom of the viewport. Teleporting the body to it does not stick: the next read shows the body back
+at `(0, 506.6)`, because the game's own movement/collision puts it back out of solid rock. So inside the pod there is no melee
+target to hit at all, and reaching one means real travel rather than a placement. **This row is parked** until a batch can walk a
+member to a plant/tree and swing there (the `move-drive` recipe is the natural instrument once its argument contract is
+satisfied) — a capability question, not a defect in the replay path, which the ticket's own selfcheck already covers.

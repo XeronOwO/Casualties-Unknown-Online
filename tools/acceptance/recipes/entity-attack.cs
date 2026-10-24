@@ -1,5 +1,5 @@
 // recipe: entity-attack
-// args: mode=s
+// args: mode=s prefab=s
 // serves: host-entity-hit-red-flash-not-visible-on-guest (its remaining presentation row)
 // returns: ok, mode, entityX, entityY, bodyX, bodyY, distance, error, detail
 //
@@ -11,6 +11,7 @@
 // Everything is by type name and refuses loudly: a missing entity is `no-entity`.
 ((System.Func<string>)(() => {
 	var mode = {{s:mode}};
+	var prefab = {{s:prefab}};
 	var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 	System.Type entityType = null;
@@ -56,9 +57,17 @@
 	}
 	var best = entities[0];
 	var bestDistance = float.MaxValue;
+	var idProperty = entityType.GetProperty("id", flags);
+	var idField = idProperty == null ? entityType.GetField("id", flags) : null;
 	for (var i = 0; i < entities.Length; i++) {
 		var candidate = entities[i];
-		// Prefer an entity a click can reach: without a Collider2D the swing's ray has nothing to hit (the first batch proved
+		// A prefab filter picks the family the swing is known to damage (a plant or a tree, not the pod's own heater), which is
+		// what the reading needs: the red flash rides a hit on a BuildingEntity the melee path really damages.
+		if (!string.IsNullOrEmpty(prefab)) {
+			var idValue = idProperty != null ? idProperty.GetValue(candidate, null) : (idField != null ? idField.GetValue(candidate) : null);
+			if (idValue == null || !string.Equals(idValue.ToString(), prefab, System.StringComparison.OrdinalIgnoreCase)) { continue; }
+		}
+		// Prefer an entity a click can reach: without a Collider2D the swing's ray has nothing to hit (an earlier batch proved
 		// that by damaging a block instead), so the nearest CLICKABLE one wins and a plain nearest is only the fallback.
 		var hasCollider = ((UnityEngine.Component)candidate).GetComponent(typeof(UnityEngine.Collider2D)) != null;
 		var distance = UnityEngine.Vector3.Distance(localPosition, ((UnityEngine.Component)candidate).transform.position);

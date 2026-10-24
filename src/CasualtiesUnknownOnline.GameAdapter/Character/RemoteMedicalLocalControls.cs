@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
@@ -35,6 +36,13 @@ internal static class RemoteMedicalLocalControls
 		"workoutList",
 		"handSwapImage",
 	];
+
+	/// <summary>
+	/// The wound view's CPR control, wired by the adapter on construction and driven from the same per-frame patch that
+	/// hides the local-only surfaces: the panel is the one object both halves act on, so they share the frame instead of
+	/// each searching for it. Null in a build without the adapter.
+	/// </summary>
+	internal static Action<WoundView>? CprControl;
 
 	private static readonly SurfaceMemory NapButton = new();
 	private static readonly SurfaceMemory SleepImage = new();

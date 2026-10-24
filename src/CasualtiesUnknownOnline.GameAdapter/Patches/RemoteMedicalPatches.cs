@@ -47,6 +47,10 @@ internal static class RemoteMedicalPatches
 			// keeps writing napbutton.interactable from the display body's
 			// canTakeNap.
 			RemoteMedicalLocalControls.Hide(__instance);
+
+			// The CPR control rides the same frame: it is the one control this side ADDS to the panel, and it must follow
+			// the focus and the patient's arrest rather than a once-opened layout.
+			RemoteMedicalLocalControls.CprControl?.Invoke(__instance);
 		}
 	}
 

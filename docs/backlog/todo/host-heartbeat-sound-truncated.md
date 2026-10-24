@@ -241,6 +241,23 @@ this is a user-visible choice, not an implementation detail:
 3. **Replace the pattern**: a generated beep pattern whose cycle matches the beat, which changes how the game sounds far more
    than (2).
 
+## Corrected again by the user (2026-10-25): six seconds per beat is absurd, so the sound is the PER-BEAT clip
+
+The user's objection is decisive: "it cannot be once per six seconds — what heart rate is six seconds a beat?" The 6.000 s
+clip is the panel's alert LOOP, but a heartbeat cannot be six seconds apart, so the sound being described is the per-beat
+`heartthump*` family (`heartthump-heavy` is **0.769 s**), played by `Body` once per beat when `heartProg` passes its
+threshold. The "asset seam" conclusion above is therefore about the wrong clip and does not answer the report.
+
+**The concrete lead, from a reading this ticket already took**: on the host, TWO `heartthump-heavy` sources were playing at
+almost the same position (`0.993 / 0.983`) in the same read. Two simultaneous copies of the same per-beat clip is a
+doubled play — the flanging/stutter that sounds like a truncated heartbeat — and unlike the clip's length it would be OURS:
+one copy is the local body's own beat, the other a producer that the host-vitals suppression is supposed to refuse.
+
+**The next reading, exactly**: the host's own critical body with NO remote player in world (one `heartthump-heavy` source
+expected), then the same body with a remote critical teammate present (two sources at the same position = the second
+producer is ours and its path is the defect). The instrument is `heart-audio-state`, which already reports every
+thump-looking source with its clip and position.
+
 ## Acceptance this ticket owes
 
 A two-client session: the host's body forced critical (`body-force bloodPressure=…`), the host's log read for

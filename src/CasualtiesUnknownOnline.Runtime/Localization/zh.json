@@ -113,6 +113,7 @@
   "worlds.host_only": "只有主机可以管理世界；客机不写世界存档。",
   "tab.preferences": "偏好",
   "console.overlay.empty": "暂无控制台消息。",
+  "console.command.host_only": "权限不足：该命令仅主机可用。",
   "console.ready": "CUO 命令控制台已就绪。输入 /help 查看可用命令。",
   "console.session_ended": "会话已结束。",
   "content.cu_player": "玩家",

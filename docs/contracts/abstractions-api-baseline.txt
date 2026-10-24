@@ -28,10 +28,14 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.SteamId|e
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.Text|enumvalue|implicit #5
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.Anyone|enumvalue|implicit #0
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.HostOnly|enumvalue|implicit #1
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Args|property|-> IReadOnlyList<string>? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.HasText|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Key|property|-> string? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Kind|property|-> ConsoleAnswerKind { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Ok(string text, string key, params string[] args)|static method|-> ConsoleAnswer
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Ok(string? text)|static method|-> ConsoleAnswer
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Refused(string text)|static method|-> ConsoleAnswer
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Refused(string text, string key, params string[] args)|static method|-> ConsoleAnswer
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Silent|static property|-> ConsoleAnswer { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Text|property|-> string? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind.Refusal|enumvalue|implicit #1

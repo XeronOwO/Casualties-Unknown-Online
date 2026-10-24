@@ -268,6 +268,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	/// </summary>
 	private static readonly string[] ExpectedUiKeys =
 	[
+		"console.command.host_only",
 		"console.overlay.empty",
 		"console.ready",
 		"console.session_ended",

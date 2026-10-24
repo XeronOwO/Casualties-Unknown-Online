@@ -22,6 +22,7 @@ internal static class ConsoleLineText
 		{
 			"console.ready" => ctx.T("console.ready"),
 			"console.session_ended" => ctx.T("console.session_ended"),
+			"console.command.host_only" => ctx.T("console.command.host_only"),
 			_ => line.Text,
 		};
 

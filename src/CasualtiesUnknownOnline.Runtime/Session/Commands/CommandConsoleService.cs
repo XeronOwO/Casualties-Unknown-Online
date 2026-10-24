@@ -346,7 +346,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// by name rather than as unknown).
 		if (command.Permission == CommandPermission.HostOnly && _session.Role != SessionRole.Host)
 		{
-			AddLine(ConsoleCommandAuthority.HostOnlyRefusal, ConsoleLineKind.Error);
+			AddKeyedLine("console.command.host_only", ConsoleCommandAuthority.HostOnlyRefusal, ConsoleLineKind.Error);
 			return false;
 		}
 
@@ -357,7 +357,17 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			var answer = command.Answer(tokens);
 			if (answer.HasText)
 			{
-				AddLine(answer.Text!, answer.Kind == ConsoleAnswerKind.Refusal ? ConsoleLineKind.Error : ConsoleLineKind.Success);
+				// An answer that names its catalogue key is printed in the client's own language; one that does not keeps its
+				// sentence (the log, the fallback, and every answer assembled from free data).
+				var kind = answer.Kind == ConsoleAnswerKind.Refusal ? ConsoleLineKind.Error : ConsoleLineKind.Success;
+				if (answer.Key is { } key)
+				{
+					AddKeyedLine(key, answer.Text!, kind, [.. answer.Args ?? []]);
+				}
+				else
+				{
+					AddLine(answer.Text!, kind);
+				}
 			}
 
 			return true;

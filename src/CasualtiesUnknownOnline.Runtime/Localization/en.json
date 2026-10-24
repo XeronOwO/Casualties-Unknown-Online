@@ -113,6 +113,7 @@
   "worlds.host_only": "Only the host manages worlds; a guest never writes a world archive.",
   "tab.preferences": "Preferences",
   "console.overlay.empty": "No console messages yet.",
+  "console.command.host_only": "Permission denied: this command is host-only.",
   "console.ready": "CUO command console ready. Type /help for available commands.",
   "console.session_ended": "Session ended.",
   "content.cu_player": "Player",

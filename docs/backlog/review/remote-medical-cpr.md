@@ -1,12 +1,11 @@
 # Remote medical CPR enhancement (KrokMP custom)
 
-- Status: Todo — **stages 1a–1c, 2 and 3's two halves landed** (2026-10-24, deployed `0.1.0+e01d419d`): the rows read on
-  the machine for stage 1 (`cpr-end-to-end-20261024-l.md`: heartRate 0 → 81.151, conscious false → true) and stage 2
-  (`cpr-two-channels-20261024-m.md`: both panel controls found/active/interactable, oxygen 20 → 22.868 and 92.311 → 100),
-  and stage 3 is code-complete with its unit rows (`AedShockPolicyTests`, the over-press policy case and the session-level
-  AED-refusal case). **Stage 4 is the one that needs a decision before it can be built**: the reference's press-rate band
-  (65–220 per minute) is narrower than the rhythm this ticket's rule was tuned to, and adopting it changes both the feel
-  and what a batch can press — see "Stage 4's open decision" below. — **promoted 2026-10-07** by the user's backlog directive (do KrokMP's CPR feature), with the
+- Status: Review — **all four stages landed** (2026-10-24, latest deployment `0.1.0+10807c23`): stage 1's restart, stage 2's
+  oxygen channel, stage 3's rib and AED arbitration, and stage 4's reference rhythm band, per-press costs, strength gate and
+  intelligence screen — each with rows read on the machine and the readings named in its section below. **Two machine rows are
+  named as residuals**: an AED operation end to end (it needs a recipe that gives the operator the item and walks the three
+  stages) and a `Good` rhythm verdict (no press the driver can produce lands inside the band: one call is ≥1.0 s and
+  same-frame presses are 0.01 s, so the affirmation's visibility is unit-pinned only). — **promoted 2026-10-07** by the user's backlog directive (do KrokMP's CPR feature), with the
   mechanics the user added then: inflate after an interval to give the teammate air, an oxygen-style mechanic
   if the game's own model can carry one, and an explicit complexity assessment before the work is planned.
 - Priority: Medium
@@ -377,6 +376,20 @@ Still open on the operator's side:
   and the host's log holds no `started Cpr` line. The two refusals have their own lines
   (`medical.cpr_too_weak` / `medical.cpr_exhausted`) and the game's deny sound.
   `body-force` gained `strength` to make a weak operator reachable at all.
-- **Intelligence**: `INT < 12` makes the operator's SCREEN harder rather than refusing — a presentation rule this ticket
-  would need to design (what "harder" shows). With no minigame screen in CUO's version, the natural translation is a
-  narrower rhythm band for a low-INT operator, which is a gameplay change and goes to the user before it is built.
+- **Intelligence — LANDED and read on the machine** (2026-10-24, deployed `0.1.0+10807c23`): read from the reference mod's
+  own handler (`reversing/KrokMP`: `CPRHandler.stupid` suppresses exactly the `cpr_minigame_good` line, `CPRMinigame.GetGuideText`
+  swaps in `cpr_minigame_guide_stupid`, `SMART_INT_REQUIREMENT = 12`), so it is a PRESENTATION rule, never a number:
+  `CprRhythmPolicy.JudgePress` derives the verdict from the same band the press is scored on and `ShowsTheVerdict` withholds
+  only `Good` below INT 12, while both misses stay visible. The control's label carries the verdict for a second and otherwise
+  the guide — the full sentence for a clear operator, the bare word for a low-intelligence one. The batch read
+  `TooSlow`/`TooFast` logged at INT 15 and at INT 5 (`cpr-rhythm-feedback-20261024-q.md`); a `Good` press is not reachable from
+  the driver (one call ≥1.0 s, same-frame presses 0.01 s), so the affirmation's visibility is unit-pinned only.
+
+## Records
+
+- `docs/evidence/acceptance/cpr-end-to-end-20261024-l.md` — stage 1's restart, read end to end.
+- `docs/evidence/acceptance/cpr-two-channels-20261024-m.md` — stage 2's two panel channels and the oxygen readings.
+- `docs/evidence/acceptance/cpr-rhythm-band-20261024-n.md` — the reference band's two edges.
+- `docs/evidence/acceptance/cpr-operator-cost-20261024-o.md` — the press cost, and whose body pays it.
+- `docs/evidence/acceptance/cpr-strength-gate-20261024-p.md` — the strength gate refusing at the source.
+- `docs/evidence/acceptance/cpr-rhythm-feedback-20261024-q.md` — the rhythm verdict at two intelligence levels.

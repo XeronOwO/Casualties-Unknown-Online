@@ -1,6 +1,6 @@
 # Batch 20261024-l — CPR end to end on the machine, and why the two earlier reads failed
 
-- Ticket: `docs/backlog/todo/remote-medical-cpr.md` (stages 1a–1c and their row)
+- Ticket: `docs/backlog/review/remote-medical-cpr.md` (stages 1a–1c and their row)
 - Artifact: `0.1.0+e15a8521`, deployed and verified against `<game-dir>` before the run
 - Session: host + one member, two clients; host forced into cardiac arrest with
   `body-force heartRate=0,bloodPressure=5` (lands and holds), the member opened the chart through

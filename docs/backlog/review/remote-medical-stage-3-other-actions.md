@@ -19,7 +19,7 @@ After Stages 1 and 2 establish the `MedicalOperationSession` layer, align the re
 - Amputation (`AmputationMinigame`)
 - Any other WoundView limb action that was found bypassed or blocked in the original audit
 
-CPR is intentionally excluded; see `todo/remote-medical-cpr.md` (promoted out of `future/` on 2026-10-07).
+CPR is intentionally excluded; see `remote-medical-cpr.md` in this folder (promoted out of `future/` on 2026-10-07).
 
 ## Per-action design summary
 

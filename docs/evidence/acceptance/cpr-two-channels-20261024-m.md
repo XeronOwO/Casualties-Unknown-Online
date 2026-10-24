@@ -1,6 +1,6 @@
 # Batch 20261024-m — CPR's two channels read on the panel: compressions restart the heart, breaths carry oxygen
 
-- Ticket: `docs/backlog/todo/remote-medical-cpr.md` (stage 2's rule half, its entry, and their rows)
+- Ticket: `docs/backlog/review/remote-medical-cpr.md` (stage 2's rule half, its entry, and their rows)
 - Artifact: `0.1.0+8b45fee7`, deployed and verified against `<game-dir>` before the run
 - Session: host + one member; host forced into cardiac arrest with `body-force heartRate=0,bloodPressure=5`; the member
   opened the chart through `medical-open` and pressed the panel's controls through `cpr-press` (their `onClick`).

@@ -1,7 +1,9 @@
 # Command refusals render as successes
 
-- Status: Todo — found by the second review of the `/gamerule` change (2026-10-24); pre-existing and
-  console-wide, with the new verb's refusals as the instance.
+- Status: Review — the user approved the typed-answer contract (2026-10-24) and it is landed: `ConsoleAnswer` in
+  `Abstractions`, every built-in and bundled mod migrated, two tests pinning the KIND, and machine readings for
+  `/gamerule`, `/help` and `/data` (deployed `0.1.0+01ea0eec`). Found by the second review of the `/gamerule`
+  change; pre-existing and console-wide, with that verb's refusals as the instance.
 - Priority: Low-Medium
 - Category: Console / output kinds / player feedback
 - Source: the review read `CommandConsoleService.ExecuteCommand`: every non-empty handler return is added as
@@ -72,11 +74,26 @@ every handler returns, built-ins and mods together.
 - Machine reading, one session: `[probe] /gamerule nonsense` → line kind **Error** ("Unknown game rule 'nonsense'");
   `/help` → kind **Success**.
 
-## Still open — the ONE verb left
+## /data landed too (2026-10-24, deployed `0.1.0+01ea0eec`)
 
-`/data`. Its decisions live inside the item-data family (`ItemDataCommands` + `ItemDataWriteCommands`, ~640 lines):
-`Data` wraps `Get`/`Merge`/`Modify`/`Remove` as successes because those helpers answer plain text, and their own
-refusals ("no item #N is recorded", "the cursor holds nothing", a write refused by the rules) therefore still print
-green. The fix is the same migration one level down: those helpers return `ConsoleAnswer` with their refusals marked.
-The ticket stays in `todo/` until that lands and is read.
+The item-data family was the last verb. `ItemDataCommands`' read path (`Get`, `ReadOne`, `ReadCursor`, `ReadSlot`,
+`ReadBodies`) and `ItemDataWriteCommands`' write path (`Merge`, `Modify`, `Remove`, `Write`) now answer
+`ConsoleAnswer`, with the refusal kind on: a read that finds no item, a selector naming several bodies, a path that
+does not resolve, the no-language build, and every write refusal (the cheat gate, an unresolved target, an item this
+client does not hold, the local scene's own refusal). The renderers answer `string?` where null is the missing
+language, which each caller turns into that same refusal.
+
+Machine reading, one session: `/data get id 999999999` → line kind **Error** ("No item #999999999 is recorded in this
+session."); `/data modify nope` → **Error** ("'nope' is not a target…"). With the earlier `/gamerule nonsense` →
+Error and `/help` → Success, every verb the ticket names answers with its own kind.
+
+## Acceptance judged
+
+- **A refused command renders as an error line, a successful one as a success line** — read for `/gamerule` (refused
+  and successful), `/help` (success), `/data` (two refusals), and pinned by tests for `/gamemode` and a mod command.
+- **The mechanism covers mod commands and the selfcheck records it** — `ModConsoleCommand.Handler` returns
+  `ConsoleAnswer`; the console colours by `ConsoleAnswerKind`; the two tests assert the kind, not the text.
+- **No verb is left with a refusal printed as success** — the built-ins, the three bundled mods and the test mods are
+  migrated; the registry refuses a handler whose signature cannot answer with a kind.
+
 

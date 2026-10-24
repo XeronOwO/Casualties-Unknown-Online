@@ -44,6 +44,7 @@
 - **A hidden command typed in full still shows its grammar refusal** (the rule names, the accepted values):
   the parse precedes the gate by design, and the ticket's Limits record it.
 - **`/help <hidden>` renders green** (a handler return); the tracked console-wide defect
-  `todo/console-command-refusals-render-green.md` now names this surface.
+  `review/console-command-refusals-render-green.md` names this surface, and the typed-answer fix it asked for has
+  landed since (see that ticket's acceptance).
 - **The sandbox Steam clients were left running**, per this machine's convention; all three game clients
   were closed with the driver's `quit` and the process list was empty afterwards.

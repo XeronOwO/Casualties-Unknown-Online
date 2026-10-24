@@ -39,7 +39,8 @@
   and checks read; it is not a read of the host's config file.
 - **The refusal line is a console line, not an error line.** The console adds a handler's return as a
   success line (its colours), so a refusal reads green; the text names the refusal. Filed as
-  `todo/console-command-refusals-render-green.md`; the ticket's Limits record it.
+  `review/console-command-refusals-render-green.md`, whose typed-answer fix has since made refusals print as
+  errors; the ticket's Limits record it.
 - **No completion.** `/gamerule ` suggests nothing; rows 3 and 4's refusals are the discovery surface.
 - The guest's row-5 answer is the driver's `console-refused` wrapper with the console line inside
   `last.lastLine`; the driver treats a `false` `TryExecute` as a refusal, which is exactly the host-only

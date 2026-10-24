@@ -159,7 +159,12 @@ public class HostRuleCensusTests
 	{
 		var set = Set();
 
-		Assert.Equal(set, HostRulesMsg.From(set).ToSet());
+		// Every ANNOUNCED rule round-trips. The one host-only rule does not travel by design (its row's audience says
+		// so, because only the host's own panel reads it), so the receiver's copy carries the neutral value and the
+		// comparison excludes it rather than pretending it was sent.
+		var roundTripped = HostRulesMsg.From(set).ToSet() with { LayerCompleteLivingShare = set.LayerCompleteLivingShare };
+
+		Assert.Equal(set, roundTripped);
 	}
 
 	[Fact]
@@ -223,7 +228,8 @@ public class HostRuleCensusTests
 		ReviveFromTrader: false,
 		ReviveOnNextLevel: false,
 		Permadeath: true,
-		RadiationLineStopsAboveTheFloor: false);
+		RadiationLineStopsAboveTheFloor: false,
+		LayerCompleteLivingShare: 0.5f);
 
 	private static IReadOnlyList<PropertyInfo> Properties<T>() =>
 		[.. typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(property => property.GetIndexParameters().Length == 0)];

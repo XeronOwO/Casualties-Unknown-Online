@@ -30,4 +30,10 @@ public enum HostRuleId
 
 	/// <summary>The radiation line stops a margin above the layer floor instead of descending past it (the host rule the user asked to align with).</summary>
 	RadiationLineStopsAboveTheFloor,
+
+	/// <summary>
+	/// The end-of-layer panel's two choices appear on the HOST's screen only when this share of the LIVING players
+	/// has finished the layer (0..1). Host-only: it gates the host's own panel, and no member reads it.
+	/// </summary>
+	LayerCompleteLivingShare,
 }

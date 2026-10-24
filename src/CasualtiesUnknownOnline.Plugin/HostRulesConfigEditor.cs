@@ -29,6 +29,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _reviveOnNextLevel;
 	private readonly ConfigEntry<bool> _keepInventory;
 	private readonly ConfigEntry<bool> _radiationLineStopsAboveTheFloor;
+	private readonly ConfigEntry<double> _layerCompleteLivingShare;
 
 	internal HostRulesConfigEditor(
 		ConfigFile config,
@@ -44,7 +45,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> reviveFromTrader,
 		ConfigEntry<bool> reviveOnNextLevel,
 		ConfigEntry<bool> keepInventory,
-		ConfigEntry<bool> radiationLineStopsAboveTheFloor)
+		ConfigEntry<bool> radiationLineStopsAboveTheFloor,
+		ConfigEntry<double> layerCompleteLivingShare)
 	{
 		_config = config;
 		_pvp = pvp;
@@ -60,6 +62,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_reviveOnNextLevel = reviveOnNextLevel;
 		_keepInventory = keepInventory;
 		_radiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor;
+		_layerCompleteLivingShare = layerCompleteLivingShare;
 	}
 
 	internal void SetPvpEnabled(bool value) => Set(_pvp, value);
@@ -87,6 +90,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	internal void SetKeepInventory(bool value) => Set(_keepInventory, value);
 
 	internal void SetRadiationLineStopsAboveTheFloor(bool value) => Set(_radiationLineStopsAboveTheFloor, value);
+
+	internal void SetLayerCompleteLivingShare(double value) => Set(_layerCompleteLivingShare, value);
 
 	/// <summary>
 	/// The console's write seam, keyed by the rule the census classifies. The value is re-read with the
@@ -124,6 +129,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 			HostRuleId.ReviveOnNextLevel => () => Set(_reviveOnNextLevel, bool.Parse(value)),
 			HostRuleId.Permadeath => () => Set(_permadeath, bool.Parse(value)),
 			HostRuleId.RadiationLineStopsAboveTheFloor => () => Set(_radiationLineStopsAboveTheFloor, bool.Parse(value)),
+			HostRuleId.LayerCompleteLivingShare => () => Set(_layerCompleteLivingShare, double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture)),
 			_ => throw new ArgumentOutOfRangeException(nameof(rule), rule, "host rule has no config entry"),
 		};
 

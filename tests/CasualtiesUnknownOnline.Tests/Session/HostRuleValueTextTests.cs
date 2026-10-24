@@ -142,7 +142,8 @@ public class HostRuleValueTextTests
 			ReviveFromTrader: false,
 			ReviveOnNextLevel: true,
 			Permadeath: false,
-			RadiationLineStopsAboveTheFloor: true);
+			RadiationLineStopsAboveTheFloor: true,
+			LayerCompleteLivingShare: 0.75f);
 
 		Assert.Equal("true", HostRuleValueText.Describe(rules, Flag));
 		Assert.Equal("unconscious_or_dead", HostRuleValueText.Describe(rules, Access));

@@ -115,6 +115,10 @@ internal static class PluginDependencyRegistrar
 				new AcceptableValueList<string>([.. HostRuleValueText.ChoicesForClamp(nativeBindingRow)])));
 		var radiationLineStopsAboveTheFloor = config.Bind("HostRules", "RadiationLineStopsAboveTheFloor", true,
 			new ConfigDescription("True = the radiation line stops a margin above the layer floor instead of descending past it, so the bottom of a layer stays livable and a group can share supplies and rest. False = the game's own uncapped descent."));
+		var layerCompleteLivingShare = config.Bind("HostRules", "LayerCompleteLivingShare", 1.0,
+			new ConfigDescription(
+				"Host-only: the share of LIVING players that must have finished the current layer before the host's end-of-layer panel shows its two choices. 1 = every living player; the host's own body's state does not matter, so a dead host still gets the panel once the share is met.",
+				new AcceptableValueRange<double>(0.0, 1.0)));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
 			new BepInExOptionsMonitor<HostRulesOptions>(
 				config,
@@ -126,6 +130,7 @@ internal static class PluginDependencyRegistrar
 					RemoteBackpackAccess = ParseRemoteBackpackAccess(remoteBackpackAccess.Value, remoteBackpackRow),
 					AllowMemberCheatVerbs = allowMemberCheatVerbs.Value,
 					RadiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor.Value,
+					LayerCompleteLivingShare = (float)layerCompleteLivingShare.Value,
 					WidenRunSettings = widenRunSettings.Value,
 					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
 					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value, nativeBindingRow),
@@ -135,6 +140,7 @@ internal static class PluginDependencyRegistrar
 				allowMemberCheatVerbs.Definition,
 				widenRunSettings.Definition, piggybackWeight.Definition,
 				radiationLineStopsAboveTheFloor.Definition,
+				layerCompleteLivingShare.Definition,
 				nativeBindingParity.Definition)));
 
 		// World archive policy (S4.4, decision 25): the interval autosave and the backup
@@ -205,7 +211,8 @@ internal static class PluginDependencyRegistrar
 			reviveFromTrader,
 			reviveOnNextLevel,
 			keepInventory,
-			radiationLineStopsAboveTheFloor));
+			radiationLineStopsAboveTheFloor,
+			layerCompleteLivingShare));
 		// The console's /gamerule verb writes through this editor; the Runtime default is a disabled
 		// no-op so the Runtime-only composition still resolves the same interface.
 		services.Replace(ServiceDescriptor.Singleton<IHostRulesEditor>(

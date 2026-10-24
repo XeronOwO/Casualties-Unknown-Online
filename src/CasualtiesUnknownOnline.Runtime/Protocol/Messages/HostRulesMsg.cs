@@ -85,6 +85,8 @@ public sealed class HostRulesMsg
 		ReviveOnNextLevel = set.ReviveOnNextLevel,
 		Permadeath = set.Permadeath,
 		RadiationLineStopsAboveTheFloor = set.RadiationLineStopsAboveTheFloor,
+		// LayerCompleteLivingShare is HOST-ONLY (it gates the host's own panel), so it is deliberately not on the
+		// wire; the receiver's copy carries the rule's neutral value and nobody reads it there.
 	};
 
 	/// <summary>The rule set this message carries (the receiver's mapping).</summary>
@@ -101,7 +103,8 @@ public sealed class HostRulesMsg
 		ReviveFromTrader,
 		ReviveOnNextLevel,
 		Permadeath,
-		RadiationLineStopsAboveTheFloor);
+		RadiationLineStopsAboveTheFloor,
+		1f); // LayerCompleteLivingShare: host-only, never announced (see From)
 
 	/// <summary>
 	/// Why this announcement cannot be applied, or null when it is well formed. The

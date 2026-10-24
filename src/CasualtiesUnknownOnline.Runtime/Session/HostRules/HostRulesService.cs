@@ -71,4 +71,6 @@ public sealed class HostRulesService(
 
 	/// <inheritdoc />
 	public bool RadiationLineStopsAboveTheFloor => Current.RadiationLineStopsAboveTheFloor;
+
+	public float LayerCompleteLivingShare => Current.LayerCompleteLivingShare;
 }

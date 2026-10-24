@@ -89,6 +89,7 @@ public static class HostRuleCensus
 		new(HostRuleId.ReviveOnNextLevel, Audience.Members, HostRuleKind.Boolean, "revive_on_next_level", "admin.rule_revive_next_level"),
 		new(HostRuleId.Permadeath, Audience.Members, HostRuleKind.Boolean, "permadeath", "admin.rule_permadeath"),
 		new(HostRuleId.RadiationLineStopsAboveTheFloor, Audience.Members, HostRuleKind.Boolean, "radiation_line_stops_above_the_floor", "admin.rule_radiation_line_floor"),
+		new(HostRuleId.LayerCompleteLivingShare, Audience.HostOnly, HostRuleKind.Number, "layer_complete_living_share", "admin.rule_layer_complete_share", new ValueRange(0f, 1f)),
 	];
 
 	/// <summary>The rows a MEMBER's client renders and acts on — the set the announcement carries.</summary>

@@ -59,4 +59,12 @@ public interface IHostRules
 
 	/// <summary>Host-only: the radiation line stops a margin above the layer floor and stays there, so the bottom of a layer is livable and a group can share supplies and rest. On by default.</summary>
 	bool RadiationLineStopsAboveTheFloor { get; }
+
+	/// <summary>
+	/// Host-only: the share (0..1) of the LIVING players that must have finished the current layer before the HOST's
+	/// end-of-layer panel shows its two choices. 1 = every living player, and the host's own body's state does not
+	/// matter: a host who has finished the layer sees nothing while the share is below the threshold, and the panel
+	/// appears even when the host's body is dead (the user's 2026-10-24 ruling).
+	/// </summary>
+	float LayerCompleteLivingShare { get; }
 }

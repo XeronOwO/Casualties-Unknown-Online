@@ -106,4 +106,7 @@ public sealed class HostRulesOptions
 	/// align with; turning it off restores the game's own uncapped descent.
 	/// </summary>
 	public bool RadiationLineStopsAboveTheFloor { get; set; } = true;
+
+	/// <summary>The share of living players that must finish the layer before the host's panel shows its choices (0..1).</summary>
+	public float LayerCompleteLivingShare { get; set; } = 1f;
 }

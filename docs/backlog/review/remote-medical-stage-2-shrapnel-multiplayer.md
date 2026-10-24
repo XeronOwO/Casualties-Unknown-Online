@@ -37,6 +37,13 @@ Batch `20261025-d`, one live session with three clients (host, guest operator, a
 5. **Failure branch.** If the coroutine's first frame still reports `current=none`, the session died before the coroutine's first
    tick — record that and stop rather than re-running step 3 a third time.
 
+**One more measurement for the sheet (batch `20261025-aa`)**: with the session started through the production special
+(`remote-wound-special mode=open` → `opened=true`, then `mode=special` → `started=true, shrapnel=3`), a `grip-slip-drive
+mode=break` sent **0.4 s later** answered `no-shrapnel-minigame / "currentMinigame is null"`. So the window is shorter than one
+driver round trip even when the session was just started successfully — which is the same conclusion the sheet encodes, now
+measured from the other side (start → break, not start → pieces). The coroutine is not an optimisation here; it is the only shape
+that can act inside the window.
+
 ## Objective
 
 Implement a shared multiplayer `ShrapnelMinigame` remote path so multiple players can remove different shrapnel pieces from the same remote limb concurrently, with per-piece ownership, conflict arbitration, force-ungrab, progress propagation, third-party visibility and correct cancellation/disconnect behavior.

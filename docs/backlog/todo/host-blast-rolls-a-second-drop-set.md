@@ -293,3 +293,23 @@ before any blast happened:
 
 **The row is unchanged and still owed**: one set of a victim's drops, exactly once, on both clients — with the victim a
 carrier BOTH clients already have, which points at a worldgen mine or a host-staged one confirmed on both sides first.
+
+## Batch 20261024-t: the staging blocker is gone, and the row's last missing piece is named
+
+- **Descending works**: `layer-descend` starts the game's own `WorldGeneration.RegenerateWorld` on the world object; two
+  descents took the session from a carrier-less layer to one where BOTH clients list the same six
+  `TurretSelfDestructed` carriers (4 drop rows each, `anchorOwn:true`). So the "no carrier on this layer" blocker that
+  held this ticket for three rounds is solved.
+- **A member's roll was read**: `building-destroy-at` (a health write) killed a turret on the member and it spawned
+  ONE set — `scrapmetal ×3 + circuitboard` — which the member reported (`[ItemSpawned]` four lines at the turret's
+  position).
+- **But the carrier event did not fire**: a plain health write only runs `BuildingEntity.Update`'s death branch, so the
+  drops travelled as standalone item spawns and the host's copy stayed alive at health 500 — the duplicate's precondition
+  intact. The row needs the game's own DAMAGE path (an explosion), and `blast-at` — a recipe that calls
+  `WorldGeneration.CreateExplosion` — is refused by the client evaluator as `(1,1): InteractiveHost` in both shapes tried.
+
+**The one missing capability, exactly**: run `WorldGeneration.CreateExplosion` from the member's client inside the
+evaluator. Everything else for the row is in place (descent, shared carriers, the reader, the trigger for mines).
+`docs/evidence/acceptance/blast-descent-and-roll-20261024-t.md` records the readings and the three evaluator shapes that
+fail.
+

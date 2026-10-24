@@ -146,7 +146,11 @@ not the goal.
    overload detects scene-reload-destroyed objects.
 3. `[RULE]` Evidence-based changes: cite decompiled sources (`reversing/`, file:line — that tree is never
    edited, so its line numbers are stable) before touching code; for our own `src/` and `tests/` cite the
-   path plus the quoted text and never a line number.
+   path plus the quoted text and never a line number. **`reversing/` is where EVERY decompiled assembly
+   lives — the game's (`Assembly-CSharp`) and the third-party co-op mods (`KrokMP`, `CasualtiesMP`) — so a
+   question about how the game or a reference mod behaves is answered by reading a file there, never by
+   searching the web or a mod's release page.** The tree is gitignored, so a directory-wide search returns
+   nothing: name the file. A reference implementation named in a ticket is a fact to READ, not to recall.
 4. `[CRITICAL]` **Absolute-machine-path red line**: no absolute machine path may ever enter git — no
    drive-letter path, UNC path or Unix-style path rooted at home, user, temp, var or opt. Local paths
    belong only in gitignored local files — `AGENTS.local.md` or the `.agent-local/` area — or in

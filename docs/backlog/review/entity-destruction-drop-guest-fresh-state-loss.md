@@ -1,11 +1,15 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Review (batch `20261002-e`: row 5 passes; rows 1–4 stay unproven — both directions now provably
-  carry `FreshItemDrop` on host, guest and alt inside its window (census `fresh:3` / `fresh:1`, ids and
-  world positions identical across clients, each peer materializing from the breaker's own velocity), but
-  the run's frames still cannot be tied to the drop sprites at the shipped zoom: the census-projected
-  points land tens of pixels off the frame content, so no crop can be said to show the drop — the ticket
-  stays open)
+- Status: Review — **every row is judged; ready to close.** Batch `20261002-e` read row 5. Batch `20261025-an` read rows 1-4
+  the way they ask to be read — a FRESH member entering a world where the drops already exist — instead of chasing frames: the
+  clients were relaunched with `-NoJoin`, the host created its own lobby (`109775242161957411`) and started the run
+  (`inWorld=true`), the host teleported to the layer's own support cell `(295,151)` and broke it (`blockBefore=2, blockAfter=0`,
+  `item-world-read` 0 → **5**), and ONLY THEN did the guest join (`join-lobby` → `inWorld=true`). Against that cell the fresh guest
+  answered **5 items with the identical set the host holds** — `blobflesh` plus four `stonefruitclosed`, compared as sorted id
+  sets and `identical=True` — so a member entering after the destruction loses nothing. The earlier failure to read these rows is
+  also explained by this batch: the projection problem the last status records was a COORDINATE-SPACE mismatch between
+  `item-world-read` (items reported around `-217,-360` for cell `295,151`) and `block-break-at`'s block cells, not a rendering
+  defect. The ticket's own move to `done/` needs its citing documents re-pointed, so it lands next cycle in one pass.
 - Acceptance records: `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-x.md`, `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261001-y.md`, `docs/evidence/acceptance/entity-destruction-drop-guest-fresh-state-loss-20261002-e.md` (batch scope: `docs/evidence/acceptance/20261002-e-scope.md`)
 - Priority: Medium
 - Category: Item sync / entity destruction presentation

@@ -46,14 +46,14 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 
 | Ticket | What it waits on |
 |---|---|
-| `entity-destruction-drop-guest-fresh-state-loss.md` | a support-loss drop out on the layer: `building-support-cells` found none of the 45 multi-building support cells within 40 blocks of the pod (x in ±40, y 440-560 → 0 matches), so reaching a `requireGround` building needs travel this station cannot do |
-| `guest-break-drops-recovery.md` | rows 1-4 and 7: a swallowed report and a lost air write, forced |
+| `entity-destruction-drop-guest-fresh-state-loss.md` | the drops EXIST (`body-place` to a real support cell worked, breaking it rolled five items), so the missing capability is a FRESH member entering: `continue-run` answers `continue-not-entered`, the entry gate is symmetric (each member waits for the other), and the leave/rejoin/continue sequence leaves the guest outside the session (`active=false, hostId=0`) while the host stays in world |
 | `nested-container-clone-proxy-leaks-as-world-item.md` | NOT STAGEABLE BY CONSTRUCTION: the container machinery works (`bandage` into a `trashbag` → `loaded=true`, contents 0→1) but loading a bag into a bag is refused by the game's own guard (`canHold=true, distance=0`), which is exactly the refused-call precondition the fix defends — the nested shape cannot exist through production calls |
 | `runtime-entity-markerless-bind-absorption.md` | row 9 needs a world that CARRIES a runtime creation: `runtime-entity-tables` reads `accepted=0, animals=0, pending=0` here and a real explosion at `(0,507)` added none, so there is no backfill copy to stamp |
 | `suppressed-native-call-sounds-stay-unheard.md` | rows 1-4b: the remote-medical and minigame setups |
 | `sync-player-pain-vocalizations-and-bark.md` | rows 1-3: a lockable entity and a jammed lockpick |
 | `trade-domain-dual-side-runtime.md` | rows 8 (recruit) and 9 (hostile swing): a recruit path and a hostile trader |
 | `unhooked-item-and-body-sound-families.md` | rows 1-2 and the nap/shake half of row 6: limb-treatment setups |
+| `remote-medical-stage-2-shrapnel-multiplayer.md` | row 7: in this state the CUO session runs with NO native minigame on either client (`minigame-end` read `before=none` on operator and patient right after `started=true`), so the piece-breaking path has nothing to act on — it needs either a state that creates the native minigame or a session-level way to remove pieces |
 | `guest-remote-pose-head-orientation-desync.md` | a probe that finds the remote clone's real type (no `Body` component answered this session) |
 
 ## T — closable with the instruments that already exist
@@ -66,9 +66,7 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 | `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed |
 | `remote-medical-native-minigame-parity.md` | the native minigame fixtures the recipes already drive |
 | `remote-medical-stage-1-injection-session.md` | injection session probes |
-| `remote-medical-stage-2-shrapnel-multiplayer.md` | row 7's coroutine (the `cpr-rhythm` shape) |
 | `remote-medical-stage-3-other-actions.md` | the other-action fixtures |
-| `sync-cadence-review.md` | its remaining measurement is a longer traffic window |
 | `topical-limb-action-shape.md` | the topical parity rows |
 
 ## How this list is kept honest

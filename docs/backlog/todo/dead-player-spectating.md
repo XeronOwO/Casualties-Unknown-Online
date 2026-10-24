@@ -284,6 +284,23 @@ The free-movement toggle was then clicked twice: `free-fly on by this client's o
 guest's own state probe answered nothing (its client was behind the death screen), which is why the proof here is
 the host's follow line rather than the corpse's own state.
 
+**Inheritance reading, one session, three points (2026-10-24, deployed `0.1.0+e9a2109a`):**
+- **The watched member's medical panel opens from the card** — the frame shows the game's own limb diagram filled
+  with that member's limbs, wound badges and name, i.e. the existing remote-medical presentation already gives the
+  spectator the "read the medical panel" half of the user's `亲眼经历` requirement with no new code.
+- **The watched member's backpack click is applied but not yet seen**: `member.open_backpack.<id>` answers
+  `offered=True, applied=True` and the log shows the inventory cache and clone render, but the captured frame still
+  shows the medical panel on top, so the backpack view is unproven visually. The driver cannot close a native panel
+  (no key input), so the next attempt opens the backpack FIRST and the medical panel second, or closes the panel
+  from an in-client probe that calls the game's own close path.
+- **The notice line on the watched member's screen is still not visible.** A fresh watch, a capture nine seconds
+  later (inside the 1.5 s delay + 15 s hold), and the drain's own log line (`[OnlineUi] status line: …`) coexist
+  with a frame that shows only `RTT`. A probe publishing the same slot in the same client at 3 s and at 13 s shows
+  its line in both frames, so the display path holds for thirteen seconds; the remaining difference is therefore in
+  what the notice path sets, and the next attempt logs the HUD model's own state (`elapsed`, message length) at
+  build time instead of adding more dependencies.
+
+
 
 
 

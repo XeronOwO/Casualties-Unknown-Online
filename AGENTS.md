@@ -280,9 +280,18 @@ self-check → structure review → commit.
 9. `[CRITICAL]` **Keep incomplete or unverified work open**: no completion claim, no reclassifying a
    known gap as "future", no moving on before the exact scenario and the full acceptance matrix are
    verified.
-10. `[RULE]` **Budget the working context; hand off at phase boundaries**: after a task, or a phase of a
-   multi-stage task, judge how much context is spent and stop at the boundary with a handoff that states
-   what landed, what is verified and what comes next — an exhausted context produces shallow work.
+10. `[CRITICAL]` **A work item runs to its written end — the run sheet decides, not the feeling.**
+    Before touching a ticket, write its RUN SHEET into the ticket: the numbered steps, the done
+    definition, and the failure branch of each step. Then execute it in one continuous cycle.
+    **Between steps only tool calls are allowed**: a message that ends the cycle is reserved for exactly
+    three cases — the sheet is complete, a step needs a decision only the user can make, or the user
+    asked a question. "The item is too big" is a reason to SPLIT the sheet, never to end the cycle; "the
+    context is probably spent" must be MEASURED (a reported limit or a truncated tool result) before it
+    may be said, and otherwise the work continues. **A commit is a middle step, never a settlement**: the
+    sheet's next step runs in the same cycle. A cycle that ends without its sheet complete is a FAILED
+    cycle — record on the ticket where it stopped and why, and let the next cycle resume from that line.
+    The cost this rule prices is asymmetric: a stop costs the user a whole round and costs the agent
+    nothing, which is exactly why the agent may not spend the user's rounds on its own peace of mind.
 
 Detail: `docs/en/contributing/review-and-delivery.md`.
 
@@ -312,6 +321,18 @@ Detail: `docs/en/contributing/review-and-delivery.md`.
   reported twice (a cycle that stops after every step, and time spent on one row while the backlog waits).
   At most two batches per row, and the second must be preceded by the code that was missing; when no code
   is missing, the row is blocked and the ticket moves on.
+- `[CRITICAL]` **The run sheet is the execution contract, and it is written before the first action.** One
+  ticket row, one sheet: numbered steps in order, the evidence each step must produce, the done definition,
+  and what each step does when it fails. The sheet lives in the ticket, so a resumed cycle reads it instead
+  of re-deriving the plan. A step that fails is retried with a CHANGED approach (a different instrument, a
+  different state, a smaller question) — repeating the same call is not a retry, it is churn, and it is
+  recorded as a failed cycle. This rule exists because the agent has repeatedly turned one ticket into a
+  dozen near-identical cycles, each ending in a status message.
+- `[CRITICAL]` **When the user points out a repeat of a process failure, the fix is the RULE FILE, in that
+  turn, before any work resumes** — a rewritten paragraph, not an apology, and with the exact trigger
+  named so the next occurrence is checkable. The user's standing instruction (2026-10-25) is to keep
+  tightening the rule each time they catch it, so a rule that has been caught twice must become mechanical
+  (a checklist entry, a gate, a script) rather than a reminder.
 - `[CRITICAL]` **Re-entering is not relaunching.** A new layer or a fresh world comes from the RUNNING
   client (leave-world then continue-run, or the in-session layer advance), never by closing and starting
   the clients again; a client restart belongs to a deploy and to nothing else. A batch that ends without a

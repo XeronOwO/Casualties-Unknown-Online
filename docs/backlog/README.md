@@ -25,6 +25,13 @@ todo/  →  in-progress/  →  review/  →  done/
   the length budget, a row whose priority disagrees with its ticket, a ticket missing from
   the index, or one listed under the wrong section fails the build.
 - Status is the parent folder, not a field in the file (the file repeats it for readability).
+- **A ticket being worked carries its run sheet.** Before the first action on a ticket, write
+  `## Run sheet` into it: numbered `- [ ]` steps in order, the evidence each step must produce, the done
+  definition and what each step does when it fails. The cycle executes that sheet continuously (root
+  `AGENTS.md`, Development Workflow rule 10) and checks the boxes as the steps land, so a resumed cycle
+  reads where it stopped instead of re-deriving the plan. `BacklogRunSheetGateTests` refuses a ticket in
+  `done/` (or one with `- Status: Done`) that still has an open box, because that is exactly how "written
+  a status message instead of finishing the steps" used to look.
 - Code-complete items are moved to `review/` immediately; review is the waiting state
   for the agent's acceptance run (`docs/acceptance/`), which accepts tickets in **batches** —
   one build, one deploy and one two-client session cover every waiting ticket they can serve,

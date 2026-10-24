@@ -140,6 +140,29 @@ Two things remain, and the next reading separates them:
    anything re-writes it, which would close/reopen the panel repeatedly and cut the beep every time. The baseline is the
    same reading in single player, and the tell is a `consciousness` column that reverses direction between reads.
 
+## Where this stands (2026-10-25): the paths sampled are healthy; the missing capability is frame-rate sampling
+
+What four readings on the running session established:
+
+- the critical LOOP (`criticalloop`, 41 s) advances monotonically and only fades;
+- the local per-beat `heartthump-heavy` (0.769 s) sits at position 0 while playing across 250 ms reads — restarted inside
+  its own clip, which is the heartbeat instance the user described;
+- the panel's 6 s beep advances monotonically while the panel is ACTIVE, and stops exactly when the panel goes inactive as
+  consciousness falls through the closing threshold (`PlayerCamera.WoundViewButton` also refuses to open it while the body
+  is unconscious);
+- and no code in `src/` writes the LOCAL body's vitals or closes that panel: `HostVitalsQuarantine` captures and restores a
+  REMOTE body's fields around the host's fixed pass, and the remote-view patches only re-point the DISPLAYED body.
+
+**The capability this ticket now needs** is a sampler that runs INSIDE the client at frame rate (a ring buffer of
+`active`/`playing`/`time`/`critical` per frame, read once afterwards), because the probes used so far sample once per driver
+call — about 1.3 s apart — and a flicker at frame rate is invisible between those reads. With that, the two open questions
+get answers: whether the beat clip is restarted by the game's own cadence or by something on our side, and whether the
+panel's active flag ever flickers (native close rule vs a bounce).
+
+**Decision point for the user**: if the cut is still audible while the panel STAYS OPEN, that is the frame-rate sampler's
+job next; if it is the panel closing on its own, the sound is the game's own and this ticket closes as recorded rather than
+fixed.
+
 ## Acceptance this ticket owes
 
 A two-client session: the host's body forced critical (`body-force bloodPressure=…`), the host's log read for

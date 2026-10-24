@@ -87,6 +87,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 
 	public void FireUseRefused() => _itemUse.FireUseRefused();
 
+	public void NotifyUseRefused(string reason) => _itemUse.NotifyUseRefused(reason);
+
 	public event Action? UseRefused
 	{
 		add => _itemUse.UseRefused += value;

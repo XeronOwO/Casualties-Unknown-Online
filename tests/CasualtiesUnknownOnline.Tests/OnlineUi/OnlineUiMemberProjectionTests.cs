@@ -1071,6 +1071,10 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
+		public void NotifyUseRefused(string reason)
+		{
+		}
+
 		public event Action? UseRefused
 		{
 			add { }

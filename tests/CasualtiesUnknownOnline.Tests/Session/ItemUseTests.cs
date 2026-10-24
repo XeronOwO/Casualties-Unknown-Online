@@ -364,6 +364,25 @@ public class ItemUseTests
 	}
 
 	[Fact]
+	public void Use_RefusedByTheOperatorsOwnClient_AlsoReadsOnTheScreen()
+	{
+		// The wound view refuses some gestures before any request leaves this client (a display proxy, no patient, an
+		// item with no identity, an item that cannot be applied). Those refusals take the same line and the same deny
+		// sound, so the player cannot tell a locally refused gesture from a host-refused one — both read as refused.
+		var (host, _, _) = CreateSession();
+		var interaction = host.Services.GetRequiredService<IPlayerInteractionControl>();
+		var fired = 0;
+		interaction.UseRefused += () => fired++;
+
+		interaction.NotifyUseRefused("that item cannot be applied to a wound");
+
+		var notices = host.Services.GetRequiredService<ISessionNotices>();
+		Assert.True(notices.TryTake(out var notice), "the local refusal must reach the operator's own screen");
+		Assert.Contains("that item cannot be applied to a wound", notice.Text);
+		Assert.Equal(1, fired);
+	}
+
+	[Fact]
 	public void Use_RefusedByTheHost_ReachesTheOperatorsOwnScreen()
 	{
 		// The user's 2026-10-24 ruling: a refusal reads as a line on the operator's screen (and the game's deny

@@ -149,11 +149,20 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			return;
 		}
 
-		_notices.Publish(_localization.Format("hud.use_refused", reason));
-		UseRefused?.Invoke();
+		NotifyUseRefused(reason);
 	}
 
 	public void FireUseRefused() => UseRefused?.Invoke();
+
+	/// <summary>
+	/// A refusal the operator's OWN client decided: the same line and the same deny sound the host's refusals get, so a
+	/// gesture refused before it left the client never reads as one that silently did nothing.
+	/// </summary>
+	public void NotifyUseRefused(string reason)
+	{
+		_notices.Publish(_localization.Format("hud.use_refused", reason));
+		UseRefused?.Invoke();
+	}
 
 	/// <summary>The operator's gesture was refused; the Game Adapter rings the game's deny sound.</summary>
 	public event Action? UseRefused;

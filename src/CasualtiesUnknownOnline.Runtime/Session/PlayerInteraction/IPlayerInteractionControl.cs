@@ -146,6 +146,12 @@ public interface IPlayerInteractionControl
 	/// <summary>Present a refused cross-player use on the operator's own screen (the notice is published separately; this is the adapter's cue to ring the game's deny sound).</summary>
 	void FireUseRefused();
 
+	/// <summary>
+	/// Show a refusal the OPERATOR's own client decided (a gesture its own rules refused before any request left), so the
+	/// wound view's refusals read the same as the host's: one localized line and the game's deny sound.
+	/// </summary>
+	void NotifyUseRefused(string reason);
+
 	/// <summary>The operator's own gesture was refused — the Game Adapter plays the game's deny sound.</summary>
 	event Action? UseRefused;
 

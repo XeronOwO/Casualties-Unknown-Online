@@ -55,6 +55,7 @@ internal sealed class RemoteMedicalOperationHandler
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: dragged item {ItemId} is a remote display proxy, not a local medical item.",
 				dragItem.id);
+			_domains.PlayerInteraction.NotifyUseRefused("that item is not yours to use");
 			return false;
 		}
 
@@ -62,6 +63,7 @@ internal sealed class RemoteMedicalOperationHandler
 		if (target == 0)
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: remote medical focus has no target.");
+			_domains.PlayerInteraction.NotifyUseRefused("no patient is selected");
 			return false;
 		}
 
@@ -70,6 +72,7 @@ internal sealed class RemoteMedicalOperationHandler
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: local item {ItemId} has no authoritative instance id.",
 				dragItem.id);
+			_domains.PlayerInteraction.NotifyUseRefused("that item has no network identity yet");
 			return false;
 		}
 
@@ -77,6 +80,7 @@ internal sealed class RemoteMedicalOperationHandler
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: {ItemId} is not a supported remote medical/limb-treatment item.",
 				dragItem.id);
+			_domains.PlayerInteraction.NotifyUseRefused("that item cannot be applied to a wound");
 			return false;
 		}
 

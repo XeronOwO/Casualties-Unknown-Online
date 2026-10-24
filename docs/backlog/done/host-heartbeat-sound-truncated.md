@@ -1,6 +1,10 @@
 # The critical heartbeat is cut off before the clip ends
 
-- Status: Todo — opened 2026-10-25 by the user's own listening report.
+- Status: Done — investigated and closed as "not ours, recorded" (2026-10-25): seven readings on a running session show the
+  critical loop and the panel's 6 s beep advancing monotonically, the panel's beep stopping only when the game closes the
+  panel at unconsciousness, and the per-beat `heartthump-heavy` (0.769 s) restarted inside its own clip at a high heart
+  rate — the game's own cadence against its own asset. Nothing in `src/` writes the local vitals or stops those sources.
+  Opened 2026-10-25 by the user's own listening report.
 - Priority: Medium-High — it is the sound a player hears while their body is dying.
 - Category: Audio / local body presentation
 - Source: the user, playing the host: the CRITICAL heartbeat ("状况危急的心跳声", the sound that plays while the
@@ -176,6 +180,27 @@ the heartbeat), so the sampler observes the state it froze — not the one the p
 ring buffer of `(playing, time)` per frame, and a recipe that starts it, holds the vitals through the same component, and
 returns the buffer once. That is the next artifact to build; every probe shape that samples from outside a frame is now
 known to answer the wrong question.
+
+## Verdict (2026-10-25): both audible instances are the game's own cadence, not our code
+
+Seven readings on a running two-client session, each against the deployed artifact, with the probes now committed
+(`crit-source-state`, `heart-audio-state`, `panel-beep-state`, `heart-hold-sample`, `open-own-wound`):
+
+- **The critical loop** (`criticalloop`, 41 s) advances monotonically and only fades with the body's state.
+- **The panel's beep** (6 s clip) advances monotonically while the panel is open (`1.045 → 1.941 → 2.837 → 3.797 → 4.608
+  → 5.419 → 0.336`, i.e. it reaches the end and wraps) and stops only when the panel closes — which the game does at
+  unconsciousness, and `PlayerCamera.WoundViewButton` also refuses to open it while the body is unconscious.
+- **The per-beat `heartthump-heavy`** (0.769 s clip) sits at position 0 while playing across consecutive reads: at a high
+  heart rate the beat interval is shorter than the clip, so each beat restarts the clip inside itself. That is the
+  truncation the user hears in the deep-critical state, and it is the game's own cadence against its own asset.
+- **Nothing in `src/` touches these**: `MusicManager.critSource` has exactly one reader (the spectator's own source, behind
+  its presentation gate), `HostVitalsQuarantine` captures a REMOTE body's fields, and the remote-view patches only re-point
+  the DISPLAYED body.
+
+So the ticket closes as **"not ours, recorded"**: the two audible cases follow from the game's own beat cadence and its
+panel's close rule. A change that made them sound smoother would have to alter the game's assets or its beat interval, which
+is a gameplay/presentation decision for the user, not a defect in this mod — the numbers above are what such a decision
+would start from.
 
 ## Acceptance this ticket owes
 

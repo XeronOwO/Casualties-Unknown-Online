@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The critical heartbeat is cut off before the clip ends](todo/host-heartbeat-sound-truncated.md) — **Medium-High** — user report; `critSource` lead.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
 ### In progress
@@ -146,6 +145,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The critical heartbeat is cut off before the clip ends](done/host-heartbeat-sound-truncated.md) — **Medium-High** — read; the game's own cadence, recorded.
 - [The panel's save-and-exit writes the native save](done/layer-end-save-and-exit-native-write.md) — **Medium** — every row read; CUO cut and host gate.
 - [The radiation line descends at the member's own rate](done/radiation-line-descent-rate-per-side.md) — **Medium** — fixed; read on the machine.
 - [A player can watch the run as a spectator](done/dead-player-spectating.md) — **Medium** — every pivot slice landed and read.

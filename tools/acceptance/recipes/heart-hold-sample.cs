@@ -1,53 +1,60 @@
 // recipe: heart-hold-sample
-// args: heartRate=n bloodOxygen=n bloodPressure=n consciousness=n samples=n
+// args: heartRate=n bloodOxygen=n bloodPressure=n consciousness=n
 // serves: host-heartbeat-sound-truncated (the beeps under a HELD critical state with a high heart rate)
-// returns: ok, held, samples, audio (comma-joined thump positions, ms), playing, panelOpen, error, detail
+// returns: ok, heartRate, bloodOxygen, bloodPressure, playing, thumpTime, thumpLength, panelOpen, panelPlaying, panelTime, error, detail
 //
-// Holds the local body's critical vitals and samples the per-beat thump BETWEEN frames: the main thread is stalled with
-// short sleeps, so the game's own simulation cannot decay the state (and every iteration rewrites it anyway), while the
-// audio system keeps playing on its own thread. The returned series is the thump clip's position in milliseconds at each
-// sample: a position that falls back to zero before reaching the clip's length is the truncation, and its cadence is the
-// restart rate.
+// ONE sample: rewrites the local body's critical vitals, ensures the panel is open, then reads the per-beat thump source
+// and the panel's alert source. Called once per batch step, the rewrite defeats the decay that made a single forced state
+// useless, and the sample is taken with the frames still running (no sleep in here: a stalled main thread stops the very
+// Update that plays the sounds).
+//
+// The series the batch wants is a list of thumpTime values: at a high heart rate the clip (0.769 s) is longer than the
+// interval between beats, so a series of positions that never approach the clip's end is the game restarting the clip per
+// beat — measured, not assumed.
 ((System.Func<string>)(() => {
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var heartRate = {{n:heartRate}};
 	var bloodOxygen = {{n:bloodOxygen}};
 	var bloodPressure = {{n:bloodPressure}};
 	var consciousness = {{n:consciousness}};
-	var samples = (int)({{n:samples}});
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-body\"}"; }
-	var series = new System.Collections.Generic.List<string>();
-	var playing = 0;
-	var lastLength = 0f;
-	for (var i = 0; i < samples; i++) {
-		body.heartRate = heartRate;
-		body.bloodOxygen = bloodOxygen;
-		body.bloodPressure = bloodPressure;
-		body.consciousness = consciousness;
-		if (i == 0) {
-			var closed = WoundView.view;
-			if (closed != null && !closed.gameObject.activeInHierarchy) { PlayerCamera.main.WoundViewButton(); }
-		}
-		var sources = UnityEngine.Object.FindObjectsOfType<UnityEngine.AudioSource>();
-		var best = 0f;
-		for (var s = 0; s < sources.Length; s++) {
-			var source = sources[s];
-			var clip = source.clip;
-			if (clip == null) { continue; }
-			if (clip.name.IndexOf("thump") < 0) { continue; }
-			if (!source.isPlaying) { continue; }
-			playing++;
-			if (source.time > best) { best = source.time; }
-			lastLength = clip.length;
-		}
-		series.Add(((int)(best * 1000f)).ToString(inv));
-		System.Threading.Thread.Sleep(16);
-	}
+	body.heartRate = heartRate;
+	body.bloodOxygen = bloodOxygen;
+	body.bloodPressure = bloodPressure;
+	body.consciousness = consciousness;
+	// A brain that is already dying re-derives consciousness to zero every frame, so the held state must include it: a probe
+	// that writes only consciousness reads an unconscious body forever (the lesson of this recipe's second run).
+	body.brainHealth = 100f;
+	body.energy = 100f;
 	var view = WoundView.view;
-	return "{\"ok\":true,\"held\":true,\"samples\":" + samples.ToString(inv)
-		+ ",\"audio\":\"" + string.Join(",", series) + "\""
+	if (view != null && !view.gameObject.activeInHierarchy) { PlayerCamera.main.WoundViewButton(); }
+	var sources = UnityEngine.Object.FindObjectsOfType<UnityEngine.AudioSource>();
+	var playing = 0;
+	var thumpTime = 0f;
+	var thumpLength = 0f;
+	for (var i = 0; i < sources.Length; i++) {
+		var source = sources[i];
+		var clip = source.clip;
+		if (clip == null) { continue; }
+		if (clip.name.IndexOf("thump") < 0) { continue; }
+		if (!source.isPlaying) { continue; }
+		playing++;
+		if (source.time > thumpTime) { thumpTime = source.time; }
+		thumpLength = clip.length;
+	}
+	var panelPlaying = false;
+	var panelTime = 0f;
+	var panelAudio = view == null ? null : view.GetComponent<UnityEngine.AudioSource>();
+	if (panelAudio != null) { panelPlaying = panelAudio.isPlaying; panelTime = panelAudio.time; }
+	return "{\"ok\":true"
+		+ ",\"heartRate\":" + heartRate.ToString("0.##", inv)
+		+ ",\"bloodOxygen\":" + bloodOxygen.ToString("0.##", inv)
+		+ ",\"bloodPressure\":" + bloodPressure.ToString("0.##", inv)
 		+ ",\"playing\":" + playing.ToString(inv)
-		+ ",\"length\":" + lastLength.ToString("0.###", inv)
-		+ ",\"panelOpen\":" + (view != null && view.gameObject.activeInHierarchy ? "true" : "false") + "}";
+		+ ",\"thumpTime\":" + thumpTime.ToString("0.###", inv)
+		+ ",\"thumpLength\":" + thumpLength.ToString("0.###", inv)
+		+ ",\"panelOpen\":" + (view != null && view.gameObject.activeInHierarchy ? "true" : "false")
+		+ ",\"panelPlaying\":" + (panelPlaying ? "true" : "false")
+		+ ",\"panelTime\":" + panelTime.ToString("0.###", inv) + "}";
 }))()

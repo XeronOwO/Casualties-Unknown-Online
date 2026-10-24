@@ -483,15 +483,22 @@ public sealed class ExampleMod : ICuoMod
 		public bool UsableWithLmb => false;
 
 		/// <summary>
-		/// True for the same reason on the limb half, and it is also what makes the game
-		/// offer the dressing on a limb at all. That is what lets CUO's cross-player
-		/// limb-tool chain carry a mod item with no id table and no wire change: the
-		/// chain asks exactly this flag plus a non-null limb action, and runs it on the
-		/// treated player's own client.
+		/// True for the same reason on the limb half, and what makes the game offer the dressing on a limb: CUO's
+		/// cross-player limb-tool chain asks exactly this flag plus a non-null limb action.
 		/// </summary>
 		public bool UsableOnLimb => true;
 
-		public IModItemWearable? Wearable => null;
+		/// <summary>The declared garment: placement plus its five statistics, the one slice the wear flow reads.</summary>
+		public IModItemWearable? Wearable => new ModItemWearable
+		{
+			Limb = "UpTorso",
+			SlotId = "outertorso",
+			CanBeHeld = true,
+			Armor = 4f,
+			Isolation = 1.2f,
+			HitDurabilityLossMultiplier = 0.75f,
+			VisualOffset = 5
+		};
 
 		public bool DestroyAtZeroCondition => false;
 

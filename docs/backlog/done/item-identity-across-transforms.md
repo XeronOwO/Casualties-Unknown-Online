@@ -15,7 +15,7 @@
   ruling. The draft below is the frozen design the implementation follows.
 - Priority: High
 - Category: Item identity / model contract / mod API / persistence
-- Source: handoff instruction (2026-10-11) after `review/id-resume-sources-still-unseeded.md` landed:
+- Source: handoff instruction (2026-10-11) after `done/id-resume-sources-still-unseeded.md` landed:
   "一件物品经过『变换』（装到人身上、烤肉、制作……）之后，还算不算同一件物品；CUO 要给模组作者一条统一答案."
   It is the same family as the id-resume work — that cycle fixed "one number never lands on two objects";
   this one asks what the number MEANS once the object it was stamped on stops existing.

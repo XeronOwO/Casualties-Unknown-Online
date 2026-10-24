@@ -44,7 +44,7 @@ docs/architecture/projection-framework.md | keep | spec | docs/architecture/remo
 docs/architecture/protocol.md | keep | spec | docs/backlog/resolved/bilingual-human-docs.md
 docs/architecture/README.md | keep | spec | docs/architecture/evolution/phase-b-items-authority.md
 docs/architecture/remote-inventory-native-parity.md | keep | spec | docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md
-docs/architecture/save-archive-format.md | keep | spec | docs/backlog/review/id-resume-sources-still-unseeded.md
+docs/architecture/save-archive-format.md | keep | spec | docs/backlog/done/id-resume-sources-still-unseeded.md
 docs/backlog/done/acceptance-records-carry-real-steam-ids.md | keep | attribution | docs/backlog/README.md
 docs/backlog/done/adapter-capability-ports.md | keep | attribution | docs/backlog/README.md
 docs/backlog/done/agent-acceptance-workflow-foundation.md | keep | attribution | docs/backlog/README.md
@@ -230,7 +230,7 @@ docs/backlog/done/guest-frame-rate-lower-than-host.md | keep | index | docs/back
 docs/backlog/review/guest-remote-pose-head-orientation-desync.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-report-fallback-first-resend.md | keep | index | docs/backlog/README.md
 docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md | keep | index | docs/backlog/README.md
-docs/backlog/review/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
+docs/backlog/done/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
 docs/backlog/done/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-data-read-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-data-write-commands.md | keep | index | docs/backlog/README.md

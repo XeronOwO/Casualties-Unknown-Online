@@ -15,7 +15,7 @@
 - Related: `docs/architecture/save-archive-format.md` §3.4 and §6.1 (what a cut carries and where a
   restore lands), `docs/evidence/sync-coverage-matrix.md` row I8,
   `done/save-multiplayer-restore-and-backups.md`, `review/save-mid-run-consistent-cut.md`,
-  `review/id-resume-sources-still-unseeded.md` (the two sources this landing did not read; both landed
+  `done/id-resume-sources-still-unseeded.md` (the two sources this landing did not read; both landed
   2026-10-11, and that change is what moved the seed to `WorldRestoreApplier.TryApply`).
 
 ## The claim, reproduced before it was fixed

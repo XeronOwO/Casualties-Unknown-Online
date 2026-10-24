@@ -1,8 +1,13 @@
 # The id resume reads one source: the synthesized-item counter and the character rows are not seeded
 
-- Status: Review (landed 2026-10-11; awaiting the acceptance batch). Both gaps were reproduced as failing
-  cases on the unfixed tree through the real save/continue seam before anything was changed
-  (`.acceptance/20261011-h/red-id-resume-sources.md`), and the acceptance rows below are what the batch judges.
+- Status: Done — closed 2026-10-25. The implementation map below is in place under its current names (`ItemIdCoordinator`,
+  `IRestoredItemIdSeed.SeedRestoredItemIds`, the seed call in `WorldRestoreApplier`), and the acceptance rows are judged by the
+  cases that were RED on the unfixed tree: the whole `ItemIdCoordinatorTests` class now runs 8 of 8 green on this tree, including
+  `AContinuedWorld_ResumesTheLocalAllocator_AboveTheIds…` (the synthesized/awarded counter's resume, renamed since the red was
+  recorded) and `AContinuedWorld_SeedsAGuestSpaceFromItsCharacterFile_WhenTheKernelNeverLearnedTheId`. The red itself was taken
+  through the production save/continue seam (a second composition root over the same archive, recorded under
+  `.acceptance/20261011-h/`), which is the relaunch this rule is about. Opened 2026-10-11 by the adversarial review of
+  `done/item-id-counter-is-not-resumed-by-a-restore.md`.
 - Priority: Medium
 - Category: Remote inventory / item identity / persistence
 - Source: found by the independent adversarial review of `done/item-id-counter-is-not-resumed-by-a-restore.md`

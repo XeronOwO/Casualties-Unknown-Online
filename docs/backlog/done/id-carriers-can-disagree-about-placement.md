@@ -6,7 +6,7 @@
   (`.acceptance/20261022-b/`), and all five acceptance rows below pass.
 - Priority: Low
 - Category: Persistence / item identity / restore
-- Source: found by the independent adversarial review of `review/id-resume-sources-still-unseeded.md`
+- Source: found by the independent adversarial review of `done/id-resume-sources-still-unseeded.md`
   (2026-10-11), which asked what the new two-carrier seed does NOT settle. It settles WHICH ids exist;
   it says nothing about the two carriers disagreeing about one id it names twice.
 - Related: `review/id-resume-sources-still-unseeded.md` (the seed and the carrier reader,

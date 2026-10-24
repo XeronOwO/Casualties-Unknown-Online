@@ -70,7 +70,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 - [Drag-use aims at the model, not a fixed circle](review/cross-player-drag-use-model-bounds.md) — **Medium** — the model measures itself; rows need a mouse.
-- [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
 - [The opener can claim a key the game is rebinding](review/enter-opener-keybind-capture.md) — **Low-Medium** — the guard sees the capture; a key batch is owed.
@@ -143,6 +142,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The id resume reads one source](done/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers seed the one namespace.
 - [Guest pending-report fallback](done/guest-report-fallback-first-resend.md) — **Low-Medium** — 5 s entry phase; tests pin the two.
 - [Recipe unlock has no fallback](done/recipe-unlock-fallback.md) — **Medium** — healed on the 60 s cycle; read in two processes.
 - [Remote Medical and visibility](done/remote-context-menu-medical-visible-when-target-not-visible.md) — **Medium** — title-only out of sight, both ways.

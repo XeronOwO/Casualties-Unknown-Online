@@ -62,12 +62,18 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 | Ticket | How |
 |---|---|
 | `guest-background-ghost-item-ground-sounds.md` | audio capture + the background-item fixture |
-| `pinyin-search-mod.md`, `pinyin-search-standalone-mod.md` | mod install and behaviour, read with the mod present |
-| `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed |
-| `remote-medical-native-minigame-parity.md` | the native minigame fixtures the recipes already drive |
-| `remote-medical-stage-1-injection-session.md` | injection session probes |
-| `remote-medical-stage-3-other-actions.md` | the other-action fixtures |
-| `topical-limb-action-shape.md` | the topical parity rows |
+| `pinyin-search-standalone-mod.md` | every row machine-read (78 cases, 0 failures); only the native search box's own look is left, and that is the user's |
+| `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed — and that look is the user's visual pass |
+
+## E — the medical stage tickets, whose rows are all live two-client scenarios
+
+| Ticket | The row that needs the remote view |
+|---|---|
+| `remote-medical-stage-1-injection-session.md` | all eight rows are an operator injecting a patient through the chart's own action |
+| `remote-medical-stage-2-shrapnel-multiplayer.md` | rows 1-9 (row 10 is read from the path; row 7 additionally needs a native minigame this state does not create) |
+| `remote-medical-stage-3-other-actions.md` | every action row, same entrance |
+| `remote-medical-native-minigame-parity.md` | the umbrella over the three stages above |
+| `topical-limb-action-shape.md` | the parity rows need an item used on the remote chart; its classifier half landed |
 
 ## How this list is kept honest
 

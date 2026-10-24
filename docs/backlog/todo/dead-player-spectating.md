@@ -335,6 +335,16 @@ frame shows that member's limbs, wound badges and name in the game's own diagram
 SEPARATE backpack grid for the watched member is not proven, and the driver cannot close a native panel to try the
 other order. That is the one open question left in this slice.
 
+**The backpack path is its own view, read out of the code (2026-10-24).** `member.open_backpack` reaches
+`IRemoteInventoryPresentation.OpenRemoteBackpack`, whose adapter implementation forwards to
+`RemoteBackpackCoordinator.Open`; its own comment says it "opens the game's radial inventory focused on that clone",
+and it calls `RemoteBackpackView.Open(body, steamId, displayName, readOnly)` with the read-only flag the host's
+`RemoteBackpackAccess` rule decides. The game's inventory UI is the body diagram with the item slots around it, which
+is why the captured frame reads like the medical view — the two screens share that body frame. So the read-only
+backpack half exists as a distinct view with its own rule; what a later reading should still capture is the two
+entries side by side (one capture each, medical panel closed first) to show the difference on screen.
+
+
 
 
 

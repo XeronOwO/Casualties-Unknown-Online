@@ -199,3 +199,26 @@ and the host rolled a second drop set for a death the reporting member already r
   (the shape this game's damage numbers make rare), and the log line says how many blasts were replayed.
 
 The rule is `ChainedBlastPolicy` (five cases: below the line, exactly on it, already fired, not a mine, still healthy).
+
+## The acceptance batch was attempted and this world cannot stage it (2026-10-24, `0.1.0+8b5baee6`)
+
+A two-client session was formed and the host ran the census the family already owns
+(`trap-drop-census`, read-only, over the whole layer):
+
+| read | value |
+|---|---|
+| live `BuildingEntity` objects | 1923 |
+| destructive entity-event carriers (mine / turret / fragile crystal / unstable crystal) | **0** |
+
+So this generated layer carries none of the four entities a member could report an `EntityEventMsg` for, and
+`trap-event-forge` (the product's own sender, the lever that publishes such a report without a gesture) would be
+refused by the judge's empty-bounds arm rather than reaching the table/mark this ticket fixed. **The rows need a layer
+that generated a carrier**, and there are two ways to get one:
+
+1. descend until one appears (`trap-drop-census` is the cheap repeatable check, one call per layer), or
+2. stage one: the world-generation containers/items the earlier scan found (269 items, 6 containers) include the
+   droppable kinds, but no recipe places a MINE; the `trap-event-forge` lever needs the carrier to exist first.
+
+Nothing about the code changes: slices 1 and 2 are deployed and unit-pinned; this is a staging fact, recorded so the
+next batch does not repeat the attempt blind.
+

@@ -44,10 +44,15 @@
 		UnityEngine.Physics2D.SyncTransforms();
 	}
 	var after = ((UnityEngine.Component)local).transform.position;
+	var screenPoint = UnityEngine.Camera.main != null
+		? UnityEngine.Camera.main.WorldToScreenPoint(entityPosition)
+		: UnityEngine.Vector3.zero;
 	return "{\"ok\":true,\"mode\":\"" + mode + "\""
 		+ ",\"entityX\":" + entityPosition.x.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"entityY\":" + entityPosition.y.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"bodyX\":" + after.x.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"bodyY\":" + after.y.ToString(System.Globalization.CultureInfo.InvariantCulture)
-		+ ",\"distance\":" + bestDistance.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
+		+ ",\"distance\":" + bestDistance.ToString(System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"screenX\":" + screenPoint.x.ToString(System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"screenY\":" + screenPoint.y.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
 }))()

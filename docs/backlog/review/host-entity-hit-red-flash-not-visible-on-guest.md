@@ -93,3 +93,10 @@ that moment shows the window covering the screen. After `Esc` closed it the worl
 must start from "the CUO window is closed", which is the same fact `docs/acceptance/workflow.md` records for the drag batch. The
 recipe now also stands the body SOUTH of the entity (`entityPosition.y - 2.5`) so the target draws above the player rather than
 under the HUD strip, and the next attempt starts from the closed window with the entity's own sprite bounds as the click point.
+
+The retry with the window closed still produced no hit, and the host log says WHY rather than leaving it to guesswork: the click
+produced `[ItemTrace] op=1 item=0 origin=OnBlockDamaged`, i.e. it damaged a BLOCK, not the `BuildingEntity` the probe picked. That
+entity (the nearest at `(0, 510)`) has no clickable collider at the projected point — most likely it sits behind or inside the
+room's own blocks. The next attempt must therefore target an entity whose collider the click can actually reach (a census of
+entities WITH their screen bounds and a `collider != null` filter), not merely the nearest one by distance. Recorded here so the
+next cycle does not re-run the same click.

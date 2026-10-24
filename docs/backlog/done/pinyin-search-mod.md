@@ -1,6 +1,11 @@
 # CasualtiesUnknownOnline.Pinyin: pinyin search for CUO
 
-- Status: Review
+- Status: Done — **closed as SUPERSEDED (2026-10-25)**, not as delivered: the CUO-resident implementation this ticket
+  described was deleted when pinyin search became a satellite mod (decision 209, `pinyin-search-standalone-mod`), so there
+  is no row left here to judge and none of its sections claim current behaviour. What it still contributes is the record of
+  the console completion SEAM that survived the move — `IModResourceCompletion` and `IResourceLocationMatchStage` are the
+  parts CUO owns, and the standalone ticket carries the matcher, the crafting patch and the switch. Closing it removes a
+  second, older description of the same feature from the open set; the standalone ticket keeps the live work.
 - Priority: Medium
 - Category: Mod / Tooling / UI / Pinyin / Console
 

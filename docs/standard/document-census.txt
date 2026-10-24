@@ -252,7 +252,7 @@ docs/backlog/done/mod-native-binding-handshake-parity.md | keep | index | docs/b
 docs/backlog/done/online-ui-art-and-controls-overhaul.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
 docs/backlog/done/heal-cheat-command-state-reset.md | keep | index | docs/backlog/README.md
-docs/backlog/review/pinyin-search-mod.md | keep | index | docs/backlog/README.md
+docs/backlog/done/pinyin-search-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
 docs/backlog/done/recipe-unlock-fallback.md | keep | index | docs/backlog/README.md
@@ -990,8 +990,8 @@ docs/evidence/selfchecks/protocol/state-stream-bandwidth-reduction-selfcheck.md 
 docs/evidence/selfchecks/protocol/steam-p2p-cert-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/README.md | keep | claim | docs/evidence/selfchecks/tooling/catalogue-and-manifest-census-selfcheck.md
 docs/evidence/selfchecks/saves/world-backup-management-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/search/pinyin-console-completion-selfcheck.md | keep | claim | docs/backlog/review/pinyin-search-mod.md
-docs/evidence/selfchecks/search/pinyin-search-selfcheck.md | keep | claim | docs/backlog/review/pinyin-search-mod.md
+docs/evidence/selfchecks/search/pinyin-console-completion-selfcheck.md | keep | claim | docs/backlog/done/pinyin-search-mod.md
+docs/evidence/selfchecks/search/pinyin-search-selfcheck.md | keep | claim | docs/backlog/done/pinyin-search-mod.md
 docs/evidence/selfchecks/search/pinyin-search-standalone-mod-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/session/host-ban-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/session/host-close-room-safe-exit-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

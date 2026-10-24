@@ -103,7 +103,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
 - [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
-- [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
@@ -138,6 +137,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Pinyin search for CUO](done/pinyin-search-mod.md) — **Medium** — closed as superseded; the standalone mod holds the work.
 - [Guest break drops are lost](done/guest-break-drops-recovery.md) — **Medium** — healed by the re-report; measured live.
 - [Sync cadence review](done/sync-cadence-review.md) — **Medium** — every row measured; pins re-run 24/24.
 - [Treatment gore presentation carried](done/treatment-gore-presentation-carried.md) — **Low** — pins re-run: 30 + 29 green.

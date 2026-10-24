@@ -10,7 +10,7 @@
 - Bundle: implemented together with
   [Command completion for the ID system](../done/command-id-name-completion.md); that
   ticket consumes this vocabulary and is the only user-visible consumer in this
-  cycle. Pinyin search stays separate (`review/pinyin-search-mod.md`).
+  cycle. Pinyin search stays separate (`done/pinyin-search-mod.md`).
 
 ## Delivered
 
@@ -105,7 +105,7 @@ namespaced vocabulary that every CUO layer can share:
 
 ## Non-goals
 
-- Pinyin matching (separate ticket `review/pinyin-search-mod.md`).
+- Pinyin matching (separate ticket `done/pinyin-search-mod.md`).
 - Enumerating game entity prefabs for `cu:` ids: the only authoritative source
   is `Resources.LoadAll<GameObject>("")` (`reversing/.../ConsoleScript.cs:98-100`),
   which loads every game prefab; the ID model and the source seam support it,

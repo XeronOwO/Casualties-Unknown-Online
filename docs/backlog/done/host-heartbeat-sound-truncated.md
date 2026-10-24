@@ -1,13 +1,13 @@
 # The critical heartbeat is cut off before the clip ends
 
-- Status: Todo — **reopened 2026-10-25: the earlier "not ours" closure was WRONG**, and the user said so twice. With the
-  panel OPEN and the body critical, the sound the user hears is the panel's own `healthpanel-alert` loop (a probing pass
-  found NO `thump` source playing in that state at all), and the positions I read advanced by ~0.85 s per ~1.3 s of wall
-  time — slower than the clip should run, which is what a loop being RESTARTED between samples looks like. One probe per
-  driver call cannot tell "continuous" from "restarted every second", so the closure claimed evidence the instrument could
-  not produce. **The fix is the instrument**: a frame-rate sampler inside the client (eval declaration + a starter recipe),
-  then the panel-open case is read per frame and the earlier "not ours" claim is either proven or withdrawn on that
-  reading. Opened 2026-10-25 by the user's own listening report.
+- Status: Done — **closed at the user's instruction ("just consider it done"), not by a fix.** The record below keeps what was
+  established and what was not, so a future cycle starts from the evidence rather than re-deriving it. Established on a
+  REVIVED live body (the earlier readings were taken on a corpse — `alive=false, brainHealth=0` — which is why they proved
+  nothing: a dead body has no beat machine): with the body alive and critical by low oxygen (35), every read shows **two or
+  three `heartthump-heavy` / `-monitor` sources at `time 0 / 0.769 s`** — the same per-beat clip played by more than one
+  producer and restarted inside itself each beat. **The doubling persists with the medical panel CLOSED** (2–3 sources), so
+  the panel is not the second producer; that is the lead to chase. Not established: which producer the extra copies belong
+  to, and therefore whether any of it is CUO's. Opened 2026-10-25 by the user's own listening report.
 - Priority: Medium-High — it is the sound a player hears while their body is dying.
 - Category: Audio / local body presentation
 - Source: the user, playing the host: the CRITICAL heartbeat ("状况危急的心跳声", the sound that plays while the

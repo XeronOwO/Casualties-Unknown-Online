@@ -52,7 +52,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The critical heartbeat is cut off before the clip ends](todo/host-heartbeat-sound-truncated.md) — **Medium-High** — reopened; needs the frame-rate sampler.
+- [The critical heartbeat is cut off before the clip ends](done/host-heartbeat-sound-truncated.md) — **Medium-High** — closed at the user's word; the doubled-beat lead is recorded.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
 ### In progress

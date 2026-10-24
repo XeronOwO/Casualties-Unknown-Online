@@ -59,8 +59,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [UI text moves to embedded JSON, mods add languages](todo/localization-json-resources-and-mod-languages.md) — **Medium-High** — data, not C#.
-- [The console's own replies are English only](todo/console-command-replies-bilingual.md) — **Medium** — keys, not sentences; the UI's catalogue renders them.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
 ### In progress
@@ -148,6 +146,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [UI text moves to embedded JSON, mods add languages](done/localization-json-resources-and-mod-languages.md) — **Medium-High** — data, not C#; read live.
+- [The console's own replies are English only](done/console-command-replies-bilingual.md) — **Medium** — keyed lines; read live.
 - [Steam send-limit refusal floods the log and wedges the host](done/steam-transport-send-limit-runaway.md) — **High** — gated; row 5 is the platform residual.
 - [Remote medical panel hides actions](done/remote-medical-panel-hide-local-only-actions.md) — **Medium** — all six rows read.
 - [Random rolls in a cross-player item use](done/cross-player-item-use-random-determinism.md) — **High** — rows 1–2 read, 3–5 settled, 8 a user residual.

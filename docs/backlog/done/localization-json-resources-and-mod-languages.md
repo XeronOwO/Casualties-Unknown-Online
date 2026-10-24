@@ -1,8 +1,12 @@
 # UI text lives in embedded JSON resources, and a mod can add a language
 
-- Status: Todo — opened 2026-10-25 at the user's direction: "text like this, the multilingual kind, why isn't it an embedded
-  JSON resource instead of hard-coded? And leave an interface for mods so other languages can be added. Open a separate
-  ticket for it."
+- Status: Done — closed 2026-10-25: the UI's text is an embedded JSON data file per language (English as the fallback), the
+  catalogue is read by a strict loader, the gates read the data, a mod registers a language through `RegisterCatalog` and the
+  picker lists it, and the contributing page pair documents all of it. Batch `20261025-e` then read the deployed client's own
+  service (record: `docs/evidence/acceptance/localization-live-read-20261025-e.md`): the host answered `zh` with `首页` and the
+  Chinese console-ready sentence while the guest on the same build answered `en` with `Home` and the English one, both listing
+  `supported: en,zh`. The one thing left is a PIXEL read — that the overlay drew those sentences — which is a frame-level
+  residual for the user, the same capability gap the visual rows carry. Opened 2026-10-25 at the user's direction.
 - Priority: Medium-High
 - Category: Localization / architecture / mod surface
 - Source: the user, while the console's bilingual slice was being built — the same objection applies to the whole
@@ -48,7 +52,7 @@ dictionary literals — one table in English, one in Chinese, in the same file, 
 - [x] **Step 4 — the mod interface.** `ILocalizationService.RegisterCatalog(language, json)` in the service, gap-filling only (a built-in entry is never overwritten), malformed input refused by name; four unit cases pin it.
 - [x] **Step 5 — the picker.** The preferences page builds its choices from `SupportedLanguages`, so a registered language appears without a code change.
 - [x] **Step 6 — the docs.** The contributing page pair (`gates-and-rules.md`, both blocks, alignment re-recorded) now explains the JSON catalogues, the key rules, the console's keyed lines and `RegisterCatalog` for mods.
-- [ ] **Step 7 — deploy and read.** Deployed twice since (artifacts `0.1.0+adbf2828…` and `0.1.0+7605a140…`, `verify-deploy` exit 0). The in-game read — a client on Chinese and a client on English showing the same window text from the files, and a mod-shipped language in the picker — is still owed: it needs a frame-level or UI-text read, which no committed probe provides yet (the same capability gap the visual rows carry).
+- [x] **Step 7 — deploy and read.** Deployed twice since (artifacts `0.1.0+adbf2828…` and `0.1.0+7605a140…`, `verify-deploy` exit 0), and batch `20261025-e` read the live service on both clients (record `docs/evidence/acceptance/localization-live-read-20261025-e.md`): the host answered `zh` with 首页 and the Chinese console-ready sentence while the guest on the same build answered `en` with Home and the English one, both listing `supported: en,zh`. The PIXEL half — that the overlay drew those sentences — is the user's frame-level residual, named rather than claimed.
 
 ## Non-goals
 

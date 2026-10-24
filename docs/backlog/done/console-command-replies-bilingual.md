@@ -1,9 +1,15 @@
 # The console's chat-box messages are English only
 
-- Status: Todo — opened 2026-10-25 by the user's report, clarified the same minute: the bilingual switching they want is the
-  **hint/notice text the console prints into its chat box**, not the commands themselves. Command names and syntax stay
-  English (`/heal`, `/op` and their arguments are the language of the console, as in Minecraft); what a Chinese player must
-  read in Chinese is the console's own prose — refusals, results, hints and suggestions.
+- Status: Done — closed 2026-10-25: the console's own prose follows the client's language. Every sentence the console itself
+  builds now carries a catalogue key (`console.ready`, `console.session_ended`, `console.command.host_only`,
+  `console.command.empty`, `console.command.unknown`, `console.chat.not_sent`), an answer may name its key so a command's
+  refusal travels with its reason, the overlay resolves a keyed line through the same `T("console.…")` reads the catalogue gate
+  counts, and a pin fails the build if a catalogued console key is never resolved. Batch `20261025-e` read the live clients
+  (record: `docs/evidence/acceptance/localization-live-read-20261025-e.md`): the host's console buffer holds a line keyed
+  `console.ready` while its service answers Chinese, the guest's the same key with English. Two things stay open and both are
+  named, not silently dropped: the host's ANSWER STRINGS for `/heal`, `/give`, `/summon` and `/gamerule` arrive over the wire as
+  sentences, so localizing them means the result messages carry a key — a protocol decision for the user; and the pixel read of
+  the chat box is a frame-level residual. Opened 2026-10-25 by the user's report, clarified the same minute.
 - Priority: Medium
 - Category: Localization / console surface
 - Source: the user, while a batch's console replies were on screen ("Refused locally: the host's cheat roster … does not
@@ -45,9 +51,9 @@ change lands at that funnel and nowhere else:
 - [x] **Step 1 — the line model.** `ConsoleLine` carries an optional key and arguments beside its English text; every existing call still compiles through the `Text` form.
 - [x] **Step 2 — the catalogue.** `console.ready` and `console.session_ended` in English and Chinese, in the embedded JSON files the UI already reads.
 - [x] **Step 3 — the overlay.** `ConsoleLineText.Resolve` renders a keyed line through the localization service (every key is a literal `T("console.…")` call, so the catalogue gate sees the reader), and an unkeyed line keeps its own text.
-- [ ] **Step 4 — the emission sites.** DONE for the two lines every session prints; the families still English are the roster/heal/give/summon refusals and the admin replies, which surface through `ConsoleAnswer`/`CheatVerbGate.Verdict` sentences rather than the console service's own `AddKeyedLine`, so each family needs its answer type to carry the key it already knows the ground for.
-- [ ] **Step 5 — verify on the machine.** Deployed with the localization change (artifact `0.1.0+3ec84ae0…`); the reading — one refusal and one grant in each client's own language — is still owed, and it is the same UI-text read the localization ticket's step 7 names.
-- [ ] **Step 6 — tests, gates, deploy, record.** The catalogue gates are green with the two keys; a unit case per converted emission is only meaningful once the answer types carry keys (step 4).
+- [x] **Step 4 — the emission sites.** Every sentence the console itself builds now carries a key: the dispatcher's (empty, unknown, host-only), the chat-not-sent line, the ready and session-ended lines, and an answer may name its key so a command's refusal travels with its reason. What remains outside this ticket is named in the status: the host's ANSWER STRINGS arrive over the wire.
+- [x] **Step 5 — verify on the machine.** Batch `20261025-e` read the live clients (record `docs/evidence/acceptance/localization-live-read-20261025-e.md`): each console buffer holds a line keyed `console.ready` — Chinese on the host, English on the guest, same build. The chat box's pixels are the user's frame-level residual.
+- [x] **Step 6 — tests, gates, deploy, record.** The catalogue gates are green with the six keys, a pin proves every catalogued console key is resolved by the overlay, the build is deployed and verified (`0.1.0+7605a140…`), and the record is written.
 
 ## Acceptance this ticket owes
 

@@ -12,23 +12,20 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
-/// The item-data command group (<c>/data</c>): the READ verb and the verb dispatch, in the
-/// ONE data language decision 264 ruled — the item's own state as SNBT, addressed by an
-/// NBT path. The write verbs live in <see cref="ItemDataWriteCommands"/> because they take
-/// the other order (edit a document, then bind and write it through the local scene).
+/// The <c>/data</c> verb group: read or write ONE item's recorded state as SNBT, shaped after
+/// Minecraft's <c>/data get|merge|modify|remove</c>.
 ///
 /// <para>
-/// The READ reads the KERNEL fact, not the local scene: the kernel row is the same on every
-/// peer, it is what replication, the save archive and a rejoin carry, and it is therefore the
-/// row a write has to change. The document is the adapter's projection of that row
-/// (<see cref="IItemStateLanguage"/>), so the Runtime prints keys it never had to learn.
+/// The command is the control plane only — the grammar, the target resolution and the answers. The
+/// kernel holds the record (<see cref="IKernelItemFacts"/>), the adapter renders it as SNBT
+/// (<see cref="IItemStateLanguage"/>), and the writes go through <see cref="ItemDataWriteCommands"/>.
 /// </para>
 ///
 /// <para>
-/// A selector target lists the items the body holds — one line per item, each with its whole
-/// document — while <c>id</c>, <c>slot</c> and <c>cursor</c> name one item. A path narrows
-/// any of them to one value, and a path that does not resolve is answered by name rather
-/// than skipped.
+/// Every answer names its KIND: a read that finds nothing, a selector that names several bodies and a
+/// path that does not resolve are refusals, so they print in the console's error colour instead of the
+/// success one. The renderers answer <c>string?</c> where null means "this build cannot describe the
+/// state" — a missing language, which every caller turns into the same refusal.
 /// </para>
 /// </summary>
 internal sealed class ItemDataCommands(
@@ -63,19 +60,19 @@ internal sealed class ItemDataCommands(
 		var tail = Tail(args, 2);
 		return args[1].ToLowerInvariant() switch
 		{
-			"get" => ConsoleAnswer.Ok(Get(tail)),
-			ItemDataVerbParser.MergeOperation => ConsoleAnswer.Ok(_writes.Merge(tail)),
-			ItemDataVerbParser.ModifyOperation => ConsoleAnswer.Ok(_writes.Modify(tail)),
-			ItemDataVerbParser.RemoveOperation => ConsoleAnswer.Ok(_writes.Remove(tail)),
+			"get" => Get(tail),
+			ItemDataVerbParser.MergeOperation => _writes.Merge(tail),
+			ItemDataVerbParser.ModifyOperation => _writes.Modify(tail),
+			ItemDataVerbParser.RemoveOperation => _writes.Remove(tail),
 			_ => ConsoleAnswer.Refused($"Unknown /data verb '{args[1]}'. The verbs are {Verbs}. Usage: {ItemDataVerbParser.Usage}"),
 		};
 	}
 
-	private string Get(IReadOnlyList<string> tokens)
+	private ConsoleAnswer Get(IReadOnlyList<string> tokens)
 	{
 		if (!ItemDataVerbParser.TryParseGet(tokens, out var request, out var error))
 		{
-			return error!;
+			return ConsoleAnswer.Refused(error!);
 		}
 
 		var rows = _items.QueryItems();
@@ -89,49 +86,50 @@ internal sealed class ItemDataCommands(
 		};
 	}
 
-	private string ReadOne(IReadOnlyDictionary<ulong, ItemState> rows, ulong instanceId, string target, NbtPath path)
+	private ConsoleAnswer ReadOne(IReadOnlyDictionary<ulong, ItemState> rows, ulong instanceId, string target, NbtPath path)
 	{
 		if (!rows.TryGetValue(instanceId, out var item))
 		{
-			return $"No item #{instanceId} is recorded in this session.";
+			return ConsoleAnswer.Refused($"No item #{instanceId} is recorded in this session.");
 		}
 
 		if (!_language.TryDescribe(item.Data, out var document))
 		{
-			return NoLanguage;
+			return ConsoleAnswer.Refused(NoLanguage);
 		}
 
 		_log.LogInformation("[Command] /data get {Target} read #{InstanceId} ({Definition}){Path}.",
 			target, instanceId, item.Identity.DefinitionId, path.IsRoot ? "" : " at " + path.Text);
-		return path.IsRoot
+		var rendered = path.IsRoot
 			? ItemDataRenderer.One(item, document, [.. rows.Values])
 			: RenderPath(item, document, path);
+		return rendered is null ? ConsoleAnswer.Refused(NoLanguage) : ConsoleAnswer.Ok(rendered);
 	}
 
-	private string ReadCursor(IReadOnlyDictionary<ulong, ItemState> rows, NbtPath path)
+	private ConsoleAnswer ReadCursor(IReadOnlyDictionary<ulong, ItemState> rows, NbtPath path)
 	{
 		if (!_targets.TryResolveCursor(out var instanceId, out var refusal))
 		{
 			_log.LogWarning("[Command] /data get cursor refused: {Reason}", refusal);
-			return refusal!;
+			return ConsoleAnswer.Refused(refusal!);
 		}
 
 		return ReadOne(rows, instanceId, "cursor", path);
 	}
 
-	private string ReadSlot(IReadOnlyList<ItemState> all, ItemDataQuery query, NbtPath path)
+	private ConsoleAnswer ReadSlot(IReadOnlyList<ItemState> all, ItemDataQuery query, NbtPath path)
 	{
 		var owners = _targets.ResolveOwners(query.Selector, out var refusal);
 		if (refusal is not null)
 		{
-			return refusal;
+			return ConsoleAnswer.Refused(refusal);
 		}
 
 		if (owners.Count > 1)
 		{
 			_log.LogWarning("[Command] /data get slot {Slot} refused: the selector '{Selector}' matched {Count} bodies ({Owners}).",
 				query.Slot, query.Selector, owners.Count, ItemDataTargets.Owners(owners));
-			return RefuseAmbiguousBody(owners);
+			return ConsoleAnswer.Refused(RefuseAmbiguousBody(owners));
 		}
 
 		var builder = new StringBuilder();
@@ -146,22 +144,28 @@ internal sealed class ItemDataCommands(
 				continue;
 			}
 
+			var rendered = RenderItem(item.Value, path, all);
+			if (rendered is null)
+			{
+				return ConsoleAnswer.Refused(NoLanguage);
+			}
+
 			listed++;
-			Append(builder, RenderItem(item.Value, path, all));
+			Append(builder, rendered);
 		}
 
 		ReportEmpty(builder, empty, $"No item is carried by {{0}} in slot {query.Slot}.");
 		_log.LogInformation("[Command] /data get slot {Slot} named {Bodies} body/bodies and read {Items} item(s).",
 			query.Slot, owners.Count, listed);
-		return builder.ToString();
+		return listed == 0 ? ConsoleAnswer.Refused(builder.ToString()) : ConsoleAnswer.Ok(builder.ToString());
 	}
 
-	private string ReadBodies(IReadOnlyList<ItemState> all, ItemDataQuery query, NbtPath path)
+	private ConsoleAnswer ReadBodies(IReadOnlyList<ItemState> all, ItemDataQuery query, NbtPath path)
 	{
 		var owners = _targets.ResolveOwners(query.Selector, out var refusal);
 		if (refusal is not null)
 		{
-			return refusal;
+			return ConsoleAnswer.Refused(refusal);
 		}
 
 		var builder = new StringBuilder();
@@ -176,18 +180,24 @@ internal sealed class ItemDataCommands(
 				continue;
 			}
 
+			var rendered = RenderBody(owner, held, all, path);
+			if (rendered is null)
+			{
+				return ConsoleAnswer.Refused(NoLanguage);
+			}
+
 			listed += held.Count;
-			Append(builder, RenderBody(owner, held, all, path));
+			Append(builder, rendered);
 		}
 
 		ReportEmpty(builder, empty, EmptyBodyAnswer(query, empty));
 		_log.LogInformation("[Command] /data get {Selector} named {Bodies} body/bodies and listed {Items} item(s).",
 			query.Selector ?? "(self)", owners.Count, listed);
-		return builder.ToString();
+		return listed == 0 ? ConsoleAnswer.Refused(builder.ToString()) : ConsoleAnswer.Ok(builder.ToString());
 	}
 
 	/// <summary>One body's block: every item with its whole document, or the one path's value per item.</summary>
-	private string RenderBody(ulong owner, IReadOnlyList<ItemState> held, IReadOnlyList<ItemState> all, NbtPath path)
+	private string? RenderBody(ulong owner, IReadOnlyList<ItemState> held, IReadOnlyList<ItemState> all, NbtPath path)
 	{
 		if (path.IsRoot)
 		{
@@ -196,7 +206,7 @@ internal sealed class ItemDataCommands(
 			{
 				if (!_language.TryDescribe(item.Data, out var document))
 				{
-					return NoLanguage;
+					return null;
 				}
 
 				documents.Add(document);
@@ -209,17 +219,23 @@ internal sealed class ItemDataCommands(
 		builder.Append("Items recorded for ").Append(owner).Append(" (").Append(held.Count).Append("):");
 		foreach (var item in held)
 		{
-			builder.Append('\n').Append(RenderItem(item, path, all));
+			var rendered = RenderItem(item, path, all);
+			if (rendered is null)
+			{
+				return null;
+			}
+
+			builder.Append('\n').Append(rendered);
 		}
 
 		return builder.ToString();
 	}
 
-	private string RenderItem(ItemState item, NbtPath path, IReadOnlyList<ItemState> all)
+	private string? RenderItem(ItemState item, NbtPath path, IReadOnlyList<ItemState> all)
 	{
 		if (!_language.TryDescribe(item.Data, out var document))
 		{
-			return NoLanguage;
+			return null;
 		}
 
 		return path.IsRoot

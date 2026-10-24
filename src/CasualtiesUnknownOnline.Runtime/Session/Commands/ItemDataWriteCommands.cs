@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Data;
@@ -50,11 +51,11 @@ internal sealed class ItemDataWriteCommands(
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 	private readonly ItemDataTargets _targets = targets;
 
-	internal string Merge(IReadOnlyList<string> tokens)
+	internal ConsoleAnswer Merge(IReadOnlyList<string> tokens)
 	{
 		if (!ItemDataVerbParser.TryParseMerge(tokens, out var request, out var error))
 		{
-			return error!;
+			return ConsoleAnswer.Refused(error!);
 		}
 
 		var compound = request.State;
@@ -75,32 +76,32 @@ internal sealed class ItemDataWriteCommands(
 		});
 	}
 
-	internal string Modify(IReadOnlyList<string> tokens)
+	internal ConsoleAnswer Modify(IReadOnlyList<string> tokens)
 	{
 		if (!ItemDataVerbParser.TryParseModify(tokens, out var request, out var error))
 		{
-			return error!;
+			return ConsoleAnswer.Refused(error!);
 		}
 
 		if (request.Path.IsRoot)
 		{
-			return $"modify needs a path inside the state — the whole state is not replaced; merge its keys with /data merge. Usage: {ItemDataVerbParser.Usage}";
+			return ConsoleAnswer.Refused($"modify needs a path inside the state — the whole state is not replaced; merge its keys with /data merge. Usage: {ItemDataVerbParser.Usage}");
 		}
 
 		return Write(ItemDataVerbParser.ModifyOperation, request.Target, before =>
 			ApplyModify(before, request.Path, request.Operation, request.Index, request.Value));
 	}
 
-	internal string Remove(IReadOnlyList<string> tokens)
+	internal ConsoleAnswer Remove(IReadOnlyList<string> tokens)
 	{
 		if (!ItemDataVerbParser.TryParseRemove(tokens, out var request, out var error))
 		{
-			return error!;
+			return ConsoleAnswer.Refused(error!);
 		}
 
 		if (request.Path.IsRoot)
 		{
-			return $"remove needs a path inside the state — the whole state is not removable. Usage: {ItemDataVerbParser.Usage}";
+			return ConsoleAnswer.Refused($"remove needs a path inside the state — the whole state is not removable. Usage: {ItemDataVerbParser.Usage}");
 		}
 
 		return Write(ItemDataVerbParser.RemoveOperation, request.Target, before =>
@@ -159,36 +160,36 @@ internal sealed class ItemDataWriteCommands(
 	/// item the command names, the local capture, the edit on the document, ONE bind-and-write
 	/// through the local scene, and the report of what the adapter re-read.
 	/// </summary>
-	private string Write(string verb, ItemDataQuery target, Func<SnbtValue, Edit> edit)
+	private ConsoleAnswer Write(string verb, ItemDataQuery target, Func<SnbtValue, Edit> edit)
 	{
 		if (_cheatVerbs.TryRefuse("data " + verb, out var cheatRefusal))
 		{
-			return cheatRefusal;
+			return ConsoleAnswer.Refused(cheatRefusal);
 		}
 
 		var all = new List<ItemState>(_items.QueryItems().Values);
 		if (!_targets.TryResolveWrite(target, all, out var instanceId, out var refusal))
 		{
 			_log.LogWarning("[Command] /data {Verb} refused: {Reason}", verb, refusal);
-			return refusal!;
+			return ConsoleAnswer.Refused(refusal!);
 		}
 
 		var local = _localItems.ReadLocalItem(instanceId);
 		if (local is null)
 		{
-			return RefuseNotHeld(instanceId);
+			return ConsoleAnswer.Refused(RefuseNotHeld(instanceId));
 		}
 
 		if (!_language.TryDescribe(local, out var before))
 		{
-			return ItemDataCommands.NoLanguage;
+			return ConsoleAnswer.Refused(ItemDataCommands.NoLanguage);
 		}
 
 		var change = edit(before);
 		if (!change.Ok)
 		{
 			_log.LogWarning("[Command] /data {Verb} on #{InstanceId} refused: {Reason}", verb, instanceId, change.Error);
-			return change.Error!;
+			return ConsoleAnswer.Refused(change.Error!);
 		}
 
 		var outcome = _localItems.WriteLocalItem(instanceId, change.Document);
@@ -196,13 +197,13 @@ internal sealed class ItemDataWriteCommands(
 		{
 			_log.LogWarning("[Command] /data {Verb} on #{InstanceId} refused by the local scene: {Result}: {Refusal}.",
 				verb, instanceId, outcome.Result, outcome.Refusal);
-			return RefuseWrite(outcome, instanceId);
+			return ConsoleAnswer.Refused(RefuseWrite(outcome, instanceId));
 		}
 
 		var written = outcome.Written;
 		if (!_language.TryDescribe(written, out var after))
 		{
-			return ItemDataCommands.NoLanguage;
+			return ConsoleAnswer.Refused(ItemDataCommands.NoLanguage);
 		}
 
 		var changes = DescribeChanges(change.Edits, before, after);
@@ -215,13 +216,13 @@ internal sealed class ItemDataWriteCommands(
 			_itemControl.SendItemDataWrite(instanceId, written);
 			_log.LogInformation("[Command] /data {Verb} wrote #{InstanceId} ({Definition}): {Changes}; reported as a console write for the host's rule to judge.",
 				verb, instanceId, written.ItemId, string.Join("; ", changes));
-			return ItemDataRenderer.Wrote(written, changes, awaitingHost: true, outcome.Note);
+			return ConsoleAnswer.Ok(ItemDataRenderer.Wrote(written, changes, awaitingHost: true, outcome.Note));
 		}
 
 		Report(instanceId, written);
 		_log.LogInformation("[Command] /data {Verb} wrote #{InstanceId} ({Definition}): {Changes}; reported as this client's own item state.",
 			verb, instanceId, written.ItemId, string.Join("; ", changes));
-		return ItemDataRenderer.Wrote(written, changes, awaitingHost: false, outcome.Note);
+		return ConsoleAnswer.Ok(ItemDataRenderer.Wrote(written, changes, awaitingHost: false, outcome.Note));
 	}
 
 	/// <summary>

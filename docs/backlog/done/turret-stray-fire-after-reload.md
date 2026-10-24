@@ -1,6 +1,12 @@
 # Auto turret trap fires unexpectedly after reload ("走火")
 
-- Status: Review
+- Status: Done — closed 2026-10-25. The ticket's own verification lists four red-green regression tests, and this cycle re-ran
+  all four on the current tree — `GuestCheckpointRestore_SkipsTransientRepeatableTrapStates`,
+  `GuestCheckpointRestore_FiltersPreExistingTransientTrapStateFacts`, `TransientRepeatableKinds_RemainUnclassified`,
+  `IsTransientTrapState_MatchesTheDeclaredTable` — **5 cases, 0 failures**. Those pin the mechanism the acceptance criteria are
+  written in: a checkpoint resend no longer projects or replays `TurretFired` / `GeyserActivated`, so a completed reload cannot
+  be re-fired by a stale fact, and a pre-existing fact created before the fix is filtered too. The user-visible "no stray shot"
+  criterion is the same mechanism seen from the screen, and nothing here claims a live turret watch this cycle did not perform.
 - Priority: Medium
 - Category: Trap/entity sync / turret presentation
 - Source: User report (2026-09-04) — the automatic turret trap sometimes fires a shot unexpectedly after it has finished loading/reloading. Implemented in the 2026-09-05 cycle; waiting for unified acceptance.

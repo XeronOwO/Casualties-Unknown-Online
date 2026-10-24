@@ -287,7 +287,7 @@ docs/backlog/review/sync-player-pain-vocalizations-and-bark.md | keep | index | 
 docs/backlog/review/tab-backpack-open-close-immediately.md | keep | index | docs/backlog/README.md
 docs/backlog/review/trade-domain-dual-side-runtime.md | keep | index | docs/backlog/README.md
 docs/backlog/review/treatment-gore-presentation-carried.md | keep | index | docs/backlog/README.md
-docs/backlog/review/turret-stray-fire-after-reload.md | keep | index | docs/backlog/README.md
+docs/backlog/done/turret-stray-fire-after-reload.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unhooked-damage-block-callers.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unhooked-item-and-body-sound-families.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unified-remote-display-projection-rework.md | keep | index | docs/backlog/README.md
@@ -1060,7 +1060,7 @@ docs/evidence/selfchecks/world/quake-direct-write-selfcheck.md | keep | claim | 
 docs/evidence/selfchecks/world/radiation-line-state-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/radiation-straggler-pressure-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/runtime-entity-identity-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/world/transient-trap-state-checkpoint-selfcheck.md | keep | claim | docs/backlog/review/turret-stray-fire-after-reload.md
+docs/evidence/selfchecks/world/transient-trap-state-checkpoint-selfcheck.md | keep | claim | docs/backlog/done/turret-stray-fire-after-reload.md
 docs/evidence/selfchecks/world/tutorial-claw-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/tutorial-claw-stream-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/unhooked-damage-block-callers-selfcheck.md | keep | claim | docs/backlog/review/unhooked-damage-block-callers.md

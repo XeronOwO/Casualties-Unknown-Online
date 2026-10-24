@@ -105,7 +105,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
 - [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
-- [Turret stray fire after reload](review/turret-stray-fire-after-reload.md) — **Medium** — stale transient trap replay is removed.
 - [Pinyin search for CUO](review/pinyin-search-mod.md) — **Medium** — crafting-UI and console completion.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
@@ -141,6 +140,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Turret stray fire after reload](done/turret-stray-fire-after-reload.md) — **Medium** — transient trap replay removed; tests re-run.
 - [The host decides enemy hits on remote players](done/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [The id resume reads one source](done/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers seed the one namespace.
 - [Guest pending-report fallback](done/guest-report-fallback-first-resend.md) — **Low-Medium** — 5 s entry phase; tests pin the two.

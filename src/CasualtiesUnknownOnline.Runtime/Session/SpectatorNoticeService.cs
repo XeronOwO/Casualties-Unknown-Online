@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -81,6 +82,10 @@ internal sealed class SpectatorNoticeService(
 		}
 
 		_notices.Publish(_localization.Format("spectator.watched_notice", watcher));
-		_log.LogInformation("[Spectator] the watched player was told (watcher={Watcher}).", msg.WatcherSteamId);
+		_log.LogInformation(
+			"[Spectator] the watched player was told (watcher={Watcher}, slot={Slot}, notifications={Type}).",
+			msg.WatcherSteamId,
+			RuntimeHelpers.GetHashCode(_notices),
+			_notices.GetType().FullName);
 	}
 }

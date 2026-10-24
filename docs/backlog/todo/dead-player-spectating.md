@@ -220,6 +220,21 @@ comparing the two instances' identities from in-client probes before any further
 
 
 
+### Slice 3b — the KrokMP-aligned controls the user asked for (2026-10-24)
+
+The user's reference: after death the view watches players **and corpses**, a button switches to free movement,
+and while watching, **left/right buttons cycle the watched player in order**. All three are this slice's shape:
+
+| Control | What it does | Where it lives |
+|---|---|---|
+| watch the dead as well as the living | the follow target resolves ANY member body this client renders — a corpse included — instead of the living-only rule; a watched member who dies keeps being watched until the player cycles away | `SpectatorCameraService.TryResolveLiving` becomes "any present body"; the watch is given up only when the body leaves or drops |
+| free movement button | toggles the mode's free camera on and off (`PlayerCamera.isFreecam`, the capability the mode already owns) | a control in the Online UI's watching surface; no host rule since the three old switches are superseded |
+| left/right cycling | steps to the previous/next watchable member in lobby order, wrapping and skipping the local client and members with no body here | two buttons beside the free-movement one, calling `TryWatch` with the neighbour's id |
+| the watching surface itself | a small strip shown while the mode is on: `◀  name  ▶` plus the free-movement toggle and the way out | CUO's own Online UI overlay (the game has no native spectator bar; `#8`'s rule is satisfied because this is a surface the game does not have, not a replacement for one) |
+
+The reading for this slice: two clients, one dies and enters the mode, watches the corpse and the survivor, cycles
+left and right, toggles free movement, and leaves; every step read from the camera's own state and the mode.
+
 ### Slice 4 — free flight
 
 - How the free camera is toggled in the mode (a verb, a key, or part of the possession exit) is the one detail

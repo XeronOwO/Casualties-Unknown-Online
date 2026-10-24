@@ -13,9 +13,19 @@
 	var field = typeof(PlayerCamera).GetField("dragItem", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
 	var drag = field == null ? null : field.GetValue(camera) as Item;
 	var mouse = UnityEngine.Input.mousePosition;
+	// The bracket's own gates, read beside the button state so a refused start can be attributed instead of guessed:
+	// HandleDragging needs the iteminteract press, no minigame, not paused, a conscious body and `allowUseItem`.
+	var body = camera.body;
+	var minigame = MinigameBase.main != null && MinigameBase.main.currentMinigame != null;
 	return "{\"ok\":true"
 		+ ",\"mouseHeld\":" + (UnityEngine.Input.GetMouseButton(0) ? "true" : "false")
 		+ ",\"mouseDown\":" + (UnityEngine.Input.GetMouseButtonDown(0) ? "true" : "false")
+		+ ",\"rightHeld\":" + (UnityEngine.Input.GetMouseButton(1) ? "true" : "false")
+		+ ",\"rightDown\":" + (UnityEngine.Input.GetMouseButtonDown(1) ? "true" : "false")
+		+ ",\"allowUseItem\":" + (body != null && body.allowUseItem ? "true" : "false")
+		+ ",\"conscious\":" + (body != null && body.conscious ? "true" : "false")
+		+ ",\"minigame\":" + (minigame ? "true" : "false")
+		+ ",\"paused\":" + (PauseHandler.paused ? "true" : "false")
 		+ ",\"radialOpen\":" + (camera.radialOpen ? "true" : "false")
 		+ ",\"dragging\":" + (drag != null ? "true" : "false")
 		+ ",\"dragItem\":\"" + (drag == null ? "none" : drag.id) + "\""

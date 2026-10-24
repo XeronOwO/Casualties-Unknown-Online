@@ -166,6 +166,16 @@ split is precise: **cursor movement and left-button events arrive; the right-but
 `dragItem=bandage` this session proved it can arrive. A future cycle therefore has a testable target instead of a theory
 (activation/focus at the moment of the press, or a different injection point for the right button), and this batch records it there.
 
+**Batch `20261025-v` — that target is now measured, and the answer is the ENVIRONMENT, not the gesture.** `drag-state` was
+extended to read the bracket's own gates beside the button state, and every gate is OPEN while a press is held:
+`allowUseItem=true, conscious=true, minigame=false, paused=false`, and the bind really is Mouse1 (`keybind-read action=iteminteract`
+→ `keyCode 324, "Mouse1"`). What is false is the INPUT ITSELF, and not only for the right button: a LEFT-button hold sent through
+the same path also read `mouseHeld=false, mouseDown=false` mid-hold. Cursor position arrives (the pointer moved through both
+holds) and keys arrive (a real Tab press opened the ring), but **no mouse BUTTON event reaches Unity's `Input` on this station** —
+which is UIPI-style blocking or a window/child-window condition, not a coordinate, a page, a state or a bind. Every row that needs
+a clicked or dragged target waits on that one environment fact, and no amount of re-pressing will change it; the rows stay open
+with this named rather than closed on a guess.
+
 ## The claimed 2026-10-18 "the label is drawn": FALSE (found 2026-10-22)
 
 > Kept as the falsified claim, because the cycle that wrote it and the review that passed it both read the type

@@ -26,14 +26,13 @@ regenerated when a batch changes the picture, never accumulated.
 
 ## C — needs a capability an agent could still build
 
-**The shared blocker first, because it covers several rows below.** The authorized OS-level input path
-(`send-input.ps1`) delivers keys reliably — a real Tab press opened the inventory ring and it stayed open, which closed the
-tab-backpack ticket — but its MOUSE path does not reliably reach the game: five right-presses across two ring pages and three
-distinct states all answered `PlayerCamera.dragItem=none` from `drag-state` sampled mid-hold, while one earlier press of the same
-kind DID enter the bracket (`dragItem=bandage`). That inconsistency is the finding: it is a delivery/focus condition, not a
-coordinate, so every row that needs a dragged item or a clicked world target waits on it. A cycle that fixes the delivery
-(window station, activation, or a different injection point) unblocks the drag rows, the melee-hit row and the treatment-drive row
-at once.
+**The shared blocker first, because it covers several rows below.** It is MEASURED now, not suspected: on this station **no mouse
+BUTTON event reaches Unity's `Input`**, for either button — a right hold and a left hold both read `mouseHeld=false,
+mouseDown=false` mid-hold while the pointer moved, with the bracket's own gates all open (`allowUseItem=true, conscious=true,
+minigame=false, paused=false`) and the bind confirmed as Mouse1 (`keybind-read` → `keyCode 324`). Cursor movement arrives, keys
+arrive (a real Tab press opened the ring), buttons do not — so every row that needs a clicked or dragged target waits on that
+environment fact, and a cycle that fixes delivery (elevation/UIPI, window station, or a different injection point) unblocks the drag
+rows, the melee-hit row and the treatment-drive row at once.
 
 | Ticket | What it waits on |
 |---|---|

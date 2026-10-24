@@ -169,3 +169,10 @@ client through the game's own death branch. The drop side then came up EMPTY: `i
 before and after the destruction). So this building rolled no drops at all — the fixture needs a destruction that HAS a drop table
 before the fresh-guest half means anything, and the earlier projection problem (tying a census point to frame content) is
 secondary to that. Named here instead of re-running the same destroy.
+
+**Same batch, one more destruction, and the rule behind the emptiness.** A `medcrate` at `(19.66, 434.77)` was destroyed the same
+way (`building-destroy-at` → `ok=true, healthBefore=250`) and `item-world-read` around it answered **`count=0` before and after, at
+radius 10**. Two empty destructions in a row point at the ticket's own wording rather than at the probes: this page says
+"support-loss building drops ride `BlockDamagedMsg.BuildingDrops`", i.e. a building drops when it loses SUPPORT, not when its health
+is zeroed directly. The fixture therefore has to break the supporting block under a building and read the drop that follows, not
+destroy the building itself — and the fresh-guest half starts only after a drop exists.

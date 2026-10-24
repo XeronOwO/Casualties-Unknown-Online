@@ -122,6 +122,13 @@ behaviour for a shape that does not exist.
 
 - The confirmation rows above (a real nested-container fixture, `[ItemSpawned] local <inner type>` absent from the host
   log). No batch has staged the shape yet, and the 2026-10-24 scan of a fresh layer found none in world generation.
+- Batch `20261025-l` tried to STAGE the fixture from the probe vocabulary instead, and the attempt narrowed what it needs:
+  `container-fill container=trashbag item=trashbag` was refused by the game's own `LoadItem` (`canHold=true, distance=0` —
+  the ordinary stacking guard, i.e. the refused-call path the fix defends, but with the container NOT already inside another
+  one, so it is not the nested shape); `foodbox` and `medcrate` are BuildingEntities, not Items (`the created object is not an
+  Item`); and the `backpack` prefab is null in this build (`The Object you want to instantiate is null`). So the fixture needs a
+  container ITEM that can hold another container ITEM, and this session's prefab set has not produced one. That is the missing
+  capability the row waits on, recorded instead of a fourth create attempt.
 - The `alertcontainerstackingalt` alert the refused `LoadItem` still raises once per rebuild: it is the game's own
   call doing it before this code gets a say, and suppressing it needs a decision about intercepting a native alert for
   presentation reasons — not taken here.

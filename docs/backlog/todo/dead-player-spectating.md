@@ -226,6 +226,16 @@ is downstream of `Publish` and upstream of the drawing: the drain that consumes 
 `Notify` is the only remaining suspect, and the next attempt instruments it (one log line in
 `DrainSessionNotices`/`Notify`) instead of changing dependencies again.
 
+**Round 87: the drain DOES hand the right line to the overlay, and the frame still shows `RTT`.** The drain now logs
+each notice it consumes: `[OnlineUi] status line: 萧稔 is watching you` at 13:26:20.483 on the target's client,
+immediately after the service's publish — so the slot, the drain and the text are all correct. A capture written at
+13:26:33.991 (13.5 s after that, inside the 1.5 s delay + 15 s hold) shows the top-left HUD with `RTT` and **no**
+line. The remaining explanation is that the object the drain calls `Notify` on is not the overlay that draws the
+HUD — a second `OnlineUiHost`/overlay instance, one receiving the drain and one drawing — and the next attempt
+proves it by logging `RuntimeHelpers.GetHashCode(this)` in the overlay's `Notify` and the host's own overlay
+reference in the same line.
+
+
 
 
 

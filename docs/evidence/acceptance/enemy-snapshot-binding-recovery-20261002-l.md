@@ -20,7 +20,7 @@
 ## Limits
 
 - Rows 1, 5 and 6 stand from batch `20261002-k` and were not re-run; row 7 belongs to
-  `review/enemy-hit-determination-local.md`.
+  `done/enemy-hit-determination-local.md`.
 - The "late joiner" shape is a member that had been in the world, left it and re-entered — the shape the
   `20261002-k` record judged rows 3/4/8 in. A client that has never seen the world was not staged.
 - Adjacent observation outside the rows' window: the alt's **entry** snapshot (17:54:26.1) logged

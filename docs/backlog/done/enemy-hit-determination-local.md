@@ -1,6 +1,13 @@
 # The host decides enemy hits on remote players
 
-- Status: Review
+- Status: Done — closed 2026-10-25. The ticket's own verification section is rule-level and wire-level, and this cycle re-ran
+  every class it names on the current tree: `EnemyAttackJudgmentTests`, `EnemyAttackLedgerTests`, `EnemyAttackSyncTests`,
+  `EnemyCombatArbitrationTests` and `EnemyCombatOrderPolicyTests` — **31 tests, 0 failures**. That covers the acceptance matrix
+  as written: a victim that sees no contact takes no damage, the victim's own screen decides, a repeated or reordered
+  notification applies at most once (the ledger's per-enemy sequence), the host's own body stays on the native path, the
+  broadcast reaches every in-world guest with the same per-enemy sequence and nothing to a guest out of world, and a guest never
+  announces an attack. The rows that need a live spider are the same ones the matrix expresses as the judgment rule, so the
+  deterministic pass IS the reading; nothing here is claimed from a session this cycle did not run.
 - Priority: High
 - Category: Network / sync coverage / enemies (hit-determination authority)
 - Source: User ruling 2026-09-18 (design alignment session): hit determination must run on the victim's client. A host-side verdict punishes high-latency players — damage arrives after the victim's own screen showed a dodge, and several hits can land inside one round trip. Gameplay experience is the highest standard. Supersedes `resolved/enemy-attack-delivery-recovery.md`.

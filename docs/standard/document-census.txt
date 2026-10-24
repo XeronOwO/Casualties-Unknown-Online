@@ -221,7 +221,7 @@ docs/backlog/review/concurrent-medical-operations.md | keep | index | docs/backl
 docs/backlog/done/cross-player-item-use-random-determinism.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-right-click-name-suffix.md | keep | index | docs/backlog/README.md
 docs/backlog/done/enemy-generation-pairing-late-join.md | keep | index | docs/backlog/README.md
-docs/backlog/review/enemy-hit-determination-local.md | keep | index | docs/backlog/README.md
+docs/backlog/done/enemy-hit-determination-local.md | keep | index | docs/backlog/README.md
 docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md | keep | index | docs/backlog/README.md
 docs/backlog/done/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-background-ghost-item-ground-sounds.md | keep | index | docs/backlog/README.md

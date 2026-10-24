@@ -2,7 +2,7 @@
 
 - Ticket: `enemy-snapshot-binding-recovery` — verdict: **all rows resolved; moved to `done/`** (row 2
   passes in this batch; rows 1, 5 and 6 stand from batch `20261002-k`, rows 3, 4 and 8 from batch
-  `20261002-l`, row 7 lives in `review/enemy-hit-determination-local.md`)
+  `20261002-l`, row 7 lives in `done/enemy-hit-determination-local.md`)
 - Batch: `20261003-c` — tickets `enemy-snapshot-binding-recovery`
 - Commit under acceptance: `7cfe910ed8fe30cc4dc4ffac8119622c972314f4` — the commit that staged this batch's
   probes (`enemy-table-read`, `scene-repeat`). Deployed artifact: `CasualtiesUnknownOnline.dll`,
@@ -25,7 +25,7 @@ probe results this run produced against the deployed artifact.
 ## Limits
 
 - Rows 1, 5 and 6 stand from batch `20261002-k`, rows 3, 4 and 8 from batch `20261002-l`; they were not
-  re-run. Row 7 is carried by `review/enemy-hit-determination-local.md` by the ticket's own design.
+  re-run. Row 7 is carried by `done/enemy-hit-determination-local.md` by the ticket's own design.
 - **The carrier staged is the member's own readiness-window repeat report**
   (`ISessionControl.ResendSceneState` → the host's `SceneStateHandler` repeat branch → its entry-repair
   claim), which calls the same `WorldEntryFanout` group and the same `SendEnemySnapshot` as the 60 s pump

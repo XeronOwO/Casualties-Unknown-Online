@@ -100,3 +100,12 @@ entity (the nearest at `(0, 510)`) has no clickable collider at the projected po
 room's own blocks. The next attempt must therefore target an entity whose collider the click can actually reach (a census of
 entities WITH their screen bounds and a `collider != null` filter), not merely the nearest one by distance. Recorded here so the
 next cycle does not re-run the same click.
+
+The probe now answers that question directly instead of leaving it to another blind click: `mode=census` lists the entities whose
+screen point is inside the view and which carry a `Collider2D`, and `mode=pick` reports what `Physics2D.OverlapPointAll` finds at
+the chosen entity's own point. On this session `pick` answered **`lifepodheater` / `CircleCollider2D`** at `(0, 510)` — the point
+is occupied by the entity itself, so the projection is not the problem; the swing at that point still produced a block-damage
+entry rather than entity damage, which is the fact the next attempt has to explain (the heater may not be a melee damage target
+inside the pod, and the click-time swing may break the pod floor instead). The reading therefore needs an entity the melee path
+actually damages — a wall/rock-style `BuildingEntity` outside the pod — placed in view and clicked, with the host's own damage
+line as the confirmation before the guest's replay line is read.

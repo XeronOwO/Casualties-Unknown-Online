@@ -215,3 +215,14 @@ remaining slot therefore reports `canPickUp == false` (or null). Closing the tra
 (`radialOpen=false`, `tradeMenu=false` at the retry), and neither did standing the body up — the host now reads
 `ExperimentIdleCrouch`, `standing=false`, which is a state worth testing next: the grant needs ONE slot whose `canPickUp` is true,
 and the next attempt should read `body.slots[i].canPickUp` per slot instead of guessing which state flips it.
+
+**Batch `20261025-r` — the slots said false because the HOST WAS DEAD.** `item-provide` gained `mode=slots`, which prints the
+grant's own gate per slot (`null`, `canPickUp`, `holding`), and it answered **all six slots `canPickUp=false`** — which reads like a
+slot rule and was not one: `body-read` then answered **`alive=false, conscious=false`** for the host. The host had died earlier in
+the session (the previous batches' body placements and menu work), and a dead body accepts nothing. After `/heal @s` on the host
+(`alive=true, conscious=true, standing=true`) the grant worked immediately: `item-provide type=funguschunk mode=create` →
+**`ok=true, slot=0`**. The lesson belongs in the batch notes: a `no-free-slot` with every slot `canPickUp=false` is a DEAD body
+first, a slot rule second. What remains for row 2 is the recipe's own ingredient list: recipe 1 needs `biochem`, a LIQUID, and
+`item-provide type=biochem` fails to instantiate it (`The Object you want to instantiate is null`) because a liquid lives inside a
+container rather than as a bare item — so the fixture should pick a recipe whose ingredients are all non-liquid specifics (the
+`mode=materials` report names them) or grant the liquid into a container.

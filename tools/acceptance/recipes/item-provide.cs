@@ -19,11 +19,27 @@
 	const System.Reflection.BindingFlags instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var type = {{s:type}};
 	var mode = {{s:mode}};
-	if (mode != "find" && mode != "create" && mode != "pickup" && mode != "drop") {
-		return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be find, create, pickup or drop\"}";
+	if (mode != "find" && mode != "create" && mode != "pickup" && mode != "drop" && mode != "slots") {
+		return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be find, create, pickup, drop or slots\"}";
 	}
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-local-body\"}"; }
+	if (mode == "slots") {
+		// The grant's own gate, slot by slot: `create` takes the first slot where the slot exists, `canPickUp` is true and the body
+		// is not holding it, and refuses when none qualifies — so the reading that explains a `no-free-slot` is this table, not a
+		// guess about which state flips it.
+		var table = new System.Text.StringBuilder();
+		for (var i = 0; i < body.slots.Length; i++) {
+			var slot = body.slots[i];
+			if (i > 0) { table.Append(","); }
+			table.Append("{\"slot\":").Append(i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+			table.Append(",\"null\":").Append(slot == null ? "true" : "false");
+			table.Append(",\"canPickUp\":").Append(slot != null && slot.canPickUp ? "true" : "false");
+			table.Append(",\"holding\":").Append(body.HoldingItem(i) ? "true" : "false").Append("}");
+		}
+		return "{\"ok\":true,\"mode\":\"slots\",\"count\":" + body.slots.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			+ ",\"slots\":[" + table.ToString() + "]}";
+	}
 	// Every item the body carries: the slot occupants, the worn items, and their nested descendants.
 	var items = new System.Collections.Generic.List<Item>();
 	for (var slot = 0; slot < body.slots.Length; slot++) {

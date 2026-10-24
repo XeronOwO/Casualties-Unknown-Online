@@ -471,6 +471,24 @@ the spectator's silence patch, and stops it when the body recovers or the watch 
 `[Spectator] crisis sound started` line, because staging a body that is ALIVE with a low reported brain health needs a
 probe that holds a non-fatal injury, which this session did not have.
 
+**All three closed in one session (2026-10-24, deployed `0.1.0+3b23eb75`).**
+1. **The anomaly was the driver, not the box.** The acceptance driver's synthetic click dispatches
+   `ControlInvoked` with no flag, and the page builder passed that default `false` straight to the toggle handler, so
+   every synthetic click sent "off". The builder now treats a synthetic activation as "flip what is on screen"
+   (`intent.Kind == ControlToggled ? intent.Flag : !value`), while a real click keeps the native checkbox's exact new
+   value. The reading flips both ways: `effects=True` at 15:30:09.536, click → `effects=False` at 15:30:12.362, click
+   → `effects=True` at 15:30:15.407, live and without a restart.
+2. **The watched body's crisis sound starts.** Holding the watched member's brain health at 20 WITHOUT killing it
+   (the new local `injury-hold` probe) makes the watcher's mirror line read
+   `brain=20 gateVignetteA=0.40`, and the very next line is `[Spectator] crisis sound started for the watched body.` —
+   the game's own critical-dying clip plays on the spectator's client through the gate's depth window.
+3. **The low-health vignette is read at last**: `gateVignetteA=0.40` at brain 20, the gap this ticket carried since the
+   opacity landed.
+
+Named residual: the STOP half of the crisis sound has no log line of its own (it runs when the body recovers or the
+watch ends), so that transition is implemented but unread; adding the symmetric line is the next attempt's first step.
+
+
 
 
 

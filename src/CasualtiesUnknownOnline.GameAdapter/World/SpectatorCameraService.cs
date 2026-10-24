@@ -249,9 +249,14 @@ internal sealed class SpectatorCameraService(
 		// bleeding reddens the vignette; when this client holds no snapshot yet the screen stays clear.
 		var reportedOut = remoteVitals.TryGet(_watchingSteamId, out var watched)
 			&& (!watched.Alive || !watched.Conscious);
+		// The vignette follows the reported brain health even while the body is still up: the closer that member is to
+		// going out, the redder the spectator's edges — a body fully out uses the bleed colour at full strength.
+		var brainAlpha = remoteVitals.TryGet(_watchingSteamId, out var vitalsForVignette)
+			? Mathf.Clamp01((100f - vitalsForVignette.BrainHealth) / 100f) * MaxVignetteAlpha
+			: 0f;
 		SpectatorPresentationGate.SetWatched(
 			reportedOut ? UnconsciousBlackAmount : 0f,
-			reportedOut ? BleedVignette : Color.clear);
+			new Color(BleedVignette.r, BleedVignette.g, BleedVignette.b, brainAlpha));
 
 		// The mirror's own probe: prints the SOURCE values (the reported snapshot), the values written into the gate and
 		// what the camera will be given — once per change, so a still body does not flood the log.
@@ -382,8 +387,11 @@ internal sealed class SpectatorCameraService(
 	/// <summary>The black amount an unconscious body's screen sits at; the watched body's own screen effect.</summary>
 	private const float UnconsciousBlackAmount = 0.8f;
 
-	/// <summary>The colour the watched body's screen vignette reddens to as its blood runs out.</summary>
+	/// <summary>The colour the watched body's screen vignette reddens to as its brain health runs out.</summary>
 	private static readonly Color BleedVignette = new(0.65f, 0.05f, 0.05f, 0f);
+
+	/// <summary>The vignette's strongest alpha: at a reported brain health of zero the edges are half red.</summary>
+	private const float MaxVignetteAlpha = 0.5f;
 
 	/// <summary>The vignette alpha for a blood volume: full at nothing left, clear at the whole five litres.</summary>
 	private static Color OpacityFor(Color colour, float bloodVolume) =>

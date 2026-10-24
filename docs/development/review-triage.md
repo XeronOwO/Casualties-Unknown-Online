@@ -21,6 +21,7 @@ regenerated when a batch changes the picture, never accumulated.
 | `save-native-run-field-parity.md` | row 2's factual line is read (items persist across a cut, the recipe's made-before flag does not); whether that flag is a field CUO must persist is a design decision |
 | `save-mid-run-consistent-cut.md` | the final unified acceptance pass is the user's |
 | `save-system-mid-run-and-layer-end.md` | S1-S4 are code-complete; the acceptance pass is the user's |
+| `unified-remote-display-projection-rework.md` | every criterion is marked Met except the real dual-client visual pass, which the page itself calls the user's final unified acceptance |
 | `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
 
 ## C — needs a capability an agent could still build
@@ -58,7 +59,6 @@ regenerated when a batch changes the picture, never accumulated.
 | `sync-cadence-review.md` | its remaining measurement is a longer traffic window |
 | `topical-limb-action-shape.md` | the topical parity rows |
 | `treatment-gore-presentation-carried.md` | the audio capture probes (`pant-sound`, `generation-audio-probe`) plus the treatment fixture |
-| `unified-remote-display-projection-rework.md` | the projection rows against the live display |
 
 ## How this list is kept honest
 

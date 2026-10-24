@@ -199,3 +199,11 @@ ingredients, and only then the craft → `leave-world` → `continue-run` → `r
 `mode=drop type=trashbag` answered **`not-carried`** because the host does not hold one (the trashbags this session created went
 to the guest). So the fixture's next step is the HOST's slot state — free a slot with an item the host actually carries — and only
 then the grant, the craft, the leave/continue pair and the unlock read.
+
+**Batch `20261025-p` — the host's carried set is readable and the slot rule is not what it looks like.** `item-census mode=body`
+answers the host's carried items directly: **three `emergencylight` instances** (`1117012477891`, `5197989525`, `5861509230`), and
+nothing else. `item-provide type=emergencylight mode=drop` freed one (the census then read **two**), but
+`item-provide type=funguschunk mode=create` still answered `no-free-slot` with two items carried — so the slot the grant needs is
+NOT simply "one of six body slots is empty": with only two items on a six-slot body, the refusal names a rule the probe does not
+yet express (a hand slot, an item size, or a pickup precondition). That is the fixture's next question, and it is a question about
+`item-provide`'s own gate rather than about the save row under test.

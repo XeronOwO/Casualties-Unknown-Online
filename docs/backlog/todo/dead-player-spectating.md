@@ -176,6 +176,17 @@ assert without a new counter, and the run did not add one. They are recorded as 
 | target side | a `SpectatorNoticeHandler` that keeps the current watcher's name (`ISessionControl` display name) and feeds the Online UI's existing notice surface with the localized `spectator.watched_notice`; a stop notice clears it |
 | gates to move in the same change | `NetMsg` direction classification (guest→host and host→guest), the sync-coverage matrix row, the wire vocabulary index, the localization catalogue (`spectator.watched_notice` becomes read when the handler formats it) |
 
+**The chain the first attempt measured (2026-10-24; the attempt was reverted rather than left half-built):** the
+message, its `NetMsg` number, the channel and the handler are the easy four; the cost is the world-control
+plumbing every message must cross — `IWorldControl` (four members), `WorldChannelRelay` (constructor parameter,
+field and three forwarders), `WorldService` (constructor parameter, three forwarders and the relay's constructor
+call) and the DI registration of the new channel beside `ChatChannel` — plus the watcher's send (the spectator
+service needs `IWorldControl`, a composition line) and the target's consumer (the plugin subscribes to the event
+and formats the localized line). That is ten files in one commit, and the gates then ask for the direction list,
+the coverage matrix row and the vocabulary index in the same change. The next attempt starts with all ten named
+here instead of rediscovering them.
+
+
 
 ### Slice 4 — free flight
 

@@ -118,7 +118,14 @@ collected while its scenario is up.
   driven through `hotrepl-alt-url`. When the capability is absent, every third-peer row is `blocked`,
   never guessed from the two participant views.
 - Both join through the game's own Online UI (host creates the lobby, guest joins with the lobby id).
-  The native UI is the only lobby surface CUO has; the run reuses it.
+  The native UI is the only lobby surface CUO has; the run reuses it. Getting the clients that far is
+  [`tools/acceptance/launch-clients.ps1`](../../tools/acceptance/launch-clients.ps1): it reuses a client whose
+  driver endpoint already answers (never starts a second), starts a box's Steam only when the box has none and
+  never stops it, waits for Steam before the game (a box Steam needs up to a minute; the game's own
+  `Steam initialized` line is the check, and a game that came up without it restarts that box's client only),
+  and then creates the lobby, joins guest and alt and starts the run. Every machine value is a parameter; a value
+  left out comes from the gitignored local facts file, and a value in neither place is a named error. Pass
+  `-NoJoin` to only start the three clients.
 - **The lobby join is not the session.** The join's own answer reads `role: Guest` while the member's
   session is still inactive — no handshake has completed, the host has no member yet, and a host-only
   console verb is refused in that state ("Permission denied: this command is host-only", the host's own
@@ -169,12 +176,16 @@ collected while its scenario is up.
   `PrintWindow` + `PW_RENDERFULLCONTENT` (no activation), and refuses a hidden or zero-size window rather than
   writing an empty frame (verified 2026-10-24 on the 1280x720 window: 1298x767 with the CUO overlay legible —
   the bitmap is the whole window, title bar included, so a box row is judged on the canvas inside it).
-  **A sandboxed client cannot be captured from the host session**: its window is not reachable through the
-  outside station, so `Get-Process` reports a zero `MainWindowHandle` and the tool refuses (measured
-  2026-10-24: a guest client ran with its plugin loaded while the host-side process list showed handle 0;
-  terminating the box cleared it). A visual row whose evidence must be on a GUEST therefore cannot be judged
-  from a frame in this environment — judge what the guest's own in-process state can prove, and leave the
-  picture itself as the user's residual rather than substituting the host's frame for it.
+  **A sandboxed client is capturable once the box stops hiding it**: Sandboxie's `CoverBoxedWindows` (and its
+  sibling `BlockScreenCapture`) must be OFF for that box, or the host sees a covered window and
+  `Get-Process` reports a zero `MainWindowHandle` (measured 2026-10-24: a guest client ran with its plugin
+  loaded and handle 0). Turn them off per box with
+  `SbieIni.exe set <box> CoverBoxedWindows n` and `SbieIni.exe set <box> BlockScreenCapture n` (the tool writes
+  `Sandboxie.ini` without elevation), then restart the CLIENT — its settings are taken at process start — and
+  leave the box's Steam running; a running client keeps the old setting, so only the client is restarted. After
+  that the sandboxed window captures like any other (verified the same day: 1298x767 with the CUO overlay
+  legible). A visual row whose evidence must be on a GUEST is therefore capturable, not a residual, once the two
+  settings are off.
   On a DPI-scaled display the capturing process sets its DPI awareness before `GetWindowRect`/`PrintWindow`;
   otherwise the bitmap is the physical window and the canvas's right/bottom — the launcher, a docked panel —
   are cropped out of the frame. **A frame's pixels are not the canvas's units**: the UI layer a row is about

@@ -216,3 +216,11 @@ and the panel's own state explains it: `inWorld=false`, `gateWaiting=false`, and
 already in the world."` — the entry gate is waiting on the OTHER member (the alt), which is itself still sitting at the menu after
 its own rejoin. So a fresh member cannot enter alone while another member of the same lobby has not entered; the fresh-entry read
 needs both men driven to the entry gate together, not one at a time. That is the missing step, named here with the gate's own text.
+
+**Batch `20261025-ak` — the gate is SYMMETRIC, and the two drives collide on the driver itself.** Driving the ALT's entry produced
+the same answer on the other side: `continue-not-entered` with its own `gateText` naming the guest, so each member waits for the
+other and neither can enter alone. Running the two `continue-run` calls in parallel then failed on the transport instead
+(`发生了内部 WebSocket 错误` on both), because one invocation of the driver cannot serve two clients at once — the collision is in
+the tool, not in the game. So the fresh-entry read needs one of two things before it can be judged: a driver that can hold two
+clients' requests at the same moment (a unique temp/probe per invocation), or a gate that lets one member enter while the other is
+still at the menu. Both are capabilities, not readings, and this ticket's rows 1-4 stay open on that boundary.

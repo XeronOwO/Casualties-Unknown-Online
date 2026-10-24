@@ -53,6 +53,15 @@ grab/report/break path did NOT run, and the single removed piece came from the n
 question is therefore narrow — why the coroutine's 180-frame wait never saw the minigame the session evidently had, or where its
 `ShrapnelMinigame` resolution failed — and `Trace`'s values are the door to it.
 
+**Batch `20261025-ad` — the answer is that the coroutine never RESUMED, and the native dispatch did the work.** The host log for
+that run carries the session's own lines: `break-grasp applied to 76561198863287957 limb 4: skin -5.199 bleed +0.886 pain +12.38`,
+`piece 2 removed by 76561198281246659`, then `session 2 timed out after 15016 ms idle` and `terminal TimedOut` — so the piece that
+left the limb came from the NATIVE dispatch and the session simply idled until its timeout. And `Trace` still reads `started`
+even now: no later value was ever written, which means the iterator never resumed past its first `yield return null` — a
+`StartCoroutine` on a HotRepl-compiled iterator is not being scheduled by this client. The next cycle pumps the coroutine from a
+MonoBehaviour the game itself owns (or a patch-driven tick), not from the declaration's static Start: the break path is already
+proven to work when it runs, so only the scheduling is missing.
+
 **Batch `20261025-ab` — the declaration is written, declared, and does NOT break yet; the session turns out to be LONG-LIVED.**
 The `shrapnel-break` declaration (a coroutine that waits for the minigame, posts the grab report, sets the held slot, waits two
 frames and calls `BreakGrasp()` per piece) plus its thin recipe were written and declared (`-Action declare -Declare

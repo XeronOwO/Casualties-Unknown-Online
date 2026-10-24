@@ -103,8 +103,17 @@ crosses players or mirrors a native action.
   appears to a dead player**, not the receipt itself; the patch belongs on `PauseHandler.TryQuit` (enter
   spectator mode instead of loading the menu when the local body is dead) with the label
   (`Locale.GetOther("pausegiveup")` → the spectator-mode wording) as the same patch's visual half.
+  **The exact change, listed so the next step needs no re-reading:** a new
+  `src/CasualtiesUnknownOnline.GameAdapter/ISpectatorPatchPort.cs` (one member,
+  `bool TryEnterFromDeathScreen()`), the accessor `PatchBridge.Spectator => _bound as ISpectatorPatchPort`, the
+  explicit implementation on `GameAdapter` (local body dead → `_domains.Spectator.EnterSpectatorMode()`), and the
+  patch class `PauseHandlerTryQuitPatch` (prefix: when the port enters the mode, return false so the menu load
+  never runs). The gates that pin this seam then need their tables extended in the same change:
+  `PatchBridgePortShapeGateTests`' `Seams` row, `BridgePorts`, `BridgeImplementationMembers` and the PatchBridge
+  accessor census, plus `PatchBridgePortContractTests` if it enumerates the ports.
 - Reading: two clients, host dies, the death screen's button enters the mode, host is revived, the mode ends and
   the normal HUD is back; `/gamemode spectator` works for a granted member and is refused without the grant.
+
 
 
 ### Slice 2 — pure observation

@@ -204,6 +204,18 @@ starts by logging inside `OnSpectatorNotice` to decide between the two candidate
 different `IWorldControl` instance than the handler fires on, or the plugin host that carries it is not the one
 built for this client.
 
+**Round 84: the subscription moved into the Runtime and the publish now happens — the line still does not show.**
+The plugin-side subscription was replaced by `SpectatorNoticeService`, an `ICuoService` registered beside the two
+liveness watchdogs and subscribing to `IWorldControl` in its own `Initialize`, so the world instance is the same by
+construction. The reading then shows the service publishing —
+`[Spectator] the watched player was told (watcher=<host>)` in the target's own log — and the handler's arrival line
+beside it, **but a capture of that client three seconds later still shows `RTT` with no notice line**, while the
+probe's own `Publish` in the same client does show. That leaves one kind of explanation: the Runtime's
+`ISessionNotices` instance the service publishes into is not the one the Online UI drains (a container or scoping
+difference between the plugin's provider and the Runtime's injection), and it is what the next attempt proves by
+comparing the two instances' identities from in-client probes before any further change.
+
+
 
 
 

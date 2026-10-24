@@ -149,4 +149,3 @@ The work this settles, in the order it has to land:
    and the host's own `[ItemSpawned]` line absent for a blast victim whose death the member owns.
 
 Nothing is implemented by this ruling itself; slice 1 is the next code cycle and slices 2–3 follow it.
-

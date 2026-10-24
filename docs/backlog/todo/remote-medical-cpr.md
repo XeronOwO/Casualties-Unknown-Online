@@ -317,4 +317,3 @@ press leaves the heart stopped, ten restart it). On the machine, with the chart 
 
 The batch's next step is therefore a per-client log read (the guest's own file) plus, if needed, a probe recipe that
 reports `Body.inCardiacArrest` and the session's progress on the host.
-

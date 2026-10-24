@@ -47,7 +47,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// rule's behaviour on real objects is that run's, not this gate's. The one classifier in this family the gate
 /// does NOT cover is <c>ItemWorldSync.OnItemInstantiated</c>, which takes a root proxy that was never loaded
 /// into the item domain at its own <c>Start</c>; it is filed with its own fixture as
-/// <c>docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md</c> rather than half-fixed here.
+/// <c>docs/backlog/review/nested-container-clone-proxy-leaks-as-world-item.md</c> rather than half-fixed here.
 /// </para>
 /// </summary>
 public class AdoptTargetGateTests

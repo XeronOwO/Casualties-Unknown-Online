@@ -91,7 +91,7 @@ None: every row of this ticket is a machine row, and each one names its evidence
   probe client, while the committed recipes run through the driver's own channel).
 - **The owner's carried containers are all slot occupants.** The nested `plasticbag` target was EMPTY, as the
   fixture requires; a nested container whose own contents must be rendered is a different renderer path and
-  is `todo/nested-container-clone-proxy-leaks-as-world-item.md`'s row.
+  is `review/nested-container-clone-proxy-leaks-as-world-item.md`'s row.
 - **The staging divergences are the recipes' declared substitution.** `item-provide mode=create` adds an item
   after the first registration report, so the 1 Hz snapshot carries it before the fact table knows it. The
   run did not try to remove that shape, and no row here depends on it.

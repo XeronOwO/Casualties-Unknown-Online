@@ -101,7 +101,7 @@ None: every row of this ticket is a machine row, and the two that failed name th
   `trashbag`'s one nested container, the `plasticbag`, was EMPTY). A container nested inside another whose own
   contents must be rendered takes a different renderer path (the manual attach, then a `LoadItem` the native
   stacking rule refuses), so this batch could not read that member of the family at all — the residual it
-  leaves is filed as `todo/nested-container-clone-proxy-leaks-as-world-item.md`, whose own cycle stages the
+  leaves is filed as `review/nested-container-clone-proxy-leaks-as-world-item.md`, whose own cycle stages the
   nesting before judging it.
 - **The world table was read on the host only**; the two sandboxes' own copies were read through their own
   logs (`[ItemSpawn]`, `[ItemBind]`, `[ItemTrace]`), not as authoritative tables.

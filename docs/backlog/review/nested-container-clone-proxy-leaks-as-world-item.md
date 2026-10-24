@@ -1,6 +1,9 @@
 # A nested container's clone proxy leaks as a world item
 
-- Status: Todo
+- Status: Review — fixed at the renderer door (2026-10-24, deployed `0.1.0+434046cf`): a proxy the nested container
+  refuses to load is attached manually instead of being left a root object. The runtime confirmation the page asked
+  for first is still owed and is named at the end; the fix cannot change a shape that does not exist, because its
+  branch only runs when `Container.LoadItem` already refused.
 - Priority: Medium
 - Category: Item sync / remote presentation (the clone renderer's content materialization)
 - Source: read from the source on 2026-10-06 while attributing
@@ -98,5 +101,28 @@ count):
 So on a freshly generated layer of this build, the world-generation source the ticket names does not produce the
 shape in this run: the precondition has to come from a declared/scene fixture or a hand-built one, which the
 ticket's own reachability section lists but no batch has staged. The defect stays unconfirmed at runtime, as the
-ticket says; the scan is the cheapest repeatable way to check a future world or a future game build. The ticket
-stays `todo` for the confirmation (and then the fix at the door the reading names).
+ticket says; the scan is the cheapest repeatable way to check a future world or a future game build.
+
+## The fix at the renderer door (2026-10-24, deployed `0.1.0+434046cf`)
+
+`CloneInventoryRenderer.RestoreRemoteContent` used to materialise a content proxy, call `container.LoadItem(child)` and
+trust it. The refusal this ticket describes comes from the container side — the container being loaded into is itself
+inside another container — so the proxy stayed a ROOT object at the container's position, `Item.Start` reported it as a
+local creation, the removal pass could not see it (it collects DIRECT children carrying `RemoteCloneRender`), and each
+1 Hz rebuild materialised another one.
+
+The attachment is now CHECKED rather than assumed: after the load, a child whose `transform.parent` is not the
+container is attached with the same presentation contract the nested-container branch already used — one shared
+`AttachProxyToContainer` (zeroed transform, no simulated rigidbody, the container's visibility for the sprite, the item
+light following it) — so the proxy is never a root object at all, in either refusal shape. The branch runs only when
+`LoadItem` has ALREADY refused, which is why the fix lands before the runtime confirmation without changing any
+behaviour for a shape that does not exist.
+
+**Still owed, named rather than claimed**:
+
+- The confirmation rows above (a real nested-container fixture, `[ItemSpawned] local <inner type>` absent from the host
+  log). No batch has staged the shape yet, and the 2026-10-24 scan of a fresh layer found none in world generation.
+- The `alertcontainerstackingalt` alert the refused `LoadItem` still raises once per rebuild: it is the game's own
+  call doing it before this code gets a say, and suppressing it needs a decision about intercepting a native alert for
+  presentation reasons — not taken here.
+

@@ -351,7 +351,7 @@ docs/backlog/done/loading-screen-progress-detail.md | keep | index | docs/backlo
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-child-limb-install-keeps-a-contained-record.md | keep | index | docs/backlog/README.md
 docs/backlog/done/craft-carried-fact-retirement.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
+docs/backlog/review/nested-container-clone-proxy-leaks-as-world-item.md | keep | index | docs/backlog/README.md
 docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlog/README.md
 docs/backlog/review/player-music-sync-playback.md | keep | index | docs/backlog/README.md
 docs/backlog/review/pod-descent-on-a-member-regenerates-locally.md | keep | index | docs/backlog/README.md

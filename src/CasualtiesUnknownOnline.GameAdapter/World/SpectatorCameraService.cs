@@ -248,6 +248,16 @@ internal sealed class SpectatorCameraService(
 			target.alive && !target.conscious ? UnconsciousBlackAmount : 0f,
 			OpacityFor(BleedVignette, target.bloodVolume));
 
+		// The mirror's own probe: the reading showed the spectator's camera unchanged after the watched body died, so
+		// this prints the SOURCE values (the body actually resolved here), the values written into the gate, and what
+		// the camera will be given — once per change, so a still body does not flood the log.
+		var mirror = $"watched={_watchingSteamId} alive={target.alive} conscious={target.conscious} blood={target.bloodVolume:F2} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2}";
+		if (!string.Equals(mirror, _mirrorLogged, StringComparison.Ordinal))
+		{
+			_mirrorLogged = mirror;
+			log.LogInformation("[Spectator] mirror {Mirror}.", mirror);
+		}
+
 		// The free camera is given a position the first frame it is asked for: the game's own /freecam command
 		// seeds it from wherever the camera is, and without that the follow target is dropped and the view jumps
 		// to whatever freecamPos last held — the layer origin on a fresh session.
@@ -316,6 +326,9 @@ internal sealed class SpectatorCameraService(
 	/// <summary>Whether the mode was entered from a DEAD body: only that mode ends when the body comes back to life
 	/// (a spectator whose body was alive at entry is already in the ruling's shape and leaves by the verb).</summary>
 	private bool _enteredWhileDead;
+
+	/// <summary>The last mirror line logged, so the per-frame write reports once per change rather than every frame.</summary>
+	private string? _mirrorLogged;
 
 	/// <summary>
 	/// Whether this client's local character is in a state that may watch. The terms are the SHARED rule's

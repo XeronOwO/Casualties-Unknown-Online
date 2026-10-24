@@ -62,6 +62,13 @@ even now: no later value was ever written, which means the iterator never resume
 MonoBehaviour the game itself owns (or a patch-driven tick), not from the declaration's static Start: the break path is already
 proven to work when it runs, so only the scheduling is missing.
 
+**Batch `20261025-ae` — after a timed-out session the remote view will not open again.** With the victim moved next to the operator
+(`body-place` → `(1,506)`), `seed-shrapnel limb=4 count=3` → `shrapnel=3`, the operator's `remote-wound-special mode=open` answered
+**`opened=false, viewOpen=false, displayBodyName=null`** while the member facts were plainly present (`hasSnapshot=true,
+hasHealth=true`), and a retry 2 s later answered the same. So the earlier session's timeout left the remote view unable to build its
+display body — a state the ticket's rows 5/6 (cancel, disconnect) are about, and one a later cycle should read on its own rather
+than as a side effect of this batch. Row 7 still waits on the same scheduling fix.
+
 **Batch `20261025-ab` — the declaration is written, declared, and does NOT break yet; the session turns out to be LONG-LIVED.**
 The `shrapnel-break` declaration (a coroutine that waits for the minigame, posts the grab report, sets the held slot, waits two
 frames and calls `BreakGrasp()` per piece) plus its thin recipe were written and declared (`-Action declare -Declare

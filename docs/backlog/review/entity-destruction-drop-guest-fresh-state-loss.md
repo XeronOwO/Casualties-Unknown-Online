@@ -159,3 +159,13 @@ Evidence:
 - Not adding continuous item physics into the kernel.
 - Not changing entity/trap authority or the atomic composite design.
 - The existing entity-event drop payload remains the transient presentation source for destructive trap kinds; support-loss building drops ride `BlockDamagedMsg.BuildingDrops` instead.
+
+## Batch `20261025-y` — the destruction ran, the drops did not exist
+
+A fresh session (relaunched after the deployment correction, lobby `109775242158345492`, all three clients in world) drove the
+first half of the fixture: `building-destroy-at x=0,y=507` reported **`ok=true, healthBefore=300`**, so a real building died on this
+client through the game's own death branch. The drop side then came up EMPTY: `item-world-read` around that cell answered
+**`count=0` at radius 5 and at radius 15**, and the wider reads returned only two unrelated items ~500 units away (the same two
+before and after the destruction). So this building rolled no drops at all — the fixture needs a destruction that HAS a drop table
+before the fresh-guest half means anything, and the earlier projection problem (tying a census point to frame content) is
+secondary to that. Named here instead of re-running the same destroy.

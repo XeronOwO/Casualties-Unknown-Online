@@ -106,3 +106,22 @@ deliverable: Stage 1 alone is a usable procedure, and each later stage is indepe
 **Not staged, and named as out of scope**: KrokMP's AED minigame. The user asked for CPR, this ticket's own
 scope is CPR, and an AED is a second procedure with its own item and its own rhythm rather than a variation of
 this one. It would be its own ticket if wanted.
+
+## The decision this stage needs before any code (recorded 2026-10-24)
+
+Stage 1 can be built — the assessment above names the parties, the owner of each fact and the throttling the
+press rate needs — but it cannot be ENTERED: the medical family's continuous actions all start from the wound
+view's limb-use gesture, and that gesture requires an item in hand (`PlayerCamera.ApplyWoundItem` runs the
+item's own `useLimbAction`). CPR is performed with empty hands on the chest, so it has no native call site to
+mirror and no existing gesture to inherit. The choice is the user's because it changes what the player presses:
+
+1. **A limb entry on the wound view without an item**: the operator opens a patient's wound view and picks a
+   "compressions" row for the chest. Reuses the window the player already uses for medical actions; the row only
+   appears when the operator's hands are empty, so it never competes with a bandage or a syringe.
+2. **A dedicated hotkey while standing over a patient**: the KrokMP-like shape, but a new input the player has to
+   learn, which the interaction rule asks the user to approve.
+3. **A console verb first** (`/cpr <player>`), shipping the whole Stage 1 mechanism with a test entry the user
+   can drive in a session, and the gesture chosen afterwards. The cheapest way to read Stage 1's behaviour, and
+   the one this ticket would take without a ruling — it is not a player-facing design the user has approved.
+
+Nothing is implemented before that ruling; the ticket's stages above remain the plan.

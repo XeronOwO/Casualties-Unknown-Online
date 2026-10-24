@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -42,6 +43,7 @@ internal sealed class SpectatorCameraService(
 	IEntitySyncControl entities,
 	ILocalizationService localization,
 	IWorldControl world,
+	RemoteVitalsService remoteVitals,
 	ILogger<SpectatorCameraService> log) : ISpectatorControl, ISessionReset
 {
 	/// <summary>Subscribes the teardown this service owes the session: a session that ends while someone is watching must not leave that state alive for the next one.</summary>
@@ -241,17 +243,19 @@ internal sealed class SpectatorCameraService(
 
 		camera.following = target.transform;
 
-		// The watched body's own screen state, mirrored for the effects patch: a body that is out (unconscious or
-		// dead) blacks the screen, and a body bleeding out reddens the vignette — the spectator sees what the player
-		// they follow is living through instead of their own standing body's clean screen.
+		// The watched body's own screen state, mirrored for the effects patch — from the REPORTED vitals, never the
+		// render clone: the clone's own `alive`/`blood` are its local template values (blood reads 100 for everyone),
+		// which is exactly why the first mirror never moved. A body reported out blacks the screen and a body reported
+		// bleeding reddens the vignette; when this client holds no snapshot yet the screen stays clear.
+		var reportedOut = remoteVitals.TryGet(_watchingSteamId, out var watched)
+			&& (!watched.Alive || !watched.Conscious);
 		SpectatorPresentationGate.SetWatched(
-			target.alive && !target.conscious ? UnconsciousBlackAmount : 0f,
-			OpacityFor(BleedVignette, target.bloodVolume));
+			reportedOut ? UnconsciousBlackAmount : 0f,
+			reportedOut ? BleedVignette : Color.clear);
 
-		// The mirror's own probe: the reading showed the spectator's camera unchanged after the watched body died, so
-		// this prints the SOURCE values (the body actually resolved here), the values written into the gate, and what
-		// the camera will be given — once per change, so a still body does not flood the log.
-		var mirror = $"watched={_watchingSteamId} alive={target.alive} conscious={target.conscious} blood={target.bloodVolume:F2} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2}";
+		// The mirror's own probe: prints the SOURCE values (the reported snapshot), the values written into the gate and
+		// what the camera will be given — once per change, so a still body does not flood the log.
+		var mirror = $"watched={_watchingSteamId} reported={remoteVitals.TryGet(_watchingSteamId, out var probe)} alive={probe?.Alive} conscious={probe?.Conscious} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2}";
 		if (!string.Equals(mirror, _mirrorLogged, StringComparison.Ordinal))
 		{
 			_mirrorLogged = mirror;

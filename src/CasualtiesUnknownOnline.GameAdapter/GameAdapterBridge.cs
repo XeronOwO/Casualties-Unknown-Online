@@ -25,7 +25,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// casting the bound bridge, so this declaration is what makes it reachable.
 /// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort
 {
 	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
@@ -616,5 +616,18 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		// Legacy fallback: extremely old clone renders may still carry a domain
 		// item id from before the id-free display boundary.
 		return item.GetComponent<ItemInstanceId>()?.Id ?? 0;
+	}
+
+	/// <summary>The death receipt's menu button (the ruling's second entrance): a dead player on the receipt enters
+	/// the spectator mode instead of the menu load that follows the click.</summary>
+	public bool TryEnterFromDeathScreen()
+	{
+		var camera = PlayerCamera.main;
+		if (camera == null || camera.body == null || camera.body.alive || !camera.didDeathScreen) // Unity objects — ==
+		{
+			return false;
+		}
+
+		return domains.Spectator.EnterSpectatorMode();
 	}
 }

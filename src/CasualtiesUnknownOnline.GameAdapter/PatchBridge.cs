@@ -40,6 +40,9 @@ internal static class PatchBridge
 	/// <summary>The drag gesture's cue port (the per-frame target the gesture would use the item on). The aggregate does not declare it, so this accessor is the only way the static patches keep the cue current.</summary>
 	public static IDragUseCuePatchPort? DragUseCue => _bound as IDragUseCuePatchPort;
 
+	/// <summary>The spectator mode's patch port (the death receipt's menu button entering the mode instead of leaving the run). The aggregate does not declare it, so this accessor is the only way the menu-return hook reaches the mode.</summary>
+	public static ISpectatorPatchPort? Spectator => _bound as ISpectatorPatchPort;
+
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 
 	public static void Unbind(IPatchBridge impl)

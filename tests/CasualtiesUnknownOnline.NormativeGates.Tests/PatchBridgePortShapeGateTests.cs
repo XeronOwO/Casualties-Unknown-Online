@@ -240,6 +240,10 @@ public class PatchBridgePortShapeGateTests
 		[
 			"UpdateDragUseCue",
 		]),
+		("ISpectatorPatchPort", AdapterDir + "ISpectatorPatchPort.cs", false,
+		[
+			"TryEnterFromDeathScreen",
+		]),
 	];
 
 	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
@@ -263,6 +267,7 @@ public class PatchBridgePortShapeGateTests
 		"LayerAdvance",
 		"ModContent",
 		"SessionSurface",
+		"Spectator",
 		"Unbind",
 		"Wearable",
 		"_bound",
@@ -296,6 +301,7 @@ public class PatchBridgePortShapeGateTests
 		"IItemCategoryPatchPort",
 		"IWearablePatchPort",
 		"IDragUseCuePatchPort",
+		"ISpectatorPatchPort",
 	];
 
 	public static IEnumerable<object[]> SeamCensus() =>

@@ -190,9 +190,9 @@ internal sealed class SpectatorCameraService(
 
 		// The death screen's own menu-return button is the mode's second entrance (the user's ruling): a dead
 		// player on the receipt may watch instead of leaving the run.
-		if (!run.LocalBody?.alive ?? false) // Unity object 鈥?==
+		if (!run.LocalBody?.alive ?? false) // Unity object — ==
 		{
-			RewireReceiptMenuButton(camera);
+			RelabelReceiptMenuButton(camera);
 		}
 
 		if (!IsWatching || !MayWatch(out _))
@@ -234,22 +234,20 @@ internal sealed class SpectatorCameraService(
 	}
 
 	/// <summary>
-	/// The ruling's other entrance: the exploration receipt's own menu-return button becomes the spectator-mode
-	/// entry. The button is SCENE-wired (its UnityEvent names <c>PlayerCamera.ToMainMenu</c> or
-	/// <c>WorldGeneration.SaveAndExit</c>, so no decompiled call site exists), which is why the rewiring happens
-	/// here at runtime: walk the death screen's buttons once per death, find the one whose persistent event is the
-	/// menu return, and replace that action with the mode switch. The label is deliberately left to the follow-up
-	/// that has the localization service; this half changes WHAT the button does.
+	/// The ruling's visual half on the receipt's menu button: its label becomes the spectator wording. The button's
+	/// ACTION is not touched here — a scene's persistent listener cannot be removed at runtime, so the mode switch
+	/// is a Harmony prefix on <c>PlayerCamera.ToMainMenu</c> instead (<see cref="Patches.PlayerCameraToMainMenuPatch"/>),
+	/// and this only makes the button say what it now does.
 	/// </summary>
-	private void RewireReceiptMenuButton(PlayerCamera camera)
+	private void RelabelReceiptMenuButton(PlayerCamera camera)
 	{
 		if (camera.endScreen == null || !camera.endScreen.gameObject.activeSelf) // Unity object — ==
 		{
-			_receiptButtonRewired = false;
+			_receiptButtonRelabelled = false;
 			return;
 		}
 
-		if (_receiptButtonRewired)
+		if (_receiptButtonRelabelled)
 		{
 			return;
 		}
@@ -265,23 +263,21 @@ internal sealed class SpectatorCameraService(
 					continue;
 				}
 
-				button.onClick.RemoveAllListeners();
-				button.onClick.AddListener(() => EnterSpectatorMode());
 				var label = button.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true);
 				if (label != null) // Unity object — ==
 				{
 					label.text = localization.T("spectator.receipt_enter");
 				}
 
-				_receiptButtonRewired = true;
-				log.LogInformation("[Spectator] the death receipt's {Method} button now enters spectator mode.", method);
+				_receiptButtonRelabelled = true;
+				log.LogInformation("[Spectator] the death receipt's {Method} button is labelled for spectator mode.", method);
 				return;
 			}
 		}
 	}
 
-	/// <summary>Whether the receipt's menu button was already rewired for the current death screen.</summary>
-	private bool _receiptButtonRewired;
+	/// <summary>Whether the receipt's menu button was already relabelled for the current death screen.</summary>
+	private bool _receiptButtonRelabelled;
 
 	/// <summary>
 	/// Whether this client's local character is in a state that may watch. The terms are the SHARED rule's

@@ -41,7 +41,8 @@ internal static class AdapterCapabilityCatalog
 				typeof(PreRunScriptIntroSkipPatch), typeof(SceneLoadPatches), typeof(PauseHandlerUpdatePatch),
 				typeof(PauseHandlerTogglePausePatch), typeof(PlayerCameraHandleInputPatch), typeof(PlayerCameraMenuExitPatches),
 				typeof(PlayerCameraSetTimeScalePatch), typeof(PlayerCameraDoAlertPatch),
-				typeof(PlayerCameraHandleUnconsciousScreenPatch), typeof(GlobalDarkDarkenPatch), typeof(LifePodShakePatch),
+				typeof(PlayerCameraHandleUnconsciousScreenPatch), typeof(PlayerCameraToMainMenuPatch),
+				typeof(GlobalDarkDarkenPatch), typeof(LifePodShakePatch),
 			],
 			[],
 			// The four types ProbeGame() has always read; the report aggregates that probe

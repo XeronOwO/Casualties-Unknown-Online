@@ -12,7 +12,7 @@
 - Category: Remote medical / WoundView display / real-time injection
 - Parents:
   - `docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md`
-  - `docs/backlog/review/remote-player-medical-panel.md`
+  - `docs/backlog/done/remote-player-medical-panel.md`
   - `docs/backlog/review/remote-medical-stage-1-injection-session.md`
 - Source: User acceptance findings (2026-09-06).
 

@@ -4,7 +4,7 @@
 > accepted because it did not reuse the game's existing medical UI. This file is
 > retained as historical evidence; any future implementation must follow the
 > native-UI reuse direction in
-> `docs/backlog/review/remote-player-medical-panel.md`.
+> `docs/backlog/done/remote-player-medical-panel.md`.
 
 Owner cycle: backlog `remote-player-medical-panel.md`. Decision for this cycle:
 build the CUO-side read-only medical panel, fed by the already-synced 1 Hz

@@ -7,7 +7,7 @@
 
 ## Problem
 
-The current remote medical/health panel (`review/remote-player-medical-panel.md`)
+The current remote medical/health panel (`done/remote-player-medical-panel.md`)
 reuses the native WoundView but is explicitly display-only. A player can see a
 remote player's body/limb condition, but cannot perform treatment actions that
 the native medical UI would allow on a local player — e.g. using a syringe

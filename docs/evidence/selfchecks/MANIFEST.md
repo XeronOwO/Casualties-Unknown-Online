@@ -268,7 +268,7 @@ register is routed from `README.md` beside it and from `docs/evidence/verificati
 | players/medical-operation-concurrency-selfcheck.md | Players | current | medical operations settle per unit (ticket `docs/backlog/review/concurrent-medical-operations.md`) |
 | players/remote-medical-operation-session-realtime-injection-selfcheck.md | Players | current | — |
 | players/remote-medical-panel-acceptance-projection-selfcheck.md | Players | historical | superseded: `RemoteMedicalDisplayProjection` and the acceptance rows it carried were replaced by the unified remote display projection — `docs/evidence/selfchecks/presentation/unified-remote-display-projection-selfcheck.md` |
-| players/remote-medical-panel-selfcheck.md | Players | historical | the rejected CUO IMGUI medical panel; superseded by the native WoundView remote focus — no parallel CUO medical panel — `docs/backlog/review/remote-player-medical-panel.md` |
+| players/remote-medical-panel-selfcheck.md | Players | historical | the rejected CUO IMGUI medical panel; superseded by the native WoundView remote focus — no parallel CUO medical panel — `docs/backlog/done/remote-player-medical-panel.md` |
 | players/remote-medical-stage-2-shrapnel-session-selfcheck.md | Players | current | — |
 | players/remote-medical-stage-3-other-actions-selfcheck.md | Players | historical | stage 3's exclusive-limb lease was superseded 2026-09-19 by per-unit settlement (`docs/evidence/selfchecks/players/medical-operation-concurrency-selfcheck.md`), and the sheet's own protocol row records `ProtocolVersion.Current = 14` against the tree's 41 |
 | players/remote-medical-treatment-operations-selfcheck.md | Players | current | — |

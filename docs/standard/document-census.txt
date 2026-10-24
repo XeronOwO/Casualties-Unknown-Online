@@ -269,7 +269,7 @@ docs/backlog/review/remote-medical-stage-1-injection-session.md | keep | index |
 docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-stage-3-other-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-treatment-operations.md | keep | index | docs/backlog/README.md
-docs/backlog/review/remote-player-medical-panel.md | keep | index | docs/backlog/README.md
+docs/backlog/done/remote-player-medical-panel.md | keep | index | docs/backlog/README.md
 docs/backlog/review/runtime-entity-markerless-bind-absorption.md | keep | index | docs/backlog/README.md
 docs/backlog/done/save-guest-restore-claim-and-legacy-store-retirement.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-layer-end-save-and-restore.md | keep | index | docs/backlog/README.md
@@ -943,7 +943,7 @@ docs/evidence/selfchecks/players/remote-medical-panel-selfcheck.md | keep | clai
 docs/evidence/selfchecks/players/remote-medical-stage-2-shrapnel-session-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/remote-medical-stage-3-other-actions-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/remote-medical-treatment-operations-selfcheck.md | keep | claim | docs/backlog/review/remote-medical-treatment-operations.md
-docs/evidence/selfchecks/players/remote-native-medical-view-selfcheck.md | keep | claim | docs/backlog/review/remote-player-medical-panel.md
+docs/evidence/selfchecks/players/remote-native-medical-view-selfcheck.md | keep | claim | docs/backlog/done/remote-player-medical-panel.md
 docs/evidence/selfchecks/players/remote-vitals-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/remove-legacy-view-items-remote-inventory-selfcheck.md | keep | claim | docs/evidence/acceptance/remove-legacy-view-items-remote-inventory-detail-20260927.md
 docs/evidence/selfchecks/players/respawn-rules-selfcheck.md | keep | claim | docs/evidence/selfchecks/enemies/trader-recruit-selfcheck.md

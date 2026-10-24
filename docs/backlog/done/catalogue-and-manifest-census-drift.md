@@ -50,7 +50,7 @@ Both censuses are gates now, and the drift they measured is gone in the same cha
 - **The catalogue declares exactly what the source reads.** The 73 declared-and-unread keys the review's
   exploratory census found are deleted from both tables: 59 `medical.*` (the rejected CUO IMGUI medical
   panel's vocabulary; the native `WoundView` remote focus is the only medical surface, per
-  `review/remote-player-medical-panel.md`), 3 `member.*`, 3 `hud.*`,
+  `done/remote-player-medical-panel.md`), 3 `member.*`, 3 `hud.*`,
   3 `common.*`, `chat.send`, `home.already_in_lobby`, `ip.session_title`, `lobby.title` and
   `players.not_in_lobby` (superseded duplicates of keys their surfaces read instead, such as
   `home.already_in_session` and `players.not_in_session`). The catalogue shrank from 561 to 415 lines and

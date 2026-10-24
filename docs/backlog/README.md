@@ -96,7 +96,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Tab opens the backpack then closes](review/tab-backpack-open-close-immediately.md) — **Medium** — remote Close wrote the radial state.
 - [Entity drop loses fresh state on the guest](review/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — full drop state is preserved.
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
-- [Remote player medical panel](review/remote-player-medical-panel.md) — **Medium** — native WoundView reuse.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — **Medium** — limb drag routes through the heal path.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
@@ -140,6 +139,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Remote player medical panel](done/remote-player-medical-panel.md) — **Medium** — native WoundView reuse; read on frames.
 - [Turret stray fire after reload](done/turret-stray-fire-after-reload.md) — **Medium** — transient trap replay removed; tests re-run.
 - [The host decides enemy hits on remote players](done/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [The id resume reads one source](done/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers seed the one namespace.

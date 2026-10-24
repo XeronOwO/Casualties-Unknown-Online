@@ -131,7 +131,7 @@ internal sealed class SpectatorCameraService(
 			return false;
 		}
 
-		if (!TryResolveLiving(steamId, out _))
+		if (!TryResolveAnyBody(steamId, out _))
 		{
 			return false;
 		}
@@ -179,12 +179,8 @@ internal sealed class SpectatorCameraService(
 			return false;
 		}
 
-		if (wanted && !hostRules.SpectatorFreeFly)
-		{
-			log.LogInformation("[Spectator] free-fly refused: the host has SpectatorFreeFly off.");
-			return false;
-		}
-
+		// No host rule any more: the user's ruling made free movement a capability OF THE MODE, and the three
+		// spectator switches are superseded by the cheat-gated verb and the receipt's button.
 		log.LogInformation("[Spectator] free-fly {State} by this client's own request.", wanted ? "on" : "off");
 		_freeFlyWanted = wanted;
 		return true;
@@ -231,7 +227,7 @@ internal sealed class SpectatorCameraService(
 		// The followed member died, left the layer or dropped — the case the ticket insists must not leave the
 		// camera nowhere. The choice of who to watch next belongs to the player (the member list is the chooser
 		// they already have), so this reports it and gives the screen back rather than picking for them.
-		if (!TryResolveLiving(_watchingSteamId, out var target))
+		if (!TryResolveAnyBody(_watchingSteamId, out var target))
 		{
 			log.LogInformation("[Spectator] {SteamId} is no longer followable here (dead, out of the world or dropped); back to the death screen.", _watchingSteamId);
 			StopWatching();
@@ -244,7 +240,7 @@ internal sealed class SpectatorCameraService(
 		// The free camera is given a position the first frame it is asked for: the game's own /freecam command
 		// seeds it from wherever the camera is, and without that the follow target is dropped and the view jumps
 		// to whatever freecamPos last held — the layer origin on a fresh session.
-		var fly = _freeFlyWanted && hostRules.SpectatorFreeFly;
+		var fly = _freeFlyWanted;
 		if (fly && !camera.isFreecam && ConsoleScript.instance != null) // Unity object — ==
 		{
 			ConsoleScript.instance.freecamPos = camera.transform.position;
@@ -328,11 +324,11 @@ internal sealed class SpectatorCameraService(
 
 	/// <summary>
 	/// The body to follow, or false when there is nobody to follow. The clone's OWN <c>alive</c> is its brain
-	/// health, which CUO never writes — asking the clone whether a teammate is alive answers with the local
-	/// template's value and would keep the camera on a corpse forever. The authoritative answer is the one the
-	/// session already publishes for that member.
+	/// health, which CUO never writes, so the session's published liveness is the authority — but DEATH IS NOT A
+	/// REFUSAL any more (the user's KrokMP-aligned rule): a corpse stays watchable, and the watch moves on only when
+	/// the body is not here at all (left the world, dropped, or was never rendered on this client).
 	/// </summary>
-	private bool TryResolveLiving(ulong steamId, out Body target)
+	private bool TryResolveAnyBody(ulong steamId, out Body target)
 	{
 		target = null!;
 		if (!renderer.TryGetRemoteBody(steamId, out var body) || body == null) // Unity object — ==
@@ -340,7 +336,7 @@ internal sealed class SpectatorCameraService(
 			return false;
 		}
 
-		if (entities.GetRemotePlayer(steamId) is not { Alive: true })
+		if (entities.GetRemotePlayer(steamId) is null)
 		{
 			return false;
 		}

@@ -95,8 +95,17 @@ crosses players or mirrors a native action.
 - The death screen: patch the menu-return button so it enters spectator mode instead (the sprite and click stay
   native; only the action changes). The exit stays what a revive already does, and every revive path
   (`RespawnCoordinator`, `RespawnPolicy`) calls `ExitSpectatorMode` before anything else.
+  **The native sites, read 2026-10-24:** the receipt is `PlayerCamera.EndSequence(0)` — it activates `endScreen`,
+  fills `deathStats` children 0–13, and its own Button just rips the receipt off (`clicked = true`); the
+  menu-return paths in the game are `PlayerCamera.ToMainMenu()` (a `PreGen` scene load), reached from
+  `PauseHandler.TryQuit` (the pause menu's give-up button, double-press), `WorldGeneration.SaveAndExit`, and
+  `ConsoleScript`'s quit verb. **The button the ruling means is therefore the pause menu's give-up button as it
+  appears to a dead player**, not the receipt itself; the patch belongs on `PauseHandler.TryQuit` (enter
+  spectator mode instead of loading the menu when the local body is dead) with the label
+  (`Locale.GetOther("pausegiveup")` → the spectator-mode wording) as the same patch's visual half.
 - Reading: two clients, host dies, the death screen's button enters the mode, host is revived, the mode ends and
   the normal HUD is back; `/gamemode spectator` works for a granted member and is refused without the grant.
+
 
 ### Slice 2 — pure observation
 

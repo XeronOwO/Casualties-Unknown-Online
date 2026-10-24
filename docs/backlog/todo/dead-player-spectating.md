@@ -488,6 +488,21 @@ probe that holds a non-fatal injury, which this session did not have.
 Named residual: the STOP half of the crisis sound has no log line of its own (it runs when the body recovers or the
 watch ends), so that transition is implemented but unread; adding the symmetric line is the next attempt's first step.
 
+**The stop half is read too (2026-10-24, deployed `0.1.0+e4f81044`).** One session: the injury-hold probe brings the
+watched member's reported brain health to 20 and the watcher logs
+`[Spectator] crisis sound started for the watched body.` at 15:35:35.134 (with the mirror line reading
+`brain=20 gateVignetteA=0.40` just before it), then `/spectate off` produces
+`[Spectator] crisis sound stopped for the watched body.` at 15:35:45.820. The whole crisis-audio chain — start on the
+reported state, stop on the watch's end — is now read on the machine.
+
+**One open question the reading exposed (for the user).** The spectator's silence patch refuses EVERY
+`Sound.Play` while the mode is on, and that family carries the OTHER players' replicated character sounds too
+(footsteps, speech, action noises arrive through `CharacterPlay` replays on the same call), not just the watcher's own
+body. The patch's own header says the world's ambience rides other call sites and stays audible, so today a spectator
+hears the ambience but not the people they are watching. Whether a pure observer should hear other players' sounds is
+a user-visible design call, so it is asked rather than decided here.
+
+
 
 
 

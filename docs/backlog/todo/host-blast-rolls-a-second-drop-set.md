@@ -1,7 +1,16 @@
 # The host rolls a second drop set for a death a member already rolled
 
-- Status: Todo — opened 2026-10-18 by the audit inside the entity-event drop bound (the
-  `NetMsg.EntityEvent` row of `docs/backlog/done/member-report-bounds.md`).
+- Status: Todo — **blocked on a staging capability** (this ticket stays here, not in review: one acceptance row has never been
+  read). Opened 2026-10-18 by the audit inside the entity-event drop bound (the
+  `NetMsg.EntityEvent` row of `docs/backlog/done/member-report-bounds.md`). All three slices are landed and deployed, and the
+  mechanism is read on the machine (`docs/evidence/acceptance/blast-marked-victims-20261024-r.md`: a member-pressed mine's
+  report reaches the host, the host applies the same blast, and the scope marks every victim it damaged — 1 and 2 in two
+  runs). **The count row is blocked on a staging capability, named here**: a building the host instantiates by hand is never
+  reported to members (`WorldBuildingEntitySync` forwards damage/open/health for entities the world already has, keyed by
+  position — never the EXISTENCE of a new one), so a staged mine exists only on the host's client and the member cannot press
+  it (`no-mine`, and the member's census lists 0 carriers among 2198 buildings). The row needs a carrier BOTH clients share,
+  i.e. a world-generation one; reaching such a layer needs either a descent the driver has no action for, or a placement at
+  generation time. That is the capability to add before the row can be read.
 - Priority: Medium
 - Category: Sync / item ownership
 - Source: the bounds cycle's family audit — the same audit that gave a member's reported event drops a bound

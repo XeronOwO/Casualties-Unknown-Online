@@ -52,7 +52,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — two sets for one death.
+- [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
+
 ### In progress
 
 ### Review

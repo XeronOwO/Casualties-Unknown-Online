@@ -148,6 +148,9 @@ only a stopwatch per measured domain call plus a one-line-per-name summary at th
 | Key | Default | What it does |
 |---|---|---|
 | `InteractionPanelKey` | `F6` | Hotkey that toggles the standalone player-interaction quick panel. Any `UnityEngine.KeyCode` name is accepted. |
+| `SpectatorFreeFlyKey` | `F7` | Hotkey that toggles the spectator camera's free flight while watching a member. Any `UnityEngine.KeyCode` name is accepted. |
+| `SpectatorMirrorEffects` | `true` | Whether the watched player's own screen effects (the blackout and the brain-health vignette) reach the spectator's camera. Off keeps the screen clear; the bottom strip still shows their vitals and state. |
+| `SkipIntroCover` | `false` | Whether an ordinary launch into the main menu skips the game's content-warning/intro cover. A launch through Steam's join-a-friend action shows the cover regardless of this setting. |
 
 ## What is not a configuration key
 

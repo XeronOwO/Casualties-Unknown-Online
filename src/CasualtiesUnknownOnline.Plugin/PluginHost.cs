@@ -56,6 +56,7 @@ internal sealed class PluginHost : MonoBehaviour
 	private ConfigEntry<string> _interactionPanelKey = null!;
 	private ConfigEntry<string> _spectatorFreeFlyKey = null!;
 	private ConfigEntry<bool> _spectatorMirrorEffects = null!;
+	private ConfigEntry<bool> _skipIntroCover = null!;
 	private ulong? _pendingJoinLobbyId;
 
 	private static ManualLogSource Logger => Plugin.Logger;
@@ -92,6 +93,9 @@ internal sealed class PluginHost : MonoBehaviour
 			_lifecycle = _services.GetService<IGameIntegrationLifecycle>();
 			_carryPump = _services.GetService<ICarryPresentationPump>();
 			_joinFlow = _services.GetService<IJoinFlowPresentation>();
+			// The cover's decision: the shell owns the preference, read live so a config edit takes effect on the
+			// next launch without a second flag; the adapter owns when the cover is shown.
+			_joinFlow?.ConfigureIntroCoverPreference(() => _skipIntroCover.Value);
 			_capabilityQuery = _services.GetService<IAdapterCapabilityQuery>();
 			_dragUseCue = _services.GetService<IDragUseCueState>();
 			_session = _services.GetService<ISessionControl>();
@@ -112,6 +116,8 @@ internal sealed class PluginHost : MonoBehaviour
 				"Hotkey to toggle the spectator camera's free flight while watching a member. See UnityEngine.KeyCode names.");
 			_spectatorMirrorEffects = _config.Bind("Session", "SpectatorMirrorEffects", true,
 				"Whether the watched player's own screen effects (blackout and the vignette that reddens with their brain health) reach the spectator's camera. Off keeps the screen clear; the bottom strip still shows their vitals and state. A client-local preference, never sent to other players.");
+			_skipIntroCover = _config.Bind("Session", "SkipIntroCover", false,
+				"Whether an ordinary launch into the main menu skips the game's content-warning/intro cover. Off by default: the warning stays. A launch through Steam's join-a-friend action shows the cover regardless, and nothing here is sent to other players.");
 
 			_lobby = new LobbySwitchActions(
 				_steam,

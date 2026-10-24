@@ -106,6 +106,9 @@
 | 键 | 默认值 | 作用 |
 |---|---|---|
 | `InteractionPanelKey` | `F6` | 开关独立玩家交互快捷面板的热键。接受任何 `UnityEngine.KeyCode` 名字。 |
+| `SpectatorFreeFlyKey` | `F7` | 观战某人时切换镜头自由飞行的热键。接受任何 `UnityEngine.KeyCode` 名字。 |
+| `SpectatorMirrorEffects` | `true` | 被观战玩家自己的屏幕效果（昏迷黑屏、随脑健康的红色渐晕）是否传到观战者镜头上。关掉则屏幕干净，底部条仍显示对方的生命体征与状态。 |
+| `SkipIntroCover` | `false` | 普通启动进主菜单时是否跳过游戏的内容警告/开场封面。通过 Steam「加入好友」启动时，无论这个选项如何都会显示封面。 |
 
 ## 哪些不是配置项
 

@@ -38,7 +38,7 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IRemoteInventoryPresentation), ["OpenRemoteBackpack"]),
 		(typeof(IRemoteMedicalPresentation), ["OpenRemoteMedical"]),
 		(typeof(IPlayerAnchorQuery), ["TryGetRemoteHeadPosition"]),
-		(typeof(IJoinFlowPresentation), ["PrepareForDirectJoin"]),
+		(typeof(IJoinFlowPresentation), ["PrepareForDirectJoin", "ConfigureIntroCoverPreference"]),
 		(typeof(ICarryPresentationPump), ["PinCarriedPresentation"]),
 		(typeof(IOnlineUiNativeFactsQuery), ["Capture"]),
 		(typeof(IOnlineUiSurface), ["Push", "TryDequeueIntent"]),
@@ -86,7 +86,7 @@ public class AdapterCapabilityPortShapeTests
 	/// </summary>
 	[Fact]
 	public void Composition_CarriesExactlyThePinnedMemberCount() =>
-		Assert.Equal(33, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+		Assert.Equal(34, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

@@ -1,3 +1,5 @@
+using System;
+
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
@@ -11,9 +13,16 @@ public interface IJoinFlowPresentation
 {
 	/// <summary>
 	/// Declares that this launch is a direct join: Steam starts the game with the
-	/// lobby id on the command line when a friend's "Join Game" is clicked, so the
-	/// content-warning/intro screen is skipped and the follow-host pump can start
-	/// the run as soon as the world exists.
+	/// lobby id on the command line when a friend's "Join Game" is clicked. The cover is
+	/// STILL shown on this path (the user's 2026-10-24 ruling on
+	/// <c>launch-intro-cover-policy.md</c>): the launch path decides the cover, and the
+	/// preference governs ordinary launches only.
 	/// </summary>
 	void PrepareForDirectJoin();
+
+	/// <summary>
+	/// Hands the adapter the player's own local preference for the cover, read live: true = an ordinary launch
+	/// skips it. The shell owns the configuration entry; the adapter owns when the cover is shown.
+	/// </summary>
+	void ConfigureIntroCoverPreference(Func<bool> skipsTheCover);
 }

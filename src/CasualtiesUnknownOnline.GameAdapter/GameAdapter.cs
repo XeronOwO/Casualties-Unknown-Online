@@ -45,16 +45,20 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnlineUiSurface, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider
 {
-	// Set by the join-flow port (IJoinFlowPresentation.PrepareForDirectJoin) when the
-	// game was launched via a Steam friends "Join Game" (+connect_lobby): the
-	// content-warning/intro screen is skipped so the menu is usable immediately — the
-	// follow-host pump needs PreRunScript. It stays static because the patch that reads
-	// it (PreRunScriptIntroSkipPatch) runs before any adapter instance is involved; the
-	// INTENT is the port, and this field is the adapter's own business.
-	private static bool _skipIntro;
+	// The intro cover's decision, static because the patch that reads it
+	// (PreRunScriptIntroSkipPatch) runs before any adapter instance is involved: the shell
+	// states the player's preference and the join intent through IJoinFlowPresentation, and
+	// this object owns the rule (IntroCoverDecision weighs the two facts).
+	private static readonly IntroCoverDecision IntroCoverDecision = new();
 
-	/// <summary>Read by <c>PreRunScriptIntroSkipPatch</c>: true once the direct-join intent was declared.</summary>
-	internal static bool IsIntroSkipped => _skipIntro;
+	/// <summary>Read by <c>PreRunScriptIntroSkipPatch</c>: the named decision, never a bare flag.</summary>
+	internal static IntroCoverDecision IntroCover => IntroCoverDecision;
+
+	/// <summary>Where the intro decision's one-line reason goes; the patch has no logger of its own.</summary>
+	private static Action<string>? _introCoverLog;
+
+	/// <summary>Write the intro decision's reason once, at the edge that reads it (a low-frequency event).</summary>
+	internal static void LogIntroCover(string reason) => _introCoverLog?.Invoke(reason);
 
 	private readonly GameAdapterDomains _domains;
 	private readonly GameAdapterBridge _bridge;
@@ -124,6 +128,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		_patches = new PatchInstallLifecycle(log);
 		_onlineUiSurface = new OnlineUiSurfaceHost(log);
 		_latency = latency;
+		_introCoverLog = reason => log.LogInformation("[Intro] {Reason}", reason);
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
 			enemies, worldTime, layerAdvance, reentry, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules,
 			announced, remoteVitals, localization, worldEntityKernel, worldBackfill, log, mapper, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, gripSlipRandom, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel, time, itemIds);
@@ -430,7 +435,9 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		return false;
 	}
 
-	void IJoinFlowPresentation.PrepareForDirectJoin() => _skipIntro = true;
+	void IJoinFlowPresentation.PrepareForDirectJoin() => IntroCoverDecision.NoteDirectJoinLaunch();
+
+	void IJoinFlowPresentation.ConfigureIntroCoverPreference(Func<bool> skipsTheCover) => IntroCoverDecision.UsePreference(skipsTheCover);
 
 	/// <summary>
 	/// The Online UI's read-only probe of the game's own UI (ticket online-ui-art-and-controls-overhaul,

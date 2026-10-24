@@ -221,3 +221,28 @@ that generated a carrier**, and there are two ways to get one:
 
 Nothing about the code changes: slices 1 and 2 are deployed and unit-pinned; this is a staging fact, recorded so the
 next batch does not repeat the attempt blind.
+
+## The staging blocker is SOLVED (2026-10-24): `trap-stage` places the carrier
+
+Route 2 above now exists as a committed recipe. `trap-stage` instantiates the GAME'S OWN prefabs — `Resources.Load("landmine")`
+and `Resources.Load("containercrate")` — at the host body's own position plus a horizontal `dx`, and the census then finds
+the mine as a live carrier:
+
+| read | value |
+|---|---|
+| `trap-stage` on the host at (0,0), dx=3 | `ok:true`, mine at (0,0.5), crate at (3,0.5) |
+| `trap-drop-census` radius 10 | `total` 1845 buildings, `listed` **1**: `MineExploded` at (0,0.5), prefab `landmine`, health 100, **`anchorOwn:true`**, `rowCount` 1 |
+| the same census after the forge attempt | still 1 carrier — the staged mine survives the session |
+
+**What the row still needs, precisely**: `trap-event-forge` refuses `id=<anything>` when no world item on the member's
+client carries that id (`no-world-item`), so the member's claim must name the REAL dropped item — which means the run has
+to let the blast happen first and then read both worlds' item sets (`item-world-read` on each client, comparing instance
+ids). The staging makes that reachable; the trigger is the remaining question, and it has two shapes worth trying next:
+
+1. the native one — the member's body walks onto the mine (the game's own trigger), or
+2. `WorldGeneration.CreateExplosion` at the mine's position from the member's client, which is the member-side shape the
+   host's applier replays for a report.
+
+A recipe that presses neither is the lesson this batch adds: a forge that has to name an id cannot be the FIRST step of a
+drop row.
+

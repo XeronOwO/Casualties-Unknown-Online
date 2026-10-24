@@ -185,7 +185,7 @@ internal sealed class MusicShareService
 		_deadlineAt = _nextSendAt + TransferDeadlineSeconds;
 		_started = false;
 
-		if (!_context.Packets.Broadcast(MusicWire.Announce, MusicWire.AnnounceValue(_transfer, _name, bytes.Length, _sender.File.Sha256, ChunkBytes, _startTicks)))
+		if (!Send(MusicWire.Announce, MusicWire.AnnounceValue(_transfer, _name, bytes.Length, _sender.File.Sha256, ChunkBytes, _startTicks)))
 		{
 			Stop();
 			return "the announce was refused (no session or no permission).";
@@ -195,6 +195,15 @@ internal sealed class MusicShareService
 			$"[Music] sharing {_name}: {bytes.Length} bytes in {_sender.File.ChunkCount} chunk(s), {wav.Seconds:0.0}s, starting at {new DateTime(_startTicks, DateTimeKind.Utc):HH:mm:ss}Z.");
 		return $"sharing {_name} ({wav.Seconds:0.0}s, {_sender.File.ChunkCount} chunks) — playback starts when every member has it.";
 	}
+
+	/// <summary>
+	/// Send a share packet as whoever this client is: the host broadcasts, a guest reports to the host, whose copy
+	/// runs the chain and relays it to the other members (delivery <c>EveryOtherMember</c>).
+	/// </summary>
+	private bool Send(string packetId, ModValue value) =>
+		_guest
+			? _context.Packets.SendToHost(packetId, value)
+			: _context.Packets.Broadcast(packetId, value);
 
 	/// <summary>Stop sharing or receiving and stop the local playback.</summary>
 	internal void Stop()
@@ -221,7 +230,7 @@ internal sealed class MusicShareService
 	/// </summary>
 	private void ServeLateJoiner(ulong member)
 	{
-		if (_guest)
+		if (_guest || _sharePeers.Contains(member))
 		{
 			return;
 		}
@@ -314,7 +323,7 @@ internal sealed class MusicShareService
 
 		if (!_started && now >= _nextSendAt && _sender.Next(Window) is { } chunk)
 		{
-			if (!_context.Packets.Broadcast(MusicWire.Chunk, MusicWire.ChunkValue(_transfer, chunk.Index, chunk.Bytes)))
+			if (!Send(MusicWire.Chunk, MusicWire.ChunkValue(_transfer, chunk.Index, chunk.Bytes)))
 			{
 				_context.Logger.LogWarning($"[Music] a chunk of {_name} was refused by the packet channel; the transfer will retry it.");
 			}
@@ -328,7 +337,7 @@ internal sealed class MusicShareService
 		}
 
 		_started = true;
-		_context.Packets.Broadcast(MusicWire.Play, MusicWire.PlayValue(_transfer, _startTicks));
+		Send(MusicWire.Play, MusicWire.PlayValue(_transfer, _startTicks));
 		_context.Logger.LogInformation($"[Music] {_name} delivered to every member; playback starts at the agreed instant.");
 		Cache(_transfer, _name, _file, _startTicks, ChunkBytes);
 		ArmOrPlay(_file, _name, _startTicks);
@@ -460,7 +469,11 @@ internal sealed class MusicShareService
 		var prefix = _receiver.ContiguousPrefix();
 		if (prefix > 0 && (prefix == _receiver.File.ChunkCount || prefix % AckBatch == 0))
 		{
-			_context.Packets.SendToHost(MusicWire.Ack, MusicWire.AckValue(transfer, prefix - 1));
+			// The ack goes the same way a share's packets do: a guest reports to the host, the host (which may
+			// itself be the receiver when a GUEST shares) broadcasts it, so the sharer's window advances in both
+			// directions. SendToHost on the host would run the chain locally and the guest sharer would never
+			// hear it.
+			Send(MusicWire.Ack, MusicWire.AckValue(transfer, prefix - 1));
 		}
 
 		if (!_receiver.Complete)

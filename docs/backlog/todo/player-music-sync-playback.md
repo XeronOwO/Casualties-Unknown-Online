@@ -206,8 +206,33 @@ with the host having started at 28.69 s of the same track. The offset arithmetic
 **One defect this run also showed, recorded for the next stage:** the guest that was already present received a
 SECOND catch-up transfer (`serving … to late joiner <the guest>`), so the exclusion above is not yet complete —
 the join event for an existing peer can still arrive after the share began, and the queue must also exclude any
-member of `_sharePeers`. It costs channel time, not correctness (the guest's playback stayed in sync), which is
-why the ticket stays open with the guest-sharer path and the listener controls.
+member of `_sharePeers`. It costs channel time, not correctness (the guest's playback stayed in sync).
+
+## Stage E landed (2026-10-24) — a GUEST can share, and the duplicate serve is excluded
+
+Two changes turned the guest-sharer path from "implemented" to read:
+
+- **A share's packets follow the sender's role.** The host broadcasts; a guest reports to the host, whose copy
+  runs the chain and relays to the other members (`EveryOtherMember`). The announce, the chunks and the play
+  frame all go through one `Send` helper for that reason.
+- **An ack takes the same route.** The host is the RECEIVER in a guest's share, and `SendToHost` on a host runs
+  the chain locally — so the guest sharer never heard the host's ack and its window stalled at 8/18. Acks now
+  use the same `Send` (the host broadcasts), and the guest's share completes.
+- **The duplicate serve is excluded**: a member of `_sharePeers` is never queued for a catch-up.
+
+**Read on two clients with a guest sharing a 5 s tone:**
+
+| side | log |
+|---|---|
+| guest (sharer) | `sharing test-tone-5s.wav: 441044 bytes in 18 chunk(s), 5.0s, starting at 00:18:17Z.` → `delivered to every member; playback starts at the agreed instant.` → `playing test-tone-5s.wav from 3.03s: 5.0s …` |
+| host (receiver) | `receiving test-tone-5s.wav: 18 chunk(s) from <guest>.` → `verified (441044 bytes); waiting for the start instant.` → `playing … from 3.04s: 5.0s …` |
+
+Both sides started within 10 ms and at the same offset, so the sharer's role no longer matters to the group's
+sync. The duplicate-serve exclusion is a code change recorded here; it was not re-read on the machine.
+
+What the ticket still leaves to the user: the listener controls (mute, volume, "only during rest"), the
+player-facing decision the ticket names. Everything else it asked for is built and read; the ticket can move to
+`review/` with that one residual.
 
 **Where the files come from:** the player's own disk, picked through the mod's own path field (the game has no
 file picker for this); nothing is shipped with the mod and nothing is uploaded beyond the session's own peers.

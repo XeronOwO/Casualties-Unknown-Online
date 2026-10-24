@@ -2,11 +2,14 @@
 
 - Status: Review — rows 1–6 are read: the concurrency suite runs **36 of 36 green** on this tree (the medical-operation,
   sibling-unit and disconnect families), so every model row the matrix names has its case passing, and rows 5 and 6 (operator
-  disconnect, third-party agreement) are covered by that same pass. **Row 7 — the native UI with a SECOND operator — is not read
-  yet**, and the ticket says why: no test pins it. The reading it needs is two clients opening the same victim's native chart at
-  the same time and both frames checked for a stuck panel or duplicated progress, which needs the third member's steam id (the
-  host's own window lists three members, and no committed probe returns their ids without a `probe=` argument this cycle did not
-  supply). Named here rather than judged.
+  disconnect, third-party agreement) are covered by that same pass. **Row 7 is now HALF read**, on batch `20261025-i`
+  (record `docs/evidence/acceptance/concurrent-medical-two-charts-20261025-i.md`): with the third member as the victim
+  (`member-id probe=alt` → `76561199526807662`), the host and the guest each opened that victim's NATIVE chart through
+  `OpenRemoteMedical` — both answered `opened=true, nativeOpen=true, found=true` — and both frames show the same victim's
+  `UNI-HEALTH` chart drawn at once, so a second operator does not lock the chart away and neither panel is stuck; the host's Esc
+  then closed its chart back to a clean world view. **The "no duplicated progress on one body" clause is NOT read**: it needs an
+  operation actually started on the same limb by both operators with progress read on the victim's own client, which this batch
+  did not do. The ticket stays open for that one clause.
 - Priority: Medium-High
 - Category: Gameplay / multiplayer medical sessions (concurrency)
 - Source: User ruling 2026-09-18 (design alignment session): exclusive reservation is wrong for this family — KrokMP already supports several players working the same minigame at once (pulling shrapnel, treating a dislocation), and co-op medical work is the natural expectation even though it is harder to implement.

@@ -258,6 +258,7 @@ docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
 docs/backlog/done/recipe-unlock-fallback.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/recipe-unlock-two-process-20261025-h.md | keep | claim | docs/backlog/done/recipe-unlock-fallback.md
 docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/concurrent-medical-two-charts-20261025-i.md | keep | claim | docs/backlog/review/concurrent-medical-operations.md
 docs/evidence/acceptance/remote-context-menu-sight-gate-20261025-f.md | keep | claim | docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md
 docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-interaction-local-gating.md | keep | index | docs/backlog/README.md

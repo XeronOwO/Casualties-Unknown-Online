@@ -53,12 +53,29 @@ internal sealed class OtherMedicalOperationApplier(
 		var ceiling = CprRhythmPolicy.CeilingFor(
 			CprRhythmPolicy.BloodVolumeFraction(health.BloodVolume),
 			health.Hemothorax);
-		var gain = CprRhythmPolicy.PressureGain(intervalSeconds, health.BloodPressure, ceiling);
+		var progress = session.Progress;
+		var gain = CprRhythmPolicy.PressureGain(intervalSeconds, progress, ceiling);
 		var newTarget = PlayerCharacterAccess.CloneCharacter(targetData);
 		var newHealth = newTarget.Health!;
-		newHealth.BloodPressure = Math.Min(ceiling, health.BloodPressure + gain);
 
-		session.Progress = newHealth.BloodPressure;
+		// The compression builds the session's own PERFUSION PROGRESS, not the simulated pressure: in arrest the game's
+		// model has no driver for pressure at all (its whole heart-rate block is skipped while `inCardiacArrest`), so a
+		// pressure written into the snapshot is overwritten before the next frame shows it — read on the machine, batch
+		// 20261024-j: three presses left the host at bloodPressure 0.374. What the game DOES read is the heart's state, so
+		// reaching the threshold restarts it (heartRate above the arrest line, fibrillation cleared) and the model restores
+		// the pressure itself from there. The host is the one applying this, which is the ruling's "first to the host wins"
+		// arbitration for the shared restart trigger.
+		progress = Math.Min(ceiling, progress + gain);
+		session.Progress = progress;
+
+		if (CprRhythmPolicy.RestartsTheHeart(progress, ceiling))
+		{
+			newHealth.HeartRate = CprRhythmPolicy.PerfusingHeartRate;
+			newHealth.FibrillationProgress = 0f;
+			newHealth.FibrillationForced = false;
+			session.Progress = 0f;
+		}
+
 		_access.SaveCharacterData(session.Target, newTarget);
 		state = BuildState(session, null, newTarget, null);
 		return true;

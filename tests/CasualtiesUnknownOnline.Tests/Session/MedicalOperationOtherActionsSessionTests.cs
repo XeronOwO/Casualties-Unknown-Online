@@ -582,14 +582,20 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		Assert.NotNull(ack);
 		Assert.True(ack!.Accepted, "bare-hand CPR on an arrested patient must be accepted");
 
-		for (var i = 0; i < 3; i++)
+		// One compression builds progress but does NOT restart the heart (the threshold is above one press's gain).
+		gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Compress, CprRhythmPolicy.IdealInterval);
+		Assert.Equal(0f, characters.GetHostCharacterData()!.Health!.HeartRate);
+
+		// Enough well-timed compressions reach the perfusion threshold and restart the heart: heartRate above the arrest
+		// line and fibrillation cleared, which is what lets the game's own model restore the pressure from there.
+		for (var i = 0; i < 10; i++)
 		{
 			gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Compress, CprRhythmPolicy.IdealInterval);
 		}
 
-		var pressure = characters.GetHostCharacterData()!.Health!.BloodPressure;
-		Assert.True(pressure > 5f, $"compressions must lift the pressure, read {pressure}");
-		Assert.True(pressure <= CprRhythmPolicy.CompressionCeiling, $"the patient's own ceiling caps the lift, read {pressure}");
+		var health = characters.GetHostCharacterData()!.Health!;
+		Assert.True(health.HeartRate >= 20f, $"the heart must restart above the arrest line, read {health.HeartRate}");
+		Assert.Equal(0f, health.FibrillationProgress);
 	}
 
 	[Fact]

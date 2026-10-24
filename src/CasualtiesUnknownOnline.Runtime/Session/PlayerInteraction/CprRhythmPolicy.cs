@@ -121,6 +121,13 @@ public static class CprRhythmPolicy
 	public static float BloodVolumeFraction(float bloodVolume) => 0.5f + (bloodVolume / 200f);
 
 	/// <summary>
+	/// The heart rate a restarted heart is set to: above the game's own arrest line (`inCardiacArrest` is `heartRate &lt;
+	/// 20`), so the model's heart-rate and pressure block runs again and restores the pressure itself. 40 is a
+	/// perfusing rate rather than a normal one — the patient is alive, not healthy.
+	/// </summary>
+	public const float PerfusingHeartRate = 40f;
+
+	/// <summary>
 	/// Whether this compression restarts the heart: the perfusion reached <see cref="RestartPressure"/> (or the patient's
 	/// own lower ceiling when that is below it) and the rhythm is still being kept. The HOST arbitrates the first claim
 	/// (`MedicalOperationClaims`'s one-resolving-unit shape) — this only answers whether THIS compression would.

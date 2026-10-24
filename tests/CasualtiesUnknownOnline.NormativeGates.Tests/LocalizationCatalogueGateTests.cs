@@ -17,9 +17,8 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// </summary>
 public sealed class LocalizationCatalogueGateTests
 {
-	private const string CatalogueRelativePath = "src/CasualtiesUnknownOnline.Runtime/Localization/LocalizationCatalog.cs";
-	private const string EnglishAnchor = "IReadOnlyDictionary<string, string> English = new Dictionary<string, string>";
-	private const string ChineseAnchor = "IReadOnlyDictionary<string, string> Chinese = new Dictionary<string, string>";
+	private const string CatalogueRelativePath = "src/CasualtiesUnknownOnline.Runtime/Localization/en.json";
+	private const string ChineseCatalogueRelativePath = "src/CasualtiesUnknownOnline.Runtime/Localization/zh.json";
 
 	/// <summary>The measured size when the gate landed, well below it: a broken parser must fail
 	/// loudly instead of reporting an empty or one-sided census.</summary>
@@ -45,7 +44,7 @@ public sealed class LocalizationCatalogueGateTests
 
 	private static readonly Regex KeyParameterPattern = new(@"([A-Za-z_]\w*)\([^()]*\blabelKey\b[^()]*\)", RegexOptions.Compiled);
 
-	private static readonly Regex DeclaredKeyPattern = new(@"\[""([^""]+)""\]\s*=", RegexOptions.Compiled);
+	private static readonly Regex JsonKeyPattern = new(@"""([^""]+)""\s*:", RegexOptions.Compiled);
 
 	/// <summary>
 	/// Key-producing helpers the accessor scan cannot see through: the helper returns a literal key
@@ -247,7 +246,7 @@ public sealed class LocalizationCatalogueGateTests
 	{
 		var catalogue = SyntheticCatalogue(["alpha.read", "alpha.orphan"]);
 		var source = """var a = ctx.T("alpha.read");""";
-		AssertSame(["alpha.orphan"], UnreadKeys(catalogue, source), "a declared key nothing reads is an orphan");
+		AssertSame(["alpha.orphan"], UnreadKeys(catalogue, source, catalogue), "a declared key nothing reads is an orphan");
 	}
 
 	[Fact]
@@ -255,58 +254,54 @@ public sealed class LocalizationCatalogueGateTests
 	{
 		var catalogue = SyntheticCatalogue(["alpha.read"]);
 		var source = """var a = ctx.T("alpha.read"); var b = ctx.T("alpha.ghost");""";
-		AssertSame(["alpha.ghost"], DanglingKeys(catalogue, source), "a read key the catalogue does not declare is a dangling reference");
+		AssertSame(["alpha.ghost"], DanglingKeys(catalogue, source, catalogue), "a read key the catalogue does not declare is a dangling reference");
 	}
 
 	private static string CatalogueText() => File.ReadAllText(Path.Combine(RepositoryPaths.Root, CatalogueRelativePath));
+
+	private static string ChineseCatalogueText() => File.ReadAllText(Path.Combine(RepositoryPaths.Root, ChineseCatalogueRelativePath));
 
 	private static string ProductSourceText() =>
 		SourceScan.ReadAll(
 			SourceScan.SourceFiles(Path.Combine(RepositoryPaths.Root, "src"))
 				.Where(path => !path.EndsWith("LocalizationCatalog.cs", StringComparison.Ordinal)));
 
-	private static string[] UnreadKeys(string catalogueText, string sourceText)
+	private static string[] UnreadKeys(string catalogueText, string sourceText, string? chineseText = null)
 	{
-		var declared = DeclaredKeySet(catalogueText);
+		var declared = DeclaredKeySet(catalogueText, chineseText);
 		var census = Census(sourceText);
 		return [.. declared.Where(key => !IsRead(key, census)).OrderBy(key => key, StringComparer.Ordinal)];
 	}
 
-	private static string[] DanglingKeys(string catalogueText, string sourceText)
+	private static string[] DanglingKeys(string catalogueText, string sourceText, string? chineseText = null)
 	{
-		var declared = DeclaredKeySet(catalogueText);
+		var declared = DeclaredKeySet(catalogueText, chineseText);
 		return [.. Census(sourceText).Keys.Where(key => !declared.Contains(key)).OrderBy(key => key, StringComparer.Ordinal)];
 	}
 
 	private static bool IsRead(string key, (HashSet<string> Keys, HashSet<string> Prefixes, int Unresolved) census) =>
 		census.Keys.Contains(key) || census.Prefixes.Any(prefix => key.StartsWith(prefix, StringComparison.Ordinal));
 
-	private static HashSet<string> DeclaredKeySet(string catalogueText)
+	private static HashSet<string> DeclaredKeySet(string catalogueText, string? chineseText = null)
 	{
-		var (english, chinese) = DeclaredKeys(catalogueText);
+		var (english, chinese) = DeclaredKeys(catalogueText, chineseText);
 		return new HashSet<string>(english.Concat(chinese), StringComparer.Ordinal);
 	}
 
-	/// <summary>The keys each table declares, in ordinal order. The anchors are asserted: a renamed
-	/// table must fail here rather than silently census an empty set.</summary>
-	private static (string[] English, string[] Chinese) DeclaredKeys(string catalogueText) =>
-		(KeysAfter(catalogueText, EnglishAnchor), KeysAfter(catalogueText, ChineseAnchor));
+	/// <summary>The keys each table declares, in ordinal order. Both texts are passed in so a self-test can drive the same
+	/// parser with a synthetic pair; the real pair comes from the two catalogue files.</summary>
+	private static (string[] English, string[] Chinese) DeclaredKeys(string englishJson, string? chineseJson = null) =>
+		(KeysIn(englishJson), KeysIn(chineseJson ?? ChineseCatalogueText()));
 
-	private static string[] KeysAfter(string catalogueText, string anchor)
-	{
-		var start = catalogueText.IndexOf(anchor, StringComparison.Ordinal);
-		Assert.True(start >= 0, $"the catalogue no longer declares a table through `{anchor}`");
-		var end = catalogueText.IndexOf("\n\t};", start, StringComparison.Ordinal);
-		Assert.True(end > start, $"the table declared through `{anchor}` has no closing brace at one tab");
-		return
-		[
-			.. DeclaredKeyPattern.Matches(catalogueText.Substring(start, end - start))
-				.Cast<Match>()
-				.Select(match => match.Groups[1].Value)
-				.Distinct(StringComparer.Ordinal)
-				.OrderBy(key => key, StringComparer.Ordinal),
-		];
-	}
+	/// <summary>Every key of one flat catalogue file: a quoted property name followed by a colon.</summary>
+	private static string[] KeysIn(string json) =>
+	[
+		.. JsonKeyPattern.Matches(json)
+			.Cast<Match>()
+			.Select(match => match.Groups[1].Value)
+			.Distinct(StringComparer.Ordinal)
+			.OrderBy(key => key, StringComparer.Ordinal),
+	];
 
 	/// <summary>
 	/// Every read the product source performs: the literals inside an accessor call's arguments, the
@@ -505,8 +500,10 @@ public sealed class LocalizationCatalogueGateTests
 
 	private static string SyntheticCatalogue(string[] keys)
 	{
-		var entries = string.Join("\n", keys.Select(key => $"\t\t[\"{key}\"] = \"x\","));
-		return $"{EnglishAnchor}\n\t{{\n{entries}\n\t}};\n{ChineseAnchor}\n\t{{\n{entries}\n\t}};";
+		// The catalogue is JSON now: a synthetic table is one flat object, so the parser pins are exercised against the same
+		// shape a translator edits.
+		var entries = string.Join(",\n", keys.Select(key => $"  \"{key}\": \"x\""));
+		return $"{{\n{entries}\n}}";
 	}
 
 	private static int CountOf(string text, string needle)

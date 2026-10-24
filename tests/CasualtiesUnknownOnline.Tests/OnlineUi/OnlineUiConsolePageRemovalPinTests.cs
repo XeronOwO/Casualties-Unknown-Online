@@ -233,8 +233,8 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		// console.* page keys read at HEAD once the drawer is gone)
 		var mutated = Mutate(
 			ReadCatalogueSource(),
-			"[\"tab.preferences\"] = \"Preferences\",",
-			"[\"tab.preferences\"] = \"Preferences\",\n\t\t[\"tab.console\"] = \"Console\",");
+			"\"tab.preferences\": \"Preferences\",",
+			"\"tab.preferences\": \"Preferences\",\n  \"tab.console\": \"Console\",");
 		Assert.False(CatalogueAndReferencesAgree(mutated, ReadReferencedSource()));
 	}
 
@@ -257,7 +257,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	private const string TabRowCallAnchor = "BuildTabs(page);";
 	private const string UiKeyPattern = "(?:tab|console)\\.[a-zA-Z_.]+";
 
-	private static readonly Regex DeclaredKeyPattern = new($@"\[""({UiKeyPattern})""\]", RegexOptions.Compiled);
+	private static readonly Regex DeclaredKeyPattern = new($@"\""({UiKeyPattern})\""\s*:", RegexOptions.Compiled);
 	private static readonly Regex ReferencedKeyPattern = new($@"\bT\(""({UiKeyPattern})""\)", RegexOptions.Compiled);
 	private static readonly Regex ConsoleInputFieldPattern = new(@"\bConsoleInput\b", RegexOptions.Compiled);
 
@@ -269,6 +269,8 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	private static readonly string[] ExpectedUiKeys =
 	[
 		"console.overlay.empty",
+		"console.ready",
+		"console.session_ended",
 		"tab.admin",
 		"tab.home",
 		"tab.network",
@@ -480,7 +482,13 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 
 	private static string ReadWindowStateSource() => File.ReadAllText(Path.Combine(PluginDirectory(), "OnlineUiWindowState.cs"));
 
-	private static string ReadCatalogueSource() => File.ReadAllText(Path.Combine(SourceRoot(), "CasualtiesUnknownOnline.Runtime", "Localization", "LocalizationCatalog.cs"));
+	private static string ReadCatalogueSource()
+	{
+		// The catalogue is data now: both embedded JSON files are folded into one text, so the pin's key census sees the same
+		// set the loader reads.
+		var directory = Path.Combine(SourceRoot(), "CasualtiesUnknownOnline.Runtime", "Localization");
+		return File.ReadAllText(Path.Combine(directory, "en.json")) + File.ReadAllText(Path.Combine(directory, "zh.json"));
+	}
 
 	private static string ConsoleDrawerPath() => Path.Combine(PluginDirectory(), "OnlineUiConsoleDrawer.cs");
 

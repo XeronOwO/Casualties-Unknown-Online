@@ -73,6 +73,13 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The built-in UI text is data, not code: one embedded JSON catalogue per language, read by
+         LocalizationJson. English is the fallback language (see LocalizationCatalog). -->
+    <EmbeddedResource Include="Localization\en.json" />
+    <EmbeddedResource Include="Localization\zh.json" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
   </ItemGroup>

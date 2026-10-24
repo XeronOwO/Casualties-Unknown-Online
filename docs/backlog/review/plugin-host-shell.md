@@ -1,6 +1,6 @@
 # Compress the plugin into a host shell
 
-- Status: Review
+- Status: Review — **no agent work is left (2026-10-25)**: every acceptance clause is read against the deployed artifact (the plugin references no game assembly, `Plugin.cs` is off the watchlist for the right reason, startup and join behaviour are unchanged, the full suite and the gates are green) and the only remaining item is the user's own judgement of the Online UI's look and feel, which is a user-acceptance item by the ticket's own words and cannot be judged by any agent-run row. Parked for that decision and nothing else.
 - Priority: Medium
 - Category: Architecture / layering
 - Source: Loomi architecture review (2026-09-20), item 6

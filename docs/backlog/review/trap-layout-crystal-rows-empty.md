@@ -4,6 +4,8 @@
   `0.1.0+157e4439`), so no code is left; its acceptance rows stay unobservable on this build (no prefab carries
   `CrystalBehaviour`), which the "The code is fixed" section names as the residual. Opened 2026-10-19 by the
   independent review of the `NetMsg.EntityEvent` drop lever.
+  **No agent work is left (2026-10-25)**: the rows need a prefab this build does not carry, which is a build capability
+  rather than an agent task, so the ticket is parked on that capability and the decision about it.
 - Priority: Low-Medium
 - Category: World sync / trap layout
 - Source: the review of `docs/backlog/done/member-report-bounds.md`'s entity-event acceptance lever (2026-10-19):

@@ -164,6 +164,8 @@ internal sealed class OnlineUiOverlay
 
 	private string? _statusMessage;
 	private float _statusSetTime = float.NegativeInfinity;
+	/// <summary>The message the HUD last handed to the label, so the diagnosis logs once per message rather than per frame.</summary>
+	private string? _statusRendered;
 	private bool _lastHadSession;
 
 	/// <summary>
@@ -397,6 +399,16 @@ internal sealed class OnlineUiOverlay
 		else if (_statusMessage is not null && elapsed > StatusDelaySeconds + StatusHoldSeconds)
 		{
 			_statusMessage = null;
+			_statusRendered = null;
+		}
+
+		// One line per message the HUD actually hands to the label: the watched-notice line reaches the overlay's
+		// Notify and still never appears, so the next reading has to tell "the model never carried it" apart from
+		// "the model carried it and the label did not draw it".
+		if (status is not null && !string.Equals(status, _statusRendered, StringComparison.Ordinal))
+		{
+			_statusRendered = status;
+			Plugin.Logger.LogInfo($"[OnlineUi] status shown ({status.Length} chars): {status}");
 		}
 
 		return new OnlineUiNetworkHud(

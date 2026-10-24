@@ -93,7 +93,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
 - [Player pain vocalizations and bark](review/sync-player-pain-vocalizations-and-bark.md) — **Medium** — they ride the character-sound event.
-- [Tab opens the backpack then closes](review/tab-backpack-open-close-immediately.md) — **Medium** — remote Close wrote the radial state.
 - [Entity drop loses fresh state on the guest](review/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — full drop state is preserved.
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — **Medium** — limb drag routes through the heal path.
@@ -139,6 +138,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Tab opens the backpack then closes](done/tab-backpack-open-close-immediately.md) — **Medium** — real Tab press; stays open.
 - [Remote player medical panel](done/remote-player-medical-panel.md) — **Medium** — native WoundView reuse; read on frames.
 - [Turret stray fire after reload](done/turret-stray-fire-after-reload.md) — **Medium** — transient trap replay removed; tests re-run.
 - [The host decides enemy hits on remote players](done/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.

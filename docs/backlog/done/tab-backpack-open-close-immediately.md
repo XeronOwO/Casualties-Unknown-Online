@@ -1,6 +1,10 @@
 # Tab opens backpack then closes immediately
 
-- Status: Review
+- Status: Done — closed 2026-10-25. The one row the 2026-10-24 note left for the user's physical press is now READ with the
+  authorized OS-level input path (`tools/acceptance/send-input.ps1`), which delivers a real key where the in-process `key-tap`
+  could not: with the ring closed (`radialOpen=false`) one Tab press made it read **`radialOpen=true` at +0.9 s and still true at
+  +3.9 s** — the backpack opens and STAYS open, which is exactly the behaviour the double-Tab bug destroyed. The fix's own
+  regression test is green on this tree (`RemoteBackpackViewCloseTests`, 1 case). Nothing else on the page was open.
 - Priority: Medium
 - Category: Inventory / UI / input
 - Source: User report — pressing Tab cannot open the backpack; it opens and closes immediately, as if Tab was pressed twice.

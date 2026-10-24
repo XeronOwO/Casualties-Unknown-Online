@@ -284,7 +284,7 @@ docs/backlog/done/steam-transport-send-limit-runaway.md | keep | index | docs/ba
 docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md | keep | index | docs/backlog/README.md
 docs/backlog/review/sync-cadence-review.md | keep | index | docs/backlog/README.md
 docs/backlog/review/sync-player-pain-vocalizations-and-bark.md | keep | index | docs/backlog/README.md
-docs/backlog/review/tab-backpack-open-close-immediately.md | keep | index | docs/backlog/README.md
+docs/backlog/done/tab-backpack-open-close-immediately.md | keep | index | docs/backlog/README.md
 docs/backlog/review/trade-domain-dual-side-runtime.md | keep | index | docs/backlog/README.md
 docs/backlog/review/treatment-gore-presentation-carried.md | keep | index | docs/backlog/README.md
 docs/backlog/done/turret-stray-fire-after-reload.md | keep | index | docs/backlog/README.md

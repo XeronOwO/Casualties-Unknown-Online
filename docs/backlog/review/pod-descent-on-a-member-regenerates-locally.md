@@ -160,4 +160,3 @@ generating, the session alive) that it CAN establish.
 With the ruling in, the ticket has no open code: the routing, the refusal answer, the two-layer step, the rider's
 own arrival effects and the three failure rows are all resolved, and the readings are
 `docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md`.
-

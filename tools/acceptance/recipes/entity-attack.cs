@@ -38,8 +38,9 @@
 	}
 	var entityPosition = ((UnityEngine.Component)best).transform.position;
 	if (mode == "place") {
-		// Stand beside the entity: a swing from across the map cannot reach it, and the batch must not read that as a defect.
-		((UnityEngine.Component)local).transform.position = new UnityEngine.Vector3(entityPosition.x + 0.6f, entityPosition.y, localPosition.z);
+		// Stand SOUTH of the entity, a couple of units back: beside it, the entity lands at the bottom edge of the screen where the
+		// HUD strip swallows a click (the first batch's failure); from below, it draws above the player, well inside the view.
+		((UnityEngine.Component)local).transform.position = new UnityEngine.Vector3(entityPosition.x, entityPosition.y - 2.5f, localPosition.z);
 		UnityEngine.Physics2D.SyncTransforms();
 	}
 	var after = ((UnityEngine.Component)local).transform.position;

@@ -86,3 +86,10 @@ relay reaches it. This batch built the approach up to the swing and stopped ther
 - **The missing step, named**: a click that provably lands on the entity — the entity's own `SpriteRenderer` bounds projected to
   the screen, or a camera that puts it away from the HUD edge — followed by the host's own hit confirmation (a damage line at
   Debug). Only then does the guest's replay line mean what this ticket wants it to mean. The ticket stays in `review/`.
+
+Follow-up in the same batch found **the real reason a click cannot reach the world in this state**: the CUO window was still
+OPEN on the host (the menu work before this batch left it up), and the overlay's modal swallows the world's input — the frame at
+that moment shows the window covering the screen. After `Esc` closed it the world is clickable again, so any click-based reading
+must start from "the CUO window is closed", which is the same fact `docs/acceptance/workflow.md` records for the drag batch. The
+recipe now also stands the body SOUTH of the entity (`entityPosition.y - 2.5`) so the target draws above the player rather than
+under the HUD strip, and the next attempt starts from the closed window with the entity's own sprite bounds as the click point.

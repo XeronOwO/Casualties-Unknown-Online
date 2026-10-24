@@ -1,11 +1,13 @@
 # A member's drill-pod descent regenerates a layer the session never agreed on
 
-- Status: Review — the routing landed (the member's pod descent is delegated with its two-layer step, the host
-  drives it, the rider follows the edge; read on two clients), so did the refusal answer
+- Status: Done — closed 2026-10-25: the routing landed (the member's pod descent is delegated with its two-layer step, the
+  host drives it, the rider follows the edge; read on two clients), so did the refusal answer
   (`NetMsg.LayerAdvanceRefused`, host → the one requester, with the host's own reason), and the user's 2026-10-24
   ruling settled the remaining rows: the pod's condition is every LIVING player inside the area and then any one of
   them repairing, so a dead host neither blocks nor changes the descent, and the other two rows are the world
-  object's own semantics. No code is left.
+  object's own semantics. No code is left. The host-dead and not-a-failure rows are settled by that ruling plus a
+  reading of `LayerAdvanceCoordinator`'s code, not by a new runtime read; the runtime readings that do exist are in the
+  record named below.
   Record: `docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md`.
 - Priority: Medium
 - Category: World generation / layer transition / descent producers
@@ -17,6 +19,14 @@
   `done/layer-descent-spawn-separation.md` (where the members arrive, the same boundary),
   `done/layer-change-member-recovery.md` (a member out of the world at the boundary),
   `reversing/Assembly-CSharp/Assembly-CSharp/DrillPod.cs` and `WorldGeneration.cs`
+
+## Run sheet (cycle 2026-10-25: close the ticket)
+
+- [x] Every row is settled: two were shown not to be failure rows, the host-dead row resolves by the user's ruling applied to `LayerAdvanceCoordinator`'s code, and the readings live in `docs/evidence/acceptance/pod-descent-on-a-member-regenerates-locally-20261024-a.md`.
+- [x] File moved `review/` → `done/`; `Status` says `Done` and names which rows are ruling-settled rather than runtime-read.
+- [x] Index row moved into the Done section, inside the row budget, priority agreeing.
+- [x] Document census row points at the `done/` path.
+- [x] Inbound references re-pointed; gates green; one commit.
 
 ## What is read
 

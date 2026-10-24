@@ -71,7 +71,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 - [Drag-use aims at the model, not a fixed circle](review/cross-player-drag-use-model-bounds.md) — **Medium** — the model measures itself; rows need a mouse.
-- [A member's drill-pod descent regenerates a layer of its own](review/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — routed, answered, ruled.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — rows 2/4/5 pass; row 3 open.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
@@ -151,6 +150,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [A member's drill-pod descent regenerates a layer of its own](done/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — routed, answered, ruled.
 - [Who skips the intro cover, and when](done/launch-intro-cover-policy.md) — **Low** — one named decision; five rows read.
 - [The critical heartbeat is cut off before the clip ends](done/host-heartbeat-sound-truncated.md) — **Medium-High** — closed; doubled-beat lead recorded.
 - [The panel's save-and-exit writes the native save](done/layer-end-save-and-exit-native-write.md) — **Medium** — every row read; CUO cut and host gate.

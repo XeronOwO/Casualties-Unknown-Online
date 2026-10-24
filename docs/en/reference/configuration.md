@@ -103,6 +103,7 @@ stays on the host: those are exactly the rows a member's client reads.
 | `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | Host-only: the fraction of a carried rider's full encumbrance added to the carrier while a carry relation is active. `0` disables the movement penalty. Read by the carrying player's own client, so a member carrying someone uses the host's value. |
 | `NativeBindingParity` | `warn` | `allow`, `warn`, `require` | Host-only: how a member's declared [native binding](glossary.md) is judged when it differs from the host's own for a mod both sides list. `allow` = no check; `warn` = admit and record the mismatch in the host's log; `require` = refuse the member. |
 | `RadiationLineStopsAboveTheFloor` | `true` | `true`, `false` | Host-only: the radiation line stops a margin above the layer floor instead of descending past it, so the bottom of a layer stays livable and a group can share supplies and rest. `false` = the game's own uncapped descent. |
+| `LayerCompleteLivingShare` | `1.0` | `0.0`–`1.0` | Host-only: the share of LIVING players that must have finished the current layer before the host's end-of-layer panel shows its two choices. `1.0` = every living player. The host's own body's state does not matter: a host below the threshold sees no panel even after finishing, and the panel appears even when the host's body is dead. |
 
 ## `[Save]`
 

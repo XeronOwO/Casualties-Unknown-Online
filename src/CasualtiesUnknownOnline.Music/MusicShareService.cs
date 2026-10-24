@@ -28,7 +28,10 @@ namespace CasualtiesUnknownOnline.Music;
 internal sealed class MusicShareService
 {
 	private const int ChunkBytes = BulkTransferPolicy.MaximumChunkBytes;
-	private const int Window = 16;
+	private const int Window = 8;
+
+	/// <summary>How many chunks a receiver holds before it reports its contiguous high-water mark again.</summary>
+	private const int AckBatch = 4;
 
 	/// <summary>
 	/// One chunk per 60 ms ≈ 16.7 frames a second, inside the mod channel's 20 frames per sender per second
@@ -413,7 +416,7 @@ internal sealed class MusicShareService
 		// end, because one frame per chunk would double the host's traffic (its relay of every ack) and the mod
 		// channel's 20 frames per sender per second would drop the transfer into retransmits.
 		var prefix = _receiver.ContiguousPrefix();
-		if (prefix > 0 && (prefix == _receiver.File.ChunkCount || prefix % 8 == 0))
+		if (prefix > 0 && (prefix == _receiver.File.ChunkCount || prefix % AckBatch == 0))
 		{
 			_context.Packets.SendToHost(MusicWire.Ack, MusicWire.AckValue(transfer, prefix - 1));
 		}

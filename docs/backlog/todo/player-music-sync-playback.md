@@ -173,5 +173,20 @@ transfer completed before the agreed instant, both sides logged `armed; it start
 and then `playing test-tone-5s.wav` at **07:58:46.403** (host) and **07:58:46.416** (guest) — 13 ms apart. The
 earlier apparent 0.6–0.7 s skew was the two sequential status reads, not the playback.
 
+**The host cache and the late joiner, read on three clients (2026-10-24):** with the 20 s tone playing to a
+host and a guest, a third client joined the session mid-song. The host logged
+`serving test-tone-long.wav to late joiner <id>` → `late joiner <id> received …; the start instant was sent`,
+and the alt logged `receiving test-tone-long.wav: 72 chunk(s)` → `verified (1764044 bytes)` → `playing … at the
+agreed instant`. Its transfer finished at **22.9 s of a 20.0 s track**, so the playback refused itself with
+`the track already ended (the group is at 22.9s of 20.0s)` — the named outcome the design wants instead of a
+second, silent start from zero.
+
+**What that measurement exposes, and what is left:** the channel carries this WAV at roughly **7 chunks a
+second** (≈170 KB/s) on the sandboxed pair, so a 20 s track takes ~10 s to transfer and a late joiner cannot
+catch up inside the track's own window — the in-window late-joiner playback is therefore NOT yet read, and the
+guest-sharer path (implemented, cached by the host) is not read either. Both need a longer track or the
+compressed format the MP3 stage would bring; they are this ticket's next stage, together with the listener
+controls, which stay the user's decision.
+
 **Where the files come from:** the player's own disk, picked through the mod's own path field (the game has no
 file picker for this); nothing is shipped with the mod and nothing is uploaded beyond the session's own peers.

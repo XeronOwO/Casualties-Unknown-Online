@@ -51,6 +51,11 @@ internal sealed class MusicDevice : IDisposable
 			return $"not playable: {wav.Refusal}";
 		}
 
+		if (offsetSeconds >= wav.Seconds)
+		{
+			return $"the track already ended (the group is at {offsetSeconds:0.0}s of {wav.Seconds:0.0}s)";
+		}
+
 		EnsureHost();
 		Stop();
 		_clip = AudioClip.Create(name, wav.Samples.Length / wav.Channels, wav.Channels, wav.SampleRate, stream: false);

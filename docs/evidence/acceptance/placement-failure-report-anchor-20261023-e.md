@@ -1,6 +1,6 @@
 # Batch 20261023-e — the placement outcome's machine row: the give ran, the carrier dropped the flags
 
-- Applies to acceptance row 1 of `docs/backlog/todo/placement-failure-report-anchor.md` ("a give applied at the
+- Applies to acceptance row 1 of `docs/backlog/done/placement-failure-report-anchor.md` ("a give applied at the
   answered destination reports the same place; the host sees a match and writes nothing").
 - Artifact: `0.1.0+aaf89655cd9a988bb1af2136a1b6cabf97e2227e`, deployed and verified against `<game-dir>` before the
   clients started (`preflight.ps1`: 11 present, `RESULT: OK`; the deployed `ProductVersion` and the repository HEAD

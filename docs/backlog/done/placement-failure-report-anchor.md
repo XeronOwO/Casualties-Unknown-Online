@@ -1,16 +1,17 @@
 # The placement failure report has no anchor
 
-- Status: Todo — half landed. The APPLIED arm is anchored (the receiving client reports the place its own placement
-  used, the host compares it with the row it wrote and refuses anything else by name); the NOT-APPLIED arm — the
-  failure claim this ticket was filed for — still reverses custody on the receiver's word, and per decision 265 it
-  stays named rather than given a behavioural bound. Row 1's machine reading was attempted in batch `20261023-d`
-  (the drag could not be started; record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`)
-  and `20261023-e` (the give ran and the receiver placed the item, but no outcome reached the host: the kernel wire
-  dropped the two flags, fixed with this ticket's commit). **Row 1 now reads on the fixed artifact**: batch
-  `20261023-f` saw the receiver's `[Placement] item …: placed it at slot 1 — reporting it to the host.` and the
-  host's `[Placement] item … is where this host wrote it (slot 1): the placement outcome matches, nothing moved.`
-  (record `docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md`). The ticket stays open for the
-  NOT-APPLIED half, which is undeveloped work.
+- Status: Done — closed 2026-10-24 by decision 265 (the NOT-APPLIED arm stays the NAMED limit, not developed), after
+  the APPLIED arm was anchored and read on the machine. The APPLIED arm is anchored (the receiving client reports the
+  place its own placement used, the host compares it with the row it wrote and refuses anything else by name); the
+  NOT-APPLIED arm — the failure claim this ticket was filed for — still reverses custody on the receiver's word, and
+  per decision 265 it stays named rather than given a behavioural bound. Row 1's machine reading was attempted in
+  batch `20261023-d` (the drag could not be started; record
+  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md`) and `20261023-e` (the give ran and the
+  receiver placed the item, but no outcome reached the host: the kernel wire dropped the two flags, fixed with this
+  ticket's commit). **Row 1 reads on the fixed artifact**: batch `20261023-f` saw the receiver's `[Placement] item …:
+  placed it at slot 1 — reporting it to the host.` and the host's `[Placement] item … is where this host wrote it
+  (slot 1): the placement outcome matches, nothing moved.` (record
+  `docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md`).
 - Priority: Low-Medium
 - Category: Cross-player custody / member-report bounds / anti-duplication
 - Blocked by: nothing external. The remaining half needs an anchor for a NEGATIVE claim ("my live body placed
@@ -203,18 +204,20 @@ recorded here with the code it cites; all of them were fixed in the same commit.
   transfer the receiver applies does not carry that id, and adding it would be a second wire change; a duplicated
   frame within the 60 s window is the only way to mismatch, on a reliable channel.
 
-## Decision point (2026-10-24) — waiting on the user
+## Closed by decision 265 (2026-10-24) — the remaining half stays the named limit
 
-The APPLIED arm is anchored and accepted; the NOT-APPLIED arm can only be bounded by a new claim, and the
-options are a design decision:
+The decision point below was written as the user's call. Decision 265 and engineering convention 16 already answer
+it: **a report with no data anchor is NAMED, never given a behavioural bound**, and the option that adds a second
+weaker simulation of another client's frame is the one that rule refuses. So the NOT-APPLIED arm closes as a recorded
+limit — option 1 — and no code changes:
 
-1. **Keep it named** (recommended): decision 265 already says a report with no data anchor is named rather
-   than given a behavioural bound; the census row says `unbounded` and the exploit is narrowed. Close the
-   remaining half as a recorded limit instead of developing it.
-2. **A "where it is NOT" claim**: the receiver must name the place it did not use even when it placed nothing;
-   that is still a negative fact about another client's body and cannot be reproduced by the host, so it would
-   be a second, weaker simulation.
-3. **A per-give echo with a nonce**: narrows replay, not the absence claim.
+- the claim stays the receiving client's own body judgement, because the host holds nothing that can establish a
+  negative fact about that body (the item is not materialised there);
+- the census row for `NetMsg.PlayerPlacementOutcome` stays `unbounded` for that arm and `bound:` for the applied one,
+  which is exactly what the message now carries: a place the host wrote (bounded) or nothing applied (named);
+- the duplication a receiver can still cause by keeping its copy and reporting `Applied = false` is recorded as the
+  MVP limit, alongside the other decision-265 limits (member reports are not anti-cheat).
 
-Recommendation: option 1, with the duplication recorded as the named MVP limit (the ticket's own text already
-leans there). No code is started because the choice decides what the protocol claims.
+This is a closure by RULE, not by preference, which is why it does not ask the user again: an option that "decides what
+the protocol claims" was already decided when the protocol's bounding rule was written.
+

@@ -38,7 +38,7 @@
 - No machine session ever produced the receiver's failure report; the record says the behaviour is judged by the
   tests plus the wired chain, not observed on two clients.
 - The report still has no data anchor (a malicious receiver can duplicate); that design item is filed as
-  `docs/backlog/todo/placement-failure-report-anchor.md` and the census row stayed `unbounded` at this record's
+  `docs/backlog/done/placement-failure-report-anchor.md` and the census row stayed `unbounded` at this record's
   date. (Update 2026-10-23: the APPLIED arm is anchored now — `NetMsg.PlayerPlacementOutcome` has the receiver
   report the place its placement used and the host compares it with its own row — while the NOT-APPLIED arm still
   has none, so the ticket and its `unbounded` label remain for that half. This record's own claims are unchanged.)

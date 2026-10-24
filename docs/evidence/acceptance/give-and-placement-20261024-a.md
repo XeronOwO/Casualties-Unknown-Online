@@ -34,5 +34,5 @@ landed in `e3cdc117` with `PlacementAnswerTests` and the sync-coverage/census ro
 
 ## Follow-ups that stayed filed
 
-- `docs/backlog/todo/placement-failure-report-anchor.md` — the not-applied arm's census row remains
+- `docs/backlog/done/placement-failure-report-anchor.md` — the not-applied arm's census row remains
   unbounded; the applied arm is bounded by `NetMsg.PlayerPlacementOutcome`.

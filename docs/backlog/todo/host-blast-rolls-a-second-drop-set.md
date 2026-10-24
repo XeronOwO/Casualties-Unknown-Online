@@ -161,3 +161,23 @@ The scope logs how many it marked (`[TrapBlast] marked N blast victim(s) as remo
 **Still owed**: slice 2 (the chain blast replayed inside the scope instead of `MineScript.OnDestroy` running it
 natively outside) and slice 3 (the host-authored report channel for a death only the host's roll produced), plus the
 ticket's three acceptance rows, which need two clients and a mine placed next to a droppable building.
+
+## Slice 3 does not need a message: the host's own roll already reaches the members (read 2026-10-24)
+
+The ruling above asked for a host-authored report channel. Tracing where a host-side drop ALREADY travels shows the
+channel exists, so that half needs no new message:
+
+- the host's own roll creates an item whose `Item.Start` reaches `ItemWorldSync.OnItemInstantiated`, which reports it
+  through `IItemControl.SendItemSpawned` (`ItemWorldSync`'s `[ItemSpawned] local …` line is that call's own);
+- on the host, `ItemMessageFlowService.SendItemSpawned` applies the row to the authoritative projection
+  (`_projection.ApplySpawn(_session.LocalSteamId, …)` — it only sends a kernel COMMAND when the role is a guest),
+  and the kernel's committed batch is what the members receive
+  (`KernelProtocolService` subscribes `BroadcastCommittedBatch` to `BatchCommitted`);
+- so a drop only the host's roll produced is already authoritative world state on every client. There is no
+  "unsynchronised set" for that case: what the user's ruling protects is that the members must agree with the host,
+  and they do — through the authority rather than through a report.
+
+What that leaves is exactly slice 2 (the chain blast's victims falling outside the scope, so the host rolls a set for
+a death the member's own client also rolled) and the acceptance rows. A new message would have been a second way to
+say the same thing.
+

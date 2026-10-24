@@ -52,8 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
-
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — two sets for one death.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
 - [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.
@@ -149,6 +147,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The placement failure report has no anchor](done/placement-failure-report-anchor.md) — **Low-Medium** — closed; the not-applied arm is the named limit.
 - [The loading screen says what it waits for](done/loading-screen-progress-detail.md) — **Low-Medium** — the wait line is on the game's own text, read live.
 - [The spectator's three superseded host rules are still wired](done/spectator-superseded-host-rules.md) — **Low** — removed end to end.
 - [The document corpus audit: every page earns its place](done/document-corpus-audit.md) — **Critical** — accepted: a reader for every page.

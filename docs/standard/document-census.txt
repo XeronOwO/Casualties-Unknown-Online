@@ -302,7 +302,7 @@ docs/backlog/done/give-item-to-another-player.md | keep | index | docs/backlog/R
 docs/backlog/done/restore-refused-child-keeps-its-id.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/restore-refused-child-keeps-its-id-20261023-i.md | keep | claim | docs/backlog/done/restore-refused-child-keeps-its-id.md
 docs/backlog/done/placement-outcome-never-returns.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/placement-failure-report-anchor.md | keep | index | docs/backlog/README.md
+docs/backlog/done/placement-failure-report-anchor.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-gesture-own-ui-and-center-use.md | keep | index | docs/backlog/README.md
 docs/backlog/done/decision-register-budget.md | keep | index | docs/backlog/README.md
 docs/backlog/done/config-clamp-silently-widens-rule-levels.md | keep | index | docs/backlog/README.md
@@ -318,9 +318,9 @@ docs/evidence/acceptance/container-child-limb-install-keeps-a-contained-record-2
 docs/evidence/acceptance/drink-measurement-destructive-use-action-20261024-a.md | keep | claim | docs/backlog/done/drink-measurement-destructive-use-action.md
 docs/evidence/acceptance/document-corpus-audit-20261024-a.md | keep | claim | docs/backlog/done/document-corpus-audit.md
 docs/backlog/done/gamerule-host-rule-command.md | keep | index | docs/backlog/README.md
-docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
-docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
-docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md | keep | claim | docs/backlog/todo/placement-failure-report-anchor.md
+docs/evidence/acceptance/placement-failure-report-anchor-20261023-d.md | keep | claim | docs/backlog/done/placement-failure-report-anchor.md
+docs/evidence/acceptance/placement-failure-report-anchor-20261023-e.md | keep | claim | docs/backlog/done/placement-failure-report-anchor.md
+docs/evidence/acceptance/placement-failure-report-anchor-20261023-f.md | keep | claim | docs/backlog/done/placement-failure-report-anchor.md
 docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-f.md | keep | claim | docs/backlog/done/give-gesture-own-ui-and-center-use.md
 docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-g.md | keep | claim | docs/backlog/done/give-gesture-own-ui-and-center-use.md
 docs/evidence/acceptance/give-gesture-own-ui-and-center-use-20261023-j.md | keep | claim | docs/backlog/done/give-gesture-own-ui-and-center-use.md

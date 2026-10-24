@@ -1,6 +1,6 @@
 # Batch 20261023-d — the placement outcome's machine row: attempted, no reading
 
-- Applies to acceptance row 1 of `docs/backlog/todo/placement-failure-report-anchor.md` ("a give applied at the
+- Applies to acceptance row 1 of `docs/backlog/done/placement-failure-report-anchor.md` ("a give applied at the
   answered destination reports the same place; the host sees a match and writes nothing").
 - Artifact: `0.1.0+1bf7104ccbb9a580050aebe576c34b8967d67e4e`, deployed and verified against `<game-dir>` before
   the clients started (`verify-deploy.ps1` exit 0, "Deployment matches this tree's build output").

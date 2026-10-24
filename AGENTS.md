@@ -115,6 +115,14 @@ not the goal.
   the conservative option is the defect wearing caution's clothes, and the user has rejected exactly that
   recommendation (2026-10-24, a host-only death whose drops would have stayed unsynchronised). The cost of a wire
   change here is a number that follows the change; the cost of a named hole is shipped wrong behaviour.
+- `[CRITICAL]` **…and the mirror error is recommending a message that already exists.** Before proposing a new
+  message or channel, trace where the fact ALREADY travels: the host-authoritative kernel carries every fact the
+  host itself decides to the members (a host-side item spawn is a committed kernel row, so the members materialise it
+  without any new message), and "nothing reports it" is a claim about the code, not an impression. The user's
+  2026-10-24 ruling on a host-only blast death asked for a host report channel that turned out to already exist
+  (`IItemControl.SendItemSpawned` on the host applies the row and the kernel hands it to the members); the
+  recommendation was made without that trace, which is the same defect as dodging a wire change — a design answer
+  written before the mechanism was read.
 - `[RULE]` Self-review happens before hand-off, not after review.
 - `[CRITICAL]` **A normal gameplay flow is never shipped as a console command.** The console is a diagnostic and
   administration surface; when the player's own screen is where the action belongs, it lives there — a rule the

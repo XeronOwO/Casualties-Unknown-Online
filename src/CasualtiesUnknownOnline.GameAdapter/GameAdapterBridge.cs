@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.World;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -25,7 +26,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// casting the bound bridge, so this declaration is what makes it reachable.
 /// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort
 {
 	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
@@ -449,6 +450,34 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	/// <summary>The member's own descent the session owns (its end-of-layer choice or the drill pod's): the local regeneration must not follow (the layer is the host's capture), and the native two-layer flag rides the request.</summary>
 	public bool TryDelegateLocalAdvance(bool twice) => domains.LayerAdvance.TryDelegateLocalAdvance(twice);
+
+	/// <summary>
+	/// The end-of-layer panel's "Save and exit" takes CUO's own cut instead of the game's native save (the user's
+	/// 2026-10-24 ruling: the native save is meaningless to CUO). The cut is ARMED here and taken by the pump at its
+	/// own seam, exactly like the deliberate menu return; the native body never runs, so `save.sv` is never written
+	/// and the depth is not advanced without generating.
+	/// </summary>
+	public bool TakeWorldCutInsteadOfTheNativeSave()
+	{
+		if (!domains.WorldSaves.IsEnabled || WorldGeneration.world == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		if (!domains.WorldSaves.TryRequestCut(WorldCutReason.MenuReturn, out var refusal))
+		{
+			domains.Log.LogWarning("[LayerChoice] save-and-exit asked for a CUO cut and it was refused: {Reason}", refusal);
+			return false;
+		}
+
+		domains.Log.LogInformation("[LayerChoice] save-and-exit takes a CUO world cut (menu-return) instead of the native save; the native entry is skipped.");
+		if (PlayerCamera.main != null) // Unity object — ==
+		{
+			PlayerCamera.main.ToMainMenu();
+		}
+
+		return true;
+	}
 
 	/// <summary>A local descent that is NOT suppressed: on the host of a live session it is the shared edge every member follows, and the presentation window opens with it.</summary>
 	public void OnHostDescent(bool twice)

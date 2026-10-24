@@ -43,6 +43,9 @@ internal static class PatchBridge
 	/// <summary>The spectator mode's patch port (the death receipt's menu button entering the mode instead of leaving the run). The aggregate does not declare it, so this accessor is the only way the menu-return hook reaches the mode.</summary>
 	public static ISpectatorPatchPort? Spectator => _bound as ISpectatorPatchPort;
 
+	/// <summary>The save half's patch port (the panel's "Save and exit" taking a CUO cut instead of the native `save.sv`). The aggregate does not declare it, so this accessor is the only way that hook reaches the save system.</summary>
+	public static ISaveCutPatchPort? SaveCut => _bound as ISaveCutPatchPort;
+
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 
 	public static void Unbind(IPatchBridge impl)

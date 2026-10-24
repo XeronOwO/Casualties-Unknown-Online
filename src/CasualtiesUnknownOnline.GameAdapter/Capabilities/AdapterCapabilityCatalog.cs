@@ -61,8 +61,9 @@ internal static class AdapterCapabilityCatalog
 				typeof(WorldGenerationDamageBlockPatch), typeof(WorldGenerationStructureDistributionPatch),
 				// The end-of-layer choice: the panel's own click and the descent sink it
 				// reaches (a member's choice is reported; the pod's and the console's own
-				// descents keep the game's semantics).
-				typeof(WorldGenerationContinueRunPatch), typeof(WorldGenerationRegenerateWorldPatch),
+				// descents keep the game's semantics), and the panel's "Save and exit",
+				// which takes a CUO cut instead of writing the game's native save.
+				typeof(WorldGenerationContinueRunPatch), typeof(WorldGenerationRegenerateWorldPatch), typeof(WorldGenerationSaveAndExitPatch),
 				typeof(ExplosionBuildingSyncPatch), typeof(FluidSimulationPatch), typeof(FluidDrinkPatch),
 				typeof(BuildingEntityUpdatePatch), typeof(BuildingEntityStartPatch), typeof(OilPipePatch), typeof(LifepodPumpPatch),
 				typeof(OpenablePatches), typeof(LockpingSoundPatches),

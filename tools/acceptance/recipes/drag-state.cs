@@ -14,6 +14,8 @@
 	var drag = field == null ? null : field.GetValue(camera) as Item;
 	var mouse = UnityEngine.Input.mousePosition;
 	return "{\"ok\":true"
+		+ ",\"mouseHeld\":" + (UnityEngine.Input.GetMouseButton(0) ? "true" : "false")
+		+ ",\"mouseDown\":" + (UnityEngine.Input.GetMouseButtonDown(0) ? "true" : "false")
 		+ ",\"radialOpen\":" + (camera.radialOpen ? "true" : "false")
 		+ ",\"dragging\":" + (drag != null ? "true" : "false")
 		+ ",\"dragItem\":\"" + (drag == null ? "none" : drag.id) + "\""

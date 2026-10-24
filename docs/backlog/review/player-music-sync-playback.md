@@ -1,6 +1,8 @@
 # A player's own music, heard by the group
 
-- Status: Todo
+- Status: Review — the transfer capability, the local player, the sharing half and the late joiner are all read
+  on the machine (two and three clients, host and guest sharers). The one row left is the user's: the listener
+  controls (mute, volume, "only during rest"). See *Stage E* for the last reading.
 - Priority: Medium
 - Category: Feature / audio / bulk transfer
 - Source: the user's 2026-10-07 backlog request — a music player (MP3 and the like) whose playback can be

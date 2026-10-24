@@ -61,7 +61,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — two sets for one death.
 - [A member's drill-pod descent regenerates a layer of its own](todo/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — the panel's sibling.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
-- [A player's own music, heard by the group](todo/player-music-sync-playback.md) — **Medium** — transfer the file, then play.
 - [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.
 - [The loading screen says what it waits for](todo/loading-screen-progress-detail.md) — **Low-Medium** — reuse the game's own line.
 - [Who skips the intro cover, and when](todo/launch-intro-cover-policy.md) — **Low** — a join-flow decision.
@@ -93,6 +92,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
+- [A player's own music, heard by the group](review/player-music-sync-playback.md) — **Medium** — transfer, verify, sync start; listener controls pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.

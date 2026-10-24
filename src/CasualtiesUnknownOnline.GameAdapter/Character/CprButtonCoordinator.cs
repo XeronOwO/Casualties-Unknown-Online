@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
@@ -31,13 +32,17 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 	/// <summary>The clone's own name, so a run (and a reader recipe) can find it in the panel's children.</summary>
 	internal const string ControlName = "CUO CPR Control";
 
+	/// <summary>The ventilation clone's name, the second channel the ruling separates from the compressions.</summary>
+	internal const string BreathControlName = "CUO CPR Breath";
+
 	private readonly GameAdapterDomains _domains = domains;
 	private GameObject? _control;
-	private Button? _button;
+	private GameObject? _breath;
 	private TextMeshProUGUI? _label;
 	private ulong _target;
 	private ulong _operationId;
 	private float _lastPressSeconds;
+	private float _lastBreathSeconds;
 	private bool _subscribed;
 
 	/// <summary>Subscribe once, on the first frame the panel is maintained with a focus open.</summary>
@@ -69,6 +74,11 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 				_control.SetActive(false);
 			}
 
+			if (_breath != null) // Unity object — ==
+			{
+				_breath.SetActive(false);
+			}
+
 			return;
 		}
 
@@ -88,17 +98,26 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 				? _domains.Localization.T("medical.cpr_compress")
 				: _domains.Localization.T("medical.cpr_start");
 		}
+
+		// The breath is only offered while this client's own session runs: before that there is nothing to ventilate on
+		// (the start covers both channels), and after it ends the panel's control hides the same way.
+		_breath?.SetActive(state == CprButtonState.Compress);
 	}
 
-	/// <summary>The focus closed: the control goes with it, and the session state is forgotten (the host ends the operation).</summary>
+	/// <summary>The focus closed: the controls go with it, and the session state is forgotten (the host ends the operation).</summary>
 	internal void Release()
 	{
 		if (_control != null) // Unity object — ==
 		{
 			Object.Destroy(_control);
 			_control = null;
-			_button = null;
 			_label = null;
+		}
+
+		if (_breath != null) // Unity object — ==
+		{
+			Object.Destroy(_breath);
+			_breath = null;
 		}
 
 		_target = 0;
@@ -113,33 +132,48 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 			return;
 		}
 
+		_control = CreateClone(template, ControlName, _domains.Localization.T("medical.cpr_start"), OnPressed, rowOffset: 1);
+		_breath = CreateClone(template, BreathControlName, _domains.Localization.T("medical.cpr_ventilate"), OnBreathPressed, rowOffset: 2);
+	}
+
+	/// <summary>
+	/// One clone of the panel's own button: named, offset one row further down per <paramref name="rowOffset"/>, its
+	/// click REPLACED (a cloned UnityEvent keeps the template's persistent listeners), and labelled from the catalogue.
+	/// </summary>
+	private GameObject? CreateClone(GameObject template, string name, string labelText, UnityAction onClick, int rowOffset)
+	{
 		var clone = Object.Instantiate(template, template.transform.parent);
-		clone.name = ControlName;
+		clone.name = name;
 		var rect = clone.GetComponent<RectTransform>();
 		var templateRect = template.GetComponent<RectTransform>();
 		if (rect != null && templateRect != null) // Unity objects — ==
 		{
-			// One row below the template so the two never overlap; the anchors are the template's own, so the control
-			// follows the panel's layout instead of guessing at positions.
-			rect.anchoredPosition = templateRect.anchoredPosition + new Vector2(0f, -Mathf.Abs(templateRect.rect.height) - 6f);
+			// Rows below the template so nothing overlaps; the anchors are the template's own, so the controls follow the
+			// panel's layout instead of guessing at positions.
+			rect.anchoredPosition = templateRect.anchoredPosition
+				+ new Vector2(0f, -((Mathf.Abs(templateRect.rect.height) + 6f) * rowOffset));
 		}
 
-		_button = clone.GetComponent<Button>();
-		if (_button != null) // Unity object — ==
+		var button = clone.GetComponent<Button>();
+		if (button != null) // Unity object — ==
 		{
-			// A cloned UnityEvent keeps the template's PERSISTENT listeners; replacing the event drops them.
-			_button.onClick = new Button.ButtonClickedEvent();
-			_button.onClick.AddListener(OnPressed);
-			_button.interactable = true;
+			button.onClick = new Button.ButtonClickedEvent();
+			button.onClick.AddListener(onClick);
+			button.interactable = true;
 		}
 
-		_label = clone.GetComponentInChildren<TextMeshProUGUI>();
-		if (_label != null) // Unity object — ==
+		var label = clone.GetComponentInChildren<TextMeshProUGUI>();
+		if (label != null) // Unity object — ==
 		{
-			_label.text = _domains.Localization.T("medical.cpr_start");
+			label.text = labelText;
+			if (name == ControlName)
+			{
+				_label = label;
+			}
 		}
 
-		_control = clone;
+		clone.SetActive(false);
+		return clone;
 	}
 
 	private void OnPressed()
@@ -170,6 +204,24 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 		_lastPressSeconds = Time.unscaledTime;
 		operations.SendOtherUpdate(_operationId, MedicalOperationUpdateAction.Compress, interval);
 		_domains.Log.LogInformation("[Cpr] compression {Interval:F2}s sent to operation {Operation}.", interval, _operationId);
+	}
+
+	/// <summary>
+	/// The breath control: the oxygen channel's press. It only exists while this client's own session runs (the panel
+	/// offers it then), and its interval is measured from the previous BREATH, not from the compressions — the two
+	/// channels keep their own rhythm.
+	/// </summary>
+	private void OnBreathPressed()
+	{
+		if (!RemoteMedicalView.IsOpen || _operationId == 0)
+		{
+			return;
+		}
+
+		var interval = CprButtonPolicy.IntervalSeconds(_lastBreathSeconds, Time.unscaledTime);
+		_lastBreathSeconds = Time.unscaledTime;
+		_domains.PlayerInteraction.MedicalOperations.SendOtherUpdate(_operationId, MedicalOperationUpdateAction.Ventilate, interval);
+		_domains.Log.LogInformation("[Cpr] breath {Interval:F2}s sent to operation {Operation}.", interval, _operationId);
 	}
 
 	/// <summary>

@@ -102,6 +102,12 @@ crosses players or mirrors a native action.
   the screen's Buttons, find the one whose persistent event targets the menu return, relabel it to the
   spectator wording (CUO's own text service) and replace its action with `EnterSpectatorMode()`. The rewire is
   done once per death and undone with the screen.
+  **Landed 2026-10-24 (the action half):** `SpectatorCameraService.RewireReceiptMenuButton` walks the death
+  screen's buttons once per death, matches the persistent event named `ToMainMenu`/`SaveAndExit`, and replaces
+  its onClick with the mode switch — so the receipt's own menu button now enters spectator mode instead of
+  loading the menu. **The label half is NOT landed**: it needs the adapter's localization service in this
+  service's constructor, which is a composition change; until then the button keeps its native label and the log
+  line names the rewire (`the death receipt's ToMainMenu button now enters spectator mode`).
 - The exit stays what a revive already does, and every revive path (`RespawnCoordinator`, `RespawnPolicy`) calls
   `ExitSpectatorMode` before anything else; `SpectatorCameraService.Update` already leaves the mode the moment the
   local body is alive again.

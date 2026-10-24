@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -5,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using UnityEngine.UI;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -183,6 +185,13 @@ internal sealed class SpectatorCameraService(
 			ExitSpectatorMode();
 		}
 
+		// The death screen's own menu-return button is the mode's second entrance (the user's ruling): a dead
+		// player on the receipt may watch instead of leaving the run.
+		if (!run.LocalBody?.alive ?? false) // Unity object 鈥?==
+		{
+			RewireReceiptMenuButton(camera);
+		}
+
 		if (!IsWatching || !MayWatch(out _))
 		{
 			Release(camera);
@@ -220,6 +229,50 @@ internal sealed class SpectatorCameraService(
 			camera.endScreen.gameObject.SetActive(false);
 		}
 	}
+
+	/// <summary>
+	/// The ruling's other entrance: the exploration receipt's own menu-return button becomes the spectator-mode
+	/// entry. The button is SCENE-wired (its UnityEvent names <c>PlayerCamera.ToMainMenu</c> or
+	/// <c>WorldGeneration.SaveAndExit</c>, so no decompiled call site exists), which is why the rewiring happens
+	/// here at runtime: walk the death screen's buttons once per death, find the one whose persistent event is the
+	/// menu return, and replace that action with the mode switch. The label is deliberately left to the follow-up
+	/// that has the localization service; this half changes WHAT the button does.
+	/// </summary>
+	private void RewireReceiptMenuButton(PlayerCamera camera)
+	{
+		if (camera.endScreen == null || !camera.endScreen.gameObject.activeSelf) // Unity object — ==
+		{
+			_receiptButtonRewired = false;
+			return;
+		}
+
+		if (_receiptButtonRewired)
+		{
+			return;
+		}
+
+		foreach (var button in camera.endScreen.transform.root.GetComponentsInChildren<Button>(includeInactive: true))
+		{
+			for (var i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+			{
+				var method = button.onClick.GetPersistentMethodName(i);
+				if (!string.Equals(method, "ToMainMenu", StringComparison.Ordinal)
+					&& !string.Equals(method, "SaveAndExit", StringComparison.Ordinal))
+				{
+					continue;
+				}
+
+				button.onClick.RemoveAllListeners();
+				button.onClick.AddListener(() => EnterSpectatorMode());
+				_receiptButtonRewired = true;
+				log.LogInformation("[Spectator] the death receipt's {Method} button now enters spectator mode.", method);
+				return;
+			}
+		}
+	}
+
+	/// <summary>Whether the receipt's menu button was already rewired for the current death screen.</summary>
+	private bool _receiptButtonRewired;
 
 	/// <summary>
 	/// Whether this client's local character is in a state that may watch. The terms are the SHARED rule's

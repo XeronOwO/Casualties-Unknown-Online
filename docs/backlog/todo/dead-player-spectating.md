@@ -48,6 +48,27 @@ The entry is a MODE, not a death-screen action, and watching is not merely a cam
    keep them as the session's rules over the new mode, or drop them because `/gamemode` makes the mode a choice
    rather than a death state?
 
+### Answered by the user, 2026-10-24
+
+1. **The body stays in the world, in place, and can still be attacked and injured** — a spectator's own character
+   remains a real body while they watch, not a ghost and not an exited simulation. Being wounded (or killed) while
+   spectating is therefore possible and must not be hidden by the mode.
+2. **Possession replaces the watcher's UI**: only the watched player's interface is shown — their backpack
+   (read-only), their medical panel, their state icons, their screen effects and their sounds. The watcher's own
+   HUD is hidden, exactly as "就像自己在玩一样" asks. **The watched player is told** ("the recommended notice").
+3. **`/gamemode` is a CHEAT command, gated only by the cheat permission** — no host rules over it. Spectator mode
+   has exactly one other entrance: **the death screen's "back to main menu" button is replaced by a "spectator
+   mode" button**, so a dead player may watch instead of leaving; and **when that player is revived they return to
+   normal play immediately**. The three old host switches (`SpectatorFreeFly`, `SpectateWhileUnconscious`,
+   `SpectateWhileWaitingToJoin`) are therefore superseded by this permission gate and the death-screen button; free
+   flight stays a capability of the mode itself rather than a host rule (how it is toggled is the first slice's
+   detail).
+
+3. **The host switches** are still being decided: the user asked what
+   `SpectateWhileUnconscious` and `SpectateWhileWaitingToJoin` mean, so the answer records them in plain words
+   before the choice (see the question history in the ticket's status line).
+
+
 - Related: `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs` (the native follow target, the native
   free camera and the death screen), `reversing/KrokMP/KrokoshaCasualtiesMP/KrokoshaCasualtiesMP/UIInGame.cs`
   (KrokMP's spectator mode), `src/CasualtiesUnknownOnline.Runtime/Session/HostRules/IHostRules.cs` (the host

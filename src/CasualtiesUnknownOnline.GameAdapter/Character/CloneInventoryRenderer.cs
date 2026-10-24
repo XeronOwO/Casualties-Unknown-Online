@@ -468,27 +468,52 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			// represent a nested container with contents. Attach it manually with
 			// the same presentation contract and let RestoreRemoteContents fill
 			// the tree while it is already parented.
-			child.transform.SetParent(container.transform);
-			child.transform.localPosition = Vector3.zero;
-			child.transform.localEulerAngles = Vector3.zero;
-			if (child.rb != null) // Unity object — ==
-			{
-				child.rb.simulated = false;
-			}
-
-			var sr = child.GetComponent<SpriteRenderer>();
-			if (sr != null) // Unity object — ==
-			{
-				sr.enabled = container.itemsVisible;
-			}
-
-			Container.UpdateItemLight(child.gameObject, !container.itemsVisible);
+			AttachProxyToContainer(container, child);
 			RestoreRemoteContents(child, childData.Contents, ownerSteamId);
 			return;
 		}
 
 		RestoreRemoteContents(child, childData.Contents, ownerSteamId);
 		container.LoadItem(child);
+
+		// The game's own refusal that the branch above works around ALSO fires when the container being loaded INTO is
+		// itself inside another container (`Container.LoadItem`'s `this.mItem.TryGetParentContainer(out …)` guard,
+		// Container.cs:116-151) — on a viewer that is exactly the nested shape this renderer draws. The refused call
+		// left the proxy a ROOT object: `Item.Start` then reported it as a local creation (`[ItemSpawned]`), the removal
+		// pass could not see it (it collects DIRECT children carrying RemoteCloneRender), and every 1 Hz rebuild
+		// materialised another one (ticket nested-container-clone-proxy-leaks-as-world-item.md). So the attachment is
+		// CHECKED, not assumed: a proxy that did not land is attached the way the nested branch above already is.
+		if (child.transform.parent != container.transform) // Unity objects — ==
+		{
+			AttachProxyToContainer(container, child);
+			_log.LogInformation("[CloneRender] {ItemId} (id {InstanceId}) could not be loaded into a nested container — attached manually, so it is never reported as a world item.", childData.ItemId, childData.InstanceId);
+		}
+	}
+
+	/// <summary>
+	/// Attaches a display proxy under its container the way the native <c>Container.LoadItem</c> would, for the shapes
+	/// that call refuses on a viewer: a nested container that already holds contents (its stacking guard) and any child
+	/// of a container that is itself inside another container (the parent-container guard). The presentation contract is
+	/// the nested branch's: zeroed transform, no simulated rigidbody, the container's own visibility for the sprite, and
+	/// the item light following that visibility.
+	/// </summary>
+	private static void AttachProxyToContainer(Container container, Item child)
+	{
+		child.transform.SetParent(container.transform);
+		child.transform.localPosition = Vector3.zero;
+		child.transform.localEulerAngles = Vector3.zero;
+		if (child.rb != null) // Unity object — ==
+		{
+			child.rb.simulated = false;
+		}
+
+		var sr = child.GetComponent<SpriteRenderer>();
+		if (sr != null) // Unity object — ==
+		{
+			sr.enabled = container.itemsVisible;
+		}
+
+		Container.UpdateItemLight(child.gameObject, !container.itemsVisible);
 	}
 
 	/// <summary>

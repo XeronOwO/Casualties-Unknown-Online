@@ -123,9 +123,24 @@ crosses players or mirrors a native action.
 | revive ends the mode immediately | `bloodVolume`/`brainHealth` restored → `alive:true`, `spectator:false`, `endScreen:false`, and the host is still `role: Host` in the world; guest and alt stayed `inWorld: true` throughout |
 | why the first attempt failed | the earlier runtime rewire could not remove the scene's persistent listener, so the click ran the native menu load as well and the session went to the menu; the method-level intercept (dead local body + receipt active + no pause menu) is what makes the button's click mean the mode |
 
-Still owed by slice 1: `/gamemode spectator` itself has only its command cases, not a live reading (the verb is
-the cheat-gated path; its mode half is the same `EnterSpectatorMode` this table proves), and the free camera's
-toggle is slice 4's detail.
+Still owed by slice 1: the free camera's toggle is slice 4's detail; the `/gamemode` verb was read in slice 2's run
+below.
+
+**Slice 2's effects and command half read on three clients (2026-10-24, deployed `0.1.0+74905438`)**, in the same
+session:
+
+| Step | Reading |
+|---|---|
+| the death fade is up before watching | with the vitals zeroed across several frames the receipt shows and the screen is fading: `black: 0.726`, `vignette: 0.75` |
+| entering the mode clears the effects | a click on the receipt's menu button → `spectator: true`, and the next read is `black: 0`, `vignette: 0` — the writer stays off, so the frame does not fade back |
+| `/gamemode survivor` leaves the mode and the game's own effects resume | `Normal play.`, `spectator: false`, and the values come back from the body: `black: 0.05`, `vignette: 0.443` |
+| `/gamemode spectator` enters it again (the cheat-gated verb, live) | `Spectator mode on. Right-click a member to watch them; /gamemode survivor returns to play.`, `spectator: true`, `black: 0`, `vignette: 0` |
+| the world survives the whole round | the guest stayed `inWorld: true` throughout, and a restore of the vitals revived the host afterwards |
+
+Still owed by slice 2: the sound and input halves are implemented (the `Sound.Play` refusal and the early return
+in `PlayerCamera.HandleInput`) but NOT read on the machine — neither has an in-process observable the probe could
+assert without a new counter, and the run did not add one. They are recorded as implemented, not as judged.
+
 
 
 

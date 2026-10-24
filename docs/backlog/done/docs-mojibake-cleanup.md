@@ -28,7 +28,7 @@ The shape is a UTF-8 file read through the system code page and written back: `�
 (E2 86 92) became `鈫?`, `×` (C3 97) became `脳`. The last byte of each character was consumed by the `?`, so the
 original is not recoverable from the corrupted text alone.
 
-Two other English docs read as hits by the same scan and are NOT damage: `review/document-corpus-audit.md` and
+Two other English docs read as hits by the same scan and are NOT damage: `done/document-corpus-audit.md` and
 `done/give-item-to-a-player-command.md` quote a Chinese review comment, and a Chinese sentence ending in `?` is the
 ordinary question mark. Leave them alone.
 

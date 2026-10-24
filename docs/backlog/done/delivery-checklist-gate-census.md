@@ -80,7 +80,7 @@ standing gate passed 1/1 — a checklist with nothing left to fail on. The same 
 - References re-pointed and the census recorded: root `AGENTS.md`,
   `docs/en|zh/contributing/{gates-and-rules,review-and-delivery}.md` (with
   `docs/standard/alignment.txt` re-hashed), `docs/evidence/{delivery-checklist,verification,normative-gates}.md`,
-  the moved ticket's own census row and its inbound link in `docs/backlog/review/document-corpus-audit.md`.
+  the moved ticket's own census row and its inbound link in `docs/backlog/done/document-corpus-audit.md`.
   Two dated acceptance records keep their historical anchor, which is what
   `docs/evidence/ticket-anchor-exceptions.json` is for.
 

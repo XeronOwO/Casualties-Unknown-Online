@@ -113,7 +113,7 @@ Adversarially verify:
   cycle did, an append-only log, a ledger that grows by appending, or a restatement of a rule already carried
   elsewhere is a finding: say which page should carry the conclusion, and whether the file should be deleted or
   rewritten. Existing offenders belong to the corpus audit
-  (`docs/backlog/review/document-corpus-audit.md`); the same question is asked of the documents a change touches
+  (`docs/backlog/done/document-corpus-audit.md`); the same question is asked of the documents a change touches
   but does not add.
 
 Report findings by severity (blocker / major / minor / nit), each with a path or `file:line`, the

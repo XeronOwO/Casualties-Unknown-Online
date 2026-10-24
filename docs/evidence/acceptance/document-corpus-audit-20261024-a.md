@@ -1,6 +1,6 @@
 # Acceptance — the document corpus audit: every row judged on this tree
 
-- Ticket: `docs/backlog/review/document-corpus-audit.md` — verdict: **all five rows pass, the ticket moves to
+- Ticket: `docs/backlog/done/document-corpus-audit.md` — verdict: **all five rows pass, the ticket moves to
   `done/`**
 - Batch: `.acceptance/` (local, gitignored; the preflight for this interactive run was `pre-20261024-d.log`,
   the gate run `doc-gates.log`)

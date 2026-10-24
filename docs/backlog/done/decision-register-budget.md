@@ -8,7 +8,7 @@
   may stand only while its census row says `rework`. `docs/decisions/active.md` measured 114,495 bytes at
   `4edf54d1` — 193 bytes under the 114,688-byte budget — so ANY new binding decision overflows it. The
   register's census row now says `rework` and names this ticket.
-- Related: `review/document-corpus-audit.md` (the distillation that brought the register from 268,673 bytes
+- Related: `done/document-corpus-audit.md` (the distillation that brought the register from 268,673 bytes
   to 102,335 and set the per-document budget; 114,495 is later growth), decision 269 (the row that found the
   ceiling), `docs/AGENTS.md` §6 (decay control: a document earns its place by having a reader).
 

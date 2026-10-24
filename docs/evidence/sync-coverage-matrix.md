@@ -2,7 +2,7 @@
 
 - Status: Evidence — every synced surface's event + fallback policy, one bounded row each
 - Produced by `docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md` (audit date 2026-09-09);
-  rewritten to bounded rows by `docs/backlog/review/document-corpus-audit.md`
+  rewritten to bounded rows by `docs/backlog/done/document-corpus-audit.md`
 - Scope: **A** kernel domains, **B** direct `NetMsg` families, **C** GameAdapter/Runtime sync
   surfaces, **D** adaptive streams
 - Verdict vocabulary: `OK` | `Event-only gap` | `Fallback-only gap` | `Transient-by-design`

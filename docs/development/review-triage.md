@@ -41,6 +41,7 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 | `remote-medical-treatment-operations.md` | its live row is a treatment performed through the wound view |
 | `concurrent-medical-operations.md` | row 7's second half: two operators START the same limb's operation through that view |
 | `enter-opener-keybind-capture.md` | a key-bind row must be clicked in the game's settings UI before the Enter/Slash press means anything |
+| `mod-cross-player-native-semantics.md` | its LOCAL native halves are already driven by the probes (`item-use` calls `Body.UseItem`, the same call a player's gesture makes), but every CROSS-player half needs the remote view's own entry — the medical chart or a drag — so it waits with the rows above |
 
 ## C — needs a capability an agent could still build
 
@@ -61,7 +62,6 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 | Ticket | How |
 |---|---|
 | `guest-background-ghost-item-ground-sounds.md` | audio capture + the background-item fixture |
-| `mod-cross-player-native-semantics.md` | the native-half chains, read one by one on the live clients |
 | `pinyin-search-mod.md`, `pinyin-search-standalone-mod.md` | mod install and behaviour, read with the mod present |
 | `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed |
 | `remote-medical-native-minigame-parity.md` | the native minigame fixtures the recipes already drive |

@@ -335,4 +335,3 @@ withdrawn rather than left red.
 
 **Still owed in stage 3**: the AED/CPR restart arbitration (both procedures claiming the same restart), and the
 `bloodPressureChangeFromMedicine` lever question the batch above left open.
-

@@ -1,6 +1,13 @@
 # Remote medical panel: hide the local-only action controls
 
-- Status: Review
+- Status: Done — closed 2026-10-25 on batch `20261025-c`: all six rows read (record
+  `docs/evidence/acceptance/remote-medical-panel-hide-local-only-actions-20261025-c.md`). While the focus showed the host's
+  body the nap control, the sleep-state icon and the workout list were hidden and the HUD swap control's graphic was disabled;
+  the viewer's own panel restored all of them; row 3 is closed by construction beside that reading (the `SwitchHands` patch's
+  Prefix refuses the method the `switchhands` key handler calls while the focus is open); row 4 was driven in the same session
+  (CPR to a `Good` verdict with the chart open); row 6 read the peer's view of BOTH slots around a focus round trip and found
+  it equal to the viewer's own slots at every step. The `no-free-slot` refusal that blocked row 6's first attempt is explained
+  in the record: the slot guard's `canPickUp` is false while the viewer's own panel is open.
 - Priority: Medium
 - Category: Remote medical / native WoundView reuse
 - Source: User ruling (2026-09-21): while viewing another player's medical panel, do not show the sleep, workout (exercise) and main/off-hand switch controls at all — today only the sleep button is disabled. Hide them.

@@ -1,6 +1,6 @@
 # The remote focus hides the local-only panel surfaces, read on both panels
 
-- Ticket: `docs/backlog/review/remote-medical-panel-hide-local-only-actions.md` (rows 1–5 read; row 6 still open)
+- Ticket: `docs/backlog/done/remote-medical-panel-hide-local-only-actions.md` (rows 1–5 read; row 6 still open)
 - Batch: `20261025-c` — one live two-client session, artifact `0.1.0+c08c99ad…` (both clients' own load line)
 - Instrument: `panel-controls` (reads the four surfaces the hide set names, plus the remote-focus state and the displayed body)
 
@@ -49,11 +49,25 @@ The same read on the host's own panel (independent of the guest) agreed: nap and
 - **Row 6 is not read**: inventory reporting around a blocked window needs a hand switch and an item move on either side of
   the focus, and no instrument for that sequence was driven in this batch. The ticket stays open on it.
 
-## Row 6's attempt, and why it is still open
+## Row 6's attempt, and how it was read
 
-A second pass added `remote-hand` (every non-local `Body` with its hand slot and both slots' item ids) and read the host's
-clones: both clones reported `handSlot:0` with `s0=none s1=none` before **and** after a `body-call kind=switch` on the guest,
-because the guest held nothing — `item-provide create bandage` answered with an empty result, so no item id was accepted and
-the slots had nothing to move. The row therefore still cannot be read: it needs a held item first (an item id this build
-accepts) and then the switch on either side of the focus. The probe is committed so the next pass starts from it instead of
-rebuilding it.
+The first pass could not read it: the guest held nothing, `item-provide create` refused with `no-free-slot` ("every body slot
+is occupied or unusable"), and both of the host's clones read `handSlot:0 s0=none s1=none` before and after a switch — because
+there was nothing to move.
+
+The second pass found the cause and the row then read cleanly. The refusal came from the slot guard's `canPickUp`, which is
+false while the viewer's own panel is open: closing the panel and creating again answered `ok slot=0`. From there, with
+`remote-hand` reading the host's clone of the guest (its hand slot and both slots' item ids) beside the guest's own local
+slots:
+
+| step | guest, locally | host's clone of the guest |
+|---|---|---|
+| item created (`bandage`) | slot 0 | `s0=bandage s1=none` |
+| hand switch, **before** the focus | item in slot 1 | `s0=none s1=bandage` |
+| focus opened on the host, then closed | — | — |
+| hand switch, **after** the focus | slot 1 | `s0=none s1=bandage` |
+| second item created (`tweezers`) | `s0=tweezers s1=bandage`, hand 0 | `s0=tweezers s1=bandage`, hand 0 |
+| hand switch after that | hand 0, tweezers in slot 0 | `s0=tweezers s1=bandage`, hand 0 |
+
+Every step kept the peer's view of BOTH slots exactly equal to the viewer's own slots, the switches around the focus
+included, and the clone's hand slot equalled the local hand slot. **Row 6 passes**, and with it the ticket has no unread row.

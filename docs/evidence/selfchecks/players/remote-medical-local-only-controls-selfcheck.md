@@ -1,6 +1,6 @@
 # Self-check — a remote medical focus presents no local-only control (`remote-medical-panel-hide-local-only-actions`)
 
-Ticket: `docs/backlog/review/remote-medical-panel-hide-local-only-actions.md` (Medium).
+Ticket: `docs/backlog/done/remote-medical-panel-hide-local-only-actions.md` (Medium).
 Cycle: 2026-09-25. No wire change (a purely local presentation/input gate: nothing about the shared
 state, the protocol or the saves moves).
 

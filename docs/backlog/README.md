@@ -116,7 +116,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
-- [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — rows 1–5 read; row 6 open.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
 
 ### Future
@@ -148,6 +147,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Remote medical panel hides actions](done/remote-medical-panel-hide-local-only-actions.md) — **Medium** — all six rows read.
 - [Random rolls in a cross-player item use](done/cross-player-item-use-random-determinism.md) — **High** — rows 1–2 read, 3–5 settled, 8 a user residual.
 - [Remote medical CPR (KrokMP custom)](done/remote-medical-cpr.md) — **Medium** — four stages; every row read, `Good` included.
 - [A member's drill-pod descent regenerates a layer of its own](done/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — routed, answered, ruled.

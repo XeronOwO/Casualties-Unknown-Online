@@ -181,11 +181,17 @@ internal sealed class OnlineUiPageBuilder
 		return OnlineUiElementModel.ColorSwatch(key, color.ToRgba(), width);
 	}
 
-	/// <summary>A checkbox with its caption; <paramref name="toggled"/> gets the value it now holds.</summary>
+	/// <summary>
+	/// A checkbox with its caption; <paramref name="toggled"/> gets the value it now holds. A real click arrives as
+	/// <see cref="OnlineUiIntentKind.ControlToggled"/> carrying the native checkbox's new value; a synthetic
+	/// activation (the acceptance driver's click, which carries no flag) means "flip what is on screen", so the
+	/// builder inverts the value it was built with instead of passing the flag's default false.
+	/// </summary>
 	internal void Toggle(string id, string text, bool value, Action<bool> toggled)
 	{
 		var key = Key(id);
-		_actions[key] = intent => toggled(intent.Flag);
+		_actions[key] = intent => toggled(
+			intent.Kind == OnlineUiIntentKind.ControlToggled ? intent.Flag : !value);
 		_rows.Add(new OnlineUiRowModel([OnlineUiElementModel.Toggle(key, text, value)]));
 	}
 

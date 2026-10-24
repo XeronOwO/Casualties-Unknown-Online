@@ -62,9 +62,6 @@
 | `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | 仅主机：背负关系生效期间，被背一方全部负重加到背负者身上的比例。`0` 关闭这项移动惩罚。读它的是背人的那一方自己的客户端，所以成员背人时用的是主机的值。 |
 | `NativeBindingParity` | `warn` | `allow`、`warn`、`require` | 仅主机：当双方都列出的某个模组，客机声明的[原生绑定](glossary.md)与主机自己的不同时怎么判。`allow` = 不检查；`warn` = 准入并把不一致记进主机的日志；`require` = 拒绝该成员。 |
 | `RadiationLineStopsAboveTheFloor` | `true` | `true`、`false` | 仅主机：辐射线停在地板上方一段距离、不再继续下探，于是层底仍然可住，一队人可以在那里分补给、歇一歇。`false` = 游戏原本不封顶的下探。 |
-| `SpectatorFreeFly` | `true` | | 仅主机：观战中的玩家可以让镜头自由飞行，而不是只能跟着队友看。默认开启，与参考模组一致。 |
-| `SpectateWhileUnconscious` | `false` | | 仅主机：昏迷中的玩家可以观战。默认关闭：在这个项目的模型里，昏迷的身体仍归本人操作。 |
-| `SpectateWhileWaitingToJoin` | `false` | | 仅主机：还没进入世界的客户端可以观战。默认关闭：那是中途加入的情形。 |
 
 ## `[Save]`
 

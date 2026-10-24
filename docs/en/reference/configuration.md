@@ -103,9 +103,6 @@ stays on the host: those are exactly the rows a member's client reads.
 | `PiggybackWeightMultiplier` | `0.8` | 0.0–3.0 | Host-only: the fraction of a carried rider's full encumbrance added to the carrier while a carry relation is active. `0` disables the movement penalty. Read by the carrying player's own client, so a member carrying someone uses the host's value. |
 | `NativeBindingParity` | `warn` | `allow`, `warn`, `require` | Host-only: how a member's declared [native binding](glossary.md) is judged when it differs from the host's own for a mod both sides list. `allow` = no check; `warn` = admit and record the mismatch in the host's log; `require` = refuse the member. |
 | `RadiationLineStopsAboveTheFloor` | `true` | `true`, `false` | Host-only: the radiation line stops a margin above the layer floor instead of descending past it, so the bottom of a layer stays livable and a group can share supplies and rest. `false` = the game's own uncapped descent. |
-| `SpectatorFreeFly` | `true` | | Host-only: a spectating player may free-fly the camera instead of only following a teammate. On by default, aligned with the reference mod. |
-| `SpectateWhileUnconscious` | `false` | | Host-only: an UNCONSCIOUS player may spectate. Off by default: an unconscious body is still its owner's to act on. |
-| `SpectateWhileWaitingToJoin` | `false` | | Host-only: a client that has not entered the world yet may spectate. Off by default: that is the late-join case. |
 
 ## `[Save]`
 

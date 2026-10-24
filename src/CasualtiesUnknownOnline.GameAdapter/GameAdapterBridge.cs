@@ -453,29 +453,22 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	/// <summary>
 	/// The end-of-layer panel's "Save and exit" takes CUO's own cut instead of the game's native save (the user's
-	/// 2026-10-24 ruling: the native save is meaningless to CUO). The cut is ARMED here and taken by the pump at its
-	/// own seam, exactly like the deliberate menu return; the native body never runs, so `save.sv` is never written
-	/// and the depth is not advanced without generating.
+	/// 2026-10-24 ruling: the native save is meaningless to CUO). The panel's entry is REPLACED, so the native body
+	/// must not run at all — it would write `save.sv`, advance the depth without generating and leave the world in one
+	/// go, none of which CUO wants. The cut itself is the DEFERRED menu return the game's own leave already uses: the
+	/// request is recorded here and `SaveCutSeam` takes the cut at the pump's frame-end seam and only then leaves, so a
+	/// cut can never read a half-left world (an inline "arm then leave" was read on the machine: the seam found no
+	/// world to cut because the leave had already happened).
 	/// </summary>
 	public bool TakeWorldCutInsteadOfTheNativeSave()
 	{
-		if (!domains.WorldSaves.IsEnabled || WorldGeneration.world == null) // Unity object — ==
+		if (WorldGeneration.world == null) // Unity object — ==
 		{
 			return false;
 		}
 
-		if (!domains.WorldSaves.TryRequestCut(WorldCutReason.MenuReturn, out var refusal))
-		{
-			domains.Log.LogWarning("[LayerChoice] save-and-exit asked for a CUO cut and it was refused: {Reason}", refusal);
-			return false;
-		}
-
-		domains.Log.LogInformation("[LayerChoice] save-and-exit takes a CUO world cut (menu-return) instead of the native save; the native entry is skipped.");
-		if (PlayerCamera.main != null) // Unity object — ==
-		{
-			PlayerCamera.main.ToMainMenu();
-		}
-
+		domains.MenuReturn.Request(domains.Session.Role, RunMenuReturnOrigin.PlayerLeave, inWorld: true);
+		domains.Log.LogInformation("[LayerChoice] save-and-exit records the deferred menu return: the seam takes the CUO cut and then leaves, so the native save is never written.");
 		return true;
 	}
 

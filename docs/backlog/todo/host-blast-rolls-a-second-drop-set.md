@@ -149,3 +149,16 @@ The work this settles, in the order it has to land:
    and the host's own `[ItemSpawned]` line absent for a blast victim whose death the member owns.
 
 Nothing is implemented by this ruling itself; slice 1 is the next code cycle and slices 2–3 follow it.
+
+## Slice 1 landed (2026-10-24, deployed `0.1.0+19881b9d`)
+
+`TrapBuildingHealthScope` — the scope that already saw every entity the host's blast damaged while it still existed —
+now marks each of them as a REMOTE death (`RemoteEntityDeath.Mark`, the same call the support-loss path uses for the
+same reason), which is what the game's own death branch reads before it rolls. So for a member-triggered event the
+host applies the blast, removes the entities and rolls nothing; the member's reported set is the world's only set.
+The scope logs how many it marked (`[TrapBlast] marked N blast victim(s) as remote deaths …`).
+
+**Still owed**: slice 2 (the chain blast replayed inside the scope instead of `MineScript.OnDestroy` running it
+natively outside) and slice 3 (the host-authored report channel for a death only the host's roll produced), plus the
+ticket's three acceptance rows, which need two clients and a mine placed next to a droppable building.
+

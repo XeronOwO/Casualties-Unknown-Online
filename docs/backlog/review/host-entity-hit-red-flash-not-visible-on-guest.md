@@ -1,6 +1,7 @@
 # Host entity hit red flash not visible on guest
 
-- Status: Review
+- Status: Review — batch `20261025-g` could NOT read the presentation row yet, and the missing step is named below rather than
+  guessed at.
 - Priority: Medium
 - Category: Enemy/entity presentation sync
 - Source: User report (2026-09-05) — when the host attacks an entity, the entity has a red flashing/hit effect locally, but the guest cannot see it.
@@ -68,3 +69,20 @@ re-running the host's hit simulation on the guest:
 - Not re-simulating the host's hit/damage on the guest.
 - Not using raw Transform/state snapshots for transient presentation effects.
 - Not changing enemy/entity damage authority or arbitration.
+
+## Batch `20261025-g` — what the reading needs and what stopped it
+
+The reading is the guest's Debug line `[BuildingHitFlash] replayed red hit flash at (…)`, which the replay writes when the
+relay reaches it. This batch built the approach up to the swing and stopped there:
+
+- New probe `tools/acceptance/recipes/entity-attack.cs` finds the nearest live `BuildingEntity` and can stand the body beside
+  it: on the deployed build the host's nearest entity was at `(0, 510)`, 3.38 units away, and `mode=place` moved the body to
+  `(0.6, 510)`. A probe cannot fabricate `Body.Attack(AttackInfo)` — the game struct is the swing — so the attack itself must
+  be the PLAYER's click, which is the path this batch then took.
+- `screen-project` put that entity at screen `(608, 688)` on a 720-high screen, and the real click at that point produced **no
+  hit on either side**: the guest log (level set to Debug first) carries no flash line, and the host log carries no damage
+  line. The point sits at the very bottom edge, inside the HUD strip, so the click most likely never reached the entity — a
+  wrong-point failure, not a failed relay.
+- **The missing step, named**: a click that provably lands on the entity — the entity's own `SpriteRenderer` bounds projected to
+  the screen, or a camera that puts it away from the HUD edge — followed by the host's own hit confirmation (a damage line at
+  Debug). Only then does the guest's replay line mean what this ticket wants it to mean. The ticket stays in `review/`.

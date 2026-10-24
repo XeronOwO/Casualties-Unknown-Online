@@ -273,6 +273,16 @@ internal sealed class OtherMedicalOperationApplier(
 				return false;
 			}
 
+			// The device's own advice: a shock is only delivered to a fibrillating heart. When something else already
+			// restarted the patient (CPR's perfusion crossing its threshold), the quiver is gone and this is the LOSER of
+			// the shared trigger — refused before it burns skin or halves a pressure the body just rebuilt.
+			var target = _access.GetCharacterData(session.Target);
+			if (target?.Health is not { } shockHealth
+				|| !AedShockPolicy.IsShockAdvised(shockHealth.FibrillationProgress, shockHealth.FibrillationForced))
+			{
+				return false;
+			}
+
 			newItem.Condition = Math.Max(0f, newItem.Condition - 0.14f);
 			session.AedShockApplied = true;
 			ApplyDefibrillation(session, chance: 1f);

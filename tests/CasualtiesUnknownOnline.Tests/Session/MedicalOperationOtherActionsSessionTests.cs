@@ -411,6 +411,46 @@ public sealed class MedicalOperationOtherActionsSessionTests
 	}
 
 	[Fact]
+	public void Aed_AShockOnACalmHeartIsRefused_AndThePatientIsNotBurned()
+	{
+		// Stage 3's second half: the shared trigger's LOSER. CPR restarted the heart, so the quiver is gone; the AED's own
+		// advice is "no shock advised", and the refusal must leave the patient untouched — no skin burn, no pressure
+		// halved — instead of discharging into a heart that no longer needs it.
+		var (host, guest) = CreatePair();
+		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, true, Item(91, "aed")));
+		var targetData = SnapshotWithLimbs(Guest1Id, true, Limb(0), Limb(1), Limb(2));
+		targetData.Health!.FibrillationProgress = 0f;
+		targetData.Health.HeartRate = 80f;
+		targetData.Health.BloodPressure = 110f;
+		characters.SaveCharacterData(Guest1Id, targetData);
+		PlayerInteractionTestSession.SeedOwnBody(guest, targetData);
+		MarkInWorld(host);
+		MarkInWorld(guest);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var gOps = Ops(host);
+		gOps.StartAckReceived += m => ack = m;
+		gOps.SendOtherStartRequest(Guest1Id, 91, 1, MedicalOperationKind.Aed);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+
+		var beforeLimb = characters.GetSavedCharacter(Guest1Id)!.Limbs.Single(l => l.Index == 1).SkinHealth;
+		gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Stage, value1: 0f);
+		gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Stage, value1: 1f);
+		gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Shock);
+
+		var after = characters.GetSavedCharacter(Guest1Id)!;
+		Assert.Equal(110f, after.Health!.BloodPressure, 3);
+		Assert.Equal(beforeLimb, after.Limbs.Single(l => l.Index == 1).SkinHealth, 3);
+
+		// The two analysis stages legitimately drain their 0.03 together; a DISCHARGE would take 0.14 off the same item, so
+		// the battery is what tells a refused shock from a delivered one.
+		var condition = characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 91).Condition;
+		Assert.True(condition > 0.96f, $"a refused shock must not discharge the battery, read {condition}");
+	}
+
+	[Fact]
 	public void ManualDefib_ShockCommitsChargeAndResult()
 	{
 		var (host, guest) = CreatePair();

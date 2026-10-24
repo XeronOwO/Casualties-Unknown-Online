@@ -46,6 +46,10 @@ internal sealed class CprApplier(PlayerCharacterAccess access)
 		if (health.HeartRate >= 20f)
 		{
 			// `Body.inCardiacArrest` is heartRate < 20: above it the heart is beating and compressions are not the care.
+			// The heart restarting ENDS this CPR's accumulation, whichever procedure caused it (an AED clearing the quiver,
+			// or this very rhythm in an earlier compression), so the banked progress is dropped here: a later re-arrest
+			// must earn its restart again instead of spending perfusion nobody built.
+			session.Progress = 0f;
 			return false;
 		}
 

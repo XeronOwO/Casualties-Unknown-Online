@@ -236,3 +236,12 @@ before" flag did not survive this cut. That is NOT yet the row's verdict: the ro
 i.e. after a save that contains it, while this cut was taken with no save after the craft — and the reading raises the prior
 question of whether `leave-world` writes a run save at all. The next attempt must (a) establish that the cut really contains the
 craft (a save after it, or a layer-end save), and only then (b) read the flag/unlock after the continue.
+
+**(a) answered in the same batch: the cut DOES exist and DOES carry the character.** The save archive under
+`AppData\LocalLow\Orsoniks\CasualtiesUnknown\cuo\saves` gained `mid-run-20261024-190649.cuoz` (28 627 bytes, written `03:06:49`,
+i.e. by that `leave-world`), so the cut was taken AFTER the craft. And after the `continue-run` the host's carried set read back
+as **`funguschunk`, `craftingbottle`, `emergencylight` ×2** — the items granted before the cut survived it. So the cut carries the
+character, and yet the same read answered `hasMadeBefore=false`. That narrows row 2 to a factual line rather than a fixture
+question: **inventory state persists across a mid-run cut, the recipe's "made before" flag does not.** Whether that flag is a
+field CUO must persist (the ticket's subject) or a native behaviour the game never saves is the decision the row now needs, and it
+is not one this batch can take.

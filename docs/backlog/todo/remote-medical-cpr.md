@@ -259,4 +259,3 @@ refused by the client's evaluator as `(1,1): InteractiveHost` in three versions 
 so the refusal is about what that compile unit may reference, not the math. The recipe was removed rather than left
 broken; the next attempt should either (a) read the existing `cuo-ui-dump` recipe's reference set and re-add the
 projection with exactly those references, or (b) have a player click the teammate's body in a guided batch.
-

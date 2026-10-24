@@ -341,7 +341,7 @@ docs/evidence/acceptance/heal-reset-does-not-restore-host-owned-vitals-20261018-
 docs/evidence/acceptance/member-report-bounds-trader-give-20261018-z.md | keep | claim | docs/backlog/done/member-report-bounds.md
 docs/backlog/done/heal-reset-does-not-restore-host-owned-vitals.md | keep | index | docs/backlog/README.md
 docs/backlog/done/validation-and-source-checks.md | keep | index | docs/backlog/README.md
-docs/backlog/review/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
+docs/backlog/done/launch-intro-cover-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-change-member-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-change-menu-round-trip.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md

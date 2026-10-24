@@ -1,8 +1,8 @@
 # The intro cover: who skips it, and when
 
-- Status: Review — one named decision with the player's own live preference (default off) and the join rule
-  stated in it (2026-10-24, deployed `0.1.0+c7a2f1fb`), and all four launch paths plus the join row read from a
-  single deployed artifact (the batch section below). No code is left.
+- Status: Done — closed 2026-10-25 on batch `20261024-in`: one named decision with the player's own live preference
+  (default off) and the join rule stated in it (deployed `0.1.0+c7a2f1fb`), and all four launch paths plus the join row
+  read from a single deployed artifact (the batch section below). No code is left.
 - Priority: Low
 - Category: Presentation / join flow
 - Source: the user's 2026-10-07 backlog request. Reported behaviour: launching the game through Steam's
@@ -17,6 +17,14 @@
   (the intent the shell declares), `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (the
   `_skipIntro` static behind it), `review/plugin-host-shell.md` (the stage that wants that intent on a port),
   `docs/en/reference/configuration.md`
+
+## Run sheet (cycle 2026-10-25: close the ticket)
+
+- [x] Every acceptance row is judged: batch `20261024-in` reads the four launch paths plus the join row from one deployed artifact, and no code is left.
+- [x] File moved `review/` → `done/`, `Status` says `Done` with the evidence it rests on.
+- [x] Index row moved into the Done section, inside the row budget, its priority agreeing with the ticket.
+- [x] Document census row points at the `done/` path.
+- [x] Every inbound reference re-pointed; gates green; one commit.
 
 ## What is observed
 

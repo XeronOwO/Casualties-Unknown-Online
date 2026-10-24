@@ -110,6 +110,11 @@ not the goal.
   baseline, bumped per wire change from the first official release on
   (`docs/decisions/active.md` holds the numbering policy). "No wire change" and "host untouched" are
   facts worth recording, never merits or constraints in a design argument.
+- `[CRITICAL]` **A recommendation never trades correctness for a quiet wire.** When the right behaviour needs a
+  message, a field or a new verb, that IS the recommendation — offering "record the hole and change no protocol" as
+  the conservative option is the defect wearing caution's clothes, and the user has rejected exactly that
+  recommendation (2026-10-24, a host-only death whose drops would have stayed unsynchronised). The cost of a wire
+  change here is a number that follows the change; the cost of a named hole is shipped wrong behaviour.
 - `[RULE]` Self-review happens before hand-off, not after review.
 - `[CRITICAL]` **A normal gameplay flow is never shipped as a console command.** The console is a diagnostic and
   administration surface; when the player's own screen is where the action belongs, it lives there — a rule the

@@ -109,5 +109,44 @@ the world's item facts:
 
 The host-only-death case needs one word too: when the host's own damage roll kills a victim the member's blast
 did not, option 1 leaves the host's roll as the only set (no report exists) — accept that named hole, or add a
-host-authored report channel. Recommendation: option 1 + the named host-only case. No code is started because
-the rule is the user's call.
+host-authored report channel.
+
+> **The recommendation this ticket first carried was wrong, and the user called it out (2026-10-24).** It proposed
+> "option 1 plus the named host-only case", i.e. it traded the correct behaviour for not touching the wire. The
+> repository's own rule says compatibility is never a design input and the protocol number simply follows the
+> change, so the host-authored report channel is the recommendation the ticket should have carried: a known hole is
+> never cheaper than a message. The ruling below is the corrected one.
+
+
+## The ruling (user, 2026-10-24): the side that set it off owns the death, and the host reports its own
+
+Asked in plain terms (a member sets off a mine, the blast shatters a crate that drops items, and each machine rolls
+its own set), the user chose:
+
+1. **The side whose blast happened decides what the destroyed thing drops**; the other side only removes the entity
+   and never rolls its own set. That is decision 184/265's own rule ("the side that observed the death rolls"), and
+   it is what kills the duplicate this ticket is about.
+2. **The host also reports its own rolls.** The damage roll is per-side and unseeded, so a victim can die only on
+   the host's copy; that set must reach the members instead of being a named hole, which means a host-authored
+   report channel rather than "the host's roll stays and the duplicate is accepted".
+
+The work this settles, in the order it has to land:
+
+1. **The direct blast's victims are marked as remote deaths on the non-owner side.** `TrapBuildingHealthScope`
+   already sees every entity the host's blast damaged while it still exists, and the support-loss path marks in the
+   same capture (`WorldBuildingEntitySync.MarkSupportLossRemote`), so the mark belongs there: a member-triggered
+   event's blast victims stop rolling on the host, and the member's reported set is the world's only set.
+2. **The chain case.** A chained mine the blast destroys is marked, so its `Update` stops rolling, but its
+   `OnDestroy` still calls `WorldGeneration.CreateExplosion` natively OUTSIDE the apply scope
+   (`MineScript.cs:14-23`), so the second blast's victims are neither captured nor marked. The host's applier must
+   replay a chain blast inside the same scope instead of letting `OnDestroy` run it, which is the seam this ticket
+   said it owed.
+3. **The host's own report channel.** When the host's damage roll kills a victim no member reported (a host-only
+   death), the host publishes that death's set so both sides agree. That is a new host→member message, and its
+   member-report census row (`docs/architecture/member-report-validation.md`) follows with it: the set is authored
+   by the host, so the receiving side treats it as a fact from the authority rather than a claim to bound.
+4. **Acceptance** stays the ticket's own rows: one set per death for the direct blast, one per death for the chain,
+   and the host's own `[ItemSpawned]` line absent for a blast victim whose death the member owns.
+
+Nothing is implemented by this ruling itself; slice 1 is the next code cycle and slices 2–3 follow it.
+

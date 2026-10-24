@@ -68,3 +68,29 @@ teammate's limb through the remote wound view behaves as the design decides (no 
 minigame, a named outcome); a `waterbottle` holding a health-usable liquid released the same way
 applies it topically to the named limb when that is the decided behaviour. Until the design is chosen,
 the shape stays refused as recorded in `topical-live-stack-family-order`'s `Limits`.
+
+## The classifier's half landed (2026-10-24, deployed `0.1.0+4fd97273`)
+
+The two WRONG BRANCHES this ticket recorded are gone, and the answer now comes from the fact the ticket named
+instead of the flag:
+
+- `ILimbUseSemantics.AppliesToLimbTopically` (answered by `GameLimbUseFacts` from the item's data plus, where a
+  delegate exists, that delegate's COMPILED BODY through the shared `UseActionInstructions` reader): true when the
+  body calls `WaterContainerItem.ApplyToLimb` — the four vanilla limb actions that do are `paincream`, `woundglue`,
+  `disinfectant` and `spraybottle` (`Item.cs:652`, `:676`, `:2101`, `:2125`) — or when the item has no limb action at
+  all and `PlayerCamera.ApplyWoundItem` falls to its container branch (`waterbottle`).
+- `TopicalAdmission` reads it, so **a syringe container holding a health-usable liquid is no longer admitted**
+  (its delegate starts the syringe minigame / calls `Inject`), and **a container with `usableOnLimb = false` now
+  is** — the native topical branch the medical gate used to refuse.
+- The family classifier no longer falls through to the DRINK family on the limb entry for a container whose release
+  runs a limb action: the drink rule models the item's use action, which `ApplyWoundItem` never runs for a
+  `usableOnLimb` container. A limb release of a saline bag is therefore claimed by no family, which is the honest
+  classification and makes the host refuse it by name instead of measuring a dose it would never commit.
+- Cases: the syringe refusal (with a health-usable liquid), the waterbottle acceptance, the non-container refusal,
+  and the corrected classifier row; two earlier tests that pinned the defect now pin the fix.
+
+**What is still open (the user's call, unchanged)**: what a syringe container holding only a health-usable liquid
+SHOULD do when released on a teammate's limb — run the native injection faithfully, refuse it by name, or apply it
+topically. The classifier now says "no family", so nothing claims it and the host refuses; that is the state this
+change lands, not the final design.
+

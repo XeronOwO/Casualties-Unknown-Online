@@ -58,7 +58,31 @@
 		return "{\"ok\":true,\"mode\":\"list\",\"craftable\":" + craftable.ToString(inv)
 			+ ",\"materials\":[" + sb.ToString() + "]}";
 	}
-	if (mode != "make") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be list or make\"}"; }
+	if (mode == "materials") {
+		// What ONE recipe needs, by the ingredient's own declaration: a SPECIFIC recipe item names its type (`specificId`), which
+		// is exactly what `item-provide type=` can grant; a non-specific one matches a category instead and cannot be granted by
+		// name, so it is reported as such rather than guessed at.
+		if (index < 0 || index >= recipes.Count || recipes[index] == null) {
+			return "{\"ok\":false,\"error\":\"bad-index\",\"detail\":\"" + index.ToString(inv) + "\"}";
+		}
+		var recipe = recipes[index];
+		var ingredients = new System.Text.StringBuilder();
+		var specificCount = 0;
+		var totalCount = recipe.items != null ? recipe.items.Count : 0;
+		for (var i = 0; i < totalCount; i++) {
+			var ingredient = recipe.items[i];
+			if (i > 0) { ingredients.Append(","); }
+			ingredients.Append("{\"specific\":").Append(ingredient.specific ? "true" : "false");
+			ingredients.Append(",\"id\":\"").Append(ingredient.specificId == null ? "" : ingredient.specificId).Append("\"");
+			ingredients.Append(",\"liquid\":").Append(ingredient.isLiquid ? "true" : "false").Append("}");
+			if (ingredient.specific) { specificCount++; }
+		}
+		return "{\"ok\":true,\"mode\":\"materials\",\"index\":" + index.ToString(inv)
+			+ ",\"name\":\"" + (recipe.simpleName == null ? "" : recipe.simpleName.Replace("\"", "'")) + "\""
+			+ ",\"total\":" + totalCount.ToString(inv) + ",\"specific\":" + specificCount.ToString(inv)
+			+ ",\"ingredients\":[" + ingredients.ToString() + "]}";
+	}
+	if (mode != "make") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be list, materials or make\"}"; }
 	if (index < 0 || index >= recipes.Count) {
 		return "{\"ok\":false,\"error\":\"bad-index\",\"detail\":\"index must name a recipe in Recipes.recipes (0.." + (recipes.Count - 1).ToString(inv) + ")\"}";
 	}

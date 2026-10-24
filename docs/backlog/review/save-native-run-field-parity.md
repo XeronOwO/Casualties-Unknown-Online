@@ -191,3 +191,11 @@ the chain: `craft-drive mode=list` answered **`craftable=0`** on the host — no
 `mode=list` reports only that count, not a per-index material list, so the batch could not name the materials to grant. Row 2's
 next step is therefore a materials grant (`item-provide type=<material>` per ingredient) or a probe mode that reports a recipe's
 ingredients, and only then the craft → `leave-world` → `continue-run` → `recipe-unlock-read` sequence.
+
+**Batch `20261025-o` — the material report exists now; the body's slots are the next wall.** `craft-drive` gained
+`mode=materials,index=N`, which reads the recipe's own `items` list and reports each ingredient's declaration (recipe 1 answered
+`total=3, specific=3`: `funguschunk`, `funguschunk`, `biochem` liquid). The grant then failed on the body, not on the recipe:
+`item-provide type=funguschunk mode=create` answered **`no-free-slot` ("every body slot is occupied or unusable")**, and
+`mode=drop type=trashbag` answered **`not-carried`** because the host does not hold one (the trashbags this session created went
+to the guest). So the fixture's next step is the HOST's slot state — free a slot with an item the host actually carries — and only
+then the grant, the craft, the leave/continue pair and the unlock read.

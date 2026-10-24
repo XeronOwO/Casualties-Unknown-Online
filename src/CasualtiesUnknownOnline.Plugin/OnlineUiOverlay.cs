@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
+using CasualtiesUnknownOnline.Runtime.World;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -464,7 +465,7 @@ internal sealed class OnlineUiOverlay
 				x,
 				y,
 				ctx.DisplayName(remote.SteamId),
-				ctx.F("hud.distance", Mathf.RoundToInt(distance)),
+				ctx.F("hud.distance", Mathf.RoundToInt(WorldUnits.ToMeters(distance))),
 				ToRgba(ctx.PlayerColor(remote.SteamId))));
 		}
 	}

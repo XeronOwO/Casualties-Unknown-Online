@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -26,27 +27,25 @@ internal static class OnlineUiKeyboardFacts
 	/// </summary>
 	internal static bool IsTheGameUsingTheKeyboard()
 	{
-		if (ConsoleScript.instance != null && ConsoleScript.instance.active) // Unity object — ==
-		{
-			return true;
-		}
-
-		// The settings menu's key-bind capture takes a raw key with NO text field and NO console open: the row's
-		// button starts a coroutine that binds the first key it sees pressed (SettingsMenu.cs:196-213), and that
-		// state is invisible to both checks below — the opener's own defect: pressing Enter to BIND Enter also
-		// opened the CUO console. The capture has no field of its own, but it is the ONLY writer of the "..." text
-		// (SettingsMenu.cs:198, one occurrence in the whole file) and it writes it into the settings row that is
-		// waiting, so an open settings menu carrying that text IS the capture. The read is bounded to the key
-		// presses that ask (the opener's edge), not to a per-frame scan.
-		if (IsAKeybindCaptureWaiting())
-		{
-			return true;
-		}
-
+		var consoleOpen = ConsoleScript.instance != null && ConsoleScript.instance.active; // Unity object — ==
 		var selected = EventSystem.current == null ? null : EventSystem.current.currentSelectedGameObject;
-		return selected != null // Unity object — ==
-			&& selected.activeInHierarchy
-			&& (selected.GetComponent<TMP_InputField>() != null || selected.GetComponent<InputField>() != null);
+		var focusIsLiveControl = selected != null && selected.activeInHierarchy; // Unity object — ==
+
+		// CUO's own console is drawn with IMGUI (it reads Event.current), so it never owns an EventSystem selection:
+		// its command box cannot be the focused control today, and the flag stays false until a CUO surface uses a
+		// real input field. The rule itself is Runtime's (NativeKeyboardOwnership), so the three states are cases.
+		if (NativeKeyboardOwnership.GameOwnsTheKeyboard(consoleOpen, focusIsLiveControl, focusIsCuoCommandBox: false))
+		{
+			return true;
+		}
+
+		// The settings menu's key-bind capture waits for a key with NO field and NO console open: the row's button
+		// starts a coroutine that binds the first key it sees pressed (SettingsMenu.cs:196-213). Its own click leaves
+		// that button selected, which the focus rule above already covers — but the selection can MOVE away (a click
+		// on empty space) while the coroutine keeps waiting, so the capture's own marker stays the second arm: it is
+		// the ONLY writer of the "..." text (SettingsMenu.cs:198, one occurrence in that file) and it writes it into
+		// the waiting row. The read is bounded to the opener's own key edge, not a per-frame scene scan.
+		return IsAKeybindCaptureWaiting();
 	}
 
 	/// <summary>

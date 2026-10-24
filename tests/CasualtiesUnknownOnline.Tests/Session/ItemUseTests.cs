@@ -324,6 +324,45 @@ public class ItemUseTests
 	}
 
 	[Fact]
+	public void Use_TopicalOnAnUnconsciousTarget_IsAccepted()
+	{
+		// The user's 2026-10-24 finding: treating an UNCONSCIOUS teammate is what the medical families are for, so the
+		// target's consciousness must not be the gate (the operator's is). A topical applied to an unconscious body is
+		// accepted, measured and committed like any other.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		var cream = TopicalBottle(42, "paincream", "reliefcream", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, cream));
+		items.AdoptTransferredItem(GuestId, 42, cream);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, targetLimbIndex: 0, doseMl: 10f);
+
+		var result = UseResult(received);
+		Assert.Equal(0, result.LimbIndex);
+		Assert.Single(result.AppliedDose);
+	}
+
+	[Fact]
+	public void Use_ADrinkOnAnUnconsciousTarget_IsRefused()
+	{
+		// The other half of the same rule: a body that cannot swallow cannot drink, so the family that CONSUMES the
+		// item keeps the conscious requirement.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, WaterBottle(42)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
 	public void Use_DeadTarget_IsRefused()
 	{
 		var (host, guest, received) = CreateSession();

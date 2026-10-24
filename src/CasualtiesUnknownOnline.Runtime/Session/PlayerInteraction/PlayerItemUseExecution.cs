@@ -91,12 +91,6 @@ internal sealed class PlayerItemUseExecution(
 			return false;
 		}
 
-		if (targetData.Health is not { } targetHealth || !targetHealth.Conscious || !targetHealth.Alive)
-		{
-			_log.LogInformation("[ItemUse] refused: {Target} is not conscious/alive and cannot receive a consumable.", target);
-			return false;
-		}
-
 		CharacterItemMsg? originalItem;
 		if (itemInstanceId != 0)
 		{
@@ -146,6 +140,23 @@ internal sealed class PlayerItemUseExecution(
 			}
 
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or is not a family this {Entry} gesture carries.", originalItem.ItemId, originalItem.InstanceId, entry);
+			return false;
+		}
+
+		// The TARGET's gate, asked AFTER the family is known because the rule is the family's: a body must be alive to
+		// receive anything, and only the two families where the TARGET consumes the item (drink, eat) need it
+		// conscious. Bandaging, splinting, injecting and applying a topical are exactly what an UNCONSCIOUS teammate
+		// needs, so the old blanket "the target must be conscious" refused the case the medical gesture exists for
+		// (the user's 2026-10-24 finding: the native gate it was copied from tests the LOCAL body, i.e. the actor).
+		if (targetData.Health is not { } targetHealth || !targetHealth.Alive)
+		{
+			_log.LogInformation("[ItemUse] refused: {Target} is not alive and cannot receive an item.", target);
+			return false;
+		}
+
+		if (ItemUseTargetPolicy.RequiresAConsciousTarget(family) && !targetHealth.Conscious)
+		{
+			_log.LogInformation("[ItemUse] refused: {Target} is unconscious and cannot {Family} an item.", target, family);
 			return false;
 		}
 

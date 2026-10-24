@@ -176,3 +176,10 @@ radius 10**. Two empty destructions in a row point at the ticket's own wording r
 "support-loss building drops ride `BlockDamagedMsg.BuildingDrops`", i.e. a building drops when it loses SUPPORT, not when its health
 is zeroed directly. The fixture therefore has to break the supporting block under a building and read the drop that follows, not
 destroy the building itself — and the fresh-guest half starts only after a drop exists.
+
+**Same batch, the support half, and where it actually is.** `building-support-cells` answered for the whole layer (`total=1873`,
+`requireGround=1329`, 45 multi-building cells), and NONE of those support cells lies within 40 blocks of the pod area the clients
+stand in (`x` in ±40, `y` in 440–560 → **0 matches**); the listed cells are elsewhere on the layer (`508,412`, `927,176`,
+`884,952`, `709,265` …). So the pod's own props are not `requireGround` buildings, and staging a support-loss drop means reaching
+one of those buildings — travel or a placement this station cannot do reliably. That is the fixture's real blocker, one level
+earlier than the fresh-guest half and two levels earlier than the projection problem.

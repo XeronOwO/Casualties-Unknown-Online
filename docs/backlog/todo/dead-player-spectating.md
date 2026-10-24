@@ -300,6 +300,17 @@ the host's follow line rather than the corpse's own state.
   what the notice path sets, and the next attempt logs the HUD model's own state (`elapsed`, message length) at
   build time instead of adding more dependencies.
 
+**The HUD build never sees the notice (2026-10-24, `0.1.0+8cdbebd0`), and that points at a second overlay host.**
+The HUD now logs every message it actually hands to the label. On the watched member's client the drain logged
+`[OnlineUi] status line: 萧稔 is watching you` at 14:01:19.412 and **no `[OnlineUi] status shown (…)` line followed**,
+while the RTT label kept updating (so `BuildNetworkHud` ran every frame and never carried a status). Every other
+fact is already proven, and the only shape consistent with all of them is **two overlay hosts sharing one notice
+slot**: whichever host's drain runs first consumes the publish — the probe's own publish was consumed by the host
+that draws (its line appeared), the notice's by the other (its line never reached a drawing host). The next step is
+to find the second construction: log `RuntimeHelpers.GetHashCode(this)` in the `OnlineUiHost` constructor, launch
+once, and read how many "host built" lines exist and with which hashes.
+
+
 
 
 

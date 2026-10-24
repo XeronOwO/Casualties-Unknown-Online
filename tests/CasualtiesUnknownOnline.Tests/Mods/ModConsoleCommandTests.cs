@@ -48,6 +48,21 @@ public class ModConsoleCommandTests
 	}
 
 	[Fact]
+	public void ModConsoleCommand_Refusal_RendersAsAnErrorLine()
+	{
+		// The contract's point, from a mod's side: a handler that answers ConsoleAnswer.Refused prints with the
+		// console's error kind, so a refusal can never wear the success colour.
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var mod = CommandMod(host);
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/crefuse"));
+
+		Assert.Contains(console.Lines,
+			l => l.Kind == ConsoleLineKind.Error && l.Text == "refused by the test mod");
+	}
+
+	[Fact]
 	public void ModConsoleCommand_MetadataIsAvailableToConsoleSurface()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);

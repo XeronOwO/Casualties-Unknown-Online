@@ -40,6 +40,11 @@ public sealed class TestCommandMod : ICuoMod
 		context.ConsoleCommands.Register(new ModConsoleCommand(
 			"cresource", "Local resource-location echo", "/cresource <location>", CommandPermission.Anyone,
 			[CommandArgumentKind.ResourceLocation], ConsoleResource));
+		// A mod command that REFUSES: the console must print its answer with the error kind, which is what the
+		// typed-result contract exists for (a mod cannot forget to mark a refusal).
+		context.ConsoleCommands.Register(new ModConsoleCommand(
+			"crefuse", "Local console refusal", "/crefuse", CommandPermission.Anyone,
+			[], _ => ConsoleAnswer.Refused("refused by the test mod")));
 	}
 
 	public void Initialize()

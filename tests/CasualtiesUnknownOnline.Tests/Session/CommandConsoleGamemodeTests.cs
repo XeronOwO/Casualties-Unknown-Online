@@ -27,6 +27,22 @@ public class CommandConsoleGamemodeTests
 	}
 
 	[Fact]
+	public void Gamemode_RefusalAndSuccess_CarryTheirOwnKinds()
+	{
+		// The ticket's acceptance bar: a refusal must be readable as one, not only by its words. The unknown mode is
+		// the refusal; the successful switch that follows is the success, and both are asserted by KIND.
+		var stub = new StubSpectator();
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations: services => Register(services, stub));
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/gamemode nonsense"));
+		Assert.Contains(console.Lines, l => l.Kind == ConsoleLineKind.Error && l.Text.Contains("Unknown mode"));
+
+		Assert.True(console.TryExecute("/gamemode spectator"));
+		Assert.Contains(console.Lines, l => l.Kind == ConsoleLineKind.Success && l.Text.Contains("Spectator mode on"));
+	}
+
+	[Fact]
 	public void Gamemode_Spectator_EntersTheModeAndSaysHowToWatch()
 	{
 		var stub = new StubSpectator();

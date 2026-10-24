@@ -48,3 +48,19 @@ shown alone).
 - When the remote player is visible and valid, the expected context actions
   appear together; no option is missing due to the same gating bug.
 - Existing remote medical/backpack/interaction tests and repo gates stay green.
+
+## Batch `20261025-f` — the VISIBLE half is read, the invisible half is not
+
+The production menu is now openable from a probe (`tools/acceptance/recipes/open-context-menu.cs`: it walks plugin object →
+`PluginHost` component → the plain-class `OnlineUiHost` its fields hold → `OnlineUiOverlay` → `_contextMenu`, then calls the real
+`Open(steamId, candidates, guiPosition)`), and a frame reads what the player would see
+(`tools/acceptance/recipes/capture-frame.cs`).
+
+- **Visible target: PASS.** With the guest in sight at the spawn, the menu opened for its steam id and the host's frame shows
+  the title `Kagoya（小…` (clipped — the separate clipping decision) with **医疗 / 打开背包 / 骑背 / 背起 / 推**: Medical is
+  offered TOGETHER with every other remote action, which is the criterion's second row. Deployed build `0.1.0+7605a140`.
+- **Invisible target: NOT READ.** Making the target invisible needs a working way to move a member out of sight on demand; this
+  batch's `move-drive` calls answered `ok=` empty (its argument contract was not satisfied), so the "not visible ⇒ no Medical"
+  row has no reading yet. The missing capability is named rather than guessed at: a driven move (or a forced body position) that
+  puts the member outside the host's sight, after which the same `open-context-menu` + frame pair reads the row. The ticket
+  stays in `review/`.

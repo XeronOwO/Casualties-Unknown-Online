@@ -502,6 +502,23 @@ body. The patch's own header says the world's ambience rides other call sites an
 hears the ambience but not the people they are watching. Whether a pure observer should hear other players' sounds is
 a user-visible design call, so it is asked rather than decided here.
 
+**The user's ruling on that question: hear the other players and the world (2026-10-24).** The silence patch now refuses
+only a play OUTSIDE the `RemoteApply` scope — the watcher's own body — and lets a replayed sound from another member
+through, which is how the character-sound channel carries the observed players' footsteps, speech and actions. The gate
+counts what it lets through (`WorldSoundsHeard`) and the mirror line prints the count (`worldSounds=`), so a later
+reading can prove the world is audible instead of trusting it. Landed in `0.1.0+4b163bbd`.
+
+**The user's target restated (2026-10-24): "looks like I am playing, only the operator is someone else".** That turns
+the strip and the mirrored effects into scaffolding around the real goal, which is the game's OWN HUD presenting the
+watched player. The first step landed in `0.1.0+01f19ee3`: `MoodleManager` takes its body once in `Start` into a
+private field and every condition icon reads it, so a prefix on its `Update` points that field at the followed clone
+while a watch is active (`MoodleManagerSpectatorBodyPatch`, reflected once and cached; the manager's own writes land on
+the clone). The reading, one session with before/after frames: watching a healthy member shows the watcher's icon row
+unchanged, and the moment the watched member's brain health is held at 20 the HUD's bottom-left row gains that
+member's condition icon while the strip reads `脑 20 · 体力 100 · 饥饿 90` — the native status icons are now the
+watched player's, not the watcher's.
+
+
 
 
 

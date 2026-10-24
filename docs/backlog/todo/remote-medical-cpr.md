@@ -368,4 +368,3 @@ Still open on the operator's side:
 - **Intelligence**: `INT < 12` makes the operator's SCREEN harder rather than refusing — a presentation rule this ticket
   would need to design (what "harder" shows).
 - **Costs**: stamina and a little temperature per press, and a rib-break roll that scales strength against intelligence.
-

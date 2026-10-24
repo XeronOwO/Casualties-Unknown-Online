@@ -45,6 +45,8 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 	private ulong _operationId;
 	private float _lastPressSeconds;
 	private float _lastBreathSeconds;
+	private CprRhythmVerdict _verdict;
+	private float _verdictUntil;
 	private bool _subscribed;
 
 	/// <summary>Subscribe once, on the first frame the panel is maintained with a focus open.</summary>
@@ -97,13 +99,40 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 		if (_label != null) // Unity object — ==
 		{
 			_label.text = state == CprButtonState.Compress
-				? _domains.Localization.T("medical.cpr_compress")
+				? CompressionLabel()
 				: _domains.Localization.T("medical.cpr_start");
 		}
 
 		// The breath is only offered while this client's own session runs: before that there is nothing to ventilate on
 		// (the start covers both channels), and after it ends the panel's control hides the same way.
 		_breath?.SetActive(state == CprButtonState.Compress);
+	}
+
+	/// <summary>
+	/// The compressions control's own label: the rhythm verdict while it is fresh, otherwise the guide. The guide is the
+	/// reference's "clear screen" (a full sentence for an operator who can read the rhythm) versus the bare word a
+	/// low-intelligence operator keeps — the same split the reference draws with its guide text.
+	/// </summary>
+	private string CompressionLabel()
+	{
+		if (_verdict != CprRhythmVerdict.None && Time.unscaledTime < _verdictUntil)
+		{
+			return _verdict switch
+			{
+				CprRhythmVerdict.Good => _domains.Localization.T("medical.cpr_rhythm_good"),
+				CprRhythmVerdict.TooFast => _domains.Localization.T("medical.cpr_rhythm_fast"),
+				_ => _domains.Localization.T("medical.cpr_rhythm_slow"),
+			};
+		}
+
+		return _domains.Localization.T(CanReadTheRhythm() ? "medical.cpr_guide" : "medical.cpr_guide_simple");
+	}
+
+	/// <summary>Whether this operator's intelligence clears the reference's `SMART_INT_REQUIREMENT`.</summary>
+	private bool CanReadTheRhythm()
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		return body == null || body.skills.INT >= CprRhythmPolicy.SmartIntRequirement; // Unity object — ==
 	}
 
 	/// <summary>The focus closed: the controls go with it, and the session state is forgotten (the host ends the operation).</summary>
@@ -227,7 +256,18 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 		PayForThePress();
 		_lastPressSeconds = Time.unscaledTime;
 		operations.SendOtherUpdate(_operationId, MedicalOperationUpdateAction.Compress, interval);
-		_domains.Log.LogInformation("[Cpr] compression {Interval:F2}s sent to operation {Operation}.", interval, _operationId);
+
+		// The rhythm's verdict is the operator's own feedback: everyone sees a miss, only an operator above the reference's
+		// intelligence line sees the affirmation (the low-intelligence "harder screen" is entirely this).
+		var verdict = CprRhythmPolicy.JudgePress(interval);
+		var intelligence = PlayerCamera.main != null && PlayerCamera.main.body != null // Unity objects — ==
+			? PlayerCamera.main.body.skills.INT
+			: CprRhythmPolicy.SmartIntRequirement;
+		_verdict = CprRhythmPolicy.ShowsTheVerdict(verdict, intelligence) ? verdict : CprRhythmVerdict.None;
+		_verdictUntil = Time.unscaledTime + 1f;
+
+		_domains.Log.LogInformation("[Cpr] compression {Interval:F2}s sent to operation {Operation}; verdict {Verdict} at INT {Intelligence}.",
+			interval, _operationId, _verdict, intelligence);
 	}
 
 	/// <summary>

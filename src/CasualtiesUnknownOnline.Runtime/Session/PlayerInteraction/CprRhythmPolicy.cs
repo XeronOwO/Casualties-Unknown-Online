@@ -142,6 +142,13 @@ public static class CprRhythmPolicy
 	}
 
 	/// <summary>
+	/// The oxygen ceiling this patient's own body allows: the game's circulation rule clamps oxygen at
+	/// `100 - hemothorax * 0.3` (`Body.HandleCirculation`'s own chest-wound cap), so a ventilation cannot promise more
+	/// than an open chest would let the blood carry.
+	/// </summary>
+	public static float OxygenCeilingFor(float hemothoraxProgress) => Math.Max(0f, 100f - (hemothoraxProgress * 0.3f));
+
+	/// <summary>
 	/// The game's own blood-volume fraction for the synced `BloodVolume` field: `Body.bloodVolumePercentage` is
 	/// `0.5f + bloodVolume / 200f`, so a full body (volume 100) reads 1 and an empty one reads 0.5.
 	/// </summary>
@@ -155,11 +162,38 @@ public static class CprRhythmPolicy
 	public const float PerfusingHeartRate = 40f;
 
 	/// <summary>
-	/// The oxygen ceiling this patient's own body allows: the game's circulation rule clamps oxygen at
-	/// `100 - hemothorax * 0.3` (`Body.HandleCirculation`'s own chest-wound cap), so a ventilation cannot promise more
-	/// than an open chest would let the blood carry.
+	/// The verdict for one press, in the same terms the band already scores it: inside the band is Good, below the fast edge
+	/// is TooFast (a shove), past the slow edge is TooSlow (nothing). The operator's screen reads this, which is why it is
+	/// derived from the SAME two edges rather than from a second set of numbers.
 	/// </summary>
-	public static float OxygenCeilingFor(float hemothoraxProgress) => Math.Max(0f, 100f - (hemothoraxProgress * 0.3f));
+	public static CprRhythmVerdict JudgePress(float intervalSeconds)
+	{
+		if (intervalSeconds <= 0f)
+		{
+			return CprRhythmVerdict.TooFast;
+		}
+
+		if (intervalSeconds < FastestInterval)
+		{
+			return CprRhythmVerdict.TooFast;
+		}
+
+		return intervalSeconds > SlowestInterval ? CprRhythmVerdict.TooSlow : CprRhythmVerdict.Good;
+	}
+
+	/// <summary>
+	/// The intelligence the reference sets for a clear screen (`SMART_INT_REQUIREMENT = 12`): an operator below it keeps the
+	/// miss feedback and loses the affirmation and the detailed guide, which is its "harder screen".
+	/// </summary>
+	public const float SmartIntRequirement = 12f;
+
+	/// <summary>
+	/// Whether this verdict is shown to this operator: a low-intelligence operator never sees <see cref="CprRhythmVerdict.Good"/>
+	/// (the reference suppresses exactly that one branch), and everyone sees the two misses.
+	/// </summary>
+	public static bool ShowsTheVerdict(CprRhythmVerdict verdict, float intelligence) =>
+		verdict != CprRhythmVerdict.None
+		&& (verdict != CprRhythmVerdict.Good || intelligence >= SmartIntRequirement);
 
 	/// <summary>
 	/// Whether this press was fast enough to hurt: faster than the band's own fast edge (220 a minute) the chest gets no

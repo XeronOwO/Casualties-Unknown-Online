@@ -250,12 +250,20 @@ Pressing it asks for a bare-hand CPR start on the focused target; the host's ACC
 same control into the compression control, and each later press sends the measured interval.
 
 **Still owed, and the ticket stays in `todo` for it — the machine row**: open the wound view on an arrested teammate,
-press the control, read the session's start and the pressure move. The staging is ready (`body-force
-heartRate=0,bloodPressure=5` lands and holds, read on the machine), and the plan was to project the teammate's body to
-the guest's screen and click it with the authorized `send-input.ps1`. **That attempt failed inside the client**: a
-`screen-point` recipe (world point → `Camera.main.WorldToScreenPoint`, plus the CPR control's own screen rect) was
-refused by the client's evaluator as `(1,1): InteractiveHost` in three versions — a plain camera projection, a scene-wide
-`RectTransform` scan and a panel-child scan all failed the same way, while the same evaluator runs the existing recipes,
-so the refusal is about what that compile unit may reference, not the math. The recipe was removed rather than left
-broken; the next attempt should either (a) read the existing `cuo-ui-dump` recipe's reference set and re-add the
-projection with exactly those references, or (b) have a player click the teammate's body in a guided batch.
+press the control, read the session's start and the pressure move.
+
+What batch 20261024-i established, so the next attempt starts further along:
+
+- **The world→screen projection works**: `tools/acceptance/recipes/screen-project.cs` (a recipe that had to be written
+  with FULLY QUALIFIED UnityEngine types — the unqualified `Camera` was what the client's evaluator refused as
+  `(1,1): InteractiveHost`) answers `screenX/screenY/screenHeight` and, when the panel is open, the CPR control's own
+  screen rect and active flag. Read on the machine: the host's body at world (0, 505) projects to screen (672, 660) on
+  the guest, i.e. client pixel (672, 60).
+- **A real click at that point did not open the remote wound view**: the click was delivered to all three client
+  windows in turn (`send-input.ps1`, `ok:true` each time) and the control never appeared
+  (`controlFound=false` after each). So either the game's own "look at the body" hit test needs the pointer to move
+  rather than a one-shot click, or the click needs the inventory/HUD state the batch did not set. That is the next
+  thing to read, not the CPR code.
+- **`send-input.ps1`'s `-Vk` was mandatory for every action** (a click with no key was refused by PowerShell's own
+  binder); it is now optional and validated per action.
+

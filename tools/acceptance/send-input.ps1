@@ -26,7 +26,7 @@ param(
 	[int]$Y1 = 0,
 	[int]$X2 = 0,
 	[int]$Y2 = 0,
-	[Parameter(Mandatory = $true)][int]$Vk = 0,
+	[int]$Vk = 0,
 	[int]$HoldMs = 400,
 	[switch]$Down,
 	[switch]$Up

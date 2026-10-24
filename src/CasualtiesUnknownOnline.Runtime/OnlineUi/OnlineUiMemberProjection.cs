@@ -6,8 +6,6 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
-using CasualtiesUnknownOnline.Runtime.Session.World;
-
 namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 
 /// <summary>
@@ -44,7 +42,8 @@ public static class OnlineUiMemberProjection
 		bool localConscious = true,
 		bool spectateWhileUnconscious = false,
 		bool sessionActive = false,
-		ulong watchingSteamId = 0)
+		ulong watchingSteamId = 0,
+		bool spectatorMode = false)
 	{
 		var memberMap = members.ToDictionary(m => m.SteamId, m => m);
 		var rows = new List<OnlineUiMemberRow>();
@@ -184,7 +183,10 @@ public static class OnlineUiMemberProjection
 				CanViewMedical = canViewMedical,
 				IsDead = vitals is not null && !vitals.Alive,
 				IsWatched = memberId == watchingSteamId,
-				CanSpectate = SpectatorPolicy.MayWatch(localAlive, localConscious, spectateWhileUnconscious, sessionActive)
+				// The ruling: the watch entry is gated by the MODE and nothing else — no distance, no reachability,
+				// no dead-body condition. A local row is never a target, and the member must be in the world with a
+				// living body this client renders.
+				CanSpectate = spectatorMode
 					&& !isLocal && member is { InWorld: true } && (vitals is null || vitals.Alive),
 				IsUnconscious = vitals is not null && vitals.Alive && !vitals.Conscious,
 				IsCarryingSomeone = isCarryingSomeone,

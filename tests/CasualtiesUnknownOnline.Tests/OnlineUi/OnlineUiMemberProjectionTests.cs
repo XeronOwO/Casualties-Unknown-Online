@@ -717,30 +717,52 @@ public sealed class OnlineUiMemberProjectionTests
 	[Fact]
 	public void WatchingIsOfferedOnlyWhereTheCameraWouldAllowIt()
 	{
-		// The button's rule is the camera's rule: dead (or unconscious with the host's rule), somebody else, and
-		// a member whose body is here and alive. The projection computes that answer once, for every surface.
-		var rows = Build(
+		// The button's rule is the MODE and nothing else (the ruling: no distance, no reachability, no dead-body
+		// condition): off in normal play, on for every remote living member in the world while spectating.
+		var playing = Build(
 			[Local, Remote],
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
 			localAlive: false,
 			sessionActive: true);
-		Assert.False(rows.Single(r => r.SteamId == Local).CanSpectate);
-		Assert.True(rows.Single(r => r.SteamId == Remote).CanSpectate);
+		Assert.False(playing.Single(r => r.SteamId == Remote).CanSpectate);
+
+		var spectating = Build(
+			[Local, Remote],
+			[Presence(Local, true, true), Presence(Remote, true, true)],
+			interaction: null,
+			localInWorld: true,
+			localAlive: false,
+			sessionActive: true,
+			spectatorMode: true);
+		Assert.False(spectating.Single(r => r.SteamId == Local).CanSpectate);
+		Assert.True(spectating.Single(r => r.SteamId == Remote).CanSpectate);
 	}
 
 	[Fact]
-	public void WatchingIsNotOfferedWhileThisClientIsStillAlive()
+	public void WatchingIsOfferedToASpectatorWhoseBodyIsStillAlive()
 	{
-		var rows = Build(
+		// The spectator's body stays in the world (the ruling), so being alive is not a refusal — the mode is the
+		// whole rule, and normal play never offers it.
+		var spectating = Build(
+			[Local, Remote],
+			[Presence(Local, true, true), Presence(Remote, true, true)],
+			interaction: null,
+			localInWorld: true,
+			localAlive: true,
+			sessionActive: true,
+			spectatorMode: true);
+		Assert.True(spectating.Single(r => r.SteamId == Remote).CanSpectate);
+
+		var playing = Build(
 			[Local, Remote],
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
 			localAlive: true,
 			sessionActive: true);
-		Assert.False(rows.Single(r => r.SteamId == Remote).CanSpectate);
+		Assert.False(playing.Single(r => r.SteamId == Remote).CanSpectate);
 	}
 
 	[Fact]
@@ -812,7 +834,8 @@ public sealed class OnlineUiMemberProjectionTests
 		bool localConscious = true,
 		bool spectateWhileUnconscious = false,
 		bool sessionActive = false,
-		ulong watchingSteamId = 0)
+		ulong watchingSteamId = 0,
+		bool spectatorMode = false)
 	{
 		return OnlineUiMemberProjection.Build(
 			Local,
@@ -837,7 +860,8 @@ public sealed class OnlineUiMemberProjectionTests
 			localConscious: localConscious,
 			spectateWhileUnconscious: spectateWhileUnconscious,
 			sessionActive: sessionActive,
-			watchingSteamId: watchingSteamId);
+			watchingSteamId: watchingSteamId,
+			spectatorMode: spectatorMode);
 	}
 
 	private static MemberPresenceTable.MemberPresence Presence(ulong steamId, bool handshaken, bool inWorld) =>

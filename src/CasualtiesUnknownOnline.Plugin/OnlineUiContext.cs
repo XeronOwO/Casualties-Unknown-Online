@@ -135,6 +135,10 @@ internal sealed class OnlineUiContext
 	/// <summary>The member this client is watching right now, or 0. The member list renders it as the stop button.</summary>
 	internal ulong WatchingSteamId;
 
+	/// <summary>True while this client is in spectator mode: what the member card's watch entry is gated on (the
+	/// ruling: no distance or reachability check, only the mode).</summary>
+	internal bool IsSpectator;
+
 	internal Func<ulong, bool>? BanMember;
 
 	internal Func<ulong, bool>? UnbanMember;

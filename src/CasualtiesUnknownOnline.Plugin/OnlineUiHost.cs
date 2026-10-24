@@ -299,6 +299,7 @@ internal sealed class OnlineUiHost
 		// The watched member is the CAMERA's answer, refreshed every frame like the IP-direct fact above: the
 		// camera gives a watch up by itself, and a copy taken once would keep offering a stop that stops nothing.
 		_onlineUi.WatchingSteamId = _spectator?.WatchingSteamId ?? 0;
+		_onlineUi.IsSpectator = _spectator?.IsSpectator ?? false;
 		if (_ipActions.LastError is not null)
 		{
 			_lobby.LastError = _ipActions.LastError;
@@ -380,6 +381,7 @@ internal sealed class OnlineUiHost
 		StopWatching = _onlineUi.StopWatching,
 		Notify = _onlineUi.Notify,
 		WatchingSteamId = _onlineUi.WatchingSteamId,
+		IsSpectator = _onlineUi.IsSpectator,
 		HealWithItem = _onlineUi.HealWithItem,
 		PushRemote = _onlineUi.PushRemote,
 		RecruitPlayer = _onlineUi.RecruitPlayer,

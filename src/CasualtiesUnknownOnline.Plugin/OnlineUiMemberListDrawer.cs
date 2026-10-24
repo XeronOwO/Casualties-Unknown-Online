@@ -58,6 +58,7 @@ internal static class OnlineUiMemberListDrawer
 			spectateWhileUnconscious: ctx.HostRules.SpectateWhileUnconscious,
 			sessionActive: ctx.Session.SessionActive,
 			watchingSteamId: ctx.WatchingSteamId,
+			spectatorMode: ctx.IsSpectator,
 			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],
 			// The card is a presentation of the rule in force: the host's own config on a host, and on
 			// a member ONLY the announced set — no announcement means no local refusal (decision 263).

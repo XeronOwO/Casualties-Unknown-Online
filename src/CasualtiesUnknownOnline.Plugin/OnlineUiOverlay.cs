@@ -90,6 +90,9 @@ internal sealed class OnlineUiOverlay
 
 	internal ulong WatchingSteamId;
 
+	/// <summary>True while the local client is in spectator mode (the camera's own state).</summary>
+	internal bool IsSpectator;
+
 	/// <summary>Read-only UI check: does the local body currently carry a heal-profile medical item?</summary>
 	internal Func<bool>? HasHealItem;
 

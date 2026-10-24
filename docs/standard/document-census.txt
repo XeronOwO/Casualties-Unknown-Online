@@ -225,7 +225,7 @@ docs/backlog/done/enemy-hit-determination-local.md | keep | index | docs/backlog
 docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md | keep | index | docs/backlog/README.md
 docs/backlog/done/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-background-ghost-item-ground-sounds.md | keep | index | docs/backlog/README.md
-docs/backlog/review/guest-break-drops-recovery.md | keep | index | docs/backlog/README.md
+docs/backlog/done/guest-break-drops-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-frame-rate-lower-than-host.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-remote-pose-head-orientation-desync.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-report-fallback-first-resend.md | keep | index | docs/backlog/README.md
@@ -558,7 +558,7 @@ docs/evidence/acceptance/global-projection-framework-20261012-c.md | keep | clai
 docs/evidence/acceptance/guest-block-mutation-re-report-20261001-x.md | keep | claim | docs/backlog/done/guest-block-mutation-re-report.md
 docs/evidence/acceptance/guest-block-mutation-re-report-20261001-y.md | keep | claim | docs/backlog/done/guest-block-mutation-re-report.md
 docs/evidence/acceptance/guest-block-mutation-re-report-20261002-o.md | keep | claim | docs/evidence/acceptance/20261002-o-scope.md
-docs/evidence/acceptance/guest-break-drops-recovery-20261001-x.md | keep | claim | docs/backlog/review/guest-break-drops-recovery.md
+docs/evidence/acceptance/guest-break-drops-recovery-20261001-x.md | keep | claim | docs/backlog/done/guest-break-drops-recovery.md
 docs/evidence/acceptance/guest-command-loss-reconciliation-20261005-a.md | keep | claim | docs/backlog/done/guest-command-loss-reconciliation.md
 docs/evidence/acceptance/guest-command-loss-reconciliation-20261005-b.md | keep | claim | docs/evidence/selfchecks/items/layer-change-warning-storm-selfcheck.md
 docs/evidence/acceptance/guest-container-contents-ghost-drops-on-host-20260927.md | keep | claim | docs/backlog/done/guest-container-contents-ghost-drops-on-host.md

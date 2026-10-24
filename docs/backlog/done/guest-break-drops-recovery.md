@@ -1,12 +1,12 @@
 # Guest break drops are lost when the break report is swallowed
 
-- Status: Review — **ready to close; only the folder move is pending.** Batch `20261001-x` read rows 5-6 on the machine. Batch
-  `20261025-w` read the rest: every row the matrix names (1, 2, 2b, 3, 4, 7) carries a case name, and those ten cases were re-run
-  on this tree — **10 passed, 0 failed** — while the recovery path they describe was also measured LIVE: with the host's inbound
-  blacked out (`net-receive-blackout mode=on`, `armed=true, parked=true`) the guest broke cell `(3,506)` (`block 1 → 0`) and the
-  host kept its original `1` while blacked out; after `mode=off` the host still read `1` at +12 s and read **`0` at +67 s** — the
-  swallowed report healed by the fallback re-report, which is row 1/3's behaviour. The move needs seven citing documents
-  re-pointed, so it lands next cycle in one pass.
+- Status: Done — closed 2026-10-25. Batch `20261001-x` read rows 5-6 on the machine. Batch `20261025-w` read the rest: every row
+  the matrix names (1, 2, 2b, 3, 4, 7) carries a case name, and those ten cases were re-run on this tree — **10 passed, 0 failed**
+  — while the recovery path they describe was also measured LIVE: with the host's inbound blacked out (`net-receive-blackout
+  mode=on`, `armed=true, parked=true`) the guest broke cell `(3,506)` (`block 1 → 0`) and the host kept its original `1` while
+  blacked out; after `mode=off` the host still read `1` at +12 s and read **`0` at +67 s** — the swallowed report healed by the
+  fallback re-report, which is row 1/3's behaviour. The move landed with all seven citing documents re-pointed in the same
+  change.
 - Acceptance record: `docs/evidence/acceptance/guest-break-drops-recovery-20261001-x.md`
 - Priority: Medium
 - Category: Network / sync coverage / items (guest-created drops)

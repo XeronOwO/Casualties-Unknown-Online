@@ -4,7 +4,7 @@
 - Acceptance records: `docs/evidence/acceptance/world-layer-generation-identity-20261002-k.md`, `docs/evidence/acceptance/world-layer-generation-identity-20261003-b.md`
 - Priority: Medium
 - Category: Network / protocol / world generation (attribution of world reports)
-- Source: `review/guest-break-drops-recovery.md` — the limitation its 2026-09-18 review round forced: a break report naming a cell the host still holds is REFUSED, because without a generation identity a stale previous-layer report cannot be told apart from a legitimate one
+- Source: `done/guest-break-drops-recovery.md` — the limitation its 2026-09-18 review round forced: a break report naming a cell the host still holds is REFUSED, because without a generation identity a stale previous-layer report cannot be told apart from a legitimate one
 - Related: `done/block-break-first-writer-wins.md`, `done/guest-block-mutation-re-report.md` (W1), `done/guest-partial-block-damage-re-report.md` (W2), `done/enemy-snapshot-binding-recovery.md` (that domain solved its own version of "which generation does this fact belong to?" with a per-entity binding anchor), `done/generation-identity-remaining-families.md` (the two families this cycle audited but did not stamp)
 
 ## Problem (evidence)
@@ -132,7 +132,7 @@ gates 56/56, `dotnet build` 0 warnings / 0 errors, `dotnet format` exit 0.
   `WorldGeneration.WorldToBlockPos` conversion, the `SetBlock`/`DamageBlock` application of an
   accepted lost-air-write break, the drop materialization, and the `ItemReject`-driven local
   destruction of a refused drop rest on code review plus the unified dual-client acceptance pass —
-  the same boundary `review/guest-break-drops-recovery.md` recorded.
+  the same boundary `done/guest-break-drops-recovery.md` recorded.
 - The comparison depends on the host publishing the run baseline before a guest reports: a guest that
   has not applied the new baseline yet stamps the previous generation and its report is refused as
   stale (conservative, and its own boundary clears the pending entry). The reverse order — the host

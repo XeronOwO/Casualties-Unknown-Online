@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -65,9 +66,77 @@ internal sealed class LayerAdvanceCoordinator(
 	private readonly ILayerAdvanceControl _layerAdvance = layerAdvance;
 	private readonly ILogger<LayerAdvanceCoordinator> _log = log;
 
+	/// <summary>The panel whose choices this client already hid (Unity object); a new activation is a new panel object.</summary>
+	private GameObject? _choicesHiddenFor;
+
 	internal void BindToSession() => _layerAdvance.LayerAdvanceRequested += OnLayerAdvanceRequested;
 
 	internal void Unbind() => _layerAdvance.LayerAdvanceRequested -= OnLayerAdvanceRequested;
+
+	/// <summary>
+	/// The end-of-layer panel's two choices belong to the HOST (the user's 2026-10-24 ruling): on a member both
+	/// buttons are hidden rather than refused, because a control the player may not use should not be there to
+	/// press. The buttons are found by what they CALL (<c>WorldGeneration.ContinueRun</c> / <c>SaveAndExit</c>), so a
+	/// renamed or re-skinned panel object still resolves; the work happens once per panel activation, not per frame.
+	/// </summary>
+	internal void UpdatePanelChoices()
+	{
+		if (!LayerPanelChoicePolicy.HidesMemberChoices(_session.Role, _session.SessionActive))
+		{
+			return;
+		}
+
+		var world = WorldGeneration.world;
+		if (world == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var panel = world.savePanel;
+		if (panel == null || !panel.activeInHierarchy) // Unity objects — ==
+		{
+			return;
+		}
+
+		if (_choicesHiddenFor == panel) // Unity object — the same panel already had its choices hidden
+		{
+			return;
+		}
+
+		_choicesHiddenFor = panel;
+		var hidden = 0;
+		foreach (var button in panel.GetComponentsInChildren<Button>(true))
+		{
+			if (!CallsAnEndOfLayerEntry(button))
+			{
+				continue;
+			}
+
+			button.gameObject.SetActive(false);
+			hidden++;
+		}
+
+		if (hidden > 0)
+		{
+			_log.LogInformation("[LayerChoice] this member does not own the end-of-layer choices: {Count} button(s) hidden (the host presses them).", hidden);
+		}
+	}
+
+	/// <summary>Whether this button's own click invokes one of the native end-of-layer entries.</summary>
+	private static bool CallsAnEndOfLayerEntry(Button button)
+	{
+		var calls = button.onClick;
+		for (var i = 0; i < calls.GetPersistentEventCount(); i++)
+		{
+			var name = calls.GetPersistentMethodName(i);
+			if (name is "ContinueRun" or "SaveAndExit")
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	/// <summary>
 	/// The local player chose to continue and the game's own entry has run its guard

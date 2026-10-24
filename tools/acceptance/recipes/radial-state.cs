@@ -38,7 +38,12 @@
 		if (candidate == null) { continue; }
 		if (candidate == camera) { live = "main"; }
 	}
+	var consoles = UnityEngine.Object.FindObjectsOfType<ConsoleScript>();
+	var consoleActive = false;
+	for (var i = 0; i < consoles.Length; i++) { if (consoles[i] != null && consoles[i].active) { consoleActive = true; } }
 	return "{\"ok\":true"
+		+ ",\"consoleCount\":" + consoles.Length.ToString(inv)
+		+ ",\"consoleActive\":" + (consoleActive ? "true" : "false")
 		+ ",\"cameras\":" + cameras.Length.ToString(inv)
 		+ ",\"mainIsLive\":\"" + live + "\""
 		+ ",\"enabled\":" + (camera.enabled ? "true" : "false")

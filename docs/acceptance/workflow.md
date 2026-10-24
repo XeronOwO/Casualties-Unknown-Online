@@ -335,7 +335,11 @@ The remaining rows of the drag family (`cross-player-drag-use-feedback`,
 `cross-player-drag-use-model-bounds`, `topical-limb-action-shape`, `remote-medical-treatment-operations`)
 all need the same gesture, so they are ONE batch with one launch and four verdicts:
 
-1. **Launch both clients once** (`tools/acceptance/launch-clients.ps1`), form the session, enter the world.
+1. **Launch both clients once** (`tools/acceptance/launch-clients.ps1`), form the session, enter the world. **Then close
+   the Online UI window on the client that performs the gesture** (`-Action click -ControlId window.close`): CUO's own
+   `PlayerCameraHandleInputPatch` skips the native `HandleInput` while that modal is open, by design, so a key sent before
+   the window is closed never reaches the game — the socket keeps answering, so the batch reads its evidence with the modal
+   down and the gesture is the only thing the game sees.
 2. **Point at the target**: `drive-in-process.ps1 -Action recipe -Recipe screen-project -RecipeArg x=…,y=…`
    on the dragging client answers the target body's CLIENT pixel and the panel's own screen rect. The
    recipe exists because the projection has to come from the game's own camera; a guessed pixel is not a

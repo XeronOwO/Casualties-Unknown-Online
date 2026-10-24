@@ -14,10 +14,22 @@ public sealed class SpectatorNoticeChannel(ISessionControl session, PacketSender
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 
-	/// <summary>Watcher: report the start or the end of watching to the host.</summary>
+	/// <summary>Watcher: report the start or the end of watching. A guest reports to the host; the HOST is itself the
+	/// relay, so its own notice goes straight to the target by the same payload (there is nobody to report to).</summary>
 	public void SendNotice(SpectatorNoticeMsg msg)
 	{
-		if (!_session.SessionActive || _session.Role != SessionRole.Guest)
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			RelayToTarget(msg);
+			return;
+		}
+
+		if (_session.Role != SessionRole.Guest)
 		{
 			return;
 		}

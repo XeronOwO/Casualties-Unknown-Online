@@ -357,6 +357,17 @@ entries side by side (one capture each, medical panel closed first) to show the 
    body frame with wound badges and the limb bars. The two share the game's body diagram but are different focuses,
    which is exactly the `眼见为实` half of the inheritance requirement for the read-only surfaces.
 
+**The watched player's vitals strip is landed and read (2026-10-24, deployed `0.1.0+b0dcab01`).** The world overlay
+carries one more model value — `SpectatorStrip` — and the view draws it as a bottom-centre label only while it is
+non-empty; the plugin builds it from the watched member's remote-vitals projection (brain, stamina, hunger are what
+that client reports; blood and oxygen stay the owner's own derived readings and are deliberately not invented), with a
+plain `Spectating <name>` fallback before the first snapshot. The reading, one launch: in spectator mode watching the
+guest the host's frame shows `Kagura（小号）—— 脑 100 · 体力 100 · 饥饿 95` along the bottom, and after
+`/gamemode survivor` the same frame has no strip at all (the console's `Normal play.` is the only bottom line left).
+That is the first surface of the HUD-inheritance requirement; the state icons and the watched player's own screen
+effects/sounds are still open.
+
+
 
 
 

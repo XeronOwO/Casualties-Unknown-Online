@@ -55,6 +55,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — two sets for one death.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
 - [Remote medical CPR (KrokMP custom)](todo/remote-medical-cpr.md) — **Medium** — promoted; assessment first.
+- [The radiation line descends at the member's own rate](todo/radiation-line-descent-rate-per-side.md) — **Medium** — user finding; the rate is per-side.
 ### In progress
 
 ### Review

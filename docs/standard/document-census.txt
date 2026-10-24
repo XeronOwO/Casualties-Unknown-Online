@@ -362,6 +362,7 @@ docs/backlog/done/remote-backpack-access-policy.md | keep | index | docs/backlog
 docs/backlog/resolved/item-identity-bridge.md | keep | index | docs/backlog/README.md
 docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/radiation-line-descent-rate-per-side.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/remote-medical-cpr.md | keep | index | docs/backlog/README.md
 docs/backlog/done/single-file-plugin-package.md | keep | index | docs/backlog/README.md
 docs/backlog/done/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md

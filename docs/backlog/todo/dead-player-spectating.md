@@ -269,6 +269,16 @@ the member card's WATCHED row gains three actions beside the existing stop — `
 fills the three context values from the camera every frame. That is the whole surface: no new drawing code, because
 the card's action row already exists.
 
+**The strip is landed and read on three clients (2026-10-24, deployed `0.1.0+e9a2109a`).** The reading drove the
+member card's own control ids from inside the host's process: after `/gamemode spectator` and watching the guest,
+`member.watch.next.<guest>` moved the camera to the alt (`[Spectator] following 76561199526807662`), `member.watch.prev.<alt>`
+moved it back to the guest, `member.freefly.<guest>` answered `free-fly on by this client's own request`, and
+`member.watch.stop.<guest>` ended with `stopped following`. Every click answered `offered=True, applied=True`.
+**Still unread at runtime:** watching a CORPSE (the code accepts any body — `TryResolveAnyBody` — but the reading's
+death step returned an empty probe result and the id selector did not resolve, so it was not proven), and the
+free-movement OFF half of the toggle's label. Both are the next reading's first two steps.
+
+
 
 ### Slice 4 — free flight
 

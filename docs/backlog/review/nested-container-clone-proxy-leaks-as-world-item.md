@@ -125,4 +125,3 @@ behaviour for a shape that does not exist.
 - The `alertcontainerstackingalt` alert the refused `LoadItem` still raises once per rebuild: it is the game's own
   call doing it before this code gets a say, and suppressing it needs a decision about intercepting a native alert for
   presentation reasons — not taken here.
-

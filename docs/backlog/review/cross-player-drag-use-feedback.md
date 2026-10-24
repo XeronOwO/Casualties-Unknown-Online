@@ -140,6 +140,15 @@ right-button press, a stepped pointer move and a release), so this batch tried r
   (`514,460` then) did enter the bracket (`dragItem=bandage`), while a press on a **slot button** like `520,419` selects through
   the control instead. The next attempt therefore presses a band point, not a slot, with the same `rdrag` and reads the frame
   during the hold.
+
+**The same batch then tried that band point and two others, and all three answered `dragging=false`** (`dragItem=none`,
+`drag-state` sampled mid-hold, with the ring open and the emergency light in the ring's own button list): `520,419` (the slot's
+own button), `717,317` and `514,460`. The difference from the earlier success is STATE, not the coordinate: the ring drawn in
+these frames is the EQUIPMENT page (`主手/副手/上臂部/中臂部/下臂部`), while the earlier `dragItem=bandage` came from a page
+whose slots held a carried item, and `ring-buttons` lists the emergency light as a slot of THIS page. So the drag row's missing
+capability is now precise: the batch must put the cursor over the CARRIED item's own band (the inventory page's slot band), not
+the equipment page's, before the right-press can enter `PlayerCamera`'s drag bracket. Parked there by the two-batch rule; the next
+attempt starts from the right PAGE, not another coordinate.
 ## The claimed 2026-10-18 "the label is drawn": FALSE (found 2026-10-22)
 
 > Kept as the falsified claim, because the cycle that wrote it and the review that passed it both read the type

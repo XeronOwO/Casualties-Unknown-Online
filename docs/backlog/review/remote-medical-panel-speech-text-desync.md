@@ -57,6 +57,23 @@ speaks through the game's own line (B-key bark or a driven `Talker.Talk`); read
 | 7 | Target leaves the world while the panel is open | The coordinator closes the focus; the subtitle restores the local line and never keeps the peer's line |
 | 8 | Panel closed entirely | `charTalkText.enabled` is false; nothing is drawn |
 
+## Batch `20261025-m` — the trade-menu fixture exists, and the production entry REFUSED the pairing
+
+Row 6 could not be staged before because no probe opened the trade menu. It can now: `tools/acceptance/recipes/trade-open.cs`
+calls the game's own entry — the nearest non-hostile `TraderScript` becomes `PlayerCamera.main.currentTrader` and
+`TraderScript.OnUse()` toggles the menu, which is the exact call the player's interact makes. On the deployed build it answered
+`menuActive=true`, `traderCount=8`, nearest trader at `(6,147)`, build health `1250`.
+
+With the trade menu open, the same batch asked the PRODUCTION medical entry to open the victim's chart over it
+(`medical-open steamId=76561199526807662`) and it answered **`opened=false, nativeOpen=false`** — the pairing row 6 describes
+never happens, because the medical entry refuses while another native menu holds the screen. The frame at that moment shows the
+trade HUD without the chart.
+
+So row 6's premise needs a decision this batch cannot take: **should the remote chart open OVER the trade menu (the row's
+assumption), or is refusing while trading the intended behaviour?** Everything the row would then assert (the takeover/restore
+pass, no peer line on the trade menu's character line) follows from that answer. Recorded as the row's blocker rather than
+judged — the code is consistent, the expectation is what is unstated.
+
 ## Non-goals
 
 - Voice audio (the pain/bark sound family is `sync-player-pain-vocalizations-and-bark.md`).

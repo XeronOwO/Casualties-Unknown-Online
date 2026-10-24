@@ -116,7 +116,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
-- [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — hidden, not disabled; both switch paths blocked.
+- [Remote medical panel hides actions](review/remote-medical-panel-hide-local-only-actions.md) — **Medium** — rows 1–5 read; row 6 open.
 - [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
 
 ### Future

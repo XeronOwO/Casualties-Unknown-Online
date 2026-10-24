@@ -930,6 +930,7 @@ docs/evidence/selfchecks/players/remote-backpack-held-item-transfer-selfcheck.md
 docs/evidence/selfchecks/players/remote-inventory-view-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/remote-medical-fidelity-and-syringe-minigame-selfcheck.md | keep | claim | docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md
 docs/evidence/selfchecks/players/remote-medical-local-only-controls-selfcheck.md | keep | claim | docs/backlog/review/remote-medical-panel-hide-local-only-actions.md
+docs/evidence/acceptance/remote-medical-panel-hide-local-only-actions-20261025-c.md | keep | claim | docs/backlog/review/remote-medical-panel-hide-local-only-actions.md
 docs/evidence/selfchecks/players/remote-medical-operation-session-realtime-injection-selfcheck.md | keep | claim | docs/backlog/review/remote-medical-stage-1-injection-session.md
 docs/evidence/selfchecks/players/remote-medical-panel-acceptance-projection-selfcheck.md | keep | claim | docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md
 docs/evidence/selfchecks/players/remote-medical-panel-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

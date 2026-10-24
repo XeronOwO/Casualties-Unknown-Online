@@ -75,10 +75,21 @@ the armor/health view toggle, not a hand switch); the assembly puts the ruling's
 
 ## Acceptance status
 
-Code-complete and awaiting the user's release-cycle dual-client run: this cycle was instructed not to
-deploy, so no real-machine run is claimed here. The visual half (a control really gone, the local
-panel really untouched, the key really inert) is the session's to confirm; the self-check's §5 lists
-the rows.
+**Batch `20261025-c` read rows 1–5 on a live two-client session** (record:
+`docs/evidence/acceptance/remote-medical-panel-hide-local-only-actions-20261025-c.md`): while the guest's focus showed the
+host's body, the nap control, the sleep-state icon and the workout list were **hidden** and the HUD swap control's graphic was
+**disabled** (its object stays active because it also carries the hand slots — a probe reading only `activeInHierarchy`
+reports the wrong thing, which is why the record states the criterion per surface); after closing the focus and reopening the
+viewer's own panel, the nap control, the sleep-state icon and the HUD switch graphic were back. Row 3 is closed by
+construction beside that presentation reading: `[HarmonyPatch(typeof(PlayerCamera), "SwitchHands")]` with
+`Prefix() => !RemoteMedicalView.IsOpen` refuses the hand switch the `switchhands` key handler calls. Row 4 is unchanged and was
+driven in this session (the CPR control reached a `Good` verdict with the chart open). **Row 6 is still unread** — inventory
+reporting around a blocked window needs a hand switch and an item move on either side of the focus — so the ticket stays in
+`review/` on that one row.
+
+Earlier note, kept for the cycle that produced the code: code-complete and awaiting the user's release-cycle dual-client run:
+this cycle was instructed not to deploy, so no real-machine run is claimed here. The visual half (a control really gone, the
+local panel really untouched, the key really inert) is the session's to confirm; the self-check's §5 lists the rows.
 
 ## Non-goals
 

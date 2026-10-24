@@ -1,6 +1,12 @@
 # Guest remote pose / head-orientation desync on host view
 
-- Status: Review (code-complete)
+- Status: Review (code-complete) — batch `20261025-j` tried to read the facing pair as DATA and stopped at the instrument, not
+  at the fix: a probe reading `Body.isRight` and `Body.targetLookPos` works on the LOCAL body (guest: `isRight=true`, look
+  `(0,0)`; host: `isRight=true`, look `(2.12, 468.94)`), but **no remote clone exposed a `Body` component to the scan** — neither
+  `FindObjectsOfType<Body>()` nor `Resources.FindObjectsOfTypeAll` returned one on either client, so the host's view of the guest
+  is rendered by something other than a `Body` (or by a body this probe's assembly-qualified type lookup does not reach). The
+  probe was removed rather than committed as dead tooling; the row needs a reading that names the clone's real type first. The
+  fix's own regression (`RemoteCloneFacingNeutralizationTests`, red→green) and its selfcheck stand unchanged.
 - Priority: Medium
 - Category: Player presentation / sync root cause
 - Source: User report (2026-09-05), refined reproduction — dual-instance test; the original water-current scenario is included as one observed variant.

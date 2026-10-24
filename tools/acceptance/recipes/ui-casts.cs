@@ -25,7 +25,16 @@
 	var field = typeof(PlayerCamera).GetField("dragItem", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
 	var drag = field == null ? null : field.GetValue(camera) as Item;
 	var mouse = UnityEngine.Input.mousePosition;
+	// The ring's own geometry: `InvButton.Overlaps` accepts a centre-class button only inside a band measured from the ring's
+	// centre divided by `PlayerCamera.uiScale` (152..281), so a press point that is not in that band can never pick anything.
+	var ring = camera.radialMenu == null ? Vector2.zero : (Vector2)camera.radialMenu.position;
+	var scale = PlayerCamera.uiScale <= 0f ? 1f : PlayerCamera.uiScale;
+	var distanceOverScale = Vector2.Distance(ring, (Vector2)mouse) / scale;
 	return "{\"ok\":true,\"count\":" + casts.Count.ToString(inv)
+		+ ",\"ringX\":" + ((int)ring.x).ToString(inv)
+		+ ",\"ringY\":" + ((int)ring.y).ToString(inv)
+		+ ",\"uiScale\":" + scale.ToString("0.###", inv)
+		+ ",\"distanceOverScale\":" + distanceOverScale.ToString("0.###", inv)
 		+ ",\"at\":\"" + ((int)mouse.x).ToString(inv) + "," + ((int)mouse.y).ToString(inv) + "\""
 		+ ",\"mouseX\":" + ((int)mouse.x).ToString(inv)
 		+ ",\"mouseY\":" + ((int)mouse.y).ToString(inv)

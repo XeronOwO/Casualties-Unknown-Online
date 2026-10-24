@@ -352,5 +352,16 @@ all need the same gesture, so they are ONE batch with one launch and four verdic
 5. **Read the verdict from the clients' own logs**, never from the picture: the cue line and the refusal
    line are on the operator's side, the applied/inventory result on the target's side.
 
+**Between phases of a long batch, restore the played character.** Staging vitals, inflicting damage and
+running operations leaves the body in whatever state the scenarios produced — and `/heal` restores health,
+vitals and consciousness but does **not** move mood, so a character can end a batch with every value healthy and
+`happiness: 0`, which the game presents as depression. Two consequences follow, and both were produced by this
+project's own batches: a zeroed happiness **starts a native `SelfHarmMinigame`**, whose `CanExit()` returns
+false by design, so the pause key cannot leave it and the only exit is to make the remaining cuts the way the
+player does; and while any minigame runs, the game's own drag bracket refuses to start
+(`HandleDragging` requires `!MinigameBase.main.currentMinigame`). The recovery order is therefore
+`/heal @s` → the `body-mood` recipe (`value=70`) → the `selfharm-finish` recipe, and the confirmation is
+`health-read source=local,target=none` showing a non-zero `happiness` with `minigame-end` reporting `none`.
+
 The sequence is recorded here because a gesture is a call site and a claim about it must be falsifiable
 before the run: a step this list cannot perform is a design defect, not a batch failure.

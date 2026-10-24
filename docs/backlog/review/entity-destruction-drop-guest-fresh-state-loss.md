@@ -201,3 +201,11 @@ alt read **0** — but the alt's own body was not there to see anything: `body-r
 answered with empty fields, i.e. that client had not finished materialising its body. So this read cannot be scored: an entry
 whose body has not spawned is not a fresh guest looking at the ground. The next cycle verifies the alt's body first (`body-read`
 position non-empty) and re-reads, and only then does a 0-vs-5 differ mean the ticket's defect is present.
+
+**Batch `20261025-ai` — a rejoin lands the member in the SESSION but not in the WORLD, and that is why there was no body.** The same
+result came from the guest client, and a captured frame settles it: the guest's screen shows the CUO Online panel open on its Home
+tab with `Role: Guest Handshake: active — Steam network`, `Members: 3`, `You are already in an online session.` and the world's
+own sky behind it. So `join-lobby` restores MEMBERSHIP, and `body-read` answering `no-local-body` is correct — the member is sitting
+at the menu, and the world entry (the run load that produces a body) is a SEPARATE drive step this batch never performed. The
+fresh-entry reading therefore needs one more step before it means anything: rejoin, then drive the world entry while in session, and
+only then read the drops. Recorded with the frame as the evidence rather than another blind re-read.

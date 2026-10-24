@@ -228,7 +228,7 @@ docs/backlog/review/guest-background-ghost-item-ground-sounds.md | keep | index 
 docs/backlog/review/guest-break-drops-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-frame-rate-lower-than-host.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-remote-pose-head-orientation-desync.md | keep | index | docs/backlog/README.md
-docs/backlog/review/guest-report-fallback-first-resend.md | keep | index | docs/backlog/README.md
+docs/backlog/done/guest-report-fallback-first-resend.md | keep | index | docs/backlog/README.md
 docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md | keep | index | docs/backlog/README.md
 docs/backlog/review/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
 docs/backlog/done/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
@@ -461,7 +461,7 @@ docs/evidence/acceptance/20261002-p-scope.md | keep | claim | docs/backlog/done/
 docs/evidence/acceptance/20261003-a-scope.md | keep | claim | docs/backlog/done/runtime-entity-creation-rejection.md
 docs/evidence/acceptance/20261003-b-scope.md | keep | claim | docs/backlog/done/generation-identity-remaining-families.md
 docs/evidence/acceptance/20261003-c-scope.md | keep | claim | docs/backlog/done/enemy-snapshot-binding-recovery.md
-docs/evidence/acceptance/20261003-e-scope.md | keep | claim | docs/backlog/review/guest-report-fallback-first-resend.md
+docs/evidence/acceptance/20261003-e-scope.md | keep | claim | docs/backlog/done/guest-report-fallback-first-resend.md
 docs/evidence/acceptance/20261003-f-scope.md | keep | claim | docs/evidence/acceptance/guest-partial-block-damage-re-report-20261003-f.md
 docs/evidence/acceptance/20261003-window-plan.md | keep | claim | docs/evidence/acceptance/20261003-e-scope.md
 docs/evidence/acceptance/20261008-a-scope.md | keep | claim | docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md
@@ -570,7 +570,7 @@ docs/evidence/acceptance/guest-hears-only-some-block-break-sounds-20261001-l.md 
 docs/evidence/acceptance/guest-partial-block-damage-re-report-20261001-x.md | keep | claim | docs/backlog/done/guest-partial-block-damage-re-report.md
 docs/evidence/acceptance/guest-partial-block-damage-re-report-20261001-y.md | keep | claim | docs/backlog/done/guest-partial-block-damage-re-report.md
 docs/evidence/acceptance/guest-partial-block-damage-re-report-20261003-f.md | keep | claim | docs/backlog/done/guest-partial-block-damage-re-report.md
-docs/evidence/acceptance/guest-report-fallback-first-resend-20261003-e.md | keep | claim | docs/backlog/review/guest-report-fallback-first-resend.md
+docs/evidence/acceptance/guest-report-fallback-first-resend-20261003-e.md | keep | claim | docs/backlog/done/guest-report-fallback-first-resend.md
 docs/evidence/acceptance/host-eating-sound-not-heard-on-guest-20261001-l.md | keep | claim | docs/backlog/done/host-eating-sound-not-heard-on-guest.md
 docs/evidence/acceptance/host-fall-injury-mouth-expression-desync-20260927.md | keep | claim | docs/backlog/done/host-fall-injury-mouth-expression-desync.md
 docs/evidence/acceptance/host-metal-scrap-block-place-sound-not-synced-to-guest-20261001-l.md | keep | claim | docs/backlog/done/host-metal-scrap-block-place-sound-not-synced-to-guest.md
@@ -1068,7 +1068,7 @@ docs/evidence/selfchecks/world/world-blood-spawn-sync-selfcheck.md | keep | clai
 docs/evidence/selfchecks/world/world-entry-completion-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/world-service-split-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/world/world-time-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/sync-cadence-measurements.md | keep | claim | docs/backlog/review/guest-report-fallback-first-resend.md
+docs/evidence/sync-cadence-measurements.md | keep | claim | docs/backlog/done/guest-report-fallback-first-resend.md
 docs/evidence/sync-coverage-matrix.md | keep | claim | docs/evidence/normative-gates.md
 docs/evidence/test-parallelization.md | keep | claim | docs/en/contributing/build-and-test.md
 docs/evidence/verification.md | keep | claim | docs/architecture/current.md

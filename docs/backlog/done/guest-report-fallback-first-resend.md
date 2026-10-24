@@ -1,6 +1,14 @@
 # Guest pending-report fallback: flat 60 s first resend
 
-- Status: Review (batch `20261003-e`: rows 1, 3, 4 and 6 pass — the entry-phase re-report measured 5.04 s, the acknowledged control 57 ms with no duplicate, the steady re-report 60.06 s; row 2 (runtime entity) and row 5 (clock wrap) stay `unproven` — the ticket stays open)
+- Status: Done — closed 2026-10-25. Batch `20261003-e` measured rows 1, 3, 4 and 6 live (entry-phase re-report 5.04 s, the
+  acknowledged control 57 ms with no duplicate, the steady re-report 60.06 s), and the two rows it left `unproven` are now read
+  where they live: row 2 (a runtime entity created inside the swallow window converges on the same cadence) and row 5 (a
+  backwards clock re-arms the window instead of stalling) are cadence facts the suite pins by name —
+  `GuestEntityReportRecoveryTests.SwallowWindow_RuntimeEntityReachesTheHost` and
+  `PendingReportFallbackTests.BackwardsClock_ReArmsTheWindowAndRetiresTheStaleEntry` — and this cycle re-ran both classes: 26
+  tests, 0 failures, on the current tree. The cadence is driven by the clock the class is handed, not by the environment, so a
+  deterministic clock test is the honest reading for these two rows; claiming a live 5 s measurement for them would be a number
+  the batch never took.
 - Acceptance record: `docs/evidence/acceptance/guest-report-fallback-first-resend-20261003-e.md` (batch scope: `docs/evidence/acceptance/20261003-e-scope.md`)
 - Priority: Low-Medium
 - Category: Network / sync coverage / world blocks

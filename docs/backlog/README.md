@@ -79,7 +79,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
-- [Guest pending-report fallback: flat 60 s first resend](review/guest-report-fallback-first-resend.md) — **Low-Medium** — the guest→host entry phase.
 - [Sync cadence review](review/sync-cadence-review.md) — **Medium** — fallback stretch limits and first-resend latency.
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [Guest break drops are lost](review/guest-break-drops-recovery.md) — **Medium** — the pending drop table and the idempotent break verdict.
@@ -144,6 +143,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Guest pending-report fallback](done/guest-report-fallback-first-resend.md) — **Low-Medium** — 5 s entry phase; tests pin the two.
 - [Recipe unlock has no fallback](done/recipe-unlock-fallback.md) — **Medium** — healed on the 60 s cycle; read in two processes.
 - [Remote Medical and visibility](done/remote-context-menu-medical-visible-when-target-not-visible.md) — **Medium** — title-only out of sight, both ways.
 - [UI text moves to embedded JSON, mods add languages](done/localization-json-resources-and-mod-languages.md) — **Medium-High** — data, not C#; read live.

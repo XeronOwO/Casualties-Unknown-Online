@@ -267,3 +267,21 @@ crates (`containercrate`, `medcrate`) left zero items on both clients — a hand
 `itemsDropOnDestroy` rows. The census already names a victim whose table IS non-empty: **the mine itself** (`rowCount` 1),
 so the next batch stages two mines side by side (one fires, the other dies) and counts the second one's set on both
 clients; or a worldgen-placed container instead of a hand-placed one.
+
+## Batch 20261024-s: two staged mines, and the visibility order the next attempt must obey
+
+Attempted the two-mine shape (`trap-stage` with `crate=landmine` gives a second mine at the offset). What the run taught,
+before any blast happened:
+
+- **A hand-staged prefab is not guaranteed to exist on the member's client.** With the host staging two mines at (0,30)
+  the member's own `trap-trigger` answered **`no-mine`** and its `trap-drop-census` listed **0 carriers** among 2198
+  buildings — the same recipe that had found a staged mine in the previous session, so the difference is the stage, not
+  the code. A batch must therefore read BOTH clients' census after staging and only trigger when both list the carrier.
+- **A staging call can fail the client's compile check mid-session** (`(1,1): InteractiveHost`) even though the same file
+  compiled minutes earlier; the batch must check the stage answer's `ok` before going on, instead of assuming the objects
+  exist (this run's second staging returned empty coordinates for exactly that reason).
+- `trap-trigger` now also answers the mine's `health`, so the run can tell an armed mine from one that already fired.
+
+**The row is unchanged and still owed**: one set of a victim's drops, exactly once, on both clients — with the victim a
+carrier BOTH clients already have, which points at a worldgen mine or a host-staged one confirmed on both sides first.
+

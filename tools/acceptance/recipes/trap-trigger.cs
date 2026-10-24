@@ -1,7 +1,7 @@
 // recipe: trap-trigger
 // args: x=n y=n
 // serves: host-blast-rolls-a-second-drop-set (its acceptance rows need a mine to fire through the game's own path)
-// returns: ok, mines, mineX, mineY, error, detail
+// returns: ok, mines, mineX, mineY, health, error, detail
 //
 // Presses the mine nearest the given point by setting the field the PLAYER's step sets (`MineScript.pressed`), and lets the
 // game run its own sequence from there: 0.8 s later the mine explodes natively (`WorldGeneration.CreateExplosion`), the
@@ -18,7 +18,9 @@
 	if (field == null) { return "{\"ok\":false,\"error\":\"no-field\"}"; }
 	field.SetValue(mine, true);
 	var pos = mine.transform.position;
+	var build = mine.GetComponent<BuildingEntity>();
 	return "{\"ok\":true,\"mines\":" + mines.Length.ToString(inv)
 		+ ",\"mineX\":" + pos.x.ToString("0.##", inv)
-		+ ",\"mineY\":" + pos.y.ToString("0.##", inv) + "}";
+		+ ",\"mineY\":" + pos.y.ToString("0.##", inv)
+		+ ",\"health\":" + (build == null ? "null" : build.health.ToString("0.##", inv)) + "}";
 }))()

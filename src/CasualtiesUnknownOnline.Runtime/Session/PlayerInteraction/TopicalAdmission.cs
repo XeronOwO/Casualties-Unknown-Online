@@ -34,8 +34,10 @@ public static class TopicalAdmission
 		string itemId,
 		IReadOnlyList<LiquidStackMsg>? liquids)
 	{
-		if (liquids is null || liquids.Count == 0 || !semantics.IsLimbUsableLiquidContainer(itemId))
+		if (liquids is null || liquids.Count == 0 || !semantics.AppliesToLimbTopically(itemId))
 		{
+			// The limiter is the item's own LIMB ACTION, not the `usableOnLimb` flag: the flag only says a limb may
+			// draw from the item, which a syringe container also satisfies while its delegate starts an injection.
 			return false;
 		}
 

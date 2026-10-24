@@ -67,4 +67,43 @@ internal static class GameLimbUseFacts
 		&& info is not LiquidItemInfo
 		&& info.usableOnLimb
 		&& info.useLimbAction is not null;
+
+	/// <summary>
+	/// The topical chain's fact: the item's own limb action IS the native topical application, or the item carries no
+	/// limb action and the native dispatch falls to its container branch.
+	///
+	/// <para>
+	/// Native <c>PlayerCamera.ApplyWoundItem</c> (<c>PlayerCamera.cs:739-763</c>) sends a <c>usableOnLimb</c> item to
+	/// <c>useLimbAction(limb, item)</c> — whatever that delegate calls — and a container with the flag clear to
+	/// <c>ApplyToLimb(limb, 100f)</c>. So the flag is not the answer, and neither is the item being a container: a
+	/// syringe container's delegate starts an injection minigame (<c>Item.cs</c>'s saline/ringersolution/bloodbag
+	/// blocks), while `waterbottle` carries no limb action at all and is applied by the native fallback.
+	/// </para>
+	///
+	/// <para>
+	/// The delegate's own compiled body answers it, read through the same <see cref="UseActionInstructions"/> reader
+	/// the content classifiers use: the four vanilla limb actions that call <c>ApplyToLimb</c> are `paincream`,
+	/// `woundglue`, `disinfectant` and `spraybottle` (<c>Item.cs:652</c>, <c>:676</c>, <c>:2101</c>, <c>:2125</c>), and
+	/// an injector's body calls <c>Inject</c>/starts a minigame instead, which answers false. A delegate the reader
+	/// cannot open answers false (fail closed: the topical chain must not claim a gesture it cannot describe).
+	/// </para>
+	/// </summary>
+	internal static bool AppliesToLimbTopically(string? itemId)
+	{
+		if (string.IsNullOrEmpty(itemId) || !Item.GlobalItems.TryGetValue(itemId, out var info) || info is not LiquidItemInfo container)
+		{
+			return false;
+		}
+
+		if (container.useLimbAction is null)
+		{
+			// No limb action: native takes the container branch only when `usableOnLimb` is clear; a `usableOnLimb`
+			// item without a delegate would throw natively, so it is refused here rather than reproduced.
+			return !container.usableOnLimb;
+		}
+
+		var instructions = UseActionInstructions.Read(container.useLimbAction);
+		return instructions is not null
+			&& UseActionInstructions.Calls(instructions, typeof(WaterContainerItem), "ApplyToLimb");
+	}
 }

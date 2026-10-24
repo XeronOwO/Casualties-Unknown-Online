@@ -103,7 +103,12 @@ public static class ItemUseFamilyClassifier
 				? ItemUseFamily.Injection
 				: TopicalAdmission.IsTopicalContainer(limbSemantics, itemId, liquids)
 					? ItemUseFamily.Topical
-					: ConsumeAdmission.IsDrinkContainer(consumeSemantics, itemId, liquids)
+					// The drink rule models the item's use ACTION, which the limb release only runs for a container
+					// with no limb action of its own: a `usableOnLimb` container's release runs `useLimbAction`
+					// instead (PlayerCamera.ApplyWoundItem), so calling it a drink here would dispatch a family the
+					// native entry never runs.
+					: !limbSemantics.IsLimbUsableLiquidContainer(itemId)
+						&& ConsumeAdmission.IsDrinkContainer(consumeSemantics, itemId, liquids)
 						? ItemUseFamily.Drink
 						: SolidFoodAdmission.IsFeedable(solidFoodSemantics, itemId)
 							? ItemUseFamily.SolidFood

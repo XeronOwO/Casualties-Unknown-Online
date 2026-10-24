@@ -38,12 +38,14 @@ public sealed class ItemUseFamilyClassifierTests
 	[Fact]
 	public void TheDrinkableBagHoldingAHealthUsableLiquid_IsTheInventoryDrinkAndTheLimbTopical()
 	{
-		// The container this rule was extracted for: `saline` is usable AND
-		// usableOnLimb, its own use action drinks, and the health-usable liquid poured
-		// into it makes the wound view's topical half legitimate. The two entries are
-		// two actions, and neither may answer for the other.
+		// The container this rule was extracted for, corrected by ticket `topical-limb-action-shape.md`'s finding B1:
+		// `saline` is usable AND usableOnLimb and its own use action drinks, so the INVENTORY entry is a drink — but a
+		// health-usable liquid poured into it does NOT make the wound view's topical half legitimate, because that
+		// release runs the item's LIMB action, which for this bag starts an injection. So the limb entry is claimed by
+		// no family: not topical (the action injects), not injection (the liquid is not injectable), and not the drink
+		// either (the drink rule models the use action, which this entry never runs).
 		Assert.Equal(ItemUseFamily.Drink, Classify(ItemUseEntry.Inventory, "saline", ("disinfectant", 750f)));
-		Assert.Equal(ItemUseFamily.Topical, Classify(ItemUseEntry.Limb, "saline", ("disinfectant", 750f)));
+		Assert.Equal(ItemUseFamily.None, Classify(ItemUseEntry.Limb, "saline", ("disinfectant", 750f)));
 	}
 
 	[Fact]

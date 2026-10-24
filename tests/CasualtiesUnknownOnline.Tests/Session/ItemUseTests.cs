@@ -476,19 +476,15 @@ public class ItemUseTests
 	}
 
 	[Fact]
-	public void Use_TheDualClassContainerOnTheLimbEntry_AppliesTheTopicalHalfNotTheDrink()
+	public void Use_ALimbRequestForASyringeContainer_IsRefusedAndCommitsNoDrink()
 	{
-		// The HOST's dispatch contract for the other entry: a limb request for the
-		// container both entries admit applies the topical half and commits no drink.
-		// The dose is the operator's input by contract, and the request is the only one
-		// the medicinal view can send — but this vanilla container cannot reach it in
-		// production: its own limb action is the syringe path (`saline`'s
-		// `useLimbAction` starts a `SyringeMinigame` that calls
-		// `WaterContainerItem.Inject`, Item.cs:1859-1866), so the topical measurement
-		// captures no `ApplyToLimb` and refuses. That shape is the separate gap filed as
-		// `docs/backlog/todo/topical-limb-action-shape.md`; what THIS case pins is that
-		// the host, given the limb entry and a dose, never diverts it to the drink its
-		// own data also admits.
+		// The ticket `topical-limb-action-shape.md` finding B1, now fixed at the classifier: a limb request for
+		// `saline` + disinfectant is claimed by NO family. Its own limb action is the syringe path (`saline`'s
+		// `useLimbAction` starts a `SyringeMinigame` that calls `WaterContainerItem.Inject`, Item.cs:1859-1866), so
+		// the topical chain refuses it, and the injection chain refuses it too because the liquid is not injectable.
+		// The drink family is NOT the fallback: the drink rule models the item's use ACTION, which
+		// `PlayerCamera.ApplyWoundItem` never runs for a `usableOnLimb` container. So the host refuses by naming the
+		// family it cannot run, commits no drink and leaves the liquid untouched.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
@@ -507,15 +503,10 @@ public class ItemUseTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42, targetLimbIndex: 0, doseMl: 10f);
 
-		var result = UseResult(received);
-		Assert.Equal(0, result.LimbIndex);
-		var applied = Assert.Single(result.AppliedDose);
-		Assert.Equal("disinfectant", applied.LiquidId);
-		Assert.True(Math.Abs(applied.Amount - 10f) < 0.001f);
-		Assert.Empty(result.DrinkDose);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 
 		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
-		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "disinfectant").Amount - 740f) < 0.001f);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "disinfectant").Amount - 750f) < 0.001f);
 	}
 
 	[Fact]

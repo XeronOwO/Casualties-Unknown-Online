@@ -61,11 +61,39 @@ public class TopicalSemanticsTests
 	}
 
 	[Fact]
-	public void Admission_RefusesAnItemTheGameDoesNotDrawFromALimb()
+	public void Admission_AcceptsAContainerTheNativesFallbackApplies()
+	{
+		// The ticket's second wrong branch (cross-player topical family): a `waterbottle` is `usableOnLimb = false`,
+		// so native ApplyWoundItem reaches `WaterContainerItem.ApplyToLimb(limb, 100f)` — the game itself applies it
+		// topically, and the admission must not refuse the shape the wound view would treat.
+		Assert.True(TopicalAdmission.IsTopicalContainer(
+			FakeLimbUseSemantics.Instance,
+			"waterbottle",
+			Stacks([("reliefcream", 100f)])));
+	}
+
+	[Fact]
+	public void Admission_RefusesASyringeContainerWhoseLimbActionInjects()
+	{
+		// The ticket's first wrong branch: a syringe container is a limb-usable liquid container, but its own limb
+		// action starts an injection (the syringe minigame, or `Inject` directly). `usableOnLimb` says a limb may draw
+		// from it; it does NOT say the gesture is a topical application, which is what this predicate decides.
+		Assert.False(TopicalAdmission.IsTopicalContainer(
+			FakeLimbUseSemantics.Instance,
+			"syringe",
+			Stacks([("reliefcream", 100f)])));
+		Assert.False(TopicalAdmission.IsTopicalContainer(
+			FakeLimbUseSemantics.Instance,
+			"bloodbag",
+			Stacks([("reliefcream", 100f)])));
+	}
+
+	[Fact]
+	public void Admission_RefusesAnItemThatIsNotALiquidContainerAtAll()
 	{
 		Assert.False(TopicalAdmission.IsTopicalContainer(
 			FakeLimbUseSemantics.Instance,
-			"waterbottle",
+			"bandage",
 			Stacks([("reliefcream", 100f)])));
 	}
 

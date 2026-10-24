@@ -64,4 +64,20 @@ public interface ILimbUseSemantics
 	/// </para>
 	/// </summary>
 	bool IsLimbActionItem(string itemId);
+
+	/// <summary>
+	/// The item's own limb action is the native TOPICAL application, or the item has no limb action at all and the
+	/// native dispatch falls to its container branch. Native <c>PlayerCamera.ApplyWoundItem</c> has two shapes
+	/// (<c>PlayerCamera.cs:739-763</c>): <c>usableOnLimb</c> set → <c>item.Stats.useLimbAction(limb, item)</c>,
+	/// whatever that delegate calls; <c>usableOnLimb</c> clear → <c>waterContainerItem.ApplyToLimb(limb, 100f)</c>.
+	/// The flag alone therefore cannot answer this: a syringe container's delegate starts an injection minigame, and
+	/// a container with no limb action is applied topically by the native fallback.
+	/// <para>
+	/// The Game Adapter answers it from the item's data and, where a delegate exists, from that delegate's own
+	/// compiled body (<c>UseActionInstructions</c>): true when the body calls
+	/// <c>WaterContainerItem.ApplyToLimb</c>, false when it calls an injection path instead. A delegate the reader
+	/// cannot open answers false, which keeps the topical chain from claiming a gesture it cannot describe.
+	/// </para>
+	/// </summary>
+	bool AppliesToLimbTopically(string itemId);
 }

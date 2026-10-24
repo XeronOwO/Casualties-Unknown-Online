@@ -16,4 +16,6 @@ public sealed class NoLimbUseSemantics : ILimbUseSemantics
 	public bool IsHealthUsableLiquid(string liquidId) => false;
 
 	public bool IsLimbActionItem(string itemId) => false;
+
+	public bool AppliesToLimbTopically(string itemId) => false;
 }

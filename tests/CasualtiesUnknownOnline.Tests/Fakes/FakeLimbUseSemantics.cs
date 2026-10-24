@@ -44,6 +44,19 @@ internal sealed class FakeLimbUseSemantics : ILimbUseSemantics
 	};
 
 	/// <summary>
+	/// The vanilla items whose own limb action IS the topical application, plus the container the native fallback
+	/// applies. The four with a delegate are the only ones in <c>Item.cs</c> whose body calls
+	/// <c>WaterContainerItem.ApplyToLimb</c> (<c>:652</c> paincream, <c>:676</c> woundglue, <c>:2101</c> disinfectant,
+	/// <c>:2125</c> spraybottle); <c>waterbottle</c> is the <c>usableOnLimb = false</c> container the native
+	/// `ApplyToLimb(limb, 100f)` branch handles. The syringe family is deliberately ABSENT even though its items are
+	/// limb-usable containers: their delegates start an injection, which is the distinction this predicate exists for.
+	/// </summary>
+	private static readonly HashSet<string> TopicalApplyContainers = new(StringComparer.Ordinal)
+	{
+		"paincream", "woundglue", "disinfectant", "spraybottle", "waterbottle",
+	};
+
+	/// <summary>
 	/// The vanilla items whose own <c>useLimbAction</c> the limb-tool family runs on
 	/// the treated player's client. The five the suite exercises plus one item the
 	/// deleted catalog never carried (<c>roselight</c>) — the migration's own point:
@@ -68,4 +81,6 @@ internal sealed class FakeLimbUseSemantics : ILimbUseSemantics
 	public bool IsHealthUsableLiquid(string liquidId) => HealthUsableLiquids.Contains(liquidId);
 
 	public bool IsLimbActionItem(string itemId) => LimbActionItems.Contains(itemId);
+
+	public bool AppliesToLimbTopically(string itemId) => TopicalApplyContainers.Contains(itemId);
 }

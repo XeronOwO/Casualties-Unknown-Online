@@ -327,6 +327,22 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 		}
 	}
 
+	/// <summary>
+	/// The operator's own cross-player use was refused. The line the player reads is the runtime's notice; this is the
+	/// game's own deny sound beside it — the cue the user asked for (2026-10-24: the label plus the deny sound, and NO
+	/// extra success sound, because the drag already has the game's own cloth rustle).
+	/// </summary>
+	public void OnPlayerItemUseRefused()
+	{
+		var camera = PlayerCamera.main;
+		if (camera == null) // Unity object — ==
+		{
+			return;
+		}
+
+		camera.PlayUISound(PlayerCamera.UISoundType.Deny, 1f);
+	}
+
 	public void OnPlayerItemUseReceived(PlayerItemUseResultMsg msg)
 	{
 		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==

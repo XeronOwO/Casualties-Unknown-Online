@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -26,6 +27,8 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 	private readonly IPlayerInteractionVisibility _visibility;
 	private readonly PlayerItemActionOutcomeService _outcomes;
 	private readonly PlayerItemUseExecution _execution;
+	private readonly ISessionNotices _notices;
+	private readonly ILocalizationService _localization;
 	private readonly ILogger _log;
 
 	public PlayerItemUseService(
@@ -40,8 +43,12 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 		ISolidFoodSemantics solidFoodSemantics,
 		ItemKernelAuthority kernelAuthority,
 		PlayerInteractionResultAuthority resultAuthority,
+		ISessionNotices notices,
+		ILocalizationService localization,
 		ILogger log)
 	{
+		_notices = notices;
+		_localization = localization;
 		_session = session;
 		_sender = sender;
 		_characters = characters;
@@ -117,8 +124,39 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			return;
 		}
 
-		_execution.TryExecute(user, target, msg.ItemInstanceId, msg.LimbIndex, msg.DoseMl, EntryOf(msg.LimbIndex), requireUserConscious: true);
+		var refusal = _execution.TryExecute(user, target, msg.ItemInstanceId, msg.LimbIndex, msg.DoseMl, EntryOf(msg.LimbIndex), requireUserConscious: true);
+		if (refusal is not null)
+		{
+			NotifyRefused(user, target, msg.ItemInstanceId, refusal);
+		}
 	}
+
+	/// <summary>
+	/// Puts a refused use where the operator can see it (the user's 2026-10-24 ruling): a member's refusal travels
+	/// back over the wire with the host's own reason, and the host's own refused gesture takes the local path. Both
+	/// end at the same line and the same deny sound, so a refusal never depends on which side refused.
+	/// </summary>
+	private void NotifyRefused(ulong user, ulong target, ulong itemInstanceId, string reason)
+	{
+		if (user != _session.LocalSteamId)
+		{
+			_sender.Send(user, NetMsg.PlayerItemUseRefused, new PlayerItemUseRefusedMsg
+			{
+				TargetSteamId = target,
+				ItemInstanceId = itemInstanceId,
+				Reason = reason,
+			});
+			return;
+		}
+
+		_notices.Publish(_localization.Format("hud.use_refused", reason));
+		UseRefused?.Invoke();
+	}
+
+	public void FireUseRefused() => UseRefused?.Invoke();
+
+	/// <summary>The operator's gesture was refused; the Game Adapter rings the game's deny sound.</summary>
+	public event Action? UseRefused;
 
 	/// <summary>
 	/// The entry a request's limb selection identifies. A request that stops at the
@@ -176,7 +214,11 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			return;
 		}
 
-		_execution.TryExecute(itemOwner, requester, itemInstanceId, targetLimbIndex, doseMl, ItemUseEntry.Limb, requireUserConscious: false);
+		var refusal = _execution.TryExecute(itemOwner, requester, itemInstanceId, targetLimbIndex, doseMl, ItemUseEntry.Limb, requireUserConscious: false);
+		if (refusal is not null)
+		{
+			NotifyRefused(requester, itemOwner, itemInstanceId, refusal);
+		}
 	}
 
 	/// <summary>Kernel projection path: a use result event arrived — surface it for the Game Adapter.</summary>

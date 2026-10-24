@@ -2,7 +2,6 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 

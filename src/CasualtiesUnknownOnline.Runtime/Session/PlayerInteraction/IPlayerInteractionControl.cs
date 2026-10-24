@@ -143,6 +143,12 @@ public interface IPlayerInteractionControl
 	/// <summary>An authoritative cross-player consumable-use result arrived — the Game Adapter consumes/updates the user's item and/or applies the target's post-use state.</summary>
 	event Action<PlayerItemUseResultMsg>? UseReceived;
 
+	/// <summary>Present a refused cross-player use on the operator's own screen (the notice is published separately; this is the adapter's cue to ring the game's deny sound).</summary>
+	void FireUseRefused();
+
+	/// <summary>The operator's own gesture was refused — the Game Adapter plays the game's deny sound.</summary>
+	event Action? UseRefused;
+
 	/// <summary>
 	/// Any role: the local client ran a cross-player use whose effect belongs to this
 	/// side — report what the used item became so the host can hand it to the item's

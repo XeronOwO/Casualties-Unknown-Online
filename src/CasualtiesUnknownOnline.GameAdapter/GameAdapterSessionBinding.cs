@@ -68,6 +68,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.PlayerInteraction.CarryStateChanged += playerInteraction.OnCarryStateChanged; // cross-player carry: set/clear the local carried-body driver
 		domains.PlayerInteraction.HealReceived += playerInteraction.OnPlayerHealReceived; // cross-player heal: consume the local item and/or apply the target's post-heal state
 		domains.PlayerInteraction.UseReceived += playerInteraction.OnPlayerItemUseReceived; // cross-player consumable use: consume/update the user's item and/or apply the target's post-use state
+		domains.PlayerInteraction.UseRefused += playerInteraction.OnPlayerItemUseRefused; // the operator's gesture was refused: ring the game's own deny sound
 		domains.PlayerInteraction.RemoteInventoryIntentReceived += remoteInventoryApply.Apply; // native intents replay on the owner's real local body
 		domains.PlayerInteraction.PushReceived += pushApply.Apply; // cross-player push: apply local target ragdoll/pusher cost and play the push sound
 		domains.PlayerInteraction.MedicalOperations.StateReceived += medicalOperationApply.OnStateReceived; // medical session: refresh local item/body/display with authoritative progress
@@ -129,6 +130,7 @@ internal sealed class GameAdapterSessionBinding(
 		domains.PlayerInteraction.CarryStateChanged -= playerInteraction.OnCarryStateChanged;
 		domains.PlayerInteraction.HealReceived -= playerInteraction.OnPlayerHealReceived;
 		domains.PlayerInteraction.UseReceived -= playerInteraction.OnPlayerItemUseReceived;
+		domains.PlayerInteraction.UseRefused -= playerInteraction.OnPlayerItemUseRefused;
 		domains.PlayerInteraction.RemoteInventoryIntentReceived -= remoteInventoryApply.Apply;
 		domains.PlayerInteraction.PushReceived -= pushApply.Apply;
 		domains.PlayerInteraction.MedicalOperations.StateReceived -= medicalOperationApply.OnStateReceived;

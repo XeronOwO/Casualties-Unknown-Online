@@ -30,6 +30,7 @@ public class HostToGuestInteractionDirectionTests(DirectionProbe probe) : IClass
 		NetMsg.HealResetResult,
 		NetMsg.HostRuleChangeResult,
 		NetMsg.LayerAdvanceRefused,
+		NetMsg.PlayerItemUseRefused,
 	};
 
 	[Theory]

@@ -1,6 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -84,6 +85,14 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 		remove => _itemUse.UseReceived -= value;
 	}
 
+	public void FireUseRefused() => _itemUse.FireUseRefused();
+
+	public event Action? UseRefused
+	{
+		add => _itemUse.UseRefused += value;
+		remove => _itemUse.UseRefused -= value;
+	}
+
 	public event Action<PlayerPushResultMsg>? PushReceived
 	{
 		add => _push.PushReceived += value;
@@ -102,6 +111,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 		IConsumeSemantics consumeSemantics,
 		IWearSemantics wearSemantics,
 		ISolidFoodSemantics solidFoodSemantics,
+		ISessionNotices notices,
+		ILocalizationService localization,
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
 		IMedicalOperationControl medicalOperations,
@@ -124,7 +135,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 		_placement = new RemotePlacementService(session, sender, _take, givenReturn, placementResolver, time, log);
 		session.SessionEnded += ResetSessionState;
 		_give = new PlayerItemGiveService(session, sender, _take, itemCreation, itemStateLanguage, memberCommandRules, log);
-		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, kernelAuthority, resultAuthority, log);
+		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, kernelAuthority, resultAuthority, notices, localization, log);
 		_itemUse.BindToSession(); // the admitted-eat table is session-scoped
 		_remoteInventory = new PlayerRemoteInventoryIntentService(session, sender, access, hostRules, visibility, _itemUse, _take, _placement, time, log);
 		_carry = new PlayerCarryService(

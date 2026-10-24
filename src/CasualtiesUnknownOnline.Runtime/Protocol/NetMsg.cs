@@ -490,4 +490,9 @@ public enum NetMsg : byte
 	// Pre-release the number is not frozen (decision 241), so the change records itself here.
 	SpectatorNotice = 164,
 
+	// Host → the operator whose cross-player use it refused, with the same sentence the host logged: the drag
+	// gesture had no answer at all before this, so a refusal the host made was indistinguishable from a gesture
+	// that silently did nothing (the user's 2026-10-24 ruling: label + deny sound on the operator's screen).
+	PlayerItemUseRefused = 165,
+
 }

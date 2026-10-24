@@ -2,7 +2,6 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 

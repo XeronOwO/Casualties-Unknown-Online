@@ -1067,6 +1067,16 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
+		public void FireUseRefused()
+		{
+		}
+
+		public event Action? UseRefused
+		{
+			add { }
+			remove { }
+		}
+
 		public event Action<PlayerItemUseResultMsg>? UseReceived
 		{
 			add { }

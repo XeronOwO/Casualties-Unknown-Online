@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -360,6 +361,26 @@ public class ItemUseTests
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Use_RefusedByTheHost_ReachesTheOperatorsOwnScreen()
+	{
+		// The user's 2026-10-24 ruling: a refusal reads as a line on the operator's screen (and the game's deny
+		// sound), never as a gesture that silently did nothing. The reason travels from the host with the sentence it
+		// decided, so the member reads the same refusal instead of guessing why nothing happened.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false, alive: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, WaterBottle(42)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
+		var notices = guest.Services.GetRequiredService<ISessionNotices>();
+		Assert.True(notices.TryTake(out var notice), "the refusal must reach the operator's own screen");
+		Assert.Contains("the patient is dead", notice.Text);
 	}
 
 	[Fact]

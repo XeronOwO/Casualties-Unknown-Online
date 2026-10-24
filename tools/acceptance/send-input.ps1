@@ -156,6 +156,22 @@ public static class CuoInput
         inputs[1].type = INPUT_KEYBOARD; inputs[1].u.ki.wVk = vk; inputs[1].u.ki.dwFlags = KEYEVENTF_KEYUP;
         SendInput(2, inputs, Marshal.SizeOf(typeof(INPUT)));
     }
+
+    // One half of a press. Unity samples Input.GetKeyDown on a frame boundary, so a tap whose down and up leave in the
+    // same SendInput batch can be missed outright; a batch that must have the game SEE the press sends the halves apart.
+    public static void KeyDown(ushort vk)
+    {
+        var inputs = new INPUT[1];
+        inputs[0].type = INPUT_KEYBOARD; inputs[0].u.ki.wVk = vk;
+        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
+
+    public static void KeyUp(ushort vk)
+    {
+        var inputs = new INPUT[1];
+        inputs[0].type = INPUT_KEYBOARD; inputs[0].u.ki.wVk = vk; inputs[0].u.ki.dwFlags = KEYEVENTF_KEYUP;
+        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
 }
 '@
 
@@ -195,7 +211,14 @@ switch ($Action) {
 	}
 	'key' {
 		if ($Vk -le 0) { throw '-Vk is required for -Action key' }
-		[CuoInput]::Key([System.Convert]::ToUInt16($Vk))
+		$keyCode = [System.Convert]::ToUInt16($Vk)
+		if ($Down -or $Up) {
+			if ($Down) { [CuoInput]::KeyDown($keyCode) }
+			if ($Up) { [CuoInput]::KeyUp($keyCode) }
+		}
+		else {
+			[CuoInput]::Key($keyCode)
+		}
 	}
 	'drag' {
 		$from = ConvertTo-Screen $X1 $Y1

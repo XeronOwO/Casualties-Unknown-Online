@@ -13,7 +13,13 @@ Batch `20261025-d`, one live session with three clients (host, guest operator, a
 - [x] **The break-grasp path is drivable** (row 8's substance): `grip-slip-drive` seeds shrapnel, starts the shared special session and breaks the grasp, and the slip's damage appears identically on the patient's own limb and the operator's display (recorded in `cross-player-item-use-random-determinism-20261025-b.md`).
 - [ ] **Row 7 — all pieces removed — NOT driven, and the missing capability is exact.** The `pieces` probe shows the started minigame's piece count, but the minigame's lifetime is shorter than one driver round trip in this state: a `start` immediately followed by `pieces` answered `-1` twice tonight, and the next `pieces` call answered `current=none`, so a batch cannot break piece after piece inside the window. A same-call variant was tried and **also fails for a sharper reason**: starting the session inside the `break` call and breaking piece 0 in the same evaluation answered `ok` while the limb kept all five pieces and no damage appeared on either side (`display shrapnel=5 skin=100`, `host local shrapnel=5 skin=100`) — the session the start creates has no pieces yet in that frame, so the break lands on an empty game. What the row needs is a coroutine that starts the session, waits frames until the pieces exist, and breaks them one by one while the game keeps running (shaped like `cpr-rhythm`).
 - [ ] **Rows 1–6 and 9** need two operators acting on the same limb inside that same window (leases, force-ungrab, cancel and disconnect), so they inherit row 7's capability.
-- [ ] **Row 10** is a code question (the old snapshot hack's removal) and is judged by reading the path, not by a session.
+- [x] **Row 10 — judged by reading the path, and the old hack is gone.** `RemoteMedicalPatches` routes the four allowed remote specials
+  (tourniquet removal, shrapnel removal, splint removal, dislocation fix) through `PatchBridge.TryStartRemoteWoundSpecial` — the
+  host-authoritative medical operation session — and says so at the dispatch ("They are routed through the host-authoritative medical
+  operation session and started on the display body; every other special stays read-only"). The receiving half branches on a NAMED
+  operation kind (`MedicalOperationApply`: a message with no kind logs a warning and replays the authoritative snapshot instead of
+  injecting), and the 2026-10-11 shrapnel limb write that "vanished" is recorded there as the omission that caused it. No direct
+  shrapnel-removal snapshot write remains outside the session path, so row 10 is satisfied by the code as it stands.
 
 ## Objective
 

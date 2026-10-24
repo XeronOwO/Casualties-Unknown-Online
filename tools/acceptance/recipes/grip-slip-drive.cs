@@ -232,6 +232,29 @@
 			+ ",\"hasShrapnel\":" + (targetLimb.hasShrapnel ? "true" : "false") + "}";
 	}
 
+	if (mode == "pieces") {
+		// The seam this batch lacked: after `start` the pull had already consumed the shrapnel and the minigame was gone, so
+		// `break` had no game to break in and answered no-shrapnel-minigame. This mode reports what the minigame surface
+		// holds right now - its type, how many pieces, which slot is held - so a batch never breaks blind again.
+		var piecesBase = MinigameBase.main;
+		if (piecesBase == null) { return "{\"ok\":false,\"error\":\"no-minigame-base\"}"; }
+		var currentName = piecesBase.currentMinigame == null ? "none" : piecesBase.currentMinigame.GetType().Name;
+		var pieces = -1;
+		var held = -2;
+		var shrapnelGame = piecesBase.currentMinigame as ShrapnelMinigame;
+		if (shrapnelGame != null) {
+			try {
+				var objectsField2 = typeof(ShrapnelMinigame).GetField("objects", flags);
+				var list = objectsField2 == null ? null : objectsField2.GetValue(shrapnelGame) as System.Collections.Generic.List<UnityEngine.RectTransform>;
+				pieces = list == null ? -1 : list.Count;
+			}
+			catch (System.Exception piecesError) {
+				return "{\"ok\":true,\"mode\":\"pieces\",\"current\":\"" + currentName + "\",\"pieces\":-1,\"detail\":\"" + piecesError.GetType().Name + "\"}";
+			}
+		}
+		return "{\"ok\":true,\"mode\":\"pieces\",\"current\":\"" + currentName + "\",\"pieces\":" + pieces + "}";
+	}
+
 	if (mode == "break") {
 		var minigameBase = MinigameBase.main;
 		if (minigameBase == null) { return "{\"ok\":false,\"error\":\"no-minigame-base\"}"; }

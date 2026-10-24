@@ -245,3 +245,26 @@ ids). The staging makes that reachable; the trigger is the remaining question, a
 
 A recipe that presses neither is the lesson this batch adds: a forge that has to name an id cannot be the FIRST step of a
 drop row.
+
+## Batch 20261024-r: a member-pressed mine really reaches the host, and its victims are marked
+
+The `trap-trigger` recipe presses the nearest mine by setting `MineScript.pressed` — the field a player's step sets — so the
+game runs its own 0.8 s sequence, the member's client reports the `MineExploded` event through the ordinary patch, and the
+host applies it. Two blasts were read on the machine
+(`docs/evidence/acceptance/blast-marked-victims-20261024-r.md`):
+
+| evidence | first blast | second blast |
+|---|---|---|
+| the member's report | `origin=Report` at (0, 0.5) | `origin=Report` at (0, 30.5) |
+| the host applied it | `host applied mine explosion at (0.00, 0.50)` | same at `(0.00, 30.50)` |
+| **the scope's own line** | **`marked 1 blast victim(s) as remote deaths`** | **`marked 2 blast victim(s)`** |
+
+So slice 1 works on a live member-triggered event: every entity the host's application damaged is marked before the game's
+death branch could roll it — the duplicate's cause, removed.
+
+**Still owed, and narrower now**: the "EXACTLY ONE set" row needs a victim whose drop table is NOT empty. Both staged
+crates (`containercrate`, `medcrate`) left zero items on both clients — a hand-placed container carries loot, not
+`itemsDropOnDestroy` rows. The census already names a victim whose table IS non-empty: **the mine itself** (`rowCount` 1),
+so the next batch stages two mines side by side (one fires, the other dies) and counts the second one's set on both
+clients; or a worldgen-placed container instead of a hand-placed one.
+

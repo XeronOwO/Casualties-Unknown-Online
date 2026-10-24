@@ -36,6 +36,7 @@ internal sealed class OnlineUiHost
 	private readonly LobbySwitchActions _lobby;
 	private readonly ConfigEntry<string> _quickPanelKey;
 	private readonly ConfigEntry<string> _freeFlyKey;
+	private readonly ConfigEntry<bool> _mirrorEffects;
 	private readonly OnlineUiOverlay _onlineUi;
 	private readonly IpDirectActions _ipActions;
 	private readonly LocationPingInputHandler _locationPingInput;
@@ -103,11 +104,12 @@ internal sealed class OnlineUiHost
 	/// </summary>
 	internal bool IsModalSurfaceOpen => _onlineUi.IsWindowVisible || _onlineUi.IsCommandConsoleOpen;
 
-	internal OnlineUiHost(IServiceProvider services, ConfigEntry<string> quickPanelKey, ConfigEntry<string> freeFlyKey, LobbySwitchActions lobby)
+	internal OnlineUiHost(IServiceProvider services, ConfigEntry<string> quickPanelKey, ConfigEntry<string> freeFlyKey, ConfigEntry<bool> mirrorEffects, LobbySwitchActions lobby)
 	{
 		_lobby = lobby;
 		_quickPanelKey = quickPanelKey;
 		_freeFlyKey = freeFlyKey;
+		_mirrorEffects = mirrorEffects;
 		_log = services.GetRequiredService<ILogger<OnlineUiHost>>();
 		// One construction per plugin is the assumption the notice line violated: two hosts would share the notice
 		// slot and only the one that draws would show what its own drain consumes. This prints the identity once, so
@@ -317,6 +319,12 @@ internal sealed class OnlineUiHost
 		_nativeFacts.Update(_time.NowMs);
 
 		_onlineUi.IpDirectActive = _router.IsIpDirectActive;
+		// The switch is a client-local config, read every frame so a change takes effect without a restart: the camera
+		// decides what to mirror, this only says whether it may.
+		if (_spectator is { } spectatorControl)
+		{
+			spectatorControl.MirrorEffects = _mirrorEffects.Value;
+		}
 		// The watched member is the CAMERA's answer, refreshed every frame like the IP-direct fact above: the
 		// camera gives a watch up by itself, and a copy taken once would keep offering a stop that stops nothing.
 		_onlineUi.WatchingSteamId = _spectator?.WatchingSteamId ?? 0;

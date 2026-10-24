@@ -116,6 +116,8 @@ public class CommandConsoleSpectatorTests
 
 		public bool IsFreeFly { get; set; }
 
+		public bool MirrorEffects { get; set; } = true;
+
 		public bool RefusesWatch { get; init; }
 
 		public bool RefusesFreeFly { get; init; }

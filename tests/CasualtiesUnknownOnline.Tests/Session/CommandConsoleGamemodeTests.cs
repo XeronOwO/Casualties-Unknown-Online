@@ -98,6 +98,8 @@ public class CommandConsoleGamemodeTests
 
 		public bool IsFreeFly { get; set; }
 
+		public bool MirrorEffects { get; set; } = true;
+
 		public bool RefusesEnter { get; init; }
 
 		public int ExitCalls { get; private set; }

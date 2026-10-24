@@ -55,6 +55,7 @@ internal sealed class PluginHost : MonoBehaviour
 	private ILocalizationService _localization = null!;
 	private ConfigEntry<string> _interactionPanelKey = null!;
 	private ConfigEntry<string> _spectatorFreeFlyKey = null!;
+	private ConfigEntry<bool> _spectatorMirrorEffects = null!;
 	private ulong? _pendingJoinLobbyId;
 
 	private static ManualLogSource Logger => Plugin.Logger;
@@ -109,6 +110,8 @@ internal sealed class PluginHost : MonoBehaviour
 				"Hotkey to toggle the standalone player-interaction quick panel. See UnityEngine.KeyCode names.");
 			_spectatorFreeFlyKey = _config.Bind("Session", "SpectatorFreeFlyKey", "F7",
 				"Hotkey to toggle the spectator camera's free flight while watching a member. See UnityEngine.KeyCode names.");
+			_spectatorMirrorEffects = _config.Bind("Session", "SpectatorMirrorEffects", true,
+				"Whether the watched player's own screen effects (blackout and the vignette that reddens with their brain health) reach the spectator's camera. Off keeps the screen clear; the bottom strip still shows their vitals and state. A client-local preference, never sent to other players.");
 
 			_lobby = new LobbySwitchActions(
 				_steam,
@@ -117,7 +120,7 @@ internal sealed class PluginHost : MonoBehaviour
 				_services.GetService<IWorldPresenceQuery>(),
 				_services.GetRequiredService<ILocalizationService>(),
 				_services.GetRequiredService<ILogger<LobbySwitchActions>>());
-			_onlineUi = new OnlineUiHost(_services, _interactionPanelKey, _spectatorFreeFlyKey, _lobby);
+			_onlineUi = new OnlineUiHost(_services, _interactionPanelKey, _spectatorFreeFlyKey, _spectatorMirrorEffects, _lobby);
 
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
 

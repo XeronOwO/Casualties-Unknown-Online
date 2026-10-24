@@ -77,6 +77,9 @@ internal sealed class SpectatorCameraService(
 	public bool IsFreeFly => _freeFlyWanted;
 
 	/// <inheritdoc />
+	public bool MirrorEffects { get; set; } = true;
+
+	/// <inheritdoc />
 	public bool EnterSpectatorMode()
 	{
 		if (_spectatorMode)
@@ -247,11 +250,12 @@ internal sealed class SpectatorCameraService(
 		// render clone: the clone's own `alive`/`blood` are its local template values (blood reads 100 for everyone),
 		// which is exactly why the first mirror never moved. A body reported out blacks the screen and a body reported
 		// bleeding reddens the vignette; when this client holds no snapshot yet the screen stays clear.
-		var reportedOut = remoteVitals.TryGet(_watchingSteamId, out var watched)
+		var reportedOut = MirrorEffects
+			&& remoteVitals.TryGet(_watchingSteamId, out var watched)
 			&& (!watched.Alive || !watched.Conscious);
 		// The vignette follows the reported brain health even while the body is still up: the closer that member is to
 		// going out, the redder the spectator's edges — a body fully out uses the bleed colour at full strength.
-		var brainAlpha = remoteVitals.TryGet(_watchingSteamId, out var vitalsForVignette)
+		var brainAlpha = MirrorEffects && remoteVitals.TryGet(_watchingSteamId, out var vitalsForVignette)
 			? Mathf.Clamp01((100f - vitalsForVignette.BrainHealth) / 100f) * MaxVignetteAlpha
 			: 0f;
 		SpectatorPresentationGate.SetWatched(
@@ -260,7 +264,7 @@ internal sealed class SpectatorCameraService(
 
 		// The mirror's own probe: prints the SOURCE values (the reported snapshot), the values written into the gate and
 		// what the camera will be given — once per change, so a still body does not flood the log.
-		var mirror = $"watched={_watchingSteamId} reported={remoteVitals.TryGet(_watchingSteamId, out var probe)} alive={probe?.Alive} conscious={probe?.Conscious} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2}";
+		var mirror = $"watched={_watchingSteamId} effects={MirrorEffects} reported={remoteVitals.TryGet(_watchingSteamId, out var probe)} alive={probe?.Alive} conscious={probe?.Conscious} brain={probe?.BrainHealth:F0} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2}";
 		if (!string.Equals(mirror, _mirrorLogged, StringComparison.Ordinal))
 		{
 			_mirrorLogged = mirror;

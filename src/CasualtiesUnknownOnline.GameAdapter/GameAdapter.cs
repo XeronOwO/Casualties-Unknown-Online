@@ -387,6 +387,12 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	bool ISpectatorControl.IsFreeFly => _domains.Spectator.IsFreeFly;
 
+	bool ISpectatorControl.MirrorEffects
+	{
+		get => _domains.Spectator.MirrorEffects;
+		set => _domains.Spectator.MirrorEffects = value;
+	}
+
 	bool ISpectatorControl.EnterSpectatorMode() => _domains.Spectator.EnterSpectatorMode();
 
 	void ISpectatorControl.ExitSpectatorMode() => _domains.Spectator.ExitSpectatorMode();

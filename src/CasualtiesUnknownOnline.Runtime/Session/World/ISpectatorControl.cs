@@ -40,6 +40,14 @@ public interface ISpectatorControl
 	bool IsFreeFly { get; }
 
 	/// <summary>
+	/// Whether the watched body's own screen effects (its blackout and the vignette that reddens as its brain health
+	/// runs out) may reach this spectator's camera. A CLIENT-LOCAL preference the plugin reads from its config — it
+	/// never travels on the wire — and off leaves the screen clear while the strip stays the tell. The suppression of
+	/// the LOCAL body's own presentation is not governed here and stays unconditional.
+	/// </summary>
+	bool MirrorEffects { get; set; }
+
+	/// <summary>
 	/// The member this client is following, or 0. Published so a surface can mark the watched row and offer its
 	/// way out WITHOUT keeping a copy: the camera gives a watch up on its own when the followed member dies,
 	/// leaves the layer or drops, and a second answer would keep offering a stop that stops nothing.

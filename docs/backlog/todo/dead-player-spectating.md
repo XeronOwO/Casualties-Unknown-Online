@@ -166,6 +166,17 @@ assert without a new counter, and the run did not add one. They are recorded as 
 - Reading: two clients, one spectator possesses the other; the watcher sees the target's icons/backpack/medical
   panel, the target sees the notice, and ending the mode restores the watcher's own HUD.
 
+**The notice's exact change, planned 2026-10-24 (the next unit; the entry and the watch menu are landed):**
+
+| Piece | What it is |
+|---|---|
+| message | `SpectatorNoticeMsg` with `WatcherSteamId` (whose possession it is), `TargetSteamId` (who is being watched) and `Watching` (start or stop) — the shape `ChatMsg` already has, one direction each way |
+| number | the next free `NetMsg` after `LayerAdvanceRefused = 163`; pre-release the number is not frozen (decision 241), so the change records itself in the message header |
+| path | the watcher sends to the host through the world channel (`ChatChannel` is the template: `ChatMsg` is guest→host then host-relayed), the host relays to `TargetSteamId` ONLY (a targeted relay, unlike chat's broadcast) |
+| target side | a `SpectatorNoticeHandler` that keeps the current watcher's name (`ISessionControl` display name) and feeds the Online UI's existing notice surface with the localized `spectator.watched_notice`; a stop notice clears it |
+| gates to move in the same change | `NetMsg` direction classification (guest→host and host→guest), the sync-coverage matrix row, the wire vocabulary index, the localization catalogue (`spectator.watched_notice` becomes read when the handler formats it) |
+
+
 ### Slice 4 — free flight
 
 - How the free camera is toggled in the mode (a verb, a key, or part of the possession exit) is the one detail

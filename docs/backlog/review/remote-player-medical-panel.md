@@ -1,13 +1,13 @@
 # Remote player medical/health panel
 
-- Status: Done — closed 2026-10-25. The ticket's own acceptance criteria are all satisfied and evidenced, and the 2026-09-06
-  display-fidelity block that made it "not accepted" is closed by its own tickets: `done/remote-medical-panel-acceptance-issues.md`
-  reads "all four rows pass in batch 20261023-b on the deployed artifact", and
-  `done/remote-fentanyl-injection-and-medical-panel-desync.md` was accepted in the same batch. The visual half of THIS ticket's
-  first and third criteria was read on batch `20261025-i` with the frame capability: the host and the guest each opened the third
-  member's chart through `OpenRemoteMedical` (`opened=true, nativeOpen=true, found=true` on both) and both frames draw that
-  victim's native `UNI-HEALTH` chart, which is the game's own UI showing a remote body, reachable from the entry the ticket names.
-  Nothing here is claimed from a session this cycle did not run.
+- Status: Review — accepted on the evidence below, with the folder move pending a bookkeeping pass. Every acceptance criterion on
+  this page is satisfied: the 2026-09-06 display-fidelity block is closed by its own tickets
+  (`done/remote-medical-panel-acceptance-issues.md` reads "all four rows pass in batch 20261023-b on the deployed artifact", and
+  `done/remote-fentanyl-injection-and-medical-panel-desync.md` was accepted in the same batch), and the visual half of THIS
+  ticket's first and third criteria was read on batch `20261025-i` with the frame capability: the host and the guest each opened
+  the third member's chart through `OpenRemoteMedical` (`opened=true, nativeOpen=true, found=true` on both) and both frames draw
+  that victim's native `UNI-HEALTH` chart. **The move lands with its ten references re-pointed in one pass** — the index, two
+  done tickets, three review tickets, three selfchecks and the census all cite this page.
 - Priority: Medium
 - Category: Remote player UI / native UI reuse
 - Source: User report (2026-09-04); rejected in an earlier review (2026-09-05) because the previous delivery used a CUO-side IMGUI panel instead of the game's native medical UI.

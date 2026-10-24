@@ -175,3 +175,11 @@ persisted home.
 Run record: [save-native-run-field-parity-20261001.md](../../evidence/acceptance/save-native-run-field-parity-20261001.md).
 Rows 1 and 3 pass — row 1 with its non-default-run-settings half named; row 2 unproven (no crafting drive
 path). The ticket stays in `review/` until the crafted-recipe setup exists.
+
+**Update 2026-10-25 — row 2's first half exists now, its second half does not.** The crafting drive path the row was missing
+exists: `tools/acceptance/recipes/craft-drive.cs` calls `Recipes.recipes[index].TryMake()` (the exact call `PlayerCamera.TryCraft`
+makes, with the game's own material matching), and `tools/acceptance/recipes/recipe-unlock-read.cs` reads the game's own unlock
+field back (`Recipes.recipes[idx].INT`, 0 = unlocked). So the row can now craft a recipe AND read its unlock state. What it still
+lacks is the **mid-run cut and continue** half: no committed probe takes a save at a layer boundary and continues it (the game's
+own save is the layer-end write, and `saved-character-read` only reads a character file). Row 2 therefore waits on that one
+fixture, not on crafting.

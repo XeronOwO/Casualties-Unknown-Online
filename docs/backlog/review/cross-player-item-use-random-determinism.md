@@ -46,6 +46,19 @@
   worse), decision 246 (the item-gesture mapping), `docs/en/internals/judgment-ownership.md`.
 - Source: the user's 2026-10-08 request.
 
+## Run sheet (cycle 2026-10-25: the remaining rows, in the live session)
+
+Batch `20261025-b`, one live two-client session (host + guest, the alt client for row 2), artifact identity read from both
+clients' own load line.
+
+- [x] **Row 3 is rewritten first.** The ticket's own §3 shows the row as written is unreachable (no ordinary injectable liquid rolls per call; the per-call `Random` reads are `onDrink` bodies, which is row 4's chain). The row now says so in place and points at §3's census, so no run will chase it again.
+- [ ] **Row 1 — the grip slip.** `grip-slip-drive` (probe → open → start → break) drives a bare-hand shrapnel pull that breaks the grip; read the affected client's skin/bleed/pain before and after against what the host committed. — **batch `20261025-b` reached the third seam and stopped**: `probe` and `open` answered ok, `start` answered ok, and `break piece=0` answered `no-shrapnel-minigame` (`currentMinigame is null`), so no grip slip ran and the row is unjudged. The shrapnel was seeded and read on the host (`hasShrapnel=true`, `skin=100 bleed=0 pain=16.338`), and after the attempt the limb read `hasShrapnel=false`; the next attempt starts by reading which piece the started minigame holds instead of breaking blind.
+- [ ] **Row 2 — the late joiner.** The alt client joins after the pull and reads the same committed values rather than a fresh roll.
+- [ ] **Row 4 — the drink chain.** `world-drink` on a liquid whose `onDrink` rolls per call; both screens must agree on the patient's values once.
+- [ ] **Row 5 — the control.** An unrelated local roll on either client is not perturbed by the above.
+- [ ] **Row 8 — no stall.** Neither action reads as a stall and the roll-free feedback still plays locally.
+- [ ] **Verdicts + bookkeeping.** One evidence record, the ticket moves to `done/` only when no row is left open; Status, index, census and inbound references in the same commit.
+
 ## What the report says
 
 Every cross-player item use runs as **local execution on the side that owns the body, plus a projection on
@@ -370,7 +383,7 @@ Each is judged on what BOTH clients show and hold, not on one screen.
 |---|---|---|
 | 1 | A bare-hand shrapnel pull that breaks the grip: the affected client's skin/bleed/pain before and after agree with what the host committed, and the operator's screen ends on those same values | read the limb values on the patient's own client and on the operator's after the state lands |
 | 2 | The same pull replayed for a late joiner lands on the committed values, not on a fresh roll | a third client joins mid-session and reads the limb |
-| 3 | An injection whose liquid carries a per-call roll (the `Liquids.cs` bodies above): the patient's own values and the operator's display agree once the report lands | both screens |
+| 3 | ~~An injection whose liquid carries a per-call roll~~ **withdrawn as unreachable** (2026-10-25): no ordinary injectable liquid rolls per call — the per-call `Random` reads in `Liquids.cs` are `onDrink` bodies, which is row 4's chain, so this row asked for a case the game does not have. The chain that exists is row 4's; the code evidence is §3's census, cited above. | n/a |
 | 4 | A drink whose liquid carries a per-call roll: same | both screens |
 | 5 | A control case outside the window: an unrelated local roll (a footstep or gore clip) on either client is not perturbed by any of the above | both clients' logs |
 

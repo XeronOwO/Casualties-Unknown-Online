@@ -1,12 +1,12 @@
 # Remote medical CPR enhancement (KrokMP custom)
 
-- Status: Todo — **stages 1a–1c landed and the row READS end to end on the machine** (2026-10-24, deployed
-  `0.1.0+e15a8521`, record `docs/evidence/acceptance/cpr-end-to-end-20261024-l.md`: host heartRate 0 → 81.151,
-  bloodPressure 5 → 131.191, conscious false → true after 40 compressions at the batch's cadence). **Stage 2 landed and
-  its rows read** (deployed `0.1.0+8b45fee7`, record `docs/evidence/acceptance/cpr-two-channels-20261024-m.md`: both
-  panel controls found/active/interactable, oxygen 20 → 22.868 after two breaths and 92.311 → 100 after five, the heart
-  restarted again from 40 compressions + 10 breaths). The ticket stays open for stage 3's second half (the AED restart
-  arbitration) and stage 4 (the operator's strength/intelligence gates and the reference's feedback). — **promoted 2026-10-07** by the user's backlog directive (do KrokMP's CPR feature), with the
+- Status: Todo — **stages 1a–1c, 2 and 3's two halves landed** (2026-10-24, deployed `0.1.0+e01d419d`): the rows read on
+  the machine for stage 1 (`cpr-end-to-end-20261024-l.md`: heartRate 0 → 81.151, conscious false → true) and stage 2
+  (`cpr-two-channels-20261024-m.md`: both panel controls found/active/interactable, oxygen 20 → 22.868 and 92.311 → 100),
+  and stage 3 is code-complete with its unit rows (`AedShockPolicyTests`, the over-press policy case and the session-level
+  AED-refusal case). **Stage 4 is the one that needs a decision before it can be built**: the reference's press-rate band
+  (65–220 per minute) is narrower than the rhythm this ticket's rule was tuned to, and adopting it changes both the feel
+  and what a batch can press — see "Stage 4's open decision" below. — **promoted 2026-10-07** by the user's backlog directive (do KrokMP's CPR feature), with the
   mechanics the user added then: inflate after an interval to give the teammate air, an oxygen-style mechanic
   if the game's own model can carry one, and an explicit complexity assessment before the work is planned.
 - Priority: Medium
@@ -335,5 +335,36 @@ The policy case is landed (`AFranticPressIsAnOverPress_AndTheIdealRhythmNeverIs`
 with the stage-3 rows — the harness's host snapshot does not carry the limb the branch needs, and a first attempt was
 withdrawn rather than left red.
 
-**Still owed in stage 3**: the AED/CPR restart arbitration (both procedures claiming the same restart), and the
-`bloodPressureChangeFromMedicine` lever question the batch above left open.
+## Stage 3 landed (2026-10-24, deployed `0.1.0+e01d419d`): the rib and the shared restart's loser
+
+- **The rib**: `CprRhythmPolicy.IsAnOverPress` (under half the ideal interval) makes the applier break the patient's chest
+  limb — the game's own `Broken` flag with its pain — so the cost is visible on the chart, and a well-paced press never
+  pays it.
+- **The shared restart's loser**: no shared bookkeeping is needed because the host applies both operations to the same
+  snapshot in order. `AedShockPolicy.IsShockAdvised` (the real device's "no shock advised": a shock is only for a
+  fibrillating heart) is enforced in the AED's Shock branch BEFORE any discharge, so a shock after CPR restarted the heart
+  burns no skin, halves no pressure and drains no battery; and `CprApplier` drops the session's banked perfusion whenever
+  it finds the patient out of arrest — whichever procedure ended the arrest — so a later re-arrest earns its restart
+  again instead of spending perfusion nobody built.
+
+Both are pinned by unit rows (the policy cases and a session-level AED-refusal case reading pressure, chest skin and
+battery). The machine row for the AED half is not read yet: driving an AED operation needs a recipe that gives the
+operator the item and walks the three stages, which the next batch can add.
+
+## Stage 4's open decision (blocks the operator's side)
+
+The reference gates the operator in ways this ticket has not yet ruled on, and one of them changes the RHYTHM this rule
+was tuned to:
+
+- **Press-rate band**: the reference scores presses against **65–220 per minute**. This ticket's rule earns full gain near
+  110/min and nothing past the slow line at 1.6 s (37/min) — deliberately forgiving, because a batch presses once per
+  driver round-trip (about 1.4 s apart) and the two machine rows proved their channels that way. Adopting the reference's
+  65/min floor makes slower-than-real pressing worthless (correct for the fiction, and it would need a rhythm-driving
+  helper for acceptance), while keeping today's line keeps the fiction fuzzy.
+- **Strength gate**: `skills.STR * handMaxTotalForce > 6` on the operator, evaluated on the operator's OWN client (the
+  gate is about their body, and the host's snapshot does not carry `handMaxTotalForce`), refusing with the existing
+  refusal line and deny sound.
+- **Intelligence**: `INT < 12` makes the operator's SCREEN harder rather than refusing — a presentation rule this ticket
+  would need to design (what "harder" shows).
+- **Costs**: stamina and a little temperature per press, and a rib-break roll that scales strength against intelligence.
+

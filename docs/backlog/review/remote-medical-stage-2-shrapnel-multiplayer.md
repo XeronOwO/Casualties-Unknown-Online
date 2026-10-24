@@ -77,6 +77,15 @@ paragraph's suspicion is withdrawn: a failed open on this surface must be read w
 and this gap are the same question, and the next cycle starts by reading what `currentMinigame` actually is on each client during
 the session rather than assuming the host's minigame base is the one.
 
+**Batch `20261025-af` — there is no native minigame holding the session on EITHER client.** `minigame-end` reads the active
+minigame through the game's own `MinigameBase`: right after `mode=special` answered `started=true, shrapnel=3`, the OPERATOR
+answered `before=none` and, in the same window, the PATIENT answered `before=none` too. So the CUO shared shrapnel session runs
+with no `MinigameBase.main.currentMinigame` on either peer in this state, which is why `grip-slip-drive mode=break` (and the
+coroutine that mirrors it) finds nothing to act on: they are both written against the native minigame's `objects`/`BreakGrasp`,
+and in this session there is no such object to hold. Row 7 therefore needs either a state that DOES create the native minigame
+(the earlier batch's successful grip-slip reading came from one) or a session-level API that removes pieces without it — and that
+choice is a design question, not another read.
+
 **Batch `20261025-ab` — the declaration is written, declared, and does NOT break yet; the session turns out to be LONG-LIVED.**
 The `shrapnel-break` declaration (a coroutine that waits for the minigame, posts the grab report, sets the held slot, waits two
 frames and calls `BreakGrasp()` per piece) plus its thin recipe were written and declared (`-Action declare -Declare

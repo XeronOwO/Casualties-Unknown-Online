@@ -438,6 +438,20 @@ read: the staging run that was meant to kill the watched member first lost its `
 world, and the retry watched a member the host still reports healthy, so no `gateVignetteA > 0` sample exists yet.
 The client-local `Session/SpectatorMirrorEffects` switch also remains to land.
 
+**Both positions and the low-health vignette are read, switch included (2026-10-24, deployed `0.1.0+6519ee75`).**
+Two sessions, one per switch position, each watching a member and killing it with the death-hold probe:
+- **Switch ON (`effects=True`)**: the healthy line reads `alive=True conscious=True brain=100 gateBlack=0.00
+  gateVignetteA=0.00`, and after the kill `alive=False conscious=False brain=0 gateBlack=0.80 gateVignetteA=0.50`;
+  the spectator's own camera then answers **`black: 0.8, vignette: 0.5`** — both of the watched body's screen
+  effects reach the watcher.
+- **Switch OFF (`effects=False`)**: the same kill leaves the gate at zeros — `alive=False conscious=False brain=0
+  gateBlack=0.00 gateVignetteA=0.00` — and the camera answers **`black: 0, vignette: 0`**, a clear screen with the
+  bottom strip's markers as the only tell.
+The switch is a BepInEx config value, so flipping it takes a restart (the plugin reads it every frame but the config
+file is only read at load); the machine reading used one session per position for that reason. The shipped default is
+`true`, restored after the reading.
+
+
 
 
 

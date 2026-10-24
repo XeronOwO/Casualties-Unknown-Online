@@ -95,6 +95,22 @@ client. That leaves two candidates, and the next reading separates them:
 2. **The asset's loop seam** — a 6 s beep clip whose own end is abrupt is not a code defect at all; the reading that
    rules it out is a single cycle of the clip with no stop.
 
+## The fourth reading (2026-10-25): the sample was taken from a panel that was not ACTIVE
+
+`open-own-wound` calls the game's own `PlayerCamera.WoundViewButton()` and answered `open:false`, yet
+`panel-beep-state` afterwards reported `open:true` with `critical:true` and **`playing:false`, `time:0` on all six reads**
+while the body's pressure kept falling (5.32 → 1.52). Those two facts together say the object read was a WoundView whose
+GameObject is not active: `WoundView.view` stays non-null, its `body` still points at the local critical body, and its
+`Update` — the block that plays the alert — is not running at all.
+
+So this reading does NOT yet describe the beep the user hears, and the next attempt must prove the panel is active
+(`activeInHierarchy` true) before sampling:
+
+1. open the panel through the game's own hotkey path (not the toggle call, which closed it here);
+2. prove it with a frame-level check (`WoundView.view.gameObject.activeInHierarchy`);
+3. only then sample `playing` / `time` / `critical` and judge, because an inactive panel answers "not playing" for a reason
+   that has nothing to do with the truncation.
+
 ## Acceptance this ticket owes
 
 A two-client session: the host's body forced critical (`body-force bloodPressure=…`), the host's log read for

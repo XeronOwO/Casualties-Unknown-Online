@@ -2,7 +2,7 @@
 
 Delivery-cycle fact sheet for the re-opened
 `docs/backlog/done/trap-destruction-drop-quantity-desync.md` and
-`docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md`.
+`docs/backlog/done/entity-destruction-drop-guest-fresh-state-loss.md`.
 
 ## 1. Root cause
 
@@ -21,7 +21,7 @@ A `requireGround` building that dies because its support block was removed is
   standalone kernel spawn path (`ItemWorldSync`'s `[ItemSpawned]` fallback), which
   at the time carried no `FreshItemDrop`, velocity, rotation or angular velocity.
   The carrier that closed that half is
-  `docs/backlog/review/entity-destruction-drop-guest-fresh-state-loss.md`.
+  `docs/backlog/done/entity-destruction-drop-guest-fresh-state-loss.md`.
 
 ## 2. Fix
 

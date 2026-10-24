@@ -1,6 +1,6 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Review — **every row is judged; ready to close.** Batch `20261002-e` read row 5. Batch `20261025-an` read rows 1-4
+- Status: Done — closed 2026-10-25; every row is judged. Batch `20261002-e` read row 5. Batch `20261025-an` read rows 1-4
   the way they ask to be read — a FRESH member entering a world where the drops already exist — instead of chasing frames: the
   clients were relaunched with `-NoJoin`, the host created its own lobby (`109775242161957411`) and started the run
   (`inWorld=true`), the host teleported to the layer's own support cell `(295,151)` and broke it (`blockBefore=2, blockAfter=0`,

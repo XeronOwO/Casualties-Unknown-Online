@@ -93,7 +93,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
 - [Player pain vocalizations and bark](review/sync-player-pain-vocalizations-and-bark.md) — **Medium** — they ride the character-sound event.
-- [Entity drop loses fresh state on the guest](review/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — full drop state is preserved.
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — **Medium** — limb drag routes through the heal path.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
@@ -137,6 +136,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Entity drop loses fresh state on the guest](done/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — read.
 - [Pinyin search for CUO](done/pinyin-search-mod.md) — **Medium** — closed as superseded; the standalone mod holds the work.
 - [Guest break drops are lost](done/guest-break-drops-recovery.md) — **Medium** — healed by the re-report; measured live.
 - [Sync cadence review](done/sync-cadence-review.md) — **Medium** — every row measured; pins re-run 24/24.

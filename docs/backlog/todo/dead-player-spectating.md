@@ -310,6 +310,15 @@ that draws (its line appeared), the notice's by the other (its line never reache
 to find the second construction: log `RuntimeHelpers.GetHashCode(this)` in the `OnlineUiHost` constructor, launch
 once, and read how many "host built" lines exist and with which hashes.
 
+**The two-host hypothesis is REFUTED too (2026-10-24, `0.1.0+22c49d43`).** The constructor logs its identity once,
+and each of the three clients has exactly one `[OnlineUi] host built:` line (guest `-706914060`, alt `-1873037068`,
+host `-789022476`), so there is one host and one overlay per client. With the slot, the text, the publish, the
+drain and the display each proven and the host count now proven too, the remaining difference is invisible to the
+logs that exist: the next instrument must live INSIDE `OnlineUiOverlay.Notify` (printing the overlay's identity, the
+text and `Time.realtimeSinceStartup`) and inside `BuildNetworkHud` (printing the same clock reading and whether a
+message exists), so one launch compares the two sides of the same object at the same clock.
+
+
 
 
 

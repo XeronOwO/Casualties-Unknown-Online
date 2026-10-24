@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using Xunit;
@@ -6,6 +8,52 @@ namespace CasualtiesUnknownOnline.Tests.Localization;
 
 public sealed class LocalizationServiceTests
 {
+	[Fact]
+	public void ARegisteredModLanguageIsOfferedAndReadsItsOwnKeys()
+	{
+		var monitor = new MutableOptionsMonitor<LocalizationOptions>(new LocalizationOptions());
+		var service = new LocalizationService(monitor);
+		service.RegisterCatalog("de", """{"tab.home": "Startseite", "mod.example.hello": "Hallo"}""");
+		monitor.Set(new LocalizationOptions { Language = "de" });
+
+		Assert.Contains("de", service.SupportedLanguages);
+		Assert.Equal("Startseite", service.T("tab.home"));
+		Assert.Equal("Hallo", service.T("mod.example.hello"));
+		Assert.Equal("de", service.Language);
+	}
+
+	[Fact]
+	public void AModCannotRedefineABuiltInLanguageKey()
+	{
+		var monitor = new MutableOptionsMonitor<LocalizationOptions>(new LocalizationOptions());
+		var service = new LocalizationService(monitor);
+		service.RegisterCatalog("en", """{"tab.home": "Hijacked", "mod.example.hello": "Hallo"}""");
+
+		Assert.Equal("Home", service.T("tab.home"));
+		Assert.Equal("Hallo", service.T("mod.example.hello"));
+	}
+
+	[Fact]
+	public void ARegisteredLanguageSwitchesWithTheLanguageSetting()
+	{
+		var monitor = new MutableOptionsMonitor<LocalizationOptions>(new LocalizationOptions());
+		var service = new LocalizationService(monitor);
+		service.RegisterCatalog("de", """{"tab.home": "Startseite"}""");
+		monitor.Set(new LocalizationOptions { Language = "de" });
+
+		Assert.Equal("de", service.Language);
+		Assert.Equal("Startseite", service.T("tab.home"));
+	}
+
+	[Fact]
+	public void AMalformedModCatalogueIsRefusedByName()
+	{
+		var service = new LocalizationService(new MutableOptionsMonitor<LocalizationOptions>(new LocalizationOptions()));
+
+		var error = Assert.Throws<InvalidDataException>(() => service.RegisterCatalog("de", """{"tab.home": }"""));
+		Assert.Contains("mod catalogue 'de'", error.Message, StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void DefaultsToEnglish()
 	{

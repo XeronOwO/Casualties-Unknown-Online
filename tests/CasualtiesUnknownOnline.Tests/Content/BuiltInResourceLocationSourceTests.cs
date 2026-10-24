@@ -44,6 +44,12 @@ public class BuiltInResourceLocationSourceTests
 
 		public string Language => "en";
 
+		public IReadOnlyList<string> SupportedLanguages => ["en", "zh"];
+
+		public void RegisterCatalog(string language, string json)
+		{
+		}
+
 		public event Action<string>? LanguageChanged
 		{
 			add { }

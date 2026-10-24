@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
@@ -5,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -201,9 +203,45 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 		}
 
 		var interval = CprButtonPolicy.IntervalSeconds(_lastPressSeconds, Time.unscaledTime);
+
+		// The press is paid for HERE, not on the host: a member's own vitals are authoritative on their own client, so a
+		// charge the host writes into its snapshot of the member never reaches the member's body (read on the machine, batch
+		// 20261024-o: five host-charged presses left the operator's own stamina at 100). An operator at the floor cannot
+		// compress — the refusal is the game's own deny sound, and nothing is sent, so the patient is not given a press
+		// nobody made.
+		if (!TryPayForThePress())
+		{
+			_domains.PlayerInteraction.FireUseRefused();
+			_domains.Log.LogInformation("[Cpr] the press was refused: this operator has no stamina left.");
+			return;
+		}
+
 		_lastPressSeconds = Time.unscaledTime;
 		operations.SendOtherUpdate(_operationId, MedicalOperationUpdateAction.Compress, interval);
 		_domains.Log.LogInformation("[Cpr] compression {Interval:F2}s sent to operation {Operation}.", interval, _operationId);
+	}
+
+	/// <summary>
+	/// Charges this operator's own body for one press — stamina and a little heat, the reference's per-press cost — and
+	/// answers whether the body could afford it. The numbers come from `CprRhythmPolicy`, the same rule the host reads for
+	/// the patient's side, so the two halves cannot drift.
+	/// </summary>
+	private bool TryPayForThePress()
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body == null) // Unity object — ==
+		{
+			return true;
+		}
+
+		if (body.stamina < CprRhythmPolicy.MinimumStamina)
+		{
+			return false;
+		}
+
+		body.stamina = Math.Max(0f, body.stamina - CprRhythmPolicy.StaminaPerPress);
+		body.temperature += CprRhythmPolicy.TemperaturePerPress;
+		return true;
 	}
 
 	/// <summary>

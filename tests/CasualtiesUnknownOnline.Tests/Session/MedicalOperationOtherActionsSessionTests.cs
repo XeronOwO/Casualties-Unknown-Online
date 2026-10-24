@@ -671,10 +671,11 @@ public sealed class MedicalOperationOtherActionsSessionTests
 	}
 
 	[Fact]
-	public void Cpr_EveryPressCostsTheOperatorStaminaAndHeat()
+	public void Cpr_TheHostDoesNotChargeTheOperatorsVitals()
 	{
-		// Stage 4's costs (ticket remote-medical-cpr.md): the operator pays stamina and a little heat per press, on their own
-		// committed data, because the host applies both sides of the operation.
+		// Stage 4's costs are paid on the operator's OWN client, not here: a charge the host writes into its snapshot of a
+		// member never reaches that member's body (read on the machine, batch 20261024-o — five host-charged presses left
+		// the operator's own stamina at 100). This case pins the boundary so a future change cannot move the charge back.
 		var (host, guest) = CreatePair();
 		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
 		var hostData = SnapshotWithLimbs(HostId, conscious: false);
@@ -700,8 +701,8 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		}
 
 		var saved = characters.GetSavedCharacter(Guest1Id)!.Health!;
-		Assert.Equal(100f - (3f * CprRhythmPolicy.StaminaPerPress), saved.Stamina, 2);
-		Assert.Equal(37f + (3f * CprRhythmPolicy.TemperaturePerPress), saved.Temperature, 3);
+		Assert.Equal(100f, saved.Stamina, 2);
+		Assert.Equal(37f, saved.Temperature, 3);
 	}
 
 	[Fact]

@@ -55,6 +55,8 @@
 		+ ",\"heartRate\":" + num(body.heartRate)
 		+ ",\"bloodPressure\":" + num(body.bloodPressure)
 		+ ",\"bloodOxygen\":" + num(body.bloodOxygen)
+		+ ",\"stamina\":" + num(body.stamina)
+		+ ",\"temperature\":" + num(body.temperature)
 		+ ",\"legSpeedMult\":" + num(body.legSpeedMult)
 		+ ",\"alive\":" + (body.alive ? "true" : "false")
 		+ ",\"conscious\":" + (body.conscious ? "true" : "false") + "}";

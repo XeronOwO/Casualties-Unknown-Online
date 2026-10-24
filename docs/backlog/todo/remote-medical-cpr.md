@@ -377,4 +377,3 @@ Still open on the operator's side:
 - **Intelligence**: `INT < 12` makes the operator's SCREEN harder rather than refusing — a presentation rule this ticket
   would need to design (what "harder" shows). With no minigame screen in CUO's version, the natural translation is a
   narrower rhythm band for a low-INT operator, which is a gameplay change and goes to the user before it is built.
-

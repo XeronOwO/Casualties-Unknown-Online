@@ -24,6 +24,15 @@ internal static class RadiationLineFloorStopPatch
 	[HarmonyPostfix]
 	private static void Postfix(RadiationLine __instance)
 	{
+		// The member's rate half: the native advance used THIS client's body's consciousness factor, so a member continues
+		// from the host's absolute state at the host's speed instead (the user's 2026-10-24 finding: the descent looked
+		// wrong on a member's screen because it ran at its own body's rate and snapped back every resend).
+		if (PatchBridge.Impl?.RadiationLineGuestTimeGone is { } guestValue)
+		{
+			RadiationLineTable.WriteTimeGone(__instance, guestValue);
+			WritePosition(__instance, guestValue);
+		}
+
 		if (PatchBridge.Impl?.RadiationLineCeiling is not { } ceiling)
 		{
 			return;
@@ -36,13 +45,21 @@ internal static class RadiationLineFloorStopPatch
 
 		RadiationLineTable.WriteTimeGone(__instance, ceiling);
 
-		// Update already wrote the position from the UNCLAMPED value, so it is written again with the game's
-		// own formula: up * halfHeight + down * timeGone + down * sin(timeGone * 0.66) * 3.
+		// Update already wrote the position from the UNCLAMPED value (or the guest correction did), so it is written
+		// again with the game's own formula: up * halfHeight + down * timeGone + down * sin(timeGone * 0.66) * 3.
+		WritePosition(__instance, ceiling);
+	}
+
+	/// <summary>The game's own position formula (<c>RadiationLine.cs</c>), for a value written after the native pass.</summary>
+	private static void WritePosition(RadiationLine line, float timeGone)
+	{
 		var world = WorldGeneration.world;
-		if (world != null) // Unity object — ==
+		if (world == null) // Unity object — ==
 		{
-			__instance.transform.position =
-				(Vector3.up * world.halfHeight) + (Vector3.down * ceiling) + (Vector3.down * Mathf.Sin(ceiling * 0.66f) * 3f);
+			return;
 		}
+
+		line.transform.position =
+			(Vector3.up * world.halfHeight) + (Vector3.down * timeGone) + (Vector3.down * Mathf.Sin(timeGone * 0.66f) * 3f);
 	}
 }

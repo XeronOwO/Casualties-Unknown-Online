@@ -309,6 +309,15 @@ internal interface IPatchBridge
 	/// </summary>
 	float? RadiationLineCeiling { get; }
 
+	/// <summary>
+	/// The MEMBER's line value for this frame, or null when this client is not a member in an active session (or the host
+	/// has not published a state yet). The native advance multiplies the frame time by the LOCAL body's consciousness
+	/// factor, so a member continuing its own line between the host's 5 Hz resends ran at a different speed than the host
+	/// and snapped back (the user's 2026-10-24 finding): the answered value is the host's last absolute state extrapolated
+	/// at the HOST's rate, and the postfix writes it, and the position it implies, after the native pass.
+	/// </summary>
+	float? RadiationLineGuestTimeGone { get; }
+
 	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
 	void OnEarthquakeStarted(float duration, float nextDelay);
 

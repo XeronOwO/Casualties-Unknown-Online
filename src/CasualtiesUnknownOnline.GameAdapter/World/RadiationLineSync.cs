@@ -83,7 +83,7 @@ internal sealed class RadiationLineSync(
 			// snapshot source so a later solo→lobby conversion can hand it to a
 			// joining/reconnecting guest without depending on the first live
 			// host broadcast frame. No wire send.
-			_world.SetRadiationLineState(new RadiationLineStateMsg { Active = active, TimeGone = timeGone });
+			_world.SetRadiationLineState(new RadiationLineStateMsg { Active = active, TimeGone = timeGone, Rate = HostRate() });
 			_hasPublished = false;
 			return;
 		}
@@ -97,6 +97,17 @@ internal sealed class RadiationLineSync(
 		}
 
 		Publish(active, timeGone);
+	}
+
+	/// <summary>
+	/// The speed the HOST's own line descends at, in world units per second: the native formula's factor is the local
+	/// body's state (`(conscious ? 1 : 0.2) * 1.5`), so it has to travel with the absolute state or a member continues
+	/// the line at its own body's speed and snaps back every resend (the user's 2026-10-24 finding).
+	/// </summary>
+	private static float HostRate()
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		return (body != null && body.conscious ? 1f : 0.2f) * 1.5f;
 	}
 
 	/// <summary>
@@ -163,6 +174,7 @@ internal sealed class RadiationLineSync(
 		{
 			Active = active,
 			TimeGone = timeGone,
+			Rate = HostRate(),
 		});
 		_hasPublished = true;
 		_lastActive = active;
@@ -185,8 +197,39 @@ internal sealed class RadiationLineSync(
 			return;
 		}
 
-		_log.LogDebug("[RadiationLine] guest applied host state active={Active}, timeGone={TimeGone:F2}.", msg.Active, msg.TimeGone);
+		// The member continues from this absolute value at the HOST's speed (the rate travels with it), not at its own
+		// body's: the native advance reads the local body's consciousness factor, which is the divergence this pair of
+		// fields removes.
+		_guestActive = msg.Active;
+		_guestBaseTimeGone = msg.TimeGone;
+		_guestBaseTime = Time.unscaledTime;
+		_guestRate = msg.Rate > 0f ? msg.Rate : DefaultGuestRate;
+
+		_log.LogDebug("[RadiationLine] guest applied host state active={Active}, timeGone={TimeGone:F2}, rate={Rate:F2}.", msg.Active, msg.TimeGone, _guestRate);
 	}
+
+	/// <summary>
+	/// The member's own line value for this frame: the host's last absolute state extrapolated at the HOST's rate. Null
+	/// when this client is not a member in an active session, or the host has not published a state yet (the native
+	/// advance is then the only truth and nothing is corrected).
+	/// </summary>
+	internal float? GuestTimeGone()
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive || !_guestActive)
+		{
+			return null;
+		}
+
+		return _guestBaseTimeGone + (_guestRate * (Time.unscaledTime - _guestBaseTime));
+	}
+
+	/// <summary>The native conscious rate, used when a host's message carried no rate (a solo→lobby conversion before the first live publish).</summary>
+	private const float DefaultGuestRate = 1.5f;
+
+	private bool _guestActive;
+	private float _guestBaseTimeGone;
+	private float _guestBaseTime;
+	private float _guestRate = DefaultGuestRate;
 
 	/// <summary>The line's descent is a private field (RadiationLine.cs) — read through Traverse with the exact float type.</summary>
 	private static float ReadTimeGone(RadiationLine line) => RadiationLineTable.ReadTimeGone(line);

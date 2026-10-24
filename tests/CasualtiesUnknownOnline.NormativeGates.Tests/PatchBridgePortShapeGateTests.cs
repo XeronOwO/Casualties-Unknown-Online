@@ -150,6 +150,7 @@ public class PatchBridgePortShapeGateTests
 		"OnWorldJoinRequested",
 		"OnXalorisSepticTick",
 		"RadiationLineCeiling",
+		"RadiationLineGuestTimeGone",
 		"ResetGenStreamToBaseline",
 		"SessionSurface",
 		"ShouldApplyQuakeBreak",

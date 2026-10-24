@@ -34,6 +34,11 @@
     "BoolFlags": 0,
     "Note": "The give's answer-first custody added the exact-destination rung (ExactDestinationSlot and the two sentences that name a destination the receiver's answer lost), which took the class past 600; the return half was moved out again into GivenItemReturnService, so this is the forward custody alone. The split this owes is the destination resolution (this class's slot/container/slot-substitution rules and the ladder's candidate ordering) into their own object, the shape LocalBodyPlacement already gives the adapter side; the custody core, the kernel bookkeeping and the transfer publication stay here. Recorded rather than split in this change because the acceptance rows must run against the same class the earlier batches read."
   },
+  "CasualtiesUnknownOnline.GameAdapter.IPatchBridge": {
+    "Lines": 608,
+    "BoolFlags": 0,
+    "Note": "The aggregate is the patch layer's one seam list: every hook the patches read is a member here, so it grows with each landed hook instead of absorbing behaviour — the members forward to the domains that own the rules. It crossed 600 with the radiation line's two facts, RadiationLineCeiling (the host rule's floor stop) and RadiationLineGuestTimeGone (the member's line value extrapolated at the HOST's rate, the user's 2026-10-24 finding that a member's descent ran at its own body's speed). Both are pure projections of domain state, which is why they belong on the seam rather than in a patch. The seam a split owes is the same one the other patch-layer rows name: the interface is a list of hooks, and its size is the number of things the game lets us observe."
+  },
   "CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge": {
     "Lines": 663,
     "BoolFlags": 0,

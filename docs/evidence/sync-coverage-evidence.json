@@ -3740,7 +3740,7 @@
       "cluster": "inline",
       "row": "E5",
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs",
-      "quote": "_world.SetRadiationLineState(new RadiationLineStateMsg { Active = active, TimeGone = timeGone });"
+      "quote": "_world.SetRadiationLineState(new RadiationLineStateMsg { Active = active, TimeGone = timeGone, Rate = HostRate() });"
     },
     {
       "cluster": "inline",

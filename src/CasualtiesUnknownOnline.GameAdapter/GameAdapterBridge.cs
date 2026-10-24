@@ -74,6 +74,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool IsReplayingLifePodSound => domains.LifePod.IsReplayingSound;
 
+	/// <inheritdoc />
+	public float? RadiationLineGuestTimeGone => domains.RadiationLineSync.GuestTimeGone();
+
 	public bool IsHeaterCookAuthority =>
 		domains.Session.Role != SessionRole.Guest || !domains.Session.SessionActive;
 

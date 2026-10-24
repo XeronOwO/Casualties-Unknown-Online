@@ -45,14 +45,22 @@ internal static class SoundPlayPatch
 			return false;
 		}
 
-		// A spectator watches: the local player-state presentation is off, and the character-sound family is
-		// the biggest half of it (footsteps, swings, pain, the vital-crisis heartbeat all come through this
-		// call). The world's own ambience rides other call sites and stays audible. The one exception is the
-		// crisis sound THIS client plays on the WATCHED body's behalf: the spectator service opens the depth
-		// around its own play, so the gate does not silence the very sound the ruling asks the watcher to hear.
-		if (SpectatorPresentationGate.IsActive && !SpectatorPresentationGate.AllowsWatchedSound)
+		// A spectator watches: the LOCAL body's player-state presentation is off, and that family is the biggest half
+		// of it (footsteps, swings, pain, the local vital-crisis heartbeat all come through this call). The ruling of
+		// 2026-10-24 keeps the world audible, so a REPLAYED sound from another member passes: those arrive inside the
+		// RemoteApply scope, and they are the observed players' own footsteps, speech and action noises - the watcher
+		// is looking at them. The one other exception is the crisis sound THIS client plays on the watched body's
+		// behalf, which opens the gate's depth window around its own play.
+		if (SpectatorPresentationGate.IsActive
+			&& !SpectatorPresentationGate.AllowsWatchedSound
+			&& !CallContext.IsWithin(CallContext.Origin.RemoteApply))
 		{
 			return false;
+		}
+
+		if (SpectatorPresentationGate.IsActive)
+		{
+			SpectatorPresentationGate.NoteWorldSound();
 		}
 
 		// In a live session the spawn landing sound is deferred until the

@@ -45,6 +45,14 @@ internal static class SpectatorPresentationGate
 
 	internal static void EndWatchedSound() => WatchedSoundDepth = Math.Max(0, WatchedSoundDepth - 1);
 
+	/// <summary>Counts the sounds the gate lets through while spectating (the observed players' replays and the one
+	/// crisis sound), so a reading can prove the world is audible rather than silent.</summary>
+	internal static int WorldSoundsHeard { get; private set; }
+
+	internal static void NoteWorldSound() => WorldSoundsHeard++;
+
+	internal static void ResetWorldSounds() => WorldSoundsHeard = 0;
+
 	internal static void Set(bool active) => IsActive = active;
 
 	internal static void SetWatched(float blackAmount, Color vignette)

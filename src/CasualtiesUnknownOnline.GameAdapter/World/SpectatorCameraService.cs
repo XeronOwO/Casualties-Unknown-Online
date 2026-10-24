@@ -266,7 +266,11 @@ internal sealed class SpectatorCameraService(
 
 		// The mirror's own probe: prints the SOURCE values (the reported snapshot), the values written into the gate and
 		// what the camera will be given — once per change, so a still body does not flood the log.
-		var mirror = $"watched={_watchingSteamId} effects={MirrorEffects} reported={remoteVitals.TryGet(_watchingSteamId, out var probe)} alive={probe?.Alive} conscious={probe?.Conscious} brain={probe?.BrainHealth:F0} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2}";
+		// The world's audible half, sampled here: the count of sounds the gate let through since the last frame that
+		// changed the mirror line, so a reading can prove the observed players are not silent rather than trusting it.
+		var worldSounds = SpectatorPresentationGate.WorldSoundsHeard;
+		SpectatorPresentationGate.ResetWorldSounds();
+		var mirror = $"watched={_watchingSteamId} effects={MirrorEffects} reported={remoteVitals.TryGet(_watchingSteamId, out var probe)} alive={probe?.Alive} conscious={probe?.Conscious} brain={probe?.BrainHealth:F0} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2} worldSounds={worldSounds}";
 		if (!string.Equals(mirror, _mirrorLogged, StringComparison.Ordinal))
 		{
 			_mirrorLogged = mirror;

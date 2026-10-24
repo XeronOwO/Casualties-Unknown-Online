@@ -19,8 +19,8 @@ regenerated when a batch changes the picture, never accumulated.
 | `save-layer-end-save-and-restore.md` | the in-game rows need the user's own save/restore pass |
 | `save-native-character-field-parity.md` | rows 1-3 are three game UI displays: the wound window's text, the death-stats number and the tooltip's happiness |
 | `save-native-run-field-parity.md` | row 2's factual line is read (items persist across a cut, the recipe's made-before flag does not); whether that flag is a field CUO must persist is a design decision |
-| `save-mid-run-consistent-cut.md` | the final unified acceptance pass is the user's |
-| `save-system-mid-run-and-layer-end.md` | S1-S4 are code-complete; the acceptance pass is the user's |
+| `save-mid-run-consistent-cut.md` | the final unified pass is the user's, but two rows wait on fixtures this station lacks: row 2's `worn` resting and row 3's opened lockables ("no drive path") |
+| `save-system-mid-run-and-layer-end.md` | the umbrella over the save stages; it closes when S1-S4's tickets do, not on its own |
 | `unified-remote-display-projection-rework.md` | every criterion is marked Met except the real dual-client visual pass, which the page itself calls the user's final unified acceptance |
 | `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
 

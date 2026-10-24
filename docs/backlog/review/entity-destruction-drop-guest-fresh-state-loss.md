@@ -224,3 +224,11 @@ other and neither can enter alone. Running the two `continue-run` calls in paral
 the tool, not in the game. So the fresh-entry read needs one of two things before it can be judged: a driver that can hold two
 clients' requests at the same moment (a unique temp/probe per invocation), or a gate that lets one member enter while the other is
 still at the menu. Both are capabilities, not readings, and this ticket's rows 1-4 stay open on that boundary.
+
+**Batch `20261025-al` — a FAILED batch, recorded as one.** Driving the two `continue-run` calls genuinely in parallel (background
+processes, no foreground read competing for the socket) made both clients answer `continue-not-entered` with `active=false,
+hostId="0"` and `gateText: "Waiting for the host to load… The host is not in the world yet."` — while the HOST itself still reports
+`inWorld=true`. So the two men are no longer in an active session at all: the leave/rejoin/continue sequence left them outside it
+while the host stayed in the world. No row was judged by this batch, its root cause is the capability named above (the rejoin path
+loses the session when a member then drives `continue-run`), and the next attempt starts by establishing ONE member's fresh entry
+against a host that is in world, rather than driving both men's entry from a menu they reached through a leave/rejoin.

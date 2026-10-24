@@ -1,6 +1,6 @@
 # The mod item's wearable declaration: the placement the game's own wear flow reads
 
-Scope: ticket `docs/backlog/review/mod-item-wearable-declaration.md`, cut 2026-10-11 out of
+Scope: ticket `docs/backlog/done/mod-item-wearable-declaration.md`, cut 2026-10-11 out of
 `docs/backlog/done/mod-content-ceiling.md` Part 3.A ("the wearable set"). One declared flag
 (`IModItemDefinition.Wearable`) reached the game's own wear flow with no placement behind it, and that
 family dereferences the limb it could not resolve — so this cycle closes a crash of a surface the API

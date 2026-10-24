@@ -75,7 +75,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [A dead player can watch the run](review/dead-player-spectating.md) — **Medium** — awaiting the run.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
 - [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — rows 2/4/5 pass; row 3 open.
-- [The mod item's wearable declaration](review/mod-item-wearable-declaration.md) — **High** — the placement the game's own wear flow reads.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
@@ -154,6 +153,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 - [The document corpus audit: every page earns its place](done/document-corpus-audit.md) — **Critical** — accepted: a reader for every page.
+- [The mod item's wearable declaration](done/mod-item-wearable-declaration.md) — **High** — accepted: a live body wears the declared garment.
 - [The decision register cannot take another decision](done/decision-register-budget.md) — **Low-Medium** — done: split by number.
 - [Interaction gates judged by the two clients](done/remote-interaction-local-gating.md) — **Medium-High** — accepted: actor and target judge their own side.
 - [Single-file package for the core plugin](done/single-file-plugin-package.md) — **Low-Medium** — accepted: one DLL packs the core; extensions stay separate.

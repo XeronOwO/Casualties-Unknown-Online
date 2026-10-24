@@ -227,7 +227,7 @@ Not in scope, by the parent ticket's own gate: giving mods the function itself �
   a crash, not a silent gap. `Body.WearWearable` resolves the limb name `ItemInfo.desiredWearLimb` carries
   with `Body.LimbByName` and dereferences the result on the next line (`Body.cs:1493-1494`), and nothing
   filled that field for a mod item — so a definition declaring `Wearable` threw inside the game's own wear
-  flow the moment a player put it on. It is `docs/backlog/review/mod-item-wearable-declaration.md` now, with
+  flow the moment a player put it on. It is `docs/backlog/done/mod-item-wearable-declaration.md` now, with
   the same native-evidence shape this ticket used, and its own finding was made while auditing this family.
   The `useLimbAction` half was the last one still open, and the reason this ticket gave for it was half
   right: its consumer IS a delegate, but `Abstractions` CAN carry one now —

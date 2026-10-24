@@ -1,6 +1,9 @@
 # The mod item's wearable declaration: the placement the game's own wear flow reads
 
-- Status: Review — **cut and landed 2026-10-11** out of `docs/backlog/done/mod-content-ceiling.md` Part 3.A,
+- Status: Done — accepted 2026-10-24: a live body wears the declared garment (`wearable=true`,
+  `desiredWearLimb=UpTorso`, `threw=false`, `GetWearable` non-null), record
+  `docs/evidence/acceptance/mod-item-wearable-declaration-20261024-a.md`. **Cut and landed 2026-10-11** out of
+  `docs/backlog/done/mod-content-ceiling.md` Part 3.A,
   which lists the wearable set as one entry and whose promotion rule puts a defect of a surface the API
   already promises ahead of the capability entries. This entry is one: `IModItemDefinition.Wearable` is
   declared today, and the game's own wear flow THROWS on it (below). The code half is complete and the

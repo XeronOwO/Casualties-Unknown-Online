@@ -244,7 +244,8 @@ docs/backlog/done/mod-content-fingerprint.md | keep | index | docs/backlog/READM
 docs/backlog/done/mod-content-nested-member-contracts.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
-docs/backlog/review/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
+docs/backlog/done/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/mod-item-wearable-declaration-20261024-a.md | keep | claim | docs/backlog/done/mod-item-wearable-declaration.md
 docs/backlog/done/mod-native-binding-handshake-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-art-and-controls-overhaul.md | keep | index | docs/backlog/README.md
 docs/backlog/done/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
@@ -827,7 +828,7 @@ docs/evidence/selfchecks/mod-api/mod-item-content-binding-selfcheck.md | keep | 
 docs/evidence/selfchecks/mod-api/mod-item-fixed-drop-sources-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-item-spawn-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-item-visual-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/mod-api/mod-item-wearable-declaration-selfcheck.md | keep | claim | docs/backlog/review/mod-item-wearable-declaration.md
+docs/evidence/selfchecks/mod-api/mod-item-wearable-declaration-selfcheck.md | keep | claim | docs/backlog/done/mod-item-wearable-declaration.md
 docs/evidence/selfchecks/mod-api/mod-item-worldgen-loot-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-liquid-content-binding-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/mod-api/mod-liquid-placement-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

@@ -8,13 +8,13 @@
   API already promises" ahead of the capability entries, and the family audit that cut this ticket found one:
   `ItemInfo.rec` decides whether the game shows the item's own name at all, and a mod item inherits a gate its
   author never declared and cannot change. The sibling
-  `docs/backlog/review/mod-item-wearable-declaration.md` closes its non-goals with "each is its own entry with
+  `docs/backlog/done/mod-item-wearable-declaration.md` closes its non-goals with "each is its own entry with
   its own consumer, and none is a defect of a promised surface" — the `rec` half refutes that sentence, and
   this ticket corrects it in place.
 - Priority: High
 - Category: Mod platform / content binding
 - Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 3.A)
-- Related: `docs/backlog/review/mod-item-wearable-declaration.md` (the same build site, the same audit shape,
+- Related: `docs/backlog/done/mod-item-wearable-declaration.md` (the same build site, the same audit shape,
   and the claim this ticket corrects), `docs/backlog/done/mod-item-authored-actions.md` (the action half of
   the same surface, landed), `docs/backlog/done/mod-crafting-quality-labels.md` (Part 2 stage 1, whose
   "content surface parity" is the shape this ticket completes for the item kind),

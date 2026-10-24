@@ -18,7 +18,7 @@
 - Related: `docs/backlog/done/mod-authored-effects.md` (the liquid half — the same design, the surface
   this one extends), `docs/backlog/done/mod-declared-behaviour-with-no-function.md` (the cycle that made
   a declaration without a function non-fatal, and whose item report this one turns into "no action
-  registered"), `docs/backlog/review/mod-item-wearable-declaration.md` (the sibling the same family audit
+  registered"), `docs/backlog/done/mod-item-wearable-declaration.md` (the sibling the same family audit
   found), `docs/backlog/review/mod-cross-player-native-semantics.md` (the cross-player limb-tool chain,
   which reads exactly the pair this surface installs), `docs/en/reference/mod-api.md`,
   `docs/en/reference/modification-policy.md`
@@ -205,6 +205,6 @@ accessors or goes to the hatch.
 - Not a new wire family or a host-side change: the cross-player limb-tool chain already runs the item's own
   delegate on the affected side.
 - Not the wearable set (landed earlier as
-  `docs/backlog/review/mod-item-wearable-declaration.md`) nor the remaining Part 3.A read-only fields
+  `docs/backlog/done/mod-item-wearable-declaration.md`) nor the remaining Part 3.A read-only fields
   (`rec`, `onlyHoldInHands`, `combineable`, `ignoreDepression`, `scaleWeightWithCondition`,
   `jumpHeightMultChange`, `slotRotation`) — each keeps its own consumer rule.

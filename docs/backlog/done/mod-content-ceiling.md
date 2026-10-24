@@ -6,7 +6,7 @@
   **Drained 2026-10-18: every stage and every parkable entry has been cut and landed** — Stage 1
   (`done/mod-crafting-quality-labels.md`), Stage 2 (`review/mod-cross-player-native-semantics.md`), Stage 3
   (`done/mod-authored-effects.md`, `done/mod-defined-wire-packets.md`), and all of Part 3.A and Part 3.B
-  (`done/mod-item-authored-actions.md`, `review/mod-item-wearable-declaration.md`,
+  (`done/mod-item-authored-actions.md`, `done/mod-item-wearable-declaration.md`,
   `done/mod-item-declaration-parity.md`, `done/mod-content-kind-with-no-provider.md`,
   `done/mod-declared-behaviour-with-no-function.md`). What remains is **Part 3.C only**: capabilities the game
   itself does not have, every one of which the promotion rule keeps out of the queue until a real consumer is
@@ -144,7 +144,7 @@ Consequences:
   catalogs are deleted.
 - The content DTOs still cannot declare what those chains would need: `ModItemDefinition` has no
   limb-use behaviour (the wearable half landed 2026-10-11,
-  `docs/backlog/review/mod-item-wearable-declaration.md`), and the liquid effect delegates are not DTO
+  `docs/backlog/done/mod-item-wearable-declaration.md`), and the liquid effect delegates are not DTO
   members at all — they landed 2026-10-11 as a CODE registration keyed by the liquid's content id
   (`docs/backlog/done/mod-authored-effects.md`), because a payload travels to every peer as data and
   cannot carry a function.
@@ -218,7 +218,7 @@ Item side (`ItemInfo` versus `ModItemDefinition` and its behaviour DTOs):
 - **the wearable set** — `wearableArmor`, `wearableIsolation`, `wearableHitDurabilityLossMultiplier`,
   `desiredWearLimb`, `wearSlotId`, `wearableCanBeHeld`, `wearableVisualOffset`; the last two appeared in
   `src/` only as reads when this entry was written. **Cut and landed 2026-10-11 as
-  `docs/backlog/review/mod-item-wearable-declaration.md`**, and the cut found the entry is not a gap but a
+  `docs/backlog/done/mod-item-wearable-declaration.md`**, and the cut found the entry is not a gap but a
   defect: the declared `Wearable` flag alone reached `Body.WearWearable`, which resolves the limb name
   `desiredWearLimb` carries and dereferences the result
   (<c>Body.cs:1493-1494</c>) — so a mod item marked wearable threw inside the game's own wear flow, and the
@@ -234,7 +234,7 @@ Item side (`ItemInfo` versus `ModItemDefinition` and its behaviour DTOs):
   `ItemInfo.rec` defaults to `new Recognition(2)`, 201 of the game's 218 locally built item definitions
   overwrite it and 24 inherit it, and a mod item had no member either way — so it asks for INT 2 and
   `PlayerCamera.ItemHoverDescription` prints that number at the player while hiding the name its author wrote.
-  That refutes the sibling `review/mod-item-wearable-declaration.md`'s closing claim that "none is a defect of
+  That refutes the sibling `done/mod-item-wearable-declaration.md`'s closing claim that "none is a defect of
   a promised surface", which is corrected in place there.
 
 Liquid side (`LiquidType` versus `ModLiquidDefinition`):

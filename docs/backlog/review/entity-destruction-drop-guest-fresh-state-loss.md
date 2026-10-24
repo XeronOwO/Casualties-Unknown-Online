@@ -209,3 +209,10 @@ own sky behind it. So `join-lobby` restores MEMBERSHIP, and `body-read` answerin
 at the menu, and the world entry (the run load that produces a body) is a SEPARATE drive step this batch never performed. The
 fresh-entry reading therefore needs one more step before it means anything: rejoin, then drive the world entry while in session, and
 only then read the drops. Recorded with the frame as the evidence rather than another blind re-read.
+
+**Batch `20261025-aj` — the entry GATE waits for every other member, which is why a lone rejoin never gets a body.** Driving the
+world entry from the rejoined guest answered `continue-not-entered` ("LoadRun was called but the world never started generating"),
+and the panel's own state explains it: `inWorld=false`, `gateWaiting=false`, and `gateText: "Waiting for 萧稔小号… (0s). The host is
+already in the world."` — the entry gate is waiting on the OTHER member (the alt), which is itself still sitting at the menu after
+its own rejoin. So a fresh member cannot enter alone while another member of the same lobby has not entered; the fresh-entry read
+needs both men driven to the entry gate together, not one at a time. That is the missing step, named here with the gate's own text.

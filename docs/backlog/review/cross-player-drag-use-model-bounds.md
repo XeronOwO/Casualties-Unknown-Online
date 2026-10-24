@@ -17,6 +17,20 @@
   `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs`,
   `docs/evidence/selfchecks/players/cross-player-wear-use-selfcheck.md` (the family's current wire: 116/117).
 
+## Run sheet (cycle 2026-10-25: build the missing drag instrument, then read the rows)
+
+Rows 1–6 are exercised through the game's own release path, not a staged call: CUO's pick lives in
+`CrossPlayerDragUse.TryHandleRelease`, which the committed `remote-gesture` recipe reaches by staging `dragItem`,
+`clickPos` and the `uiCasts` list and invoking `PlayerCamera.HandleReleaseDragging` — the method the mouse release itself
+calls. The ticket's older note that these rows need a real OS mouse drag is stale, which `docs/acceptance/lessons.md`
+already records for a sibling row. The sheet is therefore:
+
+- [ ] **Step 1 — one session.** Launch the two clients once, form the session, both in a world, with the guest holding nothing in its own bag. — **FAILED BATCH `20261025-a`**: the session formed (lobby `109775242136841414`, host and guest in world), but the guest's bag never opened, so the drag had no press point and NO row was judged: `remote-gesture mode=list` reported `buttonCount=0` before and after every attempt, three ways of pressing the game's own `toggleinventory` bind (read from the game's cache as `Tab`, code 9) all left it closed — the in-process key bridge reported `isForeground=False` for the sandboxed client, and the OS helper delivered the key with the window brought forward (`{"ok":true,...,"action":"key"}`) and the scene still had no `InvButton`. The capability this batch lacked is therefore exact: **a read of the game's own bag state** (open/closed) to tell "closed" from "open with no buttons", plus a step that puts the game window in the foreground before a gesture, because every in-process attempt reported the sandboxed window unfocused.
+- [ ] **Step 2 — the pick's own coordinates.** `remote-gesture mode=aim-ring` answers where the focused body must stand for the cast, and `mode=list` names the cast buttons, so each row's click position is a computed point, not a guess. — not reached (step 1 blocked it).
+- [ ] **Step 3 — read rows 1, 2, 3, 5** in that session: release inside the standing player's range (backpack opens), one unit outside it (nothing opens), across two overlapping ranges (the last entered wins and the log names the pick with its candidate count), and over a body but off the backpack (native drop, no use). — not reached.
+- [ ] **Step 4 — row 6** after leaving the world in the same run (solo, unchanged). — not reached.
+- [ ] **Step 5 — verdicts + bookkeeping.** One evidence record, the ticket moves to `done/` only if every row passes; otherwise it stays with the failing row and its reading named. Status, index row, census and inbound references move in the same commit. — not reached; the ticket stays in `review/` and the next cycle starts from step 1 with the bag-state read in place.
+
 ## What stands today (audited 2026-10-06)
 
 1. **The hit area is one circle around one point.** `CrossPlayerDragUse.TryHandleRelease` takes the cursor's

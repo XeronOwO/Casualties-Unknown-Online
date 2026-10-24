@@ -267,4 +267,3 @@ crates (`containercrate`, `medcrate`) left zero items on both clients — a hand
 `itemsDropOnDestroy` rows. The census already names a victim whose table IS non-empty: **the mine itself** (`rowCount` 1),
 so the next batch stages two mines side by side (one fires, the other dies) and counts the second one's set on both
 clients; or a worldgen-placed container instead of a hand-placed one.
-

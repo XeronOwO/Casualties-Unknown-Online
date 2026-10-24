@@ -161,4 +161,3 @@ The scope logs how many it marked (`[TrapBlast] marked N blast victim(s) as remo
 **Still owed**: slice 2 (the chain blast replayed inside the scope instead of `MineScript.OnDestroy` running it
 natively outside) and slice 3 (the host-authored report channel for a death only the host's roll produced), plus the
 ticket's three acceptance rows, which need two clients and a mine placed next to a droppable building.
-

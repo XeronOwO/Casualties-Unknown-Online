@@ -68,6 +68,62 @@ The entry is a MODE, not a death-screen action, and watching is not merely a cam
    `SpectateWhileUnconscious` and `SpectateWhileWaitingToJoin` mean, so the answer records them in plain words
    before the choice (see the question history in the ticket's status line).
 
+## The implementation plan (2026-10-24, after the design ruling)
+
+Four slices, each with its own commit and its own reading. The entry mapping comes first because every slice
+crosses players or mirrors a native action.
+
+### Entry mapping
+
+| CUO entry | Native call site / surface | Input sequence |
+|---|---|---|
+| `/gamemode survivor` / `/gamemode spectator` | the console's own cheat family (`IMemberCommandRules`: the host's `CheatVerbsOpenToMembers` switch plus `AllowsCheatVerb`, i.e. `/op`); the mode itself is local presentation, so nothing crosses the wire | type the verb in the console, Enter |
+| the death screen's "spectator mode" button (replaces "back to main menu") | `PlayerCamera.HandleDeathScreen` and the `endScreen` sprite/button it shows; the button's own handler is the native menu-return call | the death screen is modal and the button is a click, exactly as the screen's current button already is |
+| the right-click context menu's "watch" entry on a member | the menu's own builder (`OnlineUiMemberListDrawer`'s card / the right-click menu), reusing the entry the member rows already carry | right-click the member (its menu opens), click the entry; no distance check by ruling |
+| possession's inherited UI | the local HUD's own readers: the backpack window, `RemoteMedicalPanel` (already displays another member's body), the bottom state icons, the presentation families that render the possessed body's effects/sounds | none: the mode switch drives it |
+
+### Slice 1 — the mode and its two entrances
+
+- `ISpectatorControl` grows the mode itself (`IsSpectator`, `EnterSpectatorMode()`/`ExitSpectatorMode()`); the
+  current `TryWatch` gating (dead only) moves to possession, and `WatchingSteamId`/`TryWatch` become the
+  possession half.
+- `GamemodeCommands` (a new command group beside `SpectatorCommands`) exposes `gamemode survivor|spectator`,
+  declaring the cheat permission the console already enforces for `/give` and `/op` — the declaration mechanism
+  is the first code question (`ConsoleCommandAttribute`'s permission today is `Anyone`/`HostOnly`; the cheat
+  family is gated in the service by `IMemberCommandRules`, so the verb must be declared the way the cheat family
+  is, and the refusal must name its ground).
+- The death screen: patch the menu-return button so it enters spectator mode instead (the sprite and click stay
+  native; only the action changes). The exit stays what a revive already does, and every revive path
+  (`RespawnCoordinator`, `RespawnPolicy`) calls `ExitSpectatorMode` before anything else.
+- Reading: two clients, host dies, the death screen's button enters the mode, host is revived, the mode ends and
+  the normal HUD is back; `/gamemode spectator` works for a granted member and is refused without the grant.
+
+### Slice 2 — pure observation
+
+- One presentation gate (the adapter's spectator state, read by every family that renders the LOCAL body's
+  experience): screen effects (`PlayerCamera`'s vignettes/black amount), the local body's sounds, the critical
+  heartbeat loop, and the normal-play hotkeys' handlers. Each family asks the gate; the gate is the mode.
+- Reading: in spectator mode, none of the local body's effects/sounds/heartbeat fire and the hotkeys do nothing;
+  the body is still attacked and injured in the world (the ruling) and the damage reaches it while the watcher
+  sees nothing of their own.
+
+### Slice 3 — possession
+
+- The "watch" entry on a member's context menu, offered only in spectator mode (no distance or reachability
+  check by ruling), which sets `PlayerCamera.following` to that member's display body and marks the possession.
+- The watcher's UI is replaced by the target's: the backpack window reads the target's carried items read-only,
+  the remote medical panel opens on the target's body, the bottom state icons come from the target's body, and
+  the presentation families render the target's effects/sounds instead of suppressing them.
+- The target is told: a line in their UI naming the watcher.
+- Reading: two clients, one spectator possesses the other; the watcher sees the target's icons/backpack/medical
+  panel, the target sees the notice, and ending the mode restores the watcher's own HUD.
+
+### Slice 4 — free flight
+
+- How the free camera is toggled in the mode (a verb, a key, or part of the possession exit) is the one detail
+  left open; it keeps using `PlayerCamera.isFreecam` and stops being a host rule.
+
+
 
 - Related: `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs` (the native follow target, the native
   free camera and the death screen), `reversing/KrokMP/KrokoshaCasualtiesMP/KrokoshaCasualtiesMP/UIInGame.cs`

@@ -407,6 +407,20 @@ ruling is to give the player the choice, so the shapes this ticket will add, in 
 The switch is landed with the mirror's reading fix, so the acceptance reads both positions: on = the watched body's
 blackout/vignette, off = a clear screen.
 
+**The mirror's source is the clone's template, not the member's state (2026-10-24, `0.1.0+a68aab11`).** The probe
+line names it: `mirror watched=… alive=True conscious=True blood=100.00 gateBlack=0.00 gateVignetteA=0.00`. Those are
+the RENDER CLONE's own fields — `blood=100` is its template value, and its `alive` is its brain-health reading, which
+the ticket's own earlier note already recorded as meaningless for a teammate ("asking the clone whether a teammate is
+alive answers with the local template's value"). So the gate is fed from the wrong source and stays at zero; the patch
+and the gate were never the problem.
+
+The fix, decided here: the mirror reads the SESSION's reported facts instead — `RemoteVitalsService.TryGet(watching)`
+gives `Alive` and `Conscious`, exactly what the strip and the effects already present, and the vignette is driven by
+that member's reported `BrainHealth` (the snapshot carries no blood volume, and inventing one would be the "derived
+reading nothing reports" the rules refuse). The adapter gains the vitals service through its existing composition
+line, the same way the strip's plugin half reads it, and the switch above is landed in the same change.
+
+
 
 
 

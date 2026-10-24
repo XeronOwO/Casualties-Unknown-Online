@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
@@ -377,6 +378,11 @@ internal sealed class OnlineUiOverlay
 	{
 		_statusMessage = message;
 		_statusSetTime = Time.realtimeSinceStartup;
+		// The watched-notice line is set here and never drawn, while a probe publishing into the same slot draws. The
+		// only object-level difference left is WHICH overlay runs each half, so this prints the instance identity and
+		// the clock on the setting side; BuildNetworkHud prints the same two on the drawing side.
+		Plugin.Logger.LogInfo(
+			$"[OnlineUi] notify overlay={RuntimeHelpers.GetHashCode(this)} t={Time.realtimeSinceStartup:F1} len={message.Length}");
 	}
 
 	private OnlineUiNetworkHud? BuildNetworkHud(OnlineUiContext ctx)
@@ -408,7 +414,8 @@ internal sealed class OnlineUiOverlay
 		if (status is not null && !string.Equals(status, _statusRendered, StringComparison.Ordinal))
 		{
 			_statusRendered = status;
-			Plugin.Logger.LogInfo($"[OnlineUi] status shown ({status.Length} chars): {status}");
+			Plugin.Logger.LogInfo(
+				$"[OnlineUi] status shown overlay={RuntimeHelpers.GetHashCode(this)} t={Time.realtimeSinceStartup:F1} len={status.Length}: {status}");
 		}
 
 		return new OnlineUiNetworkHud(

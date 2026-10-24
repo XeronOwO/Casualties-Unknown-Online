@@ -334,4 +334,3 @@ host's own `[ItemSpawned]` line for that victim: zero times). Record:
 more descents gave 8 turrets, 8 turrets, then two empty layers, and **no `MineExploded` carrier**, while a hand-staged mine
 lives only on the host's client. The chain shape needs a generated layer with mines (or a generation-time placement); its
 code (slice 2, `ChainedBlastReplay`) is landed and unit-pinned. The ticket therefore stays in todo for that one shape.
-

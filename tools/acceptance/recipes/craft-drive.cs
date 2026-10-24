@@ -78,7 +78,6 @@
 			if (ingredient.specific) { specificCount++; }
 		}
 		return "{\"ok\":true,\"mode\":\"materials\",\"index\":" + index.ToString(inv)
-			+ ",\"name\":\"" + (recipe.simpleName == null ? "" : recipe.simpleName.Replace("\"", "'")) + "\""
 			+ ",\"total\":" + totalCount.ToString(inv) + ",\"specific\":" + specificCount.ToString(inv)
 			+ ",\"ingredients\":[" + ingredients.ToString() + "]}";
 	}

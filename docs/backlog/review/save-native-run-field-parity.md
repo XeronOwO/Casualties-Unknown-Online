@@ -226,3 +226,13 @@ first, a slot rule second. What remains for row 2 is the recipe's own ingredient
 `item-provide type=biochem` fails to instantiate it (`The Object you want to instantiate is null`) because a liquid lives inside a
 container rather than as a bare item — so the fixture should pick a recipe whose ingredients are all non-liquid specifics (the
 `mode=materials` report names them) or grant the liquid into a container.
+
+**Batch `20261025-s` — the whole chain ran, and the flag did NOT survive it.** A recipe with one non-liquid specific ingredient
+exists (index 7: `glowplantfruit`), so the fixture finally ran end to end on the host: `item-provide type=glowplantfruit` →
+`ok=true, slot=1`; `recipe-unlock-read index=7` → `INT=4, hasMadeBefore=false`; `craft-drive mode=make,index=7` → **`ok=true,
+result=biochem, madeBefore=true`**; `recipe-unlock-read` again → `INT=4, hasMadeBefore=true`; then `leave-world` (`ok=true`) and
+`continue-run` (`ok=true`), and after the re-entry the same read answered **`INT=4, hasMadeBefore=false`**. So the craft's "made
+before" flag did not survive this cut. That is NOT yet the row's verdict: the row is about a recipe crafted in an EARLIER LAYER,
+i.e. after a save that contains it, while this cut was taken with no save after the craft — and the reading raises the prior
+question of whether `leave-world` writes a run save at all. The next attempt must (a) establish that the cut really contains the
+craft (a save after it, or a layer-end save), and only then (b) read the flag/unlock after the continue.

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -106,6 +107,10 @@ internal sealed class OnlineUiHost
 		_lobby = lobby;
 		_quickPanelKey = quickPanelKey;
 		_log = services.GetRequiredService<ILogger<OnlineUiHost>>();
+		// One construction per plugin is the assumption the notice line violated: two hosts would share the notice
+		// slot and only the one that draws would show what its own drain consumes. This prints the identity once, so
+		// a launch answers how many hosts exist instead of leaving it to inference.
+		_log.LogInformation("[OnlineUi] host built: {Hash}", RuntimeHelpers.GetHashCode(this));
 		_router = services.GetRequiredService<CuoNetworkRouter>();
 		_steam = services.GetRequiredService<SteamService>();
 		_session = services.GetRequiredService<SessionService>();

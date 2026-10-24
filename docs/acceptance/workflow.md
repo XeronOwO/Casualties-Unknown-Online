@@ -352,6 +352,21 @@ all need the same gesture, so they are ONE batch with one launch and four verdic
 5. **Read the verdict from the clients' own logs**, never from the picture: the cue line and the refusal
    line are on the operator's side, the applied/inventory result on the target's side.
 
+**Two staging facts this project's own mechanisms impose.** A guest's cheat verbs are gated by the host's roster — a
+guest's `/heal` is refused with "the host's cheat roster … does not name you, so /heal cannot land. The host grants it
+with /op" until the HOST has run `/op <that member's steam id>` (the roster is announced to every member, and the
+member's own state then responds even though the first local answer may still carry the old refusal). And a release
+that should be a **use on another player** must happen with the remote backpack CLOSED: the open backpack is itself the
+display target, so a release over it lands in the backpack instead of running the use the row is about.
+
+**Keep the staged character healthy, and do not park it for long.** The user's ruling (2026-10-25): a body left
+injured or idle across a long batch accumulates the game's own negative effects — wounds, pain, a collapsing mood —
+and ends up in states that corrupt the next scenario (a zeroed happiness starts the unexitable self-harm episode
+described below). So a run's phases are short, no phase leaves the character wounded on purpose beyond the row that
+needs it, and staging that hurts the body is undone as soon as its reading is taken rather than at the end of the
+batch. The recovery, in order, is `/heal @s` → the `body-mood` recipe (`value=70`) → the `selfharm-finish` recipe,
+confirmed by `health-read source=local,target=none` (non-zero `happiness`) and `minigame-end` (`none`).
+
 **Between phases of a long batch, restore the played character.** Staging vitals, inflicting damage and
 running operations leaves the body in whatever state the scenarios produced — and `/heal` restores health,
 vitals and consciousness but does **not** move mood, so a character can end a batch with every value healthy and

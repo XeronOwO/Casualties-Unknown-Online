@@ -62,4 +62,3 @@ scene scan, and the settings menu has to be open for it: a closed or absent menu
 **Runtime row still owed**: "with a key-bind row waiting, Enter and Slash bind the key and do NOT open the CUO
 console; with no capture running they open the console as before". That needs a settings menu and two real key
 presses — a batch with keyboard input, which the acceptance tooling does not drive.
-

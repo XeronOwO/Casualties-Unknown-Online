@@ -1,10 +1,13 @@
 # The critical heartbeat is cut off before the clip ends
 
-- Status: Done — investigated and closed as "not ours, recorded" (2026-10-25): seven readings on a running session show the
-  critical loop and the panel's 6 s beep advancing monotonically, the panel's beep stopping only when the game closes the
-  panel at unconsciousness, and the per-beat `heartthump-heavy` (0.769 s) restarted inside its own clip at a high heart
-  rate — the game's own cadence against its own asset. Nothing in `src/` writes the local vitals or stops those sources.
-  Opened 2026-10-25 by the user's own listening report.
+- Status: Todo — **reopened 2026-10-25: the earlier "not ours" closure was WRONG**, and the user said so twice. With the
+  panel OPEN and the body critical, the sound the user hears is the panel's own `healthpanel-alert` loop (a probing pass
+  found NO `thump` source playing in that state at all), and the positions I read advanced by ~0.85 s per ~1.3 s of wall
+  time — slower than the clip should run, which is what a loop being RESTARTED between samples looks like. One probe per
+  driver call cannot tell "continuous" from "restarted every second", so the closure claimed evidence the instrument could
+  not produce. **The fix is the instrument**: a frame-rate sampler inside the client (eval declaration + a starter recipe),
+  then the panel-open case is read per frame and the earlier "not ours" claim is either proven or withdrawn on that
+  reading. Opened 2026-10-25 by the user's own listening report.
 - Priority: Medium-High — it is the sound a player hears while their body is dying.
 - Category: Audio / local body presentation
 - Source: the user, playing the host: the CRITICAL heartbeat ("状况危急的心跳声", the sound that plays while the
@@ -181,10 +184,24 @@ ring buffer of `(playing, time)` per frame, and a recipe that starts it, holds t
 returns the buffer once. That is the next artifact to build; every probe shape that samples from outside a frame is now
 known to answer the wrong question.
 
-## Verdict (2026-10-25): both audible instances are the game's own cadence, not our code
+## Verdict (2026-10-25): **VOID — withdrawn by the user, and the readings below do not support it**
 
-Seven readings on a running two-client session, each against the deployed artifact, with the probes now committed
-(`crit-source-state`, `heart-audio-state`, `panel-beep-state`, `heart-hold-sample`, `open-own-wound`):
+The claim this section first carried ("both audible instances are the game's own cadence") is **withdrawn**. The user
+rejected it twice and the reason is decisive: every state these readings forced was a body the game had already made
+unconscious or DEAD, and a dead body's heart rate is zero, so the "per-beat thump" and the panel's heartbeat in the case the
+user is describing were never actually sampled. What the readings do establish is only that dead/unconscious bodies produce
+no thump; they say nothing about the panel-open critical case.
+
+**The two hard constraints the next measurement must obey** (this is where the earlier attempts went wrong):
+
+1. **ALIVE**: `brainHealth > 0` (the game's `alive` getter), heart rate above zero, and the critical flag coming from a
+   reversible cause (`bloodOxygen < 50`) rather than from a terminal one — a `brainHealth` of zero re-derives consciousness to
+   zero and the game's arrest path takes the heart rate with it, so every subsequent reading samples a corpse.
+2. **The state must be established on a FRESH body** (leave-world then continue-run) exactly once, and measured per frame;
+   repeatedly forcing vitals on a body that is already dying leaves it dying.
+
+## The readings this section used to cite (kept as the record of what was measured, not as a verdict)
+
 
 - **The critical loop** (`criticalloop`, 41 s) advances monotonically and only fades with the body's state.
 - **The panel's beep** (6 s clip) advances monotonically while the panel is open (`1.045 → 1.941 → 2.837 → 3.797 → 4.608

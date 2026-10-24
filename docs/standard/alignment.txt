@@ -8,7 +8,7 @@
 #
 docs/en/contributing/build-and-test.md | 0859e0bbdd54622aac77f94e21ebe07b76234a14 | docs/zh/contributing/build-and-test.md | 2ecb52aaa300f6edfbf07ec98185446afda1c918
 docs/en/contributing/documentation-standard.md | c11ab2cd3637d45d9c75f1ec4dc087d1dfc896be | docs/zh/contributing/documentation-standard.md | abd48e4eca5172af4b8efdb9836366645c6cb625
-docs/en/contributing/gates-and-rules.md | cd06d904d976cac9e70227199f5114276f53dbf4 | docs/zh/contributing/gates-and-rules.md | ab7f5a558cc898c2e85067f227ac7ce5045014e0
+docs/en/contributing/gates-and-rules.md | ef3d44aa17ad8cf2567917a9a4b7de0c0b5463aa | docs/zh/contributing/gates-and-rules.md | ecb87dd801cbc840decb0cb989c3aebdec610c40
 docs/en/contributing/README.md | ffac48cf4e71a91239198ef64b1a50f5ba275618 | docs/zh/contributing/README.md | 891c0e1ab09c0c96510bf9af4450307060a238a0
 docs/en/contributing/repository-map-and-pitfalls.md | 25228a7c4fefe71c4c21e7449f51806c6aa50a48 | docs/zh/contributing/repository-map-and-pitfalls.md | 2698599f582fbc3183dca7bf2bfb42632a5c21e7
 docs/en/contributing/review-and-delivery.md | 184cb4c8d4a5b95c6438cd21c3bfcdda6f1e4e2f | docs/zh/contributing/review-and-delivery.md | ee8fff93f78d3393168d4e6fa269230281047b87

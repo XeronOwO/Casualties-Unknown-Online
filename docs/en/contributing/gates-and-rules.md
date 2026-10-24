@@ -157,6 +157,24 @@ A gate's declaration must equal what it can reach:
   the previous commit should fail it, the fixed tree should pass, and the whole repository should
   report no false positive.
 
+## Localization is data, and the gates read the data
+
+Every user-visible string lives in an embedded JSON catalogue, one file per language —
+`src/CasualtiesUnknownOnline.Runtime/Localization/en.json` and `zh.json`. English is the fallback language, so a key one
+table lacks shows the English sentence rather than a key name.
+
+- **Changing a sentence** is a data edit: the key stays, the text changes in both files, and no code moves. `LocalizationJson`
+  refuses a malformed file, a duplicate key or an unterminated string at startup, naming the file and the construct.
+- **Adding a key** means adding it to both files (the catalogue gate compares their key sets), reading it through `T("…")` or
+  the console resolver's `lookup("…")` (the gate requires every declared key to have a reader), and never passing raw English
+  text through the localization service.
+- **The console's own prose** is the same mechanism one layer up: a console line carries an optional message key beside its
+  English text, and the overlay renders the key in the client's language. The console's SYNTAX — verbs, arguments, the
+  completion menu — stays English; only the sentences it prints are localized.
+- **A mod adds a language** through `ILocalizationService.RegisterCatalog(language, json)`: the same flat JSON shape,
+  gap-filling only (a built-in entry is never overwritten), and the language then appears in the preferences picker because
+  that list is a view of `SupportedLanguages`.
+
 ## How you know it worked
 
 - `dotnet test tests/CasualtiesUnknownOnline.NormativeGates.Tests` exits `0`.

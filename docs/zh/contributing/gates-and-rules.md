@@ -115,6 +115,21 @@
 - 不要扫门禁自己的测试数据；优先用匹配“事实”的正则，而不是匹配周围文本形状的正则。
 - 改过匹配器或扫描面之后，重跑反例，然后再看三个状态：上一版提交下应该变红、修好的工作区应该变绿、全仓不该有误报。
 
+## 本地化是数据，门禁读的也是数据
+
+所有玩家可见的文案都在内嵌的 JSON 目录里，一门语言一个文件：
+`src/CasualtiesUnknownOnline.Runtime/Localization/en.json` 与 `zh.json`。英语是回退语言，某个 key 在客户端语言里缺失时
+显示英文句子，而不是把 key 名丢到界面上。
+
+- **改一句话**就是改数据：key 不动，两个文件一起改，不用碰代码。`LocalizationJson` 在启动时拒绝格式错误、重复 key
+  或未闭合的字符串，并报出文件名和出错位置。
+- **加一个 key** 要同时加进两个文件（catalogue 门禁比对两边 key 集合），并通过 `T("…")` 或控制台解析器的
+  `lookup("…")` 读它（门禁要求每个声明的 key 都有读取方）；不许把英文原文直接塞进本地化服务。
+- **控制台自己的提示**是同一套机制的上一层：一行控制台文本可以携带 message key，插件端按客户端语言渲染。
+  **命令语法保持英文**（动词、参数、补全菜单），只本地化它打印出来的句子。
+- **模组加一门语言**走 `ILocalizationService.RegisterCatalog(language, json)`：同样的扁平 JSON 结构，只补空缺
+  （绝不覆盖内置条目），注册后偏好页的语言列表里就会出现它——那份列表就是 `SupportedLanguages` 的视图。
+
 ## 怎么确认成了
 
 - `dotnet test tests/CasualtiesUnknownOnline.NormativeGates.Tests` 退出码为 `0`。

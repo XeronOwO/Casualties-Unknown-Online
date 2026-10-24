@@ -106,4 +106,3 @@ whether the host's and the guest's effect rolls agree before the rows are relied
 
 Two smaller items from the list above stay folded into that residual: the `(kind, cell)` collision check needs a
 generator that places two crystals in one cell, and the roll-agreement evidence needs the same two-client probe.
-

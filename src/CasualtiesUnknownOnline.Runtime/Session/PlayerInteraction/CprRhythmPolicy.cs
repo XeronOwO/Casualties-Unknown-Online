@@ -135,6 +135,13 @@ public static class CprRhythmPolicy
 	public const float DangerousIntervalFactor = 0.5f;
 
 	/// <summary>
+	/// The oxygen ceiling this patient's own body allows: the game's circulation rule clamps oxygen at
+	/// `100 - hemothorax * 0.3` (`Body.HandleCirculation`'s own chest-wound cap), so a ventilation cannot promise more
+	/// than an open chest would let the blood carry.
+	/// </summary>
+	public static float OxygenCeilingFor(float hemothoraxProgress) => Math.Max(0f, 100f - (hemothoraxProgress * 0.3f));
+
+	/// <summary>
 	/// Whether this press was fast enough to hurt: below half the ideal interval the gain is halved AND the patient's
 	/// chest pays for it (the applier breaks the chest limb), which is the cost the ruling's rhythm is supposed to carry.
 	/// </summary>

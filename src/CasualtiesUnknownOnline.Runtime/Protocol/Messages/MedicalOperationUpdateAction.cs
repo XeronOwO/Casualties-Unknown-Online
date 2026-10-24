@@ -17,4 +17,7 @@ public enum MedicalOperationUpdateAction : int
 
 	/// <summary>One chest compression (`MedicalOperationKind.Cpr`); the message's value is the operator's interval between presses, in seconds.</summary>
 	Compress = 6,
+
+	/// <summary>One ventilation (`MedicalOperationKind.Cpr`); the value is the interval since the previous breath, in seconds.</summary>
+	Ventilate = 7,
 }

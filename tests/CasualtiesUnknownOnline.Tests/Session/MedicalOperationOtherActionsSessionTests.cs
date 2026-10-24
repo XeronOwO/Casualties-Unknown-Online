@@ -599,6 +599,36 @@ public sealed class MedicalOperationOtherActionsSessionTests
 	}
 
 	[Fact]
+	public void Cpr_VentilationCarriesOxygenUpToTheChestWoundsCeiling()
+	{
+		// Ticket remote-medical-cpr.md, stage 2: the breath is the oxygen channel the ruling separates from the
+		// compressions' pressure channel. The game's circulation rule ADDS to bloodOxygen, so this value persists (unlike
+		// the pressure), and its own chest-wound cap (100 - hemothorax*0.3) bounds what a breath may promise.
+		var (host, guest) = CreatePair();
+		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		var hostData = SnapshotWithLimbs(HostId, conscious: false);
+		hostData.Health!.HeartRate = 0f;
+		hostData.Health.BloodOxygen = 20f;
+		hostData.Health.Hemothorax = 10f;
+		characters.SaveHostCharacterData(hostData);
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		MarkInWorld(host);
+		MarkInWorld(guest);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var gOps = Ops(guest);
+		gOps.StartAckReceived += m => ack = m;
+		gOps.SendOtherStartRequest(HostId, itemInstanceId: 0, targetLimbIndex: -1, MedicalOperationKind.Cpr);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+
+		gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Ventilate, CprRhythmPolicy.IdealInterval);
+		var oxygen = characters.GetHostCharacterData()!.Health!.BloodOxygen;
+		Assert.True(oxygen > 20f, $"a breath must carry oxygen, read {oxygen}");
+		Assert.True(oxygen <= CprRhythmPolicy.OxygenCeilingFor(10f), $"the chest wound caps it, read {oxygen}");
+	}
+
+	[Fact]
 	public void Cpr_RefusesAPatientWhoseHeartIsStillBeating()
 	{
 		// The AED family is for the quivering heart; compressing a beating one is not the care, so the target's own client

@@ -25,82 +25,36 @@ internal sealed class OtherMedicalOperationApplier(
 	private readonly ISessionControl _session = session;
 	private static readonly Random Rng = new();
 
-	/// <summary>The limb index the game's own heart checks treat as the chest (`ApplyDefibrillation` tests `limb.Index == 1`).</summary>
-	private const int ChestLimbIndex = 1;
-
-	/// <summary>The pain an over-press's broken rib adds, on the game's own 0-100 limb pain scale.</summary>
-	private const float OverPressRibPain = 25f;
+	/// <summary>The CPR family's physiology, split out when stage 2 added the oxygen channel (the debt row's instruction).</summary>
+	private readonly CprApplier _cpr = new(access);
 
 	/// <summary>
-	/// One chest compression on the patient's own authoritative data (ticket `remote-medical-cpr.md`, stage 1b): the
-	/// operator's measured interval decides how much of the press counts (`CprRhythmPolicy`), the patient's own volume and
-	/// chest wound cap what the chest can hold, and the write is the pressure alone — the game's own physiology carries it
-	/// from there (its model raises the heart rate as perfusion returns, which is why this rule does not write one).
-	/// <para>
-	/// A patient whose heart has restarted is refused: there is nothing to compress. The HOST arbitrates that outcome
-	/// (the shared trigger the ruling names), so this half only applies what the committed session still asks for.
-	/// </para>
+	/// One chest compression (ticket `remote-medical-cpr.md`): the physiology lives in <see cref="CprApplier"/>, this
+	/// commits the snapshot it returns and projects the state the operator's screen reads.
 	/// </summary>
 	internal bool ApplyCprCompression(OtherMedicalOperationSession session, float intervalSeconds, out MedicalOperationStateMsg? state)
 	{
 		state = null;
-		var targetData = _access.GetCharacterData(session.Target);
-		if (targetData?.Health is not { } health || !health.Alive)
+		if (!_cpr.TryCompress(session, intervalSeconds, out var newTarget, out _))
 		{
 			return false;
 		}
 
-		if (health.HeartRate >= 20f)
+		_access.SaveCharacterData(session.Target, newTarget!);
+		state = BuildState(session, null, newTarget, null);
+		return true;
+	}
+
+	/// <summary>One ventilation (stage 2's oxygen channel), the same split: the rule computes, this commits and projects.</summary>
+	internal bool ApplyCprVentilation(OtherMedicalOperationSession session, float intervalSeconds, out MedicalOperationStateMsg? state)
+	{
+		state = null;
+		if (!_cpr.TryVentilate(session, intervalSeconds, out var newTarget))
 		{
-			// `Body.inCardiacArrest` is heartRate < 20: above it the heart is beating and compressions are not the care.
 			return false;
 		}
 
-		var ceiling = CprRhythmPolicy.CeilingFor(
-			CprRhythmPolicy.BloodVolumeFraction(health.BloodVolume),
-			health.Hemothorax);
-		var progress = session.Progress;
-		var gain = CprRhythmPolicy.PressureGain(intervalSeconds, progress, ceiling);
-		var newTarget = PlayerCharacterAccess.CloneCharacter(targetData);
-		var newHealth = newTarget.Health!;
-
-		// The compression builds the session's own PERFUSION PROGRESS, not the simulated pressure: in arrest the game's
-		// model has no driver for pressure at all (its whole heart-rate block is skipped while `inCardiacArrest`), so a
-		// pressure written into the snapshot is overwritten before the next frame shows it — read on the machine, batch
-		// 20261024-j: three presses left the host at bloodPressure 0.374. What the game DOES read is the heart's state, so
-		// reaching the threshold restarts it (heartRate above the arrest line, fibrillation cleared) and the model restores
-		// the pressure itself from there. The host is the one applying this, which is the ruling's "first to the host wins"
-		// arbitration for the shared restart trigger.
-		progress = Math.Min(ceiling, progress + gain);
-		session.Progress = progress;
-
-		if (CprRhythmPolicy.RestartsTheHeart(progress, ceiling))
-		{
-			newHealth.HeartRate = CprRhythmPolicy.PerfusingHeartRate;
-			newHealth.FibrillationProgress = 0f;
-			newHealth.FibrillationForced = false;
-			session.Progress = 0f;
-		}
-
-		// A frantic press is a shove: the chest pays for it. The game's own fracture state is the cost, so the patient's
-		// chart shows the rib the compression broke rather than a number only this rule knows about.
-		if (CprRhythmPolicy.IsAnOverPress(intervalSeconds))
-		{
-			for (var i = 0; i < newTarget.Limbs.Count; i++)
-			{
-				var limb = newTarget.Limbs[i];
-				if (limb.Index != ChestLimbIndex || limb.Broken)
-				{
-					continue;
-				}
-
-				limb.Broken = true;
-				limb.Pain = Math.Min(100f, limb.Pain + OverPressRibPain);
-				break;
-			}
-		}
-
-		_access.SaveCharacterData(session.Target, newTarget);
+		_access.SaveCharacterData(session.Target, newTarget!);
 		state = BuildState(session, null, newTarget, null);
 		return true;
 	}

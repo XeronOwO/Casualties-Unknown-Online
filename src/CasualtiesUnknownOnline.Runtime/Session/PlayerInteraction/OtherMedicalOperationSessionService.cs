@@ -314,6 +314,8 @@ internal sealed class OtherMedicalOperationSessionService(
 				_applier.ApplyManualShock(session, msg.Value1, out state),
 			MedicalOperationKind.Cpr when action == MedicalOperationUpdateAction.Compress =>
 				_applier.ApplyCprCompression(session, msg.Value1, out state),
+			MedicalOperationKind.Cpr when action == MedicalOperationUpdateAction.Ventilate =>
+				_applier.ApplyCprVentilation(session, msg.Value1, out state),
 			_ => false,
 		};
 

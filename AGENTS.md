@@ -111,6 +111,12 @@ not the goal.
   (`docs/decisions/active.md` holds the numbering policy). "No wire change" and "host untouched" are
   facts worth recording, never merits or constraints in a design argument.
 - `[RULE]` Self-review happens before hand-off, not after review.
+- `[CRITICAL]` **A normal gameplay flow is never shipped as a console command.** The console is a diagnostic and
+  administration surface; when the player's own screen is where the action belongs, it lives there — a rule the
+  player can see, a gate on the UI, a piece of world state — because a player does not know the command exists.
+  The user has said this more than once (2026-10-24, on a host-dead save: it is a host RULE plus a screen gate,
+  never `/save`), so "it is easier as a command" is the defect speaking. A command may exist as a developer or
+  recovery path, never as the player-facing entry.
 - `[CRITICAL]` Tests cover core scenarios plus edge, exception and failure paths.
 - `[CRITICAL]` Every key path and logical branch must be observable; choose the log level by trigger
   frequency (high-frequency → Verbose/Debug, low-frequency or exceptional → Warn/Error) and carry the

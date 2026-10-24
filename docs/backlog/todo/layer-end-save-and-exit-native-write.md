@@ -68,6 +68,26 @@ That needs a save port on the patch bridge (`IWorldSaveControl` is not reachable
 capability catalogue's row for the new patch, so it is the next slice; until it lands the host's click still
 writes the native save, which is the remaining defect this ticket keeps open for.
 
+## The host-dead case, and the rule that answers it (user, 2026-10-24)
+
+With the panel's two choices now host-only, the host's own death would leave nobody able to press them. The user's
+ruling replaces the idea of a command with a **host rule**: the buttons are shown on the HOST's screen when the
+proportion of LIVING players who have finished the current layer reaches that rule's threshold, **independently of
+whether the host's own body is alive** — and conversely, a host who has finished the layer sees nothing while the
+proportion is below the threshold. Members never see them (already shipped).
+
+What that needs, in order: (1) the host rule in the census, its `/gamerule` row and the Admin page (a threshold
+the host sets, like the other rules); (2) a member → host report of "my body is at the layer's bottom", which is
+the same fact the panel's own condition reads; (3) the host's aggregation over its LIVING member list and the
+rule's threshold; (4) the host-side panel control — it must be able to SHOW the panel (and hide it) itself, since
+a dead host has no local body to trigger it, which is the reason this is a panel-control patch and not the
+native check. Nothing of (1)–(4) is implemented yet; this section is the ruling the next cycle builds from.
+
+The user also restated a standing rule while answering: a normal gameplay flow is never shipped as a console
+command (`AGENTS.md`, Engineering Discipline). That is now recorded there, so a "the player can type /save" answer
+does not come back.
+
+
 
 ## Required work
 

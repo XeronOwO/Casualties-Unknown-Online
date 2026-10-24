@@ -105,3 +105,31 @@ does not come back.
   choice drives the host's advance).
 - Re-deciding decision 165 itself: the question here is its ENFORCEMENT on a surface the original evidence
   could not see, not whether CUO should own its saves.
+
+## The save half, read on the machine (2026-10-24, deployed `0.1.0+2f674b80`)
+
+A session with the host and one member in the world, then the host pressed the panel's own entry
+(`WorldGeneration.SaveAndExit`, called the way the button calls it — a real click needs a cursor the acceptance
+tooling may not use):
+
+| read | before | after |
+|---|---|---|
+| `save.sv` (the native file) | 1842 bytes, mtime T0 | **1842 bytes, same mtime T0 — not written** |
+| the CUO archive directory | `w-…-2af5` (the run's own start cut) | a **new commit into `w-…-2af5`**, reason `menu-return` |
+| the host's world | in the world, generation finished | left for the main menu |
+
+The log carries the whole chain:
+`[LayerChoice] save-and-exit records the deferred menu return` → `Cut MenuReturn armed for world w-…-2af5` →
+`Cut MenuReturn committed for world w-…-2af5: mid-run` → `Leaving the world to the main menu.`
+
+**A first version of this hook was wrong and the machine said so**: it armed the cut and called `ToMainMenu` in the
+same call, so the pump's seam found no world and refused (`no live world is present, so the game's own blob stays as
+it is`). The shipped version records the DEFERRED menu return the game's own leave already uses
+(`RunMenuReturnCoordinator.Request`, origin `PlayerLeave`), and `SaveCutSeam` takes the cut at the frame-end seam
+and only then leaves — the row above is the fixed behaviour.
+
+**Still unread, and named rather than claimed**: the panel's visibility rows (a member sees no buttons; the host's
+panel appears by the living share, including a dead host). Staging them needs bodies at the layer floor, which needs
+real movement input the acceptance tooling may not drive; the rules behind them are pinned by eight unit cases
+(`LayerPanelChoicePolicyTests`, `LayerPanelVisibilityTests`), and the runtime rows wait for a batch with movement.
+

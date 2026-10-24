@@ -111,6 +111,35 @@ So this reading does NOT yet describe the beep the user hears, and the next atte
 3. only then sample `playing` / `time` / `critical` and judge, because an inactive panel answers "not playing" for a reason
    that has nothing to do with the truncation.
 
+## The fifth reading (2026-10-25): the local beep PLAYS, and the cut is the panel closing at unconsciousness
+
+The fourth reading's inactive panel was the clue: `PlayerCamera.WoundViewButton()` refuses to open the panel while the local
+body is unconscious, and my forced state had consciousness at 0. `Body.isCriticallyDying` is
+`(totalBleedSpeed > 0.02 && bloodVolume < 30) || bloodOxygen < 50 || (hunger < 0 && …)`, so an AWAKE body can be critical by
+oxygen alone. Forced `consciousness=90, bloodOxygen=40, bloodPressure=90`, then opened the panel and sampled six times,
+250 ms apart:
+
+| read | active | playing | time / length | critical | pressure | consciousness |
+|---|---|---|---|---|---|---|
+| 0 | true | true | 1.408 / 6 | true | 50.06 | 61.99 |
+| 1 | true | true | 2.432 / 6 | true | 38.65 | 49.64 |
+| 2 | true | true | 3.520 / 6 | true | 29.47 | 36.69 |
+| 3 | true | true | 4.907 / 6 | true | 20.89 | 20.30 |
+| 4 | **false** | **false** | 0 / 6 | true | 15.96 | 7.46 |
+| 5 | false | false | 0 / 6 | true | 12.02 | 0 |
+
+So the beep is a healthy 6 s loop while the panel is up (position advances monotonically), and it is cut when the panel
+CLOSES — at read 4 the panel went inactive as the body's consciousness fell through ~7. That is the audible truncation:
+the panel closes mid-clip, and the loop stops with it.
+
+Two things remain, and the next reading separates them:
+
+1. **Native:** the panel closing on unconsciousness is the game's own rule, and its cut is the game's own sound; nothing in
+   `src/` closes the panel (the remote-view patches only re-point the DISPLAYED body).
+2. **Ours, if it bounces:** in a session the local body's consciousness could cross that closing threshold back and forth if
+   anything re-writes it, which would close/reopen the panel repeatedly and cut the beep every time. The baseline is the
+   same reading in single player, and the tell is a `consciousness` column that reverses direction between reads.
+
 ## Acceptance this ticket owes
 
 A two-client session: the host's body forced critical (`body-force bloodPressure=…`), the host's log read for

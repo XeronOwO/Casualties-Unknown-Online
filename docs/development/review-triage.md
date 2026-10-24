@@ -11,6 +11,7 @@ regenerated when a batch changes the picture, never accumulated.
 |---|---|
 | `adapter-capability-catalog.md` | stage rows beyond stage 1 need the user's call on which capability levels ship |
 | `dead-player-right-click-name-suffix.md` | the menu's 240 px title clips a long name: grow the panel or elide the name (a layout choice) |
+| `trap-layout-crystal-rows-empty.md` | its rows need a prefab carrying `CrystalBehaviour`, which this build does not have — a build capability and the decision to add one |
 | `layer-complete-choice-for-members.md` | the dead-host row is answered by the user's ruling that only the host presses the choices; the ticket wants that confirmation |
 | `player-music-sync-playback.md` | the listener controls (mute, volume, "only during rest") are a design the user owns |
 | `plugin-host-shell.md` | every acceptance clause is read; the remaining item is the user's judgement of the Online UI's look |
@@ -46,7 +47,6 @@ regenerated when a batch changes the picture, never accumulated.
 | Ticket | How |
 |---|---|
 | `guest-background-ghost-item-ground-sounds.md` | audio capture + the background-item fixture |
-| `guest-break-drops-recovery.md` | see C, but the drop probes exist |
 | `mod-cross-player-native-semantics.md` | the native-half chains, read one by one on the live clients |
 | `pinyin-search-mod.md`, `pinyin-search-standalone-mod.md` | mod install and behaviour, read with the mod present |
 | `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed |
@@ -57,10 +57,8 @@ regenerated when a batch changes the picture, never accumulated.
 | `remote-medical-treatment-operations.md` | the treatment drives the probes already carry |
 | `sync-cadence-review.md` | its remaining measurement is a longer traffic window |
 | `topical-limb-action-shape.md` | the topical parity rows |
-| `trap-layout-crystal-rows-empty.md` | the crystal scanner read |
 | `treatment-gore-presentation-carried.md` | the audio capture probes (`pant-sound`, `generation-audio-probe`) plus the treatment fixture |
 | `unified-remote-display-projection-rework.md` | the projection rows against the live display |
-| `tab-backpack-open-close-immediately.md` | closed 2026-10-25 — listed here only until the next regeneration |
 
 ## How this list is kept honest
 

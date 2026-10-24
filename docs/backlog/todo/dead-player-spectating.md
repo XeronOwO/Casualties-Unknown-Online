@@ -344,6 +344,20 @@ is why the captured frame reads like the medical view — the two screens share 
 backpack half exists as a distinct view with its own rule; what a later reading should still capture is the two
 entries side by side (one capture each, medical panel closed first) to show the difference on screen.
 
+**One session reads the whole set (2026-10-24, deployed `0.1.0+e56a5ade`):** four points, one launch.
+1. **The plugin logs through the runtime pipeline now** — `[OnlineUi] notify overlay=…` and
+   `[OnlineUi] status shown overlay=…` appear in the CUO `latest.log` beside the runtime's lines, so the split that
+   hid the notice is gone.
+2. **The watched player is told the watch STARTED** — `[OnlineUi] status line: 萧稔 is watching you` at 14:22:53.535,
+   then `status shown overlay=-16226128 t=69.0 len=18: 萧稔 is watching you` at 14:22:55.047.
+3. **…and that it STOPPED** — `status line: 萧稔 stopped watching you` at 14:23:09.289, then
+   `status shown … t=84.7 len=23: 萧稔 stopped watching you` at 14:23:10.807, from the new bilingual key.
+4. **Both read-only panels of the watched member open from the card**, captured separately: the backpack shows that
+   member's radial inventory with filled item slots and its `8.5/9.92kg` weight bar; the medical entry shows the same
+   body frame with wound badges and the limb bars. The two share the game's body diagram but are different focuses,
+   which is exactly the `眼见为实` half of the inheritance requirement for the read-only surfaces.
+
+
 
 
 

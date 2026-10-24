@@ -182,4 +182,3 @@ With these three, the design has no open question left: the entry, the parties, 
 the arbitration of the single shared trigger are all decided. The next slice remains (1) above — the button — and
 then the rhythm policy, which now has the two channels it writes (pressure from presses, oxygen from ventilation)
 and a named arbitration rule for the one outcome both halves can claim.
-

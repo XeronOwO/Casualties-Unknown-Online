@@ -55,6 +55,9 @@ todo/  →  in-progress/  →  review/  →  done/
 | `resolved/` | Decisions resolved without further code action |
 | `watchlist/` | Maintainability / architecture watch items |
 
+What each open review ticket actually waits on (user decision, missing capability, or an instrument that already exists):
+[review-block triage](../development/review-triage.md).
+
 ## Ticket index
 
 ### Todo

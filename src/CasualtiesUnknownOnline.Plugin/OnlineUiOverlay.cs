@@ -531,12 +531,26 @@ internal sealed class OnlineUiOverlay
 			return ctx.F("spectator.strip_plain", name);
 		}
 
-		return ctx.F(
+		var line = ctx.F(
 			"spectator.strip",
 			name,
 			vitals.BrainHealth,
 			vitals.Stamina,
 			vitals.Hunger);
+
+		// The state markers the read-only surfaces cannot show at a glance: a watcher must be able to tell at once
+		// that the body on screen is dead or unconscious, because the strip is the only HUD the mode leaves them.
+		if (!vitals.Alive)
+		{
+			return ctx.F("spectator.strip_state", line, ctx.T("spectator.state_dead"));
+		}
+
+		if (!vitals.Conscious)
+		{
+			return ctx.F("spectator.strip_state", line, ctx.T("spectator.state_unconscious"));
+		}
+
+		return line;
 	}
 
 	private static OnlineUiNativeRgba ToRgba(PlayerColorValue value) => new(value.R, value.G, value.B, value.A);

@@ -223,3 +223,22 @@ not through a player's hands.
 - **The reading**: a harness case starts CPR from a member on an arrested host, sends three well-timed compressions and
   reads the host's own `BloodPressure` risen and capped by the ceiling; a second case reads the beating-heart refusal by
   name.
+
+## Stage 1c, decision half landed (2026-10-24, deployed `0.1.0+1c348291`): what the control shows
+
+`CprButtonPolicy` (Runtime, pure) decides the control the native wound view will carry, so the rendering half has no
+judgement left in it:
+
+| state | when |
+|---|---|
+| `Hidden` | no remote focus, or the focused body's heart is still beating |
+| `Start` | a focused remote body whose heart has stopped (`Body.inCardiacArrest`, `heartRate < 20`) |
+| `Compress` | this client's own CPR session on that body is running (the host arbitrates the restart, so a running session keeps compressing rather than inviting a start it would refuse) |
+
+`IntervalSeconds` clamps a press pair into the range the update accepts. Five cases pin the three states and the clamp.
+
+**Still owed — the rendering half of 1c**: clone `WoundView.specialUseButton` into the panel, label it from this state
+(`Start`/`Compress`, localized), route its click to `SendOtherStartRequest`/`SendOtherUpdate(Compress, interval)`, and
+read the machine row (open the wound view on an arrested teammate, click, see the session start and the pressure move).
+No player can start CPR until that lands, so the ticket stays in `todo` for it.
+

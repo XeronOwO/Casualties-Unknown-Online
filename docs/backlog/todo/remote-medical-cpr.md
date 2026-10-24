@@ -237,7 +237,20 @@ judgement left in it:
 
 `IntervalSeconds` clamps a press pair into the range the update accepts. Five cases pin the three states and the clamp.
 
-**Still owed — the rendering half of 1c**: clone `WoundView.specialUseButton` into the panel, label it from this state
-(`Start`/`Compress`, localized), route its click to `SendOtherStartRequest`/`SendOtherUpdate(Compress, interval)`, and
-read the machine row (open the wound view on an arrested teammate, click, see the session start and the pressure move).
-No player can start CPR until that lands, so the ticket stays in `todo` for it.
+## Stage 1c's rendering half landed (2026-10-24, deployed `0.1.0+de978301`)
+
+`CprButtonCoordinator` clones `WoundView.specialUseButton` into the same parent, one row below it, renames the clone
+(`CUO CPR Control`), **replaces its `onClick` event** — `Object.Instantiate` copies a UnityEvent with its PERSISTENT
+listeners intact, so without that the CPR control would also run the template's own limb action — and labels it from
+`CprButtonPolicy`'s state (`medical.cpr_start` / `medical.cpr_compress`). It is driven from the same per-frame wound-view
+patch that hides the local-only surfaces, wired once at adapter construction
+(`RemoteMedicalLocalControls.CprControl`).
+
+Pressing it asks for a bare-hand CPR start on the focused target; the host's ACCEPTED acknowledgement is what turns the
+same control into the compression control, and each later press sends the measured interval.
+
+**Still owed, and the ticket stays in `todo` for it — the machine row**: open the wound view on an arrested teammate,
+press the control, read the session's start and the pressure move. The staging is ready (`body-force
+heartRate=0,bloodPressure=5` lands and holds, read on the machine in batch 20261024-g-era), but the REMOTE wound view
+itself opens only from the player's own click on a teammate's body — the driver's in-process vocabulary has no control
+id for it, so the row needs either a mouse click at the body's projected screen position or a declared focus recipe.

@@ -35,6 +35,7 @@ internal sealed class OnlineUiHost
 	private readonly ILogger<OnlineUiHost> _log;
 	private readonly LobbySwitchActions _lobby;
 	private readonly ConfigEntry<string> _quickPanelKey;
+	private readonly ConfigEntry<string> _freeFlyKey;
 	private readonly OnlineUiOverlay _onlineUi;
 	private readonly IpDirectActions _ipActions;
 	private readonly LocationPingInputHandler _locationPingInput;
@@ -102,10 +103,11 @@ internal sealed class OnlineUiHost
 	/// </summary>
 	internal bool IsModalSurfaceOpen => _onlineUi.IsWindowVisible || _onlineUi.IsCommandConsoleOpen;
 
-	internal OnlineUiHost(IServiceProvider services, ConfigEntry<string> quickPanelKey, LobbySwitchActions lobby)
+	internal OnlineUiHost(IServiceProvider services, ConfigEntry<string> quickPanelKey, ConfigEntry<string> freeFlyKey, LobbySwitchActions lobby)
 	{
 		_lobby = lobby;
 		_quickPanelKey = quickPanelKey;
+		_freeFlyKey = freeFlyKey;
 		_log = services.GetRequiredService<ILogger<OnlineUiHost>>();
 		// One construction per plugin is the assumption the notice line violated: two hosts would share the notice
 		// slot and only the one that draws would show what its own drain consumes. This prints the identity once, so
@@ -298,6 +300,16 @@ internal sealed class OnlineUiHost
 		if (!_onlineUi.IsCommandConsoleOpen && HotkeyPressed(_quickPanelKey))
 		{
 			_onlineUi.ToggleQuickPanel();
+		}
+
+		// The free camera's key entry, beside the card's toggle: the mode owns the capability, this only asks.
+		// Ignored while the console or the modal window owns the keyboard, so typing a command never moves the view.
+		if (!_onlineUi.IsCommandConsoleOpen && !_onlineUi.IsWindowVisible && HotkeyPressed(_freeFlyKey))
+		{
+			if (_spectator is { IsSpectator: true, IsWatching: true } spectator)
+			{
+				spectator.TrySetFreeFly(!spectator.IsFreeFly);
+			}
 		}
 
 		// S1's read-only probe of the game's own UI: it needs no surface of its own, asks at most once

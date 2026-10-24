@@ -54,6 +54,7 @@ internal sealed class PluginHost : MonoBehaviour
 	private ISessionControl? _session;
 	private ILocalizationService _localization = null!;
 	private ConfigEntry<string> _interactionPanelKey = null!;
+	private ConfigEntry<string> _spectatorFreeFlyKey = null!;
 	private ulong? _pendingJoinLobbyId;
 
 	private static ManualLogSource Logger => Plugin.Logger;
@@ -106,6 +107,8 @@ internal sealed class PluginHost : MonoBehaviour
 			// configurable.
 			_interactionPanelKey = _config.Bind("Session", "InteractionPanelKey", "F6",
 				"Hotkey to toggle the standalone player-interaction quick panel. See UnityEngine.KeyCode names.");
+			_spectatorFreeFlyKey = _config.Bind("Session", "SpectatorFreeFlyKey", "F7",
+				"Hotkey to toggle the spectator camera's free flight while watching a member. See UnityEngine.KeyCode names.");
 
 			_lobby = new LobbySwitchActions(
 				_steam,
@@ -114,7 +117,7 @@ internal sealed class PluginHost : MonoBehaviour
 				_services.GetService<IWorldPresenceQuery>(),
 				_services.GetRequiredService<ILocalizationService>(),
 				_services.GetRequiredService<ILogger<LobbySwitchActions>>());
-			_onlineUi = new OnlineUiHost(_services, _interactionPanelKey, _lobby);
+			_onlineUi = new OnlineUiHost(_services, _interactionPanelKey, _spectatorFreeFlyKey, _lobby);
 
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
 

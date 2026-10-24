@@ -207,4 +207,3 @@ computes into the committed character data and let the game's own physiology car
 entry — the native wound view's button, cloned from `WoundView.specialUseButton` the way the ruling's KrokMP reference
 does it. Neither is started; the rule above is the piece that had to be reviewed first because it decides what the
 applier writes.
-

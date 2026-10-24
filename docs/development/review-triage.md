@@ -49,7 +49,7 @@ is the one fact behind every row below. A cycle that fixes delivery unblocks the
 | `entity-destruction-drop-guest-fresh-state-loss.md` | a support-loss drop out on the layer: `building-support-cells` found none of the 45 multi-building support cells within 40 blocks of the pod (x in ±40, y 440-560 → 0 matches), so reaching a `requireGround` building needs travel this station cannot do |
 | `guest-break-drops-recovery.md` | rows 1-4 and 7: a swallowed report and a lost air write, forced |
 | `nested-container-clone-proxy-leaks-as-world-item.md` | NOT STAGEABLE BY CONSTRUCTION: the container machinery works (`bandage` into a `trashbag` → `loaded=true`, contents 0→1) but loading a bag into a bag is refused by the game's own guard (`canHold=true, distance=0`), which is exactly the refused-call precondition the fix defends — the nested shape cannot exist through production calls |
-| `runtime-entity-markerless-bind-absorption.md` | row 9 needs the live Unity world's backfill stamp |
+| `runtime-entity-markerless-bind-absorption.md` | row 9 needs a world that CARRIES a runtime creation: `runtime-entity-tables` reads `accepted=0, animals=0, pending=0` here and a real explosion at `(0,507)` added none, so there is no backfill copy to stamp |
 | `suppressed-native-call-sounds-stay-unheard.md` | rows 1-4b: the remote-medical and minigame setups |
 | `sync-player-pain-vocalizations-and-bark.md` | rows 1-3: a lockable entity and a jammed lockpick |
 | `trade-domain-dual-side-runtime.md` | rows 8 (recruit) and 9 (hostile swing): a recruit path and a hostile trader |

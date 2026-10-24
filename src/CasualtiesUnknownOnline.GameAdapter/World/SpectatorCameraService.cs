@@ -120,7 +120,10 @@ internal sealed class SpectatorCameraService(
 	/// <inheritdoc />
 	public bool TryWatch(ulong steamId)
 	{
-		if (!MayWatch(out var localBody) || steamId == 0 || steamId == session.LocalSteamId)
+		// Possession is a spectator's act (the ruling: the right-click menu offers it only in spectator mode, no
+		// distance or reachability check). The old dead-only gate is gone: a spectator whose body is a passive
+		// target in the world may watch anyone whose body this client renders.
+		if (!_spectatorMode || steamId == 0 || steamId == session.LocalSteamId)
 		{
 			return false;
 		}
@@ -133,7 +136,7 @@ internal sealed class SpectatorCameraService(
 		_watchingSteamId = steamId;
 		_freeFlyWanted = false;
 		log.LogInformation("[Spectator] following {SteamId} (local body {Local} is {State}).",
-			steamId, session.LocalSteamId, Describe(localBody));
+			steamId, session.LocalSteamId, Describe(run.LocalBody));
 		return true;
 	}
 
@@ -198,7 +201,10 @@ internal sealed class SpectatorCameraService(
 			RelabelReceiptMenuButton(camera);
 		}
 
-		if (!IsWatching || !MayWatch(out _))
+		// The watch lives and dies with the MODE: leaving spectator mode (a revive or the verb) releases the camera,
+		// and a followed member who dies, leaves or drops gives it up as well (the choice of who to watch next
+		// belongs to the player).
+		if (!_spectatorMode || !IsWatching)
 		{
 			Release(camera);
 			return;

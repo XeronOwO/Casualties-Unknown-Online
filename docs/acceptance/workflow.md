@@ -169,6 +169,12 @@ collected while its scenario is up.
   `PrintWindow` + `PW_RENDERFULLCONTENT` (no activation), and refuses a hidden or zero-size window rather than
   writing an empty frame (verified 2026-10-24 on the 1280x720 window: 1298x767 with the CUO overlay legible —
   the bitmap is the whole window, title bar included, so a box row is judged on the canvas inside it).
+  **A sandboxed client cannot be captured from the host session**: its window is not reachable through the
+  outside station, so `Get-Process` reports a zero `MainWindowHandle` and the tool refuses (measured
+  2026-10-24: a guest client ran with its plugin loaded while the host-side process list showed handle 0;
+  terminating the box cleared it). A visual row whose evidence must be on a GUEST therefore cannot be judged
+  from a frame in this environment — judge what the guest's own in-process state can prove, and leave the
+  picture itself as the user's residual rather than substituting the host's frame for it.
   On a DPI-scaled display the capturing process sets its DPI awareness before `GetWindowRect`/`PrintWindow`;
   otherwise the bitmap is the physical window and the canvas's right/bottom — the launcher, a docked panel —
   are cropped out of the frame. **A frame's pixels are not the canvas's units**: the UI layer a row is about

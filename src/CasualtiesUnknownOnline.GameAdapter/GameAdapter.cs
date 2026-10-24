@@ -43,7 +43,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnlineUiSurface, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider
+public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnlineUiSurface, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, ILayerPanelVisibilityPump
 {
 	// The intro cover's decision, static because the patch that reads it
 	// (PreRunScriptIntroSkipPatch) runs before any adapter instance is involved: the shell
@@ -232,7 +232,6 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		}
 
 		_domains.LayerAdvance.UpdatePanelChoices(); // the end-of-layer panel's two choices belong to the host
-		_domains.LayerPanel.Update(); // host: the panel appears by the LIVING group's share, not the local body's position
 		_domains.GenItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_domains.GenItemApplication.Update(_domains.Run.IsEnteringWorld); // guest: apply the host's generation snapshot once the local generation finished (held while the entry loads its world)
 		_domains.StartingSupplies.Update(); // a player this world has no character for: the run's starting supplies, once per body (S4.3)
@@ -351,6 +350,13 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 		_domains.Renderer.RefreshLocalCarrierAttach(localBody);
 	}
+
+	/// <summary>
+	/// The end-of-layer panel's late-frame write (<see cref="ILayerPanelVisibilityPump"/>): the host rule decides by the
+	/// LIVING group's share, and the game's own <c>WorldGeneration.Update</c> writes the same object every frame — so
+	/// this belongs to the last phase, where nothing overwrites it before the frame renders.
+	/// </summary>
+	void ILayerPanelVisibilityPump.PumpLayerPanelVisibility() => _domains.LayerPanel.Update();
 
 	void ICuoService.Stop() => Uninstall();
 

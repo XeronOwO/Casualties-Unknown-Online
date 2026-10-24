@@ -86,6 +86,7 @@ public static class GameAdapterComposition
 		services.AddSingleton<IPlayerAnchorQuery>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IJoinFlowPresentation>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ICarryPresentationPump>(p => p.GetRequiredService<GameAdapter>());
+		services.AddSingleton<ILayerPanelVisibilityPump>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IOnlineUiNativeFactsQuery>(p => p.GetRequiredService<GameAdapter>());
 		// The Online UI's live surface (S2a): the adapter owns CUO's canvas under the game's canvas and
 		// the game's own launcher control on it, and the plugin drives it with frames over this port.

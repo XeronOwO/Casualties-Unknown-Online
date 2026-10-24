@@ -48,6 +48,7 @@ internal sealed class PluginHost : MonoBehaviour
 	// the port whose capability it calls and never the concrete adapter.
 	private IGameIntegrationLifecycle? _lifecycle;
 	private ICarryPresentationPump? _carryPump;
+	private ILayerPanelVisibilityPump? _layerPanelPump;
 	private IJoinFlowPresentation? _joinFlow;
 	private IAdapterCapabilityQuery? _capabilityQuery;
 	private IDragUseCueState? _dragUseCue;
@@ -92,6 +93,7 @@ internal sealed class PluginHost : MonoBehaviour
 			_steam = _services.GetRequiredService<SteamService>();
 			_lifecycle = _services.GetService<IGameIntegrationLifecycle>();
 			_carryPump = _services.GetService<ICarryPresentationPump>();
+			_layerPanelPump = _services.GetService<ILayerPanelVisibilityPump>();
 			_joinFlow = _services.GetService<IJoinFlowPresentation>();
 			// The cover's decision: the shell owns the preference, read live so a config edit takes effect on the
 			// next launch without a second flag; the adapter owns when the cover is shown.
@@ -236,7 +238,15 @@ internal sealed class PluginHost : MonoBehaviour
 	// Body updates, CUO renderer, Body.Update postfix). The only Unity phase after
 	// Update and before render is LateUpdate, so that is where the final
 	// local-carrier/rider attach pass belongs.
-	private void LateUpdate() => _carryPump?.PinCarriedPresentation();
+	private void LateUpdate()
+	{
+		_carryPump?.PinCarriedPresentation();
+
+		// The end-of-layer panel is written LAST because the game's own WorldGeneration.Update writes the same object
+		// every frame: the host rule's decision has to be the final word before the frame renders (read on the machine,
+		// 2026-10-24: the panel stayed hidden with both living bodies at the floor when this ran from Update).
+		_layerPanelPump?.PumpLayerPanelVisibility();
+	}
 
 	// Forwards one lifecycle stage to a service; a failing service is logged
 	// and never allowed to break the frame loop or the shutdown sequence.

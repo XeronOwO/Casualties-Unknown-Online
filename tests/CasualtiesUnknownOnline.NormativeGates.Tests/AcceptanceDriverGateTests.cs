@@ -86,6 +86,30 @@ public class AcceptanceDriverGateTests
 	/// directory included; a name the ban does not list needs no exception at all.</summary>
 	private const string DeclarationDirectory = "tools/acceptance/driver/eval-declarations";
 
+	/// <summary>
+	/// The ONE file allowed to name the send/focus APIs, by the user's authorization of 2026-10-24: asked for after
+	/// the drag cues, the end-of-layer panel, the key-bind capture and the CPR button all stayed unreadable because the
+	/// tooling could not perform a gesture. The exception is pinned to this path and to these names — a second file
+	/// naming any of them still fails the scan, and the evidence read is always the clients' own logs and probes.
+	/// </summary>
+	private const string AuthorizedInputPath = "tools/acceptance/send-input.ps1";
+
+	/// <summary>The names that one file may carry: sending input, moving the cursor, and forcing a window forward (a
+	/// background process may not simply call <c>SetForegroundWindow</c>, so the borrow-the-foreground-thread shape is
+	/// part of the same authorization).</summary>
+	private static readonly string[] AuthorizedInputApis =
+	[
+		"SendInput",
+		"SetCursorPos",
+		"AttachThreadInput",
+		"SetForegroundWindow",
+		"BringWindowToTop",
+		"SwitchToThisWindow",
+		"GetForegroundWindow",
+		"GetWindowThreadProcessId",
+		"ClientToScreen",
+	];
+
 	private static readonly string[] DeclarationOnlyApis = ["PostMessage", "GetAsyncKeyState"];
 
 	/// <summary>The CUO and Unity references an offline compile cannot resolve: the shared diagnostics are
@@ -420,9 +444,12 @@ public class AcceptanceDriverGateTests
 		relativePath.StartsWith(DeclarationDirectory + "/", StringComparison.Ordinal);
 
 	/// <summary>The exception itself: a file in that directory may name the four read/post APIs, and no
-	/// other name on the ban list is ever excused, there or anywhere else.</summary>
+	/// other name on the ban list is ever excused, there or anywhere else — with the one further exception of the
+	/// authorized input path, which may name exactly the send/focus APIs the user authorized on 2026-10-24.</summary>
 	private static bool IsDeclarationException(string relativePath, string token) =>
-		IsDeclarationDirectory(relativePath) && DeclarationOnlyApis.Contains(token, StringComparer.Ordinal);
+		(IsDeclarationDirectory(relativePath) && DeclarationOnlyApis.Contains(token, StringComparer.Ordinal))
+		|| (string.Equals(relativePath, AuthorizedInputPath, StringComparison.Ordinal)
+			&& AuthorizedInputApis.Contains(token, StringComparer.Ordinal));
 
 	/// <summary>The problems a whole eval-declaration input would present to the evaluator, or none. It is
 	/// a compilation unit of its own — the evaluator refuses a declaration with a trailing expression —

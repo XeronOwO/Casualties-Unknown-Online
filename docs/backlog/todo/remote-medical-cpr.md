@@ -362,9 +362,19 @@ frame-spanning rhythm helper.
 
 Still open on the operator's side:
 
-- **Strength gate**: `skills.STR * handMaxTotalForce > 6` on the operator, evaluated on the operator's OWN client (the
-  gate is about their body, and the host's snapshot does not carry `handMaxTotalForce`), refusing with the existing
-  refusal line and deny sound.
+- **Costs — LANDED** (2026-10-24, deployed `0.1.0+733aedd7`): `CprRhythmPolicy.StaminaPerPress` (2.5, a full bar is forty
+  presses ≈ twenty-two seconds at 110 a minute) and `TemperaturePerPress` (0.02) are charged on the operator's own
+  committed data by `CprApplier`, and an operator at the floor (`MinimumStamina`) earns nothing for the press — exhausted
+  muscle builds no perfusion. A missing operator snapshot never blocks the care. Unit-pinned (the constants' shape and a
+  session case reading three presses as exactly three charges); **the machine row is owed** and its open question is
+  whether a host-side charge to a MEMBER's snapshot reaches that member's own body, which is a sync-direction question
+  rather than a CPR one.
+- **Strength gate**: `skills.STR * handMaxTotalForce > 6` on the operator. `handMaxTotalForce` is the game's
+  `Body.limbs[i].totalForce` and the character snapshot does NOT carry it, so — by the rule that a player's own capability
+  is judged on their own client — the gate belongs in the adapter's control (where `PlayerCamera.main.body` has it), and
+  it needs a LINE surface the adapter does not have (the refusal SOUND exists through
+  `IPlayerInteractionControl.FireUseRefused`). Two dependencies, both named.
 - **Intelligence**: `INT < 12` makes the operator's SCREEN harder rather than refusing — a presentation rule this ticket
-  would need to design (what "harder" shows).
-- **Costs**: stamina and a little temperature per press, and a rib-break roll that scales strength against intelligence.
+  would need to design (what "harder" shows). With no minigame screen in CUO's version, the natural translation is a
+  narrower rhythm band for a low-INT operator, which is a gameplay change and goes to the user before it is built.
+

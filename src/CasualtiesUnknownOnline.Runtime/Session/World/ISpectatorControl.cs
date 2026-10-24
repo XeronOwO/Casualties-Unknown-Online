@@ -34,6 +34,12 @@ public interface ISpectatorControl
 	void ExitSpectatorMode();
 
 	/// <summary>
+	/// Whether the free camera is currently wanted by this spectator — the state a toggle's label reads, so the
+	/// button can say what it will DO rather than what is on. The capability itself is the mode's (no host rule).
+	/// </summary>
+	bool IsFreeFly { get; }
+
+	/// <summary>
 	/// The member this client is following, or 0. Published so a surface can mark the watched row and offer its
 	/// way out WITHOUT keeping a copy: the camera gives a watch up on its own when the followed member dies,
 	/// leaves the layer or drops, and a second answer would keep offering a stop that stops nothing.

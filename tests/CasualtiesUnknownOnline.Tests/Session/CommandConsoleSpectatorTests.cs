@@ -114,6 +114,8 @@ public class CommandConsoleSpectatorTests
 
 		public bool IsSpectator { get; set; }
 
+		public bool IsFreeFly { get; set; }
+
 		public bool RefusesWatch { get; init; }
 
 		public bool RefusesFreeFly { get; init; }

@@ -96,6 +96,8 @@ public class CommandConsoleGamemodeTests
 
 		public bool IsSpectator { get; set; }
 
+		public bool IsFreeFly { get; set; }
+
 		public bool RefusesEnter { get; init; }
 
 		public int ExitCalls { get; private set; }

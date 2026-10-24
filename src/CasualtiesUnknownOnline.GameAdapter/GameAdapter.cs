@@ -385,6 +385,8 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	bool ISpectatorControl.IsSpectator => _domains.Spectator.IsSpectator;
 
+	bool ISpectatorControl.IsFreeFly => _domains.Spectator.IsFreeFly;
+
 	bool ISpectatorControl.EnterSpectatorMode() => _domains.Spectator.EnterSpectatorMode();
 
 	void ISpectatorControl.ExitSpectatorMode() => _domains.Spectator.ExitSpectatorMode();

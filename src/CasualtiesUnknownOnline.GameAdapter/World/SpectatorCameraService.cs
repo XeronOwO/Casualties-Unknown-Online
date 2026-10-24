@@ -71,6 +71,9 @@ internal sealed class SpectatorCameraService(
 	public bool IsSpectator => _spectatorMode;
 
 	/// <inheritdoc />
+	public bool IsFreeFly => _freeFlyWanted;
+
+	/// <inheritdoc />
 	public bool EnterSpectatorMode()
 	{
 		if (_spectatorMode)

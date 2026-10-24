@@ -96,4 +96,3 @@ Error and `/help` → Success, every verb the ticket names answers with its own 
 - **No verb is left with a refusal printed as success** — the built-ins, the three bundled mods and the test mods are
   migrated; the registry refuses a handler whose signature cannot answer with a kind.
 
-

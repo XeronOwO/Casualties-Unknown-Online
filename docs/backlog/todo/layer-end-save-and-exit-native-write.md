@@ -106,6 +106,31 @@ does not come back.
 - Re-deciding decision 165 itself: the question here is its ENFORCEMENT on a surface the original evidence
   could not see, not whether CUO should own its saves.
 
+## The panel's visibility rows, read on the machine (2026-10-24, deployed `0.1.0+d4994cca`)
+
+Batch `20261024-g` (host + one member, two clients; `halfHeight = 512`, so the native floor line is `-508.9`), with the
+bodies moved by `body-place` and every reading taken from the clients' own probes:
+
+| state | host body | member body | panel `activeSelf` |
+|---|---|---|---|
+| share met — both living bodies at the floor (2/2) | -509.385 | -511.438 | **true** |
+| below the threshold — the member back up (1/2) | -509.385 | 380.351 | **false**, eight consecutive reads |
+
+So the panel appears because the GROUP finished the layer and disappears again while a living member is still up top:
+exactly the two states the ruling names. Record `docs/evidence/acceptance/layer-panel-visibility-20261024-g.md`.
+
+**The two reads before it are why the rows pass**, and both were defects of this implementation:
+
+- the write from the host shell's `Update` lost the race with `WorldGeneration.Update` (the panel stayed hidden with
+  2/2 at the floor, read on `0.1.0+cea99ab9`-era). Fixed by moving the pass to Unity's late frame
+  (`ILayerPanelVisibilityPump`, `0.1.0+76dff211`).
+- the native latch (`if (!savePanel.activeSelf && … && PlayerCamera.main.body.y < -halfHeight + 3.1f) SetActive(true)`)
+  re-opened whatever a later phase closed, so the panel flipped every frame and stayed visible when the member went
+  back up (read on `0.1.0+76dff211`). Fixed by closing INSIDE the game's own write frame
+  (`WorldGenerationPanelClosePatch` + `ILayerPanelPatchPort`, `0.1.0+d4994cca`); the open half stays in the late frame,
+  because the latch can never open the panel for the case the rule exists for — a host whose own body never reached the
+  floor while the rest of the living group did.
+
 ## The save half, read on the machine (2026-10-24, deployed `0.1.0+2f674b80`)
 
 A session with the host and one member in the world, then the host pressed the panel's own entry

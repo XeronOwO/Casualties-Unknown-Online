@@ -347,6 +347,7 @@ docs/backlog/done/layer-change-menu-round-trip.md | keep | index | docs/backlog/
 docs/backlog/done/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/layer-panel-visibility-20261024-g.md | keep | claim | docs/backlog/todo/layer-end-save-and-exit-native-write.md
 docs/backlog/done/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-child-limb-install-keeps-a-contained-record.md | keep | index | docs/backlog/README.md

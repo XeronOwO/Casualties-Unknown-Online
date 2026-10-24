@@ -610,7 +610,9 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		hostData.Health.BloodPressure = 5f;
 		hostData.Health.BloodVolume = 100f;
 		characters.SaveHostCharacterData(hostData);
-		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		var cprOperator = Snapshot(Guest1Id, conscious: true);
+		cprOperator.Health!.Stamina = 100f;
+		characters.SaveCharacterData(Guest1Id, cprOperator);
 		MarkInWorld(host);
 		MarkInWorld(guest);
 
@@ -666,6 +668,40 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var oxygen = characters.GetHostCharacterData()!.Health!.BloodOxygen;
 		Assert.True(oxygen > 20f, $"a breath must carry oxygen, read {oxygen}");
 		Assert.True(oxygen <= CprRhythmPolicy.OxygenCeilingFor(10f), $"the chest wound caps it, read {oxygen}");
+	}
+
+	[Fact]
+	public void Cpr_EveryPressCostsTheOperatorStaminaAndHeat()
+	{
+		// Stage 4's costs (ticket remote-medical-cpr.md): the operator pays stamina and a little heat per press, on their own
+		// committed data, because the host applies both sides of the operation.
+		var (host, guest) = CreatePair();
+		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		var hostData = SnapshotWithLimbs(HostId, conscious: false);
+		hostData.Health!.HeartRate = 0f;
+		characters.SaveHostCharacterData(hostData);
+		var guestData = Snapshot(Guest1Id, conscious: true);
+		guestData.Health!.Stamina = 100f;
+		guestData.Health.Temperature = 37f;
+		characters.SaveCharacterData(Guest1Id, guestData);
+		MarkInWorld(host);
+		MarkInWorld(guest);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var gOps = Ops(guest);
+		gOps.StartAckReceived += m => ack = m;
+		gOps.SendOtherStartRequest(HostId, itemInstanceId: 0, targetLimbIndex: -1, MedicalOperationKind.Cpr);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+
+		for (var i = 0; i < 3; i++)
+		{
+			gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Compress, CprRhythmPolicy.IdealInterval);
+		}
+
+		var saved = characters.GetSavedCharacter(Guest1Id)!.Health!;
+		Assert.Equal(100f - (3f * CprRhythmPolicy.StaminaPerPress), saved.Stamina, 2);
+		Assert.Equal(37f + (3f * CprRhythmPolicy.TemperaturePerPress), saved.Temperature, 3);
 	}
 
 	[Fact]

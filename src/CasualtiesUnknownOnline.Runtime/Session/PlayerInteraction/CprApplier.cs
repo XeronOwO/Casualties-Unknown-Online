@@ -60,6 +60,14 @@ internal sealed class CprApplier(PlayerCharacterAccess access)
 		var target = PlayerCharacterAccess.CloneCharacter(targetData);
 		var newHealth = target.Health!;
 
+		// The operator pays for the press: stamina and a little heat, on their OWN committed data (the host applies both
+		// sides of the operation). An operator at the floor earns nothing for the press — exhausted muscle builds no
+		// perfusion — which is the incentive the reference's per-press cost exists for.
+		if (TryChargeTheOperator(session, out var operatorStamina) && operatorStamina < CprRhythmPolicy.MinimumStamina)
+		{
+			gain = 0f;
+		}
+
 		// The compression builds the session's own PERFUSION PROGRESS, not the simulated pressure: in arrest the game's
 		// model has no driver for pressure (its whole heart-rate block is skipped while `inCardiacArrest`), so a pressure
 		// written into the snapshot is overwritten before the next frame shows it — read on the machine, batch
@@ -124,5 +132,28 @@ internal sealed class CprApplier(PlayerCharacterAccess access)
 			limb.Pain = Math.Min(100f, limb.Pain + OverPressRibPain);
 			return;
 		}
+	}
+
+	/// <summary>
+	/// Charges the operator for one press — the stamina and heat the reference's handler takes — and answers the stamina
+	/// that was there BEFORE the charge, so the caller can tell an exhausted operator from a fresh one. A missing operator
+	/// snapshot is not an error: the press still happens (the patient's care is not held hostage to a sync gap), it just
+	/// costs nobody anything.
+	/// </summary>
+	private bool TryChargeTheOperator(OtherMedicalOperationSession session, out float staminaBefore)
+	{
+		staminaBefore = float.MaxValue;
+		var operatorData = _access.GetCharacterData(session.Operator);
+		if (operatorData?.Health is not { } health)
+		{
+			return false;
+		}
+
+		staminaBefore = health.Stamina;
+		var charged = PlayerCharacterAccess.CloneCharacter(operatorData);
+		charged.Health!.Stamina = Math.Max(0f, health.Stamina - CprRhythmPolicy.StaminaPerPress);
+		charged.Health.Temperature += CprRhythmPolicy.TemperaturePerPress;
+		_access.SaveCharacterData(session.Operator, charged);
+		return true;
 	}
 }

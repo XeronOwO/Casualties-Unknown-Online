@@ -39,6 +39,25 @@ public static class CprRhythmPolicy
 	/// <summary>The oxygen one ventilation adds, at the best cadence (the user's ruling: ventilation is a real oxygen intervention, not decoration).</summary>
 	public const float VentilationGain = 8f;
 
+	/// <summary>
+	/// The stamina one compression costs its operator, on the game's own 0-100 stamina scale. The reference charges stamina
+	/// per press; this is CUO's own number, sized so a full bar covers a realistic resuscitation attempt (about twenty
+	/// presses at the band's rate before the operator needs to breathe).
+	/// </summary>
+	public const float StaminaPerPress = 2.5f;
+
+	/// <summary>
+	/// The body temperature one compression costs its operator, in degrees: CPR is physical work and the reference charges a
+	/// little heat per press. Small on purpose — it accumulates over a long attempt, it does not matter for one press.
+	/// </summary>
+	public const float TemperaturePerPress = 0.02f;
+
+	/// <summary>
+	/// The stamina floor a compression needs to be effective: at zero stamina the press is exhausted muscle and buys no
+	/// perfusion, which is the incentive the reference's stamina cost creates.
+	/// </summary>
+	public const float MinimumStamina = 1f;
+
 	/// <summary>The best interval between compressions in seconds (about 110 presses a minute).</summary>
 	public const float IdealInterval = 0.55f;
 

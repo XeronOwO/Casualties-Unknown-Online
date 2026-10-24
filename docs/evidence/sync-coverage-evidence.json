@@ -5996,7 +5996,7 @@
       "cluster": "cadence-review",
       "row": "W7",
       "file": "tests/CasualtiesUnknownOnline.Tests/Session/EntryRepairConvergenceTests.cs",
-      "quote": "Assert.Equal(2_462L, answerBytes);"
+      "quote": "Assert.Equal(2_460L, answerBytes);"
     },
     {
       "cluster": "cadence-review",

@@ -724,7 +724,6 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localAlive: false,
 			sessionActive: true);
 		Assert.False(playing.Single(r => r.SteamId == Remote).CanSpectate);
 
@@ -733,7 +732,6 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localAlive: false,
 			sessionActive: true,
 			spectatorMode: true);
 		Assert.False(spectating.Single(r => r.SteamId == Local).CanSpectate);
@@ -750,7 +748,6 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localAlive: true,
 			sessionActive: true,
 			spectatorMode: true);
 		Assert.True(spectating.Single(r => r.SteamId == Remote).CanSpectate);
@@ -760,7 +757,6 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localAlive: true,
 			sessionActive: true);
 		Assert.False(playing.Single(r => r.SteamId == Remote).CanSpectate);
 	}
@@ -773,7 +769,6 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localAlive: false,
 			sessionActive: true,
 			watchingSteamId: Remote);
 
@@ -789,7 +784,6 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localAlive: false,
 			sessionActive: true);
 		Assert.DoesNotContain(rows, r => r.IsWatched);
 	}
@@ -802,7 +796,6 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Local, true, true), Presence(Remote, true, true)],
 			interaction: null,
 			localInWorld: true,
-			localAlive: false,
 			sessionActive: true,
 			getVitals: id => id == Remote ? DeadVitals() : null);
 
@@ -830,9 +823,6 @@ public sealed class OnlineUiMemberProjectionTests
 		Func<ulong, bool>? hasLineOfSight = null,
 		Func<ulong, string>? displayName = null,
 		Func<ulong, PlayerColorValue>? getColor = null,
-		bool localAlive = true,
-		bool localConscious = true,
-		bool spectateWhileUnconscious = false,
 		bool sessionActive = false,
 		ulong watchingSteamId = 0,
 		bool spectatorMode = false)
@@ -856,9 +846,6 @@ public sealed class OnlineUiMemberProjectionTests
 			permadeath: permadeath,
 			hasLineOfSight: hasLineOfSight,
 			getColor: getColor,
-			localAlive: localAlive,
-			localConscious: localConscious,
-			spectateWhileUnconscious: spectateWhileUnconscious,
 			sessionActive: sessionActive,
 			watchingSteamId: watchingSteamId,
 			spectatorMode: spectatorMode);

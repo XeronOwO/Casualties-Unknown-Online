@@ -29,9 +29,6 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _reviveOnNextLevel;
 	private readonly ConfigEntry<bool> _keepInventory;
 	private readonly ConfigEntry<bool> _radiationLineStopsAboveTheFloor;
-	private readonly ConfigEntry<bool> _spectatorFreeFly;
-	private readonly ConfigEntry<bool> _spectateWhileUnconscious;
-	private readonly ConfigEntry<bool> _spectateWhileWaitingToJoin;
 
 	internal HostRulesConfigEditor(
 		ConfigFile config,
@@ -47,10 +44,7 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> reviveFromTrader,
 		ConfigEntry<bool> reviveOnNextLevel,
 		ConfigEntry<bool> keepInventory,
-		ConfigEntry<bool> radiationLineStopsAboveTheFloor,
-		ConfigEntry<bool> spectatorFreeFly,
-		ConfigEntry<bool> spectateWhileUnconscious,
-		ConfigEntry<bool> spectateWhileWaitingToJoin)
+		ConfigEntry<bool> radiationLineStopsAboveTheFloor)
 	{
 		_config = config;
 		_pvp = pvp;
@@ -66,9 +60,6 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_reviveOnNextLevel = reviveOnNextLevel;
 		_keepInventory = keepInventory;
 		_radiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor;
-		_spectatorFreeFly = spectatorFreeFly;
-		_spectateWhileUnconscious = spectateWhileUnconscious;
-		_spectateWhileWaitingToJoin = spectateWhileWaitingToJoin;
 	}
 
 	internal void SetPvpEnabled(bool value) => Set(_pvp, value);
@@ -96,12 +87,6 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	internal void SetKeepInventory(bool value) => Set(_keepInventory, value);
 
 	internal void SetRadiationLineStopsAboveTheFloor(bool value) => Set(_radiationLineStopsAboveTheFloor, value);
-
-	internal void SetSpectatorFreeFly(bool value) => Set(_spectatorFreeFly, value);
-
-	internal void SetSpectateWhileUnconscious(bool value) => Set(_spectateWhileUnconscious, value);
-
-	internal void SetSpectateWhileWaitingToJoin(bool value) => Set(_spectateWhileWaitingToJoin, value);
 
 	/// <summary>
 	/// The console's write seam, keyed by the rule the census classifies. The value is re-read with the
@@ -139,9 +124,6 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 			HostRuleId.ReviveOnNextLevel => () => Set(_reviveOnNextLevel, bool.Parse(value)),
 			HostRuleId.Permadeath => () => Set(_permadeath, bool.Parse(value)),
 			HostRuleId.RadiationLineStopsAboveTheFloor => () => Set(_radiationLineStopsAboveTheFloor, bool.Parse(value)),
-			HostRuleId.SpectatorFreeFly => () => Set(_spectatorFreeFly, bool.Parse(value)),
-			HostRuleId.SpectateWhileUnconscious => () => Set(_spectateWhileUnconscious, bool.Parse(value)),
-			HostRuleId.SpectateWhileWaitingToJoin => () => Set(_spectateWhileWaitingToJoin, bool.Parse(value)),
 			_ => throw new ArgumentOutOfRangeException(nameof(rule), rule, "host rule has no config entry"),
 		};
 

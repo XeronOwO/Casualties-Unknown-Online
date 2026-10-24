@@ -6,7 +6,6 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
-using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using TMPro;
@@ -39,7 +38,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 internal sealed class SpectatorCameraService(
 	RunCoordinator run,
 	RemotePlayerRenderer renderer,
-	IHostRules hostRules,
 	ISessionControl session,
 	IEntitySyncControl entities,
 	ILocalizationService localization,
@@ -361,22 +359,6 @@ internal sealed class SpectatorCameraService(
 
 	/// <summary>The last mirror line logged, so the per-frame write reports once per change rather than every frame.</summary>
 	private string? _mirrorLogged;
-
-	/// <summary>
-	/// Whether this client's local character is in a state that may watch. The terms are the SHARED rule's
-	/// (<see cref="SpectatorPolicy"/>), which the member card reads too: a client-side copy of them is how the
-	/// card once stopped reading the host's unconscious switch without anything failing.
-	/// </summary>
-	private bool MayWatch(out Body? localBody)
-	{
-		localBody = run.LocalBody;
-		if (localBody == null) // Unity object — ==
-		{
-			return false;
-		}
-
-		return SpectatorPolicy.MayWatch(localBody.alive, localBody.conscious, hostRules.SpectateWhileUnconscious, session.SessionActive);
-	}
 
 	/// <summary>
 	/// The body to follow, or false when there is nobody to follow. The clone's OWN <c>alive</c> is its brain

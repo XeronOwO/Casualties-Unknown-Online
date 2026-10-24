@@ -51,11 +51,6 @@ internal static class OnlineUiMemberListDrawer
 			canAdmin: ctx.Session.Role == SessionRole.Host && ctx.Session.SessionActive,
 			localInWorld: ctx.Session.LocalInWorld,
 			hasHealItem: ctx.HasHealItem?.Invoke() ?? false,
-			// The rule is the SHARED one (SpectatorPolicy.MayWatch), read here through its own terms: a card that
-			// answered it with a second copy is how the last one stopped reading the host's unconscious switch.
-			localAlive: ctx.Entities.LocalPlayer.Alive,
-			localConscious: ctx.Entities.LocalPlayer.Conscious,
-			spectateWhileUnconscious: ctx.HostRules.SpectateWhileUnconscious,
 			sessionActive: ctx.Session.SessionActive,
 			watchingSteamId: ctx.WatchingSteamId,
 			spectatorMode: ctx.IsSpectator,

@@ -115,12 +115,6 @@ internal static class PluginDependencyRegistrar
 				new AcceptableValueList<string>([.. HostRuleValueText.ChoicesForClamp(nativeBindingRow)])));
 		var radiationLineStopsAboveTheFloor = config.Bind("HostRules", "RadiationLineStopsAboveTheFloor", true,
 			new ConfigDescription("True = the radiation line stops a margin above the layer floor instead of descending past it, so the bottom of a layer stays livable and a group can share supplies and rest. False = the game's own uncapped descent."));
-		var spectatorFreeFly = config.Bind("HostRules", "SpectatorFreeFly", true,
-			new ConfigDescription("True = a spectating player may free-fly the camera instead of only following a teammate. On by default, aligned with the reference mod."));
-		var spectateWhileUnconscious = config.Bind("HostRules", "SpectateWhileUnconscious", false,
-			new ConfigDescription("True = an UNCONSCIOUS player may spectate. Off by default: an unconscious body is still its owner's to act on."));
-		var spectateWhileWaitingToJoin = config.Bind("HostRules", "SpectateWhileWaitingToJoin", false,
-			new ConfigDescription("True = a client that has not entered the world yet may spectate. Off by default: that is the late-join case."));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
 			new BepInExOptionsMonitor<HostRulesOptions>(
 				config,
@@ -132,9 +126,6 @@ internal static class PluginDependencyRegistrar
 					RemoteBackpackAccess = ParseRemoteBackpackAccess(remoteBackpackAccess.Value, remoteBackpackRow),
 					AllowMemberCheatVerbs = allowMemberCheatVerbs.Value,
 					RadiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor.Value,
-					SpectatorFreeFly = spectatorFreeFly.Value,
-					SpectateWhileUnconscious = spectateWhileUnconscious.Value,
-					SpectateWhileWaitingToJoin = spectateWhileWaitingToJoin.Value,
 					WidenRunSettings = widenRunSettings.Value,
 					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
 					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value, nativeBindingRow),
@@ -144,9 +135,6 @@ internal static class PluginDependencyRegistrar
 				allowMemberCheatVerbs.Definition,
 				widenRunSettings.Definition, piggybackWeight.Definition,
 				radiationLineStopsAboveTheFloor.Definition,
-				spectatorFreeFly.Definition,
-				spectateWhileUnconscious.Definition,
-				spectateWhileWaitingToJoin.Definition,
 				nativeBindingParity.Definition)));
 
 		// World archive policy (S4.4, decision 25): the interval autosave and the backup
@@ -217,10 +205,7 @@ internal static class PluginDependencyRegistrar
 			reviveFromTrader,
 			reviveOnNextLevel,
 			keepInventory,
-			radiationLineStopsAboveTheFloor,
-			spectatorFreeFly,
-			spectateWhileUnconscious,
-			spectateWhileWaitingToJoin));
+			radiationLineStopsAboveTheFloor));
 		// The console's /gamerule verb writes through this editor; the Runtime default is a disabled
 		// no-op so the Runtime-only composition still resolves the same interface.
 		services.Replace(ServiceDescriptor.Singleton<IHostRulesEditor>(

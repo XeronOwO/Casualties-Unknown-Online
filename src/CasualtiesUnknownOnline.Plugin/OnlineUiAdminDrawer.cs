@@ -49,9 +49,6 @@ internal static class OnlineUiAdminDrawer
 			BuildEditableRule(ctx, page, "admin.rule_revive_next_level", rules.ReviveOnNextLevel, editor.SetReviveOnNextLevel);
 			BuildEditableRule(ctx, page, "admin.rule_permadeath", rules.Permadeath, editor.SetPermadeath);
 			BuildEditableRule(ctx, page, "admin.rule_radiation_line_floor", rules.RadiationLineStopsAboveTheFloor, editor.SetRadiationLineStopsAboveTheFloor);
-			BuildEditableRule(ctx, page, "admin.rule_spectator_free_fly", rules.SpectatorFreeFly, editor.SetSpectatorFreeFly);
-			BuildEditableRule(ctx, page, "admin.rule_spectate_while_unconscious", rules.SpectateWhileUnconscious, editor.SetSpectateWhileUnconscious);
-			BuildEditableRule(ctx, page, "admin.rule_spectate_while_waiting_to_join", rules.SpectateWhileWaitingToJoin, editor.SetSpectateWhileWaitingToJoin);
 		}
 		else
 		{

@@ -142,10 +142,7 @@ public class HostRuleValueTextTests
 			ReviveFromTrader: false,
 			ReviveOnNextLevel: true,
 			Permadeath: false,
-			RadiationLineStopsAboveTheFloor: true,
-			SpectatorFreeFly: true,
-			SpectateWhileUnconscious: false,
-			SpectateWhileWaitingToJoin: false);
+			RadiationLineStopsAboveTheFloor: true);
 
 		Assert.Equal("true", HostRuleValueText.Describe(rules, Flag));
 		Assert.Equal("unconscious_or_dead", HostRuleValueText.Describe(rules, Access));

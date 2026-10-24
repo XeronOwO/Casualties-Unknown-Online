@@ -106,13 +106,4 @@ public sealed class HostRulesOptions
 	/// align with; turning it off restores the game's own uncapped descent.
 	/// </summary>
 	public bool RadiationLineStopsAboveTheFloor { get; set; } = true;
-
-	/// <summary>Host-only: a spectating player may free-fly the camera instead of only following a teammate. ON by default, aligned with the reference mod: a free camera can scout the layer ahead, so it is a group decision rather than one client's rendering choice.</summary>
-	public bool SpectatorFreeFly { get; set; } = true;
-
-	/// <summary>Host-only: an UNCONSCIOUS player may spectate. OFF by default: in this project's model an unconscious body is still its owner's to act on, so this changes a live player's client rather than a dead one's.</summary>
-	public bool SpectateWhileUnconscious { get; set; } = false;
-
-	/// <summary>Host-only: a client that has not entered the world yet may spectate. OFF by default: that is the late-join case, and it is a separate promise about what a not-yet-in-world client may see.</summary>
-	public bool SpectateWhileWaitingToJoin { get; set; } = false;
 }

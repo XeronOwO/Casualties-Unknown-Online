@@ -208,15 +208,6 @@ internal static class CommandConsoleTestSession
 				case HostRuleId.RadiationLineStopsAboveTheFloor:
 					host.RadiationLineStopsAboveTheFloor = bool.Parse(value);
 					break;
-				case HostRuleId.SpectatorFreeFly:
-					host.SpectatorFreeFly = bool.Parse(value);
-					break;
-				case HostRuleId.SpectateWhileUnconscious:
-					host.SpectateWhileUnconscious = bool.Parse(value);
-					break;
-				case HostRuleId.SpectateWhileWaitingToJoin:
-					host.SpectateWhileWaitingToJoin = bool.Parse(value);
-					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(rule), rule, "the test editor has no writer for this rule");
 			}
@@ -236,9 +227,6 @@ internal static class CommandConsoleTestSession
 			PiggybackWeightMultiplier = source.PiggybackWeightMultiplier,
 			NativeBindingParity = source.NativeBindingParity,
 			RadiationLineStopsAboveTheFloor = source.RadiationLineStopsAboveTheFloor,
-			SpectatorFreeFly = source.SpectatorFreeFly,
-			SpectateWhileUnconscious = source.SpectateWhileUnconscious,
-			SpectateWhileWaitingToJoin = source.SpectateWhileWaitingToJoin,
 		};
 
 		private static RespawnOptions Copy(RespawnOptions source) => new()

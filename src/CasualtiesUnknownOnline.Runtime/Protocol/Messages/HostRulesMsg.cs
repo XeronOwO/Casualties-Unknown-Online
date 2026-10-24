@@ -69,15 +69,6 @@ public sealed class HostRulesMsg
 	[ProtoMember(13)]
 	public bool RadiationLineStopsAboveTheFloor { get; set; }
 
-	[ProtoMember(14)]
-	public bool SpectatorFreeFly { get; set; }
-
-	[ProtoMember(15)]
-	public bool SpectateWhileUnconscious { get; set; }
-
-	[ProtoMember(16)]
-	public bool SpectateWhileWaitingToJoin { get; set; }
-
 	/// <summary>The wire form of one rule set (the sender's mapping).</summary>
 	public static HostRulesMsg From(HostRuleSet set) => new()
 	{
@@ -94,9 +85,6 @@ public sealed class HostRulesMsg
 		ReviveOnNextLevel = set.ReviveOnNextLevel,
 		Permadeath = set.Permadeath,
 		RadiationLineStopsAboveTheFloor = set.RadiationLineStopsAboveTheFloor,
-		SpectatorFreeFly = set.SpectatorFreeFly,
-		SpectateWhileUnconscious = set.SpectateWhileUnconscious,
-		SpectateWhileWaitingToJoin = set.SpectateWhileWaitingToJoin,
 	};
 
 	/// <summary>The rule set this message carries (the receiver's mapping).</summary>
@@ -113,10 +101,7 @@ public sealed class HostRulesMsg
 		ReviveFromTrader,
 		ReviveOnNextLevel,
 		Permadeath,
-		RadiationLineStopsAboveTheFloor,
-		SpectatorFreeFly,
-		SpectateWhileUnconscious,
-		SpectateWhileWaitingToJoin);
+		RadiationLineStopsAboveTheFloor);
 
 	/// <summary>
 	/// Why this announcement cannot be applied, or null when it is well formed. The

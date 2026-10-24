@@ -71,13 +71,4 @@ public sealed class HostRulesService(
 
 	/// <inheritdoc />
 	public bool RadiationLineStopsAboveTheFloor => Current.RadiationLineStopsAboveTheFloor;
-
-	/// <inheritdoc />
-	public bool SpectatorFreeFly => Current.SpectatorFreeFly;
-
-	/// <inheritdoc />
-	public bool SpectateWhileUnconscious => Current.SpectateWhileUnconscious;
-
-	/// <inheritdoc />
-	public bool SpectateWhileWaitingToJoin => Current.SpectateWhileWaitingToJoin;
 }

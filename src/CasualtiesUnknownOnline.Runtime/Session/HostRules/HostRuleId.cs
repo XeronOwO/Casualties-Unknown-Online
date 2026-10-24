@@ -30,13 +30,4 @@ public enum HostRuleId
 
 	/// <summary>The radiation line stops a margin above the layer floor instead of descending past it (the host rule the user asked to align with).</summary>
 	RadiationLineStopsAboveTheFloor,
-
-	/// <summary>A spectating player may free-fly the camera instead of only following a teammate. On by default, aligned with the reference mod: a free camera can scout the layer ahead, so it is a group decision rather than one client's rendering choice.</summary>
-	SpectatorFreeFly,
-
-	/// <summary>An UNCONSCIOUS player may spectate. Off by default: in this project's model an unconscious body is still its owner's to act on, so this changes a live player's client rather than a dead one's.</summary>
-	SpectateWhileUnconscious,
-
-	/// <summary>A client that has not entered the world yet may spectate. Off by default: that is the late-join case, and it is a separate promise about what a not-yet-in-world client may see.</summary>
-	SpectateWhileWaitingToJoin,
 }

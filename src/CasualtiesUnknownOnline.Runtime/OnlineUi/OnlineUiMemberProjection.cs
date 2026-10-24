@@ -38,9 +38,6 @@ public static class OnlineUiMemberProjection
 		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
 		Func<ulong, PlayerColorValue>? getColor = null,
-		bool localAlive = true,
-		bool localConscious = true,
-		bool spectateWhileUnconscious = false,
 		bool sessionActive = false,
 		ulong watchingSteamId = 0,
 		bool spectatorMode = false)

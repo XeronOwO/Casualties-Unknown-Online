@@ -13,7 +13,7 @@
   `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` and returns to `done/` once that
   defect is fixed and row 4 re-runs. The defect was found 2026-10-11 by the acceptance run of batch
   `20261011-a`, as the open half of
-  `docs/backlog/review/cross-player-item-use-random-determinism.md`'s row 1: the authority committed a grip
+  `docs/backlog/done/cross-player-item-use-random-determinism.md`'s row 1: the authority committed a grip
   slip's damage and the operator's screen agreed, while the PATIENT's own body still read its pre-slip
   values.
   The run recorded two candidates ("either that update addresses a different object than the local body,
@@ -30,7 +30,7 @@
   condition for this priority. No user report was needed to find it; a user would have seen the fragment
   pull "work" and do nothing.
 - Category: Players / cross-player semantics
-- Related: `docs/backlog/review/cross-player-item-use-random-determinism.md` (its row 1 is this ticket's
+- Related: `docs/backlog/done/cross-player-item-use-random-determinism.md` (its row 1 is this ticket's
   acceptance), `docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md`,
   `docs/backlog/review/remote-medical-stage-3-other-actions.md` (the family's third builder, which always
   named its kind — that is what made the omission look like a working pattern),

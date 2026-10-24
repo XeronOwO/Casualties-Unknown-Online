@@ -1,6 +1,6 @@
 # Cross-player item-use random determinism — batch 20261011-a
 
-- Ticket: `docs/backlog/review/cross-player-item-use-random-determinism.md`
+- Ticket: `docs/backlog/done/cross-player-item-use-random-determinism.md`
 - Commit under test: `c385f831`
 - Deployed artifact: `0.1.0+7e9cac22107f623849682816b42751b5bcb88ee5`, verified against `<game-dir>`
   (`tools/verify-deploy.ps1`, exit 0). The plugin assemblies are unchanged since `7e9cac22`; `c385f831`

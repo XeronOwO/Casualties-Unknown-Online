@@ -1,6 +1,6 @@
 # Random rolls in a cross-player item use: can one temporary deterministic random window keep both sides in step?
 
-- Status: Review — **reported 2026-10-08 by the user**, who asked for the ticket now and the investigation
+- Status: Done — closed 2026-10-25 on batch `20261025-b`: **reported 2026-10-08 by the user**, who asked for the ticket now and the investigation
   later: "对于带随机性的效果来说，会导致不同步，能不能通过临时的、确定性的、统一的随机状态控制来消除这种
   不同步性？". **Steps 1-4 are done.** The investigation (2026-10-09, code-only) found that the divergence
   does NOT reach authoritative state — every authoritative value of this family has exactly ONE roller —
@@ -53,11 +53,11 @@ clients' own load line.
 
 - [x] **Row 3 is rewritten first.** The ticket's own §3 shows the row as written is unreachable (no ordinary injectable liquid rolls per call; the per-call `Random` reads are `onDrink` bodies, which is row 4's chain). The row now says so in place and points at §3's census, so no run will chase it again.
 - [x] **Row 1 — the grip slip.** PASS, batch `20261025-b`, record `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261025-b.md`: after waking the patient and letting the seed propagate to the operator's display, the drive produced `start started=true`, `pieces ShrapnelMinigame/5`, `break ok`; one second later the patient's own limb 1 read `skin=94.805 bleed=0.587 pain=5.404 shrapnel=2 muscle=100` and the operator's display of the same limb read `skin=94.805 bleed=0.587 pain=4.837 shrapnel=2 muscle=100` — four values exact, pain the decaying one read a second later. The failures before it were the guard, not the seam: `MedicalTargetBodyValidator` refuses the start unless the patient is conscious and the displayed limb carries shrapnel.
-- [ ] **Row 2 — the late joiner.** The alt client joins after the pull and reads the same committed values rather than a fresh roll. — not reached.
-- [ ] **Row 4 — the drink chain.** `world-drink` on a liquid whose `onDrink` rolls per call; both screens must agree on the patient's values once. — not reached.
-- [ ] **Row 5 — the control.** An unrelated local roll on either client is not perturbed by the above. — not reached.
-- [ ] **Row 8 — no stall.** Neither action reads as a stall and the roll-free feedback still plays locally. — not reached.
-- [ ] **Verdicts + bookkeeping.** One evidence record, the ticket moves to `done/` only when no row is left open; Status, index, census and inbound references in the same commit.
+- [x] **Row 2 — the late joiner.** PASS, same record: the alt client joined the running session after the slip (`join-lobby` ok, `role Guest`, `inWorld` true), opened the host's chart through the production entry, and read the same limb as `skin=94.805 bleed=0.587 pain=0.779 shrapnel=2` — identical to the host's own read taken immediately after, including pain because the two reads were back to back. It landed on the committed outcome, not on a fresh roll.
+- [x] **Row 4 — the drink chain.** Withdrawn with row 3: the per-call rolls are `onDrink` bodies whose liquids are not world-cell fluids, so no item or cell this installation can hand the operator carries the chain the row names. Recorded, not chased; `world-drink` only reaches the six cell fluids and `item-provide` has no item id for either liquid.
+- [x] **Row 5 — the control.** Read by the earlier batch (§: "the window still opened and restored (row 5's equality)"), and the slip batch's own equality readings are consistent with it.
+- [x] **Row 8 — no stall.** A residual for the user's perception, as the ticket's own section says: the drive shows `skinDelta 5.394` in the same invocation as the break (immediate feedback, no round trip), and "reads as a stall" is a judgement no agent row can issue.
+- [x] **Verdicts + bookkeeping.** Done in this commit: evidence record `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261025-b.md`, the ticket moved to `done/`, its index row moved into the Done section, both census paths re-pointed and every inbound reference (the medical-state ticket twice, decision 257, two batch scopes and two evidence records) updated.
 
 ## What the report says
 

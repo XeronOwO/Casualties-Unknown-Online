@@ -71,7 +71,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 - [Drag-use aims at the model, not a fixed circle](review/cross-player-drag-use-model-bounds.md) — **Medium** — the model measures itself; rows need a mouse.
 - [The id resume reads one source](review/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers, in the one namespace ids are issued in.
-- [Random rolls in a cross-player item use](review/cross-player-item-use-random-determinism.md) — **High** — rows 2/4/5 pass; row 3 open.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
 - [Steam send-limit refusal floods the log and wedges the host](review/steam-transport-send-limit-runaway.md) — **High** — gated; rows 1-4 hold, 5 open.
@@ -149,6 +148,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [Random rolls in a cross-player item use](done/cross-player-item-use-random-determinism.md) — **High** — rows 1–2 read, 3–5 settled, 8 a user residual.
 - [Remote medical CPR (KrokMP custom)](done/remote-medical-cpr.md) — **Medium** — four stages; every row read, `Good` included.
 - [A member's drill-pod descent regenerates a layer of its own](done/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — routed, answered, ruled.
 - [Who skips the intro cover, and when](done/launch-intro-cover-policy.md) — **Low** — one named decision; five rows read.

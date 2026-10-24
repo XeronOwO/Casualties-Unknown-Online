@@ -40,10 +40,28 @@ Guest (English on the guest):
 So the same key answers in two languages on two clients of the same build, from the embedded JSON catalogue, and the console
 line that carries that key is present in the live console buffer with its key and its English fallback intact.
 
+## The pixel reading (the residual this record used to leave open)
+
+`tools/acceptance/recipes/capture-frame.cs` captures the client's OWN frame through `ScreenCapture.CaptureScreenshot`; the
+agent then reads the PNG. On the same deployed build, at the launcher screen:
+
+| client | captured file | the launcher button reads |
+|---|---|---|
+| host (`zh`) | host frame, 1280×720 | **`CUO 联机 ▼`** |
+| guest (`en`) | guest frame, 1280×720 | **`CUO ONLINE ▼`** |
+
+The frames are gitignored artifacts (`capture-frame` writes to `CUO_FRAME_DIR` or the system temp directory). The guest runs
+under Sandboxie, so its capture lands inside the box under `<sandbox-root>\Steam1\drive\…` and the batch copies it out — a fact
+for the next visual row, not a failure.
+
+That is the overlay DRAWING the localized string: the same build, the same screen, two languages, both read from the frame.
+
 ## What this does and does not prove
 
 - **Proves**: the deployed client's language setting drives the lookup; the JSON catalogue is what answers (both languages on
-  one build); a console line carries its key in the live buffer, which is the data the chat box renders; and the fallback text
-  is present on the line.
-- **Does not prove**: the pixels — that the overlay drew the Chinese sentence — which stays a frame-read residual for the user,
-  and is the same capability gap the visual rows carry.
+  one build); a console line carries its key in the live buffer, which is the data the chat box renders; the fallback text is
+  present on the line; and the overlay DRAWS the localized string — the launcher button reads `CUO 联机` on the Chinese client
+  and `CUO ONLINE` on the English one, from the frames above.
+- **Does not prove**: that the console's chat box, specifically, shows a localized refusal — the frames were taken at the
+  launcher screen, where the console is not open. That single surface is read the same way the next time a session is opened:
+  capture the frame with the console open and print one keyed line.

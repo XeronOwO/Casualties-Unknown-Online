@@ -6,10 +6,11 @@
   refusal travels with its reason, the overlay resolves a keyed line through the same `T("console.…")` reads the catalogue gate
   counts, and a pin fails the build if a catalogued console key is never resolved. Batch `20261025-e` read the live clients
   (record: `docs/evidence/acceptance/localization-live-read-20261025-e.md`): the host's console buffer holds a line keyed
-  `console.ready` while its service answers Chinese, the guest's the same key with English. Two things stay open and both are
+  `console.ready` while its service answers Chinese, the guest's the same key with English. The pixels were read too, with the new
+  `capture-frame` recipe: the launcher drew `CUO 联机` on the host and `CUO ONLINE` on the guest. One thing stays open and is
   named, not silently dropped: the host's ANSWER STRINGS for `/heal`, `/give`, `/summon` and `/gamerule` arrive over the wire as
-  sentences, so localizing them means the result messages carry a key — a protocol decision for the user; and the pixel read of
-  the chat box is a frame-level residual. Opened 2026-10-25 by the user's report, clarified the same minute.
+  sentences, so localizing them means the result messages carry a key — a protocol decision for the user. Opened 2026-10-25 by
+  the user's report, clarified the same minute.
 - Priority: Medium
 - Category: Localization / console surface
 - Source: the user, while a batch's console replies were on screen ("Refused locally: the host's cheat roster … does not

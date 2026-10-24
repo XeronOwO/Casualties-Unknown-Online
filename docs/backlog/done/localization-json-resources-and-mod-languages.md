@@ -5,8 +5,8 @@
   picker lists it, and the contributing page pair documents all of it. Batch `20261025-e` then read the deployed client's own
   service (record: `docs/evidence/acceptance/localization-live-read-20261025-e.md`): the host answered `zh` with `首页` and the
   Chinese console-ready sentence while the guest on the same build answered `en` with `Home` and the English one, both listing
-  `supported: en,zh`. The one thing left is a PIXEL read — that the overlay drew those sentences — which is a frame-level
-  residual for the user, the same capability gap the visual rows carry. Opened 2026-10-25 at the user's direction.
+  `supported: en,zh`. The pixel half followed in the same batch with the new `capture-frame` recipe: the host's launcher
+  button drew `CUO 联机` and the guest's drew `CUO ONLINE`, same build and same screen. Opened 2026-10-25 at the user's direction.
 - Priority: Medium-High
 - Category: Localization / architecture / mod surface
 - Source: the user, while the console's bilingual slice was being built — the same objection applies to the whole

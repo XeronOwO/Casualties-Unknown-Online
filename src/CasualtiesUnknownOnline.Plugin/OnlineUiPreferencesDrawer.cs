@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using UnityEngine;
@@ -50,11 +51,28 @@ internal static class OnlineUiPreferencesDrawer
 		"None",
 	];
 
-	private static readonly (string Code, string Label)[] Languages =
-	[
-		("en", "English"),
-		("zh", "简体中文"),
-	];
+	/// <summary>
+	/// The languages the picker offers: the built-in two first, then whatever a mod registered through
+	/// <see cref="ILocalizationService.RegisterCatalog"/>, in registration order. A mod's language therefore appears without a
+	/// code change here — this list is a view of the service, never a second source of truth.
+	/// </summary>
+	private static (string Code, string Label)[] LanguageChoices(OnlineUiContext ctx)
+	{
+		var supported = ctx.Localization.SupportedLanguages;
+		var choices = new List<(string Code, string Label)>(supported.Count);
+		foreach (var code in supported)
+		{
+			var label = code.ToLowerInvariant() switch
+			{
+				"en" => "English",
+				"zh" => "简体中文",
+				_ => code.ToUpperInvariant(),
+			};
+			choices.Add((code, label));
+		}
+
+		return [.. choices];
+	}
 
 	internal static void Build(OnlineUiContext ctx, OnlineUiPageBuilder page)
 	{
@@ -115,12 +133,13 @@ internal static class OnlineUiPreferencesDrawer
 		}
 
 		page.Section(ctx.T("prefs.language"));
-		var labels = new string[Languages.Length];
+		var languages = LanguageChoices(ctx);
+		var labels = new string[languages.Length];
 		var current = 0;
-		for (var index = 0; index < Languages.Length; index++)
+		for (var index = 0; index < languages.Length; index++)
 		{
-			labels[index] = Languages[index].Label;
-			if (language.Current.StartsWith(Languages[index].Code, StringComparison.OrdinalIgnoreCase))
+			labels[index] = languages[index].Label;
+			if (language.Current.StartsWith(languages[index].Code, StringComparison.OrdinalIgnoreCase))
 			{
 				current = index;
 			}
@@ -131,7 +150,7 @@ internal static class OnlineUiPreferencesDrawer
 			ctx.T("prefs.language_current"),
 			labels,
 			current,
-			index => language.Set(Languages[index].Code),
+			index => language.Set(languages[index].Code),
 			width: ChoiceWidth);
 		page.Muted(ctx.T("prefs.language_hint"));
 	}

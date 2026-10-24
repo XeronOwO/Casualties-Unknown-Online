@@ -44,6 +44,15 @@ driver round trip even when the session was just started successfully — which 
 measured from the other side (start → break, not start → pieces). The coroutine is not an optimisation here; it is the only shape
 that can act inside the window.
 
+**Batch `20261025-ac` — the instrumented run says the coroutine's own path did not run.** The declaration was renamed
+(`AcceptanceShrapnelBreak2`) so the driver's idempotent presence probe would actually re-send it (`sent=true`), and a `Trace` field
+records which branch the coroutine reaches. Sequence: `open` (`opened=true`) → `shrapnel-break count=3` (`trace=started`) →
+`special` (`started=true, shrapnel=2`) → patient's limb read at **`shrapnel=2, skin=94.8`** with **`pieces=none`** afterwards. So
+exactly ONE piece left the limb and the session ended, while `Trace` never advanced past `started`: the coroutine's own
+grab/report/break path did NOT run, and the single removed piece came from the native dispatch of the special itself. The next
+question is therefore narrow — why the coroutine's 180-frame wait never saw the minigame the session evidently had, or where its
+`ShrapnelMinigame` resolution failed — and `Trace`'s values are the door to it.
+
 **Batch `20261025-ab` — the declaration is written, declared, and does NOT break yet; the session turns out to be LONG-LIVED.**
 The `shrapnel-break` declaration (a coroutine that waits for the minigame, posts the grab report, sets the held slot, waits two
 frames and calls `BreakGrasp()` per piece) plus its thin recipe were written and declared (`-Action declare -Declare

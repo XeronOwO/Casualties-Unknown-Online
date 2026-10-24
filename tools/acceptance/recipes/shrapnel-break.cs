@@ -11,7 +11,7 @@
 	var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 	System.Type declaration = null;
 	for (var i = 0; i < assemblies.Length; i++) {
-		if (declaration == null) { try { declaration = assemblies[i].GetType("AcceptanceShrapnelBreak", false); } catch { declaration = null; } }
+		if (declaration == null) { try { declaration = assemblies[i].GetType("AcceptanceShrapnelBreak2", false); } catch { declaration = null; } }
 	}
 	if (declaration == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare shrapnel-break first\"}"; }
 	var start = declaration.GetMethod("Start");
@@ -26,7 +26,11 @@
 			if (list != null) { pieces = list.Count.ToString(inv); }
 		}
 	}
+	var trace = "none";
+	var traceField = declaration.GetField("Trace");
+	if (traceField != null) { trace = (string)traceField.GetValue(null) ?? "null"; }
 	return "{\"ok\":true,\"started\":\"" + started + "\""
 		+ ",\"count\":" + count.ToString(inv)
-		+ ",\"pieces\":\"" + pieces + "\"}";
+		+ ",\"pieces\":\"" + pieces + "\""
+		+ ",\"trace\":\"" + trace.Replace("\"", "'") + "\"}";
 }))()

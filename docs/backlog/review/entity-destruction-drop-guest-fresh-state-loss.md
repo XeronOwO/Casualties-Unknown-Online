@@ -193,3 +193,11 @@ blockAfter=0`) produced **five world items** where there were none (`item-world-
 `(-3.8, -98.7)`, so `item-world-read`'s item coordinates are NOT the block-cell space of `block-break-at` — that is the space
 question an earlier batch chased, and it is answered here: the two probes speak different coordinate systems. What remains for the
 ticket's rows is the FRESH guest: a member who enters after these five drops exist must see the same ids at the same places.
+
+**Batch `20261025-ah` — the fresh member was made, and the first read is INCONCLUSIVE, not a pass or a fail.** The `alt` client
+left the world (`leave-world` → `ok=true`) and rejoined the same lobby (`join-lobby 109775242158345492` → `ok=true`); eight seconds
+later it reported `sessionActive=true, role=Guest, host=76561198281246659`. Against the same cell the host read **5 items** and the
+alt read **0** — but the alt's own body was not there to see anything: `body-read` returned no position and `body-place x=508,y=412`
+answered with empty fields, i.e. that client had not finished materialising its body. So this read cannot be scored: an entry
+whose body has not spawned is not a fresh guest looking at the ground. The next cycle verifies the alt's body first (`body-read`
+position non-empty) and re-reads, and only then does a 0-vs-5 differ mean the ticket's defect is present.

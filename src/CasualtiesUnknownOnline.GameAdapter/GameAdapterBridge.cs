@@ -454,7 +454,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	/// The end-of-layer panel's close, asked right after the game's own panel write
 	/// (<see cref="Patches.WorldGenerationPanelClosePatch"/>): the native latch re-opens whatever a later phase closed.
 	/// </summary>
-	public void CloseTheLayerPanelIfTheShareIsNotMet() => domains.LayerPanel.CloseIfTheShareIsNotMet();
+	public void CloseTheEndOfLayerPanelIfThisClientMustNotShowIt() => domains.LayerPanel.CloseThePanelThisClientMustNotShow();
 
 	/// <summary>
 	/// The end-of-layer panel's "Save and exit" takes CUO's own cut instead of the game's native save (the user's

@@ -72,10 +72,17 @@ internal sealed class LayerPanelGate(
 	/// close from a later phase was undone on the next frame and the object flipped every frame (read on the machine,
 	/// 2026-10-24: 1/2 living bodies at the floor, the gate logging "hidden", and the object still active when the probe
 	/// read it). Closing in the native write's own frame is what makes the hide stick.
+	/// <para>
+	/// One method for both roles, because the ruling is about the PANEL and not its buttons: on the host it closes
+	/// unless the living share reached the rule; on a MEMBER it always closes, since the end-of-layer choice belongs to
+	/// the host — the native latch opened it for the member's own body at the floor and nothing closed it again, so the
+	/// panel stayed on a member's screen (with its buttons hidden by `LayerPanelChoicePolicy`) after they left the
+	/// bottom. A hidden-button panel is still a panel nobody asked that player to see.
+	/// </para>
 	/// </summary>
-	internal void CloseIfTheShareIsNotMet()
+	internal void CloseThePanelThisClientMustNotShow()
 	{
-		if (!_domains.Session.SessionActive || _domains.Session.Role != SessionRole.Host)
+		if (!_domains.Session.SessionActive)
 		{
 			return;
 		}
@@ -87,6 +94,18 @@ internal sealed class LayerPanelGate(
 		}
 
 		if (!world.savePanel.activeSelf) // Unity object — ==
+		{
+			return;
+		}
+
+		if (_domains.Session.Role == SessionRole.Guest)
+		{
+			world.savePanel.SetActive(false);
+			_log.LogInformation("[LayerChoice] the end-of-layer panel is closed for a member: the choice belongs to the host.");
+			return;
+		}
+
+		if (_domains.Session.Role != SessionRole.Host)
 		{
 			return;
 		}

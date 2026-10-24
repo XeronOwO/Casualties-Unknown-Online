@@ -19,5 +19,5 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(WorldGeneration), "Update")]
 internal static class WorldGenerationPanelClosePatch
 {
-	private static void Postfix() => PatchBridge.LayerPanel?.CloseTheLayerPanelIfTheShareIsNotMet();
+	private static void Postfix() => PatchBridge.LayerPanel?.CloseTheEndOfLayerPanelIfThisClientMustNotShowIt();
 }

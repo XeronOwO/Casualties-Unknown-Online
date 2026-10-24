@@ -250,7 +250,7 @@ public class PatchBridgePortShapeGateTests
 		]),
 		("ILayerPanelPatchPort", AdapterDir + "ILayerPanelPatchPort.cs", false,
 		[
-			"CloseTheLayerPanelIfTheShareIsNotMet",
+			"CloseTheEndOfLayerPanelIfThisClientMustNotShowIt",
 		]),
 	];
 

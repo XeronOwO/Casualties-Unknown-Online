@@ -284,4 +284,3 @@ before any blast happened:
 
 **The row is unchanged and still owed**: one set of a victim's drops, exactly once, on both clients — with the victim a
 carrier BOTH clients already have, which points at a worldgen mine or a host-staged one confirmed on both sides first.
-

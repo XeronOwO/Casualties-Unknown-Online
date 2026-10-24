@@ -245,4 +245,3 @@ ids). The staging makes that reachable; the trigger is the remaining question, a
 
 A recipe that presses neither is the lesson this batch adds: a forge that has to name an id cannot be the FIRST step of a
 drop row.
-

@@ -266,3 +266,30 @@ What batch 20261024-i established, so the next attempt starts further along:
   thing to read, not the CPR code.
 - **`send-input.ps1`'s `-Vk` was mandatory for every action** (a click with no key was refused by PowerShell's own
   binder); it is now optional and validated per action.
+
+## Batch 20261024-j (2026-10-24, deployed `0.1.0+de978301`): the control reads, the start lands — and stage 1b's write is
+overwritten by the simulation
+
+Two recipes made the row reachable without a pixel: `medical-open` opens the remote chart through the SAME call the
+Online UI makes (`IRemoteMedicalPresentation.OpenRemoteMedical`), and `cpr-press` finds the control among the template
+button's siblings and either reads it or invokes its `onClick` — which IS a player's click. Both had to use UNQUOTED
+string placeholders (`var mode = {{s:mode}};`): a quoted one compiles to `""read""` and the driver reports the failure as
+`returned no value`, not as a syntax error.
+
+Read on the machine (host + one member, host forced into arrest with `body-force heartRate=0,bloodPressure=5`):
+
+| step | reading |
+|---|---|
+| `medical-open` on the member | `opened:true`, `nativeOpen:true` — the remote chart is up |
+| `cpr-press mode=read` | `found:true, active:true, interactable:true` — **the CPR control appears for an arrested teammate** |
+| `cpr-press mode=press` (start) | `pressed:true`, and the host's log: `[MedicalOps3] started Cpr operation 1: 765…` — **the session started through the panel** |
+| three more presses, then the host's own fields | `heartRate:0`, `bloodPressure:0.374` — **the pressure did NOT rise** |
+
+**The defect that reading found**: `ApplyCprCompression` writes `BloodPressure` into the committed snapshot, but the
+pressure is a SIMULATED value — the game recomputes it every frame from its own model (volume, resistance, heart rate), so
+a unilateral write is overwritten before the next frame shows it. The compression must move an input the simulation
+READS rather than the simulated value: the game's own lever for that is `bloodPressureChangeFromMedicine` (the field its
+`Body` reads for medicinal pressure changes), with the heart-restart path being the same idea on `heartRate` /
+`fibrillation`. That is stage 1b's correction and it needs its own cases (a write to the lever moves the simulated
+pressure; a write to `BloodPressure` does not).
+

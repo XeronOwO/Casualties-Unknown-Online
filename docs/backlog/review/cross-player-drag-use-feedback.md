@@ -159,6 +159,13 @@ the one success this session (`dragItem=bandage`) came from the same path — so
 that press reaches `PlayerCamera` at all. The row now waits on an input path whose delivery is reliable (a window-station or
 focus condition this shell does not control), not on a coordinate; the batch stops here rather than spending a sixth press.
 
+**Batch `20261025-u` — the diagnosis, stated as the game's own fields see it.** During a right-button hold the pointer MOVES
+(drag-state read `(640,299)` then `(583,229)` while the drag was in flight) but the game's button fields stay FALSE (`mouseHeld=false,
+mouseDown=false` at +1.5 s and +2.7 s). Left clicks do reach it — an earlier click produced a real `OnBlockDamaged` trace — so the
+split is precise: **cursor movement and left-button events arrive; the right-button press usually does not**, and the one
+`dragItem=bandage` this session proved it can arrive. A future cycle therefore has a testable target instead of a theory
+(activation/focus at the moment of the press, or a different injection point for the right button), and this batch records it there.
+
 ## The claimed 2026-10-18 "the label is drawn": FALSE (found 2026-10-22)
 
 > Kept as the falsified claim, because the cycle that wrote it and the review that passed it both read the type

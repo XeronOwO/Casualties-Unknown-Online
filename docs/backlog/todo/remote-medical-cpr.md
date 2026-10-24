@@ -157,4 +157,3 @@ tooltip, which is the consumer the admission policy needs; (2) the press-rhythm 
 minute window, the per-press stamina cost and the hand-force term) as the pure, testable half; (3) the throttled
 report and the patient-side oxygen/pressure write; (4) ventilation inside the same rhythm; (5) the side effects.
 Nothing is implemented by this ruling itself: it names what to build and where it attaches.
-

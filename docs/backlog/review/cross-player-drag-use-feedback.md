@@ -124,6 +124,22 @@ displayed.
   gesture). All three have the ticket's own recommendations recorded; none is decided here.
 - **The acceptance rows are unrun.** Rows 1–7 need a session with a dragged item and two players, and row 5 in
   particular (two players standing on each other) is the one the naming rule exists for.
+
+## Batch `20261025-k` — the drag was attempted and did not start, with the reason named
+
+The mouse capability the 2026-10-24 status said the tooling lacked now exists (`send-input.ps1 -Action rdrag`: a real
+right-button press, a stepped pointer move and a release), so this batch tried row 1 on a live session:
+
+- The ring was opened with `Tab` and `ring-buttons` reported six buttons, one of them holding the emergency light at
+  `520,419` — an eligible item, so the drag had something to carry.
+- The right-drag from that button to the teammate's projected point (`622,624`, the guest standing beside the host at
+  `1,506`) was sent with a 6 s hold, and `drag-state` sampled mid-hold answered **`dragging=false, dragItem=none`**: the press
+  never entered the drag bracket, so no hover cue could be read. The frame taken at that moment confirms it — the ring is drawn
+  with its slots and no dragged item follows the pointer.
+- What the earlier session already proved is the next step's starting point: a right-press at a **band** point of the ring
+  (`514,460` then) did enter the bracket (`dragItem=bandage`), while a press on a **slot button** like `520,419` selects through
+  the control instead. The next attempt therefore presses a band point, not a slot, with the same `rdrag` and reads the frame
+  during the hold.
 ## The claimed 2026-10-18 "the label is drawn": FALSE (found 2026-10-22)
 
 > Kept as the falsified claim, because the cycle that wrote it and the review that passed it both read the type

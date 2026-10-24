@@ -1,9 +1,12 @@
 # Cross-player use by drag: aim at the player model, and say who it picked when two overlap
 
-- Status: Todo — **re-scoped 2026-10-23**: the USE no longer lands by the detection range (it is the displayed
-  backpack's centre); this ticket's remaining question is the detection range's SHAPE as the DISPLAY selector —
-  which player's backpack opens (`done/give-gesture-own-ui-and-center-use.md`). The 2026-10-06 finding below is
-  the original record.
+- Status: Review — the detection shape is the model's own box (2026-10-24, deployed `0.1.0+620081fa`): the fixed
+  radius is gone, the clone's collider measures it with the native crouch rule, the pick is logged with its
+  candidate count, and three cases pin the difference. The behavioural rows 1–6 need a real mouse drag and are
+  named as unread in the landed section. **Re-scoped 2026-10-23**: the USE no longer lands by the detection range
+  (it is the displayed backpack's centre); this ticket's remaining question was the detection range's SHAPE as the
+  DISPLAY selector — which player's backpack opens (`done/give-gesture-own-ui-and-center-use.md`). The 2026-10-06
+  finding below is the original record.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / targeting geometry
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
@@ -67,6 +70,30 @@
 | 4 | Release on the displayed backpack's centre | The use/wear lands on the displayed player; the range geometry does not affect the use |
 | 5 | Release over a player's body but off the displayed backpack | The native drop; no use (the centre is the use target) |
 | 6 | Solo / no session | Unchanged |
+
+## Landed (2026-10-24, deployed `0.1.0+620081fa`)
+
+The shape settled where the ticket said it should: the model measures itself.
+
+- `DragTargetSelection` no longer holds one global radius. `BeginFrame(cursorX, cursorY)` opens the frame and
+  `Consider(steamId, x, y, halfWidth, halfHeight)` decides membership against that player's own box; the
+  fixed-range form survives as `Consider(steamId, x, y, halfExtent)` (a square), which is what a player with no
+  rendered model falls back to.
+- `CrossPlayerDragUse` measures the box from the render clone's `BoxCollider2D` — the prefab the game uses, whose
+  `size` a DISABLED collider still carries — and applies the native crouch rule (the body halves the collider's
+  height while crouching, and the clone's own box does not follow that), falling back to the LOCAL body's own model
+  when the clone is not rendered yet. `OverlapRadius = 1.5f` is gone.
+- The pick is logged with the candidate count (`[DragUse] display target … picked among N candidate(s) at (x,y)`),
+  which is row 3's second half; it is a Debug line, so a reading enables the Debug level.
+- Three cases pin the shape: a cursor the old circle would have covered but the model does not (no target), a
+  cursor on the model's edge (target), and both boxes holding the cursor on one frame (nearest wins, unchanged).
+
+**Rows 1–6 are not read.** Every one of them needs a real mouse drag — the game's own drag bracket, which the
+repository has no in-process driver for, and the project's accepted rule forbids adding a cursor/mouse API to the
+acceptance tool mid-batch ("先走进程内函数调用;真走不通再向用户申请一次性的鼠标键盘授权"). The rows therefore
+stay unread and are named here rather than claimed: the batch that judges them starts from a one-time
+mouse/keyboard authorization for the two clients, or from a committed recipe that drives the native drag bracket.
+
 
 ## Non-goals now
 

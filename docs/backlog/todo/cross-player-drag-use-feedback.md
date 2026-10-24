@@ -6,7 +6,7 @@
 - Priority: Medium
 - Category: Player interaction / cross-player item use / feedback and discoverability
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
-- Related: `todo/cross-player-drag-use-model-bounds.md` (the sibling finding: where the release counts and who
+- Related: `review/cross-player-drag-use-model-bounds.md` (the sibling finding: where the release counts and who
   it picks), `src/CasualtiesUnknownOnline.GameAdapter/CrossPlayerDragUse.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/Patches/PlayerCameraDragUsePatch.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/LocalUseItemEligibility.cs`,
@@ -73,7 +73,7 @@
 
 ## Non-goals now
 
-- Not the target geometry or the overlap rule: `todo/cross-player-drag-use-model-bounds.md` owns those, and
+- Not the target geometry or the overlap rule: `review/cross-player-drag-use-model-bounds.md` owns those, and
   the cue must follow whatever that ticket decides.
 - Not a new wire message: the host's refusal reason already exists as a log line, and carrying it to the
   operator is a presentation decision (an existing result/refusal message if one fits, otherwise named as a

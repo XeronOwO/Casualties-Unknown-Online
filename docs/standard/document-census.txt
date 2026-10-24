@@ -291,7 +291,7 @@ docs/backlog/review/unified-remote-display-projection-rework.md | keep | index |
 docs/backlog/done/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-content-event-gap-on-repick.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
+docs/backlog/review/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/done/docs-mojibake-cleanup.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/done/spectator-superseded-host-rules.md | keep | index | docs/backlog/README.md
@@ -889,7 +889,7 @@ docs/evidence/selfchecks/players/cross-player-shrapnel-and-timed-tool-use-selfch
 docs/evidence/selfchecks/players/cross-player-solid-food-semantics-selfcheck.md | keep | claim | docs/backlog/review/mod-cross-player-native-semantics.md
 docs/evidence/selfchecks/players/cross-player-timed-liquid-medicine-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/cross-player-topical-use-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/players/cross-player-wear-use-selfcheck.md | keep | claim | docs/backlog/todo/cross-player-drag-use-model-bounds.md
+docs/evidence/selfchecks/players/cross-player-wear-use-selfcheck.md | keep | claim | docs/backlog/review/cross-player-drag-use-model-bounds.md
 docs/evidence/selfchecks/players/heal-interaction-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/interaction-gate-authority-selfcheck.md | keep | claim | docs/development/agent-reference.md
 docs/evidence/selfchecks/players/limb-presentation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

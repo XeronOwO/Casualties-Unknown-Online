@@ -132,4 +132,3 @@ and only then leaves — the row above is the fixed behaviour.
 panel appears by the living share, including a dead host). Staging them needs bodies at the layer floor, which needs
 real movement input the acceptance tooling may not drive; the rules behind them are pinned by eight unit cases
 (`LayerPanelChoicePolicyTests`, `LayerPanelVisibilityTests`), and the runtime rows wait for a batch with movement.
-

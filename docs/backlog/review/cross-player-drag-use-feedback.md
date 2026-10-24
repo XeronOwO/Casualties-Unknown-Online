@@ -149,6 +149,16 @@ whose slots held a carried item, and `ring-buttons` lists the emergency light as
 capability is now precise: the batch must put the cursor over the CARRIED item's own band (the inventory page's slot band), not
 the equipment page's, before the right-press can enter `PlayerCamera`'s drag bracket. Parked there by the two-batch rule; the next
 attempt starts from the right PAGE, not another coordinate.
+
+**Batch `20261025-t` — the page hypothesis is dead too, and the finding is the input path itself.** The ring in this session
+DOES list carried items on its own slots (`Untagged@520,568:0:funguschunk`, `Untagged@761,568:1:craftingbottle`), so the page
+argument above was wrong: the item sits on the page the batch pressed. With the ring open, no modal window and no minigame, a
+right-press on the **item's own slot centre** (`520,568`) → `drag-state` mid-hold answered **`dragging=false, dragItem=none`**
+again. Combined with the earlier points (`520,419`, `717,317`, `514,460`) that is five presses, two pages and three states, and
+the one success this session (`dragItem=bandage`) came from the same path — so the difference is not where we press but WHETHER
+that press reaches `PlayerCamera` at all. The row now waits on an input path whose delivery is reliable (a window-station or
+focus condition this shell does not control), not on a coordinate; the batch stops here rather than spending a sixth press.
+
 ## The claimed 2026-10-18 "the label is drawn": FALSE (found 2026-10-22)
 
 > Kept as the falsified claim, because the cycle that wrote it and the review that passed it both read the type

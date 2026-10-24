@@ -1,5 +1,5 @@
 // recipe: body-force
-// args: consciousness=n energy=n brainHealth=n badSleepAmount=n idleTime=n intelligence=n heartRate=n bloodPressure=n
+// args: consciousness=n energy=n brainHealth=n badSleepAmount=n idleTime=n intelligence=n heartRate=n bloodPressure=n bloodOxygen=n
 // serves: carried-unconscious-body-simulation, carried-rider-own-body-stops-simulating,
 //         host-severe-sleepiness-posture-desync, host-fall-injury-mouth-expression-desync,
 //         carried-player-idle-sit-suppression, carrier-sit-when-carrying,
@@ -34,6 +34,7 @@
 	var intelligence = {{n:intelligence}};
 	var heartRate = {{n:heartRate}};
 	var bloodPressure = {{n:bloodPressure}};
+	var bloodOxygen = {{n:bloodOxygen}};
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-local-body\"}"; }
 	if (consciousness >= 0f) { body.consciousness = consciousness; }
@@ -44,6 +45,7 @@
 	if (intelligence >= 0f) { body.skills.INT = (int)intelligence; body.skills.UpdateExpBoundaries(); }
 	if (heartRate >= 0f) { body.heartRate = heartRate; }
 	if (bloodPressure >= 0f) { body.bloodPressure = bloodPressure; }
+	if (bloodOxygen >= 0f) { body.bloodOxygen = bloodOxygen; }
 	return "{\"ok\":true,\"consciousness\":" + num(body.consciousness)
 		+ ",\"energy\":" + num(body.energy)
 		+ ",\"brainHealth\":" + num(body.brainHealth)
@@ -52,6 +54,7 @@
 		+ ",\"intelligence\":" + body.skills.INT.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"heartRate\":" + num(body.heartRate)
 		+ ",\"bloodPressure\":" + num(body.bloodPressure)
+		+ ",\"bloodOxygen\":" + num(body.bloodOxygen)
 		+ ",\"legSpeedMult\":" + num(body.legSpeedMult)
 		+ ",\"alive\":" + (body.alive ? "true" : "false")
 		+ ",\"conscious\":" + (body.conscious ? "true" : "false") + "}";

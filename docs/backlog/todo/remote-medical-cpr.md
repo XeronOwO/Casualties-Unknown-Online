@@ -2,9 +2,11 @@
 
 - Status: Todo — **stages 1a–1c landed and the row READS end to end on the machine** (2026-10-24, deployed
   `0.1.0+e15a8521`, record `docs/evidence/acceptance/cpr-end-to-end-20261024-l.md`: host heartRate 0 → 81.151,
-  bloodPressure 5 → 131.191, conscious false → true after 40 compressions at the batch's cadence). The ticket stays open
-  for stage 2 (ventilation/oxygen), stage 3 (rib breaks and the AED restart arbitration) and stage 4 (the operator's
-  strength/intelligence gates and the reference's feedback). — **promoted 2026-10-07** by the user's backlog directive (do KrokMP's CPR feature), with the
+  bloodPressure 5 → 131.191, conscious false → true after 40 compressions at the batch's cadence). **Stage 2 landed and
+  its rows read** (deployed `0.1.0+8b45fee7`, record `docs/evidence/acceptance/cpr-two-channels-20261024-m.md`: both
+  panel controls found/active/interactable, oxygen 20 → 22.868 after two breaths and 92.311 → 100 after five, the heart
+  restarted again from 40 compressions + 10 breaths). The ticket stays open for stage 3's second half (the AED restart
+  arbitration) and stage 4 (the operator's strength/intelligence gates and the reference's feedback). — **promoted 2026-10-07** by the user's backlog directive (do KrokMP's CPR feature), with the
   mechanics the user added then: inflate after an interval to give the teammate air, an oxygen-style mechanic
   if the game's own model can carry one, and an explicit complexity assessment before the work is planned.
 - Priority: Medium

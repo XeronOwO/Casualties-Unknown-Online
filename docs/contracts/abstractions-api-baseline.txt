@@ -28,6 +28,14 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.SteamId|e
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.Text|enumvalue|implicit #5
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.Anyone|enumvalue|implicit #0
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.HostOnly|enumvalue|implicit #1
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.HasText|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Kind|property|-> ConsoleAnswerKind { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Ok(string? text)|static method|-> ConsoleAnswer
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Refused(string text)|static method|-> ConsoleAnswer
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Silent|static property|-> ConsoleAnswer { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Text|property|-> string? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind.Refusal|enumvalue|implicit #1
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind.Success|enumvalue|implicit #0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.BuiltInNamespace|const field|-> string = "cu"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.CompareTo(ContentId other)|method|-> int
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.Equals(ContentId other)|method|-> bool
@@ -694,11 +702,11 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand.Name|property|-> s
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand.ctor(string name, Func<IModCommandContext, string?> handler, string? description = null, bool isHostAction = false)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModCommand
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.ArgumentKinds|property|-> IReadOnlyList<CommandArgumentKind> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Description|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Handler|property|-> Func<IModConsoleCommandContext, string?> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Handler|property|-> Func<IModConsoleCommandContext, ConsoleAnswer> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Name|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Permission|property|-> CommandPermission { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Usage|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.ctor(string name, string description, string usage, CommandPermission permission, IReadOnlyList<CommandArgumentKind> argumentKinds, Func<IModConsoleCommandContext, string?> handler)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModConsoleCommand
+member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.ctor(string name, string description, string usage, CommandPermission permission, IReadOnlyList<CommandArgumentKind> argumentKinds, Func<IModConsoleCommandContext, ConsoleAnswer> handler)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModConsoleCommand
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentContract.TryGetKind(Type contract, out string kind)|static method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Building|const field|-> string = "building"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Item|const field|-> string = "item"
@@ -1171,6 +1179,8 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ApiStabilityAttribute|sealed cl
 type|Stable|CasualtiesUnknownOnline.Abstractions.ApiStabilityLevel|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission|enum|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer|readonly struct|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ContentId|readonly struct|IEquatable<ContentId>, IComparable<ContentId>
 type|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute|sealed class|Attribute
 type|Stable|CasualtiesUnknownOnline.Abstractions.ICuoMod|interface|ICuoService
@@ -1390,3 +1400,4 @@ type|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry|sea
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStatusDefinition.ShowsPerLimbMoodles — the derived rule left the data class for the declaration contract: ModStatusPresentation.ShowsPerLimbMoodles(IModStatusDefinition) reads the scope and per-limb facts once, so an implementation that computes them gets the rule instead of restating it (ticket mod-content-attribute-declarations)
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModStructureDefinition.TryGetSpawnCount(int depth, out int count) — the derived rule left the data class for the declaration contract: ModStructureDistribution.TryGetSpawnCount(IModStructureDefinition, int, out int) reads the SpawnCounts fact once, so an implementation that computes the table gets the rule instead of restating it (ticket mod-content-attribute-declarations)
 *REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModTileDefinition.CanSpawnInLayer(int biomeDepth) — the derived rule left the data class for the declaration contract: ModLayerSpawnRule.CanSpawnInLayer(IModTileDefinition, int) reads the SpawnLayers fact once, so an implementation that computes its own mask gets the rule instead of restating it; the static mask builders and the AllSpawnLayers sentinel stay on the class as the mod-facing authoring helpers (ticket mod-content-attribute-declarations)
+*REMOVED* member|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.ctor(string name, string description, string usage, CommandPermission permission, IReadOnlyList<CommandArgumentKind> argumentKinds, Func<IModConsoleCommandContext, string?> handler) — the handler answers with ConsoleAnswer instead of a bare string, so a console command states whether its line is a success or a refusal (the user's 2026-10-24 ruling on ticket console-command-refusals-render-green; the typed-result shape is the only one a mod cannot forget)

@@ -16,14 +16,14 @@ namespace CasualtiesUnknownOnline.RecursiveCrafting;
 /// </summary>
 internal static class RecursiveCraftingCommand
 {
-	internal static string? Execute(IModConsoleCommandContext context)
+	internal static ConsoleAnswer Execute(IModConsoleCommandContext context)
 	{
 		var rows = GameCraftingTable.ReadRecipes();
 		var supported = rows.Where(row => row.Recipe is not null).Select(row => row.Recipe!).ToList();
 
 		if (context.Arguments.Count == 0 || string.IsNullOrWhiteSpace(context.Arguments[0]))
 		{
-			return DescribeTable(rows, supported);
+			return ConsoleAnswer.Ok(DescribeTable(rows, supported));
 		}
 
 		var query = context.Arguments[0].Trim();
@@ -34,9 +34,9 @@ internal static class RecursiveCraftingCommand
 		{
 			var skipped = rows.FirstOrDefault(row => row.Recipe is null
 				&& string.Equals(row.ResultItemId, query, StringComparison.OrdinalIgnoreCase));
-			return skipped is not null
+			return ConsoleAnswer.Refused(skipped is not null
 				? $"[Recursive] {query}: not modelled — the recipe has {skipped.SkipReason}."
-				: $"[Recursive] {query}: no recipe produces that item ({supported.Count} of {rows.Count} recipes supported).";
+				: $"[Recursive] {query}: no recipe produces that item ({supported.Count} of {rows.Count} recipes supported).");
 		}
 
 		var inventory = GameCraftingTable.ReadInventory();
@@ -44,7 +44,7 @@ internal static class RecursiveCraftingCommand
 		var resolution = CraftChainResolver.Resolve(target, recipes, inventory);
 		RecursiveCraftingGate.Log?.LogInformation(
 			$"[Recursive] resolved {target.Id} against {inventory.Count} held item(s): {CraftChainReport.Describe(target.Id, resolution)}");
-		return "[Recursive] " + CraftChainReport.Describe(target.ResultItemId, resolution);
+		return ConsoleAnswer.Ok("[Recursive] " + CraftChainReport.Describe(target.ResultItemId, resolution));
 	}
 
 	private static string DescribeTable(IReadOnlyList<GameRecipeRow> rows, IReadOnlyList<CraftRecipe> supported)

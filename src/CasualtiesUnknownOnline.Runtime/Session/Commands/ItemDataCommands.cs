@@ -53,21 +53,21 @@ internal sealed class ItemDataCommands(
 	private readonly ItemDataWriteCommands _writes = writes;
 
 	[ConsoleCommand("data", "Read or write one item's recorded state as SNBT: get, merge, modify or remove.", CommandPermission.Anyone, ItemDataVerbParser.Usage, CommandArgumentKind.Text)]
-	internal string Data(IReadOnlyList<string> args)
+	internal ConsoleAnswer Data(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
 		{
-			return $"Usage: {ItemDataVerbParser.Usage}";
+			return ConsoleAnswer.Refused($"Usage: {ItemDataVerbParser.Usage}");
 		}
 
 		var tail = Tail(args, 2);
 		return args[1].ToLowerInvariant() switch
 		{
-			"get" => Get(tail),
-			ItemDataVerbParser.MergeOperation => _writes.Merge(tail),
-			ItemDataVerbParser.ModifyOperation => _writes.Modify(tail),
-			ItemDataVerbParser.RemoveOperation => _writes.Remove(tail),
-			_ => $"Unknown /data verb '{args[1]}'. The verbs are {Verbs}. Usage: {ItemDataVerbParser.Usage}",
+			"get" => ConsoleAnswer.Ok(Get(tail)),
+			ItemDataVerbParser.MergeOperation => ConsoleAnswer.Ok(_writes.Merge(tail)),
+			ItemDataVerbParser.ModifyOperation => ConsoleAnswer.Ok(_writes.Modify(tail)),
+			ItemDataVerbParser.RemoveOperation => ConsoleAnswer.Ok(_writes.Remove(tail)),
+			_ => ConsoleAnswer.Refused($"Unknown /data verb '{args[1]}'. The verbs are {Verbs}. Usage: {ItemDataVerbParser.Usage}"),
 		};
 	}
 

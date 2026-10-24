@@ -352,10 +352,12 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 		try
 		{
-			var output = command.Handler(tokens);
-			if (!string.IsNullOrWhiteSpace(output))
+			// The handler says what its answer IS: a refusal prints in the error colour, so a verb that answers
+			// "unknown rule" or "not permitted" reads as one instead of as a completed action.
+			var answer = command.Answer(tokens);
+			if (answer.HasText)
 			{
-				AddLine(output!, ConsoleLineKind.Success);
+				AddLine(answer.Text!, answer.Kind == ConsoleAnswerKind.Refusal ? ConsoleLineKind.Error : ConsoleLineKind.Success);
 			}
 
 			return true;
@@ -369,35 +371,36 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	}
 
 	[ConsoleCommand("help", "List available commands or show one command's usage.", CommandPermission.Anyone, "/help [command]", CommandArgumentKind.CommandName)]
-	private string Help(IReadOnlyList<string> args)
+	private ConsoleAnswer Help(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
 		{
-			return HelpText();
+			return ConsoleAnswer.Ok(HelpText());
 		}
 
 		var command = FindCommand(args[1]);
 		if (command is null)
 		{
-			return $"Unknown command '{args[1]}'. Type /help for available commands.";
+			return ConsoleAnswer.Refused($"Unknown command '{args[1]}'. Type /help for available commands.");
 		}
 
 		// A command this caller may not run answers the refusal it would meet, not "unknown": the console
 		// must not teach a word by help and then pretend it does not exist. The list above hides the same
 		// commands, so a player who reads /help never learns one the console would refuse.
-		return _authority.TryRefusal(command)
-			?? $"/{command.Name} — {command.Description}\nUsage: {command.Usage}";
+		return _authority.TryRefusal(command) is { } refusal
+			? ConsoleAnswer.Refused(refusal)
+			: ConsoleAnswer.Ok($"/{command.Name} — {command.Description}\nUsage: {command.Usage}");
 	}
 
 	[ConsoleCommand("clear", "Clear the console output.", CommandPermission.Anyone, "/clear")]
-	private string ClearCommand(IReadOnlyList<string> _)
+	private ConsoleAnswer ClearCommand(IReadOnlyList<string> _)
 	{
 		Clear();
-		return string.Empty;
+		return ConsoleAnswer.Silent;
 	}
 
 	[ConsoleCommand("players", "List current session members.", CommandPermission.Anyone, "/players")]
-	private string Players(IReadOnlyList<string> _)
+	private ConsoleAnswer Players(IReadOnlyList<string> _)
 	{
 		var builder = new StringBuilder();
 		builder.Append("Local: ").Append(_session.LocalSteamId).Append(" (").Append(_session.Role).Append(')');
@@ -415,20 +418,20 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			builder.Append(" rtt=").AppendFormat(CultureInfo.InvariantCulture, "{0:F0}", member.RttMs);
 		}
 
-		return builder.ToString();
+		return ConsoleAnswer.Ok(builder.ToString());
 	}
 
 	[ConsoleCommand("rtt", "Show the last measured round-trip time.", CommandPermission.Anyone, "/rtt")]
-	private string Rtt(IReadOnlyList<string> _)
+	private ConsoleAnswer Rtt(IReadOnlyList<string> _)
 	{
-		return _session.LastRttMs < 0f
+		return ConsoleAnswer.Ok(_session.LastRttMs < 0f
 			? "No ping measured yet."
-			: $"Last RTT: {_session.LastRttMs:F0} ms";
+			: $"Last RTT: {_session.LastRttMs:F0} ms");
 	}
 
 	[ConsoleCommand("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, "/whoami")]
-	private string WhoAmI(IReadOnlyList<string> _) =>
-		$"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}";
+	private ConsoleAnswer WhoAmI(IReadOnlyList<string> _) =>
+		ConsoleAnswer.Ok($"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}");
 
 	// The membership commands (/kick, /ban, /unban) live in HostAdminCommands, the host-rule
 	// verb in HostRuleCommands and the save commands (/save) in WorldSaveCommands: each group

@@ -119,23 +119,23 @@ public sealed class ExampleMachineMod : ICuoMod
 			_charge, ctx.IsHost ? "the host" : "a member");
 	}
 
-	private string? UseFromConsole(IModConsoleCommandContext ctx)
+	private ConsoleAnswer UseFromConsole(IModConsoleCommandContext ctx)
 	{
 		if (!int.TryParse(ctx.Arguments.Count > 0 ? ctx.Arguments[0] : string.Empty, out var delta)
 			|| delta is < 1 or > MaxStep)
 		{
-			return $"usage: /machineuse <1-{MaxStep}>";
+			return ConsoleAnswer.Refused($"usage: /machineuse <1-{MaxStep}>");
 		}
 
 		if (ctx.Session.IsHost)
 		{
 			// The declaration is the reason, not a hand-written check: a use is a
 			// member's report, so the host's own copy may not start it.
-			return $"{UsePacket} is a member's report — run this on a guest.";
+			return ConsoleAnswer.Refused($"{UsePacket} is a member's report — run this on a guest.");
 		}
 
 		return _context!.Packets.SendToHost(UsePacket, ModValue.Integer(delta))
-			? $"machine use {delta} reported to the host (local charge {_charge})."
-			: "the use was refused locally — see the log";
+			? ConsoleAnswer.Ok($"machine use {delta} reported to the host (local charge {_charge}).")
+			: ConsoleAnswer.Refused("the use was refused locally — see the log");
 	}
 }

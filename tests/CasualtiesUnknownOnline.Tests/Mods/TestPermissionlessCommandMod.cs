@@ -33,9 +33,9 @@ public sealed class TestPermissionlessCommandMod : ICuoMod
 		OrdinaryRegistration = context.Commands.Register(new ModCommand("ordinary", _ => null));
 		HostActionRegistration = context.Commands.Register(new ModCommand("hostaction", _ => null, isHostAction: true));
 		ConsoleOrdinaryRegistration = context.ConsoleCommands.Register(new ModConsoleCommand(
-			"cordinary", "Local no-perm console", "/cordinary", CommandPermission.Anyone, [], _ => null));
+			"cordinary", "Local no-perm console", "/cordinary", CommandPermission.Anyone, [], _ => ConsoleAnswer.Silent));
 		ConsoleHostRegistration = context.ConsoleCommands.Register(new ModConsoleCommand(
-			"chost", "Local host no-perm console", "/chost", CommandPermission.HostOnly, [], _ => null));
+			"chost", "Local host no-perm console", "/chost", CommandPermission.HostOnly, [], _ => ConsoleAnswer.Silent));
 		context.Network.MessageReceived += (sender, value) => Received.Add((sender, value));
 	}
 

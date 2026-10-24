@@ -74,21 +74,21 @@ public sealed class TestCommandMod : ICuoMod
 		return $"host:{context.RequesterSteamId}";
 	}
 
-	private string? ConsoleEcho(IModConsoleCommandContext context)
+	private ConsoleAnswer ConsoleEcho(IModConsoleCommandContext context)
 	{
 		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
-		return $"console:{string.Join(" ", context.Arguments)}";
+		return ConsoleAnswer.Ok($"console:{string.Join(" ", context.Arguments)}");
 	}
 
-	private string? ConsoleHost(IModConsoleCommandContext context)
+	private ConsoleAnswer ConsoleHost(IModConsoleCommandContext context)
 	{
 		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
-		return $"host-only:{context.LocalSteamId}";
+		return ConsoleAnswer.Ok($"host-only:{context.LocalSteamId}");
 	}
 
-	private string? ConsoleResource(IModConsoleCommandContext context)
+	private ConsoleAnswer ConsoleResource(IModConsoleCommandContext context)
 	{
 		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
-		return $"resource:{string.Join(" ", context.Arguments)}";
+		return ConsoleAnswer.Ok($"resource:{string.Join(" ", context.Arguments)}");
 	}
 }

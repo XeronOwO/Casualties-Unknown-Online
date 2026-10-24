@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// (the host itself, a non-member, an IP-direct session). Every successful edit is
 /// announced to every member at that moment: the list governs verbs members type in
 /// the world they are already in, so waiting for the next world entry would leave a
-/// stale local answer.
+/// stale local answer. Every answer names its kind, so a refusal reads as one.
 /// </para>
 /// </summary>
 internal sealed class CheatAdminCommands(
@@ -32,22 +32,22 @@ internal sealed class CheatAdminCommands(
 	private readonly ILogger _log = log;
 
 	[ConsoleCommand("op", "Host only: grant another player the cheat verbs (/data's write verbs, /give, /summon, /heal, /gamerule).", CommandPermission.HostOnly, "/op <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
-	internal string Op(IReadOnlyList<string> args) => Edit(args, grant: true);
+	internal ConsoleAnswer Op(IReadOnlyList<string> args) => Edit(args, grant: true);
 
 	[ConsoleCommand("deop", "Host only: revoke another player's cheat verbs.", CommandPermission.HostOnly, "/deop <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
-	internal string Deop(IReadOnlyList<string> args) => Edit(args, grant: false);
+	internal ConsoleAnswer Deop(IReadOnlyList<string> args) => Edit(args, grant: false);
 
-	private string Edit(IReadOnlyList<string> args, bool grant)
+	private ConsoleAnswer Edit(IReadOnlyList<string> args, bool grant)
 	{
 		var verb = grant ? "op" : "deop";
 		if (args.Count < 2)
 		{
-			return $"Usage: /{verb} <steamId|displayName>";
+			return ConsoleAnswer.Refused($"Usage: /{verb} <steamId|displayName>");
 		}
 
 		if (!CommandMemberTargets.TryResolve(_session, args[1], out var steamId))
 		{
-			return $"Unknown member '{args[1]}'.";
+			return ConsoleAnswer.Refused($"Unknown member '{args[1]}'.");
 		}
 
 		if (grant)
@@ -65,25 +65,25 @@ internal sealed class CheatAdminCommands(
 					_announcement.AnnounceAll();
 					_log.LogInformation("[Command] /{Verb} repeated for {SteamId}: the roster already names it — re-announced so a member holding a stale closed list converges.",
 						verb, steamId);
-					return $"{steamId} already holds the cheat verbs; the roster is re-announced to every member so a stale local list converges.";
+					return ConsoleAnswer.Ok($"{steamId} already holds the cheat verbs; the roster is re-announced to every member so a stale local list converges.");
 				}
 
 				_log.LogWarning("[Command] /{Verb} refused for {SteamId}: {Reason}", verb, steamId, grantRefusal);
-				return grantRefusal;
+				return ConsoleAnswer.Refused(grantRefusal);
 			}
 		}
 		else if (!_permissions.Revoke(steamId, out var revokeRefusal))
 		{
 			_log.LogWarning("[Command] /{Verb} refused for {SteamId}: {Reason}", verb, steamId, revokeRefusal);
-			return revokeRefusal;
+			return ConsoleAnswer.Refused(revokeRefusal);
 		}
 
 		_announcement.AnnounceAll();
 		var label = CommandMemberTargets.Label(_session, steamId);
 		_log.LogInformation("[Command] /{Verb} changed the cheat roster: {Member} {Action}; the roster now names {Count} member(s).",
 			verb, label, grant ? "granted" : "revoked", _permissions.Granted.Count);
-		return grant
+		return ConsoleAnswer.Ok(grant
 			? $"Granted the cheat verbs to {label}; the roster is announced to every member."
-			: $"Revoked the cheat verbs from {label}; the roster is announced to every member.";
+			: $"Revoked the cheat verbs from {label}; the roster is announced to every member.");
 	}
 }

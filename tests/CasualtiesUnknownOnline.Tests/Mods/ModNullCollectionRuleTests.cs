@@ -134,7 +134,7 @@ public class ModNullCollectionRuleTests
 		Assert.Empty(new ModManifest("mod.a", "A", "1.0.0", NetworkMode.Synchronized, null, dependencies: null!).Dependencies);
 		Assert.Empty(new ModPacket("packet.a", ModPacketSender.AnyMember, ModPacketDelivery.EveryMember, (ModPacketHandler[])null!).Handlers);
 		Assert.Empty(new ModConsoleCommand(
-			"echo", "Echo a line", "echo <text>", CommandPermission.Anyone, null!, _ => null).ArgumentKinds);
+			"echo", "Echo a line", "echo <text>", CommandPermission.Anyone, null!, _ => ConsoleAnswer.Silent).ArgumentKinds);
 	}
 
 	/// <summary>

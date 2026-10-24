@@ -127,7 +127,7 @@ public class ModConsoleCommandTests
 		var mod = CommandMod(host);
 
 		var duplicate = new ModConsoleCommand(
-			"cping", "Duplicate", "/cping", CommandPermission.Anyone, [], _ => "duplicate");
+			"cping", "Duplicate", "/cping", CommandPermission.Anyone, [], _ => ConsoleAnswer.Ok("duplicate"));
 
 		Assert.False(mod.Context!.ConsoleCommands.Register(duplicate));
 		Assert.True(mod.Context.ConsoleCommands.IsRegistered("cping"));

@@ -75,14 +75,14 @@ public class CommandConsoleSpectatorTests
 	}
 
 	[Fact]
-	public void SpectateFreeFly_WhenTheRuleRefuses_RendersTheRuleAnswer()
+	public void SpectateFreeFly_WhenNothingIsWatched_RendersTheRefusal()
 	{
 		var stub = new StubSpectator { IsWatching = true, RefusesFreeFly = true };
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations: services => Register(services, stub));
 		var console = host.Services.GetRequiredService<ICommandControl>();
 
 		Assert.True(console.TryExecute("/spectate freefly on"));
-		Assert.Contains(console.Lines, l => l.Text.Contains("do not allow the free camera"));
+		Assert.Contains(console.Lines, l => l.Text.Contains("no camera to switch"));
 	}
 
 	[Fact]

@@ -38,24 +38,24 @@ internal sealed class HealResetCommands(
 	private readonly IEntitySyncControl _entities = entities;
 
 	[ConsoleCommand("heal", "Immediately fully reset the selected player(s): health, limbs, severed limbs and the hollow debuff (a cheat verb).", CommandPermission.Anyone, "/heal <selector>", CommandArgumentKind.Selector, Gate = ConsoleCommandGate.Cheat)]
-	internal string Heal(IReadOnlyList<string> args)
+	internal ConsoleAnswer Heal(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
 		{
-			return "Usage: /heal <selector>";
+			return ConsoleAnswer.Refused("Usage: /heal <selector>");
 		}
 
 		if (_cheatVerbs.TryRefuse("heal", out var refusal))
 		{
-			return refusal;
+			return ConsoleAnswer.Refused(refusal);
 		}
 
 		var targets = CommandPlayerTargets.Resolve(_session, _entities, args[1]);
 		if (targets.Count == 0)
 		{
-			return $"No players match selector '{args[1]}'.";
+			return ConsoleAnswer.Refused($"No players match selector '{args[1]}'.");
 		}
 
-		return _healReset.Reset(targets) ?? "";
+		return ConsoleAnswer.Ok(_healReset.Reset(targets));
 	}
 }

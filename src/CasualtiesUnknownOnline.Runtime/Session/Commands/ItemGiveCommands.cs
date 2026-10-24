@@ -35,11 +35,11 @@ internal sealed class ItemGiveCommands(
 	private readonly ILogger _log = log;
 
 	[ConsoleCommand("give", "Give one item to a player's inventory, its state already set (a cheat verb).", CommandPermission.Anyone, ItemGiveParser.Usage, CommandArgumentKind.Text, Gate = ConsoleCommandGate.Cheat)]
-	internal string Give(IReadOnlyList<string> args)
+	internal ConsoleAnswer Give(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
 		{
-			return $"Usage: {ItemGiveParser.Usage}";
+			return ConsoleAnswer.Refused($"Usage: {ItemGiveParser.Usage}");
 		}
 
 		var tokens = new List<string>(args.Count - 1);
@@ -50,28 +50,27 @@ internal sealed class ItemGiveCommands(
 
 		if (!ItemGiveParser.TryParse(tokens, out var request, out var error))
 		{
-			return error!;
+			return ConsoleAnswer.Refused(error!);
 		}
 
 		if (_cheatVerbs.TryRefuse("give", out var refusal))
 		{
-			return refusal;
+			return ConsoleAnswer.Refused(refusal);
 		}
 
 		var owners = _targets.ResolveOwners(request.Selector, out var ownerRefusal);
 		if (ownerRefusal is not null)
 		{
-			return ownerRefusal;
+			return ConsoleAnswer.Refused(ownerRefusal);
 		}
 
 		if (owners.Count > 1)
 		{
 			_log.LogWarning("[Command] /give refused: the selector '{Selector}' matched {Count} bodies ({Owners}).",
 				request.Selector, owners.Count, ItemDataTargets.Owners(owners));
-			return $"That selector matched {owners.Count} bodies ({ItemDataTargets.Owners(owners)}) — /give names ONE body, so name one player: @p, a selector with [limit=1], or the player's id.";
+			return ConsoleAnswer.Refused($"That selector matched {owners.Count} bodies ({ItemDataTargets.Owners(owners)}) — /give names ONE body, so name one player: @p, a selector with [limit=1], or the player's id.");
 		}
 
-		var answer = _playerInteraction.GiveItem(owners[0], request.DefinitionId, request.Slot, request.StateText);
-		return answer ?? "";
+		return ConsoleAnswer.Ok(_playerInteraction.GiveItem(owners[0], request.DefinitionId, request.Slot, request.StateText));
 	}
 }

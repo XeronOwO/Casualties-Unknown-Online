@@ -270,11 +270,11 @@ public sealed class ExampleMod : ICuoMod
 	{
 	}
 
-	private string? EchoFromConsole(IModConsoleCommandContext ctx)
+	private ConsoleAnswer EchoFromConsole(IModConsoleCommandContext ctx)
 	{
 		if (ctx.Arguments.Count == 0)
 		{
-			return "usage: /exampleecho <text>";
+			return ConsoleAnswer.Refused("usage: /exampleecho <text>");
 		}
 
 		var text = string.Join(" ", ctx.Arguments);
@@ -289,24 +289,24 @@ public sealed class ExampleMod : ICuoMod
 
 		return sent
 			? ctx.Session.IsHost
-				? $"broadcast \"{text}\" to the other members"
-				: $"reported \"{text}\" — the host and the other members run the chain"
-			: "the send was refused locally — see the log";
+				? ConsoleAnswer.Ok($"broadcast \"{text}\" to the other members")
+				: ConsoleAnswer.Ok($"reported \"{text}\" — the host and the other members run the chain")
+			: ConsoleAnswer.Refused("the send was refused locally — see the log");
 	}
 
-	private string? SetDeclaredWeightFromConsole(IModConsoleCommandContext ctx)
+	private ConsoleAnswer SetDeclaredWeightFromConsole(IModConsoleCommandContext ctx)
 	{
 		if (ctx.Arguments.Count == 0
 			|| !float.TryParse(ctx.Arguments[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var weight)
 			|| weight < 0f)
 		{
-			return "usage: /exampleweight <weight>";
+			return ConsoleAnswer.Refused("usage: /exampleweight <weight>");
 		}
 
 		DeclaredWeight = weight;
 		_context!.Logger.LogInformation(
 			"[Example] the declared dressing now reports weight {Weight}; the next item-table rebuild carries it.", weight);
-		return $"the declared dressing reports weight {weight} from the next item-table rebuild";
+		return ConsoleAnswer.Ok($"the declared dressing reports weight {weight} from the next item-table rebuild");
 	}
 
 	/// <summary>

@@ -39,7 +39,7 @@ internal sealed class AcceptanceCommands(ISessionControl session, IWorldControl 
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 
 	[ConsoleCommand("traderreport", "Acceptance only: publish one give report (item instance + claimed credit) at a trader position.", CommandPermission.Anyone, "/traderreport <x> <y> <itemInstanceId> <value>", Gate = ConsoleCommandGate.Cheat)]
-	private string TraderReport(IReadOnlyList<string> args)
+	private ConsoleAnswer TraderReport(IReadOnlyList<string> args)
 	{
 		if (args.Count < 5
 			|| !float.TryParse(args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
@@ -47,22 +47,22 @@ internal sealed class AcceptanceCommands(ISessionControl session, IWorldControl 
 			|| !ulong.TryParse(args[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var itemInstanceId)
 			|| !int.TryParse(args[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
 		{
-			return "Usage: /traderreport <x> <y> <itemInstanceId> <value>";
+			return ConsoleAnswer.Refused("Usage: /traderreport <x> <y> <itemInstanceId> <value>");
 		}
 
 		if (float.IsNaN(x) || float.IsInfinity(x) || float.IsNaN(y) || float.IsInfinity(y))
 		{
-			return "Refused: the trader position must be finite — nothing was sent.";
+			return ConsoleAnswer.Refused("Refused: the trader position must be finite — nothing was sent.");
 		}
 
 		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
 		{
-			return "Refused: a trader action report is a MEMBER's report — this verb runs on a guest in an active session.";
+			return ConsoleAnswer.Refused("Refused: a trader action report is a MEMBER's report — this verb runs on a guest in an active session.");
 		}
 
 		if (_cheatVerbs.TryRefuse("traderreport", out var refusal))
 		{
-			return refusal;
+			return ConsoleAnswer.Refused(refusal);
 		}
 
 		_world.SendTraderAction(new TraderActionMsg
@@ -72,6 +72,6 @@ internal sealed class AcceptanceCommands(ISessionControl session, IWorldControl 
 			ItemInstanceId = itemInstanceId,
 			ItemValue = value,
 		});
-		return $"Reported give of item #{itemInstanceId} worth {value} at ({x:0.###},{y:0.###}) as {_session.LocalSteamId}.";
+		return ConsoleAnswer.Ok($"Reported give of item #{itemInstanceId} worth {value} at ({x:0.###},{y:0.###}) as {_session.LocalSteamId}.");
 	}
 }

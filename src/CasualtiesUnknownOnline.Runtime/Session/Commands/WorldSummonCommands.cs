@@ -26,11 +26,11 @@ internal sealed class WorldSummonCommands(IWorldSummonControl summon, CheatVerbG
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 
 	[ConsoleCommand("summon", "Create one world entity, animal or loose item entity at a position (a cheat verb).", CommandPermission.Anyone, WorldSummonParser.Usage, CommandArgumentKind.Text, Gate = ConsoleCommandGate.Cheat)]
-	internal string Summon(IReadOnlyList<string> args)
+	internal ConsoleAnswer Summon(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
 		{
-			return $"Usage: {WorldSummonParser.Usage}";
+			return ConsoleAnswer.Refused($"Usage: {WorldSummonParser.Usage}");
 		}
 
 		var tokens = new List<string>(args.Count - 1);
@@ -41,14 +41,14 @@ internal sealed class WorldSummonCommands(IWorldSummonControl summon, CheatVerbG
 
 		if (!WorldSummonParser.TryParse(tokens, out var request, out var error))
 		{
-			return error!;
+			return ConsoleAnswer.Refused(error!);
 		}
 
 		if (_cheatVerbs.TryRefuse("summon", out var refusal))
 		{
-			return refusal;
+			return ConsoleAnswer.Refused(refusal);
 		}
 
-		return _summon.Summon(request.PrefabId, request.Kind, request.Position, request.StateText) ?? "";
+		return ConsoleAnswer.Ok(_summon.Summon(request.PrefabId, request.Kind, request.Position, request.StateText));
 	}
 }

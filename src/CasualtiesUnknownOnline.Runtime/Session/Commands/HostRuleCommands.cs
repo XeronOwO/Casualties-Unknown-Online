@@ -24,7 +24,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// The grammar is the accepted batch's, unchanged: an omitted value queries, a rule name is
 /// one of the census's own lowercase names and is case-sensitive, and a value is the rule's
 /// own kind. An invalid value is refused HERE, before the gate and before anything is sent,
-/// so a member's typo costs no round trip.
+/// so a member's typo costs no round trip. Every refusal answers with the refusal kind, which
+/// is what makes it print in the error colour instead of the success one.
 /// </para>
 /// </summary>
 internal sealed class HostRuleCommands(
@@ -47,39 +48,39 @@ internal sealed class HostRuleCommands(
 	/// config is never touched, and the host's answer prints where the verb was typed.
 	/// </summary>
 	[ConsoleCommand("gamerule", "Read or set one host rule, shaped like Minecraft's /gamerule (a cheat verb: the host, or a member the host granted).", CommandPermission.Anyone, "/gamerule <rule name> [<value>]", CommandArgumentKind.Text, CommandArgumentKind.Text, Gate = ConsoleCommandGate.Cheat)]
-	internal string GameRule(IReadOnlyList<string> args)
+	internal ConsoleAnswer GameRule(IReadOnlyList<string> args)
 	{
 		if (args.Count is < 2 or > 3)
 		{
-			return "Usage: /gamerule <rule name> [<value>]";
+			return ConsoleAnswer.Refused("Usage: /gamerule <rule name> [<value>]");
 		}
 
 		var row = HostRuleCensus.Find(args[1]);
 		if (row is null)
 		{
 			_log.LogInformation("[Command] /gamerule refused the unknown rule name '{Name}'.", args[1]);
-			return $"Unknown game rule '{args[1]}'. Known rules: {string.Join(", ", HostRuleCensus.Names)}.";
+			return ConsoleAnswer.Refused($"Unknown game rule '{args[1]}'. Known rules: {string.Join(", ", HostRuleCensus.Names)}.");
 		}
 
 		var canonical = "";
 		if (args.Count == 3 && !HostRuleValueText.TryParse(row, args[2], out canonical, out var error))
 		{
 			_log.LogInformation("[Command] /gamerule refused {Rule} = '{Text}': {Reason}", row.Name, args[2], error);
-			return $"Game rule {row.Name}: {error}";
+			return ConsoleAnswer.Refused($"Game rule {row.Name}: {error}");
 		}
 
 		if (_cheatVerbs.TryRefuse("gamerule", out var refusal))
 		{
-			return refusal;
+			return ConsoleAnswer.Refused(refusal);
 		}
 
 		if (args.Count == 2)
 		{
 			var current = HostRuleValueText.Describe(HostRuleSet.From(_hostRules), row);
 			_log.LogDebug("[Command] /gamerule queried {Rule} = {Value}.", row.Name, current);
-			return $"Game rule {row.Name} is currently set to: {current}.";
+			return ConsoleAnswer.Ok($"Game rule {row.Name} is currently set to: {current}.");
 		}
 
-		return _changes.Change(row.Id, canonical) ?? "";
+		return ConsoleAnswer.Ok(_changes.Change(row.Id, canonical));
 	}
 }

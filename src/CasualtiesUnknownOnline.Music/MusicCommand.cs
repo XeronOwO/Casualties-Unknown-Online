@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -18,48 +19,58 @@ internal static class MusicCommand
 
 	internal static void Bind(MusicShareService share) => _share = share;
 
-	internal static string? Execute(IModConsoleCommandContext context)
+	internal static ConsoleAnswer Execute(IModConsoleCommandContext context)
 	{
 		var arguments = context.Arguments;
 		if (arguments.Count == 0)
 		{
-			return "usage: /music play <path> | share <path> | stop | status";
+			return ConsoleAnswer.Refused("usage: /music play <path> | share <path> | stop | status");
 		}
 
 		switch (arguments[0].ToLowerInvariant())
 		{
 			case "play":
-				return arguments.Count < 2
-					? "usage: /music play <path>"
-					: Play(string.Join(" ", arguments.Skip(1)));
+				if (arguments.Count < 2)
+				{
+					return ConsoleAnswer.Refused("usage: /music play <path>");
+				}
+
+				var requested = string.Join(" ", arguments.Skip(1));
+				var refused = Device.PlayFile(requested);
+				if (refused is not null)
+				{
+					MusicGate.Log?.LogWarning($"[Music] refused {requested}: {refused}");
+					return ConsoleAnswer.Refused($"refused: {refused}");
+				}
+
+				return ConsoleAnswer.Ok($"playing {requested} ({Device.Length:0.0}s).");
 
 			case "share":
-				return arguments.Count < 2
-					? "usage: /music share <path>"
-					: _share?.Share(string.Join(" ", arguments.Skip(1))) ?? "sharing is unavailable (the mod is not bound)";
+				if (arguments.Count < 2)
+				{
+					return ConsoleAnswer.Refused("usage: /music share <path>");
+				}
+
+				if (_share is not { } share)
+				{
+					return ConsoleAnswer.Refused("sharing is unavailable (the mod is not bound)");
+				}
+
+				var answer = share.Share(string.Join(" ", arguments.Skip(1)));
+				return answer.StartsWith("refused", StringComparison.OrdinalIgnoreCase)
+					? ConsoleAnswer.Refused(answer)
+					: ConsoleAnswer.Ok(answer);
 
 			case "stop":
 				_share?.Stop();
 				Device.Stop();
-				return "stopped.";
+				return ConsoleAnswer.Ok("stopped.");
 
 			case "status":
-				return _share?.Status() ?? "not playing.";
+				return ConsoleAnswer.Ok(_share?.Status() ?? "not playing.");
 
 			default:
-				return $"unknown verb '{arguments[0]}' — usage: /music play <path> | share <path> | stop | status";
+				return ConsoleAnswer.Refused($"unknown verb '{arguments[0]}' — usage: /music play <path> | share <path> | stop | status");
 		}
-	}
-
-	private static string Play(string path)
-	{
-		var refused = Device.PlayFile(path);
-		if (refused is not null)
-		{
-			MusicGate.Log?.LogWarning($"[Music] refused {path}: {refused}");
-			return $"refused: {refused}";
-		}
-
-		return $"playing {path} ({Device.Length:0.0}s).";
 	}
 }

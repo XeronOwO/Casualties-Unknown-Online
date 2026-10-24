@@ -16,7 +16,7 @@ public sealed class ModConsoleCommand(
 	string usage,
 	CommandPermission permission,
 	IReadOnlyList<CommandArgumentKind> argumentKinds,
-	Func<IModConsoleCommandContext, string?> handler)
+	Func<IModConsoleCommandContext, ConsoleAnswer> handler)
 {
 	public string Name { get; } = name;
 
@@ -28,6 +28,10 @@ public sealed class ModConsoleCommand(
 
 	public IReadOnlyList<CommandArgumentKind> ArgumentKinds { get; } = argumentKinds is null ? [] : [.. argumentKinds];
 
-	/// <summary>The command body. Return the output text (null = no output); throwing is isolated by the console.</summary>
-	public Func<IModConsoleCommandContext, string?> Handler { get; } = handler;
+	/// <summary>
+	/// The command body: answers with <see cref="ConsoleAnswer"/>, so the console knows whether the line is a
+	/// completed action or a refusal (an old handler that returned text is now a <c>ConsoleAnswer.Ok</c>). Throwing
+	/// is isolated by the console.
+	/// </summary>
+	public Func<IModConsoleCommandContext, ConsoleAnswer> Handler { get; } = handler;
 }

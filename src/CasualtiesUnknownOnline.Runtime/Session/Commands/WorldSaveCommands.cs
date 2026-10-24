@@ -28,15 +28,15 @@ internal sealed class WorldSaveCommands(
 	private readonly ILogger _log = log;
 
 	[ConsoleCommand("save", "Save the world now: a CUO world-archive cut at the next pump boundary.", CommandPermission.Anyone, "/save")]
-	internal string Save(IReadOnlyList<string> _)
+	internal ConsoleAnswer Save(IReadOnlyList<string> _)
 	{
 		if (!_saves.TryRequestCut(WorldCutReason.Command, out var refusal))
 		{
 			_log.LogWarning("[Command] /save refused: {Refusal}", refusal);
-			return $"Cannot save: {refusal}.";
+			return ConsoleAnswer.Refused($"Cannot save: {refusal}.");
 		}
 
 		_log.LogInformation("[Command] /save armed a cut for the pump's last step.");
-		return "Save queued: the cut is taken at the next pump boundary (it waits for any in-flight operation that must resolve first), and the result appears here.";
+		return ConsoleAnswer.Ok("Save queued: the cut is taken at the next pump boundary (it waits for any in-flight operation that must resolve first), and the result appears here.");
 	}
 }

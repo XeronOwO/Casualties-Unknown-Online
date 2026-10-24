@@ -95,7 +95,7 @@ internal sealed class ModConsoleCommandAdapter(
 		return true;
 	}
 
-	private string? Execute(ModConsoleCommand command, IReadOnlyList<string> args)
+	private ConsoleAnswer Execute(ModConsoleCommand command, IReadOnlyList<string> args)
 	{
 		var context = new ModConsoleCommandContext(
 			command.Name,

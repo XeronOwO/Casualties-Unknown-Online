@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CasualtiesUnknownOnline.Abstractions;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
@@ -42,10 +43,10 @@ public sealed class ConsoleCommandRegistry
 				continue;
 			}
 
-			if (method.ReturnType != typeof(string))
+			if (method.ReturnType != typeof(ConsoleAnswer))
 			{
 				throw new InvalidOperationException(
-					$"Console command handler {method.Name} must return string; got {method.ReturnType}.");
+					$"Console command handler {method.Name} must return ConsoleAnswer; got {method.ReturnType}.");
 			}
 
 			var parameters = method.GetParameters();
@@ -55,8 +56,8 @@ public sealed class ConsoleCommandRegistry
 					$"Console command handler {method.Name} must accept a single IReadOnlyList<string> argument.");
 			}
 
-			var handler = (Func<IReadOnlyList<string>, string?>)method.CreateDelegate(
-				typeof(Func<IReadOnlyList<string>, string?>), owner);
+			var handler = (Func<IReadOnlyList<string>, ConsoleAnswer>)method.CreateDelegate(
+				typeof(Func<IReadOnlyList<string>, ConsoleAnswer>), owner);
 			var definition = new CommandDefinition(
 				attribute.Name,
 				attribute.Description,

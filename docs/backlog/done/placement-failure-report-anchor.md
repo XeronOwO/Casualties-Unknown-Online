@@ -220,4 +220,3 @@ limit — option 1 — and no code changes:
 
 This is a closure by RULE, not by preference, which is why it does not ask the user again: an option that "decides what
 the protocol claims" was already decided when the protocol's bounding rule was written.
-

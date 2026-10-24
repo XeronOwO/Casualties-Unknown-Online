@@ -180,4 +180,3 @@ channel exists, so that half needs no new message:
 What that leaves is exactly slice 2 (the chain blast's victims falling outside the scope, so the host rolls a set for
 a death the member's own client also rolled) and the acceptance rows. A new message would have been a second way to
 say the same thing.
-

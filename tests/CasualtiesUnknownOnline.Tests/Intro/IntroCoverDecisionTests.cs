@@ -30,7 +30,7 @@ public class IntroCoverDecisionTests
 		decision.UsePreference(() => true);
 
 		Assert.True(decision.SkipsTheCover);
-		Assert.Contains("skipped", decision.Describe());
+		Assert.Contains("preference is on", decision.Describe());
 	}
 
 	[Fact]

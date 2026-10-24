@@ -45,8 +45,8 @@ public sealed class IntroCoverDecision
 	/// </summary>
 	public string Describe() => (_directJoinLaunch, _skipsTheCover?.Invoke() ?? false) switch
 	{
-		(true, _) => "cover shown: this launch came from the join action (that path never skips it)",
-		(false, true) => "cover skipped: the local preference is on and this is an ordinary launch",
-		(false, false) => "cover shown: the local preference (Session/SkipIntroCover) is off",
+		(true, _) => "this launch came from the join action, which never skips the cover",
+		(false, true) => "the local preference is on and this is an ordinary launch",
+		(false, false) => "the local preference (Session/SkipIntroCover) is off",
 	};
 }

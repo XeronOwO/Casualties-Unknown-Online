@@ -21,12 +21,16 @@ internal static class PreRunScriptIntroSkipPatch
 	private static void Prefix()
 	{
 		var decision = GameAdapter.IntroCover;
-		GameAdapter.LogIntroCover(decision.Describe());
 		if (!decision.SkipsTheCover)
 		{
+			// The action is recorded as what it is: nothing. The game's own sticky didIntro may still hide the
+			// cover from an earlier run in this process, and claiming "shown" here would be a lie the screen can
+			// contradict.
+			GameAdapter.LogIntroCover("cover left to the game: " + decision.Describe());
 			return;
 		}
 
+		GameAdapter.LogIntroCover("cover skipped: " + decision.Describe());
 		typeof(PreRunScript).GetField("didIntro",
 			BindingFlags.NonPublic | BindingFlags.Static)?.SetValue(null, true);
 	}

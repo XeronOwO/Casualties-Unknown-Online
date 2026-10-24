@@ -392,6 +392,22 @@ preserves rather than receiving), or the write is overwritten later in the frame
 facts together in the service's own follow loop — the resolved body's blood volume and consciousness, the values it
 writes into the gate, and the camera's `blackAmount` right after the patch — before touching the patch again.
 
+**The user wants a switch for these effects (2026-10-24).** There is none today: the mirror is unconditional, and the
+only switch in the area is the mode itself (entering spectator mode turns the local body's presentation off). The
+ruling is to give the player the choice, so the shapes this ticket will add, in the project's own config style:
+
+- `Session/SpectatorMirrorEffects` (bool, default `true`): whether the watched body's blackout and blood-loss
+  vignette reach the spectator's camera. Off means the screen stays clear and the strip's numbers/markers are the
+  only tell — the choice of someone who wants to watch without the visual noise.
+- It is a CLIENT-LOCAL preference, not a host rule: the ruling makes watching the spectator's own business, so it
+  never travels on the wire and every member can set it independently.
+- The suppression of the LOCAL body's own effects stays unconditional in both positions (the ruling that spectating
+  must not show the player their own dying body), which is why this is one switch and not two.
+
+The switch is landed with the mirror's reading fix, so the acceptance reads both positions: on = the watched body's
+blackout/vignette, off = a clear screen.
+
+
 
 
 

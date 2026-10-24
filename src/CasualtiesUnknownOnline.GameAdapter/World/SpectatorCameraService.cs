@@ -1,11 +1,13 @@
 using System;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Run;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using TMPro;
 using UnityEngine.UI;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
@@ -36,6 +38,7 @@ internal sealed class SpectatorCameraService(
 	IHostRules hostRules,
 	ISessionControl session,
 	IEntitySyncControl entities,
+	ILocalizationService localization,
 	ILogger<SpectatorCameraService> log) : ISpectatorControl, ISessionReset
 {
 	/// <summary>Subscribes the teardown this service owes the session: a session that ends while someone is watching must not leave that state alive for the next one.</summary>
@@ -264,6 +267,12 @@ internal sealed class SpectatorCameraService(
 
 				button.onClick.RemoveAllListeners();
 				button.onClick.AddListener(() => EnterSpectatorMode());
+				var label = button.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true);
+				if (label != null) // Unity object — ==
+				{
+					label.text = localization.T("spectator.receipt_enter");
+				}
+
 				_receiptButtonRewired = true;
 				log.LogInformation("[Spectator] the death receipt's {Method} button now enters spectator mode.", method);
 				return;

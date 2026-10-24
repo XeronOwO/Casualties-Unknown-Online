@@ -425,7 +425,7 @@ internal sealed class GameAdapterDomains
 		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, StartingSupplies, MenuReturn, LayerAdvance, DescentBody, loggerFactory.CreateLogger<RunCoordinator>());
 		// Built after the run: the spectator camera reads the run's own local body, this client's clone
 		// renderer and the rule surface, and the run is constructed here.
-		Spectator = new SpectatorCameraService(Run, Renderer, HostRules, session, entities, loggerFactory.CreateLogger<SpectatorCameraService>());
+		Spectator = new SpectatorCameraService(Run, Renderer, HostRules, session, entities, Localization, loggerFactory.CreateLogger<SpectatorCameraService>());
 		// The run-follow's recovery half: the member's bounded ask for the entry instruction it may
 		// have missed, and the host's answer with the same instruction every other entry uses. Built
 		// after the run because the window reads the run's own phase and world facts.

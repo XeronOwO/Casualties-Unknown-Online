@@ -347,7 +347,7 @@ docs/backlog/done/layer-change-menu-round-trip.md | keep | index | docs/backlog/
 docs/backlog/done/layer-descent-spawn-separation.md | keep | index | docs/backlog/README.md
 docs/backlog/done/layer-descent-audio-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/layer-end-save-and-exit-native-write.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
+docs/backlog/review/loading-screen-progress-detail.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-ceiling.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-child-limb-install-keeps-a-contained-record.md | keep | index | docs/backlog/README.md
 docs/backlog/done/craft-carried-fact-retirement.md | keep | index | docs/backlog/README.md
@@ -562,7 +562,7 @@ docs/evidence/acceptance/item-creation-registration-first-20261003-d.md | keep |
 docs/evidence/acceptance/item-data-write-commands-20261014-a.md | keep | claim | docs/backlog/done/item-data-write-commands.md
 docs/evidence/acceptance/item-id-counter-is-not-resumed-by-a-restore-20261021-a.md | keep | claim | docs/backlog/done/item-id-counter-is-not-resumed-by-a-restore.md
 docs/evidence/acceptance/item-data-write-verbs-20261018.md | keep | claim | docs/backlog/done/item-and-entity-data-commands.md
-docs/evidence/acceptance/loading-screen-wait-text-20261018.md | keep | claim | docs/backlog/todo/loading-screen-progress-detail.md
+docs/evidence/acceptance/loading-screen-wait-text-20261018.md | keep | claim | docs/backlog/review/loading-screen-progress-detail.md
 docs/evidence/acceptance/layer-change-member-dropout-20261007-a.md | keep | claim | docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md
 docs/evidence/acceptance/layer-change-member-dropout-20261007-c.md | keep | claim | docs/backlog/done/layer-change-member-recovery.md
 docs/evidence/acceptance/layer-change-member-recovery-20261007-a.md | keep | claim | docs/backlog/done/layer-change-member-recovery.md

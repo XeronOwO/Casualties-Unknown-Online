@@ -1,6 +1,9 @@
 # The loading screen should say what the session is waiting for
 
-- Status: Todo
+- Status: Review — the wait line is written into the game's own `WorldGeneration.loadingText` and handed back
+  (2026-10-24, deployed `0.1.0+77d914f3`), per the user's ruling on this ticket, so no code is left. The batch
+  closed the surface question (the field is reachable and holds the game's phase text) and left the joint
+  observation — the wait ON that line, and its hand-back — unread, which the batch section names as its residual.
 - Priority: Low-Medium
 - Category: Presentation / session loading
 - Source: the user's 2026-10-07 backlog request — reuse the loading screen's own bottom-right text and let it
@@ -108,16 +111,35 @@ whether the longer lines fit the panel. The batch's own first attempt is kept in
 OLD wording off a stale deployment and its verification step said exactly why — a batch that reads a deployed
 artifact has to stop on a failed verification rather than log it.
 
-## Decision point (2026-10-24) — waiting on the user
+## Decision (user, 2026-10-24): the native surface
 
-Two surfaces can show the wait, and the ticket's own words ("reuse the loading screen's own bottom-right
-text") point at the native one:
+The user answered with a reference: the Together mod (`CasualtiesMP.dll`, decompiled for this ticket) reuses the
+game's own bottom-right line and writes a progress bar into it, and the user's ruling is to use that surface too —
+"不要求你一定要做一个进度条" (a progress bar is not required), ASCII bars not recommended, and a per-member
+"who is still loading" display is an optional extension rather than part of this ticket.
 
-1. **Write the native `WorldGeneration.loadingText`** (recommended: it is the surface the user named, and it
-   stops the screen drawing CUO's panel over a stale native phase). It needs an adapter binding for that
-   `TextMeshProUGUI` and a rule for when the game's own phase text owns the line again.
-2. **Keep CUO's own IMGUI panel** (today's implementation): no new binding, but it draws over the native string
-   and does not satisfy "reuse the loading screen's own text".
+## Landed (2026-10-24, deployed `0.1.0+77d914f3`)
 
-The wording itself is already landed and tested; only the surface is open. No work is started because the
-surface is a user-visible choice.
+- `StartGateCoordinator` writes `SessionWaitText`'s line into **`WorldGeneration.loadingText`** (the public
+  `TextMeshProUGUI` the game's own `SetLoadingText` writes) while the gate holds, and hands the game's text back on
+  release — the order the ticket's step 2 and 3 ask for, on the surface step 1 named.
+- `LoadingTextTakeover` owns the rule (capture once, restore once; a release with nothing captured writes nothing,
+  and an empty captured line is still a capture) and is covered by four cases; `NativeLoadingTextSurface` is the
+  Unity glue and answers false without a world or a field, in which case the IMGUI overlay stays and the two never
+  draw the same sentence twice (`IStartGateState.WaitingTextIsOnTheNativeScreen`, whose predicate is a case).
+- The overlay is therefore the FALLBACK: a member whose own world is not up yet (its gate wait happens before the
+  scene exists) still reads the wait from the panel, which is exactly the state the batch below observed.
+
+## Batch `20261024-lt` (same session, deployed artifact) — what it read and what it did not
+
+Read: the host in a world answers `WorldGeneration.world.loadingText` and that field holds the game's own phase
+text — `"正在生成植物及隐藏陷阱..."` — so the surface is reachable and is the line the ticket points at, and the
+session's own wait path was exercised in the same log (`[Gate] keeping the loading screen up while waiting`).
+
+**Not read: the wait text seen ON that line, and its hand-back.** The guests in this batch never completed their
+lobby admission (`active=false` on every re-join), so the host's gate never armed and no wait line was ever written;
+the three gate cycles the log shows belong to the guest side, whose own `WorldGeneration.world` is null while it
+waits (the fallback the previous paragraph describes). The row is named here rather than claimed: the batch that
+judges it needs a guest whose admission completes (the flow
+`docs/evidence/acceptance/loading-screen-wait-text-20261018.md` used) and reads the native line during the gate plus
+the `[Gate] the loading text is handed back` line after it.

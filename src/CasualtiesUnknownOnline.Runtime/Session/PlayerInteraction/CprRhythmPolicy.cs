@@ -128,6 +128,20 @@ public static class CprRhythmPolicy
 	public const float PerfusingHeartRate = 40f;
 
 	/// <summary>
+	/// The fastest press that is still a compression rather than a shove: below this fraction of
+	/// <see cref="IdealInterval"/> the chest gets no time to recoil and the ribs take the force (ticket
+	/// `remote-medical-cpr.md`, stage 3's "rib breaks on over-pressing").
+	/// </summary>
+	public const float DangerousIntervalFactor = 0.5f;
+
+	/// <summary>
+	/// Whether this press was fast enough to hurt: below half the ideal interval the gain is halved AND the patient's
+	/// chest pays for it (the applier breaks the chest limb), which is the cost the ruling's rhythm is supposed to carry.
+	/// </summary>
+	public static bool IsAnOverPress(float intervalSeconds) =>
+		intervalSeconds > 0f && intervalSeconds < IdealInterval * DangerousIntervalFactor;
+
+	/// <summary>
 	/// Whether this compression restarts the heart: the perfusion reached <see cref="RestartPressure"/> (or the patient's
 	/// own lower ceiling when that is below it) and the rhythm is still being kept. The HOST arbitrates the first claim
 	/// (`MedicalOperationClaims`'s one-resolving-unit shape) — this only answers whether THIS compression would.

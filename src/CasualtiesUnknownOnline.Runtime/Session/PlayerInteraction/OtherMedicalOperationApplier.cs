@@ -25,6 +25,12 @@ internal sealed class OtherMedicalOperationApplier(
 	private readonly ISessionControl _session = session;
 	private static readonly Random Rng = new();
 
+	/// <summary>The limb index the game's own heart checks treat as the chest (`ApplyDefibrillation` tests `limb.Index == 1`).</summary>
+	private const int ChestLimbIndex = 1;
+
+	/// <summary>The pain an over-press's broken rib adds, on the game's own 0-100 limb pain scale.</summary>
+	private const float OverPressRibPain = 25f;
+
 	/// <summary>
 	/// One chest compression on the patient's own authoritative data (ticket `remote-medical-cpr.md`, stage 1b): the
 	/// operator's measured interval decides how much of the press counts (`CprRhythmPolicy`), the patient's own volume and
@@ -74,6 +80,24 @@ internal sealed class OtherMedicalOperationApplier(
 			newHealth.FibrillationProgress = 0f;
 			newHealth.FibrillationForced = false;
 			session.Progress = 0f;
+		}
+
+		// A frantic press is a shove: the chest pays for it. The game's own fracture state is the cost, so the patient's
+		// chart shows the rib the compression broke rather than a number only this rule knows about.
+		if (CprRhythmPolicy.IsAnOverPress(intervalSeconds))
+		{
+			for (var i = 0; i < newTarget.Limbs.Count; i++)
+			{
+				var limb = newTarget.Limbs[i];
+				if (limb.Index != ChestLimbIndex || limb.Broken)
+				{
+					continue;
+				}
+
+				limb.Broken = true;
+				limb.Pain = Math.Min(100f, limb.Pain + OverPressRibPain);
+				break;
+			}
 		}
 
 		_access.SaveCharacterData(session.Target, newTarget);

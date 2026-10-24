@@ -39,6 +39,11 @@
     "BoolFlags": 0,
     "Note": "The aggregate is the patch layer's one seam list: every hook the patches read is a member here, so it grows with each landed hook instead of absorbing behaviour — the members forward to the domains that own the rules. It crossed 600 with the radiation line's two facts, RadiationLineCeiling (the host rule's floor stop) and RadiationLineGuestTimeGone (the member's line value extrapolated at the HOST's rate, the user's 2026-10-24 finding that a member's descent ran at its own body's speed). Both are pure projections of domain state, which is why they belong on the seam rather than in a patch. The seam a split owes is the same one the other patch-layer rows name: the interface is a list of hooks, and its size is the number of things the game lets us observe."
   },
+  "CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.OtherMedicalOperationApplier": {
+    "Lines": 619,
+    "BoolFlags": 0,
+    "Note": "The CPR rhythm pushed the applier past 600: ApplyCprCompression gained the perfusion progress, the heart restart it writes (heartRate at PerfusingHeartRate with fibrillation cleared), and the over-press that breaks the patient's chest limb in the game's own fracture state, each with the paragraph explaining why the derived pressure is not written. Those are three statements about one patient-side rule, and splitting them into a helper now would move the rule away from the only call site that has the session, the target and the interval together. The split this owes is the CPR family out of the applier into its own object (the bandage wrap and the shock family would follow the same shape), which the ticket's stage 2 (ventilation) makes worth doing: it adds the oxygen half to exactly this family."
+  },
   "CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge": {
     "Lines": 663,
     "BoolFlags": 0,

@@ -70,4 +70,14 @@ public class CprRhythmPolicyTests
 		Assert.Equal(1f, CprRhythmPolicy.BloodVolumeFraction(100f), 3);
 		Assert.Equal(0.5f, CprRhythmPolicy.BloodVolumeFraction(0f), 3);
 	}
+
+	[Fact]
+	public void AFranticPressIsAnOverPress_AndTheIdealRhythmNeverIs()
+	{
+		// Stage 3's rib cost: under half the ideal interval the chest gets no time to recoil, so the press is a shove.
+		Assert.True(CprRhythmPolicy.IsAnOverPress(CprRhythmPolicy.IdealInterval * 0.2f));
+		Assert.False(CprRhythmPolicy.IsAnOverPress(CprRhythmPolicy.IdealInterval));
+		Assert.False(CprRhythmPolicy.IsAnOverPress(CprRhythmPolicy.IdealInterval * CprRhythmPolicy.DangerousIntervalFactor));
+		Assert.False(CprRhythmPolicy.IsAnOverPress(0f));
+	}
 }

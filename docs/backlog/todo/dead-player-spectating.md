@@ -367,6 +367,15 @@ guest the host's frame shows `Kagura（小号）—— 脑 100 · 体力 100 · 
 That is the first surface of the HUD-inheritance requirement; the state icons and the watched player's own screen
 effects/sounds are still open.
 
+**The state markers are landed and read (2026-10-24, deployed `0.1.0+a626ace1`).** The strip now says when the
+watched body is dead or unconscious, composed through a localized wrapper around the same vitals line and read from
+the same reported liveness — nothing derived is invented. The reading: after the watched guest was killed with the
+local death-hold probe, the host's strip reads
+`Kagura（小号）—— 脑 0 · 体力 100 · 饥饿 100 —— 已死亡`, i.e. the marker follows the reported death in the same
+snapshot the values come from. A graphical icon row in place of these words, and the watched player's own screen
+effects and sounds, remain open.
+
+
 
 
 

@@ -292,4 +292,3 @@ READS rather than the simulated value: the game's own lever for that is `bloodPr
 `Body` reads for medicinal pressure changes), with the heart-restart path being the same idea on `heartRate` /
 `fibrillation`. That is stage 1b's correction and it needs its own cases (a write to the lever moves the simulated
 pressure; a write to `BloodPressure` does not).
-

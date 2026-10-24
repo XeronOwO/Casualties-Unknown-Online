@@ -215,6 +215,18 @@ probe's own `Publish` in the same client does show. That leaves one kind of expl
 difference between the plugin's provider and the Runtime's injection), and it is what the next attempt proves by
 comparing the two instances' identities from in-client probes before any further change.
 
+**Round 86: the identity hypothesis is REFUTED; every piece is now proven separately and the combination is not.**
+The service logs the slot it publishes into (`slot=369603888, notifications=…SessionNotices`) and a probe on the
+same client reports the root container's slot as `369603888, SessionNotices` — the SAME instance. The text also
+resolves (`ILocalizationService.Format("spectator.watched_notice", …)` answers `PROBE-WATCHER is watching you` in
+the target's own language), the publish happens (the service's log), and the display path works (the probe's own
+`Publish` shows in the status line). A precisely timed capture — the service published at 13:20:34.620 and the
+frame was written at 13:20:43.676, inside the 1.5 s delay + 15 s hold — still shows `RTT` with no line. So the gap
+is downstream of `Publish` and upstream of the drawing: the drain that consumes the slot and calls the overlay's
+`Notify` is the only remaining suspect, and the next attempt instruments it (one log line in
+`DrainSessionNotices`/`Notify`) instead of changing dependencies again.
+
+
 
 
 

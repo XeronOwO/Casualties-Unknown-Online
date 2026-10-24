@@ -1,11 +1,53 @@
-# A dead player can watch the run by spectating a teammate
+# A player can watch the run as a spectator, and possess a teammate to see through their eyes
 
-- Status: Review — implemented and gated on both choosers; the two-client run is what is left.
+- Status: Todo — the user's 2026-10-24 design (below) supersedes the death-screen entry and the `/spectate`
+  command this ticket was built on; the camera half and the three host switches stay as its foundation, and the
+  parts the new design replaces are named in the pivot section.
 - Priority: Medium
 - Category: Player interaction / presentation / KrokMP parity
 - Source: the user's 2026-10-13 backlog request, in their own words: "操控的角色死亡后，能观战他人，参考
   KrokMP 的功能" — after the character you control dies, you should be able to spectate the others, with
-  KrokMP's feature as the reference.
+  KrokMP's feature as the reference. **Refined by the user on 2026-10-24** (verbatim, Chinese): "观战应当把所有的
+  与玩家状态游玩相关的内容，例如屏幕特效、声音特效、生命体征危机时的心跳、正常游玩的快捷键等待这些所有的都屏蔽掉，
+  纯观察。还有你的命令设计我觉得应当参考 Minecraft，用 /gamemode survivor|spectator 这样，然后附身是复用对指定
+  玩家的右键菜单，里面加个观战的按钮（无距离、可达性校验，仅观察者模式校验），最好能够继承观战玩家的所有内容，例如
+  能只读查看背包、查看医疗面板，底部有对应玩家的状态图标、玩家的屏幕特效音效等等，就像自己在玩一样，亲身经历"。
+
+## The 2026-10-24 pivot (user's design, binding)
+
+The entry is a MODE, not a death-screen action, and watching is not merely a camera:
+
+1. **`/gamemode survivor|spectator`**, shaped like Minecraft's `/gamemode` (the console-command rule: fetch the
+   Minecraft syntax rather than remember it). It replaces `/spectate <selector>` and `/spectate off` as the way
+   in and out of watching; free-fly stays reachable (see question 3).
+2. **Pure observation**: while spectating, everything tied to PLAYING your own character is suppressed — screen
+   effects, sound effects, the vital-crisis heartbeat, the normal-play hotkeys and any other player-state
+   presentation. A spectator watches; nothing of their own body reaches them.
+3. **Possession reuses the right-click context menu** on a specific player: a "watch" entry on that menu, with
+   **no distance or reachability check and only the spectator-mode check** as its gate.
+4. **Possession inherits the watched player's whole experience**: read-only access to their backpack, their
+   medical panel, their state icons along the bottom, their screen effects and sound effects — "like playing it
+   yourself, experiencing it firsthand", not a detached camera.
+
+### What this replaces, and what stays
+
+- Replaced: the death screen as THE entry (a dead player is a spectator, but the mode is not tied to death), the
+  `/spectate` verb as the entry, and the free camera as the only "beyond following" capability.
+- Stays: the native follow target (`PlayerCamera.following`), the free camera (`isFreecam`) and the three host
+  rules' existing plumbing — their defaults and whether they still bind the new mode is question 3 below.
+- New surface the design needs: the mode itself (local and session-visible), the suppression layer for player-state
+  presentation, the context-menu entry, and the borrowed UI/state projection for a possessed target.
+
+### Open questions this ticket carries to the user before the first slice
+
+1. **The body while spectating**: does the spectator's own character stay in the world (invisible/ghost, like a
+   Minecraft spectator) or does it leave the simulation (as a dead player's body does today)?
+2. **Ownership of the view**: when possessing, does the watcher see the target's HUD INSTEAD of their own (a full
+   mirror, as "就像自己在玩一样" suggests) or in addition to it? And is the target told they are being watched?
+3. **The three host switches** (`SpectatorFreeFly`, `SpectateWhileUnconscious`, `SpectateWhileWaitingToJoin`):
+   keep them as the session's rules over the new mode, or drop them because `/gamemode` makes the mode a choice
+   rather than a death state?
+
 - Related: `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs` (the native follow target, the native
   free camera and the death screen), `reversing/KrokMP/KrokoshaCasualtiesMP/KrokoshaCasualtiesMP/UIInGame.cs`
   (KrokMP's spectator mode), `src/CasualtiesUnknownOnline.Runtime/Session/HostRules/IHostRules.cs` (the host

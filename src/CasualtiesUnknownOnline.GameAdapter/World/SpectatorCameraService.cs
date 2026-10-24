@@ -466,6 +466,7 @@ internal sealed class SpectatorCameraService(
 		_crisisSource.Stop();
 		Object.Destroy(_crisisSource.gameObject);
 		_crisisSource = null;
+		log.LogInformation("[Spectator] crisis sound stopped for the watched body.");
 	}
 
 	/// <summary>The vignette alpha for a blood volume: full at nothing left, clear at the whole five litres.</summary>

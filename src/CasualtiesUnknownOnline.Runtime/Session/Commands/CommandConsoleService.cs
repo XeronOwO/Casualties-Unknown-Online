@@ -189,7 +189,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 		if (!_chat.TrySend(text))
 		{
-			AddLine("Message was not sent (session inactive or invalid text).", ConsoleLineKind.Error);
+			AddKeyedLine("console.chat.not_sent", "Message was not sent (session inactive or invalid text).", ConsoleLineKind.Error);
 			return false;
 		}
 
@@ -329,14 +329,14 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		var tokens = Split(commandLine);
 		if (tokens.Count == 0)
 		{
-			AddLine("Empty command.", ConsoleLineKind.Error);
+			AddKeyedLine("console.command.empty", "Empty command.", ConsoleLineKind.Error);
 			return false;
 		}
 
 		var command = FindCommand(tokens[0]);
 		if (command is null)
 		{
-			AddLine($"Unknown command '{tokens[0]}'. Type /help for available commands.", ConsoleLineKind.Error);
+			AddKeyedLine("console.command.unknown", $"Unknown command '{tokens[0]}'. Type /help for available commands.", ConsoleLineKind.Error, tokens[0]);
 			return false;
 		}
 
@@ -391,7 +391,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		var command = FindCommand(args[1]);
 		if (command is null)
 		{
-			return ConsoleAnswer.Refused($"Unknown command '{args[1]}'. Type /help for available commands.");
+			return ConsoleAnswer.Refused($"Unknown command '{args[1]}'. Type /help for available commands.", "console.command.unknown", args[1]);
 		}
 
 		// A command this caller may not run answers the refusal it would meet, not "unknown": the console

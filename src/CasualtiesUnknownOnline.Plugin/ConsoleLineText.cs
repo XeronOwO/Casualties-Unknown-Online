@@ -23,6 +23,9 @@ internal static class ConsoleLineText
 			"console.ready" => ctx.T("console.ready"),
 			"console.session_ended" => ctx.T("console.session_ended"),
 			"console.command.host_only" => ctx.T("console.command.host_only"),
+			"console.command.empty" => ctx.T("console.command.empty"),
+			"console.command.unknown" => ctx.T("console.command.unknown"),
+			"console.chat.not_sent" => ctx.T("console.chat.not_sent"),
 			_ => line.Text,
 		};
 

@@ -268,7 +268,10 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	/// </summary>
 	private static readonly string[] ExpectedUiKeys =
 	[
+		"console.chat.not_sent",
+		"console.command.empty",
 		"console.command.host_only",
+		"console.command.unknown",
 		"console.overlay.empty",
 		"console.ready",
 		"console.session_ended",

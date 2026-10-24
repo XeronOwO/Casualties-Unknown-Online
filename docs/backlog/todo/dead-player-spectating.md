@@ -318,6 +318,24 @@ logs that exist: the next instrument must live INSIDE `OnlineUiOverlay.Notify` (
 text and `Time.realtimeSinceStartup`) and inside `BuildNetworkHud` (printing the same clock reading and whether a
 message exists), so one launch compares the two sides of the same object at the same clock.
 
+**RESOLVED — the notice line was never broken; the log channel was (`0.1.0+3f076cb7`).** The plugin's own
+`Plugin.Logger` lines go to BepInEx's `LogOutput.log`, while the runtime's `ILogger` lines (the drain's
+`[OnlineUi] status line: …`) go to the CUO `latest.log` — the local rule's "three log channels" in action, and reading
+only `latest.log` made a working path look broken for six rounds. On the watched member's client, `LogOutput.log`
+holds the whole chain in order: the drain's `[OnlineUi] status line: 萧稔 is watching you`, then
+`[OnlineUi] notify overlay=-1406356980 t=28.2 len=18`, then
+`[OnlineUi] status shown overlay=-1406356980 t=29.8 len=18: 萧稔 is watching you` — the same overlay instance on
+both sides, 1.6 s apart, with the exact text. The HUD hands the line to its label, so the earlier empty frames were
+captures taken before the arrival (the transport takes several seconds) or after the 15 s hold, read against the
+wrong log. The two diagnostic lines stay (one per notice at Information).
+
+**Inheritance reading, same session:** the watched member's medical/body panel opens read-only from the card — the
+frame shows that member's limbs, wound badges and name in the game's own diagram; clicking
+`member.open_backpack.<id>` answers `offered=True, applied=True` but brings up the same body/medical view, so a
+SEPARATE backpack grid for the watched member is not proven, and the driver cannot close a native panel to try the
+other order. That is the one open question left in this slice.
+
+
 
 
 

@@ -132,3 +132,12 @@ behaviour for a shape that does not exist.
 - The `alertcontainerstackingalt` alert the refused `LoadItem` still raises once per rebuild: it is the game's own
   call doing it before this code gets a say, and suppressing it needs a decision about intercepting a native alert for
   presentation reasons — not taken here.
+- **Batch `20261025-x` closed the fixture question the other way: the shape cannot be staged through the game's own calls.**
+  The container machinery itself works — `item-provide type=bandage` then `container-fill container=trashbag item=bandage`
+  answered `loaded=true` with contents `0 → 1` — and a SECOND `trashbag` was then carried beside it. Loading that bag into the
+  first was refused by the game's own guard, exactly as before: `LoadItem left trashbag outside the container (canHold=true,
+  distance=0)`. That refusal IS the precondition this ticket's fix guards ("its branch only runs when `Container.LoadItem`
+  already refused"), so the nested shape a viewer would have to render cannot be produced by driving the production calls — which
+  matches the ticket's own 2026-10-24 note that a fresh layer's world generation contains none. The runtime confirmation is
+  therefore unobtainable by construction rather than merely unstaged, and the fix stays what it was written as: a defensive branch
+  for a shape the game itself refuses to create.

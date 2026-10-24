@@ -183,10 +183,31 @@ second, silent start from zero.
 
 **What that measurement exposes, and what is left:** the channel carries this WAV at roughly **7 chunks a
 second** (≈170 KB/s) on the sandboxed pair, so a 20 s track takes ~10 s to transfer and a late joiner cannot
-catch up inside the track's own window — the in-window late-joiner playback is therefore NOT yet read, and the
-guest-sharer path (implemented, cached by the host) is not read either. Both need a longer track or the
-compressed format the MP3 stage would bring; they are this ticket's next stage, together with the listener
-controls, which stay the user's decision.
+catch up inside the track's own window. Both need a longer track or the compressed format the MP3 stage would
+bring.
+
+## Stage D landed (2026-10-24) — the mid-transfer joiner must not stall the share, and an in-window late start
+
+The three-client run with a 60 s tone exposed a defect the 20 s track could not: a member who joins WHILE a share
+is in flight never received the announce, so it never acked, and the share's quorum (which counted the LIVE peer
+set) waited for it — the transfer stalled at 28/216. Two rules fixed it:
+
+- **The quorum is the peers the share STARTED with** (`_sharePeers`), not the live roster; a mid-transfer joiner
+  is remembered (`_pendingServe`) and served from the cache once the file is complete.
+- **A member who was already present when the share began is never queued**: only a member whose join arrives
+  while `_sender` is non-null is remembered, because a second catch-up transfer for an existing peer spends the
+  channel on a track it already holds.
+
+**Read on three clients:** the share completed 216/216 and started at the agreed instant; the mid-song joiner was
+served the whole file (`receiving test-tone-60s.wav: 216 chunk(s)` → `verified (5292044 bytes)`), and then
+`playing test-tone-60s.wav from 57.01s: 60.0s` — an IN-WINDOW late start three seconds before the track's end,
+with the host having started at 28.69 s of the same track. The offset arithmetic is therefore proven end to end.
+
+**One defect this run also showed, recorded for the next stage:** the guest that was already present received a
+SECOND catch-up transfer (`serving … to late joiner <the guest>`), so the exclusion above is not yet complete —
+the join event for an existing peer can still arrive after the share began, and the queue must also exclude any
+member of `_sharePeers`. It costs channel time, not correctness (the guest's playback stayed in sync), which is
+why the ticket stays open with the guest-sharer path and the listener controls.
 
 **Where the files come from:** the player's own disk, picked through the mod's own path field (the game has no
 file picker for this); nothing is shipped with the mod and nothing is uploaded beyond the session's own peers.

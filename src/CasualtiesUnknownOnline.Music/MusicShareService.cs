@@ -47,6 +47,13 @@ internal sealed class MusicShareService
 	private readonly HashSet<ulong> _peers = [];
 	private readonly Dictionary<int, HashSet<ulong>> _ackedBy = [];
 
+	/// <summary>
+	/// The peers known when the share STARTED: a member who joins mid-transfer is served from the cache once the
+	/// file is complete, and its silence must not stall the original transfer (the quorum is this set, not the
+	/// live roster).
+	/// </summary>
+	private readonly HashSet<ulong> _sharePeers = [];
+
 	private BulkSender? _sender;
 	private byte[]? _file;
 	private string _transfer = string.Empty;
@@ -74,6 +81,12 @@ internal sealed class MusicShareService
 
 	/// <summary>Per late joiner, a fresh sender and the instant its next chunk may leave.</summary>
 	private readonly Dictionary<ulong, CatchUp> _catchUp = [];
+
+	/// <summary>
+	/// Members who joined while a transfer was still in flight: their catch-up can only start once the file is
+	/// cached, so they are served when <see cref="Cache"/> runs rather than losing the track entirely.
+	/// </summary>
+	private readonly HashSet<ulong> _pendingServe = [];
 
 	internal MusicShareService(IModContext context, MusicDevice device)
 	{
@@ -161,6 +174,12 @@ internal sealed class MusicShareService
 		_file = bytes;
 		_sender = new BulkSender(_transfer, bytes, ChunkBytes);
 		_ackedBy.Clear();
+		_sharePeers.Clear();
+		foreach (var peer in _peers)
+		{
+			_sharePeers.Add(peer);
+		}
+
 		_startTicks = DateTime.UtcNow.AddSeconds(StartDelaySeconds).Ticks;
 		_nextSendAt = Time.realtimeSinceStartupAsDouble;
 		_deadlineAt = _nextSendAt + TransferDeadlineSeconds;
@@ -190,7 +209,9 @@ internal sealed class MusicShareService
 		_file = null;
 		_received = null;
 		_ackedBy.Clear();
+		_sharePeers.Clear();
 		_catchUp.Clear();
+		_pendingServe.Clear();
 		_device.Stop();
 	}
 
@@ -200,8 +221,21 @@ internal sealed class MusicShareService
 	/// </summary>
 	private void ServeLateJoiner(ulong member)
 	{
-		if (_guest || _cacheBytes is null || _cacheStartTicks == long.MaxValue)
+		if (_guest)
 		{
+			return;
+		}
+
+		if (_cacheBytes is null || _cacheStartTicks == long.MaxValue)
+		{
+			// Only a member who joined WHILE a share is moving has anything to be served later; a member who was
+			// already there when the share began is one of its acks and must not be queued (a second catch-up
+			// transfer for it would spend the channel on a track it already holds).
+			if (_sender is not null)
+			{
+				_pendingServe.Add(member);
+			}
+
 			return;
 		}
 
@@ -313,6 +347,14 @@ internal sealed class MusicShareService
 		_cacheBytes = bytes;
 		_cacheStartTicks = startTicks;
 		_cacheChunkBytes = chunkBytes;
+
+		// A member who joined mid-transfer was remembered; now that the file exists, serve it.
+		foreach (var member in _pendingServe.ToArray())
+		{
+			ServeLateJoiner(member);
+		}
+
+		_pendingServe.Clear();
 	}
 
 	/// <summary>One late joiner's private catch-up transfer.</summary>
@@ -463,6 +505,13 @@ internal sealed class MusicShareService
 			return;
 		}
 
+		if (!_sharePeers.Contains(context.SenderSteamId))
+		{
+			// A member who joined mid-transfer is served from the cache afterwards; its silence must not stall
+			// the original transfer's quorum.
+			return;
+		}
+
 		for (var index = 0; index <= highWater; index++)
 		{
 			if (!_ackedBy.TryGetValue(index, out var acked))
@@ -472,7 +521,7 @@ internal sealed class MusicShareService
 			}
 
 			acked.Add(context.SenderSteamId);
-			if (_peers.Count == 0 || acked.Count < _peers.Count)
+			if (_sharePeers.Count == 0 || acked.Count < _sharePeers.Count)
 			{
 				continue;
 			}

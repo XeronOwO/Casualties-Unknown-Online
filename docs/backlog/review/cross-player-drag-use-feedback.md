@@ -1,8 +1,9 @@
 # Cross-player use by drag: the gesture has to announce itself (highlight, label, cue sound)
 
-- Status: Todo — **user finding (2026-10-06)**: asked whether the gesture gives any feedback, the user ruled
-  that a rule with no UI and no sound reads as a feature that does not exist, and an occasional misfire reads
-  as a bug; UI and sound cues are wanted.
+- Status: Review — the cue's remaining half landed (2026-10-24, deployed `0.1.0+9510981e`): the REFUSAL now reads
+  on the operator's own screen as a localized line plus the game's deny sound, and the user ruled there is NO extra
+  success sound because the drag already has the game's own cloth rustle. Two runtime rows still need a real drag
+  (mouse input the acceptance tooling does not drive) and are named at the end of this page.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / feedback and discoverability
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
@@ -262,3 +263,25 @@ attempted routes, the exact private entry above, and the rule question a cursor 
 
 What would make this cheap to resume: one probe run that calls that private method with a hand-built
 `RaycastResult` and reads whether the move happened. If it works, all three rows open at once.
+
+## The refusal half landed (2026-10-24, deployed `0.1.0+9510981e`), and the user's two rulings
+
+Asked about the gesture's feedback, the user ruled on 2026-10-24:
+
+1. **No extra success sound.** Dragging an item into a slot or a container already plays the game's own
+   cloth-rustle-like cue; adding a second one "would feel out of place". The highlight and the name label remain the
+   success cue.
+2. **A refusal is a line plus the game's deny sound**, so the player both sees and hears why the gesture did nothing.
+
+The refusal half is what the code was missing: a refused cross-player use was logged by the host and the operator's
+screen showed nothing at all, which is indistinguishable from a gesture that silently did nothing. It now:
+
+- carries the host's own reason over `NetMsg.PlayerItemUseRefused` = 165 (host → the operator, reliable);
+- returns that reason from `PlayerItemUseExecution` (every refusal site states one, and the host's detailed log line
+  stays where it was);
+- publishes the localized line `hud.use_refused` on the operator's screen — the same path for the host's own
+  gesture and for a member's — and fires the Game Adapter's `PlayerCamera.PlayUISound(Deny)` beside it.
+
+**Rows still unread, named rather than claimed**: the highlight and the label appear on a remote body during a real
+drag, and a refused drag shows the line and plays the deny sound in-game. Both need mouse input the acceptance
+tooling does not drive, which is the same lever this page's earlier sections describe.

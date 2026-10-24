@@ -50,4 +50,4 @@ size, exact offset) is the design the ticket already fixed; a frame cannot make 
 - Rows 1, 2, 5, 7 and 8 remain batch `20261022-f`'s readings and were not re-run; rows 3, 4 and 6 are unit 2's.
 - The two limits the fix itself leaves (two players with the same display name still read one label; a CUO modal
   that swallows the release leaves the game's own drag stuck) are recorded on
-  `docs/backlog/todo/cross-player-drag-use-feedback.md`, not judged here.
+  `docs/backlog/review/cross-player-drag-use-feedback.md`, not judged here.

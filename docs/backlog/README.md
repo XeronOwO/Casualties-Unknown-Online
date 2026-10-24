@@ -54,7 +54,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
 
-- [Cross-player use by drag shows nothing](todo/cross-player-drag-use-feedback.md) — **Medium** — highlight, label and cue sound.
 - [A nested container's clone proxy leaks as a world item](todo/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — a refused load orphans it.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — two sets for one death.
 - [The panel's save-and-exit writes the native save](todo/layer-end-save-and-exit-native-write.md) — **Medium** — decision 165's blind spot.
@@ -64,7 +63,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Review
 
-
+- [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [A player can watch the run as a spectator](review/dead-player-spectating.md) — **Medium** — every pivot slice landed and read.
 - [Command refusals render as successes](review/console-command-refusals-render-green.md) — **Low-Medium** — typed answers; every verb read.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.

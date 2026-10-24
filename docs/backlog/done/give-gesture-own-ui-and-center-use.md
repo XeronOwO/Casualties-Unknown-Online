@@ -14,7 +14,7 @@
   range only chooses whose backpack is displayed.
 - Related: `done/give-item-to-another-player.md` (the gesture's rows, re-based here),
   `todo/placement-failure-report-anchor.md` (the receive side; unaffected by this entry change),
-  `todo/cross-player-drag-use-feedback.md` (the cue this ticket re-points at the centre), decisions 217/218 (the
+  `review/cross-player-drag-use-feedback.md` (the cue this ticket re-points at the centre), decisions 217/218 (the
   native intent, the viewer never mutates a proxy) and the 2026-10-22 selection ruling this refines.
 
 ## Problem (evidence)

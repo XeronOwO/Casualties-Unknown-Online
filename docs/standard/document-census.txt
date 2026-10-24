@@ -290,7 +290,7 @@ docs/backlog/review/unhooked-item-and-body-sound-families.md | keep | index | do
 docs/backlog/review/unified-remote-display-projection-rework.md | keep | index | docs/backlog/README.md
 docs/backlog/done/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-content-event-gap-on-repick.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
+docs/backlog/review/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/done/docs-mojibake-cleanup.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
@@ -757,7 +757,7 @@ docs/evidence/selfchecks/items/container-move-kernel-fact-selfcheck.md | keep | 
 docs/evidence/selfchecks/items/container-move-pair-classification-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/items/container-take-out-selfcheck.md | keep | claim | docs/backlog/done/pickup-early-return-kernel-relocation.md
 docs/evidence/selfchecks/items/craft-carried-fact-retirement-selfcheck.md | keep | claim | docs/backlog/done/craft-carried-fact-retirement.md
-docs/evidence/selfchecks/items/cross-player-item-use-selfcheck.md | keep | claim | docs/backlog/todo/cross-player-drag-use-feedback.md
+docs/evidence/selfchecks/items/cross-player-item-use-selfcheck.md | keep | claim | docs/backlog/review/cross-player-drag-use-feedback.md
 docs/evidence/selfchecks/items/custom-item-data-state-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/display-body-query-seam-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/items/dynamite-explosion-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

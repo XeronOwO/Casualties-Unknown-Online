@@ -194,10 +194,16 @@ the GUEST role although a host is itself the relay; `6c09903c`). After both fixe
 `/gamemode spectator` stays on, `/spectate <member>` answers `Watching <id>`, and **the watched member's own log
 receives the notice** — `[Spectator] notice watcher=<host> target=<member> watching=True role=Guest` in the
 target's client. The plugin then publishes the localized line into the session's notice slot.
-**NOT yet confirmed: the visible line on the target's screen** — two captures of that client (with the `-Id`
-capture parameter this round added) show the Online UI but not the notice text, because the notice slot is
-latest-wins and the frame was taken after the pane's own hint had replaced it; catching it needs a capture in the
-same frame as the publish or a longer-lived surface, which is the next attempt's job.
+**The visible line: the display path is proven, the publish is not.** A probe that calls
+`ISessionNotices.Publish("PROBE STATUS LINE")` on the target's client — with a capture through `-Id` 3 s later —
+shows that text in the client's top-left status line, so the slot, the drain and the 1.5 s delay + 15 s hold all
+work. The same capture taken 3 s after a real watch shows `RTT` only: the notice reaches the client (the handler's
+log line), but the plugin's `OnSpectatorNotice` never turns it into a status line. The slot probe also reads empty
+right after a watch, which is consistent with either case (the drain consumes it every frame). The next attempt
+starts by logging inside `OnSpectatorNotice` to decide between the two candidates: the subscription is on a
+different `IWorldControl` instance than the handler fires on, or the plugin host that carries it is not the one
+built for this client.
+
 
 
 

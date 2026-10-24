@@ -451,6 +451,27 @@ The switch is a BepInEx config value, so flipping it takes a restart (the plugin
 file is only read at load); the machine reading used one session per position for that reason. The shipped default is
 `true`, restored after the reading.
 
+**The switch now has an in-game toggle, and it is live (2026-10-24, deployed `0.1.0+bd51ab1e`).** The user's second
+ruling — a player must not restart the game to change a spectating preference — is landed as a Preferences checkbox
+bound to the same config value: the click writes the ConfigEntry, the plugin hands it to the camera every frame, and
+the camera logs the change. The reading: in spectator mode with the page open,
+`mirror … effects=True` at 15:24:09.481, one click on `prefs.spectator_effects.toggle`, and
+`mirror … effects=False` at 15:24:12.338 — **no restart**, and the config file carries the new value afterwards, so the
+choice survives one.
+
+**One anomaly from the same run, unread:** clicking the toggle a SECOND time answered `applied=True` but the camera
+kept `effects=False` and the config stayed `false`, so the box did not flip back. The likely shape is the toggle's
+intent carrying the value from a stale model (the second click re-sending what the previous frame showed) rather than
+the new one; the next attempt reads the page's model between clicks (one frame apart) and logs the `Flag` the intent
+carried, then fixes the binding. The config was restored to the shipped default by hand after the reading.
+
+**Still unread: the watched body's crisis sound.** The service now starts the game's own critical-dying clip when the
+REPORTED brain health or consciousness says the body is going out, through the gate's depth window that lets it past
+the spectator's silence patch, and stops it when the body recovers or the watch ends. No run has yet produced the
+`[Spectator] crisis sound started` line, because staging a body that is ALIVE with a low reported brain health needs a
+probe that holds a non-fatal injury, which this session did not have.
+
+
 
 
 

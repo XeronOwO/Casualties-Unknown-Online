@@ -104,4 +104,3 @@ Every row is the patch's own line at `PreRunScript.Start` (a low-frequency edge)
 The patch's wording is deliberate: it reports the ACTION it took ("skipped" / "left to the game"), never that the
 cover appeared, because the game's own `didIntro` is sticky for a process and an earlier skip can keep the cover
 hidden after the preference is turned off mid-session.
-

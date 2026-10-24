@@ -19,7 +19,8 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// </summary>
 public readonly record struct OnlineUiWorldOverlay(
 	OnlineUiNetworkHud? Hud,
-	IReadOnlyList<OnlineUiWorldMarker> Markers)
+	IReadOnlyList<OnlineUiWorldMarker> Markers,
+	string? SpectatorStrip = null)
 {
 	/// <summary>The one empty marker list there is: the state a frame pushes while the start gate or the
 	/// command console owns the screen, and the one a session with no remote player in the world is in. One

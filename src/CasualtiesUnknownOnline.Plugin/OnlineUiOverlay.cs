@@ -509,7 +509,34 @@ internal sealed class OnlineUiOverlay
 		_worldMarkers.Clear();
 		BuildNameplateMarkers(ctx);
 		BuildPingMarkers(ctx);
-		return new OnlineUiWorldOverlay(BuildNetworkHud(ctx), _worldMarkers);
+		return new OnlineUiWorldOverlay(BuildNetworkHud(ctx), _worldMarkers, BuildSpectatorStrip(ctx));
+	}
+
+	/// <summary>
+	/// The watched player's own vitals along the bottom of the screen while this client spectates: the ruler the
+	/// ruling's "tell me what they are living through" needs the moment the camera leaves the local body, read from
+	/// the same remote-vitals projection the member card shows (brain, stamina and hunger are what the owner's client
+	/// reports; blood and oxygen stay the owner's own derived values and are not invented here).
+	/// </summary>
+	private string? BuildSpectatorStrip(OnlineUiContext ctx)
+	{
+		if (!ctx.IsSpectator || ctx.WatchingSteamId == 0)
+		{
+			return null;
+		}
+
+		var name = ctx.DisplayName(ctx.WatchingSteamId);
+		if (!ctx.Vitals.TryGet(ctx.WatchingSteamId, out var vitals))
+		{
+			return ctx.F("spectator.strip_plain", name);
+		}
+
+		return ctx.F(
+			"spectator.strip",
+			name,
+			vitals.BrainHealth,
+			vitals.Stamina,
+			vitals.Hunger);
 	}
 
 	private static OnlineUiNativeRgba ToRgba(PlayerColorValue value) => new(value.R, value.G, value.B, value.A);

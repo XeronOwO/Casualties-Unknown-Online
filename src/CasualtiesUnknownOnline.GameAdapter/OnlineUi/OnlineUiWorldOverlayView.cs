@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using Microsoft.Extensions.Logging;
@@ -94,6 +95,9 @@ internal sealed class OnlineUiWorldOverlayView
 
 	internal const float HudWidth = 220f;
 
+	/// <summary>The spectator strip's width: wide enough for a member name and three vitals on one line.</summary>
+	internal const float SpectatorStripWidth = 420f;
+
 	private readonly ILogger _log;
 	private readonly GameObject _root;
 	private readonly RectTransform _rect;
@@ -101,6 +105,7 @@ internal sealed class OnlineUiWorldOverlayView
 	private readonly OnlineUiControlTypography _typography;
 	private readonly TextMeshProUGUI _hudRtt;
 	private readonly TextMeshProUGUI _hudStatus;
+	private readonly TextMeshProUGUI _spectatorStrip;
 	private readonly List<Marker> _markers = [];
 	private readonly HashSet<string> _reportedMissingGlyphs = [];
 
@@ -109,6 +114,8 @@ internal sealed class OnlineUiWorldOverlayView
 
 	private bool _hudShown;
 	private bool _statusShown;
+	private bool _spectatorStripShown;
+	private string? _spectatorStripText;
 
 	private OnlineUiWorldOverlayView(
 		ILogger log,
@@ -117,7 +124,8 @@ internal sealed class OnlineUiWorldOverlayView
 		Canvas? canvas,
 		OnlineUiControlTypography typography,
 		TextMeshProUGUI hudRtt,
-		TextMeshProUGUI hudStatus)
+		TextMeshProUGUI hudStatus,
+		TextMeshProUGUI spectatorStrip)
 	{
 		_log = log;
 		_root = root;
@@ -126,6 +134,7 @@ internal sealed class OnlineUiWorldOverlayView
 		_typography = typography;
 		_hudRtt = hudRtt;
 		_hudStatus = hudStatus;
+		_spectatorStrip = spectatorStrip;
 	}
 
 	/// <summary>
@@ -150,6 +159,8 @@ internal sealed class OnlineUiWorldOverlayView
 		var hud = OnlineUiWorldOverlayParts.CreateHudLabel("Network HUD", root.transform, typography, new Vector2(HudMargin, -HudMargin), new Vector2(HudWidth, HudRowHeight));
 		var status = OnlineUiWorldOverlayParts.CreateHudLabel("Session Status", root.transform, typography, new Vector2(HudMargin, -(HudMargin + HudRowHeight)), new Vector2(HudWidth, HudRowHeight));
 		status.gameObject.SetActive(false);
+		// The watched player's vitals while spectating: bottom-centre, clear of the game's own bottom-left icons.
+		var spectacle = OnlineUiWorldOverlayParts.CreateBottomLabel("Spectator Strip", root.transform, typography, HudMargin, new Vector2(SpectatorStripWidth, HudRowHeight));
 
 		var view = new OnlineUiWorldOverlayView(
 			log,
@@ -158,7 +169,8 @@ internal sealed class OnlineUiWorldOverlayView
 			root.GetComponentInParent<Canvas>()?.rootCanvas,
 			typography,
 			hud,
-			status);
+			status,
+			spectacle);
 		// Behind CUO's own panels: the canvas's other children are built after this one, and a nameplate
 		// over an open window would be the wrong way round.
 		root.transform.SetAsFirstSibling();
@@ -170,6 +182,7 @@ internal sealed class OnlineUiWorldOverlayView
 	internal void Apply(OnlineUiWorldOverlay overlay)
 	{
 		ApplyHud(overlay.Hud);
+		ApplySpectatorStrip(overlay.SpectatorStrip);
 		ApplyMarkers(overlay.Markers);
 	}
 
@@ -227,6 +240,27 @@ internal sealed class OnlineUiWorldOverlayView
 	/// passes and could not couple them; this keeps the same independence.
 	/// </para>
 	/// </summary>
+	/// <summary>
+	/// The watched player's strip: shown only while the model carries one, so leaving spectator mode (or stopping the
+	/// watch) clears it the same frame the model drops it. The text is written where it differs.
+	/// </summary>
+	private void ApplySpectatorStrip(string? text)
+	{
+		var shown = !string.IsNullOrEmpty(text);
+		if (_spectatorStripShown != shown)
+		{
+			_spectatorStripShown = shown;
+			_spectatorStrip.gameObject.SetActive(shown);
+		}
+
+		if (shown && !string.Equals(_spectatorStripText, text, StringComparison.Ordinal))
+		{
+			_spectatorStripText = text;
+			OnlineUiWorldOverlayParts.SetText(_spectatorStrip, text!);
+			_spectatorStrip.color = new Color(0.82f, 0.87f, 0.92f, 1f);
+		}
+	}
+
 	private void ApplyMarkers(IReadOnlyList<OnlineUiWorldMarker> markers)
 	{
 		// A frame the surface never built (the struct's default value) carries no list at all: nothing to

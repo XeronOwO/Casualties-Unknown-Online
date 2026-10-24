@@ -152,7 +152,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 	{
 		// The plugin's half: a model, not a draw.
 		{ nameof(ThePluginBuildsTheWorldOverlaysInsteadOfDrawing), "plugin/OnlineUiOverlay.cs", "_worldMarkers.Add(OnlineUiWorldMarker.Nameplate(", "GUI.Label(new Rect(0f, 0f, 1f, 1f), \"Ana\");\n\t\t\t_worldMarkers.Add(OnlineUiWorldMarker.Nameplate(", "a nameplate drawn in IMGUI again" },
-		{ nameof(ThePluginBuildsTheWorldOverlaysInsteadOfDrawing), "plugin/OnlineUiOverlay.cs", "return new OnlineUiWorldOverlay(BuildNetworkHud(ctx), _worldMarkers);", "return OnlineUiWorldOverlay.None;", "a world overlay the frame always pushes empty" },
+		{ nameof(ThePluginBuildsTheWorldOverlaysInsteadOfDrawing), "plugin/OnlineUiOverlay.cs", "return new OnlineUiWorldOverlay(BuildNetworkHud(ctx), _worldMarkers, BuildSpectatorStrip(ctx));", "return OnlineUiWorldOverlay.None;", "a world overlay the frame always pushes empty" },
 		// The surface's half: built with the canvas, applied on every frame, dropped with it.
 		{ nameof(TheSurfaceCarriesTheWorldOverlay), "adapter/OnlineUiSurfaceHost.cs", "_worldOverlay = OnlineUiWorldOverlayView.Create(root.transform, _log);", "_worldOverlay = null;", "a world overlay that is never built" },
 		{ nameof(TheSurfaceCarriesTheWorldOverlay), "adapter/OnlineUiSurfaceHost.cs", "_worldOverlay?.Apply(frame.World);", "// the frame's world overlay is dropped", "a frame whose world overlay never reaches the surface" },
@@ -233,7 +233,7 @@ public sealed class OnlineUiWorldOverlayPinTests
 			&& flat.Contains("internal OnlineUiWorldOverlay BuildWorldOverlay(OnlineUiContext ctx)", StringComparison.Ordinal)
 			&& flat.Contains("_worldMarkers.Add(OnlineUiWorldMarker.Nameplate(", StringComparison.Ordinal)
 			&& flat.Contains("_worldMarkers.Add(OnlineUiWorldMarker.Ping(", StringComparison.Ordinal)
-			&& flat.Contains("return new OnlineUiWorldOverlay(BuildNetworkHud(ctx), _worldMarkers);", StringComparison.Ordinal);
+			&& flat.Contains("return new OnlineUiWorldOverlay(BuildNetworkHud(ctx), _worldMarkers, BuildSpectatorStrip(ctx));", StringComparison.Ordinal);
 	}
 
 	/// <summary>The surface's half: one view, built with the canvas, applied from the frame push, and

@@ -39,6 +39,30 @@ internal static class OnlineUiWorldOverlayParts
 		return label;
 	}
 
+	/// <summary>
+	/// A bottom-centre label: the spectator's strip about the player they are watching. The HUD labels anchor to
+	/// the top-left because that is where the game's own readout sits; this one belongs on the bottom edge, so it
+	/// anchors and pivots there instead of reusing the top-left position.
+	/// </summary>
+	internal static TextMeshProUGUI CreateBottomLabel(
+		string name,
+		Transform parent,
+		OnlineUiControlTypography typography,
+		float bottomMargin,
+		Vector2 size)
+	{
+		var label = CreateLabel(name, parent, typography, TextAlignmentOptions.Center);
+		var rect = (RectTransform)label.transform;
+		rect.anchorMin = new Vector2(0.5f, 0f);
+		rect.anchorMax = new Vector2(0.5f, 0f);
+		rect.pivot = new Vector2(0.5f, 0f);
+		rect.anchoredPosition = new Vector2(0f, bottomMargin);
+		rect.sizeDelta = size;
+		label.fontSize = typography.SizeOf(OnlineUiTextStyle.Muted);
+		label.gameObject.SetActive(false);
+		return label;
+	}
+
 
 	/// <summary>A label on the game's own font, at the size the game's row prefab implies for the muted style —
 	/// the same construction the window's and the panels' labels use (<see cref="OnlineUiSurfaceParts"/>) — with

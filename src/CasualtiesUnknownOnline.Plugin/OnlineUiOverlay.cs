@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -147,13 +148,19 @@ internal sealed class OnlineUiOverlay
 
 	private readonly OnlineUiPlayerContextMenu _contextMenu = new();
 
-	private readonly OnlineUiQuickPanel _quickPanel = new();
+	private readonly OnlineUiQuickPanel _quickPanel;
 
 	private readonly CommandConsoleOverlay _commandOverlay;
 
-	internal OnlineUiOverlay(ConsoleInputSession consoleInput)
+	/// <summary>The CUO logging pipeline, not BepInEx's bare source: the plugin and the runtime write through one
+	/// pipeline (level options, rolling file and the BepInEx sink), so a reader finds every line in the same file.</summary>
+	private readonly ILogger<OnlineUiOverlay> _log;
+
+	internal OnlineUiOverlay(ConsoleInputSession consoleInput, ILoggerFactory loggers)
 	{
-		_commandOverlay = new CommandConsoleOverlay(consoleInput);
+		_log = loggers.CreateLogger<OnlineUiOverlay>();
+		_quickPanel = new OnlineUiQuickPanel(loggers.CreateLogger<OnlineUiQuickPanel>());
+		_commandOverlay = new CommandConsoleOverlay(consoleInput, loggers.CreateLogger<CommandConsoleOverlay>());
 	}
 
 	private const float StatusDelaySeconds = 1.5f;
@@ -232,7 +239,7 @@ internal sealed class OnlineUiOverlay
 		// see would not make the refusal observable.
 		if (_commandOverlay.IsOpen)
 		{
-			Plugin.Logger.LogInfo("Online UI launcher click ignored: the command console owns the input.");
+			_log.LogInformation("Online UI launcher click ignored: the command console owns the input.");
 			return;
 		}
 
@@ -329,7 +336,7 @@ internal sealed class OnlineUiOverlay
 			&& esc.type == EventType.KeyDown
 			&& esc.keyCode == KeyCode.Escape)
 		{
-			Plugin.Logger.LogInfo("Online UI window ESC consumed; closing window.");
+			_log.LogInformation("Online UI window ESC consumed; closing window.");
 			CloseWindow();
 			esc.Use();
 		}
@@ -381,7 +388,7 @@ internal sealed class OnlineUiOverlay
 		// The watched-notice line is set here and never drawn, while a probe publishing into the same slot draws. The
 		// only object-level difference left is WHICH overlay runs each half, so this prints the instance identity and
 		// the clock on the setting side; BuildNetworkHud prints the same two on the drawing side.
-		Plugin.Logger.LogInfo(
+		_log.LogInformation(
 			$"[OnlineUi] notify overlay={RuntimeHelpers.GetHashCode(this)} t={Time.realtimeSinceStartup:F1} len={message.Length}");
 	}
 
@@ -414,7 +421,7 @@ internal sealed class OnlineUiOverlay
 		if (status is not null && !string.Equals(status, _statusRendered, StringComparison.Ordinal))
 		{
 			_statusRendered = status;
-			Plugin.Logger.LogInfo(
+			_log.LogInformation(
 				$"[OnlineUi] status shown overlay={RuntimeHelpers.GetHashCode(this)} t={Time.realtimeSinceStartup:F1} len={status.Length}: {status}");
 		}
 

@@ -1,5 +1,6 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -34,10 +35,15 @@ internal sealed class CommandConsoleOverlay
 	private KeyCode _focusOpener = KeyCode.Slash;
 	private IMECompositionMode _previousImeMode = IMECompositionMode.Auto;
 
-	internal CommandConsoleOverlay(ConsoleInputSession session)
+	internal CommandConsoleOverlay(ConsoleInputSession session, ILogger<CommandConsoleOverlay> log)
 	{
 		_session = session;
+		_log = log;
 	}
+
+	/// <summary>The CUO logging pipeline (level options, rolling file and BepInEx sink) rather than BepInEx's bare
+	/// source: one pipeline for the plugin and the runtime, so a reader finds every line in the same file.</summary>
+	private readonly ILogger<CommandConsoleOverlay> _log;
 
 	internal bool IsOpen => _session.IsOpen;
 
@@ -142,7 +148,7 @@ internal sealed class CommandConsoleOverlay
 				|| (_focusOpener == KeyCode.Return && evt.keyCode == KeyCode.KeypadEnter)))
 		{
 			_focusPending = false;
-			Plugin.Logger.LogInfo($"Command console opened by {_focusOpener}; swallowing that key so it is not typed or submitted.");
+			_log.LogInformation($"Command console opened by {_focusOpener}; swallowing that key so it is not typed or submitted.");
 			evt.Use();
 			return;
 		}
@@ -292,7 +298,7 @@ internal sealed class CommandConsoleOverlay
 				evt.Use();
 				break;
 			case KeyCode.Escape:
-				Plugin.Logger.LogInfo("Command console ESC consumed; closing overlay.");
+				_log.LogInformation("Command console ESC consumed; closing overlay.");
 				Close();
 				evt.Use();
 				break;

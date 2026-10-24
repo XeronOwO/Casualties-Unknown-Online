@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -39,6 +40,14 @@ internal sealed class OnlineUiQuickPanel
 	private bool _visible;
 	private ulong? _target;
 
+	/// <summary>The CUO logging pipeline, not BepInEx's bare source, so every line lands in the same file.</summary>
+	private readonly ILogger<OnlineUiQuickPanel> _log;
+
+	internal OnlineUiQuickPanel(ILogger<OnlineUiQuickPanel> log)
+	{
+		_log = log;
+	}
+
 	internal bool IsVisible => _visible;
 
 	internal void Toggle() => _visible = !_visible;
@@ -59,7 +68,7 @@ internal sealed class OnlineUiQuickPanel
 		var evt = Event.current;
 		if (evt != null && evt.type == EventType.KeyDown && evt.keyCode == KeyCode.Escape)
 		{
-			Plugin.Logger.LogInfo("Quick panel ESC consumed; closing panel.");
+			_log.LogInformation("Quick panel ESC consumed; closing panel.");
 			Close();
 			evt.Use();
 		}

@@ -100,8 +100,8 @@ public sealed class OnlineUiInputBlockingPinTests
 		{ nameof(TheRetiredRectangleApiIsGoneFromTheSource), "adapter-root/OnlineMenuInputGuard.cs", "private static bool IsBlockable(Canvas canvas)", "internal void SetOnlineUiScopedBlocks() { }\n\n\tprivate static bool IsBlockable(Canvas canvas)", "the retired rectangle-list API regrown on the guard" },
 		{ nameof(BothWorldInputPathsAskTheCensus), "plugin/OnlineUiOverlay.cs", "return _pointerCensus.BlocksWorldPing();", "return IsCommandConsoleOpen || IsWindowVisible;", "a ping path that only knows the modal flag again" },
 		{ nameof(BothWorldInputPathsAskTheCensus), "plugin/OnlineUiOverlay.cs", "return _pointerCensus.BlocksWorldMenu();", "return _contextMenu.IsOpen;", "a right-click path that keeps its own list of surfaces" },
-		{ nameof(TheConsoleKeepsTheLauncherFromOpeningASecondSurface), "plugin/OnlineUiOverlay.cs", "Plugin.Logger.LogInfo(\"Online UI launcher click ignored: the command console owns the input.\");", "// the launcher opens the window behind the console", "a launcher that opens a second surface behind the console" },
-		{ nameof(TheConsoleKeepsTheLauncherFromOpeningASecondSurface), "plugin/OnlineUiOverlay.cs", "if (_commandOverlay.IsOpen)\n\t\t{\n\t\t\tPlugin.Logger.LogInfo(\"Online UI launcher click ignored: the command console owns the input.\");\n\t\t\treturn;\n\t\t}\n\n\t\t_window.State.Visible = !_window.State.Visible;", "_window.State.Visible = !_window.State.Visible;\n\n\t\tif (_commandOverlay.IsOpen)\n\t\t{\n\t\t\tPlugin.Logger.LogInfo(\"Online UI launcher click ignored: the command console owns the input.\");\n\t\t\treturn;\n\t\t}", "a refusal that runs after the window has already opened" },
+		{ nameof(TheConsoleKeepsTheLauncherFromOpeningASecondSurface), "plugin/OnlineUiOverlay.cs", "_log.LogInformation(\"Online UI launcher click ignored: the command console owns the input.\");", "// the launcher opens the window behind the console", "a launcher that opens a second surface behind the console" },
+		{ nameof(TheConsoleKeepsTheLauncherFromOpeningASecondSurface), "plugin/OnlineUiOverlay.cs", "if (_commandOverlay.IsOpen)\n\t\t{\n\t\t\t_log.LogInformation(\"Online UI launcher click ignored: the command console owns the input.\");\n\t\t\treturn;\n\t\t}\n\n\t\t_window.State.Visible = !_window.State.Visible;", "_window.State.Visible = !_window.State.Visible;\n\n\t\tif (_commandOverlay.IsOpen)\n\t\t{\n\t\t\t_log.LogInformation(\"Online UI launcher click ignored: the command console owns the input.\");\n\t\t\treturn;\n\t\t}", "a refusal that runs after the window has already opened" },
 		{ nameof(ThePointerFactsDieWithTheSurface), "adapter/OnlineUiSurfaceHost.cs", "_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.LauncherHoverLeft));", "// the launcher's stale pointer fact is kept", "a surface that leaves the census holding a fact its view no longer reports" },
 		{ nameof(ThePointerFactsDieWithTheSurface), "adapter/OnlineUiSurfaceHost.cs", "_intents.Enqueue(new OnlineUiIntent(OnlineUiIntentKind.QuickPanelHoverLeft));", "// the quick panel's stale pointer fact is kept", "a surface that retracts three facts and forgets the fourth" },
 	};
@@ -258,7 +258,7 @@ public sealed class OnlineUiInputBlockingPinTests
 
 		return refusal >= 0
 			&& toggle > refusal
-			&& body.Contains("Plugin.Logger.LogInfo(", StringComparison.Ordinal);
+			&& body.Contains("_log.LogInformation(", StringComparison.Ordinal);
 	}
 
 	/// <summary>

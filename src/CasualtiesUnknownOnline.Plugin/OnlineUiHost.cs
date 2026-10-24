@@ -182,7 +182,9 @@ internal sealed class OnlineUiHost
 			_worldPresence,
 			_localization,
 			services.GetRequiredService<ILogger<IpDirectActions>>());
-		_onlineUi = new OnlineUiOverlay(services.GetRequiredService<ConsoleInputSession>())
+		_onlineUi = new OnlineUiOverlay(
+			services.GetRequiredService<ConsoleInputSession>(),
+			services.GetRequiredService<ILoggerFactory>())
 		{
 			// The UI delegates are the same guarded paths the Steam callbacks use
 			// — one lobby-switch policy (_lobby), two entry points.

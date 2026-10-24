@@ -70,7 +70,7 @@ internal sealed class SpectatorNoticeService(
 
 	private void OnNotice(ulong sender, SpectatorNoticeMsg msg)
 	{
-		if (!msg.Watching || msg.TargetSteamId != _session.LocalSteamId)
+		if (msg.TargetSteamId != _session.LocalSteamId)
 		{
 			return;
 		}
@@ -81,10 +81,15 @@ internal sealed class SpectatorNoticeService(
 			watcher = msg.WatcherSteamId.ToString(CultureInfo.InvariantCulture);
 		}
 
-		_notices.Publish(_localization.Format("spectator.watched_notice", watcher));
+		// Start and stop are both told: a courtesy line that only ever says "someone is watching" leaves the watched
+		// player unable to tell whether it ended, and the ruling's point is to know.
+		_notices.Publish(_localization.Format(
+			msg.Watching ? "spectator.watched_notice" : "spectator.watching_stopped",
+			watcher));
 		_log.LogInformation(
-			"[Spectator] the watched player was told (watcher={Watcher}, slot={Slot}, notifications={Type}).",
+			"[Spectator] the watched player was told (watcher={Watcher}, watching={Watching}, slot={Slot}, notifications={Type}).",
 			msg.WatcherSteamId,
+			msg.Watching,
 			RuntimeHelpers.GetHashCode(_notices),
 			_notices.GetType().FullName);
 	}

@@ -7,6 +7,15 @@
   is rendered by something other than a `Body` (or by a body this probe's assembly-qualified type lookup does not reach). The
   probe was removed rather than committed as dead tooling; the row needs a reading that names the clone's real type first. The
   fix's own regression (`RemoteCloneFacingNeutralizationTests`, red→green) and its selfcheck stand unchanged.
+
+  **Batch `20261025-ao` answered that first question: the host's view of a member is made of `Limb` components, not a `Body`.** A
+  new reading starts from the Transform every renderer has and reports component TYPE NAMES instead of assuming a type: with the
+  guest standing at `(0, 494.616)`, a radius-3 scan on the host covered 6 362 loaded objects, matched 85 of them, and the only
+  game-side component types among them were **`Limb`, `LiquidAffect` and `BleedParticle`** (the rest are Unity's own Transform,
+  ParticleSystem and renderer types). So no clone carries a `Body` — which is exactly why `FindObjectsOfType<Body>()` answered
+  nothing — and the facing pair this row wants must be read through whatever `Limb` and the clone's root Transform expose. The
+  probe is `tools/acceptance/recipes/clone-components.cs`, committed rather than deleted, because naming the clone's type is the
+  step the next attempt starts from.
 - Priority: Medium
 - Category: Player presentation / sync root cause
 - Source: User report (2026-09-05), refined reproduction — dual-instance test; the original water-current scenario is included as one observed variant.

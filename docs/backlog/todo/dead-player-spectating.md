@@ -186,6 +186,20 @@ and formats the localized line). That is ten files in one commit, and the gates 
 the coverage matrix row and the vocabulary index in the same change. The next attempt starts with all ten named
 here instead of rediscovering them.
 
+**The notice, landed and read on three clients (2026-10-24, deployed `0.1.0+6c09903c`):** the chain landed in
+`db2601a0`; reading it found and fixed two real defects in the same session — the mode exited 18 ms after it was
+entered (the revive exit treated "the body is alive" as "the player was revived", while a live-bodied spectator is
+exactly the ruling's shape; `eb8f443d`), and a host's own notice never left its client (the channel's send required
+the GUEST role although a host is itself the relay; `6c09903c`). After both fixes the reading gives: host
+`/gamemode spectator` stays on, `/spectate <member>` answers `Watching <id>`, and **the watched member's own log
+receives the notice** — `[Spectator] notice watcher=<host> target=<member> watching=True role=Guest` in the
+target's client. The plugin then publishes the localized line into the session's notice slot.
+**NOT yet confirmed: the visible line on the target's screen** — two captures of that client (with the `-Id`
+capture parameter this round added) show the Online UI but not the notice text, because the notice slot is
+latest-wins and the frame was taken after the pane's own hint had replaced it; catching it needs a capture in the
+same frame as the publish or a longer-lived surface, which is the next attempt's job.
+
+
 
 
 ### Slice 4 — free flight

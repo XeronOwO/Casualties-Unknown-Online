@@ -11,6 +11,7 @@
 param(
 	[string]$Name = 'CasualtiesUnknown',
 	[Parameter(Mandatory)][string]$Out,
+	[int]$Id = 0,
 	[int]$Attempts = 3,
 	[int]$DelayMs = 400
 )
@@ -75,11 +76,20 @@ public static class WindowCapture
 
 [void][WindowCapture]::SetProcessDPIAware()
 
-$target = Get-Process -Name $Name -ErrorAction SilentlyContinue |
-	Where-Object { ([int64]$_.MainWindowHandle) -ne 0 } |
-	Select-Object -First 1
+$target = if ($Id -gt 0) {
+	Get-Process -Id $Id -ErrorAction SilentlyContinue
+}
+else {
+	Get-Process -Name $Name -ErrorAction SilentlyContinue |
+		Where-Object { ([int64]$_.MainWindowHandle) -ne 0 } |
+		Select-Object -First 1
+}
 if ($null -eq $target) {
+	if ($Id -gt 0) { throw "No process with id $Id." }
 	throw "No window found for process '$Name'."
+}
+if ((([int64]$target.MainWindowHandle)) -eq 0) {
+	throw "The window handle of '$($target.ProcessName)' (id $($target.Id)) is zero; it has no window to capture."
 }
 $hwnd = [IntPtr]([int64]$target.MainWindowHandle)
 if ($hwnd -eq [IntPtr]::Zero) {

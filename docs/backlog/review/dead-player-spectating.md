@@ -2,8 +2,8 @@
 
 - Status: Review — every slice of the 2026-10-24 pivot is landed and read on the machine (mode and its two
   entrances, pure observation, possession, the KrokMP-aligned controls, the mirrored screen effects and sounds, the
-  native status icons presenting the watched body). One cleanup this ticket's own supersession created is tracked
-  separately in `todo/spectator-superseded-host-rules.md`: the three host rules the pivot retired are still wired.
+  native status icons presenting the watched body). The cleanup this ticket's own supersession created is done
+  too: `done/spectator-superseded-host-rules.md` removed the three retired host rules end to end.
 - Priority: Medium
 - Category: Player interaction / presentation / KrokMP parity
 - Source: the user's 2026-10-13 backlog request, in their own words: "操控的角色死亡后，能观战他人，参考

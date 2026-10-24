@@ -1,7 +1,9 @@
 # The spectator's three superseded host rules are still wired
 
-- Status: Todo — cleanup owed by the 2026-10-24 pivot of
-  `dead-player-spectating.md` (that ticket's behaviour is landed and read; only this removal is left)
+- Status: Done — accepted 2026-10-24. The three rules left the wire (`HostRulesMsg` fields 14-16), the rule surface,
+  the config, the Admin page, both localization catalogues and the config reference; the dead `SpectatorPolicy` and
+  its test are deleted, and the entry-repair pass's reproducible size moved from 2462 to 2460 bytes with its comment
+  updated. `780` gates and `6398` behaviour tests green after the removal (`519d8191`, `61456b37`).
 - Priority: Low
 - Category: Host rules / dead config
 

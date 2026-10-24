@@ -294,7 +294,7 @@ docs/backlog/todo/cross-player-drag-use-feedback.md | keep | index | docs/backlo
 docs/backlog/todo/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/done/docs-mojibake-cleanup.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-spectating.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/spectator-superseded-host-rules.md | keep | index | docs/backlog/README.md
+docs/backlog/done/spectator-superseded-host-rules.md | keep | index | docs/backlog/README.md
 docs/backlog/done/delivery-checklist-gate-census.md | keep | index | docs/backlog/README.md
 docs/backlog/done/document-corpus-audit.md | keep | index | docs/backlog/README.md
 docs/backlog/done/enter-key-opens-plain-chat.md | keep | index | docs/backlog/README.md

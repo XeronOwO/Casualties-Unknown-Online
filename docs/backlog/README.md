@@ -52,7 +52,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [The spectator's three superseded host rules are still wired](todo/spectator-superseded-host-rules.md) — **Low** — switches that change nothing.
 - [The placement failure report has no anchor](todo/placement-failure-report-anchor.md) — **Low-Medium** — the applied arm is anchored, the claim is not.
 - [Command refusals render as successes](todo/console-command-refusals-render-green.md) — **Low-Medium** — a refused verb still prints green.
 
@@ -152,6 +151,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The spectator's three superseded host rules are still wired](done/spectator-superseded-host-rules.md) — **Low** — removed end to end.
 - [The document corpus audit: every page earns its place](done/document-corpus-audit.md) — **Critical** — accepted: a reader for every page.
 - [The mod item's wearable declaration](done/mod-item-wearable-declaration.md) — **High** — accepted: a live body wears the declared garment.
 - [Middle-click location marker](done/middle-click-location-marker.md) — **Medium** — accepted: the peer sees the same ping.

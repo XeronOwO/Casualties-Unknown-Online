@@ -5,7 +5,6 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -127,9 +126,6 @@ internal sealed class OnlineUiHost
 		_modUiControl = services.GetRequiredService<IModUiControl>();
 		_localization = services.GetRequiredService<ILocalizationService>();
 		_notices = services.GetRequiredService<ISessionNotices>();
-		// The ruling that the watched player is TOLD: the runtime resolves the line, this only shows it (the same
-		// status-line path the session-liveness watchdogs use).
-		services.GetRequiredService<IWorldControl>().SpectatorNoticeReceived += OnSpectatorNotice;
 		_rulesEditor = services.GetRequiredService<HostRulesConfigEditor>();
 		_loggingEditor = services.GetRequiredService<LoggingConfigEditor>();
 		_languageEditor = services.GetRequiredService<LocalizationConfigEditor>();
@@ -330,20 +326,6 @@ internal sealed class OnlineUiHost
 		{
 			_onlineUi.Notify(notice.Text);
 		}
-	}
-
-	/// <summary>The watched player is told: a notice that names THIS member as the target becomes one status line.
-	/// The start is published; the stop only lets the line fade rather than blanking the status (the same
-	/// "latest wins" slot the liveness notices use).</summary>
-	private void OnSpectatorNotice(ulong sender, SpectatorNoticeMsg msg)
-	{
-		if (!msg.Watching || msg.TargetSteamId != _session.LocalSteamId)
-		{
-			return;
-		}
-
-		var watcher = DisplayName(msg.WatcherSteamId);
-		_notices.Publish(_localization.Format("spectator.watched_notice", watcher));
 	}
 
 	/// <summary>

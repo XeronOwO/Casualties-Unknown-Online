@@ -43,6 +43,7 @@ public class CuoServiceOrderTests
 		// the observers they query (the transport itself already polled this frame).
 		"PeerSendStallWatchdog",
 		"GuestHostSilenceWatchdog",
+		"SpectatorNoticeService",
 		"NetworkTrafficMonitor",
 		"PacketDispatcher",
 		"EntitySyncService",

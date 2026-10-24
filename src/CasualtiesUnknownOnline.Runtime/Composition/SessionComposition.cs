@@ -92,5 +92,9 @@ internal static class SessionComposition
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PeerSendStallWatchdog>());
 		services.AddSingleton<GuestHostSilenceWatchdog>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GuestHostSilenceWatchdog>());
+		// The ruled courtesy line: the watched player is told, resolved here so the world it listens to is the one
+		// the notice handler fires on (a plugin-side subscription failed to see the event).
+		services.AddSingleton<SpectatorNoticeService>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SpectatorNoticeService>());
 	}
 }

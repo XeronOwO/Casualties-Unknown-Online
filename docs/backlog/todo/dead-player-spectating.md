@@ -420,6 +420,16 @@ that member's reported `BrainHealth` (the snapshot carries no blood volume, and 
 reading nothing reports" the rules refuse). The adapter gains the vitals service through its existing composition
 line, the same way the strip's plugin half reads it, and the switch above is landed in the same change.
 
+**Read on the machine, one session (2026-10-24, deployed `0.1.0+8559f040`): the mirror works for the blackout.** With
+the watched alt alive the probe logs `reported=True alive=True conscious=True gateBlack=0.00`, and after the death-hold
+probe kills that member it logs `reported=True alive=False conscious=False gateBlack=0.80` — and the spectator's own
+camera then reads **`black: 0.8`** in `spectator-probe`. So the watched player's blackout now reaches the watcher's
+screen, through the reported liveness instead of the clone's template. Two gaps remain and are named here: the
+VIGNETTE never shows (`gateVignetteA=0.00` — the colour constant's alpha is zero, so it needs a real opacity driven by
+the reported brain health), and the client-local switch `Session/SpectatorMirrorEffects` is not landed yet, so the
+effects are still unconditional.
+
+
 
 
 

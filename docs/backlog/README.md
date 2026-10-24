@@ -59,6 +59,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [The console's own replies are English only](todo/console-command-replies-bilingual.md) — **Medium** — keys, not sentences; the UI's catalogue renders them.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
 ### In progress

@@ -182,3 +182,29 @@ With these three, the design has no open question left: the entry, the parties, 
 the arbitration of the single shared trigger are all decided. The next slice remains (1) above — the button — and
 then the rhythm policy, which now has the two channels it writes (pressure from presses, oxygen from ventilation)
 and a named arbitration rule for the one outcome both halves can claim.
+
+## Stage 1a landed (2026-10-24, deployed `0.1.0+a38bc8bd`): the rhythm's physiology, as one rule
+
+`CprRhythmPolicy` (Runtime, pure) is the three rulings written down before anything touches a body:
+
+- **Compressions act on blood pressure, ventilation on oxygen** — two gains with the same cadence shape (full near
+  ~110 presses a minute, half when the presses are too fast because the chest cannot refill, scaling to nothing past
+  the slow line).
+- **The patient's own limits are real ceilings** — missing blood volume lowers the ceiling with it and an open chest
+  halves it, so a rhythm that reaches the body's limit stops implying progress instead of pretending.
+- **The restart is one shared outcome** — `RestartsTheHeart` answers whether THIS compression would restart it; the
+  HOST arbitrates the first claim (the family's one-resolving-unit shape) and the later claimant is corrected. The
+  threshold (`RestartPressure = 45`) is recorded as this ticket's tuning point, and a patient whose own ceiling sits
+  below it restarts at the ceiling, because that is the most their body allows.
+
+The numbers are anchored on the game's own scales rather than invented: `Body.brainDying` is
+`bloodPressure < 10 && consciousness < 5` (the arrest CPR is for), `Body.fibrillationRising` starts at
+`bloodPressure < 88`, and a normal pressure sits around 100-120. Nine cases pin the cadence shapes, both ceilings and
+the restart, including the patient whose ceiling is below the threshold.
+
+**Still owed, and the ticket stays open for them**: stage 1b is the patient-side applier (write the pressure the rule
+computes into the committed character data and let the game's own physiology carry it) and stage 1c the operator's
+entry — the native wound view's button, cloned from `WoundView.specialUseButton` the way the ruling's KrokMP reference
+does it. Neither is started; the rule above is the piece that had to be reviewed first because it decides what the
+applier writes.
+

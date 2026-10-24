@@ -823,7 +823,7 @@ passing.
 is part of the wire vocabulary and the replay/applier tables, it is inert while no carrier exists, and
 deleting the family would be a protocol and matrix change for no product gain. A future build whose prefabs
 carry the component makes the row provable again; the first thing to re-read then is the same prefab probe,
-not this paragraph. The sibling ticket `todo/trap-layout-crystal-rows-empty.md` records the same build fact
+not this paragraph. The sibling ticket `review/trap-layout-crystal-rows-empty.md` records the same build fact
 for the trap-layout scanner and stays open on that day.
 
 ## Acceptance each row owes

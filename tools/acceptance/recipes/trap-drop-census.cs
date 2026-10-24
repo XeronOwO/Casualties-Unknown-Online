@@ -32,7 +32,7 @@
 // The crystal kind is derived from the private `effects` list (`CrystalEffect` is a PLAIN class, not a
 // component; `CrystalBehaviour` is the only component). NOTE: `TrapEntityScan.CrystalKinds` names the same
 // intent but switches on the COMPONENT's runtime type name, so that scanner yields NO crystal rows — the
-// trap layout never carries a crystal kind, filed as `docs/backlog/todo/trap-layout-crystal-rows-empty.md`;
+// trap layout never carries a crystal kind, filed as `docs/backlog/review/trap-layout-crystal-rows-empty.md`;
 // this recipe reads the effects instead of reproducing that gap.
 //
 // Run it on BOTH clients with the same point: the two lists agreeing is what makes the table the run forges

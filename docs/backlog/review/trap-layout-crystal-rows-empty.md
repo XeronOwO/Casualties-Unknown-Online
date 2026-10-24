@@ -1,6 +1,9 @@
 # The trap layout never carries a crystal row
 
-- Status: Todo — opened 2026-10-19 by the independent review of the `NetMsg.EntityEvent` drop lever
+- Status: Review — the scanner's crystal arm now reads the effects the crystal rolled (2026-10-24, deployed
+  `0.1.0+157e4439`), so no code is left; its acceptance rows stay unobservable on this build (no prefab carries
+  `CrystalBehaviour`), which the "The code is fixed" section names as the residual. Opened 2026-10-19 by the
+  independent review of the `NetMsg.EntityEvent` drop lever.
 - Priority: Low-Medium
 - Category: World sync / trap layout
 - Source: the review of `docs/backlog/done/member-report-bounds.md`'s entity-event acceptance lever (2026-10-19):
@@ -85,3 +88,22 @@ clients), and that is its own cycle with its own acceptance rows, not a rider on
 - Acceptance: a two-client entry with the rows enabled reads no spawn/destroy churn on ordinary crystals; a
   guest whose local crystal was destroyed by hand gets it materialized from the layout, and a surplus one is
   destroyed.
+
+## The code is fixed (2026-10-24, deployed `0.1.0+157e4439`)
+
+`TrapEntityScan.CrystalKinds` no longer switches on the component's type name. It casts the scanned component to
+`CrystalBehaviour`, reads the behaviour's private `effects` list through a new
+`CrystalEffectAccess.EffectTypeNames` (de-duplicated, in list order), and maps each effect's runtime type name to its
+kinds; a crystal that rolled several effects therefore contributes each kind once, and a non-event effect
+(`CrystalDripping`) contributes nothing. The row's doc comment now says what the code does instead of what it used to.
+
+**Acceptance state: code complete, rows unobservable on this build.** The build-level fact above still holds — no
+prefab carries `CrystalBehaviour`, so no scan can produce a crystal row here and the two-client churn row and the
+materialize/destroy rows cannot be judged. Per the project's rule ("a ticket with no code left moves to review even
+when the acceptance is not run"), this ticket moves to `review/` with those rows named as its residual: the cycle that
+judges them starts by re-running the prefab probe (`hasBehaviour`) and the effect list on a real crystal, and answering
+whether the host's and the guest's effect rolls agree before the rows are relied on.
+
+Two smaller items from the list above stay folded into that residual: the `(kind, cell)` collision check needs a
+generator that places two crystals in one cell, and the roll-agreement evidence needs the same two-client probe.
+

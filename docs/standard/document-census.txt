@@ -366,7 +366,7 @@ docs/backlog/done/single-file-plugin-package.md | keep | index | docs/backlog/RE
 docs/backlog/done/topical-live-stack-family-order.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/topical-limb-action-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/done/drink-measurement-destructive-use-action.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/trap-layout-crystal-rows-empty.md | keep | index | docs/backlog/README.md
+docs/backlog/review/trap-layout-crystal-rows-empty.md | keep | index | docs/backlog/README.md
 docs/backlog/done/version-string-build-suffix.md | keep | index | docs/backlog/README.md
 docs/backlog/watchlist/architecture-watchlist.md | keep | index | docs/backlog/README.md
 docs/contracts/README.md | keep | spec | docs/en/contributing/documentation-standard.md

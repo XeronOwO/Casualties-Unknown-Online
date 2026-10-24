@@ -202,8 +202,25 @@ The numbers are anchored on the game's own scales rather than invented: `Body.br
 `bloodPressure < 88`, and a normal pressure sits around 100-120. Nine cases pin the cadence shapes, both ceilings and
 the restart, including the patient whose ceiling is below the threshold.
 
-**Still owed, and the ticket stays open for them**: stage 1b is the patient-side applier (write the pressure the rule
-computes into the committed character data and let the game's own physiology carry it) and stage 1c the operator's
-entry — the native wound view's button, cloned from `WoundView.specialUseButton` the way the ruling's KrokMP reference
-does it. Neither is started; the rule above is the piece that had to be reviewed first because it decides what the
-applier writes.
+**Still owed, and the ticket stays open for it**: stage 1c — the operator's entry, the native wound view's button cloned
+from `WoundView.specialUseButton` the way the ruling's KrokMP reference does it. Until it exists nothing in a real
+session can start a CPR operation, so the procedure is reachable through the session protocol (and its two tests) but
+not through a player's hands.
+
+## Stage 1b landed (2026-10-24, deployed `0.1.0+6c804a97`): the compression reaches the patient's own data
+
+- **The kind and its action**: `MedicalOperationKind.Cpr` (10) and `MedicalOperationUpdateAction.Compress` (6) ride the
+  generic session envelope the other stage-3 operations already use; the update's value is the operator's MEASURED
+  interval between presses, so the ruling's cadence is what travels rather than a frame count.
+- **The start is a bare-hand operation**: the operator's half accepts it only with no item named (a named item is the
+  refusal, not the requirement) and the target's half requires cardiac arrest — the game's own `inCardiacArrest` is
+  `heartRate < 20`, and the AED family owns the quivering heart — plus a conscious operator and no second operation.
+  CPR is not limb-scoped, so a request carries no limb index and is not refused for it.
+- **What the applier writes is the pressure and nothing else**: `CprRhythmPolicy`'s gain for that interval, capped by
+  this patient's own ceiling (`CeilingFor` reads the synced `BloodVolume` through the game's own fraction
+  `0.5 + volume/200` and the synced `Hemothorax`). The game's model then carries the pressure into heart rate and
+  consciousness, which is why no heart rate is written here — writing one would fight the physiology that decides it.
+- **The reading**: a harness case starts CPR from a member on an arrested host, sends three well-timed compressions and
+  reads the host's own `BloodPressure` risen and capped by the ceiling; a second case reads the beating-heart refusal by
+  name.
+

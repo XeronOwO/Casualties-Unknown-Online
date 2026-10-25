@@ -15,6 +15,11 @@ rejoined party to find the same world, the same items and the same progress.
   from the running client, never by restarting it.
 - The run is the host's world. A member's character is restored by the client that can apply it, on a continue, from the
   stored keys the present peers claim.
+- **Acquiring a lobby leaves the current one first, for create and join alike.** `Runtime/Steam/LobbyLifecycle.cs`: "Steam
+  requires a leave before a fresh create — a re-create without leaving strands the old lobby: the host's friends keep joining
+  the dead lobby while the host is already in the new one (observed live: F8 re-create left the old lobby with a residual member
+  and the guest could not connect)". Join uses the same explicit leave, because "the official JoinLobby docs do not promise an
+  automatic leave of the previous lobby, so CUO never depends on one".
 - A save is a multi-world repository: one archive per world, keyed by an immutable world identity, and the display name is
   free to change.
 - A save holds every member present at the cut; a restore is repair mode with minimal loss, per entry, and an entry whose

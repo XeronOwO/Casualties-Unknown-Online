@@ -17,6 +17,12 @@ Every string a player reads is rendered by the client that reads it, in that cli
 
 The UI's text is an embedded JSON data file per language with English as the fallback; a strict loader reads it, the gates read the data rather than the code, and a mod adds a language through `RegisterCatalog` — the accepted record's words: "the UI's text is an embedded JSON data file per language (English as the fallback), the catalogue is read by a strict loader, the gates read the data, a mod registers a language through `RegisterCatalog` and the picker lists it". The deployed client's own service was read afterwards: the host answered `zh` with its own word for the page and the guest answered the same key in English.
 
+**Three steps resolve a key, in order, and a mod's language is a gap-filler.** `Runtime/Localization/LocalizationService.cs`:
+"lookup order: current language table → English fallback → the key itself", with the active language read through
+`IOptionsMonitor` so "a BepInEx config edit hot-reloads immediately", and a mod's registered language is "a gap-filling table
+over the built-in catalogue" (codes lowercased before use). Showing the key itself is the last resort, and it is a visible
+failure rather than a silent one.
+
 ## Where strings live
 
 | Kind of string | Where it is rendered |

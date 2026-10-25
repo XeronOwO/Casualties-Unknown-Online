@@ -26,6 +26,12 @@ here would act, and the label names the player whose body the release will use t
   the family gate ACCEPTS … so the cue itself teaches what can be handed over".
 - The cue's state and its drawing are one fact: a cue reported as shown but not drawn is a defect, not a rendering
   detail.
+- **The centre is tested by GEOMETRY, because the native hit tag is unusable here.** `GameAdapter/DragUseCenter.cs`: the hit
+  test is "GEOMETRY — the guard the game's own `PlayerCamera.TryPerformRadialAction` applies to the [radial]: the window has
+  finished opening and the pointer is inside the centre circle. The native hit TAG cannot be [used because] CUO's remote view
+  hides the tagged graphic (`RemoteBackpackView.AnchorRadialToFocus` disa[bles] `radialCircle`), so a UI raycast can never reach
+  it while a displayed backpack is open". The disabled component's transform and rect stay live, and the native `radialText`
+  ("drag here to use") stays visible — "which is the affordance the player read[s]".
 - A cue never promises an action the release would refuse; the refusal is the status line's job.
 
 ## Refusals it expresses

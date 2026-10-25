@@ -17,6 +17,12 @@ co-op the choice must be one member's choice applied to a host-owned world.
 
 - The choice is the MEMBER's; the layer is the HOST's. A member who chooses the descent reports the intent; the host
   decides when the party moves, so two members choosing at once cannot generate two worlds.
+- **Generation's random stream is ISOLATED, because the game's one stream is shared with everything else.**
+  `GameAdapter/WorldGen/WorldGenRandomIsolation.cs`: the game "consumes UnityEngine.Random — one global stream — from many places
+  at once: generation coroutines, `Body.Update` sound/particle effects … earthquake timers", and generation "is a cross-frame
+  coroutine … that yields every ~100 columns, so without isolation the stream diverges between peers at every suspension point:
+  host and guest start from the same captured `Random.state` … but the stream they continue from is polluted by
+  frame-rate-dependent consumers in between".
 - **The advance guard is the game's own, minus the clause that ties it to the local body.** `LayerAdvancePolicy.DecideDrive`
   is "the native entry's own guard (`WorldGeneration.ContinueRun`, `WorldGeneration.cs:1013`) minus its LOCAL-BODY clause":
   `!doingRegen && !generatingWorld && worldExists` are the clauses that ask "can this world take a regeneration right now?",
@@ -31,6 +37,11 @@ co-op the choice must be one member's choice applied to a host-owned world.
   kernel generation stamp, the same (run epoch, layer index) identity every layer-relative world report carries, so the host
   arbitrates it against the identity it stamps its own" — which is why a request from a layer the host has already left is
   refused rather than applied to the new one, and why the panel appears only on the client whose own body is at the bottom.
+- **A layer's size is the game's own world-unit scale, and the corpus states it so labels cannot disagree.**
+  `Runtime/World/WorldUnits.cs`: the game reports DEPTH "by multiplying world units by `0.3f`" (`WorldGeneration.cs`:
+  `return -(this.body.transform.position.y - this.halfHeight) * 0.3f`) and converts back where it accumulates
+  (`this.totalTraveled / 0.3f`), so "one world unit is 30 cm, and a layer is 2 × halfHeight units — with `halfHeight` of 512
+  that is 1024 units, i.e. the 307 m a player reads as 'one layer is ab[out] …'".
 - **Both of the panel's choices are the HOST's, and a member does not see them at all.**
   `src/CasualtiesUnknownOnline.Runtime/Session/World/LayerPanelChoicePolicy.cs` implements the user's 2026-10-24 ruling:
   "only the host" may press "Continue" (next layer) or "Save and exit"; on a member both are HIDDEN rather than refused,

@@ -3,10 +3,11 @@
 The design corpus was audited against tickets (`README.md`) and then against the code (`code.md`), page by page. This file
 is the other axis of that second audit: the CODE is walked block by block, so nothing is missed by only reading the pages.
 
-A **block** is one directory of production code (a project root, or a subdirectory; `Runtime/Session` is split one level
-deeper because it is the largest area). Every `src/**/*.cs` file outside an `obj/` directory belongs to exactly one block,
-and `CodeSweepCoverageGateTests` fails when a file matches no block, when a block's declared count is wrong, or when a
-status is not one of the three below — so this table cannot drift away from the tree.
+A **block** is one directory of production code (a project root, or a subdirectory; `Runtime/Session` and
+`GameState/Domains` are split one level deeper because they are the largest areas), giving 76 blocks over 2,289 files. Every
+`src/**/*.cs` file outside an `obj/` directory belongs to exactly one block, and `CodeSweepCoverageGateTests` fails when a
+file matches no block, when a block's declared count is wrong, or when a status is not one of the three below — so this table
+cannot drift away from the tree.
 
 | Status | Meaning |
 |---|---|
@@ -19,11 +20,11 @@ status is not one of the three below — so this table cannot drift away from th
 | Block | Files | Status |
 |---|---|---|
 | `CasualtiesUnknownOnline.Abstractions` | 150 | read |
-| `CasualtiesUnknownOnline.Application` | 1 | unread |
+| `CasualtiesUnknownOnline.Application` | 1 | read |
 | `CasualtiesUnknownOnline.Application/Kernel` | 31 | read |
-| `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | unread |
-| `CasualtiesUnknownOnline.BulkTransfer.Core/Audio` | 1 | unread |
-| `CasualtiesUnknownOnline.GameAdapter` | 74 | unread |
+| `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | read |
+| `CasualtiesUnknownOnline.BulkTransfer.Core/Audio` | 1 | read |
+| `CasualtiesUnknownOnline.GameAdapter` | 74 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 6 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Character` | 94 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Content` | 36 | read |
@@ -35,7 +36,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.GameAdapter/Run` | 28 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Tutorial` | 3 | read |
 | `CasualtiesUnknownOnline.GameAdapter/World` | 70 | read |
-| `CasualtiesUnknownOnline.GameAdapter/WorldGen` | 18 | unread |
+| `CasualtiesUnknownOnline.GameAdapter/WorldGen` | 18 | read |
 | `CasualtiesUnknownOnline.GameState` | 20 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Entities` | 19 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Fluids` | 8 | read |
@@ -45,30 +46,30 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.GameState/Domains/WorldEntities` | 19 | read |
 | `CasualtiesUnknownOnline.GameState/Kernel` | 6 | read |
 | `CasualtiesUnknownOnline.GameState/Projections` | 2 | read |
-| `CasualtiesUnknownOnline.ModExample` | 3 | unread |
-| `CasualtiesUnknownOnline.Music` | 7 | unread |
-| `CasualtiesUnknownOnline.PinyinSearch` | 1 | unread |
-| `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | unread |
-| `CasualtiesUnknownOnline.PinyinSearch.Core/Search` | 6 | unread |
-| `CasualtiesUnknownOnline.PinyinSearch/Patches` | 2 | unread |
+| `CasualtiesUnknownOnline.ModExample` | 3 | read |
+| `CasualtiesUnknownOnline.Music` | 7 | read |
+| `CasualtiesUnknownOnline.PinyinSearch` | 1 | read |
+| `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | read |
+| `CasualtiesUnknownOnline.PinyinSearch.Core/Search` | 6 | read |
+| `CasualtiesUnknownOnline.PinyinSearch/Patches` | 2 | read |
 | `CasualtiesUnknownOnline.Plugin` | 43 | read |
 | `CasualtiesUnknownOnline.Protocol/Codecs` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Versioning` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Wire` | 55 | read |
-| `CasualtiesUnknownOnline.RecursiveCrafting` | 9 | unread |
-| `CasualtiesUnknownOnline.RecursiveCrafting.Core` | 1 | unread |
-| `CasualtiesUnknownOnline.RecursiveCrafting.Core/Crafting` | 8 | unread |
-| `CasualtiesUnknownOnline.Runtime` | 3 | unread |
-| `CasualtiesUnknownOnline.Runtime/Composition` | 12 | unread |
+| `CasualtiesUnknownOnline.RecursiveCrafting` | 9 | read |
+| `CasualtiesUnknownOnline.RecursiveCrafting.Core` | 1 | read |
+| `CasualtiesUnknownOnline.RecursiveCrafting.Core/Crafting` | 8 | read |
+| `CasualtiesUnknownOnline.Runtime` | 3 | read |
+| `CasualtiesUnknownOnline.Runtime/Composition` | 12 | read |
 | `CasualtiesUnknownOnline.Runtime/Configuration` | 16 | read |
 | `CasualtiesUnknownOnline.Runtime/Data` | 18 | read |
-| `CasualtiesUnknownOnline.Runtime/Diagnostics` | 3 | unread |
+| `CasualtiesUnknownOnline.Runtime/Diagnostics` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/GameAdapter` | 52 | read |
-| `CasualtiesUnknownOnline.Runtime/Localization` | 4 | unread |
-| `CasualtiesUnknownOnline.Runtime/Logging` | 3 | unread |
+| `CasualtiesUnknownOnline.Runtime/Localization` | 4 | read |
+| `CasualtiesUnknownOnline.Runtime/Logging` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/Networking` | 14 | read |
 | `CasualtiesUnknownOnline.Runtime/OnlineUi` | 54 | read |
-| `CasualtiesUnknownOnline.Runtime/Patching` | 3 | unread |
+| `CasualtiesUnknownOnline.Runtime/Patching` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/Persistence` | 60 | read |
 | `CasualtiesUnknownOnline.Runtime/Protocol` | 10 | read |
 | `CasualtiesUnknownOnline.Runtime/Protocol/Messages` | 155 | read |
@@ -91,9 +92,9 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Tutorial` | 2 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/World` | 124 | read |
-| `CasualtiesUnknownOnline.Runtime/Steam` | 5 | unread |
-| `CasualtiesUnknownOnline.Runtime/Time` | 2 | unread |
-| `CasualtiesUnknownOnline.Runtime/World` | 1 | unread |
+| `CasualtiesUnknownOnline.Runtime/Steam` | 5 | read |
+| `CasualtiesUnknownOnline.Runtime/Time` | 2 | read |
+| `CasualtiesUnknownOnline.Runtime/World` | 1 | read |
 
 ## How a block is walked
 
@@ -102,4 +103,6 @@ status is not one of the three below — so this table cannot drift away from th
    the code does not do, record the verdict in `code.md` (`page-wrong`, `code-drift` or `needs-decision`).
 3. Record the block's findings as `code.md` rows naming the block, and set the block's status here.
 
-Progress is the status column: 2 of 70 blocks read, 2,289 production files in scope.
+Progress: **all 76 blocks read, 2,289 production files in scope**, with the findings in `code.md`. A second pass (every block
+`swept`: each behaviour it holds traced to a page or a ticket) is the next stage, and the native audit (`native.md`) runs
+beside it once the user opens that scope.

@@ -73,6 +73,13 @@ may not report a change to another member's carried item — must keep holding",
 entry is consumed by the report it authorizes, so a repeat or a late report never lands on an item whose use is already
 settled".
 
+**"Who is mutating" is a declared scope, never an inference from the call's arguments.** `GameAdapter/CallContext.cs`: "every
+game-object mutation CUO syncs runs inside a scope that declares WHO is mutating — a local player action, a remote message being
+applied, a peer's intent this client executes on its own objects, or an inventory-internal reorder. Guards read `Current`
+instead of inferring identity from parameter values — 'you cannot tell who you are from the parameters' was the root of the
+quake-break subset bug (the numbering gate swallowed remote breaks) and the slot-drag pickup bug". The scope is process context
+rather than state any domain owns, which is why it is one static owner and not a field on a service.
+
 ## The census of unbounded reports
 
 Every report is either anchored or named unbounded, and the census is the list:

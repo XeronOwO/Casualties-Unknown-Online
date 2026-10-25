@@ -50,6 +50,11 @@ values ride the character data (the 1 Hz stream), and one-shot sounds ride their
   simulated clone the limb BLEED is the host's model, so the apply preserves it; everything else is the owner's".
 - **A carried body's pose is a pose rule, not a seating** (see `../mechanics/carry.md`): the ride presentation replaces the
   native idle-sit family on both the rider's and the carrier's side.
+- **A shared track is transferred whole before anyone hears it, and a late player joins at the right offset.**
+  `Music/MusicShareService.cs`: the sharer slices the file with `BulkSender`, sends it "on the mod's declared packets at a fixed
+  interval, and starts playback only when every other client has acknowledged the whole file (the ticket's 'transfer first, then
+  play')"; a receiver fills a `BulkReceiver`, acks each chunk, and "plays the verified bytes at the sharer's announced start
+  time and at the offset that instant implies (so a receiver that completes late starts in the right place, not at zero)".
 - A presentation never decides anything: it shows the state the owner produces.
 
 ## Refusals

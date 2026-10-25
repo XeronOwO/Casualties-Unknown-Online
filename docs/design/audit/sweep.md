@@ -31,7 +31,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/ModStatus` | 3 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 28 | read |
-| `CasualtiesUnknownOnline.GameAdapter/Patches` | 153 | unread |
+| `CasualtiesUnknownOnline.GameAdapter/Patches` | 153 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Run` | 28 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/Tutorial` | 3 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/World` | 70 | unread |

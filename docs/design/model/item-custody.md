@@ -111,6 +111,11 @@ next container report for that parent arrives — and that report does not name 
 takes it to `Terminal (ReplacedBy)`, which no later command may revive". A cancelled departure therefore sends the arrival
 report that puts the child back, not just its own state update.
 
+**A display proxy's children never enter the report chain, and a non-authoritative copy never presents its own impact.**
+`GameAdapter/Patches/RemoteCloneContainerGuard.cs`: a container inside a render clone is "presentation-only and must never
+enter the item-domain report chain". `NonAuthoritativeItemImpactGuard.cs` applies the same rule to collision presentation on a
+guest's world-item copies, so "the session/authority decision stays in one place instead of being duplicated per script".
+
 ## Incarnations
 
 Every client shows an item through its own **incarnation** — the object that carries the look, the collider and the

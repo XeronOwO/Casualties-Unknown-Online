@@ -46,6 +46,11 @@ bodies' presentation follows from that relation.
   the vitals at their last values.
 - The same rule covers a DEAD or unconscious carried body: it keeps its own per-frame simulation too, since and the
   presentation of a body that stopped simulating is wrong for the party.
+- **Only the rider's INPUT and the native idle-sit are gated while carried.** `GameAdapter/Patches/BodyUpdatePatch.cs` states
+  the boundary: a remote clone gets the presenter path on a guest, on the host the same clone is also the vitals model, and
+  "every LOCAL body — carried or not — runs the original simulation, because a carried rider's own client must keep advancing
+  vitals, the heart progression behind the ECG animation, limb state and sounds. Only the rider's movement input and the native
+  idle-sit are gated while carried."
 - **The rider sits at the same height on every screen.** An earlier asymmetry put the rider above the carrier on one side and below on the other: "when the host rides on a guest's back, the host's own view shows the host body higher than the guest, while …".
 - **The rider's position follows smoothly.** A rider that teleports to the carrier's position is the defect the smoothing
   family fixed: the accepted reading for the third-party view leaves a remainder of "≤1 px interpolation".

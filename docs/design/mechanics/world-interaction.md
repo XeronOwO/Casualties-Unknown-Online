@@ -40,6 +40,11 @@ burrow — are not hooked".
 - **First writer wins.** Two players breaking the same cell do not both get it: the host accepts the first report and
   refuses the second, and the acceptance reading is "two senders broke one cell in both orders and once concurrently; the
   host refused the second report".
+- **The world grid is simulated by the host ALONE, and the reason is determinism.**
+  `GameAdapter/Patches/FluidSimulationPatch.cs`: in a session "the host simulates the world grid ALONE (FluidSimulationAuthority
+  — a multi-member pass over every member's viewport, so the water flows around the guests too), the guests render the streamed
+  regions and never simulate (a per-side step would consume the PUBLIC random stream differently on each side and drift
+  forever). Solo (no session): the original per-side step runs unchanged."
 - **A break and its drops are ONE message, so they get one verdict.** `BlockDamagedMsg` carries the drops when the damage
   broke the block, "the break and its drops are ONE message, so the host's arbitration gives them one verdict:
   first-writer-wins (the accepted report's drops register and materialize everywhere; the rejected report's drops are rolled

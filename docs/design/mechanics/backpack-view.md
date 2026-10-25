@@ -19,6 +19,13 @@ the contents of any container it holds. The items shown are VIEWS of the teammat
   take, and the gesture is refused on the viewer's own client before anything is sent.
 - The pack follows its owner: when the owner drops or moves an item, the viewer's pack changes with it, because every
   client holds the owner's state as state, not as a copy taken when the pack opened.
+- **A standing item is never reachable by a local gesture, and an OPEN container is always reachable.**
+  `GameAdapter/Patches/DoPickupCheckPatch.cs` draws the same line for every entrance: "a standing item object is never reachable
+  by a local gesture. This is the one gate the pickup, the ground wear and the recipe probe all pass through, so the rule lives
+  here — the disabled collider keeps such an object out of the queries anyway, and this makes the refusal the rule rather than
+  an accident of the prefab"; and "taking an item out of the OPEN container is always feasible — the player explicitly opened
+  its UI (they stand right next to it)", because the distance and line-of-sight check against the item's world position (inside
+  the ground container) "otherwise refuses the takeout".
 - A pack that closes because the owner left the world or died closes the operations that belonged to it.
 - The viewer's own drag gesture keeps working while the pack is open, so the same gesture can give into it.
 

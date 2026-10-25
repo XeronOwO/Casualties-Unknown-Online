@@ -59,6 +59,12 @@ nothing about distance, state or sequence is judged here, and the kernel still o
 seam means the item the member reports on is one it "may report on at all — a world item (it saw the item in the world, or
 used it in place) or the member's own carried, installed or consumed item".
 
+**A write is reported only for the reporter's OWN action, and a clone never reports.** Every capture scope in the adapter
+shares one eligibility rule, `GameAdapter/Patches/CaptureScopeGuard.cs`: "a sound is reported only for THIS client's own body
+action, in a plain local call. A render clone … and any remote application both stay silent, so a remote-driven mutation can
+never be reported as the local player's action — the rule every write-report patch follows". A scope is also never opened
+inside a remote application, because "a capture there would be meaningless (the facts travel with the intent being applied)".
+
 ## The census of unbounded reports
 
 Every report is either anchored or named unbounded, and the census is the list:

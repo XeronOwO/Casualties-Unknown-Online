@@ -39,6 +39,14 @@ There is no native CPR: the accepted record states that "Native `Assembly-CSharp
   a QUIVERING one, and whichever runs second finds its own condition gone and refuses instead of damaging a heart that no longer
   needs it". The real device says "no shock advised" and does not discharge, and the host arbitrates because it applies both
   operations to the same snapshot, where one changes the state the second is checked against.
+- **The AED's own numbers: a 4.25 s charge check, battery drain, and a 20 % restart roll.** `AEDMinigame.cs:88-140`: after the
+  pads are placed the device waits `4.25f` s and then either proceeds (state 2) or fails with the `aedfail` sound (state 5)
+  — it fails only when the pads are on the CHEST and `fibrillationProgress` is already 0, which is the game's own "no shock
+  advised"; it then charges for `3.5f` s and discharges, draining `0.14f` of battery. The discharge itself is
+  `Item.Defibrillate` (`Item.cs:7146-7168`): every shock costs `skinHealth -= 5f` and `pain += 20f` and ragdolls the body; on
+  the chest of a living patient it clears `fibrillationProgress` when the roll succeeds (the AED passes `chance = 1f`) or the
+  body is in arrest, and **only an arrested heart restarts, on a further `0.2f` roll** (`heartRate = 200f`), after which the body
+  is left with `defibShockedFrames = 20`, `heartProg = -1f` and `bloodPressure = 40f`.
 
 - The operator's own body is asked FIRST: a strength and intelligence gate decides whether they may compress at all, and a
   press they cannot make is refused on their own client before anything leaves it.

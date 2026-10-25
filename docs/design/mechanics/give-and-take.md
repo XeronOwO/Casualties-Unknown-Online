@@ -24,6 +24,10 @@ that path, not by the gesture.
 - An item without an authoritative identity cannot be named, and the gesture is refused instead of transferring "the
   first match".
 - A destination that no longer holds when the host applies the transfer is refused by name; the item stays where it was.
+- **The answer names where the item WENT, not where it was aimed.** The host's ledger keeps the destination it was told and
+  must be corrected by the placement outcome: the recorded defect is "The host's ledger keeps the destination it was told,
+  not where the item went", with rows read on the machine and its 60 ms window judged by the user's ruling because it
+  cannot be produced by hand.
 - A container that cannot hold the item (weight, kind) refuses it by name.
 
 ## Refusals

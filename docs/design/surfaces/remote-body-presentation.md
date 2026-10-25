@@ -15,6 +15,7 @@ values ride the character data (the 1 Hz stream), and one-shot sounds ride their
 
 ## Rules and states
 
+- **A player picks a colour, and the head tag is only the colour.** Names above heads are colour-only tags by design ("Player-selectable colors and color-only head name tags"), so a tag is not a text label with a colour attached; the colour is the player's choice and the tag shows it.
 - **A body's state reaches every client's view, not only its owner's.** The family's own records name each case as it was
   found: "High sleepiness squint not visible remotely", "Host severe sleepiness posture not synced to guest" (a body that
   "cannot stand straight (posture is visibly slouched/bent)"), and "Host fall injury mouth-expression desync" where "on the

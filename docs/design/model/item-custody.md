@@ -14,6 +14,7 @@ for every item mechanic; the mechanic pages cite it.
 - **Creation is registered BEFORE the item is operated on.** The user's 2026-09-18 ruling names what it replaced: "the
   500 ms pickup hold is a design smell, not a latency fix", and the invariant it leaves is creation-before-operation — a
   creation is judged first, and a refused creation's later operation is answered rather than applied.
+- **A pickup reports the custody change, not only a slot re-home.** A pending-drop child taken onto a ring slot must be charged as a custody change, or a contained kernel record survives its own move: the recorded defect is that "a pending-drop pickup reports only a slot re-home, so a contained kernel record can survive", and the accepted reading confirms the bag's report charges the child and a later slot move is then refused/accepted as the state says.
 - **An identity survives a transform.** Whether a worn splint is still the item it was made from was researched and the
   user ruled option 1; all seven acceptance rows pass, so a transform that keeps the item keeps its identity instead of
   minting a new one.

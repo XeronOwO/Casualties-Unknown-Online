@@ -23,6 +23,13 @@ medical view can act on. A revive is the game's own revival of that body.
   per-frame decision (frozen / ease-to-rest / velocity-sync / hard-snap) computed from the target and the copy's current
   state" — so a dropped item's position is the host's, at that cadence, and the client chooses only how to move its own copy
   toward it.
+- **A freshly dropped item is protected from the keyframe it predates.** `src/CasualtiesUnknownOnline.GameAdapter/Items/DropProtectionGuard.cs`
+  names the loop it prevents: "a fresh item registered AFTER the periodic keyframe was generated is not in it yet — the
+  reconcile must not kill it, or the kill → destroy report → table delete → next-keyframe-misses → kill loop eats it forever
+  ('an item disappears')". The guard is marked by the report side, consulted by the reconcile and pruned by the follow, and it
+  exists because the short window "is not enough for one family: a GUEST's block-break drops exist only on this side until the
+  host answers the break report that carries them, and the re-report fallback's window (5 s at its densest, 60 s steady) is far
+  longer".
 - The body stays where it died and is still a treatment target until it is revived or despawned; a dead body cannot
   consume anything.
 - Revival restores the body the game's own revival restores; the reviving player spends what the game charges them.

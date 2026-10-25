@@ -18,6 +18,12 @@ here would act, and the label names the player whose body the release will use t
   centre, and the operator's own eligibility passes.
 - The label names the player the release would pick — the one whose range the cursor entered last — and uses the
   player's display name, falling back to an identity form when no name is known.
+- **Naming is the point, and the target is the DISPLAYED backpack's owner.** `src/CasualtiesUnknownOnline.GameAdapter/Items/DragUseCuePolicy.cs`
+  gives both reasons: "two players standing on each other cannot be told apart by a highlight, so a named label is what makes
+  a release a decision instead of a guess" (user ruling 2026-10-06), and the target "is the player whose backpack is DISPLAYED,
+  passed only while the pointer is on its centre — the use/wear target" (user ruling 2026-10-23), so "a release on a slot is a
+  give and shows no use label, and the detection range no longer names a use at all". The cue also "appears only for an item
+  the family gate ACCEPTS … so the cue itself teaches what can be handed over".
 - The cue's state and its drawing are one fact: a cue reported as shown but not drawn is a defect, not a rendering
   detail.
 - A cue never promises an action the release would refuse; the refusal is the status line's job.

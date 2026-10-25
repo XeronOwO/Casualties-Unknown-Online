@@ -19,6 +19,15 @@ container, so it can be carried, dropped, given and looked inside while it holds
   body's pack, and an action that must run on a carried item must not be handed a container's child.
 - Capacity rules (weight, kind, space) are the container's own; an item that does not fit is refused rather than silently
   placed elsewhere.
+- **The fit test is the game's own, applied twice — once to choose, once to accept.**
+  `src/CasualtiesUnknownOnline.GameAdapter/Items/ItemContainerFit.cs` reads "the definition's `Container` component and applies
+  the SAME rule the receiving client's native `Container.CanHoldItem` applies when the item arrives —
+  `item.totalWeight <= maxWeightPerItem`, `holdingWeight + item.totalWeight <= maxWeight`, and the tag restriction when the
+  container declares one". It also mirrors the adjustment `Container.Awake` makes to both limits
+  (`reversing/Assembly-CSharp/Assembly-CSharp/Container.cs`, lines 30-31) "rather than under-reporting a live container's room
+  by one gr[am]", and takes the item's weight from `Item.totalWeight`'s own formula ("the definition weight, scaled by
+  condition when the definition says so", `Item.cs`, lines 13-23). A definition this build cannot read fails the fit rather
+  than guessing.
 - The contents travel with the container: dropping, giving or storing a container moves what is inside it.
 - A container with something inside cannot be handed over as "just the container"; the design decides per item whether it
   may be emptied first or refused.

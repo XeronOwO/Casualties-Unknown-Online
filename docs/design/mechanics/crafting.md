@@ -19,6 +19,11 @@ materials from the crafting body's items and hands the product over.
   `[CharSync] divergence` appears in any of the three 6 s windows" — a material the report consumed is gone from every
   client's view of that body, not only the crafter's.
 - The removal is an event, not a snapshot: a viewer learns that a material left from the report that carries it.
+- **A heater conversion is the game's own predicate and its own arithmetic.**
+  `src/CasualtiesUnknownOnline.GameAdapter/Items/HeaterCookRule.cs` mirrors `Heater.cs:41-49` and states both: the game's
+  predicate is `cooker && Stats.HasTag("meat") && id != "steak"`, and the created steak's condition is
+  `item.condition * 0.3f`. The rule file exists so the decision is testable without the game running; the patch is only the
+  adapter around it.
 - A recipe whose materials are not all carried is refused by the game's own rules; the refusal reaches the player on their
   own client.
 - The product takes the identity of a newly created item, and that creation travels like any other.

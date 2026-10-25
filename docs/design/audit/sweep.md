@@ -27,7 +27,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 6 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/Character` | 94 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Content` | 36 | unread |
-| `CasualtiesUnknownOnline.GameAdapter/Items` | 69 | unread |
+| `CasualtiesUnknownOnline.GameAdapter/Items` | 69 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/ModStatus` | 3 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 28 | read |

@@ -21,12 +21,23 @@ TMP's default word wrapping on, so the name wraps inside a fixed-width title bar
 Measured on the machine 2026-10-25 with `open-context-menu target=76561198863287957 x=820 y=430` followed by `capture-frame` on the
 host; the frame is the evidence and the batch record names it.
 
-## Shape the fix takes
+## Done in code (2026-10-25, `9300ee5f`)
 
-1. The title label is single-line: `enableWordWrapping = false` and `overflowMode = Ellipsis`.
-2. The panel's effective width is the larger of the model's width and the title's MEASURED preferred width plus padding, capped
-   (`MaxTitleFitWidth`), so the common long name fits and an extreme one ellipsizes.
-3. The rows keep their column rule: only the panel's outer width changes, never a row's internal layout.
+The three shape steps landed:
+
+1. The title label is single-line — `enableWordWrapping = false` and `overflowMode = TextOverflowModes.Ellipsis`, set in
+   `OnlineUiPanelView.Apply`.
+2. The panel's effective width is `TitleFitWidth(model)`: the larger of the model's width and the TITLE's measured preferred
+   width plus the bar's own insets (`4 + CloseWidth + 6` on the left, `TitleRightPadding` after), capped by
+   `MaxTitleFitWidth = 420f`. A panel whose title is a short key (the docked quick panel) never widens, because the measured
+   width already fits — row 3 by construction.
+3. Only the panel's outer width changes; the rows keep their column rule.
+
+Pinned by `OnlineUiPanelSurfacePinTests.TheTitleIsOneLineAndThePanelWidensToItsMeasuredName`, whose two mutations (wrapping back
+on, width back to the model's) run through the class's own mutation harness.
+
+**Rows 1-3 still need a frame**: the defect was visible only on screen — the probe reported the menu "opened" and the actions
+correct — so the new measurement has to be read from a capture, not from the text, before this ticket moves.
 
 ## Acceptance rows
 

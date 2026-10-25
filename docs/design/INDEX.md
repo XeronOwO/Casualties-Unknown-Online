@@ -25,6 +25,7 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `mechanics/layer-advance.md` | ending a layer, the boundary |
 | `mechanics/death-and-drops.md` | dying, drops, the corpse, revival |
 | `mechanics/spectator.md` | following a teammate after death |
+| `mechanics/world-interaction.md` | hitting, damaging and breaking blocks |
 
 ## Items
 

@@ -1,0 +1,71 @@
+# World interaction: hitting, breaking and damaging the world
+
+What a player does to the world around them — mining a block, chipping it, setting something off — and how that reaches
+the party.
+
+## What the player does
+
+Hits a block repeatedly. Cracks appear as its accumulated damage rises; at the threshold the block breaks, drops what it
+carried, and disappears for everyone. A block that is half-damaged keeps its cracks, so a player can leave a hole started
+and finish it later.
+
+## What the game itself does
+
+The game keeps ONE live list of blocks that carry partial damage — its own `WorldGeneration.world.blockDamages` — with a
+capacity of 128 entries and an eviction policy: when it is full it evicts the OLDEST entry and keeps the newest. Eviction
+is not a silent forget: the accepted record states that the evicted entry's `damage` is set to `1E+10f` and `UpdateSprite()`
+runs first, and the damage component routes `damage/health >= 1f` to `Object.Destroy(spr.gameObject)` — so "the cell's
+crack sprite is destroyed and its accumulated damage restarts from zero on the next hit".
+
+The list also holds damage CUO never observed: the direct `DamageBlock(Vector2Int)` callers — "footstep crushing, the spider
+burrow — are not hooked".
+
+## Rules and states
+
+- **One table, not two.** An earlier CUO registry kept a second list of the same cells with a different capacity and the
+  opposite eviction policy, so "past 128 live damaged cells the two tables held DIFFERENT cells: the game kept the newest
+  128, CUO kept the first 256 it was told about". The user's decision on it was "option 1 — align to the game's own policy …
+  and do it by REMOVING the second table", chosen because "giving the registry the game's cap and the game's eviction would
+  have left two copies of one set with a hand-maintained agreement between them".
+- Capacity, eviction, enumeration order and damage written by the unhooked callers therefore all follow from the game's own
+  table.
+- A late joiner receives the host's cells IN THE GAME'S ORDER, not a dictionary's: the earlier snapshot's order "was not the
+  game's order at all", and a receiver that applied rows until its own cap refused them held "a different set from the
+  host's newest-128 in almost every case".
+- **First writer wins.** Two players breaking the same cell do not both get it: the host accepts the first report and
+  refuses the second, and the acceptance reading is "two senders broke one cell in both orders and once concurrently; the
+  host refused the second report".
+- A long run may lose mining progress on its oldest half-damaged cells — that is the game's own eviction, not a CUO defect,
+  and the corpus records it so a reader does not mistake it for one.
+
+## Refusals
+
+| Condition | The player reads |
+|---|---|
+| a break report for a cell another player already broke | the second report is refused by the host; the cell is already gone |
+| a damage report for a cell beyond the cap | the game's own eviction applies; nothing is refused to the player |
+
+## Who judges
+
+The host owns the world's damage and its table. A member's hit is a REPORT: the host checks it against the cell's state it
+holds and accepts the first writer for a cell. A late joiner is given the host's cells rather than deriving them.
+
+## What travels
+
+Damage reports from the client that hit the block, the host's table rows (with the game's own order) to a joining client,
+and a break's drop.
+
+## What the player sees and hears
+
+Cracks that deepen with damage, the block breaking with its own sound and drop, and the same holes for every player.
+
+## Records
+
+Accepted: `../../backlog/done/block-break-first-writer-wins.md` (the dual-side reading), `done/block-damage-table-capacity-alignment.md`
+(the one-table decision), `done/block-break-log-names-the-wrong-shape.md` (the diagnostic line that names which shape ran).
+
+## Gaps
+
+- Traps, locks and mines are world interactions of their own and are not covered here yet; their rows live in the save and
+  restore family of decisions.
+- The exact bound on a damage report, and what a client does with a refused one, is not recorded here yet.

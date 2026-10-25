@@ -245,7 +245,34 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 220 | `done/snbt-state-language.md` | yes — one SNBT language for the two commands | `cross-cutting/permissions-and-commands.md` | `corpus page` | ticket: "the language and the two commands that speak it (`/data`, `/give`) landed in this cycle" and were judged on the deployed artifact; the page now states the single dialect |
 | 221 | `done/source-shape-gate-modifier-blindness.md` | yes — the gate sees modifiers | n/a | `out of corpus scope` | gates; reader: `docs/evidence/normative-gates.md` |
 | 222 | `done/spectator-superseded-host-rules.md` | yes — the retired host rules are gone end to end | `mechanics/spectator.md` | `corpus page` | the spectator page names this ticket as the pivot's cleanup |
-| … | the remaining 27 `done/` tickets, then `review/` (36) and `todo/` (12) | | | | |
+| 223 | `done/stale-api-doc-paths-in-live-tickets.md` | yes — the live tickets' API paths were corrected | n/a | `out of corpus scope` | documentation hygiene |
+| 224 | `done/state-stream-bandwidth-reduction.md` | yes — the state stream's bandwidth is bounded | n/a | `out of corpus scope` | protocol/performance |
+| 225 | `done/steam-transport-send-limit-runaway.md` | yes — the send limit no longer runs away | n/a | `out of corpus scope` | transport robustness |
+| 226 | `done/sync-cadence-review.md` | yes — the cadence is a reviewed value | n/a | `out of corpus scope` | sync review; reader: the member-report census |
+| 227 | `done/sync-event-and-periodic-fallback-coverage-audit.md` | yes — the fallback coverage audit exists | n/a | `out of corpus scope` | sync audit; the same reader |
+| 228 | `done/systemic-save-backup-management.md` | yes — backups are managed as a system | `cross-cutting/saves-and-recovery.md` | `corpus page` | the page's repository and backup rules |
+| 229 | `done/tab-backpack-open-close-immediately.md` | yes — the pack's open/close does not bounce | `mechanics/backpack-view.md` | `corpus page` | the pack's open/close rules on the page |
+| 230 | `done/test-suite-parallelization.md` | yes — the suite runs in parallel | n/a | `out of corpus scope` | build/test contract; reader: `docs/en/contributing/build-and-test.md` |
+| 231 | `done/test-suite-wall-clock.md` | yes — the wall clock is bounded | n/a | `out of corpus scope` | the same reader |
+| 232 | `done/topical-live-stack-family-order.md` | yes — the topical's family order is the entry's | `items/topical.md` | `corpus page` | decision 246 (the entry decides the family); the topical page states it |
+| 233 | `done/trap-action-divergence-hardening.md` | yes — a trap's action divergence is contained | `mechanics/world-interaction.md` | `corpus page` | ticket: the Runtime-seam containment re-ran green; the world page now states that a trap's action and its drops are one fact |
+| 234 | `done/trap-destruction-drop-quantity-desync.md` | yes — the drop ids agree on every client | `mechanics/world-interaction.md` | `corpus page` | ticket: "the same drop ids on host, guest and the third client"; the page now quotes it |
+| 235 | `done/trap-layout-entry-snapshot-staleness.md` | yes — the layout snapshot is not stale on entry | `cross-cutting/saves-and-recovery.md` | `corpus page` | the restore rules' entry semantics |
+| 236 | `done/trap-layout-snapshot-recovery.md` | yes — the layout snapshot recovers | `cross-cutting/saves-and-recovery.md` | `corpus page` | the same family |
+| 237 | `done/treatment-gore-presentation-carried.md` | yes — the treatment family's presentation is carried | `surfaces/remote-body-presentation.md` | `corpus page` | 30 cases green on the current tree, with every row's "Verified by" pin named |
+| 238 | `done/turret-stray-fire-after-reload.md` | yes — the turret's stray fire is fixed | `mechanics/enemy-combat.md` | `corpus page` | a world entity's fire belongs to the enemy/world family the page covers |
+| 239 | `done/typed-kernel-migration.md` | yes — the kernel is the only architecture | n/a | `out of corpus scope` | architecture; reader: `docs/architecture/current.md` |
+| 240 | `done/validation-and-source-checks.md` | yes — the report-family validations landed | `model/authority-and-judgement.md` | `corpus page` | the member-report rules and the census the page names |
+| 241 | `done/version-string-build-suffix.md` | yes — the version string carries its build suffix | n/a | `out of corpus scope` | packaging/identity |
+| 242 | `done/world-acceleration-quake-direct-write.md` | yes — the acceleration survives a quake's direct write | `model/session-lifecycle.md` | `corpus page` | the world-time rules on the lifecycle page |
+| 243 | `done/world-acceleration-survives-movement.md` | yes — it survives movement | `model/session-lifecycle.md` | `corpus page` | the same rules |
+| 244 | `done/world-and-backup-management-surface.md` | yes — the world and backup surface exists | `surfaces/online-window.md` | `corpus page` | the window's world pages |
+| 245 | `done/world-determinism-world-fingerprint.md` | yes — the world fingerprint compares | n/a | `out of corpus scope` | world generation determinism; reader: the generation records |
+| 246 | `done/world-layer-generation-identity.md` | yes — a layer's generation carries its identity | `mechanics/layer-advance.md` | `corpus page` | the layer page's boundary rules |
+| 247 | `done/world-state-message-service-split.md` | yes — the world-state service is split | n/a | `out of corpus scope` | architecture |
+| 248 | `done/world-time-local-initiation.md` | yes — acceleration is gated on being asleep and moves locally first | `model/session-lifecycle.md` | `corpus page` | ticket: "World-time acceleration is gated on being asleep", with rows read in batches u and v; the lifecycle page now states it |
+| 249 | `done/world-time-manual-acceleration.md` | yes — the manual policy is the local-first one | `model/session-lifecycle.md` | `corpus page` | ticket: "World-time manual acceleration policy", category "World / session"; decision 159 records the local-first half |
+| … | **`done/` complete.** Next: `review/` (36) and `todo/` (12), same rules | | | | |
 
 The `#` column is the AUDIT SEQUENCE, not the alphabetical index: rows follow the alphabetical ticket list, and a ticket recovered after a skip is appended with a note rather than renumbering every later row. Each filled row carries its evidence: the ticket's own quoted design
 sentence, the source path that implements it, and the corpus page that carries it.

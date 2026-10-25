@@ -61,6 +61,7 @@ and a break's drop.
 
 Cracks that deepen with damage, the block breaking with its own sound and drop, and the same holes for every player.
 
+- **A trap's action and its drops agree on every client.** A trap that acts and a trap that drops are the same fact: the destruction's drops carry the same ids on host, guest and a third client ("the same drop ids on host, guest and the third client"), and an action/entity divergence is contained at the Runtime seam rather than left to reconcile later.
 ## The layer's hazards
 
 A hazard the layer imposes is the host's, and every client shows the same one: the radiation line descends at the HOST's rate between resends rather than at each client's own ("The radiation line descends at each client's own rate between the host's resends", fixed and read on the machine: with the member unconscious and the host conscious both lines advanced together, "delta 6.142 vs 6.174 over the same window" instead of the member's own `0.3` units/s), and the line stops above the layer floor leaving a shared margin rather than pinning to the floor.

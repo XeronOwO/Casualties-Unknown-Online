@@ -33,6 +33,8 @@ rejoined party to find the same world, the same items and the same progress.
 | a continue finds a stored key no present peer claims | that entry waits for its owner rather than being given to another |
 | a restore entry's content no longer exists | the entry is skipped and the skip is reported |
 
+- **World time accelerates only when the party sleeps, and the initiator's own clock moves first.** Manual world-time acceleration is gated on being asleep (the ticket's own title), and its last accepted shape is LOCAL FIRST: the initiator's own client applies the accelerated rate at once and the others follow. Decision 159 records the local-first half, and the later world-time tickets its consequences.
+
 ## Who judges
 
 The host owns the run, the world and the cut. A member owns its own body and its own character data; on a continue the

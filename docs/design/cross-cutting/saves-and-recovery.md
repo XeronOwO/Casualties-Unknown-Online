@@ -28,6 +28,10 @@ come back where they were when the cut was taken.
   happen here", and "the deliberate return is itself a mid-run cut now (the world is still fully alive at that moment), so the
   cut and the leave are one operation — if the transient policy defers the cut, the leave waits a frame instead of walking out
   of a world whose in-flight state was never captured".
+- **The scene-load interception and the frame-end seam must agree.** `Runtime/Session/RunMenuReturnPolicy.cs` is "pure
+  host/guest/solo decisions for the deliberate menu return", kept L0-testable "so neither the save-authority rule nor the
+  'would the seam act' precondition can be re-derived differently in the adapter — the scene-load interception and the frame-end
+  seam must agree, or a suppressed scene load would never be replayed".
 - **A checkpoint travels as chunks, and its schema has its own version.**
   `src/CasualtiesUnknownOnline.Protocol/Versioning/ProtocolConstants.cs` keeps the envelope layout and the checkpoint schema as
   separate numbers (`EnvelopeVersion` and `CheckpointSchemaVersion`) and bounds a checkpoint's transport:
@@ -36,6 +40,19 @@ come back where they were when the cut was taken.
 - **The end-of-layer panel's "Save and exit" takes a CUO cut, not the native save.** The accepted reading is that "the save
   half takes a CUO cut and leaves `save.sv` untouched", which is the same independence the save rules state from the other
   direction. The panel itself follows the living share of the party: it appears for a dead host and is gone for a member.
+- **In-flight state gets one explicit verdict per class, and a cut may WAIT for it.**
+  `Runtime/Session/Persistence/WorldTransientPolicy.cs` splits the classes three ways: `ResolveBeforeSave` for state that
+  exists only because an operation spans frames ("a break's drops do not exist yet in the frame the block broke, a drop's throw
+  velocity lands a frame later") — "capturing them is impossible … and dropping them would lose the items, so the cut WAITS —
+  the armed request stays armed and the frame-end seam retries, bounded by `WorldCutDeferral.MaxFrames`"; `DropWithLog` for
+  state whose effect is already in the kernel or that the restored world re-derives ("the run clock, the earthquake timers,
+  item velocity — the kernel owns positions only"), where capturing would be "a second source of truth", so a cut NAMES them
+  and goes on; and `Capture` for the world facts a cut carries as data ("the decided native values and the radiation line ride
+  `world-transients.json`").
+- **Character identity is transport-scoped, and a member, not the "in world" flag, decides presence.**
+  `WorldCharacterBinder.cs`: "Steam keys are `steam-<steamId64>`, IP-direct keys are `name-<sanitized display name>`, and the
+  two spaces never silently collide"; "membership, not the 'in world' flag, decides who is present, and a stored key nobody
+  claims is not an error (that player joins as a NEW character)".
 - **A continue restores the run's OWN world, not a stale one.** The recorded defect was "A Continue after a run opens a stale
   world (the layer-mod baseline then diverges)"; the fix moves the pointer to the run's own world at the first committed cut,
   and the acceptance reading is that all three clients "generated from the same decision entry state … and applied the same

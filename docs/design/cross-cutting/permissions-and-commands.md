@@ -21,6 +21,11 @@ member the host has granted cheat verbs. A player expects a refusal to say which
 A command's shape follows Minecraft's current template (root rule 17): its arguments, their order and which are optional.
 A verb may differ only where a recorded reason says why, and the reason is recorded where the shape is decided.
 
+**A ban is three acts in one, and the third outlives the session.** `Runtime/Session/HostBanService.cs` "sends the dedicated
+`NetMsg.Banned` to the target, removes it through the existing session control member-removal surface, and persists the
+SteamID so the host rejects the player's later handshakes" — and it is "a session-control-plane behavior with its own state
+(the persisted list), not session state", which is why it is a separate collaborator rather than a field on the session.
+
 Selectors name players: `@a` every player including the executor, `@s` the executor, `@p` the nearest player, `@r` one at
 random, `@e` the player-entity alias; each takes bracket filters (`type`, `name`, `distance`, `limit`, `sort`). A
 selector that matches several players where one is required refuses and names the count.

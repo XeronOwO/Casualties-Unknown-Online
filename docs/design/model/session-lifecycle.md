@@ -33,6 +33,14 @@ rejoined party to find the same world, the same items and the same progress.
   than those facts support.
 - State that is in flight at a cut is classified per class — captured, resolved before the save, or dropped — and never
   silently kept or silently lost.
+- **Presence is keyed by the account, and three one-shot messages converge on a repeat.**
+  `MemberPresenceTable.cs` keeps the roster "keyed by SteamId, stable across reconnects", with each member's scene state.
+  `SessionControlConvergence.cs` records why three of them needed their own re-report (sync-coverage rows R3/R4): the lazy-P2P
+  swallow window "drops frames the sender never learns about, and three of them had no re-report at all: a swallowed
+  `SceneState` report left the host without the member's InWorld edge (no world-entry fan-out, no entity sync, the guest's own
+  60 s start-gate valve back to the menu as the only escape), a swallowed `WorldReady` left the guest waiting at the gate
+  although the host had released it, and a swallowed `HandshakeAckAck` left the host's member unconfirmed for the whole
+  connection".
 
 ## Refusals
 

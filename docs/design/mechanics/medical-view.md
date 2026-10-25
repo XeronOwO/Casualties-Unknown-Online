@@ -67,6 +67,13 @@ medical operation the two clients perform together, which is why the drag gestur
   `src/CasualtiesUnknownOnline.Protocol/Wire/WirePlayerLimbState.cs` carries `Broken`, `Dismembered` and `Dislocated` for one
   limb, and `WirePlayerBodyTerminalState.cs` carries `Disfigured`, `EyeGone`, `BothEyesGone` and `HasPulmonaryEmbolism` for
   the body — so a latch the game sets is a field on the wire, never a value a reader re-derives.
+- **Relocating a joint is a repeated drag with a pain ceiling and a wrong-tool penalty.**
+  `DislocationMinigame.cs:55-90`: a hit is refused while "`limb.body.averagePain > 75f`" or the bone is still moving fast
+  (velocity above 60) or the hand is not clicking; with a WRENCH each hit adds `handVelocity * 24f` to the bone and
+  `Random.Range(4f, 10f)` pain, while with bare hands it adds `handVelocity * Random.Range(0.7f, 1.3f) * 20f` and
+  `Random.Range(15f, 24f)` pain — and a `Random.value > 0.995f` roll BREAKS the bone. Success is positional:
+  `dislocationTimer` is the bone's distance from its seat expressed as a percentage, and when it drops "`< 3f`" the limb is
+  undis­located and the minigame ends; above 75 pain the readout reads `toomuchpain` and nothing happens.
 - A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
 
 ## Refusals

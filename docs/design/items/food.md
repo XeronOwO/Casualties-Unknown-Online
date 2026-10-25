@@ -22,6 +22,12 @@ The cross-player food family is decided from the GAME'S OWN DATA, not from a lis
 ## Rules and states
 
 - One use is one bite: the item survives with less condition until its own condition is exhausted.
+- **The one food that REPLACES itself does it in place, and only under two conditions.** A closed stone fruit's `useAction`
+  (`reversing/Assembly-CSharp/Assembly-CSharp/Item.cs:2606-2620`) runs only "`if (body.stamina > 30f && !body.disfigured)`"; inside
+  it spends `stamina -= 30f`, `energy -= 5f`, `limbs[0].pain += 10f`, drops slot 2, plays `drop`, sets `eatTime = 0.5f`, reads
+  `SlotOf(item)`, sets the fruit's `condition = 0f`, drops it, and picks up an instantiated `stonefruitopen` **at the closed
+  fruit's own position and rotation, into the same slot**. So the player sees "the item in my hand became a peeled one" — which is
+  what the user described, and what a cross-player feed has to reproduce rather than invent a transfer for.
 - The eaten amount, the body's effects and the sound are the food's own data; CUO does not add values of its own.
 - A food that leaves a container behind cannot be handed over: the gesture is refused rather than emptying the container.
 - The eater must be conscious: eating is one of the two families where the TARGET consumes the item.

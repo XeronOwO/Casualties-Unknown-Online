@@ -52,6 +52,10 @@ game's own, and the item's remaining state after a use is the same for both play
 `../mechanics/item-use.md` for the entries; `../model/item-custody.md` for identity and custody;
 `../../backlog/done/drink-measurement-destructive-use-action.md` for the destructive-action lesson.
 
+## Where mod-authored content belongs
+
+A mod may add content and effects of its own: the platform's registration face exists for exactly that, and a mod-authored effect's consumer count stopped being the trigger ("the user's ruling is that a highly customisable effect surface is the point of the mod platform, so the consumer count is no longer the trigger"). That surface is documented in the mod API reference, not here: this corpus describes the shipped product's behaviour, and a mod's additions follow the same registration rules the reference states.
+
 ## Gaps
 
 Per-family pages (`items/food.md`, `items/drink.md`, `items/topical.md`, `items/injection.md`, `items/limb-tool.md`,

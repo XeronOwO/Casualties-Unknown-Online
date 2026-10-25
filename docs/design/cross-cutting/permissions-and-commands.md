@@ -33,7 +33,7 @@ selector that matches several players where one is required refuses and names th
 - A write verb is checked on BOTH sides: the member's roster says whether it may run it, and the host checks the same rule when the request arrives.
 - Remote backpack access is a rule: it can forbid all remote inventory manipulation, in which case both the view and the
   gestures are refused by name.
-- Reading a rule is open to every player; changing one is the host's.
+- Reading a rule is open to every player; changing one is the host's.- **A rule value fails closed.** A misspelt or unknown value never widens a rule: the accepted record states the trap — "a typo in a rule's config value silently widens it", because the configuration library clamps an unknown string to the FIRST acceptable value — and its reading is that "the capitalised spellings and the typo case read `deny`/`warn`". The rule's own text forms and its typed value are one definition.
 
 ## Refusals
 

@@ -1260,3 +1260,4 @@ docs/evidence/acceptance/remote-medical-panel-alarm-follows-viewed-player-202610
 docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | claim | docs/backlog/done/snapshot-overtakes-item-reports.md
 docs/backlog/todo/item-custody-single-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
+tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/todo/context-menu-does-not-block-the-pointer.md

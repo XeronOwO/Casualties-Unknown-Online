@@ -55,6 +55,30 @@ That is one recipe call away — and it is blocked on nothing now: the recipe-sh
 `todo/new-recipe-files-are-rejected-by-the-evaluator.md` (a body must be ONE line), so the next batch can finish the cause and hand rows 1-4 to a
 judgement.
 
+## The panel IS hit, and it IS on the UI layer (measured 2026-10-25, batch `.acceptance/batch-menu3`)
+
+With the menu open at (640,360) on the host, the game's own question was asked at four points (the one-line `ui-raycast-at` recipe: the same
+`EventSystem.RaycastAll` + `layer == LayerMask.NameToLayer("UI")` check `UIUtil.IsPointerOverUIElement` makes):
+
+| Point | First hit | Layer |
+|---|---|---|
+| (640,360) — where the menu was opened | `Viewport` | 5 (UI) |
+| (660,370) — inside the panel | **`CUO Online UI Player Menu`** | **5 (UI)** |
+| (620,380) — left of the panel | `Viewport` | 5 (UI) |
+| (900,500) — far from it | `Viewport` | 5 (UI) |
+
+So **CUO's menu IS a raycast target on the game's UI layer, and the EventSystem reaches it** — candidate 1's layer half is satisfied
+(`dc88f5cc`), and a click inside the panel cannot be invisible to the gate for that reason.
+
+**What the reading also shows, and it changes the question**: the game's own `Viewport` is on the UI layer and under the pointer EVERYWHERE, so
+`UIUtil.IsPointerOverUIElement()` answers true across the whole screen. A gate that is always true cannot be what lets a click through — so
+candidate 2 is now the live one: either the world action the user saw is not the one `HandleAttacks` guards (`PlayerCamera.cs:1826`), or the menu
+was already closing when the click landed. That distinction needs the user's own click, because both candidates end at "what happened at that
+instant", and no probe can manufacture it.
+
+Rows 1-4 therefore need a batch with the user's mouse authorization; the instrument for the blank-area row (the hit list, inside versus outside the
+rect) is committed and works.
+
 ## Acceptance rows
 
 | Row | The check |

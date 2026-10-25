@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline;
 internal sealed class CommandConsoleInputRenderer
 {
 	private static GUIStyle? _inputStyle;
+	private static GUIStyle? _segmentStyle;
 	private static GUIStyle? _promptStyle;
 
 	internal void Draw(Rect rect, ConsoleInputSession session, ConsoleImeState ime)
@@ -116,8 +117,38 @@ internal sealed class CommandConsoleInputRenderer
 		GUI.color = previous;
 	}
 
+	/// <summary>
+	/// The style the SEGMENTS are drawn and measured with: the input style with its padding zeroed and its BACKGROUND removed.
+	///
+	/// <para>
+	/// Two defects came from drawing text with a text-field style. Its padding insets the glyphs inside the rect it is given, so drawing every
+	/// token into a rect that already started at `rect.x + padding.left` put each token one padding further right than the x the loop computed —
+	/// the drift grew with every token and the caret, which measured with the padded style, fell further behind the longer the line got. And its
+	/// background is the field's own rounded frame, so every TOKEN got a rounded rectangle of its own — which is exactly what the player
+	/// reported ("you frame the characters with a rounded rectangle"). One zero-padding, transparent-background style for both measuring and
+	/// drawing leaves the single input frame the row already draws, with the text and the caret sharing one origin.
+	/// </para>
+	/// </summary>
+	private static GUIStyle SegmentStyle()
+	{
+		if (_segmentStyle is null)
+		{
+			_segmentStyle = new GUIStyle(InputStyle())
+			{
+				padding = new RectOffset(0, 0, 0, 0),
+			};
+			_segmentStyle.normal.background = null;
+			_segmentStyle.hover.background = null;
+			_segmentStyle.active.background = null;
+			_segmentStyle.focused.background = null;
+		}
+
+		return _segmentStyle;
+	}
+
 	private static void DrawHighlightedInput(Rect rect, ConsoleInputSession session, GUIStyle style)
 	{
+		var draw = SegmentStyle();
 		var tokens = CommandLineTokenizer.Tokenize(session.Input);
 		var x = rect.x + style.padding.left;
 		var consumed = 0;
@@ -125,16 +156,16 @@ internal sealed class CommandConsoleInputRenderer
 		{
 			if (token.Start > consumed)
 			{
-				DrawSegment(rect, x, style, session.Input.Substring(consumed, token.Start - consumed), OnlineUiTheme.Text, ref x);
+				DrawSegment(rect, x, draw, session.Input.Substring(consumed, token.Start - consumed), OnlineUiTheme.Text, ref x);
 			}
 
-			DrawSegment(rect, x, style, token.Text, TokenColor(token), ref x);
+			DrawSegment(rect, x, draw, token.Text, TokenColor(token), ref x);
 			consumed = token.Start + token.Length;
 		}
 
 		if (consumed < session.Input.Length)
 		{
-			DrawSegment(rect, x, style, session.Input.Substring(consumed), OnlineUiTheme.Text, ref x);
+			DrawSegment(rect, x, draw, session.Input.Substring(consumed), OnlineUiTheme.Text, ref x);
 		}
 	}
 

@@ -110,6 +110,19 @@ if ($failures.Count -gt 0) {
 
 $checked = 0
 foreach ($entry in $entries) { if ($entry.State -eq 'x') { $checked++ } }
+
+# The language rule runs HERE, not in a separate step somebody can forget: "committed content is English" is a property of the DIFF, so it
+# cannot be a code gate (a test sees the tree, and the tree legitimately holds translated quotes in its historical records). Anchoring it to
+# the one entry point that must pass before a commit is the hard version of that rule.
+$languageScript = Join-Path $PSScriptRoot 'check-language.ps1'
+if (Test-Path -LiteralPath $languageScript) {
+	& $languageScript
+	if ($LASTEXITCODE -ne 0) {
+		Write-Host 'check-delivery: the language check failed - fix the staged wording before committing.'
+		exit 1
+	}
+}
+
 Write-Host "check-delivery: green - $checked box(es) carry this cycle's evidence."
 
 if ($CheckOnly) { exit 0 }

@@ -33,6 +33,38 @@ Candidates to tell apart with one frame plus two readings:
 3. **Scale**: the frame is drawn at a canvas scale the text does not use, so the offset is proportional to the distance from the
    pivot.
 
+## Root cause and fix (2026-10-25)
+
+Candidate 1 of the three, in a stronger form than "different insets": the segments were drawn with the **text-field style itself**.
+
+`CommandConsoleInputRenderer` measures and draws the input token by token (`DrawHighlightedInput` → `DrawSegment(rect, x, style, …)`), and the
+style it passed was `InputStyle()` — a clone of `GUI.skin.textField` with `padding = new RectOffset(6, 6, 4, 4)`. A `GUIStyle` with padding draws
+its text INSET by that padding inside the rect it is given, while the loop already placed each token at `rect.x + style.padding.left + Σ widths`:
+
+- every token's glyphs therefore landed one padding further right than the x computed for them, and the drift grew with every token;
+- the caret measured the same Σ widths without the insets, so it fell further behind the text the longer the line got — the reported symptom;
+- and the text-field style's own background drew a **rounded rectangle around every token**, which is the frame the user guessed at
+  ("could the rounded rectangle be the cause?").
+
+That last half is the defect the earlier accepted design's rejection list named ("the input line has layout/alignment problems: the `>` prompt and
+the input box are misaligned"), so this is the regression it describes.
+
+**The fix** is one style used for BOTH measuring and drawing (`SegmentStyle()`): the input style with `padding` zeroed and every
+`background` cleared. One origin (`rect.x + style.padding.left`), zero padding, no per-token frame — the text and the caret cannot disagree, and the
+row keeps the single frame it already drew.
+
+## Judged (2026-10-25, `.acceptance/batch-caret2`)
+
+The row was judged by capturing the client's own frame with the text in the field, twice — before the background half of the fix and after:
+
+- **before** (`.acceptance/frames/caret-fix.png`): three rounded boxes, one per token (`/give`, `waterbottle`, `@a`);
+- **after** (`.acceptance/frames/caret-fixed2.png`): one text run `/give waterbottle @a`, no per-token frames, and the caret is a thin bar at the
+  end of `@a` on the same baseline — exactly where the next character goes.
+
+**Residual, not judged:** the CJK half of row 1. The in-process driver cannot deliver Chinese text — `-Text '/give 水壶 @a'` arrives as the
+misdecoded `姘村６`, a transport artifact of the batch (PowerShell → JSON → eval), not of the console. Judging the caret after an IME composition
+needs the user's own keyboard, so it stays a named residual.
+
 ## Acceptance rows
 
 | Row | The check |

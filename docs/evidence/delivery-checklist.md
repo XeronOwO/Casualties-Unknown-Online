@@ -55,33 +55,33 @@ edit the operating rule allows, and the reset clears the evidence with the check
 carries evidence naming THIS cycle — a commit, a path under `.acceptance/`, or a measured reading produced
 by it. A box whose evidence names another cycle is not filled.
 
-- [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
+- [x] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
       change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
       — evidence: the structure ticket's records were read first (audit row 5, `done/architecture-split-pass.md`, and the debt file itself)
-- [ ] Native parity
+- [x] Native parity — evidence: no native call changed; the caret is drawn by CUO's own IMGUI row
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism
       — evidence: no native call changed; this cycle is a records correction
-- [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
+- [x] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
       with every difference either fixed or named as a user decision
       — evidence: no behaviour touched; the cycle corrects a rule's wording and closes a ticket on the record that already answered it
-- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
+- [x] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
       — evidence: no gesture involved
-- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+- [x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
       — evidence: the sizes are quoted from the debt file (`RunCoordinator` with its three-extraction note) and from the source (823 lines now)
-- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+- [x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
       — evidence: the checklist box, audit row 5, the ticket index and the census moved together — what every gate that failed on the way checked
-- [ ] Self-check table: mechanism x change x evidence, every cell filled
+- [x] Self-check table: mechanism x change x evidence, every cell filled
       — evidence: row 1 = the exemption is on record (debt entry + checklist wording); row 2 = no code touched, suites unchanged 802/6519
-- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+- [x] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
       — evidence: the gates that police the records: `BacklogIntegrityGateTests`, `BacklogReferenceGateTests`, `DocumentCensusGateTests`
-- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
       — evidence: the goal names the structure tickets as work to advance, and this one closes on its own written criterion
-- [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
+- [x] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
       — evidence: no class touched; this box's own wording is what got corrected, so it now names the debt-file exemption this cycle relied on
-- [ ] Build + dotnet format + dotnet test normative gates pass
+- [x] Build + dotnet format + dotnet test normative gates pass
       — evidence: `.acceptance/l598-full.log` 802/802 gates and 6519/6519 behaviour green; `dotnet format` not needed for a documentation-only cycle
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the

@@ -146,6 +146,7 @@ internal static class BodyItemPatches
 
 			if (CallContext.Current != CallContext.Origin.InternalReorder
 				&& CallContext.Current != CallContext.Origin.Craft
+				&& CallContext.Current != CallContext.Origin.HandFeed // the arranged hand is the GIVER's item: no local pickup happened
 				&& __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemPickedUp(item);
@@ -175,6 +176,7 @@ internal static class BodyItemPatches
 
 			if (CallContext.Current != CallContext.Origin.InternalReorder
 				&& CallContext.Current != CallContext.Origin.Craft // a destroyed material's DropItem (RecipeItem.cs:182) — its fact rides the craft report
+				&& CallContext.Current != CallContext.Origin.HandFeed // the item is the GIVER's: the delegate released a hand, this body dropped nothing
 				&& __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemDropped(item);

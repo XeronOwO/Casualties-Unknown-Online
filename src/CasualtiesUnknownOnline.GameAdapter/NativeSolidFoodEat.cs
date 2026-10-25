@@ -84,9 +84,65 @@ internal static class NativeSolidFoodEat
 			return false;
 		}
 
+		// THE HAND CASE'S SLOT STEPS. The delegates resolve their own slot work against the body they are
+		// handed — `Body.SlotOf` searches `body.slots`, and `Body.GetItem` reads a slot's first child — so an
+		// item that sits nowhere in the eater's slots answers "slot 0" and the peel's replacement lands by
+		// luck, while `DropItem(item)` no-ops because the item is not carried. The arrangement below makes
+		// the game's own reads answer truthfully for the duration of the call: the standing item is parented
+		// into an EMPTY hand slot (the game's own slot shape, `slots[i].transform`), and taken back out
+		// afterwards. It is not a transfer: the scope suppresses every report the arrangement could cause,
+		// and the custody tables are never told anything (the user's ruling — "eat from my hand" — and its
+		// reason, that a full inventory must still be feedable).
+		var arrangedSlot = -1;
+		var originalParent = item.transform.parent;
 		using var scope = CallContext.Enter(CallContext.Origin.CharacterItemUse);
-		body.UseItem(item);
-		domains.Log.LogInformation("[ItemUse] ran the game's own eat of {Type} (id {ItemId}) on the local body.", item.id, itemInstanceId);
-		return true;
+		using var handFeed = carriedByEater ? null : CallContext.Enter(CallContext.Origin.HandFeed);
+		if (!carriedByEater)
+		{
+			arrangedSlot = FirstEmptyHandSlot(body);
+			if (arrangedSlot >= 0)
+			{
+				item.transform.SetParent(body.slots[arrangedSlot].transform, worldPositionStays: true);
+			}
+		}
+
+		try
+		{
+			body.UseItem(item);
+			domains.Log.LogInformation(
+				"[ItemUse] ran the game's own eat of {Type} (id {ItemId}) on the local body{Hand}.",
+				item.id,
+				itemInstanceId,
+				carriedByEater ? string.Empty : $" out of the giver's hand (arranged into slot {arrangedSlot})");
+			return true;
+		}
+		finally
+		{
+			// The delegate may have consumed, dropped or replaced the item; only put back what is still
+			// the same live object sitting in the slot we arranged, so a destroyed or re-parented item
+			// cannot be yanked out of wherever the game's own step put it.
+			if (arrangedSlot >= 0 && item != null // Unity object — ==
+				&& item.transform.parent == body.slots[arrangedSlot].transform) // Unity object — ==
+			{
+				item.transform.SetParent(originalParent, worldPositionStays: true);
+			}
+		}
+	}
+
+	/// <summary>
+	/// The eater's first empty hand slot, or <c>-1</c> when both hands are full. Hands are slots 0 and 1 —
+	/// the game's own order, and the pair every inventory patch reports as "Hands".
+	/// </summary>
+	private static int FirstEmptyHandSlot(Body body)
+	{
+		for (var slot = 0; slot <= 1 && slot < body.slots.Length; slot++)
+		{
+			if (body.slots[slot].transform.childCount == 0)
+			{
+				return slot;
+			}
+		}
+
+		return -1;
 	}
 }

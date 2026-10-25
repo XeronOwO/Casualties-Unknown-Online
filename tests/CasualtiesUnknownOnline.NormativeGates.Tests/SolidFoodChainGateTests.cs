@@ -321,6 +321,26 @@ public class SolidFoodChainGateTests
 		Assert.True(useItem is not null, $"{EatFile}: the eat still runs the game's own Body.UseItem");
 		Assert.True(useItem!.SpanStart > handCase.SpanStart,
 			$"{EatFile}: Body.UseItem must run on whichever item the resolution produced");
+
+		// THE HAND CASE'S ARRANGEMENT. The delegates read the body's slots, so the hand case parents the
+		// standing item into an EMPTY hand slot for the call and takes it back out — under the HandFeed
+		// scope, which the pickup/drop patches honour so the arrangement is never reported as a transfer.
+		Assert.Contains(
+			eat.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "CallContext.Origin.HandFeed");
+		Assert.Contains(
+			eat.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "body.slots");
+		var arrange = eat.DescendantNodes().OfType<InvocationExpressionSyntax>()
+			.FirstOrDefault(invocation => invocation.Expression is MemberAccessExpressionSyntax access
+				&& access.Name.Identifier.ValueText == "SetParent");
+		Assert.True(arrange is not null, $"{EatFile}: the hand case must parent the giver's item into an empty hand slot");
+		Assert.True(arrange!.SpanStart < useItem.SpanStart,
+			$"{EatFile}: the arrangement must happen BEFORE the delegate runs, or its slot reads answer the old shape");
+
+		// And the two patches that would otherwise report the arrangement as a local pickup/drop.
+		var patches = RepositoryPaths.ReadText("src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyItemPatches.cs");
+		Assert.Contains("CallContext.Origin.HandFeed", patches);
 	}
 
 	[Theory]

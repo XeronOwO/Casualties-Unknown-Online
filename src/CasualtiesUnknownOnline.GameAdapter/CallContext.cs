@@ -141,6 +141,14 @@ internal static class CallContext
 		/// own innermost <see cref="CharacterItemPlacement"/> scope.</summary>
 		CharacterItemUse,
 
+		/// <summary>A cross-player hand feed arranged a standing item into the EATER's hand slot for the
+		/// duration of the delegated <c>useAction</c> (<see cref="NativeSolidFoodEat"/>). The item is the
+		/// GIVER's — the user's ruling is "eat from my hand", and the transfer-first shape was rejected
+		/// because a full inventory must still be feedable — so nothing this scope's arrangement causes may
+		/// be reported as a local pickup, and a <c>DropItem</c> inside it is the delegate releasing the
+		/// hand, not this body dropping an item into the world.</summary>
+		HandFeed,
+
 		/// <summary>Inside <c>Body.HandleVisuals</c> for a local body — the meal-end
 		/// <c>"burp"</c> (Body.cs:3137-3142) reports from this scope. The scope
 		/// exists for that one clip, the way <see cref="CharacterLockpickPain"/>

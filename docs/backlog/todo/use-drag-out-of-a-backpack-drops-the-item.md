@@ -59,3 +59,17 @@ the user's two reports and the host log quoted above.
 - The batch that saw this had no radial state in its log; the first run of this ticket adds that reading, not a rerun of a guess.
 - Which of the two causes is true decides whether this is a code fix or a design/UX decision, and the user is the one who knows what they expected to
   see on screen at that moment.
+
+## The visible half is fixed and judged by a frame (2026-10-25, `.acceptance/batch-radial`)
+
+The cause was one line: `RemoteBackpackView.AnchorRadialToFocus` disabled `radialCircle` for the whole remote view, which hid the game's own highlight
+(`radialCircle.color`, `PlayerCamera.cs:1791-1800`) AND removed the `RadialCenter` tag from every UI raycast, so R10 could never consume the release.
+It now enables it — the rationale that required disabling was written while R10 was suppressed, and stage 3 un-suppressed R10.
+
+Deployed and read back with the remote backpack open on the host: `.acceptance/frames/radial-enable.png` shows the focused clone's native ring drawn
+around it — the body-slot ring plus the INNER USE CIRCLE the user reported missing — where the previous build drew no circle at all.
+
+What the same batch could NOT judge, and why: the interaction half. `drag-release` reported `mode=DisplayedBackpack`, `backpackOpen=True`,
+`centreUnderPointer=False` with `centreDistance=3021`, `centreRadius=135` — and that distance is measured against `Input.mousePosition`, i.e. the REAL
+OS pointer, which the in-process driver never moves. The reading therefore says nothing about a player's drag; the centre test has to be exercised by
+a real drag, which is the user's next test.

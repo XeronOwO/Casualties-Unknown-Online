@@ -33,6 +33,23 @@ when no item is.
    IMGUI event, and a fix has to work whichever runs first.
 3. What the priority is when an item overlaps a BODY: the item wins (the game's own order); a body with no item keeps opening the menu.
 
+## Read 2026-10-25 — the cause is one missing question, and the fix is one seam member
+
+`OnlineUiPlayerContextMenu.HandleInput` (`src/CasualtiesUnknownOnline.Plugin/OnlineUiPlayerContextMenu.cs`) handles the right button and asks
+exactly one thing: `TryFindRemoteCandidatesAt(mouse, ctx, out candidates)` — a SCREEN-PROXIMITY search over the projected remote bodies
+(`RemoteTargetPicker.Find(screenTargets, mouse.x, mouse.y, radius: 48f)`). It never asks what the pointer is over, so an item lying on a teammate is
+invisible to it and the menu opens beside the pickup the game starts in the same frame.
+
+The question it must ask is the game's own (`PlayerCamera.TryPickupFromWorld`, `PlayerCamera.cs:1423-1441`):
+`Physics2D.OverlapPoint(Camera.main.ScreenToWorldPoint(mouse), LayerMask.GetMask("Item"))` — and the Plugin cannot ask it, because it does not
+reference Assembly-CSharp or the game types (`GameAssemblyReferenceGateTests` fails the build if that reference comes back). So the question belongs
+on the adapter's patch seam: one new member on `IPatchBridge` (a bool "is a world item under the pointer", implemented in `GameAdapterBridge` with the
+two Unity calls above), called by the menu before `TryFindRemoteCandidatesAt`. That keeps the rule in the layer that owns game knowledge and leaves the
+Plugin asking a question instead of knowing the game.
+
+Rows 2 and 3 of the acceptance table then stay as they are (a body with no item keeps opening the menu; empty ground keeps its today behaviour), and
+the bridge's pinned member census gains the one name in the same change.
+
 ## Acceptance rows
 
 | Row | The check |

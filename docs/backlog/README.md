@@ -66,6 +66,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The context menu's title wraps behind its first action](todo/context-menu-name-wraps-behind-actions.md) — **Medium** — fit or ellipsize the player name.
 - [The console's completion shows nothing](todo/console-completion-shows-no-suggestions.md) — **High** — typing must show suggestions.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
+- [Enter on an empty console does not close it](todo/console-enter-on-empty-does-not-close.md) — **Low** — a recorded deviation from native.
 - [`@a` skips the player who runs it](todo/selectors-exclude-the-executor.md) — **Medium** — `@a` must include the executor.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
 - [Giving into a backpack plays no sound](todo/give-into-backpack-plays-no-sound.md) — **High** — the transfer's own clip.

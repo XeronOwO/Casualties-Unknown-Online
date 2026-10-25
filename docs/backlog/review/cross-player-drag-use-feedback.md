@@ -474,3 +474,11 @@ nothing — `rup` then `rdown` fixed it) and the ring closed with Tab rather tha
 
 That also settles row 2's item: **fentanyl is the wrong family** — an injectable must go through the medical operation session, and
 the host says so by name. Row 2 needs a one-shot use the host ACCEPTS (a food/consume item), and row 4 is now read.
+
+**Batch `20261025-az` — the classifier is now READ directly, and it explains both attempts.** A new probe,
+`recipes/use-eligibility.cs`, asks `LocalUseItemEligibility.IsUseItem` with the same semantic services the adapter registers (the four
+seams live in `CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction`). It answered **`fentanyl → isUseItem=True`** (so the cue
+shows and the release is dispatched, then the host refuses an injectable BY NAME) and **`stonefruitclosed → isUseItem=False`** (so the
+cue never shows for it). Reading `ItemUseFamilyClassifier` says which families the inventory entry admits: **the wear placement, the
+injection refusal, the drink, and the solid food** — so row 2's item must come from wear / drink / solid-food rather than from a
+guess, and the probe is the instrument that names it in one call.

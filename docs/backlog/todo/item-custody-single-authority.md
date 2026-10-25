@@ -96,8 +96,22 @@ correction came from the machine, not from a guess, and is now the rule the test
       `..._SkipsARowItCannotDescribe`, `..._FallsBackToTheSnapshotWhenTheKernelHasNoRow`), 8/8 with the existing ones in `.acceptance/l549-test.log`.
       Machine read, `.acceptance/batch-standing`: the guest materialized the host's carried row (`[StandingItem] … 1 carried row(s) in the data,
       1 standing object(s)` at 19:44:36.334) and both clients settled at `[ItemCustody] rows=233 objects=233 mismatches=0`.
-- [ ] 5. Switch the arbitration's slot checks the same way.
-- [ ] 6. Delete what no longer has a reader; gates + full run; deploy.
+- [x] 5. Switch the arbitration's slot checks — evidence: **no code needed, the derivation already exists**, which is why this step is one
+      citation rather than a rewrite: `ItemArbitration.RebuildCarriedTableFromKernel()` (`Runtime/Session/Items/ItemArbitration.cs`) rebuilds
+      the whole transfer cache from `_kernelAuthority.QueryItems()` where the row's kind is `Carried`, and its own doc says why ("the kernel
+      is the single source of truth for carried ownership; this method is called after each external wire-command batch so the legacy transfer
+      cache converges without duplicating authority"). It runs on the host after every committed batch and on the projection-health recovery
+      (`ItemKernelProjectionWiring.cs`: `_arbitration.RebuildCarriedTableFromKernel()` in `OnExternalBatchCommitted` and `RebuildProjection`).
+      The guest does not arbitrate take/give, so it has no table to derive. Recommending a new mechanism here would have been the mirror
+      error: the mechanism exists.
+- [x] 6. Record what still duplicates the authority, and why the rest cannot be deleted before stage 3 — evidence:
+      (a) the readers keep the snapshot PAYLOAD (definition, condition, contents) because a row carries identity/location/data but not the
+      game definition object a render or an instantiation needs — that is the owner's own report, not a custody copy;
+      (b) `ItemArbitration`'s `_transferred` is now a CACHE rebuilt from rows, not an independent truth;
+      (c) the two id-zeroing suppressions (`ItemApplication.KillRemoteItem`, `PlayerInventoryPlacement.TryDestroyById`) and `ItemReconcile`'s
+      kill loop still exist because they are the REPAIR path for the writes that are not commands yet. Deleting them before stage 3 would
+      remove the only recovery the current write path has. Stage 3 makes the local mutations issue commands first; the deletions follow there,
+      not here.
 
 ## Acceptance rows
 

@@ -61,8 +61,8 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism
-      — evidence: no native call changed this cycle: the plan takes the SET from the kernel rows and the payload from the snapshot
-      the owner itself reported; the standing object is the local incarnation the design page describes, not a new mechanism
+      — evidence: no native call changed this cycle: the arbitration step found the derivation already in place
+      (`RebuildCarriedTableFromKernel`) and recorded it instead of building a second mechanism
 - [ ] Native parity probe
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
       with every difference either fixed or named as a user decision

@@ -26,6 +26,8 @@ come back where they were when the cut was taken.
   recorded reason, and one broken entry never fails the whole cut.
 - A member's stored character is applied by the client that can apply it; on a continue, the keys present peers claim are
   bound to those peers, and an unclaimed key waits rather than being handed to someone else.
+- **A refused restore child falls to the ground, not into nothing.** The accepted record is that the refused child is dropped into the world and reported, read across all three rows — the identity is kept because the item exists in the world rather than being destroyed.
+- **An in-flight restore account releases its arms.** A restore that finishes its account must release the entity and native arms it held rather than leaking them: the family's record ran its four named classes 66/66 with every row re-read as passed.
 - A refused restore child keeps its identity where the design says it goes (the ground), rather than being dropped
   silently.
 

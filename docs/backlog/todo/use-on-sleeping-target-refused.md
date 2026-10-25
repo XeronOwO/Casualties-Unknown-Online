@@ -27,11 +27,18 @@ carries is whether a sleeping (as opposed to unconscious-from-injury) teammate s
 - feeding a sleeping teammate is a plausible expectation (the item is applied BY the operator);
 - drinking requires the target's own swallow, which a sleeping body cannot do.
 
-## Open question (needs the user's word before code)
+## Open question — DECIDED 2026-10-25 (decision 270)
 
-Should the consuming families accept a SLEEPING target, and if so should the game's own wake-on-use behaviour run (the target wakes
-as it eats), or should the refusal stay and only its text be made specific (naming "the target is asleep" instead of "the target is
-unconscious")?
+The user's ruling, given after this ticket was written: **a sleeping teammate is a valid target for every cross-player item use, and the operation
+runs the native chain on the target's own client.** Recorded as decision 270 in `docs/decisions/active.md`, with the boundary the ticket needed:
+
+- being ASLEEP stops being a refusal condition for the consuming families (eat, drink), as it never was for the treating ones;
+- being UNCONSCIOUS FROM INJURY keeps the 2026-10-24 rule for consuming items — the exemption is sleep, not unconsciousness;
+- the judging split does not move: the target's client performs the native call on its own body (its animation, its sound, its state) and reports
+  the result, so a wake-on-use the game performs happens there because that is where the call runs — CUO invents nothing;
+- whatever refusal remains names which state it refused (asleep vs unconscious) in the reader's own language.
+
+What is left is the code and its rows.
 
 ## Acceptance rows
 

@@ -1,28 +1,38 @@
 # CPR and revival
 
-Restarting a stopped heart on another player's body.
+Compressing a patient's chest to restart their heart, and giving them air.
 
 ## What the player does
 
-Opens a patient's medical view, presses and holds the CPR control on that patient, and keeps compressing. The player
-expects each press to cost their own stamina, the compressions to advance the patient towards revival, and the patient to
-come back with the state a revived body has.
+Opens a patient's medical chart, presses the CPR control on that patient, keeps compressing in a steady rhythm, and
+inflates after an interval to give the teammate air. The player expects each press to cost their own stamina, the patient
+to come back when the compressions succeed, and a poor rhythm to be visible to them.
 
-## What the game itself does
+## Where the design comes from
 
-The compression is the game's own CPR minigame: the patient's own client runs it against the patient's body, and the
-operator's presses arrive as the operation's input. The native gate on the operator is the game's own strength rule
-(`skills.STR * handMaxTotalForce` against the hands' own total force), which is why a weak operator cannot compress at all.
+CPR is **CUO's own enhancement**, not a native action. The accepted ticket states the fact plainly: "Native
+`Assembly-CSharp` does not contain a native `CPRMinigame`", a reference co-op mod "ships custom `CPRMinigame` and
+`CPRHandler`", and "this is therefore not a native parity item; it is an optional KrokMP-style enhancement". The user
+promoted it on 2026-10-07 with the mechanics they wanted added: "inflate after an interval to give the teammate air, an
+oxygen-style mechanic if the game's own model can carry one, and an explicit complexity assessment".
+
+The reference mod's handler "already carries most of what the user asks for as a reference: a strength/intelligence gate on
+the healer, a press cadence with a stamina cost per press, a hand-force term that scales the push, and rib damage as a side
+effect of over-pressing. It does **not** show a ventilation/inflation step or an oxygen model, so those two are CUO's own
+design."
 
 ## Rules and states
 
-- The operator's own body is asked FIRST, before anything is sent: if it cannot compress, or has no stamina for another
-  press, the gesture is refused on the operator's own client and nothing leaves it.
-- Each press costs the operator stamina; the patient advances only while presses keep arriving.
-- Revival is the positive outcome of the operation; a patient whose body cannot be revived stays in the medical state the
-  operation reports.
-- The CPR control is only offered where it can act: it belongs to the medical view of a patient, not to the operator's own
-  body.
+- The operator's own body is asked FIRST: a strength and intelligence gate decides whether they may compress at all, and a
+  press they cannot make is refused on their own client before anything leaves it.
+- Each press costs stamina; the hand's own force scales the push, so a stronger operator pushes harder.
+- Over-pressing damages the patient's ribs as a side effect.
+- The compression has a rhythm: presses spaced by the game's own clock are judged, and the verdict is `Good` when the
+  spacing is right — the accepted record's reading is "five consecutive 0.55–0.56 s gaps each produced `verdict Good at INT
+  15`", while "the same presses at intelligence 7 produced `verdict None`, which is the intelligence screen working as
+  designed".
+- Ventilation gives the patient air after an interval; the oxygen model is CUO's own, because the game has none.
+- AED is a separate procedure with its own item and rhythm, and is explicitly out of this mechanic's scope.
 
 ## Refusals
 
@@ -35,26 +45,27 @@ operator's presses arrive as the operation's input. The native gate on the opera
 
 ## Who judges
 
-The operator's own client refuses a press its body cannot make. The patient's own client runs the compression and decides
-whether the body advances; the host arbitrates the operation's frames and holds the resulting body state.
+The operator's own client refuses a press their body cannot make. The patient's side carries the outcome of the
+compressions, and the acting side judges on its own picture and timeline — the accepted ticket names that rule when it
+lists the decision register among its records.
 
 ## What travels
 
-The patient, the operation's identity, and each press as the operation's input. The patient's side reports the body's
-revived state, which the host applies.
+The patient, the operation the compressions belong to, and each press as that operation's input. The patient's revived
+state is what the host applies.
 
 ## What the player sees and hears
 
-The operator sees the compression animation and the patient's body respond; both sides hear the game's own CPR sounds. A
-refusal is one line in the operator's language plus the game's deny sound.
+The compression plays on the patient's body with the game's own feedback, the rhythm verdict is shown to the operator, and
+a refusal is one line in the operator's language plus the game's deny sound.
 
 ## Records
 
-`../../architecture/surfaces.md` (medical view row), decisions 184 and 154. Accepted:
-`../../backlog/done/remote-medical-cpr.md`.
+Accepted: `../../backlog/done/remote-medical-cpr.md` — all four stages landed ("stage 1's restart, stage 2's oxygen
+channel, stage 3's rib and AED arbitration, stage 4's reference rhythm band, per-press costs, strength gate and intelligence
+screen"), with the rhythm verdict read in batch `20261025-a`. Parent: `../../backlog/review/remote-medical-native-minigame-parity.md`.
 
 ## Gaps
 
-- The number of presses and the stamina cost per press come from the game's own minigame and are not recorded here yet.
-- The interaction between CPR and a body that dies during the operation is recorded only in the minigame's own outcome;
-  it belongs in this page once read.
+- The number of presses a revival takes, and the stamina cost per press, are CUO's own numbers; they are held by the
+  implementation and its acceptance records rather than stated here yet.

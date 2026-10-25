@@ -25,6 +25,10 @@ The game's own `heal` command resets a body but "does not restore severed limbs"
   is `staminaStrength.Evaluate(stamina * 0.01f)`, the legs' strength sums that curve per leg, and the workout animation reads
   `1f + skills.STRFrom10 * 0.07f` — a skill is an input to a curve the game evaluates every frame, which is why the kit's
   effects follow the character's own skill state rather than a flat bonus.
+- **The game's own resuscitation is a roll with a floor, and it is spent once.** `TryLastStand` is offered only while
+  `brainHealth <= 15f`, sets `triedRollingLastStand` whether it succeeds or fails, and a success writes the whole body's vitals
+  (see `cpr-and-revival.md`); the run setting `infinitelaststand` is what makes it repeatable. So "bring a body back" is either
+  that one roll or a CUO path with its own recorded reason — there is no third mechanism to inherit.
 - **Severed limbs are restored by CUO, because the game has no path for it.** The ticket states the reason: "the game's
   own `heal` command does not restore severed limbs". The restored limb survives a save cut, a continue-run restore and a
   process restart, because the limb is a persisted body fact.

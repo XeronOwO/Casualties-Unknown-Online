@@ -47,6 +47,12 @@ There is no native CPR: the accepted record states that "Native `Assembly-CSharp
   the chest of a living patient it clears `fibrillationProgress` when the roll succeeds (the AED passes `chance = 1f`) or the
   body is in arrest, and **only an arrested heart restarts, on a further `0.2f` roll** (`heartRate = 200f`), after which the body
   is left with `defibShockedFrames = 20`, `heartProg = -1f` and `bloodPressure = 40f`.
+- **A "last stand" is a one-time roll that rewrites the whole body.** `Body.TryLastStand` (`Body.cs:955-1030`) draws
+  `lastLastChanceHappiness.Evaluate(lastHappiness[9])`, sets `triedRollingLastStand`, and on success leaves the body at: brain
+  health `75-90`, hunger and thirst lerped halfway to `100`, blood volume at least `50f`, heart rate `120f`, fibrillation `0`,
+  blood pressure `135f`, vessel size `1f`, oxygen `100f`, viscosity `0`, stroke `0`, no pulmonary embolism, respiratory rate
+  `100f`, septic shock scaled by `0.4f`, and `lastStandTime = 300f`. It is only offered while `brainHealth <= 15f` and only if
+  it has never been tried; the run setting `infinitelaststand` clears the flag so it can be rolled again.
 
 - The operator's own body is asked FIRST: a strength and intelligence gate decides whether they may compress at all, and a
   press they cannot make is refused on their own client before anything leaves it.

@@ -37,6 +37,11 @@ come back where they were when the cut was taken.
   separate numbers (`EnvelopeVersion` and `CheckpointSchemaVersion`) and bounds a checkpoint's transport:
   `CheckpointChunkItemCount = 256` items per chunk and a maximum number of chunks per restore — so a large world is carried in
   a deterministic number of pieces rather than one frame.
+- **The native "Save and exit" writes `SaveSystem.SaveGame()`; CUO's does not.** `WorldGeneration.SaveAndExit()`
+  (`WorldGeneration.cs:1024-1033`) sets `forceWalk = false`, raises `deepestlayer`, calls `IncreaseDepthByLayer()`, writes the
+  game's own save and returns to the menu. CUO keeps the player-facing action and substitutes its own cut, which is the same
+  independence decision 165 states — and the reason the acceptance reading for that panel says the save half "leaves `save.sv`
+  untouched".
 - **The end-of-layer panel's "Save and exit" takes a CUO cut, not the native save.** The accepted reading is that "the save
   half takes a CUO cut and leaves `save.sv` untouched", which is the same independence the save rules state from the other
   direction. The panel itself follows the living share of the party: it appears for a dead host and is gone for a member.

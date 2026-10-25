@@ -81,6 +81,10 @@ medical operation the two clients perform together, which is why the drag gestur
   dismembered and every limb still connected below it is disinfected: `infected = false`, `infectionAmount = 0f`,
   `SetDisinfect(300f)` and `bleedAmount *= 0.5f`, with `body.traumaAmount -= 20f` — so an amputation is a treatment as well as
   a loss.
+- **A blinded player is given light: the game's ambient light is a run setting, and `bothEyesGone` overrides it upward.**
+  `WorldGeneration.UpdateAmbientLight` (`WorldGeneration.cs:992-1010`): `ambientlight` 1 sets `0.12f`, 2 sets `0.4f`, anything
+  else `0f`, and then "`if (ConsoleScript.instance.fullBright || this.body.bothEyesGone)`" forces `0.7f` — the game's own mercy
+  for a player who cannot see, and the reason a CUO lighting rule must not fight it.
 - A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
 
 ## Refusals

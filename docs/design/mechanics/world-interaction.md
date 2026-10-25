@@ -45,6 +45,11 @@ burrow — are not hooked".
   — a multi-member pass over every member's viewport, so the water flows around the guests too), the guests render the streamed
   regions and never simulate (a per-side step would consume the PUBLIC random stream differently on each side and drift
   forever). Solo (no session): the original per-side step runs unchanged."
+- **An earthquake is a timed world event with the game's own numbers.** `WorldGeneration.cs:241` starts with
+  `earthquakeDelay = Random.Range(240f, 1000f)`; after one fires the next delay is
+  `Random.Range(600f, 1750f) * GetRunSettingFloat("timebetweenearthquakes")` and the quake lasts `Random.Range(3f, 25f)`; while it
+  runs the camera shakes by `intensity * 20f` and every body is pushed by `Random.insideUnitCircle * intensity * 10f`. The
+  intensity itself moves toward a target rather than jumping, which is why a quake is felt as a ramp.
 - **A break and its drops are ONE message, so they get one verdict.** `BlockDamagedMsg` carries the drops when the damage
   broke the block, "the break and its drops are ONE message, so the host's arbitration gives them one verdict:
   first-writer-wins (the accepted report's drops register and materialize everywhere; the rejected report's drops are rolled

@@ -37,6 +37,11 @@ is `1/18` of that, and a partly-used item heals exactly as much as it spends. An
 real state" rule: `Item.totalWeight` is `Stats.weight`, or `Lerp(0.1f, Stats.weight, condition)` when the definition says
 `scaleWeightWithCondition` — a nearly-wrecked item still weighs a tenth of its new weight.
 
+**A battery's charge IS the item's condition, scaled.** `BatteryItem` (`BatteryItem.cs:11-35`, `:130-150`): `hasCharge` is
+`myItem.condition > 0f`, `GetCharge()` is `condition * maxCharge`, and `DrainCharge(change)` subtracts
+`change / (maxCharge * 0.01f)` from the condition — so one "unit" of the drain API is one per cent of the battery's capacity, and
+an item with no battery (`hasBattery` false, i.e. an empty `batteryType`) refuses every drain and reports zero charge.
+
 | Family | The native action it runs | Where it runs |
 |---|---|---|
 | **Wear** | `Body.WearWearable` — the item is placed on the target body | host places, target shows |

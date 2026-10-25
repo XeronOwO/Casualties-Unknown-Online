@@ -46,6 +46,14 @@ co-op the choice must be one member's choice applied to a host-owned world.
   `src/CasualtiesUnknownOnline.Runtime/Session/World/LayerPanelChoicePolicy.cs` implements the user's 2026-10-24 ruling:
   "only the host" may press "Continue" (next layer) or "Save and exit"; on a member both are HIDDEN rather than refused,
   "because a control a player may not use should not be there to press". Solo play and the host keep both.
+- **The layer's timer is the run setting `timelimit` in minutes, and it is what starts the radiation line.**
+  `WorldGeneration.cs:258` sets `maxTimePerLayer = GetRunSettingFloat("timelimit") * 60f`, and `:861-863` activates the line when
+  "`layerTimeSpent > maxTimePerLayer && !RadiationLine.line.active`" — so a party that lingers is pushed down by the game's own
+  deadline, not by a CUO rule.
+- **The game's own "Save and exit" writes its save; CUO's replacement deliberately does not.** `SaveAndExit()`
+  (`WorldGeneration.cs:1024-1033`) sets `forceWalk = false`, raises `deepestlayer`, calls `IncreaseDepthByLayer()`,
+  `SaveSystem.SaveGame()` and `PlayerCamera.main.ToMainMenu()`. CUO keeps the player-facing action but takes a CUO cut instead,
+  which is the same independence the saves page states from the other direction.
 - **Whether the host's panel appears is decided from the LIVING share, not from the host's own body.**
   `LayerPanelVisibility.cs`: "the native panel's own trigger is the LOCAL b[ody]", which "cannot answer the question when the
   host's body is dead or when the host is not the one at…", so the host decides from the group's state — `ShouldShow(living,

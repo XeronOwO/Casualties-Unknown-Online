@@ -28,6 +28,13 @@ that entered the body.
   `limb.body.bloodVolume -= spaceLeft / 25f`". Running such an action to find out what it does drains a patient, so an
   injectable container is not a drink and its action is never run by this entry.
 - A measure that cannot reach the item's own instructions is refused rather than guessed at.
+- **A mixed container applies every usable stack, in proportion — a drink is a MIX.** `WaterContainerItem.Drink`
+  (`WaterContainerItem.cs:198-215`) takes `amount = 100f` by default, splits it with `CalculateDrain` "`Mathf.Min(amount,
+  CurrentTotal)` divided across the stacks in proportion to what each holds", calls `LiquidType.onDrink(list[i], body)` for
+  EVERY stack whose liquid type is registered, and only then plays the `drink` sound; `ApplyToLimb` walks the same split but
+  calls `onHealthUse` only for stacks whose type declares `healthUsable`, and `Inject` is the third such path. A container's own
+  `Capacity` comes from its definition (`LiquidItemInfo.capacity`, `0f` when the definition is not a liquid one), so an item
+  that is not a liquid container can hold nothing.
 - The dose that leaves the container is the dose whose effect lands on the drinker; a disagreement between the two is the
   defect.
 - **The drain is the game's own draw, split across the stacks.** `Runtime/Session/PlayerInteraction/LiquidDrainPlan.cs` is "the

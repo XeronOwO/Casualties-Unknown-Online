@@ -38,6 +38,40 @@ So the chain is:
    `PickUpToSlot` intent for an id the world holds, and the materialiser **retired** the standing item — after which no body and no world
    row held it: the "吞了" the user reports.
 
+## What BOTH clients' logs show (host + guest, 2026-10-25 16:25)
+
+The give itself LANDED — the first reading above ("degraded to a drop") was wrong, and the two logs together correct it:
+
+```
+host  16:25:07.535 [Placement] asked <guest> where scrapmetal lands
+guest 16:25:07.550 [Placement] answered query 2 for item scrapmetal (id …)
+guest 16:25:07.590 [PickUpResult] scrapmetal → slot (slot 4)          <- the guest's own body took it
+host  16:25:07.616 [StandingItem] materialized scrapmetal … for <guest>   <- the host ALSO made a world object for it
+```
+
+so the give landed in slot 4 AND a standing duplicate was materialised on the host, because the host learned of the new carried row only
+from the 1 Hz snapshot (`[CharSync] divergence … a new carried item the fact table never saw`). The duplicate is what "换了位置后被吞" is
+built on: the move then succeeded —
+
+```
+host  16:25:29.026 [RemoteIntent] PickUpToSlot (item …, slot 5)
+guest 16:25:29.057 [ItemTrace] op=27 … origin=OnItemDropped event=Drop        <- the native move's first half, on the guest
+guest 16:25:29.058 [PickUpResult] scrapmetal → slot (slot 5)
+guest 16:25:29.058 [RemoteIntent] replayed native PickUpToSlot on item … (slot 5)
+guest 16:25:30.131 [Reconcile] 290 items: killed 1
+host  16:25:29.942 [CharSync] divergence … left the inventory without an event sync
+host  16:25:29.943 [StandingItem] retired scrapmetal …: the data no longer carries the row
+```
+
+— and then the item left the guest's inventory without an event: the guest's own reconcile killed one item and the host retired the
+standing row, so at the end no body and no world held it.
+
+**Leading hypothesis, to be proven in the next batch:** the item's row is removed by a report taken WHILE the local move is in flight —
+the guest drops from slot 4 (16:25:29.057) before it picks into slot 5 (16:25:29.058), and a snapshot of its inventory taken in that
+window is a body without the item; the host treats that snapshot as truth, retires the standing row, and the guest's reconcile then kills
+the local object. If so the fix is the same shape the give's unplaced arm already uses: a transfer in flight must not be reported as an
+inventory state (suppress or defer the re-report until the move settles).
+
 ## The two defects, separately
 
 - **D1 — the give's ladder falls to the drop rung without saying so.** The receiver answered the placement query with a destination the

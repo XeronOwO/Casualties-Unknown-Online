@@ -49,6 +49,13 @@ real state" rule: `Item.totalWeight` is `Stats.weight`, or `Lerp(0.1f, Stats.wei
 `change / (maxCharge * 0.01f)` from the condition — so one "unit" of the drain API is one per cent of the battery's capacity, and
 an item with no battery (`hasBattery` false, i.e. an empty `batteryType`) refuses every drain and reports zero charge.
 
+**Using an item can be REFUSED by the body's happiness, and one of those refusals is a roll.**
+`Body.allowUseItem` (`Body.cs:233-240`) is `totalHappiness > -20f || Random.value >= depressionChanceCurve.Evaluate(totalHappiness)`
+— below minus twenty the game rolls against a depression curve, so the same gesture can fail twice in a row and succeed on the
+third. `totalHappiness` is itself dragged down by bleeding when it is already under `-50f`
+("`happiness - totalBleedSpeed * 15f`"), and the medical cutoff is `> -75f`. A CUO design that makes item use always available
+is playing a different game.
+
 | Family | The native action it runs | Where it runs |
 |---|---|---|
 | **Wear** | `Body.WearWearable` — the item is placed on the target body | host places, target shows |

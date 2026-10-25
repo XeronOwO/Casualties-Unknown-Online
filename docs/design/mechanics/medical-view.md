@@ -97,6 +97,11 @@ medical operation the two clients perform together, which is why the drag gestur
   fallback (`ApplyToLimb(limb, 100f)`) rather than a limb action. `WoundSpecialAction` (`:762-800`) is a ladder over the
   selected limb — a tourniquet comes off, else shrapnel starts the shrapnel minigame, then a splint comes off, else a dislocation
   starts the relocation minigame — with every branch behind `body.allowUseItem` and `conscious`.
+- **The "medical cutoff" is happiness, and it is two different numbers.** `Body.aboveMedicalCutoff` (`Body.cs:223-227`) is
+  "`totalHappiness > -75f`", while `allowUseItem` (`:233-240`) is `totalHappiness > -20f || Random.value >=
+  depressionChanceCurve.Evaluate(totalHappiness)` — so a badly unhappy patient refuses treatment at minus seventy-five, and a
+  merely unhappy one starts losing item use on a roll at minus twenty. `totalHappiness` itself is
+  `Mathf.Clamp(happiness - ((happiness < -50f) ? (totalBleedSpeed * 15f) : 0f)…)`, so bleeding makes an already sad body sadder.
 - A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
 
 ## Refusals

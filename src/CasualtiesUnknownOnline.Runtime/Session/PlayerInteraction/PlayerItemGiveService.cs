@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Data;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -47,6 +49,7 @@ internal sealed class PlayerItemGiveService(
 	IItemGrantSource creation,
 	IItemStateLanguage language,
 	IMemberCommandRules memberRules,
+	ILocalizationService localization,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -55,7 +58,20 @@ internal sealed class PlayerItemGiveService(
 	private readonly IItemGrantSource _creation = creation;
 	private readonly IItemStateLanguage _language = language;
 	private readonly IMemberCommandRules _memberRules = memberRules;
+	private readonly ILocalizationService _localization = localization;
 	private readonly ILogger _log = log;
+
+	/// <summary>
+	/// One answer part: a catalogue key plus its values, and the English rendering of the same key at Debug so a log can answer
+	/// "what did the member read". The <c>labelKey</c> parameter name is the localization census's convention: a literal passed
+	/// here is a READ of the catalogue, which is what stops an orphan key from shipping.
+	/// </summary>
+	private ConsoleAnswerPartMsg AnswerPart(string labelKey, params string[] args)
+	{
+		_log.LogDebug("[Give] answer part: {Line}", _localization.Format(labelKey, args));
+		var key = labelKey;
+		return new ConsoleAnswerPartMsg { Key = key, Args = [.. args] };
+	}
 
 	/// <summary>The host's answer to a member's give request arrived — the console prints it.</summary>
 	public event Action<PlayerInventoryGiveResultMsg>? Answered;
@@ -184,7 +200,7 @@ internal sealed class PlayerItemGiveService(
 		_log.LogInformation("[Give] {Actor} gave {Definition} (#{InstanceId}) to {Target}{Where}{State}.",
 			actor, item.ItemId, item.InstanceId, targetSteamId, Where(delivery),
 			answered.Length == 0 ? "" : " with state " + answered);
-		return new GiveOutcome(true, Describe(item, targetSteamId, answered, delivery), item.InstanceId, delivery.SlotIndex);
+		return new GiveOutcome(true, Describe(item, targetSteamId, answered, delivery), item.InstanceId, delivery.SlotIndex, PartsOf(item, targetSteamId, answered, delivery));
 	}
 
 	/// <summary>
@@ -199,6 +215,36 @@ internal sealed class PlayerItemGiveService(
 		PlayerInventoryDestination.Drop => ", dropped at its position (the ladder's last rung)",
 		_ => $" in slot {delivery.SlotIndex}",
 	};
+
+	/// <summary>
+	/// The same answer as catalogue PARTS, one per line the member's console prints: the rung that settled the item (a slot, a
+	/// worn or carried container, or the drop) and, when the operator gave the item a state, that state as its own line. The
+	/// parts live beside <see cref="Describe"/> because they must say exactly the same thing — the text stays for the host's log
+	/// and as the fallback a client without the entry reads.
+	/// </summary>
+	private List<ConsoleAnswerPartMsg> PartsOf(CharacterItemMsg item, ulong targetSteamId, string state, ItemDelivery delivery)
+	{
+		var target = targetSteamId.ToString(CultureInfo.InvariantCulture);
+		var instance = item.InstanceId.ToString(CultureInfo.InvariantCulture);
+		var parts = new List<ConsoleAnswerPartMsg>
+		{
+			delivery.Destination switch
+			{
+				PlayerInventoryDestination.Container => delivery.SlotIndex < 0
+					? AnswerPart("give.answer.worn_container", item.ItemId, instance, target, delivery.ContainerDefinitionId ?? "unknown container", delivery.ContainerId.ToString(CultureInfo.InvariantCulture))
+					: AnswerPart("give.answer.carried_container", item.ItemId, instance, target, delivery.ContainerDefinitionId ?? "unknown container", delivery.ContainerId.ToString(CultureInfo.InvariantCulture)),
+				PlayerInventoryDestination.Drop => AnswerPart("give.answer.dropped", item.ItemId, instance, target),
+				_ => AnswerPart("give.answer.slot", item.ItemId, instance, target, delivery.SlotIndex.ToString(CultureInfo.InvariantCulture)),
+			},
+		};
+
+		if (state.Length > 0)
+		{
+			parts.Add(AnswerPart("give.answer.state", state));
+		}
+
+		return parts;
+	}
 
 	/// <summary>
 	/// The one sentence both ends print: the item it created, the id its record carries, where
@@ -222,7 +268,9 @@ internal sealed class PlayerItemGiveService(
 		return builder.ToString();
 	}
 
-	private static GiveOutcome Refused(string reason) => new(false, $"Refused: {reason}", 0, -1);
+	// A refusal keeps the text path (its reasons are a separate sweep): no parts, so the member's console prints the sentence
+	// the host wrote rather than a half-keyed line.
+	private static GiveOutcome Refused(string reason) => new(false, $"Refused: {reason}", 0, -1, []);
 
 	/// <summary>
 	/// A request refused BEFORE the item is created — the host's two cheat rulings and the
@@ -253,9 +301,11 @@ internal sealed class PlayerItemGiveService(
 			SlotIndex = outcome.SlotIndex,
 			Applied = outcome.Applied,
 			Answer = outcome.Answer,
+			Parts = outcome.Parts,
 		});
 	}
 
-	/// <summary>What one give produced: the answer both ends print, and the identity only the host and its tests need.</summary>
-	private readonly record struct GiveOutcome(bool Applied, string Answer, ulong ItemInstanceId, int SlotIndex);
+	/// <summary>What one give produced: the answer both ends print, and the identity only the host and its tests need.
+	/// <see cref="Parts"/> is the answer as catalogue keys, so the member's console prints it in the member's own language.</summary>
+	private readonly record struct GiveOutcome(bool Applied, string Answer, ulong ItemInstanceId, int SlotIndex, List<ConsoleAnswerPartMsg> Parts);
 }

@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -44,6 +46,7 @@ public sealed class WorldSummonService(
 	IWorldSummon summon,
 	IMemberCommandRules memberRules,
 	ItemKernelAuthority kernelAuthority,
+	ILocalizationService localization,
 	ILogger<WorldSummonService> log) : IWorldSummonControl
 {
 	/// <summary>Where this side's world/layer generation comes from — the same kernel run baseline every stamped world report carries.</summary>
@@ -53,7 +56,20 @@ public sealed class WorldSummonService(
 	private readonly PacketSender _sender = sender;
 	private readonly IWorldSummon _summon = summon;
 	private readonly IMemberCommandRules _memberRules = memberRules;
+	private readonly ILocalizationService _localization = localization;
 	private readonly ILogger<WorldSummonService> _log = log;
+
+	/// <summary>
+	/// One answer part: a catalogue key plus its values, and the English rendering of the same key at Debug so a log can answer
+	/// "what did the member read". The <c>labelKey</c> parameter name is the localization census's convention: a literal passed
+	/// here is a READ of the catalogue, which is what stops an orphan key from shipping.
+	/// </summary>
+	private ConsoleAnswerPartMsg AnswerPart(string labelKey, params string[] args)
+	{
+		_log.LogDebug("[Summon] answer part: {Line}", _localization.Format(labelKey, args));
+		var key = labelKey;
+		return new ConsoleAnswerPartMsg { Key = key, Args = [.. args] };
+	}
 
 	/// <inheritdoc />
 	public event Action<WorldSummonResultMsg>? Answered;
@@ -192,7 +208,27 @@ public sealed class WorldSummonService(
 
 		_log.LogInformation("[Summon] {Actor} summoned {Kind} {Prefab}{State} at ({X:F1},{Y:F1}).",
 			actor, kind, what, stateClause, x, y);
-		return new SummonResult(true, answer, outcome.InstanceId);
+		return new SummonResult(true, answer, outcome.InstanceId, PartsOf(prefabId, outcome.InstanceId, x, y, outcome.State));
+	}
+
+	/// <summary>
+	/// The same answer as catalogue PARTS, so the member's console prints it in the member's own language: what was created
+	/// (an item entity's id included), where it really is, and — when the operator gave it a state — that state as its own line.
+	/// The text beside it stays for the host's log and as the fallback rendering.
+	/// </summary>
+	private List<ConsoleAnswerPartMsg> PartsOf(string prefabId, ulong instanceId, float x, float y, string state)
+	{
+		var part = instanceId != 0
+			? AnswerPart("summon.answer.item_entity", prefabId, instanceId.ToString(CultureInfo.InvariantCulture), x.ToString("F1", CultureInfo.InvariantCulture), y.ToString("F1", CultureInfo.InvariantCulture))
+			: AnswerPart("summon.answer.prefab", prefabId, x.ToString("F1", CultureInfo.InvariantCulture), y.ToString("F1", CultureInfo.InvariantCulture));
+		var parts = new List<ConsoleAnswerPartMsg> { part };
+
+		if (state.Length > 0)
+		{
+			parts.Add(AnswerPart("summon.answer.state", state));
+		}
+
+		return parts;
 	}
 
 	/// <summary>
@@ -224,7 +260,9 @@ public sealed class WorldSummonService(
 		return true;
 	}
 
-	private static SummonResult Refused(string reason) => new(false, $"Refused: {reason}", 0);
+	// A refusal keeps the text path (its reasons are a separate sweep): no parts, so the member's console prints the sentence
+	// the host wrote rather than a half-keyed line.
+	private static SummonResult Refused(string reason) => new(false, $"Refused: {reason}", 0, []);
 
 	/// <summary>
 	/// A request refused BEFORE the creation — the host's two cheat rulings, the layer stamp and the state bound.
@@ -251,6 +289,8 @@ public sealed class WorldSummonService(
 			ItemInstanceId = result.InstanceId,
 			Applied = result.Applied,
 			Answer = result.Answer,
+			// The answer as catalogue keys: the member's console renders each part in the member's own language.
+			Parts = result.Parts,
 		});
 	}
 
@@ -258,5 +298,5 @@ public sealed class WorldSummonService(
 		_log.LogWarning("[Summon] {Actor} -> {Prefab} at ({X:F1},{Y:F1}) refused: {Reason}", actor, prefabId, x, y, reason);
 
 	/// <summary>What one summon produced: the answer both ends print, and the identity only the host and its tests need.</summary>
-	private readonly record struct SummonResult(bool Applied, string Answer, ulong InstanceId);
+	private readonly record struct SummonResult(bool Applied, string Answer, ulong InstanceId, List<ConsoleAnswerPartMsg> Parts);
 }

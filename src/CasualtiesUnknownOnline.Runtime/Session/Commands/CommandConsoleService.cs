@@ -275,16 +275,17 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		AddLine(refusal.Describe(), ConsoleLineKind.Error);
 
 	/// <summary>
-	/// The host's answer to this member's <c>/give</c>: the same sentence the host
-	/// logged, printed where the operator typed the verb. One line per request, and
-	/// the kind follows the verdict — an applied give is a success, a refusal an error.
+	/// The host's answer to this member's <c>/give</c>: the item it created, where it
+	/// landed and the state it was given — printed where the operator typed the verb, in
+	/// the member's own language through the answer's parts. One line per part, and the
+	/// kind follows the verdict.
 	/// </summary>
 	private void OnGiveAnswered(PlayerInventoryGiveResultMsg msg) =>
-		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+		AddAnswerParts(msg.Parts, msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	/// <summary>The host's answer to this member's <c>/summon</c> — the created object and its point, or the refusal; the kind follows the verdict.</summary>
 	private void OnSummonAnswered(WorldSummonResultMsg msg) =>
-		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+		AddAnswerParts(msg.Parts, msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	/// <summary>The host's answer to this member's <c>/heal</c> — what was reset, revived or restored, or the refusal that answered it.</summary>
 	private void OnHealResetAnswered(HealResetResultMsg msg) =>

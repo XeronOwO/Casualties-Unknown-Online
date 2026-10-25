@@ -136,7 +136,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 		var givenReturn = new GivenItemReturnService(session, items, access, _take, resultAuthority, log);
 		_placement = new RemotePlacementService(session, sender, _take, givenReturn, placementResolver, time, log);
 		session.SessionEnded += ResetSessionState;
-		_give = new PlayerItemGiveService(session, sender, _take, itemCreation, itemStateLanguage, memberCommandRules, log);
+		_give = new PlayerItemGiveService(session, sender, _take, itemCreation, itemStateLanguage, memberCommandRules, localization, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, kernelAuthority, resultAuthority, notices, localization, log);
 		_itemUse.BindToSession(); // the admitted-eat table is session-scoped
 		_remoteInventory = new PlayerRemoteInventoryIntentService(session, sender, access, hostRules, visibility, _itemUse, _take, _placement, time, log);

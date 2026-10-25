@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -34,4 +35,11 @@ public sealed class WorldSummonResultMsg
 	/// <summary>The sentence the member's console prints; the reason wording is the host's, the sentence is not the log line.</summary>
 	[ProtoMember(4)]
 	public string Answer { get; set; } = string.Empty;
+
+	/// <summary>
+	/// The answer as catalogue PARTS, so the member's console prints it in the member's own language — one line per part. Empty
+	/// when the shape was not converted (the console then prints <see cref="Answer"/>).
+	/// </summary>
+	[ProtoMember(5)]
+	public List<ConsoleAnswerPartMsg> Parts { get; set; } = [];
 }

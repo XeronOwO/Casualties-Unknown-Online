@@ -35,6 +35,13 @@ container, so it can be carried, dropped, given and looked inside while it holds
 - A view-only pack accepts no change in either direction.- **A child that moves keeps its container fact.** A child moved out of a container into a slot must not lose the fact that it came from one: the accepted reading for the release onto an occupied and an empty ring slot is "zero `[CharSync] divergence` on every client, the bag reading one child fewer on the owner's tree, the host's kernel record and the third client's proxy tree, with the child in the destination slot".- **Contents never appear as world drops.** A carried container's contents must not periodically surface as drops on another client's view: the defect was named by the ticket that closed it ("Guest carried container contents periodically appear as world drops on the host view"), and its container scenario read rows 1–… pass with the panel frames.
 - **Two departures in one frame both commit.** A pending report is never overwritten by a same-frame second one: the accepted reading is "its two departures register out of ONE frame and BOTH commit, BOTH children reach the host's world table" with no `InvalidTransition` in the session.
 - **A container move is reported as an event, not left to a snapshot.** The accepted record's shape is "the owner's client reporting the TARGET root's contents fact once per child and both viewers at zero divergence" — a viewer learns of a move from the event that carries it, because a snapshot alone would leave a stale child on one client.
+- **Auto-pickup falls through from the hands to a surface container, and a wearable is WORN.** `Body.AutoPickUpItem`
+  (`Body.cs:494-530`) refuses a `noautopickup` item, then puts a non-wearable into the first empty slot or, failing that, into
+  the first surface container whose own `CanHoldItem` accepts it; a wearable replaces what occupies its slot by DROPPING the old
+  item (`GetWearableBySlotID` → `DropItem` → `WearWearable` → `UpdateWearables`). So a full hand falls through to a bag rather
+  than the item being lost.
+- **The inventory is a TREE and the game walks it.** `GetAllItemsThorough` (`Body.cs:530-560`) recurses into each held item's
+  `Container`, which is what `FindByIdThorough` and every "does this body have X" rule rely on.
 
 ## Refusals
 

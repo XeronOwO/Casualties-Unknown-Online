@@ -42,6 +42,15 @@ medical operation the two clients perform together, which is why the drag gestur
 - **A state that names no kind is refused, not guessed.** An operation state whose kind is missing must not be read as an
   injection: the recorded defect is "A medical operation state that names no kind is read as an injection", and the rule it
   leaves is that a state carries its kind explicitly and an unnamed one is refused by name.
+- **The numbers the panel shows are the game's own scale, and its "badly off" answer is one predicate.**
+  `Body.cs:3872-4161` starts a body at `bloodVolume = 100f`, `hunger = 100f`, `thirst = 100f`, `energy = 100f` and
+  `consciousness = 100f` — one 0-100 scale for all five, with `happiness`, `sicknessAmount`, `radiationSickness`, `painShock`
+  and `temperature` beside them. The game answers "how badly off is this body" with `isCriticallyDying`
+  (`Body.cs:330-340`): "`(totalBleedSpeed > 0.02f && bloodVolume < 30f) || bloodOxygen < 50f || (hunger < 0f &&
+  limbs[0].muscleHealth < 25f) || septicShock > 82.5f || temperature < 27f || temperature > 41.5f || fibrillationProgress >
+  60f || inCardiacArrest || bloodPressure < 70f`" — and with a separate, earlier `isDying` (`Body.cs:320-330`) that judges
+  bleeding out by RATE first and volume second (`totalBleedSpeed > 0.134f || (totalBleedSpeed > 0.02f && bloodVolume < 40f) ||
+  !breathing || …`). A CUO panel that invents its own thresholds is a different game.
 - **A terminal fact is a named latch, per limb and per body.**
   `src/CasualtiesUnknownOnline.Protocol/Wire/WirePlayerLimbState.cs` carries `Broken`, `Dismembered` and `Dislocated` for one
   limb, and `WirePlayerBodyTerminalState.cs` carries `Disfigured`, `EyeGone`, `BothEyesGone` and `HasPulmonaryEmbolism` for

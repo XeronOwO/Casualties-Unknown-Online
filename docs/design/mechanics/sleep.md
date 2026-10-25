@@ -18,6 +18,9 @@ bed, and the game treats it as ordinary sleep.
 - A sleeping body is not conscious; a body that is not conscious does not act, does not judge its own actions, and cannot
   be asked to consume anything.
 - Normal sleep and forced sleep are the same state; the design does not distinguish them for treatment.
+- **How well a body slept multiplies what it recovers, on the game's four steps.** `Body.SleepQualityToRegen`
+  (`Body.cs:1030-1045`) returns `0.7f` for a bad sleep, `0.85f` for a mediocre one, `1f` for okay and `1.25f` for a good one —
+  so a CUO sleep rule that invents its own multiplier is a different game.
 - A sleeping body may still be TREATED: bandaging, splinting, an injection and a topical are exactly what an
   unconscious teammate needs, so they do not require consciousness.
 - The two families where the TARGET consumes the item (food and drink) require a conscious target, because the target's

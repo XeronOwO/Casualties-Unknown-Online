@@ -15,6 +15,10 @@ that entered the body.
 
 ## Rules and states
 
+- **Thirst drains on the game's own curve, and a full body drains faster.** `Body.BaseThirstRate` (`Body.cs:272-278`) is
+  `Time.deltaTime / (17f - tempDiff * 0.5f)` multiplied by `2f` while thirst is above 100, by `2.5f` above 175, and by the run
+  setting `metabolismrate` — so the baseline is one unit per 17 s at normal temperature, a warm body drains slower, and a body
+  past the scale drains two to two-and-a-half times faster.
 - A container is classified by its own data, not by its name or category. The accepted record states the rule as it now
   stands: "the definition-level drink classification landed (the action is refused by name BEFORE anything runs)". A
   definition whose action never reaches the container's drink path — `liquidcentrifuge` is the record's cited case — is

@@ -27,7 +27,15 @@ own cursor, a candidate list, and a hint line. It is not the game's native conso
 
 ## Rules
 
-- Two openers: `/` opens the overlay as a command line, Return opens it as plain chat with an empty field.- An empty Enter closes the overlay; a non-empty Enter submits the line.- The opener is refused while the GAME's own text field holds focus: the accepted defect is that "after the game's own console has been opened and closed, the event system still names its input as the selected object, so `IsATextFieldFocused` stayed true and the Enter/Slash opener was refused" — the guard follows the event system's own selected object.
+- Two openers: `/` opens the overlay as a command line, Return opens it as plain chat with an empty field.
+- An empty Enter closes the overlay; a non-empty Enter submits the line.
+- The opener is refused while the GAME's own text field holds focus: the accepted defect is that "after the game's own
+  console has been opened and closed, the event system still names its input as the selected object, so `IsATextFieldFocused`
+  stayed true and the Enter/Slash opener was refused" — the guard follows the event system's own selected object.
+- **A chat line has one cap, and the host applies the same one.** `Runtime/Session/Chat/ChatPolicy.cs` is "the only
+  validation surface shared by the sender-side UI path and the host's receive/relay path", with `MaxLength = 200` "a UI
+  friendly cap for one line of text", and "the host uses the same rule so a guest cannot flood an oversized line into the other
+  peers".
 - Tab accepts the current candidate; the candidate list is live without Tab.
 - **The line is a small editor over one immutable registry, and its output is bounded.**
   `CommandConsoleService` registers commands "once at construction from `ConsoleCommandAttribute`-marked methods into an

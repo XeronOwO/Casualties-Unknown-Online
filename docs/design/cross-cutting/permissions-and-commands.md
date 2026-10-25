@@ -63,6 +63,19 @@ deployed artifact. A per-property keyword form is not a second dialect of the sa
   lobby follows its own rules, and a rule's effect on a control (an affordance) follows the rule.
 - Remote backpack access is a rule: it can forbid all remote inventory manipulation, in which case both the view and the
   gestures are refused by name.
+- **The access rule has one reading, and an unknown state fails CLOSED.** `Runtime/Session/HostRules/RemoteBackpackAccessPolicy.cs`
+  is "the one reading of `RemoteBackpackAccess`: what the rule allows for ONE other player, given that player's authoritative
+  state. The host enforces it at its two seams (the native-intent request handler and the custody-transfer core), and a client
+  reads the same answers to decide whether a view opens, is view-only, or is refused at all — so the two sides cannot disagree
+  about what the announced rule means". "Unconscious or dead" is the landed take rule (`!Conscious || !Alive`), and "an owner
+  whose health is not known yet fails CLOSED for the middle value: a client that cannot establish the owner is down must not be
+  the reason the host permits a rummage".
+- **A member needs BOTH the cheat switch and the roster.** `Runtime/Session/Permissions/SessionMemberCommandRules.cs`: the two
+  questions are "the cheat SWITCH a host configures (`IHostRules.AllowMemberCheatVerbs`) and the cheat ROSTER a host edits with
+  `/op`/`/deop` (`CheatPermissions`)", and "a member needs both, which is the user's 2026-10-18 ruling".
+- **Joining a RUNNING world is the only join the host may refuse.** `HostRulesPolicy.cs` gates "whether a brand-new member may
+  handshake while the host is already in a world", and "reconnects and pre-world/menu/generating joins are always allowed; this
+  only gates the 'join a running co-op world' case".
 - The rule set is the code's own declaration: `src/CasualtiesUnknownOnline.Runtime/Configuration/HostRulesOptions.cs` lists
   `PvpEnabled`, `AutoContinue`, `AllowLateJoin`, `RemoteBackpackAccess`, `WidenRunSettings`, `PiggybackWeightMultiplier`,
   `AllowMemberCheatVerbs` and `NativeBindingParity`, and each is read through its typed value rather than a string.

@@ -71,9 +71,15 @@ where a give lands today, and that decides whether the carried-item shape is rea
   `-1`, `body.DropItem(item)` drops an object the eater does not carry, and the instantiated `stonefruitopen` is picked up LOCALLY —
   a client-side object the host's tables never registered. That is the whole of the observed behaviour: the closed fruit is consumed
   for the owner, no peel→open replacement reaches the authoritative tables, and the guest is left holding an unregistered fruit.
-- [ ] **3. Read the give side's landing place.** Where the item given into another player's backpack actually lands on the target's
-  client (a carried slot, a container, a standing object), and whether the target's inventory reports it as its own carried item.
-  Evidence: the container/pickup call the give maps to.
+- [x] **3. Read where a give lands — DONE, and it lands in the receiver's AUTHORITATIVE inventory, not on the proxy.**
+  The release reports `RemoteDragIntent{ Kind = GiveToBody, ItemInstanceId, TargetBodySteamId, TargetSlotIndex }`
+  (`RemoteDragIntentDispatcher.ReportLocalReleaseOntoProxy`) and the HOST applies it as a custody transfer
+  (`PlayerInventoryTakeService.HandleRemoteGiveToBody` → `HandleTakeCore`, the same core the take direction uses). So the item
+  becomes the receiver's carried row in the host's tables, and the receiver's own client is supposed to hold it as ITS carried item.
+  That makes the eat's failure narrower than "the give is wrong": the eater's client already has (or can have) the item as a carried
+  object, yet `NativeSolidFoodEat.Apply` resolves it through `StandingMaterializer` — the path for OTHER players' items — and hands
+  that stand-in to `Body.UseItem`. The fix is therefore to resolve the item from the eater's OWN carried items first
+  (`body.GetItem(slot)`/`SlotOf`), and only fall back to a standing object when the body really does not carry it.
 - [ ] **4. Decide the corrected shape and write it in the ticket** — the give must land in the eater's own inventory through the game's
   own container path, and the eat must run `Body.UseItem` on the carried item.
 - [ ] **5. Implement + red test.** A test that pins the corrected shape (the eat of a closed fruit is refused or peels first; the item's

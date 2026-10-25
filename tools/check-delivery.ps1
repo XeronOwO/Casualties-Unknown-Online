@@ -157,7 +157,9 @@ foreach ($line in $lines) {
 		continue
 	}
 
-	if ($line.Trim().Length -eq 0 -or $line -match '^[^-]') {
+	# A box's block ends at a blank line or a new heading — NOT at a continuation line, which starts with spaces. Clearing the flag on the first
+	# continuation line left every multi-line box's evidence behind (measured 2026-10-25: a reset kept five boxes' evidence that way).
+	if ($line.Trim().Length -eq 0 -or $line -match '^#') {
 		$inBox = $false
 	}
 

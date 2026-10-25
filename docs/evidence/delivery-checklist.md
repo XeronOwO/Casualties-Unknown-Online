@@ -58,15 +58,12 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
       change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
-      — evidence: the radial report was read against `PlayerCamera.cs:1791` (the native highlight is `radialCircle.color`) and the anchoring code before the change
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism
-      — evidence: the native highlight (`radialCircle.color`, `PlayerCamera.cs:1791`) and the tag hit-test are quoted; the change re-enables the component the design had disabled
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
       with every difference either fixed or named as a user decision
-      — evidence: the user's report is the effect list's source (no circle, item dropped); the fix is judged by the next batch's frame and intent capture, recorded on the ticket rather than claimed here
 - [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)

@@ -1,6 +1,6 @@
 # Dragging an item out of a displayed backpack to USE it dropped it on the ground instead
 
-- Status: Todo — opened 2026-10-25 from the user's report (translated): "I handed the emergency flashlight to the guest, dragged it in the guest's
+- Status: Review — the use works on the machine (user, 2026-10-25); the ring-closed row is unjudged — opened 2026-10-25 from the user's report (translated): "I handed the emergency flashlight to the guest, dragged it in the guest's
   backpack to use it, and the flashlight fell out — the use did not succeed".
 - Priority: Critical — the player asks for a USE and the item leaves the inventory.
 - Category: Cross-player item use / drag release classification
@@ -73,3 +73,10 @@ What the same batch could NOT judge, and why: the interaction half. `drag-releas
 `centreUnderPointer=False` with `centreDistance=3021`, `centreRadius=135` — and that distance is measured against `Input.mousePosition`, i.e. the REAL
 OS pointer, which the in-process driver never moves. The reading therefore says nothing about a player's drag; the centre test has to be exercised by
 a real drag, which is the user's next test.
+
+**The interaction half is now judged by the user** (2026-10-25, same session, after the deploy): "it works normally now" — dragging an item out of the
+displayed backpack onto the ring's centre USES it. The enable restored the whole chain: the circle is drawn, the pointer on it lights the highlight,
+R10 consumes the release, and the owner replays the use.
+
+Rows 1 and 3 are therefore judged (a use happens, and the user reports no drop). Row 2 — the ring CLOSED case — is still unjudged, and that is what
+keeps this ticket in `review/` rather than `done/`.

@@ -73,11 +73,11 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
 - [A new recipe file is rejected by the evaluator](todo/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — measured; blocks every new instrument.
-- [Dragging out of a backpack to use it drops the item](todo/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — a DropItem intent for a use gesture.
 - [Right-clicking an item also opens the menu](todo/right-click-on-an-item-also-opens-the-menu.md) — **High** — one click, two actions.
 ### In progress
 
 ### Review
+- [Dragging out of a backpack to use it drops the item](review/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — fixed: the use circle is back.
 - [The context menu does not block the pointer](review/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 
 - [The context menu's name is not drawn, and its bar is a grey strip](review/context-menu-name-wraps-behind-actions.md) — **Medium** — a row now; confirmed.

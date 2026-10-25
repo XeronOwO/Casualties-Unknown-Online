@@ -65,6 +65,13 @@ somebody else's backpack").
   pickup/drop: the item never enters World" — so a transfer is one custody change, not a drop followed by a pickup.
 - The two destinations are mutually exclusive: a release over an ITEM means "into that container", a release over a slot
   ring means "onto that body slot".
+- **The displayed backpack's ring shows its USE CIRCLE, and the release on that circle is R10.** The remote view draws the focused clone's own
+  native ring — body slots around it and the inner use circle — because the highlight a player reads is `radialCircle.color`, which only the
+  game's own while-dragging body sets (`PlayerCamera.cs:1791-1800`, when the pointer is on the `RadialCenter` tag AND the ring is open AND the
+  pointer is inside the circle). Hiding the component therefore hid the affordance and removed the tag from every UI raycast at once, and the
+  release fell through to the world drop: the user's 2026-10-25 report ("dragging the flashlight to the central use area showed no circular
+  highlight, and the item fell out") is that pair. The rule: the ring including its circle is the game's, the centre release is R10's
+  (`PlayerCamera.cs:1640`), and the intent it becomes is the owner's replay.
 - A pack that is view-only accepts neither direction, and the gesture is refused before anything is sent.
 - An item without an authoritative identity cannot be named, and the gesture is refused instead of transferring "the
   first match".

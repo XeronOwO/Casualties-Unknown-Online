@@ -28,8 +28,15 @@ internal sealed class OnlineUiPlayerContextMenu
 	/// <summary>The menu's width in the surface's canvas units — the IMGUI menu's own rect.</summary>
 	internal const float Width = 240f;
 
-	/// <summary>The width one candidate button asks for.</summary>
-	private const float CandidateButtonWidth = 70f;
+	/// <summary>
+	/// The width every action and candidate row asks for: the panel's own width minus the content padding
+	/// (<c>OnlineUiPanelView.ContentPadding</c>, 6 each side). Two reasons it is explicit rather than 0:
+	/// a zero width asks the game's control for its NATURAL size, so each row hugged its own label and the
+	/// frames came out ragged against the panel's backdrop (user report, 2026-10-25: "the controls are
+	/// misaligned and a grey box shows behind"); and this menu's rows are a single column by design, so one
+	/// width for all of them is the layout, not a coincidence.
+	/// </summary>
+	private const float RowWidth = Width - 12f;
 
 	/// <summary>Every id this menu registers is namespaced, so a control of the menu and a control of the
 	/// window (or of the quick panel) can never be the same intent.</summary>
@@ -125,10 +132,11 @@ internal sealed class OnlineUiPlayerContextMenu
 
 		var page = new OnlineUiPageBuilder(ctx, actions, IdPrefix);
 
-		// The player's name is a ROW, not the panel's title: the title bar's own label is a TMP this build never parses (2026-10-25 — text set,
-		// label active, the game's own font and material, characterCount 0 for every string), while every row label draws. So the name comes
-		// through the machinery that is known to render, and the panel's title stays empty — which hides the bar instead of leaving a grey strip.
-		page.Label(BuildContextTitle(ctx, row));
+		// The player's name is a SECTION, not a body row: "who this acts on" has to read as the panel's heading and be separated from "what it can do",
+		// otherwise the name and the first button look like one stack of equals (user report, 2026-10-25: "the player name is stuck to the buttons
+		// below it, with no clear division"). The section draws the game's own heading with its divider, which is the separation the window's pages
+		// already use — and it still renders, unlike the title bar's TMP label this build never parses.
+		page.Section(BuildContextTitle(ctx, row));
 		DrawTargetSelector(ctx, page, rows, target);
 
 		var menuActions = BuildActions(ctx, row);
@@ -139,7 +147,7 @@ internal sealed class OnlineUiPlayerContextMenu
 			{
 				action.Action();
 				Close();
-			});
+			}, RowWidth);
 		}
 
 		return OnlineUiPanelModel.AtPoint(
@@ -159,21 +167,21 @@ internal sealed class OnlineUiPlayerContextMenu
 			return;
 		}
 
-		var elements = new List<OnlineUiElementModel>(_candidateSteamIds.Count + 1)
-		{
-			page.LabelElement(ctx.T("member.select_target"), OnlineUiTextStyle.Muted, OnlineUiTheme.Muted),
-		};
+		// One full-width row per candidate, under a muted heading, in its own block: several players inside the click radius means the menu has to ask
+		// WHICH one, and that question reads as a separate step from the actions (the marks below it are answers, not commands). The old row of 70-unit
+		// buttons put every candidate on one line of ragged boxes, which is half of the misalignment the user reported.
+		page.Muted(ctx.T("member.select_target"));
 		foreach (var candidate in _candidateSteamIds)
 		{
-			elements.Add(page.ButtonElement(
+			page.Button(
 				$"target.{candidate:X}",
 				ContextTitle(ctx, rows, candidate),
 				() => _targetSteamId = candidate,
-				CandidateButtonWidth,
-				selected: candidate == selected));
+				RowWidth,
+				selected: candidate == selected);
 		}
 
-		page.Row([.. elements]);
+		page.Space();
 	}
 
 	/// <summary>

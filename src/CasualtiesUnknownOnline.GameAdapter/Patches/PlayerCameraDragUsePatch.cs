@@ -66,6 +66,13 @@ internal static class PlayerCameraDragUsePatch
 						// The answer says whether the intent actually went out: a refused give (a view-only pack, an
 						// item with no authoritative id) must not keep the drag-opened backpack open.
 						__state.Give = giveBridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description, target.TargetItemInstanceId, target.TargetSlotIndex);
+
+						// The release's own click, which the skipped native body would have played: `HandleReleaseDragging` ends with
+						// `this.PlayUISound(PlayerCamera.UISoundType.Click, 1f)` (`PlayerCamera.cs:1495`), and that tail is what the player hears when an
+						// item lands in a slot. The give branch returns before the native body runs, so without this call the placement is silent — the
+						// user's report ("dragging an item into a slot has no placement sound", 2026-10-25). It is the game's own call and clip, not a
+						// stand-in.
+						__instance.PlayUISound(PlayerCamera.UISoundType.Click, 1f);
 						ClearDrag(__instance);
 						return;
 					}
@@ -78,6 +85,9 @@ internal static class PlayerCameraDragUsePatch
 				{
 					PatchBridge.Impl?.TryHandleDraggedItemUseOnRemote(dragItem, __instance.body);
 					__state.Center = true;
+
+					// The same release tail the native body would have run (see the give branch above): a consumed release keeps the click.
+					__instance.PlayUISound(PlayerCamera.UISoundType.Click, 1f);
 					ClearDrag(__instance);
 					return;
 				}

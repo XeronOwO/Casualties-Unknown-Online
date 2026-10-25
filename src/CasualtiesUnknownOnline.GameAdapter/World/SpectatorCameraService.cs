@@ -86,7 +86,7 @@ internal sealed class SpectatorCameraService(
 			return true;
 		}
 
-		if (!session.SessionActive || !session.LocalInWorld || run.LocalBody == null) // Unity object 鈥?==
+		if (!session.SessionActive || !session.LocalInWorld || run.LocalBody == null) // Unity object — ==
 		{
 			return false;
 		}

@@ -1,10 +1,10 @@
-# Document census 鈥?one row per tracked markdown document.
+# Document census — one row per tracked markdown document.
 #
 #   <path> | <disposition> | <reader> | <reach>
 #
 # disposition  keep    the document stays, and `reader` names who opens it
 #              rework  the shape is the defect (an append-only log); `reach` names the ticket carrying the work
-#              delete  nothing reaches it 鈥?no citation, no index row; `reach` names the ticket removing it
+#              delete  nothing reaches it — no citation, no index row; `reach` names the ticket removing it
 # reader       loaded       the loader injects it at the point of work (root and nested AGENTS.md, CLAUDE.md)
 #              index        a reader arrives from a section index; `reach` is that index page
 #              spec         an agent opens it while working in the area; `reach` is the page that routes to it
@@ -15,8 +15,8 @@
 #              index. Every other row names a document that references this one, and DocumentCensusGateTests
 #              fails when the named document does not name it back.
 #
-# Scope: every markdown file git tracks. Machine tables 鈥?alignment.txt, terminology.txt, the contracts 鈥?are
-# not documents and are out of scope; their own gates read them. The rule is docs/AGENTS.md 搂6; the audit that
+# Scope: every markdown file git tracks. Machine tables — alignment.txt, terminology.txt, the contracts — are
+# not documents and are out of scope; their own gates read them. The rule is docs/AGENTS.md §6; the audit that
 # produced this census is docs/backlog/done/document-corpus-audit.md.
 AGENTS.md | keep | loaded | -
 CLAUDE.md | keep | loaded | -

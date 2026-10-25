@@ -4,12 +4,24 @@ The **design corpus** of CUO: what the player can do, what the rules are, what t
 surface. `docs/architecture/` says how the system is built, `docs/decisions/` records the rulings, `docs/backlog/`
 carries the work; this corpus says **what the product is**.
 
-## Why it exists
+## How a page's facts are sourced
 
-A change that starts from the source files at hand drifts from the design, however well it compiles. The corpus is what
-a change is read against **before** it starts: the mechanic page states the player's action and the rules, the item or
-surface page states the entry and what it must reproduce, the model pages state which side judges and which native call
-is mirrored, and the record links say where the ruling came from.
+No page is written from recollection. Every claim is one of exactly three kinds, and it carries its source on the page:
+
+- **a record**: the ticket and decision that fix the behaviour, linked by path (an accepted ticket in
+  `docs/backlog/done/`, an open one in `todo/`/`review/`, or a numbered decision in `docs/decisions/`);
+- **a fact of the game**: quoted from the decompiled tree by file and line;
+- **an observation**: what a player or a run reads, with where it was read and when.
+
+Where two records disagree, the page states WHICH one is current and why — a later decision supersedes an earlier one, an
+accepted ticket supersedes the proposal it replaced, and a rule in the root `AGENTS.md` supersedes both. A conflict that
+cannot be resolved from the records is a `GAP`, never a choice made by the writer.
+
+## What a change reads
+
+The mechanic page states the player's action and the rules; the item or surface page states the entry and what it must
+reproduce; the model pages state which side judges and which native call is mirrored. A change reads those pages **before**
+it starts and names them in its ticket (the delivery checklist's *Design comprehension* box).
 
 Every page follows `docs/AGENTS.md`: English, one question per page, no machine paths, no secrets, and **results only** —
 the design as it stands, never the history of how it was reached, never code.

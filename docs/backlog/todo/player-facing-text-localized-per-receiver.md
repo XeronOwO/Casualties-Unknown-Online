@@ -33,7 +33,27 @@ The REFUSAL family is done end to end, and it was the case the user reported:
 
 - **Host answers to a member's command.** `ConsoleAnswer` already carries `Key` + `Args` and the LOCAL console renders them, but
   a member's `/heal`, `/give`, `/summon` and `/gamerule` are answered by the HOST, and that answer has to reach the member with
-  its key. That is a wire addition (the answer path carries text today), and it is the next work item of this ticket.
+  its key.
+
+  **The design, decided (2026-10-25) so the next cycle does not re-derive it.** The refusal half was a closed set — one key, at
+  most one argument. A command ANSWER is not: `/heal @a` answers one part per target, each naming a player and what happened to
+  them ("Reset 1001: full heal applied (revived from death; 2 severed limb(s) restored; hollow cleared)."), and the parts differ
+  per target. Rendering that as one key cannot work, and rendering it as one sentence of free data is the defect. So an answer
+  travels as a LIST OF PARTS, each part a key plus its ordered arguments:
+
+  1. `HealResetResultMsg`, `PlayerInventoryGiveResultMsg` and `WorldSummonResultMsg` gain
+     `repeated ConsoleAnswerPart { Key, Args }` (a small message in `Protocol/Messages`), beside the existing `Answer` text, which
+     stays as the log/fallback rendering.
+  2. The producing side builds parts where it builds the sentence today — `PlayerHealResetService.Execute`'s per-target `parts`
+     list becomes a list of keyed parts, and the same for the give and summon services — so the wording lives in the catalogue
+     and the ids stay arguments.
+  3. The member's console renders each part through its own catalogue and joins them (one line each, as today), falling back to
+     `Answer` when a part has no key.
+  4. Both catalogues gain the answer keys in the same change, which is the gate's floor.
+
+  The three services are the whole surface: every other member-answered command already returns through the local console.
+- **`/gamerule`'s answer** is a list of setting names and values, so it takes the same parts shape; it is included in the three
+  messages above only if its own result path carries text (checked in the same cycle).
 - **The scan in acceptance row 2** (no run of the other language's words in any catalogue) is a gate to write once the remaining
   families are keyed, so it does not fail on text this ticket has not converted yet.
 

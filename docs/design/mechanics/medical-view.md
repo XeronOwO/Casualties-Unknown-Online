@@ -17,6 +17,13 @@ medical operation the two clients perform together, which is why the drag gestur
 
 ## Rules and states
 
+- **Which family needs a responsive patient is the FAMILY's rule, and the code states it once**:
+  `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalTargetBodyValidator.cs` requires a responsive target
+  only for `Injection` and `Shrapnel` ("a responsive patient is per family, because the rule is the family's"), refuses a
+  dead body for every family, and notes that relocation, defibrillation and amputation are exactly what an unresponsive body
+  needs. `ItemUseTargetPolicy.cs` mirrors it for the item families: only `Drink` and `SolidFood` need a conscious target, and
+  no item family is the defibrillator.
+
 - The view belongs to the VIEWED body: the panel shows the patient's limbs, not the viewer's, and its identity header
   carries the VIEWED player's data. The accepted record names the trap and the fix: "nothing rewrites it afterwards —
   `WoundView.UpdateView` never touches the two labels — so a remote medical focus that does not take the header over keeps

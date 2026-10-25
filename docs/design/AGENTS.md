@@ -44,6 +44,7 @@ A missing page is a `GAP`: recording the design is then the first work item, and
 |---|---|
 | `model/authority-and-judgement.md` | actors, judgement sides, authority kinds, member reports, host rules, custody invariants |
 | `model/item-custody.md` | item identity, custody, incarnations, what travels |
+| `model/session-lifecycle.md` | lobby, run, cut, continue, rejoin |
 | `mechanics/README.md` | the mechanic taxonomy |
 | `mechanics/item-use.md` | applying an item to a teammate |
 | `mechanics/give-and-take.md` | handing over and taking an item |
@@ -56,9 +57,14 @@ A missing page is a `GAP`: recording the design is then the first work item, and
 | `mechanics/death-and-drops.md` | dying, drops, the corpse, revival |
 | `mechanics/spectator.md` | following a teammate after death |
 | `items/README.md` | item families and what their own actions do |
+| `items/food.md` | eating: one bite per use, what the food's own action does |
+| `items/drink.md` | drinking: the container's own drink path, a non-drink refused unrun |
 | `surfaces/` | one page per surface (`GAP`) |
 | `cross-cutting/localization.md` | one language per reader |
-| `cross-cutting/` | observability, permissions, recovery (`GAP`) |
+| `cross-cutting/permissions-and-commands.md` | the command family and the host rules behind it |
+| `cross-cutting/observability.md` | what a run leaves behind |
+| `cross-cutting/saves-and-recovery.md` | what a save holds, what a restore may do |
+| `cross-cutting/` (remaining) | — |
 
 ## The page template
 
@@ -80,4 +86,3 @@ Every page carries these sections in order; a section that does not apply says w
 - `../architecture/current.md`, `../architecture/domains.md` — how the system is built.
 - `../development/native-parity.md` — the standard native-mirroring behaviour is held to.
 - `../decisions/index.md` — the decision register.
-- `../backlog/README.md` — the work that lands a page's gaps.

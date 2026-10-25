@@ -1,0 +1,60 @@
+# Drink: drinking an item
+
+Drinking from a container, and giving a drink to a teammate.
+
+## What the player does
+
+Uses a container (a bottle, a can, a bag) on themselves, or drags it onto a teammate's use circle, and expects the liquid
+inside to be applied to the drinker — with its own effect, its own sound, and its own cost.
+
+## What the game itself does
+
+A drinkable container's use action reaches the container's own drink path, which applies the effect of each liquid stack
+it holds to the body that drinks. The action is the item's own, and the amount that leaves the container is the amount
+that entered the body.
+
+## Rules and states
+
+- A container is classified by its own data, not by its name or category: a container refilled with a liquid whose effect
+  is not a drink is not a drink, and its action is refused BEFORE it is run rather than after.
+- A container whose action draws blood is not a drink: an injectable container's own action must not be run to find out
+  what it does.
+- The dose that leaves the container is the dose whose effect lands on the drinker; a disagreement between the two is the
+  defect.
+- The drinker must be conscious: drinking is one of the two families where the TARGET itself consumes the item.
+- A container with nothing to drink refuses by name.
+
+## Refusals
+
+| Condition | The player reads |
+|---|---|
+| the container has nothing to drink | `use.refused.container_nothing_to_drink` |
+| the target is unconscious | `use.refused.target_unconscious` |
+| the action is not a drink (the definition says otherwise) | the definition is named and nothing is run |
+| the item is an injectable | `use.refused.injectable_needs_medical_view` |
+
+## Who judges
+
+The host validates the request and admits it. The drinker's own client runs the container's drink path on its own body,
+so the effect, the sound and the container's new state are the game's own; the outcome travels back so the item's owner
+sees the same container.
+
+## What travels
+
+The item's identity, the target, and — where the gesture measures it — the dose. The item's remaining liquid is the
+owner's item state and is the same on both clients afterwards.
+
+## What the player sees and hears
+
+The container is raised, the game's own drinking sound plays at the drinker's position, and the drinker's state changes
+by the liquid's effect. The container's fill level is what both clients then show.
+
+## Records
+
+Decisions 184 and 246. Accepted: `../../backlog/done/drink-measurement-destructive-use-action.md` (a non-drink action is
+refused unrun), `done/cross-player-item-use-random-determinism.md`.
+
+## Gaps
+
+- Which vanilla liquids are drinks, and what each one does to the drinker, is the game's own table and is not yet recorded
+  per liquid here.

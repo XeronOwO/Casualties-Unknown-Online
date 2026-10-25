@@ -11,6 +11,15 @@ for every item mechanic; the mechanic pages cite it.
   acting on "the first match".
 - A catalogue definition (what an item IS) is shared; an item's state (its condition, its liquids, its components, its
   contents) belongs to that instance.
+- **Creation is registered BEFORE the item is operated on.** The user's 2026-09-18 ruling names what it replaced: "the
+  500 ms pickup hold is a design smell, not a latency fix", and the invariant it leaves is creation-before-operation — a
+  creation is judged first, and a refused creation's later operation is answered rather than applied.
+- **An identity survives a transform.** Whether a worn splint is still the item it was made from was researched and the
+  user ruled option 1; all seven acceptance rows pass, so a transform that keeps the item keeps its identity instead of
+  minting a new one.
+- **An id is never re-issued to a live item.** A restore resumes the allocator above the ids the world already holds: the
+  accepted reading is "a new process's continue resumed the host allocator at 241 → 242 and the next allocation took
+  counter 242 with no duplicate-id refusal".
 - **Registration.** An item's identity reaches the host through the client that allocated it. The accepted record states
   the shape: "`CarriedInventory` (NetMsg 65) is the guest's one-shot registration of the item ids it self-assigned during
   generation. The host uses it to build the per-guest transfer table used by cross-player take/arbitration." Because it was
@@ -18,7 +27,21 @@ for every item mechanic; the mechanic pages cite it.
   with a cleared table, and the acceptance reading for that row is "with the host's per-guest table cleared offline and the
   kernel facts left untouched, the rejoin re-…".
 
-## A client's own result is reconciled`r`n`r`nA pickup or a drop a client performed is reconciled against the host's table rather than trusted once: the accepted record closed the case where a guest's "local pickup/drop result is not reconciled", and the family it belongs to is the one that heals a swallowed report by a bounded re-report. The rule is that an action a client believes it completed is confirmed against the holder's table, so a lost message does not leave the two views apart.`r`n`r`n## A player's own marks on an item`r`n`r`nA favourite mark belongs to the PLAYER who made it, not to the item: the mark is saved with that player's character record and "never reaches the owner's item" — decision 258 states it, and the accepted ticket's reading is that the mark "became the item's own flag once the item changed hands, and the same key over the player's OWN inventory kept the game's own behaviour". A mark is therefore never a fact the other players hold about the item.`r`n`r`n## Custody
+## A client's own result is reconciled
+
+A pickup or a drop a client performed is reconciled against the host's table rather than trusted once: the accepted record
+closed the case where a guest's "local pickup/drop result is not reconciled", and the family it belongs to is the one that
+heals a swallowed report by a bounded re-report. The rule is that an action a client believes it completed is confirmed
+against the holder's table, so a lost message does not leave the two views apart.
+
+## A player's own marks on an item
+
+A favourite mark belongs to the PLAYER who made it, not to the item: the mark is saved with that player's character record
+and "never reaches the owner's item" — decision 258 states it, and the accepted ticket's reading is that the mark "became
+the item's own flag once the item changed hands, and the same key over the player's OWN inventory kept the game's own
+behaviour". A mark is therefore never a fact the other players hold about the item.
+
+## Custody
 
 | Custody | Meaning | Authority |
 |---|---|---|

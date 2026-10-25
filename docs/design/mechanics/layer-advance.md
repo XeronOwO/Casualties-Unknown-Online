@@ -20,7 +20,7 @@ co-op the choice must be one member's choice applied to a host-owned world.
 - A fact about the layer being LEFT must not survive into the layer being ENTERED: the layer boundary is one family under
   one rule, and every such fact is classified rather than silently kept or silently dropped.
 - Items the player carries cross the boundary with them; world facts belong to the layer they were created in.
-- A member who is not in the world when the host moves is placed when it arrives, not left behind.
+- A member who is not in the world when the host moves is placed when it arrives, not left behind.- **A layer change never drops a member.** The accepted reading of the drop-out defect is that with both members' inbound parked inside one command "both members stay in the world with the item they carried across the change", and every client's growth "read as a size stays at 0.35–… MB/min against the ~8.2 MB/min storm"; the ticket's own control shows the unparked path is what dropped them.
 
 ## Refusals
 

@@ -42,6 +42,10 @@ that path, not by the gesture.
 - An item without an authoritative identity cannot be named, and the gesture is refused instead of transferring "the
   first match".
 - A destination that no longer holds when the host applies the transfer is refused by name; the item stays where it was.
+- **A refused inventory intent comes back as an answer, not as silence.** `InventoryIntentRefusedHandler` states the defect
+  it closed: "before this arrived, a refused gesture was indistinguishable from a gesture that silently did nothing … the
+  client had already written its positive capture line, and every refusal lived in the host's log" — and the rule it serves
+  is the family's own: "a report the receiving side contradicts is answered, [so both sides end] up agreeing".
 - **The answer names where the item WENT, not where it was aimed.** The host's ledger keeps the destination it was told and
   must be corrected by the placement outcome: the recorded defect is "The host's ledger keeps the destination it was told,
   not where the item went", with rows read on the machine and its 60 ms window judged by the user's ruling because it

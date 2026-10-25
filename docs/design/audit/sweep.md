@@ -80,7 +80,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.Runtime/Session/Content` | 7 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/EntitySync` | 43 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/HandlerContexts` | 24 | unread |
-| `CasualtiesUnknownOnline.Runtime/Session/Handlers` | 111 | unread |
+| `CasualtiesUnknownOnline.Runtime/Session/Handlers` | 111 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/HostRules` | 16 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/Items` | 63 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Mods` | 89 | unread |

@@ -21,6 +21,10 @@ co-op the choice must be one member's choice applied to a host-owned world.
   kernel generation stamp, the same (run epoch, layer index) identity every layer-relative world report carries, so the host
   arbitrates it against the identity it stamps its own" — which is why a request from a layer the host has already left is
   refused rather than applied to the new one, and why the panel appears only on the client whose own body is at the bottom.
+- **A refused advance is answered, and the answer can only come from the host.** `LayerAdvanceRefusedHandler` exists because
+  "the member suppresse[s its] own descent when it asked, so this line is what tells it the layer did not move", and the
+  channel is host-to-guest so "a forged answer cannot print attacker-chosen text on a member's log" — a refusal is a fact
+  only the host may state.
 - **The layer's own rarity numbers start neutral and may only be scaled by generation.**
   `src/CasualtiesUnknownOnline.GameState/Domains/World/RunRarityMultipliers.cs` fixes `Neutral = 1f` because the game
   "initializes `WorldGeneration.lootRarityMultiplier` / `trapRarityMultiplier` to 1f … and only ever scales them during

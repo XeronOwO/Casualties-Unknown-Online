@@ -1,6 +1,7 @@
 # `/heal @a` skips the player who runs it
 
-- Status: Todo — opened 2026-10-25 from the user's report: "主机执行 heal @a 为什么没有 heal 自己啊!".
+- Status: Review — the code landed in `7fb1556d` (2026-10-25) and the suite migrated with it; the rows below are the
+  release-cycle acceptance a two- or three-client session has to judge.
 - Priority: Medium
 - Category: Console / cheat verbs / player selectors
 - Source: user report (2026-10-25). The measured reply on the host: `/heal @a` answered `Reset 76561198863287957: … Reset
@@ -10,6 +11,15 @@
 
 `@a` selects every player in the session, the one who typed the command included, on every verb that takes a player selector
 (`/heal`, `/give`, `/summon`, `/gamerule`). `@s` stays the executor alone; `@p` the nearest.
+
+## Design
+
+The surface's own record is `docs/design/cross-cutting/permissions-and-commands.md` (a cheat verb's selector is a chain command's
+argument, and the meanings are Minecraft's because the family follows that template — `AGENTS.md` rule 17), with the surface row in
+`docs/architecture/surfaces.md` naming `CommandSelectorResolver` as the one Unity-free expansion. The design question the ticket
+settles is the one that page left to the command family: a selector set that drops the sender makes the most convenient form of
+every cheat verb unusable on the client an operator debugs most, so the meanings are the template's, and a bracketed filter narrows
+the candidate set BEFORE the selector picks from it (Minecraft's own order).
 
 ## Current behaviour
 
@@ -43,6 +53,22 @@ The command family follows Minecraft's template (root `AGENTS.md` rule 17): ther
 `@s` is the executor, `@p` the nearest. A selector set that silently drops the sender makes the most convenient form of every cheat
 verb unusable on the one client an operator debugs most — the host.
 
+## Done in code (2026-10-25)
+
+The resolver now carries Minecraft's meanings, and the suite is migrated to them (`7fb1556d`):
+
+- `@a` and `@e` answer EVERY player, the executor included; `@s` the executor alone; `@p` the nearest — the executor at
+  distance zero; `@r` one of everyone.
+- The bracketed FILTER now narrows the candidate set BEFORE the base selector picks from it, which is Minecraft's own order:
+  `@p[distance=1..]` is "the nearest player who is not standing on me", not "the nearest player, if it happens to be far
+  enough". The old order made every filtered `@p`/`@r` answer empty as soon as the executor stood nearest.
+- A target's display name falls back to its steam id, and the `name` filter accepts that id, so `@a[name=7656…]` names a player
+  whose persona has not arrived. This is the vocabulary the tests use for "one specific player" and it is what an operator types
+  when the roster line shows an id.
+- The 32 behaviour tests the earlier attempt broke are migrated: the console suites that meant "the other player" say so in the
+  selector, the two tests that asserted the old meaning assert the new one, and the multi-body refusal counts three bodies because
+  `@a` really names three. `BacklogIntegrityGateTests`' anchor to two renamed resolver tests was re-pointed in the same change.
+
 ## Acceptance rows
 
 | Row | The check |
@@ -51,6 +77,9 @@ verb unusable on the one client an operator debugs most — the host.
 | 2 | `/heal @s` on a member resets only that member; `/heal @p` resets the nearest player to the executor |
 | 3 | The reply names every player it reset, including the executor, and the line reads in the operator's language (the localization ticket) |
 | 4 | A solo host with no session can use `@a` on a cheat verb (the degenerate case the current shape makes impossible) |
+
+Rows 1-3 need a real two- or three-client session, which is the release-cycle acceptance; row 4's degenerate case is covered by
+`CommandSelectorResolverTests.AHostAlone_IsStillSelectableByEveryBaseSelectorThatMeansEveryone` as far as a test host can reach it.
 
 ## Limits
 

@@ -67,7 +67,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The console's completion shows nothing](todo/console-completion-shows-no-suggestions.md) — **High** — typing must show suggestions.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
 - [Enter on an empty console does not close it](todo/console-enter-on-empty-does-not-close.md) — **Low** — a recorded deviation from native.
-- [`@a` skips the player who runs it](todo/selectors-exclude-the-executor.md) — **Medium** — `@a` must include the executor.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
 - [Giving into a backpack plays no sound](todo/give-into-backpack-plays-no-sound.md) — **High** — the transfer's own clip.
 - [An item cannot be used on a sleeping teammate](todo/use-on-sleeping-target-refused.md) — **Medium** — the consuming families' target gate.
@@ -79,6 +78,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 
+- [`@a` now names the executor too](review/selectors-exclude-the-executor.md) — **Medium** — code landed; the runtime rows need a session.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.

@@ -167,7 +167,15 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 142 | `done/mod-declared-behaviour-with-no-function.md` | yes — a missing function throws, so the native path is a defect of a promised surface | n/a | `out of corpus scope` | ticket: "It throws … so that half is a defect of a surface the API already promises rather than a new capability"; platform work, with its item twin named |
 | 143 | `done/mod-defined-wire-packets.md` | yes — a mod may define packets | n/a | `out of corpus scope` | protocol/mod seam; the same reader |
 | 144 | `done/mod-item-authored-actions.md` | yes — a mod item's use and limb functions are carried | n/a | `out of corpus scope` | ticket: "Mod-authored item actions: the use and limb functions" cut from the ceiling's Part 3.A and accepted in `20261011-i`; the items page's boundary paragraph already says where a mod's additions are documented |
-| … | the remaining 105 `done/` tickets, then `review/` (36) and `todo/` (12) | | | | |
+| 145 | `done/mod-item-declaration-parity.md` | yes — item declarations match the native surface | n/a | `out of corpus scope` | mod content declaration parity; reader: the mod API reference |
+| 146 | `done/mod-item-wearable-declaration.md` | yes — a wearable's declaration is part of the item surface | n/a | `out of corpus scope` | the same reader |
+| 147 | `done/mod-item-with-no-declared-tags-throws.md` | yes — a missing declaration is refused rather than thrown | n/a | `out of corpus scope` | ticket: "A mod item that declares no tags throws inside the game's own frames", accepted in `20261012-b` with stage 1 landed in `22ae381c`; platform robustness whose reader is the mod API reference |
+| 148 | `done/mod-native-binding-declaration.md` | yes — a native-binding mod declares it | n/a | `out of corpus scope` | ticket: "Native-binding mods declare it instead of hiding", category "Mod API / Policy" |
+| 149 | `done/mod-native-binding-handshake-parity.md` | yes — the declaration reaches the handshake | n/a | `out of corpus scope` | policy/protocol family with its own handshake record |
+| 150 | `done/mod-payload-null-collection-tolerance.md` | yes — a payload tolerates a null collection | n/a | `out of corpus scope` | platform robustness |
+| 151 | `done/mod-service-gameadapter-di-cycle.md` | yes — the composition root no longer cycles | n/a | `out of corpus scope` | ticket: the game "hung at startup with no error" after deploying a fix; a DI/startup bug whose guard is `done/di-cycle-guard.md`'s |
+| 152 | `done/name-tag-font-position-edge-padding.md` | yes — one placement rule for a tag | `surfaces/world-overlays.md` | `corpus page` | ticket: "Name tag font, head position, and off-screen edge padding", with its UI polish selfcheck; the overlays page now states that the three are one rule rather than free numbers |
+| … | the remaining 97 `done/` tickets, then `review/` (36) and `todo/` (12) | | | | |
 
 The `#` column is the AUDIT SEQUENCE, not the alphabetical index: rows follow the alphabetical ticket list, and a ticket recovered after a skip is appended with a note rather than renumbering every later row. Each filled row carries its evidence: the ticket's own quoted design
 sentence, the source path that implements it, and the corpus page that carries it.

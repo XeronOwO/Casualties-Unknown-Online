@@ -422,3 +422,17 @@ belongs to the Escape handler). Sending Escape after the item is picked does clo
 remaining question is the SELECTION: whether `TryModelHalfSize`/`DragTargetSelection.Consider` accepts the remote's model box at
 the pointer, whose only diagnostic line is emitted on a target CHANGE (`[DragUse] display target … picked among N`), which also
 never appears.
+
+**Batch `20261025-av` — every clause of the cue is now READ, and all but one hold; the remaining one is the item's family.**
+`recipes/drag-cue.cs` was extended to reproduce `DragUseCenter.IsUnderPointer` and to report the view state, so one reading covers the
+whole chain. With the drag held (`dragState`: `dragging=True, dragItem=bandage, rightHeld=True`) and the pointer on the ring's centre,
+the probe answered: **`backpackOpen=True, focusedSteamId=76561198863287957, menuScale=1 (> inventoryUseLeniency 0.95),
+centreDistance=7.4 (< centreRadius 135)`** — and **`showing=False`**. The auto-open itself is proven: the host log carries
+`[BackpackView] opened native backpack view for 76561198863287957` and CUO's own "opened …'s backpack because the dragged item
+entered its detection range".
+
+`DragUseCueTracker.Update` has exactly five inputs, and four are now measured true. The fifth is
+`LocalUseItemEligibility.IsUseItem(dragItem, …)` — the item's FAMILY through `ItemUseFamilyClassifier` — so the bandage a probe
+creates with `item-provide` is the one thing left to question: a bandage's native use is a MINIGAME, not a one-shot use, which is
+exactly the kind of item the classifier can legitimately refuse. The next cycle repeats the same gesture with an item whose family
+is unambiguous (a syringe/medicine), and reads `showing/targetSteamId` from the same probe.

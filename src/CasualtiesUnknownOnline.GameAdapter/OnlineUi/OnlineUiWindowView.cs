@@ -132,7 +132,10 @@ internal sealed class OnlineUiWindowView
 	/// is what shows it.</summary>
 	internal static OnlineUiWindowView Create(Transform parent, ILogger log, Action<OnlineUiIntent> report)
 	{
-		var root = new GameObject("CUO Online UI Window", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup));
+		var root = new GameObject("CUO Online UI Window", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup))
+		{
+			layer = OnlineUiSurfaceParts.UiLayer,
+		};
 		root.transform.SetParent(parent, worldPositionStays: false);
 		var rect = (RectTransform)root.transform;
 		rect.anchorMin = new Vector2(0.5f, 0.5f);

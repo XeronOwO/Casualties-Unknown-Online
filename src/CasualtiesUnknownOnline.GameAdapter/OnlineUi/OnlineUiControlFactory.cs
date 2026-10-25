@@ -224,7 +224,7 @@ internal static class OnlineUiControlFactory
 			border.color = Color.white;
 		}
 
-		var go = new GameObject("Frame Fill", typeof(RectTransform), typeof(Image));
+		var go = new GameObject("Frame Fill", typeof(RectTransform), typeof(Image)) { layer = OnlineUiSurfaceParts.UiLayer };
 		go.transform.SetParent(frame.transform, worldPositionStays: false);
 		var rect = (RectTransform)go.transform;
 		rect.anchorMin = Vector2.zero;
@@ -267,7 +267,7 @@ internal static class OnlineUiControlFactory
 	private static GameObject CreatePlainObject(OnlineUiElementKind kind, Transform parent, OnlineUiControlTypography typography)
 	{
 		var name = kind == OnlineUiElementKind.Label ? "CUO Online UI Label" : $"CUO Online UI {kind} (no game prefab)";
-		var root = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+		var root = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)) { layer = OnlineUiSurfaceParts.UiLayer };
 		root.transform.SetParent(parent, worldPositionStays: false);
 		var text = root.GetComponent<TextMeshProUGUI>();
 		text.alignment = TextAlignmentOptions.Left;

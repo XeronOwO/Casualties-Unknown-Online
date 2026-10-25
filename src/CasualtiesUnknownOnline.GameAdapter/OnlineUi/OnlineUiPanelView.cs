@@ -139,7 +139,12 @@ internal sealed class OnlineUiPanelView
 		OnlineUiIntentKind hoverEntered,
 		OnlineUiIntentKind hoverLeft)
 	{
-		var root = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+		var root = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter))
+		{
+			// The game's pointer-over-UI gate asks the layer (OnlineUiSurfaceParts.UiLayer): a panel on the default layer is invisible to
+			// it and a click on its blank area reaches the world.
+			layer = OnlineUiSurfaceParts.UiLayer,
+		};
 		root.transform.SetParent(parent, worldPositionStays: false);
 		var rect = (RectTransform)root.transform;
 		rect.localScale = Vector3.one;

@@ -173,7 +173,7 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 
 		_reportedMissingCanvas = false;
 
-		var root = new GameObject(RootName);
+		var root = new GameObject(RootName) { layer = OnlineUiSurfaceParts.UiLayer };
 		root.transform.SetParent(parent, worldPositionStays: false);
 		// Marked before anything is built under it: the adapter's own input guard asks this marker to
 		// leave the hierarchy alone, because a blocker meant for the game's UI must never land on CUO's

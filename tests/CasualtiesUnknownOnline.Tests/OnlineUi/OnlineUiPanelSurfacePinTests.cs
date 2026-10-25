@@ -54,6 +54,12 @@ public sealed class OnlineUiPanelSurfacePinTests
 			"the title must be a single line with an ellipsis and the panel's width must be measured from it: a wrapped title draws a second line under the first action button, which is the reported '换行…在医疗按钮背面'");
 
 	[Fact]
+	public void ThePanelsSitOnTheGamesUiLayer() =>
+		Assert.True(
+			SitsOnTheUiLayer(AdapterPanelView(), Adapter("OnlineUiSurfaceParts.cs"), Adapter("OnlineUiSurfaceHost.cs")),
+			"a CUO panel must be on the game's UI layer: UIUtil.IsPointerOverUIElement (reversing/Assembly-CSharp/Assembly-CSharp/UIUtil.cs) returns true only for a raycast hit whose GameObject is on that layer, so a panel on the default layer lets a click on its blank area reach the world and mine");
+
+	[Fact]
 	public void EachPanelPollsItsOwnRectAndReportsTheCallersFact() =>
 		Assert.True(
 			PollsItsOwnRect(AdapterPanelView()),
@@ -150,6 +156,10 @@ public sealed class OnlineUiPanelSurfacePinTests
 			broken.Contains("class OnlineUiPanelView", StringComparison.Ordinal) ? broken : AdapterPanelView(),
 			broken.Contains("class OnlineUiViewSource", StringComparison.Ordinal) ? broken : Adapter("OnlineUiViewSource.cs")),
 		nameof(EachPanelPollsItsOwnRectAndReportsTheCallersFact) => PollsItsOwnRect,
+		nameof(ThePanelsSitOnTheGamesUiLayer) => broken => SitsOnTheUiLayer(
+			broken.Contains("class OnlineUiPanelView", StringComparison.Ordinal) ? broken : AdapterPanelView(),
+			Adapter("OnlineUiSurfaceParts.cs"),
+			Adapter("OnlineUiSurfaceHost.cs")),
 		nameof(TheSurfaceCoversTheGamesCanvas) => CoversTheGameCanvas,
 		nameof(TheTitleIsOneLineAndThePanelWidensToItsMeasuredName) => TheTitleFitsOnOneLine,
 		nameof(ThePointAnchoredPanelIsPlacedByTheRuntimesRule) => PlacedByTheRuntimeRule,
@@ -240,6 +250,24 @@ public sealed class OnlineUiPanelSurfacePinTests
 
 	/// <summary>CUO's canvas stretches over the game's, which is what makes "the bottom-right corner" mean the
 	/// player's bottom-right corner.</summary>
+	/// <summary>
+	/// The panels and the canvas they stand on are built on the game's UI LAYER, which is the only thing the game's own pointer-over-UI
+	/// gate reads: <c>UIUtil.IsPointerOverUIElement</c> walks the EventSystem's raycast results and returns true only for a hit whose
+	/// GameObject is on <c>LayerMask.NameToLayer("UI")</c>. A panel on the default layer therefore draws correctly and still lets a click
+	/// through to the world.
+	/// </summary>
+	private static bool SitsOnTheUiLayer(string panelViewSource, string surfacePartsSource, string surfaceHostSource)
+	{
+		var parts = Flatten(surfacePartsSource);
+		var panel = Flatten(panelViewSource);
+		var host = Flatten(surfaceHostSource);
+
+		return parts.Contains("internal static int UiLayer => LayerMask.NameToLayer(\"UI\");", StringComparison.Ordinal)
+			&& parts.Contains("var go = new GameObject(name, all) { layer = UiLayer };", StringComparison.Ordinal)
+			&& panel.Contains("layer = OnlineUiSurfaceParts.UiLayer,", StringComparison.Ordinal)
+			&& host.Contains("var root = new GameObject(RootName) { layer = OnlineUiSurfaceParts.UiLayer };", StringComparison.Ordinal);
+	}
+
 	private static bool CoversTheGameCanvas(string surfaceSource)
 	{
 		var flat = Flatten(surfaceSource);

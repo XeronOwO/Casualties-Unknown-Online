@@ -19,13 +19,23 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// </summary>
 internal static class OnlineUiSurfaceParts
 {
-	/// <summary>A new rect under <paramref name="parent"/>, carrying <paramref name="components"/> beside it.</summary>
+	/// <summary>
+	/// The layer the game's own UI lives on. It is not cosmetic: <c>UIUtil.IsPointerOverUIElement</c>
+	/// (<c>reversing/Assembly-CSharp/Assembly-CSharp/UIUtil.cs</c>) walks the EventSystem's raycast results and returns true only for a
+	/// hit whose GameObject is on THIS layer — so a CUO panel drawn on the default layer is invisible to the game's own
+	/// "is the pointer over UI" gate and a click on its blank area reaches the world (the user's 2026-10-25 report: the character
+	/// mined through the context menu).
+	/// </summary>
+	internal static int UiLayer => LayerMask.NameToLayer("UI");
+
+	/// <summary>A new rect under <paramref name="parent"/>, carrying <paramref name="components"/> beside it, on the game's UI layer so
+	/// the game's pointer-over-UI gate sees it (<see cref="UiLayer"/>).</summary>
 	internal static RectTransform CreateRect(string name, Transform parent, params Type[] components)
 	{
 		var all = new Type[components.Length + 1];
 		all[0] = typeof(RectTransform);
 		Array.Copy(components, 0, all, 1, components.Length);
-		var go = new GameObject(name, all);
+		var go = new GameObject(name, all) { layer = UiLayer };
 		go.transform.SetParent(parent, worldPositionStays: false);
 		return (RectTransform)go.transform;
 	}
@@ -41,7 +51,7 @@ internal static class OnlineUiSurfaceParts
 		OnlineUiControlTypography typography,
 		OnlineUiTextStyle style)
 	{
-		var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+		var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)) { layer = UiLayer };
 		go.transform.SetParent(parent, worldPositionStays: false);
 		var text = go.GetComponent<TextMeshProUGUI>();
 		text.fontSize = typography.SizeOf(style);

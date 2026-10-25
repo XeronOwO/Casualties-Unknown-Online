@@ -54,6 +54,12 @@ public sealed class OnlineUiPanelSurfacePinTests
 			"the title must be a single line with an ellipsis and the panel's width must be measured from it: a wrapped title draws a second line under the first action button, which is the reported '换行…在医疗按钮背面'");
 
 	[Fact]
+	public void TheLabelsDrawWithTheGamesOwnMaterialToo() =>
+		Assert.True(
+			LabelsCarryTheGamesMaterial(Adapter("OnlineUiSurfaceParts.cs"), Adapter("OnlineUiControlFactory.cs"), Adapter("OnlineUiControlTypography.cs")),
+			"a programmatic label must take the game's own font MATERIAL, not TMP_Settings' default: the panel title was present, sized, coloured and active with its text set, and drew nothing on the frame (2026-10-25)");
+
+	[Fact]
 	public void ThePanelsSitOnTheGamesUiLayer() =>
 		Assert.True(
 			SitsOnTheUiLayer(AdapterPanelView(), Adapter("OnlineUiSurfaceParts.cs"), Adapter("OnlineUiSurfaceHost.cs")),
@@ -160,6 +166,10 @@ public sealed class OnlineUiPanelSurfacePinTests
 			broken.Contains("class OnlineUiPanelView", StringComparison.Ordinal) ? broken : AdapterPanelView(),
 			Adapter("OnlineUiSurfaceParts.cs"),
 			Adapter("OnlineUiSurfaceHost.cs")),
+		nameof(TheLabelsDrawWithTheGamesOwnMaterialToo) => broken => LabelsCarryTheGamesMaterial(
+			broken.Contains("class OnlineUiSurfaceParts", StringComparison.Ordinal) ? broken : Adapter("OnlineUiSurfaceParts.cs"),
+			Adapter("OnlineUiControlFactory.cs"),
+			Adapter("OnlineUiControlTypography.cs")),
 		nameof(TheSurfaceCoversTheGamesCanvas) => CoversTheGameCanvas,
 		nameof(TheTitleIsOneLineAndThePanelWidensToItsMeasuredName) => TheTitleFitsOnOneLine,
 		nameof(ThePointAnchoredPanelIsPlacedByTheRuntimesRule) => PlacedByTheRuntimeRule,
@@ -266,6 +276,23 @@ public sealed class OnlineUiPanelSurfacePinTests
 			&& parts.Contains("var go = new GameObject(name, all) { layer = UiLayer };", StringComparison.Ordinal)
 			&& panel.Contains("layer = OnlineUiSurfaceParts.UiLayer,", StringComparison.Ordinal)
 			&& host.Contains("var root = new GameObject(RootName) { layer = OnlineUiSurfaceParts.UiLayer };", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The typography carries the game's own font MATERIAL and every programmatic label applies it. A label built with `new GameObject` takes
+	/// TMP's default material, which this build does not draw — the label is active, sized, coloured, holds its text, and shows nothing, which
+	/// is exactly how the panel title read on 2026-10-25 while the frame stayed an empty bar.
+	/// </summary>
+	private static bool LabelsCarryTheGamesMaterial(string surfacePartsSource, string controlFactorySource, string typographySource)
+	{
+		var parts = Flatten(surfacePartsSource);
+		var factory = Flatten(controlFactorySource);
+		var typography = Flatten(typographySource);
+
+		return typography.Contains("OnlineUiControlTypography(TMP_FontAsset? Font, Material? FontMaterial, float Size)", StringComparison.Ordinal)
+			&& factory.Contains("var material = label != null ? label.fontSharedMaterial : null;", StringComparison.Ordinal)
+			&& factory.Contains("typography = new OnlineUiControlTypography(font, material, size);", StringComparison.Ordinal)
+			&& parts.Contains("text.fontSharedMaterial = typography.FontMaterial;", StringComparison.Ordinal);
 	}
 
 	private static bool CoversTheGameCanvas(string surfaceSource)

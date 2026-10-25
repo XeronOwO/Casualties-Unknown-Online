@@ -69,8 +69,32 @@
 	var enabledProperty = title.GetType().GetProperty("enabled", Flags);
 	var labelRect = rectProperty == null ? null : rectProperty.GetValue(title, null) as UnityEngine.RectTransform;
 	var color = colorProperty == null ? default(UnityEngine.Color) : (UnityEngine.Color)colorProperty.GetValue(title, null);
+	// The link that actually decides whether glyphs reach the screen: the label needs an ACTIVE hierarchy, a font asset, an unculled
+	// canvas renderer and a built mesh. Reading the text alone said "all good" while the frame showed an empty bar.
+	var activeProperty = title.GetType().GetProperty("isActiveAndEnabled", Flags);
+	var fontProperty = title.GetType().GetProperty("font", Flags);
+	var meshProperty = title.GetType().GetProperty("textInfo", Flags);
+	var meshInfo = meshProperty == null ? null : meshProperty.GetValue(title, null);
+	var meshCountProperty = meshInfo == null ? null : meshInfo.GetType().GetProperty("characterCount", Flags);
+	var canvasRendererProperty = title.GetType().GetProperty("canvasRenderer", Flags);
+	var canvasRenderer = canvasRendererProperty == null ? null : canvasRendererProperty.GetValue(title, null);
+	var cullProperty = canvasRenderer == null ? null : canvasRenderer.GetType().GetProperty("cull", Flags);
 	var rectField = panel.GetType().GetField("_rect", Flags);
 	var panelRect = rectField == null ? null : rectField.GetValue(panel) as UnityEngine.RectTransform;
+	// How many menus are actually in the scene: the frame shows a ~195px menu while this view reports 289, so if two objects carry the
+	// menu's name the drawn one is not the one the surface applies models to.
+	var menus = "";
+	var found = UnityEngine.Object.FindObjectsOfType(typeof(UnityEngine.RectTransform));
+	for (var i = 0; i < found.Length; i++) {
+		var rect = found[i] as UnityEngine.RectTransform;
+		if (rect == null || rect.name != "CUO Online UI Player Menu") { continue; }
+		menus += rect.sizeDelta.x.ToString("0.##", inv) + "/" + (rect.gameObject.activeInHierarchy ? "a" : "i") + " ";
+	}
+	var panelCount = 0;
+	for (var i = 0; i < found.Length; i++) {
+		var rect = found[i] as UnityEngine.RectTransform;
+		if (rect != null && rect.name == "CUO Online UI Player Menu") { panelCount++; }
+	}
 	return "{\"ok\":true"
 		+ ",\"modelTitle\":\"" + (modelTitle ?? "") + "\""
 		+ ",\"labelText\":\"" + ((titleText == null ? "" : (titleText.GetValue(title, null) as string)) ?? "") + "\""
@@ -78,7 +102,15 @@
 		+ ",\"labelHeight\":" + (labelRect == null ? "0" : labelRect.rect.height.ToString("0.##", inv))
 		+ ",\"labelFontSize\":" + (fontSize == null ? "0" : ((float)fontSize.GetValue(title, null)).ToString("0.##", inv))
 		+ ",\"labelAlpha\":" + color.a.ToString("0.###", inv)
+		+ ",\"labelColor\":\"" + color.r.ToString("0.##", inv) + "," + color.g.ToString("0.##", inv) + "," + color.b.ToString("0.##", inv) + "\""
+		+ ",\"labelPos\":\"" + (labelRect == null ? "" : labelRect.anchoredPosition.x.ToString("0.##", inv) + "," + labelRect.anchoredPosition.y.ToString("0.##", inv)) + "\""
 		+ ",\"labelEnabled\":" + (enabledProperty != null && (bool)enabledProperty.GetValue(title, null) ? "true" : "false")
+		+ ",\"labelActive\":" + (activeProperty != null && (bool)activeProperty.GetValue(title, null) ? "true" : "false")
+		+ ",\"font\":" + (fontProperty == null || fontProperty.GetValue(title, null) == null ? "\"<null>\"" : "\"<set>\"")
+		+ ",\"characters\":" + (meshCountProperty == null ? "-1" : ((int)meshCountProperty.GetValue(meshInfo, null)).ToString(inv))
+		+ ",\"culled\":" + (cullProperty == null ? "?" : ((bool)cullProperty.GetValue(canvasRenderer, null) ? "true" : "false"))
 		+ ",\"panelWidth\":" + (panelRect == null ? "0" : panelRect.sizeDelta.x.ToString("0.##", inv))
+		+ ",\"menus\":" + panelCount.ToString(inv)
+		+ ",\"menuWidths\":\"" + menus + "\""
 		+ "}";
 }))()

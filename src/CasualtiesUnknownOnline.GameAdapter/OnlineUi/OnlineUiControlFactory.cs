@@ -180,7 +180,7 @@ internal static class OnlineUiControlFactory
 		var prefab = Resources.Load<GameObject>(ButtonRowPrefabPath);
 		if (prefab is null)
 		{
-			typography = new OnlineUiControlTypography(TMP_Settings.defaultFontAsset, fallbackSize);
+			typography = new OnlineUiControlTypography(TMP_Settings.defaultFontAsset, null, fallbackSize);
 			return;
 		}
 
@@ -190,7 +190,10 @@ internal static class OnlineUiControlFactory
 		var image = probe.GetComponent<Image>();
 		var font = label != null && label.font != null ? label.font : TMP_Settings.defaultFontAsset;
 		var size = label != null && label.fontSize > 0f ? label.fontSize : fallbackSize;
-		typography = new OnlineUiControlTypography(font, size);
+		// The material the game's own label draws with: a programmatic label otherwise takes TMP_Settings' default material, which this
+		// build does not draw — the label is then active, sized, coloured and invisible (the panel title, 2026-10-25).
+		var material = label != null ? label.fontSharedMaterial : null;
+		typography = new OnlineUiControlTypography(font, material, size);
 		if (image != null)
 		{
 			sprite = image.sprite;

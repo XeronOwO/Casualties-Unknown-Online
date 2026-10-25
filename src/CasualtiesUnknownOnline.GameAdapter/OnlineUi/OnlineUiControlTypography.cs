@@ -1,11 +1,12 @@
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using TMPro;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 
 /// <summary>
 /// The game's own typography as this surface reads it off the game's own row prefab: the font its labels are
-/// set in, the size a body label takes, and the ladder the Online UI's own text styles are drawn at
+/// set in, THE MATERIAL THAT FONT IS DRAWN WITH, the size a body label takes, and the ladder the Online UI's own text styles are drawn at
 /// (<see cref="OnlineUiControlFactory.ReadRowTemplate"/> is what reads it).
 ///
 /// <para>
@@ -13,8 +14,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// the one reading — the window, the two panels and the world-space labels — and the factory that reads it
 /// hands the same value to each of them.
 /// </para>
+///
+/// <para>
+/// THE MATERIAL IS PART OF THE TYPOGRAPHY, not an afterthought: a <see cref="TextMeshProUGUI"/> created in code takes
+/// <c>TMP_Settings.defaultFontAsset</c>'s material, which in this build is not the material the game's own labels draw with — the labels are
+/// then present, sized, coloured, active, and INVISIBLE (the panel title read exactly that way on 2026-10-25: text set, font set, alpha 1,
+/// 269x24 rect, nothing on the frame). Reading <c>fontSharedMaterial</c> off the game's own label is what makes a programmatic label draw
+/// like the game's.
+/// </para>
 /// </summary>
-internal readonly record struct OnlineUiControlTypography(TMP_FontAsset? Font, float Size)
+internal readonly record struct OnlineUiControlTypography(TMP_FontAsset? Font, Material? FontMaterial, float Size)
 {
 	/// <summary>The game's own sizes, as the IMGUI theme's four levels expressed them relative to the body
 	/// text.</summary>

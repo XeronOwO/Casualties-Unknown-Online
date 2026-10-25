@@ -62,6 +62,13 @@ internal static class OnlineUiSurfaceParts
 			text.font = typography.Font;
 		}
 
+		// The game's own material, not the TMP default: a label without it is present in every respect and draws nothing (see
+		// OnlineUiControlTypography's own note on the panel title).
+		if (typography.FontMaterial != null)
+		{
+			text.fontSharedMaterial = typography.FontMaterial;
+		}
+
 		return text;
 	}
 

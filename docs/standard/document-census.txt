@@ -420,6 +420,7 @@ docs/design/surfaces/README.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/status-line.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/drag-cue.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/member-menu.md | keep | spec | docs/design/INDEX.md
+docs/design/surfaces/quick-panel.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/medical-panel.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/command-overlay.md | keep | spec | docs/design/INDEX.md
 docs/design/decisions-by-domain.md | keep | spec | docs/design/INDEX.md

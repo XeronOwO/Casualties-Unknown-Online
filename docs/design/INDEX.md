@@ -52,6 +52,7 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `surfaces/status-line.md` | the notice and refusal line |
 | `surfaces/drag-cue.md` | the use circle and its label |
 | `surfaces/member-menu.md` | the menu a teammate opens |
+| `surfaces/quick-panel.md` | the always-available teammate panel and its target |
 | `surfaces/medical-panel.md` | a patient's body on the operator's screen |
 | `surfaces/command-overlay.md` | the console as a surface |
 | `surfaces/online-window.md` | the session's own panel |

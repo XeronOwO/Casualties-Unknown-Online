@@ -31,6 +31,11 @@ rejoined party to find the same world, the same items and the same progress.
   countdown, while "a member's row arrives already in-world, so a member waiting on a third player usually has nothing to name,
   and the host's flag being false covers the menu, loading and 'no report yet' alike" — the wording is built to say no more
   than those facts support.
+- **The gate's panel is a corner strip over the frozen world, never a blackout.** `Plugin/StartGateOverlay.cs`: the waiting text
+  sits "in a translucent panel pinned to the BOTTOM-RIGHT corner (the loading screen's own info slot) over the LIVE frozen
+  world. No full-screen blackout: the gate freezes the world behind it and the panel keeps the wait readable without turning the
+  wait into 'a black screen' (the original black-texture attempt)" — and it is drawn at the point in the frame the HUD would
+  have been drawn, "with the start gate holding the HUD back".
 - State that is in flight at a cut is classified per class — captured, resolved before the save, or dropped — and never
   silently kept or silently lost.
 - **Presence is keyed by the account, and three one-shot messages converge on a repeat.**

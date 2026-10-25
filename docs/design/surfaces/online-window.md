@@ -13,6 +13,10 @@ The player expects the window to show the session as it is, and the controls it 
 A CUO panel drawn on the game's canvas, built from one action table per frame, with one page visible at a time. Its pages
 are the session's own facts, not the world's.
 
+**The pages are a closed list, six of them.** `Plugin/OnlineUiPage.cs` declares `Home`, `Players`, `Network`, `Admin`, `Worlds`
+("the world library: the worlds on disk, their backups, and the restore (decision 198)") and `Preferences` — so a page that is
+not one of those six is a different surface, not a new tab.
+
 ## Rules and states
 
 - The window has no page for the console: the command surface is its own overlay, and the window does not duplicate it.

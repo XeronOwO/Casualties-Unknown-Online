@@ -51,7 +51,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | unread |
 | `CasualtiesUnknownOnline.PinyinSearch.Core/Search` | 6 | unread |
 | `CasualtiesUnknownOnline.PinyinSearch/Patches` | 2 | unread |
-| `CasualtiesUnknownOnline.Plugin` | 43 | unread |
+| `CasualtiesUnknownOnline.Plugin` | 43 | read |
 | `CasualtiesUnknownOnline.Protocol/Codecs` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Versioning` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Wire` | 55 | read |

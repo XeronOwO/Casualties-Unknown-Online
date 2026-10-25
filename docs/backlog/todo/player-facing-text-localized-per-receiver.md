@@ -31,12 +31,11 @@ The REFUSAL family is done end to end, and it was the case the user reported:
 
 ## What remains
 
-- **The other two answer paths.** `/heal` now carries parts (`6d9b7732`). `/give` and `/summon` use the same shape
-  (`PlayerInventoryGiveResultMsg`, `WorldSummonResultMsg`) and need the same field plus their own keys; until then their answers
-  fall back to the host's text, which is the deliberate degradation the console service implements.
-  **The vocabulary, so the next cycle does not re-derive it:** `/give` answers "Created {definition} (id {instance}) for {player}
-  in slot {slot}." / "…dropped at that player's position because nothing accepted it." / the transfer refusals; `/summon` answers
-  "Summoned {prefab} at ({x}, {y})." plus the same refusal family the summon service already names.
+- **The REFUSAL reasons of `/give` and `/summon`.** Their success answers travel as parts now (`1a12bcd5`), and so does every
+  `/heal` answer; a refusal on those two verbs still crosses as the host's sentence, because its reasons are a closed set the
+  give/summon services name one by one (unknown definition, state bound, cheat rules, destination, the layer stamp) and converting
+  them is the same job the item-use refusals already went through. Until then the console prints the host's text — the deliberate
+  degradation, not a silent gap.
 - **`/gamerule`'s answer** is a list of setting names and values and takes the same parts shape.
 - **The scan in acceptance row 2** (no run of the other language's words in any catalogue) is a gate to write once the remaining
   families are keyed, so it does not fail on text this ticket has not converted yet.

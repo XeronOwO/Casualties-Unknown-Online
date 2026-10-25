@@ -34,25 +34,43 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts, out FavouriteFrameState __state)
 	{
 		__state = SnapshotFavourites(uiCasts);
-		if (!RemoteBackpackView.IsOpen || RemoteBackpackView.FocusedBody is not { } focused)
+
+		// The CLOSING ring keeps its anchor for its own shrink animation: the game animates `radialMenu` down over a few frames and re-anchors it to the
+		// LOCAL body as soon as nothing holds it, so a remote view that stopped anchoring on close teleported the ring from the teammate to the player and
+		// then shrank it there (user's report, 2026-10-25: "closing the other player's backpack makes the ring jump to me before it closes").
+		if (RemoteBackpackView.IsOpen && RemoteBackpackView.FocusedBody is { } focused)
 		{
-			if (__instance.radialOpen)
+			if (Camera.main == null) // Unity object — ==
 			{
-				__instance.radialCircle.enabled = true;
+				// The native body dereferences the main camera (PlayerCamera.cs:1774);
+				// a frame without one cannot run it.
+				return false;
+			}
+
+			__state.BracketOpened = OpenWhileDraggingWindow(__instance);
+			AnchorRadialToTheFocusedClone(__instance, focused);
+			return true;
+		}
+
+		if (RemoteBackpackView.ClosingBody is { } closing)
+		{
+			AnchorRadialToTheFocusedClone(__instance, closing);
+
+			// The shrink is finished once the ring has reached its closed scale: from that point the game owns the anchor again, and the flag is cleared
+			// WITHOUT a clock (the view is also exercised by unit tests, where any Unity call throws).
+			if (__instance.radialMenu != null && __instance.radialMenu.localScale.x <= PlayerCamera.inventoryUseLeniency * 0.5f) // Unity object — ==
+			{
+				RemoteBackpackView.EndCloseAnchor();
 			}
 
 			return true;
 		}
 
-		if (Camera.main == null) // Unity object — ==
+		if (__instance.radialOpen)
 		{
-			// The native body dereferences the main camera (PlayerCamera.cs:1774);
-			// a frame without one cannot run it.
-			return false;
+			__instance.radialCircle.enabled = true;
 		}
 
-		__state.BracketOpened = OpenWhileDraggingWindow(__instance);
-		AnchorRadialToTheFocusedClone(__instance, focused);
 		return true;
 	}
 

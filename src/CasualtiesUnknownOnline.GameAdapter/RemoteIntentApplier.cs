@@ -366,6 +366,17 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 	/// </summary>
 	private void ApplyPickUpToSlot(Body body, Item item, int targetSlot)
 	{
+		// The receiver's half of the giver's release must make the SAME noise as the native slot-to-slot move, which is none of its own: `Body.PickUpItem`
+		// plays `PlayBackpackSound` only when the item's parent is a container (`Body.cs:1393-1397`), and a native slot move has no container parent. An
+		// item that arrives through CUO still hangs inside whatever temporary container materialized it, so the native call played the cloth sound for a
+		// cross-player give — the user's report, 2026-10-25: "the give adds the container sound; only the slot-placement click should be there".
+		// Detaching first is the native ORDER (`UnloadItem` then place) and `Container.UnloadItem` plays nothing, so the receiver is silent and the
+		// giver's own release keeps its click.
+		if (item.TryGetParentContainer(out var parentContainer))
+		{
+			parentContainer.UnloadItem(item, null);
+		}
+
 		// A WORLD item (the ground hand-over) is not held and no slot is emptied for it: the game's own pickup decides, with its own guards, its own
 		// sound and its own puff. Running the slot-release plan here would drop an occupant the player never aimed at, which is the invented-destination
 		// defect the ticket names, so the world case is answered by name instead.

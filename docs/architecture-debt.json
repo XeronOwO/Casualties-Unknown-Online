@@ -41,6 +41,12 @@
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The give's answer-first custody added the exact-destination rung (ExactDestinationSlot and the two sentences that name a destination the receiver's answer lost), which took the class past 600; the return half was moved out again into GivenItemReturnService, so this is the forward custody alone. The split this owes is the destination resolution (this class's slot/container/slot-substitution rules and the ladder's candidate ordering) into their own object, the shape LocalBodyPlacement already gives the adapter side; the custody core, the kernel bookkeeping and the transfer publication stay here. Recorded rather than split in this change because the acceptance rows must run against the same class the earlier batches read."
   },
+  "CasualtiesUnknownOnline.GameAdapter.RemoteIntentApplier": {
+    "Lines": 609,
+    "BoolFlags": 0,
+    "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
+    "Note": "The receiver half of the remote intents: one method per intent kind, each replaying the game own call on the owner real objects. It crossed 600 with the ground hand-over (a world item resolved through the scene and placed by the receiver own native pickup) and with the detach-before-place step that keeps a cross-player give from playing the container sound the native slot move never plays. The split this owes is one applier per intent family (drop/container, slot, use/wear, battery/trader) behind the same dispatch, the shape RemoteIntentSlotRelease already gives one shared sub-rule."
+  },
   "CasualtiesUnknownOnline.GameAdapter.IPatchBridge": {
     "Lines": 608,
     "BoolFlags": 0,

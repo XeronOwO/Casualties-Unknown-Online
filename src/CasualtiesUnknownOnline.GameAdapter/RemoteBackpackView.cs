@@ -14,6 +14,10 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal static class RemoteBackpackView
 {
 	private static Body? _focusedBody; // Unity object — ==
+	private static Body? _closingBody; // Unity object — ==; the ring's anchor while its close animation runs
+
+	/// <summary>How long the ring's own shrink animation is held at the teammate before the game may re-anchor it to the local body.</summary>
+	private const float CloseAnchorSeconds = 0.4f;
 	private static ulong _focusedSteamId;
 	private static string _focusedName = "";
 	private static Vector2 _smoothPosition;
@@ -104,6 +108,16 @@ internal static class RemoteBackpackView
 		PlayerCamera.main.radialOpen = true;
 	}
 
+	/// <summary>
+	/// The body the ring must stay anchored to while it CLOSES. The game shrinks `radialMenu` over a few frames after `radialOpen` goes false and
+	/// re-anchors it to the LOCAL body as soon as nothing holds it, so a remote view that stopped anchoring on close teleported the ring from the
+	/// teammate to the player and shrank it there (user's report, 2026-10-25). The anchor keeps the last focused body for the shrink's duration.
+	/// </summary>
+	internal static Body? ClosingBody => _focusedBody == null ? _closingBody : null;
+
+	/// <summary>The ring has finished shrinking: the game may own its anchor again.</summary>
+	internal static void EndCloseAnchor() => _closingBody = null;
+
 	internal static void Close()
 	{
 		// Without any remote focus this is a no-op. This method is also called
@@ -116,6 +130,8 @@ internal static class RemoteBackpackView
 			return;
 		}
 
+		var closing = _focusedBody;
+
 		// A display-proxy drag may outlive the focused view (the user closed the
 		// backpack while holding an item). It is NOT cancelled here: the drag can
 		// legally continue into the Tab-switch transfer path (close remote view,
@@ -125,6 +141,7 @@ internal static class RemoteBackpackView
 		_focusedBody = null;
 		_focusedSteamId = 0;
 		_focusedName = "";
+		_closingBody = closing;
 		_openContainerInstanceId = 0;
 		_containerRefreshPending = false;
 		_containerRefreshDueFrame = -1;

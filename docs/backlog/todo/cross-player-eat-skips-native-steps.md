@@ -48,6 +48,30 @@ The corrected design this ticket exists to argue: the give puts the item into th
 container/pickup path (so the item IS the eater's carried item), and the eat then runs `Body.UseItem` on that carried item — with no
 standing object standing in for it. That is what "reproduce the native flow" means here, and it is the shape the rows below judge.
 
+## Run sheet (cycle 2026-10-25)
+
+- [ ] **1. Read the native local eat of a closed stone fruit.** In `reversing/Assembly-CSharp`, find what the game runs when the player
+  eats `stonefruitclosed`: the peel step's own function, the state it writes, and the condition under which `Body.UseItem` refuses or
+  transforms the item. Evidence: the function names quoted with their file and line (the reversing tree is stable). Done when the
+  native order (peel → eat) is written down as a sequence of calls.
+- [ ] **2. Read what the cross-player path calls for the same item.** `NativeSolidFoodEat.Apply` hands `Body.UseItem` the item resolved
+  from `StandingMaterializer`. Evidence: whether that object is the eater's carried item or a materialised stand-in, and what
+  `Body.UseItem`'s own guards read (the hand, `carried`, the item's parent). Done when the difference from step 1 is named as a call
+  the native flow makes and this one does not.
+- [ ] **3. Read the give side's landing place.** Where the item given into another player's backpack actually lands on the target's
+  client (a carried slot, a container, a standing object), and whether the target's inventory reports it as its own carried item.
+  Evidence: the container/pickup call the give maps to.
+- [ ] **4. Decide the corrected shape and write it in the ticket** — the give must land in the eater's own inventory through the game's
+  own container path, and the eat must run `Body.UseItem` on the carried item.
+- [ ] **5. Implement + red test.** A test that pins the corrected shape (the eat of a closed fruit is refused or peels first; the item's
+  condition agrees on both clients), red before the change.
+- [ ] **6. Runtime verification with frames and both clients**: give, then eat, reading the owner's and the operator's item state, the
+  peel step's presence, and a frame at the eating moment.
+
+Failure branch: if step 2 shows the standing object IS the eater's carried item, the ticket's premise is wrong and it closes with that
+reading instead of a code change; if step 3 shows the give cannot land in a carried slot for a remote body, the ticket records that
+capability gap and stops at the design.
+
 ## Acceptance rows
 
 | Row | The check |

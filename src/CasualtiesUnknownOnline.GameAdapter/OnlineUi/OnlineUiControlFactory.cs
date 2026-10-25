@@ -160,10 +160,20 @@ internal static class OnlineUiControlFactory
 		built.UsedPrefab ? ChildText(built.Root.transform, 0) : built.Root.GetComponent<TextMeshProUGUI>();
 
 	/// <summary>
-	/// Reads what the game's own row prefab carries — the font and size of its label, and the sprite, type
-	/// and pixels-per-unit multiplier of its background — so a surface's chrome (the window's frame, a
-	/// panel's) and every label on it are the game's rather than a guess. The template instance is
-	/// destroyed in the same call: it exists to be read.
+	/// The game's own label object, cloned once per session and kept as the template every programmatic label is cloned FROM. It exists
+	/// because a <see cref="TextMeshProUGUI"/> built with <c>new GameObject</c> is present in every respect a probe can ask — text set, sized,
+	/// coloured, active, the game's own font AND material — and parses its string into ZERO glyphs (the panel title, 2026-10-25:
+	/// <c>textInfo.characterCount == 0</c> before and after a forced reparse), while the game's own prefab label draws the same CJK. Cloning
+	/// that label is what makes the text appear.
+	/// </summary>
+	private static GameObject? _labelTemplate;
+
+	internal static GameObject? LabelTemplate => _labelTemplate;
+
+	/// <summary>
+	/// Reads what the game's own row prefab carries — the font and size of its label, the label OBJECT itself (see
+	/// <see cref="_labelTemplate"/>), and the sprite, type and pixels-per-unit multiplier of its background — so a surface's chrome (the
+	/// window's frame, a panel's) and every label on it are the game's rather than a guess.
 	/// </summary>
 	internal static void ReadRowTemplate(
 		Transform parent,
@@ -180,7 +190,7 @@ internal static class OnlineUiControlFactory
 		var prefab = Resources.Load<GameObject>(ButtonRowPrefabPath);
 		if (prefab is null)
 		{
-			typography = new OnlineUiControlTypography(TMP_Settings.defaultFontAsset, null, fallbackSize);
+			typography = new OnlineUiControlTypography(TMP_Settings.defaultFontAsset, null, null, fallbackSize);
 			return;
 		}
 
@@ -191,9 +201,20 @@ internal static class OnlineUiControlFactory
 		var font = label != null && label.font != null ? label.font : TMP_Settings.defaultFontAsset;
 		var size = label != null && label.fontSize > 0f ? label.fontSize : fallbackSize;
 		// The material the game's own label draws with: a programmatic label otherwise takes TMP_Settings' default material, which this
-		// build does not draw — the label is then active, sized, coloured and invisible (the panel title, 2026-10-25).
+		// build does not draw.
 		var material = label != null ? label.fontSharedMaterial : null;
-		typography = new OnlineUiControlTypography(font, material, size);
+		if (_labelTemplate == null && label != null)
+		{
+			// Cloned BEFORE the probe is destroyed, detached from it and kept for the session: this is the object every programmatic
+			// label is instantiated from, so the text actually renders.
+			_labelTemplate = Object.Instantiate(label.gameObject);
+			_labelTemplate.name = "CUO Online UI Label Template";
+			_labelTemplate.transform.SetParent(null, worldPositionStays: false);
+			_labelTemplate.SetActive(false);
+			Object.DontDestroyOnLoad(_labelTemplate);
+		}
+
+		typography = new OnlineUiControlTypography(font, material, _labelTemplate, size);
 		if (image != null)
 		{
 			sprite = image.sprite;

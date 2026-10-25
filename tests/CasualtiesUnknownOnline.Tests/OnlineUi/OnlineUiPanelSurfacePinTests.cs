@@ -289,9 +289,10 @@ public sealed class OnlineUiPanelSurfacePinTests
 		var factory = Flatten(controlFactorySource);
 		var typography = Flatten(typographySource);
 
-		return typography.Contains("OnlineUiControlTypography(TMP_FontAsset? Font, Material? FontMaterial, float Size)", StringComparison.Ordinal)
-			&& factory.Contains("var material = label != null ? label.fontSharedMaterial : null;", StringComparison.Ordinal)
-			&& factory.Contains("typography = new OnlineUiControlTypography(font, material, size);", StringComparison.Ordinal)
+		return typography.Contains("OnlineUiControlTypography(TMP_FontAsset? Font, Material? FontMaterial, GameObject? LabelTemplate, float Size)", StringComparison.Ordinal)
+			&& factory.Contains("_labelTemplate = Object.Instantiate(label.gameObject);", StringComparison.Ordinal)
+			&& factory.Contains("typography = new OnlineUiControlTypography(font, material, _labelTemplate, size);", StringComparison.Ordinal)
+			&& parts.Contains("? Object.Instantiate(typography.LabelTemplate, parent)", StringComparison.Ordinal)
 			&& parts.Contains("text.fontSharedMaterial = typography.FontMaterial;", StringComparison.Ordinal);
 	}
 

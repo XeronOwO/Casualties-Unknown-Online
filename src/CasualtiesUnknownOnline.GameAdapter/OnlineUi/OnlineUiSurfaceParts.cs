@@ -2,6 +2,8 @@ using System;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 
@@ -51,9 +53,30 @@ internal static class OnlineUiSurfaceParts
 		OnlineUiControlTypography typography,
 		OnlineUiTextStyle style)
 	{
-		var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)) { layer = UiLayer };
+		// The game's own label OBJECT when the surface has one: a TMP built with `new GameObject` parses its string into zero glyphs in this
+		// build (see OnlineUiControlTypography's note), while the game's own label draws. The clone is stripped of the row's layout pieces so
+		// the label only obeys the layout its new parent gives it.
+		var go = typography.LabelTemplate != null
+			? Object.Instantiate(typography.LabelTemplate, parent)
+			: new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+		go.name = name;
+		go.layer = UiLayer;
+		var layoutElement = go.GetComponent<LayoutElement>();
+		if (layoutElement != null)
+		{
+			Object.Destroy(layoutElement);
+		}
+
+		var fitter = go.GetComponent<ContentSizeFitter>();
+		if (fitter != null)
+		{
+			Object.Destroy(fitter);
+		}
+
+		go.SetActive(true);
 		go.transform.SetParent(parent, worldPositionStays: false);
 		var text = go.GetComponent<TextMeshProUGUI>();
+		text.text = "";
 		text.fontSize = typography.SizeOf(style);
 		text.fontStyle = OnlineUiControlTypography.WeightOf(style);
 		text.raycastTarget = false;
@@ -62,8 +85,7 @@ internal static class OnlineUiSurfaceParts
 			text.font = typography.Font;
 		}
 
-		// The game's own material, not the TMP default: a label without it is present in every respect and draws nothing (see
-		// OnlineUiControlTypography's own note on the panel title).
+		// The game's own material, not the TMP default.
 		if (typography.FontMaterial != null)
 		{
 			text.fontSharedMaterial = typography.FontMaterial;

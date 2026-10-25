@@ -23,7 +23,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 /// like the game's.
 /// </para>
 /// </summary>
-internal readonly record struct OnlineUiControlTypography(TMP_FontAsset? Font, Material? FontMaterial, float Size)
+internal readonly record struct OnlineUiControlTypography(TMP_FontAsset? Font, Material? FontMaterial, GameObject? LabelTemplate, float Size)
 {
 	/// <summary>The game's own sizes, as the IMGUI theme's four levels expressed them relative to the body
 	/// text.</summary>

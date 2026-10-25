@@ -27,6 +27,8 @@ There is no native CPR: the accepted record states that "Native `Assembly-CSharp
 
 ## Rules and states
 
+- **The control has three states and appears only in arrest.** `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/CprButtonPolicy.cs` decides `Hidden` / `Start` / `Compress`: hidden with no remote focus, `Compress` when this client already runs a CPR operation on that body, and `Start` only when the patient is in arrest (`Body.inCardiacArrest`, `heartRate < 20`). The compression interval the client sends is never zero — the policy floors it at `0.01` s ("the update refuses a non-positive in…").
+
 - The operator's own body is asked FIRST: a strength and intelligence gate decides whether they may compress at all, and a
   press they cannot make is refused on their own client before anything leaves it.
 - Each press costs stamina; the hand's own force scales the push, so a stronger operator pushes harder.

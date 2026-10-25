@@ -14,6 +14,8 @@ a refusal line (something did not).
 
 ## Rules and states
 
+- **The deny sound is the game's own, and only on a refusal.** The code states the pairing: the operator's refused cross-player use gets "the game's own deny sound beside it — the cue the user asked for (2026-10-24: the label plus the deny sound, and NO extra success sound, because the drag already has the game's own cloth rustle)", wired at `GameAdapterSessionBinding` (`UseRefused` → `OnPlayerItemUseRefused`).
+
 - Every refusal reaches the player: a gesture never silently does nothing. The accepted reading of the family is explicit — the actor's own client printed the refusal "for a denied open and nothing at all for an accepted one, with no host-side traffic", which is what "both answering sites" means: the host answers the remote case, the local surface answers the local one, and an accepted action gets no line.
 - A refusal's sentence is one key plus its values, rendered by the reading client in its own language; the frame and the
   reason are both localized, and the reason is never another language's prose.

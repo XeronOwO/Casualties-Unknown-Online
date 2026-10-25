@@ -63,6 +63,12 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 |---|---|
 | `decisions-by-domain.md` | the decision numbers grouped by the area a reader arrives from |
 
+## The audit
+
+| Page | Holds |
+|---|---|
+| `audit/README.md` | every ticket against the code and the corpus, one row each |
+
 ## Related reading
 
 - `AGENTS.md` — the rules, the page template and the reading order.

@@ -449,3 +449,16 @@ The name the overlay draws is the member list's own: `PluginHost.DrawDragUseCue`
 `_onlineUi.DisplayName(cue.TargetSteamId)`, and the probe's own fallback shows the id (`对76561198863287957使用`) because that
 method lives on the plugin host, which the probe cannot reach through the service container. Row 1's substance — a cue that names
 the teammate the release would act on, and only while the pointer is on the use centre — is therefore read.
+
+**Batch `20261025-ax` — the cue half is solid; the RELEASE on the centre did not perform the use.** In a fresh session (lobby
+`109775242194136845`, all three in world) the gesture was run again end to end: the ring opened with `fentanyl` on slot 0, the real
+right button started the drag (`dragItem=fentanyl, rightHeld=True`), Escape closed the ring (`radial=False`) without dropping the
+item, and moving onto the other members auto-opened a backpack (`backpack=True`) whose focus was the ALT
+(`target=76561199526807662` — the two members stood together, so the selection named the one that entered range last, which is the
+rule). The cue showed for that target, the pointer was moved onto the ring centre, and `showing=True` held.
+
+Then the release: `rup` on the centre left **`showing=False`** (the cue does not outlive the gesture) but the **`fentanyl` was still
+on slot 0** and the target's limb read `pain=0, skin=100` before and after — the item did not leave the operator's hand and no use
+applied. So the next question is the release's own bracket: `PlayerCameraDragUsePatch` prefixes `HandleReleaseDragging`, decides
+`GiveGestureMode.DisplayedBackpack`, and hands the captured calls to the bridge — one of those steps refused, and the instrument
+that will say which is a probe that reports the mode and the centre test at the release frame itself.

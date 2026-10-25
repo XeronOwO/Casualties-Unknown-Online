@@ -169,6 +169,17 @@ internal sealed class PlayerRemoteInventoryIntentService(
 		// live scene anyway.
 		if (!TryFindItem(source.Items, msg.ItemInstanceId, out var original))
 		{
+			// A GROUND item is the one case where the sender legitimately does not carry what it names: the player dragged a world item onto the
+			// teammate, and the item's custody row is `World`. The hand-over stays ONE move — the receiving player's own client picks up the world
+			// object it already holds (a synced world item exists on every client), which runs the game's native pickup with its own guards and its
+			// own sound. That is the rule decision 270 already set: the affected player's client runs the native call. No intermediate slot, no item
+			// payload on the wire, and the row moves once (World → Carried(receiver)) from the receiver's own pickup report.
+			if (msg.Kind == RemoteInventoryIntentKind.GiveToBody && _take.IsWorldItem(msg.ItemInstanceId))
+			{
+				ForwardWorldPickupToDestination(msg);
+				return;
+			}
+
 			Refuse(msg, requester, $"{owner} has no item instance {msg.ItemInstanceId}.");
 			return;
 		}
@@ -437,6 +448,31 @@ internal sealed class PlayerRemoteInventoryIntentService(
 				refusal = $"unknown intent kind {msg.Kind}.";
 				return false;
 		}
+	}
+
+	/// <summary>
+	/// Host only: a ground item's hand-over reaches the player who is meant to receive it, as a <c>PickUpToSlot</c> aimed at the slot the giver
+	/// released over. That client already holds a synced copy of the world item, so it runs the game's own pickup — the native guards, the pickup's
+	/// sound and its puff — and its pickup report is what moves the custody row out of the world. Nothing is materialized here and no slot inside the
+	/// giver's body is invented.
+	/// </summary>
+	private void ForwardWorldPickupToDestination(RemoteInventoryIntentMsg msg)
+	{
+		var destination = msg.TargetBodySteamId;
+		var pickup = new RemoteInventoryIntentMsg
+		{
+			Kind = RemoteInventoryIntentKind.PickUpToSlot,
+			OwnerSteamId = destination,
+			ItemInstanceId = msg.ItemInstanceId,
+			TargetSlotIndex = msg.TargetSlotIndex,
+			TargetContainerInstanceId = msg.TargetContainerInstanceId,
+			TargetBodySteamId = destination,
+		};
+
+		// The host IS the receiver: `Forward` fires the applier on this machine instead of the wire.
+		Forward(destination, pickup);
+		_log.LogInformation("[RemoteIntent] ground hand-over: sent PickUpToSlot for item {Item} to {Destination} (slot {Slot}) — the receiver picks the world item up itself.",
+			msg.ItemInstanceId, destination, msg.TargetSlotIndex);
 	}
 
 	private static bool TryFindItem(List<CharacterItemMsg> items, ulong instanceId, out CharacterItemMsg found)

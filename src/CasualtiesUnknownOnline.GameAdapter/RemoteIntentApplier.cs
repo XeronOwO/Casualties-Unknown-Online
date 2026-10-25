@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -57,9 +58,23 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 		}
 
 		var item = CarriedItemLocator.FindById(body, msg.ItemInstanceId);
+
+		// A ground item is not in any body — that is the point of the one-move hand-over: the receiving player's client picks up the WORLD object it
+		// already holds, so the game's own pickup runs here with its own guards, sound and puff. Resolving it through the scene (the same lookup
+		// `ItemApplication` uses to apply a world row) keeps this applier's rule intact: it acts on a real object, never on a stand-in.
+		if (item == null && msg.Kind == RemoteInventoryIntentKind.PickUpToSlot) // Unity objects — ==
+		{
+			item = ItemApplication.FindWorldItem(msg.ItemInstanceId);
+			if (item != null) // Unity object — ==
+			{
+				_log.LogInformation("[RemoteIntent] PickUpToSlot resolved item {Item} from the WORLD (the giver's hand-over); the local body picks it up itself.",
+					msg.ItemInstanceId);
+			}
+		}
+
 		if (item == null) // Unity object — ==
 		{
-			_log.LogWarning("[RemoteIntent] {Kind} refused: item {Item} is not carried by the local body.",
+			_log.LogWarning("[RemoteIntent] {Kind} refused: item {Item} is not carried by the local body and is not a world item.",
 				msg.Kind, msg.ItemInstanceId);
 			return;
 		}
@@ -351,6 +366,27 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 	/// </summary>
 	private void ApplyPickUpToSlot(Body body, Item item, int targetSlot)
 	{
+		// A WORLD item (the ground hand-over) is not held and no slot is emptied for it: the game's own pickup decides, with its own guards, its own
+		// sound and its own puff. Running the slot-release plan here would drop an occupant the player never aimed at, which is the invented-destination
+		// defect the ticket names, so the world case is answered by name instead.
+		if (body.SlotOf(item) < 0)
+		{
+			if (targetSlot < 0 || targetSlot >= body.slots.Length)
+			{
+				_log.LogWarning("[RemoteIntent] hand-over refused: slot {Slot} is outside the local body ({Slots} slots).", targetSlot, body.slots.Length);
+				return;
+			}
+
+			body.PickUpItem(item, targetSlot, false);
+			if (body.GetItem(targetSlot) != item) // Unity objects — ==
+			{
+				_log.LogWarning("[RemoteIntent] hand-over refused by the game's own pickup: item {Item} did not go into slot {Slot} (the destination cannot take it).",
+					item.GetInstanceID(), targetSlot);
+			}
+
+			return;
+		}
+
 		var steps = RemoteIntentSlotRelease.Plan(body.slots.Length, targetSlot, body.HoldingItem(item), body.HoldingItem(targetSlot));
 		if (steps.Count == 0)
 		{

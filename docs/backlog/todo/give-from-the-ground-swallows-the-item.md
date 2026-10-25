@@ -99,6 +99,24 @@ transfer learns to name a WORLD item as its source (a protocol shape: the host m
 receiver's custody — the same custody change a pickup-then-give performs, in one command). The second is the smaller wire and the exact
 analogue of the native release that loads a dragged world item into a container; it is the shape to design first.
 
+## Built 2026-10-25 (`.acceptance/batch-groundgive2`): the receiver's own native pickup
+
+The three steps above are implemented and deployed:
+
+1. `PlayerRemoteInventoryIntentService` — when the sender does not carry the named item AND the kernel row is `World`
+   (`PlayerCustodyRows.IsInWorld` via `PlayerInventoryTakeService.IsWorldItem` → `ItemKernelAuthority.IsWorldItem`), the give becomes
+   `ForwardWorldPickupToDestination`: a `PickUpToSlot` aimed at `TargetBodySteamId` with the slot the release named, sent with `Forward` so the
+   host-as-receiver case runs the applier locally. The old refusal is gone from that path.
+2. `RemoteIntentApplier` resolves a `PickUpToSlot` item that is not in the body through `ItemApplication.FindWorldItem` (the same scene lookup the
+   world-row applier uses) and `ApplyPickUpToSlot` handles the world case by calling `body.PickUpItem(item, targetSlot, false)` and verifying the
+   slot — NO slot-release plan runs, so no occupant is dropped for a destination the player did not choose. A destination that refuses the item is
+   answered by name.
+3. `RemoteDragIntentDispatcher.CarryForGive` no longer refuses a world item: the gesture names it and the host decides the native call.
+
+What is NOT claimed: no machine run has exercised it yet. The batch that follows this deploy is judged by three log lines — the host's
+`ground hand-over: sent PickUpToSlot for item …`, the receiver's `PickUpToSlot resolved item … from the WORLD`, and the receiver's pickup report — and
+by the item existing exactly once, in the receiver's inventory, with the giver's world object gone.
+
 ## Acceptance rows
 
 | Row | The check | State |

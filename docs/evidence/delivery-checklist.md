@@ -47,4 +47,35 @@ the gesture opens what it needs from the act itself.
 
 **Cycle-reset rule (added 2026-10-25, the user's finding)**: this file is the CURRENT cycle's record, and
 a cycle that never resets it inherits the previous cycle's green boxes — the script only asks whether a
-required box is u
+required box is unchecked, so a stale fully-ticked checklist certifies every later commit without a
+record of its own. The defect was found on the machine: a whole session of commits ran against the
+2026-10-24 drink cycle's eleven checked boxes, and nothing in the tree said so. So: **the first action of
+a cycle, before its first commit, is the deliberate reset of every box to `[ ]`** (the one multi-line
+edit the operating rule allows, and the reset clears the evidence with the checkmark), and every box then
+carries evidence naming THIS cycle — a commit, a path under `.acceptance/`, or a measured reading produced
+by it. A box whose evidence names another cycle is not filled.
+
+- [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
+      (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
+      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
+- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
+      remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
+      edit, and no forbidden shape is used to fit a mechanism
+- [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
+      players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
+      with every difference either fixed or named as a user decision
+- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
+- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+- [ ] Self-check table: mechanism x change x evidence, every cell filled
+- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+- [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
+- [ ] Build + dotnet format + dotnet test normative gates pass
+- [ ] Release-cycle deployment/acceptance: run by the agent after the commit
+      (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
+      development commit gate; simulation/static evidence is the feature development
+      verification standard.
+- [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
+      (a honey-pot: a checked box means a step was skipped on purpose, which is
+      exactly what the gate exists to catch)

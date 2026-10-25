@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
-using UnityEngine;
 
 using CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -56,15 +55,11 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 			return true;
 		}
 
-		// A WORLD item is refused, and the reason is the user's ruling rather than a limitation. A pickup into "the first free slot" is not the
-		// gesture's destination — it is an arbitrary place the player did not choose, and the machine showed both halves of why that is wrong: the
-		// item was swallowed by the cross of the pickup report and the give request, and once the give was refused the item stayed in the giver's body
-		// at that arbitrary slot ("the items ended up in the host's backpack, in completely wrong positions", 2026-10-25). The hand-over of a world
-		// item is ONE move to the aimed destination; until it is implemented (ticket give-from-the-ground-swallows-the-item) the gesture is refused
-		// by name.
-		domains.Log.LogInformation("[RemoteIntent] refused the release of the ground item {Item} (id {ItemId}) onto the displayed backpack: a world item's hand-over travels straight to the aimed slot, which is not implemented yet (ticket give-from-the-ground-swallows-the-item).",
-			dragItem != null ? dragItem.name : "null", itemId);
-		return false;
+		// A WORLD item is a legal hand-over, and this method no longer refuses it: the gesture names the item and the destination it was released over,
+		// the HOST answers "the item is lying in the world" and forwards a PickUpToSlot to the receiving player, whose own client runs the game's native
+		// pickup on the synced world object it already holds. One move, no intermediate slot inside this body, no payload on the wire — the design the
+		// user froze on 2026-10-25 ("a drag has a destination").
+		return dragItem != null; // Unity object — ==
 	}
 
 	/// <summary>

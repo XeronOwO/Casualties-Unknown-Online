@@ -15,4 +15,12 @@ internal static class ItemCustodyRows
 		rows.TryGetValue(itemId, out var row)
 		&& row.Location.Kind == ItemLocationKind.Carried
 		&& row.Location.Owner.Value == steamId;
+
+	/// <summary>
+	/// Whether the authority's row says this item is lying in the world — the fact a ground-item hand-over turns on. The sender does not carry such an
+	/// item, so the give's ownership check cannot find it in that player's snapshot; the row is where the item really is, and it is the receiver's own
+	/// native pickup that moves it.
+	/// </summary>
+	internal static bool IsInWorld(IReadOnlyDictionary<ulong, ItemState> rows, ulong itemId) =>
+		rows.TryGetValue(itemId, out var row) && row.Location.Kind == ItemLocationKind.World;
 }

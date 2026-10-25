@@ -212,6 +212,10 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	public bool OwnsCarriedItem(ulong steamId, ulong itemId) =>
 		ItemCustodyRows.OwnsCarried(_kernel.QueryItems(), steamId, itemId);
 
+	/// <summary>Whether the authority's row says this item is lying in the world (the ground hand-over's premise).</summary>
+	public bool IsWorldItem(ulong itemId) =>
+		ItemCustodyRows.IsInWorld(_kernel.QueryItems(), itemId);
+
 	public bool TryDrop(ulong actor, ulong itemId, ItemLocation newLocation, CharacterItemMsg? item, out CommittedBatch? batch, out Rejection? rejection)
 	{
 		var current = _kernel.FindItem(itemId);

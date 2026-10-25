@@ -570,6 +570,9 @@ internal sealed class PlayerInventoryTakeService(
 		}
 	}
 
+	/// <summary>Whether the authority's row says this item lies in the world — the ground hand-over's premise (its sender does not carry it).</summary>
+	internal bool IsWorldItem(ulong instanceId) => _kernelAuthority.IsWorldItem(instanceId);
+
 	/// <summary>
 	/// Remove one carried item from a character snapshot's item tree. Container
 	/// contents are recursive, so the cross-player take operation must be able

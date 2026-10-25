@@ -159,7 +159,15 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 134 | `done/mod-content-ceiling.md` | yes — every stage was cut and landed ("Drained 2026-10-18") | n/a | `out of corpus scope` | platform record for open-ended content customisation; the same reader |
 | 135 | `done/mod-content-fingerprint.md` | yes — content carries a fingerprint for identity | n/a | `out of corpus scope` | mod content identity; the same reader |
 | 136 | `done/mod-content-kind-with-no-provider.md` | yes — a kind with no provider is refused rather than half-served | n/a | `out of corpus scope` | mod content registration edge; the same reader |
-| … | the remaining 113 `done/` tickets, then `review/` (36) and `todo/` (12) | | | | |
+| 137 | `done/mod-content-nested-member-contracts.md` | yes — nested member contracts are typed | n/a | `out of corpus scope` | mod content contract shape; reader: the mod API reference |
+| 138 | `done/mod-content-typed-registration.md` | yes — registration is typed | n/a | `out of corpus scope` | the first half of the typed-registration ruling; the same reader |
+| 139 | `done/mod-crafting-quality-labels.md` | yes — the labels are a content surface with a load-time check | n/a | `out of corpus scope` | ticket: "Crafting-quality labels: the item surface and the load-time reference check", all rows judged by this repository's own suite because they are load-time and client-local; a mod content surface, documented by the reference |
+| 140 | `done/mod-cross-player-solid-food-semantics.md` | yes — the family is decided from the game's own data | `items/food.md` | `corpus page` | ticket: "Cross-player solid food from the game's own data", fifteen rows accepted in `20261011-i` with row 5's visual half re-worded because a frame cannot carry it at a parked spot; the food page now states where the family comes from |
+| 141 | `done/mod-data-sync-model.md` | yes — a mod data sync model exists | n/a | `out of corpus scope` | platform sync surface; the same reader |
+| 142 | `done/mod-declared-behaviour-with-no-function.md` | yes — a missing function throws, so the native path is a defect of a promised surface | n/a | `out of corpus scope` | ticket: "It throws … so that half is a defect of a surface the API already promises rather than a new capability"; platform work, with its item twin named |
+| 143 | `done/mod-defined-wire-packets.md` | yes — a mod may define packets | n/a | `out of corpus scope` | protocol/mod seam; the same reader |
+| 144 | `done/mod-item-authored-actions.md` | yes — a mod item's use and limb functions are carried | n/a | `out of corpus scope` | ticket: "Mod-authored item actions: the use and limb functions" cut from the ceiling's Part 3.A and accepted in `20261011-i`; the items page's boundary paragraph already says where a mod's additions are documented |
+| … | the remaining 105 `done/` tickets, then `review/` (36) and `todo/` (12) | | | | |
 
 The `#` column is the AUDIT SEQUENCE, not the alphabetical index: rows follow the alphabetical ticket list, and a ticket recovered after a skip is appended with a note rather than renumbering every later row. Each filled row carries its evidence: the ticket's own quoted design
 sentence, the source path that implements it, and the corpus page that carries it.

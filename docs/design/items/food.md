@@ -13,6 +13,10 @@ A solid food's use action eats: it applies the food's own values to the body (hu
 item's condition by the bite's own amount, plays the eating sound and produces the body's reaction. A food that consumes
 itself and replaces itself with another item does so inside that same action, in terms of the body's slots.
 
+## Where the family comes from
+
+The cross-player food family is decided from the GAME'S OWN DATA, not from a list this project keeps: the accepted ticket's title is "Cross-player solid food from the game's own data", and its fifteen acceptance rows passed in batch `20261011-i` (row 5's visual half had to be re-worded because a frame cannot carry it at a parked spot). A definition the game marks usable but whose action is not an eat is not this family, and the same classification decides both the cue and the release.
+
 ## Rules and states
 
 - One use is one bite: the item survives with less condition until its own condition is exhausted.

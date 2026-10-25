@@ -62,5 +62,5 @@ live suggestions, its no-fade history and the Escape interception.
 - An empty Enter currently leaves the surface open; recorded in
   `../../backlog/todo/console-enter-on-empty-does-not-close.md`.
 - The candidate list's visibility and the cursor's alignment with the text are regressions against the accepted design;
-  recorded in `../../backlog/todo/console-completion-shows-no-suggestions.md` and
+  recorded in `../../backlog/review/console-completion-shows-no-suggestions.md` and
   `todo/console-caret-misaligned-with-text.md`.

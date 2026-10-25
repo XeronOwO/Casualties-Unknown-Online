@@ -373,7 +373,7 @@ docs/evidence/acceptance/localization-live-read-20261025-e.md | keep | claim | d
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/review/player-facing-text-localized-per-receiver.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/context-menu-name-wraps-behind-actions.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/console-completion-shows-no-suggestions.md | keep | index | docs/backlog/README.md
+docs/backlog/review/console-completion-shows-no-suggestions.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-caret-misaligned-with-text.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/use-on-sleeping-target-refused.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-into-backpack-plays-no-sound.md | keep | index | docs/backlog/README.md

@@ -4,7 +4,7 @@
 # exists has to name the corpus page it was designed from.
 
 docs/backlog/todo/console-caret-misaligned-with-text.md
-docs/backlog/todo/console-completion-shows-no-suggestions.md
+docs/backlog/review/console-completion-shows-no-suggestions.md
 docs/backlog/todo/console-enter-on-empty-does-not-close.md
 docs/backlog/todo/context-menu-name-wraps-behind-actions.md
 docs/backlog/todo/cross-player-eat-skips-native-steps.md

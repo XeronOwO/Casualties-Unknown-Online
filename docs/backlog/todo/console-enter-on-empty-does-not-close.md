@@ -38,7 +38,7 @@ the command exactly as it does today. The console key keeps toggling the console
 A first pass on the running host opened the console with the console key and captured two frames (empty console, then after typing a
 prefix): the log panel is visible, but **no input box and no typed text are visible in either frame**, and pressing Enter in that
 state does nothing (the native no-op above). Both frames are the evidence for rows 1 and 4 of this ticket and are also referenced by
-`todo/console-completion-shows-no-suggestions.md`, because the missing input box is what a player has to type into in the first place.
+`review/console-completion-shows-no-suggestions.md`, because the missing input box is what a player has to type into in the first place.
 A reflected probe of `input.text`/`input.isFocused` was attempted with a recipe and the client rejected it as `(1,1):
 InteractiveHost` (the masked compile failure the tools page documents); the recipe was dropped rather than committed broken, so the
 next batch needs a working read of the input field to separate "the keys never reached the box" from "the box is not drawn".

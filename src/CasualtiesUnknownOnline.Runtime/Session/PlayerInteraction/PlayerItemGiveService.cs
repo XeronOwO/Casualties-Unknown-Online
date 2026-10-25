@@ -73,6 +73,28 @@ internal sealed class PlayerItemGiveService(
 		return new ConsoleAnswerPartMsg { Key = key, Args = [.. args] };
 	}
 
+	/// <summary>
+	/// A refusal this service OWNS, as the answer parts the member's console renders: the KEY plus its arguments, so the reader's
+	/// language wins. The text stays on the outcome for the host's log and as the fallback.
+	/// </summary>
+	private GiveOutcome RefuseByRule(string labelKey, string reason, params string[] args)
+	{
+		_log.LogWarning("[Give] refused: {Reason} (the member reads: {Line})", reason, _localization.Format(labelKey, args));
+		return new GiveOutcome(false, $"Refused: {reason}", 0, -1, [AnswerPart(labelKey, args)]);
+	}
+
+	/// <summary>
+	/// A refusal the answer cannot render in the reader's language — a parser's usage line, the creation port's ground, the
+	/// custody path's own words. The member reads ONE sentence the catalogue owns ("refused; the host's log names the reason")
+	/// instead of the host's English inside a localized frame, and the detail stays in the log where it can be acted on. A port
+	/// that returns a catalogue key of its own can be promoted to a real part later without changing this shape.
+	/// </summary>
+	private GiveOutcome RefuseUnconverted(string reason)
+	{
+		_log.LogWarning("[Give] refused: {Reason}", reason);
+		return new GiveOutcome(false, $"Refused: {reason}", 0, -1, [AnswerPart("answer.refused_see_host_log")]);
+	}
+
 	/// <summary>The host's answer to a member's give request arrived — the console prints it.</summary>
 	public event Action<PlayerInventoryGiveResultMsg>? Answered;
 
@@ -137,19 +159,23 @@ internal sealed class PlayerItemGiveService(
 
 		if (!_memberRules.CheatVerbsOpenToMembers)
 		{
-			RefuseRequest(sender, msg, "the host's cheat switch (AllowMemberCheatVerbs) is off, so no member may run /give.");
+			RefuseRequest(sender, msg, RefuseByRule("give.answer.refused_switch_off", "the host's cheat switch (AllowMemberCheatVerbs) is off, so no member may run /give."));
 			return;
 		}
 
 		if (!_memberRules.AllowsCheatVerb(sender))
 		{
-			RefuseRequest(sender, msg, "the host's cheat roster does not name you, so /give cannot land. The host grants it with /op.");
+			RefuseRequest(sender, msg, RefuseByRule("give.answer.refused_not_in_roster", "the host's cheat roster does not name you, so /give cannot land. The host grants it with /op."));
 			return;
 		}
 
 		if (msg.State.Length > ItemGiveParser.MaxStateLength)
 		{
-			RefuseRequest(sender, msg, $"the request carries {msg.State.Length} character(s) of state; at most {ItemGiveParser.MaxStateLength} are accepted.");
+			RefuseRequest(sender, msg, RefuseByRule(
+				"give.answer.refused_too_much_state",
+				$"the request carries {msg.State.Length} character(s) of state; at most {ItemGiveParser.MaxStateLength} are accepted.",
+				msg.State.Length.ToString(CultureInfo.InvariantCulture),
+				ItemGiveParser.MaxStateLength.ToString(CultureInfo.InvariantCulture)));
 			return;
 		}
 
@@ -167,7 +193,7 @@ internal sealed class PlayerItemGiveService(
 		if (!ItemGiveParser.TryParseState(stateText, out var state, out var canonical, out var parseError))
 		{
 			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, parseError);
-			return Refused(parseError!);
+			return RefuseUnconverted(parseError!);
 		}
 
 		if (!_creation.TryCreate(definitionId, state, out var item, out var createRefusal) || item is null)
@@ -176,7 +202,7 @@ internal sealed class PlayerItemGiveService(
 			// implementation cannot answer with an empty "Refused:" line.
 			var reason = createRefusal ?? $"the definition '{definitionId}' could not be created by this build.";
 			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, reason);
-			return Refused(reason);
+			return RefuseUnconverted(reason);
 		}
 
 		var delivery = _take.DeliverCreatedItem(targetSteamId, item, slot);
@@ -184,7 +210,7 @@ internal sealed class PlayerItemGiveService(
 		{
 			var reason = delivery.Refusal ?? $"the item could not be delivered to {targetSteamId}.";
 			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, reason);
-			return Refused(reason);
+			return RefuseUnconverted(reason);
 		}
 
 		// The answer names the state the item REALLY carries: the creation port binds the
@@ -268,21 +294,12 @@ internal sealed class PlayerItemGiveService(
 		return builder.ToString();
 	}
 
-	// A refusal keeps the text path (its reasons are a separate sweep): no parts, so the member's console prints the sentence
-	// the host wrote rather than a half-keyed line.
-	private static GiveOutcome Refused(string reason) => new(false, $"Refused: {reason}", 0, -1, []);
-
 	/// <summary>
-	/// A request refused BEFORE the item is created — the host's two cheat rulings and the
-	/// state bound. Logged here once, with the request's own context, and sent back as the
-	/// same sentence the member reads; <see cref="Apply"/> logs the refusals that happen below
-	/// this layer.
+	/// A request refused BEFORE the item is created — the host's two cheat rulings and the state bound. The answer is the one
+	/// <see cref="Apply"/> would have produced, so a refusal reads the same wherever it was decided.
 	/// </summary>
-	private void RefuseRequest(ulong requester, PlayerInventoryGiveRequestMsg request, string reason)
-	{
-		_log.LogWarning("[Give] request from {Requester} for {Target} refused: {Reason}", requester, request.TargetSteamId, reason);
-		SendAnswer(requester, request, Refused(reason));
-	}
+	private void RefuseRequest(ulong requester, PlayerInventoryGiveRequestMsg request, GiveOutcome refusal) =>
+		SendAnswer(requester, request, refusal);
 
 	/// <summary>
 	/// Send the answer to a member's request. The answer shares the host log's REASON wording —

@@ -71,6 +71,27 @@ public sealed class WorldSummonService(
 		return new ConsoleAnswerPartMsg { Key = key, Args = [.. args] };
 	}
 
+	/// <summary>
+	/// A refusal this service OWNS, as the answer parts the member's console renders: the KEY plus its arguments, so the
+	/// reader's language wins. The text stays on the result for the host's log and as the fallback.
+	/// </summary>
+	private SummonResult RefuseByRule(string labelKey, string reason, params string[] args)
+	{
+		_log.LogWarning("[Summon] refused: {Reason} (the member reads: {Line})", reason, _localization.Format(labelKey, args));
+		return new SummonResult(false, $"Refused: {reason}", 0, [AnswerPart(labelKey, args)]);
+	}
+
+	/// <summary>
+	/// A refusal the answer cannot render in the reader's language — the layer stamp's own description, the creation port's
+	/// ground, the prefab parse. The member reads ONE sentence the catalogue owns ("refused; the host's log names the reason")
+	/// instead of the host's English inside a localized frame, and the detail stays in the log where it can be acted on.
+	/// </summary>
+	private SummonResult RefuseUnconverted(string reason)
+	{
+		_log.LogWarning("[Summon] refused: {Reason}", reason);
+		return new SummonResult(false, $"Refused: {reason}", 0, [AnswerPart("answer.refused_see_host_log")]);
+	}
+
 	/// <inheritdoc />
 	public event Action<WorldSummonResultMsg>? Answered;
 
@@ -122,7 +143,7 @@ public sealed class WorldSummonService(
 		{
 			// The host has no layer to create in — the same ground the member's own scene check answers, reached
 			// from the wire. Answered rather than swallowed: a refusal that never travels looks like a lost request.
-			RefuseRequest(sender, msg, "this host is not in a world, so there is no layer to create anything in.");
+			RefuseRequest(sender, msg, RefuseByRule("summon.answer.refused_host_not_in_world", "this host is not in a world, so there is no layer to create anything in."));
 			return;
 		}
 
@@ -132,26 +153,30 @@ public sealed class WorldSummonService(
 			// The position is layer-relative and the host has moved on: creating here would put the object at
 			// the old layer's coordinates in the new one. The reporter is answered so the refusal is visible
 			// where the verb was typed.
-			RefuseRequest(sender, msg, $"the request belongs to {WorldReportGeneration.Describe(msg.Generation)} while this host is at "
-				+ $"{WorldReportGeneration.Describe(_generations.Current)} — positions are layer-relative, so nothing was created; run /summon again here.");
+			RefuseRequest(sender, msg, RefuseUnconverted($"the request belongs to {WorldReportGeneration.Describe(msg.Generation)} while this host is at "
+				+ $"{WorldReportGeneration.Describe(_generations.Current)} — positions are layer-relative, so nothing was created; run /summon again here."));
 			return;
 		}
 
 		if (!_memberRules.CheatVerbsOpenToMembers)
 		{
-			RefuseRequest(sender, msg, "the host's cheat switch (AllowMemberCheatVerbs) is off, so no member may run /summon.");
+			RefuseRequest(sender, msg, RefuseByRule("summon.answer.refused_switch_off", "the host's cheat switch (AllowMemberCheatVerbs) is off, so no member may run /summon."));
 			return;
 		}
 
 		if (!_memberRules.AllowsCheatVerb(sender))
 		{
-			RefuseRequest(sender, msg, "the host's cheat roster does not name you, so /summon cannot land. The host grants it with /op.");
+			RefuseRequest(sender, msg, RefuseByRule("summon.answer.refused_not_in_roster", "the host's cheat roster does not name you, so /summon cannot land. The host grants it with /op."));
 			return;
 		}
 
 		if (msg.State.Length > ItemStateText.MaxLength)
 		{
-			RefuseRequest(sender, msg, $"the request carries {msg.State.Length} character(s) of state; at most {ItemStateText.MaxLength} are accepted.");
+			RefuseRequest(sender, msg, RefuseByRule(
+				"summon.answer.refused_too_much_state",
+				$"the request carries {msg.State.Length} character(s) of state; at most {ItemStateText.MaxLength} are accepted.",
+				msg.State.Length.ToString(CultureInfo.InvariantCulture),
+				ItemStateText.MaxLength.ToString(CultureInfo.InvariantCulture)));
 			return;
 		}
 
@@ -183,13 +208,13 @@ public sealed class WorldSummonService(
 			// finite check, and a NaN would poison every position written from the creation.
 			var reason = "the requested position is not a finite point, so nothing was created.";
 			LogRefused(actor, prefabId, x, y, reason);
-			return Refused(reason);
+			return RefuseUnconverted(reason);
 		}
 
 		if (!ItemStateText.TryParse(stateText, out var state, out _, out var parseError))
 		{
 			LogRefused(actor, prefabId, x, y, parseError!);
-			return Refused(parseError!);
+			return RefuseUnconverted(parseError!);
 		}
 
 		var outcome = _summon.TrySummon(prefabId, kind, state, x, y);
@@ -197,7 +222,7 @@ public sealed class WorldSummonService(
 		{
 			var reason = outcome.Refusal ?? $"'{prefabId}' could not be created by this build.";
 			LogRefused(actor, prefabId, x, y, reason);
-			return Refused(reason);
+			return RefuseUnconverted(reason);
 		}
 
 		var what = outcome.InstanceId != 0
@@ -261,18 +286,10 @@ public sealed class WorldSummonService(
 	}
 
 	// A refusal keeps the text path (its reasons are a separate sweep): no parts, so the member's console prints the sentence
-	// the host wrote rather than a half-keyed line.
-	private static SummonResult Refused(string reason) => new(false, $"Refused: {reason}", 0, []);
-
-	/// <summary>
-	/// A request refused BEFORE the creation — the host's two cheat rulings, the layer stamp and the state bound.
-	/// Logged here once with the request's own context and sent back as the same sentence the member reads.
-	/// </summary>
-	private void RefuseRequest(ulong requester, WorldSummonRequestMsg request, string reason)
+	private void RefuseRequest(ulong requester, WorldSummonRequestMsg request, SummonResult refusal)
 	{
-		_log.LogWarning("[Summon] request from {Requester} for {Prefab} at ({X:F1},{Y:F1}) refused: {Reason}",
-			requester, request.PrefabId, request.X, request.Y, reason);
-		SendAnswer(requester, request, Refused(reason));
+		_log.LogWarning("[Summon] request from {Requester} for {Prefab} at ({X:F1},{Y:F1}) refused.", requester, request.PrefabId, request.X, request.Y);
+		SendAnswer(requester, request, refusal);
 	}
 
 	/// <summary>

@@ -18,7 +18,7 @@ for every item mechanic; the mechanic pages cite it.
   with a cleared table, and the acceptance reading for that row is "with the host's per-guest table cleared offline and the
   kernel facts left untouched, the rejoin re-…".
 
-## Custody
+## A player's own marks on an item`r`n`r`nA favourite mark belongs to the PLAYER who made it, not to the item: the mark is saved with that player's character record and "never reaches the owner's item" — decision 258 states it, and the accepted ticket's reading is that the mark "became the item's own flag once the item changed hands, and the same key over the player's OWN inventory kept the game's own behaviour". A mark is therefore never a fact the other players hold about the item.`r`n`r`n## Custody
 
 | Custody | Meaning | Authority |
 |---|---|---|

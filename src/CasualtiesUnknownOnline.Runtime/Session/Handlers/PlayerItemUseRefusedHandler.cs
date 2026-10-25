@@ -44,11 +44,13 @@ public sealed class PlayerItemUseRefusedHandler(
 		}
 
 		// Warning: this is the one place the player's own gesture was contradicted, next to the capture line that
-		// preceded it.
-		_log.LogWarning("[ItemUse] the host refused the use on {Target} (item {Item}): {Reason} — nothing on your side changed.",
-			msg.TargetSteamId, msg.ItemInstanceId, msg.Reason);
+		// preceded it. The log keeps the KEY and its argument, because logs are English and a key cannot be mistranslated.
+		_log.LogWarning("[ItemUse] the host refused the use on {Target} (item {Item}): {ReasonKey}({ReasonArg}) — nothing on your side changed.",
+			msg.TargetSteamId, msg.ItemInstanceId, msg.ReasonKey, msg.ReasonArg);
 
-		_notices.Publish(_localization.Format("hud.use_refused", msg.Reason));
+		_notices.Publish(string.IsNullOrEmpty(msg.ReasonArg)
+			? _localization.Format(msg.ReasonKey)
+			: _localization.Format(msg.ReasonKey, msg.ReasonArg));
 		_interaction.FireUseRefused();
 	}
 }

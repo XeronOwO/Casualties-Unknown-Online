@@ -1071,7 +1071,7 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
-		public void NotifyUseRefused(string reason)
+		public void NotifyUseRefused(RefusalReason reason)
 		{
 		}
 

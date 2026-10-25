@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
@@ -39,6 +40,7 @@ internal sealed class PlayerItemUseExecution(
 	IConsumeSemantics consumeSemantics,
 	IWearSemantics wearSemantics,
 	ISolidFoodSemantics solidFoodSemantics,
+	ILocalizationService localization,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -51,7 +53,22 @@ internal sealed class PlayerItemUseExecution(
 	private readonly IConsumeSemantics _consumeSemantics = consumeSemantics;
 	private readonly IWearSemantics _wearSemantics = wearSemantics;
 	private readonly ISolidFoodSemantics _solidFoodSemantics = solidFoodSemantics;
+	private readonly ILocalizationService _localization = localization;
 	private readonly ILogger _log = log;
+
+	/// <summary>
+	/// One refusal, in the ONE shape both readers need: the operator's line is a catalogue KEY plus its argument (rendered by
+	/// whoever reads it, in that reader's language), and the host's log names the same key and, at Debug, the sentence it will
+	/// become — so the two cannot drift into two copies of the same wording. The per-site Warning above it keeps the ids that
+	/// locate the refusal; this line keeps the wording answerable.
+	/// </summary>
+	private RefusalReason RefuseItemUse(string labelKey, string? argument = null)
+	{
+		var rendered = _localization.Format(labelKey);
+		_log.LogDebug("[ItemUse] the operator will read: {Reason}{WithArg}", rendered, argument is null ? string.Empty : $" (arg: {argument})");
+		var key = labelKey;
+		return new RefusalReason(key, argument);
+	}
 
 	/// <summary>
 	/// Shared cross-player use execution. The kernel authoritative item is
@@ -66,7 +83,7 @@ internal sealed class PlayerItemUseExecution(
 	/// reason is what the operator's own screen shows (the host's log keeps its own detailed line), so it stays a
 	/// phrase rather than a sentence.
 	/// </summary>
-	internal string? TryExecute(
+	internal RefusalReason? TryExecute(
 		ulong user,
 		ulong target,
 		ulong itemInstanceId,
@@ -78,7 +95,7 @@ internal sealed class PlayerItemUseExecution(
 		if (!_characters.IsInWorld(user) || !_characters.IsInWorld(target))
 		{
 			_log.LogWarning("[ItemUse] refused: {User} or {Target} is not in-world.", user, target);
-			return "one of the two players is not in the world";
+			return RefuseItemUse("refusal.not_in_world");
 		}
 
 		var userData = _characters.GetCharacterData(user);
@@ -86,14 +103,14 @@ internal sealed class PlayerItemUseExecution(
 		if (userData is null || targetData is null)
 		{
 			_log.LogWarning("[ItemUse] refused: no character snapshot for {User}/{Target}.", user, target);
-			return "no character data for one of the two players yet";
+			return RefuseItemUse("refusal.no_character_data");
 		}
 
 		if (requireUserConscious
 			&& (userData.Health is not { } userHealth || !userHealth.Conscious || !userHealth.Alive))
 		{
 			_log.LogInformation("[ItemUse] refused: {User} is not conscious/alive and cannot use an item.", user);
-			return "you are not conscious";
+			return RefuseItemUse("refusal.user_not_conscious");
 		}
 
 		CharacterItemMsg? originalItem;
@@ -102,7 +119,7 @@ internal sealed class PlayerItemUseExecution(
 			if (!CarriedItemUseTree.TryFind(userData.Items, itemInstanceId, out originalItem))
 			{
 				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable (requested {ItemId}).", user, itemInstanceId);
-				return "you are not carrying that item";
+				return RefuseItemUse("refusal.not_carrying_the_item");
 			}
 		}
 		else
@@ -111,7 +128,7 @@ internal sealed class PlayerItemUseExecution(
 			if (originalItem is null)
 			{
 				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable to auto-select.", user);
-				return "you have nothing usable to apply";
+				return RefuseItemUse("refusal.nothing_usable");
 			}
 		}
 
@@ -138,7 +155,7 @@ internal sealed class PlayerItemUseExecution(
 			// definition, and the owner's own item becomes it in place at the same slot. So this branch is now the
 			// plain "empty or not this gesture's family" refusal, and the family chain decides below.
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or is not a family this {Entry} gesture carries.", originalItem.ItemId, originalItem.InstanceId, entry);
-			return "that item cannot be used this way";
+			return RefuseItemUse("refusal.cannot_be_used_this_way");
 		}
 
 		// The TARGET's gate, asked AFTER the family is known because the rule is the family's: a body must be alive to
@@ -149,13 +166,13 @@ internal sealed class PlayerItemUseExecution(
 		if (targetData.Health is not { } targetHealth || !targetHealth.Alive)
 		{
 			_log.LogInformation("[ItemUse] refused: {Target} is not alive and cannot receive an item.", target);
-			return "the patient is dead";
+			return RefuseItemUse("refusal.patient_is_dead");
 		}
 
 		if (ItemUseTargetPolicy.RequiresAConsciousTarget(family) && !targetHealth.Conscious)
 		{
 			_log.LogInformation("[ItemUse] refused: {Target} is unconscious and cannot {Family} an item.", target, family);
-			return "the patient is unconscious";
+			return RefuseItemUse("refusal.patient_is_unconscious");
 		}
 
 		var newItem = PlayerCharacterAccess.CloneItem(originalItem);
@@ -178,13 +195,13 @@ internal sealed class PlayerItemUseExecution(
 			if (!_wearSemantics.TryGetWearPlacement(originalItem.ItemId, out var wearLimbIndex, out var wearSlotId))
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) resolved as a wearable but its placement could not be read.", originalItem.ItemId, originalItem.InstanceId);
-				return "that garment has no place to go";
+				return RefuseItemUse("refusal.garment_has_no_place");
 			}
 
 			if (!RemoteWearApplication.TryCreateWornItem(_wearSemantics, wearLimbIndex, wearSlotId, newTargetData.Limbs, newTargetData.Items, originalItem, out wornItem))
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be placed on {Target} — target limb missing/dismembered or wear slot already occupied.", originalItem.ItemId, originalItem.InstanceId, target);
-				return "that limb or slot is not available";
+				return RefuseItemUse("refusal.slot_unavailable");
 			}
 
 			newTargetData.Items.Add(wornItem);
@@ -209,7 +226,7 @@ internal sealed class PlayerItemUseExecution(
 			// not the only thing between a destructive action and the one-shot path.
 			_log.LogWarning("[ItemUse] refused: injectable/IV medicine {ItemId} (id {InstanceId}) must use the medical operation session, not the one-shot request path.",
 				originalItem.ItemId, originalItem.InstanceId);
-			return "injectable medicine goes through the medical view";
+			return RefuseItemUse("refusal.injection_goes_through_the_medical_view");
 		}
 		else if (family == ItemUseFamily.Topical)
 		{
@@ -221,7 +238,7 @@ internal sealed class PlayerItemUseExecution(
 			// computed or saved here.
 			if (!TopicalUseBranch.TryPlan(limbIndex, target, originalItem, doseMl, newItem, _log, out appliedDose))
 			{
-				return "that topical needs the limb the wound view opened";
+				return RefuseItemUse("refusal.topical_needs_the_wound_views_limb");
 			}
 		}
 		else if (family == ItemUseFamily.Drink)
@@ -246,7 +263,7 @@ internal sealed class PlayerItemUseExecution(
 			if (!LiquidDrainPlan.TryCreate(originalItem.Liquids, doseMl, out var drinkPlan))
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) carried no dose to drink for {Target}.", originalItem.ItemId, originalItem.InstanceId, target);
-				return "that container has nothing to drink";
+				return RefuseItemUse("refusal.container_has_nothing_to_drink");
 			}
 
 			drinkDose = drinkPlan;
@@ -286,7 +303,7 @@ internal sealed class PlayerItemUseExecution(
 			if (limbIndex < 0)
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is a limb tool but the request named no limb — it is applied through the medical view, which carries the limb the operator picked.", originalItem.ItemId, originalItem.InstanceId);
-				return "a limb tool needs the limb the medical view carries";
+				return RefuseItemUse("refusal.limb_tool_needs_the_medical_views_limb");
 			}
 
 			// The limb tool belongs to the affected side exactly as the eat above does:
@@ -318,7 +335,7 @@ internal sealed class PlayerItemUseExecution(
 		else
 		{
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is not a family this {Entry} gesture carries.", originalItem.ItemId, originalItem.InstanceId, entry);
-			return "that item cannot be used this way";
+			return RefuseItemUse("refusal.cannot_be_used_this_way");
 		}
 
 		// The order is the chain's own and is load-bearing: the owner's snapshot, then the

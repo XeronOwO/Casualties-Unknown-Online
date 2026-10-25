@@ -41,6 +41,19 @@ internal sealed class RemoteMedicalOperationHandler
 		_injectionOps = new RemoteInjectionUseHandler(domains);
 	}
 
+	/// <summary>
+	/// One refusal this client decided, as the catalogue KEY the reader renders: the line must read in the operator's own
+	/// language, so no sentence is built here. The Debug line is the English wording the same key resolves to, which is what
+	/// makes a refusal diagnosable from a log without a second copy of the text.
+	/// </summary>
+	private RefusalReason RefuseLimbUse(string labelKey)
+	{
+		var rendered = _domains.Localization.Format(labelKey);
+		_domains.Log.LogDebug("[MedicalView] the operator will read: {Reason}", rendered);
+		var key = labelKey;
+		return new RefusalReason(key);
+	}
+
 	internal bool TryHandleLimbUse(Item dragItem, int limbIndex)
 	{
 		if (!RemoteMedicalView.IsOpen || dragItem == null) // Unity object — ==
@@ -55,7 +68,7 @@ internal sealed class RemoteMedicalOperationHandler
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: dragged item {ItemId} is a remote display proxy, not a local medical item.",
 				dragItem.id);
-			_domains.PlayerInteraction.NotifyUseRefused("that item is not yours to use");
+			_domains.PlayerInteraction.NotifyUseRefused(RefuseLimbUse("refusal.not_yours_to_use"));
 			return false;
 		}
 
@@ -63,7 +76,7 @@ internal sealed class RemoteMedicalOperationHandler
 		if (target == 0)
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: remote medical focus has no target.");
-			_domains.PlayerInteraction.NotifyUseRefused("no patient is selected");
+			_domains.PlayerInteraction.NotifyUseRefused(RefuseLimbUse("refusal.no_patient_selected"));
 			return false;
 		}
 
@@ -72,7 +85,7 @@ internal sealed class RemoteMedicalOperationHandler
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: local item {ItemId} has no authoritative instance id.",
 				dragItem.id);
-			_domains.PlayerInteraction.NotifyUseRefused("that item has no network identity yet");
+			_domains.PlayerInteraction.NotifyUseRefused(RefuseLimbUse("refusal.item_has_no_network_identity"));
 			return false;
 		}
 
@@ -80,7 +93,7 @@ internal sealed class RemoteMedicalOperationHandler
 		{
 			_domains.Log.LogWarning("[MedicalView] refused limb use: {ItemId} is not a supported remote medical/limb-treatment item.",
 				dragItem.id);
-			_domains.PlayerInteraction.NotifyUseRefused("that item cannot be applied to a wound");
+			_domains.PlayerInteraction.NotifyUseRefused(RefuseLimbUse("refusal.cpr_needs_the_patients_body"));
 			return false;
 		}
 

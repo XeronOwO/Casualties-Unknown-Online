@@ -64,7 +64,7 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 		_outcomes = new PlayerItemActionOutcomeService(characters, limbUseSemantics, solidFoodSemantics, commit, log);
 		_execution = new PlayerItemUseExecution(
 			session, characters, items, resultAuthority, commit, _outcomes,
-			limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, log);
+			limbUseSemantics, consumeSemantics, wearSemantics, solidFoodSemantics, localization, log);
 	}
 
 	/// <summary>Composition wiring: the affected-side admission table is session-scoped, so the session's end drops it.</summary>
@@ -125,18 +125,18 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 		}
 
 		var refusal = _execution.TryExecute(user, target, msg.ItemInstanceId, msg.LimbIndex, msg.DoseMl, EntryOf(msg.LimbIndex), requireUserConscious: true);
-		if (refusal is not null)
+		if (refusal is { } reason)
 		{
-			NotifyRefused(user, target, msg.ItemInstanceId, refusal);
+			NotifyRefused(user, target, msg.ItemInstanceId, reason);
 		}
 	}
 
 	/// <summary>
 	/// Puts a refused use where the operator can see it (the user's 2026-10-24 ruling): a member's refusal travels
-	/// back over the wire with the host's own reason, and the host's own refused gesture takes the local path. Both
-	/// end at the same line and the same deny sound, so a refusal never depends on which side refused.
+	/// back over the wire as a KEY and its one argument — never as the host's sentence — and the reader's own catalogue
+	/// renders it in the reader's language. The host's own refused gesture takes the local path through the same line.
 	/// </summary>
-	private void NotifyRefused(ulong user, ulong target, ulong itemInstanceId, string reason)
+	private void NotifyRefused(ulong user, ulong target, ulong itemInstanceId, RefusalReason reason)
 	{
 		if (user != _session.LocalSteamId)
 		{
@@ -144,7 +144,8 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			{
 				TargetSteamId = target,
 				ItemInstanceId = itemInstanceId,
-				Reason = reason,
+				ReasonKey = reason.Key,
+				ReasonArg = reason.Argument ?? string.Empty,
 			});
 			return;
 		}
@@ -156,13 +157,20 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 
 	/// <summary>
 	/// A refusal the operator's OWN client decided: the same line and the same deny sound the host's refusals get, so a
-	/// gesture refused before it left the client never reads as one that silently did nothing.
+	/// gesture refused before it left the client never reads as one that silently did nothing. Both sides render the
+	/// same key, so a refusal reads in the language of whoever is looking at it.
 	/// </summary>
-	public void NotifyUseRefused(string reason)
+	public void NotifyUseRefused(RefusalReason reason)
 	{
-		_notices.Publish(_localization.Format("hud.use_refused", reason));
+		_notices.Publish(Render(reason));
 		UseRefused?.Invoke();
 	}
+
+	/// <summary>The one place a refusal key becomes text: the reading client's catalogue, whole sentence, its own language.</summary>
+	private string Render(RefusalReason reason) =>
+		string.IsNullOrEmpty(reason.Argument)
+			? _localization.Format(reason.Key)
+			: _localization.Format(reason.Key, reason.Argument);
 
 	/// <summary>The operator's gesture was refused; the Game Adapter rings the game's deny sound.</summary>
 	public event Action? UseRefused;
@@ -224,9 +232,9 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 		}
 
 		var refusal = _execution.TryExecute(itemOwner, requester, itemInstanceId, targetLimbIndex, doseMl, ItemUseEntry.Limb, requireUserConscious: false);
-		if (refusal is not null)
+		if (refusal is { } reason)
 		{
-			NotifyRefused(requester, itemOwner, itemInstanceId, refusal);
+			NotifyRefused(requester, itemOwner, itemInstanceId, reason);
 		}
 	}
 

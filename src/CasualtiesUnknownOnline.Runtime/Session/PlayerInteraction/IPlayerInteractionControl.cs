@@ -150,7 +150,7 @@ public interface IPlayerInteractionControl
 	/// Show a refusal the OPERATOR's own client decided (a gesture its own rules refused before any request left), so the
 	/// wound view's refusals read the same as the host's: one localized line and the game's deny sound.
 	/// </summary>
-	void NotifyUseRefused(string reason);
+	void NotifyUseRefused(RefusalReason reason);
 
 	/// <summary>The operator's own gesture was refused — the Game Adapter plays the game's deny sound.</summary>
 	event Action? UseRefused;

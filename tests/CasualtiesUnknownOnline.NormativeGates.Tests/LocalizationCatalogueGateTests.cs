@@ -339,7 +339,7 @@ public sealed class LocalizationCatalogueGateTests
 				prefixes.Add(prefix);
 			}
 
-			if (literals.Length == 0 && spaces.Length == 0)
+			if (literals.Length == 0 && spaces.Length == 0 && !CarriesADeclaredKey(keyArgument))
 			{
 				unresolved++;
 			}
@@ -389,6 +389,19 @@ public sealed class LocalizationCatalogueGateTests
 		}
 
 		return [.. keys];
+	}
+
+	/// <summary>
+	/// True when the accessor's key argument is one the census already counted at its PRODUCER: a stored refusal's
+	/// <c>.Key</c> (a key that travelled as data and was declared where it was made) or the <c>labelKey</c> parameter of a
+	/// key-carrying helper (whose call sites' literals are counted). Without this, carrying keys as values would read as an
+	/// unresolvable call site, which is the opposite of what the census is for.
+	/// </summary>
+	private static bool CarriesADeclaredKey(string keyArgument)
+	{
+		var trimmed = keyArgument.Trim();
+		return trimmed.EndsWith(".Key", StringComparison.Ordinal)
+			|| string.Equals(trimmed, KeyParameterName, StringComparison.Ordinal);
 	}
 
 	/// <summary>The accessor's first argument, cut at its first top-level comma: the key itself. A

@@ -49,6 +49,19 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 	private float _verdictUntil;
 	private bool _subscribed;
 
+	/// <summary>
+	/// One refusal this client decided, as the catalogue KEY the operator's own client renders — the CPR gate is the
+	/// operator's body, so the line must read in the operator's language rather than in this build's. The Debug line is the
+	/// English wording the same key resolves to, which keeps a refusal diagnosable from a log.
+	/// </summary>
+	private RefusalReason RefuseCpr(string labelKey)
+	{
+		var rendered = _domains.Localization.Format(labelKey);
+		_domains.Log.LogDebug("[Cpr] the operator will read: {Reason}", rendered);
+		var key = labelKey;
+		return new RefusalReason(key);
+	}
+
 	/// <summary>Subscribe once, on the first frame the panel is maintained with a focus open.</summary>
 	private void EnsureSubscribed()
 	{
@@ -223,17 +236,17 @@ internal sealed class CprButtonCoordinator(GameAdapterDomains domains)
 		var operations = _domains.PlayerInteraction.MedicalOperations;
 
 		// The operator's own body is asked FIRST, for the start as well as the presses: a body that cannot compress must
-		// never open an operation the patient's side would then honour. The refusal is the operator's own line plus the
-		// game's deny sound (NotifyUseRefused publishes both) and nothing leaves the client.
+		// never open an operation the patient's side would then honour. The refusal is a KEY the reading client renders
+		// (so it reads in the operator's own language) plus the game's deny sound, and nothing leaves the client.
 		var refusal = CprButtonPolicy.OperatorRefusal(
 			canCompress: CanThisOperatorCompress(),
 			hasStamina: HasStaminaForAPress());
 		if (refusal != CprOperatorRefusal.None)
 		{
-			var line = refusal == CprOperatorRefusal.TooWeak
-				? _domains.Localization.T("medical.cpr_too_weak")
-				: _domains.Localization.T("medical.cpr_exhausted");
-			_domains.PlayerInteraction.NotifyUseRefused(line);
+			var reason = refusal == CprOperatorRefusal.TooWeak
+				? RefuseCpr("medical.cpr_too_weak")
+				: RefuseCpr("medical.cpr_exhausted");
+			_domains.PlayerInteraction.NotifyUseRefused(reason);
 			_domains.Log.LogInformation("[Cpr] the gesture was refused by this operator's own body: {Refusal}.", refusal);
 			return;
 		}

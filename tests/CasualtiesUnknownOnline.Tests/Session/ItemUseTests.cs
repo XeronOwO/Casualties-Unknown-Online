@@ -394,11 +394,11 @@ public class ItemUseTests
 		var fired = 0;
 		interaction.UseRefused += () => fired++;
 
-		interaction.NotifyUseRefused("that item cannot be applied to a wound");
+		interaction.NotifyUseRefused(new RefusalReason("refusal.cpr_needs_the_patients_body"));
 
 		var notices = host.Services.GetRequiredService<ISessionNotices>();
 		Assert.True(notices.TryTake(out var notice), "the local refusal must reach the operator's own screen");
-		Assert.Contains("that item cannot be applied to a wound", notice.Text);
+		Assert.Contains("cannot be applied to a wound", notice.Text);
 		Assert.Equal(1, fired);
 	}
 
@@ -406,8 +406,8 @@ public class ItemUseTests
 	public void Use_RefusedByTheHost_ReachesTheOperatorsOwnScreen()
 	{
 		// The user's 2026-10-24 ruling: a refusal reads as a line on the operator's screen (and the game's deny
-		// sound), never as a gesture that silently did nothing. The reason travels from the host with the sentence it
-		// decided, so the member reads the same refusal instead of guessing why nothing happened.
+		// sound), never as a gesture that silently did nothing. What crosses now is the KEY the host decided (the user's
+		// 2026-10-25 ruling), so the member reads the refusal in the member's OWN language rather than in the host's.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false, alive: false));
@@ -419,7 +419,7 @@ public class ItemUseTests
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		var notices = guest.Services.GetRequiredService<ISessionNotices>();
 		Assert.True(notices.TryTake(out var notice), "the refusal must reach the operator's own screen");
-		Assert.Contains("the patient is dead", notice.Text);
+		Assert.Contains("patient is dead", notice.Text);
 	}
 
 	[Fact]

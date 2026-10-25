@@ -377,6 +377,7 @@ docs/backlog/todo/console-completion-shows-no-suggestions.md | keep | index | do
 docs/backlog/todo/console-caret-misaligned-with-text.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/use-on-sleeping-target-refused.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-into-backpack-plays-no-sound.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/cross-player-eat-skips-native-steps.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/blast-marked-victims-20261024-r.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
 docs/evidence/acceptance/blast-descent-and-roll-20261024-t.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
 docs/evidence/acceptance/blast-one-set-20261024-u.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md

@@ -98,6 +98,15 @@ internal sealed class ItemReconcile(
 						continue;
 					}
 
+					// ONE line per kill, naming the id and the scene shape it was killed in: a kill is rare, and the id is what the
+					// operator's report ("换完物品被吞了") is about — the summary line alone could not say WHICH item died or what it looked
+					// like (parent chain, standing marker) when it did.
+					_log.LogInformation("[Reconcile] killing {ItemId} ({ItemIdName}) — absent from the {Rows} row snapshot; parent {Parent}, standing {Standing}.",
+						idComp.Id,
+						item.name,
+						snapshot.Count,
+						item.transform.parent == null ? "<none>" : item.transform.parent.name,
+						StandingItems.Is(item) ? "yes" : "no");
 					_app.KillRemoteItem(item);
 					_guard.Remove(idComp.Id);
 					killed++;

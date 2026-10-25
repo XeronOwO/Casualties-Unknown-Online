@@ -32,6 +32,7 @@ public sealed class DeliveryChecklistGateTests
 	/// </summary>
 	private static readonly string[] RequiredChecklistItems =
 	[
+		"Design comprehension",
 		"Native parity",
 		"Native parity probe",
 		"Entry mapping",

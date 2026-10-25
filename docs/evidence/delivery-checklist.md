@@ -49,6 +49,12 @@ the window the gesture needs and the button each one takes (a conflict on one en
 scheme), and an entrance behind a hotkey the player cannot be expected to know is not the primary entry:
 the gesture opens what it needs from the act itself.
 
+- [x] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
+      (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
+      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing —
+      evidence: this cycle changes documentation only (it lands `docs/architecture/surfaces.md` itself), so the first ticket that
+      owes the statement is `todo/selectors-exclude-the-executor.md`, whose measured fallout (32 tests, reverted) is exactly what
+      the row would have exposed before the change
 - [x] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism — evidence: this cycle is documentation-only (it lands

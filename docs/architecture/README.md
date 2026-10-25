@@ -38,6 +38,7 @@ own typed model and invariants.
 |---|---|
 | [current-architecture.md](current.md) | **Active** current architecture: kernel core, transaction/authority model, guards, non-goals. |
 | [domains.md](domains.md) | **Active** domain ownership and projection map. |
+| [surfaces.md](surfaces.md) | **Active** player-facing surfaces: what each is judged against, its native counterpart and its accepted record. Read this before changing any surface. |
 | [projection-framework.md](projection-framework.md) | **Active** global unified projection framework contract and migration status. |
 | [remote-inventory-native-parity.md](remote-inventory-native-parity.md) | **Design (stage 0)** remote inventory operations run the native call on the owner's client; stages 1-4 not implemented. |
 | [mod-status-domain.md](mod-status-domain.md) | Design proposal for the runtime mod-status domain boundary (not implemented). |

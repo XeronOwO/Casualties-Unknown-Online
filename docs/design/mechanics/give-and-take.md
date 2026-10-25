@@ -20,6 +20,14 @@ carries, and a world item is nobody's yet. The attempt to pick it up and then gi
 machine (2026-10-25), so the gesture is refused by name and the finding is `docs/backlog/todo/give-from-the-ground-swallows-the-item.md`;
 until that ticket lands, the player picks the item up first, which is the native two-step and never loses it.
 
+**Which of the two a release is, is decided by the DATA, not by how the gesture started.** The release asks the authority whether this
+body's own row carries the item (`IItemControl.OwnsCarriedItem` → `ItemKernelAuthority.OwnsCarriedItem` → `ItemCustodyRows.OwnsCarried`):
+carried means the give is legal whatever the pointer was over, and not-carried means the named world-item refusal above. That rule replaced
+a classifier that had answered "world item" for every release — a 2026-10-25 session showed a waterbottle that had just been picked up
+natively and was sitting in the giver's own slot refused as a ground item (`.acceptance/batch-givesound`, `[RemoteIntent] refused the release
+of the ground item waterbottle(Clone)`), which made every give impossible and was reported by the player as the missing transfer sound.
+The refusal is never a fallback for "not sure": an unclassifiable release keeps it, and a release that IS carried never takes it.
+
 ## What the game itself does
 
 Both directions are the game's own custody operations: an item moves into another holder through the game's container and

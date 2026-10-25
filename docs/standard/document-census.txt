@@ -382,7 +382,7 @@ docs/backlog/todo/give-into-backpack-plays-no-sound.md | keep | index | docs/bac
 docs/backlog/todo/cross-player-eat-skips-native-steps.md | keep | index | docs/backlog/README.md
 docs/backlog/review/selectors-exclude-the-executor.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/merge-remote-inventory-design-into-corpus.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/run-coordinator-over-the-class-line.md | keep | index | docs/backlog/README.md
+docs/backlog/done/run-coordinator-over-the-class-line.md | keep | index | docs/backlog/README.md
 docs/backlog/review/console-enter-on-empty-does-not-close.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/blast-marked-victims-20261024-r.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
 docs/evidence/acceptance/blast-descent-and-roll-20261024-t.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md

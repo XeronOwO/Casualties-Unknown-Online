@@ -28,6 +28,17 @@ The two areas answer different questions, and a page filed on the wrong side is 
 - **Surfaces.** `surfaces.md` is the bridge: it says which design authority governs each player-facing surface and links
   the corpus page. It belongs here because the map is an abstraction; the detail lives in `docs/design/`.
 
+## Misfiled pages (audit in progress)
+
+Reading the directory against the division above, three pages are on the wrong side of it. None is moved in this pass; each
+has its action named so the move is a work item rather than a rewrite.
+
+| Page | What it actually is | Where its content belongs | Action |
+|---|---|---|---|
+| [remote-inventory-native-parity.md](remote-inventory-native-parity.md) (690 lines) | a **design record**: the four stages of one behaviour, their decisions (218–221, amended by 258) and its acceptance matrix | `design/mechanics/give-and-take.md`, `design/items/container.md`, `design/model/item-custody.md` | merge the conclusions into those pages, then retire this page and re-point its links — `todo/merge-remote-inventory-design-into-corpus.md` |
+| [mod-status-domain.md](mod-status-domain.md) (273 lines) | a **feature design** ("Status: Design with phases 1–… landed"), not a system-shape page | `design/cross-cutting/` (a status-domain page) once the feature's behaviour is read | file when the status domain's behaviour is read; until then it stays as the feature's own record |
+| [save-archive-format.md](save-archive-format.md) (714 lines) | a durable **format contract** (what an archive contains), which is legitimate here; the behaviour it enables is not | the format stays; the behaviour is already on `design/cross-cutting/saves-and-recovery.md` | keep, with the corpus page as the behaviour's home |
+
 ## Active architecture
 
 Read in this order:

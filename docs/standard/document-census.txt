@@ -379,6 +379,7 @@ docs/backlog/todo/use-on-sleeping-target-refused.md | keep | index | docs/backlo
 docs/backlog/todo/give-into-backpack-plays-no-sound.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-eat-skips-native-steps.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/selectors-exclude-the-executor.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/merge-remote-inventory-design-into-corpus.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/run-coordinator-over-the-class-line.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-enter-on-empty-does-not-close.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/blast-marked-victims-20261024-r.md | keep | claim | docs/backlog/todo/host-blast-rolls-a-second-drop-set.md

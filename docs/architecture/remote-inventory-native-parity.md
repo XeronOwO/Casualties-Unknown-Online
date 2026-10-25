@@ -1,5 +1,7 @@
 # Remote Inventory Operations: Native Parity Design
 
+> **Filed on the wrong side of the architecture/design division.** This page is a design record for one behaviour, not a> system-shape page: the behaviour it describes now lives in the design corpus (`../design/mechanics/give-and-take.md`,> `../design/items/container.md`, `../design/model/item-custody.md`). It stays only until the merge lands; see> `../backlog/todo/merge-remote-inventory-design-into-corpus.md` and the division rule in `README.md`.
+
 Status: **stage 4 landed, amended 2026-10-11** — the native intent path (stage 1, decision 218), the
 container family and the while-dragging body (stage 2, decision 219), the item interactions (stage 3,
 decision 220) and the family audit with the acceptance preparation (stage 4, decision 221): R10's

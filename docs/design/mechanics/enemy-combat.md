@@ -38,6 +38,12 @@ the host's, and every other client holds them as projections.
   pulls every non-kinematic body within `16f * crystalSize` toward or away from it, with `crystalgravityloop` at
   `17f * crystalSize`. A client that computed the polarity itself would eventually disagree with the host's crystal, which is
   why the crystal's state travels (see the enemy state row in `../audit/code.md`).
+- **Every crystal VARIANT rolls its own parameters, so the modifier is state rather than a kind.** `CrystalTemperature.cs:16-18`
+  sets `heater.desiredTemp = Random.Range(20f, 50f)` and `tempLerpStrength = Random.Range(0.025f, 0.06f)`; `CrystalDripping.cs:12`
+  picks its liquid at `Random.Range(1, 3)`; `CrystalMimic.cs:10` spawns `Random.Range(1, 3)` enemies; `CrystalMetamorphic.cs:27`
+  picks `Random.Range(1, 5)`; and `CrystalUnstable.cs:55-58` blasts with `structuralDamage = 1000f * crystalSize` and
+  `muscleDamage` up to `30f * crystalSize`. A client that renders a crystal modifier must be told those numbers — deriving them
+  from the crystal's name would show a different hazard than the host's.
 - **A trap's damage is randomised per hit and cut by the victim's armour.**
   `BearTrap.cs:31-43`: a trap that rolls "`Random.Range(0f, 1f) < 0.5f`" bites the limb for
   `skinHealth -= Random.Range(70f, 100f) / GetArmorReduction()`, `muscleHealth -= Random.Range(50f, 100f) / …`,

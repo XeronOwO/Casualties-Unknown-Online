@@ -52,6 +52,19 @@ internal sealed class OnlineUiPanelView
 	/// <summary>The gap the docked panel keeps from the canvas's own bottom-right corner.</summary>
 	internal const float DockMargin = 16f;
 
+	/// <summary>
+	/// The widest a panel may grow to fit its TITLE. A name longer than this ellipsizes rather than widening the menu
+	/// across the screen; the cap is a view constant because it is a presentation limit, not a model fact.
+	/// </summary>
+	internal const float MaxTitleFitWidth = 420f;
+
+	/// <summary>The horizontal room the title bar gives away before its text starts: the left inset plus the close
+	/// control and the gap before it (the stretch the title itself gets).</summary>
+	private const float TitleInsets = 4f + CloseWidth + 6f;
+
+	/// <summary>The pad after the measured text, so a name that exactly fits is not clipped by the last glyph's bearing.</summary>
+	private const float TitleRightPadding = 6f;
+
 	/// <summary>The height of an empty model row — the panel's breathing room.</summary>
 	private const float GapHeight = 8f;
 
@@ -205,8 +218,14 @@ internal sealed class OnlineUiPanelView
 			_title.text = model.Title;
 		}
 
+		// The title is ONE line: a name longer than the bar ends in an ellipsis instead of wrapping onto a second line
+		// that the first action row would draw over (the reported "换行…在医疗按钮背面"). It is set here rather than at
+		// construction so a view built before this cycle's assets still gets it.
+		_title.enableWordWrapping = false;
+		_title.overflowMode = TextOverflowModes.Ellipsis;
+
 		ApplyClose(model.CloseId);
-		ApplyWidth(model.Width);
+		ApplyWidth(TitleFitWidth(model));
 		ApplyRows(model.Rows);
 		if (_structureDirty)
 		{
@@ -403,6 +422,25 @@ internal sealed class OnlineUiPanelView
 		}
 
 		_titleBar.SetSiblingIndex(Mathf.Min(1, _root.transform.childCount - 1));
+	}
+
+	/// <summary>
+	/// The width this frame is drawn at: the model's own width, widened when the TITLE needs more room and capped so an
+	/// extreme name ellipsizes instead of growing the panel across the screen. A panel whose title is a short key (the
+	/// docked quick panel) never widens, because its measured title already fits.
+	/// <para>
+	/// The measurement happens here because TMP and the font live here; the runtime model stays a plain value
+	/// (`docs/backlog/review/…` for the surface's own record: the model owns the width, the view owns what fits in it).
+	/// </para>
+	/// </summary>
+	private float TitleFitWidth(OnlineUiPanelModel model)
+	{
+		var available = model.Width - TitleInsets;
+		var preferred = _title.GetPreferredValues(model.Title, 0f, TitleHeight).x;
+		var needed = preferred + TitleInsets + TitleRightPadding;
+		return needed <= available
+			? model.Width
+			: Mathf.Min(needed, Mathf.Max(model.Width, MaxTitleFitWidth));
 	}
 
 	private void ApplyWidth(float width)

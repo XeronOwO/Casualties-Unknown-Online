@@ -48,6 +48,12 @@ public sealed class OnlineUiPanelSurfacePinTests
 			"a panel must render through the same control view and wrapping rule the pages use, or the migration grows a second row renderer that drifts from the first");
 
 	[Fact]
+	public void TheTitleIsOneLineAndThePanelWidensToItsMeasuredName() =>
+		Assert.True(
+			TheTitleFitsOnOneLine(AdapterPanelView()),
+			"the title must be a single line with an ellipsis and the panel's width must be measured from it: a wrapped title draws a second line under the first action button, which is the reported '换行…在医疗按钮背面'");
+
+	[Fact]
 	public void EachPanelPollsItsOwnRectAndReportsTheCallersFact() =>
 		Assert.True(
 			PollsItsOwnRect(AdapterPanelView()),
@@ -110,6 +116,8 @@ public sealed class OnlineUiPanelSurfacePinTests
 		{ nameof(ThePanelRectsAreTheImguiRects), "plugin/OnlineUiQuickPanel.cs", "internal const float Width = 340f;", "internal const float Width = 300f;", "a quick panel that moved or shrank" },
 		{ nameof(ThePanelRectsAreTheImguiRects), "plugin/OnlineUiPlayerContextMenu.cs", "internal const float Width = 240f;", "internal const float Width = 200f;", "a menu that moved or shrank" },
 		{ nameof(ThePanelRectsAreTheImguiRects), "adapter/OnlineUiPanelView.cs", "internal const float DockMargin = 16f;", "internal const float DockMargin = 0f;", "a docked panel that stopped keeping its margin" },
+		{ nameof(TheTitleIsOneLineAndThePanelWidensToItsMeasuredName), "adapter/OnlineUiPanelView.cs", "_title.enableWordWrapping = false;", "_title.enableWordWrapping = true;", "a title that wraps onto a second line under the first action" },
+		{ nameof(TheTitleIsOneLineAndThePanelWidensToItsMeasuredName), "adapter/OnlineUiPanelView.cs", "ApplyWidth(TitleFitWidth(model));", "ApplyWidth(model.Width);", "a panel whose width ignores the name it has to draw" },
 		{ nameof(ThePanelsOwnIdentityHolds), "runtime/OnlineUiControlIds.cs", "public const string QuickPanelClose = \"quick.close\";", "public const string QuickPanelClose = \"window.close\";", "a panel close control that answers the window's id" },
 		{ nameof(ThePanelsOwnIdentityHolds), "adapter/OnlineUiPanelView.cs", "panel.raycastTarget = true;", "panel.raycastTarget = false;", "a panel that lets clicks fall through to the world" },
 	};
@@ -143,6 +151,7 @@ public sealed class OnlineUiPanelSurfacePinTests
 			broken.Contains("class OnlineUiViewSource", StringComparison.Ordinal) ? broken : Adapter("OnlineUiViewSource.cs")),
 		nameof(EachPanelPollsItsOwnRectAndReportsTheCallersFact) => PollsItsOwnRect,
 		nameof(TheSurfaceCoversTheGamesCanvas) => CoversTheGameCanvas,
+		nameof(TheTitleIsOneLineAndThePanelWidensToItsMeasuredName) => TheTitleFitsOnOneLine,
 		nameof(ThePointAnchoredPanelIsPlacedByTheRuntimesRule) => PlacedByTheRuntimeRule,
 		nameof(ThePanelsIdsAreNamespacedAndTheCloseIsShared) => broken => NamespacesItsIds(broken, Plugin("OnlineUiPlayerContextMenu.cs"))
 			&& SharesThePanelsCloseId(broken, AdapterPanelView()),
@@ -210,6 +219,22 @@ public sealed class OnlineUiPanelSurfacePinTests
 				StringComparison.Ordinal)
 			&& flat.Contains("intents.Enqueue(new OnlineUiIntent(hovered ? _hoverEntered : _hoverLeft));", StringComparison.Ordinal)
 			&& flat.Contains("if (hovered == _hovered) { return; }", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The title is ONE line and the panel's width is measured from it: wrapping on plus a fixed width is exactly the
+	/// reported defect (a long player name wrapping under the first action button), and a width that ignores the name
+	/// truncates it instead.
+	/// </summary>
+	private static bool TheTitleFitsOnOneLine(string panelViewSource)
+	{
+		var flat = Flatten(panelViewSource);
+
+		return flat.Contains("_title.enableWordWrapping = false;", StringComparison.Ordinal)
+			&& flat.Contains("_title.overflowMode = TextOverflowModes.Ellipsis;", StringComparison.Ordinal)
+			&& flat.Contains("_title.GetPreferredValues(model.Title, 0f, TitleHeight).x", StringComparison.Ordinal)
+			&& flat.Contains("internal const float MaxTitleFitWidth", StringComparison.Ordinal)
+			&& flat.Contains("ApplyWidth(TitleFitWidth(model));", StringComparison.Ordinal);
 	}
 
 	/// <summary>CUO's canvas stretches over the game's, which is what makes "the bottom-right corner" mean the

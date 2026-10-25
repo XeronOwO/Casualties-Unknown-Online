@@ -12,7 +12,7 @@ member the host has granted cheat verbs. A player expects a refusal to say which
 | Family | Purpose |
 |---|---|
 | `/heal`, `/reset` | restore a player's body (health, condition) |
-| `/give` | create and deliver an item to a player, with its own state |
+| `/give` | create ONE item in a player's inventory, with its own state |
 | `/data get|set` | read or write an item's own state in the item-data language |
 | `/summon` | create an entity |
 | `/gamerule` | read or change a host rule |

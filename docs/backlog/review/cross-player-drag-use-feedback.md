@@ -381,3 +381,18 @@ use on that limb). Three facts made the difference and are worth keeping:
 
 The two rows this ticket still owes are now a reading away: the highlight and the label during such a drag, and the refusal path
 with its line and deny sound.
+
+**Batch `20261025-at` — the cue's own condition is now read from the code, and it needs the remote BACKPACK's centre, not the
+wound view.** `IDragUseCueState` is `DragUseCueTracker`, whose `Update(Item)` shows the cue only while
+`RemoteBackpackView.IsOpen && DragUseCenter.IsUnderPointer(PlayerCamera.main)`, and names `RemoteBackpackView.FocusedSteamId`. It
+also says why: "the centre is the release's own use/wear target … the label and the release cannot disagree",
+`DragGiveTargetResolver` adds that a release on a SLOT is a give and one on the centre is the use, and that the world fallback
+cannot reach a clone at all because `CloneInventoryRenderer` disables every proxy collider. So the gesture is: open another
+member's DISPLAYED BACKPACK, hold the item, put the pointer on that panel's centre, and read the same two facts the overlay draws.
+
+Measured in that shape: with the remote wound view open (`remote-wound-special mode=open` → `opened=true,
+displayBodyName=MedicalDisplay_111…` — which needed the operator ALIVE first, the log naming `local body is not alive/available`
+when it was not), a real right-button hold on the ring's bandage (`rightHeld=True`, `dragItem=bandage`) and the pointer moved over
+the displayed body, the new `recipes/drag-cue.cs` read **`showing=false, targetSteamId=0`** — correct, because the pointer was over
+the wound view and not over a displayed backpack's centre. The next cycle opens the remote BACKPACK (not the wound view) and reads
+the cue there.

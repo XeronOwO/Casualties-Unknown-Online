@@ -51,6 +51,12 @@ medical operation the two clients perform together, which is why the drag gestur
   60f || inCardiacArrest || bloodPressure < 70f`" — and with a separate, earlier `isDying` (`Body.cs:320-330`) that judges
   bleeding out by RATE first and volume second (`totalBleedSpeed > 0.134f || (totalBleedSpeed > 0.02f && bloodVolume < 40f) ||
   !breathing || …`). A CUO panel that invents its own thresholds is a different game.
+- **A limb's bleeding is the body's, summed, and a tourniquet zeroes its own chain.**
+  `Limb.cs` gives one limb `skinHealth = 100f`, `muscleHealth = 100f`, `dislocated`, `broken`, `dismembered`,
+  `infectionAmount`, `pain` and `bleedAmount`, with `totalBleedAmount => bleedAmount * (blockedBleeding ? 0 : 1)`; `Body.cs`
+  then sums `totalBleedSpeed += limb.bleedAmount * limb.bleedSpeedMult * (limb.blockedBleeding ? 0f : 1f)`. A tourniquet blocks
+  "the limb it is on and every limb further from the heart" (`TourniquetScript.GetLowerLimbs`), which is why one item can stop a
+  whole distal chain.
 - **A terminal fact is a named latch, per limb and per body.**
   `src/CasualtiesUnknownOnline.Protocol/Wire/WirePlayerLimbState.cs` carries `Broken`, `Dismembered` and `Dislocated` for one
   limb, and `WirePlayerBodyTerminalState.cs` carries `Disfigured`, `EyeGone`, `BothEyesGone` and `HasPulmonaryEmbolism` for

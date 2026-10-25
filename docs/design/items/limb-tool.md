@@ -18,6 +18,12 @@ why the wound view's release — the entry that carries a limb — is its only e
   carry what the action needs.
 - The limb the medical view carries is the one the action runs on.
 - Some limb actions are timed operations; the patient's own client runs them and the operator's client shows the progress.
+- **A tourniquet stops the limb it is on and every limb DOWNSTREAM of it.** The game's own script (`TourniquetScript.cs`)
+  sets `blockedBleeding = true` on the limb it is attached to and, recursively, on every limb whose `distanceToHeart` is
+  greater (`GetLowerLimbs`), and a blocked limb contributes nothing to the body's total: `Body.cs` sums
+  "`totalBleedSpeed += limb.bleedAmount * limb.bleedSpeedMult * (limb.blockedBleeding ? 0f : 1f)`". Taking it off clears the
+  flags and hands the item back to the body with its own `condition` (`TakeOff()` instantiates the tourniquet and calls
+  `AutoPickUpItem`).
 - The patient must be alive; consciousness is not required.
 
 ## What the affected side protects

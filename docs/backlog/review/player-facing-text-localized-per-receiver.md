@@ -40,6 +40,7 @@ that shows it:
 
 | Row | The check | State |
 |---|---|---|
+| 0 | A console COMPLETION hint is a typed fact the reader's catalogue renders: `heal` and `help` read in Chinese on a Chinese client | **judged 2026-10-25** by `.acceptance/frames/console-zh.png` — the two hint rows read in Chinese (translated: "immediately fully restore the selected player(s) … (a cheat verb)" and "list available commands, or show one command's usage"), where they used to read in English (the user's report) |
 | 1 | A refusal of each family reaches a Chinese client as a Chinese sentence and an English client as an English one — read from the status line of one real batch, not from the key | **owed**: needs a two-client batch |
 | 2 | No status line, console reply, panel title or tooltip contains a run of the other language's words | **met by the gate** for the catalogues (`c940d45f`); a frame of each surface is owed with row 1 |
 | 3 | A host-answered command (`/heal`, `/give`, `/summon`, `/gamerule`) reads in the member's language | **owed**: same batch |
@@ -50,6 +51,17 @@ that shows it:
 One real session with a Chinese client and an English client: `/heal`, `/give`, `/summon` and `/gamerule` issued from the member
 against the host, plus one cross-player refusal, each read off the member's console — the part no test host can produce. Until that
 batch runs, the rows are unjudged rather than passed.
+
+## The frame that judged row 0 also found the next gap (2026-10-25)
+
+`.acceptance/frames/console-zh.png` shows the completion hints in Chinese AND, one line above them, a console line still in English
+prose: "CUO new player: the world's own first-layer supplies (light) are already yours — CUO granted nothing on top." That is the
+ANSWER half of the console family (a text line rather than a keyed part), which is the same defect row 0 closed for completions.
+It is recorded here rather than fixed in the localisation commit because the answer path (`ConsoleAnswer` text lines) needs the
+keyed-part shape the four host commands already use, which is a different change.
+
+The game's own console prompt ("Enter command (type help for command list)") is the game's prefab text, not CUO's: it is absent from
+`src/` and from `reversing/Assembly-CSharp/Assembly-CSharp/ConsoleScript.cs`, whose input field carries a scene-set placeholder.
 
 ## What it was before the fix (the record, not the current state)
 

@@ -16,6 +16,11 @@ enough to reconstruct what happened.
 - Logs are a diagnostic channel: always one language, never a player-facing surface, and never the place a player's
   answer lives.
 - Volume is bounded: a repeated warning is rate-limited, and a channel that would flood a frame is summarised.
+- **A refused send is one aggregate line per window, never one per attempt.** `Runtime/Networking/PeerSendRefusalPolicy.cs`
+  gates a congested peer (`k_EResultLimitExceeded`) behind a doubling delay from `250 ms` to `2 s`, allows one attempt after
+  it, and clears the episode on success; what it asks the caller to log is "the first refusal of an episode, one aggregate per
+  report window while it lasts, its recovery, and the stall escalation (every attempt refused for 30 s)" — because "a refused
+  send can never produce one log line per attempt, which is the defect this policy removes".
 - A player-facing status line and the log line for the same event answer different readers, and both exist.
 
 ## Who judges

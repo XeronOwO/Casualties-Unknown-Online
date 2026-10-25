@@ -61,12 +61,12 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.Runtime` | 3 | unread |
 | `CasualtiesUnknownOnline.Runtime/Composition` | 12 | unread |
 | `CasualtiesUnknownOnline.Runtime/Configuration` | 16 | read |
-| `CasualtiesUnknownOnline.Runtime/Data` | 18 | unread |
+| `CasualtiesUnknownOnline.Runtime/Data` | 18 | read |
 | `CasualtiesUnknownOnline.Runtime/Diagnostics` | 3 | unread |
-| `CasualtiesUnknownOnline.Runtime/GameAdapter` | 52 | unread |
+| `CasualtiesUnknownOnline.Runtime/GameAdapter` | 52 | read |
 | `CasualtiesUnknownOnline.Runtime/Localization` | 4 | unread |
 | `CasualtiesUnknownOnline.Runtime/Logging` | 3 | unread |
-| `CasualtiesUnknownOnline.Runtime/Networking` | 14 | unread |
+| `CasualtiesUnknownOnline.Runtime/Networking` | 14 | read |
 | `CasualtiesUnknownOnline.Runtime/OnlineUi` | 54 | read |
 | `CasualtiesUnknownOnline.Runtime/Patching` | 3 | unread |
 | `CasualtiesUnknownOnline.Runtime/Persistence` | 60 | read |

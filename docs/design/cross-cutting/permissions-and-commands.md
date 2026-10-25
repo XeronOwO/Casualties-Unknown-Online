@@ -42,7 +42,14 @@ Two rules about how the code says it, both worth stating because the design and 
 
 **One data language.** An item's own state is written as SNBT text, and the two commands that speak it are `/data` and
 `/give` — the ticket's own summary is that "the language and the two commands that speak it" landed together, judged on the
-deployed artifact. A per-property keyword form is not a second dialect of the same thing.
+deployed artifact. A per-property keyword form is not a second dialect of the same thing. A list may hold elements of
+different kinds (`Runtime/Data/SnbtList.cs`, "Minecraft 1.21.5 does the same"), and the schema a completion walks is the item
+state's own root compound (`GameAdapter/ItemStateSchema.cs`), so "which keys are legal here" is answered from the shape rather
+than a hand-written list.
+
+**`/summon` places its object at one of three native anchors.** `Runtime/GameAdapter/WorldSummonAnchor.cs` names them: the world
+point under the POINTER (`Camera.main.ScreenToWorldPoint(Input.mousePosition)`), the local body's own position
+(`PlayerCamera.main.body.transform.position`), or a uniform point in the layer rectangle (`±halfWidth`, `±halfHeight`).
 
 ## Host rules
 

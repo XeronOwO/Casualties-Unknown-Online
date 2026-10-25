@@ -30,7 +30,7 @@ own cursor, a candidate list, and a hint line. It is not the game's native conso
 - An empty Enter closes the overlay; a non-empty Enter submits the line.
 - Tab accepts the current candidate; the candidate list is live without Tab.
 - Escape closes the overlay and must not reach the game's pause handling: the defect it was fixed from is "pressing ESC while the console is open still triggered the game's" own pause path, and the accepted reading is that all three expected behaviours pass on the deployed artifact.
-- Completion covers two vocabularies: the command tree and the resource ids, so a player can type an id by its name and have the namespaced id offered — the accepted ticket for that half is `done/command-id-name-completion.md`.
+- Completion covers three vocabularies: the command tree, the resource ids (a player types an id by its name and the namespaced id is offered — `done/command-id-name-completion.md`) and a selector's bracket filters, which are completed bracket-aware (`done/command-tree-resource-location-selector.md`).
 - A notice shown while the overlay is closed fades; while it is open, the history does not.
 
 ## Refusals

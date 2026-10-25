@@ -55,7 +55,7 @@ A compact menu at the pointer, titled with the player's name, with the applicabl
 
 `../../architecture/surfaces.md` (player-mounted body view row). Accepted:
 `../../backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md` (when the medical entry appears).
-Open: `../../backlog/todo/context-menu-name-wraps-behind-actions.md` (the title's fitting).
+Open: `../../backlog/review/context-menu-name-wraps-behind-actions.md` (the title's fitting).
 
 ## Gaps
 

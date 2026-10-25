@@ -91,6 +91,13 @@ not the goal.
   goes to the user before it is built. A call seam that a probe can drive is never evidence that a player
   can reach it.
 - `[CRITICAL]` No shortcuts: take the proper path when one exists.
+- `[CRITICAL]` **Native parity is the standard for anything that mirrors a native action or crosses players**
+  (`docs/development/native-parity.md`): the ticket states, before the first code edit, the player's action and
+  expectation, the native call site the game itself runs for that action locally, and how the remote case reaches that
+  same chain — and the behaviour is verified by running the SAME action locally and across players in one session and
+  comparing the two effect lists (native call, frame, audio, both clients' state). A stand-in object, a "give it first"
+  ordering, a replayed clip or a CUO copy of a native effect is the defect, not the fix; when the native chain cannot run
+  remotely, the substitute is a user decision carrying the quoted reason and the difference list.
 - `[CRITICAL]` Pragmatism is not a shield: a suboptimal choice needs an architectural reason. Do the
   right thing once.
 - `[CRITICAL]` Root cause over patch stacking: ask first whether an architecture change can eliminate the

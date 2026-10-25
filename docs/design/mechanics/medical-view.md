@@ -1,0 +1,69 @@
+# Medical view: treating another player's body
+
+Opening a teammate's wound view, choosing a limb, and applying treatment to it.
+
+## What the player does
+
+Opens a teammate's medical view from the member menu, sees that body's limbs and their condition, picks a limb, and
+releases a treatment over it — a bandage, a splint, a topical, a limb tool, or an injection. The player expects the
+treatment to land on the limb they picked, with the game's own medical animation, sound and outcome, and to cost what
+that treatment costs.
+
+## What the game itself does
+
+The wound view's release is the native call site for the wound actions: the game's own limb action runs against the
+selected limb of the viewed body. An injection is not a wound action: it runs the game's own injection path through a
+medical operation the two clients perform together, which is why the drag gesture refuses it.
+
+## Rules and states
+
+- The view belongs to the VIEWED body: the panel shows the patient's limbs, not the viewer's, and the header names whom
+  the viewer is looking at.
+- The selected limb is the one every wound action applies to; an action that names no limb is refused rather than
+  applied to a guess.
+- A topical applies a measured dose to the selected limb; a limb tool runs the item's own limb action; a bandage or
+  splint starts the item's own minigame.
+- A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
+
+## Refusals
+
+| Condition | The player reads |
+|---|---|
+| the item cannot be applied to a wound | `use.refused.cannot_apply_to_wound` |
+| the item is not the operator's | `use.refused.not_yours` |
+| no patient is selected | `use.refused.no_patient_selected` |
+| the item has no identity | `use.refused.no_network_identity` |
+| an injectable was dragged instead of opened | `use.refused.injectable_needs_medical_view` |
+| a topical arrived without the wound view's limb | `use.refused.topical_needs_wound_view` |
+| a limb tool arrived without a limb | `use.refused.limb_tool_needs_medical_view` |
+| the named limb or slot is unavailable | `use.refused.limb_or_slot_unavailable` |
+
+## Who judges
+
+The host validates the request. The treatment's effect belongs to the patient's body, so the patient's own client runs
+the game's own action on its own limb; the operator's client shows the gesture and the item's departure. An injection's
+operation is performed by both clients together, with the patient's side producing the outcome.
+
+## What travels
+
+The patient, the item's identity and the selected limb; for a measured dose, the dose. The outcome of the treatment is
+reported by the patient's side and lands in the item's own state.
+
+## What the player sees and hears
+
+The wound view shows the patient's wounds and the item being applied, with the game's own minigame for a bandage or
+splint and the game's own sounds; the patient sees their own body react to the treatment.
+
+## Records
+
+`../../architecture/surfaces.md` (medical view row), decisions 184 and 246. Accepted:
+`../../backlog/done/remote-player-medical-panel.md`, `done/remote-medical-panel-alarm-follows-viewed-player.md`,
+`done/remote-medical-panel-header-shows-viewer-identity.md`, `done/remote-medical-panel-hide-local-only-actions.md`,
+`done/remote-fentanyl-injection-and-medical-panel-desync.md`.
+
+## Gaps
+
+- The exact per-treatment costs and thresholds (what a bandage, splint, topical or injection costs the patient and the
+  operator) are not yet recorded here; the game's own tables hold them.
+- The shrapnel multi-injury flow's multiplayer behaviour has open acceptance rows; recorded in the review block of
+  `../../backlog/`.

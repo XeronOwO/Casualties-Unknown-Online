@@ -41,6 +41,9 @@ waits for it.
 | `mechanics/item-use.md` | applying an item to a teammate: entries, families, refusals, judging side | seeded |
 | `mechanics/give-and-take.md` | handing an item to a teammate and taking one from their pack | seeded |
 | `mechanics/console.md` | the command and chat surface: entry keys, live candidates, answers | seeded |
+| `mechanics/medical-view.md` | treating a teammate's body: the wound view, the selected limb, injections | seeded |
+| `mechanics/cpr-and-revival.md` | compressing a patient, the operator's own body gate, revival | seeded |
+| `mechanics/sleep.md` | sleep, forced sleep, and what a sleeping body allows | seeded |
 | `items/README.md` | the item families and what each family's own action does, with the measured facts the corpus keeps | seeded |
 | `surfaces/` | one page per player-facing surface; `../architecture/surfaces.md` is its index | GAP |
 | `cross-cutting/localization.md` | one language per reader, whole sentences, keys on the wire | seeds |

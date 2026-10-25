@@ -414,6 +414,9 @@ docs/design/mechanics/README.md | keep | spec | docs/design/AGENTS.md
 docs/design/mechanics/item-use.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/give-and-take.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/console.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/medical-view.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/cpr-and-revival.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/sleep.md | keep | spec | docs/design/mechanics/README.md
 docs/design/cross-cutting/localization.md | keep | spec | docs/design/AGENTS.md
 docs/design/items/README.md | keep | spec | docs/design/AGENTS.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md

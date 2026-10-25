@@ -17,8 +17,14 @@ medical operation the two clients perform together, which is why the drag gestur
 
 ## Rules and states
 
-- The view belongs to the VIEWED body: the panel shows the patient's limbs, not the viewer's, and the header names whom
-  the viewer is looking at.
+- The view belongs to the VIEWED body: the panel shows the patient's limbs, not the viewer's, and its identity header
+  carries the VIEWED player's data. The accepted record names the trap and the fix: "nothing rewrites it afterwards —
+  `WoundView.UpdateView` never touches the two labels — so a remote medical focus that does not take the header over keeps
+  the VIEWER's identity over the viewed player's body"; the user's ruling is that the header shows the viewed player's own
+  data.
+- The local-only controls are hidden while a remote focus is open — "the nap control (`WoundView.napbutton` with its
+  `sleepImage` state icon), the workout list (`WoundView.workoutList`) and the HUD main/off-hand switch control
+  (`PlayerCamera.handSwapImage`)" — because "a remote medical focus is a READ-ONLY view of another player's body".
 - The selected limb is the one every wound action applies to; an action that names no limb is refused rather than
   applied to a guess.
 - A topical applies a measured dose to the selected limb; a limb tool runs the item's own limb action; a bandage or

@@ -9,7 +9,8 @@ carries the work; this corpus says **what the product is**.
 No page is written from recollection. Every claim is one of exactly three kinds, and it carries its source on the page:
 
 - **a record**: the ticket and decision that fix the behaviour, linked by path (an accepted ticket in
-  `docs/backlog/done/`, an open one in `todo/`/`review/`, or a numbered decision in `docs/decisions/`);
+  `docs/backlog/done/`, an open one in `todo/`/`review/`, or a numbered decision in `docs/decisions/`), **quoted**: the
+  page carries a short excerpt of the wording it relies on, so the grounding is visible without opening the ticket;
 - **a fact of the game**: quoted from the decompiled tree by file and line;
 - **an observation**: what a player or a run reads, with where it was read and when.
 

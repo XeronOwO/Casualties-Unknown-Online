@@ -10,19 +10,30 @@ patient right now.
 
 ## What it is
 
-A panel showing the viewed body's limbs, their wounds and their condition, with the treat actions the game offers for the
-selected limb, the CPR control while the patient needs it, and a header naming the patient.
+The game's own medical UI — its `WoundView` chart — opened with a REMOTE focus. The ticket that accepted it states the
+shape: "`OpenRemoteMedical(steamId, displayName)` opens the game's own WoundView medical panel for an in-world remote
+player", a display-only body copy is created "from the `Experiment` template" and "projects the remote player's latest 1 Hz
+`CharacterDataMsg` (health, limbs, skills) onto it", and "`RemoteMedicalPatches` keep the native view read-only while it is
+focused on a remote player: nap, radial use/wear, and special limb actions are blocked". It is not a CUO panel, and the
+live remote render clone is never mutated by this path.
 
-## Rules and states
+## Parts and states
 
-- The panel belongs to the viewed body: it shows the patient's limbs and values, and the header names the patient.
-- A viewer's own state never appears in the panel except as a reason an action is refused (the operator's own strength for
-  CPR, the operator's own stamina).
-- The selected limb is the one every wound action applies to; the panel refuses an action that would need a limb it does
-  not have selected.
-- Actions that exist only locally (an action only the patient could take) are not offered.
-- The panel stays on its patient: when the patient leaves the world or dies, the panel follows the state it is given
-  rather than continuing to act.
+- The chart belongs to the viewed body: the display body carries the patient's health, limbs and skills, and the header
+  names the patient.
+- The view is READ-ONLY while focused on a remote player: nap, radial use/wear and special limb actions are blocked, so
+  nothing the viewer does in the chart acts on their own body.
+- The viewer's own state never appears in the chart except as a reason an action is refused (the operator's own strength
+  for CPR, the operator's own stamina).
+- The chart closes on session, world or remote exit, and the display body is torn down with it.
+- The identity header carries the VIEWED player's data, not the viewer's. The accepted record states the mechanism: the
+  game fills the header once, from the local character, and "nothing rewrites it afterwards — `WoundView.UpdateView` never
+  touches the two labels — so a remote medical focus that does not take the header over keeps the VIEWER's identity over
+  the viewed player's body"; the user's ruling on it is "the header must show the VIEWED player's own data".
+- The local-only controls are HIDDEN, not disabled: "the nap control … the workout list … and the HUD main/off-hand switch
+  control" are removed while the focus is open and re-asserted every frame, and the hand switch key is refused while the
+  focus is open, because "a remote medical focus is a READ-ONLY view of another player's body".
+- A viewer's own changes do not reach the patient: the chart is display-only, with no protocol and no authority change.
 
 ## Refusals
 

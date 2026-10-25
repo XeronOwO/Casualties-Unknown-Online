@@ -371,6 +371,11 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 				case RemoteIntentStep.PickUp:
 					body.PickUpItem(item, targetSlot, false);
 					break;
+				case RemoteIntentStep.MoveBySwap:
+					// A carried item changes slots through the game's own swap, in place: no world object is ever created for it, so a refused
+					// move leaves the item where it was instead of lying on the ground (ticket give-degrades-to-a-ground-drop-and-rearranging-retires-it).
+					body.SwapSlots(body.SlotOf(item), targetSlot);
+					break;
 			}
 		}
 

@@ -14,7 +14,33 @@ reported, never silently degraded; `docs/design/mechanics/death-and-drops.md` an
 hold the rule that an item's ownership never leaves every side at once, and `docs/design/mechanics/carry.md` the placement query the
 receiver answers.
 
-## Root cause, read from the game (2026-10-25, fixed in `a4dd…`)
+## Root cause 2, read from the refusal (2026-10-25, after the swap fix)
+
+The swap fix closed the occupied-slot loss, and the retest still lost the item — the guest's own log named the second cause directly:
+
+```
+18:02:01.242 [ItemTrace] op=9 begin item=1091242674115 origin=OnItemDropped event=Drop
+18:02:01.244 [ItemTrace] op=9 item=1091242674115 origin=OnItemPickedUp result=Cancelled events=[RePick]
+18:02:01.269 [SlotMoved] emergencylight (id 1091242674115) → slot 5 (Drag) reported
+18:02:01.328 Kernel command rejected by host for item 1091242674115: ItemUpdateState refused (InvalidTransition…)
+```
+
+and the host's own log shows what made the item terminal four minutes earlier, at the GIVE:
+
+```
+18:02:00.149 [ItemTrace] op=37 item=1091242674115 origin=OnItemDestroyed result=Committed events=[Destroy…]
+18:02:00.182 [StandingItem] materialized emergencylight (id 1091242674115) for <guest>
+```
+
+`PlayerInventoryPlacement.TryDestroyById` removes the giver's copy of a transferred item with `Object.Destroy` and **leaves its instance id
+on the object**, so `ItemWorldSync.OnItemDestroyed` reports a destroy for an item that did not die — it moved. The kernel marks the row
+terminal, and every later state update from the new owner is refused (`ItemUpdateState refused (InvalidTransition…)`), after which the row
+leaves the inventory and the item exists nowhere.
+
+The fix zeroes the instance id before the destroy — the same step `KillRemoteItem` takes for a remote deletion — so the destroy of a
+TRANSFERRED item reports nothing: the authoritative transfer already states where the item went.
+
+## Root cause, read from the game (2026-10-25, fixed in the same cycle)
 
 The native body-slot release is **two** branches, and CUO had applied one of them to both cases. `PlayerCamera.cs`'s own release:
 

@@ -239,6 +239,14 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 		var id = item.GetComponent<ItemInstanceId>();
 		if (id != null && id.Id == instanceId) // Unity object — ==
 		{
+			// THE ITEM DID NOT DIE — IT MOVED to another owner, and the authoritative transfer already carries that fact. Zero the instance id
+			// first, the same step KillRemoteItem takes for a remote deletion, so ItemWorldSync.OnItemDestroyed sees id 0 and reports nothing.
+			// Reporting a destroy here is what marked the transferred item TERMINAL in the kernel, after which every later state update from its
+			// new owner was refused as an invalid transition and its row left the inventory — the report "gave an item, rearranged it on that
+			// player, and the item was swallowed" (host log 2026-10-25 18:02:00: OnItemDestroyed committed for the item the give had just moved,
+			// then the owner's ItemUpdateState refused with InvalidTransition four hundred milliseconds later).
+			id.Id = 0;
+
 			// Detach before Destroy. Object.Destroy is deferred to the end of
 			// the frame; if a nested container child is left parented, the
 			// immediate re-report after the transfer still captures the item

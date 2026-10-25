@@ -106,6 +106,14 @@ on world entry (like the keypad codes)", the 60 s cycle "re-sends the FULL curre
 same-value SetValue on the guest side; covers the lazy P2P session's ~30 s swallow window)", and a RUNTIME-created geyser
 carries its type in the creation message instead.
 
+**In co-op the line also starts for the stragglers, and that is CUO's extension of a native rule.**
+`Runtime/Session/EntitySync/RadiationStragglerPolicy.cs`: "the vanilla game starts its line from the single-player layer timer
+(`WorldGeneration.cs:859-863`); in a co-op session that would only reflect the host's own progress. This policy is the
+multiplayer extension: once at least one living player has reached the layer bottom and another living player is still above
+it, the host activates the line so the stragglers feel the same radiation pressure the original mechanic applies." The line is
+one-way in the game ("it stays active until the layer is regenerated"), so the policy only decides when to ACTIVATE it, and
+"no new per-player pressure message is needed" because each player's own `RadiationLine.Update` already applies the effects.
+
 ## What travels
 
 Damage reports from the client that hit the block, the host's table rows (with the game's own order) to a joining client,

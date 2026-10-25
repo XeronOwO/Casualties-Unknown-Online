@@ -27,6 +27,11 @@ the host's, and every other client holds them as projections.
   never a third player's view. The code names the same split: `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatReplay.cs`
   "JUDGES an announced enemy attack against this client's own view — the frozen enemy copy it renders and its own" state,
   so the replay is the victim's judgement and never a re-simulation of the attacker's.
+- **What the kernel keeps about an enemy is the durable half.**
+  `src/CasualtiesUnknownOnline.GameState/Domains/Entities/EnemyState.cs` holds `EntityId`, `PrefabId`, `Health`,
+  `RuntimeSpawned` and `Stunned`, with "high-frequency position/velocity remains a stream" — so an enemy's position is a
+  stream fact and its identity, health and spawn kind are decisions. `EnemyCombatEffectKind.cs` names the proximity effect
+  families a result can carry: `ElderHorrorTick`, `ElderHorrorDefeat`, `XalorisSepticTick` and `GrabberGrabbed`.
 
 ## Refusals
 

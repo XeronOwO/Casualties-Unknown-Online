@@ -53,6 +53,10 @@ report without a data anchor stays unbounded and is recorded as such.
 
 Every report is either anchored or named unbounded, and the census is the list: `docs/architecture/member-report-validation.md` carries one row per wire member, and a row marked `unbounded:` is a report this project accepts without an anchor. The accepted record's reading is that the family closed what it could — "rows 1, 2 and 4 PASS; row 3 is WITHDRAWN by the ruling below" — and that the census, not a reader's memory, is where an unbounded surface is found.
 
+## Interaction gates are the host's
+
+The gates that decide whether a remote interaction may happen — who may act on whom, and whether an operation is already running — are judged by the host rather than by the asking client: the accepted record's evidence is `InteractionGateAuthorityTests` (18 cases) plus `MedicalOperationConcurrencyTests` for the exclusivity refusal, with the third-party chain unchanged. A client's own check stays an interception (see host rules); the decision is the host's.
+
 ## Host rules
 
 A host rule is a setting the host alone decides. It reaches every member that reads it, and the local check it enables

@@ -16,6 +16,7 @@ values ride the character data (the 1 Hz stream), and one-shot sounds ride their
 ## Rules and states
 
 - **A player picks a colour, and the head tag is only the colour.** Names above heads are colour-only tags by design ("Player-selectable colors and color-only head name tags"), so a tag is not a text label with a colour attached; the colour is the player's choice and the tag shows it.
+- **A ragdoll is a body state, not a local animation.** A body that has gone limp shows as limp to the others ("Remote ragdoll state not visible" and "Ragdoll limb pose not synced" are its two records), so the ragdoll state and its limb pose travel as body state rather than being played only where the body fell.
 - **A body's state reaches every client's view, not only its owner's.** The family's own records name each case as it was
   found: "High sleepiness squint not visible remotely", "Host severe sleepiness posture not synced to guest" (a body that
   "cannot stand straight (posture is visibly slouched/bent)"), and "Host fall injury mouth-expression desync" where "on the

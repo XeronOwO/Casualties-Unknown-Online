@@ -61,6 +61,10 @@ and a break's drop.
 
 Cracks that deepen with damage, the block breaking with its own sound and drop, and the same holes for every player.
 
+## The layer's hazards
+
+A hazard the layer imposes is the host's, and every client shows the same one: the radiation line descends at the HOST's rate between resends rather than at each client's own ("The radiation line descends at each client's own rate between the host's resends", fixed and read on the machine: with the member unconscious and the host conscious both lines advanced together, "delta 6.142 vs 6.174 over the same window" instead of the member's own `0.3` units/s), and the line stops above the layer floor leaving a shared margin rather than pinning to the floor.
+
 ## Records
 
 Accepted: `../../backlog/done/block-break-first-writer-wins.md` (the dual-side reading), `done/block-damage-table-capacity-alignment.md`

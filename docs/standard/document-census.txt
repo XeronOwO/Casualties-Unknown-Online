@@ -415,6 +415,7 @@ docs/design/INDEX.md | keep | spec | docs/design/AGENTS.md
 docs/design/audit/README.md | keep | spec | docs/design/INDEX.md
 docs/design/audit/code.md | keep | spec | docs/design/INDEX.md
 docs/design/audit/sweep.md | keep | spec | docs/design/INDEX.md
+docs/design/audit/native.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/README.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/status-line.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/drag-cue.md | keep | spec | docs/design/INDEX.md

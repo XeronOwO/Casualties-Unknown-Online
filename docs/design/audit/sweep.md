@@ -25,7 +25,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.BulkTransfer.Core/Audio` | 1 | unread |
 | `CasualtiesUnknownOnline.GameAdapter` | 74 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 6 | unread |
-| `CasualtiesUnknownOnline.GameAdapter/Character` | 94 | unread |
+| `CasualtiesUnknownOnline.GameAdapter/Character` | 94 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Content` | 36 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/Items` | 69 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | unread |

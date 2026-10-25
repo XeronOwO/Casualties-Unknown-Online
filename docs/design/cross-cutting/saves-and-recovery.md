@@ -58,6 +58,9 @@ come back where they were when the cut was taken.
   manifest gate), `RecoveredLive` ("the live snapshot read, but a crash leftover was repaired on the way in") or
   `BackupFallback` ("the live snapshot was unusable; a backup archive was opened instead"), and `ChecksumPolicy` is what makes
   the gate real: `Required` reports a mismatched digest as damaged, `None` records digests without enforcing them.
+- **An absent native field is NAMED, never defaulted.** `GameAdapter/Character/CharacterDataCapture.cs`: a capture with no
+  live scene port "captures a snapshot without them, which is exactly the state the restore path NAMES rather than defaults" —
+  so a character restored from an archive that never held the native fields reports the absence instead of inventing values.
 
 ## Values the archive must carry
 

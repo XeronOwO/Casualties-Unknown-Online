@@ -30,6 +30,11 @@ bodies' presentation follows from that relation.
   held at zero every frame, so the native sit condition cannot" fire.
 - The carry is a body pose fact, not a seating: being carried never turns into the native idle-sit behaviour no matter how
   long the rider is without input.
+- **The presented anchor is pinned per frame, and drift is a reading rather than a fix.** `CarriedRiderPresenter.cs` mounts a
+  remote rider clone "under a neutral-scale mount … when the LOCAL player is the carrier", pins "every carried rider clone to
+  its carrier's visual anchor (the local body, or that carrier's render clone on a third-party view)" each frame, and keeps
+  "the read-only pin-drift reading of whether the frame that rendered showed the clone where the pin put it. It observes and
+  renders only — nothing here simulates a remote body".
 - **The carrier cannot sit while carrying.** The carrier-side half of the same family was its own defect: "while the guest
   carries the host on their back, the guest (carrier) is still able to sit on the ground".
 - **The rider's own body keeps simulating.** The carried body is driven by a carry driver whose presence used to skip the

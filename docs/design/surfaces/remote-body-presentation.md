@@ -35,6 +35,17 @@ values ride the character data (the 1 Hz stream), and one-shot sounds ride their
 - **One-shot character sounds are relayed with their clip identity.** A consumption plays the game's own clips — the
   accepted reading names them: "the guest and a third client each replayed the exact `Consume` clips (`eatCrunch`,
   `drink`)".
+- **The sound chain is captured at the source and replayed inside a guarded scope.**
+  `src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterSoundSync.cs`: the source side's `Sound.Play` call is captured by
+  the patches ("call-identity scope for the swings/exert/footstep/landing/vocalizations, the `GunScript.Fire` postfix for gun
+  fire"), "the exact clip + position + volume/follow + recoil facts travel as one dedicated reliable `CharacterSoundMsg`", and
+  "the receiver's replay runs inside a RemoteApply scope, so the capture patches can never echo the replay". Its own limit is
+  stated too: "a lost message is a lost one-shot presentation (acceptable degradation — there is no persistent fact to heal)".
+- **A remote limb shows the owner's wounds, but the BLEEDING is the host's model.**
+  `CloneLimbRenderer.cs`: each clone limb shows the owner's synced state (broken-bone sprite, dismembered = gone, blood
+  overlay and drip, skin/muscle shading, infection tint), the clone's own `Limb.Update` is skipped by the engine, and "on the
+  HOST the fixed-step vitals pass calls it explicitly, because the host's clone is the bleeding model … on the host's
+  simulated clone the limb BLEED is the host's model, so the apply preserves it; everything else is the owner's".
 - **A carried body's pose is a pose rule, not a seating** (see `../mechanics/carry.md`): the ride presentation replaces the
   native idle-sit family on both the rider's and the carrier's side.
 - A presentation never decides anything: it shows the state the owner produces.

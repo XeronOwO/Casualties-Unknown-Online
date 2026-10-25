@@ -69,20 +69,27 @@ is declared as "An item moves from World/Contained into the actor's carried inve
 can move a WORLD row straight into the TARGET's custody with the giver as the actor. That is the same custody change the two-step performed, in one
 command, and it needs no new wire message.
 
+**And the target already holds the item.** World items are synced to every client, so the receiving player's own copy of the ground item exists on
+their machine. That makes the native chain available verbatim: the TARGET runs the game's own pickup on its own object — the same "the affected
+player's client runs the native call" rule as decision 270 — and no item payload crosses the wire at all. The intent kind for it already exists
+(`RemoteInventoryIntentKind.PickUpToSlot = 6`), and the target's applier already implements it (`RemoteIntentApplier.ApplyPickUpToSlot` →
+`RemoteIntentSlotRelease.Plan` + `body.PickUpItem`).
+
 What the change touches, in order:
 
-1. **The host's ownership check** (`PlayerRemoteInventoryIntentService`, the `TryFindItem(source.Items, msg.ItemInstanceId)` at the give direction):
-   for `GiveToBody` it must accept an item the sender NAMES — a row that is `World` (the item is on the ground, which is exactly the case the player
-   aims at) — instead of demanding the item in the sender's character snapshot. The snapshot is a report and lags; the row is the authority.
-2. **The command**: `PickUpItemCommand(actor: sender, instanceId, newOwner: target)` executed on the host, whose committed event already reaches the
-   target's client through the transfer projection.
-3. **The target's client**: the existing give placement (`PlayerInteractionApply.PlaceCarriedItem` → `LocalBodyPlacement`, which is the ONE place
-   "find a free slot" belongs) puts the item in the aimed slot or answers the refusal.
-4. **The giver's client**: its world object must be retired when the row leaves the world — the reconcile's kill sweep already owns that case (the row
-   is gone from the world), which is why nothing has to be destroyed by hand.
+1. **The host's give branch** (`PlayerRemoteInventoryIntentService`): the `TryFindItem(source.Items, msg.ItemInstanceId)` refusal is right for a
+   carried item and wrong for a world item. When the sender does not carry it AND the kernel row is `World`, the host forwards `PickUpToSlot` to
+   `msg.TargetBodySteamId` with `TargetSlotIndex` — the destination the player aimed at — instead of refusing or running `BeginGive`.
+2. **The applier's lookup** is the one real gap: `RemoteIntentApplier` resolves every item with `CarriedItemLocator.FindById(body, id)`, i.e. items in
+   the owner's body, so a world item needs a locator by instance id over the scene's world items (the same registry `ItemWorldSync` already walks).
+3. **Everything after that is already the game's**: the target's `body.PickUpItem` runs the native guards, sound and puff, its own pickup report
+   commits `PickUpItemCommand` on the host, the row leaves `World`, and the giver's world object is retired by the reconcile's kill sweep — nothing is
+   destroyed by hand and no intermediate slot exists.
+4. **The giver's client** stops refusing: `RemoteDragIntentDispatcher.CarryForGive` returns true for a world item with an authoritative id, and the
+   intent it sends is the `GiveToBody` the release already produced (the host decides the native call).
 
-Rows 1-4 below then hold without any intermediate slot: the item goes from the ground to the aimed place, and the only free-slot search in the whole
-path is the receiver's placement.
+Rows 1-4 below then hold without any invented intermediate state: the item goes from the ground to the aimed place, and the only free-slot search in
+the whole path is the receiver's placement.
 
 ## What a fix has to decide (superseded by the shape above)
 

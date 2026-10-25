@@ -30,6 +30,11 @@ medical view can act on. A revive is the game's own revival of that body.
   exists because the short window "is not enough for one family: a GUEST's block-break drops exist only on this side until the
   host answers the break report that carries them, and the re-report fallback's window (5 s at its densest, 60 s steady) is far
   longer".
+- **A building's death rolls its drops on the world's own terms.** `BuildingEntity.Update` (`BuildingEntity.cs:74-90`): each
+  entry drops when "`Random.Range(0f, 1f) < itemDrop.chance * this.dropChanceMultiplier`", is thrown with
+  `Random.Range(-7f, 7f)` horizontal velocity, gets `SetCondition(Random.Range(conditionMin, conditionMax))`, and is marked
+  `FreshItemDrop` when the player is within `8f` — so a death's drops are rolled once, are not all-or-nothing, and the
+  "fresh" mark is the game's own.
 - The body stays where it died and is still a treatment target until it is revived or despawned; a dead body cannot
   consume anything.
 - Revival restores the body the game's own revival restores; the reviving player spends what the game charges them.

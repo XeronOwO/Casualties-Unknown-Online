@@ -7,6 +7,12 @@ that owns the body being affected.
 
 ## The families a gesture can be routed to
 
+**What an item can do is its definition's flags, not its kind.** `ItemInfo` (`ItemInfo.cs:88-140`) carries `usable`,
+`usableOnLimb`, `wearable`, `usableWithLMB`, `autoAttack`, `onlyHoldInHands`, `destroyAtZeroCondition`,
+`scaleWeightWithCondition` and a tag list, and `ActuallyUsableOnLimb(item)` is the predicate a limb entry asks. So an item that
+is edible, wearable and a limb tool at once is ordinary, and a CUO table that assigns one family per item is a second, wrong
+definition.
+
 | Family | The item's own action looks like | Used on another player as |
 |---|---|---|
 | **Wear** | the item is wearable and carries a desired limb or slot | placed on the target body |

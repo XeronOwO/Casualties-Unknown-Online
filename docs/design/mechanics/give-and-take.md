@@ -51,6 +51,11 @@ that path, not by the gesture.
   not where the item went", with rows read on the machine and its 60 ms window judged by the user's ruling because it
   cannot be produced by hand.
 - A container that cannot hold the item (weight, kind) refuses it by name.
+- **A trade is priced from the item's own value, and the trader's multiplier is a curve over reputation.**
+  `ItemInfo.GetValue` (`ItemInfo.cs:28-50`) is "`value * condition`", scaled by remaining rounds for ammo and by the item's
+  liquids ("`amount * 0.001f * valuePerLiter`", capped at `50f`); `DefaultValue()` caps a default liquid stack at `1.5f`; and
+  `TraderScript.ValueMultiplier()` is `valueMultiplierCurve.Evaluate(reputation * 0.01f)` — so a trade is arithmetic on the
+  item's own state and the trader's standing, never a CUO price table.
 
 ## Refusals
 

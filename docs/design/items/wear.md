@@ -20,6 +20,9 @@ and the body's own rules decide whether that place can take it.
 - A garment with no place on that body is refused by name.
 - The wear placement is the host's: nothing is measured on the operator's side, because a wear gesture has no dose and no
   native action to capture.
+- **A worn item can act continuously, and the auto pump is the model.** `AutoPump.cs:33-41`: while worn and charged it drains
+  "`DrainCharge(Time.deltaTime / 1200f)`" plus `0.002f` per stroke and raises `bloodPressure += 44f` whenever the body is below
+  `85f` — a treatment with no operator and no gesture, which is exactly why a CUO rule cannot model every worn item as inert.
 
 ## Refusals
 

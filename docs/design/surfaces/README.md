@@ -7,7 +7,7 @@ surface is judged against, its native counterpart and its accepted record. This 
 
 | Surface | The page | Status |
 |---|---|---|
-| The console (command and chat) | `console.md` | GAP |
+| The console (command and chat) | `command-overlay.md` | page |
 | The online window (lobby, members, network, administration) | `online-window.md` | page |
 | The member menu (right-click a player) | `member-menu.md` | page |
 | The backpack panel (a teammate's pack) | `backpack-panel.md` | page |
@@ -16,7 +16,7 @@ surface is judged against, its native counterpart and its accepted record. This 
 | The world overlays (nameplates, network readout, pings) | `world-overlays.md` | page |
 | The drag cue (the use circle and its label) | `drag-cue.md` | page |
 
-A `GAP` page is written from the surface's accepted record and its rules; until it exists, a change to that surface
+Every page above exists. A surface added later starts as a `GAP`: its change records the design first,
 records the design first.
 
 ## What every surface page states

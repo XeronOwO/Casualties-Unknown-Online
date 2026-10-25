@@ -48,6 +48,7 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `surfaces/drag-cue.md` | the use circle and its label |
 | `surfaces/member-menu.md` | the menu a teammate opens |
 | `surfaces/medical-panel.md` | a patient's body on the operator's screen |
+| `surfaces/command-overlay.md` | the console as a surface |
 | `surfaces/online-window.md` | the session's own panel |
 | `surfaces/backpack-panel.md` | a teammate's pack as a panel |
 | `surfaces/world-overlays.md` | nameplates, readout, arrows, pings |
@@ -55,6 +56,12 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `cross-cutting/permissions-and-commands.md` | the command family and the host rules behind it |
 | `cross-cutting/observability.md` | what a run leaves behind |
 | `cross-cutting/saves-and-recovery.md` | what a save holds, what a restore may do |
+
+## The register by domain
+
+| Page | Holds |
+|---|---|
+| `decisions-by-domain.md` | the decision numbers grouped by the area a reader arrives from |
 
 ## Related reading
 

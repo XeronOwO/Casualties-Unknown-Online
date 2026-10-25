@@ -9,9 +9,9 @@ surface is judged against, its native counterpart and its accepted record. This 
 |---|---|---|
 | The console (command and chat) | `console.md` | GAP |
 | The online window (lobby, members, network, administration) | `online-window.md` | GAP |
-| The member menu (right-click a player) | `member-menu.md` | GAP |
+| The member menu (right-click a player) | `member-menu.md` | page |
 | The backpack panel (a teammate's pack) | `backpack-panel.md` | GAP |
-| The medical panel (a patient's wound view) | `medical-panel.md` | GAP |
+| The medical panel (a patient's wound view) | `medical-panel.md` | page |
 | The status line (notices and refusals) | `status-line.md` | page |
 | The world overlays (nameplates, network readout, pings) | `world-overlays.md` | GAP |
 | The drag cue (the use circle and its label) | `drag-cue.md` | page |

@@ -46,6 +46,8 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `surfaces/README.md` | the surface pages, one row each |
 | `surfaces/status-line.md` | the notice and refusal line |
 | `surfaces/drag-cue.md` | the use circle and its label |
+| `surfaces/member-menu.md` | the menu a teammate opens |
+| `surfaces/medical-panel.md` | a patient's body on the operator's screen |
 | `cross-cutting/localization.md` | one language per reader |
 | `cross-cutting/permissions-and-commands.md` | the command family and the host rules behind it |
 | `cross-cutting/observability.md` | what a run leaves behind |

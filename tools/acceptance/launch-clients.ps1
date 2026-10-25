@@ -139,6 +139,25 @@ function Stop-BoxGame([string]$Box) {
 	foreach ($gamePid in (Get-BoxProcesses $Box 'CasualtiesUnknown')) {
 		try { Stop-Process -Id $gamePid -Force } catch { Write-Run "could not stop ${gamePid}: $($_.Exception.Message)" }
 	}
+
+	# Poll for the process actually being gone instead of a fixed wait: the next start fights a half-dead process, and a fixed sleep
+	# either wastes the whole interval or starts too early. Ten seconds is the ceiling, the exit is usually under one.
+	$deadline = [DateTime]::UtcNow.AddSeconds(10)
+	while ([DateTime]::UtcNow -lt $deadline) {
+		if (@(Get-BoxProcesses $Box 'CasualtiesUnknown').Count -eq 0) { return }
+		Start-Sleep -Milliseconds 250
+	}
+}
+function Wait-SteamSettled([string]$Box) {
+	# Poll for the box's Steam being genuinely up — the launcher process plus its web helper — instead of a fixed grace. The old
+	# $SteamGraceSeconds wait was 60 s of dead time per launch even when Steam was ready in three.
+	$deadline = [DateTime]::UtcNow.AddSeconds($SteamGraceSeconds)
+	while ([DateTime]::UtcNow -lt $deadline) {
+		if (@(Get-BoxProcesses $Box 'steamwebhelper').Count -gt 0) { return $true }
+		Start-Sleep -Milliseconds 500
+	}
+
+	return $false
 }
 function Ensure-BoxSteam([string]$Box) {
 	if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { return }
@@ -149,8 +168,7 @@ function Ensure-BoxSteam([string]$Box) {
 		if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { break }
 		Start-Sleep -Seconds 5
 	}
-	Write-Run "$Box steam process up; giving it $SteamGraceSeconds s before the game starts"
-	Start-Sleep -Seconds $SteamGraceSeconds
+	if (Wait-SteamSettled $Box) { Write-Run "$Box steam settled" } else { Write-Run "$Box steam did not settle within $SteamGraceSeconds s; starting the game anyway" }
 }
 function Start-BoxClient([string]$Box, [string]$Client, [string]$GameRoot) {
 	if (Test-Endpoint $Client) {
@@ -158,7 +176,6 @@ function Start-BoxClient([string]$Box, [string]$Client, [string]$GameRoot) {
 		if (Test-SteamInitialized $GameRoot) { return $true }
 		Write-Run "$Client runs without Steam; restarting this box's client only"
 		Stop-BoxGame $Box
-		Start-Sleep -Seconds 10
 	}
 	elseif (@(Get-BoxProcesses $Box 'CasualtiesUnknown').Count -gt 0) {
 		Write-Run "$Client process exists; waiting for its endpoint instead of starting another"
@@ -179,11 +196,9 @@ function Start-BoxClient([string]$Box, [string]$Client, [string]$GameRoot) {
 			Start-Sleep -Seconds 10
 			continue
 		}
-		Start-Sleep -Seconds 5
 		if (Test-SteamInitialized $GameRoot) { Write-Run "$Client up with Steam initialized"; return $true }
 		Write-Run "$Client is up without Steam (attempt $attempt); waiting and restarting this box's client only"
 		Stop-BoxGame $Box
-		Start-Sleep -Seconds 30
 	}
 	Write-Run "FAIL: $Client never came up with Steam initialized"
 	return $false

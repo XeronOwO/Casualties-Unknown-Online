@@ -298,7 +298,7 @@ internal sealed class GameAdapterDomains
 		// readers — a delegate wired after construction would be the same fact with a cycle trap.
 		DescentBody = new DescentBodyPreservation();
 		CharacterDataSync = new CharacterDataSync(session, world, characterData, mapper,
-			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
+			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>(), items),
 			FactTable,
 			restoreApplier,
 			wearables,

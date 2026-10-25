@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -21,13 +21,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// when a snapshot updates. Split out of CharacterDataSync when the 600-line
 /// gate demanded it — the data domain stays there, the display domain here.
 /// </summary>
-internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log)
+internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log, IItemControl items)
 {
 	private readonly ILogger<CloneInventoryRenderer> _log = log;
+	private readonly IItemControl _items = items;
 
 	internal void ApplyCloneInventory(Body clone, CharacterDataMsg data, ulong ownerSteamId)
 	{
 		_log.LogDebug("[CloneRender] apply {Count} items to clone slots ({Slots} slots).", data.Items.Count, clone.slots.Length);
+		var rows = _items.QueryJudgedItems();
 		foreach (var slot in clone.slots)
 		{
 			if (slot == null) // Unity object — ==
@@ -35,7 +37,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 				continue;
 			}
 
-			var wanted = data.Items.FirstOrDefault(x => x.SlotIndex == slot.slot);
+			var wanted = CloneItemSelection.ItemInSlot(rows, data, ownerSteamId, slot.slot);
 			RenderItemInto(slot.transform, wanted, slot.spriteSortOrder, wearLimb: null, ownerSteamId);
 		}
 
@@ -47,10 +49,16 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 				continue;
 			}
 
-			var worn = data.Items.FirstOrDefault(x => x.SlotIndex == -(i + 2));
+			var wornSlot = -(i + 2);
+			var worn = CloneItemSelection.ItemInSlot(rows, data, ownerSteamId, wornSlot);
 			RenderItemInto(limb.transform, worn, 0, wearLimb: limb, ownerSteamId);
 		}
 	}
+
+	/// <summary>
+	/// Which item belongs in one of the owner's slots — the authority's answer first, the snapshot's own field as the fallback. The rule
+	/// lives in <see cref="CloneItemSelection"/> so this renderer keeps rendering.
+	/// </summary>
 
 	/// <summary>
 	/// Materialize one snapshot item into a render parent. Slot parents are

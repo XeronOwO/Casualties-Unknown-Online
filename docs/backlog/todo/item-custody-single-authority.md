@@ -83,9 +83,12 @@ correction came from the machine, not from a guess, and is now the rule the test
 - [x] 2. The query a reader uses — evidence: `ItemCustodyComparison.TryFindRowInSlot(rows, owner, slot)` answers the row a clone render
       should show, never a Terminal one; two tests pin it (owner+slot, and a Terminal row never answering a slot), 9/9 in
       `.acceptance/l530-test.log`.
-- [ ] 3. Switch ONE reader — `CloneInventoryRenderer.ApplyCloneInventory` — to the query, keeping the snapshot as the fallback for a row the
-      kernel has not judged yet (a restore's first frames). Evidence: a two-client session still reads `[ItemCustody] mismatches=0` and the
-      clones render unchanged.
+- [x] 3. Switch ONE reader — `CloneInventoryRenderer.ApplyCloneInventory` — to the query, keeping the snapshot as the fallback for a row the
+      kernel has not judged yet (a restore's first frames) — evidence: the selection rule now lives in
+      `GameAdapter/Character/CloneItemSelection.cs` (`ItemInSlot`), the renderer asks it for both the slot and the worn/limb branch, and the
+      snapshot's own `SlotIndex` is the fallback only. Machine read: `.acceptance/batch-render`, host `[ItemCustody] rows=277 objects=277
+      mismatches=0` (19:35:19.557) and guest the same after its streaming settle (19:35:22.646), while the guest's clone render still draws
+      the owner's item — `[CloneRender] apply 1 items to clone slots (6 slots)` at 19:35:41.988.
 - [ ] 4. Switch `StandingItemMaterializer` and the arbitration's slot checks the same way, one commit each.
 - [ ] 5. Delete what no longer has a reader; gates + full run; deploy.
 

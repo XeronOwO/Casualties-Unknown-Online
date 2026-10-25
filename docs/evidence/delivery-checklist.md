@@ -58,11 +58,11 @@ by it. A box whose evidence names another cycle is not filled.
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
       change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
       — evidence: the custody ticket's stage 1 read `docs/design/model/item-custody.md` and wrote back its `Gaps` rows this cycle
-- [ ] Native parity
+- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism
-      — evidence: documentation delivery this cycle (the projection's code landed in `e499dc33`); the rule now names
-      `reversing/` as the only source of native fact
+      — evidence: no native call changed this cycle: the selection asks the kernel row, whose slot field (`ItemData.SlotIndex`, "the
+      owner-local slot") is the native-shaped fact quoted on the design page
 - [ ] Native parity probe
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
       with every difference either fixed or named as a user decision

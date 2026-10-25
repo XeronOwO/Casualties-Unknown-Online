@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -65,6 +66,64 @@ public sealed class NativeCitationGateTests
 
 		Assert.Equal("2475", match.Groups["line"].Value);
 		Assert.DoesNotMatch(@"reversing/", "a sentence with no citation");
+	}
+
+	/// <summary>
+	/// A ledger row that says a page now carries the fact must have a page that cites the SAME source. The failure this
+	/// closes is real and happened: an edit's literal match missed, the commit went out anyway, and the row claimed a
+	/// page fact the page did not have. Row 90 and 91 were that defect, fixed by a follow-up commit.
+	/// </summary>
+	[Fact]
+	public void EveryNativeRowThatNamesAPage_CitesTheSameSourceOnThatPage()
+	{
+		var ledger = Path.Combine(RepositoryPaths.Root, "docs", "design", "audit", "native.md");
+		var failures = new List<string>();
+		foreach (var line in File.ReadAllLines(ledger))
+		{
+			if (!line.StartsWith("| ", StringComparison.Ordinal) || line.StartsWith("| #", StringComparison.Ordinal) || line.StartsWith("| Area", StringComparison.Ordinal))
+			{
+				continue;
+			}
+
+			var cells = line.Split('|');
+			if (cells.Length < 7)
+			{
+				continue;
+			}
+
+			var number = cells[1].Trim();
+			var rowCitations = Citation.Matches(cells[2]).Select(m => m.Groups["path"].Value).Distinct().ToList();
+			var pages = Regex.Matches(cells[4], @"`(?<page>(?:[a-z\-]+/)?[a-z\-]+\.md)`")
+				.Select(m => m.Groups["page"].Value)
+				.Distinct()
+				.ToList();
+			if (rowCitations.Count == 0 || pages.Count == 0)
+			{
+				continue;
+			}
+
+			foreach (var page in pages)
+			{
+				var path = Path.Combine(RepositoryPaths.Root, "docs", "design", page.Replace('/', Path.DirectorySeparatorChar));
+				if (!File.Exists(path))
+				{
+					failures.Add($"row {number}: page `{page}` does not exist");
+					continue;
+				}
+
+				var text = File.ReadAllText(path);
+				var cited = Citation.Matches(text).Select(m => m.Groups["path"].Value).ToHashSet(StringComparer.Ordinal);
+				foreach (var file in rowCitations)
+				{
+					if (!cited.Contains(file))
+					{
+						failures.Add($"row {number}: `{page}` does not cite `reversing/{file}`");
+					}
+				}
+			}
+		}
+
+		Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
 	}
 
 	private static string Relative(string path) =>

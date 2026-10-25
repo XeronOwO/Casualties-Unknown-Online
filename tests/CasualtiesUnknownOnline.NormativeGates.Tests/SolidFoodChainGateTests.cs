@@ -227,16 +227,17 @@ public class SolidFoodChainGateTests
 	{
 		var eat = Parse(EatFile);
 
-		// The game's own entry point, and the game's own category: the eat must be
-		// Body.UseItem on a standing object this side really carries as a carried row,
-		// so an item whose data moved into the world (its owner dropped it) cannot
-		// feed anybody.
+		// The game's own entry point, and the game's own category: the eat must be Body.UseItem on an
+		// item this side really carries as its own, so an item whose data moved into the world (its
+		// owner dropped it) cannot feed anybody. The carried lookup replaced the standing-object arm —
+		// a stand-in is another member's item and its slot steps silently misfire (ticket
+		// cross-player-eat-skips-native-steps).
 		Assert.Contains(
 			eat.DescendantNodes().OfType<InvocationExpressionSyntax>(),
 			invocation => invocation.Expression is MemberAccessExpressionSyntax access && access.Name.Identifier.ValueText == "UseItem");
 		Assert.Contains(
 			eat.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
-			access => access.ToString() == "StandingItems.Is");
+			access => access.ToString() == "ItemWorldSync.IsWorldItem");
 
 		// Inside the item-use sound scope, so the crunch and the item's other clips are
 		// relayed at the eater's position exactly as a local eat's are.
@@ -287,6 +288,36 @@ public class SolidFoodChainGateTests
 		Assert.Contains(
 			inventoryFamilies.OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "SolidFoodAdmission.IsFeedable");
+	}
+
+	/// <summary>
+	/// The eat runs on the EATER's carried item, not on a stand-in. A standing object stands for somebody else's item, so
+	/// the game's own delegate — which reads the body's slots (`SlotOf`, `DropItem`, `PickUpItem`) — misfires on it: a
+	/// closed stone fruit was consumed for its owner with no peel, and the pancake went in one gesture (ticket
+	/// <c>cross-player-eat-skips-native-steps</c>, steps 1-3). The resolution order is therefore carried item FIRST, and
+	/// when the eater does not carry it the eat is REFUSED by name rather than half-run on a stand-in.
+	/// </summary>
+	[Fact]
+	public void TheEat_ResolvesTheEatersOwnCarriedItem_AndRefusesAStandIn()
+	{
+		var eat = Parse(EatFile);
+
+		var carried = eat.DescendantNodes().OfType<InvocationExpressionSyntax>()
+			.FirstOrDefault(invocation => invocation.Expression is MemberAccessExpressionSyntax access
+				&& access.Expression.ToString() == "CarriedItemLocator");
+		Assert.True(carried is not null,
+			$"{EatFile}: the eat must resolve the EATER's own carried item (CarriedItemLocator) — a standing object's slot steps silently misfire");
+
+		var standIn = eat.DescendantNodes().OfType<InvocationExpressionSyntax>()
+			.FirstOrDefault(invocation => invocation.Expression.ToString() == "domains.StandingMaterializer.TryGetStandingItem");
+		Assert.True(standIn is null,
+			$"{EatFile}: the eat must not resolve a standing object at all — that is another member's item and the delegate's slot steps cannot run on it");
+
+		var useItem = eat.DescendantNodes().OfType<InvocationExpressionSyntax>()
+			.FirstOrDefault(invocation => invocation.Expression is MemberAccessExpressionSyntax access && access.Name.Identifier.ValueText == "UseItem");
+		Assert.True(useItem is not null, $"{EatFile}: the eat still runs the game's own Body.UseItem");
+		Assert.True(useItem!.SpanStart > carried!.SpanStart,
+			$"{EatFile}: Body.UseItem must run on the item the carried lookup returned, after that lookup");
 	}
 
 	[Theory]

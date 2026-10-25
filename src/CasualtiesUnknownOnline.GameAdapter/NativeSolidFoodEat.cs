@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using Microsoft.Extensions.Logging;
 
@@ -45,19 +46,25 @@ internal static class NativeSolidFoodEat
 			return false;
 		}
 
-		if (!domains.StandingMaterializer.TryGetStandingItem(itemInstanceId, out var item))
+		if (!CarriedItemLocator.TryFind(body, itemInstanceId, out var item))
 		{
-			domains.Log.LogWarning("[ItemUse] the eat of item {ItemId} cannot run: no standing object stands for that id on this client.", itemInstanceId);
+			// A standing object stands for ANOTHER member's item, and the game's own consume reads the
+			// eater's own slots (`SlotOf`/`DropItem`/`PickUpItem` inside the delegate), so running it on a
+			// stand-in silently half-consumes: a closed stone fruit was eaten for its owner with no peel
+			// step and no opened replacement reaching the tables, and a pancake went down in one gesture.
+			// The eat therefore needs the item to BE the eater's carried item, and refuses by name rather
+			// than half-running (ticket cross-player-eat-skips-native-steps, steps 1-3).
+			domains.Log.LogWarning("[ItemUse] the eat of item {ItemId} cannot run: the eater does not carry it, and the game's own consume reads the eater's slots — a stand-in's slot steps would silently misfire.", itemInstanceId);
 			return false;
 		}
 
-		// The category, not only the marker: the data may have moved this id into the
-		// world (its owner dropped it) while the object still carries the marker, and
-		// eating an item that just left the inventory would feed this body for a meal
-		// the item's owner no longer offers.
-		if (!StandingItems.Is(item))
+		// The category, not only the object: the data may have moved this id into the
+		// world (its owner dropped it) while the scene still holds it under the body,
+		// and eating an item that just left the inventory would feed this body for a
+		// meal nobody offers.
+		if (ItemWorldSync.IsWorldItem(item))
 		{
-			domains.Log.LogWarning("[ItemUse] the eat of item {ItemId} cannot run: its data row is no longer a carried row on this client.", itemInstanceId);
+			domains.Log.LogWarning("[ItemUse] the eat of item {ItemId} cannot run: its data row is a world row on this client.", itemInstanceId);
 			return false;
 		}
 

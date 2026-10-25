@@ -22,27 +22,37 @@ internal static class CarriedItemLocator
 	/// intentionally never resolved — this is the owner-side body, and a proxy
 	/// has no authority over the real item.
 	/// </summary>
-	public static Item? FindById(Body body, ulong instanceId)
+	public static Item? FindById(Body body, ulong instanceId) => TryFind(body, instanceId, out var item) ? item : null;
+
+	/// <summary>
+	/// The <c>Try</c> shape of <see cref="FindById"/>, for a caller whose next line is a refusal by
+	/// name rather than a null check: a cross-player consume has to say that the eater does not carry
+	/// the item, because the game's own consume reads the eater's slots and a stand-in's slot steps
+	/// silently misfire.
+	/// </summary>
+	public static bool TryFind(Body body, ulong instanceId, out Item item)
 	{
+		item = null!;
 		if (body == null || instanceId == 0) // Unity object — ==
 		{
-			return null;
+			return false;
 		}
 
-		foreach (var item in body.GetComponentsInChildren<Item>(true))
+		foreach (var candidate in body.GetComponentsInChildren<Item>(true))
 		{
-			if (item == null || item.GetComponentInParent<RemoteCloneRender>() != null) // Unity objects — ==
+			if (candidate == null || candidate.GetComponentInParent<RemoteCloneRender>() != null) // Unity objects — ==
 			{
 				continue;
 			}
 
-			var id = item.GetComponent<ItemInstanceId>();
+			var id = candidate.GetComponent<ItemInstanceId>();
 			if (id != null && id.Id == instanceId) // Unity object — ==
 			{
-				return item;
+				item = candidate;
+				return true;
 			}
 		}
 
-		return null;
+		return false;
 	}
 }

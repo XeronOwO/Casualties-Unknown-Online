@@ -35,6 +35,7 @@ bodies' presentation follows from that relation.
   the vitals at their last values.
 - The same rule covers a DEAD or unconscious carried body: it keeps its own per-frame simulation too, since and the
   presentation of a body that stopped simulating is wrong for the party.
+- **The rider sits at the same height on every screen.** An earlier asymmetry put the rider above the carrier on one side and below on the other: "when the host rides on a guest's back, the host's own view shows the host body higher than the guest, while …".
 - **The rider's position follows smoothly.** A rider that teleports to the carrier's position is the defect the smoothing
   family fixed: the accepted reading for the third-party view leaves a remainder of "≤1 px interpolation".
 - The relation is one carrier and one carried body at a time, and the menu's carry action is only offered where the

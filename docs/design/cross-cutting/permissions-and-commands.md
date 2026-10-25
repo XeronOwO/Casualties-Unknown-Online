@@ -29,7 +29,8 @@ selector that matches several players where one is required refuses and names th
 
 - A host rule is decided by the host and reaches every member that reads it; the member's own check is an interception
   of the gesture it would send, not a second verdict.
-- Member cheat verbs are a rule: off by default, granted per member, and announced to that member.
+- Member cheat verbs are a rule: off by default, granted per member, and announced to that member. The grant mechanism is `/op` and `/deop`: the accepted record lists "`/op`, `/deop`, the announced roster, the host's cheat SWITCH and the two-sided check on `/data`'s write verbs", and the user's ruling behind it is that granting and revoking are allowed only from the host to the other clients ("授权与剥夺只允许本机对其它客机执行").
+- A write verb is checked on BOTH sides: the member's roster says whether it may run it, and the host checks the same rule when the request arrives.
 - Remote backpack access is a rule: it can forbid all remote inventory manipulation, in which case both the view and the
   gestures are refused by name.
 - Reading a rule is open to every player; changing one is the host's.

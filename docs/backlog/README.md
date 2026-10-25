@@ -62,6 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [The context menu does not block the pointer](todo/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 - [The context menu's title wraps behind its first action](todo/context-menu-name-wraps-behind-actions.md) — **Medium** — fit or ellipsize the player name.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
 - [Enter on an empty console does not close it](todo/console-enter-on-empty-does-not-close.md) — **Low** — a recorded deviation from native.

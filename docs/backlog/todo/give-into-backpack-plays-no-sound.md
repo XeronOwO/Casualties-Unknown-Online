@@ -13,6 +13,20 @@ real body slot, so every side effect the game produces — the friction/clothing
 refresh, the wear strip — happens BY CONSTRUCTION. The missing sound is one symptom of the transfer not being native; this ticket is
 about the call path, not about playing a clip.
 
+## First batch (2026-10-25, `8516c7aa` reverted)
+
+The change that let the native body run was **rejected by the run**, not by a test, and the revert is the finding:
+
+- The release fell through to the native `HandleReleaseDragging` body as designed, and the log shows the native action running
+  (`[PickUpResult] emergencylight → slot (slot 1)`) — but it resolved the **host's own inventory ring**, not the displayed clone, so
+  the giver's item was moved into his own body slot and then, when the give's intent made it the guest's, destroyed and re-materialised
+  as a **standing item on the ground**: `[ItemTrace] op=3 … OnItemDestroyed … committed` then
+  `[StandingItem] materialized emergencylight …`. The user's report of the same moment: "我拖动了手电筒…连着拖动了几次,手电筒不见了".
+- So outcome 2 of the design is right and the one-line fall-through is not enough: the native body has to be pointed at the PROXY's
+  container, which is what `InvButtonBodyPatch` does for a body — a `get_item`/`InvButton` answer for the displayed backpack's slots.
+  That is the next work item, and it cannot be done by letting the body run against whatever the ring happens to hold.
+- The revert restores the silent give (the reported symptom) rather than shipping an item loss.
+
 ## Current behaviour (read from the code and the game's own source, 2026-10-25)
 
 **The give never reaches the game's transfer.** The release's patch (`PlayerCameraDragUsePatch.Prefix`) resolves the give target, calls

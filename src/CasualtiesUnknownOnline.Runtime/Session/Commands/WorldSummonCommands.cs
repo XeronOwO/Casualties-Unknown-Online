@@ -25,7 +25,7 @@ internal sealed class WorldSummonCommands(IWorldSummonControl summon, CheatVerbG
 	private readonly IWorldSummonControl _summon = summon;
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 
-	[ConsoleCommand("summon", "Create one world entity, animal or loose item entity at a position (a cheat verb).", CommandPermission.Anyone, WorldSummonParser.Usage, CommandArgumentKind.Text, Gate = ConsoleCommandGate.Cheat)]
+	[ConsoleCommand("summon", "Create one world entity, animal or loose item entity at a position (a cheat verb).", CommandPermission.Anyone, WorldSummonParser.Usage, CommandArgumentKind.ResourceLocation, CommandArgumentKind.Text, Gate = ConsoleCommandGate.Cheat)]
 	internal ConsoleAnswer Summon(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)

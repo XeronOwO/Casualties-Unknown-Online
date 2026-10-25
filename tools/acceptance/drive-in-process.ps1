@@ -88,7 +88,7 @@ powershell -ExecutionPolicy Bypass -File tools/acceptance/drive-in-process.ps1 -
 [CmdletBinding()]
 param(
 	[string]$Url,
-	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'quit', 'recipe', 'declare')]
+	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'console-ui', 'quit', 'recipe', 'declare')]
 	[string]$Action,
 	[string]$ControlId,
 	[string]$Text,
@@ -119,6 +119,7 @@ $ActionHelp = [ordered]@{
 	'continue-run' = 'call the game''s own PreRunScript.LoadRun (the Continue entry); wait for the world to start'
 	'leave-world' = 'call the game''s own PlayerCamera.ToMainMenu; wait for the world to be left'
 	'console' = 'run one CUO console command line (for example /save) through CommandConsoleService.TryExecute; applied says the console ran the line, and a command that refuses internally still answers true with its own text in lastLine'
+	'console-ui' = 'open the console the player sees (OnlineUiOverlay.OpenCommandConsole, the "/" key own path), type -Text into it, and report the field text plus the live suggestion list the overlay draws'
 	'quit' = 'ask the client to quit (only a client this run started)'
 	'recipe' = 'run one committed scenario recipe (recipes/<name>.cs) as a single eval'
 	'declare' = 'load one committed eval declaration (driver/eval-declarations/<name>.cs) into the client; probes first, so a client that already has it is a no-op'
@@ -681,7 +682,15 @@ function Invoke-DriverAction {
 			}
 			return New-DriverSuccess -ActionName $ActionName -Step $step
 		}
-		'quit' {
+		'console-ui' {
+		$step = Invoke-DriverEval -Socket $Socket -Template $Template -CommandName 'console-ui' -Argument '' -TextValue $Text -EvalTimeoutMs $EvalTimeoutMs
+		if (-not $step.ok) { return New-DriverFailure -ActionName $ActionName -Code $step.error -Detail $step.detail -Last $step }
+		if (-not $step.opened) {
+			return New-DriverFailure -ActionName $ActionName -Code 'console-ui-not-opened' -Detail "the console overlay did not open (input '$Text')" -Last $step
+		}
+		return New-DriverSuccess -ActionName $ActionName -Step $step
+	}
+	'quit' {
 			$note = 'the client was asked to quit'
 			try {
 				[void](Invoke-DriverEval -Socket $Socket -Template $Template -CommandName 'quit' -Argument '' -TextValue '' -EvalTimeoutMs ([Math]::Min(2500, $EvalTimeoutMs)))

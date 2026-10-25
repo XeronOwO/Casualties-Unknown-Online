@@ -34,7 +34,7 @@ internal sealed class ItemGiveCommands(
 	private readonly ItemDataTargets _targets = targets;
 	private readonly ILogger _log = log;
 
-	[ConsoleCommand("give", "Give one item to a player's inventory, its state already set (a cheat verb).", CommandPermission.Anyone, ItemGiveParser.Usage, CommandArgumentKind.Text, Gate = ConsoleCommandGate.Cheat)]
+	[ConsoleCommand("give", "Give one item to a player's inventory, its state already set (a cheat verb).", CommandPermission.Anyone, ItemGiveParser.Usage, CommandArgumentKind.Selector, CommandArgumentKind.ResourceLocation, Gate = ConsoleCommandGate.Cheat)]
 	internal ConsoleAnswer Give(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)

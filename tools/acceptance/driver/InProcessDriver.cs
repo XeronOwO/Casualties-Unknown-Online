@@ -363,6 +363,49 @@
 		return finish(fields);
 	}
 
+	if (command == "console-ui") {
+		// The console the PLAYER sees: the overlay's own open path, the overlay's own input session, and the live suggestion list
+		// the overlay draws. Opening it through OnlineUiOverlay.OpenCommandConsole is what the `/` key handler calls, so a batch
+		// reads the same surface a player does instead of the service behind it (the `console` command's path).
+		if (overlay == null) {
+			return fail(escape, "no-cuo-online-ui", "the CUO Online UI is not reachable in this process");
+		}
+		var openCommandConsole = findMethodWith(overlay, "OpenCommandConsole", 1);
+		if (openCommandConsole == null) { return fail(escape, "no-console-ui", "OnlineUiOverlay.OpenCommandConsole was not found"); }
+		var commandOverlay = findField(overlay, "_commandOverlay");
+		var inputSession = findField(commandOverlay, "_session");
+		if (commandOverlay == null || inputSession == null) { return fail(escape, "no-console-ui", "the console overlay or its input session was not found"); }
+		var isOpen = findProperty(commandOverlay, "IsOpen");
+		if (!(isOpen is bool open && open)) {
+			openCommandConsole.Invoke(overlay, new object[] { false });
+		}
+		var insertText = findMethodWith(inputSession, "InsertText", 1);
+		var selectAll = findMethodWith(inputSession, "SelectAll", 0);
+		if (text != null && text.Length > 0) {
+			if (insertText == null || selectAll == null) { return fail(escape, "no-console-ui", "ConsoleInputSession.InsertText or SelectAll was not found"); }
+			// The opener pre-fills the command prefix, so the field is selected before the text is typed: the driver types what the
+			// player would SEE, not a second copy of the prefix appended to the first.
+			selectAll.Invoke(inputSession, null);
+			insertText.Invoke(inputSession, new object[] { text });
+		}
+		var input = findProperty(inputSession, "Input") as string;
+		var suggestions = findProperty(inputSession, "LiveSuggestions") as System.Collections.IEnumerable;
+		var suggestionTexts = new System.Collections.Generic.List<string>();
+		if (suggestions != null) {
+			foreach (var suggestion in suggestions) {
+				var suggestionText = findProperty(suggestion, "Text") as string;
+				if (suggestionTexts.Count < 12) { suggestionTexts.Add(suggestionText ?? ""); }
+			}
+		}
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "opened", (findProperty(commandOverlay, "IsOpen") is bool nowOpen && nowOpen) ? "true" : "false");
+		putText(fields, escape, "input", input ?? "");
+		putRaw(fields, escape, "suggestions", suggestionTexts.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		putText(fields, escape, "suggestionList", string.Join("|", suggestionTexts.ToArray()));
+		return finish(fields);
+	}
+
 	if (command == "quit") {
 		putRaw(fields, escape, "ok", "true");
 		putText(fields, escape, "command", command);

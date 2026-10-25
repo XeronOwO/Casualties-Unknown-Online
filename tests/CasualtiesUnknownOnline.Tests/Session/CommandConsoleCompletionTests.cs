@@ -16,6 +16,35 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 public class CommandConsoleCompletionTests
 {
 	[Fact]
+	public void Suggest_AfterTheVerbWithAnEmptyPrefix_ShowsTheArgumentsChoices()
+	{
+		// The state a player is in the instant they type the space after the verb: the token under the caret is EMPTY, and the list
+		// has to show the choices rather than nothing — the reported "我输命令没有看到补全提示呀" is this exact moment, because every
+		// argument source filtered by prefix and an empty prefix matched nothing.
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var selectors = completion.Suggest("/heal ");
+		Assert.Contains(selectors, s => s.Text == "@a");
+		Assert.Contains(selectors, s => s.Text == "@p");
+
+		var targets = completion.Suggest("/give ");
+		Assert.NotEmpty(targets);
+	}
+
+	[Fact]
+	public void Suggest_ForAnEmptySelectorPrefix_ListsTheSelectorsInTheUiToo()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var suggestions = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
+
+		var matches = suggestions.Suggest(CommandArgumentKind.Selector, "");
+
+		Assert.Contains(matches, s => s.Text == "@a");
+		Assert.Contains(matches, s => s.Text == "@e");
+	}
+
+	[Fact]
 	public void ArgumentSuggestions_SelectorKind_ReturnsSelectors()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);

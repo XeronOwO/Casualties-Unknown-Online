@@ -54,6 +54,24 @@ instantiates from `Resources.Load("stonefruitopen")` must be **registered** as a
 (`item-creation-registration-first`'s family) — otherwise the replacement fruit exists only on the eater's client. Step 3 answers
 where a give lands today, and that decides whether the carried-item shape is reachable.
 
+## The three lines the design must start from (written BEFORE any code, per the rule)
+
+**(1) The player's action and expectation.** I drag an item onto a teammate and let go; that teammate consumes it on the spot, with
+the same effects as when I consume it locally (peel, bite, sound, animation, condition, the picture). The item is MINE to hand over;
+the player-facing rule is "I use it on them", not "I first give it to them and then they use it".
+
+**(2) What the game itself runs for the same local action.** `Body.cs` invokes an item's `useAction` at two places, both on an item
+that a BODY SLOT holds (`this.GetItem(num).Stats.useAction(...)` and the item handed to `Body.UseItem`). The food delegates depend on
+that: a closed stone fruit calls `Body.SlotOf(item)`, `DropItem`, then instantiates and picks up the opened replacement. So in the
+game's own model, **consume/use means the item is in the consumer's body slot** — a container's contents are not a body slot.
+
+**(3) How the remote case reaches that same chain — and the honest limit.** The release must put the item into the consumer's body
+slot at that moment and then run the game's own use on it; when the slot is unavailable the game's own pickup rule refuses and the
+operator reads why. There is **no native "use an item directly out of a backpack"**: locally a player takes it out first. So "drag
+straight from a teammate's displayed backpack into their mouth" has no native counterpart at all — that expectation is the user's
+decision, not a chain to invent. What this ticket holds as the corrected shape is therefore: transfer into the consumer's own slot as
+part of the release, then the native use, with a refusal rather than a silent consume when the slot is unavailable.
+
 ## Run sheet (cycle 2026-10-25)
 
 - [x] **1. Read the native local eat of a closed stone fruit — DONE, and it is a slot-dependent delegate.**

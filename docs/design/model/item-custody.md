@@ -11,6 +11,12 @@ for every item mechanic; the mechanic pages cite it.
   acting on "the first match".
 - A catalogue definition (what an item IS) is shared; an item's state (its condition, its liquids, its components, its
   contents) belongs to that instance.
+- **Registration.** An item's identity reaches the host through the client that allocated it. The accepted record states
+  the shape: "`CarriedInventory` (NetMsg 65) is the guest's one-shot registration of the item ids it self-assigned during
+  generation. The host uses it to build the per-guest transfer table used by cross-player take/arbitration." Because it was
+  one-shot, a registration could be missed; the design is that a client RE-REPORTS its carried inventory when it rejoins
+  with a cleared table, and the acceptance reading for that row is "with the host's per-guest table cleared offline and the
+  kernel facts left untouched, the rejoin re-…".
 
 ## Custody
 

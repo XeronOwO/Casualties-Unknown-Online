@@ -19,10 +19,10 @@ internal static class RemoteIntentSlotRelease
 		slot >= 0 && slot < slotCount;
 
 	/// <summary>
-	/// R9 in native order (<c>PlayerCamera.cs:1614-1629</c>) for a WORLD item: the item occupying the destination slot leaves its own when it is
-	/// held, and then the pickup runs with the native guards — never forced. A CARRIED item takes one swap instead (see below): the native
-	/// drop-then-pick pair makes it a world item in between, which is the state a refused re-pick strands. An invalid slot produces no steps at
-	/// all.
+	/// R9 in native order (<c>PlayerCamera.cs:1614-1629</c>): the held item leaves
+	/// its slot, the item occupying the destination slot leaves its own when it is
+	/// held, and then the pickup runs with the native guards — never forced.
+	/// An invalid slot produces no steps at all.
 	/// </summary>
 	internal static IReadOnlyList<RemoteIntentStep> Plan(int slotCount, int targetSlot, bool itemIsHeld, bool slotIsHeld)
 	{
@@ -31,14 +31,12 @@ internal static class RemoteIntentSlotRelease
 			return [];
 		}
 
-		// A CARRIED item changes slots by the game's own swap and never touches the world. A swap also exchanges the two when the destination
-		// is occupied, which is what the drop-drop-pick trio did in three world-visible steps.
+		var steps = new List<RemoteIntentStep>(3);
 		if (itemIsHeld)
 		{
-			return [RemoteIntentStep.MoveBySwap];
+			steps.Add(RemoteIntentStep.DropHeldItem);
 		}
 
-		var steps = new List<RemoteIntentStep>(3);
 		if (slotIsHeld)
 		{
 			steps.Add(RemoteIntentStep.DropSlotItem);

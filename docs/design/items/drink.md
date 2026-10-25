@@ -15,10 +15,15 @@ that entered the body.
 
 ## Rules and states
 
-- A container is classified by its own data, not by its name or category: a container refilled with a liquid whose effect
-  is not a drink is not a drink, and its action is refused BEFORE it is run rather than after.
-- A container whose action draws blood is not a drink: an injectable container's own action must not be run to find out
-  what it does.
+- A container is classified by its own data, not by its name or category. The accepted record states the rule as it now
+  stands: "the definition-level drink classification landed (the action is refused by name BEFORE anything runs)". A
+  definition whose action never reaches the container's drink path — `liquidcentrifuge` is the record's cited case — is
+  refused unrun instead of being tried out.
+- The blood bags are why that order matters: "Both are `usable = true` … and their `useAction` is
+  `Item.DrawBlood(item.GetComponent<WaterContainerItem>(), body.limbs[1])` … which really writes:
+  `limb.body.bloodVolume -= spaceLeft / 25f`". Running such an action to find out what it does drains a patient, so an
+  injectable container is not a drink and its action is never run by this entry.
+- A measure that cannot reach the item's own instructions is refused rather than guessed at.
 - The dose that leaves the container is the dose whose effect lands on the drinker; a disagreement between the two is the
   defect.
 - The drinker must be conscious: drinking is one of the two families where the TARGET itself consumes the item.

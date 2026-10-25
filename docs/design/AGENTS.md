@@ -39,9 +39,12 @@ waits for it.
 | `model/item-custody.md` | item identity, custody, incarnations, what travels | lands |
 | `mechanics/README.md` | the mechanic taxonomy and what a mechanic page must state | seeded |
 | `mechanics/item-use.md` | applying an item to a teammate: entries, families, refusals, judging side | seeded |
+| `mechanics/give-and-take.md` | handing an item to a teammate and taking one from their pack | seeded |
+| `mechanics/console.md` | the command and chat surface: entry keys, live candidates, answers | seeded |
 | `items/README.md` | the item families and what each family's own action does, with the measured facts the corpus keeps | seeded |
 | `surfaces/` | one page per player-facing surface; `../architecture/surfaces.md` is its index | GAP |
-| `cross-cutting/` | localization, observability, permissions and recovery — rules that cut across every mechanic | GAP |
+| `cross-cutting/localization.md` | one language per reader, whole sentences, keys on the wire | seeds |
+| `cross-cutting/` (remaining) | observability, permissions and recovery | GAP |
 
 ## The page template
 

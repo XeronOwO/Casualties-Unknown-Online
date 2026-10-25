@@ -1,0 +1,45 @@
+# Localization: one language per reader, whole sentences
+
+Every string a player reads is rendered by the client that reads it, in that client's language, as one whole sentence.
+
+## The rule
+
+- A player-visible string is never prose that crosses a boundary. What crosses is a **key** plus the values the sentence
+  needs; the receiving client's catalogue turns the pair into a sentence.
+- A localized frame never wraps another language's prose: a sentence in English inside a Chinese frame, or the reverse,
+  is the defect this rule forbids.
+- A surface with no catalogue entry is not shipped with raw text: a missing entry means the design is not finished, and
+  the catalogue gate refuses the commit while one catalogue lacks a key the other has.
+- The same sentence is never written twice: one condition has one key, shared by the client that decided it and the
+  client that reads it.
+
+## Where strings live
+
+| Kind of string | Where it is rendered |
+|---|---|
+| console answers, refusals and status lines | the reading client, from its own catalogue |
+| panel titles, labels, buttons | the client drawing the surface |
+| command semantics and their arguments | the console surface's own vocabulary |
+| log lines | the host's log is a diagnostic channel, always in one language, and never a player-facing surface |
+
+## What travels instead of text
+
+- A refusal or an answer travels as a key plus at most the values its sentence names.
+- A name the player typed (a persona, a world name) travels as text and is shown as it was written; it is never
+  translated.
+- A formatted number, a distance or an amount travels as a number and is formatted by the reader.
+
+## How a player experiences it
+
+The same action reads naturally in both languages: the operator's screen, the target's screen and the host's console each
+show their own language for the same event, and no screen mixes the two.
+
+## Records
+
+`../../decisions/active.md` (the console's answer family), `../../architecture/surfaces.md` (status lines row), and the
+catalogue gate named in `../../evidence/normative-gates.md`.
+
+## Gaps
+
+- The refusal sentences a cross-player use produces still travel as prose on one path; recorded in
+  `../../backlog/todo/player-facing-text-localized-per-receiver.md`.

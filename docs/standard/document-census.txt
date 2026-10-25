@@ -412,6 +412,9 @@ docs/design/model/authority-and-judgement.md | keep | spec | docs/design/AGENTS.
 docs/design/model/item-custody.md | keep | spec | docs/design/AGENTS.md
 docs/design/mechanics/README.md | keep | spec | docs/design/AGENTS.md
 docs/design/mechanics/item-use.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/give-and-take.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/console.md | keep | spec | docs/design/mechanics/README.md
+docs/design/cross-cutting/localization.md | keep | spec | docs/design/AGENTS.md
 docs/design/items/README.md | keep | spec | docs/design/AGENTS.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md
 docs/development/review-prompt.md | keep | spec | docs/backlog/done/document-corpus-audit.md

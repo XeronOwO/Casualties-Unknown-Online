@@ -77,8 +77,28 @@ container branch runs right after `container.UnloadItem` + `container.LoadItem` 
 backpack as the destination. The native chain itself cannot run there (the destination container belongs to another client), so the one
 perceptible effect it produces is made by the same call the game makes.
 
-## Acceptance rows
+## Why the call can still be silent — narrowed by reading, 2026-10-25 (no run needed)
 
+The call is reached only when `removed` is true (`PlayerInteractionApply.cs`: `var removed = _placement.RemoveCarriedItemFromLocalBody(body,
+msg.Item?.InstanceId ?? 0); changed = true; if (removed && PlayerCamera.main != null) { PlayerCamera.main.PlayBackpackSound(); }`). So the
+silence has exactly three possible causes, and reading has eliminated two:
+
+1. **The message never reaches the giver — ELIMINATED.** `PlayerInteractionKernelProjection.ProjectTransfer` fires for `FromSteamId == local`
+   as well as the receiver, and the codec carries `Item` (`PlayerInteractionKernelCodec.ToTransferMessage(e)`), so the giver's client runs this
+   branch with a non-zero instance id.
+2. **The branch is skipped as a drop — only for a drop-rung give.** `Destination == PlayerInventoryDestination.Drop` returns before the sound,
+   which is correct: nothing was put into a backpack. A give that reports `Drop` in the log is the ladder's last rung, not this bug.
+3. **`removed` came back false — THE REMAINING CANDIDATE.** `RemoveCarriedItemFromLocalBody` answers true only when it finds an `Item` under
+   the local body whose `ItemInstanceId.Id` equals the id (`PlayerInventoryPlacement.TryDestroyById`). The native press does NOT unparent the
+   item (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs`: `this.dragItem = invButton.GetItem();` — a reference, the item stays in
+   its slot), so a give of a CARRIED item should find it. Two shapes would not: an item that left the body before the round trip (the
+   ground-item give's `CarryForGive`, which the ground ticket already tracks) and an id that was zeroed by an earlier report.
+
+**The next batch's instrument** is therefore one line the product already logs, not a new log: on the giver, the transfer projection's
+`[PlayerInteractionKernel] projected inventory transfer …` (Debug) next to whether the same id was still in the body. If the id is absent from
+the body at that moment, the sound's guard is doing its job and the fix is the removal's timing, not the call.
+
+## Acceptance rows
 | Row | The check |
 |---|---|
 | 1 | The operator's client shows the SAME native call in the log for a local move and for a give (the function the game itself runs), captured in one batch |

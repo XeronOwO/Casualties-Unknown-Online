@@ -31,6 +31,11 @@ why the wound view's release — the entry that carries a limb — is its only e
   flags and hands the item back to the body with its own `condition` (`TakeOff()` instantiates the tourniquet and calls
   `AutoPickUpItem`).
 - The patient must be alive; consciousness is not required.
+- **The item only acts on a limb through four gates, and the fourth is its own flag.**
+  `PlayerCamera.ApplyWoundItem` (`PlayerCamera.cs:739-760`) refuses a dismembered limb, refuses while the patient is below the
+  medical cutoff with the `alerttoounhappy` line unless the definition sets `ignoreDepression`, requires `conscious`, and then
+  requires `ActuallyUsableOnLimb(item)` before running `useLimbAction` — with `WaterContainerItem.ApplyToLimb(limb, 100f)` as the
+  fallback for a container. A tool that is merely carried acts on nothing.
 
 ## What the affected side protects
 

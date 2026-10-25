@@ -90,6 +90,13 @@ medical operation the two clients perform together, which is why the drag gestur
   `septicShock += dt * num * 0.00028f * GetRunSettingFloat("infections…")` capped at `100f`, and below it
   `septicShock -= dt * 0.07f` back to zero — so a treated body recovers and an untreated one slides toward the `82.5f` line in
   `isCriticallyDying`.
+- **The wound view has three gates before any item acts, and a fixed ladder for its special button.**
+  `PlayerCamera.ApplyWoundItem` (`PlayerCamera.cs:739-760`) refuses a DISMEMBERED limb outright, then refuses with the
+  `alerttoounhappy` line while the patient is below the medical cutoff and the item does not set `ignoreDepression`, and only
+  then requires `conscious` and `ActuallyUsableOnLimb(item)`; a passing item runs `useLimbAction`, and a liquid container is the
+  fallback (`ApplyToLimb(limb, 100f)`) rather than a limb action. `WoundSpecialAction` (`:762-800`) is a ladder over the
+  selected limb — a tourniquet comes off, else shrapnel starts the shrapnel minigame, then a splint comes off, else a dislocation
+  starts the relocation minigame — with every branch behind `body.allowUseItem` and `conscious`.
 - A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
 
 ## Refusals

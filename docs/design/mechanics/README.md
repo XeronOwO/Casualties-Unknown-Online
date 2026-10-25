@@ -18,6 +18,7 @@ below follow the template in `../AGENTS.md`; a mechanic without a page is a `GAP
 | **Sleep and forced sleep** | sleeps, or is forced to sleep by an effect | `sleep.md` | seeded |
 | **Death, drops and revival** | dies, drops items, is revived | `death-and-drops.md` | seeded |
 | **Spectator** | follows a member's body after dying | `spectator.md` | seeded |
+| **World interaction** | breaks a block, opens a lock, sets off a trap or a mine | `world-interaction.md` | GAP |
 
 `GAP` pages are ordered by how often a change lands on them; the item, medical and console families come first because
 they are where the player-visible behaviour is dense.

@@ -117,6 +117,23 @@ land on the eater (run sheet step 6).
   peel therefore consumes for the owner with no `stonefruitopen` reaching the tables, and a multi-bite food's bite reads as the
   whole item. The fix must point those steps at the OWNER's body while the effects land on the eater — a real change to what the
   delegate sees, not a stand-in swap. Start from the two delegate bodies recorded in step 1, and check every slot call in them.
+
+  **The plan (written before the code, so the next cycle starts here rather than re-deriving it):**
+  1. The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the real
+     owner's slots are unreachable from this client. The hand shape therefore cannot be "redirect the calls to the owner's
+     slots" — it has to make the stand-in occupy a HAND SLOT locally for the duration of the delegated call.
+  2. Inside the `CharacterItemUse` scope, arrange the stand-in into the eater's hand slot with the game's own slot plumbing
+     (`Body.PickUpItem`) while suppressing the custody reports that would otherwise claim a transfer — the CALL is
+     `CallContext`, which already exists for exactly this "the scope says what is happening" reason.
+  3. Intercept the three slot calls the delegates make, inside that scope only: `SlotOf` answers the arranged slot,
+     `DropItem(item)` DETACHES the stand-in instead of creating a world drop, and `PickUpItem(replacement, slot)` registers the
+     replacement as a CREATED item owned by the giver (the `item-creation-registration-first` family) so `stonefruitopen` reaches
+     both sides' tables instead of existing only here.
+  4. Restore the stand-in to its standing state on the way out, and let the existing report → host arbitration → result path carry
+     `condition` back to the giver's real item, which is the half that already works.
+  5. Red first: a gate/source assertion that the three slot calls are guarded by the hand-feed scope and that the replacement is
+     registered, plus the existing behaviour rows below. Runtime verification (step 7) is what decides whether the arrangement is
+     invisible to the player, because step 3 is exactly the kind of local rearrangement that can show up on screen.
 - [ ] **7. Runtime verification with frames and both clients**: drag a pancake and a closed stone fruit onto a teammate with a
   FULL inventory, then read: the peel step happened, the opened fruit is registered, the remainder's condition agrees on both
   clients, and a frame at the eating moment shows the eater's own animation and the food's own sprite.

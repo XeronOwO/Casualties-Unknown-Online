@@ -17,6 +17,7 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `mechanics/README.md` | the mechanic taxonomy |
 | `mechanics/item-use.md` | applying an item to a teammate |
 | `mechanics/give-and-take.md` | handing over and taking an item |
+| `mechanics/remote-inventory-entries.md` | the native entry table another player's inventory is operated through |
 | `mechanics/console.md` | the command and chat surface |
 | `mechanics/medical-view.md` | treating a teammate's body |
 | `mechanics/cpr-and-revival.md` | compressing a patient, revival |

@@ -35,7 +35,7 @@ has its action named so the move is a work item rather than a rewrite.
 
 | Page | What it actually is | Where its content belongs | Action |
 |---|---|---|---|
-| [remote-inventory-native-parity.md](remote-inventory-native-parity.md) (690 lines) | a **design record**: the four stages of one behaviour, their decisions (218–221, amended by 258) and its acceptance matrix | `design/mechanics/give-and-take.md`, `design/items/container.md`, `design/model/item-custody.md` | merge the conclusions into those pages, then retire this page and re-point its links — `todo/merge-remote-inventory-design-into-corpus.md` |
+| [../design/mechanics/remote-inventory-entries.md](../design/mechanics/remote-inventory-entries.md) (690 lines) | a **design record**: the four stages of one behaviour, their decisions (218–221, amended by 258) and its acceptance matrix | `design/mechanics/give-and-take.md`, `design/items/container.md`, `design/model/item-custody.md` | merge the conclusions into those pages, then retire this page and re-point its links — `done/merge-remote-inventory-design-into-corpus.md` |
 | [mod-status-domain.md](mod-status-domain.md) (273 lines) | a **feature design** ("Status: Design with phases 1–… landed"), not a system-shape page | `design/cross-cutting/` (a status-domain page) once the feature's behaviour is read | file when the status domain's behaviour is read; until then it stays as the feature's own record |
 | [save-archive-format.md](save-archive-format.md) (714 lines) | a durable **format contract** (what an archive contains), which is legitimate here; the behaviour it enables is not | the format stays; the behaviour is already on `design/cross-cutting/saves-and-recovery.md` | keep, with the corpus page as the behaviour's home |
 
@@ -69,7 +69,7 @@ own typed model and invariants.
 | [domains.md](domains.md) | **Active** domain ownership and projection map. |
 | [surfaces.md](surfaces.md) | **Active** player-facing surfaces: what each is judged against, its native counterpart and its accepted record. Read this before changing any surface. |
 | [projection-framework.md](projection-framework.md) | **Active** global unified projection framework contract and migration status. |
-| [remote-inventory-native-parity.md](remote-inventory-native-parity.md) | **Design (stage 0)** remote inventory operations run the native call on the owner's client; stages 1-4 not implemented. |
+| [../design/mechanics/remote-inventory-entries.md](../design/mechanics/remote-inventory-entries.md) | **Design (stage 0)** remote inventory operations run the native call on the owner's client; stages 1-4 not implemented. |
 | [mod-status-domain.md](mod-status-domain.md) | Design proposal for the runtime mod-status domain boundary (not implemented). |
 | [protocol.md](protocol.md) | **Active** four-envelope protocol and data-flow reference. |
 | [../decisions/archive.md](../decisions/archive.md) | The archived decision rows, including most of the Phase A–E record; the rows that still constrain current work are in [`../decisions/active.md`](../decisions/active.md). |

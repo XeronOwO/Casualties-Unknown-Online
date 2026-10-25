@@ -9,6 +9,7 @@ below follow the template in `../AGENTS.md`; a mechanic without a page is a `GAP
 |---|---|---|---|
 | **Item use on another player** | drags an item onto a teammate's use circle and releases | `item-use.md` | seeded |
 | **Give and take** | moves an item to or from a teammate's displayed backpack | `give-and-take.md` | seeded |
+| **Remote inventory entries** | the native entry table every remote operation replays | `remote-inventory-entries.md` | written |
 | **Wear** | drags a wearable onto a teammate | inside `item-use.md` | seeded |
 | **Medical view** | opens a patient's wound view, picks a limb, applies an item | `medical-view.md` | seeded |
 | **CPR and revival** | holds the CPR button on a patient | `cpr-and-revival.md` | seeded |

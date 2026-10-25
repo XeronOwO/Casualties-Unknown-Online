@@ -1,6 +1,6 @@
 # Merge the remote-inventory design record into the design corpus
 
-- Status: Todo
+- Status: Done — the rules are in the corpus and the page is retired
 - Priority: Medium
 - Category: Documentation / architecture–design division
 - Source: the division audit in `docs/architecture/README.md` ("Misfiled pages"): `remote-inventory-native-parity.md` is a
@@ -54,6 +54,26 @@ What is NOT yet done, and is the rest of this ticket:
    (`architecture/README.md` twice, `architecture/surfaces.md`, `design/items/container.md`, `design/audit/README.md`) and the census rows; the
    ~140 citations inside `backlog/done/`, `evidence/` and `decisions/` are historical records and stay as they are — a done ticket citing the page
    it was designed against is a fact about that cycle, not a live link, and the census reports them under their own rows.
+
+## Resolution (2026-10-25) — the page is retired
+
+The move is complete, in two commits:
+
+1. **The rules went into the corpus.** `../design/model/item-custody.md` gained the roles and the `RemoteBackpackAccess` permission in `Who
+   judges`, the intent rule and the classification rule in `What travels`, the feedback split in `What the player sees`, the four limits in
+   `Gaps`, and the decision numbers in `Records`. The native REFERENCE material — the drag pipeline's R1-R14 / W1-W4 table, the callee guards,
+   the capture bracket and the intent vocabulary — became a corpus page of its own,
+   [`mechanics/remote-inventory-entries.md`](../design/mechanics/remote-inventory-entries.md), because it is the table the intent names are keyed
+   to and it had no other home.
+2. **The architecture page is deleted**, not stubbed: `docs/architecture/remote-inventory-native-parity.md` is gone, and the two tracked
+   documents that cited it as current (`architecture/README.md` twice, `architecture/surfaces.md`) now point at the corpus page. Its census row
+   went with it, and the two rows that were reached THROUGH it (`architecture/projection-framework.md`, the stage-4 audit) are reached by the new
+   page instead, which names both.
+
+Rows: 1 — every rule the page states is on a corpus page with its decision number, and nothing is duplicated across the two ✔. 2 — no tracked
+document cites the deleted page ✔ (the ~140 citations inside `backlog/done/`, `evidence/` and `decisions/` are historical records of the cycles
+that were designed against it and stay as they are; the census reports them under their own rows). 3 — the limits are in the model page's
+`Gaps`, each with its decision number where one exists ✔.
 
 ## Acceptance rows
 

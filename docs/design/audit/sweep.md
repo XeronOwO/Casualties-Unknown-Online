@@ -20,7 +20,7 @@ status is not one of the three below — so this table cannot drift away from th
 |---|---|---|
 | `CasualtiesUnknownOnline.Abstractions` | 150 | unread |
 | `CasualtiesUnknownOnline.Application` | 1 | unread |
-| `CasualtiesUnknownOnline.Application/Kernel` | 31 | unread |
+| `CasualtiesUnknownOnline.Application/Kernel` | 31 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | unread |
 | `CasualtiesUnknownOnline.BulkTransfer.Core/Audio` | 1 | unread |
 | `CasualtiesUnknownOnline.GameAdapter` | 74 | unread |

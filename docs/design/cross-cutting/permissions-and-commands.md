@@ -36,6 +36,12 @@ deployed artifact. A per-property keyword form is not a second dialect of the sa
 - Member cheat verbs are a rule: off by default, granted per member, and announced to that member. The grant mechanism is `/op` and `/deop`: the accepted record lists "`/op`, `/deop`, the announced roster, the host's cheat SWITCH and the two-sided check on `/data`'s write verbs", and the user's ruling behind it is that granting and revoking are allowed only from the host to the other clients ("授权与剥夺只允许本机对其它客机执行").
 - A write verb is checked on BOTH sides: the member's roster says whether it may run it, and the host checks the same rule
   when the request arrives.
+- **Two questions are asked at the seam, and they are different things.** `src/CasualtiesUnknownOnline.Application/Kernel/IMemberCommandRules.cs`
+  puts the distinction as the design's own words: the per-kind authority declaration ("a property of the WIRE KIND: … the
+  same answer in every session of this build") and a host ruling ("a property of the SESSION: the host's configuration and its
+  roster decide whether an otherwise member-authorable verb is open, so the same report is refused on one host and admitted on
+  another"), and "every member is read per submission, never cached". A rule that reads like a wire property but changes with
+  the host's mood is a session ruling, and vice versa.
 - **Rules replicate at admission and are enforced by both sides.** The accepted reading of the family's table covers "the
   announcement at admission …; the same verb forced past the local check and refused by the host; the session-end drop and the
   member's own rules when it hosts its own lobby; and the recruit affordance following the" rule. A member that hosts its own

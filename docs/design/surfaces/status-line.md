@@ -28,6 +28,13 @@ a refusal line (something did not).
 
 Every `use.refused.*` key of the cross-player use family, the console's own refusals, and the backpack gesture's refusal.
 
+**Not every refusal reaches the player, and the seam says which.** The admission verdict has three shapes, not two:
+`src/CasualtiesUnknownOnline.Application/Kernel/CommandAdmissionKind.cs` declares `Admitted` ("the submission continues to
+the kernel, which judges it exactly as before"), `Refused` ("the submission is refused and the sender is answered with the
+reason") and a third that is refused "WITHOUT an answer — the shape whose entry point has always stayed silent (today: a
+destroy report for an item the sender …)". `CommandAdmission.AnswersSender` is true only for `Refused`, so the status line
+shows exactly the refusals whose shape has an answer, and the silent shape stays silent by design rather than by accident.
+
 ## Who judges
 
 The side that refused decides the sentence; the client that reads it renders it. The line asserts nothing about the

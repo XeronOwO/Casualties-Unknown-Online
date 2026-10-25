@@ -27,6 +27,12 @@ for every item mechanic; the mechanic pages cite it.
   one-shot, a registration could be missed; the design is that a client RE-REPORTS its carried inventory when it rejoins
   with a cleared table, and the acceptance reading for that row is "with the host's per-guest table cleared offline and the
   kernel facts left untouched, the rejoin re-…".
+- **A refused creation is remembered as a tombstone, bounded and per session.**
+  `src/CasualtiesUnknownOnline.Application/Kernel/RefusedItemCreations.cs` keeps the ids the host judged dead (a block break
+  that lost first-writer-wins, a spawn command the kernel rejected) because "the id is never registered, so without this a
+  later operation on it would look exactly like an operation on an item whose creation was never reported at all — and that
+  one is a protocol violation". The set is "bounded (oldest evicted first) so a hostile or buggy peer cannot grow it without
+  limit, and cleared when the session ends: item ids are session-partitioned".
 
 ## A client's own result is reconciled
 

@@ -51,6 +51,14 @@ both sides agree. It never re-derives what it cannot reproduce (an unseeded roll
 models what a player is able to do: reach, aim, timing and input rate are anti-cheat, which this project excludes, so a
 report without a data anchor stays unbounded and is recorded as such.
 
+**The admission seam judges ELIGIBILITY only, and the code states its own scope.**
+`src/CasualtiesUnknownOnline.Application/Kernel/KernelCommandGateway.cs` is "the admission seam for a command a MEMBER
+submitted over the wire: one owner for 'who may submit this'", and its scope note names exactly what it does not do: "the
+gateway decides ELIGIBILITY only (who may submit), never what happens to another player's body, reach or timing. …
+nothing about distance, state or sequence is judged here, and the kernel still owns every domain verdict". Ownership at the
+seam means the item the member reports on is one it "may report on at all — a world item (it saw the item in the world, or
+used it in place) or the member's own carried, installed or consumed item".
+
 ## The census of unbounded reports
 
 Every report is either anchored or named unbounded, and the census is the list:

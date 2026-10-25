@@ -1,10 +1,10 @@
-# Document census — one row per tracked markdown document.
+# Document census 鈥?one row per tracked markdown document.
 #
 #   <path> | <disposition> | <reader> | <reach>
 #
 # disposition  keep    the document stays, and `reader` names who opens it
 #              rework  the shape is the defect (an append-only log); `reach` names the ticket carrying the work
-#              delete  nothing reaches it — no citation, no index row; `reach` names the ticket removing it
+#              delete  nothing reaches it 鈥?no citation, no index row; `reach` names the ticket removing it
 # reader       loaded       the loader injects it at the point of work (root and nested AGENTS.md, CLAUDE.md)
 #              index        a reader arrives from a section index; `reach` is that index page
 #              spec         an agent opens it while working in the area; `reach` is the page that routes to it
@@ -15,8 +15,8 @@
 #              index. Every other row names a document that references this one, and DocumentCensusGateTests
 #              fails when the named document does not name it back.
 #
-# Scope: every markdown file git tracks. Machine tables — alignment.txt, terminology.txt, the contracts — are
-# not documents and are out of scope; their own gates read them. The rule is docs/AGENTS.md §6; the audit that
+# Scope: every markdown file git tracks. Machine tables 鈥?alignment.txt, terminology.txt, the contracts 鈥?are
+# not documents and are out of scope; their own gates read them. The rule is docs/AGENTS.md 搂6; the audit that
 # produced this census is docs/backlog/done/document-corpus-audit.md.
 AGENTS.md | keep | loaded | -
 CLAUDE.md | keep | loaded | -
@@ -408,15 +408,20 @@ docs/development/agent-reference.md | keep | spec | docs/backlog/resolved/biling
 docs/development/native-parity.md | keep | spec | docs/evidence/delivery-checklist.md
 docs/architecture/surfaces.md | keep | spec | docs/architecture/README.md
 docs/design/AGENTS.md | keep | spec | docs/architecture/surfaces.md
-docs/design/model/authority-and-judgement.md | keep | spec | docs/design/AGENTS.md
-docs/design/model/item-custody.md | keep | spec | docs/design/AGENTS.md
-docs/design/model/session-lifecycle.md | keep | spec | docs/design/AGENTS.md
-docs/design/items/food.md | keep | spec | docs/design/AGENTS.md
-docs/design/items/drink.md | keep | spec | docs/design/AGENTS.md
-docs/design/cross-cutting/permissions-and-commands.md | keep | spec | docs/design/AGENTS.md
-docs/design/cross-cutting/observability.md | keep | spec | docs/design/AGENTS.md
-docs/design/cross-cutting/saves-and-recovery.md | keep | spec | docs/design/AGENTS.md
-docs/design/mechanics/README.md | keep | spec | docs/design/AGENTS.md
+docs/design/INDEX.md | keep | spec | docs/design/AGENTS.md
+docs/design/model/authority-and-judgement.md | keep | spec | docs/design/INDEX.md
+docs/design/model/item-custody.md | keep | spec | docs/design/INDEX.md
+docs/design/model/session-lifecycle.md | keep | spec | docs/design/INDEX.md
+docs/design/items/food.md | keep | spec | docs/design/INDEX.md
+docs/design/items/drink.md | keep | spec | docs/design/INDEX.md
+docs/design/items/wear.md | keep | spec | docs/design/INDEX.md
+docs/design/items/topical.md | keep | spec | docs/design/INDEX.md
+docs/design/items/injection.md | keep | spec | docs/design/INDEX.md
+docs/design/items/limb-tool.md | keep | spec | docs/design/INDEX.md
+docs/design/cross-cutting/permissions-and-commands.md | keep | spec | docs/design/INDEX.md
+docs/design/cross-cutting/observability.md | keep | spec | docs/design/INDEX.md
+docs/design/cross-cutting/saves-and-recovery.md | keep | spec | docs/design/INDEX.md
+docs/design/mechanics/README.md | keep | spec | docs/design/INDEX.md
 docs/design/mechanics/item-use.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/give-and-take.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/console.md | keep | spec | docs/design/mechanics/README.md
@@ -427,8 +432,8 @@ docs/design/mechanics/backpack-view.md | keep | spec | docs/design/mechanics/REA
 docs/design/mechanics/layer-advance.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/death-and-drops.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/spectator.md | keep | spec | docs/design/mechanics/README.md
-docs/design/cross-cutting/localization.md | keep | spec | docs/design/AGENTS.md
-docs/design/items/README.md | keep | spec | docs/design/AGENTS.md
+docs/design/cross-cutting/localization.md | keep | spec | docs/design/INDEX.md
+docs/design/items/README.md | keep | spec | docs/design/INDEX.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md
 docs/development/review-prompt.md | keep | spec | docs/backlog/done/document-corpus-audit.md
 docs/en/AGENTS.md | keep | loaded | -

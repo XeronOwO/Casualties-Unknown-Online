@@ -40,31 +40,9 @@ A missing page is a `GAP`: recording the design is then the first work item, and
 
 ## Layout
 
-| Path | Holds |
-|---|---|
-| `model/authority-and-judgement.md` | actors, judgement sides, authority kinds, member reports, host rules, custody invariants |
-| `model/item-custody.md` | item identity, custody, incarnations, what travels |
-| `model/session-lifecycle.md` | lobby, run, cut, continue, rejoin |
-| `mechanics/README.md` | the mechanic taxonomy |
-| `mechanics/item-use.md` | applying an item to a teammate |
-| `mechanics/give-and-take.md` | handing over and taking an item |
-| `mechanics/console.md` | the command and chat surface |
-| `mechanics/medical-view.md` | treating a teammate's body |
-| `mechanics/cpr-and-revival.md` | compressing a patient, revival |
-| `mechanics/sleep.md` | sleep, forced sleep, sleeping bodies |
-| `mechanics/backpack-view.md` | a teammate's pack on your screen |
-| `mechanics/layer-advance.md` | ending a layer, the boundary |
-| `mechanics/death-and-drops.md` | dying, drops, the corpse, revival |
-| `mechanics/spectator.md` | following a teammate after death |
-| `items/README.md` | item families and what their own actions do |
-| `items/food.md` | eating: one bite per use, what the food's own action does |
-| `items/drink.md` | drinking: the container's own drink path, a non-drink refused unrun |
-| `surfaces/` | one page per surface (`GAP`) |
-| `cross-cutting/localization.md` | one language per reader |
-| `cross-cutting/permissions-and-commands.md` | the command family and the host rules behind it |
-| `cross-cutting/observability.md` | what a run leaves behind |
-| `cross-cutting/saves-and-recovery.md` | what a save holds, what a restore may do |
-| `cross-cutting/` (remaining) | — |
+`INDEX.md` lists every page, one line each. The areas are `model/` (the rules every mechanic shares), `mechanics/` (one page per
+player action), `items/` (one page per item family), `surfaces/` (one page per visible surface) and `cross-cutting/`
+(localization, permissions, observability, saves).
 
 ## The page template
 

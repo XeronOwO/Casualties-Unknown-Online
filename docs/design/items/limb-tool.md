@@ -1,0 +1,53 @@
+# Limb tool: working on a limb
+
+Using a tool whose action is a limb action rather than a use action.
+
+## What the player does
+
+Brings a limb tool (a splint, a saw, a needle-like instrument) to a patient's wound view, selects the limb and applies it.
+The player expects the tool's own limb action to run on that limb, with its own timed operation and its own cost.
+
+## What the game itself does
+
+A limb tool has no use action at all: its effect is a limb action, which the game runs against a limb of a body. That is
+why the wound view's release — the entry that carries a limb — is its only entry.
+
+## Rules and states
+
+- A limb tool that arrives without a limb is refused, never resolved to the patient's most injured limb: the gesture must
+  carry what the action needs.
+- The limb the medical view carries is the one the action runs on.
+- Some limb actions are timed operations; the patient's own client runs them and the operator's client shows the progress.
+- The patient must be alive; consciousness is not required.
+
+## Refusals
+
+| Condition | The player reads |
+|---|---|
+| a limb tool arrived without a limb | `use.refused.limb_tool_needs_medical_view` |
+| that limb or slot is unavailable | `use.refused.limb_or_slot_unavailable` |
+| the target is dead | `use.refused.target_dead` |
+| the item is not the operator's | `use.refused.not_yours` |
+
+## Who judges
+
+The host admits the request with its limb; the patient's client runs the tool's own limb action on its own limb and
+reports the result.
+
+## What travels
+
+The item's identity, the patient and the limb. The limb's resulting state and the item's condition travel back.
+
+## What the player sees and hears
+
+The tool is applied with the game's own animation and sound; a timed operation shows its progress on both clients, and the
+limb's state afterwards is what the patient's own body says.
+
+## Records
+
+Decision 246. Accepted: `../../backlog/done/topical-live-stack-family-order.md` for the family ordering. Open:
+`../../backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md`.
+
+## Gaps
+
+- Which items are limb tools in the vanilla table, and the duration of each timed operation, is not tabulated here yet.

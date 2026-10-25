@@ -14,6 +14,20 @@ none of those answer "is this what the game itself does". The consequences were 
 step, a whole pancake gone in one gesture, a transfer with no sound, and a "use" gesture whose visible state said
 success while nothing was drawn.
 
+## Which authority governs which surface
+
+Native parity governs an action the GAME already has — using an item, dragging it, moving it into a container. A surface whose
+design authority is something else is NOT judged against the game's own version of it:
+
+- **The console and its command family follow Minecraft's current template** (`AGENTS.md` rule 17, decision 264): an input rule
+  there is designed from Minecraft's behaviour, and the game's own console is only the host surface that carries it. An empty Enter
+  that does nothing is a fact about the game's console, not an argument against Minecraft's "empty Enter closes the prompt".
+- **CUO's own surfaces** (the online window, the panels) are governed by the player-experience rules and the native-UI-reuse rule,
+  not by a native counterpart.
+
+Getting this backwards is a real failure: it was mis-applied once, when the game's native console was treated as the authority for a
+console behaviour and a Minecraft-shaped expectation was filed as a "deviation from native" (2026-10-25, corrected the same day).
+
 ## The three lines (required before any code)
 
 Every behavioural change that crosses players or mirrors a native action states these three lines **in its ticket,

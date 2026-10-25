@@ -482,3 +482,21 @@ shows and the release is dispatched, then the host refuses an injectable BY NAME
 cue never shows for it). Reading `ItemUseFamilyClassifier` says which families the inventory entry admits: **the wear placement, the
 injection refusal, the drink, and the solid food** — so row 2's item must come from wear / drink / solid-food rather than from a
 guess, and the probe is the instrument that names it in one call.
+
+**Batch `20261025-ba` — does PICKING UP open a teammate's panel? No: two measurements say it does not.** The user asked exactly
+that against a reading where `backpackOpen=True` appeared in a step labelled "pickup", and the answer had to be measured rather
+than argued:
+
+- With the members SEPARATED (host `(1.55,502.6)`, guest `(0,513.9)` — eleven units out of any model box, alt far away), a clean
+  right-button pickup of the pancake on the ring button answered `backpackOpen=False, focus=0` **immediately** and again 600 ms
+  later with the cursor still on the button.
+- With the guest standing one unit away, the same pickup answered `backpackOpen=False, focus=0` as well.
+
+So the auto-open is not a pickup side effect: it happens on the cursor ENTERING a member's detection range (`CrossPlayerDragUse.Observe`
+→ `DragTargetSelection`), which is the gesture the ticket exists to check. The earlier `backpackOpen=True, focus=<alt>` reading came
+from a cursor that had been swept across the stacked members, so the selection named the player whose range it entered LAST — the
+2026-10-22 rule — and that is the case row 5 is about.
+
+One mechanism worth recording because it cost two attempts: after a drag that ends while the player's OWN ring is open, the patch
+skips `AutoOpenFor(null)`, so `_openedFor` is not reset and the SAME target will not reopen during the next drag — "the next gesture
+must start from a clean selection" is the comment's own words, and ending the drag in world mode (ring closed) is what resets it.

@@ -24,6 +24,19 @@ evidence about this ticket.
 With the console open and the input empty, Enter closes the console — as it does in Minecraft — while Enter with text still executes
 the command exactly as it does today. The console key keeps toggling the console, and Tab keeps completing.
 
+## Done in code (2026-10-25, `e46a17ca`)
+
+`ConsoleInputSession` now carries both rules side by side: `Submit` stays the EXECUTOR (an empty line returns false, nothing runs, the
+console stays open) and `SubmitOrClose` is ENTER's rule — text executes and keeps the console open, an empty or whitespace-only line
+closes the input. The overlay's Return branch calls `SubmitOrClose`, so the key is consumed in both arms; Tab, Escape and typing are
+untouched. Four tests pin the pair, including the trap this change walked into first: `Open()` pre-fills the command prefix, so an
+"empty" console only exists in the plain-chat opener or after the prefix is deleted.
+
+Rows 2-4 are covered by those tests. **Row 1 still needs a frame**: the console must be seen closing on an empty Enter in the running
+client, and the frames from the 2026-10-25 batch never showed an input box at all — that gap belongs to
+`review/console-completion-shows-no-suggestions.md` (the same overlay, whose input field did draw once opened through
+`OnlineUiOverlay.OpenCommandConsole`).
+
 ## Acceptance rows
 
 | Row | The check |

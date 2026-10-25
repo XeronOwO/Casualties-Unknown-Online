@@ -147,6 +147,27 @@ and the host's custody projection caught the hand-over and healed:
 run on the giver. Whether the CLIP is audible is row 2 and stays the user's judgement — that row is judged next time they are at the keyboard,
 not claimed here.
 
+## Why rows 1 and 2 are not judgeable from the log today — and the one change that makes them so
+
+Read while preparing the click batch, and it is the reason those rows keep coming back to the user's ears:
+
+**`PlayBackpackSound`'s clip is not captured.** `SoundPlayPatch` reports a real `Sound.Play` call only inside a named call-identity scope
+(`SoundPlayPatch.cs`'s own list: `Body.Attack`, `ThrowItem`, `TryExertSound`, `FootStep`, `PantSound.Update`/`TryGrowl`, `LockpingMinigame.Update`,
+the local item-use scopes, `Body.HandleVisuals`, `PlayerCamera.ApplyWoundItem`, `FluidManager.DrinkLiquid`, `Body.CombineLiquids`), and the
+classification is the pure `CharacterSoundPolicy`. `PlayerCamera.PlayBackpackSound` — the method the container branch and this give both call — is
+**not** one of those scopes, so its `Sound.Play("backpack" + Random.Range(1, 3), …)` never reaches a `CharacterSoundMsg` and never appears in a log
+line.
+
+The consequence for the ticket is exact: row 1 asks for "the SAME native call in the log for a local move and for a give", and row 2 for the clip
+"read by the same instrument". Neither instrument exists for this clip.
+
+**The one change that makes both judgeable**: give `PlayBackpackSound` a call-identity scope of its own in the capture list, with
+`CharacterSoundPolicy` classifying it as a local feedback sound (it is one: it plays where the move happened, on the mover's client). It does not
+change what any client plays — it makes an existing play observable — and it is the difference between "the user says they hear nothing" and "the
+log says the clip was or was not played on this client".
+
+Until that lands, the two rows stay the user's judgement and this ticket says so rather than leaning on a reading that cannot exist.
+
 ## Acceptance rows
 | Row | The check |
 |---|---|

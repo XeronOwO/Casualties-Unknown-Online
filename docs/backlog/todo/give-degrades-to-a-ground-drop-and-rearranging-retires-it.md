@@ -66,11 +66,21 @@ host  16:25:29.943 [StandingItem] retired scrapmetal …: the data no longer car
 — and then the item left the guest's inventory without an event: the guest's own reconcile killed one item and the host retired the
 standing row, so at the end no body and no world held it.
 
-**Leading hypothesis, to be proven in the next batch:** the item's row is removed by a report taken WHILE the local move is in flight —
-the guest drops from slot 4 (16:25:29.057) before it picks into slot 5 (16:25:29.058), and a snapshot of its inventory taken in that
-window is a body without the item; the host treats that snapshot as truth, retires the standing row, and the guest's reconcile then kills
-the local object. If so the fix is the same shape the give's unplaced arm already uses: a transfer in flight must not be reported as an
-inventory state (suppress or defer the re-report until the move settles).
+**The chain, corrected by the guest's log (the guest's `Reconcile` is the killer):**
+
+- The give landed in slot 4, and the HOST materialised a **standing duplicate for a carried row** (`[StandingItem] materialized scrapmetal … for
+  <guest>`) because it learned of the row only from the snapshot. That duplicate is a rendering proxy that carries the SAME instance id as
+  the carried row.
+- The move to slot 5 succeeded on both clients (`[PickUpResult] … slot 5` on the guest, `slot 4 → 5` divergence on the host).
+- The guest's world reconcile then counted that id among the world items it does not know and **killed one item**
+  (`[Reconcile] 290 items: killed 1, spawned 0, not taken 0, dropped 0`), which is the moment the id was destroyed.
+- Its end then reached the host as "left the inventory without an event sync", the host retired the standing row, and the carried row went
+  with it: `[StandingItem] retired scrapmetal … the data no longer carries the row`.
+
+**So the defect is the duplicate's IDENTITY, not the ladder:** a standing render proxy for a carried row must never share the authoritative
+instance id, or its local death must never be reportable as the item's end. `RemoteIntentApplier` already has the shape for this — the
+`HasPendingDropReport` guard refuses to announce a change while a report is in flight, and the give's unplaced arm keeps `OnDestroy`
+silent with a marker — and the same suppression is what a standing proxy needs.
 
 ## The two defects, separately
 

@@ -18,6 +18,7 @@ below follow the template in `../AGENTS.md`; a mechanic without a page is a `GAP
 | **Sleep and forced sleep** | sleeps, or is forced to sleep by an effect | `sleep.md` | seeded |
 | **Death, drops and revival** | dies, drops items, is revived | `death-and-drops.md` | seeded |
 | **Spectator** | follows a member's body after dying | `spectator.md` | seeded |
+| **Enemies** | fights the world's enemies; a hit lands on the victim's own screen | `enemy-combat.md` | seeded |
 | **Crafting** | turns carried materials into an item | `crafting.md` | seeded |
 | **Carry** | picks a teammate up, walks with them, puts them down | `carry.md` | seeded |
 | **World interaction** | breaks a block, chipping it until it falls | `world-interaction.md` | seeded |

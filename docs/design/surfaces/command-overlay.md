@@ -27,7 +27,7 @@ own cursor, a candidate list, and a hint line. It is not the game's native conso
 
 ## Rules
 
-- An empty Enter closes the overlay; a non-empty Enter submits the line.
+- Two openers: `/` opens the overlay as a command line, Return opens it as plain chat with an empty field.- An empty Enter closes the overlay; a non-empty Enter submits the line.- The opener is refused while the GAME's own text field holds focus: the accepted defect is that "after the game's own console has been opened and closed, the event system still names its input as the selected object, so `IsATextFieldFocused` stayed true and the Enter/Slash opener was refused" — the guard follows the event system's own selected object.
 - Tab accepts the current candidate; the candidate list is live without Tab.
 - Escape closes the overlay and must not reach the game's pause handling: the defect it was fixed from is "pressing ESC while the console is open still triggered the game's" own pause path, and the accepted reading is that all three expected behaviours pass on the deployed artifact.
 - Completion covers three vocabularies: the command tree, the resource ids (a player types an id by its name and the namespaced id is offered — `done/command-id-name-completion.md`) and a selector's bracket filters, which are completed bracket-aware (`done/command-tree-resource-location-selector.md`).

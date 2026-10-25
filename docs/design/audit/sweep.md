@@ -90,7 +90,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction` | 120 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth` | 4 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/Tutorial` | 2 | unread |
-| `CasualtiesUnknownOnline.Runtime/Session/World` | 124 | unread |
+| `CasualtiesUnknownOnline.Runtime/Session/World` | 124 | read |
 | `CasualtiesUnknownOnline.Runtime/Steam` | 5 | unread |
 | `CasualtiesUnknownOnline.Runtime/Time` | 2 | unread |
 | `CasualtiesUnknownOnline.Runtime/World` | 1 | unread |

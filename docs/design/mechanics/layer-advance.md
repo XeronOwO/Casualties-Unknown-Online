@@ -21,6 +21,15 @@ co-op the choice must be one member's choice applied to a host-owned world.
   kernel generation stamp, the same (run epoch, layer index) identity every layer-relative world report carries, so the host
   arbitrates it against the identity it stamps its own" — which is why a request from a layer the host has already left is
   refused rather than applied to the new one, and why the panel appears only on the client whose own body is at the bottom.
+- **Both of the panel's choices are the HOST's, and a member does not see them at all.**
+  `src/CasualtiesUnknownOnline.Runtime/Session/World/LayerPanelChoicePolicy.cs` implements the user's 2026-10-24 ruling:
+  "only the host" may press "Continue" (next layer) or "Save and exit"; on a member both are HIDDEN rather than refused,
+  "because a control a player may not use should not be there to press". Solo play and the host keep both.
+- **Whether the host's panel appears is decided from the LIVING share, not from the host's own body.**
+  `LayerPanelVisibility.cs`: "the native panel's own trigger is the LOCAL b[ody]", which "cannot answer the question when the
+  host's body is dead or when the host is not the one at…", so the host decides from the group's state — `ShouldShow(living,
+  atTheFloor, requiredShare)` is false with nobody alive, true with a share of 0 ("the no-threshold setting"), and otherwise
+  shows when `bodiesAtTheFloor / living >= requiredShare`.
 - **A refused advance is answered, and the answer can only come from the host.** `LayerAdvanceRefusedHandler` exists because
   "the member suppresse[s its] own descent when it asked, so this line is what tells it the layer did not move", and the
   channel is host-to-guest so "a forged answer cannot print attacker-chosen text on a member's log" — a refusal is a fact

@@ -56,6 +56,15 @@ burrow — are not hooked".
   fallback re-reports the outstanding set, and the host merges per cell and answers every reported cell authoritatively: "a
   zero answer clears a row this host's own cap/range rules refused", and the accepted reading is that "the swallowed
   re-report healed on the steady 60 s step, two senders summed to 2 (never the maximu…)".
+- **A destruction report's drops are BOUNDED by the destroyed thing's own table, never re-rolled.**
+  `src/CasualtiesUnknownOnline.Runtime/Session/World/DropBoundPolicy.cs` states why the weaker check is the correct one: the
+  game rolls drops with `UnityEngine.Random` inside `WorldGeneration.DamageBlock` and `BuildingEntity.Update` — "a
+  process-global, UNSEEDED stream that everything else in that process advances (sky colour, footsteps, world generation,
+  earthquakes). The host cannot know where the reporter's stream stood, so which item, how many and which condition a
+  legitimate roll produced cannot be re-derived. A check that re-rolled would refuse ordinary play." The bound is therefore
+  "the report must lie inside the destroyed thing's own table", the rule is one-sided ("a MISSING drop is the reporter's own
+  loss and is never refused, while an ADDED one is the injection this exists to stop"), and both message shapes — a block
+  break's drops and the building-death drops that ride the same report — go through one rule rather than two matchers.
 - **The world-entity table is four facts, not one.** `src/CasualtiesUnknownOnline.GameState/Domains/WorldEntities/WorldEntityState.cs`
   is an immutable snapshot of four lists — trap consumptions, building-entity health, opened entities and trap states — and a
   trap's one-shot consumption is the shape `TrapConsumptionFact` (position, an opaque kind, kind-specific `Extra`, and the

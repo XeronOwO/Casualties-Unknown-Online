@@ -59,6 +59,13 @@ The death, the body's state as a corpse, the dropped items with their identity a
 The party sees the body fall and the dropped items land, with the game's own death and drop sounds; a dead player sees the
 death screen and may follow the party as a spectator.
 
+- **A blast that damages a mine must fire it inside the same scope.** `src/CasualtiesUnknownOnline.Runtime/Session/World/ChainedBlastPolicy.cs`
+  records the trap: the game's mine chains from `MineScript.OnDestroy` when the entity's health is below half and it has not
+  fired yet ("`if (this.build.health < 0.5f && !this.exploded)`"), and that death runs "outside the scope that captured the
+  first blast — so its victims would be neither captured nor m[aterialized] … would roll a second drop set for a death the
+  member's own client already rolled". The host therefore replays the chained mines inside that same scope, and the policy's
+  `FiringLine = 0.5f` is the line it decides with.
+
 ## Records
 
 `../../architecture/surfaces.md` (cross-player use row and world overlays row), decisions 156 (ownership consistency and

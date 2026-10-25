@@ -95,7 +95,7 @@ internal sealed class CommandConsoleOverlay
 		OnlineUiTheme.DrawOverlayBackground(rect);
 
 		DrawHistory(ctx, rect);
-		DrawSuggestions(rect);
+		DrawSuggestions(ctx, rect);
 		DrawInput(rect);
 		DrawTooltip();
 	}
@@ -362,7 +362,62 @@ internal sealed class CommandConsoleOverlay
 		GUI.color = previous;
 	}
 
-	private void DrawSuggestions(Rect panel)
+	/// <summary>
+	/// The hint row of one completion, in the language the player's catalogue declares. A command's hint is looked up HERE, at the accessor, so the
+	/// localisation census reads the key space (`console.cmd.`) instead of an opaque string the Runtime half happened to build; any other hint carries
+	/// its own key. A caller-built description is the fallback only for a hint the catalogue cannot hold.
+	/// </summary>
+	private static string? HintText(OnlineUiContext ctx, CommandSuggestion suggestion) => suggestion.Hint switch
+	{
+		CommandSuggestionHint.None => null,
+		CommandSuggestionHint.Command => CommandHint(ctx, suggestion.Args[0] as string ?? string.Empty),
+		CommandSuggestionHint.MemberName => ctx.T("console.suggest.member_name"),
+		CommandSuggestionHint.SteamId => ctx.T("console.suggest.steamid"),
+		CommandSuggestionHint.SteamIdHex => ctx.T("console.suggest.steamid_hex"),
+		CommandSuggestionHint.BannedSteamId => ctx.T("console.suggest.banned_steamid"),
+		CommandSuggestionHint.BannedSteamIdHex => ctx.T("console.suggest.banned_steamid_hex"),
+		CommandSuggestionHint.FilterBy => ctx.F("console.suggest.filter_by", suggestion.Args[0] ?? string.Empty),
+		CommandSuggestionHint.FilterValue => ctx.F("console.suggest.value", suggestion.Args[0] ?? string.Empty, suggestion.Args[1] ?? string.Empty),
+		CommandSuggestionHint.JsonEmpty => ctx.T("console.suggest.json_empty"),
+		CommandSuggestionHint.JsonTemplate => ctx.T("console.suggest.json_template"),
+		CommandSuggestionHint.SummonPosition => ctx.T("console.suggest.summon_position"),
+		CommandSuggestionHint.BodySlot => ctx.T("console.suggest.body_slot"),
+		CommandSuggestionHint.GamemodeValue => ctx.T("console.suggest.gamemode_value"),
+		CommandSuggestionHint.HostRuleCurrent => ctx.F("console.suggest.rule_current", suggestion.Args[0] ?? string.Empty),
+		CommandSuggestionHint.HostRuleValue => ctx.F("console.suggest.rule_value", suggestion.Args[0] ?? string.Empty),
+		_ => null,
+	};
+
+	/// <summary>
+	/// One command's one-line description in the reader's language. Every key is a LITERAL handed straight to <c>ctx.T</c>, which is the shape the
+	/// localisation census reads: it can then prove each catalogue entry has a reader, which a name-shaped interpolation (`console.cmd.{name}.desc`)
+	/// could not. A command with no entry answers null rather than showing English.
+	/// </summary>
+	private static string? CommandHint(OnlineUiContext ctx, string command) => command switch
+	{
+		"traderreport" => ctx.T("console.cmd.traderreport.desc"),
+		"op" => ctx.T("console.cmd.op.desc"),
+		"deop" => ctx.T("console.cmd.deop.desc"),
+		"help" => ctx.T("console.cmd.help.desc"),
+		"clear" => ctx.T("console.cmd.clear.desc"),
+		"players" => ctx.T("console.cmd.players.desc"),
+		"rtt" => ctx.T("console.cmd.rtt.desc"),
+		"whoami" => ctx.T("console.cmd.whoami.desc"),
+		"gamemode" => ctx.T("console.cmd.gamemode.desc"),
+		"heal" => ctx.T("console.cmd.heal.desc"),
+		"kick" => ctx.T("console.cmd.kick.desc"),
+		"ban" => ctx.T("console.cmd.ban.desc"),
+		"unban" => ctx.T("console.cmd.unban.desc"),
+		"gamerule" => ctx.T("console.cmd.gamerule.desc"),
+		"data" => ctx.T("console.cmd.data.desc"),
+		"give" => ctx.T("console.cmd.give.desc"),
+		"spectate" => ctx.T("console.cmd.spectate.desc"),
+		"save" => ctx.T("console.cmd.save.desc"),
+		"summon" => ctx.T("console.cmd.summon.desc"),
+		_ => null,
+	};
+
+	private void DrawSuggestions(OnlineUiContext ctx, Rect panel)
 	{
 		var suggestions = _session.LiveSuggestions;
 		if (suggestions.Count == 0)
@@ -387,15 +442,16 @@ internal sealed class CommandConsoleOverlay
 		foreach (var suggestion in suggestions)
 		{
 			GUILayout.BeginHorizontal();
-			var content = new GUIContent(suggestion.Text, suggestion.Description);
+			var hint = HintText(ctx, suggestion);
+			var content = new GUIContent(suggestion.Text, hint);
 			if (GUILayout.Button(content, OnlineUiTheme.Button(), GUILayout.ExpandWidth(false)))
 			{
 				_session.AcceptSuggestion(suggestion);
 			}
 
-			if (!string.IsNullOrWhiteSpace(suggestion.Description))
+			if (!string.IsNullOrWhiteSpace(hint))
 			{
-				GUILayout.Label(suggestion.Description, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
+				GUILayout.Label(hint, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
 			}
 
 			GUILayout.EndHorizontal();

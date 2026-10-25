@@ -36,7 +36,7 @@ internal static class GamemodeCompletion
 		var prefix = current.Length == 0 ? "" : current.Unquoted;
 		suggestions = [.. Modes
 			.Where(mode => mode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			.Select(mode => new CommandSuggestion(mode, "Accepted value for /gamemode"))];
+			.Select(mode => new CommandSuggestion(mode, CommandSuggestionHint.GamemodeValue))];
 		return suggestions.Count > 0;
 	}
 

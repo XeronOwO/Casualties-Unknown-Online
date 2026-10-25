@@ -277,7 +277,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	private static readonly Regex DeclaredKeyPattern = new($@"\""({UiKeyPattern})\""\s*:", RegexOptions.Compiled);
 	// A key is "referenced" by the UI when it is read through the localization accessor (`T("…")`) or through the console
 	// resolver's own lookup parameter (`lookup("…")`), which is the same read one indirection later.
-	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|lookup)\(""({UiKeyPattern})""\)", RegexOptions.Compiled);
+	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|F|lookup)\(""({UiKeyPattern})""", RegexOptions.Compiled);
 	private static readonly Regex ConsoleInputFieldPattern = new(@"\bConsoleInput\b", RegexOptions.Compiled);
 
 	/// <summary>
@@ -288,12 +288,45 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	private static readonly string[] ExpectedUiKeys =
 	[
 		"console.chat.not_sent",
+		"console.cmd.ban.desc",
+		"console.cmd.clear.desc",
+		"console.cmd.data.desc",
+		"console.cmd.deop.desc",
+		"console.cmd.gamemode.desc",
+		"console.cmd.gamerule.desc",
+		"console.cmd.give.desc",
+		"console.cmd.heal.desc",
+		"console.cmd.help.desc",
+		"console.cmd.kick.desc",
+		"console.cmd.op.desc",
+		"console.cmd.players.desc",
+		"console.cmd.rtt.desc",
+		"console.cmd.save.desc",
+		"console.cmd.spectate.desc",
+		"console.cmd.summon.desc",
+		"console.cmd.traderreport.desc",
+		"console.cmd.unban.desc",
+		"console.cmd.whoami.desc",
 		"console.command.empty",
 		"console.command.host_only",
 		"console.command.unknown",
 		"console.overlay.empty",
 		"console.ready",
 		"console.session_ended",
+		"console.suggest.banned_steamid",
+		"console.suggest.banned_steamid_hex",
+		"console.suggest.body_slot",
+		"console.suggest.filter_by",
+		"console.suggest.gamemode_value",
+		"console.suggest.json_empty",
+		"console.suggest.json_template",
+		"console.suggest.member_name",
+		"console.suggest.rule_current",
+		"console.suggest.rule_value",
+		"console.suggest.steamid",
+		"console.suggest.steamid_hex",
+		"console.suggest.summon_position",
+		"console.suggest.value",
 		"tab.admin",
 		"tab.home",
 		"tab.network",

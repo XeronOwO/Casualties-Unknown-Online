@@ -43,8 +43,8 @@ internal sealed class CommandConsoleCompletion(
 {
 	private static readonly CommandSuggestion[] JsonSuggestions =
 	[
-		new("{}", "Empty JSON object"),
-		new("{\"key\": \"value\"}", "JSON object template"),
+		new("{}", CommandSuggestionHint.JsonEmpty),
+		new("{\"key\": \"value\"}", CommandSuggestionHint.JsonTemplate),
 	];
 
 	private readonly ConsoleCommandRegistry _commands = commands;
@@ -56,7 +56,6 @@ internal sealed class CommandConsoleCompletion(
 	private readonly ItemStateCompletion _itemState = new(kernelItems, itemStateLanguage, targets);
 	private readonly HostRuleCompletion _hostRules = new(hostRules);
 
-	/// <summary>Every completion candidate for the token under the caret, filtered by this caller's authority.</summary>
 	internal IReadOnlyList<CommandSuggestion> Suggest(string input)
 	{
 		if (string.IsNullOrWhiteSpace(input))
@@ -82,7 +81,7 @@ internal sealed class CommandConsoleCompletion(
 			return [.. _commands.All
 				.Where(_authority.MayRun)
 				.Where(c => c.Name.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
-				.Select(c => new CommandSuggestion(c.Name, c.Description))
+				.Select(c => new CommandSuggestion(c.Name, CommandSuggestionHint.Command, Args: [c.Name]))
 				.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
 		}
 
@@ -234,5 +233,5 @@ internal sealed class CommandConsoleCompletion(
 		[.. _resourceLocations.Suggest(prefix)
 			.Select(entry => new CommandSuggestion(
 				bareGameId ? entry.Id.Path : entry.Id.ToString(),
-				$"{entry.Kind} · {entry.DisplayName}"))];
+				CommandSuggestionHint.ResourceLocation, Args: [entry.Kind, entry.DisplayName]))];
 }

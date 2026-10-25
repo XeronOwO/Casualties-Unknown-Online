@@ -39,13 +39,13 @@ internal static class ItemDataVerbCompletion
 		var prefix = current.Length == 0 ? "" : current.Unquoted;
 		var words = new List<CommandSuggestion>
 		{
-			new("get", "Read one item's recorded state"),
+			new("get", CommandSuggestionHint.DataGet),
 		};
 		if (mayRunCheatVerbs)
 		{
-			words.Add(new("merge", "Merge properties into an item's recorded state"));
-			words.Add(new("modify", "Modify one path of an item's recorded state"));
-			words.Add(new("remove", "Remove one path from an item's recorded state"));
+			words.Add(new("merge", CommandSuggestionHint.DataMerge));
+			words.Add(new("modify", CommandSuggestionHint.DataModify));
+			words.Add(new("remove", CommandSuggestionHint.DataRemove));
 		}
 
 		suggestions = [.. words.Where(word => word.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))];

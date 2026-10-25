@@ -24,19 +24,19 @@ internal static class CommandSuggestions
 			if (!string.IsNullOrWhiteSpace(member.DisplayName)
 				&& member.DisplayName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(new CommandSuggestion(member.DisplayName, "Session member display name"));
+				result.Add(new CommandSuggestion(member.DisplayName, CommandSuggestionHint.MemberName));
 			}
 
 			var decimalId = member.SteamId.ToString(CultureInfo.InvariantCulture);
 			if (decimalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(new CommandSuggestion(decimalId, "SteamId"));
+				result.Add(new CommandSuggestion(decimalId, CommandSuggestionHint.SteamId));
 			}
 
 			var hexId = "0x" + member.SteamId.ToString("X", CultureInfo.InvariantCulture);
 			if (hexId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(new CommandSuggestion(hexId, "SteamId (hex)"));
+				result.Add(new CommandSuggestion(hexId, CommandSuggestionHint.SteamIdHex));
 			}
 		}
 
@@ -52,13 +52,13 @@ internal static class CommandSuggestions
 			var decimalId = steamId.ToString(CultureInfo.InvariantCulture);
 			if (decimalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(new CommandSuggestion(decimalId, "Banned SteamId"));
+				result.Add(new CommandSuggestion(decimalId, CommandSuggestionHint.BannedSteamId));
 			}
 
 			var hexId = "0x" + steamId.ToString("X", CultureInfo.InvariantCulture);
 			if (hexId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(new CommandSuggestion(hexId, "Banned SteamId (hex)"));
+				result.Add(new CommandSuggestion(hexId, CommandSuggestionHint.BannedSteamIdHex));
 			}
 		}
 
@@ -69,6 +69,6 @@ internal static class CommandSuggestions
 	internal static IReadOnlyList<CommandSuggestion> CommandNames(IReadOnlyList<CommandDefinition> commands, string prefix) =>
 		[.. commands
 			.Where(c => c.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			.Select(c => new CommandSuggestion(c.Name, c.Description))
+			.Select(c => new CommandSuggestion(c.Name, CommandSuggestionHint.Command, Args: [c.Name]))
 			.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
 }

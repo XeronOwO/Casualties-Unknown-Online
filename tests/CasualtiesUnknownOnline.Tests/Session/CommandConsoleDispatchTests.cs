@@ -79,7 +79,7 @@ public class CommandConsoleDispatchTests
 
 		var suggestions = completion.Suggest("/k");
 
-		Assert.Contains(suggestions, s => s.Text == "kick" && !string.IsNullOrWhiteSpace(s.Description));
+		Assert.Contains(suggestions, s => s.Text == "kick" && s.Hint == CommandSuggestionHint.Command && s.Args.Length == 1 && Equals(s.Args[0], "kick"));
 	}
 
 	[Fact]

@@ -13,11 +13,11 @@ internal static class CommandSelectorSuggestions
 {
 	private static readonly CommandSuggestion[] BaseSelectors =
 	[
-		new("@a", "All players"),
-		new("@p", "Nearest player"),
-		new("@s", "Self"),
-		new("@e", "All entities"),
-		new("@r", "Random player"),
+		new("@a", CommandSuggestionHint.SelectorAllPlayers),
+		new("@p", CommandSuggestionHint.SelectorNearestPlayer),
+		new("@s", CommandSuggestionHint.SelectorSelf),
+		new("@e", CommandSuggestionHint.SelectorAllEntities),
+		new("@r", CommandSuggestionHint.SelectorRandomPlayer),
 	];
 
 	private static readonly string[] FilterKeys = ["type", "name", "distance", "limit", "sort"];
@@ -71,7 +71,7 @@ internal static class CommandSelectorSuggestions
 			var candidate = basePrefix + key + "=";
 			if (candidate.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(new CommandSuggestion(candidate, $"Filter by {key}"));
+				result.Add(new CommandSuggestion(candidate, CommandSuggestionHint.FilterBy, Args: [key]));
 			}
 		}
 
@@ -93,7 +93,7 @@ internal static class CommandSelectorSuggestions
 			var candidate = basePrefix + key + "=" + candidateValue;
 			if (candidate.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(new CommandSuggestion(candidate, $"{key} value {candidateValue}"));
+				result.Add(new CommandSuggestion(candidate, CommandSuggestionHint.FilterValue, Args: [key, candidateValue]));
 			}
 		}
 

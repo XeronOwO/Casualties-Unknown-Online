@@ -170,7 +170,7 @@ public class CommandConsolePermissionCompletionTests
 		Assert.All(HostRuleCensus.Rows, row => Assert.Contains(all, s => s.Text == row.Name));
 		var remote = Assert.Single(narrowed);
 		Assert.Equal("remote_backpack_access", remote.Text);
-		Assert.Contains("allow", remote.Description);
+		Assert.Equal(CommandSuggestionHint.HostRuleCurrent, remote.Hint);
 	}
 
 	[Fact]

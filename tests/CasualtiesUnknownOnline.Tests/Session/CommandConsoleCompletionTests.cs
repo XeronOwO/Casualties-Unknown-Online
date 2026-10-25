@@ -104,7 +104,7 @@ public class CommandConsoleCompletionTests
 
 		var matches = suggestions.Suggest(CommandArgumentKind.Selector, "@a");
 
-		Assert.Contains(matches, s => s.Text == "@a" && s.Description == "All players");
+		Assert.Contains(matches, s => s.Text == "@a" && s.Hint == CommandSuggestionHint.SelectorAllPlayers);
 	}
 
 	[Fact]
@@ -126,7 +126,7 @@ public class CommandConsoleCompletionTests
 
 		var matches = suggestions.Suggest(CommandArgumentKind.ResourceLocation, "cu:");
 
-		Assert.Contains(matches, s => s.Text == "cu:player" && !string.IsNullOrWhiteSpace(s.Description));
+		Assert.Contains(matches, s => s.Text == "cu:player" && s.Hint == CommandSuggestionHint.ResourceLocation);
 	}
 
 	[Fact]

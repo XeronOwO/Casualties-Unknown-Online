@@ -40,7 +40,7 @@ public class ConsoleInputSessionTests
 	{
 		var session = CreateSession(
 			new StubControl(),
-			new StubCompletion(_ => [new CommandSuggestion("/help", "Show help")], _ => null));
+			new StubCompletion(_ => [new CommandSuggestion("/help", CommandSuggestionHint.Command, Args: ["help"])], _ => null));
 
 		session.Open();
 
@@ -185,7 +185,7 @@ public class ConsoleInputSessionTests
 	[Fact]
 	public void AcceptSuggestion_Verbatim_InsertsAStateTokenWithoutQuoting()
 	{
-		var suggestion = new CommandSuggestion("waterbottle{Liquids:[{LiquidId:'water',Amount:500f}]}", null, Verbatim: true);
+		var suggestion = new CommandSuggestion("waterbottle{Liquids:[{LiquidId:'water',Amount:500f}]}", Verbatim: true);
 		var session = CreateSession(new StubControl(), new StubCompletion(_ => [suggestion], _ => null));
 		session.Open();
 		session.SetInput("/give @p waterbottle{Liq");
@@ -387,11 +387,11 @@ public class ConsoleInputSessionTests
 	[Fact]
 	public void AcceptSuggestion_AppliesSpecificCandidateAndClearsList()
 	{
-		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("/help", "Show help")], _ => null));
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("/help", CommandSuggestionHint.Command, Args: ["help"])], _ => null));
 		session.Open();
 		session.SetInput("/h");
 
-		Assert.True(session.AcceptSuggestion(new CommandSuggestion("/help", "Show help")));
+		Assert.True(session.AcceptSuggestion(new CommandSuggestion("/help", CommandSuggestionHint.Command, Args: ["help"])));
 		Assert.Equal("/help", session.Input);
 		Assert.Empty(session.CompletionSuggestions);
 	}

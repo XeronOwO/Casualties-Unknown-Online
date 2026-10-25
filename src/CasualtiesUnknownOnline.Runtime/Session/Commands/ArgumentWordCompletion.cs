@@ -42,7 +42,7 @@ internal static class ArgumentWordCompletion
 
 			suggestions = [.. Positions
 				.Where(position => position.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-				.Select(position => new CommandSuggestion(position, "Position /summon accepts"))];
+				.Select(position => new CommandSuggestion(position, CommandSuggestionHint.SummonPosition))];
 			return suggestions.Count > 0;
 		}
 
@@ -52,7 +52,7 @@ internal static class ArgumentWordCompletion
 		}
 
 		suggestions = "slot".StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-			? [new CommandSuggestion("slot", "Place the item in this body slot index")]
+			? [new CommandSuggestion("slot", CommandSuggestionHint.BodySlot)]
 			: [];
 		return suggestions.Count > 0;
 	}

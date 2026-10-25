@@ -268,7 +268,7 @@ internal sealed class ItemStateCompletion(
 		var result = new List<CommandSuggestion>(fragments.Count);
 		foreach (var fragment in fragments)
 		{
-			result.Add(new CommandSuggestion(prefix + fragment.Text, fragment.Description, Verbatim: true));
+			result.Add(new CommandSuggestion(prefix + fragment.Text, Verbatim: true));
 		}
 
 		suggestions = result;

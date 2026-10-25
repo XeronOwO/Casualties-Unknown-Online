@@ -45,7 +45,7 @@ internal sealed class HostRuleCompletion(IHostRules hostRules)
 			var rules = HostRuleSet.From(_hostRules);
 			suggestions = [.. HostRuleCensus.Rows
 				.Where(row => row.Name.StartsWith(prefix, StringComparison.Ordinal))
-				.Select(row => new CommandSuggestion(row.Name, $"Currently {HostRuleValueText.Describe(rules, row)}"))];
+				.Select(row => new CommandSuggestion(row.Name, CommandSuggestionHint.HostRuleCurrent, Args: [HostRuleValueText.Describe(rules, row)]))];
 			return suggestions.Count > 0;
 		}
 
@@ -64,7 +64,7 @@ internal sealed class HostRuleCompletion(IHostRules hostRules)
 
 		suggestions = [.. HostRuleValueText.Choices(rule)
 			.Where(choice => choice.StartsWith(prefix, StringComparison.Ordinal))
-			.Select(choice => new CommandSuggestion(choice, $"Accepted value for {rule.Name}"))];
+			.Select(choice => new CommandSuggestion(choice, CommandSuggestionHint.HostRuleValue, Args: [rule.Name]))];
 		return suggestions.Count > 0;
 	}
 

@@ -64,7 +64,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
 - [Giving a ground item swallows it](todo/give-from-the-ground-swallows-the-item.md) — **High** — refused until designed.
-- [The context menu does not block the pointer](todo/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
 - [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
@@ -77,6 +76,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+- [The context menu does not block the pointer](review/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 
 - [The context menu's name is not drawn, and its bar is a grey strip](review/context-menu-name-wraps-behind-actions.md) — **Medium** — a row now; confirmed.
 - [Enter on an empty console closes it now](review/console-enter-on-empty-does-not-close.md) — **Low** — landed; a frame and its state read.

@@ -371,7 +371,7 @@ docs/backlog/done/console-command-replies-bilingual.md | keep | index | docs/bac
 docs/evidence/acceptance/localization-live-read-20261025-e.md | keep | claim | docs/backlog/done/console-command-replies-bilingual.md
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/review/player-facing-text-localized-per-receiver.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/context-menu-does-not-block-the-pointer.md | keep | index | docs/backlog/README.md
+docs/backlog/review/context-menu-does-not-block-the-pointer.md | keep | index | docs/backlog/README.md
 docs/backlog/review/context-menu-name-wraps-behind-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/review/console-completion-shows-no-suggestions.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-caret-misaligned-with-text.md | keep | index | docs/backlog/README.md
@@ -1260,4 +1260,4 @@ docs/evidence/acceptance/remote-medical-panel-alarm-follows-viewed-player-202610
 docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | claim | docs/backlog/done/snapshot-overtakes-item-reports.md
 docs/backlog/todo/item-custody-single-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
-tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/todo/context-menu-does-not-block-the-pointer.md
+tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/review/context-menu-does-not-block-the-pointer.md

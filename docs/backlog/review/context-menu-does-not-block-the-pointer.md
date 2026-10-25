@@ -1,6 +1,6 @@
 # The context menu does not block the pointer: a click on its blank area reaches the world
 
-- Status: Todo — opened 2026-10-25 from the user's report (translated): "the right-click panel does not stop the pointer — clicking its blank
+- Status: Review — all four acceptance rows judged on the 2026-10-25 click batch; the bounded negative of row 1 is the open question — opened 2026-10-25 from the user's report (translated): "the right-click panel does not stop the pointer — clicking its blank
   area goes through into the world and makes the character mine".
 - Priority: High
 - Category: Online UI / pointer authority
@@ -76,20 +76,42 @@ candidate 2 is now the live one: either the world action the user saw is not the
 was already closing when the click landed. That distinction needs the user's own click, because both candidates end at "what happened at that
 instant", and no probe can manufacture it.
 
-Rows 1-4 therefore need a batch with the user's mouse authorization; the instrument for the blank-area row (the hit list, inside versus outside the
-rect) is committed and works.
+Rows 1-4 needed a batch with the user's mouse authorization; the user granted it for one batch (2026-10-25) and the four rows were judged in it.
+
+## All four rows JUDGED 2026-10-25 (batch `.acceptance/batch-menuclick`, user's mouse authorization)
+
+Real clicks through `send-input.ps1`, each with a client-captured frame read back, on the host with the menu open at (640,360):
+
+| Row | What was done | What the evidence shows |
+|---|---|---|
+| 1 | click at (760,470): inside the menu's rectangle, on its blank right-hand area, off every row | `.acceptance/frames/menu-before-click.png` → `menu-after-blank-click.png`: the menu is still open, nothing behind it changed, and the host log gained no item/use/attack line (only the 1 Hz `[ItemTraffic]`/`[CarriedSync]` lines that run every second). **No world action.** |
+| 2 | click at (683,393): the row the UI labels "Medical" (its own label is localized) | `.acceptance/frames/menu-row-click.png`: the row RAN — the medical view for that member opened over the whole screen. The menu is not made dead by the block. |
+| 3 | click at (1100,620): outside the menu's rectangle | `.acceptance/frames/menu-after-outside-click.png`: the menu closed and the game itself reacted (its own alert line drawn at the top of the screen), i.e. the click reached the world. The block is the rectangle, not a global modal. |
+| 4 | the docked panel: `open-window`, then a click at (700,560) inside its blank area | `.acceptance/frames/panel-blank-click.png`: the window is open and unchanged, the world behind it unchanged. The shared view behaves the same way. |
+
+**So the defect does not reproduce on this build.** That is a finding, not a pass by assertion: the click-through the user saw was reported before the
+menu's layer fix and the panel's own raycast work, and every one of the four behaviours the ticket asks for is now the behaviour the build has.
 
 ## Acceptance rows
 
-| Row | The check |
-|---|---|
-| 1 | With the menu open, a click on its blank area produces no world action: a frame before and after, plus the log lines that would show mining/item use, all absent |
-| 2 | A click on a row still runs that row (the menu is not made dead by the fix) |
-| 3 | The same click outside the menu's rectangle still reaches the world (the block is the rectangle, not a global modal) |
-| 4 | The docked quick panel behaves the same way (the two panels share one view) |
+| Row | The check | State |
+|---|---|---|
+| 1 | With the menu open, a click on its blank area produces no world action: a frame before and after, plus the log lines that would show mining/item use, all absent | judged ✔ (frames above, no world action) |
+| 2 | A click on a row still runs that row (the menu is not made dead by the fix) | judged ✔ (the row the UI labels "Medical" (its own label is localized) opened the medical view) |
+| 3 | The same click outside the menu's rectangle still reaches the world (the block is the rectangle, not a global modal) | judged ✔ (the menu closed, the game reacted) |
+| 4 | The docked quick panel behaves the same way (the two panels share one view) | judged ✔ (its blank area changed nothing) |
 
 ## Limits
 
-- The first batch must capture frames: the defect is "the pointer went through", which no probe reading reports.
-- A click there is an OS-level pointer action, so the batch needs the user's per-batch authorization for `send-input.ps1`; the rows
-  cannot be read from the in-process driver alone.
+- The first batch must capture frames: the defect is "the pointer went through", which no probe reading reports. (Done: the four frames are named
+  above and were read back.)
+- A click there is an OS-level pointer action, so the batch needs the user's per-batch authorization for `send-input.ps1`; the rows cannot be read
+  from the in-process driver alone. (Granted for the batch that judged them, 2026-10-25.)
+- Row 1's negative is bounded by what the click could have done: the click landed while the character had nothing in reach to swing at, so the
+  evidence is "the menu stayed open, the scene did not change, and the log shows no item/use/attack line" — a swing at nothing would also produce no
+  line. A run that reproduces the ORIGINAL report (a wall in front, a pickaxe in hand) would make the same row conclusive.
+
+## Resolution
+
+All four rows pass on this build, so the ticket moves to `review/` rather than `done/`: the behaviour is judged, and what keeps it open is the
+bounded negative above — a reproduction with something to swing at is the user's call, and the ticket says what it would add.

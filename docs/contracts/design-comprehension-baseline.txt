@@ -5,7 +5,7 @@
 
 docs/backlog/todo/console-caret-misaligned-with-text.md
 docs/backlog/review/console-completion-shows-no-suggestions.md
-docs/backlog/todo/console-enter-on-empty-does-not-close.md
+docs/backlog/review/console-enter-on-empty-does-not-close.md
 docs/backlog/todo/context-menu-name-wraps-behind-actions.md
 docs/backlog/todo/cross-player-eat-skips-native-steps.md
 docs/backlog/todo/give-into-backpack-plays-no-sound.md

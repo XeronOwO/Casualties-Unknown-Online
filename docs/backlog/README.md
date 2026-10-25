@@ -65,7 +65,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The context menu does not block the pointer](todo/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 - [The context menu's title wraps behind its first action](todo/context-menu-name-wraps-behind-actions.md) — **Medium** — fit or ellipsize the player name.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
-- [Enter on an empty console does not close it](todo/console-enter-on-empty-does-not-close.md) — **Low** — a recorded deviation from native.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
 - [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
 - [Giving into a backpack plays no sound](todo/give-into-backpack-plays-no-sound.md) — **High** — the transfer's own clip.
@@ -78,6 +77,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 
+- [Enter on an empty console closes it now](review/console-enter-on-empty-does-not-close.md) — **Low** — landed; a frame and its state read.
 - [The console's completion shows nothing while typing](review/console-completion-shows-no-suggestions.md) — **High** — all positions complete; frames
 - [Player-facing text crosses as a key, never prose](review/player-facing-text-localized-per-receiver.md) — **High** — keyed; two rows need a two-client batch.
 - [`@a` now names the executor too](review/selectors-exclude-the-executor.md) — **Medium** — code landed; the runtime rows need a session.

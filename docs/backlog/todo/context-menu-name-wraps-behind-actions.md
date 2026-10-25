@@ -21,7 +21,30 @@ TMP's default word wrapping on, so the name wraps inside a fixed-width title bar
 Measured on the machine 2026-10-25 with `open-context-menu target=76561198863287957 x=820 y=430` followed by `capture-frame` on the
 host; the frame is the evidence and the batch record names it.
 
-## Done in code (2026-10-25, `9300ee5f`)
+## Where the title stands (2026-10-25, `batch-title3` … `batch-title5`, deployed `4988c83`)
+
+The frames still show an **empty title bar**, and the runtime probe (`tools/acceptance/recipes/panel-title.cs`) narrows it to TMP itself:
+
+| Read | Value |
+|---|---|
+| model title / label text | `Kaguya（小号）` / `Kaguya（小号）` |
+| label rect | 269.31 × 24, active, enabled, alpha 1, colour `1,1,1` |
+| parent | `Title Bar`, under the CUO canvas |
+| menus in the scene | 1 (so the drawn menu IS the view that is applied) |
+| font / material | `Retro GamingPix` / `Retro GamingPix Material` |
+| final state | `wordWrap=false`, `overflow=Ellipsis` (the view's own flags did apply) |
+| **`textInfo.characterCount`** | **0 — before AND after `ForceMeshUpdate(ignoreActiveState: true, forceTextReparsing: true)`** |
+
+So the string is set, the label is sized and active, the font and material are the game's own, and **TMP parses it into zero characters**. The same font draws CJK on the game's own prefab labels (the window's `构建: 0.1.0+4988c83` is rendered by one), which rules out "the font cannot draw these glyphs".
+
+**The next step is therefore to stop constructing a `TextMeshProUGUI` in code for this label**: clone the game's own label object (whose TMP demonstrably renders) and set its text, the way every other control on this surface already comes from the game's prefab. `OnlineUiControlTypography` would carry that label template instead of the font and material pair it carries now; `OnlineUiSurfaceParts.CreateLabel` would instantiate it, strip the row's layout components and apply the style.
+
+## Done in code (2026-10-25, `9300ee5f`, `e2910f78`, `4988c83a`)
+
+- `9300ee5f`: the title is single-line with an ellipsis and the panel widens to the measured name (capped at `MaxTitleFitWidth`).
+- `e2910f78`: the measurement is unconstrained (`GetPreferredValues(text)`, not the 0×TitleHeight overload, which measured nothing) and the mesh is rebuilt once per title change.
+- `4988c83a`: the typography carries the game's own **font material** (`ReadRowTemplate` reads `fontSharedMaterial` off the game's label,
+  `CreateLabel` applies it) — a programmatic label otherwise draws with TMP's default material, which this build does not draw.
 
 The three shape steps landed:
 

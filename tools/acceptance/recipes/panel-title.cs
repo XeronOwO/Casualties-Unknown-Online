@@ -95,7 +95,36 @@
 		var rect = found[i] as UnityEngine.RectTransform;
 		if (rect != null && rect.name == "CUO Online UI Player Menu") { panelCount++; }
 	}
+	// TMP_TextInfo.characterCount is a FIELD, not a property: reading it as one answered -1 and told the batch nothing.
+	var characters = -2;
+	if (meshInfo != null) {
+		var countField = meshInfo.GetType().GetField("characterCount", Flags);
+		if (countField != null) { characters = (int)countField.GetValue(meshInfo); }
+	}
+	var materialName = "<none>";
+	var materialProperty = title.GetType().GetProperty("fontSharedMaterial", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+	var material = materialProperty == null ? null : materialProperty.GetValue(title, null) as UnityEngine.Material;
+	if (material != null) { materialName = material.name; }
+	var fontName = "<none>";
+	var fontValue = fontProperty == null ? null : fontProperty.GetValue(title, null);
+	if (fontValue != null) { fontName = ((UnityEngine.Object)fontValue).name; }
+	var wrap = title.GetType().GetProperty("enableWordWrapping", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+	var overflow = title.GetType().GetProperty("overflowMode", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+	// If the label holds text but generated no glyphs, ask TMP to reparse once and read again: that separates "the mesh was never built" from
+	// "the font cannot draw these characters", which are different fixes.
+	var charactersAfter = characters;
+	if (characters == 0) {
+		var force = title.GetType().GetMethod("ForceMeshUpdate", new[] { typeof(bool), typeof(bool) });
+		if (force != null) {
+			force.Invoke(title, new object[] { true, true });
+			if (meshInfo != null) {
+				var countField = meshInfo.GetType().GetField("characterCount", Flags);
+				if (countField != null) { charactersAfter = (int)countField.GetValue(meshInfo); }
+			}
+		}
+	}
 	return "{\"ok\":true"
+		+ ",\"charactersAfter\":" + charactersAfter.ToString(inv)
 		+ ",\"modelTitle\":\"" + (modelTitle ?? "") + "\""
 		+ ",\"labelText\":\"" + ((titleText == null ? "" : (titleText.GetValue(title, null) as string)) ?? "") + "\""
 		+ ",\"labelWidth\":" + (labelRect == null ? "0" : labelRect.rect.width.ToString("0.##", inv))
@@ -105,11 +134,13 @@
 		+ ",\"labelColor\":\"" + color.r.ToString("0.##", inv) + "," + color.g.ToString("0.##", inv) + "," + color.b.ToString("0.##", inv) + "\""
 		+ ",\"labelPos\":\"" + (labelRect == null ? "" : labelRect.anchoredPosition.x.ToString("0.##", inv) + "," + labelRect.anchoredPosition.y.ToString("0.##", inv)) + "\""
 		+ ",\"parent\":\"" + (labelRect == null || labelRect.parent == null ? "?" : labelRect.parent.name) + "\""
-		+ ",\"root\":\"" + (labelRect == null || labelRect.root == null ? "?" : labelRect.root.name) + "\""
 		+ ",\"labelEnabled\":" + (enabledProperty != null && (bool)enabledProperty.GetValue(title, null) ? "true" : "false")
 		+ ",\"labelActive\":" + (activeProperty != null && (bool)activeProperty.GetValue(title, null) ? "true" : "false")
-		+ ",\"font\":" + (fontProperty == null || fontProperty.GetValue(title, null) == null ? "\"<null>\"" : "\"<set>\"")
-		+ ",\"characters\":" + (meshCountProperty == null ? "-1" : ((int)meshCountProperty.GetValue(meshInfo, null)).ToString(inv))
+		+ ",\"font\":" + (fontValue == null ? "\"<null>\"" : "\"" + fontName + "\"")
+		+ ",\"material\":\"" + materialName + "\""
+		+ ",\"characters\":" + characters.ToString(inv)
+		+ ",\"wordWrap\":" + (wrap == null ? "?" : ((bool)wrap.GetValue(title, null) ? "true" : "false"))
+		+ ",\"overflow\":\"" + (overflow == null ? "?" : overflow.GetValue(title, null).ToString()) + "\""
 		+ ",\"culled\":" + (cullProperty == null ? "?" : ((bool)cullProperty.GetValue(canvasRenderer, null) ? "true" : "false"))
 		+ ",\"panelWidth\":" + (panelRect == null ? "0" : panelRect.sizeDelta.x.ToString("0.##", inv))
 		+ ",\"menus\":" + panelCount.ToString(inv)

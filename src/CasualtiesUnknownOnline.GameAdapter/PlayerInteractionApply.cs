@@ -87,8 +87,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 			{
 				if (msg.FromSteamId == domains.Session.LocalSteamId)
 				{
-					_placement.RemoveCarriedItemFromLocalBody(body, msg.Item?.InstanceId ?? 0);
+					// The game's own move sound: natively this release is UnloadItem + LoadItem + PlayBackpackSound, and a cross-player
+					// give is the same action with somebody else's backpack (give-into-backpack-plays-no-sound).
+					var removed = _placement.RemoveCarriedItemFromLocalBody(body, msg.Item?.InstanceId ?? 0);
 					changed = true;
+					if (removed && PlayerCamera.main != null) { PlayerCamera.main.PlayBackpackSound(); } // Unity object — ==
 				}
 
 				if (msg.ToSteamId == domains.Session.LocalSteamId && msg.Item is { } item)

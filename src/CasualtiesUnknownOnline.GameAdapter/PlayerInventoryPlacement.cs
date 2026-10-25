@@ -28,12 +28,15 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 	/// <summary>The one world-item creation path (the give ladder's drop rung and the console summon verb share it).</summary>
 	private readonly WorldItemCreation _worldItems = new(domains.Items, domains.Log);
 
-	/// <summary>A carried item leaves this body: destroy the local object at any depth (a slot, a worn limb or a container).</summary>
-	internal void RemoveCarriedItemFromLocalBody(Body body, ulong instanceId)
+	/// <summary>
+	/// A carried item leaves this body: destroy the local object at any depth (a slot, a worn limb or a container). Answers whether it removed
+	/// one, which is what lets the caller play the game's own move sound for a removal that really happened.
+	/// </summary>
+	internal bool RemoveCarriedItemFromLocalBody(Body body, ulong instanceId)
 	{
 		if (instanceId == 0)
 		{
-			return;
+			return false;
 		}
 
 		// A carried item may live at any depth: a top-level slot, a worn limb,
@@ -44,9 +47,11 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 		{
 			if (TryDestroyById(item, instanceId))
 			{
-				return;
+				return true;
 			}
 		}
+
+		return false;
 	}
 
 	/// <summary>The same-owner container move: re-home the existing object through the native container, never destroying it first.</summary>

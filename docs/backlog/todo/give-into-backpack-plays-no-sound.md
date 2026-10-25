@@ -67,6 +67,16 @@ The drag window stays CLOSED for this path on purpose: `Container.LoadItem`/`Unl
 open window would turn the give's own native load into a second intent. The native call is observable instead by its own Debug line
 (one per load, high-frequency → Debug), which is the instrument row 1 reads.
 
+## Fixed in code (2026-10-25)
+
+The giver's own client now plays the game's own sound when the item really leaves the body: `PlayerInteractionApply` calls
+`PlayerCamera.PlayBackpackSound()` on the transfer's giver side, guarded by the removal actually happening
+(`PlayerInventoryPlacement.RemoveCarriedItemFromLocalBody` answers whether it removed one). `PlayBackpackSound` is the native call
+(`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:44`: `Sound.Play("backpack" + Random.Range(1, 3), …)`) that the game's own
+container branch runs right after `container.UnloadItem` + `container.LoadItem` — the release a cross-player give is, with somebody else's
+backpack as the destination. The native chain itself cannot run there (the destination container belongs to another client), so the one
+perceptible effect it produces is made by the same call the game makes.
+
 ## Acceptance rows
 
 | Row | The check |

@@ -74,6 +74,13 @@ medical operation the two clients perform together, which is why the drag gestur
   `Random.Range(15f, 24f)` pain — and a `Random.value > 0.995f` roll BREAKS the bone. Success is positional:
   `dislocationTimer` is the bone's distance from its seat expressed as a percentage, and when it drops "`< 3f`" the limb is
   undis­located and the minigame ends; above 75 pain the readout reads `toomuchpain` and nothing happens.
+- **Amputation is a sawing gesture whose progress is the hand's SPEED, and finishing it pays the patient back.**
+  `AmputationMinigame.cs:70-106`: `cutProgress += Abs(handVelocity.x) * 5E-05f` while cutting, so a faster saw cuts faster; the
+  cut also raises the OPERATOR's adrenaline to at least `60f` and charges the limb `pain += |v| * dt * 0.5f`,
+  `skinHealth -= |v| * dt`, `muscleHealth -= |v| * dt` and `bleedAmount += |v| * dt * 0.5f`. At `cutProgress >= 1f` the limb is
+  dismembered and every limb still connected below it is disinfected: `infected = false`, `infectionAmount = 0f`,
+  `SetDisinfect(300f)` and `bleedAmount *= 0.5f`, with `body.traumaAmount -= 20f` — so an amputation is a treatment as well as
+  a loss.
 - A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
 
 ## Refusals

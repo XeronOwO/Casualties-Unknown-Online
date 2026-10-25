@@ -29,6 +29,14 @@ says which one was intended.
 the inventory use", and the request itself is for the direct cross-player interaction — "injectable/IV medicine is NOT a
 direct one-shot request", because it goes through the medical operation the two clients perform together.
 
+**An item's CONDITION is its dose, and every effect is proportional to what was spent.** The bandage's own action
+(`Item.cs:284-300`) is a callback into the bandage minigame, and each wrap step spends `num2 = normalAngle / 12f` of condition
+and applies `condition -= num2`, `skinHealAmount += num2 * 30f`, `bandageSlowAmount += num2 * 45f`, `pain -= num2 * 60f`,
+`boneHealTimer -= num2 * 20f` and `dislocationTimer -= num2 * 20f` — so twelve condition units are one full wrap, each 20° step
+is `1/18` of that, and a partly-used item heals exactly as much as it spends. An item's weight follows the same "condition is a
+real state" rule: `Item.totalWeight` is `Stats.weight`, or `Lerp(0.1f, Stats.weight, condition)` when the definition says
+`scaleWeightWithCondition` — a nearly-wrecked item still weighs a tenth of its new weight.
+
 | Family | The native action it runs | Where it runs |
 |---|---|---|
 | **Wear** | `Body.WearWearable` — the item is placed on the target body | host places, target shows |

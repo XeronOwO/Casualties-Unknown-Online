@@ -56,6 +56,11 @@ deployed artifact. A per-property keyword form is not a second dialect of the sa
 - Member cheat verbs are a rule: off by default, granted per member, and announced to that member. The grant mechanism is `/op` and `/deop`: the accepted record lists "`/op`, `/deop`, the announced roster, the host's cheat SWITCH and the two-sided check on `/data`'s write verbs", and the user's ruling behind it is that granting and revoking are allowed only from the host to the other clients ("授权与剥夺只允许本机对其它客机执行").
 - A write verb is checked on BOTH sides: the member's roster says whether it may run it, and the host checks the same rule
   when the request arrives.
+- **A mod's command is shape-checked by the framework and semantically checked by the host's copy of the mod.**
+  `Runtime/Session/Mods/ModCommandPolicy.cs`: "the framework validates these BEFORE a command handler runs: the host's copy of
+  the mod is still the semantic validator of its parameters, but the wire/protocol shape (name length, argument count/length/
+  total, result size) is framework policy and is refused or clamped here" — with concrete rails (`MaxNameLength = 64`,
+  `MaxArgumentCount = 16`, `MaxArgumentLength = 256`, `MaxModIdLength = 128`).
 - **Two questions are asked at the seam, and they are different things.** `src/CasualtiesUnknownOnline.Application/Kernel/IMemberCommandRules.cs`
   puts the distinction as the design's own words: the per-kind authority declaration ("a property of the WIRE KIND: … the
   same answer in every session of this build") and a host ruling ("a property of the SESSION: the host's configuration and its

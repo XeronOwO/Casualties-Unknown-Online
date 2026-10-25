@@ -83,7 +83,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.Runtime/Session/Handlers` | 111 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/HostRules` | 16 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Items` | 63 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/Mods` | 89 | unread |
+| `CasualtiesUnknownOnline.Runtime/Session/Mods` | 89 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic` | 7 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Permissions` | 5 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Persistence` | 44 | read |

@@ -56,7 +56,14 @@ game's own, and the item's remaining state after a use is the same for both play
 
 A mod may add content and effects of its own: the platform's registration face exists for exactly that, and a mod-authored effect's consumer count stopped being the trigger ("the user's ruling is that a highly customisable effect surface is the point of the mod platform, so the consumer count is no longer the trigger"). That surface is documented in the mod API reference, not here: this corpus describes the shipped product's behaviour, and a mod's additions follow the same registration rules the reference states.
 
+**What two peers can honestly compare about their content is its ADDRESS.**
+`Runtime/Session/Mods/ModContentFingerprint.cs`: the fingerprint is "the ADDRESS every mod registered — the owning mod id, the
+entry's canonical id, its kind and its schema version — and nothing else. A definition's other members may COMPUTE their values
+(decision 251), so a value is not hashable in general: hashing one would report a difference that is not a difference. The
+address is what the registry keys on, what the handshake can carry and what a saved row names." One canonical text has two
+readers — "its digest is what the handshake compares per mod and what a cut records in its manifest, so an entry that appears,
+vanishes or changes kind or schema version moves both".
+
 ## Gaps
 
-Per-family pages (`items/food.md`, `items/drink.md`, `items/topical.md`, `items/injection.md`, `items/limb-tool.md`,
-`items/wear.md`) do not exist yet; the shared facts above are the seed they must keep consistent.
+None owed: every family page this index names exists, and the shared facts above are the set they must agree on.

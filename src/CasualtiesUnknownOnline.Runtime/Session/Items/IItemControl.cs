@@ -53,6 +53,12 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// </summary>
 	IReadOnlyDictionary<ulong, ItemState> QueryJudgedItems();
 
+	/// <summary>
+	/// Whether this member's own row says it carries the item — the custody question a gesture asks before it decides what kind of
+	/// gesture it is (`RemoteDragIntentDispatcher`'s give classification asks it, so a carried item is never mistaken for a world one).
+	/// </summary>
+	bool OwnsCarriedItem(ulong steamId, ulong itemId);
+
 	// ===== Report side (the adapter's local compute reports here) =====
 
 	/// <summary>A runtime-generated item entered the world locally — record (host/solo) and report/broadcast.</summary>

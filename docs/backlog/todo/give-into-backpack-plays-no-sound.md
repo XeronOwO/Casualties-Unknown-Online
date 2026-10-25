@@ -98,6 +98,55 @@ silence has exactly three possible causes, and reading has eliminated two:
 `[PlayerInteractionKernel] projected inventory transfer …` (Debug) next to whether the same id was still in the body. If the id is absent from
 the body at that moment, the sound's guard is doing its job and the fix is the removal's timing, not the call.
 
+## ROOT CAUSE FOUND AND FIXED, 2026-10-25 — the give had been impossible since the refusal
+
+`CarryForGive` was a **stub that refused every release unconditionally**:
+
+```csharp
+private bool CarryForGive(Item? dragItem, ulong itemId)
+{
+    domains.Log.LogInformation("[RemoteIntent] refused the release of the ground item {Item} … pick it up first …", …);
+    return false;    // ← every item, carried or not
+}
+```
+
+Its name promises "carry the item into the body for the give"; its body only logged the ground-item refusal. So `ReportLocalReleaseOntoProxy`
+answered false for EVERY item, the intent never left the giver's client, and the sound could not play: not because the clip was missing, but
+because **the give never happened**. The machine said so twice before the fix (`.acceptance/batch-givesound`):
+
+```
+20:05:15.707 [RemoteIntent] refused the release of the ground item emergencylight(Clone) (id 5197989525) …
+20:05:43.645 [RemoteIntent] refused the release of the ground item waterbottle(Clone) (id 13787924117) …
+```
+
+The second one is the proof it was a misclassification, not a ground item: the waterbottle had just been created through the native pickup
+(`[PickUpResult] waterbottle → slot (slot 1)`, `[ItemSpawn] … already present locally`) and was sitting in the giver's own slot.
+
+**The fix** asks the authority instead of guessing from the gesture: `CarryForGive` answers true when
+`domains.Items.OwnsCarriedItem(domains.Session.LocalSteamId, itemId)` — the same shared custody predicate the custody change introduced — and only
+a genuine world item keeps the refusal (that path is the sibling ticket `give-from-the-ground-swallows-the-item`). `IItemControl` gained the one
+member so the adapter can ask it.
+
+**Machine evidence after the fix** (`.acceptance/batch-givefix`, deployed and verified):
+
+```
+20:10:20.422 [RemoteIntent] GiveToBody captured for item 5197989525 of 76561198863287957 (slot 0, body 76561198281246659)
+20:10:20.620 [PlayerInteractionKernel] projected inventory transfer 76561198863287957 -> 76561198281246659
+20:10:20.628 [StandingItem] materialized emergencylight (id 5197989525) for 76561198281246659 …
+```
+
+and the host's custody projection caught the hand-over and healed:
+
+```
+20:10:18.600 [ItemCustody] rows=260 objects=260 mismatches=0
+20:10:20.624 [ItemCustody] rows=260 objects=261 mismatches=1     ← the giving client's object for one frame
+20:10:21.630 [ItemCustody] rows=260 objects=260 mismatches=0     ← converged
+```
+
+**What this fixes and what it does not.** The give is reachable again, so the apply's `removed` guard and the native `PlayBackpackSound()` call
+run on the giver. Whether the CLIP is audible is row 2 and stays the user's judgement — that row is judged next time they are at the keyboard,
+not claimed here.
+
 ## Acceptance rows
 | Row | The check |
 |---|---|

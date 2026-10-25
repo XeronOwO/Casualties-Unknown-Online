@@ -45,6 +45,16 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 	/// </summary>
 	private bool CarryForGive(Item? dragItem, ulong itemId)
 	{
+		// An item this body ALREADY carries needs no carrying: the data says whose it is, and asking it is what keeps the give's
+		// classification from depending on how the gesture happened to start. Before this answer the method refused EVERY release as a
+		// ground item — the refusal below logged "ground item" for a waterbottle the body had just picked up natively
+		// (`.acceptance/batch-givesound`, 2026-10-25 20:05:43.645) — which made a cross-player give impossible and is why the give's own
+		// sound never played: the intent never left this client.
+		if (domains.Items.OwnsCarriedItem(domains.Session.LocalSteamId, itemId))
+		{
+			return true;
+		}
+
 		domains.Log.LogInformation("[RemoteIntent] refused the release of the ground item {Item} (id {ItemId}) onto the displayed backpack: pick it up first — handing a world item over in one gesture is not implemented (ticket give-from-the-ground-swallows-the-item).",
 			dragItem != null ? dragItem.name : "null", itemId);
 		return false;

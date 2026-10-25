@@ -11,12 +11,32 @@
 (`PlayerCamera.TryPickupFromWorld`, `PlayerCamera.cs:1423-1441`: the press branch's first raycast is the `Item` layer and sets `dragItem`
 from what it finds). The page's `Gaps` section records the hand-over of such an item as undesigned.
 
-## What was tried and why it is reverted
+## Implemented 2026-10-25, awaiting the machine's own verdict
+
+The refusal is gone; the gesture now runs the two native steps with the race REMOVED rather than tolerated:
+
+1. `RemoteDragIntentDispatcher.TryCarryIntoBody` performs the game's own `Body.PickUpItem(item, slot, force: false)` into the first slot that
+   accepts it and verifies the slot by reading it back. A body with no room refuses the give by name (the player makes room first) — `force: true`
+   would put an item where the game itself would not.
+2. The `GiveToBody` intent is NOT sent in the same breath. It is parked in `_pendingGive` and `Tick()` (called once per frame from
+   `GameAdapter.Update` through `GameAdapterBridge.TickGiveQueue`) sends it only when `IItemControl.OwnsCarriedItem` says this body's ROW carries the
+   item — the row the pickup report produces. A row that does not arrive inside 3 s drops the intent with one line and leaves the item where the
+   pickup put it, in this body.
+
+That is the fix for the measured swallow: the old path sent the give while the row still said "world item", so the host and the receiver disagreed
+about an item nobody's row owned.
+
+**Not yet exercised end to end.** The in-process `give-probe` picks its item from the BODY's children, so it cannot hand the dispatcher a world item;
+the probe run after this change exercised the CARRIED path again (`[RemoteIntent] GiveToBody captured for item 5197989525`), not the new one. The
+ground path needs a real drag of a ground item onto the teammate, which is the user's next test — logged lines to look for:
+`carrying the ground item … into this body`, then `the carried row for … arrived — sending the give it was waiting for`.
+
+## What was tried and why it is reverted (the FIRST attempt, superseded above)
 
 `RemoteDragIntentDispatcher.CarryForGive` performed the game's own `Body.PickUpItem(dragItem, slot, false)` for a world item and then sent
 the `GiveToBody` intent — the two native steps a player would perform by hand, in one gesture. On the machine the item was swallowed: the
 pickup report and the give request cross the wire as two messages, and the receiving side ended with neither the item nor its row. The
-method now refuses the gesture by name (one log line) and this ticket carries the finding, because a refused gesture is a known behaviour
+method then refused the gesture by name (one log line) and this ticket carried the finding, because a refused gesture is a known behaviour
 while a lost item is not.
 
 ## What a fix has to decide

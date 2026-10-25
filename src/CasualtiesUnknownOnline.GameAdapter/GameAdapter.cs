@@ -229,6 +229,10 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		// docs/backlog/todo/item-custody-single-authority.md — a running session with `mismatches=0` is what lets the readers be switched.
 		_domains.ItemCustody.Tick(_domains.Session.LocalSteamId);
 
+		// A give whose item was picked up in the same gesture waits for the carried row the pickup produces (the race that swallowed the item before);
+		// this is the once-per-frame look that sends it or drops it.
+		_bridge.TickGiveQueue();
+
 		_lastLocalBody = localBody;
 		using (_latency.Measure("StartGate"))
 		{

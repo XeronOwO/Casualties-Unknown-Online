@@ -34,6 +34,7 @@ rejoined party to find the same world, the same items and the same progress.
 | a restore entry's content no longer exists | the entry is skipped and the skip is reported |
 
 - **World time accelerates only when the party sleeps, and the initiator's own clock moves first.** Manual world-time acceleration is gated on being asleep (the ticket's own title), and its last accepted shape is LOCAL FIRST: the initiator's own client applies the accelerated rate at once and the others follow. Decision 159 records the local-first half, and the later world-time tickets its consequences.
+- **The authoritative speed is re-broadcast, not trusted once.** `WorldTimeMsg` is "sent when the host's speed changes, as the answer to a guest's request (even when the speed did not change — the initiator is waiting for the verdict), when a member (re)enters the world, and every 5 s as an idempotent self-heal" — because direct `Time.timeScale` writers "and local-only effects can move a side away", and the next broadcast brings it back.
 
 ## Who judges
 

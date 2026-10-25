@@ -21,6 +21,10 @@ for every item mechanic; the mechanic pages cite it.
 - **An id is never re-issued to a live item.** A restore resumes the allocator above the ids the world already holds: the
   accepted reading is "a new process's continue resumed the host allocator at 241 → 242 and the next allocation took
   counter 242 with no duplicate-id refusal".
+- **An id a client allocates itself is namespaced by that client.** `CarriedInventoryMsg` carries the guest's ids because
+  "ids are (counter << 32) | SteamId, so the guest can allocate without host round-trips" — the high half is the client's
+  own counter and the low half is who allocated it, which is why two clients never mint the same id and why the host's
+  table can be assembled from reports rather than assigned centrally.
 - **Registration.** An item's identity reaches the host through the client that allocated it. The accepted record states
   the shape: "`CarriedInventory` (NetMsg 65) is the guest's one-shot registration of the item ids it self-assigned during
   generation. The host uses it to build the per-guest transfer table used by cross-player take/arbitration." Because it was

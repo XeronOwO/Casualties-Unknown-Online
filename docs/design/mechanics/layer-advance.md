@@ -17,6 +17,10 @@ co-op the choice must be one member's choice applied to a host-owned world.
 
 - The choice is the MEMBER's; the layer is the HOST's. A member who chooses the descent reports the intent; the host
   decides when the party moves, so two members choosing at once cannot generate two worlds.
+- **A layer-relative request carries the generation it was made in.** `LayerAdvanceRequestMsg` "carries the requester's
+  kernel generation stamp, the same (run epoch, layer index) identity every layer-relative world report carries, so the host
+  arbitrates it against the identity it stamps its own" — which is why a request from a layer the host has already left is
+  refused rather than applied to the new one, and why the panel appears only on the client whose own body is at the bottom.
 - **The layer's own rarity numbers start neutral and may only be scaled by generation.**
   `src/CasualtiesUnknownOnline.GameState/Domains/World/RunRarityMultipliers.cs` fixes `Neutral = 1f` because the game
   "initializes `WorldGeneration.lootRarityMultiplier` / `trapRarityMultiplier` to 1f … and only ever scales them during

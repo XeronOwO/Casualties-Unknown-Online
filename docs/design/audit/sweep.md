@@ -70,7 +70,8 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.Runtime/OnlineUi` | 54 | unread |
 | `CasualtiesUnknownOnline.Runtime/Patching` | 3 | unread |
 | `CasualtiesUnknownOnline.Runtime/Persistence` | 60 | unread |
-| `CasualtiesUnknownOnline.Runtime/Protocol` | 165 | unread |
+| `CasualtiesUnknownOnline.Runtime/Protocol` | 10 | read |
+| `CasualtiesUnknownOnline.Runtime/Protocol/Messages` | 155 | read |
 | `CasualtiesUnknownOnline.Runtime/Session` | 39 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync` | 12 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/CharacterData` | 33 | unread |

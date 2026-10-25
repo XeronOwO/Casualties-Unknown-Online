@@ -40,6 +40,12 @@ burrow — are not hooked".
 - **First writer wins.** Two players breaking the same cell do not both get it: the host accepts the first report and
   refuses the second, and the acceptance reading is "two senders broke one cell in both orders and once concurrently; the
   host refused the second report".
+- **A break and its drops are ONE message, so they get one verdict.** `BlockDamagedMsg` carries the drops when the damage
+  broke the block, "the break and its drops are ONE message, so the host's arbitration gives them one verdict:
+  first-writer-wins (the accepted report's drops register and materialize everywhere; the rejected report's drops are rolled
+  back on the breaker via `ItemReject`)". A drop "the destroyed block's own table cannot produce is refused ON ITS OWN while
+  the rest of the set is relayed", because "the drops are the breaker's local roll, the host cannot re-derive that roll (its
+  randomness is the process-global unseeded `UnityEngine.Random`)".
 - **A break clears the stale crack entry.** A direct `SetBlock(0)` path must clear the game's stale `BlockDamage` entry and
   its sprite, or the host keeps "ghost fragments" of a block the member already mined — the accepted note for that defect is
   "direct `SetBlock(0)` paths now clear the game's stale `BlockDamage` entry/sprite".

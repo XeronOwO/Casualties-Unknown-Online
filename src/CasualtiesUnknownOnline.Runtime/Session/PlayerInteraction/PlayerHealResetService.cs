@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -65,6 +67,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 	private readonly ILocalBodyReset _localReset;
 	private readonly IMemberCommandRules _memberRules;
 	private readonly ITimeSource _time;
+	private readonly ILocalizationService _localization;
 	private readonly ILogger _log;
 
 	/// <summary>The instructions this host issued to members and has not seen a result for, keyed by target — one outstanding instruction per body.</summary>
@@ -82,6 +85,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		ILocalBodyReset localReset,
 		IMemberCommandRules memberRules,
 		ITimeSource time,
+		ILocalizationService localization,
 		ILogger<PlayerHealResetService> log)
 	{
 		_session = session;
@@ -91,6 +95,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		_localReset = localReset;
 		_memberRules = memberRules;
 		_time = time;
+		_localization = localization;
 		_log = log;
 		session.SessionEnded += ResetSessionState;
 	}
@@ -133,25 +138,25 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 
 		if (!_memberRules.CheatVerbsOpenToMembers)
 		{
-			RefuseRequest(sender, msg, "the host's cheat switch (AllowMemberCheatVerbs) is off, so no member may run /heal.");
+			RefuseRequest(sender, msg, RefusedAnswer(AnswerLine("heal.answer.refused_switch_off")));
 			return;
 		}
 
 		if (!_memberRules.AllowsCheatVerb(sender))
 		{
-			RefuseRequest(sender, msg, "the host's cheat roster does not name you, so /heal cannot land. The host grants it with /op.");
+			RefuseRequest(sender, msg, RefusedAnswer(AnswerLine("heal.answer.refused_not_in_roster")));
 			return;
 		}
 
 		if (msg.TargetSteamIds.Count > MaxTargets)
 		{
-			RefuseRequest(sender, msg, $"the request names {msg.TargetSteamIds.Count} targets; /heal accepts at most {MaxTargets}.");
+			RefuseRequest(sender, msg, RefusedAnswer(AnswerLine("heal.answer.refused_too_many", msg.TargetSteamIds.Count.ToString(CultureInfo.InvariantCulture), MaxTargets.ToString(CultureInfo.InvariantCulture))));
 			return;
 		}
 
 		if (!_session.LocalInWorld)
 		{
-			RefuseRequest(sender, msg, "this host is not in a world, so it has no body to reset and no world to reach the named targets in.");
+			RefuseRequest(sender, msg, RefusedAnswer(AnswerLine("heal.answer.refused_host_not_in_world")));
 			return;
 		}
 
@@ -160,6 +165,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		{
 			Applied = outcome.Applied,
 			Answer = outcome.Answer,
+			Parts = outcome.Parts,
 		});
 	}
 
@@ -254,18 +260,19 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 	/// The host's shared path for its own console and a member's request: reset the host's own body
 	/// when the host is named, instruct every named member's client, and answer in one sentence.
 	/// </summary>
-	private (bool Applied, string Answer) Execute(ulong actor, IReadOnlyList<ulong> requested)
+	private (bool Applied, string Answer, List<ConsoleAnswerPartMsg> Parts) Execute(ulong actor, IReadOnlyList<ulong> requested)
 	{
 		var targets = DistinctTargets(requested);
 		if (targets.Count == 0)
 		{
-			return (false, "Refused: the request names no player.");
+			return (false, "Refused: the request names no player.", [AnswerPart("heal.answer.refused_no_player")]);
 		}
 
 		var nowMs = _time.NowMs;
 		PruneExpired(nowMs);
 		var applied = true;
 		var parts = new List<string>(targets.Count);
+		var keyedParts = new List<ConsoleAnswerPartMsg>(targets.Count);
 		foreach (var target in targets)
 		{
 			if (target == _session.LocalSteamId)
@@ -274,12 +281,25 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 				{
 					applied = false;
 					parts.Add(RefusedFor(target, "this client is not in a world, so there is no body to reset."));
+					keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
+					keyedParts.Add(AnswerPart("heal.answer.reason_host_not_in_world"));
 					continue;
 				}
 
 				var outcome = _localReset.Reset(null);
 				applied &= outcome.Applied;
 				parts.Add(DescribeLocal(target, outcome));
+				if (outcome.Applied)
+				{
+					keyedParts.Add(AnswerPart("heal.answer.reset_applied", target.ToString(CultureInfo.InvariantCulture)));
+					AddClauseParts(keyedParts, outcome);
+				}
+				else
+				{
+					keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
+					keyedParts.Add(AnswerPart("heal.answer.reason_body_refused"));
+				}
+
 				_log.LogInformation("[HealReset] {Actor} reset the host's own body (wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}, applied={Applied}).",
 					actor, outcome.WasDead, outcome.RestoredLimbs, outcome.HollowCleared, outcome.Applied);
 				continue;
@@ -289,6 +309,8 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 			{
 				applied = false;
 				parts.Add(RefusedFor(target, "not in this world (left, or no snapshot yet)."));
+				keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
+				keyedParts.Add(AnswerPart("heal.answer.reason_target_not_in_world"));
 				_log.LogWarning("[HealReset] {Actor} named {Target}, which is not in this world — refused for that target.", actor, target);
 				continue;
 			}
@@ -307,6 +329,8 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 				// this instruction and the operator must not read "sent".
 				applied = false;
 				parts.Add(RefusedFor(target, "the transport did not accept the reset instruction, so nothing was sent."));
+				keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
+				keyedParts.Add(AnswerPart("heal.answer.reason_transport_refused"));
 				_log.LogWarning("[HealReset] {Actor}'s instruction to {Target} (instruction {InstructionId}) was not accepted by the transport; no reset is pending.",
 					actor, target, instructionId);
 				continue;
@@ -314,11 +338,33 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 
 			_pending[target] = new PendingReset(instructionId, nowMs);
 			parts.Add(DescribeRemote(target, wasDead));
+			keyedParts.Add(AnswerPart(
+				wasDead ? "heal.answer.sent_dead" : "heal.answer.sent",
+				target.ToString(CultureInfo.InvariantCulture)));
 			_log.LogInformation("[HealReset] {Actor} instructed {Target} to reset its own body (instruction {InstructionId}, wasDead={WasDead}).",
 				actor, target, instructionId, wasDead);
 		}
 
-		return (applied, string.Join(" ", parts));
+		return (applied, string.Join(" ", parts), keyedParts);
+	}
+
+	/// <summary>The parenthetical facts a successful reset reports, each as its own catalogue part so both languages own them.</summary>
+	private void AddClauseParts(List<ConsoleAnswerPartMsg> keyedParts, LocalBodyResetOutcome outcome)
+	{
+		if (outcome.WasDead)
+		{
+			keyedParts.Add(AnswerPart("heal.answer.clause_revived"));
+		}
+
+		if (outcome.RestoredLimbs > 0)
+		{
+			keyedParts.Add(AnswerPart("heal.answer.clause_limbs_restored", outcome.RestoredLimbs.ToString(CultureInfo.InvariantCulture)));
+		}
+
+		if (outcome.HollowCleared)
+		{
+			keyedParts.Add(AnswerPart("heal.answer.clause_hollow_cleared"));
+		}
 	}
 
 	/// <summary>
@@ -389,15 +435,45 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		return targets;
 	}
 
-	private void RefuseRequest(ulong requester, HealResetRequestMsg request, string reason)
+	/// <summary>
+	/// One answer part and the text the same key renders to here: the part is what the member's console RENDERS in the member's
+	/// language, the text is what the host's log and a client without the entry fall back to. The Debug line is that rendering,
+	/// which is also what makes the census count the literal as a READ of the catalogue rather than an orphan.
+	/// </summary>
+	private (ConsoleAnswerPartMsg Part, string Line) AnswerLine(string labelKey, params string[] args)
 	{
-		_log.LogWarning("[HealReset] request from {Requester} for {Count} target(s) refused: {Reason}",
-			requester, request.TargetSteamIds.Count, reason);
-		_sender.Send(requester, NetMsg.HealResetResult, new HealResetResultMsg
+		var line = _localization.Format(labelKey, args);
+		_log.LogDebug("[HealReset] answer line: {Line}", line);
+		var key = labelKey;
+		return (new ConsoleAnswerPartMsg { Key = key, Args = [.. args] }, line);
+	}
+
+	private ConsoleAnswerPartMsg AnswerPart(string labelKey, params string[] args)
+	{
+		_log.LogDebug("[HealReset] answer part: {Line}", _localization.Format(labelKey, args));
+		var key = labelKey;
+		return new ConsoleAnswerPartMsg { Key = key, Args = [.. args] };
+	}
+
+	/// <summary>
+	/// One refused request, as the answer the member's console renders: the KEY plus its arguments, so the reader's own
+	/// language wins (the answer half of the localization rule). The text is the same key rendered here.
+	/// </summary>
+	private HealResetResultMsg RefusedAnswer((ConsoleAnswerPartMsg Part, string Line) answer)
+	{
+		_log.LogWarning("[HealReset] refused: {Reason}", answer.Line);
+		return new HealResetResultMsg
 		{
 			Applied = false,
-			Answer = "Refused: " + reason,
-		});
+			Answer = answer.Line,
+			Parts = [answer.Part],
+		};
+	}
+
+	private void RefuseRequest(ulong requester, HealResetRequestMsg request, HealResetResultMsg answer)
+	{
+		_log.LogWarning("[HealReset] request from {Requester} for {Count} target(s) refused.", requester, request.TargetSteamIds.Count);
+		_sender.Send(requester, NetMsg.HealResetResult, answer);
 	}
 
 	private static string DescribeLocal(ulong target, LocalBodyResetOutcome outcome)

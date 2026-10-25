@@ -98,7 +98,7 @@ public class CommandConsoleMemberHealResetTests
 
 		var answer = Run(guest, "/heal @a[name=1001]");
 
-		Assert.Contains("the host's cheat roster does not name you", answer);
+		Assert.Contains("host's cheat roster does not name you", answer);
 		Assert.Equal(0, reset.Resets);
 	}
 
@@ -116,7 +116,7 @@ public class CommandConsoleMemberHealResetTests
 
 		var answer = Run(guest, "/heal @a[name=1001]");
 
-		Assert.Contains("the host's cheat switch (AllowMemberCheatVerbs) is off", answer);
+		Assert.Contains("cheat switch is off", answer);
 		Assert.Equal(0, reset.Resets);
 	}
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -17,4 +18,12 @@ public sealed class HealResetResultMsg
 	/// <summary>The host's own sentence: what was reset, revived or restored, or the refusal and its ground.</summary>
 	[ProtoMember(2)]
 	public string Answer { get; set; } = "";
+
+	/// <summary>
+	/// The answer as catalogue PARTS, one per line the member's console prints: the reader's own language renders them, which
+	/// is the point of sending them at all. Empty when the answer was not converted (the plain <see cref="Answer"/> is then what
+	/// the console shows), so a shape this cycle did not reach degrades to the text rather than to nothing.
+	/// </summary>
+	[ProtoMember(3)]
+	public List<ConsoleAnswerPartMsg> Parts { get; set; } = [];
 }

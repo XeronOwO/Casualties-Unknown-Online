@@ -288,7 +288,26 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 	/// <summary>The host's answer to this member's <c>/heal</c> — what was reset, revived or restored, or the refusal that answered it.</summary>
 	private void OnHealResetAnswered(HealResetResultMsg msg) =>
-		AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+		AddAnswerParts(msg.Parts, msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+
+	/// <summary>
+	/// A host answer that carries catalogue PARTS: each part is one line, rendered by THIS client's catalogue, so the member
+	/// reads the answer in the member's language (the answer half of the localization rule). An answer with no parts — a shape
+	/// the producing side has not converted yet — falls back to the text the host sent, which is why the text field stays.
+	/// </summary>
+	private void AddAnswerParts(IReadOnlyList<ConsoleAnswerPartMsg>? parts, string fallback, ConsoleLineKind kind)
+	{
+		if (parts is not { Count: > 0 })
+		{
+			AddLine(fallback, kind);
+			return;
+		}
+
+		foreach (var part in parts)
+		{
+			AddKeyedLine(part.Key, fallback, kind, [.. part.Args]);
+		}
+	}
 
 	/// <summary>The host's answer to this member's /gamerule — the value the host's entry holds, printed where the verb was typed.</summary>
 	private void OnGameRuleAnswered(HostRuleChangeResultMsg msg) => AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);

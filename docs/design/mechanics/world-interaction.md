@@ -56,6 +56,11 @@ burrow — are not hooked".
   `65f` and pushes a rigid body with `AddForce(Vector2.up * 350f)`. `GeyserScript.cs:30-60` erupts on its own timer and writes
   its liquid into the fluid grid at `y + Random.Range(0, 10)`, which is why a geyser's product is world state rather than an
   item spawn.
+- **An interactable's reach is the object's own data.** `UsableObject` (`UsableObject.cs:24-27`) carries `rangeMultiplier`
+  (default `1f`) beside its localisation flag, so a use distance is read from the object rather than assumed by the client.
+- **A keypad's code is generated per pad, so it is world state.** `KeypadMinigame.GenerateCode()` picks
+  `Random.Range(6, 13)` digits, each `Random.Range(0, 10)` — which is why CUO carries a pad's code as a fact rather than letting
+  each client roll one.
 - **A break and its drops are ONE message, so they get one verdict.** `BlockDamagedMsg` carries the drops when the damage
   broke the block, "the break and its drops are ONE message, so the host's arbitration gives them one verdict:
   first-writer-wins (the accepted report's drops register and materialize everywhere; the rejected report's drops are rolled

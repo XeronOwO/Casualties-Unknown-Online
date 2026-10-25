@@ -33,6 +33,11 @@ the host's, and every other client holds them as projections.
   `build.health < 3750f` (leg speed +1, move force ×1.35, move wait ×0.6, new drone) and again at `< 2500f` (leg speed +1, move
   force ×1.25, wait ×0.5, retreat health cleared, look force ×1.8), with its shader progress `(6000f - health) / 6000f * 8f`.
   A remote player's fight therefore has the same two audible/visible stages, because the health that drives them is the host's.
+- **A crystal's own effect decides its polarity and radius, so it must be TOLD, not derived.**
+  `CrystalGravity.Start` (`CrystalGravity.cs:8-14`) picks `forceMult = Random.value > 0.5f ? 1f : -1f` at creation and each frame
+  pulls every non-kinematic body within `16f * crystalSize` toward or away from it, with `crystalgravityloop` at
+  `17f * crystalSize`. A client that computed the polarity itself would eventually disagree with the host's crystal, which is
+  why the crystal's state travels (see the enemy state row in `../audit/code.md`).
 - **A trap's damage is randomised per hit and cut by the victim's armour.**
   `BearTrap.cs:31-43`: a trap that rolls "`Random.Range(0f, 1f) < 0.5f`" bites the limb for
   `skinHealth -= Random.Range(70f, 100f) / GetArmorReduction()`, `muscleHealth -= Random.Range(50f, 100f) / …`,

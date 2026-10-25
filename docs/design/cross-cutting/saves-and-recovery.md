@@ -42,6 +42,22 @@ come back where they were when the cut was taken.
 - **An in-flight restore account releases its arms.** A restore that finishes its account must release the entity and native arms it held rather than leaking them: the family's record ran its four named classes 66/66 with every row re-read as passed.
 - A refused restore child keeps its identity where the design says it goes (the ground), rather than being dropped
   silently.
+- **A cut records a KIND and a REASON, and only the kind is policy.** `src/CasualtiesUnknownOnline.Runtime/Persistence/WorldCutKind.cs`
+  names the three kinds (the layer boundary, an arbitrary moment inside a layer, the interval autosave) and
+  `WorldCutReason.cs` says what the reason is for: "the reason is provenance, not policy: several reasons can produce the
+  same kind of cut, and the restore path treats them identically".
+- **The folder is the unit of the writer lease, not the process.** `WorldLease.cs` implements decision 164's single-writer
+  rule per FOLDER, because two instances pointed at one world "would otherwise interleave the [transaction]": both would
+  stage into the one `.staging/` and "both would rename `live/` aside, so the loser's snapshot is deleted by a commit it never
+  saw. Nothing in the archive would say what happened; the player would simply find an older world".
+- **A fallback promotes the good archive and keeps the refused one as evidence.** `WorldBackupPromotion.cs`: a restore that
+  falls back "used to leave the world folder exactly as it was: the good archive was read in memory, and the refused snapshot
+  stayed in `live/` until the next cut's transaction renamed it to `.previous/` and deleted it. The evidence of what went wrong
+  was destroyed by the very next autosave." Now the good archive becomes live and the refused one is kept where nothing writes.
+- **A load says which of three states it came from.** `WorldLoadState` is `Current` (the live snapshot read and passed the
+  manifest gate), `RecoveredLive` ("the live snapshot read, but a crash leftover was repaired on the way in") or
+  `BackupFallback` ("the live snapshot was unusable; a backup archive was opened instead"), and `ChecksumPolicy` is what makes
+  the gate real: `Required` reports a mismatched digest as damaged, `None` records digests without enforcing them.
 
 ## Values the archive must carry
 

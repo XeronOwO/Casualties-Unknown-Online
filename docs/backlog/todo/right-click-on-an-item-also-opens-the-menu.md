@@ -1,0 +1,47 @@
+# Right-clicking an item that overlaps a teammate opens the member menu as well as picking the item up
+
+- Status: Todo — opened 2026-10-25 from the user's report (translated): "when the item overlaps the guest, right-clicking to pick the item up also
+  opened the guest's right-click menu".
+- Priority: High — one gesture fires two actions, and the menu then covers the world the player is working in.
+- Category: Online UI / pointer priority
+- Source: user report (2026-10-25), seen with an item dropped on the guest's position.
+
+## Design
+
+Read before the change: `docs/design/surfaces/member-menu.md` (the surface whose pointer rule is at stake) and, for the gesture order the game
+itself uses, `docs/design/mechanics/remote-inventory-entries.md`'s drag-start row (`PlayerCamera.cs:1437` takes the `Item` layer first). The record
+this ticket comes from is the user's report and the game's own ordering.
+
+## What happens
+
+The game's own right-click on an item is the drag start (`PlayerCamera.TryPickupFromWorld` takes the `Item` under the pointer first,
+`PlayerCamera.cs:1437`). CUO's member menu opens from a right-click near a remote player's PROJECTED body position — it uses the authoritative
+entity stream, not a physics hit, because the clones carry no colliders. With the item lying on the player, both entrances accept the same click:
+the game starts dragging the item and CUO opens the menu.
+
+## Why it is wrong
+
+One gesture, one action. The player's pointer was on an ITEM, and the game's own order (`TryPickupFromWorld` checks the `Item` layer FIRST and
+returns) is the order the player reads: the item wins. The menu is the answer to "I right-clicked a PERSON", and a person is only under the pointer
+when no item is.
+
+## What the fix must decide (by reading, before code)
+
+1. Where the menu's click is tested today (the overlay's IMGUI pass, the entity-stream proximity, or the same `uiCasts`/physics list the drag uses),
+   and whether it can ask the same question the game asks — "is there an `Item` under the pointer?" — before it opens.
+2. Whether the two entrances are in the same frame pass at all: the drag start is `PlayerCamera.GetKeyDown` in its own Update, the menu is CUO's
+   IMGUI event, and a fix has to work whichever runs first.
+3. What the priority is when an item overlaps a BODY: the item wins (the game's own order); a body with no item keeps opening the menu.
+
+## Acceptance rows
+
+| Row | The check |
+|---|---|
+| 1 | Right-clicking an item lying on a teammate's position picks the item up and does NOT open the member menu (read from the item's drag start plus the absence of the menu in a frame) |
+| 2 | Right-clicking the same teammate with no item under the pointer still opens the menu |
+| 3 | Right-clicking empty ground still does whatever it does today (no regression in the no-target case) |
+
+## Limits
+
+- The report does not say whether the menu closed when the drag began; the first batch reads that too, because a menu that opens and immediately
+  closes would be a different (and lesser) defect than one that stays.

@@ -73,6 +73,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
 - [A new recipe file is rejected by the evaluator](todo/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — measured; blocks every new instrument.
+- [Dragging out of a backpack to use it drops the item](todo/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — a DropItem intent for a use gesture.
+- [Right-clicking an item also opens the menu](todo/right-click-on-an-item-also-opens-the-menu.md) — **High** — one click, two actions.
 ### In progress
 
 ### Review

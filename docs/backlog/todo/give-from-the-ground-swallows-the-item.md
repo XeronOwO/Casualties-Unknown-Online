@@ -62,7 +62,29 @@ from the world to the aimed destination. The host log that decided it:
 Two independent reasons it could never have been right: the item reached a slot nobody aimed at (the ruling), and the give was then refused because
 the ownership check reads the sender's **character snapshot**, not the kernel row the waiter read — the snapshot is a report and lags.
 
-## What a fix has to decide
+## The shape to build next (read 2026-10-25, no code yet)
+
+The one-move hand-over already has its command: **`PickUpItemCommand`** (`src/CasualtiesUnknownOnline.GameState/Domains/Items/PickUpItemCommand.cs`)
+is declared as "An item moves from World/Contained into the actor's carried inventory" and it carries a **`NewOwner`** beside the actor — so the host
+can move a WORLD row straight into the TARGET's custody with the giver as the actor. That is the same custody change the two-step performed, in one
+command, and it needs no new wire message.
+
+What the change touches, in order:
+
+1. **The host's ownership check** (`PlayerRemoteInventoryIntentService`, the `TryFindItem(source.Items, msg.ItemInstanceId)` at the give direction):
+   for `GiveToBody` it must accept an item the sender NAMES — a row that is `World` (the item is on the ground, which is exactly the case the player
+   aims at) — instead of demanding the item in the sender's character snapshot. The snapshot is a report and lags; the row is the authority.
+2. **The command**: `PickUpItemCommand(actor: sender, instanceId, newOwner: target)` executed on the host, whose committed event already reaches the
+   target's client through the transfer projection.
+3. **The target's client**: the existing give placement (`PlayerInteractionApply.PlaceCarriedItem` → `LocalBodyPlacement`, which is the ONE place
+   "find a free slot" belongs) puts the item in the aimed slot or answers the refusal.
+4. **The giver's client**: its world object must be retired when the row leaves the world — the reconcile's kill sweep already owns that case (the row
+   is gone from the world), which is why nothing has to be destroyed by hand.
+
+Rows 1-4 below then hold without any intermediate slot: the item goes from the ground to the aimed place, and the only free-slot search in the whole
+path is the receiver's placement.
+
+## What a fix has to decide (superseded by the shape above)
 
 The item must be the giver's before a transfer can name it, so the fix is an ordering problem, not a gesture problem: either the give is
 withheld until the pickup has been ACKNOWLEDGED by the receiving side (a round trip inside one gesture, with the drag held), or the

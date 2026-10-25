@@ -81,15 +81,15 @@ public sealed class SolidFoodAdmissionTests
 	[Fact]
 	public void AFoodThatHandsTheEaterAReplacementObject_IsRefusedNotCarried()
 	{
-		// The last bite of a bucket of chicken instantiates an empty bucket and tries
-		// to put it in the eater's hand. On the affected side that object would be
-		// created in the EATER's world (a phantom item plus the game's own "too far"
-		// alert), and the eater does not own the item, so there is nothing to hand it
-		// to: the shape is refused rather than run.
+		// The last bite of a bucket of chicken instantiates an empty bucket and puts it in the eater's hand. The
+		// hand-feed arrangement made that object reach the item's OWNER instead — the eating client watches it,
+		// destroys it there and reports the definition, and the owner's own item becomes it in place (user ruling
+		// 2026-10-25: "eat from my hand", the item never changes hands). So the shape is CARRIED, and the object is
+		// never created in the eater's world.
 		Assert.Equal(SolidFoodVerdict.EatsAndReplaces, SolidFoodAdmission.Classify(FakeSolidFoodSemantics.Instance, "bucketofchicken"));
 		Assert.Equal(SolidFoodVerdict.EatsAndReplaces, SolidFoodAdmission.Classify(FakeSolidFoodSemantics.Instance, "popcorn"));
-		Assert.False(SolidFoodAdmission.IsFeedable(FakeSolidFoodSemantics.Instance, "bucketofchicken"));
-		Assert.False(SolidFoodAdmission.IsFeedable(FakeSolidFoodSemantics.Instance, "popcorn"));
+		Assert.True(SolidFoodAdmission.IsFeedable(FakeSolidFoodSemantics.Instance, "bucketofchicken"));
+		Assert.True(SolidFoodAdmission.IsFeedable(FakeSolidFoodSemantics.Instance, "popcorn"));
 	}
 
 	[Fact]
@@ -103,14 +103,14 @@ public sealed class SolidFoodAdmissionTests
 	}
 
 	[Fact]
-	public void TheOneShotTree_LeavesTheReplacementShapeOutOfItsReach()
+	public void TheOneShotTree_OffersTheReplacementShapeAndRefusesWhatIsNotAFood()
 	{
-		// The tree's gate is what keeps the host's auto-select from offering an item
-		// its own chain must refuse, and what keeps the eater's client from being asked
-		// to run an action the family refused.
+		// The tree's gate is what keeps the host's auto-select honest. The replacement shape is carried now (its object
+		// reaches the item's OWNER, never the eater's world), so it is offered like any other eat; an empty item and a
+		// non-food are still refused.
 		Assert.True(ActuallyUsable(Food("bread")));
 		Assert.True(ActuallyUsable(Food("exposedcore")));
-		Assert.False(ActuallyUsable(Food("bucketofchicken")));
+		Assert.True(ActuallyUsable(Food("bucketofchicken")));
 		Assert.False(ActuallyUsable(Food("waterbottle")));
 		Assert.False(ActuallyUsable(Food("knife")));
 
@@ -120,8 +120,10 @@ public sealed class SolidFoodAdmissionTests
 	}
 
 	[Fact]
-	public void TheAutoSelect_SkipsTheReplacementShapeAndPicksTheFoodBehindIt()
+	public void TheAutoSelect_CarriesTheReplacementShapeLikeAnyOtherFood()
 	{
+		// The replacement shape is a member of the family now, so the tree's gate offers it exactly like a plain eat:
+		// the object it leaves behind reaches the item's OWNER, not the eater's world (the hand-feed arrangement).
 		var bucket = Food("bucketofchicken");
 		bucket.InstanceId = 41;
 		var bread = Food("bread");
@@ -136,10 +138,9 @@ public sealed class SolidFoodAdmissionTests
 			FakeSolidFoodSemantics.Instance);
 
 		Assert.NotNull(picked);
-		Assert.Equal(42UL, picked!.InstanceId);
+		Assert.Equal(41UL, picked!.InstanceId);
 
-		// Only the refused shape in the inventory: nothing to auto-select, which is a
-		// named refusal rather than a request the host would refuse by name afterwards.
+		// And on its own it is still a legitimate target: the family carries it.
 		var onlyBucket = CarriedItemUseTree.FindFirstUsable(
 			[bucket],
 			ItemUseEntry.Inventory,
@@ -147,6 +148,6 @@ public sealed class SolidFoodAdmissionTests
 			FakeConsumeSemantics.Instance,
 			FakeWearSemantics.Instance,
 			FakeSolidFoodSemantics.Instance);
-		Assert.Null(onlyBucket);
+		Assert.NotNull(onlyBucket);
 	}
 }

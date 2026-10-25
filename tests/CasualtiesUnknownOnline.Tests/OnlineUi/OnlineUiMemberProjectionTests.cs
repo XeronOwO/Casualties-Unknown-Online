@@ -1087,7 +1087,7 @@ public sealed class OnlineUiMemberProjectionTests
 			remove { }
 		}
 
-		public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false)
+		public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false, string? replacementItemId = null, float replacementCondition = 0f)
 		{
 		}
 

@@ -167,9 +167,11 @@ public interface IPlayerInteractionControl
 	/// and the host keeps its own verdict. <paramref name="becameLimbComponent"/> is
 	/// the same family's narrower observation that the object did not merely end — it
 	/// became the limb's installed component, so the item keeps its id and gains a
-	/// location on that limb.
+	/// location on that limb. <paramref name="replacementItemId"/> is the eat family's own observation that the
+	/// action REPLACED the definition in place (the peel's opened fruit, same slot, same position), which only the
+	/// client that ran the delegate can see and only the owner's client can show.
 	/// </summary>
-	void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false);
+	void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false, string? replacementItemId = null, float replacementCondition = 0f);
 
 	/// <summary>Host only: an affected-side use's outcome arrived (from the wire or the host's own client).</summary>
 	void HandleItemActionOutcome(ulong sender, PlayerItemActionOutcomeMsg msg);

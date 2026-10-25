@@ -245,7 +245,7 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 	/// merely end, it became the limb's installed component, so the host relocates the
 	/// row onto the limb the admission named instead of ending it.
 	/// </summary>
-	public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false)
+	public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false, string? replacementItemId = null, float replacementCondition = 0f)
 	{
 		if (!_session.SessionActive || itemInstanceId == 0)
 		{
@@ -258,6 +258,8 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			Condition = condition,
 			Consumed = consumed,
 			BecameLimbComponent = becameLimbComponent,
+			ReplacementItemId = replacementItemId ?? string.Empty,
+			ReplacementCondition = replacementCondition,
 		};
 
 		if (_session.Role == SessionRole.Host)

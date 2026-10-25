@@ -161,12 +161,13 @@ public sealed class ItemUseFamilyClassifierTests
 	}
 
 	[Fact]
-	public void AFoodThatHandsTheEaterAReplacementObject_IsNoFamilyAtAll()
+	public void AFoodThatHandsTheEaterAReplacementObject_IsTheSolidFoodFamily()
 	{
-		// The refused shape is not a family the classifier carries: the host names it
-		// separately (the replacement object would be created in the eater's world).
-		Assert.Equal(ItemUseFamily.None, Classify(ItemUseEntry.Inventory, "bucketofchicken"));
-		Assert.Equal(ItemUseFamily.None, Classify(ItemUseEntry.Limb, "bucketofchicken"));
+		// The replacement shape is carried: the object the action leaves behind reaches the item's OWNER, never the
+		// eater's world (the hand-feed arrangement, user ruling 2026-10-25), so the classifier offers it as the solid
+		// food it is rather than as no family at all.
+		Assert.Equal(ItemUseFamily.SolidFood, Classify(ItemUseEntry.Inventory, "bucketofchicken"));
+		Assert.Equal(ItemUseFamily.SolidFood, Classify(ItemUseEntry.Limb, "bucketofchicken"));
 	}
 
 	[Fact]

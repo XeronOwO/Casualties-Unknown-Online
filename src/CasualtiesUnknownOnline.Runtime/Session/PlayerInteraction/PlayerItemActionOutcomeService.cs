@@ -118,6 +118,18 @@ internal sealed class PlayerItemActionOutcomeService(
 		var newItem = PlayerCharacterAccess.CloneItem(originalItem);
 		newItem.Condition = msg.Condition;
 
+		// The action REPLACED the definition in place (the peel's opened fruit). Only the client that ran the
+		// delegate could see the object it instantiated, and only the owner's own client can show it, so the
+		// definition travels here and the row keeps its slot and its identity: the player's view of the result is
+		// "the item in my hand became the peeled one", which is the vanilla peel's own visible shape.
+		if (!string.IsNullOrEmpty(msg.ReplacementItemId))
+		{
+			newItem.ItemId = msg.ReplacementItemId;
+			newItem.Condition = msg.ReplacementCondition;
+			_log.LogInformation("[ItemUse] {Actor} replaced {ItemId} (id {InstanceId}) of {Owner} with {Replacement} in place.",
+				sender, originalItem.ItemId, originalItem.InstanceId, owner, msg.ReplacementItemId);
+		}
+
 		if (msg.BecameLimbComponent)
 		{
 			// The pair is ONE fact, and the host holds both halves of it in this one report: the

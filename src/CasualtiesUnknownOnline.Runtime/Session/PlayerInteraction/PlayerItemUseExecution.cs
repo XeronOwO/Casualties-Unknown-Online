@@ -131,19 +131,12 @@ internal sealed class PlayerItemUseExecution(
 			&& (originalItem.Condition > 0f || family is not (ItemUseFamily.Wear or ItemUseFamily.SolidFood or ItemUseFamily.LimbTool));
 		if (!carried)
 		{
-			// The solid-food family's one refused shape keeps its own reason: the item
-			// does feed a body, but its own use action would hand the eater a
-			// replacement object, and there is nothing on the affected side to hand it
-			// to — the object would be created in the EATER's world (a phantom item at
-			// its parked position, plus the game's own "too far" alert when it tries to
-			// put it in the eater's hand). Asked before the family chain so the refusal
-			// is never reported as "not a family this path carries".
-			if (SolidFoodAdmission.Classify(_solidFoodSemantics, originalItem.ItemId) == SolidFoodVerdict.EatsAndReplaces)
-			{
-				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) feeds a body but hands the eater a replacement object when its own use action runs — the cross-player path cannot deliver that object.", originalItem.ItemId, originalItem.InstanceId);
-				return "that food leaves something behind that cannot be handed over";
-			}
-
+			// The solid-food family REFUSES only the shape it cannot carry. A replacement-object action
+			// (EatsAndReplaces) used to be that shape, and is not any more: the hand-feed arrangement (user ruling
+			// 2026-10-25, "eat from my hand") made the object reach the item's OWNER instead of the eater's world —
+			// the eating client watches the object the delegate creates, destroys it there and reports the
+			// definition, and the owner's own item becomes it in place at the same slot. So this branch is now the
+			// plain "empty or not this gesture's family" refusal, and the family chain decides below.
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or is not a family this {Entry} gesture carries.", originalItem.ItemId, originalItem.InstanceId, entry);
 			return "that item cannot be used this way";
 		}

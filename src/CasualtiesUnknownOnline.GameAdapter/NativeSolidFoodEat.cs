@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -39,8 +40,18 @@ internal static class NativeSolidFoodEat
 	/// use action ran. Every refusal is logged by name, because a silent no-op
 	/// after a host-admitted use is the one outcome nobody could diagnose.
 	/// </summary>
-	internal static bool Apply(Body body, ulong itemInstanceId, GameAdapterDomains domains)
+	internal static bool Apply(Body body, ulong itemInstanceId, GameAdapterDomains domains) =>
+		Apply(body, itemInstanceId, domains, out _);
+
+	/// <summary>
+	/// The same call, with the delegate's own REPLACEMENT observation handed back: the definition and condition of the
+	/// object the action left in the item's place, when it replaced the item rather than only consuming it. The owner's
+	/// client is the only side that can show it (the item is the owner's), so the caller reports it as the outcome.
+	/// </summary>
+	internal static bool Apply(Body body, ulong itemInstanceId, GameAdapterDomains domains, out SolidFoodReplacement replacement)
 	{
+		replacement = SolidFoodReplacement.None;
+
 		if (itemInstanceId == 0)
 		{
 			return false;
@@ -106,15 +117,20 @@ internal static class NativeSolidFoodEat
 			}
 		}
 
+		var replacementObject = (Item?)null;
 		try
 		{
 			body.UseItem(item);
+
+			// Read the replacement INSIDE the call's own window: the restoration below is what would hide it, and the
+			// object only exists between the delegate's instantiate and the end of this scope.
+			replacementObject = carriedByEater ? null : ReadReplacement(body, arrangedSlot, item);
+
 			domains.Log.LogInformation(
 				"[ItemUse] ran the game's own eat of {Type} (id {ItemId}) on the local body{Hand}.",
 				item.id,
 				itemInstanceId,
 				carriedByEater ? string.Empty : $" out of the giver's hand (arranged into slot {arrangedSlot})");
-			return true;
 		}
 		finally
 		{
@@ -127,6 +143,48 @@ internal static class NativeSolidFoodEat
 				item.transform.SetParent(originalParent, worldPositionStays: true);
 			}
 		}
+
+		// THE REPLACEMENT THE DELEGATE MADE, observed where it was made. The peel instantiates the opened fruit at
+		// the closed one's position and puts it into the SAME slot — and in the hand case that slot is the one this
+		// client arranged, so the object is here and is the EATER's only by accident of who ran the delegate. It must
+		// not enter the eater's inventory: the item never changed hands (the user's ruling), and the vanilla visible
+		// result is "the item in the giver's hand became the peeled one". So the object is destroyed here and its
+		// definition travels back, for the OWNER's own item to become it in place.
+		if (replacementObject != null) // Unity object — ==
+		{
+			replacement = new SolidFoodReplacement(replacementObject.id, replacementObject.condition);
+			domains.Log.LogInformation(
+				"[ItemUse] the eat of {Type} (id {ItemId}) replaced the item with {Replacement} (condition {Condition:F2}); the owner's own item becomes it in place.",
+				item.id,
+				itemInstanceId,
+				replacement.ItemId,
+				replacement.Condition);
+			Object.Destroy(replacementObject.gameObject);
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// The object the delegate left in the arranged slot when the item it was handed is no longer there: the peel's
+	/// replacement, or null when the action consumed the item without replacing it. Read BEFORE anything restores the
+	/// arrangement, because the restoration is what would hide it.
+	/// </summary>
+	private static Item? ReadReplacement(Body body, int arrangedSlot, Item original)
+	{
+		if (arrangedSlot < 0 || arrangedSlot >= body.slots.Length)
+		{
+			return null;
+		}
+
+		var slot = body.slots[arrangedSlot].transform;
+		if (slot.childCount == 0)
+		{
+			return null;
+		}
+
+		var child = slot.GetChild(0).GetComponent<Item>();
+		return child == null || child == original ? null : child; // Unity objects — ==
 	}
 
 	/// <summary>

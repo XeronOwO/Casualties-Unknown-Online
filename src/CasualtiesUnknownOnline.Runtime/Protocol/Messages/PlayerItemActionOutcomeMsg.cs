@@ -76,4 +76,18 @@ public sealed class PlayerItemActionOutcomeMsg
 	/// </summary>
 	[ProtoMember(4)]
 	public bool BecameLimbComponent { get; set; }
+
+	/// <summary>
+	/// The definition the item BECAME, when the action replaced it in place — the game's own peel
+	/// (<c>Item.cs:2606-2620</c>) instantiates an opened fruit at the closed one's position and puts it back into the
+	/// SAME slot, so the player sees "the item in my hand became a peeled one". The affected side is the only client
+	/// that can observe it (it is the object the delegate instantiated) and the owner's own client is the only one
+	/// that can show it (the item is the owner's), so the fact travels here. Empty for every other family.
+	/// </summary>
+	[ProtoMember(5)]
+	public string ReplacementItemId { get; set; } = string.Empty;
+
+	/// <summary>The replacement's own condition, as the affected side observed the object it created.</summary>
+	[ProtoMember(6)]
+	public float ReplacementCondition { get; set; }
 }

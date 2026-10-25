@@ -23,7 +23,16 @@ public static class SolidFoodAdmission
 	public static SolidFoodVerdict Classify(ISolidFoodSemantics semantics, string itemId) =>
 		semantics.Classify(itemId);
 
-	/// <summary>True when the cross-player path carries this item: the use action feeds the eating body and does not hand the eater a replacement object.</summary>
+	/// <summary>
+	/// True when the cross-player path carries this item: the use action feeds the eating body.
+	/// <para>
+	/// <see cref="SolidFoodVerdict.EatsAndReplaces"/> is carried too, since the hand-feed arrangement (the user's
+	/// 2026-10-25 ruling, "eat from my hand") made the replacement reach the OWNER's slot: the eating client parents
+	/// the giver's item into an empty hand slot for the delegate, watches the object the delegate instantiates, and
+	/// reports its definition back so the owner's own item becomes it in place — which is what the vanilla peel
+	/// looks like (same slot, same position, no visible transfer).
+	/// </para>
+	/// </summary>
 	public static bool IsFeedable(ISolidFoodSemantics semantics, string itemId) =>
-		semantics.Classify(itemId) is SolidFoodVerdict.Eats or SolidFoodVerdict.EatsAndDestroys;
+		semantics.Classify(itemId) is SolidFoodVerdict.Eats or SolidFoodVerdict.EatsAndDestroys or SolidFoodVerdict.EatsAndReplaces;
 }

@@ -386,11 +386,10 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 				}
 				else if (msg.ItemAfter is { } after)
 				{
-					item.condition = after.Condition;
-					ItemStateCodec.RestoreLiquids(item, after.Liquids);
-					ItemStateCodec.RestoreComponentStates(item, after.Components);
-					domains.Log.LogInformation("[ItemUse] local item {ItemId} condition set to {Condition:F2} by cross-player use.", msg.ItemInstanceId, after.Condition);
-					changed = true;
+					// The item either kept its definition (a state write) or BECAME another one in place — the game's
+					// peel replaces the closed stone fruit with the opened one at the same position and in the SAME
+					// slot, so the owner's view of the result is "the item in my hand became the peeled one".
+					changed |= ItemDefinitionSwap.ApplyOwnerSide(body, item, after, msg.ItemInstanceId, domains.Log);
 				}
 			}
 
@@ -458,7 +457,18 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 		// back through the eater's report to the host, which hands it to the item's owner.
 		if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.TargetEatsTheItem)
 		{
-			changed |= NativeSolidFoodEat.Apply(body, msg.ItemInstanceId, domains);
+			// The replacement the delegate made is reported with the eater's outcome, because only this client saw
+			// the object and only the item's OWNER can show it: the game's peel replaces the definition in place.
+			changed |= NativeSolidFoodEat.Apply(body, msg.ItemInstanceId, domains, out var replacement);
+			if (replacement.IsReplacement)
+			{
+				domains.PlayerInteraction.SendItemActionOutcome(
+					msg.ItemInstanceId,
+					0f,
+					consumed: false,
+					replacementItemId: replacement.ItemId,
+					replacementCondition: replacement.Condition);
+			}
 		}
 
 		// The limb tool is the eat's sibling and the last of the migration's five
@@ -583,5 +593,4 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 			CarrySimulationTrace.LogReleased(body, msg.CarrierSteamId, domains.Log);
 		}
 	}
-
 }

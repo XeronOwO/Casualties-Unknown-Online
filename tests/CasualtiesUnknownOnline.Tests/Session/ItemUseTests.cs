@@ -305,23 +305,43 @@ public class ItemUseTests
 	}
 
 	[Fact]
-	public void Use_OfAFoodThatHandsTheEaterAReplacement_IsRefused()
+	public void Use_OfAFoodThatHandsTheEaterAReplacement_CarriesTheNewDefinitionBackToItsOwner()
 	{
-		// bucketofchicken's action instantiates an empty bucket and tries to put it in
-		// the eater's hand: on the affected side that object would be created in the
-		// EATER's world — a phantom item left at the parked spot plus the game's own
-		// "too far" alert — so the family refuses the shape by name instead of running
-		// it there. The item is untouched and no result reaches the kernel.
+		// A food whose action REPLACES the item (the peel: bucketofchicken instantiates its empty bucket, the closed
+		// stone fruit instantiates the opened one) is carried, because the hand-feed arrangement made the replacement
+		// reach the item's OWNER rather than the eater (user ruling 2026-10-25: "eat from my hand", the item never
+		// changes hands). The eating client sees the object the delegate created, destroys it there, and reports the
+		// definition; the host commits it onto the owner's own item — same instance id, same slot — so the owner's view
+		// is the vanilla peel's: the item in the hand became the peeled one.
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bucketofchicken", slot: 0)));
 
-		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+		var interaction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		host.Services.GetRequiredService<IPlayerInteractionControl>().UseReceived += msg =>
+		{
+			if (msg.TargetEatsTheItem)
+			{
+				// The AFFECTED side is the eater, which is the host here, so the host reports the object the
+				// delegate left behind: the peel's replacement, observed where it was made.
+				host.Services.GetRequiredService<IPlayerInteractionControl>()
+					.SendItemActionOutcome(42, 0f, consumed: false, replacementItemId: "emptybucket", replacementCondition: 1f);
+			}
+		};
 
-		Assert.Empty(UseResults(received));
-		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		interaction.SendUseRequest(HostId, 42);
+
+		var results = UseResults(received);
+		Assert.Equal(2, results.Count);
+		Assert.False(results[1].ItemDestroyed);
+		Assert.NotNull(results[1].ItemAfter);
+		Assert.Equal(42UL, results[1].ItemAfter!.InstanceId);
+		Assert.Equal("emptybucket", results[1].ItemAfter!.ItemId);
+
+		var row = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.Equal("emptybucket", row.ItemId);
+		Assert.True(Math.Abs(row.Condition - 1f) < 0.001f);
 	}
 
 	[Fact]

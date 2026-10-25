@@ -24,11 +24,11 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Application/Kernel` | 31 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core/Audio` | 1 | read |
-| `CasualtiesUnknownOnline.GameAdapter` | 74 | read |
+| `CasualtiesUnknownOnline.GameAdapter` | 75 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 6 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Character` | 94 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Content` | 36 | read |
-| `CasualtiesUnknownOnline.GameAdapter/Items` | 69 | read |
+| `CasualtiesUnknownOnline.GameAdapter/Items` | 70 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModStatus` | 3 | read |
 | `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 28 | read |

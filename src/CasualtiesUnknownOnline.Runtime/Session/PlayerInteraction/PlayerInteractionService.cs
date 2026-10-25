@@ -236,8 +236,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 	public void FireUseReceived(PlayerItemUseResultMsg msg) =>
 		_itemUse.FireUseReceived(msg);
 
-	public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false) =>
-		_itemUse.SendItemActionOutcome(itemInstanceId, condition, consumed, becameLimbComponent);
+	public void SendItemActionOutcome(ulong itemInstanceId, float condition, bool consumed, bool becameLimbComponent = false, string? replacementItemId = null, float replacementCondition = 0f) =>
+		_itemUse.SendItemActionOutcome(itemInstanceId, condition, consumed, becameLimbComponent, replacementItemId, replacementCondition);
 
 	public void HandleItemActionOutcome(ulong sender, PlayerItemActionOutcomeMsg msg) =>
 		_itemUse.HandleItemActionOutcome(sender, msg);

@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -15,6 +16,26 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 [Trait("Category", "Integration")]
 public class CommandConsoleCompletionTests
 {
+	[Fact]
+	public void Suggest_ForAnItemIdArgument_OffersTheFormTheVerbAccepts()
+	{
+		// Measured on 2026-10-25: '/give @p cu:bandage' is answered "No item definition 'cu:bandage' is known to this game", while
+		// '/give @p bandage' lands. The catalog names content canonically (namespace:path), so the suggestion for a verb that resolves
+		// through the GAME's table has to be the bare id — a suggestion the verb refuses is worse than none. The test host registers
+		// one content entry, which is enough to read the projection.
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations: services =>
+			services.AddSingleton<IResourceLocationSource>(new StubResourceSource(
+				new ResourceLocationEntry(ContentId.Parse("cu:widget"), ModContentKind.Item, "微吉特"))));
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		Assert.Contains(completion.Suggest("/give @p wid"), s => s.Text == "widget");
+		Assert.DoesNotContain(completion.Suggest("/give @p wid"), s => s.Text.IndexOf(':') >= 0);
+
+		// The kind's own endpoint still speaks the canonical form, because it is not tied to a verb.
+		var kinds = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
+		Assert.Contains(kinds.Suggest(CommandArgumentKind.ResourceLocation, "cu:wid"), s => s.Text == "cu:widget");
+	}
+
 	[Fact]
 	public void Suggest_ForLaterArgumentsOfGiveAndSummon_OffersTheWordsTheirParsersAccept()
 	{

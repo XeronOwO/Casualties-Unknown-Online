@@ -147,11 +147,11 @@ internal sealed class CommandConsoleCompletion(
 		}
 
 		var prefix = current.Length == 0 ? "" : current.Unquoted;
-		return SuggestFor(kind.Value, prefix);
+		return SuggestFor(kind.Value, prefix, command);
 	}
 
 	/// <summary>One argument kind's candidates, the narrow surface the UI can also ask directly.</summary>
-	internal IReadOnlyList<CommandSuggestion> Suggest(CommandArgumentKind kind, string prefix) => SuggestFor(kind, prefix);
+	internal IReadOnlyList<CommandSuggestion> Suggest(CommandArgumentKind kind, string prefix) => SuggestFor(kind, prefix, null);
 
 	/// <summary>
 	/// The usage hint for a typed command line, or null when there is nothing useful to show. A hint is not
@@ -197,7 +197,7 @@ internal sealed class CommandConsoleCompletion(
 		return current.Length == token.Length && current.Start == token.Start;
 	}
 
-	private IReadOnlyList<CommandSuggestion> SuggestFor(CommandArgumentKind kind, string prefix) => kind switch
+	private IReadOnlyList<CommandSuggestion> SuggestFor(CommandArgumentKind kind, string prefix, CommandDefinition? command) => kind switch
 	{
 		// The one argument kind that names commands is /help's: completing a hidden name there would leak the
 		// word the list just hid, so the authority filter applies to it too.
@@ -206,17 +206,33 @@ internal sealed class CommandConsoleCompletion(
 		CommandArgumentKind.SteamId => CommandSuggestions.BannedSteamIds(_bans, prefix),
 		CommandArgumentKind.Selector => CommandSelectorSuggestions.Suggest(prefix),
 		CommandArgumentKind.Json => [.. JsonSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
-		CommandArgumentKind.ResourceLocation => SuggestResourceLocations(prefix),
+		CommandArgumentKind.ResourceLocation => SuggestResourceLocations(prefix, TakesTheGamesOwnId(command)),
 		_ => [],
 	};
 
 	/// <summary>
+	/// Whether this verb names the GAME's own definition id (the bare <c>bandage</c>) rather than CUO's canonical
+	/// <c>namespace:path</c>. A give and a summon resolve through the game's own item table, which is keyed by the bare id and
+	/// refuses a namespaced one by name ("No item definition 'cu:bandage' is known to this game"), so offering the canonical form
+	/// there would suggest a line the verb refuses — measured on 2026-10-25: accepting <c>cu:bandage</c> was answered with exactly
+	/// that refusal.
+	/// </summary>
+	private static bool TakesTheGamesOwnId(CommandDefinition? command) =>
+		command is not null
+		&& (string.Equals(command.Name, "give", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(command.Name, "summon", StringComparison.OrdinalIgnoreCase));
+
+	/// <summary>
 	/// Resource/id completion from the content-id catalog: the user may type a
 	/// canonical id prefix, the bare content id, or the localized display name,
-	/// but every suggestion is the canonical <c>namespace:path</c> id (the
-	/// catalog owns matching/ranking; this method only projects it for the UI).
+	/// but every suggestion is the form the VERB accepts — the catalog's canonical
+	/// <c>namespace:path</c> id, or the bare path for the verbs that resolve through the
+	/// game's own item table (see <see cref="TakesTheGamesOwnId"/>). The catalog owns
+	/// matching/ranking; this method only projects it for the UI.
 	/// </summary>
-	private IReadOnlyList<CommandSuggestion> SuggestResourceLocations(string prefix) =>
+	private IReadOnlyList<CommandSuggestion> SuggestResourceLocations(string prefix, bool bareGameId) =>
 		[.. _resourceLocations.Suggest(prefix)
-			.Select(entry => new CommandSuggestion(entry.Id.ToString(), $"{entry.Kind} · {entry.DisplayName}"))];
+			.Select(entry => new CommandSuggestion(
+				bareGameId ? entry.Id.Path : entry.Id.ToString(),
+				$"{entry.Kind} · {entry.DisplayName}"))];
 }

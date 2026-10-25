@@ -18,7 +18,17 @@ that path, not by the gesture.
 
 ## Rules and states
 
-- **A local item released onto the other player's DISPLAY PROXY is refused, not landed.** The accepted reading is that "the release is refused at the release seam before the native body runs — the owner's probe names the target as the other player's display proxy and reads its contents unchanged (`castContentsBefore: 0` → `castContentsAfter: 0`, `childInCast: false`), one `[RemoteIntent]` line names the item and the target, the owner's item tree is byte-identical to the pre-gesture one", and the local control still runs the native move.- The two destinations are mutually exclusive: a release over an ITEM means "into that container", a release over a slot
+- **A local item released onto the other player's DISPLAY PROXY is refused, not landed.** The accepted reading is that "the
+  release is refused at the release seam before the native body runs — the owner's probe names the target as the other
+  player's display proxy and reads its contents unchanged (`castContentsBefore: 0` → `castContentsAfter: 0`,
+  `childInCast: false`), one `[RemoteIntent]` line names the item and the target, the owner's item tree is byte-identical to
+  the pre-gesture one", and the local control still runs the native move.
+- **The gesture's context is one pure decision, re-read every frame.** `src/CasualtiesUnknownOnline.GameAdapter/GiveGestureModePolicy.cs`
+  decides three modes — own UI wins over a displayed backpack, and a displayed backpack wins over the world — reading them
+  from the game's own state every frame rather than from the last input that changed it, "because the native while-dragging
+  body forces the ring open when the cursor crosses a body collider, so a mode inferred from 'the player pressed Tab' would
+  be wrong the moment the native path changes it".
+- The two destinations are mutually exclusive: a release over an ITEM means "into that container", a release over a slot
   ring means "onto that body slot".
 - A pack that is view-only accepts neither direction, and the gesture is refused before anything is sent.
 - An item without an authoritative identity cannot be named, and the gesture is refused instead of transferring "the

@@ -407,6 +407,12 @@ docs/decisions/index.md | keep | spec | docs/evidence/selfchecks/mod-api/mod-con
 docs/development/agent-reference.md | keep | spec | docs/backlog/resolved/bilingual-human-docs.md
 docs/development/native-parity.md | keep | spec | docs/evidence/delivery-checklist.md
 docs/architecture/surfaces.md | keep | spec | docs/architecture/README.md
+docs/design/AGENTS.md | keep | spec | docs/architecture/surfaces.md
+docs/design/model/authority-and-judgement.md | keep | spec | docs/design/AGENTS.md
+docs/design/model/item-custody.md | keep | spec | docs/design/AGENTS.md
+docs/design/mechanics/README.md | keep | spec | docs/design/AGENTS.md
+docs/design/mechanics/item-use.md | keep | spec | docs/design/mechanics/README.md
+docs/design/items/README.md | keep | spec | docs/design/AGENTS.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md
 docs/development/review-prompt.md | keep | spec | docs/backlog/done/document-corpus-audit.md
 docs/en/AGENTS.md | keep | loaded | -

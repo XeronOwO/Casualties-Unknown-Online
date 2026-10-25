@@ -1,0 +1,53 @@
+# Item custody: identity, ownership, and what an incarnation may decide
+
+An item in CUO is one authoritative identity that several clients show at once. This page states the rules that hold
+for every item mechanic; the mechanic pages cite it.
+
+## Identity
+
+- Each item has one **instance identity**, allocated once and stable for its whole life: it survives being dropped,
+  picked up, moved into a container, restored from a save and handed to another player.
+- An item that has no identity cannot be named in a cross-player operation; the operation refuses it by name instead of
+  acting on "the first match".
+- A catalogue definition (what an item IS) is shared; an item's state (its condition, its liquids, its components, its
+  contents) belongs to that instance.
+
+## Custody
+
+| Custody | Meaning | Authority |
+|---|---|---|
+| **Body slot** | the item is in one of a body's own slots | the body's owner client writes that body's item state; the host arbitrates |
+| **Container** | the item is inside another item that holds contents (a backpack, a pouch, a bag) | same rule, with the container as the holder |
+| **World** | the item lies in the world, or is held by a world entity | the host writes; every client projects it |
+| **In flight** | the moment between two holders during a transfer | the host owns the decision; the clients show the animation |
+
+A held item is in exactly one of these at a time. A container's contents are **not** a body slot: a mechanic that reads
+position `slot i` of a body cannot see an item that sits inside the body's backpack.
+
+## Incarnations
+
+Every client shows an item through its own **incarnation** — the object that carries the look, the collider and the
+sound. An incarnation is a VIEW:
+
+- it is never the authority for the item's state, and writing to it alone changes nothing;
+- the game's own actions are written in terms of the carried item (a body slot), so an incarnation that stands in for
+  a carried item answers the slot lookups with "not carried" and every slot-dependent step of a native action misfires
+  silently;
+- a mechanic that must reproduce a native action therefore runs it on the incarnation that IS the carried item on the
+  client that owns it, and never on a stand-in.
+
+## What travels
+
+Between clients travel the item's identity, its holder, and its state (condition, contents, components, liquid stacks).
+Animations, sounds and models never travel as facts: each client derives them from the state it receives.
+
+## What the player sees
+
+An item looks the same in a teammate's hands as in their own: the same model, the same condition-driven appearance, the
+same "in use" animation, and the same sounds at the same moments. A difference between the two views is a defect of the
+mechanic that produced it, not a rendering detail.
+
+## Records
+
+Decisions 155, 156 and 161; `../development/native-parity.md` for the standard; the mechanic pages
+`../mechanics/item-use.md` and `../mechanics/give-and-take.md` for the entries that move or consume items.

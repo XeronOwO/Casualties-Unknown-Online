@@ -49,6 +49,7 @@ one it cites.
 
 ## Related reading
 
+- `../design/AGENTS.md` — the design corpus this map indexes: one page per mechanic, item family and surface.
 - `docs/development/native-parity.md` — the three lines and the parity probe for native-mirroring behaviour.
 - `docs/evidence/delivery-checklist.md` — the boxes that enforce this page before a commit.
 - `docs/decisions/active.md` — the numbered decisions the table cites.

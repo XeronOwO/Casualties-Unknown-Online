@@ -21,7 +21,19 @@ come back where they were when the cut was taken.
 - The save is a repository of worlds, not a list of slots: one archive per world, keyed by an immutable identity; the
   display name may change without touching the archive.
 - CUO's save is independent of the game's own save file: it never reads or writes it.
-- A cut is armed by the event that asks for it and taken by the host's pump at one seam.- **The end-of-layer panel's "Save and exit" takes a CUO cut, not the native save.** The accepted reading is that "the save half takes a CUO cut and leaves `save.sv` untouched", which is the same independence the save rules state from the other direction. The panel itself follows the living share of the party: it appears for a dead host and is gone for a member.- **A continue restores the run's OWN world, not a stale one.** The recorded defect was "A Continue after a run opens a stale world (the layer-mod baseline then diverges)"; the fix moves the pointer to the run's own world at the first committed cut, and the acceptance reading is that all three clients "generated from the same decision entry state … and applied the same modifier (index 5) with zero `[LayerMod] baseline divergence`".
+- A cut is armed by the event that asks for it and taken by the host's pump at one seam.
+- **A checkpoint travels as chunks, and its schema has its own version.**
+  `src/CasualtiesUnknownOnline.Protocol/Versioning/ProtocolConstants.cs` keeps the envelope layout and the checkpoint schema as
+  separate numbers (`EnvelopeVersion` and `CheckpointSchemaVersion`) and bounds a checkpoint's transport:
+  `CheckpointChunkItemCount = 256` items per chunk and a maximum number of chunks per restore — so a large world is carried in
+  a deterministic number of pieces rather than one frame.
+- **The end-of-layer panel's "Save and exit" takes a CUO cut, not the native save.** The accepted reading is that "the save
+  half takes a CUO cut and leaves `save.sv` untouched", which is the same independence the save rules state from the other
+  direction. The panel itself follows the living share of the party: it appears for a dead host and is gone for a member.
+- **A continue restores the run's OWN world, not a stale one.** The recorded defect was "A Continue after a run opens a stale
+  world (the layer-mod baseline then diverges)"; the fix moves the pointer to the run's own world at the first committed cut,
+  and the acceptance reading is that all three clients "generated from the same decision entry state … and applied the same
+  modifier (index 5) with zero `[LayerMod] baseline divergence`".
 - A restore is repair mode with minimal loss, per entry: an entry whose content no longer exists is skipped with a
   recorded reason, and one broken entry never fails the whole cut.
 - A member's stored character is applied by the client that can apply it; on a continue, the keys present peers claim are

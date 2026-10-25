@@ -34,12 +34,34 @@ deployed artifact. A per-property keyword form is not a second dialect of the sa
 - A host rule is decided by the host and reaches every member that reads it; the member's own check is an interception
   of the gesture it would send, not a second verdict.
 - Member cheat verbs are a rule: off by default, granted per member, and announced to that member. The grant mechanism is `/op` and `/deop`: the accepted record lists "`/op`, `/deop`, the announced roster, the host's cheat SWITCH and the two-sided check on `/data`'s write verbs", and the user's ruling behind it is that granting and revoking are allowed only from the host to the other clients ("授权与剥夺只允许本机对其它客机执行").
-- A write verb is checked on BOTH sides: the member's roster says whether it may run it, and the host checks the same rule when the request arrives.- **Rules replicate at admission and are enforced by both sides.** The accepted reading of the family's table covers "the announcement at admission …; the same verb forced past the local check and refused by the host; the session-end drop and the member's own rules when it hosts its own lobby; and the recruit affordance following the" rule. A member that hosts its own lobby follows its own rules, and a rule's effect on a control (an affordance) follows the rule.
+- A write verb is checked on BOTH sides: the member's roster says whether it may run it, and the host checks the same rule
+  when the request arrives.
+- **Rules replicate at admission and are enforced by both sides.** The accepted reading of the family's table covers "the
+  announcement at admission …; the same verb forced past the local check and refused by the host; the session-end drop and the
+  member's own rules when it hosts its own lobby; and the recruit affordance following the" rule. A member that hosts its own
+  lobby follows its own rules, and a rule's effect on a control (an affordance) follows the rule.
 - Remote backpack access is a rule: it can forbid all remote inventory manipulation, in which case both the view and the
   gestures are refused by name.
-- The rule set is the code's own declaration: `src/CasualtiesUnknownOnline.Runtime/Configuration/HostRulesOptions.cs` lists `PvpEnabled`, `AutoContinue`, `AllowLateJoin`, `RemoteBackpackAccess`, `WidenRunSettings`, `PiggybackWeightMultiplier`, `AllowMemberCheatVerbs` and `NativeBindingParity`, and each is read through its typed value rather than a string.- Reading a rule is open to every player; changing one is the host's, and it is one verb shaped like Minecraft's `/gamerule`: the user's 2026-10-23 ruling asked for it and "the live syntax was fetched and cross-checked before this design was written".- `/gamerule` later JOINED the op family: changing a rule became a permission'd action rather than a host-only one, so the same grant that opens the other cheat verbs opens this one.- **A rule value fails closed.** A misspelt or unknown value never widens a rule: the accepted record states the trap — "a typo in a rule's config value silently widens it", because the configuration library clamps an unknown string to the FIRST acceptable value — and its reading is that "the capitalised spellings and the typo case read `deny`/`warn`". The rule's own text forms and its typed value are one definition.
+- The rule set is the code's own declaration: `src/CasualtiesUnknownOnline.Runtime/Configuration/HostRulesOptions.cs` lists
+  `PvpEnabled`, `AutoContinue`, `AllowLateJoin`, `RemoteBackpackAccess`, `WidenRunSettings`, `PiggybackWeightMultiplier`,
+  `AllowMemberCheatVerbs` and `NativeBindingParity`, and each is read through its typed value rather than a string.
+- Reading a rule is open to every player; changing one is the host's, and it is one verb shaped like Minecraft's
+  `/gamerule`: the user's 2026-10-23 ruling asked for it and "the live syntax was fetched and cross-checked before this
+  design was written".
+- `/gamerule` later JOINED the op family: changing a rule became a permission'd action rather than a host-only one, so the
+  same grant that opens the other cheat verbs opens this one.
+- **A rule value fails closed.** A misspelt or unknown value never widens a rule: the accepted record states the trap — "a
+  typo in a rule's config value silently widens it", because the configuration library clamps an unknown string to the FIRST
+  acceptable value — and its reading is that "the capitalised spellings and the typo case read `deny`/`warn`". The rule's own
+  text forms and its typed value are one definition.
 
 ## Refusals
+
+A refusal is TYPED before it is worded: `src/CasualtiesUnknownOnline.GameState/RejectionReason.cs` names the reason —
+`NotAuthorized`, `WrongRevision`, `WrongEpoch`, `BlockAlreadyBroken`, `InvariantViolation`, `Conflict` and `HostRuleDenied`
+among them — and the sender is answered by name. `HostRuleDenied` carries its own rule: "the refusal is the host's policy
+rather than the report's shape", answered because "a console write has already changed the sender's local object and the
+sender settles that change back on receipt".
 
 | Condition | The player reads |
 |---|---|

@@ -36,10 +36,10 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.GameAdapter/Tutorial` | 3 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/World` | 70 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/WorldGen` | 18 | unread |
-| `CasualtiesUnknownOnline.GameState` | 20 | unread |
+| `CasualtiesUnknownOnline.GameState` | 20 | read |
 | `CasualtiesUnknownOnline.GameState/Domains` | 112 | unread |
-| `CasualtiesUnknownOnline.GameState/Kernel` | 6 | unread |
-| `CasualtiesUnknownOnline.GameState/Projections` | 2 | unread |
+| `CasualtiesUnknownOnline.GameState/Kernel` | 6 | read |
+| `CasualtiesUnknownOnline.GameState/Projections` | 2 | read |
 | `CasualtiesUnknownOnline.ModExample` | 3 | unread |
 | `CasualtiesUnknownOnline.Music` | 7 | unread |
 | `CasualtiesUnknownOnline.PinyinSearch` | 1 | unread |
@@ -47,8 +47,8 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.PinyinSearch.Core/Search` | 6 | unread |
 | `CasualtiesUnknownOnline.PinyinSearch/Patches` | 2 | unread |
 | `CasualtiesUnknownOnline.Plugin` | 43 | unread |
-| `CasualtiesUnknownOnline.Protocol/Codecs` | 1 | unread |
-| `CasualtiesUnknownOnline.Protocol/Versioning` | 1 | unread |
+| `CasualtiesUnknownOnline.Protocol/Codecs` | 1 | read |
+| `CasualtiesUnknownOnline.Protocol/Versioning` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Wire` | 55 | read |
 | `CasualtiesUnknownOnline.RecursiveCrafting` | 9 | unread |
 | `CasualtiesUnknownOnline.RecursiveCrafting.Core` | 1 | unread |

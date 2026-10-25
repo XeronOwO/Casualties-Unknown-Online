@@ -28,6 +28,11 @@ that path, not by the gesture.
   from the game's own state every frame rather than from the last input that changed it, "because the native while-dragging
   body forces the ring open when the cursor crosses a body collider, so a mode inferred from 'the player pressed Tab' would
   be wrong the moment the native path changes it".
+- **The destination is a LADDER, and its rung travels with the transfer.** The user's 2026-10-17 ruling gives the order the
+  code implements: `src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerInventoryDestination.cs` declares `BodySlot`
+  (the default, "every transfer that names no container"), `Container` (a container the recipient carries or wears) and `Drop`
+  ("a world drop at the recipient's own position — the last rung, when no slot and no container"), and the chosen rung
+  "travels with the transfer fact so the receiving client applies the rung the host chose instead of re-deciding it".
 - The two destinations are mutually exclusive: a release over an ITEM means "into that container", a release over a slot
   ring means "onto that body slot".
 - A pack that is view-only accepts neither direction, and the gesture is refused before anything is sent.

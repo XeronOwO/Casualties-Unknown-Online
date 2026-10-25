@@ -57,7 +57,9 @@ The wire enumerates the families and names two of them explicitly: `src/Casualti
 declares `World = 1`, `Carried = 2`, `Contained = 3`, `Terminal = 4` and `Applied = 5`, and
 `WireItemLocation.cs` carries "the kernel's single authoritative item location" as a kind plus its owner, parent item id and
 position. The two the table above folds into other rows are **Terminal** (an item a body's terminal state holds) and
-**Applied** (an item applied to a limb — the splint, the limb tool, the bandage).
+**Applied** (an item applied to a limb — the splint, the limb tool, the bandage). A Terminal item's reason is itself a typed
+fact: `src/CasualtiesUnknownOnline.GameState/Domains/Items/TerminalKind.cs` declares `Consumed`, `Destroyed` and
+`ReplacedBy`, so "this item is gone" always says why.
 
 A held item is in exactly one of these at a time. A container's contents are **not** a body slot: a mechanic that reads
 position `slot i` of a body cannot see an item that sits inside the body's backpack.

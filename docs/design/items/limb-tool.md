@@ -18,6 +18,12 @@ why the wound view's release — the entry that carries a limb — is its only e
   carry what the action needs.
 - The limb the medical view carries is the one the action runs on.
 - Some limb actions are timed operations; the patient's own client runs them and the operator's client shows the progress.
+- **A bandage is applied by a CIRCULAR gesture, and the game counts it in 20-degree steps.** `BandageMinigame`
+  (`BandageMinigame.cs:96-120`): while the bandage is held, the hand's angle is tracked, and when the angle passes 350° and
+  comes back below 90° the game sets `didWrap = true`, plays the `bandage` sound and completes the wrap; every 20° of travel
+  runs `DoBandageAction()` → `OnUse(0.055555556f)`, so the treatment progresses in visible increments rather than at release.
+  The hand is also kept inside a 250-unit ring (`Vector2.Distance(handPos, Vector2.zero) < 250f`), so a treatment the player
+  cannot physically perform is not a treatment.
 - **A tourniquet stops the limb it is on and every limb DOWNSTREAM of it.** The game's own script (`TourniquetScript.cs`)
   sets `blockedBleeding = true` on the limb it is attached to and, recursively, on every limb whose `distanceToHeart` is
   greater (`GetLowerLimbs`), and a blocked limb contributes nothing to the body's total: `Body.cs` sums

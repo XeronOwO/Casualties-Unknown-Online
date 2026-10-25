@@ -114,6 +114,10 @@ it, the host activates the line so the stragglers feel the same radiation pressu
 one-way in the game ("it stays active until the layer is regenerated"), so the policy only decides when to ACTIVATE it, and
 "no new per-player pressure message is needed" because each player's own `RadiationLine.Update` already applies the effects.
 
+**A blood splat is a world decoration with a lifetime, not a body fact.** `GroundBlood.CheckGround()` destroys the decal when
+the block under it is air (`WorldGeneration.world.GetBlock(position) == 0`), and its `OnDestroy` re-registers it with its
+chunk — which is why CUO carries a world-blood spawn as a WORLD message and not as part of a character snapshot.
+
 ## What travels
 
 Damage reports from the client that hit the block, the host's table rows (with the game's own order) to a joining client,

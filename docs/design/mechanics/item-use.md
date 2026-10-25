@@ -24,6 +24,13 @@ The gesture is routed to a family, and the family decides which native action ru
 injection, topical, drink, solid food, limb tool — one item can satisfy several, and the entry the gesture was made on
 says which one was intended.
 
+**The game's own routing is four hit targets, and one of them runs TWO actions.** `PlayerCamera.cs:1636-1670`:
+`TryPerformRadialAction` fires on a hit tagged `RadialCenter` and, "if the dragged item is `wearable`" calls `WearWearable`,
+then "if `usable`" calls `UseItem` — so an item that declares both flags does BOTH, in that order, from one release.
+`TryPerformSpecialUIAction` is the other three targets: a `WoundViewLimb` applies the item to that limb, a `TradeThing` gives it
+to the trader, and a `ContainerBack` puts it into the open container. A CUO entry has to say which of those four it is the
+counterpart of; "the radial" is not one behaviour.
+
 **A request may name an item or ask the host to pick, and the two are different.** `PlayerItemUseRequestMsg` states both:
 "an item instance id of 0 means 'let the host choose the first usable consumable' (the Online UI auto button) and is always
 the inventory use", and the request itself is for the direct cross-player interaction — "injectable/IV medicine is NOT a

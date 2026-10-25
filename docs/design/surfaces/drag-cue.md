@@ -33,6 +33,10 @@ here would act, and the label names the player whose body the release will use t
   it while a displayed backpack is open". The disabled component's transform and rect stay live, and the native `radialText`
   ("drag here to use") stays visible — "which is the affordance the player read[s]".
 - A cue never promises an action the release would refuse; the refusal is the status line's job.
+- **There are four native drop targets, and the cue is one per target.** `PlayerCamera.cs:1636-1670`: the `RadialCenter` release
+  wears and uses the item, a `WoundViewLimb` applies it to that limb, a `TradeThing` gives it to the trader, and a
+  `ContainerBack` puts it into the open container. A cue that says "use" over a release that would give to a trader is promising
+  the wrong action — which is why the cue family is described per target rather than per item.
 
 ## Refusals it expresses
 

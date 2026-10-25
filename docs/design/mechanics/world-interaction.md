@@ -35,7 +35,7 @@ burrow — are not hooked".
 - **First writer wins.** Two players breaking the same cell do not both get it: the host accepts the first report and
   refuses the second, and the acceptance reading is "two senders broke one cell in both orders and once concurrently; the
   host refused the second report".
-- A long run may lose mining progress on its oldest half-damaged cells — that is the game's own eviction, not a CUO defect,
+- **A member's mutation is re-reported.** A world-block change a member made is re-reported periodically rather than kept alive by one message, so a swallowed report heals: the accepted live reading blacked out the host's inbound, the guest broke a cell, and after the blackout ended the host still read the old value at +12 s and **`0` at +67 s** — "the swallowed report healed by the fallback re-report".- The re-report ticket's own state note is the corpus's example of a superseded reference: it says "CUO's own partial-damage registry was DELETED (`done/block-damage-table-capacity-alignment.md`)" and that "references to `BlockDamageRegistry.cs` below are historical" — the later decision is the current design, and this page follows it.- A long run may lose mining progress on its oldest half-damaged cells — that is the game's own eviction, not a CUO defect,
   and the corpus records it so a reader does not mistake it for one.
 
 ## Refusals

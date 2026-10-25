@@ -7,18 +7,17 @@
 
 ## The design authority for this surface
 
-The console's command family follows **Minecraft's current template** (root `AGENTS.md` rule 17; decision 264 chose its `/data`
-verbs and the user's 2026-10-18 ruling asked for its `/summon` template). That is the authority for how the console behaves, and
-this ticket follows it: in Minecraft, Enter with text sends the message/command and **Enter on an empty input closes the chat
-window** — the player does not have to reach for the chat key again to dismiss an empty prompt.
+The console is **CUO's own Minecraft-style overlay**, designed and accepted in
+`docs/backlog/done/in-game-command-console-interactive.md` (batch `20261018-t`), and its command family follows **Minecraft's
+current template** (root `AGENTS.md` rule 17; decision 264 for the `/data` verbs, decision 269 for `/gamerule`, decision 228 for the
+`/` overlay being the only command and chat surface). In Minecraft, Enter with text sends and **Enter on an empty input closes the
+chat window** — the player does not reach for the chat key again to dismiss an empty prompt.
 
-The game's own console does something else, and that fact is recorded here only so nobody mistakes it for the design: in
-`reversing/Assembly-CSharp/Assembly-CSharp/ConsoleScript.cs` the console key toggles the surface
-(`Input.GetKeyDown(KeyBinds.GetBind("console"))` → `ToggleActiveState()`, which also calls `input.Select()`), Tab completes a part,
-and Enter (`Input.GetKeyDown(13)`) calls `TryExecuteCommand(array, true)` whose first statement returns on empty arguments — so
-natively an empty Enter is a no-op and the console closes only with its own key. **That is not the behaviour this project wants:
-the console is a Minecraft-shaped surface, not a copy of the game's console.** The earlier version of this ticket called the change
-a "deliberate deviation from native"; that framing was wrong and is corrected here.
+The implementation that owes this behaviour is `CommandConsoleOverlay` + `ConsoleInputSession`: the overlay's Return branch calls
+`_session.Submit()` and only consumes the key when it returns true, so an empty line currently leaves the overlay open. That is the
+defect; the game's own native console (`ConsoleScript`, opened by the console key) is a DIFFERENT surface and not the one the user
+was typing in — a 2026-10-25 batch opened the native console by mistake and its frames are recorded as a failed batch, not as
+evidence about this ticket.
 
 ## Goal
 

@@ -91,6 +91,13 @@ not the goal.
   goes to the user before it is built. A call seam that a probe can drive is never evidence that a player
   can reach it.
 - `[CRITICAL]` No shortcuts: take the proper path when one exists.
+- `[CRITICAL]` **A surface's design record is read before its design is written.** Before designing, filing or changing any
+  player-facing surface, name where its design came from and quote it: the recorded decision (`docs/decisions/active.md`) and the
+  ticket that designed and accepted it (`docs/backlog/done/`, found by searching the surface's own words). A surface this project
+  built on another design — the console follows Minecraft's template (rule 17), the online UI follows the native-UI-reuse rule — is
+  judged against THAT design and its acceptance record, never against what the game happens to do; and a behaviour that the accepted
+  design already specifies is a regression of that design, not a new feature to be re-derived. Writing a ticket from the decompiled
+  game alone, with the surface's own accepted design sitting unread in the backlog, is a process failure the review refuses.
 - `[CRITICAL]` **Native parity is the standard for anything that mirrors a native action or crosses players**
   (`docs/development/native-parity.md`): the ticket states, before the first code edit, the player's action and
   expectation, the native call site the game itself runs for that action locally, and how the remote case reaches that

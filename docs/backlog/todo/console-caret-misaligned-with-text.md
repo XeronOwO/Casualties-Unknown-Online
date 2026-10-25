@@ -10,6 +10,14 @@
 The caret sits exactly where the next character will go: same baseline, same left inset, at the end of the text. While typing, the
 visible text and the caret never disagree, in either language and at any text length.
 
+## The design record this ticket is judged against
+
+The console is CUO's own Minecraft-style overlay (`docs/backlog/done/in-game-command-console-interactive.md`, accepted in batch
+`20261018-t`), whose rejection list already names this exact defect: "*The input line has layout/alignment problems: the `>` prompt and
+the input box are misaligned*". The redo claimed "the input prompt and field are aligned in one manual input row" — so this ticket is
+a **regression against that accepted design**, on `CommandConsoleOverlay`'s manual input row (IMGUI), not on the game's native
+console.
+
 ## Current behaviour (to be established by the first batch)
 
 Not yet read. The console's input is drawn by CUO's own surface, where the text field sits inside a framed (rounded) background — the

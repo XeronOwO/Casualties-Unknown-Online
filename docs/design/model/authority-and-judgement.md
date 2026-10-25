@@ -45,19 +45,32 @@ A client never predicts a cross-player operation's result. Where a client acts a
 
 ## Member reports are checked against data, never against behaviour
 
-A fact a member REPORTS (rather than requests) is a claim. The host checks it against a fact it already holds 鈥?an
-identity, a value it computed, a table it owns 鈥?refuses what contradicts that claim by name, and answers the refusal so
+A fact a member REPORTS (rather than requests) is a claim. The host checks it against a fact it already holds — an
+identity, a value it computed, a table it owns — refuses what contradicts that claim by name, and answers the refusal so
 both sides agree. It never re-derives what it cannot reproduce (an unseeded roll, another client's frame), and it never
 models what a player is able to do: reach, aim, timing and input rate are anti-cheat, which this project excludes, so a
 report without a data anchor stays unbounded and is recorded as such.
 
 ## The census of unbounded reports
 
-Every report is either anchored or named unbounded, and the census is the list: `docs/architecture/member-report-validation.md` carries one row per wire member, and a row marked `unbounded:` is a report this project accepts without an anchor. The accepted record's reading is that the family closed what it could 鈥?"rows 1, 2 and 4 PASS; row 3 is WITHDRAWN by the ruling below" 鈥?and that the census, not a reader's memory, is where an unbounded surface is found.
+Every report is either anchored or named unbounded, and the census is the list:
+`docs/architecture/member-report-validation.md` carries one row per wire member, and a row marked `unbounded:` is a report
+this project accepts without an anchor. The accepted record's reading is that the family closed what it could — "rows 1, 2
+and 4 PASS; row 3 is WITHDRAWN by the ruling below" — and that the census, not a reader's memory, is where an unbounded
+surface is found.
 
 ## Interaction gates are the host's
 
-The gates that decide whether a remote interaction may happen 鈥?who may act on whom, and whether an operation is already running 鈥?are judged by the host rather than by the asking client: the accepted record's evidence is `InteractionGateAuthorityTests` (18 cases) plus `MedicalOperationConcurrencyTests` for the exclusivity refusal, with the third-party chain unchanged. A client's own check stays an interception (see host rules); the decision is the host's.
+The gates that decide whether a remote interaction may happen — who may act on whom, and whether an operation is already
+running — are judged by the host rather than by the asking client: the accepted record's evidence is
+`InteractionGateAuthorityTests` (18 cases) plus `MedicalOperationConcurrencyTests` for the exclusivity refusal, with the
+third-party chain unchanged. A client's own check stays an interception (see host rules); the decision is the host's.
+
+**A post-interaction body snapshot is the host's, and the affected client applies it as-is.**
+`src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerInteractionHealth.cs` is "a kernel-shaped post-interaction body
+health snapshot … not a terminal kernel fact", and it rides the interaction result event "so the receiving Game Adapter can
+apply the exact host-authoritative post-effect body state immediately" — the body's own client does not recompute what a
+cross-player action did to it; it applies the result.
 
 ## Host rules
 
@@ -67,7 +80,9 @@ still refuses the same thing if it arrives. A rule is never enforced by a client
 
 ## What travels
 
-The facts that cross for this model: a request and its answer, a report and its refusal, a host rule and its announcement, and the custody a transfer moves. None of them carries a verdict the receiving side is meant to trust 鈥?that is the whole point of checking against data.
+The facts that cross for this model: a request and its answer, a report and its refusal, a host rule and its announcement,
+and the custody a transfer moves. None of them carries a verdict the receiving side is meant to trust — that is the whole
+point of checking against data.
 
 ## Custody invariants
 

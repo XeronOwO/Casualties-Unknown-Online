@@ -32,6 +32,11 @@ burrow — are not hooked".
 - A late joiner receives the host's cells IN THE GAME'S ORDER, not a dictionary's: the earlier snapshot's order "was not the
   game's order at all", and a receiver that applied rows until its own cap refused them held "a different set from the
   host's newest-128 in almost every case".
+- **A trap has five phases, and the kernel records the TRANSITIONS rather than owning the mechanism.**
+  `src/CasualtiesUnknownOnline.GameState/Domains/WorldEntities/TrapPhase.cs` declares `Armed = 1`, `Warning = 2`,
+  `Triggered = 3`, `Cooldown = 4`, `Disabled = 5`, and its own summary says "the kernel records observed transitions; the game
+  adapter remains the source of the actual native transition" — so a phase the party sees is a reported fact, never a CUO
+  simulation of the trap.
 - **First writer wins.** Two players breaking the same cell do not both get it: the host accepts the first report and
   refuses the second, and the acceptance reading is "two senders broke one cell in both orders and once concurrently; the
   host refused the second report".

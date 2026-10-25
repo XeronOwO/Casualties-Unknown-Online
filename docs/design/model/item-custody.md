@@ -61,6 +61,15 @@ position. The two the table above folds into other rows are **Terminal** (an ite
 fact: `src/CasualtiesUnknownOnline.GameState/Domains/Items/TerminalKind.cs` declares `Consumed`, `Destroyed` and
 `ReplacedBy`, so "this item is gone" always says why.
 
+**Applied is not an inventory position, and worn is not Applied.** `Domains/Items/ItemLocationKind.cs` states both rules:
+Applied "is the one family that is NOT an inventory position — the item is the installed form of a limb component … it is
+held by the limb rather than carried, and no inventory gesture reaches it", and it is "deliberately NOT the wear encoding — a
+worn item is CARRIED with a negative slot index, so it is still in the inventory and a search can reach it".
+`Domains/Items/LimbItemLocationRules.cs` adds that both directions (onto the limb and off it) are relocations that keep the
+instance id, "so a mod that recorded the id … can follow it across the transform", and that the rules do not decide which limb
+may carry which component: the game's own data gates that on the side that runs the action, a refused apply spends nothing,
+and no report is produced for it.
+
 A held item is in exactly one of these at a time. A container's contents are **not** a body slot: a mechanic that reads
 position `slot i` of a body cannot see an item that sits inside the body's backpack.
 

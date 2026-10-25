@@ -17,6 +17,12 @@ co-op the choice must be one member's choice applied to a host-owned world.
 
 - The choice is the MEMBER's; the layer is the HOST's. A member who chooses the descent reports the intent; the host
   decides when the party moves, so two members choosing at once cannot generate two worlds.
+- **The layer's own rarity numbers start neutral and may only be scaled by generation.**
+  `src/CasualtiesUnknownOnline.GameState/Domains/World/RunRarityMultipliers.cs` fixes `Neutral = 1f` because the game
+  "initializes `WorldGeneration.lootRarityMultiplier` / `trapRarityMultiplier` to 1f … and only ever scales them during
+  generation — per layer … never inside a running layer", and it REFUSES a non-finite value on every path into the kernel
+  (the command path, the applied wire batch and the checkpoint restore) "so the layer keeps the game's own values instead of
+  being scaled by a number that has no meaning".
 - A fact about the layer being LEFT must not survive into the layer being ENTERED: the layer boundary is one family under
   one rule, and every such fact is classified rather than silently kept or silently dropped.
 - Items the player carries cross the boundary with them; world facts belong to the layer they were created in.

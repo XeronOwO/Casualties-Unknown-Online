@@ -24,18 +24,27 @@
 	var showing = (bool)cueType.GetProperty("Showing").GetValue(cue, null);
 	var target = (ulong)cueType.GetProperty("TargetSteamId").GetValue(cue, null);
 	var name = "";
-	if (uiType != null) {
-		var ui = services.GetService(uiType);
-		if (ui != null) {
-			var m = uiType.GetMethod("DisplayName") ?? uiType.GetMethod("NameOf");
-			if (m != null) {
-				try {
-					var args = m.GetParameters().Length == 1 ? new object[] { target } : new object[] { target.ToString() };
-					var answer = m.Invoke(ui, args);
-					name = answer == null ? "" : answer.ToString();
-				} catch { name = ""; }
-			}
+	// The overlay's own name source: PluginHost.DrawDragUseCue formats cue.use_on with OnlineUi*.DisplayName(id).
+	var uiNames = new string[] {
+		"CasualtiesUnknownOnline.Plugin.OnlineUiHost",
+		"CasualtiesUnknownOnline.Plugin.OnlineUiContext"
+	};
+	for (var i = 0; i < asms.Length; i++) {
+		for (var n = 0; n < uiNames.Length; n++) {
+			System.Type hostType = null;
+			try { hostType = asms[i].GetType(uiNames[n], false); } catch { hostType = null; }
+			if (hostType == null) { continue; }
+			var ui = services.GetService(hostType);
+			if (ui == null) { continue; }
+			var display = hostType.GetMethod("DisplayName", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+			if (display == null) { continue; }
+			try {
+				var answer = display.Invoke(ui, new object[] { target });
+				name = answer == null ? "" : answer.ToString();
+			} catch { name = ""; }
+			if (name.Length > 0) { break; }
 		}
+		if (name.Length > 0) { break; }
 	}
 	var text = "";
 	if (locType != null) {

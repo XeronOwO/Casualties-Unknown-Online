@@ -436,3 +436,16 @@ entered its detection range".
 creates with `item-provide` is the one thing left to question: a bandage's native use is a MINIGAME, not a one-shot use, which is
 exactly the kind of item the classifier can legitimately refuse. The next cycle repeats the same gesture with an item whose family
 is unambiguous (a syringe/medicine), and reads `showing/targetSteamId` from the same probe.
+
+**Batch `20261025-aw` — ROW 1 IS READ, and the clause that was failing is the ITEM's family.** Repeating the identical gesture with
+**`fentanyl`** (created after `item-pickup mode=free` released a bandage: the six slots had all been full, which is why the earlier
+grants answered `no-free-slot`) the probe answered **`showing=True, targetSteamId=76561198863287957`** with `backpackOpen=True` and
+the pointer 29.8 units from the centre (inside 135): the cue appears exactly while the pointer is on the displayed backpack's
+centre, and it names THAT teammate. Moving the pointer off the centre answered **`showing=False, targetSteamId=0`** on the next
+reading — the disappearance half. So a `bandage` is the item `LocalUseItemEligibility` refuses (its native use is a minigame, not a
+one-shot use), and the five-clause chain recorded in the previous batch is otherwise sound.
+
+The name the overlay draws is the member list's own: `PluginHost.DrawDragUseCue` formats `cue.use_on` with
+`_onlineUi.DisplayName(cue.TargetSteamId)`, and the probe's own fallback shows the id (`对76561198863287957使用`) because that
+method lives on the plugin host, which the probe cannot reach through the service container. Row 1's substance — a cue that names
+the teammate the release would act on, and only while the pointer is on the use centre — is therefore read.

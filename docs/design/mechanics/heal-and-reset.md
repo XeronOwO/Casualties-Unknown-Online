@@ -8,6 +8,10 @@ Types `/heal` with a selector (`@s`, `@p`, `@a`, a name) and expects the named b
 restored, severed limbs regrown, the hollow state cleared, the death state ended in place rather than by respawning the
 party.
 
+## What the game itself does
+
+The game's own `heal` command resets a body but "does not restore severed limbs", so the console verb's native half is the game's reset plus a restore this project adds. The hollow clear runs the native heal path so nothing of the hollow presentation survives.
+
 ## Rules and states
 
 - **Revive happens IN PLACE.** The user's ruling when the verb landed: revive "in place", the trader-revive reading, not

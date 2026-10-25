@@ -25,7 +25,9 @@ prevent:
 2. **Who arbitrates a conflict?** The host. Two players acting on the same fact are ordered by the host's own
    arrival, never by a client's clock.
 
-**The host computes the continuous state; the affected client judges the events.** The user's 2026-10-18 ruling for the health family states the whole shape: "the HOST computes the continuous player state by reusing the game's own methods; the affected client judges every event and applies the host's rows to its own body." A continuous quantity is the host's because it is a simulation over time; an event is the affected side's because it happened on that side's screen.`r`n`r`n**Latency is never a judgement parameter.** A rule that reads a round-trip time, or that makes a decision depend on how
+**The host computes the continuous state; the affected client judges the events.** The user's 2026-10-18 ruling for the health family states the whole shape: "the HOST computes the continuous player state by reusing the game's own methods; the affected client judges every event and applies the host's rows to its own body." A continuous quantity is the host's because it is a simulation over time; an event is the affected side's because it happened on that side's screen.
+
+**Latency is never a judgement parameter.** A rule that reads a round-trip time, or that makes a decision depend on how
 fresh a peer's report is, is out of design: the affected side decides from what it can see, and the host arbitrates
 from what it received.
 
@@ -63,6 +65,10 @@ A host rule is a setting the host alone decides. It reaches every member that re
 is an INTERCEPTION rather than a second verdict: the member refuses the gesture it would otherwise send, and the host
 still refuses the same thing if it arrives. A rule is never enforced by a client's own opinion.
 
+## What travels
+
+The facts that cross for this model: a request and its answer, a report and its refusal, a host rule and its announcement, and the custody a transfer moves. None of them carries a verdict the receiving side is meant to trust — that is the whole point of checking against data.
+
 ## Custody invariants
 
 - A carry relation requires a live carrier. A carried item is inside exactly one body or one container at a time.
@@ -70,6 +76,14 @@ still refuses the same thing if it arrives. A rule is never enforced by a client
   item's identity.
 - A transfer is a custody change on the host; every client materialises its own incarnation of the item, and an
   incarnation is never the authority for the item's state.
+
+## Who judges
+
+This page IS the judgement model: the deciding side is the one that owns the thing being affected, the applying side is the client that owns the body, and the timeline is the affected side's own. The host arbitrates conflicts; it never substitutes its own frame for a decision it cannot reproduce.
+
+## Gaps
+
+- The anti-cheat bound is excluded by design (see the census of unbounded reports); what a future bound would anchor on is not recorded here.
 
 ## Records
 

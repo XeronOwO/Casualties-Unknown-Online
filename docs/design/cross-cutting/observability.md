@@ -18,6 +18,14 @@ enough to reconstruct what happened.
 - Volume is bounded: a repeated warning is rate-limited, and a channel that would flood a frame is summarised.
 - A player-facing status line and the log line for the same event answer different readers, and both exist.
 
+## Who judges
+
+The client that took the action logs it and shows it to its player; the host logs its own decisions. A log line is never a verdict about another client.
+
+## What travels
+
+A status line's key and values, and the log's own structured values; nothing a player reads is sent as a sentence.
+
 ## What a run leaves
 
 | Trace | What it answers |

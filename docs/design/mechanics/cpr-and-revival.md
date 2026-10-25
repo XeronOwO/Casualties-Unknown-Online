@@ -21,6 +21,10 @@ the healer, a press cadence with a stamina cost per press, a hand-force term tha
 effect of over-pressing. It does **not** show a ventilation/inflation step or an oxygen model, so those two are CUO's own
 design."
 
+## What the game itself does
+
+There is no native CPR: the accepted record states that "Native `Assembly-CSharp` does not contain a native `CPRMinigame`", that a reference co-op mod ships custom `CPRMinigame` and `CPRHandler`, and that "this is therefore not a native parity item; it is an optional KrokMP-style enhancement". The native call this mechanic mirrors is the game's own revive, not a compression routine.
+
 ## Rules and states
 
 - The operator's own body is asked FIRST: a strength and intelligence gate decides whether they may compress at all, and a

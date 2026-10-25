@@ -66,6 +66,10 @@ sound. An incarnation is a VIEW:
 - a mechanic that must reproduce a native action therefore runs it on the incarnation that IS the carried item on the
   client that owns it, and never on a stand-in.
 
+## Who judges
+
+The holder's client writes its own side of an item's state and the host arbitrates; an incarnation is written by nobody, because it is a view.
+
 ## What travels
 
 Between clients travel the item's identity, its holder, and its state (condition, contents, components, liquid stacks).
@@ -76,6 +80,11 @@ Animations, sounds and models never travel as facts: each client derives them fr
 An item looks the same in a teammate's hands as in their own: the same model, the same condition-driven appearance, the
 same "in use" animation, and the same sounds at the same moments. A difference between the two views is a defect of the
 mechanic that produced it, not a rendering detail.
+
+## Gaps
+
+- Which custody change a container's child reports when the container itself moves is recorded per ticket rather than stated here yet.
+- The item census recipe answers an instance id; whether every creation path stamps one is not recorded here yet.
 
 ## Records
 

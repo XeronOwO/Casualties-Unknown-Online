@@ -56,7 +56,11 @@ A small translucent panel over the world, live candidates under the input line, 
 
 ## What it replaced
 
-A second removal confirms the same decision: the duplicated command console PAGE was taken out of the Online UI window, with the acceptance reading that there is no Console tab and the console's own open/suggest/submit path is the one players use.`r`n`r`nThe console was first landed as "a local command/chat console inside the Online UI" with "a registered command chain (help, players, rtt, whoami, kick, ban, unban) with role-based" access. That shape is SUPERSEDED: decision 228 states the window has no console page, and the accepted interactive design (next section) keeps the `/` overlay as the only command and chat surface. A reader who finds the older ticket must follow decision 228, not the older page.`r`n`r`n## Records
+A second removal confirms the same decision: the duplicated command console PAGE was taken out of the Online UI window, with the acceptance reading that there is no Console tab and the console's own open/suggest/submit path is the one players use.
+
+The console was first landed as "a local command/chat console inside the Online UI" with "a registered command chain (help, players, rtt, whoami, kick, ban, unban) with role-based" access. That shape is SUPERSEDED: decision 228 states the window has no console page, and the accepted interactive design (next section) keeps the `/` overlay as the only command and chat surface. A reader who finds the older ticket must follow decision 228, not the older page.
+
+## Records
 
 Decision 228 (the `/` overlay is the only command and chat surface). Accepted:
 `../../backlog/done/in-game-command-console-interactive.md` (entry keys, live candidates, no-fade history, Escape

@@ -27,7 +27,19 @@ the host's, and every other client holds them as projections.
   never a third player's view. The code names the same split: `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatReplay.cs`
   "JUDGES an announced enemy attack against this client's own view — the frozen enemy copy it renders and its own" state,
   so the replay is the victim's judgement and never a re-simulation of the attacker's.
-- **What the kernel keeps about an enemy is the durable half.**
+- **A crystal's threat is a function of its health, and a boss changes behaviour at two exact health lines.**
+  `CrystalEnemy.cs:55` scales its presence with `1f - build.health / 450f` (its windup sound pitches and swells with speed and
+  proximity), and it plays `crystalenemywindup` before the attack raycast. `ElderThornbackBehaviour.cs:81-99` switches stage at
+  `build.health < 3750f` (leg speed +1, move force ×1.35, move wait ×0.6, new drone) and again at `< 2500f` (leg speed +1, move
+  force ×1.25, wait ×0.5, retreat health cleared, look force ×1.8), with its shader progress `(6000f - health) / 6000f * 8f`.
+  A remote player's fight therefore has the same two audible/visible stages, because the health that drives them is the host's.
+- **A trap's damage is randomised per hit and cut by the victim's armour.**
+  `BearTrap.cs:31-43`: a trap that rolls "`Random.Range(0f, 1f) < 0.5f`" bites the limb for
+  `skinHealth -= Random.Range(70f, 100f) / GetArmorReduction()`, `muscleHealth -= Random.Range(50f, 100f) / …`,
+  `bleedAmount += Random.Range(14f, 18f) / …`, `DamageWearables(0.9f)` and `brainHealth -= Random.Range(0f, 40f)`.
+  `BarbedFence.cs:29-32` is the lighter family: `skinHealth -= Random.Range(10f, 25f) / …`, `bleedAmount += Random.Range(1f, 3f)
+  / …`, `pain += Random.Range(20f, 60f) / …`, `DamageWearables(0.2f)`. A blast mine arms on pressure and detonates after
+  `0.8f` s (`MineScript.cs:31-40`), or on destruction below `0.5f` health.
   `src/CasualtiesUnknownOnline.GameState/Domains/Entities/EnemyState.cs` holds `EntityId`, `PrefabId`, `Health`,
   `RuntimeSpawned` and `Stunned`, with "high-frequency position/velocity remains a stream" — so an enemy's position is a
   stream fact and its identity, health and spawn kind are decisions. `EnemyCombatEffectKind.cs` names the proximity effect

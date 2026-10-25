@@ -50,6 +50,12 @@ burrow — are not hooked".
   `Random.Range(600f, 1750f) * GetRunSettingFloat("timebetweenearthquakes")` and the quake lasts `Random.Range(3f, 25f)`; while it
   runs the camera shakes by `intensity * 20f` and every body is pushed by `Random.insideUnitCircle * intensity * 10f`. The
   intensity itself moves toward a target rather than jumping, which is why a quake is felt as a ramp.
+- **The mechanisms are the game's own, with their own triggers.** `MineScript.cs:31-40` arms when a body touches it and
+  detonates after `0.8f` s (or on destruction below `0.5f` health), `BounceShroom.cs:24` throws a limb upward by
+  `Random.Range(50f, 70f)` with a `0.5f`-per-second recharge, and `JumpPadScript.cs:35-44` sets the limb's vertical velocity to
+  `65f` and pushes a rigid body with `AddForce(Vector2.up * 350f)`. `GeyserScript.cs:30-60` erupts on its own timer and writes
+  its liquid into the fluid grid at `y + Random.Range(0, 10)`, which is why a geyser's product is world state rather than an
+  item spawn.
 - **A break and its drops are ONE message, so they get one verdict.** `BlockDamagedMsg` carries the drops when the damage
   broke the block, "the break and its drops are ONE message, so the host's arbitration gives them one verdict:
   first-writer-wins (the accepted report's drops register and materialize everywhere; the rejected report's drops are rolled

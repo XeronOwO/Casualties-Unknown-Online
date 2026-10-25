@@ -15,6 +15,10 @@ rejoined party to find the same world, the same items and the same progress.
   from the running client, never by restarting it.
 - The run is the host's world. A member's character is restored by the client that can apply it, on a continue, from the
   stored keys the present peers claim.
+- **Every run entry the game has asks the same first question.** `PreRunScript.StartRun` and `PreRunScript.LoadRun`
+  (`PreRunScript.cs:273-300`) both refuse while `PlayerPrefs.GetInt("didbasiccourse") == 0`, showing the tutorial warning and
+  hiding the run-settings screen instead — so "start a run", "continue a run" and the tutorial are one gate in the game, and a
+  CUO path that offers a run without passing it is offering something the game does not.
 - **Acquiring a lobby leaves the current one first, for create and join alike.** `Runtime/Steam/LobbyLifecycle.cs`: "Steam
   requires a leave before a fresh create — a re-create without leaving strands the old lobby: the host's friends keep joining
   the dead lobby while the host is already in the new one (observed live: F8 re-create left the old lobby with a residual member

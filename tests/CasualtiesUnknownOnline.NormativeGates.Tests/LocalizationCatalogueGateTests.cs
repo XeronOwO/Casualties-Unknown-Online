@@ -51,6 +51,20 @@ public sealed class LocalizationCatalogueGateTests
 
 	private static readonly Regex JsonKeyPattern = new(@"""([^""]+)""\s*:", RegexOptions.Compiled);
 
+	/// <summary>One catalogue entry: the key and the sentence it holds. A value's own escapes are kept as written, because the scan
+	/// below judges the text a reader would see and an escape is not a word boundary.</summary>
+	private static readonly Regex JsonEntryPattern = new(@"""([^""]+)""\s*:\s*""((?:[^""\\]|\\.)*)""", RegexOptions.Compiled);
+
+	/// <summary>Characters no English sentence carries: CJK punctuation, kana, ideographs and the fullwidth forms.</summary>
+	private static readonly Regex ChineseText = new(@"[\u3000-\u303F\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uFF00-\uFFEF]", RegexOptions.Compiled);
+
+	/// <summary>
+	/// A run of three or more ASCII words: an English sentence. One or two ASCII tokens inside a Chinese sentence are a command
+	/// (<c>/heal</c>), an identifier (<c>AllowMemberCheatVerbs</c>) or a product name (<c>Steam</c>), which the game's own Chinese UI
+	/// writes that way; three in a row is prose that was never translated.
+	/// </summary>
+	private static readonly Regex EnglishProse = new(@"[A-Za-z][A-Za-z'-]{1,}(?: [A-Za-z][A-Za-z'-]{1,}){2,}", RegexOptions.Compiled);
+
 	/// <summary>
 	/// Key-producing helpers the accessor scan cannot see through: the helper returns a literal key
 	/// that a call site then hands to an accessor. Each entry is a declaration, not a convenience —
@@ -90,6 +104,64 @@ public sealed class LocalizationCatalogueGateTests
 		Assert.True(
 			onlyEnglish.Length == 0 && onlyChinese.Length == 0,
 			$"the two tables drifted — only English: [{string.Join(", ", onlyEnglish)}]; only Chinese: [{string.Join(", ", onlyChinese)}]");
+	}
+
+	/// <summary>
+	/// The two tables hold TWO LANGUAGES, and each holds only its own: an English sentence never carries a Chinese character, and a
+	/// Chinese sentence never carries a run of English words. This is the user's 2026-10-25 rule ("涉及到多语言的都要改") made
+	/// mechanical at the catalogue, which is where every player-facing sentence now lives: a key that was filled by pasting the host's
+	/// English into the Chinese table — the exact defect that produced `使用被拒绝：injectable medicine goes through the medical view。`
+	/// — fails here instead of on a player's screen.
+	/// </summary>
+	[Fact]
+	public void TheEnglishTable_HoldsNoChineseText()
+	{
+		var offenders = Entries(CatalogueText())
+			.Where(entry => ChineseText.IsMatch(entry.Value))
+			.Select(entry => $"{entry.Key} = '{entry.Value}'")
+			.ToArray();
+
+		Assert.True(
+			offenders.Length == 0,
+			$"{offenders.Length} English entr(ies) carry Chinese text: {string.Join("; ", offenders)}");
+	}
+
+	/// <summary>
+	/// The mirror fact, and the one that catches a pasted host sentence: a Chinese entry may name a command (`/heal`), an identifier
+	/// (`AllowMemberCheatVerbs`) or a product (`Steam`) — one token — but a run of three ASCII words is an English sentence inside a
+	/// Chinese frame, which is the defect regardless of how it got there.
+	/// </summary>
+	[Fact]
+	public void TheChineseTable_HoldsNoEnglishProse()
+	{
+		var offenders = Entries(ChineseCatalogueText())
+			.Where(entry => EnglishProse.IsMatch(entry.Value))
+			.Select(entry => $"{entry.Key} = '{entry.Value}'")
+			.ToArray();
+
+		Assert.True(
+			offenders.Length == 0,
+			$"{offenders.Length} Chinese entr(ies) carry a run of English words: {string.Join("; ", offenders)}");
+	}
+
+	/// <summary>
+	/// The two scans above are only worth their failures if they can FAIL: this pins the matchers with the case the user reported
+	/// (a host sentence pasted into the Chinese table) and with the case a careless scan would reject (a legitimate command name and
+	/// identifier inside a Chinese sentence), so a matcher that stopped matching — or one that started matching everything — is red.
+	/// </summary>
+	[Fact]
+	public void TheLanguageScan_RejectsAPastedHostSentenceAndAcceptsAToken()
+	{
+		const string Pasted = "{ \"hud.use_refused\": \"使用被拒绝：injectable medicine goes through the medical view。\" }";
+		const string Legitimate = "{ \"hud.use_refused\": \"使用被拒绝：这条命令（AllowMemberCheatVerbs）不接受 /heal。\" }";
+		const string ChineseInEnglish = "{ \"hud.ok\": \"已治疗 {0}。\" }";
+
+		Assert.Contains(Entries(Pasted), entry => EnglishProse.IsMatch(entry.Value));
+		Assert.DoesNotContain(Entries(Legitimate), entry => EnglishProse.IsMatch(entry.Value));
+		Assert.Contains(Entries(ChineseInEnglish), entry => ChineseText.IsMatch(entry.Value));
+		// The English scan must NOT reject a Chinese table: it is the English one that may hold no Chinese, and the sample above is
+		// the Chinese sentence a command name and an identifier legitimately sit inside.
+		Assert.Contains(Entries(Legitimate), entry => ChineseText.IsMatch(entry.Value));
 	}
 
 	[Fact]
@@ -306,6 +378,16 @@ public sealed class LocalizationCatalogueGateTests
 			.Select(match => match.Groups[1].Value)
 			.Distinct(StringComparer.Ordinal)
 			.OrderBy(key => key, StringComparer.Ordinal),
+	];
+
+	/// <summary>Every key of one flat catalogue file with the sentence it holds: the language scan judges the sentence, and reports
+	/// the key so a failure names the line a translator has to fix.</summary>
+	private static (string Key, string Value)[] Entries(string json) =>
+	[
+		.. JsonEntryPattern.Matches(json)
+			.Cast<Match>()
+			.Select(match => (Key: match.Groups[1].Value, Value: match.Groups[2].Value))
+			.OrderBy(entry => entry.Key, StringComparer.Ordinal),
 	];
 
 	/// <summary>

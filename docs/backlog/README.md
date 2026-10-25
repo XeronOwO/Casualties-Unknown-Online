@@ -67,7 +67,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
 - [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
-- [Giving into a backpack plays no sound](todo/give-into-backpack-plays-no-sound.md) — **High** — the transfer's own clip.
 - [An item cannot be used on a sleeping teammate](todo/use-on-sleeping-target-refused.md) — **Medium** — the consuming families' target gate.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
@@ -155,6 +154,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [Giving an item into another player's backpack is not the native transfer](done/give-into-backpack-plays-no-sound.md) — **High** — closed: click only.
 - [Merge the remote-inventory design into the corpus](done/merge-remote-inventory-design-into-corpus.md) — **Medium** — the rules live in the corpus
 - [The run coordinator is over the class-size line](done/run-coordinator-over-the-class-line.md) — **Medium** — the size exemption was already on record.
 - [Entity drop loses fresh state on the guest](done/entity-destruction-drop-guest-fresh-state-loss.md) — **Medium** — read.

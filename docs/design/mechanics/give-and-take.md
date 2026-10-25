@@ -130,5 +130,5 @@ sound and the container's refresh accompany it.
 
 ## Gaps
 
-- The transfer's own sound is not yet reproduced; recorded in `../../backlog/todo/give-into-backpack-plays-no-sound.md`.
+- The transfer's own sound is not yet reproduced; recorded in `../../backlog/done/give-into-backpack-plays-no-sound.md`.
 - A take that lands in the taker's own backpack container (rather than a body slot) has no dedicated page yet.

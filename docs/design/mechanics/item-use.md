@@ -138,4 +138,4 @@ checked against data). Accepted: `../../backlog/done/drink-measurement-destructi
 - Whether a SLEEPING (rather than injured-unconscious) teammate may be fed is not yet decided; recorded in the open ticket
   above.
 - The transfer's own sound when an item is handed over is not yet reproduced; recorded in
-  `../../backlog/todo/give-into-backpack-plays-no-sound.md`.
+  `../../backlog/done/give-into-backpack-plays-no-sound.md`.

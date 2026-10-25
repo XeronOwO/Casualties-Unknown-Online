@@ -1,6 +1,6 @@
 # Giving an item into another player's backpack is not the native transfer
 
-- Status: Todo — opened 2026-10-25 from the user's report (translated): "why is there no sound when I move an item into another player's
+- Status: Done — closed 2026-10-25 (the ruling and the ear) — opened 2026-10-25 from the user's report (translated): "why is there no sound when I move an item into another player's
   backpack? A normal item move has a cloth-rustle sound", followed by
   the standard it must be held to: "I want the native effect reproduced as far as possible, why are you cutting corners".
 - Priority: High
@@ -182,3 +182,21 @@ Until that lands, the two rows stay the user's judgement and this ticket says so
   which client each row was read on.
 - If the native call turns out to be unreachable for a proxy (a private method or a hard collider dependency), the ticket must record
   that evidence and the exact difference from the native effect before any substitute is designed.
+
+## Closure (2026-10-25)
+
+The question this ticket opened ("why is there no sound when I move an item into another player''s backpack?") was answered by the native code and
+then RULED on by the user, in two steps:
+
+1. The release now keeps the game''s own tail: `HandleReleaseDragging` ends with `PlayUISound(PlayerCamera.UISoundType.Click, 1f)`
+   (`PlayerCamera.cs:1495`), and CUO consumed the give release before that tail ever ran. `PlayerCameraDragUsePatch` plays it on both consumed
+   branches (the give and the ring-centre use) — the game''s call, the game''s clip.
+2. The cloth rustle is NOT part of a cross-player give. `Body.PickUpItem` plays `PlayBackpackSound` only when the item''s parent is a container
+   (`Body.cs:1393-1397`), and a slot-to-slot move has no container on either side. CUO had added its own `PlayBackpackSound` on the giver''s
+   removal (`PlayerInteractionApply`), which the user heard as "the container sound that should not be there"; it is deleted (`7f9619d0`).
+
+The user''s verdict on the machine, after both changes: "tested — the sound is fine now".
+
+Rows 1-4 are therefore resolved by decision rather than by the audio instrument this page said was missing: the observable call is the UI click
+(already inside `SoundPlayPatch`''s family through `PlayerCamera.PlayUISound`, which the patch sees), and the cloth clip is not played at all, so
+there is no clip left to instrument for this gesture.

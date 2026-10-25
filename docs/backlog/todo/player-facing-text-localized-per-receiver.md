@@ -29,16 +29,29 @@ The REFUSAL family is done end to end, and it was the case the user reported:
   `labelKey` is now RESOLVED rather than unresolvable — carrying a key as a value was already counted at its producer, and a
   scanner that read the new shape as a failure would forbid the fix.
 
+## Where the code stands (2026-10-25)
+
+Every player-facing string that crosses a boundary now travels as a KEY plus its values, and every one of them is rendered by the
+client that shows it:
+
+- **Refusals that cross**: `PlayerItemUseRefusedMsg` (`ReasonKey`/`ReasonArg`), rendered by the member's own catalogue as ONE
+  whole sentence — the case the user reported (`使用被拒绝：injectable medicine goes through the medical view。`) cannot recur.
+- **Refusals decided locally**: the medical view's four and the CPR gate's two, each through its own key-producing helper.
+- **Command answers**: `/heal`, `/give`, `/summon` and `/gamerule` all answer as catalogue PARTS (`ConsoleAnswerPartMsg`), one line
+  per part, rendered by the member's console in the member's language; the plain text stays as the host's log line and as the
+  fallback a message with no parts degrades to.
+- **A ground another module owns** (a give parser's usage line, the creation port, the custody path, the layer stamp, the prefab
+  parse) is answered with one catalogue sentence (`answer.refused_see_host_log`) and the detail stays in the host's log. That is
+  the deliberate answer to "no language's prose inside another language's frame", and a port that later returns its own key is
+  promoted to a real part without changing the shape.
+
 ## What remains
 
-- **`/gamerule`'s answer** is a list of setting names and values and takes the same parts shape as the other three verbs.
-- **The frame-around-foreign-prose rule now has an answer for PORT refusals**: a ground another module owns (the give parser's
-  usage line, the creation port, the custody path, the layer stamp, the prefab parse) is answered with one catalogue sentence
-  (`answer.refused_see_host_log`) and the detail stays in the host's log. That is deliberate: wrapping the host's English inside
-  a localized frame is the defect this ticket exists for, and a port that later returns its own key is promoted to a real part
-  without changing the shape.
-- **The scan in acceptance row 2** (no run of the other language's words in any catalogue) is a gate to write once `/gamerule`
-  is converted, so it does not fail on text this ticket has not converted yet.
+- **Acceptance row 2's scan**: a gate over the two catalogues that fails on a run of the other language's words (an English word
+  sequence in `zh.json`, a CJK run in `en.json`). It is the last mechanical pin this ticket owes, and it can be written now that
+  every family is keyed.
+- **Row 1 and row 3 need a real session**: a Chinese client and an English client reading one refusal and one command answer, from
+  the status line of one batch — the part no test host can produce.
 - **The scan in acceptance row 2** (no run of the other language's words in any catalogue) is a gate to write once the remaining
   families are keyed, so it does not fail on text this ticket has not converted yet.
 

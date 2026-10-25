@@ -16,6 +16,37 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 public class CommandConsoleCompletionTests
 {
 	[Fact]
+	public void Suggest_ForLaterArgumentsOfGiveAndSummon_OffersTheWordsTheirParsersAccept()
+	{
+		// Every position with a vocabulary, not only the first: the summon position word, the give slot keyword, and the state of a
+		// summoned item (the same component schema a give carries, because a loose item entity IS that item).
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		Assert.Contains(completion.Suggest("/summon cu:aed "), s => s.Text == "cursor");
+		Assert.Contains(completion.Suggest("/summon cu:aed "), s => s.Text == "player");
+		Assert.Contains(completion.Suggest("/summon item cu:aed "), s => s.Text == "random");
+
+		Assert.Contains(completion.Suggest("/give @p cu:aed "), s => s.Text == "slot");
+	}
+
+	[Fact]
+	public void Suggest_ForGamemodeModeArgument_OffersBothModes()
+	{
+		// A closed word set: the verb's own accepted values are the candidates, so the argument is not typed blind.
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var all = completion.Suggest("/gamemode ");
+		Assert.Contains(all, s => s.Text == "survivor");
+		Assert.Contains(all, s => s.Text == "spectator");
+
+		var narrowed = completion.Suggest("/gamemode spec");
+		Assert.Contains(narrowed, s => s.Text == "spectator");
+		Assert.DoesNotContain(narrowed, s => s.Text == "survivor");
+	}
+
+	[Fact]
 	public void Suggest_AfterTheVerbWithAnEmptyPrefix_ShowsTheArgumentsChoices()
 	{
 		// The state a player is in the instant they type the space after the verb: the token under the caret is EMPTY, and the list

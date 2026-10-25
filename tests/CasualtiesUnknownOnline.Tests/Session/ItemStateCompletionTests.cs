@@ -119,6 +119,40 @@ public class ItemStateCompletionTests
 	}
 
 	[Fact]
+	public void SetCompletion_WalksTheRootExactlyAsMergeDoes()
+	{
+		// /data set writes the whole state, so its value completes against the root: before this the verb was missing from the state
+		// source, which left one of the three write verbs typed blind.
+		var (host, _) = CreateSession();
+		var battery = new CharacterItemMsg
+		{
+			InstanceId = Battery,
+			ItemId = FakeItemState.LargeBattery,
+			SlotIndex = 1,
+			Condition = 1f,
+			Components =
+			[
+				new ComponentStateMsg
+				{
+					TypeName = FakeItemState.BatteryItem,
+					Fields =
+					[
+						new ComponentFieldMsg { Name = FakeItemState.Charge, Kind = 1, FloatValue = 0.75f },
+						new ComponentFieldMsg { Name = FakeItemState.On, Kind = 3, BoolValue = true },
+					],
+				},
+			],
+		};
+		var kernel = host.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(kernel.TrySpawnCarried(HostId, battery.InstanceId, battery.ItemId, battery, out _, out _));
+
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+		var suggestions = completion.Suggest($"/data set id {Battery} {{Components:{{BatteryItem:{{cha");
+
+		Assert.Contains(suggestions, candidate => candidate.Text == "{Components:{BatteryItem:{charge:");
+	}
+
+	[Fact]
 	public void DataCompletion_AsksTheRecordedItemsSchema()
 	{
 		var (host, _) = CreateSession();

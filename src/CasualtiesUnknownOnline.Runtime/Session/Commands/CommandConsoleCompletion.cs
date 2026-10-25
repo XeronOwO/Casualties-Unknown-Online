@@ -110,6 +110,18 @@ internal sealed class CommandConsoleCompletion(
 			return ruleSuggestions;
 		}
 
+		// A verb whose argument is a closed word set answers here, from the same values its handler accepts.
+		if (GamemodeCompletion.TrySuggest(command.Name, tokens, current, out var modeSuggestions))
+		{
+			return modeSuggestions;
+		}
+
+		// …and so does an argument whose legal words come from the parser the verb reads (a summon position, a give slot).
+		if (ArgumentWordCompletion.TrySuggest(command.Name, tokens, current, out var wordSuggestions))
+		{
+			return wordSuggestions;
+		}
+
 		// The write half's SNBT state is the same cheat verb's argument: a caller the gate refuses gets no
 		// state vocabulary either, while /data get's own completion is unaffected.
 		var dataWriteLocked = isData

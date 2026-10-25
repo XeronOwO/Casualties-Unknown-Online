@@ -61,6 +61,11 @@ internal sealed class ItemStateCompletion(
 			return TryGive(tokens, current, text, out suggestions);
 		}
 
+		if (string.Equals(command, "summon", StringComparison.OrdinalIgnoreCase))
+		{
+			return TrySummon(tokens, current, text, out suggestions);
+		}
+
 		if (!string.Equals(command, "data", StringComparison.OrdinalIgnoreCase) || tokens.Count < 2)
 		{
 			return false;
@@ -70,8 +75,37 @@ internal sealed class ItemStateCompletion(
 		{
 			"merge" => TryDataState(tokens, current, text, 2, out suggestions),
 			"modify" => TryDataState(tokens, current, text, 2, out suggestions),
+			// /data set writes the whole state, so its argument is the same root-shaped state /data merge takes.
+			"set" => TryDataState(tokens, current, text, 2, out suggestions),
 			_ => false,
 		};
+	}
+
+	/// <summary>
+	/// A <c>/summon item &lt;itemId&gt; … {state}</c> state: a loose item entity carries the same component schema as the item the
+	/// operator named, so the keys come from that definition. An entity or animal prefab's state is the game's own, which this build
+	/// has no schema for — the source answers nothing there rather than offering item keys the prefab would refuse.
+	/// </summary>
+	private bool TrySummon(IReadOnlyList<CommandLineTokenizer.Token> tokens, CommandLineTokenizer.Token current, string text, out IReadOnlyList<CommandSuggestion> suggestions)
+	{
+		suggestions = [];
+		if (tokens.Count < 3
+			|| !string.Equals(tokens[1].Unquoted, WorldSummonParser.ItemKeyword, StringComparison.OrdinalIgnoreCase)
+			|| tokens[2].Start != current.Start)
+		{
+			return false;
+		}
+
+		var brace = text.IndexOf('{');
+		var definitionId = text.Substring(0, brace);
+		var schema = _language.DescribeDefinitionSchema(definitionId);
+		if (schema is null)
+		{
+			return false;
+		}
+
+		return SnbtCompletion.TryFragments(text.Substring(brace), schema.Root, out var prefix, out var fragments)
+			&& ToSuggestions(definitionId + prefix, fragments, out suggestions);
 	}
 
 	private bool TryGive(IReadOnlyList<CommandLineTokenizer.Token> tokens, CommandLineTokenizer.Token current, string text, out IReadOnlyList<CommandSuggestion> suggestions)
@@ -148,7 +182,9 @@ internal sealed class ItemStateCompletion(
 	/// <summary>The shape the state token is being typed against: the root for merge, the path's shape (or its list element) for modify; null when no choice applies.</summary>
 	private static ItemStateShape? ShapeFor(string verb, IReadOnlyList<string> args, int next, ItemStateCompoundShape schemaRoot)
 	{
-		if (string.Equals(verb, "merge", StringComparison.OrdinalIgnoreCase))
+		// Both whole-state writes take the root: merge folds keys in, set replaces the state outright.
+		if (string.Equals(verb, "merge", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(verb, "set", StringComparison.OrdinalIgnoreCase))
 		{
 			return schemaRoot;
 		}

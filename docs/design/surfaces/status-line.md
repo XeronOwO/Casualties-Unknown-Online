@@ -54,7 +54,7 @@ One line in the player's language, for a few seconds, plus the deny sound on a r
 ## Records
 
 Decisions 228 and 265. Accepted: `../../backlog/done/console-command-replies-bilingual.md`. Open:
-`../../backlog/todo/player-facing-text-localized-per-receiver.md`.
+`../../backlog/review/player-facing-text-localized-per-receiver.md`.
 
 ## Gaps
 

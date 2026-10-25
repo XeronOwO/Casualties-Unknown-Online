@@ -62,4 +62,4 @@ catalogue gate named in `../../evidence/normative-gates.md`.
 ## Gaps
 
 - The refusal sentences a cross-player use produces still travel as prose on one path; recorded in
-  `../../backlog/todo/player-facing-text-localized-per-receiver.md`.
+  `../../backlog/review/player-facing-text-localized-per-receiver.md`.

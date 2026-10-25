@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Player-facing text crosses as a key, never prose](todo/player-facing-text-localized-per-receiver.md) — **High** — every surface, receiver's language.
 - [The context menu's title wraps behind its first action](todo/context-menu-name-wraps-behind-actions.md) — **Medium** — fit or ellipsize the player name.
 - [The console's completion shows nothing](todo/console-completion-shows-no-suggestions.md) — **High** — typing must show suggestions.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
@@ -78,6 +77,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 
+- [Player-facing text crosses as a key, never prose](review/player-facing-text-localized-per-receiver.md) — **High** — keyed; two rows need a two-client batch.
 - [`@a` now names the executor too](review/selectors-exclude-the-executor.md) — **Medium** — code landed; the runtime rows need a session.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.

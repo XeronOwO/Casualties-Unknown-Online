@@ -10,7 +10,7 @@ docs/backlog/todo/context-menu-name-wraps-behind-actions.md
 docs/backlog/todo/cross-player-eat-skips-native-steps.md
 docs/backlog/todo/give-into-backpack-plays-no-sound.md
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
-docs/backlog/todo/player-facing-text-localized-per-receiver.md
+docs/backlog/review/player-facing-text-localized-per-receiver.md
 docs/backlog/todo/use-on-sleeping-target-refused.md
 docs/backlog/review/adapter-capability-catalog.md
 docs/backlog/review/concurrent-medical-operations.md

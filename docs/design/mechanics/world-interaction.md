@@ -131,6 +131,12 @@ on world entry (like the keypad codes)", the 60 s cycle "re-sends the FULL curre
 same-value SetValue on the guest side; covers the lazy P2P session's ~30 s swallow window)", and a RUNTIME-created geyser
 carries its type in the creation message instead.
 
+**Temperature is a slow drift plus event heat, and the layer's cold is that drift running downhill.**
+`Body.cs:423` moves `temperature += Time.deltaTime * 0.015f` on its own, an attack adds `0.125f * cooldown`, a climb `0.045f`
+and a swim `0.036f`; the difference from normal then feeds three separate terms at `3f`, `2f` and `0.5f` (thirst rate, movement,
+and the food/temperature curve). So "the layer is cold" is not a status effect in this game — it is a value that drifts and is
+read by the same multipliers movement already uses.
+
 **In co-op the line also starts for the stragglers, and that is CUO's extension of a native rule.**
 `Runtime/Session/EntitySync/RadiationStragglerPolicy.cs`: "the vanilla game starts its line from the single-player layer timer
 (`WorldGeneration.cs:859-863`); in a co-op session that would only reflect the host's own progress. This policy is the

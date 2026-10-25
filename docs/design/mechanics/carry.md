@@ -56,6 +56,11 @@ bodies' presentation follows from that relation.
   family fixed: the accepted reading for the third-party view leaves a remainder of "≤1 px interpolation".
 - The relation is one carrier and one carried body at a time, and the menu's carry action is only offered where the
   relation can exist.
+- **A carrier's slowness is the game's own product, not a CUO penalty.** `Body.cs:78-90` multiplies the leg-strength average,
+  `0.7f` when the chest is dislocated or the head broken, the stamina curve, `1f - temporarySlowdown`, the weight and
+  temperature multipliers and the food curve, then scales by `(1f - overEncumberance²)`, by `0.9f` above `125f` thirst and by
+  the stimulant term — so a carried body's extra load slows the carrier for a reason the game already had, and a CUO rule that
+  adds its own carry penalty would double it.
 
 ## Refusals
 

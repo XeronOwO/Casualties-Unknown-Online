@@ -13,10 +13,34 @@ Every string a player can read is rendered by the client that reads it, in that 
 its arguments cross the wire; the receiver's catalogue turns them into text. No language's prose ever appears inside another
 language's frame, and no English word串 is left in a Chinese surface (or the reverse).
 
-## Current behaviour
+## What landed (2026-10-25, `91f64718`)
 
-- `PlayerItemUseRefusedMsg` carries `Reason` as the host's English sentence, documented as deliberate ("the SAME sentence the host
-  logged, not a code the two sides would have to keep in step"), and `PlayerItemUseRefusedHandler` formats `hud.use_refused` with
+The REFUSAL family is done end to end, and it was the case the user reported:
+
+- `PlayerItemUseRefusedMsg` carries `ReasonKey` + `ReasonArg` instead of the host's sentence, and
+  `PlayerItemUseRefusedHandler` renders the key with the member's own catalogue — one whole sentence in the reader's language,
+  with no frame wrapped around a foreign clause. `hud.use_refused` is gone with its last caller.
+- The executor's fifteen refusal sentences became keys produced by one `RefuseItemUse` helper, which also logs (Debug) the
+  English sentence the same key resolves to, so the host's log stays diagnosable without a second copy of the wording.
+- The LOCAL refusals that never cross a client got the same treatment, each with its own key-producing helper
+  (`RefuseLimbUse`, `RefuseCpr`), because the operator who reads them is the one whose language must win.
+- Both catalogues carry the eighteen `refusal.*` keys, added in the same change (the gate's floor).
+- Two census improvements followed from the shape: an accessor call whose key argument is a stored `.Key` or a helper's
+  `labelKey` is now RESOLVED rather than unresolvable — carrying a key as a value was already counted at its producer, and a
+  scanner that read the new shape as a failure would forbid the fix.
+
+## What remains
+
+- **Host answers to a member's command.** `ConsoleAnswer` already carries `Key` + `Args` and the LOCAL console renders them, but
+  a member's `/heal`, `/give`, `/summon` and `/gamerule` are answered by the HOST, and that answer has to reach the member with
+  its key. That is a wire addition (the answer path carries text today), and it is the next work item of this ticket.
+- **The scan in acceptance row 2** (no run of the other language's words in any catalogue) is a gate to write once the remaining
+  families are keyed, so it does not fail on text this ticket has not converted yet.
+
+## What it was before the fix (the record, not the current state)
+
+- `PlayerItemUseRefusedMsg` carried `Reason` as the host's English sentence, documented as deliberate ("the SAME sentence the host
+  logged, not a code the two sides would have to keep in step"), and `PlayerItemUseRefusedHandler` formatted `hud.use_refused` with
   it. Sixteen refusal sentences in `PlayerItemUseExecution`, four in `RemoteMedicalOperationHandler` and the CPR refusal all travel
   or surface this way.
 - The console's own four dispatcher sentences are already keyed (a previous ticket); host answers to `/heal`, `/give`, `/summon` and

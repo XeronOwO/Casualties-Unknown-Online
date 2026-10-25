@@ -25,6 +25,13 @@ live remote render clone is never mutated by this path.
   nothing the viewer does in the chart acts on their own body.
 - The viewer's own state never appears in the chart except as a reason an action is refused (the operator's own strength
   for CPR, the operator's own stamina).
+- **The panel's own toggle has three conditions, and it closes the crafting panel first.** `PlayerCamera.ToggleWoundView`
+  (`PlayerCamera.cs:812-840`): it refuses when the view is closed and the body is not alive, it refuses to open while the radial
+  is open (closing the radial instead), and it closes the crafting panel before showing the view — a dead body cannot be
+  examined, and the chart is one of two exclusive screens.
+- **The workout list is part of this panel because the game put it there.** `DoBodyWorkout(index)` starts
+  `Body.DoWorkout(type)` and opens the view, so the panel is where a character's own training begins — which is exactly why CUO
+  hides that list when the focus is a remote body rather than disabling it after the fact.
 - The chart closes on session, world or remote exit, and the display body is torn down with it.
 - The identity header carries the VIEWED player's data, not the viewer's. The accepted record states the mechanism: the
   game fills the header once, from the local character, and "nothing rewrites it afterwards — `WoundView.UpdateView` never

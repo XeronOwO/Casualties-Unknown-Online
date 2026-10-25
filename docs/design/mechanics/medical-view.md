@@ -57,6 +57,12 @@ medical operation the two clients perform together, which is why the drag gestur
   then sums `totalBleedSpeed += limb.bleedAmount * limb.bleedSpeedMult * (limb.blockedBleeding ? 0f : 1f)`. A tourniquet blocks
   "the limb it is on and every limb further from the heart" (`TourniquetScript.GetLowerLimbs`), which is why one item can stop a
   whole distal chain.
+- **Disfigurement and eye loss are the game's own damage blocks, and a run setting can switch them off.**
+  `Body.RemoveEye()` (`Body.cs:1135-1158`) returns at once unless `WorldGeneration.GetRunSettingBool("disfigurement")`; on the
+  first call it sets `eyeGone`, `limbs[0].pain = 100f`, `limbs[0].bleedAmount += 20f`, `traumaAmount += 35f`, and the second
+  call sets `bothEyesGone`. `Body.Disfigure()` (`Body.cs:1211-1232`) is gated the same way and, when it fires, plays the `gore`
+  and `disfigure` sounds, picks a random `disfiguredIndex`, and adds `limbs[0].bleedAmount += 5f`, `limbs[0].skinHealth -= 50f`,
+  `limbs[0].pain = 100f`, `traumaAmount += 50f`, `eyeScareTime = 20f`, `consciousness = 30f`, `shock = 100f`.
 - **A terminal fact is a named latch, per limb and per body.**
   `src/CasualtiesUnknownOnline.Protocol/Wire/WirePlayerLimbState.cs` carries `Broken`, `Dismembered` and `Dislocated` for one
   limb, and `WirePlayerBodyTerminalState.cs` carries `Disfigured`, `EyeGone`, `BothEyesGone` and `HasPulmonaryEmbolism` for

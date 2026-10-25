@@ -34,6 +34,13 @@ values ride the character data (the 1 Hz stream), and one-shot sounds ride their
   guest's view the host's mouth opens, but on the host's own view" it did not.
 - **The values that drive the face and the posture are character data**, delivered at the character-data rate rather than
   per frame; a presentation that needs a finer cadence names it.
+- **The face is a ladder of the game's own thresholds, so the fields that matter are known.**
+  `FacialExpression.Update` picks the eye sprite in one ordered chain (`FacialExpression.cs:36-60`): panic when
+  `averagePain > 95f` or `eyePanicTime > 0f` or the body is falling fast; then `averagePain >= 70f` or `totalHappiness < -75f`
+  or crying; then `averagePain >= 80f` or `energy < 10f` or `eyeCloseTime > 0f`; then `shock > 21f` or `adrenaline > 20f` or
+  `!breathing` or `averagePain > 50[f]`; then `consciousness < 70f` or `energy < 20f` or `averagePain > 35f`; and only then
+  `totalHappiness > 50f` for the happy face. A remote face therefore needs pain, energy, shock, adrenaline, breathing,
+  consciousness and happiness — which is exactly the set the 1 Hz snapshot carries.
 - **One-shot character sounds are relayed with their clip identity.** A consumption plays the game's own clips — the
   accepted reading names them: "the guest and a third client each replayed the exact `Consume` clips (`eatCrunch`,
   `drink`)".

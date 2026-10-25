@@ -112,31 +112,38 @@ land on the eater (run sheet step 6).
   `ItemWorldSync.IsWorldItem`, the hand case asks `StandingItems.Is`). Pinned by
   `SolidFoodChainGateTests.TheEat_ResolvesTheEatersOwnCarriedItemFirst_ThenTheHandCase`, which asserts the ORDER, both arms and
   the single `Body.UseItem` call.
-- [ ] **6. The hand case's own slot steps (the remaining defect).** Inside the food delegates the slot calls
-  (`SlotOf`, `DropItem`, `PickUpItem`) resolve against the EATER's body, which does not hold the giver's item: the closed fruit's
-  peel therefore consumes for the owner with no `stonefruitopen` reaching the tables, and a multi-bite food's bite reads as the
-  whole item. The fix must point those steps at the OWNER's body while the effects land on the eater — a real change to what the
-  delegate sees, not a stand-in swap. Start from the two delegate bodies recorded in step 1, and check every slot call in them.
+- [x] **6. The hand case's slot steps — the ARRANGEMENT half landed.** `NativeSolidFoodEat.Apply` now parents the giver's
+  standing item into the EATER's first EMPTY hand slot (`slots[i].transform`, the game's own slot shape), runs the delegate, and
+  takes it back out in a `finally` — only when it is still the same live object in the slot it arranged, so a consumed or
+  re-parented item is not yanked out of where the game's own step put it. Two hands full means no arrangement and the previous
+  behaviour, deliberately: nothing here may need a free slot, per the ruling. The arrangement runs under a new
+  `CallContext.Origin.HandFeed` scope, and the pickup/drop patches honour it — the parented item is never reported as a local
+  pickup, and the delegate's `DropItem` is never reported as this body dropping the giver's item. This is what makes
+  `Body.SlotOf` answer the real slot (instead of its own `return 0` fallback) and `Body.GetItem` read the arranged child, so the
+  peel's replacement lands in the slot the closed fruit occupied rather than by luck.
+- [ ] **7. The replacement's OWNERSHIP (still open, and it is a design question).** `stonefruitopen` is instantiated by the
+  eater's client, so as written it becomes the EATER's item — the peel's product changes hands even though the closed fruit never
+  did. Two readings, and the ruling does not settle which: (a) the target peeled it, so the peeled fruit is theirs to eat (and a
+  full inventory means it drops at their feet), or (b) the peel happens in the GIVER's hand and the peeled fruit stays theirs
+  until it is eaten. (b) is the reading consistent with "the item never moves", but it needs the creation to be owned by the
+  giver, which the eater's client cannot do alone. **Needs the user.**
+- [ ] **8. Runtime verification with frames and both clients**: drag a pancake and a closed stone fruit onto a teammate whose
+  inventory is FULL, then read: the peel step happened, the peeled fruit is registered on both sides, the remainder's condition
+  agrees on both clients, and a frame at the eating moment shows the eater's own animation and the food's own sprite.
 
-  **The plan (written before the code, so the next cycle starts here rather than re-deriving it):**
-  1. The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the real
-     owner's slots are unreachable from this client. The hand shape therefore cannot be "redirect the calls to the owner's
-     slots" — it has to make the stand-in occupy a HAND SLOT locally for the duration of the delegated call.
-  2. Inside the `CharacterItemUse` scope, arrange the stand-in into the eater's hand slot with the game's own slot plumbing
-     (`Body.PickUpItem`) while suppressing the custody reports that would otherwise claim a transfer — the CALL is
-     `CallContext`, which already exists for exactly this "the scope says what is happening" reason.
-  3. Intercept the three slot calls the delegates make, inside that scope only: `SlotOf` answers the arranged slot,
-     `DropItem(item)` DETACHES the stand-in instead of creating a world drop, and `PickUpItem(replacement, slot)` registers the
-     replacement as a CREATED item owned by the giver (the `item-creation-registration-first` family) so `stonefruitopen` reaches
-     both sides' tables instead of existing only here.
-  4. Restore the stand-in to its standing state on the way out, and let the existing report → host arbitration → result path carry
-     `condition` back to the giver's real item, which is the half that already works.
-  5. Red first: a gate/source assertion that the three slot calls are guarded by the hand-feed scope and that the replacement is
-     registered, plus the existing behaviour rows below. Runtime verification (step 7) is what decides whether the arrangement is
-     invisible to the player, because step 3 is exactly the kind of local rearrangement that can show up on screen.
-- [ ] **7. Runtime verification with frames and both clients**: drag a pancake and a closed stone fruit onto a teammate with a
-  FULL inventory, then read: the peel step happened, the opened fruit is registered, the remainder's condition agrees on both
-  clients, and a frame at the eating moment shows the eater's own animation and the food's own sprite.
+  **The plan, and what of it landed (2026-10-25):**
+  1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
+     real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.
+  2. ✅ Arrangement done with the game's own slot shape (`slots[i].transform`) rather than `Body.PickUpItem`, because `PickUpItem`
+     runs the capacity/distance checks and would itself be a custody claim; the `HandFeed` scope suppresses the pickup/drop
+     reports either way.
+  3. ◑ `SlotOf`/`GetItem` now answer truthfully through the arrangement (no patch needed — the item really is the slot's child).
+     `DropItem` is suppressed as a REPORT but still runs, so a consumed item is detached by the game itself. **Not done:** the
+     replacement's registration and ownership — see step 7, which is a design question rather than a mechanical one.
+  4. ✅ The stand-in is restored in a `finally`, and the report → host arbitration → result path still carries `condition` back to
+     the giver's real item.
+  5. ✅ Red-first gate extended: the arrangement's existence, its position BEFORE the delegate call, and the `HandFeed` scope in
+     both the eat and the patches.
 
 Failure branch: if step 2 shows the standing object IS the eater's carried item, the ticket's premise is wrong and it closes with that
 reading instead of a code change; if step 3 shows the give cannot land in a carried slot for a remote body, the ticket records that

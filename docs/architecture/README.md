@@ -10,6 +10,24 @@ the only supported design; the phase documents below are history, not plans.
 > See [status.md](evolution/status.md), `docs/evidence/selfchecks/architecture/phase-e-legacy-inventory-selfcheck.md`,
 > and `docs/decisions/active.md` #158.
 
+## What belongs here, and what belongs in `docs/design/`
+
+The two areas answer different questions, and a page filed on the wrong side is moved rather than duplicated:
+
+- **Here — the abstract model.** What the system IS: the layers and their allowed directions, the kernel and its
+  transaction/authority model, domain ownership (authoritative state versus rebuildable projection), the protocol's
+  envelopes and flows, the invariants every domain must keep, and the non-goals. A reader finishes a page here knowing how
+  the system is shaped and why, without needing the call path of any single behaviour.
+- **`docs/design/` — the concrete behaviour.** What a player does and sees: the input sequence, the rules and thresholds,
+  the refusals and their sentences, the native call a gesture mirrors, who judges on whose timeline, what crosses between
+  clients, and the accepted record. A design page names the surfaces, the item families and the verdicts; it does not
+  restate the kernel or the protocol.
+- **The test for a page.** If it would still be true after every player-facing behaviour were rewritten, it is
+  architecture. If it would change when a behaviour changes, it is design. An architecture page that starts describing a
+  specific action's call path has drifted; its conclusion belongs in the design corpus, and the page keeps only the rule.
+- **Surfaces.** `surfaces.md` is the bridge: it says which design authority governs each player-facing surface and links
+  the corpus page. It belongs here because the map is an abstraction; the detail lives in `docs/design/`.
+
 ## Active architecture
 
 Read in this order:

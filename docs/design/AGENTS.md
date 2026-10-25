@@ -4,6 +4,14 @@ The **design corpus** of CUO: what the player can do, what the rules are, what t
 surface. `docs/architecture/` says how the system is built, `docs/decisions/` records the rulings, `docs/backlog/`
 carries the work; this corpus says **what the product is**.
 
+## How this corpus divides work with `docs/architecture/`
+
+`docs/architecture/` holds the abstract model — layers, kernel, domain ownership, protocol envelopes, invariants — and a
+page there stays true even if every player-facing behaviour were rewritten. This corpus holds the concrete behaviour:
+inputs, rules, thresholds, refusals, the native call a gesture mirrors, who judges, what travels. A behaviour that appears
+in both belongs here, with the architecture page keeping only the rule; a page on the wrong side is moved rather than
+duplicated.
+
 ## How a page's facts are sourced
 
 No page is written from recollection. Every claim is one of exactly three kinds, and it carries its source on the page:

@@ -46,25 +46,33 @@ internal static class NativeSolidFoodEat
 			return false;
 		}
 
-		if (!CarriedItemLocator.TryFind(body, itemInstanceId, out var item))
+		// THE EATER'S OWN ITEM FIRST. When the gift already made the item the eater's carried item, the
+		// game's own delegate finds it in a slot and every step works.
+		//
+		// "EAT FROM MY HAND" IS THE OTHER CASE, AND IT IS AN EXTENSION RATHER THAN A DEVIATION (user's
+		// ruling, 2026-10-25): the item stays the giver's, and the target consumes it out of that hand —
+		// the transfer-first shape was rejected outright, because the target may have no free slot at all.
+		// The item is then this client's standing object for the giver's item, and the delegate's own slot
+		// steps (`SlotOf`/`DropItem`) resolve against the EATER's body, which does not hold it. That is the
+		// defect this ticket exists for: the closed fruit was consumed for its owner with no peel, and the
+		// pancake's single bite read as the whole item. The hand shape needs the delegate's slot steps
+		// pointed at the OWNER's body, which is the next step of the run sheet and NOT something a silent
+		// stand-in can fake.
+		var carriedByEater = CarriedItemLocator.TryFind(body, itemInstanceId, out var item);
+		if (!carriedByEater && !domains.StandingMaterializer.TryGetStandingItem(itemInstanceId, out item))
 		{
-			// A standing object stands for ANOTHER member's item, and the game's own consume reads the
-			// eater's own slots (`SlotOf`/`DropItem`/`PickUpItem` inside the delegate), so running it on a
-			// stand-in silently half-consumes: a closed stone fruit was eaten for its owner with no peel
-			// step and no opened replacement reaching the tables, and a pancake went down in one gesture.
-			// The eat therefore needs the item to BE the eater's carried item, and refuses by name rather
-			// than half-running (ticket cross-player-eat-skips-native-steps, steps 1-3).
-			domains.Log.LogWarning("[ItemUse] the eat of item {ItemId} cannot run: the eater does not carry it, and the game's own consume reads the eater's slots — a stand-in's slot steps would silently misfire.", itemInstanceId);
+			domains.Log.LogWarning("[ItemUse] the eat of item {ItemId} cannot run: neither this body's carried tree nor the standing objects hold that id on this client.", itemInstanceId);
 			return false;
 		}
 
 		// The category, not only the object: the data may have moved this id into the
 		// world (its owner dropped it) while the scene still holds it under the body,
 		// and eating an item that just left the inventory would feed this body for a
-		// meal nobody offers.
-		if (ItemWorldSync.IsWorldItem(item))
+		// meal nobody offers. A standing object is the GIVER's carried row, so this
+		// guard asks the same question of it through the standing classifier.
+		if (carriedByEater ? ItemWorldSync.IsWorldItem(item) : !StandingItems.Is(item))
 		{
-			domains.Log.LogWarning("[ItemUse] the eat of item {ItemId} cannot run: its data row is a world row on this client.", itemInstanceId);
+			domains.Log.LogWarning("[ItemUse] the eat of item {ItemId} cannot run: its data row is not a carried row on this client.", itemInstanceId);
 			return false;
 		}
 

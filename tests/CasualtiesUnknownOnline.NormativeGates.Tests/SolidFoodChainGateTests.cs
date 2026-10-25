@@ -228,16 +228,17 @@ public class SolidFoodChainGateTests
 		var eat = Parse(EatFile);
 
 		// The game's own entry point, and the game's own category: the eat must be Body.UseItem on an
-		// item this side really carries as its own, so an item whose data moved into the world (its
-		// owner dropped it) cannot feed anybody. The carried lookup replaced the standing-object arm —
-		// a stand-in is another member's item and its slot steps silently misfire (ticket
-		// cross-player-eat-skips-native-steps).
+		// item the resolution produced, and the data guard must refuse an id that is a world row —
+		// both arms ask it, the carried one directly and the hand case through the standing classifier.
 		Assert.Contains(
 			eat.DescendantNodes().OfType<InvocationExpressionSyntax>(),
 			invocation => invocation.Expression is MemberAccessExpressionSyntax access && access.Name.Identifier.ValueText == "UseItem");
 		Assert.Contains(
 			eat.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
 			access => access.ToString() == "ItemWorldSync.IsWorldItem");
+		Assert.Contains(
+			eat.DescendantNodes().OfType<MemberAccessExpressionSyntax>(),
+			access => access.ToString() == "StandingItems.Is");
 
 		// Inside the item-use sound scope, so the crunch and the item's other clips are
 		// relayed at the eater's position exactly as a local eat's are.
@@ -291,14 +292,14 @@ public class SolidFoodChainGateTests
 	}
 
 	/// <summary>
-	/// The eat runs on the EATER's carried item, not on a stand-in. A standing object stands for somebody else's item, so
-	/// the game's own delegate — which reads the body's slots (`SlotOf`, `DropItem`, `PickUpItem`) — misfires on it: a
-	/// closed stone fruit was consumed for its owner with no peel, and the pancake went in one gesture (ticket
-	/// <c>cross-player-eat-skips-native-steps</c>, steps 1-3). The resolution order is therefore carried item FIRST, and
-	/// when the eater does not carry it the eat is REFUSED by name rather than half-run on a stand-in.
+	/// The eat runs on the EATER's carried item when the gift made it theirs, and otherwise on the standing object
+	/// for the GIVER's item — "eat from my hand", the user's ruling of 2026-10-25, which rejected the transfer-first
+	/// shape outright because the target may have no free slot. The order matters: the carried lookup comes first so
+	/// the common case finds a real slot, and the standing arm stays as the hand case rather than being deleted.
+	/// (The hand case's own slot steps are the ticket's next step, not something this gate can prove.)
 	/// </summary>
 	[Fact]
-	public void TheEat_ResolvesTheEatersOwnCarriedItem_AndRefusesAStandIn()
+	public void TheEat_ResolvesTheEatersOwnCarriedItemFirst_ThenTheHandCase()
 	{
 		var eat = Parse(EatFile);
 
@@ -306,18 +307,20 @@ public class SolidFoodChainGateTests
 			.FirstOrDefault(invocation => invocation.Expression is MemberAccessExpressionSyntax access
 				&& access.Expression.ToString() == "CarriedItemLocator");
 		Assert.True(carried is not null,
-			$"{EatFile}: the eat must resolve the EATER's own carried item (CarriedItemLocator) — a standing object's slot steps silently misfire");
+			$"{EatFile}: the eat must resolve the EATER's own carried item (CarriedItemLocator) — that is the case where the game's own slot steps work");
 
-		var standIn = eat.DescendantNodes().OfType<InvocationExpressionSyntax>()
+		var handCase = eat.DescendantNodes().OfType<InvocationExpressionSyntax>()
 			.FirstOrDefault(invocation => invocation.Expression.ToString() == "domains.StandingMaterializer.TryGetStandingItem");
-		Assert.True(standIn is null,
-			$"{EatFile}: the eat must not resolve a standing object at all — that is another member's item and the delegate's slot steps cannot run on it");
+		Assert.True(handCase is not null,
+			$"{EatFile}: the HARD hand case (the item is the giver's) must still resolve the standing object — the transfer-first shape was rejected by the user");
+		Assert.True(carried!.SpanStart < handCase!.SpanStart,
+			$"{EatFile}: the carried lookup must come FIRST — its own slot steps are what make the common case native");
 
 		var useItem = eat.DescendantNodes().OfType<InvocationExpressionSyntax>()
 			.FirstOrDefault(invocation => invocation.Expression is MemberAccessExpressionSyntax access && access.Name.Identifier.ValueText == "UseItem");
 		Assert.True(useItem is not null, $"{EatFile}: the eat still runs the game's own Body.UseItem");
-		Assert.True(useItem!.SpanStart > carried!.SpanStart,
-			$"{EatFile}: Body.UseItem must run on the item the carried lookup returned, after that lookup");
+		Assert.True(useItem!.SpanStart > handCase.SpanStart,
+			$"{EatFile}: Body.UseItem must run on whichever item the resolution produced");
 	}
 
 	[Theory]

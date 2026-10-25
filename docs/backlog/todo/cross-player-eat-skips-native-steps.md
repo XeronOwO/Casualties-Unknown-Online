@@ -65,12 +65,14 @@ that a BODY SLOT holds (`this.GetItem(num).Stats.useAction(...)` and the item ha
 that: a closed stone fruit calls `Body.SlotOf(item)`, `DropItem`, then instantiates and picks up the opened replacement. So in the
 game's own model, **consume/use means the item is in the consumer's body slot** — a container's contents are not a body slot.
 
-**(3) How the remote case reaches that same chain — and the honest limit.** The release must put the item into the consumer's body
-slot at that moment and then run the game's own use on it; when the slot is unavailable the game's own pickup rule refuses and the
-operator reads why. There is **no native "use an item directly out of a backpack"**: locally a player takes it out first. So "drag
-straight from a teammate's displayed backpack into their mouth" has no native counterpart at all — that expectation is the user's
-decision, not a chain to invent. What this ticket holds as the corrected shape is therefore: transfer into the consumer's own slot as
-part of the release, then the native use, with a refusal rather than a silent consume when the slot is unavailable.
+**(3) How the remote case reaches that same chain — SUPERSEDED by the user's ruling below.** This paragraph used to ask the
+release to transfer the item into the consumer's slot first. The user rejected that outright on 2026-10-25 and it is kept here
+only as the record of what was rejected and why: *"我明确否定过先给后吃，对方背包没有空位怎么办？这个是绝对错误的，没有任何讨价还价
+余地的。必须是对方就着我的手吃"*. So the shape is: **the item stays in the giver's hand and the target consumes it out of that
+hand** — an extension of the native action rather than a deviation from it, because the game's own `useAction` still runs and
+still produces its effects; only the body whose hand holds the item differs from the single-player case. The remaining defect is
+that the delegates' own slot calls (`SlotOf`, `DropItem`, `PickUpItem`) must resolve against the OWNER's body while the effects
+land on the eater (run sheet step 6).
 
 ## Run sheet (cycle 2026-10-25)
 
@@ -98,24 +100,26 @@ part of the release, then the native use, with a refusal rather than a silent co
   object, yet `NativeSolidFoodEat.Apply` resolves it through `StandingMaterializer` — the path for OTHER players' items — and hands
   that stand-in to `Body.UseItem`. The fix is therefore to resolve the item from the eater's OWN carried items first
   (`body.GetItem(slot)`/`SlotOf`), and only fall back to a standing object when the body really does not carry it.
-- [x] **4. Decide the corrected shape and write it in the ticket** — DONE, with one half implemented and one half blocked on the
-  user's ruling. **Implemented:** the eat resolves the EATER's own carried item (`CarriedItemLocator.TryFind`) and REFUSES by
-  name when the eater does not carry it, instead of running the delegate on a standing object. That is the half that stops the
-  corruption: a closed fruit is no longer consumed for its owner with no peel, and a whole pancake can no longer vanish in one
-  gesture. It is pinned by `SolidFoodChainGateTests.TheEat_ResolvesTheEatersOwnCarriedItem_AndRefusesAStandIn`, which was
-  observed RED against the standing-object arm and GREEN after the change. **Blocked:** the gesture that produced the bug sends
-  only a USE request (`CrossPlayerDragUse` → `SendUseRequest`), so the item never becomes the eater's carried item — therefore
-  the refusal is what a cross-player eat now gets. Making the gesture work end to end needs the ruling in the next paragraph.
-- [ ] **5. The open design question (needs the user).** Which of these is the intended behaviour?
-  - **(A) The drag hands the item over and the eater consumes it.** The release becomes a custody transfer (the give path) and
-    the eat then runs on the eater's own carried item. Consequence the user must accept: `0.251` of a pancake or a half-eaten
-    fruit REMAINS WITH THE EATER, not with whoever dragged it.
-  - **(B) The item stays the dragger's, and the eater eats "from my hand".** Then the game's own delegate cannot run (it reads
-    the EATER's slots by construction), so this shape needs a substitute for the peel/replace steps — which is exactly the
-    "stand-in" that caused the bug, so it would have to be a recorded, user-approved deviation from native parity.
-  - The ticket's own earlier text argued (A) and called the drag-straight-from-a-backpack case the user's decision.
-- [ ] **6. Implement the chosen half + runtime verification with frames and both clients**: give, then eat, reading the owner's
-  and the operator's item state, the peel step's presence, and a frame at the eating moment.
+- [x] **4. The user's ruling (2026-10-25) — the shape, settled.** **"必须是对方就着我的手吃"**: the item never leaves the
+  giver. The transfer-first shape (A) is REJECTED outright and without qualification — the user's reason is concrete: *"对方背包
+  没有空位怎么办？这个是绝对错误的，没有任何讨价还价余地的"* — a target with a full inventory must still be feedable, so a
+  shape that needs a free slot is wrong by construction. The hand case is **an EXTENSION of the native action, not a deviation
+  from it** (the user's correction): the game's own `useAction` still runs and still produces its effects; only the body whose
+  hand holds the item differs from the single-player case, which is what a co-op feed is.
+- [x] **5. Resolution order implemented and gated.** `NativeSolidFoodEat.Apply` now resolves the EATER's own carried item FIRST
+  (`CarriedItemLocator.TryFind`, the recursive carried-tree walk), and only when the eater does not carry it does it fall back to
+  the standing object for the giver's item — the hand case. Both arms keep the world-row guard (the carried one asks
+  `ItemWorldSync.IsWorldItem`, the hand case asks `StandingItems.Is`). Pinned by
+  `SolidFoodChainGateTests.TheEat_ResolvesTheEatersOwnCarriedItemFirst_ThenTheHandCase`, which asserts the ORDER, both arms and
+  the single `Body.UseItem` call.
+- [ ] **6. The hand case's own slot steps (the remaining defect).** Inside the food delegates the slot calls
+  (`SlotOf`, `DropItem`, `PickUpItem`) resolve against the EATER's body, which does not hold the giver's item: the closed fruit's
+  peel therefore consumes for the owner with no `stonefruitopen` reaching the tables, and a multi-bite food's bite reads as the
+  whole item. The fix must point those steps at the OWNER's body while the effects land on the eater — a real change to what the
+  delegate sees, not a stand-in swap. Start from the two delegate bodies recorded in step 1, and check every slot call in them.
+- [ ] **7. Runtime verification with frames and both clients**: drag a pancake and a closed stone fruit onto a teammate with a
+  FULL inventory, then read: the peel step happened, the opened fruit is registered, the remainder's condition agrees on both
+  clients, and a frame at the eating moment shows the eater's own animation and the food's own sprite.
 
 Failure branch: if step 2 shows the standing object IS the eater's carried item, the ticket's premise is wrong and it closes with that
 reading instead of a code change; if step 3 shows the give cannot land in a carried slot for a remote body, the ticket records that

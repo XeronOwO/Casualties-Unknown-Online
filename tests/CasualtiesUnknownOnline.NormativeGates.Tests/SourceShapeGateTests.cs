@@ -776,6 +776,48 @@ public class SourceShapeGateTests
 	}
 
 	/// <summary>
+	/// A recorded ceiling is a PLAN, not a badge: every entry in `docs/architecture-debt.json` names the ticket that owes its split, and that
+	/// ticket must still be open (`todo/`, `in-progress/` or `review/`). Without this the file is a permanent exemption — the class can sit over
+	/// the line forever and nothing ever asks for the extraction. With it, closing the owning ticket while the class is still oversized re-fails
+	/// the gate, so the debt can only be retired by shrinking the class.
+	/// </summary>
+	[Fact]
+	public void EveryRecordedCeiling_NamesAnOpenTicketThatOwesTheSplit()
+	{
+		var path = RepositoryPaths.File("docs/architecture-debt.json");
+		Assert.True(File.Exists(path), "docs/architecture-debt.json is the recorded ceilings' ledger and must exist.");
+
+		using var document = JsonDocument.Parse(File.ReadAllText(path));
+		var failures = new List<string>();
+		var open = new[] { "todo", "in-progress", "review" };
+
+		foreach (var entry in document.RootElement.EnumerateObject())
+		{
+			if (!entry.Value.TryGetProperty("Ticket", out var ticket) || string.IsNullOrWhiteSpace(ticket.GetString()))
+			{
+				failures.Add($"{entry.Name}: no \"Ticket\" — a recorded ceiling must name the ticket that owes the split.");
+				continue;
+			}
+
+			var relative = ticket.GetString()!.Replace('\\', '/');
+			var resolved = Path.Combine(RepositoryPaths.Root, relative);
+			if (!File.Exists(resolved))
+			{
+				failures.Add($"{entry.Name}: \"{relative}\" does not exist; the owning ticket must be a real ticket file.");
+				continue;
+			}
+
+			var folder = Path.GetFileName(Path.GetDirectoryName(resolved)) ?? "";
+			if (!open.Contains(folder, StringComparer.Ordinal))
+			{
+				failures.Add($"{entry.Name}: \"{relative}\" is under {folder}/, not an open folder ({string.Join(", ", open)}) — closing the owning ticket with the class still oversized is the exemption this gate refuses.");
+			}
+		}
+
+		Assert.True(failures.Count == 0, "Recorded ceilings without a live owner;" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
+
+	/// <summary>
 	/// The give ladder's drop half is a chain that must stay wired together: the transfer's Drop branch drops the
 	/// item on the receiving body, that placement delegates to the ONE world-item creation (shared with the console
 	/// summon verb), and that creation REPORTS the object through the item domain. A created object nobody reported

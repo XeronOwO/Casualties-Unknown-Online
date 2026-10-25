@@ -27,6 +27,34 @@ and design, and the corpus's rules say a behaviour's design lives there.
 3. The links: every document that cites the architecture page is re-pointed in the same change, and the page is retired
    rather than left as a stub — git keeps the history.
 
+## Progress 2026-10-25 — the rules are in the corpus; the retirement is what remains
+
+The rule extraction is done, and it went to `../design/model/item-custody.md` (a rule page, so its `Who judges` / `What travels` / `What the
+player sees` / `Gaps` / `Records` sections carry them):
+
+- **Roles and the permission** (`RemoteBackpackAccess`, decision 263) into `Who judges`, including the middle value's view-only semantics and the
+  two host seams it is judged at;
+- **The intent rule** into `What travels` — the wire carries the native call identity plus operands, never a CUO taxonomy; the two-sided transfer
+  is the one pair with no single native call; the classification is the game's own because CUO captures the mutation call inside a one-invocation
+  bracket and owns no ordering table (decision 218); the favourite mark is the local player's own and saved (decision 258);
+- **The feedback split** into `What the player sees`;
+- **The four limits** into `Gaps` (the two-client feel, the mutation-internal sound heard on the owner's client alone, the radial weight readout,
+  the accepted no-release-animation decision 240), plus the third-peer note;
+- **The decision numbers** into `Records` (155/156/161 custody, 218-221 the stages, 258 the mark, 240 the accepted limit, 263 the permission).
+
+What is NOT yet done, and is the rest of this ticket:
+
+1. The page's mechanism inventory (§2, the native drag pipeline with its R1-R14 / W1-W4 table and the mutation-side guards) is EXTRACTED but not
+   re-homed: it is native reference material the corpus has no page for. Either `../design/mechanics/give-and-take.md` grows the release table it
+   cites, or a `mechanics/` page is created for it — the decision is owed before the page is deleted, because deleting first would lose the
+   `reversing/` anchors that the intent names are keyed to.
+2. The page's §3.6 deletions, §4 stage table and §5 adjudicated tickets are history: they belong to the decision records and the done tickets,
+   not to a design page, and they are dropped rather than moved (the decisions keep them).
+3. Then: delete `docs/architecture/remote-inventory-native-parity.md`, re-point the four tracked documents that cite it as CURRENT
+   (`architecture/README.md` twice, `architecture/surfaces.md`, `design/items/container.md`, `design/audit/README.md`) and the census rows; the
+   ~140 citations inside `backlog/done/`, `evidence/` and `decisions/` are historical records and stay as they are — a done ticket citing the page
+   it was designed against is a fact about that cycle, not a live link, and the census reports them under their own rows.
+
 ## Acceptance rows
 
 | Row | The check |

@@ -147,16 +147,53 @@ renderer can never disagree about what an object is.
 
 The holder's client writes its own side of an item's state and the host arbitrates; an incarnation is written by nobody, because it is a view.
 
+**A remote inventory operation is judged by three roles, and each role owns one thing** (decisions 218-221):
+
+- the **requester's client** decides which native gesture happened and what the intent is, from its own view; it never mutates a display proxy
+  and never predicts the owner's item state;
+- the **host** decides only what is genuinely its own: the session permission, membership, the ownership fact and first-writer-wins arbitration
+  between competing intents. It never models inventory contents, never edits a clone of the owner's character data, and never judges reach or a
+  body from stale positions;
+- the **owner's client** performs the operation — the native call on the real objects, with the real guards, animations and sounds — and reports
+  the authoritative result.
+
+**The family's one permission is the host rule `RemoteBackpackAccess`** (decision 263): `allow` (any visible member), `unconscious_or_dead` (the
+operation only on an unconscious or dead other player), `deny` (nothing). The middle value is not "hide the pack": a conscious owner's backpack
+opens **view only** — items visible, red body slots, every operation refused with one native alert line that says why — while the double-Tab take
+closes the view before it releases, so the read-only state is captured at the proxy's pickup and consulted at the release. The host is the verdict
+at two seams (the intent service and the transfer service), always judging the OTHER player; the middle value fails closed when that player's health
+is unknown. The policy can only close a surface, never open one the landed take rule keeps shut.
+
 ## What travels
 
 Between clients travel the item's identity, its holder, and its state (condition, contents, components, liquid stacks).
 Animations, sounds and models never travel as facts: each client derives them from the state it receives.
+
+**An intent travels as the native call it replays, never as a CUO taxonomy and never as a mirrored result**: the call's identity plus its
+operands, keyed by authoritative instance ids. The vocabulary is the native call set — move into a container and take out of one, pick up to a
+slot, swap slots, drop, drop a wearable, use, wear, combine, load and unload a battery, drain, apply to a limb, hand to a trader, the
+container-children loop, and the two-sided cross-player transfer. Two members are one intent each only because the native world has no
+cross-player call: `TransferToBody` and `GiveToBody` are the native release on one side and the native pickup on the other, with the host deciding
+the item id first-writer-wins between them.
+
+**The classification is the game's own.** CUO intercepts the native gesture's MUTATION CALLS inside a call bracket that spans exactly one native
+invocation, not the dispatch and not a table of its own: the game's ordering, its predicates and its early exits all execute, and only the mutation
+is recorded and skipped so its internals never run on a proxy. A gesture CUO has never seen is logged as unclassified rather than silently doing
+nothing — the fail-closed rule. The bracket answers the body-shaped predicates from the body the ring shows, because the native branch reads the
+LOCAL body while the ring and the dragged item belong to the displayed clone (decision 218).
+
+**A favourite mark is the local player's own and is saved with that player's character record** (decision 258): the keystroke in somebody else's
+backpack never changes an item that player owns, so there is no intent for it, and the mark cannot be applied in another world.
 
 ## What the player sees
 
 An item looks the same in a teammate's hands as in their own: the same model, the same condition-driven appearance, the
 same "in use" animation, and the same sounds at the same moments. A difference between the two views is a defect of the
 mechanic that produced it, not a rendering detail.
+
+Feedback splits by where it is produced, and needs no second channel: the branch-level feedback the game's own branch makes runs on the
+requester's client (the backpack sound, alerts, slot scale, radial and container-window state), while a sound or animation produced INSIDE a
+mutation call happens where the mutation happens — on the owner's client — and reaches the others through the existing sound and state paths.
 
 ## Gaps
 
@@ -169,7 +206,17 @@ mechanic that produced it, not a rendering detail.
   judged on two clients — the rows and this client's objects agree at 285/285 on both ends, `[ItemCustody] mismatches=0` — so what remains is
   switching the readers to it and deleting the copies, not closing this gap.
 
+**The limits the remote-inventory design recorded, carried here so the merge into this corpus loses nothing** (the page itself is retired by
+`../backlog/todo/merge-remote-inventory-design-into-corpus.md`): the two-client feel — native animation, sound and timing on the operator's
+screen — is the release-cycle acceptance and no test can produce it; an item sound produced INSIDE a replayed call is heard on the owner's client
+alone, because a remote-driven replay runs under the remote-apply scope whose sounds are deliberately not attributed to the local player
+(`../backlog/review/suppressed-native-call-sounds-stay-unheard.md`); the radial weight readout prints the operator's own encumbrance, because the
+native code reads the local body and the clone carries no encumbrance projection; an owner's body runs no release animation for the cross-player
+custody move, ruled accepted (decision 240) because the native world has no such call to replay; and no automated three-client test drives the
+third peer's view.
+
 ## Records
 
-Decisions 155, 156 and 161; `../development/native-parity.md` for the standard; the mechanic pages
-`../mechanics/item-use.md` and `../mechanics/give-and-take.md` for the entries that move or consume items.
+Decisions 155, 156 and 161 for custody itself; 218, 219, 220 and 221 for the remote-intent stages this page now states as rules; 258 for the
+local favourite mark; 240 for the accepted cross-player release-animation limit; 263 for `RemoteBackpackAccess`. `../development/native-parity.md`
+for the standard; the mechanic pages `../mechanics/item-use.md` and `../mechanics/give-and-take.md` for the entries that move or consume items.

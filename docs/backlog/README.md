@@ -73,6 +73,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Merge the remote-inventory design into the corpus](todo/merge-remote-inventory-design-into-corpus.md) — **Medium** — misfiled architecture page.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
+- [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
 ### In progress
 
 ### Review

@@ -59,7 +59,7 @@ by it. A box whose evidence names another cycle is not filled.
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
       change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
       — evidence: the structure ticket's records were read first (audit row 5, `done/architecture-split-pass.md`, and the debt file itself)
-- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
+- [ ] Native parity
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism
       — evidence: no native call changed; this cycle is a records correction

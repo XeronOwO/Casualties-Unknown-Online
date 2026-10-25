@@ -47,6 +47,8 @@ come back where they were when the cut was taken.
 
 Three values have each been their own ticket, which is why they are stated here together: the layer time accounting (the timer is carried and restored, read on the fixed seam), the run clock base (a player who joins mid-run receives the archived base), and a new player's starting supplies (a player the world has no character for is supplied as a NEW player, with the grant announced before its use). Each of them is a value that silently disappeared before its ticket, so a restore that drops one is the same defect returning.
 
+The player facts a cut carries are the DURABLE ones and only those: `src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerState.cs` holds alive/conscious, the carry relation, the limb and body latches, and the skills, while "high-frequency movement fields remain a stream" — and `PlayerSkillsState.cs` says why skills belong there: "they change through permanent progression or run rules (respawn keep/reset), so they belong to the player domain and ride checkpoint/wire/save like the other durable player facts".
+
 ## What travels
 
 The checkpoint's typed state, the run baseline, each present member's character data, the world diff and the in-flight classes' verdicts; a restore delivers the same back to the clients that own each part.

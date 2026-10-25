@@ -73,6 +73,13 @@ and no report is produced for it.
 A held item is in exactly one of these at a time. A container's contents are **not** a body slot: a mechanic that reads
 position `slot i` of a body cannot see an item that sits inside the body's backpack.
 
+**A container's contents are discrete authoritative state, not a stream.**
+`src/CasualtiesUnknownOnline.GameState/Domains/Items/SyncContainerItemsCommand.cs` reconciles "one container subtree in a
+single atomic batch: the parent fact update plus create/update/move/destroy of every contained child", and its own summary
+gives the reason: "container contents are authoritative discrete state, so this is a reliable kernel command, never a state
+stream". A client's own item state is likewise typed rather than free-form —
+`ItemComponentFieldKind.cs` allows `Float`, `Int`, `Bool`, `String`, `StringList` and `Enum` fields, and nothing untyped.
+
 ## Incarnations
 
 Every client shows an item through its own **incarnation** — the object that carries the look, the collider and the

@@ -26,6 +26,14 @@ co-op the choice must be one member's choice applied to a host-owned world.
 - A fact about the layer being LEFT must not survive into the layer being ENTERED: the layer boundary is one family under
   one rule, and every such fact is classified rather than silently kept or silently dropped.
 - Items the player carries cross the boundary with them; world facts belong to the layer they were created in.
+- **"Rooted in the world" is one shared rule, and it decides what a boundary may drop.**
+  `src/CasualtiesUnknownOnline.GameState/Domains/Items/ItemLocationChain.cs` is the single walk behind "is this item inside
+  that container", "how deep", "does the chain end in the world" and the cycle check, and it is public because the archive
+  asks it too: "two copies of this walk would eventually disagree about what 'in the world' means, and the layer-boundary
+  reset and the archive would then drop different subtrees". Its verdicts are explicit — a carried item and its contents are
+  NOT world-rooted ("it travels with the player"), an applied item is not rooted either ("an installed splint survives the
+  cut exactly as a carried item does"), and a terminal item is not rooted because "its chain has ended, and a terminal record
+  is never resurrected".
 - A member who is not in the world when the host moves is placed when it arrives, not left behind.- **The group enters TOGETHER, in the world scene.** A layer change must not pull the members back to a menu: the accepted reading is that "the members stay in the world scene, run their own new-layer generation from the host's baseline and enter within 13 ms of the host", and the dropped-edge fallback "recovers through the ordinary `WorldJoin` with the group still released together".- **A member that lost its body comes back without a cold restart.** A dropped `WorldJoin` used to leave a member `inWorld: false` with `no-local-body` at +80 s and +112 s; the fix brings it back into the host's new layer with its carried items in one session.- **Everyone lands where the layer says.** A normal descent lands all members on one point, and the two abnormal entries — a dropped-edge re-entry and a mid-descent reconnect — "land at the new layer's own spawn with the old position refused", with a dead member revived into the new layer.- **A layer change never drops a member.** The accepted reading of the drop-out defect is that with both members' inbound parked inside one command "both members stay in the world with the item they carried across the change", and every client's growth "read as a size stays at 0.35–… MB/min against the ~8.2 MB/min storm"; the ticket's own control shows the unparked path is what dropped them.
 
 ## Refusals

@@ -15,6 +15,12 @@ bodies' presentation follows from that relation.
 
 ## Rules and states
 
+- **The relation itself is a durable kernel fact, one carrier and one carried.**
+  `src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerState.cs` holds the pair — `CarrierOfSteamId` and
+  `CarriedBySteamId` — beside `Alive`, `Conscious`, the limb latches, the body latches and the skills, and its own summary
+  states the split the design depends on: "high-frequency movement fields remain a stream; only durable terminal status
+  belongs here, including the cross-player carry relation (one carrier / one carried)". Because it is durable, it rides the
+  checkpoint, the wire and the save like the other player facts.
 - A carry relation requires a LIVE carrier: a carrier who dies, is knocked down or leaves the world ends the relation, and
   the carried body is put down rather than left attached.
 - The carried body rides in the ride presentation. The accepted record fixes the whole family: "The rider's own client

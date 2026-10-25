@@ -33,6 +33,9 @@ that path, not by the gesture.
   (the default, "every transfer that names no container"), `Container` (a container the recipient carries or wears) and `Drop`
   ("a world drop at the recipient's own position — the last rung, when no slot and no container"), and the chosen rung
   "travels with the transfer fact so the receiving client applies the rung the host chose instead of re-deciding it".
+- **A transfer between two bags never becomes a world item.** `TransferItemCommand` is its own command because "a carried
+  item changes owner without leaving the carried location (a cross-player transfer from one bag to another). This is not a
+  pickup/drop: the item never enters World" — so a transfer is one custody change, not a drop followed by a pickup.
 - The two destinations are mutually exclusive: a release over an ITEM means "into that container", a release over a slot
   ring means "onto that body slot".
 - A pack that is view-only accepts neither direction, and the gesture is refused before anything is sent.

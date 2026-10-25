@@ -39,8 +39,8 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.GameState` | 20 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Entities` | 19 | unread |
 | `CasualtiesUnknownOnline.GameState/Domains/Fluids` | 8 | unread |
-| `CasualtiesUnknownOnline.GameState/Domains/Items` | 32 | unread |
-| `CasualtiesUnknownOnline.GameState/Domains/Players` | 24 | unread |
+| `CasualtiesUnknownOnline.GameState/Domains/Items` | 32 | read |
+| `CasualtiesUnknownOnline.GameState/Domains/Players` | 24 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/World` | 10 | unread |
 | `CasualtiesUnknownOnline.GameState/Domains/WorldEntities` | 19 | unread |
 | `CasualtiesUnknownOnline.GameState/Kernel` | 6 | read |

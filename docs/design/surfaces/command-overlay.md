@@ -33,6 +33,10 @@ own cursor, a candidate list, and a hint line. It is not the game's native conso
 - Completion covers three vocabularies: the command tree, the resource ids (a player types an id by its name and the namespaced id is offered — `done/command-id-name-completion.md`) and a selector's bracket filters, which are completed bracket-aware (`done/command-tree-resource-location-selector.md`).
 - A notice shown while the overlay is closed fades; while it is open, the history does not.
 
+## Answers and their kinds
+
+An answer carries its KIND, so a refusal never renders as a success. The accepted record states the defect and the fix: every non-empty handler return used to be added as ConsoleLineKind.Success, and the overlay mapped Success to the positive colour — a refusal therefore read as a success. The landed shape is a typed answer (ConsoleAnswer in the abstractions) with two tests pinning the kind, so a refusal is drawn as a refusal.
+
 ## Refusals
 
 None of its own: it collects the line and renders the answer it is given. An answer that refused is a line in the

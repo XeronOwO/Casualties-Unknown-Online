@@ -121,12 +121,18 @@ land on the eater (run sheet step 6).
   pickup, and the delegate's `DropItem` is never reported as this body dropping the giver's item. This is what makes
   `Body.SlotOf` answer the real slot (instead of its own `return 0` fallback) and `Body.GetItem` read the arranged child, so the
   peel's replacement lands in the slot the closed fruit occupied rather than by luck.
-- [ ] **7. The replacement's OWNERSHIP (still open, and it is a design question).** `stonefruitopen` is instantiated by the
-  eater's client, so as written it becomes the EATER's item — the peel's product changes hands even though the closed fruit never
-  did. Two readings, and the ruling does not settle which: (a) the target peeled it, so the peeled fruit is theirs to eat (and a
-  full inventory means it drops at their feet), or (b) the peel happens in the GIVER's hand and the peeled fruit stays theirs
-  until it is eaten. (b) is the reading consistent with "the item never moves", but it needs the creation to be owned by the
-  giver, which the eater's client cannot do alone. **Needs the user.**
+- [x] **7. The replacement's ownership — RESOLVED and IMPLEMENTED the way the user described it.** The ruling:
+  *"保留原位置，对玩家的视觉效果是物品变成去皮的，没有其他明显行为，原版我记得就是这样"* — keep the original position, the player sees the item
+  become the peeled one, no other visible behaviour. Verified against the decompiled delegate (`Item.cs:2606-2620`: the
+  opened fruit is instantiated at the closed one's position and rotation and put back into the SAME slot index), so the
+  ruling and the game agree. Implemented as three links: the eating client watches the object the delegate leaves in the
+  arranged hand slot and DESTROYS it there (it must never enter the eater's inventory), reporting its definition and
+  condition through `PlayerItemActionOutcomeMsg.ReplacementItemId`/`ReplacementCondition`; the host commits the owner's row
+  with that definition and condition, same instance id and same slot; the owner's own client swaps its object in place
+  (`ItemDefinitionSwap.InPlace`), so the item on screen simply becomes the peeled one. Admission stopped refusing the shape
+  (`SolidFoodAdmission.IsFeedable` carries `EatsAndReplaces`, the named refusal in `PlayerItemUseExecution` is gone, and the
+  two family tests were rewritten to the new rule), pinned by
+  `ItemUseTests.Use_OfAFoodThatHandsTheEaterAReplacement_CarriesTheNewDefinitionBackToItsOwner`.
 - [ ] **8. Runtime verification with frames and both clients**: drag a pancake and a closed stone fruit onto a teammate whose
   inventory is FULL, then read: the peel step happened, the peeled fruit is registered on both sides, the remainder's condition
   agrees on both clients, and a frame at the eating moment shows the eater's own animation and the food's own sprite.

@@ -48,16 +48,29 @@ The corrected design this ticket exists to argue: the give puts the item into th
 container/pickup path (so the item IS the eater's carried item), and the eat then runs `Body.UseItem` on that carried item — with no
 standing object standing in for it. That is what "reproduce the native flow" means here, and it is the shape the rows below judge.
 
+**With steps 1-2 read, the corrected shape is sharper than "run the native call":** the delegate's own steps are `SlotOf` →
+`DropItem` → `Instantiate` → `PickUpItem`, so the eat must run on a CARRIED item (the eater's slot), and the object the delegate
+instantiates from `Resources.Load("stonefruitopen")` must be **registered** as a creation the way any other created item is
+(`item-creation-registration-first`'s family) — otherwise the replacement fruit exists only on the eater's client. Step 3 answers
+where a give lands today, and that decides whether the carried-item shape is reachable.
+
 ## Run sheet (cycle 2026-10-25)
 
-- [ ] **1. Read the native local eat of a closed stone fruit.** In `reversing/Assembly-CSharp`, find what the game runs when the player
-  eats `stonefruitclosed`: the peel step's own function, the state it writes, and the condition under which `Body.UseItem` refuses or
-  transforms the item. Evidence: the function names quoted with their file and line (the reversing tree is stable). Done when the
-  native order (peel → eat) is written down as a sequence of calls.
-- [ ] **2. Read what the cross-player path calls for the same item.** `NativeSolidFoodEat.Apply` hands `Body.UseItem` the item resolved
-  from `StandingMaterializer`. Evidence: whether that object is the eater's carried item or a materialised stand-in, and what
-  `Body.UseItem`'s own guards read (the hand, `carried`, the item's parent). Done when the difference from step 1 is named as a call
-  the native flow makes and this one does not.
+- [x] **1. Read the native local eat of a closed stone fruit — DONE, and it is a slot-dependent delegate.**
+  `Item.cs` declares `stonefruitclosed`'s `useAction` as: `body.stamina -= 30f; body.energy -= 5f; body.limbs[0].pain += 10f;
+  body.DropItem(2); Sound.Play("drop", …); body.eatTime = 0.5f; int slot = body.SlotOf(item); item.condition = 0f;
+  body.DropItem(item); body.PickUpItem(Instantiate(Resources.Load("stonefruitopen"), item.transform.position …), …)`. So the "peel"
+  the user means is this delegate: it CONSUMES the closed fruit (condition 0), drops the item from the body, and REPLACES it with a
+  newly instantiated `stonefruitopen` it picks up. Everything in it reads the body's own slots (`SlotOf`, `DropItem`, `PickUpItem`).
+  The same read for `pancake`: `body.Eat(10f, 1.2f); body.happiness += 1.25f; body.sicknessAmount += 1.5f; item.condition -= 0.251f;
+  Sound.Play("eatFlesh", …); body.talker.EatGood()` — one bite is −0.251 condition, which is exactly the 0.71 the operator's copy
+  showed.
+- [x] **2. Read what the cross-player path calls — DONE: it hands `Body.UseItem` a STAND-IN, so every slot step misfires.**
+  `NativeSolidFoodEat.Apply` resolves the item through `StandingMaterializer.TryGetStandingItem` and calls `body.UseItem(item)` on
+  that object. A standing object is by definition not the eater's carried item, so inside the delegate `body.SlotOf(item)` answers
+  `-1`, `body.DropItem(item)` drops an object the eater does not carry, and the instantiated `stonefruitopen` is picked up LOCALLY —
+  a client-side object the host's tables never registered. That is the whole of the observed behaviour: the closed fruit is consumed
+  for the owner, no peel→open replacement reaches the authoritative tables, and the guest is left holding an unregistered fruit.
 - [ ] **3. Read the give side's landing place.** Where the item given into another player's backpack actually lands on the target's
   client (a carried slot, a container, a standing object), and whether the target's inventory reports it as its own carried item.
   Evidence: the container/pickup call the give maps to.

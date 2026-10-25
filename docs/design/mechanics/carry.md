@@ -24,6 +24,19 @@ bodies' presentation follows from that relation.
   held at zero every frame, so the native sit condition cannot" fire.
 - The carry is a body pose fact, not a seating: being carried never turns into the native idle-sit behaviour no matter how
   long the rider is without input.
+- **The carrier cannot sit while carrying.** The carrier-side half of the same family was its own defect: "while the guest
+  carries the host on their back, the guest (carrier) is still able to sit on the ground".
+- **The rider's own body keeps simulating.** The carried body is driven by a carry driver whose presence used to skip the
+  body's own per-frame simulation — "While this component is present the body's own per-frame simulation is skipped
+  (`BodyPatches` treats it like a render proxy) and `GameAdapter` drives its transform from the carrier's entity state each
+  frame" — and the accepted goal is the opposite: "A carried rider's own client keeps its body's native per-frame simulation
+  running; the carry relation drives position and pose through the game's own mechanisms instead of freezing the body." A
+  frozen body showed as a flat ECG and twitching limbs on the rider's own medical panel, because a skipped simulation leaves
+  the vitals at their last values.
+- The same rule covers a DEAD or unconscious carried body: it keeps its own per-frame simulation too, since and the
+  presentation of a body that stopped simulating is wrong for the party.
+- **The rider's position follows smoothly.** A rider that teleports to the carrier's position is the defect the smoothing
+  family fixed: the accepted reading for the third-party view leaves a remainder of "≤1 px interpolation".
 - The relation is one carrier and one carried body at a time, and the menu's carry action is only offered where the
   relation can exist.
 

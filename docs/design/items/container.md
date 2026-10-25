@@ -43,6 +43,16 @@ container, so it can be carried, dropped, given and looked inside while it holds
   than the item being lost.
 - **The inventory is a TREE and the game walks it.** `GetAllItemsThorough` (`Body.cs:530-560`) recurses into each held item's
   `Container`, which is what `FindByIdThorough` and every "does this body have X" rule rely on.
+- **Loading refuses four shapes, and two of them are named.** `Container.LoadItem` (`reversing/Assembly-CSharp/Assembly-CSharp/Container.cs:116-155`)
+  refuses a container that already holds something with `alertcontainerstacking`, refuses when the receiving container is itself
+  inside another container with `alertcontainerstackingalt` (no bag in a bag), refuses itself, and requires
+  `Vector2.Distance(item.position, container.position) < 10f` before `CanHoldItem` is even asked. The two named refusals are the
+  game's own answer to a nesting intent the corpus's tree rule allows but the game refuses — the difference is worth knowing
+  before a CUO transfer tries to nest one container in another.
+- **Taking an item out lifts it: `+= Vector3.up * 1.5f`.** `UnloadItem` (`Container.cs:157-175`) unparents, sets
+  `rb.simulated = true`, moves the item up by one and a half units, re-enables its sprite and restores the light — so the
+  game's own answer to "where does a taken-out item appear" is just above the bag, not at the bag's centre and not at the
+  player's feet.
 
 ## Refusals
 

@@ -115,6 +115,15 @@ consciousness differs from the host's". So the host "broadcasts the absolute sta
 the local per-frame presentation stays smooth yet re-aligns)", guests keep running their local `Update` between resends
 ("that path also drives the local body's radiation effects"), and "their own independent activation is suppressed".
 
+**Radiation sickness is a compounding condition with its own curve and its own per-minute rolls.**
+`Body.HandleRadiationSickness` (`Body.cs:2890-2930`): while `radiationSickness > 0f` the body's sickness climbs toward
+`radiationSickness * 0.4f`, brain health drains at `dt * radiationSickness * 0.0003f`, above `30f` every limb's skin is pushed
+down to `100f - radiationSickness * 0.5f`, above `10f` blood volume drains at `dt * radiationSickness * 0.00025f`, and thirst
+always drains at `dt * radiationSickness * 0.0002f`. Once a minute (`Body.cs:3430-3445`) it also ROLLS consequences: above `30f`
+a random limb can be infected (`Random.value < radiationSickness * 0.0025f * infections…`, floor `10f` infection) and internal
+bleeding can start (`Random.value < radiationSickness * 0.007f`, adding `Random.value * radiationSickness * 0.75f`). A CUO
+radiation rule that drains one number is not this mechanic.
+
 **A rolled initial condition is the host's roll, not each side's.** `GeyserStateSync.cs`: `GeyserScript.Start` rolls a
 geyser's liquid type "from the PUBLIC random stream (`GeyserScript.cs:12`) — NOT the isolated generation stream … so every
 side's copy can roll a different type". The host's roll is the authority "captured once the generation completed and broadcast

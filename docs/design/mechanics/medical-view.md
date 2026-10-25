@@ -102,6 +102,10 @@ medical operation the two clients perform together, which is why the drag gestur
   depressionChanceCurve.Evaluate(totalHappiness)` — so a badly unhappy patient refuses treatment at minus seventy-five, and a
   merely unhappy one starts losing item use on a roll at minus twenty. `totalHappiness` itself is
   `Mathf.Clamp(happiness - ((happiness < -50f) ? (totalBleedSpeed * 15f) : 0f)…)`, so bleeding makes an already sad body sadder.
+- **Pain does not stay put: it accumulates into trauma and shock at fixed rates.** `Body.cs:2825-2870`:
+  `traumaAmount += averagePain * dt * 0.0034f` and `painShock += dt / 30f` while the pain is untreated — which is why an
+  untreated injury slides toward the shock line (`septicShock > 82.5f` is only one of the ways `isCriticallyDying` turns true)
+  instead of sitting at a fixed pain number.
 - A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
 
 ## Refusals

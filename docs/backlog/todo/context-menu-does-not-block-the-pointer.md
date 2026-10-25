@@ -36,6 +36,25 @@ The world's own gate is `UIUtil.IsPointerOverUIElement(uiCasts)` over the game's
 2. **The panel IS hit, but the mining path does not consult `uiCasts`** — a different entrance (a hold-to-mine timer, a direct
    `Input.GetMouseButton` read) that the pointer-over-UI check never gates.
 
+## The instrument now exists, and its first reading (2026-10-25)
+
+A one-line recipe asks the game's own question at a chosen point (`EventSystem.RaycastAll` at the point, then each hit's layer against
+`LayerMask.NameToLayer("UI")` — the exact check `UIUtil.IsPointerOverUIElement` makes). Its first reading, taken in the world at the screen centre:
+
+```
+point (640,360): hitCount=12, first="Viewport", firstLayer=5, isUiHit=true
+```
+
+Layer 5 is the game's UI layer, so **the pointer-over-UI gate is reachable at the centre of the screen** — the layer half of candidate 1 is
+therefore already satisfied by `dc88f5cc` (CUO's surfaces sit on the UI layer), and a click inside a CUO panel cannot be invisible to the gate for
+that reason. What the reading does NOT yet prove is the panel's own rectangle: the top hit is the game's `Viewport`, which sits under the pointer
+everywhere, so the next reading has to be taken with the menu open at a known point and compare the hit list inside the panel's rectangle with the
+list just outside it.
+
+That is one recipe call away — and it is blocked on nothing now: the recipe-shape defect that stopped this batch is measured on
+`todo/new-recipe-files-are-rejected-by-the-evaluator.md` (a body must be ONE line), so the next batch can finish the cause and hand rows 1-4 to a
+judgement.
+
 ## Acceptance rows
 
 | Row | The check |

@@ -1,6 +1,6 @@
 # A new recipe file is rejected by the client's evaluator as `(1,1) InteractiveHost`
 
-- Status: Todo — opened 2026-10-25 while building an instrument for `todo/context-menu-does-not-block-the-pointer.md`.
+- Status: Todo — cause measured 2026-10-25: a MULTI-LINE body is refused, a one-line body runs; opened while building an instrument for `todo/context-menu-does-not-block-the-pointer.md`.
 - Priority: High (tooling: it blocks every new acceptance instrument)
 - Category: Acceptance tooling / eval channel
 - Source: measured in batch `.acceptance/batch-menu2`, 2026-10-25 20:4x.
@@ -52,6 +52,26 @@ a patch over a cause.
    existing recipes satisfy by their size or shape rather than on purpose.
 3. A regression test that pins it: a minimal recipe committed under `tools/acceptance/recipes/` must run, because the NEXT instrument will be
    written the same way.
+
+## The cause, measured 2026-10-25 (second batch)
+
+The channel is fine; the SHAPE is not. A recipe body written as a multi-line block lambda is refused as `(1,1): InteractiveHost`, and the same
+body written on ONE line runs:
+
+| Body shape | Answer |
+|---|---|
+| `((System.Func<string>)(() => {` / newline / `return ...;` / newline / `})())` | **`(1,1): InteractiveHost`** |
+| `((System.Func<string>)(() => { var a = ...; var b = ...; return "..." + a; }))()` on one line | runs; answers its payload |
+| `((System.Func<string>)(() => "literal"))()` on one line | runs |
+
+Two experiments pinned it: the same minimal body under `item-provide.cs`'s own header (so the header is not the variable) failed, and the one-line
+version of the SAME statements — a real EventSystem raycast with five locals — ran and returned `hitCount=12, first="Viewport", firstLayer=5`.
+
+So the rule the next author needs is: **a recipe is ONE line** (statements are fine inside the block, newlines are not), and the reason is the
+Mono.CSharp REPL the driver documents as evaluating "one top-level expression": a multi-line submission is read line by line, so a body that opens a
+block on one line and closes it on another is never a complete expression to it. The long recipes in the tree are multi-line, which is why the
+failure looked like "new files" rather than "new shape" — they predate this and evidently reach the evaluator through a path that buffers
+incomplete input (a difference worth confirming when this ticket's third row lands).
 
 ## Acceptance rows
 

@@ -417,6 +417,10 @@ docs/design/mechanics/console.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/medical-view.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/cpr-and-revival.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/sleep.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/backpack-view.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/layer-advance.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/death-and-drops.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/spectator.md | keep | spec | docs/design/mechanics/README.md
 docs/design/cross-cutting/localization.md | keep | spec | docs/design/AGENTS.md
 docs/design/items/README.md | keep | spec | docs/design/AGENTS.md
 docs/development/game-update-runbook.md | keep | spec | docs/decisions/active.md

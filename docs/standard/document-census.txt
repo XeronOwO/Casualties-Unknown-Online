@@ -408,6 +408,7 @@ docs/development/agent-reference.md | keep | spec | docs/backlog/resolved/biling
 docs/development/native-parity.md | keep | spec | docs/evidence/delivery-checklist.md
 docs/architecture/surfaces.md | keep | spec | docs/architecture/README.md
 docs/design/AGENTS.md | keep | spec | docs/architecture/surfaces.md
+docs/contracts/design-comprehension-baseline.txt | keep | loaded | tests/CasualtiesUnknownOnline.NormativeGates.Tests/DesignComprehensionGateTests.cs
 docs/design/INDEX.md | keep | spec | docs/design/AGENTS.md
 docs/design/surfaces/README.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/status-line.md | keep | spec | docs/design/INDEX.md

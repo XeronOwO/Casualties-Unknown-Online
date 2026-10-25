@@ -1,0 +1,51 @@
+# Tickets that predate the design-comprehension gate.
+# Each line names one ticket that was written before docs/design/ existed; the gate does not
+# require a Design section from them. The list may not grow: a ticket opened after the gate
+# exists has to name the corpus page it was designed from.
+
+docs/backlog/todo/console-caret-misaligned-with-text.md
+docs/backlog/todo/console-completion-shows-no-suggestions.md
+docs/backlog/todo/console-enter-on-empty-does-not-close.md
+docs/backlog/todo/context-menu-name-wraps-behind-actions.md
+docs/backlog/todo/cross-player-eat-skips-native-steps.md
+docs/backlog/todo/give-into-backpack-plays-no-sound.md
+docs/backlog/todo/host-blast-rolls-a-second-drop-set.md
+docs/backlog/todo/player-facing-text-localized-per-receiver.md
+docs/backlog/todo/selectors-exclude-the-executor.md
+docs/backlog/todo/use-on-sleeping-target-refused.md
+docs/backlog/review/adapter-capability-catalog.md
+docs/backlog/review/concurrent-medical-operations.md
+docs/backlog/review/cross-player-drag-use-feedback.md
+docs/backlog/review/cross-player-drag-use-model-bounds.md
+docs/backlog/review/dead-player-right-click-name-suffix.md
+docs/backlog/review/enter-opener-keybind-capture.md
+docs/backlog/review/guest-background-ghost-item-ground-sounds.md
+docs/backlog/review/guest-remote-pose-head-orientation-desync.md
+docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md
+docs/backlog/review/layer-complete-choice-for-members.md
+docs/backlog/review/mod-cross-player-native-semantics.md
+docs/backlog/review/nested-container-clone-proxy-leaks-as-world-item.md
+docs/backlog/review/pinyin-search-standalone-mod.md
+docs/backlog/review/player-music-sync-playback.md
+docs/backlog/review/plugin-host-shell.md
+docs/backlog/review/recursive-crafting-mod.md
+docs/backlog/review/remote-medical-native-minigame-parity.md
+docs/backlog/review/remote-medical-panel-speech-text-desync.md
+docs/backlog/review/remote-medical-stage-1-injection-session.md
+docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md
+docs/backlog/review/remote-medical-stage-3-other-actions.md
+docs/backlog/review/remote-medical-treatment-operations.md
+docs/backlog/review/runtime-entity-markerless-bind-absorption.md
+docs/backlog/review/save-layer-end-save-and-restore.md
+docs/backlog/review/save-mid-run-consistent-cut.md
+docs/backlog/review/save-native-character-field-parity.md
+docs/backlog/review/save-native-run-field-parity.md
+docs/backlog/review/save-system-mid-run-and-layer-end.md
+docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md
+docs/backlog/review/sync-player-pain-vocalizations-and-bark.md
+docs/backlog/review/topical-limb-action-shape.md
+docs/backlog/review/trade-domain-dual-side-runtime.md
+docs/backlog/review/trap-layout-crystal-rows-empty.md
+docs/backlog/review/unhooked-damage-block-callers.md
+docs/backlog/review/unhooked-item-and-body-sound-families.md
+docs/backlog/review/unified-remote-display-projection-rework.md

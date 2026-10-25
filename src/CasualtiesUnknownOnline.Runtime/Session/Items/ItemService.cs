@@ -368,6 +368,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId) => _arbitration.GetTransferredItems(steamId);
 
+	public bool OwnsCarriedItem(ulong steamId, ulong itemId) => _kernelAuthority.OwnsCarriedItem(steamId, itemId);
 	public void SendItemSnapshot(ulong targetSteamId) => _snapshots.SendItemSnapshot(targetSteamId);
 
 	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition)

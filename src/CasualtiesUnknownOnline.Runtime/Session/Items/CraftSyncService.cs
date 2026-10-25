@@ -160,7 +160,9 @@ public sealed class CraftSyncService(
 			.GroupBy(e => e.Item.InstanceId)
 			.ToDictionary(g => g.Key, g => g.First());
 		var worldIds = entriesById.Keys.Where(_items.IsWorldItemRegistered).ToHashSet();
-		var transferredIds = entriesById.Keys.Where(id => _arbitration.IsTransferredToGuest(sender, id)).ToHashSet();
+		// Asked of the authority: the transfer cache is rebuilt from these rows, so the answer is the same one, from the one source
+		// (ticket item-custody-single-authority, stage 4 - the cache losing its identity role).
+		var transferredIds = entriesById.Keys.Where(id => _items.OwnsCarriedItem(sender, id)).ToHashSet();
 
 		foreach (var (id, verdict) in CraftReportJudge.Classify(msg, worldIds, transferredIds))
 		{

@@ -45,19 +45,16 @@ public sealed class ItemArbitration(
 	/// for an item the sender ALREADY owns is a retransmission (the transfer
 	/// took the item out of the world table), never a rejection — the same
 	/// idempotency family as the spawn/drop duplicate guards.
+	///
+	/// <para>
+	/// The table is a DERIVED view — `RebuildCarriedTableFromKernel` rebuilds it from the kernel's Carried rows after every committed
+	/// batch, so this answer and `ItemService.OwnsCarriedItem` cannot disagree. Production asks the rows
+	/// (`CraftSyncService.ApplyGuestReport`); this method survives for the acceptance recipes that read the table by name, and for the
+	/// guard's own log line (ticket item-custody-single-authority, stage 4).
+	/// </para>
 	/// </summary>
 	public bool IsTransferredToGuest(ulong guest, ulong itemId) =>
 		_transferred.TryGetValue(guest, out var owned) && owned.ContainsKey(itemId);
-
-	/// <summary>
-	/// Host only: whether ANY guest owns the item (the transfer table). A
-	/// pickup report for an item another guest already took is an obvious
-	/// first-writer-wins conflict — reject it immediately instead of holding it
-	/// in the pending-pickup queue (that queue exists for a registration still
-	/// in flight, not for a completed transfer).
-	/// </summary>
-	public bool IsTransferredToAnyGuest(ulong itemId) =>
-		_transferred.Values.Any(owned => owned.ContainsKey(itemId));
 
 	/// <summary>
 	/// Host only: an item was destroyed while owned (consumed as a crafting

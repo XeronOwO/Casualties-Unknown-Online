@@ -130,12 +130,28 @@ correction came from the machine, not from a guess, and is now the rule the test
       rules forbid.
 
 **Consequence for stage 4.** With stages 2 and 3 both answered by the architecture that already exists, the remaining work is deletion: five
-stores still hold their own copy of "where is it" even though nothing needs that copy. The first candidate is `ItemArbitration._transferred`
-— its own doc calls it "the legacy transfer cache", twenty references across twelve files read it, and every one of them asks a question the
-kernel rows answer (`IsTransferredToGuest`, `RegisteredItem`, `OwnerOf` and friends). Deleting it means repointing those twelve readers at
-`IItemControl.QueryJudgedItems` in the same commit, one reader group at a time, with the machine read (`mismatches=0` on both clients) as the
-proof at each step. The second candidate is the clone fact table's custody fields, and the third `ItemReconcile`'s kill sweep — in that order,
-because that is the order in which a mistake is cheapest to see.
+stores still hold their own copy of "where is it" even though nothing needs that copy.
+
+### Stage 4, step 1 — the transfer cache's identity role (started 2026-10-25)
+
+- [x] One production reader repointed — evidence: `CraftSyncService.ApplyGuestReport` asked `_arbitration.IsTransferredToGuest`; it now asks
+      `_items.OwnsCarriedItem(sender, id)`, which is `ItemKernelAuthority.OwnsCarriedItem` → `ItemCustodyRows.OwnsCarried(rows, …)`. The
+      predicate is ONE shared function precisely so the two sources cannot drift by argument: the cache is rebuilt from the same rows
+      (`RebuildCarriedTableFromKernel` keeps the `Kind == Carried` rows).
+- [x] The predicate pinned — evidence: `ItemCustodyRowsTests` (three cases: a carried row is its owner's, a world/terminal row is not carried,
+      an id with no row is not owned), 3/3 in `.acceptance/l574-test.log`.
+- [x] Dead custody query deleted — evidence: `ItemArbitration.IsTransferredToAnyGuest` had **zero** production or test consumers; it and its
+      `_transferred.Values.Any(...)` scan are gone.
+- [ ] OPEN, not judged: the end-to-end row (a real craft from a guest reaching `ApplyGuestReport`) could not be driven in the batch
+      `.acceptance/batch-craft`: a fresh world reports `craftable: 0` with an empty material list (`craft-drive mode=list index=0`), so no craft
+      is possible without a fixture that supplies materials. What the batch DID read: both clients at `[ItemCustody] rows=282 objects=282
+      mismatches=0` (host 19:59:38.646, guest 19:59:41.167) with the changed line deployed — the projection was unaffected. The craft row is
+      judged in a batch with materials on hand, and this box stays open until then.
+- [ ] `IsTransferredToGuest` itself stays: two acceptance recipes read it by name (`carried-registration`, `container-read`), and its doc now
+      says it is the derived view rather than a truth.
+
+The second candidate is the clone fact table's custody fields, and the third `ItemReconcile`'s kill sweep — in that order, because that is the
+order in which a mistake is cheapest to see.
 
 ## Acceptance rows
 

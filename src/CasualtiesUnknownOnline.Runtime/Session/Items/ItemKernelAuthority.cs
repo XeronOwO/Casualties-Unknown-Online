@@ -208,6 +208,10 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 		return TryExecute(command, actor, "pickup", out batch, out rejection);
 	}
 
+	/// <summary>Whether the member's own row says it carries the item — the custody question, answered by the authority itself.</summary>
+	public bool OwnsCarriedItem(ulong steamId, ulong itemId) =>
+		ItemCustodyRows.OwnsCarried(_kernel.QueryItems(), steamId, itemId);
+
 	public bool TryDrop(ulong actor, ulong itemId, ItemLocation newLocation, CharacterItemMsg? item, out CommittedBatch? batch, out Rejection? rejection)
 	{
 		var current = _kernel.FindItem(itemId);

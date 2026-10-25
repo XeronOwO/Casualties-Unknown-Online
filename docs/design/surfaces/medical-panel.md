@@ -33,7 +33,7 @@ live remote render clone is never mutated by this path.
 - The local-only controls are HIDDEN, not disabled: "the nap control … the workout list … and the HUD main/off-hand switch
   control" are removed while the focus is open and re-asserted every frame, and the hand switch key is refused while the
   focus is open, because "a remote medical focus is a READ-ONLY view of another player's body".
-- A viewer's own changes do not reach the patient: the chart is display-only, with no protocol and no authority change.
+- A viewer's own changes do not reach the patient: the chart is display-only, with no protocol and no authority change.- **The chart never sits on a LIVE body.** The display copy is created inactive so nothing runs on it; the recorded storm came from a live body under the focus — the ticket's own words: "The code does instantiate it there — and that copy is created INACTIVE, so nothing runs on it — but that is not what produced the storm. The storm's body was a LIVE one". The rule is therefore about which body the focus may attach to, not only about the copy.
 
 ## Refusals
 

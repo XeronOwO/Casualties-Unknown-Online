@@ -76,7 +76,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync` | 12 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/CharacterData` | 33 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/Chat` | 4 | unread |
-| `CasualtiesUnknownOnline.Runtime/Session/Commands` | 66 | unread |
+| `CasualtiesUnknownOnline.Runtime/Session/Commands` | 66 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Content` | 7 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/EntitySync` | 43 | unread |
 | `CasualtiesUnknownOnline.Runtime/Session/HandlerContexts` | 24 | unread |

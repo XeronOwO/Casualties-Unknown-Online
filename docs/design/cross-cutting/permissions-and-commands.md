@@ -25,6 +25,16 @@ Selectors name players: `@a` every player including the executor, `@s` the execu
 random, `@e` the player-entity alias; each takes bracket filters (`type`, `name`, `distance`, `limit`, `sort`). A
 selector that matches several players where one is required refuses and names the count.
 
+Two rules about how the code says it, both worth stating because the design and the current build differ on one of them:
+
+- **A filter's unknown key fails the parse rather than widening.** `CommandSelectorFilter` records it: "unknown keys fail the
+  parse so a typo does not silently expand to everyone" — the same fail-closed rule the host rules follow.
+- **The current build's selector resolver targets remote peers, and the design does not.** `CommandSelectorResolver` says
+  "`@s` selects the local body; the other selectors target remote peers because the co-op interaction commands act on the
+  player you are helping", which is why `/heal @a` skips the player who runs it. The design above is Minecraft's meaning
+  (with the executor included); the difference is the open ticket `../../backlog/todo/selectors-exclude-the-executor.md`, and
+  it is recorded rather than re-decided here.
+
 **One data language.** An item's own state is written as SNBT text, and the two commands that speak it are `/data` and
 `/give` — the ticket's own summary is that "the language and the two commands that speak it" landed together, judged on the
 deployed artifact. A per-property keyword form is not a second dialect of the same thing.
@@ -33,6 +43,11 @@ deployed artifact. A per-property keyword form is not a second dialect of the sa
 
 - A host rule is decided by the host and reaches every member that reads it; the member's own check is an interception
   of the gesture it would send, not a second verdict.
+- **A cheat verb is refused on the caller's own side first, by name, and the gate has three standings.**
+  `CheatVerbGate` is "the CLIENT-side ('front end') check of the cheat family: the acting game instance refuses a cheat verb
+  locally, by name, before anything is applied or sent … a closed permission costs no round trip, and the operator reads the
+  reason where they typed the verb", and it decides in a fixed order: no active session ("the host's own permission IS the
+  online switch, and a member's grant is a grant for a session"), then the host's own standing, then the member's grant.
 - Member cheat verbs are a rule: off by default, granted per member, and announced to that member. The grant mechanism is `/op` and `/deop`: the accepted record lists "`/op`, `/deop`, the announced roster, the host's cheat SWITCH and the two-sided check on `/data`'s write verbs", and the user's ruling behind it is that granting and revoking are allowed only from the host to the other clients ("授权与剥夺只允许本机对其它客机执行").
 - A write verb is checked on BOTH sides: the member's roster says whether it may run it, and the host checks the same rule
   when the request arrives.

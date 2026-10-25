@@ -29,6 +29,12 @@ own cursor, a candidate list, and a hint line. It is not the game's native conso
 
 - Two openers: `/` opens the overlay as a command line, Return opens it as plain chat with an empty field.- An empty Enter closes the overlay; a non-empty Enter submits the line.- The opener is refused while the GAME's own text field holds focus: the accepted defect is that "after the game's own console has been opened and closed, the event system still names its input as the selected object, so `IsATextFieldFocused` stayed true and the Enter/Slash opener was refused" — the guard follows the event system's own selected object.
 - Tab accepts the current candidate; the candidate list is live without Tab.
+- **The line is a small editor over one immutable registry, and its output is bounded.**
+  `CommandConsoleService` registers commands "once at construction from `ConsoleCommandAttribute`-marked methods into an
+  immutable command registry", parses "a slash-prefixed line, gated by a role permission, executed on this side, and answered
+  into a bounded output buffer", and forwards "non-command lines … to the existing text-chat domain so the same input surface
+  doubles as the reworked chat UI". It is "deliberately a local console: no new wire protocol, no packet handler, no host
+  relay".
 - Escape closes the overlay and must not reach the game's pause handling: the defect it was fixed from is "pressing ESC while the console is open still triggered the game's" own pause path, and the accepted reading is that all three expected behaviours pass on the deployed artifact.
 - Completion covers three vocabularies: the command tree, the resource ids (a player types an id by its name and the namespaced id is offered — `done/command-id-name-completion.md`) and a selector's bracket filters, which are completed bracket-aware (`done/command-tree-resource-location-selector.md`).
 - A notice shown while the overlay is closed fades; while it is open, the history does not.
@@ -45,6 +51,12 @@ history.
 ## Who judges
 
 The overlay itself decides only what to show. A command's outcome is judged where that command's own rules say.
+
+**Who may run a verb is one predicate, shared by the three places that ask it.** `ConsoleCommandAuthority` is "the console's
+authority predicate: may THIS caller run THIS command? One decision, asked by the completion filter, by `/help` and (for the
+declaration half) by the dispatcher, so a command the console hides is exactly a command the console would refuse" — with two
+sources, "the declared `CommandPermission` … and the declared `ConsoleCommandGate` (a cheat verb asks the family's gate)". A
+mod command declares no permission, and "its own runtime gate is not knowable here and is recorded as a limit, not modelled".
 
 ## What travels
 

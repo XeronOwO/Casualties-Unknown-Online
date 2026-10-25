@@ -17,6 +17,8 @@ itself and replaces itself with another item does so inside that same action, in
 
 The cross-player food family is decided from the GAME'S OWN DATA, not from a list this project keeps: the accepted ticket's title is "Cross-player solid food from the game's own data", and its fifteen acceptance rows passed in batch `20261011-i` (row 5's visual half had to be re-worded because a frame cannot carry it at a parked spot). A definition the game marks usable but whose action is not an eat is not this family, and the same classification decides both the cue and the release.
 
+**How the game's data is read, and how far.** `GameAdapter/Content/UseActionInstructions.cs` is "the one reader of an item's own `useAction` COMPILED BODY, shared by the content classifiers", and it reads "the instructions of the delegate one level down, the instructions of every GAME method it calls directly (a method merely loaded as a delegate or type token is not part of what the action does)", while "a mod's method one level down is not [read] — that would be a decompiler, not a classification". Reading is not running: "a classifier can ask what a use action WOULD do without applying it", and "a delegate whose body cannot be read (a dynamic method) answers null, and each caller decides its fail-closed verdict rather than guessing".
+
 ## Rules and states
 
 - One use is one bite: the item survives with less condition until its own condition is exhausted.

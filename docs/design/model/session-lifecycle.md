@@ -22,6 +22,15 @@ rejoined party to find the same world, the same items and the same progress.
 - The save is independent of the game's own save file: CUO never writes it and never reads it.
 - A mid-run cut is armed by the event that asks for it and taken by the host's pump at one seam, never inside the
   callback that asked for it.
+- **The start gate is a wait with one forced release, and three freezes while it holds.**
+  `GameAdapter/Run/StartGateCoordinator.cs`: it is "the 'everyone loads together' wait — host forces the gate after 30 s",
+  and "both sides freeze the local player while it holds (timeScale 0 + movingAllowed locked + the loading screen kept visible
+  for a guest) and restore everything on release".
+- **A wait may only say what the client can SEE.** `Run/SessionWaitPolicy.cs`: "a wait may only say what the client holding the
+  facts can SEE, and the roster it prints must be the set the gate is actually waiting for"; the host owns the gate and its
+  countdown, while "a member's row arrives already in-world, so a member waiting on a third player usually has nothing to name,
+  and the host's flag being false covers the menu, loading and 'no report yet' alike" — the wording is built to say no more
+  than those facts support.
 - State that is in flight at a cut is classified per class — captured, resolved before the save, or dropped — and never
   silently kept or silently lost.
 

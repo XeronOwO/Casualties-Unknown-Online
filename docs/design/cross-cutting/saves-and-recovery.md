@@ -22,6 +22,12 @@ come back where they were when the cut was taken.
   display name may change without touching the archive.
 - CUO's save is independent of the game's own save file: it never reads or writes it.
 - A cut is armed by the event that asks for it and taken by the host's pump at one seam.
+- **A deliberate leave IS a cut, and the two are one operation.** `GameAdapter/Run/SaveCutSeam.cs`: "a deliberate 'leave the
+  world' always runs outside the pump — a session teardown event inside a Steam/UI callback, or the game's own
+  `PlayerCamera.ToMainMenu` — so the intent is recorded by `RunMenuReturnCoordinator` and both the leave and the scene load
+  happen here", and "the deliberate return is itself a mid-run cut now (the world is still fully alive at that moment), so the
+  cut and the leave are one operation — if the transient policy defers the cut, the leave waits a frame instead of walking out
+  of a world whose in-flight state was never captured".
 - **A checkpoint travels as chunks, and its schema has its own version.**
   `src/CasualtiesUnknownOnline.Protocol/Versioning/ProtocolConstants.cs` keeps the envelope layout and the checkpoint schema as
   separate numbers (`EnvelopeVersion` and `CheckpointSchemaVersion`) and bounds a checkpoint's transport:

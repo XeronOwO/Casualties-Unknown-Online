@@ -361,3 +361,23 @@ What remains for this ticket's rows is therefore a TARGET, not a lever: releasin
 member's on-screen point, and the projection of the placed guest answered `screenY=4100` with `screenHeight=720`, i.e. the
 point was outside the camera's view. The next cycle puts the guest inside the host's view first (a placement the host is facing)
 and then releases there.
+
+**Batch `20261025-as` — the cross-player drag now runs end to end, and it took three corrections to get there.** With the guest
+placed 8 units from the host and projected to `(638,523)` (bottom-left origin, so 163 px below the screen centre), the host
+`drag-start` on its ring's bandage slot answered **`bandage(Clone)`**, the real cursor was moved to that projected point, and
+`drag-release` answered **`had=bandage(Clone) → after=none` with casts `MainHead`** — the release landed on the other member's OWN
+body part and the bandage left the operator's hand (the patient's limb reading moved from 100 to 89.337, i.e. the game ran its own
+use on that limb). Three facts made the difference and are worth keeping:
+
+1. **The CUO Online window blocks game input while it is open.** `state` answered `windowVisible=true` on page `Players`, and every
+   cast list carried `CUO Online Input Blocker`; with it open, a Tab press reaches the window (`key-tap` → `posted=True,
+   isForeground=True`) but never opens the ring. `click window.close` first, and the same Tab opens it.
+2. **`InvButton.Overlaps` reads the REAL cursor**, not the point a probe asks about (`Vector2.Distance(radialMenu.position,
+   Input.mousePosition)`), so an in-process start must be preceded by actually placing the cursor on the button — otherwise every
+   entry answers `dragItem=none` while the raycast at that same point clearly finds the button.
+3. **The ring's centre is the screen centre**, so a release within ~100 px of it hits `RadialCenter` and never reaches the world
+   body; the target must be projected at least ~150 px off-centre, which is why the guest was placed below the host rather than in
+   front of it.
+
+The two rows this ticket still owes are now a reading away: the highlight and the label during such a drag, and the refusal path
+with its line and deny sound.

@@ -500,3 +500,21 @@ from a cursor that had been swept across the stacked members, so the selection n
 One mechanism worth recording because it cost two attempts: after a drag that ends while the player's OWN ring is open, the patch
 skips `AutoOpenFor(null)`, so `_openedFor` is not reset and the SAME target will not reopen during the next drag — "the next gesture
 must start from a clean selection" is the comment's own words, and ending the drag in world mode (ring closed) is what resets it.
+
+**Batch `20261025-bb` — ROW 2's data half is READ: the release makes the other player EAT the item.** With the selection reset (the
+stuck drag item cleared by a press+release at a neutral point — the drag item DOES stay set when the button comes up under a CUO
+surface, because `HandleInput` is suspended there) and the members separated, the gesture ran cleanly: pickup on the ring button,
+Tab to close the ring (`radial=False`, item held), cursor onto the guest → `backpackOpen=True, focus=76561198863287957` (the player
+the cursor was on, now that the alt stood far away), cue `showing=True` on the centre. Releasing there produced the host's own chain:
+
+```
+[ItemUse] 76561198281246659 offers pancake (id 1151372216259)
+[DragUse] used pancake on 76561198863287957 (instance 1151372216259)
+[ItemUse] 76561198863287957 ate pancake (id 1151372216259)
+[ItemUse] local item 1151372216259 condition set to 0.71 by cross-player use.
+```
+
+So the use lands, on the right player, and consumes the item by condition — and the cue cleared (`showing=False`) the moment the
+gesture ended. What this batch cannot read is the row's other half, "the success cue plays on the operator's screen": there is no
+probe that reports the last UI clip played (the audio probes capture named families, not the UI's own click), so that half is an ear
+residual and is named as one rather than claimed.

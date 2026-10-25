@@ -43,7 +43,7 @@ says which one was intended.
   steps are written in terms of the body's slots.
 - An item that leaves something behind (a container, a wrapper) cannot be handed over that way and is refused rather
   than silently emptied.
-- A held item's condition after the use is the same on both clients; a disagreement is a defect of this mechanic.
+- A held item's condition after the use is the same on both clients; a disagreement is a defect of this mechanic.- **One roller per authoritative value.** The probe the accepted record answered was whether temporary deterministic randomness could keep both sides in step; the finding is that "the divergence does NOT reach authoritative state — every authoritative value of this family has exactly ONE roller", and the one on-screen divergence it named was fixed by deriving both machines' rolls from one state. A new random effect in this family must name its single roller.
 
 ## Refusals
 

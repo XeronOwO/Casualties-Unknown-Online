@@ -22,7 +22,7 @@ container, so it can be carried, dropped, given and looked inside while it holds
 - The contents travel with the container: dropping, giving or storing a container moves what is inside it.
 - A container with something inside cannot be handed over as "just the container"; the design decides per item whether it
   may be emptied first or refused.
-- A view-only pack accepts no change in either direction.
+- A view-only pack accepts no change in either direction.- **A child that moves keeps its container fact.** A child moved out of a container into a slot must not lose the fact that it came from one: the accepted reading for the release onto an occupied and an empty ring slot is "zero `[CharSync] divergence` on every client, the bag reading one child fewer on the owner's tree, the host's kernel record and the third client's proxy tree, with the child in the destination slot".- **A container move is reported as an event, not left to a snapshot.** The accepted record's shape is "the owner's client reporting the TARGET root's contents fact once per child and both viewers at zero divergence" — a viewer learns of a move from the event that carries it, because a snapshot alone would leave a stale child on one client.
 
 ## Refusals
 

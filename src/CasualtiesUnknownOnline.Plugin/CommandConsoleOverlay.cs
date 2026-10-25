@@ -172,7 +172,8 @@ internal sealed class CommandConsoleOverlay
 		{
 			case KeyCode.Return:
 			case KeyCode.KeypadEnter:
-				if (_session.Submit())
+				// Enter with text executes; Enter on an empty line closes the console (Minecraft's own rule — see SubmitOrClose).
+				if (_session.SubmitOrClose())
 				{
 					evt.Use();
 				}

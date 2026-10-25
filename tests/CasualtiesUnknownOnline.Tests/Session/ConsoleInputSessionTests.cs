@@ -74,6 +74,60 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void Submit_OnAnEmptyLine_ExecutesNothingAndKeepsTheConsoleOpen()
+	{
+		// The executor's own contract, unchanged: Submit is "execute this line", and an empty line has nothing to execute. ENTER's rule is
+		// SubmitOrClose — the pair is the point, so a future change cannot quietly make Submit close a prompt or make Enter execute nothing.
+		var control = new StubControl();
+		var session = CreateSession(control, new StubCompletion(_ => [], _ => null));
+		session.Open(plainChat: true); // NOT Open(): that opener pre-fills the command prefix, so the line would not be empty
+
+		Assert.False(session.Submit());
+		Assert.True(session.IsOpen);
+		Assert.Empty(control.Executed);
+	}
+
+	[Fact]
+	public void SubmitOrClose_OnAnEmptyLine_ClosesWithoutExecuting()
+	{
+		// Minecraft's Enter rule: an empty prompt is dismissed by Enter, not by reaching for the chat key again.
+		var control = new StubControl();
+		var session = CreateSession(control, new StubCompletion(_ => [], _ => null));
+		session.Open(plainChat: true); // an empty line only exists in a plain-chat opener or after the prefix is deleted
+
+		Assert.True(session.SubmitOrClose());
+		Assert.False(session.IsOpen);
+		Assert.Empty(control.Executed);
+		Assert.Equal("", session.Input);
+	}
+
+	[Fact]
+	public void SubmitOrClose_OnWhitespaceOnly_ClosesAndExecutesNothing()
+	{
+		var control = new StubControl();
+		var session = CreateSession(control, new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("   ");
+
+		Assert.True(session.SubmitOrClose());
+		Assert.False(session.IsOpen);
+		Assert.Empty(control.Executed);
+	}
+
+	[Fact]
+	public void SubmitOrClose_WithText_ExecutesAndKeepsTheConsoleOpen()
+	{
+		var control = new StubControl();
+		var session = CreateSession(control, new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("/help");
+
+		Assert.True(session.SubmitOrClose());
+		Assert.Equal(["/help"], control.Executed);
+		Assert.True(session.IsOpen);
+	}
+
+	[Fact]
 	public void Escape_ClosesWithoutExecuting()
 	{
 		var control = new StubControl();

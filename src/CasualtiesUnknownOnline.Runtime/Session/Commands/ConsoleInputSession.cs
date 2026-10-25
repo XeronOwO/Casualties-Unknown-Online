@@ -309,6 +309,28 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		return true;
 	}
 
+	/// <summary>
+	/// Enter's own rule, the one Minecraft's chat window follows: a line with text EXECUTES and the window stays open so another
+	/// command can follow, while an empty line (or one holding only spaces) CLOSES the input — the player does not reach for the chat
+	/// key again to dismiss an empty prompt (user report 2026-10-25: "命令框是空的,按回车键为什么不能关闭命令框啊?"). Returns whether
+	/// the key was consumed.
+	/// </summary>
+	public bool SubmitOrClose()
+	{
+		if (!_open)
+		{
+			return false;
+		}
+
+		if (_editor.Input.Trim().Length == 0)
+		{
+			Close();
+			return true;
+		}
+
+		return Submit();
+	}
+
 	public bool Escape()
 	{
 		if (!_open)

@@ -54,7 +54,7 @@ A submitted line travels as the command or chat line it is; the answer comes bac
 
 A small translucent panel over the world, live candidates under the input line, answers appearing in the history.
 
-## Records
+## What it replaced`r`n`r`nThe console was first landed as "a local command/chat console inside the Online UI" with "a registered command chain (help, players, rtt, whoami, kick, ban, unban) with role-based" access. That shape is SUPERSEDED: decision 228 states the window has no console page, and the accepted interactive design (next section) keeps the `/` overlay as the only command and chat surface. A reader who finds the older ticket must follow decision 228, not the older page.`r`n`r`n## Records
 
 Decision 228 (the `/` overlay is the only command and chat surface). Accepted:
 `../../backlog/done/in-game-command-console-interactive.md` (entry keys, live candidates, no-fade history, Escape

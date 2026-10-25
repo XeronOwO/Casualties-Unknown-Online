@@ -14,7 +14,7 @@ a refusal line (something did not).
 
 ## Rules and states
 
-- Every refusal reaches the player: a gesture never silently does nothing.
+- Every refusal reaches the player: a gesture never silently does nothing. The accepted reading of the family is explicit — the actor's own client printed the refusal "for a denied open and nothing at all for an accepted one, with no host-side traffic", which is what "both answering sites" means: the host answers the remote case, the local surface answers the local one, and an accepted action gets no line.
 - A refusal's sentence is one key plus its values, rendered by the reading client in its own language; the frame and the
   reason are both localized, and the reason is never another language's prose.
 - A refusal is accompanied by the game's own deny sound; a successful action's line is never given the deny sound.

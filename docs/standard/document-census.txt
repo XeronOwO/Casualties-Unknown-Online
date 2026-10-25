@@ -447,6 +447,7 @@ docs/design/mechanics/backpack-view.md | keep | spec | docs/design/mechanics/REA
 docs/design/mechanics/layer-advance.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/death-and-drops.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/spectator.md | keep | spec | docs/design/mechanics/README.md
+docs/design/mechanics/heal-and-reset.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/enemy-combat.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/crafting.md | keep | spec | docs/design/mechanics/README.md
 docs/design/mechanics/carry.md | keep | spec | docs/design/mechanics/README.md

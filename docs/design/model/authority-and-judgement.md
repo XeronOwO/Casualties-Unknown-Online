@@ -25,7 +25,7 @@ prevent:
 2. **Who arbitrates a conflict?** The host. Two players acting on the same fact are ordered by the host's own
    arrival, never by a client's clock.
 
-**Latency is never a judgement parameter.** A rule that reads a round-trip time, or that makes a decision depend on how
+**The host computes the continuous state; the affected client judges the events.** The user's 2026-10-18 ruling for the health family states the whole shape: "the HOST computes the continuous player state by reusing the game's own methods; the affected client judges every event and applies the host's rows to its own body." A continuous quantity is the host's because it is a simulation over time; an event is the affected side's because it happened on that side's screen.`r`n`r`n**Latency is never a judgement parameter.** A rule that reads a round-trip time, or that makes a decision depend on how
 fresh a peer's report is, is out of design: the affected side decides from what it can see, and the host arbitrates
 from what it received.
 

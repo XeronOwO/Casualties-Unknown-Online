@@ -100,6 +100,34 @@ public class ItemCustodyComparisonTests
 		Assert.Equal(ItemCustodyComparison.MismatchKind.KindDisagrees, mismatch.Kind);
 	}
 
+	[Fact]
+	public void TheRowInSlot_ComesFromTheAuthority_NotASecondTable()
+	{
+		// The reader switch's query: a clone render asks "which row is in slot 3 of that body" and gets the kernel's answer. The slot is
+		// the row's own fact (`ItemData.SlotIndex`), the owner is the location's.
+		var rows = new Dictionary<ulong, ItemState>
+		{
+			[21] = Row(21, ItemLocation.Carried(new ActorId(Other)), slot: 3),
+			[22] = Row(22, ItemLocation.Carried(new ActorId(Other)), slot: 4),
+			[23] = Row(23, ItemLocation.Carried(new ActorId(Local)), slot: 3),
+		};
+
+		Assert.True(ItemCustodyComparison.TryFindRowInSlot(rows, Other, 3, out var found));
+		Assert.Equal(21UL, found);
+		Assert.False(ItemCustodyComparison.TryFindRowInSlot(rows, Other, 9, out _));
+	}
+
+	[Fact]
+	public void ATerminalRow_NeverAnswersASlot()
+	{
+		var rows = new Dictionary<ulong, ItemState> { [31] = Row(31, ItemLocation.Terminal(), slot: 2) };
+
+		Assert.False(ItemCustodyComparison.TryFindRowInSlot(rows, Other, 2, out _));
+	}
+
+	private static ItemState Row(ulong id, ItemLocation location, int slot) =>
+		new(new ItemIdentity(id, "cu:widget"), 1, location) { Data = ItemData.Empty with { SlotIndex = slot } };
+
 	private static Dictionary<ulong, ItemState> Rows(params (ulong Id, ItemLocation Location)[] rows)
 	{
 		var map = new Dictionary<ulong, ItemState>();

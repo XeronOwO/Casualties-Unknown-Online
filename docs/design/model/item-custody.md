@@ -134,6 +134,15 @@ sound. An incarnation is a VIEW:
 - a mechanic that must reproduce a native action therefore runs it on the incarnation that IS the carried item on the
   client that owns it, and never on a stand-in.
 
+**An incarnation's identity is the row's instance id plus a marker, and that is the whole space it needs.** The adapter
+already stamps both halves on every object it creates for a row: the item carries its `ItemInstanceId`, and the two objects
+that stand in for somebody else's row carry their own marker — `RemoteCloneRender` for a clone-render slot/limb child and
+`StandingItemObject` (read through `StandingItems.Is`) for a materialized standing object. So a display incarnation is
+recognised by "a marker is present", its row is the id it carries, and no second identity space is invented: a display that
+had one would be a second place to keep in step, which is the defect the rest of this page exists to end. The custody
+projection (`GameAdapter/Items/ItemCustodyComparison.cs`) reads exactly those two markers, which is why the comparison and the
+renderer can never disagree about what an object is.
+
 ## Who judges
 
 The holder's client writes its own side of an item's state and the host arbitrates; an incarnation is written by nobody, because it is a view.
@@ -156,7 +165,9 @@ mechanic that produced it, not a rendering detail.
 - **The adapter does not read the location this page makes authoritative.** `ItemLocation` appears zero times under
   `src/CasualtiesUnknownOnline.GameAdapter/`, while five adapter-side stores each keep their own copy of "where is it" and three layers infer
   intent from Unity lifecycle callbacks (`ItemWorldSync`, `PickupSync`, `ItemReconcile`). Both item losses of 2026-10-25 came from that gap, not
-  from a missing rule; the work is `../backlog/todo/item-custody-single-authority.md`.
+  from a missing rule; the work is `../backlog/todo/item-custody-single-authority.md`. **Progress (2026-10-25):** the projection exists and is
+  judged on two clients — the rows and this client's objects agree at 285/285 on both ends, `[ItemCustody] mismatches=0` — so what remains is
+  switching the readers to it and deleting the copies, not closing this gap.
 
 ## Records
 

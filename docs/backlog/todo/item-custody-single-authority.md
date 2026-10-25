@@ -75,12 +75,19 @@ correction came from the machine, not from a guess, and is now the rule the test
 
 ## Run sheet (stage 2, the next cycle)
 
-- [ ] 1. Name the display objects' identity space (`item-custody.md` Gaps): decide whether `RemoteCloneRender`/`StandingItems` marking is
-      enough or the projection needs its own handle, and write the decision into the design page before switching reads.
-- [ ] 2. Switch ONE reader first — `CloneInventoryRenderer`'s rebuild — to ask the projection instead of its own table; the old table
-      becomes derived. Evidence: the clone refresh still matches the rows in a two-client session (`mismatches=0` unchanged).
-- [ ] 3. Switch `StandingItemMaterializer` and the arbitration's slot checks the same way, one commit each.
-- [ ] 4. Delete what no longer has a reader; gates + full run; deploy.
+- [x] 1. Name the display objects' identity space — evidence: no new space is needed and the design page's `Incarnations` now says why:
+      an incarnation is the row's instance id plus a MARKER (`RemoteCloneRender` for a clone render, `StandingItemObject`/`StandingItems.Is`
+      for a standing object), so a display is "a marked object whose id is its row" and a second identity would be a second place to keep
+      in step. The slot a render needs is also the row's own fact — `ItemData.SlotIndex`, "the owner-local slot" — so a reader can ask the
+      authority instead of its own table.
+- [x] 2. The query a reader uses — evidence: `ItemCustodyComparison.TryFindRowInSlot(rows, owner, slot)` answers the row a clone render
+      should show, never a Terminal one; two tests pin it (owner+slot, and a Terminal row never answering a slot), 9/9 in
+      `.acceptance/l530-test.log`.
+- [ ] 3. Switch ONE reader — `CloneInventoryRenderer.ApplyCloneInventory` — to the query, keeping the snapshot as the fallback for a row the
+      kernel has not judged yet (a restore's first frames). Evidence: a two-client session still reads `[ItemCustody] mismatches=0` and the
+      clones render unchanged.
+- [ ] 4. Switch `StandingItemMaterializer` and the arbitration's slot checks the same way, one commit each.
+- [ ] 5. Delete what no longer has a reader; gates + full run; deploy.
 
 ## Acceptance rows
 

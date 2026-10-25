@@ -108,4 +108,38 @@ internal static class ItemCustodyComparison
 
 		return mismatches;
 	}
+
+	/// <summary>
+	/// The row a clone render should show in one of its owner's slots — the query that lets a READER ask the authority instead of
+	/// keeping a second table. The slot is the row's own fact (`ItemData.SlotIndex`, "the owner-local slot"), the owner is the
+	/// location's, and the kind says whether it is worn: a worn item is CARRIED with a negative slot index, which is why this takes
+	/// the slot the caller wants rather than assuming a range.
+	///
+	/// <para>
+	/// A Terminal row is never returned: an item that is gone from the world is gone from the render, and the caller destroys whatever
+	/// object still stands for it (that is the `TerminalRowWithObject` mismatch above, repaired rather than shown).
+	/// </para>
+	/// </summary>
+	internal static bool TryFindRowInSlot(
+		IReadOnlyDictionary<ulong, ItemState> rows,
+		ulong ownerSteamId,
+		int slotIndex,
+		out ulong instanceId)
+	{
+		foreach (var row in rows)
+		{
+			if (row.Value.Location.Kind == ItemLocationKind.Terminal
+				|| row.Value.Data.SlotIndex != slotIndex
+				|| row.Value.Location.Owner.Value != ownerSteamId)
+			{
+				continue;
+			}
+
+			instanceId = row.Key;
+			return true;
+		}
+
+		instanceId = 0;
+		return false;
+	}
 }

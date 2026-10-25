@@ -13,6 +13,32 @@ reported, never silently degraded; `docs/design/mechanics/death-and-drops.md` an
 hold the rule that an item's ownership never leaves every side at once, and `docs/design/mechanics/carry.md` the placement query the
 receiver answers.
 
+## Second reproduction (2026-10-25, deployed `53baa1c1`) — the picture changed
+
+The user retested and reported: the item lost after a rearrange is **the one just given**, while an item that was ALREADY on that player does
+**not** get lost, and this time the host logged **no `PickUpToSlot` intent at all** for the rearrange — only the two gives
+(`[Take] … emergencylight`, `[Take] … plasticchunk`) and, separately, two id-less pickups the host SKIPPED:
+
+```
+[ItemTrace] op=0 item=0 origin=OnItemPickedUp result=Skipped events=[NoId]
+[PickUpResult] emergencylight → slot (slot 3) at (-0.8,507.3)
+```
+
+So the authoritative row was never asked to move. What the host sees vanishing is the **display proxy**, and the likely mechanism is the one the
+`review/nested-container-clone-proxy-leaks-as-world-item.md` ticket already names: a drag on a proxy item runs the native body on the viewer,
+which DROPS the proxy into the viewer's world; the row is intact and the other client still holds the item, while the viewer's own screen loses
+it and its clone table then diverges.
+
+**Narrowed next step (not a guess — the two tickets now meet):** the give's own arm must be measured first, because the item that is lost is the
+one the give just created on this side: log the give's landing (slot/container/drop), the proxy's lifetime, and the release's classification for a
+drag that produced no intent. If the proxy leaks, the fix belongs to the proxy leak rather than to the slot plan — which is why the slot plan's own
+change (`53baa1c1`) did not move the symptom.
+
+**Also recorded:** `Body.SwapSlots` is NOT world-free — `reversing/Assembly-CSharp/Assembly-CSharp/Body.cs:1413` is
+`DropItem(slot1); DropItem(slot2); PickUpItem(...); PickUpItem(...)`, so the swap is a native drop-then-pick pair like the trio it replaced
+(with `PickUpItem(..., true)`'s flag and a "switch" sound as the differences). The plan change therefore keeps the native ordering semantics and
+removes the applier's hand-rolled trio, but it cannot by itself explain or fix the loss.
+
 ## What the log shows (host, 2026-10-25, build `1fa171f0`)
 
 ```

@@ -85,6 +85,11 @@ medical operation the two clients perform together, which is why the drag gestur
   `WorldGeneration.UpdateAmbientLight` (`WorldGeneration.cs:992-1010`): `ambientlight` 1 sets `0.12f`, 2 sets `0.4f`, anything
   else `0f`, and then "`if (ConsoleScript.instance.fullBright || this.body.bothEyesGone)`" forces `0.7f` — the game's own mercy
   for a player who cannot see, and the reason a CUO lighting rule must not fight it.
+- **Sepsis is a slow accumulator fed by total infection, and the run setting scales it.** `Body.cs:2809-2845`: the body sums its
+  limbs' `infectionAmount`; above `100f` total it adds
+  `septicShock += dt * num * 0.00028f * GetRunSettingFloat("infections…")` capped at `100f`, and below it
+  `septicShock -= dt * 0.07f` back to zero — so a treated body recovers and an untreated one slides toward the `82.5f` line in
+  `isCriticallyDying`.
 - A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
 
 ## Refusals

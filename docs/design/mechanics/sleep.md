@@ -27,6 +27,12 @@ bed, and the game treats it as ordinary sleep.
   own body must swallow or chew.
 - Whether a sleeping (rather than injured-unconscious) teammate may be FED is not yet decided; it is recorded as an open
   question rather than answered by a guess.
+- **A nap needs more than being tired.** `Body.canTakeNap` (`Body.cs:34-40`) is
+  "`energy < 35f && averagePain < 31f && sicknessAmount < 80f`" (or a component that grants it), so a body in pain or sickness
+  cannot simply sleep it off.
+- **Waking applies the night it ended on.** `WakeUp()` (`Body.cs:3030-3050`): a Mediocre sleep sets `badSleepAmount = 60f`, a
+  Bad one `150f`, and a Good one raises `caffeinated` to at least `180f` and stamps `goodSleepTime` — the quality is not only a
+  regeneration multiplier, it leaves a state behind.
 
 ## Refusals
 

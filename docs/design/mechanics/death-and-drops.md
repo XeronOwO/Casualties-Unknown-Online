@@ -35,6 +35,10 @@ medical view can act on. A revive is the game's own revival of that body.
   `Random.Range(-7f, 7f)` horizontal velocity, gets `SetCondition(Random.Range(conditionMin, conditionMax))`, and is marked
   `FreshItemDrop` when the player is within `8f` — so a death's drops are rolled once, are not all-or-nothing, and the
   "fresh" mark is the game's own.
+- **A dropped item is THROWN: it inherits the body's motion.** `Body.DropItem(item)` (`Body.cs:2500-2520`) sets
+  `item.rb.simulated = true`, copies the body's `rb.velocity`, zeroes angular velocity and unparents before the item exists in
+  the world — which is why a drop's first positions agree between clients and why a drop carries the body's momentum rather
+  than appearing at rest.
 - The body stays where it died and is still a treatment target until it is revived or despawned; a dead body cannot
   consume anything.
 - Revival restores the body the game's own revival restores; the reviving player spends what the game charges them.

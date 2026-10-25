@@ -33,6 +33,11 @@ bed, and the game treats it as ordinary sleep.
 - **Waking applies the night it ended on.** `WakeUp()` (`Body.cs:3030-3050`): a Mediocre sleep sets `badSleepAmount = 60f`, a
   Bad one `150f`, and a Good one raises `caffeinated` to at least `180f` and stamps `goodSleepTime` — the quality is not only a
   regeneration multiplier, it leaves a state behind.
+- **A nap STRIPS the hands, and being unwell demotes it.** `Body.TakeANap` (`Body.cs:2484-2500`) toggles the wound view and
+  calls `DropItem(0)`, `DropItem(1)` and `DropItem(2)` before sleeping — all three held slots are emptied — and it runs the ALT
+  nap when "`sicknessAmount > 30f || totalHappiness < -50f || temperature < 34.5f || temperature > 38.5f`". Those two facts are
+  the risk and the cost of sleeping, and a CUO sleep that keeps the items in hand has removed a game mechanic rather than
+  avoided a bug.
 
 ## Refusals
 

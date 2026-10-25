@@ -227,7 +227,25 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 202 | `done/runtime-entity-spawn-backfill.md` | yes — a runtime spawn is backfilled to a late joiner | `model/session-lifecycle.md` | `corpus page` | the rejoin rules cover a joiner receiving what already exists |
 | 203 | `done/sandbox-client-null-reference-bursts.md` | yes — the bursts are gone | n/a | `out of corpus scope` | a test-harness defect, not a product surface |
 | 204 | `done/save-format-and-world-repository.md` | yes — format and repository are the save system's | `cross-cutting/saves-and-recovery.md` | `corpus page` | ticket: "S1 — Save format + world repository + backup I/O"; behaviour on the saves page, format on the architecture contract |
-| … | the remaining 45 `done/` tickets, then `review/` (36) and `todo/` (12) | | | | |
+| 205 | `done/save-guest-restore-claim-and-legacy-store-retirement.md` | yes — the guest's restore claim and the retired store | `cross-cutting/saves-and-recovery.md` | `corpus page` | the restore claim rules the page states, with the legacy store retired rather than kept |
+| 206 | `done/save-interval-autosave-and-backup-recovery.md` | yes — autosave and backup recovery exist | `cross-cutting/saves-and-recovery.md` | `corpus page` | the page's cut rules and the repository's backups |
+| 207 | `done/save-layer-time-not-carried.md` | yes — the archive carries layer time | `cross-cutting/saves-and-recovery.md` | `corpus page` | ticket: "Layer time accounting is not carried by the archive", judged on the fixed seam (`9f79f25a`); the page's new "values the archive must carry" section names it |
+| 208 | `done/save-multiplayer-restore-and-backups.md` | yes — a multiplayer restore and its backups | `cross-cutting/saves-and-recovery.md` | `corpus page` | the restore rules, per entry and per owner |
+| 209 | `done/save-new-player-starting-supplies.md` | yes — a player without a character is supplied as new | `cross-cutting/saves-and-recovery.md` | `corpus page` | ticket: "A player the world has no character for is supplied as a NEW player", with the grant announced before its use; the page's values section names it |
+| 210 | `done/save-restore-account-surface.md` | yes — the restore account is a surface of its own | `cross-cutting/saves-and-recovery.md` | `corpus page` | the account and its release (row 196) are the same family |
+| 211 | `done/save-run-clock-not-sent.md` | yes — the run clock base reaches a mid-run joiner | `cross-cutting/saves-and-recovery.md` | `corpus page` | ticket: "The archived run clock base never reaches a player who joins mid-run"; the values section names it |
+| 212 | `done/save-solo-menu-exit-trigger.md` | yes — the solo menu exit triggers the cut | `cross-cutting/saves-and-recovery.md` | `corpus page` | decision 176: the menu-return trigger is the leave action; the page's cut rules |
+| 213 | `done/second-drop-report-loses-its-world-object.md` | yes — the adopt tie-break is a named rule | `mechanics/death-and-drops.md` | `corpus page` | ticket: "the adopt tie-break is a named rule and the runtime row that failed in batch `20261006-h` now passes 2/2"; the drops page now states it |
+| 214 | `done/session-control-convergence.md` | yes — session control converges | `model/session-lifecycle.md` | `corpus page` | the lifecycle page's membership and reset rules |
+| 215 | `done/session-driver-in-process.md` | yes — the in-process driver exists | n/a | `out of corpus scope` | acceptance tooling; reader: `tools/AGENTS.md` |
+| 216 | `done/session-environment-gate.md` | yes — the install trees are gated by their own marker | n/a | `out of corpus scope` | acceptance tooling |
+| 217 | `done/single-file-plugin-package.md` | yes — the plugin ships as one file | n/a | `out of corpus scope` | packaging |
+| 218 | `done/snapshot-overtakes-item-reports.md` | yes — a snapshot cannot overtake an item report | `model/item-custody.md` | `corpus page` | the reconciliation and ordering rules the custody page states |
+| 219 | `done/snapshot-size-reduction.md` | yes — the snapshot's size is bounded | n/a | `out of corpus scope` | protocol/performance |
+| 220 | `done/snbt-state-language.md` | yes — one SNBT language for the two commands | `cross-cutting/permissions-and-commands.md` | `corpus page` | ticket: "the language and the two commands that speak it (`/data`, `/give`) landed in this cycle" and were judged on the deployed artifact; the page now states the single dialect |
+| 221 | `done/source-shape-gate-modifier-blindness.md` | yes — the gate sees modifiers | n/a | `out of corpus scope` | gates; reader: `docs/evidence/normative-gates.md` |
+| 222 | `done/spectator-superseded-host-rules.md` | yes — the retired host rules are gone end to end | `mechanics/spectator.md` | `corpus page` | the spectator page names this ticket as the pivot's cleanup |
+| … | the remaining 27 `done/` tickets, then `review/` (36) and `todo/` (12) | | | | |
 
 The `#` column is the AUDIT SEQUENCE, not the alphabetical index: rows follow the alphabetical ticket list, and a ticket recovered after a skip is appended with a note rather than renumbering every later row. Each filled row carries its evidence: the ticket's own quoted design
 sentence, the source path that implements it, and the corpus page that carries it.

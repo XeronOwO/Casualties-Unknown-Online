@@ -31,6 +31,10 @@ come back where they were when the cut was taken.
 - A refused restore child keeps its identity where the design says it goes (the ground), rather than being dropped
   silently.
 
+## Values the archive must carry
+
+Three values have each been their own ticket, which is why they are stated here together: the layer time accounting (the timer is carried and restored, read on the fixed seam), the run clock base (a player who joins mid-run receives the archived base), and a new player's starting supplies (a player the world has no character for is supplied as a NEW player, with the grant announced before its use). Each of them is a value that silently disappeared before its ticket, so a restore that drops one is the same defect returning.
+
 ## Refusals and recovery
 
 | Condition | What happens |

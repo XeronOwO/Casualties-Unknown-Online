@@ -20,7 +20,15 @@ medical view can act on. A revive is the game's own revival of that body.
 - Drops are world facts: the host owns them, every client shows them, and a member who joins or re-enters sees them.
 - The body stays where it died and is still a treatment target until it is revived or despawned; a dead body cannot
   consume anything.
-- Revival restores the body the game's own revival restores; the reviving player spends what the game charges them.- **A fresh joiner sees the drops that already exist.** Entering a world where the party has already broken something must show the same drops, not an empty world: the accepted reading joined a fresh member AFTER the host broke a support cell (`blockBefore=2, blockAfter=0`, `item-world-read` 0 → **5**) and "the fresh guest answered **5 items with the identical set the host holds** — `blobflesh` plus four `stonefruitclosed`, compared as sorted ids".
+- Revival restores the body the game's own revival restores; the reviving player spends what the game charges them.
+- **A fresh joiner sees the drops that already exist.** Entering a world where the party has already broken something must
+  show the same drops, not an empty world: the accepted reading joined a fresh member AFTER the host broke a support cell
+  (`blockBefore=2, blockAfter=0`, `item-world-read` 0 → **5**) and the fresh guest answered **5 items with the identical set
+  the host holds** — `blobflesh` plus four `stonefruitclosed`, compared as sorted ids.
+- **A drop is created ONCE, and a second report at the same spot keeps its own object.** A dug tree or a world-spawned item
+  must not appear twice on a client's tree, and two reports at one position are adopted by a named TIE-BREAK rather than one
+  consuming the other: the accepted reading is that "the adopt tie-break is a named rule" and the row that failed now
+  "passes 2/2".
 - A death that happens only on the host's side (a host-only cause, a host-side blast) must still produce the same drops
   for the party, because the drops are part of the death.
 

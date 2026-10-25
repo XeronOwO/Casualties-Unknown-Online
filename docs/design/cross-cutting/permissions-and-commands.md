@@ -25,6 +25,10 @@ Selectors name players: `@a` every player including the executor, `@s` the execu
 random, `@e` the player-entity alias; each takes bracket filters (`type`, `name`, `distance`, `limit`, `sort`). A
 selector that matches several players where one is required refuses and names the count.
 
+**One data language.** An item's own state is written as SNBT text, and the two commands that speak it are `/data` and
+`/give` — the ticket's own summary is that "the language and the two commands that speak it" landed together, judged on the
+deployed artifact. A per-property keyword form is not a second dialect of the same thing.
+
 ## Host rules
 
 - A host rule is decided by the host and reaches every member that reads it; the member's own check is an interception

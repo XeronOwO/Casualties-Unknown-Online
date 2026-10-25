@@ -34,7 +34,7 @@ A gate proves presence and shape. It cannot prove quality, and a green run is no
 | A fully qualified type name where a `using` or alias is the cleaner form | `FullyQualifiedNameGateTests` (Roslyn) |
 | An added, changed or quietly removed `Abstractions` public member while the reviewed baseline still says otherwise | `ApiSurfaceGateTests.AbstractionsPublicSurface_MatchesTheReviewedBaseline` (+ census floor and matcher contracts) |
 | An absolute machine path in any file git would carry | `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths` |
-| An unchecked required box, a checked FORBIDDEN box, or a checklist that no longer declares a box the process requires | `DeliveryChecklistGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`, `DeliveryChecklistGateTests.DeliveryChecklist_DeclaresEveryRequiredBox` |
+| An unchecked required box, a box without evidence, a checked FORBIDDEN box, or a checklist that no longer declares a box the process requires | `tools/check-delivery.ps1` (run before the commit: validate → archive → reset), `DeliveryChecklistGateTests.DeliveryChecklist_DeclaresEveryRequiredBox` (the census) |
 | A wire discriminator missing from the sync coverage matrix, a row without a verdict or evidence, an evidence quote that no longer matches its source | `SyncCoverageGateTests.SyncCoverageMatrix_…`, `…SyncCoverageEvidence_EveryQuoteMatchesItsSourceLine` |
 | A test class that mutates a process-global static outside the `GameAssembly` collection | `TestIsolationGateTests.StaticGameStateMutations_JoinTheGameAssemblyCollection` |
 | A test class over 40 real cases or data rows | `TestClassSizeGateTests.NoTestClass_ExceedsTheCaseLimit` |

@@ -9,12 +9,31 @@ their own over a slot or a container inside that pack (a GIVE), or drags an item
 (a TAKE). The player expects the item to change hands exactly once: it leaves the giver's inventory and appears in the
 receiver's, in the place the player aimed at, with the container it was aimed inside if it was aimed inside one.
 
+**The drag may start on an item lying in the world.** The game's own press branch takes the item under the pointer from the
+`Item` layer FIRST and makes it the dragged item — `PlayerCamera.TryPickupFromWorld` (`PlayerCamera.cs:1423`, `:1423-1441`:
+`Physics2D.OverlapPoint(…, LayerMask.GetMask(new string[] { "Item" }))` → `if (collider2D.TryGetComponent<Item>(ref item)) { this.dragItem = item; return; }`),
+with the body/limb layers and the descriptor/ground layers as the fallbacks and `this.dragItem = invButton.GetItem()`
+(`:1413`) / `this.dragItem = itemLabel.refItem` (`:1407`) as the OTHER two entrances.
+
+A world item is therefore a legal drag start, but its HAND-OVER is not designed: the transfer is stated to name an item the giver
+carries, and a world item is nobody's yet. The attempt to pick it up and then give it in one gesture swallowed the item on the
+machine (2026-10-25), so the gesture is refused by name and the finding is `docs/backlog/todo/give-from-the-ground-swallows-the-item.md`;
+until that ticket lands, the player picks the item up first, which is the native two-step and never loses it.
+
 ## What the game itself does
 
 Both directions are the game's own custody operations: an item moves into another holder through the game's container and
 pickup path (`Container.LoadItem` for a container, the body's own pickup for a slot), and leaves one through the
 container's unload path. The transfer's sound, the container's refresh and the item's own presentation are produced by
 that path, not by the gesture.
+
+**The sound is the game's own call, made on the moving player's client.** The native release that loads an item into a
+backpack runs `container.UnloadItem` → `container.LoadItem` → `this.PlayBackpackSound()` (`PlayerCamera.cs:1557-1570`), and
+`PlayBackpackSound` is `Sound.Play("backpack" + Random.Range(1, 3).ToString(), …)` (`PlayerCamera.cs:44`). A cross-player
+give is that same release with somebody else's backpack as the destination, so the giver's client makes the same call when
+the item really leaves its body (`src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs`: "The game's own move
+sound: natively this release is UnloadItem + LoadItem + PlayBackpackSound, and a cross-player give is the same action with
+somebody else's backpack").
 
 ## Rules and states
 

@@ -62,6 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
+- [Giving a ground item swallows it](todo/give-from-the-ground-swallows-the-item.md) — **High** — refused until designed.
 - [The context menu does not block the pointer](todo/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
@@ -384,7 +386,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [CUO launcher button covers the view](done/cuo-launcher-button-obscures-the-view.md) — **Medium** — idle fade to semi-transparent.
 - [Remove the Online UI console page](done/remove-the-online-ui-console-page.md) — **Low-Medium** — the `/` overlay is the only console.
 - [Online UI panels asked for alphaBlend false](done/online-ui-panels-request-alpha-blend-false.md) — **Low-Medium** — every themed frame blends.
-- [The window title must use the game's official Chinese name](done/official-game-name-in-window-title.md) — **Medium** — `未知伤亡`, not the reversed form.
+- [The window title must use the game's official Chinese name](done/official-game-name-in-window-title.md) — **Medium** — the localized title.
 - [Host eating sound on the guest](done/host-eating-sound-not-heard-on-guest.md) — **Medium** — the consume family rides the one-shot event.
 - [Metal-scrap placement sound on guest](done/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium** — sounds ride the sound event.
 - [Guest hears only some block-break sounds](done/guest-hears-only-some-block-break-sounds.md) — **Medium-High** — the break was silent on the other side.

@@ -55,16 +55,13 @@ public sealed class DeliveryChecklistGateTests
 	/// <summary>The marker a checked box's evidence suffix follows; the failure messages cut at it.</summary>
 	private const string ChecklistEvidenceMarker = " — evidence:";
 
-	[Fact]
-	public void DeliveryChecklist_NoIncompleteRequiredBoxes()
-	{
-		var boxes = ChecklistBoxes(ChecklistText());
-		var failures = IncompleteBoxFailures(boxes);
-		Assert.True(
-			failures.Length == 0,
-			Describe($"the delivery checklist ({boxes.Count(box => box.Checked)} of {boxes.Length} box(es) checked)", failures));
-	}
-
+	/// <summary>
+	/// The checklist is validated by `tools/check-delivery.ps1`, run before a commit, NOT by a test: a test cannot reset
+	/// the file after it validates it, and a file left green certifies the next cycle without a record — which is exactly
+	/// what happened on 2026-10-25 (a whole session of commits ran against a previous cycle's checked boxes). The test
+	/// keeps only the half a test can reach: the checklist still DECLARES every required step, so the script can never
+	/// pass a file that lost one.
+	/// </summary>
 	/// <summary>The census the checklist gate used to lack: a checklist with nothing declared has nothing
 	/// left to fail on, so it passed. Every required step is reported by name instead — which is also why
 	/// the floor is the item list rather than a number: a count that moves with the cycle says nothing

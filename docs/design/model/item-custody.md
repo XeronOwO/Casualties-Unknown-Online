@@ -153,6 +153,10 @@ mechanic that produced it, not a rendering detail.
 
 - Which custody change a container's child reports when the container itself moves is recorded per ticket rather than stated here yet.
 - The item census recipe answers an instance id; whether every creation path stamps one is not recorded here yet.
+- **The adapter does not read the location this page makes authoritative.** `ItemLocation` appears zero times under
+  `src/CasualtiesUnknownOnline.GameAdapter/`, while five adapter-side stores each keep their own copy of "where is it" and three layers infer
+  intent from Unity lifecycle callbacks (`ItemWorldSync`, `PickupSync`, `ItemReconcile`). Both item losses of 2026-10-25 came from that gap, not
+  from a missing rule; the work is `../backlog/todo/item-custody-single-authority.md`.
 
 ## Records
 

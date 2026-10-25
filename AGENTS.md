@@ -185,6 +185,21 @@ not the goal.
    question about how the game or a reference mod behaves is answered by reading a file there, never by
    searching the web or a mod's release page.** The tree is gitignored, so a directory-wide search returns
    nothing: name the file. A reference implementation named in a ticket is a fact to READ, not to recall.
+3a. `[CRITICAL]` **CUO's own code is NEVER evidence of what the GAME does.** A claim about native behaviour — what a
+   gesture can do, what a call produces, what an item does — is answered by `reversing/` alone, quoted with its file and
+   line. Reading a patch, a bridge or a comment in `src/` and concluding "the game does not do X" is the defect this rule
+   names: the patch states only what CUO chose, and an assumption dressed as a native fact has already produced a wrong
+   answer to the user ("the original cannot drag an item off the ground" — it can: `PlayerCamera.TryPickupFromWorld` takes
+   the item under the pointer from the `Item` layer and sets `dragItem` from it). **An impossibility claim is a claim about
+   EVERY entrance**: enumerate the native sites (every assignment, every branch of the method) and quote them, or do not
+   make the claim.
+3b. `[CRITICAL]` **A design page is read before a behaviour change and written back after it.** `docs/design/` is the
+   behaviour's own record: the page governing the surface or mechanic is read FIRST (its `What the player does` states the
+   gesture, its `What the game itself does` the native call), the change is made against it, and the page plus
+   `docs/design/audit/code.md` are updated in the SAME commit — the new rule in the page, the row or re-judged verdict in
+   the ledger, and a page found silent on the rule gains it (a `page-wrong` verdict, not a silence). A behaviour change
+   that touches no design page is incomplete: it either cites the page that already stated the rule or teaches the page
+   the rule it was missing. A corpus that is neither read nor written back is dead weight.
 4. `[CRITICAL]` **Absolute-machine-path red line**: no absolute machine path may ever enter git — no
    drive-letter path, UNC path or Unix-style path rooted at home, user, temp, var or opt. Local paths
    belong only in gitignored local files — `AGENTS.local.md` or the `.agent-local/` area — or in

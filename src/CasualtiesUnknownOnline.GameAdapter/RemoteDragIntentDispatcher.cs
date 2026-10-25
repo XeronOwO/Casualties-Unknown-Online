@@ -35,6 +35,22 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 	}
 
 	/// <summary>
+	/// REFUSED, and the reason is measured rather than argued. The give's first native step for a ground item would be the game's own
+	/// pickup (the drag starts on a world item — `PlayerCamera`'s press branch takes the `Item` under the pointer), and this method did
+	/// exactly that: pick the item up into the giver's body and then send the give. On the machine it SWALLOWED the item (the user's
+	/// 2026-10-25 reading: the drag reacts, and the item is gone), because the pickup report and the give request race across the wire and
+	/// the receiving side ends up with neither the item nor its row. So the gesture is refused by name and the ticket
+	/// `give-from-the-ground-swallows-the-item.md` carries the finding; a ground item must be picked up by the player first, which is the
+	/// native two-step and never loses it.
+	/// </summary>
+	private bool CarryForGive(Item? dragItem, ulong itemId)
+	{
+		domains.Log.LogInformation("[RemoteIntent] refused the release of the ground item {Item} (id {ItemId}) onto the displayed backpack: pick it up first — handing a world item over in one gesture is not implemented (ticket give-from-the-ground-swallows-the-item).",
+			dragItem != null ? dragItem.name : "null", itemId);
+		return false;
+	}
+
+	/// <summary>
 	/// A release of this client's OWN item onto another player's displayed inventory. When it can be classified it
 	/// becomes the give-direction intent — the mirror of the take direction, where the item's owner is the ACTOR
 	/// and the destination body is the other player — and when it cannot, the release keeps its refusal and the line
@@ -74,6 +90,13 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 				dragItem != null ? dragItem.id : "null", // Unity object — ==
 				target,
 				targetOwnerSteamId);
+			return false;
+		}
+
+		// A ground item is a legal drag start (PlayerCamera's press branch takes the Item under the pointer), and handing one over needs it
+		// in this body first: the same two steps the player would perform by hand, run for them in one gesture.
+		if (!CarryForGive(dragItem, itemId))
+		{
 			return false;
 		}
 

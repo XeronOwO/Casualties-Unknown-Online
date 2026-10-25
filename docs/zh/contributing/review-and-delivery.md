@@ -94,7 +94,8 @@
 ## 交付清单
 
 每个开发周期都走一遍[交付清单](../../evidence/delivery-checklist.md)；
-`DeliveryChecklistGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes` 会在任何一个必勾项没勾时拒绝这个周期的最后一次提交，
+`tools/check-delivery.ps1` 在提交前校验它——每个必勾项都勾上并且带证据——把本周期的记录归档到
+`docs/evidence/checklists/`，然后把所有勾**重置**，让下一个周期从空白开始（测试做不到这件事：它不能重置文件，而一份留着的全绿清单会给下一个周期放行），
 `DeliveryChecklistGateTests.…DeclaresEveryRequiredBox` 则拒绝一份已经丢掉某个必勾项的清单——这就是清单自己的普查（census）。
 
 - 每一项都用编辑器**一行一行**勾，做完一步勾一步；用脚本或一次性补勾是禁止的，那等于伪造过程记录。

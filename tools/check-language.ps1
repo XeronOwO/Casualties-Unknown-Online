@@ -57,7 +57,8 @@ try {
 	$bad = @()
 	foreach ($file in $files) {
 		if (-not $file) { continue }
-		if (-not (Test-Path -LiteralPath $file)) { continue }
+		# A working-tree listing names a new DIRECTORY as one entry; only files carry text.
+		if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { continue }
 		$skip = $false
 		foreach ($pattern in $exempt) {
 			if ($file -match $pattern) { $skip = $true; break }

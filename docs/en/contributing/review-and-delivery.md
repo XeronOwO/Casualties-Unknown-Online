@@ -133,8 +133,10 @@ Tests and gates passing is not the finish line. Before the change moves on:
 ## The delivery checklist
 
 Every development cycle runs through [delivery-checklist.md](../../evidence/delivery-checklist.md);
-`DeliveryChecklistGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes` refuses the cycle's final commit
-while any required box is unchecked, and `DeliveryChecklistGateTests.…DeclaresEveryRequiredBox` refuses a
+`tools/check-delivery.ps1` validates it before the cycle's commit — every required box checked and carrying evidence — archives
+the cycle's record under `docs/evidence/checklists/`, and resets the boxes so the next cycle starts clean (a test cannot reset
+the file, and a file left green certifies the next cycle without a record), and
+`DeliveryChecklistGateTests.…DeclaresEveryRequiredBox` refuses a
 checklist that no longer declares a box the process requires — the checklist's own census.
 
 - Boxes are checked ONE LINE AT A TIME with an editor as each step completes; bulk checking with a

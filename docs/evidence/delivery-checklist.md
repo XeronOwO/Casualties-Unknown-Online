@@ -56,27 +56,36 @@ by it. A box whose evidence names another cycle is not filled.
 
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
-      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing —
-      evidence: this maintenance cycle read the instruction set end to end and rewrote it (root `AGENTS.md`,
-      `AGENTS.local.md`, the user-level file, `docs/`, the `docs/acceptance/` pair, `docs/design/`, `tools/`), each file now
-      stating one-line rules and pointing at the page that owns the detail
+      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
+      — evidence: the custody ticket's stage 1 read `docs/design/model/item-custody.md` and wrote back its `Gaps` rows this cycle
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
-      edit, and no forbidden shape is used to fit a mechanism — evidence: documentation-only cycle, no behaviour changed, so
-      no three-line statement is owed; the rule itself is now stated once in the root file with `reversing/` as its only
-      source of native fact
+      edit, and no forbidden shape is used to fit a mechanism
+      — evidence: documentation delivery this cycle (the projection's code landed in `e499dc33`); the rule now names
+      `reversing/` as the only source of native fact
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
-      with every difference either fixed or named as a user decision — evidence: documentation-only cycle, so no run is owed;
-      the machine evidence this cycle produced belongs to the custody projection and is cited under *Self-check table*
+      with every difference either fixed or named as a user decision
+      — evidence: the machine read this cycle is the custody projection on two clients — `.acceptance/batch-custody2`, host and
+      guest both `rows=285 objects=285 mismatches=0`
 - [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
+      — evidence: no gesture changed; the projection is a shadow read with no player-facing effect
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+      — evidence: the `ItemState` and `ItemLocation` shapes are quoted in the ticket; `IItemControl.QueryJudgedItems()` is the one new seam
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+      — evidence: the five stores the projection replaces are named with their files in the ticket and in `model/item-custody.md`
 - [ ] Self-check table: mechanism x change x evidence, every cell filled
+      — evidence: 7 comparison tests (`.acceptance/l521-test.log`), the two-client `mismatches=0`, and the guest's transient
+      `objects=1` explained as the world streaming in
 - [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+      — evidence: `ItemCustodyProjection` logs the comparison once a second and both clients' logs are read for the verdict
 - [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+      — evidence: the user ordered the big change ("root it out, overturn what needs overturning") and the ticket carries it
 - [ ] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round)
+      — evidence: `ItemCustodyComparison` is a pure static type and `ItemCustodyProjection` holds two fields; the adapter's +4
+      lines are recorded in `docs/architecture-debt.json`; `ItemService` was trimmed to stay under its ceiling
 - [ ] Build + dotnet format + dotnet test normative gates pass
+      — evidence: `.acceptance/l523-full.log` 802/802 gates and 6511/6511 behaviour green; `dotnet format` exit 0
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

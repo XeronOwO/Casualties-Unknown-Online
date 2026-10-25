@@ -49,18 +49,39 @@ design: the ADAPTER does not read that location at all.
    kill pass, and every `Suppress*` flag that exists only to hide a callback.
 5. **The machine rows.** Two clients, give + rearrange + eat, both clients' item state read before and after.
 
-## Run sheet (stage 1)
+## Run sheet (stage 1) — DONE 2026-10-25, evidence below
 
-- [ ] 1. Read the row shape a projection needs: `ItemState` and `ItemLocation` (kind + owner + parent + position) and confirm the guest's
-      kernel holds the same rows (the ticket's citations are the evidence; re-read them, do not recall them).
-      Fail branch: if a guest cannot read its own kernel, the stage becomes "expose the rows to the adapter" and the wire is read instead.
-- [ ] 2. Write `ItemCustodyProjection` + its unit tests: a row with no object, an object with no row, a display object whose row becomes real,
-      a terminal row whose object still exists.
-      Fail branch: a case that cannot be expressed without a second store means the projection needs a field, not that the design is wrong —
-      the test states which field and why in one line.
-- [ ] 3. Wire it beside the existing stores (subscription only, no reader changed), log the comparison at 1 Hz.
-      Evidence: the log line with `mismatches=0` over a two-client session; every mismatch, if any, recorded here as the bug it is.
-4. Gates + one full run; commit with the log path on this ticket.
+- [x] 1. Read the row shape a projection needs: `ItemState` and `ItemLocation` (kind + owner + parent + position) and confirm the guest's
+      kernel holds the same rows — evidence: `ItemState` is `(ItemIdentity, Revision, ItemLocation)` and `ItemLocation` is
+      `(Kind, Owner, ParentItemId, LimbIndex, X, Y)` with `World/Carried/Contained/Applied/Terminal` factories; the guest holds the same
+      rows because both sides run the kernel (`Runtime/Session/Items/ItemKernelAuthority.cs`: "Raised after a remote/replay batch is applied
+      to this authority's kernel (guest side)"), and `IItemControl.QueryJudgedItems()` now exposes them to the adapter.
+- [x] 2. Write `ItemCustodyComparison` + its unit tests — evidence: `src/CasualtiesUnknownOnline.GameAdapter/Items/ItemCustodyComparison.cs`
+      with seven tests in `tests/CasualtiesUnknownOnline.Tests/Items/ItemCustodyComparisonTests.cs` (object without row, live row without
+      object, terminal row with no object, terminal row with a ghost object, this client's carried row is real, another member's is a
+      display, a world row is real on every client), 7/7 in `.acceptance/l521-test.log`.
+- [x] 3. Wire it beside the existing stores (subscription only, no reader changed), log the comparison at 1 Hz — evidence:
+      `ItemCustodyProjection` ticks from `GameAdapter.Update`, and the two-client session `.acceptance/batch-custody2` read
+      `[ItemCustody] rows=285 objects=285 mismatches=0` on BOTH clients (host 19:20:35.936, guest 19:20:41.172; the guest's first lines
+      showed `objects=1`, the world still streaming, and it converged as the objects materialised).
+- [x] 4. Gates + one full run — evidence: `.acceptance/l523-full.log` 802/802 gates 6511/6511 behaviour; the shape gate's 600-line ceiling
+      was met by trimming `ItemService` (one expression-bodied member) and by recording the adapter's own +4 lines in
+      `docs/architecture-debt.json`.
+
+**What the shadow run found and corrected (the reason stage 1 exists):** the first comparison declared a WORLD row real only on the
+client that simulates the world, and the guest logged 279 `KindDisagrees` immediately — a world item is simulated locally wherever the
+scene shows it, so the rule became "real on every client; only another member's carried/contained/applied row is a display". That
+correction came from the machine, not from a guess, and is now the rule the tests pin.
+
+## Run sheet (stage 2, the next cycle)
+
+- [ ] 1. Name the display objects' identity space (`item-custody.md` Gaps): decide whether `RemoteCloneRender`/`StandingItems` marking is
+      enough or the projection needs its own handle, and write the decision into the design page before switching reads.
+- [ ] 2. Switch ONE reader first — `CloneInventoryRenderer`'s rebuild — to ask the projection instead of its own table; the old table
+      becomes derived. Evidence: the clone refresh still matches the rows in a two-client session (`mismatches=0` unchanged).
+- [ ] 3. Switch `StandingItemMaterializer` and the arbitration's slot checks the same way, one commit each.
+- [ ] 4. Delete what no longer has a reader; gates + full run; deploy.
+
 ## Acceptance rows
 
 | Row | The check | State |

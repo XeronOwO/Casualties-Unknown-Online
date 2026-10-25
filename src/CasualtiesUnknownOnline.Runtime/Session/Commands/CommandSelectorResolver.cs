@@ -11,11 +11,18 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// <c>@r</c>) and bracketed filters (<c>type</c>, <c>name</c>, <c>distance</c>,
 /// <c>limit</c>, <c>sort</c>). The console presents the same vocabulary as the
 /// argument provider, while the actual expansion stays Unity-free and testable.
-/// 
-/// CUO's current entity domain only contains player bodies, so <c>@e</c> is a
-/// player-entity alias. <c>@s</c> selects the local body; the other selectors
-/// target remote peers because the co-op interaction commands act on the
-/// player you are helping.
+///
+/// <para>
+/// THE MEANINGS ARE MINECRAFT'S, the template the console family follows (<c>AGENTS.md</c> rule 17): <c>@a</c> is EVERY
+/// player, the one who typed the command included; <c>@p</c> is the nearest player to the executor, and at distance zero
+/// that is the executor; <c>@s</c> is the executor alone; <c>@r</c> is one random player. A selector set that silently
+/// dropped the sender made the most convenient form of every cheat verb unusable on the client an operator debugs most —
+/// the host — which is the reported "<c>/heal @a</c> does not heal me" (ticket
+/// <c>selectors-exclude-the-executor</c>).
+/// </para>
+/// <para>
+/// CUO's entity domain only contains player bodies, so <c>@e</c> is a player-entity alias and answers like <c>@a</c>.
+/// </para>
 /// </summary>
 public static class CommandSelectorResolver
 {
@@ -59,16 +66,21 @@ public static class CommandSelectorResolver
 			return [];
 		}
 
-		var candidates = SelectBase(typeToken, targets);
+		var local = targets.FirstOrDefault(t => t.IsLocal);
+		var origin = local.IsLocal ? (NetVector2?)local.Position : null;
+
+		// THE FILTER COMES FIRST, then the base selector — Minecraft's own order: a bracketed filter narrows the candidate
+		// set the selector then picks from, so `@p[distance=1..]` is "the nearest player who is NOT standing on me" rather
+		// than "the nearest player, if it happens to be far enough". The old order made every filtered @p/@r answer empty as
+		// soon as the executor stood nearest, which is the shape that hid the executor in the first place.
+		var eligible = targets.Where(t => filter.Matches(t, origin)).ToList();
+		var candidates = SelectBase(typeToken, eligible);
 		if (candidates.Count == 0)
 		{
 			return [];
 		}
 
-		var local = targets.FirstOrDefault(t => t.IsLocal);
-		var origin = local.IsLocal ? (NetVector2?)local.Position : null;
-		var filtered = candidates.Where(t => filter.Matches(t, origin)).ToList();
-		var sorted = ApplySort(filter.Sort, filtered, origin ?? NetVector2.Zero);
+		var sorted = ApplySort(filter.Sort, candidates, origin ?? NetVector2.Zero);
 
 		if (filter.Limit is { } limit && sorted.Count > limit)
 		{
@@ -80,42 +92,44 @@ public static class CommandSelectorResolver
 
 	private static IReadOnlyList<Target> SelectBase(string typeToken, IReadOnlyList<Target> targets)
 	{
-		var remote = targets.Where(t => !t.IsLocal).ToList();
 		return typeToken.ToLowerInvariant() switch
 		{
-			"a" => remote,
-			"e" => remote,
+			// Minecraft's own meanings: @a is every player INCLUDING the executor, @e is the entity alias for the same set
+			// (this project's entity domain is players), @s is the executor alone, @p is the nearest — which at distance zero
+			// is the executor — and @r is one of everyone.
+			"a" => targets,
+			"e" => targets,
 			"s" => [.. targets.Where(t => t.IsLocal)],
-			"p" => NearestRemote(remote, targets),
-			"r" => RandomRemote(remote),
+			"p" => Nearest(targets),
+			"r" => RandomOf(targets),
 			_ => [],
 		};
 	}
 
-	private static IReadOnlyList<Target> NearestRemote(IReadOnlyList<Target> remote, IReadOnlyList<Target> all)
+	private static IReadOnlyList<Target> Nearest(IReadOnlyList<Target> targets)
 	{
-		if (remote.Count == 0)
+		if (targets.Count == 0)
 		{
 			return [];
 		}
 
-		var local = all.FirstOrDefault(t => t.IsLocal);
+		var local = targets.FirstOrDefault(t => t.IsLocal);
 		var origin = local.IsLocal ? local.Position : NetVector2.Zero;
-		var nearest = remote
+		var nearest = targets
 			.OrderBy(t => DistanceSquared(origin, t.Position))
 			.First();
 		return [nearest];
 	}
 
-	private static IReadOnlyList<Target> RandomRemote(IReadOnlyList<Target> remote)
+	private static IReadOnlyList<Target> RandomOf(IReadOnlyList<Target> targets)
 	{
-		if (remote.Count == 0)
+		if (targets.Count == 0)
 		{
 			return [];
 		}
 
-		var index = new Random().Next(remote.Count);
-		return [remote[index]];
+		var index = new Random().Next(targets.Count);
+		return [targets[index]];
 	}
 
 	private static IReadOnlyList<Target> ApplySort(SelectorSort sort, IReadOnlyList<Target> targets, NetVector2 origin) =>

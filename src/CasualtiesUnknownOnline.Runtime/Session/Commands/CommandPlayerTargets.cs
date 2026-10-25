@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -35,10 +36,15 @@ internal static class CommandPlayerTargets
 		{
 			if (member.SteamId == steamId)
 			{
-				return member.DisplayName;
+				// A member whose persona has not arrived yet is still NAMEABLE: the steam id is the one identifier the
+				// session always holds, so `@a[name=7656…]` answers the same on every client instead of matching nothing
+				// (and it is what an operator reads in the roster line when the persona is missing).
+				return string.IsNullOrWhiteSpace(member.DisplayName)
+					? steamId.ToString(CultureInfo.InvariantCulture)
+					: member.DisplayName;
 			}
 		}
 
-		return null;
+		return steamId.ToString(CultureInfo.InvariantCulture);
 	}
 }

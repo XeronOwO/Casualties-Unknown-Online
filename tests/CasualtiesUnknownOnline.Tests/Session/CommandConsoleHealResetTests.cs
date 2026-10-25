@@ -53,7 +53,7 @@ public class CommandConsoleHealResetTests
 		var (host, guest, reset) = CreateHealSession();
 		SeedMember(host, conscious: true);
 
-		var answer = Run(host, "/heal @p");
+		var answer = Run(host, "/heal @p[distance=1..]");
 
 		Assert.Equal("Reset 2001: sent to that player's own client, which applies the full reset and re-reports the state.", answer);
 		Assert.Equal(1, reset.Resets);
@@ -69,7 +69,7 @@ public class CommandConsoleHealResetTests
 		dead.Health!.Alive = false;
 		Characters(host).SaveCharacterData(GuestId, dead);
 
-		var answer = Run(host, "/heal @p");
+		var answer = Run(host, "/heal @p[distance=1..]");
 
 		Assert.Contains("it was dead, so it revives", answer);
 	}
@@ -80,7 +80,7 @@ public class CommandConsoleHealResetTests
 		var (host, _, reset) = CreateHealSession(memberCheatSwitch: false);
 		SeedMember(host, conscious: true);
 
-		var answer = Run(host, "/heal @p");
+		var answer = Run(host, "/heal @p[distance=1..]");
 
 		Assert.StartsWith("Reset 2001: sent", answer);
 		Assert.Equal(1, reset.Resets);
@@ -137,7 +137,7 @@ public class CommandConsoleHealResetTests
 		SeedMember(host, conscious: true);
 		reset.Outcome = LocalBodyResetOutcome.Refused("this client has no local body yet.");
 
-		var answer = Run(host, "/heal @p");
+		var answer = Run(host, "/heal @p[distance=1..]");
 
 		Assert.StartsWith("Reset 2001: sent", answer);
 		Assert.Contains(guest.Services.GetRequiredService<ICommandControl>().Lines,
@@ -210,7 +210,7 @@ public class CommandConsoleHealResetTests
 		before.Limbs.Add(new CharacterLimbMsg { Index = 0, BleedAmount = 0.7f });
 		var revisionBefore = before.LocalRevision;
 
-		Assert.StartsWith("Reset 2001: sent", Run(host, "/heal @p"));
+		Assert.StartsWith("Reset 2001: sent", Run(host, "/heal @p[distance=1..]"));
 		Assert.NotNull(reset.LastInstructionId);
 		SendApplied(guest, host, reset.LastInstructionId!.Value);
 
@@ -233,7 +233,7 @@ public class CommandConsoleHealResetTests
 		SeedMember(host, conscious: true);
 		Characters(host).GetSavedCharacter(GuestId)!.Health!.BloodVolume = -99.7f;
 
-		Run(host, "/heal @p");
+		Run(host, "/heal @p[distance=1..]");
 		SendApplied(guest, host, reset.LastInstructionId!.Value);
 		SendPlainReport(guest, host, bloodVolume: -99.7f);
 
@@ -247,7 +247,7 @@ public class CommandConsoleHealResetTests
 		var (host, guest, reset) = CreateHealSession(storeLog: storeLog);
 		SeedMember(host, conscious: true);
 		Characters(host).GetSavedCharacter(GuestId)!.Health!.BloodVolume = 42f;
-		Run(host, "/heal @p");
+		Run(host, "/heal @p[distance=1..]");
 
 		var state = HealState();
 		state.Health!.BloodVolume = float.NaN;
@@ -284,7 +284,7 @@ public class CommandConsoleHealResetTests
 		var (host, guest, reset) = CreateHealSession(serviceLog: serviceLog);
 		SeedMember(host, conscious: true);
 		Characters(host).GetSavedCharacter(GuestId)!.Health!.BloodVolume = 42f;
-		Run(host, "/heal @p");
+		Run(host, "/heal @p[distance=1..]");
 
 		SendApplied(guest, host, reset.LastInstructionId!.Value, owner: HostId);
 
@@ -301,9 +301,9 @@ public class CommandConsoleHealResetTests
 		SeedMember(host, conscious: true);
 		Characters(host).GetSavedCharacter(GuestId)!.Health!.BloodVolume = 42f;
 
-		Run(host, "/heal @p");
+		Run(host, "/heal @p[distance=1..]");
 		var first = reset.LastInstructionId!.Value;
-		Run(host, "/heal @p");
+		Run(host, "/heal @p[distance=1..]");
 		var second = reset.LastInstructionId!.Value;
 		Assert.NotEqual(first, second);
 
@@ -320,7 +320,7 @@ public class CommandConsoleHealResetTests
 		var (host, guest, reset) = CreateHealSession();
 		SeedMember(host, conscious: true);
 		Characters(host).GetSavedCharacter(GuestId)!.Health!.BloodVolume = 42f;
-		Run(host, "/heal @p");
+		Run(host, "/heal @p[distance=1..]");
 
 		host.Clock.Advance(60_000);
 		SendApplied(guest, host, reset.LastInstructionId!.Value);
@@ -341,7 +341,7 @@ public class CommandConsoleHealResetTests
 		var (host, guest, reset) = CreateHealSession(storeLog: storeLog);
 		SeedMember(host, conscious: true);
 		Characters(host).GetSavedCharacter(GuestId)!.Health!.BloodVolume = 42f;
-		Run(host, "/heal @p");
+		Run(host, "/heal @p[distance=1..]");
 		var instructionId = reset.LastInstructionId!.Value;
 
 		var tooMuchBlood = HealState();
@@ -380,7 +380,7 @@ public class CommandConsoleHealResetTests
 		Characters(host).GetSavedCharacter(GuestId)!.Health!.BloodVolume = 42f;
 		host.Transport.Network.SetFaults(HostId, GuestId, new LinkFaults { Down = true });
 
-		var answer = Run(host, "/heal @p");
+		var answer = Run(host, "/heal @p[distance=1..]");
 
 		host.Transport.Network.ClearFaults(HostId, GuestId);
 		Assert.Contains("transport did not accept the reset instruction", answer);

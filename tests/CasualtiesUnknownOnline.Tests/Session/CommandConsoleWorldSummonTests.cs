@@ -120,7 +120,7 @@ public class CommandConsoleWorldSummonTests
 			Item(4100, "backpack", slot: 0), Item(4101, "bandage", slot: 1), Item(4102, "knife", slot: 2),
 			Item(4103, "bandage", slot: 3), Item(4104, "bandage", slot: 4), Item(4105, "bandage", slot: 5)));
 
-		var given = Run(host, "/give @p bandage{Condition:0.25f}");
+		var given = Run(host, "/give @a[name=2001] bandage{Condition:0.25f}");
 		var summoned = Run(host, "/summon item bandage player {Condition:0.25f}");
 
 		const string State = "with state {Condition:0.25f,";

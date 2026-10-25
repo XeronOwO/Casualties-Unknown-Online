@@ -44,7 +44,7 @@ public class CommandConsoleMemberItemGiveTests
 	{
 		var (host, guest, creation) = CreateMemberGiveSession(switchOpen: true, grant: true);
 
-		var answer = Run(guest, "/give @p bandage");
+		var answer = Run(guest, "/give @a[name=1001] bandage");
 
 		var item = Assert.Single(creation.Created);
 		Assert.Equal($"Gave bandage (#{item.InstanceId}) to {HostId} in slot 0.", answer);
@@ -72,7 +72,7 @@ public class CommandConsoleMemberItemGiveTests
 	{
 		var (host, guest, creation) = CreateMemberGiveSession(switchOpen: true, grant: true);
 
-		var answer = Run(guest, "/give @p bandage{Condition:0.5f}");
+		var answer = Run(guest, "/give @a[name=1001] bandage{Condition:0.5f}");
 
 		var item = Assert.Single(creation.Created);
 		Assert.Contains("with state {Condition:0.5f,", answer);
@@ -85,7 +85,7 @@ public class CommandConsoleMemberItemGiveTests
 	{
 		var (host, guest, creation) = CreateMemberGiveSession(switchOpen: false, grant: true);
 
-		var answer = Run(guest, "/give @p bandage");
+		var answer = Run(guest, "/give @a[name=1001] bandage");
 
 		Assert.Contains("Refused locally", answer);
 		Assert.Contains("AllowMemberCheatVerbs", answer);
@@ -98,7 +98,7 @@ public class CommandConsoleMemberItemGiveTests
 	{
 		var (host, guest, creation) = CreateMemberGiveSession(switchOpen: true, grant: false);
 
-		var answer = Run(guest, "/give @p bandage");
+		var answer = Run(guest, "/give @a[name=1001] bandage");
 
 		Assert.Contains("Refused locally", answer);
 		Assert.Contains("cheat roster", answer);
@@ -118,7 +118,7 @@ public class CommandConsoleMemberItemGiveTests
 	{
 		var (host, guest, creation) = CreateMemberGiveSession(switchOpen: true, grant: false, announceRoster: false);
 
-		var answer = Run(guest, "/give @p bandage");
+		var answer = Run(guest, "/give @a[name=1001] bandage");
 
 		Assert.Contains("the host's cheat roster does not name you", answer);
 		Assert.Empty(creation.Created);
@@ -137,7 +137,7 @@ public class CommandConsoleMemberItemGiveTests
 		var requests = new List<NetMsg>();
 		host.Transport.MessageReceived += (_, frame) => requests.Add((NetMsg)frame[0]);
 
-		var answer = Run(guest, "/give @p bandage{Condition:}");
+		var answer = Run(guest, "/give @a[name=1001] bandage{Condition:}");
 
 		Assert.Contains("The state is not SNBT:", answer);
 		Assert.DoesNotContain(NetMsg.PlayerInventoryGiveRequest, requests);
@@ -149,7 +149,7 @@ public class CommandConsoleMemberItemGiveTests
 	{
 		var (_, guest, creation) = CreateMemberGiveSession(switchOpen: true, grant: true);
 
-		var answer = Run(guest, "/give @p notanitem");
+		var answer = Run(guest, "/give @a[name=1001] notanitem");
 
 		Assert.Contains("No item definition 'notanitem' is known", answer);
 		Assert.Empty(creation.Created);

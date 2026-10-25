@@ -47,7 +47,7 @@ public class CommandConsoleItemGiveTests
 		var (host, guest, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage");
+		var answer = Run(host, "/give @p[distance=1..] bandage");
 
 		var item = Assert.Single(creation.Created);
 		Assert.Equal($"Gave bandage (#{item.InstanceId}) to {GuestId} in slot 0.", answer);
@@ -82,7 +82,7 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage slot 2");
+		var answer = Run(host, "/give @p[distance=1..] bandage slot 2");
 
 		Assert.Equal($"Gave bandage (#{creation.Created[0].InstanceId}) to {GuestId} in slot 2.", answer);
 		Assert.Equal(2, Assert.Single(Characters(host).GetSavedCharacter(GuestId)!.Items).SlotIndex);
@@ -95,7 +95,7 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		Characters(host).SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(4100, "backpack", slot: 2)));
 
-		var answer = Run(host, "/give @p bandage slot 2");
+		var answer = Run(host, "/give @p[distance=1..] bandage slot 2");
 
 		Assert.Equal($"Gave bandage (#{creation.Created[0].InstanceId}) to {GuestId} in slot 0.", answer);
 		Assert.Contains(Characters(host).GetSavedCharacter(GuestId)!.Items, item => item.InstanceId == 4100 && item.SlotIndex == 2);
@@ -117,7 +117,7 @@ public class CommandConsoleItemGiveTests
 		PlayerInventoryTransferMsg? transfer = null;
 		guest.Services.GetRequiredService<IPlayerInteractionControl>().TransferReceived += message => transfer = message;
 
-		var answer = Run(host, "/give @p bandage");
+		var answer = Run(host, "/give @p[distance=1..] bandage");
 
 		var item = Assert.Single(creation.Created);
 		Assert.Equal($"Gave bandage (#{item.InstanceId}) to {GuestId}, dropped at its position (the ladder's last rung).", answer);
@@ -148,7 +148,7 @@ public class CommandConsoleItemGiveTests
 		PlayerInventoryTransferMsg? transfer = null;
 		guest.Services.GetRequiredService<IPlayerInteractionControl>().TransferReceived += message => transfer = message;
 
-		var answer = Run(host, "/give @p bandage");
+		var answer = Run(host, "/give @p[distance=1..] bandage");
 
 		var item = Assert.Single(creation.Created);
 		Assert.Equal($"Gave bandage (#{item.InstanceId}) to {GuestId} inside the carried container backpack (#4100).", answer);
@@ -179,7 +179,7 @@ public class CommandConsoleItemGiveTests
 			Item(4100, "backpack", slot: 0), Item(4101, "bandage", slot: 1), Item(4102, "knife", slot: 2),
 			Item(4200, "pants", slot: -3)));
 
-		var answer = Run(host, "/give @p bandage");
+		var answer = Run(host, "/give @p[distance=1..] bandage");
 
 		var item = Assert.Single(creation.Created);
 		Assert.Contains($"inside the worn container pants (#4200)", answer);
@@ -194,7 +194,7 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage{Condition:0.25f}");
+		var answer = Run(host, "/give @p[distance=1..] bandage{Condition:0.25f}");
 
 		var item = Assert.Single(creation.Created);
 		Assert.Contains("with state {Condition:0.25f,", answer);
@@ -208,8 +208,8 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var liquid = Run(host, "/give @p waterbottle{Liquids:[{LiquidId:'water',Amount:500f}]}");
-		var component = Run(host, "/give @p largebattery{Components:{BatteryItem:{charge:0.9f}}}");
+		var liquid = Run(host, "/give @p[distance=1..] waterbottle{Liquids:[{LiquidId:'water',Amount:500f}]}");
+		var component = Run(host, "/give @p[distance=1..] largebattery{Components:{BatteryItem:{charge:0.9f}}}");
 
 		Assert.Contains("Liquids:[{LiquidId:", liquid);
 		Assert.Contains("Amount:500f}]", liquid);
@@ -233,7 +233,7 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage{Liquids:[{LiquidId:'water',Amount:500f}]}");
+		var answer = Run(host, "/give @p[distance=1..] bandage{Liquids:[{LiquidId:'water',Amount:500f}]}");
 
 		Assert.Contains("has no liquid container", answer);
 		Assert.Empty(creation.Created); // refused by the bind, before an id exists
@@ -247,7 +247,7 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p notanitem");
+		var answer = Run(host, "/give @p[distance=1..] notanitem");
 
 		Assert.Contains("No item definition 'notanitem' is known", answer);
 		Assert.Empty(creation.Created);
@@ -278,23 +278,25 @@ public class CommandConsoleItemGiveTests
 
 	/// <summary>A selector may name several bodies, but one give names ONE destination; the verdict is taken on the resolved set and answered by name.</summary>
 	[Fact]
-	public void Host_GivesWhenTheSelectorNamesTwoBodies_IsRefusedByName()
+	public void Host_GivesWhenTheSelectorNamesSeveralBodies_IsRefusedByName()
 	{
 		var (host, _, creation) = CreateGiveSession();
 		SeedHostEntities(host, GuestId, 5f);
 		AddSecondRemote(host);
 
+		// @a is EVERY player now — the executor included (ticket selectors-exclude-the-executor) — so this names
+		// three bodies rather than two, which is exactly what the refusal must count.
 		var answer = Run(host, "/give @a bandage");
 
-		Assert.Contains("matched 2 bodies", answer);
+		Assert.Contains("matched 3 bodies", answer);
 		Assert.Contains("[limit=1]", answer);
 		Assert.Empty(creation.Created);
 	}
 
 	[Theory]
 	[InlineData("/give", "Usage:")]
-	[InlineData("/give @p", "Usage:")]
-	[InlineData("/give @p bandage slot x", "slot")]
+	[InlineData("/give @p[distance=1..]", "Usage:")]
+	[InlineData("/give @p[distance=1..] bandage slot x", "slot")]
 	[InlineData("/give id 5 bandage", "names an item, not a definition")]
 	public void MalformedGive_IsRefusedWithItsOwnSentence(string line, string expected)
 	{
@@ -319,7 +321,7 @@ public class CommandConsoleItemGiveTests
 		var (host, guest, creation) = CreateGiveSession();
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage{Quality:5}");
+		var answer = Run(host, "/give @p[distance=1..] bandage{Quality:5}");
 
 		Assert.Contains("not part of an item's state", answer);
 		Assert.Contains("bandage", creation.Attempts); // it reached the port, which refused it
@@ -339,7 +341,7 @@ public class CommandConsoleItemGiveTests
 		var (host, _, creation) = CreateGiveSession(memberCheatSwitch: false);
 		SeedGuestSnapshot(host);
 
-		var answer = Run(host, "/give @p bandage");
+		var answer = Run(host, "/give @p[distance=1..] bandage");
 
 		Assert.StartsWith("Gave bandage", answer);
 		Assert.Single(creation.Created);

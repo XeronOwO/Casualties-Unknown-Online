@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 
@@ -26,9 +27,12 @@ internal sealed record CommandSelectorFilter(
 			return false;
 		}
 
+		// A player is nameable by their persona OR by the steam id the session always holds: the id is the one identifier
+		// that exists before any persona arrives, so `@a[name=7656…]` answers on every client instead of matching nothing
+		// (Minecraft has no such fallback because its names always exist; here they may not).
 		if (Name is not null
-			&& (target.DisplayName is null
-				|| !string.Equals(target.DisplayName.Trim(), Name, StringComparison.OrdinalIgnoreCase)))
+			&& !string.Equals(target.DisplayName?.Trim(), Name, StringComparison.OrdinalIgnoreCase)
+			&& !string.Equals(target.SteamId.ToString(CultureInfo.InvariantCulture), Name, StringComparison.OrdinalIgnoreCase))
 		{
 			return false;
 		}

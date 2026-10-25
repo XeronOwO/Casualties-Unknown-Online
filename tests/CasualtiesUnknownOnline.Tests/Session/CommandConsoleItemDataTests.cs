@@ -86,7 +86,7 @@ public class CommandConsoleItemDataTests
 		SeedCarried(host, HostId, Backpack, "backpack", slot: 1);
 		SeedCarried(host, GuestId, GuestsBandage, "bandage", slot: 2);
 
-		var answer = Run(host, "/data get @a");
+		var answer = Run(host, "/data get @a[distance=1..]");
 
 		Assert.Contains("Items recorded for 2001 (1):", answer);
 		Assert.Contains("#4201 bandage [slot 2]", answer);
@@ -100,7 +100,7 @@ public class CommandConsoleItemDataTests
 		SeedHostEntities(host, GuestId, 5f);
 		SeedCarried(host, GuestId, GuestsBandage, "bandage", slot: 2);
 
-		var answer = Run(host, $"/data get @a slot 2");
+		var answer = Run(host, $"/data get @a[distance=1..] slot 2");
 
 		Assert.Contains("#4201 bandage [carried by 2001, slot 2]", answer);
 	}
@@ -150,7 +150,7 @@ public class CommandConsoleItemDataTests
 		var (host, _) = CreateSession();
 		SeedHostEntities(host, GuestId, 5f);
 
-		Assert.Contains("No item is recorded for 2001.", Run(host, "/data get @a"));
+		Assert.Contains("No item is recorded for 2001.", Run(host, "/data get @a[distance=1..]"));
 	}
 
 	/// <summary>
@@ -335,7 +335,7 @@ public class CommandConsoleItemDataTests
 		SeedHostEntities(host, GuestId, 5f);
 		SeedCarried(host, GuestId, Item(GuestsBandage, "bandage", slot: 2));
 
-		var answer = Run(host, "/data modify @a slot 2 Condition set 0.5f");
+		var answer = Run(host, "/data modify @a[distance=1..] slot 2 Condition set 0.5f");
 
 		Assert.Contains("is carried by 2001", answer);
 		Assert.Contains("holder's own act", answer);
@@ -349,7 +349,7 @@ public class CommandConsoleItemDataTests
 		AddSecondRemote(host);
 		SeedCarried(host, GuestId, Item(GuestsBandage, "bandage", slot: 0));
 
-		var answer = Run(host, "/data modify @a slot 0 Condition set 0.5f");
+		var answer = Run(host, "/data modify @a[distance=1..] slot 0 Condition set 0.5f");
 
 		Assert.Contains("matched 2 bodies", answer);
 		Assert.Contains("[limit=1]", answer);
@@ -504,8 +504,9 @@ public class CommandConsoleItemDataTests
 	/// A selector may name several bodies, but a verb that names ONE item needs one
 	/// body to name it on: the verdict is taken at execution, on the resolved set,
 	/// and answered by name (user ruling 2026-10-14) — the grammar stays as wide as
-	/// the selector vocabulary. Three members are needed to see it, because `@a`
-	/// names the remote bodies and never the caller's own.
+	/// the selector vocabulary. Three members are needed to see it; the selector is narrowed with a distance filter so the
+	/// executor's own body is out of the match (`@a` itself names everyone, the sender included — ticket
+	/// `selectors-exclude-the-executor`).
 	/// </summary>
 	[Fact]
 	public void Get_ForASlotWithASelectorMatchingSeveralBodies_IsRefusedByName()
@@ -515,13 +516,13 @@ public class CommandConsoleItemDataTests
 		AddSecondRemote(host);
 		SeedCarried(host, GuestId, GuestsBandage, "bandage", slot: 0);
 
-		var answer = Run(host, "/data get @a slot 0");
+		var answer = Run(host, "/data get @a[distance=1..] slot 0");
 
 		Assert.Contains("matched 2 bodies", answer);
 		Assert.Contains("[limit=1]", answer);
 
 		// The advice in that answer is itself checkable: one member's slot reads normally.
-		var narrowed = Run(host, "/data get @a[limit=1] slot 0");
+		var narrowed = Run(host, "/data get @a[distance=1..,limit=1] slot 0");
 		Assert.DoesNotContain("matched", narrowed);
 		Assert.Contains("slot 0", narrowed);
 	}
@@ -536,7 +537,7 @@ public class CommandConsoleItemDataTests
 		SeedCarried(host, GuestId, GuestsBandage, "bandage", slot: 0);
 		SeedCarried(host, SecondGuest, Backpack, "backpack", slot: 1);
 
-		var answer = Run(host, "/data get @a");
+		var answer = Run(host, "/data get @a[distance=1..]");
 
 		Assert.Contains("Items recorded for 2001 (1):", answer);
 		Assert.Contains("Items recorded for 2002 (1):", answer);

@@ -37,7 +37,7 @@ public class CommandConsoleMemberHealResetTests
 		var (host, guest, reset) = CreateMemberHealSession(switchOpen: true, grant: true);
 		SeedBoth(host, guest);
 
-		var answer = Run(guest, "/heal @p");
+		var answer = Run(guest, "/heal @a[name=1001]");
 
 		Assert.Equal("Reset 1001: full heal applied.", answer);
 		Assert.Equal(1, reset.Resets);
@@ -66,7 +66,7 @@ public class CommandConsoleMemberHealResetTests
 		SeedBoth(host, guest);
 		var requests = RequestsToHost(host);
 
-		var answer = Run(guest, "/heal @p");
+		var answer = Run(guest, "/heal @a[name=1001]");
 
 		Assert.Contains("Refused locally", answer);
 		Assert.Contains("AllowMemberCheatVerbs", answer);
@@ -81,7 +81,7 @@ public class CommandConsoleMemberHealResetTests
 		SeedBoth(host, guest);
 		var requests = RequestsToHost(host);
 
-		var answer = Run(guest, "/heal @p");
+		var answer = Run(guest, "/heal @a[name=1001]");
 
 		Assert.Contains("cheat roster", answer);
 		Assert.DoesNotContain("cheat switch", answer);
@@ -96,7 +96,7 @@ public class CommandConsoleMemberHealResetTests
 		var (host, guest, reset) = CreateMemberHealSession(switchOpen: true, grant: false, announceRoster: false);
 		SeedBoth(host, guest);
 
-		var answer = Run(guest, "/heal @p");
+		var answer = Run(guest, "/heal @a[name=1001]");
 
 		Assert.Contains("the host's cheat roster does not name you", answer);
 		Assert.Equal(0, reset.Resets);
@@ -114,7 +114,7 @@ public class CommandConsoleMemberHealResetTests
 		var (host, guest, reset) = CreateMemberHealSession(switchOpen: false, grant: true, announceRules: false);
 		SeedBoth(host, guest);
 
-		var answer = Run(guest, "/heal @p");
+		var answer = Run(guest, "/heal @a[name=1001]");
 
 		Assert.Contains("the host's cheat switch (AllowMemberCheatVerbs) is off", answer);
 		Assert.Equal(0, reset.Resets);

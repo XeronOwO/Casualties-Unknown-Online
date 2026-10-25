@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -24,4 +25,11 @@ public sealed class HostRuleChangeResultMsg
 	/// <summary>The host's own sentence: the value now in force, or the refusal and its ground.</summary>
 	[ProtoMember(2)]
 	public string Answer { get; set; } = "";
+
+	/// <summary>
+	/// The answer as catalogue PARTS, so the member's console prints it in the member's own language — one line per part. Empty
+	/// when the shape was not converted (the console then prints <see cref="Answer"/>).
+	/// </summary>
+	[ProtoMember(3)]
+	public List<ConsoleAnswerPartMsg> Parts { get; set; } = [];
 }

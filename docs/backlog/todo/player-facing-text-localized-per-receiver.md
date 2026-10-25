@@ -31,12 +31,14 @@ The REFUSAL family is done end to end, and it was the case the user reported:
 
 ## What remains
 
-- **The REFUSAL reasons of `/give` and `/summon`.** Their success answers travel as parts now (`1a12bcd5`), and so does every
-  `/heal` answer; a refusal on those two verbs still crosses as the host's sentence, because its reasons are a closed set the
-  give/summon services name one by one (unknown definition, state bound, cheat rules, destination, the layer stamp) and converting
-  them is the same job the item-use refusals already went through. Until then the console prints the host's text — the deliberate
-  degradation, not a silent gap.
-- **`/gamerule`'s answer** is a list of setting names and values and takes the same parts shape.
+- **`/gamerule`'s answer** is a list of setting names and values and takes the same parts shape as the other three verbs.
+- **The frame-around-foreign-prose rule now has an answer for PORT refusals**: a ground another module owns (the give parser's
+  usage line, the creation port, the custody path, the layer stamp, the prefab parse) is answered with one catalogue sentence
+  (`answer.refused_see_host_log`) and the detail stays in the host's log. That is deliberate: wrapping the host's English inside
+  a localized frame is the defect this ticket exists for, and a port that later returns its own key is promoted to a real part
+  without changing the shape.
+- **The scan in acceptance row 2** (no run of the other language's words in any catalogue) is a gate to write once `/gamerule`
+  is converted, so it does not fail on text this ticket has not converted yet.
 - **The scan in acceptance row 2** (no run of the other language's words in any catalogue) is a gate to write once the remaining
   families are keyed, so it does not fail on text this ticket has not converted yet.
 

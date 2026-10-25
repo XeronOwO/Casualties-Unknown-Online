@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -38,6 +41,7 @@ internal sealed class HostRuleChangeService(
 	IHostRulesEditor editor,
 	IMemberCommandRules memberRules,
 	PacketSender sender,
+	ILocalizationService localization,
 	ILogger<HostRuleChangeService> log) : IHostRuleChangeControl
 {
 	private readonly ISessionControl _session = session;
@@ -45,9 +49,33 @@ internal sealed class HostRuleChangeService(
 	private readonly IHostRulesEditor _editor = editor;
 	private readonly IMemberCommandRules _memberRules = memberRules;
 	private readonly PacketSender _sender = sender;
+	private readonly ILocalizationService _localization = localization;
 	private readonly ILogger<HostRuleChangeService> _log = log;
 
 	public event Action<HostRuleChangeResultMsg>? Answered;
+
+	/// <summary>
+	/// One answer part: a catalogue key plus its values, and the English rendering of the same key at Debug so a log can answer
+	/// "what did the member read". The <c>labelKey</c> parameter name is the localization census's convention: a literal passed
+	/// here is a READ of the catalogue, which is what stops an orphan key from shipping.
+	/// </summary>
+	private ConsoleAnswerPartMsg AnswerPart(string labelKey, params string[] args)
+	{
+		_log.LogDebug("[Rules] answer part: {Line}", _localization.Format(labelKey, args));
+		var key = labelKey;
+		return new ConsoleAnswerPartMsg { Key = key, Args = [.. args] };
+	}
+
+	/// <summary>
+	/// A refusal whose ground this host can state, as the answer part the member's console renders: the key plus the values it
+	/// needs. The sentence stays on the outcome for the host's log and as the fallback. It is defined here, above every caller,
+	/// because the localization census finds a helper by its first textual occurrence and a call site would shadow the body.
+	/// </summary>
+	private ChangeOutcome RefuseByRule(string labelKey, string reason, params string[] args)
+	{
+		_log.LogWarning("[Rules] refused: {Reason} (the member reads: {Line})", reason, _localization.Format(labelKey, args));
+		return new ChangeOutcome(false, reason, [AnswerPart(labelKey, args)]);
+	}
 
 	/// <inheritdoc />
 	public string? Change(HostRuleId rule, string canonicalValue)
@@ -91,21 +119,19 @@ internal sealed class HostRuleChangeService(
 
 		if (!_memberRules.CheatVerbsOpenToMembers)
 		{
-			RefuseRequest(sender, msg, "the host's cheat switch (AllowMemberCheatVerbs) is off, so no member may run /gamerule.");
+			RefuseRequest(sender, msg, RefuseByRule("rules.answer.refused_switch_off", "the host's cheat switch (AllowMemberCheatVerbs) is off, so no member may run /gamerule."));
 			return;
 		}
 
 		if (!_memberRules.AllowsCheatVerb(sender))
 		{
-			RefuseRequest(sender, msg, "the host's cheat roster does not name you, so /gamerule cannot land. The host grants it with /op.");
+			RefuseRequest(sender, msg, RefuseByRule("rules.answer.refused_not_in_roster", "the host's cheat roster does not name you, so /gamerule cannot land. The host grants it with /op."));
 			return;
 		}
 
 		if (!Enum.IsDefined(typeof(HostRuleId), (HostRuleId)msg.Rule))
 		{
-			var answer = $"Unknown game rule id {msg.Rule}.";
-			_log.LogWarning("[Rules] a request from {Requester} was refused: {Reason}", sender, answer);
-			SendAnswer(sender, new ChangeOutcome(false, answer));
+			SendAnswer(sender, RefuseByRule("rules.answer.refused_unknown_rule", $"Unknown game rule id {msg.Rule}.", msg.Rule.ToString(CultureInfo.InvariantCulture)));
 			return;
 		}
 
@@ -135,20 +161,20 @@ internal sealed class HostRuleChangeService(
 		if (!HostRuleValueText.TryParse(row, value, out var canonical, out var error))
 		{
 			_log.LogWarning("[Rules] {Actor} -> {Rule} refused: {Reason}", actor, row.Name, error);
-			return new ChangeOutcome(false, $"Game rule {row.Name}: {error}");
+			return RefuseByRule("rules.answer.refused_value", $"Game rule {row.Name}: {error}", row.Name);
 		}
 
 		if (!string.Equals(canonical, value, StringComparison.Ordinal))
 		{
 			var reason = $"'{value}' is not the canonical form of {row.Name}.";
 			_log.LogWarning("[Rules] {Actor} -> {Rule} refused: {Reason}", actor, row.Name, reason);
-			return new ChangeOutcome(false, $"Game rule {row.Name}: {reason}");
+			return RefuseByRule("rules.answer.refused_not_canonical", $"Game rule {row.Name}: {reason}", row.Name, value);
 		}
 
 		if (!_editor.TrySet(row.Id, canonical, out var refusal))
 		{
 			_log.LogWarning("[Rules] {Actor} -> {Rule} could not write {Value}: {Reason}", actor, row.Name, canonical, refusal);
-			return new ChangeOutcome(false, $"Game rule {row.Name} was not changed: {refusal}");
+			return RefuseByRule("rules.answer.refused_write", $"Game rule {row.Name} was not changed: {refusal}", row.Name);
 		}
 
 		var inForce = HostRuleValueText.Describe(HostRuleSet.From(_hostRules), row);
@@ -161,19 +187,17 @@ internal sealed class HostRuleChangeService(
 		}
 
 		_log.LogInformation("[Rules] {Actor} set {Rule} = {Written}; the entry now holds {InForce}.", actor, row.Name, canonical, inForce);
-		return new ChangeOutcome(true, $"Game rule {row.Name} is now set to: {inForce}.");
+		return new ChangeOutcome(true, $"Game rule {row.Name} is now set to: {inForce}.", [AnswerPart("rules.answer.now", row.Name, inForce)]);
 	}
 
 	/// <summary>
-	/// A request refused BEFORE the value is judged — the host's two cheat rulings. Logged
-	/// here once with the request's own context and sent back as the same sentence the
-	/// requester reads; the ground is always named, so the operator knows whether to ask for
-	/// the switch or for a grant.
+	/// A request refused BEFORE the value is judged — the host's two cheat rulings. The answer is the one
+	/// <see cref="Apply"/> would have produced, so a refusal reads the same wherever it was decided.
 	/// </summary>
-	private void RefuseRequest(ulong requester, HostRuleChangeRequestMsg request, string reason)
+	private void RefuseRequest(ulong requester, HostRuleChangeRequestMsg request, ChangeOutcome refusal)
 	{
-		_log.LogWarning("[Rules] request from {Requester} for rule {Rule} refused: {Reason}", requester, request.Rule, reason);
-		SendAnswer(requester, new ChangeOutcome(false, $"Refused: {reason}"));
+		_log.LogWarning("[Rules] request from {Requester} for rule {Rule} refused.", requester, request.Rule);
+		SendAnswer(requester, refusal);
 	}
 
 	/// <summary>
@@ -185,8 +209,10 @@ internal sealed class HostRuleChangeService(
 		{
 			Applied = outcome.Applied,
 			Answer = outcome.Answer,
+			// The answer as catalogue keys: the member's console renders them in the member's own language.
+			Parts = outcome.Parts,
 		});
 
 	/// <summary>What one change produced: the answer both ends print, and the verdict the console colours the line by.</summary>
-	private readonly record struct ChangeOutcome(bool Applied, string Answer);
+	private readonly record struct ChangeOutcome(bool Applied, string Answer, List<ConsoleAnswerPartMsg> Parts);
 }

@@ -311,7 +311,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	}
 
 	/// <summary>The host's answer to this member's /gamerule — the value the host's entry holds, printed where the verb was typed.</summary>
-	private void OnGameRuleAnswered(HostRuleChangeResultMsg msg) => AddLine(msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+	private void OnGameRuleAnswered(HostRuleChangeResultMsg msg) =>
+		AddAnswerParts(msg.Parts, msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	/// <summary>
 	/// The host reset THIS client's body. A member's reset is never its own command's return — the

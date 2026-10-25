@@ -8,12 +8,12 @@ surface is judged against, its native counterpart and its accepted record. This 
 | Surface | The page | Status |
 |---|---|---|
 | The console (command and chat) | `console.md` | GAP |
-| The online window (lobby, members, network, administration) | `online-window.md` | GAP |
+| The online window (lobby, members, network, administration) | `online-window.md` | page |
 | The member menu (right-click a player) | `member-menu.md` | page |
-| The backpack panel (a teammate's pack) | `backpack-panel.md` | GAP |
+| The backpack panel (a teammate's pack) | `backpack-panel.md` | page |
 | The medical panel (a patient's wound view) | `medical-panel.md` | page |
 | The status line (notices and refusals) | `status-line.md` | page |
-| The world overlays (nameplates, network readout, pings) | `world-overlays.md` | GAP |
+| The world overlays (nameplates, network readout, pings) | `world-overlays.md` | page |
 | The drag cue (the use circle and its label) | `drag-cue.md` | page |
 
 A `GAP` page is written from the surface's accepted record and its rules; until it exists, a change to that surface

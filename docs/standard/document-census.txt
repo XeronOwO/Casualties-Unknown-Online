@@ -414,6 +414,9 @@ docs/design/surfaces/status-line.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/drag-cue.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/member-menu.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/medical-panel.md | keep | spec | docs/design/INDEX.md
+docs/design/surfaces/online-window.md | keep | spec | docs/design/INDEX.md
+docs/design/surfaces/backpack-panel.md | keep | spec | docs/design/INDEX.md
+docs/design/surfaces/world-overlays.md | keep | spec | docs/design/INDEX.md
 docs/design/model/authority-and-judgement.md | keep | spec | docs/design/INDEX.md
 docs/design/model/item-custody.md | keep | spec | docs/design/INDEX.md
 docs/design/model/session-lifecycle.md | keep | spec | docs/design/INDEX.md

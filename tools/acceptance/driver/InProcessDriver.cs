@@ -406,6 +406,47 @@
 		return finish(fields);
 	}
 
+	if (command == "console-accept") {
+		// The ACCEPT path a click on a suggestion button runs: ConsoleInputSession.AcceptSuggestion with the first entry of the list the
+		// overlay is drawing, reported with the field it left behind so a batch reads the canonical id that was inserted.
+		if (overlay == null) {
+			return fail(escape, "no-cuo-online-ui", "the CUO Online UI is not reachable in this process");
+		}
+		var commandOverlay = findField(overlay, "_commandOverlay");
+		var inputSession = findField(commandOverlay, "_session");
+		if (commandOverlay == null || inputSession == null) { return fail(escape, "no-console-ui", "the console overlay or its input session was not found"); }
+		var acceptSuggestion = findMethodWith(inputSession, "AcceptSuggestion", 1);
+		if (acceptSuggestion == null) { return fail(escape, "no-console-ui", "ConsoleInputSession.AcceptSuggestion was not found"); }
+		if (argument == "tab") {
+			// The Tab binding the player uses: ConsoleInputSession.CycleCompletion, the same candidate list one cycle at a time.
+			var cycle = findMethodWith(inputSession, "CycleCompletion", 0);
+			if (cycle == null) { return fail(escape, "no-console-ui", "ConsoleInputSession.CycleCompletion was not found"); }
+			var cycled = cycle.Invoke(inputSession, null);
+			putRaw(fields, escape, "ok", "true");
+			putText(fields, escape, "command", command);
+			putText(fields, escape, "accepted", cycled is bool did && did ? "tab" : "");
+			putText(fields, escape, "input", (findProperty(inputSession, "Input") as string) ?? "");
+			putRaw(fields, escape, "suggestions", "0");
+			putText(fields, escape, "suggestionList", "");
+			return finish(fields);
+		}
+		var live = findProperty(inputSession, "LiveSuggestions") as System.Collections.IEnumerable;
+		object first = null;
+		if (live != null) {
+			foreach (var suggestion in live) { first = suggestion; break; }
+		}
+		if (first == null) { return fail(escape, "no-suggestion", "the console has no live suggestion to accept"); }
+		var acceptedText = findProperty(first, "Text") as string;
+		acceptSuggestion.Invoke(inputSession, new object[] { first });
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putText(fields, escape, "accepted", acceptedText ?? "");
+		putText(fields, escape, "input", (findProperty(inputSession, "Input") as string) ?? "");
+		putRaw(fields, escape, "suggestions", "0");
+		putText(fields, escape, "suggestionList", "");
+		return finish(fields);
+	}
+
 	if (command == "quit") {
 		putRaw(fields, escape, "ok", "true");
 		putText(fields, escape, "command", command);

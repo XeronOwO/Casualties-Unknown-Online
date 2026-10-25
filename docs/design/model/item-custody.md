@@ -53,6 +53,12 @@ So a mark travels with the item it was set on, never as a claim about another pl
 | **World** | the item lies in the world, or is held by a world entity | the host writes; every client projects it |
 | **In flight** | the moment between two holders during a transfer | the host owns the decision; the clients show the animation |
 
+The wire enumerates the families and names two of them explicitly: `src/CasualtiesUnknownOnline.Protocol/Wire/WireItemLocationKind.cs`
+declares `World = 1`, `Carried = 2`, `Contained = 3`, `Terminal = 4` and `Applied = 5`, and
+`WireItemLocation.cs` carries "the kernel's single authoritative item location" as a kind plus its owner, parent item id and
+position. The two the table above folds into other rows are **Terminal** (an item a body's terminal state holds) and
+**Applied** (an item applied to a limb — the splint, the limb tool, the bandage).
+
 A held item is in exactly one of these at a time. A container's contents are **not** a body slot: a mechanic that reads
 position `slot i` of a body cannot see an item that sits inside the body's backpack.
 

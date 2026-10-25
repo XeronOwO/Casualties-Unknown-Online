@@ -24,7 +24,9 @@ the host's, and every other client holds them as projections.
   notification applies at most once (the ledger's per-enemy sequence)"; every in-world guest receives it with the same
   sequence, and a guest out of world receives nothing.
 - **A guest never decides the hit for another player**: the ensemble is the victim's screen plus the host's arbitration,
-  never a third player's view.
+  never a third player's view. The code names the same split: `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatReplay.cs`
+  "JUDGES an announced enemy attack against this client's own view — the frozen enemy copy it renders and its own" state,
+  so the replay is the victim's judgement and never a re-simulation of the attacker's.
 
 ## Refusals
 

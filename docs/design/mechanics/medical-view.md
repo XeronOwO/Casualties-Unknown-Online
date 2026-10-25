@@ -36,7 +36,17 @@ medical operation the two clients perform together, which is why the drag gestur
   applied to a guess.
 - A topical applies a measured dose to the selected limb; a limb tool runs the item's own limb action; a bandage or
   splint starts the item's own minigame.
-- **A removal takes the component OFF the body.** Removing a limb component is not only a flag: the component itself must be taken off the target's own body on every surface, which is the defect the record closes ("A removed limb component is never taken off the target's own body", fixed in `7c5646bd` and accepted with rows 1-6).- **A state that names no kind is refused, not guessed.** An operation state whose kind is missing must not be read as an injection: the recorded defect is "A medical operation state that names no kind is read as an injection", and the rule it leaves is that a state carries its kind explicitly and an unnamed one is refused by name.- A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
+- **A removal takes the component OFF the body.** Removing a limb component is not only a flag: the component itself must be
+  taken off the target's own body on every surface, which is the defect the record closes ("A removed limb component is
+  never taken off the target's own body", fixed in `7c5646bd` and accepted with rows 1-6).
+- **A state that names no kind is refused, not guessed.** An operation state whose kind is missing must not be read as an
+  injection: the recorded defect is "A medical operation state that names no kind is read as an injection", and the rule it
+  leaves is that a state carries its kind explicitly and an unnamed one is refused by name.
+- **A terminal fact is a named latch, per limb and per body.**
+  `src/CasualtiesUnknownOnline.Protocol/Wire/WirePlayerLimbState.cs` carries `Broken`, `Dismembered` and `Dislocated` for one
+  limb, and `WirePlayerBodyTerminalState.cs` carries `Disfigured`, `EyeGone`, `BothEyesGone` and `HasPulmonaryEmbolism` for
+  the body — so a latch the game sets is a field on the wire, never a value a reader re-derives.
+- A dead body cannot be treated; a treatment applied to a body that dies mid-action is resolved by the affected side.
 
 ## Refusals
 

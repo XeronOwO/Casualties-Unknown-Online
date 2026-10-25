@@ -15,6 +15,15 @@ values ride the character data (the 1 Hz stream), and one-shot sounds ride their
 
 ## Rules and states
 
+- **One projection seam feeds three surfaces, and the code says so.**
+  `src/CasualtiesUnknownOnline.GameAdapter/Character/RemoteCharacterDisplayProjection.cs` is "the single remote-display
+  projection seam for player presentation", used by "the remote render clone (face/body pose), the remote WoundView
+  display-only body (medical readouts), and the 1 Hz/limb-event capture that fills the wire" — which is why a face or a
+  posture fixed in one place appears in all three.
+- **A display body is marked as display-only, and that marking keeps a codec honest.** `RemoteMedicalDisplayBody.cs` marks
+  the body the medical view builds: "a body CUO renders and never simulates", because the limb-component display half
+  promises "state, never native behaviour" and that promise "holds only for a body CUO parked itself" — the same call handed
+  a live body instantiates the game's own components where the game's own `Start` and `Update` do run.
 - **A player picks a colour, and the head tag is only the colour.** Names above heads are colour-only tags by design ("Player-selectable colors and color-only head name tags"), so a tag is not a text label with a colour attached; the colour is the player's choice and the tag shows it.
 - **A ragdoll is a body state, not a local animation.** A body that has gone limp shows as limp to the others ("Remote ragdoll state not visible" and "Ragdoll limb pose not synced" are its two records), so the ragdoll state and its limb pose travel as body state rather than being played only where the body fell.
 - **A body's state reaches every client's view, not only its owner's.** The family's own records name each case as it was

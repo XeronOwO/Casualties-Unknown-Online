@@ -396,3 +396,29 @@ when it was not), a real right-button hold on the ring's bandage (`rightHeld=Tru
 the displayed body, the new `recipes/drag-cue.cs` read **`showing=false, targetSteamId=0`** — correct, because the pointer was over
 the wound view and not over a displayed backpack's centre. The next cycle opens the remote BACKPACK (not the wound view) and reads
 the cue there.
+
+**Batch `20261025-au` — two facts that unblock the shape, and one absence that is now the question.** First, the give/use path
+silently requires the TARGET to be alive: the guest had gone `alive=False, conscious=False`, and `/heal <id>` did nothing for it
+(the selector is not an id) while **`/heal @a`** revived both members and answered "Reset …: sent to that player's own client …
+it was dead, so it revives". Second, the cross-player USE itself is proven to execute: `minigame-end` later found
+**`before=BandageMinigame`** running on the operator's client — the release that landed on `MainHead` really did start the game's
+own bandage minigame for the patient's limb, and nothing in the scripted path had asked for that.
+
+What is still missing is the cue and the auto-open, and their code says why they can be absent: `CrossPlayerDragUse.Observe` picks
+a target from the mouse's WORLD point against each remote's model box and logs `[DragUse] display target … picked among N`, while
+`DragUseCueTracker` needs `RemoteBackpackView.IsOpen` and the pointer on `DragUseCenter`. With the guest revived and placed two
+units away, the wound view closed with Escape (`ui-casts` fell from the body buttons to `RadialCenter`), a bandage held on a real
+right-button press and the pointer moved onto the projected body, the cue still read `showing=false, targetSteamId=0` — and after
+raising the log level with `log-level level=debug`, **neither `[DragUse]` nor `[BackpackView]` produced a single line**, which says
+`Observe` is not being called during this scripted drag at all. That is the next question: which frame callback drives
+`CrossPlayerDragUse.Update`, and whether a drag started by a press on the ring runs it.
+
+**The gate that answers that question is in the class's own header**: "The give gesture's own-UI gate lives at the two patches
+(`GiveGestureModePolicy`): **while the player's own ring or a panel is open, nothing here runs**." A drag that starts by pressing an
+item on the open ring therefore runs with the ring open, which is exactly the state where the whole feature is switched off — and
+`HandleStartDragging` does NOT close the ring itself (its tail only fills `dragImage`; the `radialOpen = false` in `PlayerCamera`
+belongs to the Escape handler). Sending Escape after the item is picked does close it without dropping the item — measured:
+`item='bandage', radial=False, rightHeld=True` — and the cue still read `showing=false`. So the ring gate is now satisfied and the
+remaining question is the SELECTION: whether `TryModelHalfSize`/`DragTargetSelection.Consider` accepts the remote's model box at
+the pointer, whose only diagnostic line is emitted on a target CHANGE (`[DragUse] display target … picked among N`), which also
+never appears.

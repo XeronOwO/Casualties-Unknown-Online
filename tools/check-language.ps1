@@ -13,10 +13,10 @@
 # committed, exactly like RepositoryGateTests does for machine paths.
 #
 # Usage:  powershell -ExecutionPolicy Bypass -File tools/check-language.ps1
-#         powershell -ExecutionPolicy Bypass -File tools/check-language.ps1 -Staged:$false   # working tree instead
+#         powershell -ExecutionPolicy Bypass -File tools/check-language.ps1 -WorkingTree   # uncommitted files instead
 # Exit:   0 = clean, 1 = non-English wording outside the exemptions (file:line printed).
 param(
-	[switch]$Staged = $true
+	[switch]$WorkingTree
 )
 
 $ErrorActionPreference = 'Stop'
@@ -48,7 +48,7 @@ try {
 		return ([int]$c -gt 0x7F) -and [char]::IsLetter($c)
 	}
 
-	if ($Staged) {
+	if (-not $WorkingTree) {
 		$files = git diff --cached --name-only --diff-filter=ACM
 	} else {
 		$files = git status --porcelain | ForEach-Object { if ($_.Length -gt 3) { $_.Substring(3).Trim('"') } }

@@ -66,11 +66,7 @@ internal static class PlayerCameraDragUsePatch
 						// The answer says whether the intent actually went out: a refused give (a view-only pack, an
 						// item with no authoritative id) must not keep the drag-opened backpack open.
 						__state.Give = giveBridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description, target.TargetItemInstanceId, target.TargetSlotIndex);
-
-						// …and the NATIVE body runs: the displayed backpack's slots are real InvButtons over real Container clones, so
-						// the game's own TryPerformInventoryAction performs the transfer (Container.UnloadItem → LoadItem →
-						// PlayBackpackSound) — which is where the friction sound and the item's presentation come from. Clearing the drag
-						// here is what made a give silent (user report 2026-10-25). The intent above is still the authoritative move.
+						ClearDrag(__instance);
 						return;
 					}
 				}

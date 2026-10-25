@@ -95,6 +95,9 @@ internal sealed class OnlineUiPanelView
 	private OnlineUiControlView? _close;
 	private string _closeId = "\0";
 	private string _titleText = "\0";
+
+	/// <summary>True for the frame whose title text changed, so the label's mesh is rebuilt once after the width is settled.</summary>
+	private bool _textChanged;
 	private bool _hovered;
 	private bool _structureDirty;
 	private float _width = float.NaN;
@@ -216,16 +219,32 @@ internal sealed class OnlineUiPanelView
 		{
 			_titleText = model.Title;
 			_title.text = model.Title;
+			_textChanged = true;
 		}
 
-		// The title is ONE line: a name longer than the bar ends in an ellipsis instead of wrapping onto a second line
-		// that the first action row would draw over (the reported "换行…在医疗按钮背面"). It is set here rather than at
-		// construction so a view built before this cycle's assets still gets it.
-		_title.enableWordWrapping = false;
-		_title.overflowMode = TextOverflowModes.Ellipsis;
+		// The title is ONE line: a name longer than the bar ends in an ellipsis instead of wrapping onto a second line that the first
+		// action row would draw over (the reported "换行…在医疗按钮背面"). The flags are set once per change, because TMP rebuilds its
+		// mesh when either moves and a per-frame write would rebuild every frame.
+		if (_title.enableWordWrapping)
+		{
+			_title.enableWordWrapping = false;
+		}
+
+		if (_title.overflowMode != TextOverflowModes.Ellipsis)
+		{
+			_title.overflowMode = TextOverflowModes.Ellipsis;
+		}
 
 		ApplyClose(model.CloseId);
 		ApplyWidth(TitleFitWidth(model));
+
+		if (_textChanged)
+		{
+			// The measurement above runs on a mesh TMP has not rebuilt yet, and an ellipsised label whose mesh was last built empty stays
+			// empty — which is exactly how the title disappeared when this first landed. One rebuild per title change is the price.
+			_title.ForceMeshUpdate();
+			_textChanged = false;
+		}
 		ApplyRows(model.Rows);
 		if (_structureDirty)
 		{
@@ -436,7 +455,9 @@ internal sealed class OnlineUiPanelView
 	private float TitleFitWidth(OnlineUiPanelModel model)
 	{
 		var available = model.Width - TitleInsets;
-		var preferred = _title.GetPreferredValues(model.Title, 0f, TitleHeight).x;
+		// Unconstrained, not "in a 0×TitleHeight box": TMP answers the preferred size of the STRING here, and the sized overload lays the
+		// text out in the box it is given — with width 0 and an ellipsis it measured nothing, which is how the title went blank.
+		var preferred = _title.GetPreferredValues(model.Title).x;
 		var needed = preferred + TitleInsets + TitleRightPadding;
 		return needed <= available
 			? model.Width

@@ -448,7 +448,7 @@ internal sealed class GameAdapterDomains
 			TrapDrops,
 			itemDropState,
 			loggerFactory.CreateLogger<SaveCutSeam>());
-		Gate = new StartGateCoordinator(session, world, LifePod, Run, new NativeLoadingTextSurface(loggerFactory.CreateLogger<NativeLoadingTextSurface>()), loggerFactory.CreateLogger<StartGateCoordinator>());
+		Gate = new StartGateCoordinator(session, world, LifePod, Run, new NativeLoadingTextSurface(loggerFactory.CreateLogger<NativeLoadingTextSurface>()), localization, loggerFactory.CreateLogger<StartGateCoordinator>());
 		WorldTimeSync = new WorldTimeSync(session, entities, characterData, Run, Gate, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());
 		DragUse = new CrossPlayerDragUse(this);
 		DragUseCue = new DragUseCueTracker(this);

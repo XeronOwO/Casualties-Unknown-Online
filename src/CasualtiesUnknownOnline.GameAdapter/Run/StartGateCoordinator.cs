@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.World;
@@ -27,6 +29,7 @@ internal sealed class StartGateCoordinator(
 	LifePodPresentation lifePod,
 	RunCoordinator run,
 	NativeLoadingTextSurface loadingText,
+	ILocalizationService localization,
 	ILogger<StartGateCoordinator> log)
 {
 	private readonly ISessionControl _session = session;
@@ -34,6 +37,7 @@ internal sealed class StartGateCoordinator(
 	private readonly LifePodPresentation _lifePod = lifePod;
 	private readonly RunCoordinator _run = run;
 	private readonly NativeLoadingTextSurface _loadingText = loadingText;
+	private readonly ILocalizationService _localization = localization;
 	private readonly ILogger<StartGateCoordinator> _log = log;
 
 	/// <summary>The gate holds us: world timeScale=0 + movingAllowed locked — restore both on release.</summary>
@@ -93,7 +97,10 @@ internal sealed class StartGateCoordinator(
 	/// <see cref="WaitingState"/> so the screen and the log can never describe two
 	/// different waits.
 	/// </summary>
-	internal string WaitingText => SessionWaitText.Line(WaitingState);
+	internal string WaitingText => SessionWaitText.Line(WaitingState, Render);
+
+	/// <summary>The local client's catalogue renders the wait line: the loading screen is this client's own surface.</summary>
+	private string Render(string key, IReadOnlyList<string> args) => _localization.Format(key, [.. args]);
 
 	/// <summary>
 	/// True when the wait line is written into the game's OWN loading-screen text, so the caller's overlay must not

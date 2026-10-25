@@ -232,7 +232,8 @@ public sealed class OnlineUiPanelSurfacePinTests
 
 		return flat.Contains("_title.enableWordWrapping = false;", StringComparison.Ordinal)
 			&& flat.Contains("_title.overflowMode = TextOverflowModes.Ellipsis;", StringComparison.Ordinal)
-			&& flat.Contains("_title.GetPreferredValues(model.Title, 0f, TitleHeight).x", StringComparison.Ordinal)
+			&& flat.Contains("_title.GetPreferredValues(model.Title).x", StringComparison.Ordinal)
+			&& flat.Contains("_title.ForceMeshUpdate();", StringComparison.Ordinal)
 			&& flat.Contains("internal const float MaxTitleFitWidth", StringComparison.Ordinal)
 			&& flat.Contains("ApplyWidth(TitleFitWidth(model));", StringComparison.Ordinal);
 	}

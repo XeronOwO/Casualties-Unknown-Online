@@ -13,6 +13,17 @@ namespace CasualtiesUnknownOnline.Tests.Gate;
 /// </summary>
 public class SessionWaitPolicyTests
 {
+	/// <summary>The English sentences the keys resolve to, as the real catalogue holds them.</summary>
+	private static string Render(string key, IReadOnlyList<string> args) => key switch
+	{
+		"wait.host_loading" => "Waiting for the host to load… The host is not in the world yet.",
+		"wait.members_loading" => $"Waiting for {args[0]} to load… ({args[1]}s). The group starts together.",
+		"wait.others_loading" => $"Waiting for {args[0]}… ({args[1]}s). The host is already in the world.",
+		"wait.starting" => "Waiting for the host to start the run…",
+		"wait.names_nobody" => "the remaining players",
+		_ => $"<{key}>",
+	};
+
 	private const ulong Local = 1001;
 
 	private const ulong Host = 1001;
@@ -53,7 +64,7 @@ public class SessionWaitPolicyTests
 
 		Assert.Equal(SessionWaitKind.MembersLoading, state.Kind);
 		Assert.Empty(state.WaitingNames);
-		Assert.Contains("the remaining players", SessionWaitText.Line(state));
+		Assert.Contains("the remaining players", SessionWaitText.Line(state, Render));
 	}
 
 	[Fact]
@@ -64,7 +75,7 @@ public class SessionWaitPolicyTests
 		var state = SessionWaitPolicy.Decide(Guest(hostInWorld: false));
 
 		Assert.Equal(SessionWaitKind.HostLoading, state.Kind);
-		Assert.DoesNotContain("generating", SessionWaitText.Line(state));
+		Assert.DoesNotContain("generating", SessionWaitText.Line(state, Render));
 	}
 
 	[Fact]
@@ -81,7 +92,7 @@ public class SessionWaitPolicyTests
 		var state = SessionWaitPolicy.Decide(new SessionWaitInput(false, Local, Host, members, true, 0, 5_000));
 
 		Assert.Equal(SessionWaitKind.Starting, state.Kind);
-		var line = SessionWaitText.Line(state);
+		var line = SessionWaitText.Line(state, Render);
 		Assert.DoesNotContain("Everyone is here", line);
 		Assert.Contains("Waiting for the host to start the run", line);
 	}

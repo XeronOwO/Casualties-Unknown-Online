@@ -26,19 +26,26 @@ regenerated when a batch changes the picture, never accumulated.
 | `pinyin-search-standalone-mod.md` | every row machine-read (78 cases, 0 failures); only the native search box's own look is left, and that is the user's |
 | `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed — and that look is the user's visual pass, as its own status says |
 
-## E — blocked by the ENVIRONMENT's input delivery (not by code, not by a missing fixture)
+## E — blocked by a TARGET or a state, NOT by input delivery (the earlier claim here was WRONG)
 
-**Measured, not suspected:** on this station **no mouse BUTTON event reaches Unity's `Input`**, for either button — a right hold
-and a left hold both read `mouseHeld=false, mouseDown=false` mid-hold — while the pointer MOVED through both holds, the bracket's
-own gates were all open (`allowUseItem=true, conscious=true, minigame=false, paused=false`) and the bind was confirmed as Mouse1
-(`keybind-read action=iteminteract` → `keyCode 324`). Cursor movement arrives; keys arrive (a real Tab press opened the inventory
-ring and closed the tab-backpack ticket); buttons do not. This is UIPI-style blocking or a child-window/station condition, and it
-is the one fact behind every row below. A cycle that fixes delivery unblocks them together.
+**Retracted 2026-10-25 by the user and by measurement.** This section used to say no mouse button reaches Unity on this
+station. That is false: with a 6 s right hold in flight the client answered `rightHeld=True` on every sample, and a probe-driven
+press/release flipped it back to `False`. The two things that actually broke the earlier batches were:
 
-**One correction this cycle's own runs force on that paragraph:** the remote medical VIEW is not part of this blocker — a probe
-opens it (`remote-wound-special mode=open` → `opened=true, displayBodyName=MedicalDisplay_…` once the operator is alive). What the
-buttons block is the TREATMENT GESTURE inside it, which is a drag of an item onto a limb. So the rows below fail one step later
-than "cannot open the chart", and a future cycle should start from the open chart rather than re-testing the entry.
+1. **focus timing** — `GetForegroundWindow` still returned the OTHER client's handle for the first ~1 s of the hold, so the press
+   edge (`Input.GetKeyDown`, which is what the drag bracket reads) landed in the wrong window; and
+2. **an unconscious operator** — `HandleStartDragging`'s first line is `if (!this.body.conscious) return;`, and the failing reads
+   said `conscious=False, allowUseItem=False`. After `/heal @s` the same start answered `dragItem=emergencylight(Clone)` and a
+   release answered `had=… → after=none`.
+
+Two more measured facts decide how a drag must be driven: the inventory ring DRIFTS (buttons moved `515,290 → 526,272` between two
+reads) and the game's `Input.mousePosition` is a bottom-left DPI-scaled space (`x_game ≈ 1.25·x_set`, `y_game ≈ 757 − 1.25·y_set`,
+verified to 1 px), so a fixed OS click chases a moving target. The instruments that do not care are in-process:
+`recipes/drag-start.cs` and `recipes/drag-release.cs` run the EventSystem's own raycast and call the very functions the press and
+release call.
+
+So every row below is now waiting on a TARGET (an on-screen point for the other member) or a STATE (the operator alive, the view
+open), and each is a reading away rather than a capability that does not exist.
 
 | Ticket | The row that needs the button |
 |---|---|

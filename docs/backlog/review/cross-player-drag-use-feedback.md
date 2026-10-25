@@ -335,5 +335,29 @@ screen showed nothing at all, which is indistinguishable from a gesture that sil
   gesture and for a member's — and fires the Game Adapter's `PlayerCamera.PlayUISound(Deny)` beside it.
 
 **Rows still unread, named rather than claimed**: the highlight and the label appear on a remote body during a real
-drag, and a refused drag shows the line and plays the deny sound in-game. Both need mouse input the acceptance
-tooling does not drive, which is the same lever this page's earlier sections describe.
+drag, and a refused drag shows the line and plays the deny sound in-game.
+
+**Batch `20261025-ar` — the lever is NOT missing input, and this page's earlier "tooling does not drive it" claim was
+wrong.** Two measured facts replaced it:
+
+1. **The right button arrives.** With a 6 s hold in flight, the client's own read answered `rightHeld=True` on every sample
+   (`Input.GetMouseButton(1)`), and a probe-driven press/release flipped it back to `False`. The earlier `mouseHeld=false`
+   samples were taken while another window still had the foreground (`GetForegroundWindow` returned the other client's handle
+   for the first ~1 s), so the press edge landed in the wrong window.
+2. **The bracket was refusing because the OPERATOR WAS UNCONSCIOUS.** `HandleStartDragging`'s first line is
+   `if (!this.body.conscious) return;`, and the live read at the time of the failing attempts was `conscious=False,
+   allowUseItem=False`. After `/heal @s` the same in-process start answered **`dragItem=emergencylight(Clone)`**, and a release
+   answered `had=emergencylight(Clone) → after=none`. That is the whole of the "unreadable" state: an unconscious operator.
+
+**Two instruments now exist so the row does not depend on absolute OS coordinates at all**, which is the other lesson: the
+inventory ring DRIFTS (its buttons moved from `515,290` to `526,272` between two reads) and the game's `Input.mousePosition`
+is a bottom-left DPI-scaled space (`x_game ≈ 1.25·x_set`, `y_game ≈ 757 − 1.25·y_set` measured to 1 px), so a fixed OS click
+chases a moving target. `tools/acceptance/recipes/drag-start.cs` runs the EventSystem's own raycast at a point and calls the
+game's `HandleStartDragging` — the exact function `Input.GetKeyDown(iteminteract)` calls — and
+`tools/acceptance/recipes/drag-release.cs` does the same for `HandleReleaseDragging`. Their cast list is the EventSystem's real
+answer (each entry reported with its `InvButton`'s item and overlap verdict), not a fabricated struct.
+
+What remains for this ticket's rows is therefore a TARGET, not a lever: releasing over another member's body needs that
+member's on-screen point, and the projection of the placed guest answered `screenY=4100` with `screenHeight=720`, i.e. the
+point was outside the camera's view. The next cycle puts the guest inside the host's view first (a placement the host is facing)
+and then releases there.

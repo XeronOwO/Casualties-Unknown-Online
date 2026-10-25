@@ -422,6 +422,7 @@ docs/design/surfaces/command-overlay.md | keep | spec | docs/design/INDEX.md
 docs/design/decisions-by-domain.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/online-window.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/backpack-panel.md | keep | spec | docs/design/INDEX.md
+docs/design/surfaces/remote-body-presentation.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/world-overlays.md | keep | spec | docs/design/INDEX.md
 docs/design/model/authority-and-judgement.md | keep | spec | docs/design/INDEX.md
 docs/design/model/item-custody.md | keep | spec | docs/design/INDEX.md

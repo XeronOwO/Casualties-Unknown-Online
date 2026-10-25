@@ -10,7 +10,7 @@ rejoined party to find the same world, the same items and the same progress.
 
 ## Rules and states
 
-- The lobby is a membership: who is present, whose Steam identity, and which host rule set applies. Membership and the
+- **Closing the room is a safe exit.** A host closing the room ends the session for the party cleanly rather than dropping them into a broken world: the case has its own record (a "close-room safe exit" selfcheck) and belongs to this page's lifecycle rules.- The lobby is a membership: who is present, whose Steam identity, and which host rule set applies. Membership and the
   world are two different facts — joining the lobby does not place a body in the world, and re-entering a world is done
   from the running client, never by restarting it.
 - The run is the host's world. A member's character is restored by the client that can apply it, on a continue, from the

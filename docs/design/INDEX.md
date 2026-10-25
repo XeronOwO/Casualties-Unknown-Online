@@ -56,6 +56,7 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `surfaces/command-overlay.md` | the console as a surface |
 | `surfaces/online-window.md` | the session's own panel |
 | `surfaces/backpack-panel.md` | a teammate's pack as a panel |
+| `surfaces/remote-body-presentation.md` | another body's face, posture, pose and sounds |
 | `surfaces/world-overlays.md` | nameplates, readout, arrows, pings |
 | `cross-cutting/localization.md` | one language per reader |
 | `cross-cutting/permissions-and-commands.md` | the command family and the host rules behind it |

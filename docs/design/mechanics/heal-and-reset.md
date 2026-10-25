@@ -29,6 +29,13 @@ The game's own `heal` command resets a body but "does not restore severed limbs"
   `brainHealth <= 15f`, sets `triedRollingLastStand` whether it succeeds or fails, and a success writes the whole body's vitals
   (see `cpr-and-revival.md`); the run setting `infinitelaststand` is what makes it repeatable. So "bring a body back" is either
   that one roll or a CUO path with its own recorded reason — there is no third mechanism to inherit.
+- **A skill is a LEVEL plus an experience curve, and levelling can cross several levels in one gain.**
+  `Skills.cs:17-70`: `STRFrom10` is `STR - 10f`, and a level's bounds are `GetExperienceForLevel(STR)` /
+  `GetExperienceForLevel(STR + 1)`; `GetExperienceForLevel` (`:134-165`) is piecewise — `60` per level below ten, `100` at ten,
+  then `* 1.18f` each level with a steeper term above twenty. `AddExp` (`:78-140`) scales the gain by `Skills.xpGainMult` and
+  runs "`while (xp >= xpToLevel) { level++; UpdateExpBoundaries(); }`", so one award can raise a stat twice — and each level
+  announces itself with the `skillup` key (stat name + new level) and the `music/levelup` sound. A reset that sets a level
+  without moving the experience bounds inside the level leaves the character's next gain wrong.
 - **Severed limbs are restored by CUO, because the game has no path for it.** The ticket states the reason: "the game's
   own `heal` command does not restore severed limbs". The restored limb survives a save cut, a continue-run restore and a
   process restart, because the limb is a persisted body fact.

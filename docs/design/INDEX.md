@@ -74,6 +74,7 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | Page | Holds |
 |---|---|
 | `audit/README.md` | every ticket against the code and the corpus, one row each |
+| `audit/code.md` | every corpus page against the code, both directions |
 
 ## Related reading
 

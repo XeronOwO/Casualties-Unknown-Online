@@ -37,10 +37,12 @@ against the holder's table, so a lost message does not leave the two views apart
 
 ## A player's own marks on an item
 
-A favourite mark belongs to the PLAYER who made it, not to the item: the mark is saved with that player's character record
-and "never reaches the owner's item" — decision 258 states it, and the accepted ticket's reading is that the mark "became
-the item's own flag once the item changed hands, and the same key over the player's OWN inventory kept the game's own
-behaviour". A mark is therefore never a fact the other players hold about the item.
+A favourite mark is made by a player over an item they hold, and it is not a remote operation: decision 258 states that the
+mark "belongs to the player who made it, is saved with that player's character record, and never reaches the owner's item" —
+the owner's item is the OTHER player's. The accepted ticket's reading is that the mark "became the item's own flag once the
+item changed hands, and the same key over the player's OWN inventory kept the game's own behaviour", and the kernel records
+it as the item's own flag (`src/CasualtiesUnknownOnline.GameState/Domains/Items/ItemData.cs` declares `bool Favourited`).
+So a mark travels with the item it was set on, never as a claim about another player's item.
 
 ## Custody
 

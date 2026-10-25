@@ -104,6 +104,8 @@
 		+ ",\"labelAlpha\":" + color.a.ToString("0.###", inv)
 		+ ",\"labelColor\":\"" + color.r.ToString("0.##", inv) + "," + color.g.ToString("0.##", inv) + "," + color.b.ToString("0.##", inv) + "\""
 		+ ",\"labelPos\":\"" + (labelRect == null ? "" : labelRect.anchoredPosition.x.ToString("0.##", inv) + "," + labelRect.anchoredPosition.y.ToString("0.##", inv)) + "\""
+		+ ",\"parent\":\"" + (labelRect == null || labelRect.parent == null ? "?" : labelRect.parent.name) + "\""
+		+ ",\"root\":\"" + (labelRect == null || labelRect.root == null ? "?" : labelRect.root.name) + "\""
 		+ ",\"labelEnabled\":" + (enabledProperty != null && (bool)enabledProperty.GetValue(title, null) ? "true" : "false")
 		+ ",\"labelActive\":" + (activeProperty != null && (bool)activeProperty.GetValue(title, null) ? "true" : "false")
 		+ ",\"font\":" + (fontProperty == null || fontProperty.GetValue(title, null) == null ? "\"<null>\"" : "\"<set>\"")

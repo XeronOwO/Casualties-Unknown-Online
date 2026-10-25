@@ -37,12 +37,15 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `items/topical.md` | applying a medicine to a limb |
 | `items/injection.md` | injecting through the medical operation |
 | `items/limb-tool.md` | tools whose action is a limb action |
+| `items/container.md` | bags and packs: contents, capacity, custody |
 
 ## Surfaces and cross-cutting rules
 
 | Page | Holds |
 |---|---|
-| `surfaces/` | one page per surface; `../architecture/surfaces.md` is the index (`GAP`) |
+| `surfaces/README.md` | the surface pages, one row each |
+| `surfaces/status-line.md` | the notice and refusal line |
+| `surfaces/drag-cue.md` | the use circle and its label |
 | `cross-cutting/localization.md` | one language per reader |
 | `cross-cutting/permissions-and-commands.md` | the command family and the host rules behind it |
 | `cross-cutting/observability.md` | what a run leaves behind |

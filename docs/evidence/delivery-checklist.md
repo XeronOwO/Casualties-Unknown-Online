@@ -74,6 +74,7 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Build + dotnet format + dotnet test normative gates pass
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
 
+
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development
       verification standard.

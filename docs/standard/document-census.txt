@@ -216,6 +216,7 @@ docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim
 docs/backlog/resolved/bilingual-human-docs.md | keep | index | docs/backlog/README.md
 docs/backlog/done/cheat-permission-and-op-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/backlog/README.md
+docs/backlog/review/closing-a-teammates-backpack-teleports-the-ring.md | keep | index | docs/backlog/README.md
 docs/backlog/review/concurrent-medical-operations.md | keep | index | docs/backlog/README.md
 docs/backlog/done/cross-player-item-use-random-determinism.md | keep | index | docs/backlog/README.md
 docs/backlog/review/dead-player-right-click-name-suffix.md | keep | index | docs/backlog/README.md

@@ -77,6 +77,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+
+- [Closing a teammate's backpack teleports the ring](review/closing-a-teammates-backpack-teleports-the-ring.md) — **Medium-High** — fixed; far close unjudged.
 - [Dragging out of a backpack to use it drops the item](review/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — fixed: the use circle is back.
 - [The context menu does not block the pointer](review/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 

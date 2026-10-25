@@ -462,3 +462,15 @@ on slot 0** and the target's limb read `pain=0, skin=100` before and after — t
 applied. So the next question is the release's own bracket: `PlayerCameraDragUsePatch` prefixes `HandleReleaseDragging`, decides
 `GiveGestureMode.DisplayedBackpack`, and hands the captured calls to the bridge — one of those steps refused, and the instrument
 that will say which is a probe that reports the mode and the centre test at the release frame itself.
+
+**Batch `20261025-ay` — the release runs, and ROW 4 IS READ: the host's refusal reaches the operator's screen.** With a CLEAN
+right-button edge (the previous attempts had left the button stuck down, so no `GetKeyDown` fired and the pickup silently did
+nothing — `rup` then `rdown` fixed it) and the ring closed with Tab rather than Escape, the release on the use centre answered
+`had=fentanyl(Clone) → after=none`, `mode=DisplayedBackpack`, `backpackOpen=True`, `focusedSteamId=76561198863287957`,
+`centreUnderPointer=True`. The operator's log then carries the whole chain: `[DragUse] used fentanyl on 76561198863287957 (instance
+…)`, `[ItemUse] refused: injectable …`, and — the row's own evidence — the OPERATOR'S SCREEN line
+**`使用被拒绝：injectable medicine goes through the medical …`** (`[OnlineUi] status line`). The target's state was untouched
+(`pain=0, skin=100`, consciousness 100) and the fentanyl stayed in its slot, so a refusal moved nothing.
+
+That also settles row 2's item: **fentanyl is the wrong family** — an injectable must go through the medical operation session, and
+the host says so by name. Row 2 needs a one-shot use the host ACCEPTS (a food/consume item), and row 4 is now read.

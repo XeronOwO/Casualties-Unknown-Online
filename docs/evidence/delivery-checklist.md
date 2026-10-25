@@ -55,34 +55,26 @@ edit the operating rule allows, and the reset clears the evidence with the check
 carries evidence naming THIS cycle — a commit, a path under `.acceptance/`, or a measured reading produced
 by it. A box whose evidence names another cycle is not filled.
 
-- [x] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
+- [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
       change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
-      — evidence: the menu ticket's design record (`surfaces/member-menu.md`) and the game's own gate (`UIUtil.cs`, `PlayerCamera.cs:1826`) were read before the reading
-- [x] Native parity — evidence: no native call changed; both reports are recorded with the native ordering they violate
+      — evidence: the radial report was read against `PlayerCamera.cs:1791` (the native highlight is `radialCircle.color`) and the anchoring code before the change
+- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism
-      — evidence: no native call changed; the cycle reads the predicate the click path itself consults
-- [x] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
+      — evidence: the native highlight (`radialCircle.color`, `PlayerCamera.cs:1791`) and the tag hit-test are quoted; the change re-enables the component the design had disabled
+- [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
       with every difference either fixed or named as a user decision
-      — evidence: the probe asks the game's own question (`EventSystem.RaycastAll` + the UI-layer check) at four points; no CUO surrogate is involved
-- [x] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
-      — evidence: no gesture changed; the probe answers whether the world's click path sees CUO's surface
-- [x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
-      — evidence: `UIUtil.IsPointerOverUIElement` (reversing, quoted) and `PlayerCamera.cs:1826` are the gate; the raycast reading is the runtime evidence
-- [x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
-      — evidence: the reading covers the menu, its surroundings and the far field, so "inside vs outside the rectangle" is measured rather than assumed
-- [x] Self-check table: mechanism x change x evidence, every cell filled
-      — evidence: four points, four hit lists, one conclusion (the panel IS hit on the UI layer); the always-true `Viewport` finding is recorded as the new question
-- [x] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
-      — evidence: the committed one-line recipe `ui-raycast-at` returns `hitCount`/`first`/`firstLayer`/`isUiHit`; the reading is quoted in the ticket
-- [x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
-      — evidence: the goal names the menu ticket; the user's own report is the requirement it is judged against
-- [x] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
-      — evidence: no class touched; the new recipe is one line, which is the shape the channel requires (measured this cycle)
-- [x] Build + dotnet format + dotnet test normative gates pass
-      — evidence: documentation and tooling only; the record gates ran green (`.acceptance/l638-gate.log`)
+      — evidence: the user's report is the effect list's source (no circle, item dropped); the fix is judged by the next batch's frame and intent capture, recorded on the ticket rather than claimed here
+- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
+- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+- [ ] Self-check table: mechanism x change x evidence, every cell filled
+- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+- [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
+- [ ] Build + dotnet format + dotnet test normative gates pass
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

@@ -137,16 +137,28 @@ $archive = Join-Path $archiveDir ("cycle-" + $stamp + ".md")
 [System.IO.File]::WriteAllText($archive, $text, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ("archived this cycle's record: docs/evidence/checklists/cycle-" + $stamp + ".md")
 
+# The reset drops the EVIDENCE with the checkmark, and it has to drop it from the box's whole BLOCK: an evidence suffix sits on its own
+# continuation line whenever the statement is longer than one line, and a reset that only stripped the first line left that suffix behind — which
+# is how a stale checklist certified the next cycle's commits (measured 2026-10-25: after a reset, five boxes still carried the previous cycle's
+# evidence on their continuation lines and the script answered green).
 $reset = [System.Collections.Generic.List[string]]::new()
+$inBox = $false
 foreach ($line in $lines) {
-	if ($line -match '^- \[x\] (.+)$') {
-		# The reset drops the EVIDENCE too, not just the checkmark: a box left carrying the previous cycle's evidence would pass the
-		# evidence check without this cycle having produced any — which is how a stale checklist certified whole sessions of commits.
-		$name = $Matches[1]
+	if ($line -match '^- \[([ x])\] (.+)$') {
+		$inBox = $true
+		$name = $Matches[2]
 		$cut = $name.IndexOf(' ' + $emdash + ' evidence:', [System.StringComparison]::Ordinal)
 		if ($cut -ge 0) { $name = $name.Substring(0, $cut) }
 		$reset.Add("- [ ] " + $name)
 		continue
+	}
+
+	if ($inBox -and $line.TrimStart().StartsWith($emdash + ' evidence:', [System.StringComparison]::Ordinal)) {
+		continue
+	}
+
+	if ($line.Trim().Length -eq 0 -or $line -match '^[^-]') {
+		$inBox = $false
 	}
 
 	$reset.Add($line)

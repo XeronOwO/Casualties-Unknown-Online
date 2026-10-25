@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -62,6 +63,69 @@ public class RepositoryGateTests
 		"visual-replay",
 		"state-consumption"
 	];
+
+	/// <summary>
+	/// Every tracked text file is UTF-8 WITHOUT a byte-order mark, carries no NUL byte, and is not empty (a `.gitkeep` excepted).
+	///
+	/// <para>
+	/// The failure this catches is silent and it happened twice in one session: a PowerShell redirect (`git show … > file`) wrote a page as
+	/// UTF-16LE — every second byte a NUL, which git stores happily and every reader then calls "binary" — and a bulk
+	/// `[System.IO.File]::WriteAllText` round trip emptied another page and COMMITTED it empty. Neither the build nor `git diff --check` sees either
+	/// shape, which is why the rule ("tracked files are written with the edit tools, never with a shell round trip") needed a mechanical check
+	/// instead of another sentence.
+	/// </para>
+	/// </summary>
+	[Fact]
+	public void EveryTrackedTextFile_IsUtf8WithoutNulBytesAndNotEmpty()
+	{
+		string[] textExtensions = [".cs", ".md", ".txt", ".json", ".ps1", ".csproj", ".props", ".targets", ".slnx", ".yml", ".yaml", ".xml", ".cfg"];
+		var failures = new List<string>();
+
+		foreach (var relative in EnumerateScannedFiles())
+		{
+			var name = Path.GetFileName(relative);
+			if (name == ".gitkeep" || !textExtensions.Contains(Path.GetExtension(relative), StringComparer.OrdinalIgnoreCase))
+			{
+				continue;
+			}
+
+			var path = Path.Combine(RepositoryPaths.Root, relative);
+			if (!File.Exists(path))
+			{
+				continue;
+			}
+
+			var bytes = File.ReadAllBytes(path);
+			if (bytes.Length == 0)
+			{
+				failures.Add($"{relative}: tracked and empty — an empty page is what a bulk write leaves behind");
+				continue;
+			}
+
+			if (Array.IndexOf(bytes, (byte)0) >= 0)
+			{
+				failures.Add($"{relative}: carries a NUL byte — UTF-16 written by a shell redirect; write it with the edit tools");
+				continue;
+			}
+
+			if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+			{
+				failures.Add($"{relative}: starts with a UTF-8 byte-order mark; the repository's files are BOM-free");
+				continue;
+			}
+
+			try
+			{
+				_ = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true).GetString(bytes);
+			}
+			catch (DecoderFallbackException)
+			{
+				failures.Add($"{relative}: is not valid UTF-8 — a code-page round trip corrupted it");
+			}
+		}
+
+		Assert.True(failures.Count == 0, "Tracked text files that are not plain BOM-free UTF-8:" + Environment.NewLine + string.Join(Environment.NewLine, failures));
+	}
 
 	[Fact]
 	public void NoAbsolutePaths_NoTrackedMachinePaths()

@@ -146,11 +146,22 @@ internal static class RemoteBackpackView
 		_smoothPosition = Vector2.Lerp(_smoothPosition, target, 5f * Time.deltaTime);
 
 	/// <summary>
-	/// Anchors the native radial menu to the focused clone and hides the use/wear circle. The game anchors
-	/// the menu to the LOCAL body; with a remote backpack open the ring belongs to the clone. Shared by the
-	/// while-dragging frame and the drag's automatic open, so the anchoring does not depend on which patch
-	/// happened to run first on the frame the view opened — the native while-dragging body closes the ring
-	/// when the menu is far from the pointer, which the stale local anchor would cause for a far target.
+	/// Anchors the native radial menu to the focused clone. The game anchors the menu to the LOCAL body; with a remote
+	/// backpack open the ring belongs to the clone. Shared by the while-dragging frame and the drag's automatic open, so
+	/// the anchoring does not depend on which patch happened to run first on the frame the view opened — the native
+	/// while-dragging body closes the ring when the menu is far from the pointer, which the stale local anchor would cause
+	/// for a far target.
+	///
+	/// <para>
+	/// The circle is NOT disabled any more (2026-10-25, user report: "dragging the flashlight to the central use area
+	/// showed no circular highlight"). Disabling it hid the game's own highlight — which is `radialCircle.color`, set by
+	/// `HandleWhileDragging` when the pointer is over the tagged centre (`PlayerCamera.cs:1791-1800`) — AND removed the
+	/// tag from every UI raycast, so the release could never be consumed by R10 and fell through to the world drop. Both
+	/// halves come back with the component enabled, and the release window turns the call R10 then makes into an intent
+	/// (`RemoteDragMutationPatches`), which is where the design put the ownership. The old rationale ("a UI raycast must
+	/// never reach it") was written while R10 was still suppressed; stage 3 un-suppressed R10 and this is the visual half
+	/// of that change.
+	/// </para>
 	/// </summary>
 	internal static void AnchorRadialToFocus(PlayerCamera camera, Body focused)
 	{
@@ -162,7 +173,7 @@ internal static class RemoteBackpackView
 		var screen = (Vector2)Camera.main.WorldToScreenPoint(focused.transform.position);
 		UpdateSmoothPosition(screen);
 		camera.radialMenu.transform.position = SmoothPosition;
-		camera.radialCircle.enabled = false;
+		camera.radialCircle.enabled = true;
 	}
 
 	/// <summary>

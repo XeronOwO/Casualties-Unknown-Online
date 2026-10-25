@@ -78,26 +78,30 @@ dotnet format CasualtiesUnknownOnline.slnx   # mandatory before every commit
 4. **No absolute machine path in git** — no drive letters, UNC, home/temp/var paths; placeholders only. Same for host
    names, ports, sandbox/account names and credentials: `AGENTS.local.md` or `.agent-local/`. Enforced by
    `RepositoryGateTests`; the commit message and history are a pre-commit check (decision 261).
-5. Self-learning: record reusable, generalizable knowledge in this file, `docs/` or memory; be selective.
-6. A patch hook reports only verified writes: re-read the state or pass the verdict explicitly.
-7. Prefer `using` directives and aliases; a fully qualified name only when unavoidable (`FullyQualifiedNameGateTests`).
-8. Reuse the game's own UI when a player-facing feature already has one; a parallel CUO UI needs a recorded blocker and the
+5. **A tracked file is written by the edit tools, never by a shell round trip** — `git show > file`, `Set-Content`,
+   `Out-File` and `[System.IO.File]::WriteAllText` over existing content are the three shapes that emptied and UTF-16'd two
+   pages in one session. Enforced by `RepositoryGateTests.EveryTrackedTextFile_IsUtf8WithoutNulBytesAndNotEmpty` (NUL byte,
+   BOM, invalid UTF-8, or an unexpectedly empty tracked file).
+6. Self-learning: record reusable, generalizable knowledge in this file, `docs/` or memory; be selective.
+7. A patch hook reports only verified writes: re-read the state or pass the verdict explicitly.
+8. Prefer `using` directives and aliases; a fully qualified name only when unavoidable (`FullyQualifiedNameGateTests`).
+9. Reuse the game's own UI when a player-facing feature already has one; a parallel CUO UI needs a recorded blocker and the
    user's direction.
-9. **Ask on functional design, execute on implementation.** Ambiguity with user-visible trade-offs goes to the user; routine
-   detail does not. **A rejection is a question, not a mandate** — inferring a removal, rename or new mechanism from "this is
-   wrong" is the violation. Which ticket comes next is not such a decision: take it from priority and dependencies.
-10. `future/` means deferred by decision, not pending work; implement only when the user promotes it.
-11. Large work is split into stages that each produce a verifiable result.
-12. Empty directories that must stay carry a 0-byte `.gitkeep`.
-13. Extension methods use the C# 14 `extension` syntax (`SourceShapeGateTests`).
-14. Minimum visibility, declared stability: only designed, documented, reviewed capability becomes public; the
+10. **Ask on functional design, execute on implementation.** Ambiguity with user-visible trade-offs goes to the user; routine
+    detail does not. **A rejection is a question, not a mandate** — inferring a removal, rename or new mechanism from "this is
+    wrong" is the violation. Which ticket comes next is not such a decision: take it from priority and dependencies.
+11. `future/` means deferred by decision, not pending work; implement only when the user promotes it.
+12. Large work is split into stages that each produce a verifiable result.
+13. Empty directories that must stay carry a 0-byte `.gitkeep`.
+14. Extension methods use the C# 14 `extension` syntax (`SourceShapeGateTests`).
+15. Minimum visibility, declared stability: only designed, documented, reviewed capability becomes public; the
     `Abstractions` baseline is gate-enforced and a removal names its reason.
-15. No erased type in the mod-visible contract (`byte[]`, `object`, `Delegate`, `dynamic`, `IntPtr`); a binary payload is an
+16. No erased type in the mod-visible contract (`byte[]`, `object`, `Delegate`, `dynamic`, `IntPtr`); a binary payload is an
     explicit leaf.
-16. **Member reports are bounded by DATA, or the gap is named** (decision 265): check a claim against a fact the receiver
+17. **Member reports are bounded by DATA, or the gap is named** (decision 265): check a claim against a fact the receiver
     holds; never model what a player is able to do (that is anti-cheat, out of MVP scope). Census:
     `docs/architecture/member-report-validation.md`.
-17. **A console command's shape follows Minecraft's CURRENT template, fetched not rewritten from memory** (argument list,
+18. **A console command's shape follows Minecraft's CURRENT template, fetched not rewritten from memory** (argument list,
     order, which are optional); a deviation records its reason at the point of design.
 
 ## Development workflow

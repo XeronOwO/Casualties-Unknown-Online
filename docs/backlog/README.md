@@ -62,6 +62,12 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [Player-facing text crosses as a key, never prose](todo/player-facing-text-localized-per-receiver.md) — **High** — every surface, receiver's language.
+- [The context menu's title wraps behind its first action](todo/context-menu-name-wraps-behind-actions.md) — **Medium** — fit or ellipsize the player name.
+- [The console's completion shows nothing](todo/console-completion-shows-no-suggestions.md) — **High** — typing must show suggestions.
+- [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
+- [Giving into a backpack plays no sound](todo/give-into-backpack-plays-no-sound.md) — **High** — the transfer's own clip.
+- [An item cannot be used on a sleeping teammate](todo/use-on-sleeping-target-refused.md) — **Medium** — the consuming families' target gate.
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
 ### In progress

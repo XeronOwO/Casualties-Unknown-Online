@@ -33,8 +33,17 @@ rifle to `556round`, shotgun to `12gauge`), hands it to `AutoPickUpItem` and dec
   game's own protection against a single magazine deafening a player.
 - **Every shot costs the item `conditionLossPerShot * 0.01f`**, i.e. a hundredth of a condition point per percent — the same
   "condition is the dose" model the medical family uses.
-- **A shot is instantly resolved, not simulated.** `TurretScript.Shoot` is a hitscan: there is no bullet object to replicate,
-  so what travels is the fact that a shot happened and what it did, never a projectile.
+- **A shot is instantly resolved, not simulated.** `TurretScript.Shoot` (`TurretScript.cs`) is a hitscan —
+  `Physics2D.RaycastAll(pos, dir, 200f, …)` — and there is no bullet object to replicate, so what travels is the fact that a
+  shot happened and what it did, never a projectile. Each hit rolls a damage multiplier of `Random.Range(0.85f, 1.15f)`.
+- **The game's hitscan damages a BODY, and its answer to a body hit is a full trauma block.** In `TurretScript.Shoot`'s
+  `!ignoreBody` branch, on a limb it finds the body, plays `DoGoreSound`, pushes it by `dir * 15f * playerDamageMultiplier`,
+  ragdolls it, and charges the closest limb (or the head when `forceHead`): `pain += Random.Range(80f, 100f) / GetArmorReduction()`,
+  `skinHealth -= Random.Range(70f, 100f) / …`, `muscleHealth -= Random.Range(70f, 100f) / …`,
+  `bleedAmount += Random.Range(30f, 40f) / …`, `shrapnel = 5`, `DamageWearables(1f)`, `adrenaline = 100f`; a VITAL limb also
+  takes `internalBleeding += Random.Range(18f, 22f) / …`; a `Random.Range(0f, 1f) < 0.3f` roll breaks the bone; and a HEAD hit
+  sets `consciousness = 0f`, drains `brainHealth -= Random.Range(10f, 85f) / …` and rolls `Disfigure()` at `0.5f`. So a shot's
+  victim-side effect list is the game's, and a CUO rule that invents its own is a different game.
 - **The suicide path is the same call with two flags flipped** (`ignoreBody = false`, `forceHead = true`, barrel position
   replaced by the body's own position) — it is not a separate mechanism.
 
@@ -82,8 +91,11 @@ roll is the shooter's own.
 
 ## Gaps
 
-- **Hitscan damage to another player is not designed here.** `TurretScript.Shoot` damages world structures and animals through
-  `FireInfo`; whether a shot may damage a remote player's body, and which side applies that damage, is not recorded on any page
-  and is not implemented. It is a `GAP`, not a limit: it needs the user's ruling before it is built.
+- **Hitscan damage to another PLAYER is the open question.** The native chain certainly damages a body it hits (the
+  `!ignoreBody` block above), but on the shooter's own client another player is a render clone, so the game would damage a
+  display copy and the real body would never know. Which side applies that damage, and whether a remote victim's own client
+  judges the hit or receives it as a decided fact, is not recorded on any page and is not implemented. It is a `GAP`: it needs
+  the user's ruling before it is built, and the user's standing rule already points the way — the affected side judges what
+  happens to its own body.
 - **The jam roll is unseeded and unshared**, so a remote client must never predict a jam — the state report is the only source.
   This is recorded because a reader will ask, not because anything is owed.

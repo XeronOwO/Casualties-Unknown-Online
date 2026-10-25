@@ -24,6 +24,11 @@ public sealed class NativeCitationGateTests
 		@"reversing/(?<path>[A-Za-z0-9_.\-/]+\.cs):(?<line>\d+)",
 		RegexOptions.Compiled);
 
+	/// <summary>A `reversing/…cs` mention that is NOT followed by `:line` — the shape this gate refuses.</summary>
+	private static readonly Regex LineLessCitation = new(
+		@"reversing/(?<path>[A-Za-z0-9_.\-/]+\.cs)(?![\d:])",
+		RegexOptions.Compiled);
+
 	[Fact]
 	public void EveryGameCitationInTheDesignCorpus_Resolves()
 	{
@@ -66,6 +71,27 @@ public sealed class NativeCitationGateTests
 
 		Assert.Equal("2475", match.Groups["line"].Value);
 		Assert.DoesNotMatch(@"reversing/", "a sentence with no citation");
+	}
+
+	/// <summary>
+	/// A citation without a line number cannot be followed, so it is refused: the corpus rule is "point at the code (path
+	/// plus quoted text) or at a `reversing/` line", and a bare file name is neither. The failure this closes is real —
+	/// two rows cited `TurretScript.cs` with no line at all, which also made them invisible to the page-link test below.
+	/// </summary>
+	[Fact]
+	public void EveryGameCitation_CarriesALine()
+	{
+		var failures = new List<string>();
+		foreach (var page in Directory.EnumerateFiles(Path.Combine(RepositoryPaths.Root, "docs", "design"), "*.md", SearchOption.AllDirectories))
+		{
+			var text = File.ReadAllText(page);
+			foreach (Match match in LineLessCitation.Matches(text))
+			{
+				failures.Add($"{Relative(page)}: `reversing/{match.Groups["path"].Value}` has no line number");
+			}
+		}
+
+		Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
 	}
 
 	/// <summary>

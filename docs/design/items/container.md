@@ -24,9 +24,10 @@ container, so it can be carried, dropped, given and looked inside while it holds
   the SAME rule the receiving client's native `Container.CanHoldItem` applies when the item arrives —
   `item.totalWeight <= maxWeightPerItem`, `holdingWeight + item.totalWeight <= maxWeight`, and the tag restriction when the
   container declares one". It also mirrors the adjustment `Container.Awake` makes to both limits
-  (`reversing/Assembly-CSharp/Assembly-CSharp/Container.cs`, lines 30-31) "rather than under-reporting a live container's room
+  (`reversing/Assembly-CSharp/Assembly-CSharp/Container.cs:20-32`, where `maxWeight += 0.001f` and
+  `maxWeightPerItem += 0.001f`) "rather than under-reporting a live container's room
   by one gr[am]", and takes the item's weight from `Item.totalWeight`'s own formula ("the definition weight, scaled by
-  condition when the definition says so", `Item.cs`, lines 13-23) — which is `Mathf.Lerp(0.1f, Stats.weight, condition)` when
+  condition when the definition says so", `reversing/Assembly-CSharp/Assembly-CSharp/Item.cs:13-23`) — which is `Mathf.Lerp(0.1f, Stats.weight, condition)` when
   `Stats.scaleWeightWithCondition`, so a nearly-wrecked item weighs a tenth of its new weight. A definition this build cannot
   read fails the fit rather than guessing.
 - The contents travel with the container: dropping, giving or storing a container moves what is inside it.

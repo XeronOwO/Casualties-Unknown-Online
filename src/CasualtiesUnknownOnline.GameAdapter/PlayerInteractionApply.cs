@@ -87,11 +87,13 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 			{
 				if (msg.FromSteamId == domains.Session.LocalSteamId)
 				{
-					// The game's own move sound: natively this release is UnloadItem + LoadItem + PlayBackpackSound, and a cross-player
-					// give is the same action with somebody else's backpack (give-into-backpack-plays-no-sound).
-					var removed = _placement.RemoveCarriedItemFromLocalBody(body, msg.Item?.InstanceId ?? 0);
+					// The removal is SILENT, and that is the native answer (user ruling 2026-10-25): the release's own sound is the game's UI
+					// click, which the drag-release patch plays, and the cloth rustle belongs to a move that leaves or enters a CONTAINER
+					// (`Body.PickUpItem` plays it only when the item's parent is a container, `Body.cs:1393-1397`). A cross-player give from a body
+					// slot has no container on either side, so `PlayBackpackSound` here was a CUO addition that made every give play a sound the
+					// game never makes — the user's "the give adds the container sound; only the placement click should be there".
+					_placement.RemoveCarriedItemFromLocalBody(body, msg.Item?.InstanceId ?? 0);
 					changed = true;
-					if (removed && PlayerCamera.main != null) { PlayerCamera.main.PlayBackpackSound(); } // Unity object — ==
 				}
 
 				if (msg.ToSteamId == domains.Session.LocalSteamId && msg.Item is { } item)

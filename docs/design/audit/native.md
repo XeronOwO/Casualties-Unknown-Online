@@ -28,15 +28,19 @@ below are the whole of `Assembly-CSharp` (265 types). The CUO-side census (`swee
 
 | Area | Types it holds | Walks |
 |---|---|---|
-| Body and wounds | `Body`, `Limb`, `WoundView`, `BodyPart`, `Eye`, `FacialExpression`, `CorpseScript`, `GroundBlood` | walked (rows 5-16, 37) |
-| Medical minigames | `AEDMinigame`, `BandageMinigame`, `AmputationMinigame`, `DislocationMinigame`, `HandCrankMinigame`, `KeypadMinigame` | walked (rows 18-26); the hand-crank and keypad minigames are presentation-only and remain unread |
-| Items and use | `Item`, `ItemInfo`, `AmmoScript`, `BatteryItem`, `BatteryRecharger`, `Heater`, `WaterContainerItem`, `CraftingQuality` | walked (rows 1-4, 27-32, 50) |
-| Liquids and consumables | `WaterContainerItem`, `FluidManager`, `AutoPump`, `Combine` paths on `Body` | walked (rows 29-31) |
-| World and layers | `WorldGeneration`, `ChunkScript`, `DrillPod`, `GeyserScript`, `FluidManager`, the layer modifiers | walked (rows 33-37, 42, 45, 48) |
-| Enemies | `CrystalEnemy` and the `Crystal*` family, `GrabberPlant`, `ElderThornbackBehaviour`, `CaveTicks`, `DroneScript` | walked (rows 43-44); the eleven `Crystal*` modifiers are read through `EnemyCombatEffectKind`'s four families |
+| Body and wounds | `Body`, `Limb`, `WoundView`, `BodyPart`, `Eye`, `FacialExpression`, `CorpseScript`, `GroundBlood` | walked (rows 5-16, 37, 62-66, 79, 82-89) |
+| Medical minigames | `AEDMinigame`, `BandageMinigame`, `AmputationMinigame`, `DislocationMinigame`, `HandCrankMinigame`, `KeypadMinigame` | walked (rows 18-26, 55); the hand-crank and keypad minigames are read for their numbers only |
+| Items and use | `Item`, `ItemInfo`, `AmmoScript`, `BatteryItem`, `BatteryRecharger`, `Heater`, `WaterContainerItem`, `CraftingQuality`, `GunScript`, `TurretScript` | walked (rows 1-4, 27-32, 50-58, 94-98) |
+| Liquids and consumables | `WaterContainerItem`, `FluidManager`, `AutoPump`, `Combine` paths on `Body` | walked (rows 29-31, 56) |
+| World and layers | `WorldGeneration`, `ChunkScript`, `DrillPod`, `GeyserScript`, `FluidManager`, the layer modifiers | walked (rows 33-37, 42, 45, 48, 59, 67, 70, 86) |
+| Enemies | `CrystalEnemy` and the `Crystal*` family, `GrabberPlant`, `ElderThornbackBehaviour`, `CaveTicks`, `DroneScript` | walked (rows 43-44, 67, 101); every `Crystal*` modifier's roll is recorded |
 | Traps and mechanisms | `BearTrap`, `GunmineScript`, `BarbedFence`, `MineScript`, `BounceShroom`, `JumpPadScript` | walked (rows 38-41) |
-| Run and save | `PreRunScript`, `BasicCourse`, `EscapeCourse`, `FirstAidCourse`, `CraftingCourse` | walked (rows 34, 46, 47, 49) |
-| UI the game owns | `PlayerCamera`, `Command`, `ConsoleScript`, `WoundView`, `InvButton`, `ItemLabel` | walked (rows 48, 50); the console's own command parser is out of scope, since CUO replaces it with its own surface |
+| Run and save | `PreRunScript`, `BasicCourse`, `EscapeCourse`, `FirstAidCourse`, `CraftingCourse`, `SaveSystem` | walked (rows 34, 46, 47, 49, 60, 92-93) |
+| UI the game owns | `PlayerCamera`, `Command`, `ConsoleScript`, `WoundView`, `InvButton`, `ItemLabel` | walked (rows 48, 50-51, 61, 66, 69, 71-78); the console's own parser is out of scope because CUO replaces it |
+
+**The first pass is complete.** 101 rows over all nine areas, and the areas that remain unread are named rather than implied:
+the hand-crank and keypad minigames' internal states, the console's own command parser (CUO replaces it) and the ambient
+audio/lighting manager. Anything a later page needs from those is a new row, not a re-read of the tree.
 
 ## The ledger
 

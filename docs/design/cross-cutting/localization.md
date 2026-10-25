@@ -10,7 +10,7 @@ Every string a player reads is rendered by the client that reads it, in that cli
   is the defect this rule forbids.
 - A surface with no catalogue entry is not shipped with raw text: a missing entry means the design is not finished, and
   the catalogue gate refuses the commit while one catalogue lacks a key the other has.
-- The same sentence is never written twice: one condition has one key, shared by the client that decided it and the
+- **The product's own name is localized.** The window title uses the game's official name in the reading language: the accepted reading is that "the Chinese title reads … ; the English one is unchanged", so a product name is a catalogue entry rather than a hard-coded string.- The same sentence is never written twice: one condition has one key, shared by the client that decided it and the
   client that reads it.
 
 ## Where the catalogue comes from

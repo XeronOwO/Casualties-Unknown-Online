@@ -56,53 +56,14 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 			return true;
 		}
 
-		// A ground item: the game's own pickup puts it in this body, exactly as the player would do by hand — and NOTHING is sent from here. The
-		// intent waits for the row the pickup report produces (see the caller's `_awaitingRowFor` arm), because sending it in the same breath is the
-		// race that swallowed the item before.
-		if (dragItem != null && TryCarryIntoBody(dragItem)) // Unity object — ==
-		{
-			_awaitingRowFor = itemId;
-			domains.Log.LogInformation("[RemoteIntent] carrying the ground item {ItemId} into this body for the give (the game's own Body.PickUpItem).", itemId);
-			return true;
-		}
-
-		domains.Log.LogInformation("[RemoteIntent] refused the release of the ground item {Item} (id {ItemId}) onto the displayed backpack: no free slot in this body accepted it, so the hand-over needs the player to make room first.",
+		// A WORLD item is refused, and the reason is the user's ruling rather than a limitation. A pickup into "the first free slot" is not the
+		// gesture's destination — it is an arbitrary place the player did not choose, and the machine showed both halves of why that is wrong: the
+		// item was swallowed by the cross of the pickup report and the give request, and once the give was refused the item stayed in the giver's body
+		// at that arbitrary slot ("the items ended up in the host's backpack, in completely wrong positions", 2026-10-25). The hand-over of a world
+		// item is ONE move to the aimed destination; until it is implemented (ticket give-from-the-ground-swallows-the-item) the gesture is refused
+		// by name.
+		domains.Log.LogInformation("[RemoteIntent] refused the release of the ground item {Item} (id {ItemId}) onto the displayed backpack: a world item's hand-over travels straight to the aimed slot, which is not implemented yet (ticket give-from-the-ground-swallows-the-item).",
 			dragItem != null ? dragItem.name : "null", itemId);
-		return false;
-	}
-
-	/// <summary>
-	/// The game's own pickup into the first slot that accepts the item (`Body.PickUpItem(item, slot, force: false)` — the native guards decide), verified
-	/// by reading the slot back. <c>force: false</c> is deliberate: a full body must refuse the give rather than force an item into a slot the game
-	/// itself would not put it in.
-	/// </summary>
-	private static bool TryCarryIntoBody(Item item)
-	{
-		if (PlayerCamera.main == null || PlayerCamera.main.body == null) // Unity objects — ==
-		{
-			return false;
-		}
-
-		var body = PlayerCamera.main.body;
-		for (var slot = 0; slot < body.slots.Length; slot++)
-		{
-			if (body.HoldingItem(slot))
-			{
-				continue;
-			}
-
-			if (item.Stats.onlyHoldInHands && !body.slots[slot].isHand)
-			{
-				continue;
-			}
-
-			body.PickUpItem(item, slot, false);
-			if (body.GetItem(slot) == item) // Unity objects — ==
-			{
-				return true;
-			}
-		}
-
 		return false;
 	}
 
@@ -167,58 +128,9 @@ internal sealed class RemoteDragIntentDispatcher(GameAdapterDomains domains)
 			TargetContainerInstanceId = targetItemInstanceId,
 		};
 
-		// A ground item the pickup JUST carried has no kernel row yet: the row arrives from the owner's pickup report, and sending the give now is
-		// the race that swallowed the item on the machine (2026-10-25, ticket give-from-the-ground-swallows-the-item). So the intent waits for the
-		// row that says this body carries it, with a deadline; Tick() sends it or drops it.
-		if (_awaitingRowFor == itemId)
-		{
-			_awaitingRowFor = 0;
-			_pendingGive = new PendingGive(itemId, intent, Time.time + PendingGiveDeadlineSeconds);
-			domains.Log.LogInformation("[RemoteIntent] picked the ground item {ItemId} up for the give; the intent waits for its carried row (deadline {Deadline:0.0}s).",
-				itemId, PendingGiveDeadlineSeconds);
-			return true;
-		}
-
 		Send(intent, local);
 		return true;
 	}
-
-	/// <summary>
-	/// Sends a give whose item was picked up in the same gesture once the authority says this body carries it. The wait is the fix for the race the
-	/// ticket measured: the pickup report and the give request used to cross on the wire and the item ended with neither side. A row that never
-	/// arrives inside <see cref="PendingGiveDeadlineSeconds"/> drops the intent with one line naming the item — the item itself is untouched, because
-	/// the pickup already put it in this body.
-	/// </summary>
-	internal void Tick()
-	{
-		if (_pendingGive is not { } pending)
-		{
-			return;
-		}
-
-		if (domains.Items.OwnsCarriedItem(domains.Session.LocalSteamId, pending.ItemId))
-		{
-			_pendingGive = null;
-			domains.Log.LogInformation("[RemoteIntent] the carried row for {ItemId} arrived — sending the give it was waiting for.", pending.ItemId);
-			Send(pending.Intent, domains.Session.LocalSteamId);
-			return;
-		}
-
-		if (Time.time >= pending.Deadline)
-		{
-			_pendingGive = null;
-			domains.Log.LogWarning("[RemoteIntent] dropped the give of {ItemId}: its carried row did not arrive within {Deadline:0.0}s. The item stays in this body; release it again once the inventory shows it.",
-				pending.ItemId, PendingGiveDeadlineSeconds);
-		}
-	}
-
-	/// <summary>The give waiting for its carried row, and when it gives up.</summary>
-	private sealed record PendingGive(ulong ItemId, RemoteDragIntent Intent, float Deadline);
-
-	private const float PendingGiveDeadlineSeconds = 3f;
-
-	private PendingGive? _pendingGive;
-	private ulong _awaitingRowFor;
 
 	internal void ReportGestureNotCarried(string gesture) =>
 		domains.Log.LogInformation("[RemoteIntent] refused {Gesture} — that intent arrives in a later stage; no proxy was mutated.", gesture);

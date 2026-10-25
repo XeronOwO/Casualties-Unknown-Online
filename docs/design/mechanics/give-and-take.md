@@ -15,10 +15,15 @@ receiver's, in the place the player aimed at, with the container it was aimed in
 with the body/limb layers and the descriptor/ground layers as the fallbacks and `this.dragItem = invButton.GetItem()`
 (`:1413`) / `this.dragItem = itemLabel.refItem` (`:1407`) as the OTHER two entrances.
 
-A world item is therefore a legal drag start, but its HAND-OVER is not designed: the transfer is stated to name an item the giver
-carries, and a world item is nobody's yet. The attempt to pick it up and then give it in one gesture swallowed the item on the
-machine (2026-10-25), so the gesture is refused by name and the finding is `docs/backlog/todo/give-from-the-ground-swallows-the-item.md`;
-until that ticket lands, the player picks the item up first, which is the native two-step and never loses it.
+A world item is therefore a legal drag start, and its HAND-OVER has an explicit DESTINATION — the slot or container the player aimed at on the
+teammate. That is the whole design input (user ruling 2026-10-25): the transfer is one move from the world to that destination, NOT a pickup into
+some slot of the giver's body followed by a second move. The intermediate step a first implementation tried (pick it up into the first free slot,
+then give) was rejected on the machine twice: it swallowed the item, and once the give was refused the item stayed in the giver's body **at the
+arbitrary slot the pickup had chosen** — the user's "the items ended up in the host's backpack, in completely wrong positions". A destination the
+player did not choose is never a place to put their item, not even for one frame.
+
+Until the direct transfer lands, the gesture is refused by name and the finding is
+`docs/backlog/todo/give-from-the-ground-swallows-the-item.md`; the player picks the item up first, which is the native two-step and never loses it.
 
 **Which of the two a release is, is decided by the DATA, not by how the gesture started.** The release asks the authority whether this
 body's own row carries the item (`IItemControl.OwnsCarriedItem` → `ItemKernelAuthority.OwnsCarriedItem` → `ItemCustodyRows.OwnsCarried`):

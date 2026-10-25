@@ -259,7 +259,6 @@ public class PatchBridgePortShapeGateTests
 	private static readonly string[] BridgeImplementationMembers =
 	[
 		"GetRemoteProxyItemId",
-		"TickGiveQueue",
 		"_carriage",
 		"_modContent",
 		"_remoteMedicalOps",

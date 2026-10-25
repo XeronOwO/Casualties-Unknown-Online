@@ -327,9 +327,6 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void EmitRemoteDragIntents(RemoteDragOutcome outcome) => _remoteDragIntents.Emit(outcome);
 
-	/// <summary>Once-per-frame look at a give that is waiting for its carried row (the ground item the same gesture picked up).</summary>
-	internal void TickGiveQueue() => _remoteDragIntents.Tick();
-
 	public void EmitRemoteWhileDraggingFrame(RemoteDragOutcome outcome) => _remoteDragIntents.EmitWhileDraggingFrame(outcome);
 
 	public void ReportRemoteGestureNotCarried(string gesture) => _remoteDragIntents.ReportGestureNotCarried(gesture);

@@ -11,7 +11,7 @@
 (`PlayerCamera.TryPickupFromWorld`, `PlayerCamera.cs:1423-1441`: the press branch's first raycast is the `Item` layer and sets `dragItem`
 from what it finds). The page's `Gaps` section records the hand-over of such an item as undesigned.
 
-## Implemented 2026-10-25, awaiting the machine's own verdict
+## Implemented 2026-10-25, then REVERTED — see the ruling below the code history
 
 The refusal is gone; the gesture now runs the two native steps with the race REMOVED rather than tolerated:
 
@@ -38,6 +38,29 @@ the `GiveToBody` intent — the two native steps a player would perform by hand,
 pickup report and the give request cross the wire as two messages, and the receiving side ended with neither the item nor its row. The
 method then refused the gesture by name (one log line) and this ticket carried the finding, because a refused gesture is a known behaviour
 while a lost item is not.
+
+## REVERTED 2026-10-25 — the user's ruling kills the whole approach (read this first)
+
+The pickup-then-give implementation above was **wrong by design**, and the machine said so before the user did: the items ended up in the giver's
+backpack "in completely wrong positions". The user's ruling, recorded on `../../design/mechanics/give-and-take.md`:
+
+> A drag has an explicit DESTINATION. "Find a free slot" belongs in exactly one place — the give being placed into the receiving player's backpack —
+> and nowhere else. Putting the item into an arbitrary slot of the giver's body first is not a step of the gesture; it is an invented intermediate
+> state the player never chose.
+
+So the intermediate pickup rung is reverted and the gesture is refused by name again (one line, naming the ticket) until the hand-over is ONE move
+from the world to the aimed destination. The host log that decided it:
+
+```
+21:36:00.975 carrying the ground item 9492956821 into this body for the give
+21:36:00.975 picked the ground item 9492956821 up for the give; the intent waits …
+21:36:00.992 the carried row for 9492956821 arrived — sending the give it was waiting for
+21:36:00.992 GiveToBody captured for item 9492956821 of 76561198246659 (slot 1, body 76561198863287957)
+21:36:00.992 [WRN] refused GiveToBody: 76561198246659 has no item instance 9492956821.
+```
+
+Two independent reasons it could never have been right: the item reached a slot nobody aimed at (the ruling), and the give was then refused because
+the ownership check reads the sender's **character snapshot**, not the kernel row the waiter read — the snapshot is a report and lags.
 
 ## What a fix has to decide
 

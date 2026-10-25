@@ -26,6 +26,11 @@ that entered the body.
 - A measure that cannot reach the item's own instructions is refused rather than guessed at.
 - The dose that leaves the container is the dose whose effect lands on the drinker; a disagreement between the two is the
   defect.
+- **The drain is the game's own draw, split across the stacks.** `Runtime/Session/PlayerInteraction/LiquidDrainPlan.cs` is "the
+  drain a cross-player limb action commits from a liquid container: the requested amount capped at the container's own total,
+  split across every stack in proportion to what it holds"; it "mirrors `WaterContainerItem.CalculateDrain` — the game's own
+  draw for one `Drink` / `ApplyToLimb` / `Inject` call — and holds no per-content constant: the amount comes from the caller
+  (the native delegate's own dose on the operator's client, or the host's reconciliation of a reported total)".
 - The drinker must be conscious: drinking is one of the two families where the TARGET itself consumes the item.
 - A container with nothing to drink refuses by name.
 

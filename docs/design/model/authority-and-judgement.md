@@ -65,6 +65,14 @@ action, in a plain local call. A render clone … and any remote application bot
 never be reported as the local player's action — the rule every write-report patch follows". A scope is also never opened
 inside a remote application, because "a capture there would be meaningless (the facts travel with the intent being applied)".
 
+**An admission is the grant, and the outcome spends it.** `Runtime/Session/PlayerInteraction/ItemActionGrants.cs` keeps "one
+entry per (actor, item) the host admitted a cross-player use for on the family whose effect runs on the affected side's own
+client, naming the item's owner and — for the family that is about a limb — the limb the host authorized". It exists because
+"the outcome arrives from the AFFECTED side while the item belongs to somebody else, and the item domain's own rule — a member
+may not report a change to another member's carried item — must keep holding", so the admission itself is the permission: "an
+entry is consumed by the report it authorizes, so a repeat or a late report never lands on an item whose use is already
+settled".
+
 ## The census of unbounded reports
 
 Every report is either anchored or named unbounded, and the census is the list:

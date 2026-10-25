@@ -28,6 +28,17 @@ There is no native CPR: the accepted record states that "Native `Assembly-CSharp
 ## Rules and states
 
 - **The control has three states and appears only in arrest.** `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/CprButtonPolicy.cs` decides `Hidden` / `Start` / `Compress`: hidden with no remote focus, `Compress` when this client already runs a CPR operation on that body, and `Start` only when the patient is in arrest (`Body.inCardiacArrest`, `heartRate < 20`). The compression interval the client sends is never zero — the policy floors it at `0.01` s ("the update refuses a non-positive in…").
+- **The rhythm's numbers are anchored on the game's own scales, never invented.** `CprRhythmPolicy.cs`: compressions act on BLOOD
+  PRESSURE, ventilation acts on BLOOD OXYGEN, and the heart restart is a third outcome — "first to the host wins, the later
+  claimant is corrected rather than replayed". The anchors are the game's: "`Body.brainDying` is
+  `bloodPressure < 10 && consciousness < 5` (the arrest CPR is for), `Body.fibrillat[ion]` … `bloodPressure < 88`, and a normal
+  pressure sits around 100-120", so a compression lifts pressure to `CompressionCeiling` only while the body is still in arrest
+  territory and the restart needs enough perfusion (`RestartPressure…` is the tuning point the ticket records).
+- **CPR and the AED cover different hearts, so whichever runs second refuses.** `AedShockPolicy.cs`: "a shock is only advised
+  when the heart is fibrillating. That is what makes the shared restart honest — CPR restarts an ARRESTED heart, defibrillation
+  a QUIVERING one, and whichever runs second finds its own condition gone and refuses instead of damaging a heart that no longer
+  needs it". The real device says "no shock advised" and does not discharge, and the host arbitrates because it applies both
+  operations to the same snapshot, where one changes the state the second is checked against.
 
 - The operator's own body is asked FIRST: a strength and intelligence gate decides whether they may compress at all, and a
   press they cannot make is refused on their own client before anything leaves it.

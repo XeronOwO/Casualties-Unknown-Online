@@ -1,0 +1,111 @@
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
+
+namespace CasualtiesUnknownOnline.GameAdapter.Items;
+
+/// <summary>
+/// The comparison at the heart of the custody projection: the kernel's judged rows against the objects this client actually has, with
+/// every disagreement named. It is PURE — no Unity, no scene — so the rules are covered without a game, and the live half
+/// (<see cref="ItemCustodyProjection"/>) is only the wiring that feeds it.
+///
+/// <para>
+/// The rule it enforces is the design page's (`docs/design/model/item-custody.md`): the kernel's row is the ONLY authority on where an
+/// item is, and a local object is either REAL (this client simulates it because the row is its own) or DISPLAY (a local incarnation of
+/// another member's row). So the mismatches it can report are exactly these:
+/// </para>
+///
+/// <list type="bullet">
+/// <item>an object with no row at all — the object is an orphan and must be destroyed, never reported as the item dying;</item>
+/// <item>a row that is not <see cref="ItemLocationKind.Terminal"/> with no object — the item should be visible somewhere and is not;</item>
+/// <item>a <see cref="ItemLocationKind.Terminal"/> row that still has an object — something that is gone is still standing;</item>
+/// <item>an object whose kind disagrees with its row (a display object for this client's own row, or the reverse).</item>
+/// </list>
+///
+/// <para>
+/// The kinds are decided by the OWNER the row names: a row owned by this client is real, every other row this client shows is a display.
+/// That single rule is what the adapter's five stores each decided for themselves, differently, which is how the losses of 2026-10-25
+/// happened.
+/// </para>
+/// </summary>
+internal static class ItemCustodyComparison
+{
+	/// <summary>One local object as the projection sees it: its row id and whether the client shows it as its own or as somebody else's.</summary>
+	internal readonly record struct LocalObject(ulong InstanceId, bool IsDisplay);
+
+	/// <summary>One disagreement, addressed to the id it is about so the log line can name it and the repair can act on it.</summary>
+	internal readonly record struct Mismatch(ulong InstanceId, MismatchKind Kind);
+
+	internal enum MismatchKind
+	{
+		/// <summary>An object exists with no judged row — an orphan.</summary>
+		ObjectWithoutRow,
+
+		/// <summary>A live row (any kind but Terminal) has no object this client can show.</summary>
+		RowWithoutObject,
+
+		/// <summary>A Terminal row still has an object standing for it.</summary>
+		TerminalRowWithObject,
+
+		/// <summary>The object's kind disagrees with the row's owner (real vs display).</summary>
+		KindDisagrees,
+	}
+
+	/// <summary>
+	/// The expected kind for a row seen by <paramref name="localSteamId"/>. The rule the first shadow run corrected (guest log 2026-10-25
+	/// 19:05, 279 `KindDisagrees` on world rows): a WORLD row is REAL on every client — a world item is simulated locally wherever the scene
+	/// shows it, host or guest, so it is not another member's row incarnated. DISPLAY is only ever another member's CARRIED / CONTAINED /
+	/// APPLIED row, which is what the clone renderer and the standing objects produce. The first version asked "is this client the world's
+	/// simulator", which no object answers.
+	/// </summary>
+	internal static bool IsDisplayFor(ItemLocation location, ulong localSteamId) =>
+		location.Kind switch
+		{
+			ItemLocationKind.Carried or ItemLocationKind.Contained or ItemLocationKind.Applied => location.Owner.Value != localSteamId,
+			_ => false,
+		};
+
+	internal static IReadOnlyList<Mismatch> Compare(
+		IReadOnlyDictionary<ulong, ItemState> rows,
+		IReadOnlyList<LocalObject> objects,
+		ulong localSteamId)
+	{
+		var mismatches = new List<Mismatch>();
+		var seen = new HashSet<ulong>();
+
+		foreach (var local in objects)
+		{
+			seen.Add(local.InstanceId);
+			if (!rows.TryGetValue(local.InstanceId, out var row))
+			{
+				mismatches.Add(new Mismatch(local.InstanceId, MismatchKind.ObjectWithoutRow));
+				continue;
+			}
+
+			if (row.Location.Kind == ItemLocationKind.Terminal)
+			{
+				mismatches.Add(new Mismatch(local.InstanceId, MismatchKind.TerminalRowWithObject));
+				continue;
+			}
+
+			if (IsDisplayFor(row.Location, localSteamId) != local.IsDisplay)
+			{
+				mismatches.Add(new Mismatch(local.InstanceId, MismatchKind.KindDisagrees));
+			}
+		}
+
+		foreach (var row in rows)
+		{
+			if (seen.Contains(row.Key))
+			{
+				continue;
+			}
+
+			if (row.Value.Location.Kind != ItemLocationKind.Terminal)
+			{
+				mismatches.Add(new Mismatch(row.Key, MismatchKind.RowWithoutObject));
+			}
+		}
+
+		return mismatches;
+	}
+}

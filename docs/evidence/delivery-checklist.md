@@ -26,10 +26,8 @@ boxes in one pass. That is the deliberate
 multi-line exception the paragraph above already allows for a cycle reset, applied to a cycle with no
 implementation sequence to record; the BULK-checking prohibition keeps governing every cycle that
 touches `src/`, `tests/` or `tools/`. `dotnet format` may be skipped (it only rewrites C#, and such a
-cycle has none). The evidence run may use
-`--filter "FullyQualifiedName!~DeliveryChecklist_NoIncompleteRequiredBoxes"` — but the focused
-normative-gate run afterwards is NOT optional: it is the only thing that proves this checklist complete
-before the commit.
+cycle has none). The focused normative-gate run afterwards is NOT optional: it is the only thing that
+proves this checklist complete before the commit.
 
 **Evidence rule (added 2026-09-17)**: a checked box carries a short evidence suffix on the
 SAME line — `- [ ] <item> — evidence: <command/file/result>` — because a bare checkmark
@@ -47,36 +45,38 @@ scheme), and an entrance behind a hotkey the player cannot be expected to know i
 the gesture opens what it needs from the act itself.
 
 **Cycle-reset rule (added 2026-10-25, the user's finding)**: this file is the CURRENT cycle's record, and
-a cycle that never resets it inherits the previous cycle's green boxes — the gate only asks whether a
+a cycle that never resets it inherits the previous cycle's green boxes — the script only asks whether a
 required box is unchecked, so a stale fully-ticked checklist certifies every later commit without a
 record of its own. The defect was found on the machine: a whole session of commits ran against the
 2026-10-24 drink cycle's eleven checked boxes, and nothing in the tree said so. So: **the first action of
 a cycle, before its first commit, is the deliberate reset of every box to `[ ]`** (the one multi-line
-edit the operating rule allows), and every box then carries evidence naming THIS cycle — a commit, a path
-under `.acceptance/`, or a measured reading produced by it. A box whose evidence names another cycle is
-not filled.
+edit the operating rule allows, and the reset clears the evidence with the checkmark), and every box then
+carries evidence naming THIS cycle — a commit, a path under `.acceptance/`, or a measured reading produced
+by it. A box whose evidence names another cycle is not filled.
 
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
-      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing — evidence:
-      the page was READ and WRITTEN BACK this cycle, `docs/design/mechanics/give-and-take.md` ("What the player does" gained the
-      three native drag entrances, "What the game itself does" the `PlayBackpackSound` rule), and the ledger gained row 180 with a
-      `page-wrong` verdict — the page had been silent on which items can start the drag, which is what let a wrong answer stand
+      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing —
+      evidence: this maintenance cycle read the instruction set end to end and rewrote it (root `AGENTS.md`,
+      `AGENTS.local.md`, the user-level file, `docs/`, the `docs/acceptance/` pair, `docs/design/`, `tools/`), each file now
+      stating one-line rules and pointing at the page that owns the detail
+- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
+      remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
+      edit, and no forbidden shape is used to fit a mechanism — evidence: documentation-only cycle, no behaviour changed, so
+      no three-line statement is owed; the rule itself is now stated once in the root file with `reversing/` as its only
+      source of native fact
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
-      with every difference either fixed or named as a user decision — evidence: the give's sound and the ground-item hand-over were run on
-      two clients this cycle (`.acceptance/batch-ground`, the user's reading): the ground-item hand-over swallowed the item and is reverted to a
-      named refusal (`docs/backlog/todo/give-from-the-ground-swallows-the-item.md`), and the give's sound was still not heard, which the ticket
-      `todo/give-into-backpack-plays-no-sound.md` now records as an open difference rather than a fixed one
-- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit — evidence: the gesture is the existing release of a drag onto a player (no new window, no new button), and its native counterpart now names ALL THREE drag entrances — `PlayerCamera.cs:1423-1441` (`Item` layer first, `dragItem = item`), `:1413` (`invButton.GetItem()`), `:1407` (`itemLabel.refItem`); the input sequence is "hold the left button on the item (in the world or in a slot), move onto the player, release" and the entry is reachable from the act itself (the drag opens the displayed backpack)
-- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified — evidence: `PlayerCamera.cs:1423-1441` (world-item drag), `:1557-1570` (UnloadItem + LoadItem + PlayBackpackSound), `:44` (`Sound.Play("backpack" + Random.Range(1, 3), …)`), `Body.cs:1413` (`SwapSlots` = drop, drop, pick, pick); the runtime half is the two-client log chain recorded on the ticket (give → `OnItemDestroyed` → `ItemUpdateState refused (InvalidTransition)`)
-- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson) — evidence: the transfer-destroy defect was checked on BOTH directions — the take side already zeroes ids (`ItemApplication.KillRemoteItem`), the give side now does (`PlayerInventoryPlacement.TryDestroyById`), and the receiver's adoption path has no destroy at all; the carried-slot move was checked against the game's two release arms (empty slot vs occupied slot, `PlayerCamera`'s `SwapSlots` branch) rather than one
-- [ ] Self-check table: mechanism x change x evidence, every cell filled — evidence: the three rows on `todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md` (root cause 1: the missing `SwapSlots` arm, `Body.cs:1413`; root cause 2: a destroy reported for a moved item, guest log `18:02:01.328`; each with its code landing point and the test that pins it, `RemoteIntentSlotReleaseTests` 10/10 in `.acceptance/l457-test.log`)
-- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code edit, and no forbidden shape is used to fit a mechanism — evidence: (1) the player holds the left button on an item lying in the world and releases on a teammate, expecting it to change hands; (2) the game's own chain is `PlayerCamera.TryPickupFromWorld` taking the `Item` under the pointer as `dragItem` (`:1423-1441`) and the release loading it into the container with `PlayBackpackSound` (`:1557-1570`, `:44`); (3) the remote case runs that same pickup first (`Body.PickUpItem`, native) and then the transfer, because the destination container is another client's — the one step the chain cannot run, named on the page. Read from `reversing/` BEFORE the code (`CarryForGive` came after the read that corrected a wrong claim), and the page carries all three lines
-- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided — evidence: two clients, the giver's own log is the trace (`[RemoteIntent] picked the ground item … up into slot N`, then no `OnItemDestroyed` for the moved id and no `ItemUpdateState refused`), and the user reads the outcome on screen (item changed hands, the move sound plays); the item-loss half was judged that way this cycle (the user's reading, translated: the give works and the item is not lost)
-- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation — evidence: the user asked for the behaviour directly ("why can't I pick an item off the ground and give it to the guest") and then chose "change it, then continue"; no new gesture or window was invented — the ground item uses the game's own drag and pickup
-- [ ] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round) — evidence: `PlayerInteractionApply` is at the 600-line aggregate ceiling and was trimmed back under it (the shape gate `.acceptance/l478-gate.log` 87/87 green); `RemoteDragIntentDispatcher` gained one private method (`CarryForGive`) with no new state; the dead recipe `give-from-body.cs` was deleted rather than left behind
-- [ ] Build + dotnet format + dotnet test normative gates pass — evidence: `dotnet build CasualtiesUnknownOnline.slnx` 0 errors; `dotnet format CasualtiesUnknownOnline.slnx` exit 0 (`.acceptance/l499-format.log`); the full run `.acceptance/l502-full.log` — gates 802/802 and behaviour 6504/6504 green; the two gate failures this cycle's docs caused (a run sheet without checkboxes, a stale en/zh pair hash) were fixed rather than waived (`.acceptance/l501-gates.log`)
+      with every difference either fixed or named as a user decision — evidence: documentation-only cycle, so no run is owed;
+      the machine evidence this cycle produced belongs to the custody projection and is cited under *Self-check table*
+- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
+- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+- [ ] Self-check table: mechanism x change x evidence, every cell filled
+- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+- [ ] Structure review done (touched classes <= 600 lines, state bools, dead mechanisms deleted in the same round)
+- [ ] Build + dotnet format + dotnet test normative gates pass
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development

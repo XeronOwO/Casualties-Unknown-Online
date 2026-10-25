@@ -106,6 +106,9 @@ internal sealed class GameAdapterDomains
 	internal readonly ItemUseSync ItemUseSync;
 	internal readonly GunStateSync GunStateSync;
 	internal readonly ItemSlotSync ItemSlotSync;
+	/// <summary>The custody projection (stage 1 of `docs/backlog/todo/item-custody-single-authority.md`): shadow mode, it compares the kernel's
+	/// rows with this client's objects once a second and logs the disagreements without changing anything.</summary>
+	internal readonly ItemCustodyProjection ItemCustody;
 	internal readonly OperationTrace OperationTrace;
 	internal readonly ItemPositionAuthority ItemPositionAuthority;
 	internal readonly ItemPositionFollow ItemPositionFollow;
@@ -339,6 +342,7 @@ internal sealed class GameAdapterDomains
 		ItemWorldSync = new ItemWorldSync(session, items, DropGuard, itemDropState, blockBreakState, TrapDrops, OperationTrace, itemReports, ItemIds, loggerFactory.CreateLogger<ItemWorldSync>());
 		LimbItemTransform = new LimbItemTransform(session, items, loggerFactory.CreateLogger<LimbItemTransform>());
 		ItemSlotSync = new ItemSlotSync(items, session, itemDropState, ItemIds, OperationTrace, loggerFactory.CreateLogger<ItemSlotSync>());
+		ItemCustody = new ItemCustodyProjection(items, loggerFactory.CreateLogger<ItemCustodyProjection>());
 		PickupSync = new PickupSync(items, session, ItemApplication, itemDropState, ItemIds, OperationTrace, itemReports, ItemSlotSync);
 		ContainerSync = new ContainerItemSync(items, itemDropState, ItemIds, OperationTrace, itemReports, session, loggerFactory.CreateLogger<ContainerItemSync>());
 		ItemUseSync = new ItemUseSync(items, session, ItemIds, playerInteraction, solidFoodSemantics, loggerFactory.CreateLogger<ItemUseSync>());

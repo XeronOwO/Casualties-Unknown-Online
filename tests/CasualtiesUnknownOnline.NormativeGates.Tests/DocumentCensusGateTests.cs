@@ -30,9 +30,11 @@ public sealed class DocumentCensusGateTests
 	/// </summary>
 	private const int DocumentBudgetBytes = 114688;
 
-	/// <summary>Build output, the vendored decompiled tree and the gitignored local areas carry no documents.</summary>
+	/// <summary>Build output, the vendored decompiled tree, the gitignored local areas and the append-only delivery archive carry no
+	/// navigable documents: the archive under <c>docs/evidence/checklists/</c> is the per-cycle record `tools/check-delivery.ps1` writes and
+	/// nobody reads it by path, so it is kept by the script, not by a census row.</summary>
 	private static readonly string[] SkippedDirectories =
-		["bin", "obj", ".git", ".vs", "reversing", "node_modules", "artifacts", ".agent-local", ".acceptance"];
+		["bin", "obj", ".git", ".vs", "reversing", "node_modules", "artifacts", ".agent-local", ".acceptance", "checklists"];
 
 	private static readonly string[] Dispositions = ["keep", "rework", "delete"];
 	private static readonly string[] Readers = ["loaded", "index", "spec", "claim", "attribution", "none"];

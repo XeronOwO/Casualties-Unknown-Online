@@ -28,7 +28,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 6 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Character` | 94 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Content` | 36 | read |
-| `CasualtiesUnknownOnline.GameAdapter/Items` | 70 | read |
+| `CasualtiesUnknownOnline.GameAdapter/Items` | 72 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModStatus` | 3 | read |
 | `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 28 | read |

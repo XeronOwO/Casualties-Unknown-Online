@@ -45,6 +45,14 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// </summary>
 	ItemState? FindJudgedItem(ulong instanceId);
 
+	/// <summary>
+	/// Read-only: EVERY judged row, by instance id — the same rows <see cref="FindJudgedItem"/> answers one at a time, for the consumer that
+	/// has to compare the whole set instead of addressing one id (the adapter's custody projection, which asks "does every row have an object
+	/// and every object a row"). A Terminal row is included: the kernel records what an item became, and a caller reads the location to tell
+	/// the live rows from the finished ones.
+	/// </summary>
+	IReadOnlyDictionary<ulong, ItemState> QueryJudgedItems();
+
 	// ===== Report side (the adapter's local compute reports here) =====
 
 	/// <summary>A runtime-generated item entered the world locally — record (host/solo) and report/broadcast.</summary>

@@ -577,6 +577,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	public bool IsWorldItemRegistered(ulong itemId) => _messageFlow.IsWorldItemRegistered(itemId);
 
 	public ItemState? FindJudgedItem(ulong instanceId) => _kernelAuthority.FindItem(instanceId);
+	public IReadOnlyDictionary<ulong, ItemState> QueryJudgedItems() => _kernelAuthority.QueryItems();
 
 	internal void FireItemSpawned(WorldItem item) => _messageFlow.FireItemSpawned(item);
 

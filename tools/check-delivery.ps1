@@ -127,7 +127,12 @@ Write-Host ("archived this cycle's record: docs/evidence/checklists/cycle-" + $s
 $reset = [System.Collections.Generic.List[string]]::new()
 foreach ($line in $lines) {
 	if ($line -match '^- \[x\] (.+)$') {
-		$reset.Add("- [ ] " + $Matches[1])
+		# The reset drops the EVIDENCE too, not just the checkmark: a box left carrying the previous cycle's evidence would pass the
+		# evidence check without this cycle having produced any — which is how a stale checklist certified whole sessions of commits.
+		$name = $Matches[1]
+		$cut = $name.IndexOf(' ' + $emdash + ' evidence:', [System.StringComparison]::Ordinal)
+		if ($cut -ge 0) { $name = $name.Substring(0, $cut) }
+		$reset.Add("- [ ] " + $name)
 		continue
 	}
 

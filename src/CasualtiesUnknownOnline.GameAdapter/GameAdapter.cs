@@ -225,6 +225,10 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 			_domains.ItemWorldSync.ResetDestroySuppression();
 		}
 
+		// The custody projection (shadow mode): the kernel's rows against this client's objects, once a second, changing nothing. Stage 1 of
+		// docs/backlog/todo/item-custody-single-authority.md — a running session with `mismatches=0` is what lets the readers be switched.
+		_domains.ItemCustody.Tick(_domains.Session.LocalSteamId);
+
 		_lastLocalBody = localBody;
 		using (_latency.Measure("StartGate"))
 		{

@@ -20,6 +20,10 @@ why the wound view's release — the entry that carries a limb — is its only e
 - Some limb actions are timed operations; the patient's own client runs them and the operator's client shows the progress.
 - The patient must be alive; consciousness is not required.
 
+## What the affected side protects
+
+Two protections guard this entry, and both are read on the machine: the picked limb is SERVED ("an `icepack`'s native limb action lands `ChilledLimb` on limb 2 on the treated side, and the operator's and third peer's displayed copies carry it"), and a request naming a limb the patient does not have is REFUSED by the affected side "with the item named, no limb touched and the item still carried". The refused shape is tested with an invalid index; a limb dismembered between the pick and the run was not staged and stays a gap.
+
 ## Refusals
 
 | Condition | The player reads |

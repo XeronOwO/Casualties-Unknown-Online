@@ -13,21 +13,43 @@ real body slot, so every side effect the game produces — the friction/clothing
 refresh, the wear strip — happens BY CONSTRUCTION. The missing sound is one symptom of the transfer not being native; this ticket is
 about the call path, not about playing a clip.
 
-## Current behaviour (to be established by the first batch)
+## Current behaviour (read from the code and the game's own source, 2026-10-25)
 
-Not yet read. What is known from the code that exists: the give gesture releases a dragged item over a slot of the DISPLAYED backpack,
-the clone's proxies are built with their colliders disabled ("never pickable/blocking", `CloneInventoryRenderer`), and the release is
-turned into a remote intent before/while the native body runs (`PlayerCameraDragUsePatch` brackets `HandleReleaseDragging` and captures
-the native calls). Whether the native `Container.LoadItem`/`TryPerformInventoryAction` actually RUNS against the proxy (so its sound and
-presentation fire) or is replaced by the intent is the first thing to read.
+**The give never reaches the game's transfer.** The release's patch (`PlayerCameraDragUsePatch.Prefix`) resolves the give target, calls
+`ReportLocalReleaseOntoProxy` and then `ClearDrag` + `return` — so the native body that would run the transfer never does. That is why
+there is no sound: the clip is not missing, the CALL is.
 
-Two outcomes, and they lead to different work:
+The native chain for a drop onto a container's slot, quoted from `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:1490`
+(`TryPerformInventoryAction`):
 
-1. **The native call runs** and the sound is missing for another reason (muted proxy audio source, clip not on the proxy's prefab) —
-   then the fix restores the native source, not a new one.
-2. **The native call is replaced** by the intent path — then the transfer must be re-plumbed so the native call runs with the patch
-   answering the proxy's body/slot (the way `InvButtonBodyPatch` answers `get_body` from the focused clone), and the sound comes back
-   with it.
+```
+Container container;
+if (item && item.TryGetComponent<Container>(ref container)) {
+    if (container.CanHoldItem(this.dragItem)) { … } else { … }
+    container.UnloadItem(this.dragItem, null);
+    container.LoadItem(this.dragItem);
+    this.PlayBackpackSound();          // <- the friction/clothing sound the report names
+    return true;
+}
+```
+
+and `PlayBackpackSound` itself (`PlayerCamera.cs:44`) plays `Sound.Play("backpack" + Random.Range(1, 3), … )` — the game's own clip, with
+its own random pitch. `Container.LoadItem` (`Container.cs:116`) is the move: parent under the container, `rb.simulated = false`, position
+snapped, and the refusals it states by name (stacking, a container already inside a container).
+
+So the ticket's second outcome applies: **the native call is replaced by the intent**, and the fix is to let the native branch run.
+
+## Shape the fix takes
+
+The displayed backpack's slots are REAL `InvButton`s over REAL `Container` clones (`CloneInventoryRenderer` instantiates the prefab), so
+the native `TryPerformInventoryAction` can run against them unchanged. The give branch therefore reports its intent (the authoritative
+move, which still travels as it does today) and then FALLS THROUGH to the native body instead of clearing the drag: the game's own
+`UnloadItem` → `LoadItem` → `PlayBackpackSound` runs on the proxy, which is the presentation and the sound the player expects, and the
+authoritative result arrives from the owner as before.
+
+The drag window stays CLOSED for this path on purpose: `Container.LoadItem`/`UnloadItem` are patched to report into that window, and an
+open window would turn the give's own native load into a second intent. The native call is observable instead by its own Debug line
+(one per load, high-frequency → Debug), which is the instrument row 1 reads.
 
 ## Acceptance rows
 

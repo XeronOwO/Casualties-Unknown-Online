@@ -40,6 +40,14 @@ rejoined party to find the same world, the same items and the same progress.
   countdown, while "a member's row arrives already in-world, so a member waiting on a third player usually has nothing to name,
   and the host's flag being false covers the menu, loading and 'no report yet' alike" — the wording is built to say no more
   than those facts support.
+- **The whole world's pace is one ladder of `Time.timeScale` values the game sets.** `PlayerCamera.cs:654-700`: Normal `1f`,
+  Fast `5f`, SuperFast `20f`, UnconsciousFast `25f`, DyingFast `3.5f`, Slowmo `0.16f`, Paused `0f` — and the setter refuses while
+  `PauseHandler.paused` or a death screen is up unless forced. That ladder is what a world-time rule has to move, which is why
+  CUO re-broadcasts the host's speed rather than recomputing it.
+- **The tutorial is a course the game plays, and finishing it is what unlocks a run.** `BasicCourse`, `CraftingCourse`,
+  `FirstAidCourse` and `EscapeCourse` are all `TutorialCourse` scripts that speak `Locale.GetTutorial(...)` lines and wait on the
+  handler's own flags (`finishedTalking`, `blockQueueEmpty`); `PreRunScript` refuses a run while `didbasiccourse` is 0, so the
+  course is the gate and not an optional screen.
 - **The gate's panel is a corner strip over the frozen world, never a blackout.** `Plugin/StartGateOverlay.cs`: the waiting text
   sits "in a translucent panel pinned to the BOTTOM-RIGHT corner (the loading screen's own info slot) over the LIVE frozen
   world. No full-screen blackout: the gate freezes the world behind it and the panel keeps the wait readable without turning the

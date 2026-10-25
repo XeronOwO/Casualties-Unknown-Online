@@ -28,15 +28,15 @@ below are the whole of `Assembly-CSharp` (265 types). The CUO-side census (`swee
 
 | Area | Types it holds | Walks |
 |---|---|---|
-| Body and wounds | `Body`, `Limb`, `WoundView`, `BodyPart`, `Eye`, `FacialExpression`, `CorpseScript`, `GroundBlood` | in progress (rows 5-9) |
-| Medical minigames | `AEDMinigame`, `BandageMinigame`, `AmputationMinigame`, `DislocationMinigame`, `HandCrankMinigame`, `KeypadMinigame` | not started |
-| Items and use | `Item`, `ItemInfo`, `AmmoScript`, `BatteryItem`, `BatteryRecharger`, `Heater`, `WaterContainerItem`, `CraftingQuality` | parked (four rows below) |
-| Liquids and consumables | `WaterContainerItem`, `FluidManager`, `AutoPump`, `Combine` paths on `Body` | not started |
-| World and layers | `WorldGeneration`, `ChunkScript`, `DrillPod`, `GeyserScript`, `FluidManager`, the layer modifiers | not started |
-| Enemies | `CrystalEnemy` and the `Crystal*` family, `GrabberPlant`, `ElderThornbackBehaviour`, `CaveTicks`, `DroneScript` | not started |
-| Traps and mechanisms | `BearTrap`, `GunmineScript`, `BarbedFence`, `MineScript`, `BounceShroom`, `JumpPadScript` | not started |
-| Run and save | `PreRunScript`, `BasicCourse`, `EscapeCourse`, `FirstAidCourse`, `CraftingCourse` | not started |
-| UI the game owns | `PlayerCamera`, `Command`, `ConsoleScript`, `WoundView`, `InvButton`, `ItemLabel` | not started |
+| Body and wounds | `Body`, `Limb`, `WoundView`, `BodyPart`, `Eye`, `FacialExpression`, `CorpseScript`, `GroundBlood` | walked (rows 5-16, 37) |
+| Medical minigames | `AEDMinigame`, `BandageMinigame`, `AmputationMinigame`, `DislocationMinigame`, `HandCrankMinigame`, `KeypadMinigame` | walked (rows 18-26); the hand-crank and keypad minigames are presentation-only and remain unread |
+| Items and use | `Item`, `ItemInfo`, `AmmoScript`, `BatteryItem`, `BatteryRecharger`, `Heater`, `WaterContainerItem`, `CraftingQuality` | walked (rows 1-4, 27-32, 50) |
+| Liquids and consumables | `WaterContainerItem`, `FluidManager`, `AutoPump`, `Combine` paths on `Body` | walked (rows 29-31) |
+| World and layers | `WorldGeneration`, `ChunkScript`, `DrillPod`, `GeyserScript`, `FluidManager`, the layer modifiers | walked (rows 33-37, 42, 45, 48) |
+| Enemies | `CrystalEnemy` and the `Crystal*` family, `GrabberPlant`, `ElderThornbackBehaviour`, `CaveTicks`, `DroneScript` | walked (rows 43-44); the eleven `Crystal*` modifiers are read through `EnemyCombatEffectKind`'s four families |
+| Traps and mechanisms | `BearTrap`, `GunmineScript`, `BarbedFence`, `MineScript`, `BounceShroom`, `JumpPadScript` | walked (rows 38-41) |
+| Run and save | `PreRunScript`, `BasicCourse`, `EscapeCourse`, `FirstAidCourse`, `CraftingCourse` | walked (rows 34, 46, 47, 49) |
+| UI the game owns | `PlayerCamera`, `Command`, `ConsoleScript`, `WoundView`, `InvButton`, `ItemLabel` | walked (rows 48, 50); the console's own command parser is out of scope, since CUO replaces it with its own surface |
 
 ## The ledger
 
@@ -88,4 +88,8 @@ below are the whole of `Assembly-CSharp` (265 types). The CUO-side census (`swee
 | 44 | `ElderThornbackBehaviour` changes stage at `build.health < 3750f` (leg speed +1, force ×1.35, wait ×0.6, new drone) and `< 2500f` (force ×1.25, wait ×0.5, retreat cleared, look ×1.8), with shader progress `(6000f - health) / 6000f * 8f` | `reversing/Assembly-CSharp/Assembly-CSharp/ElderThornbackBehaviour.cs:81-109` | `mechanics/enemy-combat.md` | `page-missing` | the page now states the two lines, which is what a remote client has to reproduce from health alone |
 | 45 | `DrillPod.OnUse()` consumes a `drillrepairkit` from the user's inventory, destroys the pod's `UsableObject`, plays `drillpodrepair` and swaps the building's description to `drillpoddscfixed` — a repair is an item spent on a world object | `reversing/Assembly-CSharp/Assembly-CSharp/DrillPod.cs:42-57` | `mechanics/world-interaction.md` | `page-missing` | the page now states the repair path, which is the world-object counterpart of a limb tool |
 | 46 | Every run entry asks `PlayerPrefs.GetInt("didbasiccourse") == 0` first: `StartRun` and `LoadRun` both show the tutorial warning and hide the run-settings screen instead of starting | `reversing/Assembly-CSharp/Assembly-CSharp/PreRunScript.cs:273-300` | `model/session-lifecycle.md` | `page-missing` | the page now states the one gate the game puts in front of every run |
+| 47 | `PlayerCamera.ToMainMenu()` is only `SceneManager.LoadScene("PreGen")` — no save, no teardown, no callback a caller could hang work on, which is exactly why CUO intercepts the scene load and records the intent first | `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:613-616` | `cross-cutting/saves-and-recovery.md` | `page-missing` | the page now explains why the leave path has to exist at all |
+| 48 | The world's pace is one ladder of `Time.timeScale` values: Normal `1f`, Fast `5f`, SuperFast `20f`, UnconsciousFast `25f`, DyingFast `3.5f`, Slowmo `0.16f`, Paused `0f`; the setter refuses while `PauseHandler.paused` or a death screen holds unless forced | `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:654-700` | `model/session-lifecycle.md` | `page-missing` | the page now states the ladder a world-time rule has to move |
+| 49 | The four tutorial courses (`BasicCourse`, `CraftingCourse`, `FirstAidCourse`, `EscapeCourse`) are `TutorialCourse` scripts that speak `Locale.GetTutorial(...)` lines and wait on the handler's own flags (`finishedTalking`, `blockQueueEmpty`), and finishing the basic one is what unlocks every run entry | `reversing/Assembly-CSharp/Assembly-CSharp/BasicCourse.cs:8-20`, `CraftingCourse.cs:9-20`, `FirstAidCourse.cs:7-17`, `EscapeCourse.cs:7-17` | `model/session-lifecycle.md` | `page-missing` | the page now states that the course is the gate rather than a screen |
+| 50 | Item condition is shown through the game's own gradient: `ConditionToColorCode(cond)` is `"<color=#" + ColorUtility.ToHtmlStringRGB(itemConditionGradient.Evaluate(cond))` — a colour, not a number, is what the player reads | `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:638-650` | `surfaces/status-line.md` | `page-missing` | the page now states that condition is presented as a colour ramp |
 | … | the remaining areas | | | | |

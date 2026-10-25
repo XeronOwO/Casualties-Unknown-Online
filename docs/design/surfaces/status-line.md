@@ -20,6 +20,9 @@ a refusal line (something did not).
 - A refusal's sentence is one key plus its values, rendered by the reading client in its own language; the frame and the
   reason are both localized, and the reason is never another language's prose.
 - A refusal is accompanied by the game's own deny sound; a successful action's line is never given the deny sound.
+- **An item's condition is shown as a COLOUR, through the game's own gradient.**
+  `PlayerCamera.ConditionToColorCode(cond)` is "`"<color=#" + ColorUtility.ToHtmlStringRGB(itemConditionGradient.Evaluate(cond))`"
+  — so the player reads a ramp, not a percentage, and a CUO line that prints a number is presenting something the game does not.
 - The line belongs to the player who performed the action: a refusal decided by the host travels back to that player, and
   a refusal decided locally is shown without any traffic.
 - A notice that reports a state (a session ending, a peer leaving) uses the same surface and the same rules.

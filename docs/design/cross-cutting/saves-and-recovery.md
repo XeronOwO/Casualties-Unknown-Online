@@ -42,6 +42,10 @@ come back where they were when the cut was taken.
   game's own save and returns to the menu. CUO keeps the player-facing action and substitutes its own cut, which is the same
   independence decision 165 states — and the reason the acceptance reading for that panel says the save half "leaves `save.sv`
   untouched".
+- **Returning to the menu is nothing but a scene load, which is why it has to be intercepted.** `PlayerCamera.ToMainMenu()`
+  (`PlayerCamera.cs:613-616`) is `SceneManager.LoadScene("PreGen")` and no more — there is no save, no teardown and no callback
+  a caller could hang work on. CUO's leave path exists because of that: the intent is recorded before the scene load and both
+  the cut and the load happen at the frame-end seam, "or a suppressed scene load would never be replayed".
 - **The end-of-layer panel's "Save and exit" takes a CUO cut, not the native save.** The accepted reading is that "the save
   half takes a CUO cut and leaves `save.sv` untouched", which is the same independence the save rules state from the other
   direction. The panel itself follows the living share of the party: it appears for a dead host and is gone for a member.

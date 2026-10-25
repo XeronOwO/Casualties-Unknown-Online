@@ -34,7 +34,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.GameAdapter/Patches` | 153 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Run` | 28 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/Tutorial` | 3 | unread |
-| `CasualtiesUnknownOnline.GameAdapter/World` | 70 | unread |
+| `CasualtiesUnknownOnline.GameAdapter/World` | 70 | read |
 | `CasualtiesUnknownOnline.GameAdapter/WorldGen` | 18 | unread |
 | `CasualtiesUnknownOnline.GameState` | 20 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Entities` | 19 | read |

@@ -92,6 +92,20 @@ burrow — are not hooked".
 The host owns the world's damage and its table. A member's hit is a REPORT: the host checks it against the cell's state it
 holds and accepts the first writer for a cell. A late joiner is given the host's cells rather than deriving them.
 
+**The radiation line is world state, and a guest may not activate it on its own.** `RadiationLineSync.cs`: the game's
+`RadiationLine` advances `timeGone` and applies local-body effects on every side, "but the line itself is world state: its
+`active` flag and `timeGone` descent must be the same on all sides for late joiners and for guests whose layer timer or body
+consciousness differs from the host's". So the host "broadcasts the absolute state while the line is active (short interval so
+the local per-frame presentation stays smooth yet re-aligns)", guests keep running their local `Update` between resends
+("that path also drives the local body's radiation effects"), and "their own independent activation is suppressed".
+
+**A rolled initial condition is the host's roll, not each side's.** `GeyserStateSync.cs`: `GeyserScript.Start` rolls a
+geyser's liquid type "from the PUBLIC random stream (`GeyserScript.cs:12`) — NOT the isolated generation stream … so every
+side's copy can roll a different type". The host's roll is the authority "captured once the generation completed and broadcast
+on world entry (like the keypad codes)", the 60 s cycle "re-sends the FULL current set (re-enumerated every time — idempotent
+same-value SetValue on the guest side; covers the lazy P2P session's ~30 s swallow window)", and a RUNTIME-created geyser
+carries its type in the creation message instead.
+
 ## What travels
 
 Damage reports from the client that hit the block, the host's table rows (with the game's own order) to a joining client,

@@ -17,6 +17,16 @@ co-op the choice must be one member's choice applied to a host-owned world.
 
 - The choice is the MEMBER's; the layer is the HOST's. A member who chooses the descent reports the intent; the host
   decides when the party moves, so two members choosing at once cannot generate two worlds.
+- **The advance guard is the game's own, minus the clause that ties it to the local body.** `LayerAdvancePolicy.DecideDrive`
+  is "the native entry's own guard (`WorldGeneration.ContinueRun`, `WorldGeneration.cs:1013`) minus its LOCAL-BODY clause":
+  `!doingRegen && !generatingWorld && worldExists` are the clauses that ask "can this world take a regeneration right now?",
+  "and the fourth — the local body standing at the layer's bottom — is the clause that ties the choice to the body that made
+  it", which a member's admitted request must not be held to.
+- **The panel's native trigger is a height, and the host replaces it with the living share.**
+  `LayerPanelGate.cs`: "the native trigger asks one question — is the LOCAL body below `-halfHeight + 3.1`", which cannot
+  answer "whether the HOST's body is among the finished (a dead host has no bod[y]) and how much of the LIVING group is down
+  there", so the host "counts its own body (only while aliv[e]) … in-world member whose reported vitals say alive, and applies
+  `LayerPanelVisibility`".
 - **A layer-relative request carries the generation it was made in.** `LayerAdvanceRequestMsg` "carries the requester's
   kernel generation stamp, the same (run epoch, layer index) identity every layer-relative world report carries, so the host
   arbitrates it against the identity it stamps its own" — which is why a request from a layer the host has already left is

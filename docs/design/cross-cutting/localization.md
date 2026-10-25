@@ -13,6 +13,10 @@ Every string a player reads is rendered by the client that reads it, in that cli
 - The same sentence is never written twice: one condition has one key, shared by the client that decided it and the
   client that reads it.
 
+## Where the catalogue comes from
+
+The UI's text is an embedded JSON data file per language with English as the fallback; a strict loader reads it, the gates read the data rather than the code, and a mod adds a language through `RegisterCatalog` — the accepted record's words: "the UI's text is an embedded JSON data file per language (English as the fallback), the catalogue is read by a strict loader, the gates read the data, a mod registers a language through `RegisterCatalog` and the picker lists it". The deployed client's own service was read afterwards: the host answered `zh` with its own word for the page and the guest answered the same key in English.
+
 ## Where strings live
 
 | Kind of string | Where it is rendered |

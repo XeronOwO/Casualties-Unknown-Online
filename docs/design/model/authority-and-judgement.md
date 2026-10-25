@@ -49,6 +49,10 @@ both sides agree. It never re-derives what it cannot reproduce (an unseeded roll
 models what a player is able to do: reach, aim, timing and input rate are anti-cheat, which this project excludes, so a
 report without a data anchor stays unbounded and is recorded as such.
 
+## The census of unbounded reports
+
+Every report is either anchored or named unbounded, and the census is the list: `docs/architecture/member-report-validation.md` carries one row per wire member, and a row marked `unbounded:` is a report this project accepts without an anchor. The accepted record's reading is that the family closed what it could — "rows 1, 2 and 4 PASS; row 3 is WITHDRAWN by the ruling below" — and that the census, not a reader's memory, is where an unbounded surface is found.
+
 ## Host rules
 
 A host rule is a setting the host alone decides. It reaches every member that reads it, and the local check it enables

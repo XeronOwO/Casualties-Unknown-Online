@@ -20,6 +20,20 @@ are the session's own facts, not the world's.
   offered rather than offered and refused.
 - The window's pointer handling never blocks the game's own input outside its own rect, and its own controls are reachable
   while the world is being played.
+- **The window may be dragged almost anywhere, but its TITLE BAR must stay grabbable.**
+  `src/CasualtiesUnknownOnline.Runtime/OnlineUi/OnlineUiWindowDrag.cs` gives the constraint and the defect behind it: "the one
+  grab target is its TITLE BAR, not the frame at large", and the earlier rule that kept "a strip of the frame on the canvas
+  on every side … at the top edge was the wi[ndow's] bottom: the title bar ended 411 screen pixels (616 canvas units) above
+  the canvas and the window could not be grabbed again".
+- **The launcher fades because the player stopped using it, and the fade is a pure function of (now, hovered).**
+  `OnlineUiLauncherFade.cs`: the top-right launcher "is opaque while the player is using it and settles to a translucent floor
+  after an idle window, so an untouched launcher stops covering the play area", and the rule "derives the alpha from (now,
+  hovered) alone, so every draw pass on the same frame returns the same value: an IMGUI frame draws a Layout pass and a
+  Repaint pass, and a rule that accumulated deltas would count the idle time twice and flicker between the passes".
+- **A page that overflows has a scroll affordance whose arithmetic is the design's.** `OnlineUiPageScroll.cs` decides "whether
+  a page needs one at all, how much of the track its handle fills, where the handle stands … and what position a click on the
+  track asks for" — the answer to the user's report that a page "has a part that goes p[ast what is] shown, and I don't see
+  [a scrollbar] on the right".
 - An action taken from the window is host-validated where it acts on the session, exactly as the same action from a
   command would be.
 

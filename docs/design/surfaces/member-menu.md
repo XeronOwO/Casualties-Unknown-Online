@@ -22,6 +22,14 @@ carry actions.
   carry action on a body already carried.
 - A player who is not in the world cannot be the menu's target; the menu closes instead of acting on a stale target.
 - The menu closes on a pick, on a click elsewhere, and when its target leaves.
+- **Overlap is resolved by asking, not by taking the first.** `src/CasualtiesUnknownOnline.Runtime/OnlineUi/RemoteTargetPicker.cs`
+  "returns every candidate inside the click radius ordered by distance, so the context menu can present an explicit selector
+  when several remote players overlap on screen" — the earlier behaviour "returned the first matching remote player" — and
+  "ties are broken by SteamId so the result is deterministic".
+- **A quick panel keeps the target it had while that player is still there.** `QuickPanelTargetPicker.cs`: "the panel keeps
+  its previously chosen target while that player is still an in-world remote; when the target is gone or no target was chosen
+  yet, the nearest in-world remote wins (ties by SteamId for determinism)" — so the panel does not jump to whoever walked
+  closer between two presses.
 
 ## Refusals
 

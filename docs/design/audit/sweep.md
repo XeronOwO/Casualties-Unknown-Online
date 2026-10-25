@@ -30,7 +30,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.GameAdapter/Items` | 69 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/ModStatus` | 3 | unread |
-| `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 28 | unread |
+| `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 28 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Patches` | 153 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/Run` | 28 | unread |
 | `CasualtiesUnknownOnline.GameAdapter/Tutorial` | 3 | unread |
@@ -67,7 +67,7 @@ status is not one of the three below — so this table cannot drift away from th
 | `CasualtiesUnknownOnline.Runtime/Localization` | 4 | unread |
 | `CasualtiesUnknownOnline.Runtime/Logging` | 3 | unread |
 | `CasualtiesUnknownOnline.Runtime/Networking` | 14 | unread |
-| `CasualtiesUnknownOnline.Runtime/OnlineUi` | 54 | unread |
+| `CasualtiesUnknownOnline.Runtime/OnlineUi` | 54 | read |
 | `CasualtiesUnknownOnline.Runtime/Patching` | 3 | unread |
 | `CasualtiesUnknownOnline.Runtime/Persistence` | 60 | read |
 | `CasualtiesUnknownOnline.Runtime/Protocol` | 10 | read |

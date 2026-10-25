@@ -62,6 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [Music and recursive-crafting mods fail to load](todo/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — stale contract.
+
 - [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
 - [Giving a ground item swallows it](todo/give-from-the-ground-swallows-the-item.md) — **High** — refused until designed.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.

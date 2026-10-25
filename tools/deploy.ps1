@@ -173,4 +173,39 @@ foreach ($file in $stale) {
     Write-Host "  removed stale $($file.Name)"
 }
 
+# Satellite mods live in their OWN plugin folders and compile against Abstractions, so a stale copy is a mod that refuses to load with a
+# MissingMethodException on the contract it was built for. Until this list existed, `deploy` meant "the main plug-in" and the mods drifted a day behind
+# the contract (user report 2026-10-25: cuo.music and cuo.recursivecrafting both failed to load while pinyin, built the same day as the contract,
+# worked). Each entry is: built assembly -> the folder the game loads it from; the timestamp is printed so a stale copy is visible in the deploy log.
+$satelliteMods = @(
+    @{ Assemblies = @("CasualtiesUnknownOnline.Music.dll"); Folder = "MusicShare"; Project = "CasualtiesUnknownOnline.Music" },
+    @{ Assemblies = @("CasualtiesUnknownOnline.RecursiveCrafting.dll", "CasualtiesUnknownOnline.RecursiveCrafting.Core.dll"); Folder = "RecursiveCrafting"; Project = "CasualtiesUnknownOnline.RecursiveCrafting" }
+)
+
+foreach ($mod in $satelliteMods) {
+    # Each mod is its own project, so its build output is its own bin directory — not the plug-in's.
+    $modBuildDir = Join-Path $RepoRoot "src\$($mod.Project)\bin\Debug\net48"
+    $modOut = Join-Path $modBuildDir ($mod.Assemblies[0])
+    if (-not (Test-Path -LiteralPath $modOut)) {
+        Write-Host "  skipped satellite mod $($mod.Folder): $($mod.Assemblies[0]) was not built in this run"
+        continue
+    }
+
+    $modDir = Join-Path $GameDir "BepInEx\plugins\$($mod.Folder)"
+    if (-not (Test-Path -LiteralPath $modDir)) {
+        New-Item -ItemType Directory -Path $modDir | Out-Null
+    }
+
+    foreach ($assembly in $mod.Assemblies) {
+        $source = Join-Path $modBuildDir $assembly
+        if (-not (Test-Path -LiteralPath $source)) {
+            Write-Error "Missing satellite mod assembly: $source"
+            exit 1
+        }
+
+        Copy-Item -LiteralPath $source -Destination (Join-Path $modDir $assembly) -Force
+        Write-Host "  deployed $($mod.Folder)/$assembly ($((Get-Item -LiteralPath $source).LastWriteTime.ToString('MM-dd HH:mm')))"
+    }
+}
+
 Write-Host "Deployed CUO to $targetDir"

@@ -67,6 +67,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
 - [Enter on an empty console does not close it](todo/console-enter-on-empty-does-not-close.md) — **Low** — a recorded deviation from native.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
+- [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
 - [Giving into a backpack plays no sound](todo/give-into-backpack-plays-no-sound.md) — **High** — the transfer's own clip.
 - [An item cannot be used on a sleeping teammate](todo/use-on-sleeping-target-refused.md) — **Medium** — the consuming families' target gate.
 - [Merge the remote-inventory design into the corpus](todo/merge-remote-inventory-design-into-corpus.md) — **Medium** — misfiled architecture page.

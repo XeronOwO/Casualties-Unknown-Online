@@ -377,6 +377,7 @@ docs/backlog/todo/context-menu-name-wraps-behind-actions.md | keep | index | doc
 docs/backlog/review/console-completion-shows-no-suggestions.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-caret-misaligned-with-text.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/use-on-sleeping-target-refused.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-into-backpack-plays-no-sound.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-eat-skips-native-steps.md | keep | index | docs/backlog/README.md
 docs/backlog/review/selectors-exclude-the-executor.md | keep | index | docs/backlog/README.md

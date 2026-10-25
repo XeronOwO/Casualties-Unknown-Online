@@ -124,6 +124,11 @@ internal sealed class OnlineUiPlayerContextMenu
 		}
 
 		var page = new OnlineUiPageBuilder(ctx, actions, IdPrefix);
+
+		// The player's name is a ROW, not the panel's title: the title bar's own label is a TMP this build never parses (2026-10-25 — text set,
+		// label active, the game's own font and material, characterCount 0 for every string), while every row label draws. So the name comes
+		// through the machinery that is known to render, and the panel's title stays empty — which hides the bar instead of leaving a grey strip.
+		page.Label(BuildContextTitle(ctx, row));
 		DrawTargetSelector(ctx, page, rows, target);
 
 		var menuActions = BuildActions(ctx, row);
@@ -138,7 +143,7 @@ internal sealed class OnlineUiPlayerContextMenu
 		}
 
 		return OnlineUiPanelModel.AtPoint(
-			BuildContextTitle(ctx, row),
+			"",
 			_position.x,
 			Screen.height - _position.y,
 			Width,

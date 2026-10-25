@@ -243,6 +243,15 @@ internal sealed class OnlineUiPanelView
 		ApplyClose(model.CloseId);
 		ApplyWidth(TitleFitWidth(model));
 
+		// A panel with NO title text and no close control has nothing to put in the bar, so the bar is hidden rather than drawn as an empty
+		// grey strip (the user's report: "第一行,我看到了灰色矩形框,这个我觉得没有必要留"). The context menu takes its name as a ROW instead — the
+		// title label itself never renders on this build (2026-10-25, ticket context-menu-name-wraps-behind-actions).
+		var hasBar = model.Title.Length > 0 || model.CloseId.Length > 0;
+		if (_titleBar.gameObject.activeSelf != hasBar)
+		{
+			_titleBar.gameObject.SetActive(hasBar);
+		}
+
 		if (_textChanged)
 		{
 			// The measurement above runs on a mesh TMP has not rebuilt yet, and an ellipsised label whose mesh was last built empty stays

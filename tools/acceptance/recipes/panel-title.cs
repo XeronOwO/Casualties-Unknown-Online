@@ -123,7 +123,50 @@
 			}
 		}
 	}
+	// CONTROL: the same two reads on a label that DOES render (a row's own text). If it also reports zero characters the instrument is lying
+	// and the title's zero means nothing; if it reports the row's characters, the title really is unparsed.
+	var controlText = "";
+	var controlCharacters = -3;
+	var all = UnityEngine.Object.FindObjectsOfType(typeof(UnityEngine.RectTransform));
+	for (var i = 0; i < all.Length; i++) {
+		var candidate = all[i] as UnityEngine.RectTransform;
+		if (candidate == null || candidate.name == "Title" || candidate.IsChildOf(panelRect) == false) { continue; }
+		var candidateText = candidate.GetComponent("TextMeshProUGUI");
+		if (candidateText == null) { continue; }
+		var candidateTextProperty = candidateText.GetType().GetProperty("text", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+		var candidateInfoProperty = candidateText.GetType().GetProperty("textInfo", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+		controlText = (candidateTextProperty == null ? "" : (candidateTextProperty.GetValue(candidateText, null) as string)) ?? "";
+		if (controlText.Length == 0) { continue; }
+		var info = candidateInfoProperty == null ? null : candidateInfoProperty.GetValue(candidateText, null);
+		var countField = info == null ? null : info.GetType().GetField("characterCount", Flags);
+		controlCharacters = countField == null ? -4 : (int)countField.GetValue(info);
+		break;
+	}
+	// BISECT the string: the same component, four strings, a forced reparse after each. A count that moves with the string proves the parser
+	// works and the name's own characters are what it cannot take; a count that stays 0 proves the component never parses at all.
+	var titleTextProperty = title.GetType().GetProperty("text", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+	var forceMethod = title.GetType().GetMethod("ForceMeshUpdate", new[] { typeof(bool), typeof(bool) });
+	var probeCounts = "";
+	if (titleTextProperty != null && forceMethod != null) {
+		var probes = new[] { "Test123", "Kaguya", "small", "x" };
+		for (var i = 0; i < probes.Length; i++) {
+			titleTextProperty.SetValue(title, probes[i], null);
+			forceMethod.Invoke(title, new object[] { true, true });
+			var info = meshInfo;
+			var countField = info == null ? null : info.GetType().GetField("characterCount", Flags);
+			probeCounts += (countField == null ? "-5" : ((int)countField.GetValue(info)).ToString(inv)) + ",";
+		}
+	}
+	// WHAT ELSE is on the label object: a component of the game's own that rewrites the text every frame would explain a count of zero for
+	// every string while a row label parses normally.
+	var components = "";
+	var parts = ((UnityEngine.Component)title).gameObject.GetComponents(typeof(UnityEngine.Component));
+	for (var i = 0; i < parts.Length; i++) { components += parts[i].GetType().Name + " "; }
 	return "{\"ok\":true"
+		+ ",\"labelComponents\":\"" + components + "\""
+		+ ",\"probeCounts\":\"" + probeCounts + "\""
+		+ ",\"controlText\":\"" + controlText + "\""
+		+ ",\"controlCharacters\":" + controlCharacters.ToString(inv)
 		+ ",\"charactersAfter\":" + charactersAfter.ToString(inv)
 		+ ",\"modelTitle\":\"" + (modelTitle ?? "") + "\""
 		+ ",\"labelText\":\"" + ((titleText == null ? "" : (titleText.GetValue(title, null) as string)) ?? "") + "\""

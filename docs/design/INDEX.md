@@ -43,6 +43,7 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `items/injection.md` | injecting through the medical operation |
 | `items/limb-tool.md` | tools whose action is a limb action |
 | `items/container.md` | bags and packs: contents, capacity, custody |
+| `items/firearm.md` | a shot's own chain, the jam roll, and what a remote client is told |
 
 ## Surfaces and cross-cutting rules
 

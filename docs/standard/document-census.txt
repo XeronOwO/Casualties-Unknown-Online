@@ -438,6 +438,7 @@ docs/design/items/topical.md | keep | spec | docs/design/INDEX.md
 docs/design/items/injection.md | keep | spec | docs/design/INDEX.md
 docs/design/items/limb-tool.md | keep | spec | docs/design/INDEX.md
 docs/design/items/container.md | keep | spec | docs/design/INDEX.md
+docs/design/items/firearm.md | keep | spec | docs/design/INDEX.md
 docs/design/cross-cutting/permissions-and-commands.md | keep | spec | docs/design/INDEX.md
 docs/design/cross-cutting/observability.md | keep | spec | docs/design/INDEX.md
 docs/design/cross-cutting/saves-and-recovery.md | keep | spec | docs/design/INDEX.md

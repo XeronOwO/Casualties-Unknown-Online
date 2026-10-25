@@ -18,6 +18,11 @@ medical view can act on. A revive is the game's own revival of that body.
 - A death does not duplicate or destroy an item's identity: what the dead body dropped is the same item, with the same
   instance identity and state, that the party can pick up.
 - Drops are world facts: the host owns them, every client shows them, and a member who joins or re-enters sees them.
+- **A world item is followed, not extrapolated.** `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemFollowDecision.cs` is
+  "the guest-side world-item follow machine … the id → authoritative-target table the host's 10 Hz stream feeds, and the
+  per-frame decision (frozen / ease-to-rest / velocity-sync / hard-snap) computed from the target and the copy's current
+  state" — so a dropped item's position is the host's, at that cadence, and the client chooses only how to move its own copy
+  toward it.
 - The body stays where it died and is still a treatment target until it is revived or despawned; a dead body cannot
   consume anything.
 - Revival restores the body the game's own revival restores; the reviving player spends what the game charges them.

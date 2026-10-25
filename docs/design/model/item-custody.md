@@ -14,6 +14,11 @@ for every item mechanic; the mechanic pages cite it.
 - **Creation is registered BEFORE the item is operated on.** The user's 2026-09-18 ruling names what it replaced: "the
   500 ms pickup hold is a design smell, not a latency fix", and the invariant it leaves is creation-before-operation — a
   creation is judged first, and a refused creation's later operation is answered rather than applied.
+- **The ordering is ordering, never a waiting window.** `src/CasualtiesUnknownOnline.Runtime/Session/Items/PendingItemCreations.cs`
+  states the boundary: "an operation report naming an item may only leave after every creation report that item depends on has
+  left, so the host never has to wait on, or guess about, an operation on an item whose creation it has not judged yet", and
+  then rules the temptation out — "this is ORDERING, never a latency window: nothing here waits, expires or measures time. A
+  settle either reports the creation right now or leaves it to the frame-end flush that was already due".
 - **A pickup reports the custody change, not only a slot re-home.** A pending-drop child taken onto a ring slot must be charged as a custody change, or a contained kernel record survives its own move: the recorded defect is that "a pending-drop pickup reports only a slot re-home, so a contained kernel record can survive", and the accepted reading confirms the bag's report charges the child and a later slot move is then refused/accepted as the state says.
 - **An identity survives a transform.** Whether a worn splint is still the item it was made from was researched and the
   user ruled option 1; all seven acceptance rows pass, so a transform that keeps the item keeps its identity instead of
@@ -21,10 +26,18 @@ for every item mechanic; the mechanic pages cite it.
 - **An id is never re-issued to a live item.** A restore resumes the allocator above the ids the world already holds: the
   accepted reading is "a new process's continue resumed the host allocator at 241 → 242 and the next allocation took
   counter 242 with no duplicate-id refusal".
-- **An id a client allocates itself is namespaced by that client.** `CarriedInventoryMsg` carries the guest's ids because
-  "ids are (counter << 32) | SteamId, so the guest can allocate without host round-trips" — the high half is the client's
-  own counter and the low half is who allocated it, which is why two clients never mint the same id and why the host's
-  table can be assembled from reports rather than assigned centrally.
+- **An id a client allocates itself is namespaced by that client.** The high half is the client's own counter and the low
+  half names who allocated it, which is why two clients never mint the same id and why the host's table can be assembled from
+  reports rather than assigned centrally. The precise form is worth stating because one summary calls it loosely: the message
+  says "ids are (counter << 32) | SteamId, so the guest can allocate without host round-trips", while
+  `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs` — the code that owns the space — is exact: "ids
+  are (counter << 32) | account-low … the space is per ACCOUNT (`ItemInstanceIds`: the owner half is the account id's low 32
+  bits, so it never equals the full SteamId)", and so a per-space watermark is all the coordination needed.
+- **A rejoined client's counter is resumed, not restarted.** The coordinator keeps "per-guest counter watermarks (guest to
+  host reports, host to guest grants on handshake completion)" because "a crashed-and-rejoined guest's counter restarts from
+  zero and would reuse ids the host's tables still hold". The registration itself travels as "an ABSOLUTE set and repeated on
+  the cadence of `CarriedInventoryReportSchedule`" — sync-coverage row I8: "one frame lost in the lazy-P2P swallow window must
+  heal without a reconnect, and ids the guest self-assigns later (a crafted product) must converge too".
 - **Registration.** An item's identity reaches the host through the client that allocated it. The accepted record states
   the shape: "`CarriedInventory` (NetMsg 65) is the guest's one-shot registration of the item ids it self-assigned during
   generation. The host uses it to build the per-guest transfer table used by cross-player take/arbitration." Because it was
@@ -89,6 +102,14 @@ single atomic batch: the parent fact update plus create/update/move/destroy of e
 gives the reason: "container contents are authoritative discrete state, so this is a reliable kernel command, never a state
 stream". A client's own item state is likewise typed rather than free-form —
 `ItemComponentFieldKind.cs` allows `Float`, `Int`, `Bool`, `String`, `StringList` and `Enum` fields, and nothing untyped.
+
+**A cancelled departure owes an ARRIVAL report, or the child dies by omission.**
+`src/CasualtiesUnknownOnline.Runtime/Session/Items/ContainerArrivalPolicy.cs` states the trap exactly: "the kernel records a
+container's children as the CONTAINER's rows … while the report a cancelled departure sends on the normal path is the slot
+move's, which is DATA ONLY (`ItemUpdateState`). So an item released out of a container keeps its old contained row until the
+next container report for that parent arrives — and that report does not name it, so `ItemDomainModule.DecideSyncContainer`
+takes it to `Terminal (ReplacedBy)`, which no later command may revive". A cancelled departure therefore sends the arrival
+report that puts the child back, not just its own state update.
 
 ## Incarnations
 

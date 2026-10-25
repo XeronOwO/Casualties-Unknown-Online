@@ -89,8 +89,15 @@ correction came from the machine, not from a guess, and is now the rule the test
       snapshot's own `SlotIndex` is the fallback only. Machine read: `.acceptance/batch-render`, host `[ItemCustody] rows=277 objects=277
       mismatches=0` (19:35:19.557) and guest the same after its streaming settle (19:35:22.646), while the guest's clone render still draws
       the owner's item — `[CloneRender] apply 1 items to clone slots (6 slots)` at 19:35:41.988.
-- [ ] 4. Switch `StandingItemMaterializer` and the arbitration's slot checks the same way, one commit each.
-- [ ] 5. Delete what no longer has a reader; gates + full run; deploy.
+- [x] 4. Switch `StandingItemMaterializer` to the authority — evidence: `StandingItemPlan.BuildFromRows(owner, items, isWorldRow, rows)` takes the
+      SET from the kernel's rows for that owner (parent-before-child by the row's own `ParentItemId`) and the payload from the snapshot; a row
+      the snapshot cannot describe is skipped, and an owner the kernel has no row for falls back to the snapshot walk so nothing blinks out
+      while the authority catches up. Three tests pin those cases (`TheSwitchedPlan_TakesItsSetFromTheAuthority`,
+      `..._SkipsARowItCannotDescribe`, `..._FallsBackToTheSnapshotWhenTheKernelHasNoRow`), 8/8 with the existing ones in `.acceptance/l549-test.log`.
+      Machine read, `.acceptance/batch-standing`: the guest materialized the host's carried row (`[StandingItem] … 1 carried row(s) in the data,
+      1 standing object(s)` at 19:44:36.334) and both clients settled at `[ItemCustody] rows=233 objects=233 mismatches=0`.
+- [ ] 5. Switch the arbitration's slot checks the same way.
+- [ ] 6. Delete what no longer has a reader; gates + full run; deploy.
 
 ## Acceptance rows
 

@@ -57,6 +57,114 @@ internal sealed class StandingItemPlan
 		return plan;
 	}
 
+	/// <summary>
+	/// The same plan, with the SET taken from the authority: the kernel's rows decide which ids this owner has, and the snapshot
+	/// supplies each one's payload (a standing object needs the definition and contents to instantiate). Rows are ordered
+	/// parent-before-child by their own `ParentItemId`, which is the order the materializer relies on.
+	///
+	/// <para>
+	/// A row with no snapshot entry is skipped: the object cannot be built without its payload, and the fact table's next fire carries it.
+	/// When the kernel holds NO row for the owner — a restore's first frames, a session whose rows have not been replayed yet — the plan
+	/// falls back to the snapshot walk above, which is what keeps the objects that already exist from blinking out while the authority
+	/// catches up.
+	/// </para>
+	/// </summary>
+	internal static StandingItemPlan BuildFromRows(
+		ulong owner,
+		IReadOnlyList<CharacterItemMsg> items,
+		Func<ulong, bool> isWorldRow,
+		IReadOnlyDictionary<ulong, GameState.Domains.Items.ItemState> rows)
+	{
+		if (rows.Count == 0)
+		{
+			return Build(owner, items, isWorldRow);
+		}
+
+		var owned = new Dictionary<ulong, ulong>();
+		foreach (var row in rows)
+		{
+			if (row.Value.Location.Owner.Value == owner && !isWorldRow(row.Key))
+			{
+				owned[row.Key] = row.Value.Location.ParentItemId;
+			}
+		}
+
+		if (owned.Count == 0)
+		{
+			return Build(owner, items, isWorldRow);
+		}
+
+		var plan = new StandingItemPlan(owner);
+		foreach (var id in ParentsFirst(owned))
+		{
+			if (!plan.TryFindRow(items, id, out var payload))
+			{
+				continue;
+			}
+
+			var parent = owned[id];
+			plan._rows[id] = payload;
+			plan._parents[id] = owned.ContainsKey(parent) ? parent : 0;
+			plan._ids.Add(id);
+		}
+
+		return plan;
+	}
+
+	/// <summary>The owned ids ordered so a parent always precedes its contents; a parent outside the set is a top-level row.</summary>
+	private static IReadOnlyList<ulong> ParentsFirst(IReadOnlyDictionary<ulong, ulong> owned)
+	{
+		var ordered = new List<ulong>(owned.Count);
+		var placed = new HashSet<ulong>();
+		foreach (var id in owned.Keys)
+		{
+			var chain = new List<ulong>();
+			var cursor = id;
+			while (owned.ContainsKey(cursor) && placed.Add(cursor))
+			{
+				chain.Add(cursor);
+				var parent = owned[cursor];
+				if (parent == 0 || !owned.ContainsKey(parent))
+				{
+					break;
+				}
+
+				cursor = parent;
+			}
+
+			for (var i = chain.Count - 1; i >= 0; i--)
+			{
+				if (!ordered.Contains(chain[i]))
+				{
+					ordered.Add(chain[i]);
+				}
+			}
+		}
+
+		return ordered;
+	}
+
+	/// <summary>The snapshot's own row for an id, at any depth of the carried tree.</summary>
+	private bool TryFindRow(IReadOnlyList<CharacterItemMsg> items, ulong instanceId, out CharacterItemMsg row)
+	{
+		foreach (var item in items)
+		{
+			if (item.InstanceId == instanceId)
+			{
+				row = item;
+				return true;
+			}
+
+			if (TryFindRow(item.Contents, instanceId, out row))
+			{
+				return true;
+			}
+		}
+
+		row = null!;
+		return false;
+	}
+
 	/// <summary>Whether the data asks for this id.</summary>
 	internal bool Contains(ulong instanceId) => _rows.ContainsKey(instanceId);
 

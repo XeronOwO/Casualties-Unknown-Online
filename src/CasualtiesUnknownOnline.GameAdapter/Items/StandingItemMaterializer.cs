@@ -233,7 +233,10 @@ internal sealed class StandingItemMaterializer
 			return;
 		}
 
-		var plan = StandingItemPlan.Build(owner, data.Items, _items.IsWorldItemRegistered);
+		// The SET comes from the authority (the kernel rows an owner has), the payload from the snapshot: this is the second reader switched to
+		// the custody projection (ticket item-custody-single-authority, stage 2), with the snapshot walk as the fallback for the frames the
+		// kernel has not answered yet.
+		var plan = StandingItemPlan.BuildFromRows(owner, data.Items, _items.IsWorldItemRegistered, _items.QueryJudgedItems());
 		foreach (var id in plan.Ids)
 		{
 			Ensure(id, plan);

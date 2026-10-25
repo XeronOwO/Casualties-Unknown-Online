@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Tests.Patching;
 using Xunit;
@@ -34,6 +36,10 @@ public class StandingItemPlanTests
 	private static readonly MethodInfo ContainsMethod = Method("Contains");
 	private static readonly MethodInfo RowMethod = Method("Row");
 	private static readonly MethodInfo ParentOfMethod = Method("ParentOf");
+
+	private static readonly MethodInfo BuildFromRows = Plan
+		.GetMethod("BuildFromRows", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+		?? throw new InvalidOperationException("StandingItemPlan.BuildFromRows not found.");
 
 	[Fact]
 	public void ThePlan_ListsEveryCarriedRowParentsFirst()
@@ -98,6 +104,39 @@ public class StandingItemPlanTests
 		Assert.False(Contains(plan, 0));
 	}
 
+	[Fact]
+	public void TheSwitchedPlan_TakesItsSetFromTheAuthority()
+	{
+		// The snapshot still lists a row the kernel does not carry (a stale fact-table entry) and omits one it does; the plan follows the
+		// kernel.
+		var snapshot = new[] { Row(201, "trashbag"), Row(202, "waterbottle") };
+		var plan = PlanOfRows(11, snapshot, (201, 0UL), (203, 0UL));
+
+		Assert.Equal(new ulong[] { 201 }, Ids(plan));
+	}
+
+	[Fact]
+	public void TheSwitchedPlan_SkipsARowItCannotDescribe()
+	{
+		// 203 is carried by the kernel but absent from the snapshot: without a payload there is no object to build, and the fact table's next
+		// fire brings it.
+		var snapshot = new[] { Row(201, "trashbag") };
+		var plan = PlanOfRows(11, snapshot, (201, 0UL), (203, 0UL));
+
+		Assert.Equal(new ulong[] { 201 }, Ids(plan));
+		Assert.False(Contains(plan, 203));
+	}
+
+	[Fact]
+	public void TheSwitchedPlan_FallsBackToTheSnapshotWhenTheKernelHasNoRow()
+	{
+		var snapshot = new[] { Row(301, "trashbag", Row(302, "waterbottle")) };
+		var plan = PlanOfRows(11, snapshot);
+
+		Assert.Equal(new ulong[] { 301, 302 }, Ids(plan));
+		Assert.Equal(301UL, ParentOf(plan, 302));
+	}
+
 	private static CharacterItemMsg Row(ulong instanceId, string definitionId, params CharacterItemMsg[] contents) => new()
 	{
 		InstanceId = instanceId,
@@ -105,6 +144,25 @@ public class StandingItemPlanTests
 		Condition = 1f,
 		Contents = [.. contents],
 	};
+
+	/// <summary>
+	/// The switched path: the kernel's rows decide WHICH ids the owner has, the snapshot supplies the payload. These three cases are the
+	/// whole contract of the switch — the authority wins, a row it names but the snapshot cannot describe is skipped, and an owner the
+	/// kernel has no row for falls back to the snapshot walk (the frames a restore renders before the rows arrive).
+	/// </summary>
+	private static object PlanOfRows(ulong owner, IReadOnlyList<CharacterItemMsg> items, params (ulong Id, ulong Parent)[] rows)
+	{
+		var map = new Dictionary<ulong, ItemState>();
+		foreach (var (id, parent) in rows)
+		{
+			var location = parent == 0
+				? ItemLocation.Carried(new ActorId(owner))
+				: ItemLocation.Contained(new ActorId(owner), parent);
+			map[id] = new ItemState(new ItemIdentity(id, "cu:widget"), 1, location);
+		}
+
+		return BuildFromRows.Invoke(null, [owner, items, (Func<ulong, bool>)(_ => false), map])!;
+	}
 
 	private static object PlanOf(ulong owner, params CharacterItemMsg[] items) => PlanOf(owner, null, items);
 

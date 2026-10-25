@@ -4,7 +4,7 @@
   residual a batch without OS input cannot press.
 - Priority: Low
 - Category: Console / input behaviour
-- Source: user report (2026-10-25): "打开命令框情况下,命令框是空的,按回车键为什么不能关闭命令框啊?".
+- Source: user report (2026-10-25, translated): "with the console open, the console is empty — why does pressing Enter not close it?".
 
 ## Design
 

@@ -1,7 +1,8 @@
 # A give degrades to a ground drop, and rearranging that item then retires it
 
-- Status: Todo — opened 2026-10-25 from two user reports in one session: "我把东西给了别的玩家,然后在别的玩家身上给物品换位置,换完物品被吞了", and
-  earlier the same chain losing a flashlight ("我拖动了手电筒…连着拖动了几次,手电筒不见了").
+- Status: Todo — opened 2026-10-25 from two user reports in one session (translated from the Chinese originals): "I gave an item to another
+  player, then rearranged items on that player, and when the move finished the item had been swallowed", and
+  earlier the same chain losing a flashlight ("I dragged the flashlight, dragged it a few times in a row, and the flashlight was gone").
 - Priority: Critical — an item the player gave is destroyed without reaching anybody.
 - Category: Cross-player item transfer / placement ladder / item arbitration
 - Source: user reports (2026-10-25) plus the host's own log from the batch that produced them.
@@ -12,6 +13,42 @@
 reported, never silently degraded; `docs/design/mechanics/death-and-drops.md` and `docs/design/cross-cutting/saves-and-recovery.md`
 hold the rule that an item's ownership never leaves every side at once, and `docs/design/mechanics/carry.md` the placement query the
 receiver answers.
+
+## Root cause, read from the game (2026-10-25, fixed in `a4dd…`)
+
+The native body-slot release is **two** branches, and CUO had applied one of them to both cases. `PlayerCamera.cs`'s own release:
+
+```csharp
+if (this.body.HoldingItem(invButton.slot) && this.body.HoldingItem(this.dragItem))
+{
+    this.body.SwapSlots(invButton.slot, this.body.SlotOf(this.dragItem));   // BOTH HELD → swap, both items stay
+}
+else
+{
+    if (this.body.HoldingItem(this.dragItem)) { this.body.DropItem(this.dragItem); }
+    if (this.body.HoldingItem(invButton.slot)) { this.body.DropItem(invButton.slot); }
+    this.body.PickUpItem(this.dragItem, invButton.slot, false);             // only ONE pickup
+}
+```
+
+`RemoteIntentSlotRelease.Plan` emitted the **else-branch trio for every case**, including the both-held one. In that case the trio drops the
+occupant of the destination slot (`DropSlotItem`) and then picks up **only the dragged item** — the occupant is never picked back up, so it
+stays on the ground and its row leaves the owner's inventory. That is the loss, exactly and deterministically:
+
+- The host's log of the failing session shows the rearranges landing on the destination slot the freshly given item sat in
+  (`PickUpToSlot … slot 5`, then `… slot 4`, `… slot 1`, `… slot 0`, `… slot 3` for the other item on that body).
+- The item that vanished was always **the one that had just been given** — i.e. the occupant that had not been there before — while an item
+  dragged onto an EMPTY slot was safe, because that path never drops an occupant.
+
+The fix is the missing branch: both held → `RemoteIntentStep.MoveBySwap` → `Body.SwapSlots(targetSlot, body.SlotOf(item))`, the game's own call
+(which drops the two and picks **both** back). Everything else keeps the else-branch order. `RemoteIntentSlotReleaseTests` pins both branches and
+names the regression (`ACarriedItem_OntoAnOccupiedSlot_NeverDropsTheOccupant`).
+
+Process note, recorded because it cost the user several rounds: the same conclusion was available from the decompiled release branch and the
+plan's own shape; it was instead chased through instrumented re-runs. `AGENTS.md` now carries the rule that a cause is established by reading,
+with the live eval/patch channel as the only sanctioned instrument.
+
+## Superseded: the reproduction attempts that preceded the fix
 
 ## Second reproduction (2026-10-25, deployed `53baa1c1`) — the picture changed
 
@@ -62,7 +99,7 @@ So the chain is:
    says "gave", not "dropped".
 2. The item then sat in the world as a standing item owned by that player. Moving it around inside the displayed backpack produced a
    `PickUpToSlot` intent for an id the world holds, and the materialiser **retired** the standing item — after which no body and no world
-   row held it: the "吞了" the user reports.
+   row held it: the swallowing the user reports.
 
 ## What BOTH clients' logs show (host + guest, 2026-10-25 16:25)
 
@@ -76,7 +113,8 @@ host  16:25:07.616 [StandingItem] materialized scrapmetal … for <guest>   <- t
 ```
 
 so the give landed in slot 4 AND a standing duplicate was materialised on the host, because the host learned of the new carried row only
-from the 1 Hz snapshot (`[CharSync] divergence … a new carried item the fact table never saw`). The duplicate is what "换了位置后被吞" is
+from the 1 Hz snapshot (`[CharSync] divergence … a new carried item the fact table never saw`). The duplicate is what the "swallowed after a
+move" report is
 built on: the move then succeeded —
 
 ```

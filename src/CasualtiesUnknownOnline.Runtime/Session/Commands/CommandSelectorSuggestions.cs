@@ -25,8 +25,8 @@ internal static class CommandSelectorSuggestions
 	public static IReadOnlyList<CommandSuggestion> Suggest(string prefix)
 	{
 		// An EMPTY prefix is the state a player is in the instant they type the space after the verb, and it asks for the choices:
-		// returning nothing there is what made the suggestion list vanish exactly when it became useful (the reported "我输命令没有看到
-		// 补全提示呀"). Anything else that does not begin with '@' is not a selector being typed.
+		// returning nothing there is what made the suggestion list vanish exactly when it became useful (the reported "I typed a command and saw
+		// no completion suggestion"). Anything else that does not begin with '@' is not a selector being typed.
 		if (prefix.Length == 0)
 		{
 			return BaseSelectors;

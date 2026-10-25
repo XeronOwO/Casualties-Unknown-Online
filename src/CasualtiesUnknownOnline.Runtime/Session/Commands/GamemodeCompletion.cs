@@ -6,8 +6,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
 /// The console's completion for <c>/gamemode</c>'s mode argument: the verb accepts one of two words, and an argument whose legal
-/// values are a closed set has to offer them — otherwise the player types it blind, which is the reported "我输命令没有看到补全提示呀"
-/// one verb later than the suggestion list itself.
+/// values are a closed set has to offer them — otherwise the player types it blind, which is the reported "I typed a command and saw no
+/// completion suggestion" one verb later than the suggestion list itself.
 ///
 /// <para>
 /// The candidates are the two words the handler accepts (<c>survivor</c> and <c>spectator</c>, the same pair its usage line and its

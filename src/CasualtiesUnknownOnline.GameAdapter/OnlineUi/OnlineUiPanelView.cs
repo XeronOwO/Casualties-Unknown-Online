@@ -228,7 +228,7 @@ internal sealed class OnlineUiPanelView
 		}
 
 		// The title is ONE line: a name longer than the bar ends in an ellipsis instead of wrapping onto a second line that the first
-		// action row would draw over (the reported "换行…在医疗按钮背面"). The flags are set once per change, because TMP rebuilds its
+		// action row would draw over (the reported "it wraps, behind the medical button"). The flags are set once per change, because TMP rebuilds its
 		// mesh when either moves and a per-frame write would rebuild every frame.
 		if (_title.enableWordWrapping)
 		{
@@ -244,7 +244,7 @@ internal sealed class OnlineUiPanelView
 		ApplyWidth(TitleFitWidth(model));
 
 		// A panel with NO title text and no close control has nothing to put in the bar, so the bar is hidden rather than drawn as an empty
-		// grey strip (the user's report: "第一行,我看到了灰色矩形框,这个我觉得没有必要留"). The context menu takes its name as a ROW instead — the
+		// grey strip (the user's report: "the first line is a grey rectangle I do not think needs to stay"). The context menu takes its name as a ROW instead — the
 		// title label itself never renders on this build (2026-10-25, ticket context-menu-name-wraps-behind-actions).
 		var hasBar = model.Title.Length > 0 || model.CloseId.Length > 0;
 		if (_titleBar.gameObject.activeSelf != hasBar)

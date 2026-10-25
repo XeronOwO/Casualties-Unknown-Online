@@ -99,7 +99,7 @@ internal sealed class ItemReconcile(
 					}
 
 					// ONE line per kill, naming the id and the scene shape it was killed in: a kill is rare, and the id is what the
-					// operator's report ("换完物品被吞了") is about — the summary line alone could not say WHICH item died or what it looked
+					// operator's report ("the item was swallowed after the rearrange") is about — the summary line alone could not say WHICH item died or what it looked
 					// like (parent chain, standing marker) when it did.
 					_log.LogInformation("[Reconcile] killing {ItemId} ({ItemIdName}) — absent from the {Rows} row snapshot; parent {Parent}, standing {Standing}.",
 						idComp.Id,

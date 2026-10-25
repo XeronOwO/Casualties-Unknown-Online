@@ -371,6 +371,13 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 				case RemoteIntentStep.PickUp:
 					body.PickUpItem(item, targetSlot, false);
 					break;
+				case RemoteIntentStep.MoveBySwap:
+					// The game's own both-held branch (PlayerCamera's body-slot release): the swap drops the two and picks BOTH back, which is
+					// the only sequence that keeps the item occupying the destination. The drop-pick trio picks up the dragged item alone and
+					// leaves the occupant on the ground — the freshly given item the player lost (ticket
+					// give-degrades-to-a-ground-drop-and-rearranging-retires-it).
+					body.SwapSlots(targetSlot, body.SlotOf(item));
+					break;
 			}
 		}
 

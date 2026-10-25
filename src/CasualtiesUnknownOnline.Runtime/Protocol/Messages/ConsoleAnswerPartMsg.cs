@@ -9,8 +9,9 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// a list of these and the READING client renders each part in its own language.
 ///
 /// <para>
-/// This is the answer half of the rule the refusal half already follows (the user's 2026-10-25 ruling: "不只是命令，涉及到多语言的
-/// 都要改"): a sentence crosses a language boundary only once, and the client that shows the line is the one whose language must
+/// This is the answer half of the rule the refusal half already follows (the user's 2026-10-25 ruling, translated: "it is not only
+/// commands — everything that involves more than one language has to change"): a sentence crosses a language boundary only once, and
+/// the client that shows the line is the one whose language must
 /// win. The result messages keep their plain text field beside the parts, because the host's log and any client without the
 /// entry still read it.
 /// </para>

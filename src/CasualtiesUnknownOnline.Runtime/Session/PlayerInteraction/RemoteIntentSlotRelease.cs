@@ -19,9 +19,25 @@ internal static class RemoteIntentSlotRelease
 		slot >= 0 && slot < slotCount;
 
 	/// <summary>
-	/// R9 in native order (<c>PlayerCamera.cs:1614-1629</c>): the held item leaves
-	/// its slot, the item occupying the destination slot leaves its own when it is
-	/// held, and then the pickup runs with the native guards — never forced.
+	/// R9 exactly as the game runs it for a release onto a BODY slot, both branches — <c>PlayerCamera.cs</c>'s own body-slot release:
+	///
+	/// <code>
+	/// if (this.body.HoldingItem(invButton.slot) &amp;&amp; this.body.HoldingItem(this.dragItem)) {
+	///     this.body.SwapSlots(invButton.slot, this.body.SlotOf(this.dragItem));
+	/// } else {
+	///     if (this.body.HoldingItem(this.dragItem)) { this.body.DropItem(this.dragItem); }
+	///     if (this.body.HoldingItem(invButton.slot)) { this.body.DropItem(invButton.slot); }
+	///     this.body.PickUpItem(this.dragItem, invButton.slot, false);
+	/// }
+	/// </code>
+	///
+	/// The both-held branch is a SWAP and not a drop-then-pick: there, the drop-pick pair drops the item occupying the destination and then
+	/// picks up ONLY the dragged one, so the occupant is left lying on the ground — the user's "gave an item, then rearranged it on that player,
+	/// and the item was swallowed"
+	/// (2026-10-25, five rearranges in the host's log, each of them onto the slot the freshly given item sat in). CUO had applied the
+	/// else-branch sequence to both cases, which is why the item that vanished was always the one that had just been given while an item moved
+	/// onto an EMPTY slot was safe.
+	///
 	/// An invalid slot produces no steps at all.
 	/// </summary>
 	internal static IReadOnlyList<RemoteIntentStep> Plan(int slotCount, int targetSlot, bool itemIsHeld, bool slotIsHeld)
@@ -29,6 +45,11 @@ internal static class RemoteIntentSlotRelease
 		if (!IsValidSlot(slotCount, targetSlot))
 		{
 			return [];
+		}
+
+		if (itemIsHeld && slotIsHeld)
+		{
+			return [RemoteIntentStep.MoveBySwap];
 		}
 
 		var steps = new List<RemoteIntentStep>(3);

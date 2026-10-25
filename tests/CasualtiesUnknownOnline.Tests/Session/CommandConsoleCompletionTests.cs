@@ -25,7 +25,7 @@ public class CommandConsoleCompletionTests
 		// one content entry, which is enough to read the projection.
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations: services =>
 			services.AddSingleton<IResourceLocationSource>(new StubResourceSource(
-				new ResourceLocationEntry(ContentId.Parse("cu:widget"), ModContentKind.Item, "微吉特"))));
+				new ResourceLocationEntry(ContentId.Parse("cu:widget"), ModContentKind.Item, "Widget"))));
 		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
 
 		Assert.Contains(completion.Suggest("/give @p wid"), s => s.Text == "widget");
@@ -71,8 +71,8 @@ public class CommandConsoleCompletionTests
 	public void Suggest_AfterTheVerbWithAnEmptyPrefix_ShowsTheArgumentsChoices()
 	{
 		// The state a player is in the instant they type the space after the verb: the token under the caret is EMPTY, and the list
-		// has to show the choices rather than nothing — the reported "我输命令没有看到补全提示呀" is this exact moment, because every
-		// argument source filtered by prefix and an empty prefix matched nothing.
+		// has to show the choices rather than nothing — the reported "I typed a command and saw no completion suggestion" is this exact
+		// moment, because every argument source filtered by prefix and an empty prefix matched nothing.
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
 

@@ -1,6 +1,7 @@
 # The console input's caret does not line up with the text it edits
 
-- Status: Todo — opened 2026-10-25 from the user's report: "输入的时候,文本光标跟里面的字对不齐", with the user's own guess: "我能看到你用圆角矩形把字框起来了,会不会是这个问题".
+- Status: Todo — opened 2026-10-25 from the user's report (translated): "when I type, the text caret does not line up with the characters",
+  with the user's own guess (translated): "I can see you frame the characters with a rounded rectangle — could that be the cause?".
 - Priority: Medium
 - Category: Console / text input / Online UI
 - Source: user report (2026-10-25).

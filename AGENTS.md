@@ -149,6 +149,26 @@ not the goal.
   frequency (high-frequency → Verbose/Debug, low-frequency or exceptional → Warn/Error) and carry the
   context that locates a failure: branch, state, ids, input, result. An unobservable key path is
   unfinished; the standard is "one pass of logging is enough".
+- `[CRITICAL]` **A cause is established by READING, never by "adding a log and re-running".** Instrumenting
+  a build and replaying the scenario is the most expensive instrument this project has — a build, a deploy,
+  a restart, a fresh session and a human at the keyboard per iteration — so it may verify a FIX and may
+  never be used to LOOK for a cause. The order is: read the code and the decompiled native chain, name the
+  mechanism in one sentence, and confirm it against the state that is already live. For a log you want
+  during an investigation, take it from the running client — the eval/patch channel (`HotRepl`,
+  `tools/acceptance/drive-in-process.ps1`) reads and writes any member and installs a Harmony patch in one
+  call, with no build and no restart — and leave `src/` alone until the fix is known. A diagnosis that
+  would need another run is not a diagnosis: it is a design question for the user, or a reason to read
+  more of the native code. (The user's 2026-10-25 ruling, translated: a live patch costs nothing while a
+  rebuild-and-replay costs everything, so patch to observe and read to conclude.)
+- `[CRITICAL]` **Committed content is English — every language, not only the one that last slipped.** Code, comments,
+  tickets, design pages, commit messages and this file carry English prose; German, French, Spanish, Chinese,
+  Japanese, Russian or any other language is a violation exactly as Chinese is — the defect is "committed content in
+  a language the project does not read", never one particular script. The only places another language belongs are
+  the paired `docs/zh/` block and the `zh.json` catalogue (the human-documentation exception), plus a test fixture
+  that must contain non-English text to test non-English handling. A user report is quoted in TRANSLATION, marked as
+  a translation, never in the original. `tools/check-language.ps1` is the mechanical check: it reads the STAGED
+  diff and fails on any non-ASCII character that is not English typography (em dash, ellipsis, curly quotes,
+  arrows, multiplication sign).
 - Rationale, the gate behind each item and the full statements: `docs/en/contributing/gates-and-rules.md`.
 
 ## Engineering Conventions (binding)

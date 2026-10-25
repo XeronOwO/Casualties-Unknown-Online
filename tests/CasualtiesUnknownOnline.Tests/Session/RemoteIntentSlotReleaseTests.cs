@@ -31,7 +31,7 @@ public class RemoteIntentSlotReleaseTests
 	}
 
 	[Fact]
-	public void AheldItem_LeavesItsSlotFirst()
+	public void AheldItem_OntoAnEmptySlot_LeavesItsSlotFirst()
 	{
 		var steps = RemoteIntentSlotRelease.Plan(slotCount: 3, targetSlot: 1, itemIsHeld: true, slotIsHeld: false);
 
@@ -39,14 +39,25 @@ public class RemoteIntentSlotReleaseTests
 	}
 
 	[Fact]
-	public void AnOccupiedSlot_IsFreedBetweenTheHeldItemAndThePickUp()
+	public void AheldItem_OntoAnOccupiedSlot_IsTheGamesOwnSwap()
 	{
-		// Native order (PlayerCamera.cs:1623-1629): the dragged item leaves its own
-		// slot, the occupying item leaves the destination slot, then the pickup runs
-		// with the native guards.
+		// PlayerCamera's body-slot release: the both-held case is `Body.SwapSlots`, and it is the ONLY branch that keeps both items. The
+		// drop-drop-pick sequence picks up the dragged item alone and strands the occupant on the ground — the item the player had just been
+		// given, which is exactly the one that vanished in every report (2026-10-25).
 		var steps = RemoteIntentSlotRelease.Plan(slotCount: 3, targetSlot: 2, itemIsHeld: true, slotIsHeld: true);
 
-		Assert.Equal([RemoteIntentStep.DropHeldItem, RemoteIntentStep.DropSlotItem, RemoteIntentStep.PickUp], steps);
+		Assert.Equal([RemoteIntentStep.MoveBySwap], steps);
+	}
+
+	[Fact]
+	public void ACarriedItem_OntoAnOccupiedSlot_NeverDropsTheOccupant()
+	{
+		// The regression worth naming: the occupant of the destination may leave its slot only through the swap that returns it to the dragged
+		// item's slot. A plan that drops it without a swap loses whatever the destination held — the freshly given item, in every report.
+		var steps = RemoteIntentSlotRelease.Plan(slotCount: 3, targetSlot: 2, itemIsHeld: true, slotIsHeld: true);
+
+		Assert.DoesNotContain(RemoteIntentStep.DropSlotItem, steps);
+		Assert.Equal([RemoteIntentStep.MoveBySwap], steps);
 	}
 
 	[Fact]

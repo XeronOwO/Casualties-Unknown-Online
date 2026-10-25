@@ -1,7 +1,8 @@
 # Giving an item into another player's backpack is not the native transfer
 
-- Status: Todo — opened 2026-10-25 from the user's report: "为什么我把物品转移到他人背包里,没有音效啊,正常物品移动都有类似摩擦衣服的音效的", followed by
-  the standard it must be held to: "我要的是尽可能还原原生的效果,为什么你要偷工减料".
+- Status: Todo — opened 2026-10-25 from the user's report (translated): "why is there no sound when I move an item into another player's
+  backpack? A normal item move has a cloth-rustle sound", followed by
+  the standard it must be held to: "I want the native effect reproduced as far as possible, why are you cutting corners".
 - Priority: High
 - Category: Cross-player item transfer / native parity
 - Source: user report (2026-10-25).
@@ -21,7 +22,8 @@ The change that let the native body run was **rejected by the run**, not by a te
   (`[PickUpResult] emergencylight → slot (slot 1)`) — but it resolved the **host's own inventory ring**, not the displayed clone, so
   the giver's item was moved into his own body slot and then, when the give's intent made it the guest's, destroyed and re-materialised
   as a **standing item on the ground**: `[ItemTrace] op=3 … OnItemDestroyed … committed` then
-  `[StandingItem] materialized emergencylight …`. The user's report of the same moment: "我拖动了手电筒…连着拖动了几次,手电筒不见了".
+  `[StandingItem] materialized emergencylight …`. The user's report of the same moment (translated): "I dragged the flashlight, dragged it a
+  few times in a row, and the flashlight was gone".
 - So outcome 2 of the design is right and the one-line fall-through is not enough: the native body has to be pointed at the PROXY's
   container, which is what `InvButtonBodyPatch` does for a body — a `get_item`/`InvButton` answer for the displayed backpack's slots.
   That is the next work item, and it cannot be done by letting the body run against whatever the ring happens to hold.

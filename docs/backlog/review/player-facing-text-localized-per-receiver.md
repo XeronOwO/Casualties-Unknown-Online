@@ -4,15 +4,15 @@
   wait for a real two-client batch.
 - Priority: High
 - Category: Localization / protocol / player-facing copy
-- Source: user report (2026-10-25). The visible case: the cross-player use refusal reached a Chinese client as
-  `使用被拒绝：injectable medicine goes through the medical view。` — a Chinese frame (`hud.use_refused` = `使用被拒绝：{0}。`) wrapped
-  around an English sentence produced by the host.
+- Source: user report (2026-10-25). The visible case: the cross-player use refusal reached a Chinese client as the Chinese refusal frame
+  (`hud.use_refused`, which reads "use refused: {0}.") wrapped around an English sentence produced by the host — a mixed-language line,
+  which is the defect this ticket is about.
 
 ## Goal
 
 Every string a player can read is rendered by the client that reads it, in that client's language, as a whole sentence. A key and
 its arguments cross the wire; the receiver's catalogue turns them into text. No language's prose ever appears inside another
-language's frame, and no English word串 is left in a Chinese surface (or the reverse).
+language's frame, and no English fragment is left in a Chinese surface (or the reverse).
 
 ## Where the code stands
 

@@ -11,4 +11,12 @@ internal enum RemoteIntentStep
 
 	/// <summary><c>Body.PickUpItem(item, slot, false)</c> — the game's own guards decide.</summary>
 	PickUp = 3,
+
+	/// <summary>
+	/// <c>Body.SwapSlots(targetSlot, body.SlotOf(item))</c> — the game's own call for a release onto a slot that is ALREADY holding an item, and
+	/// the only branch that keeps BOTH items: <c>Body.SwapSlots</c> drops the two, picks the dragged one into the destination and picks the
+	/// occupant back into the dragged item's old slot. The drop-drop-pick sequence CUO used instead picks up only the dragged item and leaves the
+	/// occupant on the ground — the item the player had just been given (see RemoteIntentSlotRelease's own note).
+	/// </summary>
+	MoveBySwap = 4,
 }

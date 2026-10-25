@@ -1,6 +1,7 @@
 # The context menu does not block the pointer: a click on its blank area reaches the world
 
-- Status: Todo — opened 2026-10-25 from the user's report: "右键面板没做防穿透,点面板的空白区域能穿透到世界中,让角色挖掘".
+- Status: Todo — opened 2026-10-25 from the user's report (translated): "the right-click panel does not stop the pointer — clicking its blank
+  area goes through into the world and makes the character mine".
 - Priority: High
 - Category: Online UI / pointer authority
 - Source: user report (2026-10-25), seen on the host right after the give batch, with the guest's menu open.

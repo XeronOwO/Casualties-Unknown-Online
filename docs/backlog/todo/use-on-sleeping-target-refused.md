@@ -1,10 +1,11 @@
 # An item cannot be used on a sleeping teammate
 
-- Status: Todo — opened 2026-10-25 from the user's report: "客机在睡觉,为什么不能对客机进行使用啊".
+- Status: Todo — opened 2026-10-25 from the user's report (translated): "the guest is asleep — why can I not use items on them?".
 - Priority: Medium
 - Category: Cross-player item use / target gate
 - Source: user report (2026-10-25). The measured refusal: `[ItemUse] refused: 76561198863287957 is unconscious and cannot …` and the
-  operator's status line `使用被拒绝：the patient is unconscious。` while the guest's own body read `sleeping=True, conscious=False,
+  operator's status line was the Chinese refusal frame (`hud.use_refused`) wrapped around an English sentence, while the
+  guest's own body read `sleeping=True, conscious=False,
   consciousness=10, alive=True`.
 
 ## Goal
@@ -29,7 +30,8 @@ carries is whether a sleeping (as opposed to unconscious-from-injury) teammate s
 ## Open question (needs the user's word before code)
 
 Should the consuming families accept a SLEEPING target, and if so should the game's own wake-on-use behaviour run (the target wakes
-as it eats), or should the refusal stay and only its text be made specific ("对方在睡觉" rather than "对方已经失去意识")?
+as it eats), or should the refusal stay and only its text be made specific (naming "the target is asleep" instead of "the target is
+unconscious")?
 
 ## Acceptance rows
 

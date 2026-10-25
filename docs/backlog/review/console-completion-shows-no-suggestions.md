@@ -4,8 +4,9 @@
   batches `batch-console-ui`, `batch-console-ui2` and `batch-console-ui4`.
 - Priority: High
 - Category: Console / completion / Online UI
-- Source: user report (2026-10-25): "你这命令行补全了个啥,我输命令没有看到补全提示呀", extended the same day: "补全命令不止是第一个
-  次,后面内容中一切有可选的也要补全,以及 component snbt 也要支持补全,能支持补全的都应当考虑支持".
+- Source: user report (2026-10-25, translated): "what is this command-line completion of yours? I typed a command and saw no completion
+  suggestion", extended the same day: "completion is not just the first token — everything later that has choices must complete too, and
+  component snbt must complete as well; anything that can be completed should be considered".
 
 ## Goal
 

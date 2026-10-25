@@ -1,6 +1,8 @@
 # A cross-player eat skips the game's own eating steps and swallows the whole item
 
-- Status: Todo — opened 2026-10-25 from the user's report: "我把煎饼和石果拖到客机背包里,然后拖给客机使用,它一次性把整个煎饼吃完了!然后把石果'吃了'!石果的吃有个去皮的步骤的啊".
+- Status: Todo — opened 2026-10-25 from the user's report (translated): "I dragged a pancake and a stone fruit into the guest's backpack, then
+  dragged them onto the guest to use, and it ate the WHOLE pancake in one go! Then it 'ate' the stone fruit! The stone fruit's eating has a
+  peeling step!".
 - Priority: High
 - Category: Cross-player item use / native parity (consume family)
 - Source: user report (2026-10-25).
@@ -67,8 +69,9 @@ game's own model, **consume/use means the item is in the consumer's body slot** 
 
 **(3) How the remote case reaches that same chain — SUPERSEDED by the user's ruling below.** This paragraph used to ask the
 release to transfer the item into the consumer's slot first. The user rejected that outright on 2026-10-25 and it is kept here
-only as the record of what was rejected and why: *"我明确否定过先给后吃，对方背包没有空位怎么办？这个是绝对错误的，没有任何讨价还价
-余地的。必须是对方就着我的手吃"*. So the shape is: **the item stays in the giver's hand and the target consumes it out of that
+only as the record of what was rejected and why (translated): *"I explicitly rejected give-first then eat — what if the other player's
+backpack has no free slot? That is absolutely wrong, there is no room for negotiation. The other player has to eat it out of my hand"*.
+So the shape is: **the item stays in the giver's hand and the target consumes it out of that
 hand** — an extension of the native action rather than a deviation from it, because the game's own `useAction` still runs and
 still produces its effects; only the body whose hand holds the item differs from the single-player case. The remaining defect is
 that the delegates' own slot calls (`SlotOf`, `DropItem`, `PickUpItem`) must resolve against the OWNER's body while the effects
@@ -100,9 +103,10 @@ land on the eater (run sheet step 6).
   object, yet `NativeSolidFoodEat.Apply` resolves it through `StandingMaterializer` — the path for OTHER players' items — and hands
   that stand-in to `Body.UseItem`. The fix is therefore to resolve the item from the eater's OWN carried items first
   (`body.GetItem(slot)`/`SlotOf`), and only fall back to a standing object when the body really does not carry it.
-- [x] **4. The user's ruling (2026-10-25) — the shape, settled.** **"必须是对方就着我的手吃"**: the item never leaves the
-  giver. The transfer-first shape (A) is REJECTED outright and without qualification — the user's reason is concrete: *"对方背包
-  没有空位怎么办？这个是绝对错误的，没有任何讨价还价余地的"* — a target with a full inventory must still be feedable, so a
+- [x] **4. The user's ruling (2026-10-25) — the shape, settled.** **"The other player eats it out of my hand"** (translated): the item
+  never leaves the giver. The transfer-first shape (A) is REJECTED outright and without qualification — the user's reason is concrete
+  (translated): *"what if the other player's backpack has no free slot? That is absolutely wrong, there is no room for negotiation"* — a
+  target with a full inventory must still be feedable, so a
   shape that needs a free slot is wrong by construction. The hand case is **an EXTENSION of the native action, not a deviation
   from it** (the user's correction): the game's own `useAction` still runs and still produces its effects; only the body whose
   hand holds the item differs from the single-player case, which is what a co-op feed is.
@@ -121,8 +125,9 @@ land on the eater (run sheet step 6).
   pickup, and the delegate's `DropItem` is never reported as this body dropping the giver's item. This is what makes
   `Body.SlotOf` answer the real slot (instead of its own `return 0` fallback) and `Body.GetItem` read the arranged child, so the
   peel's replacement lands in the slot the closed fruit occupied rather than by luck.
-- [x] **7. The replacement's ownership — RESOLVED and IMPLEMENTED the way the user described it.** The ruling:
-  *"保留原位置，对玩家的视觉效果是物品变成去皮的，没有其他明显行为，原版我记得就是这样"* — keep the original position, the player sees the item
+- [x] **7. The replacement's ownership — RESOLVED and IMPLEMENTED the way the user described it.** The ruling (translated): *"keep the
+  original position; the player just sees the item become the peeled one, no other visible behaviour — that is how the original
+  works as I remember it"* — keep the original position, the player sees the item
   become the peeled one, no other visible behaviour. Verified against the decompiled delegate (`Item.cs:2606-2620`: the
   opened fruit is instantiated at the closed one's position and rotation and put back into the SAME slot index), so the
   ruling and the game agree. Implemented as three links: the eating client watches the object the delegate leaves in the

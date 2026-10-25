@@ -4,8 +4,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// Why a cross-player use was refused, as a KEY plus at most one argument — never as a sentence.
 ///
 /// <para>
-/// The user's 2026-10-25 ruling ("不只是命令，涉及到多语言的都要改") and its visible case: a Chinese client read
-/// <c>使用被拒绝：injectable medicine goes through the medical view。</c> — a Chinese frame wrapped around the English sentence the
+/// The user's 2026-10-25 ruling (translated: "it is not only commands — everything that involves more than one language has to change") and
+/// its visible case: a Chinese client read the Chinese refusal frame wrapped around an English sentence the
 /// host had logged. A sentence crosses a language boundary only once, so what crosses now is the key and its values, and the
 /// client that READS the line renders it in its own language. The host's log keeps an English line of its own, built from the
 /// same key rather than from a second copy of the wording.

@@ -1,6 +1,7 @@
 // recipe: panel-title
 // args: target=n
-// serves: the user's "面板里没有名字,灰框还在" report - the context menu draws a title bar with no text, and the question is whether the
+// serves: the user's "there is no name in the panel and the grey box is still there" report - the context menu draws a title bar with no text,
+//         and the question is whether the
 //         MODEL carries a name and the label fails, or the model itself is empty. `open` sets the plugin menu controller's target and
 //         position (the same fields the right-click sets) so a batch can read the panel WITHOUT an OS-level click; `read` reports the
 //         title text the view was given, what the TMP label holds, and the label's rect, size, colour and the panel's width.

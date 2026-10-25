@@ -113,6 +113,30 @@ correction came from the machine, not from a guess, and is now the rule the test
       remove the only recovery the current write path has. Stage 3 makes the local mutations issue commands first; the deletions follow there,
       not here.
 
+## Run sheet (stage 3) — judged 2026-10-25: the writes already command-first
+
+- [x] 1. Enumerate the local mutations and check each one issues a command — evidence: the command surface is the one the adapter already
+      uses. `ItemProjection` (the adapter's bridge from local object events) calls `_authority.TryPickup` / `TryDrop` / `TryDestroy` /
+      `TryTransfer`, and the same calls appear at seventeen sites across the runtime: `CraftCarriedRowRetirement`, `CraftSyncService` (twice),
+      `ItemArbitration`, `ItemProjection` (five), `OtherMedicalOperationApplier` (twice), `PlayerHealService` (twice),
+      `PlayerInventoryTakeService`, `PlayerItemUseCommit` (three). The authority side owns the same four verbs
+      (`ItemKernelAuthority.TryPickup/TryDrop/TryDestroy/TryTransfer`, each building its typed command with the row's current revision).
+- [x] 2. Name what is NOT yet a command — evidence: exactly two shapes, and neither is a write path that could issue one:
+      (a) the id-zeroing suppressions (`ItemApplication.KillRemoteItem`, `PlayerInventoryPlacement.TryDestroyById`) that stop a moved item
+      being reported as destroyed — a report filter, not a mutation;
+      (b) the repair loops (`ItemReconcile`'s kill sweep, `StandingItems`' retire scans) that bring the SCENE back in line with the data after
+      an object survives its row — a reader-side reconciliation.
+      Converting either into a command would invent a write that has no player action behind it, which is the "replayed effect" shape the
+      rules forbid.
+
+**Consequence for stage 4.** With stages 2 and 3 both answered by the architecture that already exists, the remaining work is deletion: five
+stores still hold their own copy of "where is it" even though nothing needs that copy. The first candidate is `ItemArbitration._transferred`
+— its own doc calls it "the legacy transfer cache", twenty references across twelve files read it, and every one of them asks a question the
+kernel rows answer (`IsTransferredToGuest`, `RegisteredItem`, `OwnerOf` and friends). Deleting it means repointing those twelve readers at
+`IItemControl.QueryJudgedItems` in the same commit, one reader group at a time, with the machine read (`mismatches=0` on both clients) as the
+proof at each step. The second candidate is the clone fact table's custody fields, and the third `ItemReconcile`'s kill sweep — in that order,
+because that is the order in which a mistake is cheapest to see.
+
 ## Acceptance rows
 
 | Row | The check | State |

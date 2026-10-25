@@ -30,6 +30,8 @@ The UI's text is an embedded JSON data file per language with English as the fal
 
 The console builds sentences of its own, and they follow the same rule. The accepted record lists the keys it now carries — `console.ready`, `console.session_ended`, `console.command.host_only`, `console.command.empty`, `console.command.unknown`, `console.chat.not_sent` — and its live reading is that the host's console buffer holds a line keyed `console.ready` while its service answers Chinese and the guest's the same key with English, with the launcher drawing `CUO 联机` on one client and `CUO ONLINE` on the other. A keyed line is resolved through the same catalogue read the gate counts, and a pin fails the build if a catalogued console key is never resolved.
 
+**An answer carries both, and the console prefers the key.** `Abstractions/ConsoleAnswer.cs`: an answer "may also carry the catalogue KEY and arguments for its sentence. The text stays on t[he fallback language so] any client without the entry [can] read it, and the console renders the key i[tself] when it has one. A handler that knows its reason from a closed set (the cheat gate's grounds, …) passes a key; a sentence assembled from free data does not." That is the design's own line between a reason that must be localised and a sentence that cannot be.
+
 ## Who judges
 
 The side that produced a sentence renders nothing; the side that READS it renders it. So a refusal is judged where the action landed, and its sentence is composed by the client that displays it.

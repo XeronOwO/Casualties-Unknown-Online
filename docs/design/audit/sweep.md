@@ -18,7 +18,7 @@ status is not one of the three below — so this table cannot drift away from th
 
 | Block | Files | Status |
 |---|---|---|
-| `CasualtiesUnknownOnline.Abstractions` | 150 | unread |
+| `CasualtiesUnknownOnline.Abstractions` | 150 | read |
 | `CasualtiesUnknownOnline.Application` | 1 | unread |
 | `CasualtiesUnknownOnline.Application/Kernel` | 31 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | unread |

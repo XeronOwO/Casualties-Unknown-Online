@@ -96,6 +96,12 @@ and no report is produced for it.
 A held item is in exactly one of these at a time. A container's contents are **not** a body slot: a mechanic that reads
 position `slot i` of a body cannot see an item that sits inside the body's backpack.
 
+**A location is one shape for every family, so a caller reads the kind first.** `Abstractions/IModItemState.cs` states the
+rule the kernel's own model follows: "a member a location does not use carries its neutral value, the same one-shape rule the
+framework's own location model follows, so `Location` is what tells a caller which members mean something: the owner and the
+limb for `Applied`, the owner for `Carried` and …". A caller that reads a field before the kind is reading a neutral value it
+cannot tell from a real one.
+
 **A container's contents are discrete authoritative state, not a stream.**
 `src/CasualtiesUnknownOnline.GameState/Domains/Items/SyncContainerItemsCommand.cs` reconciles "one container subtree in a
 single atomic batch: the parent fact update plus create/update/move/destroy of every contained child", and its own summary

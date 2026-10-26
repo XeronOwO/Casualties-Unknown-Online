@@ -182,3 +182,20 @@ Two ways forward, and the ticket needs one of them before that row can be judged
 
 What the batch DID confirm: the world entry and the guest's item creation are healthy, and `[ItemCustody]` stayed at `mismatches=0` on both clients
 while the three materials existed. The row stays open.
+
+### The two-ended reading the objective asked for (2026-10-26, `.acceptance/batch-custody-two-ended`)
+
+Three clients in one world, `.acceptance/latest` logs read after the stream settled:
+
+| client | rows | objects | mismatches |
+|---|---|---|---|
+| host | 268 | 268 | 0 |
+| guest (Steam1) | 269 | 269 | 0 |
+| alt (Steam2) | 270 | 270 | 0 |
+
+**One artefact worth recording**, because it looks like a failure and is not: the FIRST custody line each guest printed, about a second after world
+entry, was `rows=268 objects=1 mismatches=267`. The projection enumerates this client's own objects, and at that instant the guests had materialized one
+of them; the very next line is 269/269/0. So a mismatched EARLY line during world entry is the stream, not a divergence — the reading that counts is the
+settled one, and a batch that reads the first line and stops is reading the stream.
+
+That closes the objective's "confirm the two-ended reading" step for stage 1. Stage 4's deletions and the craft row remain as the ticket states.

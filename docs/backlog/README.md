@@ -74,10 +74,11 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
-- [A new recipe file is rejected by the evaluator](todo/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — measured; blocks every new instrument.
 ### In progress
 
 ### Review
+
+- [A new recipe file is rejected by the evaluator](review/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — not reproduced.
 
 - [An item cannot be used on a sleeping teammate](review/use-on-sleeping-target-refused.md) — **Medium** — decision 270 implemented.
 

@@ -52,7 +52,7 @@ everywhere, so the next reading has to be taken with the menu open at a known po
 list just outside it.
 
 That is one recipe call away — and it is blocked on nothing now: the recipe-shape defect that stopped this batch is measured on
-`todo/new-recipe-files-are-rejected-by-the-evaluator.md` (a body must be ONE line), so the next batch can finish the cause and hand rows 1-4 to a
+`review/new-recipe-files-are-rejected-by-the-evaluator.md` (a body must be ONE line), so the next batch can finish the cause and hand rows 1-4 to a
 judgement.
 
 ## The panel IS hit, and it IS on the UI layer (measured 2026-10-25, batch `.acceptance/batch-menu3`)

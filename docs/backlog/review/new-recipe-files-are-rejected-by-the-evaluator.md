@@ -1,6 +1,6 @@
 # A new recipe file is rejected by the client's evaluator as `(1,1) InteractiveHost`
 
-- Status: Todo — cause measured 2026-10-25: a MULTI-LINE body is refused, a one-line body runs; the working shape is now committed as `tools/acceptance/recipes/ui-raycast-at.cs`, which ran four times in one batch.
+- Status: Review — not reproducible on 2026-10-26: a new multi-line recipe runs; the ticket's own case stays unexplained, and the two failure shapes that DO explain the symptom are recorded below. (original note: cause measured 2026-10-25: a MULTI-LINE body is refused, a one-line body runs; the working shape is now committed as `tools/acceptance/recipes/ui-raycast-at.cs`, which ran four times in one batch.
 - Priority: High (tooling: it blocks every new acceptance instrument)
 - Category: Acceptance tooling / eval channel
 - Source: measured in batch `.acceptance/batch-menu2`, 2026-10-25 20:4x.
@@ -80,3 +80,25 @@ incomplete input (a difference worth confirming when this ticket's third row lan
 | 1 | A five-line recipe added in a commit runs on a fresh client and answers its own payload |
 | 2 | Every existing recipe still runs unchanged (a batch that runs three of them, one with args and one without) |
 | 3 | The cause is written down where the next instrument's author reads it (`docs/acceptance/workflow.md`) |
+
+## Counter-example measured 2026-10-26: a new file DOES run
+
+`tools/acceptance/recipes/use-request.cs` was created for the sleeping-target ticket (cross-player use requests) and runs on the first try, and a
+three-line probe written the same way answers its own payload:
+
+```
+// recipe: zz-tiny-test   (created by the editor tool, first bytes 2F 2F 20 = "// ", no BOM)
+{"ok": true, "note": "hello"}
+```
+
+Both are NEW files, multi-line, with `// args:` and `// returns:` headers. So "a new recipe file is rejected" is not the channel's behaviour.
+
+The two shapes that DO produce the symptom, both hit in that same session and both now recorded:
+
+1. **a BOM.** `docs/acceptance/AGENTS.md` already states it: a BOM fails the client's evaluator as `(1,1): InteractiveHost`. A file written by
+   PowerShell's `[System.IO.File]::WriteAllText` in .NET Framework carries one; the editor tool does not.
+2. **a body whose last expression is the lambda instead of its invocation.** The recipe must end with `}))()`; without it the driver receives a
+   `Func<string>` and fails to parse the answer (`Invalid JSON primitive` on the first character of `System.Func…`).
+
+What the ticket''s original case was, nobody can now say — the failing file is gone and its byte dump showed no BOM. What can be said is that the
+channel accepts new files, so the rule "an instrument is committed, not improvised" is not blocked by it.

@@ -1,6 +1,8 @@
 // recipe: give-probe
-// args: mode=s target=s slot=n container=n
-//        mode is `probe` (report what the reflection can reach) or `give` (drive one give intent).
+// args: mode=s target=s slot=n container=n type=s
+//        mode is `probe` (report what the reflection can reach), `give` (drive one give intent with a BODY-SLOT item)
+//        or `give-world` (the same release with a WORLD item — the ground-give gesture a real drag performs); type names
+//        the world item definition for `give-world` (`any` takes the first real world copy).
 //        slot is the destination ring slot, -1 when the destination is a container; container is that
 //        container's instance id, 0 when the destination is a slot. Each token on the args line must be
 //        <key>=s or <key>=n.
@@ -76,6 +78,33 @@
 	if (mode == "probe") {
 		return "{\"ok\":true,\"mode\":\"probe\",\"bridge\":\"" + impl.GetType().Name + "\",\"localSteamId\":" + localSteamId
 			+ ",\"target\":" + target + ",\"trace\":\"" + string.Join(" | ", trace.ToArray()) + "\"}";
+	}
+
+	if (mode == "give-world") {
+		var typeWanted = {{s:type}};
+		Item found = null;
+		var allItems = UnityEngine.Object.FindObjectsOfType<Item>();
+		for (var w = 0; w < allItems.Length; w++) {
+			var candidate = allItems[w];
+			if (candidate == null) { continue; }
+			if (!string.IsNullOrEmpty(typeWanted) && typeWanted != "any" && candidate.id != typeWanted) { continue; }
+			if (itemIdOf(candidate) == 0UL) { continue; }
+			if (candidate.GetComponentInParent<Container>() != null) { continue; }
+			if (candidate.GetComponentInParent<Body>() != null) { continue; }
+			found = candidate;
+			break;
+		}
+		if (found == null) { return "{\"ok\":false,\"error\":\"no-world-item\",\"detail\":\"no real world item of type " + typeWanted + "\"}"; }
+		var worldReport = impl.GetType().GetMethod("ReportLocalReleaseOntoProxy", anyInstance);
+		if (worldReport == null) { return "{\"ok\":false,\"error\":\"no-ReportLocalReleaseOntoProxy\"}"; }
+		try {
+			worldReport.Invoke(impl, new object[] { found, target, "recipe-world", (ulong)containerText, slotText });
+			return "{\"ok\":true,\"mode\":\"give-world\",\"item\":\"" + found.id + "\",\"instanceId\":" + itemIdOf(found)
+				+ ",\"target\":" + target + ",\"slot\":" + slotText + ",\"container\":" + containerText + "}";
+		} catch (System.Exception errorWorld) {
+			var innerWorld = errorWorld.InnerException ?? errorWorld;
+			return "{\"ok\":false,\"error\":\"invoke-failed\",\"detail\":\"" + innerWorld.GetType().Name + ": " + innerWorld.Message.Replace("\"", "'") + "\"}";
+		}
 	}
 
 	if (mode != "give") { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"mode must be probe or give\"}"; }

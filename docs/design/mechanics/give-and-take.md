@@ -23,7 +23,7 @@ arbitrary slot the pickup had chosen** — the user's "the items ended up in the
 player did not choose is never a place to put their item, not even for one frame.
 
 Until the direct transfer lands, the gesture is refused by name and the finding is
-`docs/backlog/todo/give-from-the-ground-swallows-the-item.md`; the player picks the item up first, which is the native two-step and never loses it.
+`docs/backlog/review/give-from-the-ground-swallows-the-item.md`; the player picks the item up first, which is the native two-step and never loses it.
 
 **Which of the two a release is, is decided by the DATA, not by how the gesture started.** The release asks the authority whether this
 body's own row carries the item (`IItemControl.OwnsCarriedItem` → `ItemKernelAuthority.OwnsCarriedItem` → `ItemCustodyRows.OwnsCarried`):

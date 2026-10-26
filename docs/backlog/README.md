@@ -68,7 +68,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
-- [Giving a ground item swallows it](todo/give-from-the-ground-swallows-the-item.md) — **High** — refused until designed.
 - [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
 - [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
@@ -78,6 +77,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+
+- [Giving a ground item swallows it](review/give-from-the-ground-swallows-the-item.md) — **High** — ground path exercised.
 
 - [A dropped container arrives empty on the other side](review/a-dropped-container-arrives-empty-on-the-other-side.md) — **High** — fixed.
 

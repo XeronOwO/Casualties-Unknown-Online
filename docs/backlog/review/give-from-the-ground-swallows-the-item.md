@@ -1,6 +1,6 @@
 # Giving an item that is lying on the ground swallows it
 
-- Status: Todo — opened 2026-10-25 from the user's reading on the deployed build: "dragging a ground item has a reaction, but the item was
+- Status: Review — the ground path is exercised end to end on the deployed build (2026-10-26 below); opened 2026-10-25 from the user's reading on the deployed build: "dragging a ground item has a reaction, but the item was
   swallowed".
 - Priority: High — the gesture exists natively and loses the item.
 - Category: Cross-player transfer / world-item entry
@@ -130,3 +130,23 @@ by the item existing exactly once, in the receiver's inventory, with the giver's
 
 - The one measurement this ticket has is the loss itself; the fix's shape (acknowledged pickup vs a world-item transfer command) is a design
   decision with a wire question, so it is filed rather than improvised.
+
+## The ground path exercised end to end (2026-10-26 21:12, deployed `8cfd5501`)
+
+The gesture could not be driven before because `give-probe` picks its item from the BODY's children. It now has a third mode, `give-world`, which hands
+the same release seam (`ReportLocalReleaseOntoProxy`) a real WORLD object — the drag's own entry, without the cursor. On the guest:
+
+```
+21:12:01.696 [RemoteIntent] GiveToBody captured for item 43852695189 of 76561198863287957 (container 0, slot 1, body 76561198281246659)
+21:12:01.737 ([host]) PickUpToSlot resolved item 43852695189 from the WORLD (the giver's hand-over); the local body picks it up
+21:12:01.744 ([host]) [ItemTrace] op=18 item=43852695189 origin=OnItemPickedUp result=Committed(2) events=[Pickup]
+21:12:01.745 ([host]) replayed native PickUpToSlot on item 43852695189 — a drop report is pending and announces it on the next
+21:12:01.745 ([host]) ground hand-over: sent PickUpToSlot for item 43852695189 to 76561198863287957
+```
+
+and the outcome on the receiver, read back by id: the host's body census lists `instanceId: 43852695189` in **slot 1**, the slot the release named. So the
+item went from the ground into the aimed slot of the receiver by the receiver's own native pickup — no intermediate slot in the giver, nothing
+destroyed by hand — and the custody projection stayed at `mismatches=0`.
+
+**Judged**: the swallow is gone on the deployed build and the item lands where the player aimed. **Owed**: the give's own acceptance rows on the
+ticket (a full body refusing by name, a container destination) and a frame with a hand on the mouse.

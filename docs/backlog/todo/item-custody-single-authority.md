@@ -157,7 +157,7 @@ order in which a mistake is cheapest to see.
 
 | Row | The check | State |
 |---|---|---|
-| 1 | A give followed by a rearrange inside the receiver's backpack keeps the item, and its row never goes terminal | not run (the user read the give once: works, nothing lost) |
+| 1 | A give followed by a rearrange inside the receiver's backpack keeps the item, and its row never goes terminal | **PASS 2026-10-26** (deployed): a host dogfood given to the guest landed in its slot 2; the guest then loaded it into its own trashbag through the game's `Container.LoadItem` (`loaded: true`, `contentsAfter: 1`), and BOTH clients' rows read `Contained`, owner = the guest, parent = the bag, revision 5 — not terminal — with the guest's body census showing `inside:trashbag` and no custody mismatch afterwards. Original note: not run (the user read the give once: works, nothing lost) |
 | 2 | An item dragged from a slot onto an occupied slot keeps both items | **PASS 2026-10-26** (deployed): with one free slot the give captures `(container 0, slot 5, body <guest>)`, the receiver answers slot 2, `[Take] <guest> takes dogfood`, `[Placement] … is where this host wrote it (slot 2): the placement outcome matches` — the giver's slot 0 empties, the receiver's slot 2 holds it, and slot 5's waterbottle is untouched. **Residual**: when the receiver has NO free slot the give is refused by name ("does not fit any free slot") instead of swapping the occupant back — a cross-player swap has no native counterpart, so it stays a named refusal |
 | 3 | A display object rebuilt by a clone refresh never reports a destroy for its row | not run |
 | 4 | A keyframe that omits a carried row leaves the row alone and repairs the local object instead | not run |

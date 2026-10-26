@@ -227,8 +227,9 @@ internal sealed class ItemWorldSync(
 		// the owner's row becoming it in place — its definition travels back in the eat's outcome — so it is NOT a new item: it gets no id here
 		// and no spawn is reported (before this guard a phantom `stonefruitopen` was spawned at the world origin, 2026-10-26). The object is
 		// PUBLISHED to the observation instead, because the eat cannot find it by slot: the delegate's own `PickUpItem` places it wherever the
-		// game's first free slot is, not necessarily the slot the eat arranged.
-		if (CallContext.IsWithin(CallContext.Origin.ItemReplacementCreation))
+		// game's first free slot is, not necessarily the slot the eat arranged. The ARMED window is asked as well as the scope, because the
+		// instantiation's hook can run a frame after the delegate.
+		if (CallContext.IsWithin(CallContext.Origin.ItemReplacementCreation) || ItemReplacementObservation.IsArmed)
 		{
 			ItemReplacementObservation.Record(item);
 			_log.LogInformation("[ItemSpawn] {Type} created inside the eat's replacement window — the owner's row becomes it in place, no spawn reported.", item.id);

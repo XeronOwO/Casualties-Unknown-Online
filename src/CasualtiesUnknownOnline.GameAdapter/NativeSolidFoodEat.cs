@@ -125,7 +125,7 @@ internal static class NativeSolidFoodEat
 			// row became the replacement in place (measured 2026-10-26, `[ItemSpawn] materializing stonefruitopen … at (0.0,0.0)`). The scope
 			// tells the creation report that what the delegate makes is this item's replacement, so no id is allocated and no spawn goes out;
 			// both hooks that see it (instantiation and the delegate's own pickup) publish it to the observation.
-			ItemReplacementObservation.Clear();
+			ItemReplacementObservation.Arm();
 			using (CallContext.Enter(CallContext.Origin.ItemReplacementCreation))
 			{
 				body.UseItem(item);
@@ -138,6 +138,9 @@ internal static class NativeSolidFoodEat
 			replacementObject = carriedByEater
 				? null
 				: ItemReplacementObservation.Created ?? ReadReplacement(body, arrangedSlot, item);
+
+			// The window closes as soon as the result is read: a creation the NEXT eat (or anything else) makes must not be swallowed.
+			ItemReplacementObservation.Disarm();
 
 			domains.Log.LogInformation(
 				"[ItemUse] ran the game's own eat of {Type} (id {ItemId}) on the local body{Hand}.",

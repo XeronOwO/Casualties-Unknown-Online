@@ -1,3 +1,5 @@
+using UnityTime = UnityEngine.Time;
+
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
@@ -22,9 +24,24 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 internal static class ItemReplacementObservation
 {
 	private static Item? _created;
+	private static int _armedUntilFrame = -1;
 
-	/// <summary>Opens a fresh window: one eat, at most one replacement.</summary>
-	internal static void Clear() => _created = null;
+	/// <summary>
+	/// Opens a fresh window: one eat, at most one replacement, armed for this frame AND the next. The game's own pickup of the
+	/// created object is not guaranteed to run inside the delegate's call, and a scope alone therefore missed it (measured
+	/// 2026-10-26: the replacement still got a fresh id and a world spawn at the origin while the eat logged nothing).
+	/// </summary>
+	internal static void Arm()
+	{
+		_created = null;
+		_armedUntilFrame = UnityTime.frameCount + 1;
+	}
+
+	/// <summary>Closes the window once the eat has read the result, so a later creation can never be swallowed by it.</summary>
+	internal static void Disarm() => _armedUntilFrame = -1;
+
+	/// <summary>True while this frame or the previous one ran an eat's delegate — what every creation and pickup hook asks first.</summary>
+	internal static bool IsArmed => UnityTime.frameCount <= _armedUntilFrame;
 
 	/// <summary>The object the delegate created, when this client saw one — otherwise <c>null</c>.</summary>
 	internal static Item? Created => _created;

@@ -151,6 +151,13 @@ own log on 2026-10-26 20:18, which reported three of a departed guest's carried 
 (`5197989525:RowWithoutObject:Carried`, `9492956821:RowWithoutObject:Carried`, `13787924117:RowWithoutObject:Carried`); a
 `KindDisagrees` on a `World` row is a different defect and is not excused by this rule.
 
+**A disagreement names the object that caused it.** The projection's line reads
+`<instance id>:<mismatch>:<row kind>[:<marker>]`, where the marker is `clone-render` or `standing` — WHICH display stood for
+the id (`LocalObject.Marker`, filled in `ItemCustodyProjection.LocalObjects`, carried on `Mismatch`). Without it the first
+`KindDisagrees` a session reports is an id and nothing else, and finding the object costs a second run; the `World` row
+disagreement that is open today (`../backlog/todo/a-world-item-is-rendered-by-a-display-object.md`) exists because that name
+was missing.
+
 ## Who judges
 
 The holder's client writes its own side of an item's state and the host arbitrates; an incarnation is written by nobody, because it is a view.

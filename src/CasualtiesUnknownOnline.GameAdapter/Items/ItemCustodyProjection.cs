@@ -87,8 +87,12 @@ internal sealed class ItemCustodyProjection(IItemControl items, ILogger<ItemCust
 				continue;
 			}
 
-			var display = item.GetComponent<RemoteCloneRender>() != null || StandingItems.Is(item); // Unity object — ==
-			found.Add(new ItemCustodyComparison.LocalObject(id.Id, display));
+			// The marker travels INTO the comparison so a mismatch line can say WHICH display stands for the id: "a World row with a display object"
+			// becomes actionable only when the reader knows whether it is a clone render or a standing materialization (ticket
+			// a-world-item-is-rendered-by-a-display-object.md, acceptance row 3).
+			var cloneRender = item.GetComponent<RemoteCloneRender>(); // Unity object — ==
+			var marker = cloneRender != null ? "clone-render" : StandingItems.Is(item) ? "standing" : "";
+			found.Add(new ItemCustodyComparison.LocalObject(id.Id, marker.Length > 0, marker));
 		}
 
 		return found;
@@ -106,7 +110,9 @@ internal sealed class ItemCustodyProjection(IItemControl items, ILogger<ItemCust
 			}
 
 			var kind = rows.TryGetValue(mismatch.InstanceId, out var row) ? row.Location.Kind.ToString() : "no-row";
-			parts.Add($"{mismatch.InstanceId}:{mismatch.Kind}:{kind}");
+			parts.Add(mismatch.Marker.Length == 0
+				? $"{mismatch.InstanceId}:{mismatch.Kind}:{kind}"
+				: $"{mismatch.InstanceId}:{mismatch.Kind}:{kind}:{mismatch.Marker}");
 		}
 
 		return string.Join(", ", parts);

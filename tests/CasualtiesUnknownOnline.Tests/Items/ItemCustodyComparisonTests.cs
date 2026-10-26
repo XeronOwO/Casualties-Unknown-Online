@@ -209,4 +209,17 @@ public class ItemCustodyComparisonTests
 
 		return map;
 	}
+	[Fact]
+	public void AKindDisagreement_CarriesTheMarkerTheObjectWore()
+	{
+		// The reading that opened the World-row ticket named an id and nothing else, so the next step needed a second run just to learn which display it
+		// was. The marker now rides the mismatch (acceptance row 3 of that ticket).
+		var rows = new Dictionary<ulong, ItemState> { [7] = Row(7, ItemLocation.World(1f, 2f), slot: 0) };
+		var objects = new[] { new ItemCustodyComparison.LocalObject(7, IsDisplay: true, Marker: "standing") };
+
+		var mismatch = Assert.Single(ItemCustodyComparison.Compare(rows, objects, Local));
+
+		Assert.Equal(ItemCustodyComparison.MismatchKind.KindDisagrees, mismatch.Kind);
+		Assert.Equal("standing", mismatch.Marker);
+	}
 }

@@ -51,7 +51,7 @@ The same-id trail in the same log, for the reader who wants the history:
 |---|---|
 | 1 | A row that becomes `World` while a display object stands for it leaves no display object behind on any client |
 | 2 | The projection reports `mismatches=0` for a session in which an item goes carried → world (a drop) and world → carried (a pickup) |
-| 3 | The mismatch line names the marker, so the next reading locates the object without a second run |
+| 3 | The mismatch line names the marker, so the next reading locates the object without a second run — **done 2026-10-26**: `LocalObject.Marker` (`clone-render` / `standing`) rides the `Mismatch` and `Describe` prints it, so any reading now carries it |
 
 ## Limits
 

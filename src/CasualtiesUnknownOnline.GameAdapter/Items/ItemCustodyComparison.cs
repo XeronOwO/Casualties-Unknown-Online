@@ -30,11 +30,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// </summary>
 internal static class ItemCustodyComparison
 {
-	/// <summary>One local object as the projection sees it: its row id and whether the client shows it as its own or as somebody else's.</summary>
-	internal readonly record struct LocalObject(ulong InstanceId, bool IsDisplay);
+	/// <summary>One local object as the projection sees it: its row id, whether the client shows it as its own or as somebody else's, and WHICH display marker the object carries (`clone-render` / `standing`, empty for a real object).</summary>
+	internal readonly record struct LocalObject(ulong InstanceId, bool IsDisplay, string Marker = "");
 
-	/// <summary>One disagreement, addressed to the id it is about so the log line can name it and the repair can act on it.</summary>
-	internal readonly record struct Mismatch(ulong InstanceId, MismatchKind Kind);
+	/// <summary>One disagreement, addressed to the id it is about so the log line can name it and the repair can act on it. The marker is carried for the mismatches an object caused, so the line says what stood for the id.</summary>
+	internal readonly record struct Mismatch(ulong InstanceId, MismatchKind Kind, string Marker = "");
 
 	internal enum MismatchKind
 	{
@@ -91,7 +91,7 @@ internal static class ItemCustodyComparison
 
 			if (IsDisplayFor(row.Location, localSteamId) != local.IsDisplay)
 			{
-				mismatches.Add(new Mismatch(local.InstanceId, MismatchKind.KindDisagrees));
+				mismatches.Add(new Mismatch(local.InstanceId, MismatchKind.KindDisagrees, local.Marker));
 			}
 		}
 

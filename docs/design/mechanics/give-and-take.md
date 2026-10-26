@@ -50,11 +50,11 @@ somebody else's backpack").
 
 ## Rules and states
 
-- **A drag that holds a DISPLAY PROXY never reaches the native body.** `HandleReleaseDragging` acts on `dragItem`, and a proxy is not this client''s
-  item: released outside the remote view (dragged to the screen edge to drop it), the native body ran its own drop on the proxy — the dropper''s local
-  path reported a drop for an item it does not own, the row stayed with its owner, and the object vanished from the screen while nothing moved (user
-  report, 2026-10-26). `PlayerCameraDragUsePatch` now clears the drag after opening the intent window, so the native body takes its own "nothing held"
-  path and the Finalizer still emits the intents the window classified — the take/move/use the player aimed at, decided by the same window as before.
+- **A proxied drag's intents ARE the native body's own calls, so the body must run.** The release window does not classify a gesture on its own:
+  `RemoteDragIntentCapture` records what the native body did (`CaptureDropItem`, `CapturePickUp`, `CaptureUseItem`, `CaptureWearItem`, …). Clearing the
+  drag before the body ran — an attempt to stop a proxy being mutated — removed those calls, and every proxied release answered "produced no intent"
+  (measured 2026-10-26, then reverted). What must NOT happen is a REPORTED local drop for an item this client does not own; that half is the open
+  ticket `../backlog/review/drop-out-of-a-remote-backpack-keeps-the-item.md`.
 - **A local item released onto the other player's DISPLAY PROXY is refused, not landed.** The accepted reading is that "the
   release is refused at the release seam before the native body runs — the owner's probe names the target as the other
   player's display proxy and reads its contents unchanged (`castContentsBefore: 0` → `castContentsAfter: 0`,

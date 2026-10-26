@@ -107,7 +107,7 @@ exists for — and the custody projection will report it on the receiver''s next
 lookup could not resolve ("container … is not resolvable on the owner''s body"), while an older bag (`5197989525`) resolved — an id-space question for the
 same audit (a freshly created item''s id is not yet the authoritative one when another client names it).
 
-## The cause of the "disappeared" half (2026-10-26, read from the patch)
+## The cause of the "disappeared" half, and why the first fix was WRONG (2026-10-26)
 
 `PlayerCameraDragUsePatch` opens the intent window for a proxied drag and then let the native body run. `HandleReleaseDragging` acts on `dragItem`, so a
 proxy released outside the remote view (dragged to the screen edge to drop it) went through the native drop path: the host reported a drop for an item it
@@ -118,3 +118,19 @@ ledger row 194.
 
 **Owed**: the machine row — open a teammate's backpack, drag a proxy to the screen edge, and read: no local `[ItemDropped]` line for an item the client
 does not own, the proxy still drawn, and the owner''s row unchanged.
+
+## The first fix was reverted the same evening — the window CAPTURES the native calls
+
+The `ClearDrag` fix (committed as `59de181a`, deployed) stopped the native body from touching a proxy by clearing the drag before it ran. Reading
+`RemoteDragIntentCapture` afterwards shows why that is wrong at the root: the window does not classify a release by itself — its intents ARE what the
+native body did (`CaptureDropItem`, `CapturePickUp`, `CaptureUseItem`, `CaptureWearItem`, `CaptureContainerLoad`, …). Clearing the drag removed the calls
+the window records, so EVERY proxied release answered `produced no intent — unclassified native gesture`, and the centre-use seam built on top of it
+(`6135269b`) could never work. Both are measured: three centre-release attempts with the staged pointer all answered that line.
+
+So the fix is reverted (the comment in `PlayerCameraDragUsePatch` now records this), and the real half is where the DROP IS REPORTED: the proxied drop
+produced a local `[ItemDropped]` report for an item the client does not own, instead of being captured as the window''s own drop intent. That is the
+next read: `ItemReportCommitter`/`ItemWorldSync.OnItemDropped` under an open proxy window, and which of them decides a local drop instead of the
+captured intent.
+
+**Kept from this evening''s work**: the pointer seam (`DragUseCenter.StagedPointer` + `stage-pointer`) is independent of this and stays deployed; the
+in-process give-into-a-remote-slot capability stays.

@@ -74,6 +74,9 @@ internal sealed class OnlineUiContext
 	/// <summary>The world-presence fact the Worlds page gates its armed restore on; null when the composition has no adapter.</summary>
 	internal IWorldPresenceQuery? WorldPresence;
 
+	/// <summary>The game's own pointer question: is a world item under the pointer (the press belongs to the game's pickup, not to CUO's menu)?</summary>
+	internal IWorldItemPointerQuery? WorldItemPointer;
+
 	/// <summary>The world library the Worlds page manages worlds and backups through (decision 198); null when the composition has none.</summary>
 	internal IWorldLibrary? WorldLibrary;
 

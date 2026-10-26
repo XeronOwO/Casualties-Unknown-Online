@@ -88,6 +88,15 @@ internal sealed class OnlineUiPlayerContextMenu
 				return;
 			}
 
+			// The game's own order, asked before anything of ours runs: a right-press with a world ITEM under the pointer starts the game's pickup
+			// (`PlayerCamera.TryPickupFromWorld` reads the `Item` layer FIRST and returns), so the menu must not answer that press at all — not open,
+			// not re-target, not close. Without this, right-clicking an item that happened to lie on a teammate started the pickup and opened the menu
+			// beside it (user report, 2026-10-25).
+			if (ctx.WorldItemPointer is { } itemPointer && itemPointer.IsWorldItemUnderPointer(mouse.x, mouse.y))
+			{
+				return;
+			}
+
 			if (TryFindRemoteCandidatesAt(mouse, ctx, out var candidates))
 			{
 				Open(candidates[0], candidates, mouse);

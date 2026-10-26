@@ -43,7 +43,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnlineUiSurface, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, ILayerPanelVisibilityPump
+public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnlineUiSurface, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, ILayerPanelVisibilityPump, IWorldItemPointerQuery
 {
 	// The intro cover's decision, static because the patch that reads it
 	// (PreRunScriptIntroSkipPatch) runs before any adapter instance is involved: the shell
@@ -388,6 +388,23 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	bool IStartGateState.WaitingTextIsOnTheNativeScreen => _domains.Gate.WaitingTextIsOnTheNativeScreen;
 
 	bool IWorldPresenceQuery.IsInWorldOrGenerating => _domains.Run.IsInWorldOrGenerating;
+
+	/// <summary>
+	/// The game's own first question on a right-press: is a world ITEM under the pointer? The native call is <c>Physics2D.OverlapPoint</c> on the
+	/// <c>Item</c> layer (<c>PlayerCamera.TryPickupFromWorld</c>, <c>PlayerCamera.cs:1423-1441</c>). The pointer arrives in GUI coordinates (the plug-in's
+	/// IMGUI event), so the y is flipped here — the conversion the native path does not need because it reads <c>Input.mousePosition</c>.
+	/// </summary>
+	bool IWorldItemPointerQuery.IsWorldItemUnderPointer(float guiX, float guiY)
+	{
+		if (Camera.main == null || !_domains.Session.SessionActive) // Unity object — ==
+		{
+			return false;
+		}
+
+		var screen = new Vector3(guiX, Screen.height - guiY, 0f);
+		var world = Camera.main.ScreenToWorldPoint(screen);
+		return Physics2D.OverlapPoint(world, LayerMask.GetMask("Item")) != null; // Unity object — ==
+	}
 
 	void IGameIntegrationLifecycle.OnApplicationQuit() => _domains.ItemWorldSync.SuppressDestroys();
 

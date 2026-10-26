@@ -379,7 +379,7 @@ docs/backlog/review/context-menu-name-wraps-behind-actions.md | keep | index | d
 docs/backlog/review/console-completion-shows-no-suggestions.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-caret-misaligned-with-text.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/use-on-sleeping-target-refused.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/right-click-on-an-item-also-opens-the-menu.md | keep | index | docs/backlog/README.md
+docs/backlog/review/right-click-on-an-item-also-opens-the-menu.md | keep | index | docs/backlog/README.md
 docs/backlog/review/use-drag-out-of-a-backpack-drops-the-item.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-into-backpack-plays-no-sound.md | keep | index | docs/backlog/README.md

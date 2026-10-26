@@ -22,7 +22,13 @@ carry actions.
   carry action on a body already carried.
 - A player who is not in the world cannot be the menu's target; the menu closes instead of acting on a stale target.
 - The menu closes on a pick, on a click elsewhere, and when its target leaves.
-- **Overlap is resolved by asking, not by taking the first.** `src/CasualtiesUnknownOnline.Runtime/OnlineUi/RemoteTargetPicker.cs`
+- **A world item under the pointer owns the press; the menu does not open on it.** The game's own order is the standard:
+  `PlayerCamera.TryPickupFromWorld` raycasts the `Item` layer FIRST on a right-press (`PlayerCamera.cs:1423-1441`) and returns with that item as the
+  current drag, so an item under the pointer already has an owner for the gesture. CUO asked only "is a teammate within 48 px of the pointer"
+  (`OnlineUiPlayerContextMenu.TryFindRemoteCandidatesAt` → `RemoteTargetPicker.Find`), so right-clicking an item that happened to lie on a teammate
+  started the pickup AND opened the menu beside it (user report, 2026-10-25). The menu now asks the same question first, through the narrow
+  `IWorldItemPointerQuery` seam (`GameAdapter.IsWorldItemUnderPointer` uses `Physics2D.OverlapPoint` on the `Item` layer with the pointer converted
+  from GUI space), and stays closed when the answer is yes. A bare body keeps opening the menu; so does the empty ground.- **Overlap is resolved by asking, not by taking the first.** `src/CasualtiesUnknownOnline.Runtime/OnlineUi/RemoteTargetPicker.cs`
   "returns every candidate inside the click radius ordered by distance, so the context menu can present an explicit selector
   when several remote players overlap on screen" — the earlier behaviour "returned the first matching remote player" — and
   "ties are broken by SteamId so the result is deterministic".

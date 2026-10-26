@@ -1,6 +1,6 @@
 # Right-clicking an item that overlaps a teammate opens the member menu as well as picking the item up
 
-- Status: Todo — opened 2026-10-25 from the user's report (translated): "when the item overlaps the guest, right-clicking to pick the item up also
+- Status: Review — implemented 2026-10-26; the three rows need a mouse on a live session — opened 2026-10-25 from the user's report (translated): "when the item overlaps the guest, right-clicking to pick the item up also
   opened the guest's right-click menu".
 - Priority: High — one gesture fires two actions, and the menu then covers the world the player is working in.
 - Category: Online UI / pointer priority
@@ -49,6 +49,14 @@ Plugin asking a question instead of knowing the game.
 
 Rows 2 and 3 of the acceptance table then stay as they are (a body with no item keeps opening the menu; empty ground keeps its today behaviour), and
 the bridge's pinned member census gains the one name in the same change.
+
+## Implemented 2026-10-26
+
+The seam the read asked for exists as `IWorldItemPointerQuery` (Runtime, engine-free: two floats), implemented by `GameAdapter` with the game own query
+(`Physics2D.OverlapPoint` on the `Item` layer, pointer converted from GUI space), registered in the adapter composition, wired into the Online UI context
+as `WorldItemPointer`, and asked by `OnlineUiPlayerContextMenu` before it looks for a teammate. Deployed and verified against this tree build.
+
+The rule is written back on `docs/design/surfaces/member-menu.md` and in the audit ledger (row 185).
 
 ## Acceptance rows
 

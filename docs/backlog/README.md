@@ -74,10 +74,11 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
 - [A new recipe file is rejected by the evaluator](todo/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — measured; blocks every new instrument.
-- [Right-clicking an item also opens the menu](todo/right-click-on-an-item-also-opens-the-menu.md) — **High** — one click, two actions.
 ### In progress
 
 ### Review
+
+- [Right-clicking an item also opens the member menu](review/right-click-on-an-item-also-opens-the-menu.md) — **High** — item owns the press.
 
 - [Launcher starts all three together and fails only for real reasons](review/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — 25 s cold start.
 

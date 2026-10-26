@@ -64,6 +64,7 @@ internal sealed class OnlineUiHost
 	private readonly INativeInputBlocker? _inputBlocker;
 	private readonly IPlayerAnchorQuery? _anchorQuery;
 	private readonly IWorldPresenceQuery? _worldPresence;
+	private readonly IWorldItemPointerQuery? _worldItemPointer;
 	private readonly IWorldLibrary? _worldLibrary;
 	private readonly IStartGateState? _gateState;
 	private readonly CuoEscCloseSuppression _escCloseSuppression = new();
@@ -144,6 +145,7 @@ internal sealed class OnlineUiHost
 		_inputBlocker = services.GetService<INativeInputBlocker>();
 		_anchorQuery = services.GetService<IPlayerAnchorQuery>();
 		_worldPresence = services.GetService<IWorldPresenceQuery>();
+		_worldItemPointer = services.GetService<IWorldItemPointerQuery>();
 		// The world library the Worlds page drives (decision 198): optional, exactly like the
 		// adapter — a composition without a world repository has nothing to manage, and the
 		// page says so instead of throwing.
@@ -387,6 +389,7 @@ internal sealed class OnlineUiHost
 		Profiles = _profiles,
 		AnchorQuery = _anchorQuery,
 		WorldPresence = _worldPresence,
+		WorldItemPointer = _worldItemPointer,
 		WorldLibrary = _worldLibrary,
 		LastJoinError = _lobby.LastError,
 		State = _onlineUi.Window.State,

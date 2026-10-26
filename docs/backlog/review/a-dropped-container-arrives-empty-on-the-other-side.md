@@ -95,5 +95,20 @@ The same fixture, rebuilt on the fixed build — a toolbox with one water bottle
 and the projection settled instead of holding a disagreement: `rows=346 objects=345 mismatches=1` on the drop frame, then
 `21:08:09.427 rows=347 objects=347 mismatches=0` — the transient the drop itself produces, then agree.
 
-**Judged**: row 1 (a container dropped with one item inside arrives with it) and row 2 (the projection stays clean across it). **Owed**: row 3, the same
-for a container that holds a NESTED container, and the player-facing read (open the dropped container on the receiver and see the item in it).
+**Judged**: row 1 (a container dropped with one item inside arrives with it), row 2 (the projection stays clean across it) and row 3 (a container
+holding a NESTED container arrives, below). **Owed**: the player-facing read — open the dropped container on the receiver and see the item in it.
+
+## Row 3, and the shape the game allows (2026-10-26 21:09)
+
+A toolbox holding a pouch, dropped by the guest, arrived on the host at both levels:
+
+```
+21:09:14.755 [ItemSpawn] toolbox (id 30967793301) carries 1 row(s) — materializing its contents from the authority.
+21:09:14.760 [ItemSpawn] materializing pouch (id 35262760597) at (0.9,490.7), vel (0.0,0.0), container 30967793301
+```
+
+with the projection settling at `350/350/0`.
+
+**A deeper tree is not a shape the game has**: `Container.LoadItem` refuses to load an item into a container that is itself inside another container
+("alertcontainerstackingalt", `reversing/Assembly-CSharp/Assembly-CSharp/Container.cs:125-129`), so `toolbox → pouch → item` cannot be built through
+the game's own path. The recursion this fix added is exercised to the depth the game permits, which is container-inside-container.

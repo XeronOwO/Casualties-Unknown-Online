@@ -48,7 +48,7 @@
     "Note": "The receiving half of a cross-player transfer: it applies the custody answer on the side it names. It reached 601 with the ruling that a give no longer plays a sound of its own (the release click is the game own, and the cloth belongs to container moves), which removed a call and left the comments that explain why beside it. The split this owes is one applier per direction (give, take, return) behind the dispatch it already has."
   },
 "CasualtiesUnknownOnline.GameAdapter.RemoteIntentApplier": {
-    "Lines": 609,
+    "Lines": 621,
     "BoolFlags": 0,
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The receiver half of the remote intents: one method per intent kind, each replaying the game own call on the owner real objects. It crossed 600 with the ground hand-over (a world item resolved through the scene and placed by the receiver own native pickup) and with the detach-before-place step that keeps a cross-player give from playing the container sound the native slot move never plays. The split this owes is one applier per intent family (drop/container, slot, use/wear, battery/trader) behind the same dispatch, the shape RemoteIntentSlotRelease already gives one shared sub-rule."

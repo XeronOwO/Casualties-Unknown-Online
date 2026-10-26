@@ -131,7 +131,10 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 					ApplySwapSlots(body, item, msg.TargetSlotIndex);
 					break;
 				case RemoteInventoryIntentKind.PickUpToSlot:
-					ApplyPickUpToSlot(body, item, msg.TargetSlotIndex);
+					// The destination is ONE value, read here and nowhere else: a message names either a body slot or a container, and the world
+					// hand-over used to lose the container half because this call passed only the slot (a ground item aimed at a teammate's trashbag
+					// landed in their body instead — user report, 2026-10-26). Passing both operands is what makes that impossible to lose again.
+					ApplyPickUpToSlot(body, item, msg.TargetSlotIndex, msg.TargetContainerInstanceId);
 					break;
 				default:
 					_log.LogWarning("[RemoteIntent] {Kind} is not executable on the owner's body.", msg.Kind);
@@ -364,7 +367,7 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 	/// refusal, never forced through. The step list itself is
 	/// <see cref="RemoteIntentSlotRelease"/>, which is covered without a scene.
 	/// </summary>
-	private void ApplyPickUpToSlot(Body body, Item item, int targetSlot)
+	private void ApplyPickUpToSlot(Body body, Item item, int targetSlot, ulong containerInstanceId)
 	{
 		// The receiver's half of the giver's release must make the SAME noise as the native slot-to-slot move, which is none of its own: `Body.PickUpItem`
 		// plays `PlayBackpackSound` only when the item's parent is a container (`Body.cs:1393-1397`), and a native slot move has no container parent. An
@@ -375,6 +378,15 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 		if (item.TryGetParentContainer(out var parentContainer))
 		{
 			parentContainer.UnloadItem(item, null);
+		}
+
+		// A CONTAINER destination is the whole gesture when the release named one: the player dropped the item INTO a bag, and a bag is not a body slot.
+		// The one destination value decides here, so the container half can no longer be lost on the way (user report, 2026-10-26: a ground item aimed at
+		// a teammate's trashbag landed in their body, because only the slot operand was read).
+		if (containerInstanceId != 0)
+		{
+			ApplyMoveIntoContainer(body, item, containerInstanceId);
+			return;
 		}
 
 		// A WORLD item (the ground hand-over) is not held and no slot is emptied for it: the game's own pickup decides, with its own guards, its own

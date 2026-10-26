@@ -107,6 +107,12 @@ somebody else's backpack").
 
 Each of these reaches the player as a sentence in their own language; the wire carries the key, never prose.
 
+**A release names ONE destination, and the applier reads that one value.** A hand-over's destination is either a body slot or a container — never
+both, never neither — and the receiver's placement branch consumes the SAME value the sender's release named. The rule exists because the two operands
+travelled separately and one branch read only the slot: a ground item dropped into a teammate's trashbag landed in their body instead, because the
+world-item branch of `RemoteIntentApplier.ApplyPickUpToSlot` never looked at the container operand (user report, 2026-10-26). Every placement branch
+now takes both operands and answers the container first (`ApplyMoveIntoContainer`, the game's own `CanHoldItem` guard), so a destination cannot be
+silently replaced by another.
 ## Who judges
 
 The host applies the custody change, because custody is a host fact. The receiving client then materialises the item in

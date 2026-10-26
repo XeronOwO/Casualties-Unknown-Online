@@ -60,3 +60,25 @@ before the gesture, and the player's view of it disappeared somewhere along the 
 ## Limits
 
 - Read from logs and rows after the fact; the gesture itself needs a hand or a driver that can open a remote backpack, which this session did not have.
+
+## The system audit the report asked for (2026-10-26), and the first fix
+
+Every entrance that moves an item into another player's custody, and what guarantees its destination — the table this family never had:
+
+| Entrance | Destination operand | Receiver's branch | State |
+|---|---|---|---|
+| release on a remote SLOT, carried item | `GiveToBody{TargetSlotIndex}` | slot-release plan (`RemoteIntentSlotRelease.Plan`) | holds |
+| release on a remote CONTAINER, carried item | `GiveToBody{TargetContainerInstanceId}` | `ApplyMoveIntoContainer` | holds |
+| ground item onto a remote SLOT | forward `PickUpToSlot{slot}` | native `body.PickUpItem` | holds (judged 2026-10-26) |
+| ground item into a remote CONTAINER | forward `PickUpToSlot{slot=-1, container}` | **was: the world branch read only the slot** | **fixed here** |
+| take out of a remote container | `TakeOutOfContainer` | native unload/placement | holds |
+| drop out of an opened remote backpack | `Drop` | local drop + report | **open** — reported `Committed` while the row stayed `Carried` |
+
+The structural cause of the fourth row is that a destination travelled as TWO operands and one branch read one of them. `RemoteIntentApplier`'s
+`PickUpToSlot` dispatch now passes both, and `ApplyPickUpToSlot` answers the container first through `ApplyMoveIntoContainer` — the game's own
+`Container.LoadItem` with its `CanHoldItem` guard — so a container destination can no longer be replaced by a body slot. Written back on
+`mechanics/give-and-take.md` and audit ledger row 193.
+
+**Still open from this audit**: the last row (a drop out of an opened remote backpack commits a drop report and keeps the item — the "disappeared" half
+of the report), and the machine row for the container destination (a ground item into a teammate's trashbag, read back with `item-row` as `Contained`
+by that bag on both clients).

@@ -111,3 +111,19 @@ The first attempt was ambiguous — the target woke before the use, so no exempt
 
 **Judged**: row 1 for the eat family (a sleeping target is a valid target and the consuming gate exempts sleep). **Owed**: row 1''s other families
 (drink, wear, bandage, splint, injection) and rows 2-3; `use-request` now makes those drivable, one item id at a time.
+
+## The drink family too, and where this driver stops (2026-10-26 20:46)
+
+With the target's energy forced to 0 (`body-force energy=0`) so the sleep holds, the nap sticks (`conscious=False sleeping=True energy 0.96`) and the
+alt drank at it:
+
+```
+20:46:49.939 [ItemUse] … is asleep — the Drink proceeds (decision 270: sleep is not a refusal condition).
+20:46:49.941 [ItemUse] … used waterbottle (id 23041378414) on …
+```
+
+**Judged**: row 1 for eat and for drink — the two CONSUMING families, i.e. exactly the ones decision 270 exempted.
+
+**Where `use-request` stops**: a bandage through the same request is refused by name — "analgesicgauze … is empty or is not a family this [gesture]
+carries" — because the medical families are decided by the DRAG GESTURE (the wound view's own cast), not by a bare request. So wear/bandage/splint/
+injection still need the gesture path, and rows 2-3 with them; the consuming pair is what this driver can judge.

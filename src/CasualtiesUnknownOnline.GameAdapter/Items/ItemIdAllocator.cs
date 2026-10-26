@@ -79,6 +79,18 @@ public sealed class ItemIdAllocator(ISessionControl session, IItemControl items,
 	/// </summary>
 	internal ulong EnsureId(Item item)
 	{
+		// THE ONE PLACE EVERY CREATION REPORT PASSES, AND IT ASKS FIRST. An object an eat's delegate created to REPLACE its item is the owner's row
+		// becoming another definition in place, so it must never carry an id: with one, every reporting hook (instantiation, pickup, slot, use,
+		// container) is free to announce a "new item", which is how a phantom opened fruit reached the world origin while the owner's slot went empty
+		// (measured 2026-10-26, five runs). This is asked BEFORE the existing-component read, because the replacement can arrive with an id already
+		// stamped (the prefab's own), and returning it was the last way the phantom kept a stable id across every run.
+		if (ItemReplacementObservation.IsArmed)
+		{
+			ItemReplacementObservation.Record(item);
+			_log.LogInformation("[ItemSpawn] {Type} seen inside the eat's replacement window — no id (the owner's row becomes it in place).", item.id);
+			return 0;
+		}
+
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp != null) // Unity object — ==
 		{
@@ -90,23 +102,19 @@ public sealed class ItemIdAllocator(ISessionControl session, IItemControl items,
 			return 0; // generation-time instantiation — the world-gen determinism covers it
 		}
 
-		// THE ONE PLACE EVERY CREATION REPORT PASSES. An object an eat's delegate created to REPLACE its item is the owner's row becoming another
-		// definition in place, so it must never be given an id: with an id, every reporting hook (instantiation, pickup, slot, use, container) is
-		// free to announce a "new item", which is how a phantom opened fruit reached the world origin while the owner's slot went empty (measured
-		// 2026-10-26). Guarding each hook was the wrong shape — this is the allocation they all funnel through.
-		if (ItemReplacementObservation.IsArmed)
-		{
-			ItemReplacementObservation.Record(item);
-			_log.LogInformation("[ItemSpawn] {Type} created inside the eat's replacement window — no id allocated (the owner's row becomes it).", item.id);
-			return 0;
-		}
-
 		return Allocate(item);
 	}
 
 	/// <summary>Stamp a fresh id on an item that is known to have none (the Item.Start path — generation-time items entering the domain).</summary>
 	internal ulong Allocate(Item item)
 	{
+		// The same refusal as <see cref="EnsureId"/>'s, for the one caller that allocates directly (`ItemWorldSync.OnItemInstantiated`).
+		if (ItemReplacementObservation.IsArmed)
+		{
+			ItemReplacementObservation.Record(item);
+			return 0;
+		}
+
 		var idComp = item.gameObject.AddComponent<ItemInstanceId>();
 		idComp.Id = Next();
 		return idComp.Id;

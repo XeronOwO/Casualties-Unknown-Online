@@ -54,3 +54,20 @@ So the kernel row is right (the row says the bottle is CONTAINED in the toolbox)
 
 - Observed on the deployed build `0.1.0+705821d`; the reproduction is committed in this ticket's log lines, but the drop report's own capture has not
   been read yet, so the cause is not yet named as a code path.
+
+## The cause, read from the code (2026-10-26)
+
+The capture and the wire are both fine — the loss is in what the receiver is GIVEN:
+
+1. `ItemReportCommitter.SendDropReport` logged `[ItemDropped] toolbox … — container contents 1`, so the sender knew about the child;
+2. `ItemStateCodec.CaptureItem` recurses into a container's children and fills `CharacterItemMsg.Contents`;
+3. `ItemKernelCodec.ToKernelData` then maps that message to `ItemData` — and **`ItemData` has no contents field by design**: "each contained item is its
+   own `ItemState` with a Contained location so the container graph is authoritative and acyclic" (`GameState/Domains/Items/ItemData.cs`). So the drop
+   command's payload legitimately carries only the container's own state, and the child stays a row of its own with a `Contained` location;
+4. the receiver materializes the world item from the COMMAND PAYLOAD (`RemoteItemSceneOps.SpawnWorldItem` → `ItemStateCodec.RestoreContents(item,
+   w.Item.Contents)` with `w` built from that payload), so its `Contents` is empty and no child object is created — while the child's row still says
+   `Contained`, which is the mismatch the projection reports.
+
+So the defect is the one stage 2 of the custody work exists to end: the receiver builds a VIEW from the message instead of from the rows it already holds.
+The fix belongs at that boundary — when a world item is materialized, its contents are the rows whose parent is this id (`ItemCustodyRows` already
+answers parent lookups for the standing path), not the payload's list.

@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Launcher reports failure when the alt box cannot start](todo/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — alt optional.
 
 
 - [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
@@ -79,6 +78,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+
+- [Launcher starts all three together and fails only for real reasons](review/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — 25 s cold start.
 
 - [Music and recursive-crafting mods fail to load](review/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — fixed, all rows judged.
 

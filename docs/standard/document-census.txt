@@ -371,7 +371,7 @@ docs/backlog/done/localization-json-resources-and-mod-languages.md | keep | inde
 docs/backlog/done/console-command-replies-bilingual.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/localization-live-read-20261025-e.md | keep | claim | docs/backlog/done/console-command-replies-bilingual.md
 docs/backlog/review/music-and-recursive-crafting-mods-fail-to-load.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/launcher-fails-when-the-alt-box-cannot-start.md | keep | index | docs/backlog/README.md
+docs/backlog/review/launcher-fails-when-the-alt-box-cannot-start.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/review/player-facing-text-localized-per-receiver.md | keep | index | docs/backlog/README.md
 docs/backlog/review/context-menu-does-not-block-the-pointer.md | keep | index | docs/backlog/README.md

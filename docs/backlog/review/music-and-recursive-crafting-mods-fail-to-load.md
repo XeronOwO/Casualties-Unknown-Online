@@ -66,4 +66,4 @@ Both clients, one fresh session started after a machine restart: `cuo.music load
 
 `tools/acceptance/launch-clients.ps1` started the host and the Steam1 guest, then failed because the Steam2 alt box could not come up in time, and its
 non-zero exit made the whole launch look failed even though two usable clients were listening. Recorded here because it is how this batch started; the
-launcher has its own ticket (`docs/backlog/todo/launcher-fails-when-the-alt-box-cannot-start.md`).
+launcher has its own ticket (`docs/backlog/review/launcher-fails-when-the-alt-box-cannot-start.md`).

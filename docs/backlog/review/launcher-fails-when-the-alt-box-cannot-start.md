@@ -1,6 +1,6 @@
 # The launcher reports failure when the alt box cannot start, and takes the run with it
 
-- Status: Todo — opened 2026-10-26 from the batch that hit it: the host and the Steam1 guest came up and answered on their ports, the Steam2 alt box did not, and `launch-clients.ps1` exited non-zero, so the launcher read as "no session" when two usable clients were running.
+- Status: Review — rebuilt and judged 2026-10-26 except the reboot path — opened 2026-10-26 from the batch that hit it: the host and the Steam1 guest came up and answered on their ports, the Steam2 alt box did not, and `launch-clients.ps1` exited non-zero, so the launcher read as "no session" when two usable clients were running.
 - Priority: Low — the workaround is one command per client, and the run itself is unaffected once the clients are up.
 - Category: Acceptance tooling / launcher
 - Source: user report (2026-10-26, translated): "the script has a problem: Steam2's Steam starts slowly, the game started and exited several times, and then it just gave up".
@@ -74,4 +74,4 @@ in under a minute even when everything was healthy, and one slow box turned it i
 | 1 | All three clients start together and answer within one deadline, and the launch is reported as each one answers | **judged** by the 16 s run above |
 | 2 | A readiness poll costs no process spawn (the old path spawned a powershell per poll) | **judged by construction**: `Test-Port` is a socket connect; the only spawn is one `ping` per client after its port answers |
 | 3 | After a machine restart, the launcher starts `SbieSvc` elevated once and proceeds | **owed**: needs a reboot to exercise, and it is exactly the path the user hit |
-| 4 | The join half of the launcher (create lobby, join two, start the run, all three in world) still works | **owed**: this batch ran `-NoJoin`, because the host was already in a world from the earlier session |
+| 4 | The join half of the launcher (create lobby, join two, start the run, all three in world) still works | **judged 2026-10-26** by a cold run (`.acceptance/batch-launcher-full`): host/guest/alt started `19:06:48-50`, endpoints up `19:06:56-58`, `all three up 19:07:02`, lobby `19:07:04`, both guests joined `19:07:08-09`, `all in world: True 19:07:13` — **25 s end to end, exit 0** |

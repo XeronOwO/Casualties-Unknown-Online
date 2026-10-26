@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -21,10 +22,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// primitives while <see cref="ItemApplication"/> keeps the message-handler
 /// routing.
 /// </summary>
-internal sealed class RemoteItemSceneOps(ISessionControl session, StandingItemMaterializer standing, Logger log)
+internal sealed class RemoteItemSceneOps(ISessionControl session, StandingItemMaterializer standing, IItemControl items, Logger log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly StandingItemMaterializer _standing = standing;
+	private readonly IItemControl _items = items;
 	private readonly Logger _log = log;
 	private readonly Dictionary<Item, int> _materializedFrame = [];
 
@@ -399,6 +401,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, StandingItemMa
 		ItemStateCodec.RestoreLiquids(item, w.Item.Liquids);
 		ItemStateCodec.RestoreComponentStates(item, w.Item.Components);
 		ItemStateCodec.RestoreContents(item, w.Item.Contents);
+		MaterializeRowContents(item, w);
 		if (w.FreshItemDrop)
 		{
 			item.gameObject.AddComponent<FreshItemDrop>(); // the glowing floating pickup effect (self-destroys when the setting is off)
@@ -434,6 +437,66 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, StandingItemMa
 			// on every guest ("thrown item through the wall, stuck inside").
 			// Same for a fast roll-out; the extra cost is one item.
 			item.rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+		}
+	}
+
+	/// <summary>
+	/// Materialize the container's contents FROM THE AUTHORITY'S ROWS, which is the only list that has them.
+	///
+	/// <para>
+	/// The kernel keeps every contained item as a row of its own — <c>ItemData</c> carries no children "so the container graph is authoritative and
+	/// acyclic" — so the message that reports a container holds only the container's own state. A receiver that materialized a world container from that
+	/// message therefore built an EMPTY one while the children's rows still said they were inside it (a dropped toolbox arrived empty on the other side,
+	/// 2026-10-26, and the custody projection reported `RowWithoutObject:Contained` every second). Asking the rows is the fix at the boundary stage 2 of
+	/// the custody work names: a view is built from the rows, never from the payload.
+	/// </para>
+	///
+	/// <para>
+	/// Each child goes through <see cref="SpawnWorldItem"/> with this item as its parent, so the ordinary landing rules apply to it too: a nested
+	/// container's own children recurse, an object already present is not duplicated, and the game's own <c>Container.LoadItem</c> attaches it.
+	/// </para>
+	/// </summary>
+	private void MaterializeRowContents(Item containerItem, WorldItem w)
+	{
+		if (containerItem.GetComponent<Container>() == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var rows = _items.QueryJudgedItems();
+		var children = ItemCustodyComparison.ContainedIn(rows, w.ItemId);
+		if (children.Count == 0)
+		{
+			return;
+		}
+
+		_log.LogInformation("[ItemSpawn] {Type} (id {ItemId}) carries {Count} row(s) — materializing its contents from the authority.", w.Item.ItemId, w.ItemId, children.Count);
+		foreach (var child in children)
+		{
+			if (FindWorldItem(child.Identity.InstanceId) != null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var data = new CharacterItemMsg
+			{
+				InstanceId = child.Identity.InstanceId,
+				ItemId = child.Identity.DefinitionId,
+				Condition = child.Data.Condition,
+				SlotIndex = child.Data.SlotIndex,
+				Favourited = child.Data.Favourited,
+				Liquids = [.. child.Data.Liquids.Select(liquid => new LiquidStackMsg { LiquidId = liquid.LiquidId, Amount = liquid.Amount })],
+			};
+
+			SpawnWorldItem(new WorldItem(
+				child.Identity.InstanceId,
+				data,
+				w.Pos,
+				default,
+				w.ItemId,
+				w.Rotation,
+				FreshItemDrop: false,
+				w.Pos));
 		}
 	}
 

@@ -222,4 +222,22 @@ public class ItemCustodyComparisonTests
 		Assert.Equal(ItemCustodyComparison.MismatchKind.KindDisagrees, mismatch.Kind);
 		Assert.Equal("standing", mismatch.Marker);
 	}
+	[Fact]
+	public void ContainedIn_AnswersOnlyTheDirectChildrenInIdOrder()
+	{
+		// A world container's view is built from these rows (a dropped toolbox arrived empty when it was built from the message instead).
+		var rows = new Dictionary<ulong, ItemState>
+		{
+			[7] = Row(7, ItemLocation.World(0f, 0f), slot: -1),
+			[9] = Row(9, ItemLocation.Contained(new ActorId(Other), 7), slot: -1),
+			[8] = Row(8, ItemLocation.Contained(new ActorId(Other), 7), slot: -1),
+			[10] = Row(10, ItemLocation.Contained(new ActorId(Other), 9), slot: -1),
+		};
+
+		var children = ItemCustodyComparison.ContainedIn(rows, 7);
+
+		Assert.Equal([8UL, 9UL], children.Select(child => child.Identity.InstanceId));
+		Assert.Single(ItemCustodyComparison.ContainedIn(rows, 9));
+		Assert.Empty(ItemCustodyComparison.ContainedIn(rows, 8));
+	}
 }

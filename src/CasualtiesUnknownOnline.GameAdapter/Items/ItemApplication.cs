@@ -37,7 +37,7 @@ internal sealed class ItemApplication
 		_world = world;
 		_log = log;
 		_standing = standing;
-		_scene = new RemoteItemSceneOps(session, standing, log);
+		_scene = new RemoteItemSceneOps(session, standing, items, log);
 		_cookReplay = new ItemCookReplayApplier(this, standing, session, log);
 	}
 

@@ -1,6 +1,6 @@
 # A dropped container arrives empty on the other side
 
-- Status: Todo — observed 2026-10-26 in the paradise batch, and held by the custody projection afterwards.
+- Status: Review — fixed 2026-10-26 (`MaterializeRowContents`); the machine row (a dropped container arriving with its content) is owed to the next batch.
 - Priority: High — a user-visible loss of contents: the receiver's copy of the container has nothing in it.
 - Category: Item custody / container contents / world materialization
 
@@ -71,3 +71,14 @@ The capture and the wire are both fine — the loss is in what the receiver is G
 So the defect is the one stage 2 of the custody work exists to end: the receiver builds a VIEW from the message instead of from the rows it already holds.
 The fix belongs at that boundary — when a world item is materialized, its contents are the rows whose parent is this id (`ItemCustodyRows` already
 answers parent lookups for the standing path), not the payload's list.
+
+## The fix (2026-10-26)
+
+`RemoteItemSceneOps.MaterializeRowContents` materializes a container's contents from the authority's rows (`ItemCustodyComparison.ContainedIn`), each
+child through the ordinary landing path — so nesting recurses, an object already present is not duplicated, and the game's own `Container.LoadItem`
+attaches it. The message's own `Contents` list stays as the fallback the restore paths still need; on a live world spawn the rows win.
+
+The rule is on `model/item-custody.md` and in audit ledger row 190. One test pins the query (`ContainedIn_AnswersOnlyTheDirectChildrenInIdOrder`:
+direct children only, id-ordered, so two clients build the same tree).
+
+**Owed**: acceptance rows 1-3 on a batch — the same drop that reproduced it (a toolbox with a water bottle, dropped and picked up on the other side).

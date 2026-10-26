@@ -165,4 +165,30 @@ internal static class ItemCustodyComparison
 		instanceId = 0;
 		return false;
 	}
+
+	/// <summary>
+	/// The items the authority says this one CONTAINS, in id order so two clients build the same tree.
+	///
+	/// <para>
+	/// This is the list a container's VIEW must be built from. The kernel keeps a container's contents as their own rows
+	/// (<see cref="ItemData"/> carries no children — "so the container graph is authoritative and acyclic"), while a message that reports a container
+	/// carries only the container's own state. A receiver that materializes a world container from the MESSAGE therefore gets an empty one while the
+	/// children's rows still say they are inside it: observed 2026-10-26, a dropped toolbox arrived empty on the other side and the projection reported
+	/// `RowWithoutObject:Contained` every second. The rows are the list; the message is not.
+	/// </para>
+	/// </summary>
+	internal static List<ItemState> ContainedIn(IReadOnlyDictionary<ulong, ItemState> rows, ulong parentItemId)
+	{
+		var found = new List<ItemState>();
+		foreach (var row in rows.Values)
+		{
+			if (row.Location.Kind == ItemLocationKind.Contained && row.Location.ParentItemId == parentItemId)
+			{
+				found.Add(row);
+			}
+		}
+
+		found.Sort((left, right) => left.Identity.InstanceId.CompareTo(right.Identity.InstanceId));
+		return found;
+	}
 }

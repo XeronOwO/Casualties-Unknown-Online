@@ -151,6 +151,13 @@ own log on 2026-10-26 20:18, which reported three of a departed guest's carried 
 (`5197989525:RowWithoutObject:Carried`, `9492956821:RowWithoutObject:Carried`, `13787924117:RowWithoutObject:Carried`); a
 `KindDisagrees` on a `World` row is a different defect and is not excused by this rule.
 
+**A container's view is built from its ROWS, never from the message that reported it.** The kernel keeps every contained item as a row of its
+own — `ItemData` "carries no children … so the container graph is authoritative and acyclic" (`GameState/Domains/Items/ItemData.cs`) — while a
+message about a container describes only that container. So materializing a world container from the message produced an EMPTY one whose children''s
+rows still said they were inside it (observed 2026-10-26: a dropped toolbox arrived empty on the other side and the projection reported
+`RowWithoutObject:Contained` every second). `RemoteItemSceneOps.MaterializeRowContents` now asks `ItemCustodyComparison.ContainedIn` and spawns each
+child through the ordinary landing path, so nesting recurses and an object already present is never duplicated. The same rule decides what a
+display shows everywhere else on this page: the row is the fact, the message is a hint.
 **A disagreement names the object that caused it.** The projection's line reads
 `<instance id>:<mismatch>:<row kind>[:<marker>]`, where the marker is `clone-render` or `standing` — WHICH display stood for
 the id (`LocalObject.Marker`, filled in `ItemCustodyProjection.LocalObjects`, carried on `Mismatch`). Without it the first

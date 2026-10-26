@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [A dropped container arrives empty on the other side](todo/a-dropped-container-arrives-empty-on-the-other-side.md) — **High** — contents lost.
 
 - [A world item is rendered by a display-marked object](todo/a-world-item-is-rendered-by-a-display-object.md) — **High** — display vs World.
 
@@ -79,6 +78,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+
+- [A dropped container arrives empty on the other side](review/a-dropped-container-arrives-empty-on-the-other-side.md) — **High** — fixed.
 
 - [A new recipe file is rejected by the evaluator](review/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — not reproduced.
 

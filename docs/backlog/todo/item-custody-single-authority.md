@@ -263,3 +263,24 @@ Two different things, and only one of them was a rule gap:
 
 The `give` chain itself was clean in the same session (the item adopted, taken and placed by the host's own log lines quoted above), so
 row 1's give half is judged; its rearrange half still needs a hand.
+
+### Stage 5, the paradise batch: three clients, a give, zero mismatches (2026-10-26 20:37)
+
+The first batch on the redeployed build, in a world the GAME made from its own `paradise` preset (`[Session] RunPreset = paradise`, applied by
+`PreRunScript.ApplyPreset` at the host's run start):
+
+| client | rows | objects | mismatches |
+|---|---|---|---|
+| host | 345 | 345 | 0 |
+| guest | 345 | 345 | 0 |
+| alt | 349 | 349 | 0 |
+
+Two things make that reading stronger than the empty-world ones before it:
+
+- **The world is the preset's, not an empty one**: `Starting supplies for a new player: … the world's own first-layer supplies (full) are already
+  yours` — the setting is `full`, where every earlier run read `light` — and the host merged **4 starting supplies** into each member's snapshot.
+  `rows=345` against the empty world's `268` is the loot/containers difference in the same numbers the projection reads.
+- **A give no longer produces a disagreement here**: `give-probe mode=give target=<alt> slot=1` handed over a `lantern`, and the projection logged
+  no new warning on any client afterwards (it reports only when the state flips), where the 19:57 give produced `KindDisagree` lines.
+
+The `KindDisagrees:World` defect stays open as its own ticket; this batch simply did not reproduce it.

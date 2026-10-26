@@ -218,3 +218,28 @@ arrangement `EatsAndReplaces` already used). An action that neither feeds nor re
 
 Pinned by `SolidFoodAdmissionTests.AUseActionThatReplacesTheItemWithoutFeeding_IsThisFamily` (with a control: `scrapmetal` is still refused).
 **Owed**: the live row — the same `use-request` now peeling the fruit on the target, read from both clients' rows.
+
+## The live peel run: the step runs, and TWO defects follow it (2026-10-26 22:26, deployed `83b4b506`)
+
+The peel now runs end to end — the closed stone fruit is consumed and a `stonefruitopen` exists:
+
+```
+22:26:52.170 [ItemUse] 76561198281246659 offers stonefruitclosed (id 1280221235139) to 76561198863287957 — …
+22:26:52.277 [ItemUse] local item 1280221235139 condition set to 0.00 by cross-player use.
+22:26:52.291 [ItemTrace] op=7 item=1280221235139 origin=OnItemDestroyed result=Committed(1) events=[Destroyed]
+22:26:52.325 [ItemSpawn] materializing stonefruitopen (id 22377858709) at (0.0,0.0), vel (0.0,0.0), container 0.
+```
+
+Two defects follow it, both read from the clients' own rows and censuses:
+
+1. **The replacement lands in the WORLD at (0,0), not in the eater's hand.** The rows say the closed fruit is `Terminal` and the open fruit is
+   `World`/owner 0 at the origin — while the design (`items/food.md`) says the player sees "the item in my hand became a peeled one", and the
+   delegate itself does `PickUpItem(Instantiate("stonefruitopen"), …)` on the affected side. So the creation's report loses its PLACEMENT: what
+   travels is only the definition, and the owner materializes it as a loose world object at 0,0.
+2. **The new item TOOK AN ID THAT WAS IN USE THIS SESSION.** `22377858709` was the guest's own waterbottle in slot 0 minutes earlier (census at
+   22:12: `slot0=waterbottle#22377858709`), and after the peel that slot is empty while the id now names the `stonefruitopen` row (`World`,
+   revision 1). That is an id collision in the creation-registration path — the replacement must be registered under a freshly allocated
+   authoritative id, never one this session already used.
+
+**Row 5 verdict**: the peel STEP now runs, but its custody does not agree after the replacement — rows 1-2 above are the disagreement, so the row
+stays FAILING until the placement and the fresh id are fixed.

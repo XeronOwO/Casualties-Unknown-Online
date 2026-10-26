@@ -39,7 +39,8 @@ param(
 	[string]$GuestUrl,
 	[string]$AltUrl,
 	[switch]$NoJoin,
-	[int]$SteamGraceSeconds = 60
+	[int]$SteamGraceSeconds = 60,
+	[int]$ReadyTimeoutSeconds = 300
 )
 
 $ErrorActionPreference = 'Stop'
@@ -106,19 +107,52 @@ function Invoke-Driver([string]$Client, [string]$Action, [hashtable]$Extra = @{}
 	& powershell -NoProfile -ExecutionPolicy Bypass -File $Driver @driverArgs *> $null
 	return (Read-Json $out)
 }
+function Get-EndpointAddress([string]$Client) {
+	# A driver endpoint is a ws:// URL; readiness is a plain TCP connect to its port, which costs nothing.
+	$uri = [Uri]$Urls[$Client]
+	return @{ Host = $uri.Host; Port = $uri.Port }
+}
+function Test-Port([string]$Client) {
+	$address = Get-EndpointAddress $Client
+	# NOT $client: PowerShell parameter names are case-insensitive, so assigning a TcpClient to $client coerces it to the [string] parameter and
+	# Dispose() then fails with "String does not contain a method named Dispose" (hit 2026-10-26 on the first run of this rewrite).
+	$socket = New-Object System.Net.Sockets.TcpClient
+	try {
+		$task = $socket.ConnectAsync($address.Host, $address.Port)
+		return ($task.Wait(400) -and $socket.Connected)
+	}
+	catch { return $false }
+	finally { $socket.Dispose() }
+}
 function Test-Endpoint([string]$Client) {
+	# ONE driver ping, used only to confirm the answering socket is really our plug-in. Polling readiness with this would spawn a
+	# powershell per poll (the old launcher did, every three seconds per client, which is most of why a launch felt slow).
+	if (-not (Test-Port $Client)) { return $false }
 	$answer = Invoke-Driver $Client 'ping'
 	if ($null -eq $answer -or $null -eq $answer.result) { return $false }
 	return ([string]$answer.result.plugin -eq 'true')
 }
-function Wait-Endpoint([string]$Client, [int]$Seconds) {
+function Wait-Endpoints([string[]]$Clients, [int]$Seconds) {
+	# One loop for ALL clients instead of a sequential wait per client: the slowest box decides the launch, never the sum of the three.
+	# The poll interval is a poll interval, not a grace: a client that is ready is seen within it.
 	$deadline = [DateTime]::UtcNow.AddSeconds($Seconds)
-	while ([DateTime]::UtcNow -lt $deadline) {
-		if (Test-Endpoint $Client) { return $true }
-		Start-Sleep -Seconds 3
+	$pending = [System.Collections.Generic.List[string]]::new()
+	foreach ($client in $Clients) { $pending.Add($client) }
+
+	while ($pending.Count -gt 0 -and [DateTime]::UtcNow -lt $deadline) {
+		foreach ($client in @($pending)) {
+			if (Test-Port $client) {
+				Write-Run "$client endpoint up"
+				$pending.Remove($client) | Out-Null
+			}
+		}
+
+		if ($pending.Count -gt 0) { Start-Sleep -Milliseconds 250 }
 	}
-	return $false
+
+	return ($pending.Count -eq 0)
 }
+
 function Get-BoxProcesses([string]$Box, [string]$Name) {
 	$pids = @(& $Sandboxie "/box:$Box" /listpids 2>&1 | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ -match '^\d+$' -and $_ -ne '0' })
 	return @($pids | Where-Object { $p = Get-Process -Id $_ -ErrorAction SilentlyContinue; $p -and $p.ProcessName -eq $Name })
@@ -159,6 +193,42 @@ function Wait-SteamSettled([string]$Box) {
 
 	return $false
 }
+function Ensure-SandboxService() {
+	# A box can only start when Sandboxie's service is up. After a machine restart SbieSvc is started on demand, and an unelevated
+	# Start.exe cannot start it: the sandbox initialisation fails and the processes it spawns error out, which is exactly what "no UAC
+	# prompt appeared, the sandbox errored, the processes inside spat errors" looked like (2026-10-26). One elevated `sc start` here is
+	# the whole fix; it is never repeated while the service runs, and Steam/the game are started unelevated afterwards.
+	$service = Get-Service -Name SbieSvc -ErrorAction SilentlyContinue
+	if ($null -eq $service) {
+		Write-Run 'WARN: no SbieSvc on this machine; a sandboxed box cannot start at all'
+		return $false
+	}
+
+	if ($service.Status -eq 'Running') { return $true }
+
+	Write-Run 'SbieSvc is not running; starting it elevated (a UAC prompt is expected)'
+	try {
+		Start-Process -FilePath 'sc.exe' -ArgumentList @('start', 'SbieSvc') -Verb RunAs -WindowStyle Hidden -ErrorAction Stop
+	}
+	catch {
+		Write-Run "FAIL: elevation was refused or failed, so no box can start: $($_.Exception.Message)"
+		return $false
+	}
+
+	$deadline = [DateTime]::UtcNow.AddSeconds(60)
+	while ([DateTime]::UtcNow -lt $deadline) {
+		$service = Get-Service -Name SbieSvc -ErrorAction SilentlyContinue
+		if ($service -and $service.Status -eq 'Running') {
+			Write-Run 'SbieSvc is up'
+			return $true
+		}
+
+		Start-Sleep -Milliseconds 500
+	}
+
+	Write-Run 'FAIL: SbieSvc did not reach Running within 60 s'
+	return $false
+}
 function Ensure-BoxSteam([string]$Box) {
 	if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { return }
 	Write-Run "$Box has no Steam; starting it (never restarting one that runs)"
@@ -166,59 +236,95 @@ function Ensure-BoxSteam([string]$Box) {
 	$deadline = [DateTime]::UtcNow.AddSeconds(180)
 	while ([DateTime]::UtcNow -lt $deadline) {
 		if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { break }
-		Start-Sleep -Seconds 5
+		Start-Sleep -Milliseconds 500
 	}
 	if (Wait-SteamSettled $Box) { Write-Run "$Box steam settled" } else { Write-Run "$Box steam did not settle within $SteamGraceSeconds s; starting the game anyway" }
 }
-function Start-BoxClient([string]$Box, [string]$Client, [string]$GameRoot) {
-	if (Test-Endpoint $Client) {
-		Write-Run "$Client already running (reused)"
-		if (Test-SteamInitialized $GameRoot) { return $true }
-		Write-Run "$Client runs without Steam; restarting this box's client only"
-		Stop-BoxGame $Box
-	}
-	elseif (@(Get-BoxProcesses $Box 'CasualtiesUnknown').Count -gt 0) {
-		Write-Run "$Client process exists; waiting for its endpoint instead of starting another"
-		if (Wait-Endpoint $Client 300) { return $true }
-		Write-Run "$Client never answered; restarting this box's client only"
-		Stop-BoxGame $Box
-		Start-Sleep -Seconds 10
-	}
-
-	for ($attempt = 1; $attempt -le 2; $attempt++) {
-		Ensure-BoxSteam $Box
-		if (@(Get-BoxProcesses $Box 'CasualtiesUnknown').Count -eq 0) {
-			Start-Process -FilePath $Sandboxie -ArgumentList @("/box:$Box", (Join-Path $GameRoot 'CasualtiesUnknown.exe'))
+function Start-ClientProcess([string]$Client) {
+	# Start the process for one client and return immediately: this function never waits. Waiting is one loop for all clients, below.
+	switch ($Client) {
+		'host' {
+			if (Test-Endpoint 'host') { Write-Run 'host already running (reused)'; return }
+			Start-Process -FilePath (Join-Path $GameDir 'CasualtiesUnknown.exe') -WorkingDirectory $GameDir
+			Write-Run 'host started'
 		}
-		if (-not (Wait-Endpoint $Client 300)) {
-			Write-Run "FAIL: $Client endpoint never came up (attempt $attempt)"
-			Stop-BoxGame $Box
-			Start-Sleep -Seconds 10
-			continue
-		}
-		if (Test-SteamInitialized $GameRoot) { Write-Run "$Client up with Steam initialized"; return $true }
-		Write-Run "$Client is up without Steam (attempt $attempt); waiting and restarting this box's client only"
-		Stop-BoxGame $Box
-	}
-	Write-Run "FAIL: $Client never came up with Steam initialized"
-	return $false
-}
-
-# Host: reuse a running one, wait for a starting one, start one only when there is none. Physical-machine Steam is
-# never started or stopped by this script.
-if (-not (Test-Endpoint 'host')) {
-	if (@(Get-Process CasualtiesUnknown -ErrorAction SilentlyContinue).Count -gt 0) {
-		Write-Run 'host process exists; waiting for its endpoint instead of starting another'
-		if (-not (Wait-Endpoint 'host' 300)) { Write-Run 'FAIL: host process never answered'; exit 6 }
-	}
-	else {
-		Start-Process -FilePath (Join-Path $GameDir 'CasualtiesUnknown.exe') -WorkingDirectory $GameDir
-		if (-not (Wait-Endpoint 'host' 300)) { Write-Run 'FAIL: host endpoint never came up'; exit 6 }
+		'guest' { Start-BoxGame $GuestBox 'guest' $GuestRoot }
+		alt { Start-BoxGame $AltBox 'alt' $AltRoot }
 	}
 }
-Write-Run 'host up'
-if (-not (Start-BoxClient $GuestBox 'guest' $GuestRoot)) { exit 7 }
-if (-not (Start-BoxClient $AltBox 'alt' $AltRoot)) { exit 8 }
+function Start-BoxGame([string]$Box, [string]$Client, [string]$GameRoot) {
+	if (Test-Endpoint $Client) { Write-Run "$Client already running (reused)"; return }
+
+	# A box whose game already runs but has not answered yet is NOT started again: the game refuses a second instance, and the wait loop
+	# below will see it the moment it answers.
+	if (@(Get-BoxProcesses $Box 'CasualtiesUnknown').Count -gt 0) { Write-Run "$Client process exists; letting it come up"; return }
+
+	Ensure-BoxSteam $Box
+	Start-Process -FilePath $Sandboxie -ArgumentList @("/box:$Box", (Join-Path $GameRoot 'CasualtiesUnknown.exe'))
+	Write-Run "$Client started"
+}
+function Restart-BoxGame([string]$Box, [string]$Client, [string]$GameRoot) {
+	# One restart per client, only for a box whose game DIED before answering (a game that exits on a not-ready Steam). Steam stays up.
+	Stop-BoxGame $Box
+	Ensure-BoxSteam $Box
+	Start-Process -FilePath $Sandboxie -ArgumentList @("/box:$Box", (Join-Path $GameRoot 'CasualtiesUnknown.exe'))
+	Write-Run "$Client restarted once (its earlier process exited before answering)"
+}
+
+# ALL clients start together, then ONE wait loop watches all of them. The old shape started host, waited up to 300 s, then guest, waited,
+# then alt: the launch cost the SUM of the three, and every readiness poll spawned a powershell. A slow alt box must not make the run look
+# failed — it only has to be waited for.
+if (-not (Ensure-SandboxService)) { Write-Run 'FAIL: the sandbox cannot start, so no boxed client can come up'; exit 7 }
+
+Start-ClientProcess 'host'
+Start-ClientProcess 'guest'
+Start-ClientProcess 'alt'
+
+$clients = @('host', 'guest', 'alt')
+$boxes = @{ 'guest' = $GuestBox; 'alt' = $AltBox }
+$roots = @{ 'guest' = $GuestRoot; 'alt' = $AltRoot }
+$restarted = @{}
+
+$ready = Wait-Endpoints $clients $ReadyTimeoutSeconds
+foreach ($client in @($clients)) {
+	if ($ready -and -not (Test-Endpoint $client)) {
+		# The port answered but this is not our plug-in (another listener): treat as not ready and keep waiting.
+		$ready = $false
+	}
+}
+
+if (-not $ready) {
+	# Give each box whose game died before answering exactly one restart, then wait again inside what is left of the deadline.
+	foreach ($client in @('guest', 'alt')) {
+		if (Test-Port $client) { continue }
+		if (@(Get-BoxProcesses $boxes[$client] 'CasualtiesUnknown').Count -eq 0) {
+			$restarted[$client] = $true
+			Restart-BoxGame $boxes[$client] $client $roots[$client]
+		}
+	}
+
+	$ready = Wait-Endpoints $clients $ReadyTimeoutSeconds
+}
+
+$missing = @($clients | Where-Object { -not (Test-Port $_) })
+if ($missing.Count -gt 0) {
+	foreach ($client in $missing) {
+		if ($client -eq 'host') { Write-Run 'FAIL: host endpoint never came up'; exit 6 }
+	}
+
+	if ($missing -contains 'guest') { exit 7 }
+	exit 8
+}
+
+foreach ($client in @('guest', 'alt')) {
+	$root = $roots[$client]
+	if (-not (Test-SteamInitialized $root)) {
+		Write-Run "FAIL: $client answered without Steam initialized (its log says so); this box needs its Steam up before a session"
+		if ($client -eq 'guest') { exit 7 }
+		exit 8
+	}
+}
+
 Write-Run 'all three up'
 
 if ($NoJoin) { exit 0 }

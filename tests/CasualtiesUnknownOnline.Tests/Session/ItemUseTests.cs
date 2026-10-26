@@ -241,6 +241,31 @@ public class ItemUseTests
 	}
 
 	[Fact]
+	public void TheReplacementOutcome_IsTheAdmissionsOneFollowUp()
+	{
+		// The eating client sees the object its delegate created only AFTER the delegate returns, so a use that REPLACES the item reports the state in
+		// one message and the replacement definition in a second. The grant is consumed by the first, so without the one allowed follow-up the second
+		// was refused by name and the owner's row kept its old definition, then died with its zeroed condition (measured 2026-10-26, the peel).
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "stonefruitclosed", slot: 0)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(GuestId, 77);
+		var eater = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		eater.SendItemActionOutcome(77, 0f, consumed: false);
+		eater.SendItemActionOutcome(77, 0f, consumed: false, replacementItemId: "stonefruitopen", replacementCondition: 1f);
+
+		Assert.Equal("stonefruitopen", characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).ItemId);
+		Assert.True(Math.Abs(characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).Condition - 1f) < 0.001f);
+
+		// A THIRD report has nothing left to take: the follow-up is one, not a second admission.
+		eater.SendItemActionOutcome(77, 0f, consumed: false, replacementItemId: "stonefruitopen", replacementCondition: 0.5f);
+		Assert.True(Math.Abs(characters.GetHostCharacterData()!.Items.Single(i => i.InstanceId == 77).Condition - 1f) < 0.001f);
+	}
+
+	[Fact]
 	public void Guest_EatsTheBread_TwiceReportsOnce()
 	{
 		// One admission, one report: a second outcome for the same eat has no grant

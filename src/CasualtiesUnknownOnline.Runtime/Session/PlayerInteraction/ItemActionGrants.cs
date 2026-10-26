@@ -33,6 +33,7 @@ internal sealed class ItemActionGrants
 	private readonly record struct Admission(ulong Owner, int LimbIndex);
 
 	private readonly Dictionary<(ulong Actor, ulong ItemId), Admission> _grants = [];
+	private readonly Dictionary<(ulong Actor, ulong ItemId), ulong> _followUps = [];
 
 	/// <summary>
 	/// The host admitted a cross-player use of this item by this actor — remember who
@@ -70,13 +71,40 @@ internal sealed class ItemActionGrants
 		}
 
 		_grants.Remove((actor, itemId));
+
+		// The ONE follow-up this admission allows: a use whose effect runs on the affected side and REPLACES the item reports the state in one
+		// message and the replacement definition in another (the eating client only sees the object its delegate created after the fact). The
+		// grant is consumed by the first, so the second would be refused — and was, which is why the owner's row kept its old definition and was
+		// destroyed as an ordinary consumed item instead of becoming the replacement (2026-10-26). One admission therefore remembers itself for
+		// exactly ONE follow-up from the same pair; a third report finds nothing, and the session boundary clears it like the grants.
+		_followUps[(actor, itemId)] = grant.Owner;
 		owner = grant.Owner;
 		limbIndex = grant.LimbIndex;
 		return true;
 	}
 
+	/// <summary>
+	/// The one follow-up an admission allows, taken at most once per (actor, item): the report that carries what the affected side's delegate
+	/// REPLACED the item with. False for any other report, so a second write still needs its own admission.
+	/// </summary>
+	internal bool TryTakeFollowUp(ulong actor, ulong itemId, out ulong owner)
+	{
+		if (!_followUps.TryGetValue((actor, itemId), out owner))
+		{
+			owner = 0;
+			return false;
+		}
+
+		_followUps.Remove((actor, itemId));
+		return true;
+	}
+
 	/// <summary>Session ended: an admission belongs to the session that issued it.</summary>
-	internal void Reset() => _grants.Clear();
+	internal void Reset()
+	{
+		_grants.Clear();
+		_followUps.Clear();
+	}
 
 	/// <summary>Diagnostics: how many admitted uses are in flight on this host.</summary>
 	internal int Count => _grants.Count;

@@ -33,6 +33,11 @@ The cross-player food family is decided from the GAME'S OWN DATA, not from a lis
 - The eater must be conscious: eating is one of the two families where the TARGET consumes the item.
 - A food that replaces itself (an opened version of itself) produces a NEW item in the eater's hands; that creation is a
   registered creation, not a local object.
+- **One admitted use, one state report, and ONE follow-up for the replacement.** The grant table is keyed on (actor, item) and a grant is consumed by
+  the report it authorizes; a use whose effect runs on the affected side and replaces the item reports its state first and the replacement definition
+  second, because the eating client sees the created object only after its delegate returns. `ItemActionGrants` therefore remembers a settled pair for
+  exactly one follow-up, which must carry a replacement — without it the second report was refused by name and the owner's row kept its old definition
+  and died with its zeroed condition (measured 2026-10-26, the peel; pinned by `ItemUseTests.TheReplacementOutcome_IsTheAdmissionsOneFollowUp`).
 - **The allocator asks BEFORE reading an existing id, and `Allocate` asks too.** A replacement object can arrive with an id already stamped, and
   returning that id was the last way the phantom kept the same instance id across five runs (2026-10-26). Both entry points therefore refuse first and
   then look at the component, so no reporting hook can name the replacement whatever it carries.

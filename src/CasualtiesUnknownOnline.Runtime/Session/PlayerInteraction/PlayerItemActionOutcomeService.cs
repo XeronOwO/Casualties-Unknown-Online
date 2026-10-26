@@ -72,11 +72,26 @@ internal sealed class PlayerItemActionOutcomeService(
 	/// </summary>
 	internal PlayerItemUseResultMsg? HandleOutcome(ulong sender, PlayerItemActionOutcomeMsg msg)
 	{
-		if (msg.ItemInstanceId == 0 || !_uses.TryTake(sender, msg.ItemInstanceId, out var owner, out var appliedLimbIndex))
+		var followUp = false;
+		ulong owner;
+		int appliedLimbIndex;
+		if (msg.ItemInstanceId == 0 || !_uses.TryTake(sender, msg.ItemInstanceId, out owner, out appliedLimbIndex))
 		{
-			_log.LogWarning("[ItemUse] refused the affected-side outcome from {Actor} for item {ItemId}: no admitted cross-player use of that item is in flight.",
-				sender, msg.ItemInstanceId);
-			return null;
+			// The ONE follow-up an admission allows: the eating client sees the object its delegate created only after the delegate returns, so its
+			// replacement definition travels in a SECOND message for the same pair. Without this the first report consumed the grant and the
+			// replacement was refused by name, which is why the owner's row kept its old definition and was destroyed as an ordinary consumed item
+			// (measured 2026-10-26). A follow-up MUST carry a replacement — anything else is a second write without an admission.
+			if (msg.ItemInstanceId == 0
+				|| string.IsNullOrEmpty(msg.ReplacementItemId)
+				|| !_uses.TryTakeFollowUp(sender, msg.ItemInstanceId, out owner))
+			{
+				_log.LogWarning("[ItemUse] refused the affected-side outcome from {Actor} for item {ItemId}: no admitted cross-player use of that item is in flight.",
+					sender, msg.ItemInstanceId);
+				return null;
+			}
+
+			followUp = true;
+			appliedLimbIndex = -1;
 		}
 
 		if (_characters.GetCharacterData(owner) is not { } ownerData
@@ -126,8 +141,9 @@ internal sealed class PlayerItemActionOutcomeService(
 		{
 			newItem.ItemId = msg.ReplacementItemId;
 			newItem.Condition = msg.ReplacementCondition;
-			_log.LogInformation("[ItemUse] {Actor} replaced {ItemId} (id {InstanceId}) of {Owner} with {Replacement} in place.",
-				sender, originalItem.ItemId, originalItem.InstanceId, owner, msg.ReplacementItemId);
+			_log.LogInformation("[ItemUse] {Actor} replaced {ItemId} (id {InstanceId}) of {Owner} with {Replacement} in place{FollowUp}.",
+				sender, originalItem.ItemId, originalItem.InstanceId, owner, msg.ReplacementItemId,
+				followUp ? " (the admission's one follow-up report)" : string.Empty);
 		}
 
 		if (msg.BecameLimbComponent)

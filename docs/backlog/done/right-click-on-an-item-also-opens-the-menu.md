@@ -80,3 +80,13 @@ The user right-clicked all three cases on the deployed build and answered "all t
 3. the empty ground — unchanged.
 
 That closes the rule this ticket added: the item under the pointer owns the press, and the game's own order is what decides it.
+
+## The second entrance: the modifier overlay's item labels (user report 2026-10-26)
+
+Holding the modifier draws nearby items as a grid of LABELS — `AltHoverScript` instantiates one `ItemLabel` per item, and the game's own press branch
+reads that label's `refItem` before it ever raycasts a collider (`PlayerCamera.cs:1405-1409`). Those labels are UI objects, so the physics question this
+ticket's fix asked (`Physics2D.OverlapPoint` on the `Item` layer) answered "no item" and the member menu opened on top of a label the player was pointing
+at — the same defect, through the other entrance the rule names.
+
+`GameAdapter.IsWorldItemUnderPointer` now asks both questions in the game's own order: the physics overlap first, then an `EventSystem.RaycastAll` at the
+same point, where any hit carrying an `ItemLabel` answers "the item owns the press". Judged by the user on the deployed build.

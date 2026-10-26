@@ -30,6 +30,7 @@ using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using IGameAdapter = CasualtiesUnknownOnline.Runtime.GameAdapter.IGameAdapter;
 using Object = UnityEngine.Object;
 
@@ -402,9 +403,35 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 			return false;
 		}
 
-		var screen = new Vector3(guiX, Screen.height - guiY, 0f);
-		var world = Camera.main.ScreenToWorldPoint(screen);
-		return Physics2D.OverlapPoint(world, LayerMask.GetMask("Item")) != null; // Unity object — ==
+		var screen = new Vector2(guiX, Screen.height - guiY);
+		var world = Camera.main.ScreenToWorldPoint(new Vector3(screen.x, screen.y, 0f));
+		if (Physics2D.OverlapPoint(world, LayerMask.GetMask("Item")) != null) // Unity object — ==
+		{
+			return true;
+		}
+
+		// The modifier overlay: while it is held, nearby items are drawn as UI LABELS (`AltHoverScript` creates one `ItemLabel` per item), which no
+		// physics ray reaches — and a press over such a label still starts the game's own drag (`PlayerCamera.cs:1405-1409` reads the label's
+		// `refItem` first, before any collider). Asking only the physics question let the member menu open on top of a label the player was pointing
+		// at (user report, 2026-10-26), so this asks the game's own first question as well.
+		var eventSystem = EventSystem.current;
+		if (eventSystem == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var pointer = new PointerEventData(eventSystem) { position = screen };
+		var hits = new List<RaycastResult>();
+		eventSystem.RaycastAll(pointer, hits);
+		foreach (var hit in hits)
+		{
+			if (hit.gameObject.GetComponent<ItemLabel>() != null) // Unity object — ==
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	void IGameIntegrationLifecycle.OnApplicationQuit() => _domains.ItemWorldSync.SuppressDestroys();

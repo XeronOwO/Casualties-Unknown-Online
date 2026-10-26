@@ -291,3 +291,22 @@ Two reports still escape, and both must answer the same scope:
 
 So the round is not done: both paths need the replacement scope, and the owner-side destroy must be suppressed for an item an eat is replacing (the
 outcome is the authority for that item's form).
+
+## Neither the observation nor the scope fires, because the eat does NOT run through `NativeSolidFoodEat` here (2026-10-26 22:41, deployed `a7254f44`)
+
+The deployed build has both hooks guarded and the observation published, yet the run is unchanged: no `ran the game''s own eat` line on EITHER client,
+no `created inside the eat''s replacement window` line, and the same phantom spawn and empty slot on the host. What the logs do show:
+
+```
+host  22:41:36.062 [ItemSpawn] materializing stonefruitopen (id 22377858709) at (0.0,0.0) …
+host  22:41:36.081 [ItemTrace] op=8 item=22377858709 origin=OnItemInstantiated result=Skipped events=[AlreadySynced]
+guest 22:41:36.076 [ItemSpawn] stonefruitopen (id 22377858709) already present locally — skipping duplicate materialization
+guest 22:41:37.892 [ItemTraffic] total 1; Spawn=1; … top: stonefruitopen×1
+```
+
+So the replacement object is created and REPORTED by a path that is not the solid-food applier: the eat's own line never appears, which means the branch that
+ran is not `NativeSolidFoodEat.Apply` at all. The next read is therefore "who creates and reports the replacement" — candidates, in the order worth
+checking: the host-side fallback that logged `<guest> ate … of <host>; con…`, the `PlayerInteractionKernel`'s projected use the guest logged
+(`projected item use …`), and the `ItemReplacementCreation` scope never being entered because the delegate ran outside it.
+
+That is the next cycle''s first read; the guard and the observation stay (they are right for the path they cover, and unit-pinned behaviour did not change).

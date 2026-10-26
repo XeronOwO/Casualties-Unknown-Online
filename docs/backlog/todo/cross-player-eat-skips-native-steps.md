@@ -175,3 +175,20 @@ capability gap and stops at the design.
   ticket is about the FLOW once the use is admitted.
 - The rows need the owner's client and the operator's client read in the same gesture, and a frame at the eating moment for the
   presentation row.
+
+## Step 8 read in process (2026-10-26 21:22): the pancake half is judged, the peel still needs a hand
+
+Driven with `use-request` (the request `IPlayerInteractionControl.SendUseRequest` sends) from the giver's client at a teammate, on the deployed
+build — the eater ran the game's own eat out of the giver's hand:
+
+```
+21:22:42.351 (eater) [ItemUsed] pancake (id 1331760842691) is a standing item object — the eat's outcome reported to the host for its owner
+21:22:42.351 (eater) [ItemUse] ran the game's own eat of pancake (id 1331760842691) on the local body out of the giver's hand (arranged int…)
+```
+
+and the numbers are the game's: the pancake's condition on its OWNER's copy fell to **0.7474** — the native pancake delegate's one bite is
+`item.condition -= 0.251f`, so this is one bite and not a swallowed item — the item is still in the owner's `slot0`, and the eater's hunger read
+116.35. That is the ticket's first complaint ("it ate the WHOLE pancake in one go") answered on the machine.
+
+**The peel half is not judgeable through this driver**: a bare use request for `stonefruitclosed` is refused by the entry classifier ("is empty or is
+not a family this [gesture] carries"), so the closed fruit's delegate only runs through the real drag — the row stays owed, together with the frame.

@@ -158,7 +158,7 @@ order in which a mistake is cheapest to see.
 | Row | The check | State |
 |---|---|---|
 | 1 | A give followed by a rearrange inside the receiver's backpack keeps the item, and its row never goes terminal | not run (the user read the give once: works, nothing lost) |
-| 2 | An item dragged from a slot onto an occupied slot keeps both items | not run |
+| 2 | An item dragged from a slot onto an occupied slot keeps both items | **READ 2026-10-26: REFUSED** — the give captures `(container 0, slot 3, body <guest>)`, the receiver answers "accepted … without naming a slot or a container", and the host refuses by name (nothing is lost, but the gesture does nothing). The answer's missing slot is `RemotePlacementService`'s next read |
 | 3 | A display object rebuilt by a clone refresh never reports a destroy for its row | not run |
 | 4 | A keyframe that omits a carried row leaves the row alone and repairs the local object instead | not run |
 | 5 | The eat flow's peel step and the item's custody agree after the replacement | not run |

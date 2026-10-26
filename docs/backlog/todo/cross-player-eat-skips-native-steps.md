@@ -268,3 +268,26 @@ by the delegate, and the game''s own zero-condition destroy reported it). Two it
 So the fix is one shape: the object the eat delegate instantiates is a REPLACEMENT of the owner''s row, not a new item — its creation must not be
 registered as a world spawn (the definition travels in the outcome report instead, which the owner already applies in place). That is the
 `item-creation-registration` family''s rule, and it is the next work item.
+
+## The instantiate guard alone is not enough: the PICKUP path reports the spawn, and the destroy still wins (2026-10-26 22:34, deployed `be57517a`)
+
+The replacement-creation scope (`CallContext.Origin.ItemReplacementCreation`) is in place and the eat runs inside it, yet the live run still shows a
+phantom spawn on the host — because the report does not come from the instantiate hook:
+
+```
+22:34:35.627 [ItemTrace] op=7 item=1275926267843 origin=OnItemDestroyed result=Committed(1) events=[Destroyed]
+22:34:35.674 [ItemSpawn] materializing stonefruitopen (id 22377858709) at (0.0,0.0), vel (0.0,0.0), container 0.
+host after: slot0 is EMPTY (the closed fruit's row went Terminal; no open fruit anywhere in the body)
+```
+
+Two reports still escape, and both must answer the same scope:
+
+1. **The pickup path.** The peel's delegate does `body.PickUpItem(Instantiate(…))`, so the created object is also a PICKUP of an unknown item —
+   `PickupSync` reports spawn-then-pickup for it. `OnItemInstantiated` answers the scope; the pickup hook does not.
+2. **The owner's own destroy.** The host's own item object has its condition set to 0 by the cross-player use, the game's `destroyAtZeroCondition`
+   destroys it, and that destroy is reported — the row goes `Terminal` BEFORE (or instead of) the replacement outcome applies. `ItemDefinitionSwap`
+   exists for exactly this and reads "the item either kept its definition … or it BECAME another definition in place", but the outcome that reached it
+   carried the item's OLD definition (`[ItemUse] local item … condition set to 0.00 by cross-player use` is the non-replacing branch), so no swap ran.
+
+So the round is not done: both paths need the replacement scope, and the owner-side destroy must be suppressed for an item an eat is replacing (the
+outcome is the authority for that item's form).

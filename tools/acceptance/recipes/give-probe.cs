@@ -84,6 +84,11 @@
 		var typeWanted = {{s:type}};
 		Item found = null;
 		var allItems = UnityEngine.Object.FindObjectsOfType<Item>();
+		// The two display markers are internal to the adapter, so they are reached BY NAME — the same reason this recipe reflects the bridge. A
+		// STANDING materialization belongs to a member's carried row: handing one over tests a display, and the give is refused by name because the
+		// row says Carried (observed 2026-10-26: a dogfood picked that way was refused twice).
+		var standingType = findType("StandingItems");
+		var standingIs = standingType == null ? null : standingType.GetMethod("Is", anyStatic);
 		for (var w = 0; w < allItems.Length; w++) {
 			var candidate = allItems[w];
 			if (candidate == null) { continue; }
@@ -91,6 +96,13 @@
 			if (itemIdOf(candidate) == 0UL) { continue; }
 			if (candidate.GetComponentInParent<Container>() != null) { continue; }
 			if (candidate.GetComponentInParent<Body>() != null) { continue; }
+			var cloneMarker = findType("RemoteCloneRender");
+			if (cloneMarker != null && candidate.GetComponent(cloneMarker) != null) { continue; }
+			if (standingIs != null) {
+				var standing = false;
+				try { standing = (bool)standingIs.Invoke(null, new object[] { candidate }); } catch { standing = false; }
+				if (standing) { continue; }
+			}
 			found = candidate;
 			break;
 		}

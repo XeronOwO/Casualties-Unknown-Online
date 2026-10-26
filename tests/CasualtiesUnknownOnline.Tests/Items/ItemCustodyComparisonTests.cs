@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
@@ -138,4 +141,36 @@ public class ItemCustodyComparisonTests
 
 		return map;
 	}
+	[Fact]
+	public void TheCloneRender_PrefersTheRowOverTheSnapshotsOwnSlot()
+	{
+		// Stage 4's audit question, pinned as a test: the snapshot entry's slot is a FALLBACK for the frames before the kernel judged the row, and the
+		// row wins whenever it has an answer. Deleting the fallback would blink a clone out during a restore's first snapshot (documented in
+		// CloneItemSelection), and deleting the row's priority would put a second authority back — this test fails on either change.
+		var rows = new Dictionary<ulong, ItemState> { [42] = Row(42, ItemLocation.Carried(new ActorId(Other)), slot: 2) };
+		var data = Snapshot(Other, (42, 3), (43, 2));
+
+		var selected = CloneItemSelection.ItemInSlot(rows, data, Other, 2);
+
+		Assert.NotNull(selected);
+		Assert.Equal(42UL, selected!.InstanceId);
+	}
+
+	[Fact]
+	public void TheCloneRender_FallsBackToTheSnapshotsSlotWhenNoRowAnswers()
+	{
+		var rows = new Dictionary<ulong, ItemState>();
+		var data = Snapshot(Other, (43, 2));
+
+		var selected = CloneItemSelection.ItemInSlot(rows, data, Other, 2);
+
+		Assert.NotNull(selected);
+		Assert.Equal(43UL, selected!.InstanceId);
+	}
+
+	private static CharacterDataMsg Snapshot(ulong owner, params (ulong Id, int Slot)[] items) => new()
+	{
+		OwnerSteamId = owner,
+		Items = [.. items.Select(item => new CharacterItemMsg { InstanceId = item.Id, ItemId = "cu:widget", SlotIndex = item.Slot })],
+	};
 }

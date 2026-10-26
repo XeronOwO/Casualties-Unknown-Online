@@ -199,3 +199,21 @@ of them; the very next line is 269/269/0. So a mismatched EARLY line during worl
 settled one, and a batch that reads the first line and stops is reading the stream.
 
 That closes the objective's "confirm the two-ended reading" step for stage 1. Stage 4's deletions and the craft row remain as the ticket states.
+
+### Stage 4, step 2 — the clone fact table, judged by reading (2026-10-26)
+
+Candidate 2 was "the clone fact table's custody fields". Reading it answers the step the way stage 3 was answered — with a citation rather than a
+deletion:
+
+- `GameAdapter/Character/CloneItemSelection.cs` asks the AUTHORITY first (`ItemCustodyComparison.TryFindRowInSlot`) and uses the snapshot entry only
+  for the visual payload; the snapshot's own `SlotIndex` is the **fallback for the frames before the kernel has judged the row** — a restore's first
+  snapshot, an item the owner just picked up. Deleting the fallback blinks a clone out in those frames, which is a regression, not a deletion.
+- `CloneFactTable.ApplyCarriedSync` maintains the snapshot TREE (contents/nesting) and, for a slot-unknown event, keeps the entry's previous slot
+  (`item.SlotIndex = data.Items[idx].SlotIndex`). That is the fallback's data, not a competing authority: the render's answer comes from the row.
+- The two id-zeroing suppressions are report FILTERS (stage 3, item 2) and `ItemReconcile`'s sweep is reader-side reconciliation — converting either
+  into a command would invent a write with no player action behind it.
+
+So the fact table is a **derived view** (payload + pre-judgement fallback) and stays; what stage 4 could still delete was the dead custody query, which
+is gone (`IsTransferredToAnyGuest`). The rule is now pinned by two tests in `ItemCustodyComparisonTests` —
+`TheCloneRender_PrefersTheRowOverTheSnapshotsOwnSlot` (the row wins, so no second authority creeps back) and
+`TheCloneRender_FallsBackToTheSnapshotsSlotWhenNoRowAnswers` (the fallback exists on purpose) — so a future deletion attempt fails loudly.

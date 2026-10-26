@@ -4,6 +4,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -58,6 +59,7 @@ internal sealed class PluginHost : MonoBehaviour
 	private ConfigEntry<string> _spectatorFreeFlyKey = null!;
 	private ConfigEntry<bool> _spectatorMirrorEffects = null!;
 	private ConfigEntry<bool> _skipIntroCover = null!;
+	private ConfigEntry<string> _runPreset = null!;
 	private ulong? _pendingJoinLobbyId;
 
 	private static ManualLogSource Logger => Plugin.Logger;
@@ -120,6 +122,9 @@ internal sealed class PluginHost : MonoBehaviour
 				"Whether the watched player's own screen effects (blackout and the vignette that reddens with their brain health) reach the spectator's camera. Off keeps the screen clear; the bottom strip still shows their vitals and state. A client-local preference, never sent to other players.");
 			_skipIntroCover = _config.Bind("Session", "SkipIntroCover", false,
 				"Whether an ordinary launch into the main menu skips the game's content-warning/intro cover. Off by default: the warning stays. A launch through Steam's join-a-friend action shows the cover regardless, and nothing here is sent to other players.");
+			_runPreset = _config.Bind("Session", "RunPreset", string.Empty,
+				"The game's own run-settings preset this client applies when the HOST starts a run: normal, relaxed, paradise, desolate or unchipped (the names the game's pre-run screen carries). Empty keeps whatever the player picked on that screen. Scripted acceptance runs use paradise so a world has supplies and containers from the first frame; a player's own world is unaffected unless they set it.");
+			RunPresetDecision.Preset = string.IsNullOrWhiteSpace(_runPreset.Value) ? null : _runPreset.Value.Trim();
 
 			_lobby = new LobbySwitchActions(
 				_steam,

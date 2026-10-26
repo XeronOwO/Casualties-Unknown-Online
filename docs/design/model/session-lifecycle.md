@@ -19,6 +19,14 @@ rejoined party to find the same world, the same items and the same progress.
   (`PreRunScript.cs:273-300`) both refuse while `PlayerPrefs.GetInt("didbasiccourse") == 0`, showing the tutorial warning and
   hiding the run-settings screen instead — so "start a run", "continue a run" and the tutorial are one gate in the game, and a
   CUO path that offers a run without passing it is offering something the game does not.
+- **The host's world is made with the preset the host named, applied by the game's own loader.** `RunSettings.presets` carries
+  `normal`, `relaxed`, `paradise`, `desolate` and `unchipped` (`reversing/Assembly-CSharp/Assembly-CSharp/RunSettings.cs`), and
+  `PreRunScript.ApplyPreset(string)` (`PreRunScript.cs:126-140`) is the loader: it clears the setting dictionary, seeds it from
+  `normal`, overlays the chosen preset and refreshes the sliders. CUO applies a configured preset in the same entry, on the HOST
+  only and only for `StartRun` — a member follows the host's run and must generate what the host generated, so its own config never
+  overwrites the host's settings (`RunPresetDecision` + `Patches/PreRunScriptStartRunPatch.cs`). Scripted acceptance runs set
+  `[Session] RunPreset = paradise` for exactly the reason the game ships that preset: a world with supplies, containers and slow
+  decay from the first frame, without CUO inventing a difficulty of its own.
 - **Acquiring a lobby leaves the current one first, for create and join alike.** `Runtime/Steam/LobbyLifecycle.cs`: "Steam
   requires a leave before a fresh create — a re-create without leaving strands the old lobby: the host's friends keep joining
   the dead lobby while the host is already in the new one (observed live: F8 re-create left the old lobby with a residual member

@@ -20,7 +20,8 @@ rejoined party to find the same world, the same items and the same progress.
   hiding the run-settings screen instead — so "start a run", "continue a run" and the tutorial are one gate in the game, and a
   CUO path that offers a run without passing it is offering something the game does not.
 - **The host's world is made with the preset the host named, applied by the game's own loader.** `RunSettings.presets` carries
-  `normal`, `relaxed`, `paradise`, `desolate` and `unchipped` (`reversing/Assembly-CSharp/Assembly-CSharp/RunSettings.cs`), and
+  `normal`, `relaxed`, `paradise`, `desolate` and `unchipped` (`reversing/Assembly-CSharp/Assembly-CSharp/RunSettings.cs:183-317`: the five
+  `presetName` assignments and the list assembly), and
   `PreRunScript.ApplyPreset(string)` (`PreRunScript.cs:126-140`) is the loader: it clears the setting dictionary, seeds it from
   `normal`, overlays the chosen preset and refreshes the sliders. CUO applies a configured preset in the same entry, on the HOST
   only and only for `StartRun` — a member follows the host's run and must generate what the host generated, so its own config never

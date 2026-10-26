@@ -189,6 +189,13 @@ internal sealed class OnlineUiContext
 	/// when present, Steam persona otherwise, and a stable player-id fallback.</summary>
 	internal string DisplayName(ulong id)
 	{
+		if (id == 0)
+		{
+			// No id means no player. A lobby whose Steam data is gone answers owner 0, and `player-0` reads as a real person's name rather than as
+			// "this lobby is gone" (user report 2026-10-26: the Home page showed the host line with the value "player-0" after the lobby was lost). Say what it is.
+			return T("ui.unknown_player");
+		}
+
 		if (IpDirectActive)
 		{
 			if (id == Session.LocalSteamId)

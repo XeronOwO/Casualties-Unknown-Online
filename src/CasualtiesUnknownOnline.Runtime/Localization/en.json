@@ -16,6 +16,7 @@
   "home.handshake_active": "Handshake: active",
   "home.handshake_idle": "Handshake: idle",
   "home.lobby_none": "Lobby: none",
+  "ui.unknown_player": "unknown player",
   "home.lobby": "Lobby: {0}",
   "home.last_rtt": "Last RTT: {0} ms",
   "home.already_in_session": "You are already in an online session.",

@@ -51,12 +51,17 @@ internal static class OnlineUiHomeDrawer
 		}
 		else
 		{
-			page.Muted(steam.CurrentLobbyId == 0
-				? ctx.T("home.lobby_none")
-				: ctx.F("home.lobby", steam.CurrentLobbyId));
-			if (steam.CurrentLobbyId != 0)
+			// The lobby id can outlive the lobby itself: after Steam drops the link, `CurrentLobbyId` keeps the old id while the owner query answers 0, and
+			// the page used to print a session block whose host was `player-0` over a lobby that no longer exists (user report 2026-10-26). The owner is
+			// the fact that says the lobby is still real, because Steam returns 0 for one it no longer knows.
+			var lobbyOwner = steam.CurrentLobbyId == 0 ? 0 : steam.GetLobbyOwner();
+			var lobbyIsLive = steam.CurrentLobbyId != 0 && lobbyOwner != 0;
+			page.Muted(lobbyIsLive
+				? ctx.F("home.lobby", steam.CurrentLobbyId)
+				: ctx.T("home.lobby_none"));
+			if (lobbyIsLive)
 			{
-				page.Muted(ctx.F("lobby.role_owner", ctx.RoleName(session.Role), ColoredName(ctx, steam.GetLobbyOwner())));
+				page.Muted(ctx.F("lobby.role_owner", ctx.RoleName(session.Role), ColoredName(ctx, lobbyOwner)));
 				page.Muted(ctx.F("lobby.members", steam.GetLobbyMembers().Length));
 
 				page.Button(

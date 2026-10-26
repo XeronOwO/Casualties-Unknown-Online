@@ -16,6 +16,7 @@
   "home.handshake_active": "握手：已连接",
   "home.handshake_idle": "握手：空闲",
   "home.lobby_none": "大厅：无",
+  "ui.unknown_player": "未知玩家",
   "home.lobby": "大厅：{0}",
   "home.last_rtt": "最近 RTT：{0} ms",
   "home.already_in_session": "你已经在某个联机会话中。",

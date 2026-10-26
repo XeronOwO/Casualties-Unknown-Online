@@ -57,13 +57,41 @@ internal static class ItemCustodyComparison
 	/// shows it, host or guest, so it is not another member's row incarnated. DISPLAY is only ever another member's CARRIED / CONTAINED /
 	/// APPLIED row, which is what the clone renderer and the standing objects produce. The first version asked "is this client the world's
 	/// simulator", which no object answers.
+	///
+	/// <para>
+	/// A CONTAINED row is judged by the chain it hangs from, not by its own owner: an item inside a container that lies in the WORLD is a real object on
+	/// every client (the world copy the receiver materializes), while an item inside a container somebody CARRIES is that member's display. The chain is
+	/// followed through the rows themselves ("the container graph is authoritative and acyclic"), with a bounded depth so a malformed graph cannot hang
+	/// the projection; a chain that ends without a container falls back to the owner question this method started with.
+	/// </para>
 	/// </summary>
-	internal static bool IsDisplayFor(ItemLocation location, ulong localSteamId) =>
-		location.Kind switch
+	internal static bool IsDisplayFor(IReadOnlyDictionary<ulong, ItemState> rows, ItemLocation location, ulong localSteamId)
+	{
+		var parentId = location.ParentItemId;
+		var depth = 0;
+		while (location.Kind == ItemLocationKind.Contained && parentId != 0 && depth++ < MaxCustodyDepth && rows.TryGetValue(parentId, out var parent))
+		{
+			switch (parent.Location.Kind)
+			{
+				case ItemLocationKind.World:
+					return false;
+				case ItemLocationKind.Carried or ItemLocationKind.Applied:
+					return parent.Location.Owner.Value != localSteamId;
+				default:
+					parentId = parent.Location.ParentItemId;
+					break;
+			}
+		}
+
+		return location.Kind switch
 		{
 			ItemLocationKind.Carried or ItemLocationKind.Contained or ItemLocationKind.Applied => location.Owner.Value != localSteamId,
 			_ => false,
 		};
+	}
+
+	/// <summary>The deepest container chain the projection walks before it answers from the owner instead — a guard against a malformed graph, never a real shape.</summary>
+	private const int MaxCustodyDepth = 16;
 
 	internal static IReadOnlyList<Mismatch> Compare(
 		IReadOnlyDictionary<ulong, ItemState> rows,
@@ -89,7 +117,7 @@ internal static class ItemCustodyComparison
 				continue;
 			}
 
-			if (IsDisplayFor(row.Location, localSteamId) != local.IsDisplay)
+			if (IsDisplayFor(rows, row.Location, localSteamId) != local.IsDisplay)
 			{
 				mismatches.Add(new Mismatch(local.InstanceId, MismatchKind.KindDisagrees, local.Marker));
 			}

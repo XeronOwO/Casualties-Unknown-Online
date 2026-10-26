@@ -151,6 +151,11 @@ own log on 2026-10-26 20:18, which reported three of a departed guest's carried 
 (`5197989525:RowWithoutObject:Carried`, `9492956821:RowWithoutObject:Carried`, `13787924117:RowWithoutObject:Carried`); a
 `KindDisagrees` on a `World` row is a different defect and is not excused by this rule.
 
+**A CONTAINED row is judged by the chain it hangs from, not by its own owner.** An item inside a container that lies in the WORLD is a real
+object on every client (the world copy the receiver materializes), while an item inside a container somebody CARRIES is that member's display:
+`ItemCustodyComparison.IsDisplayFor` follows `ParentItemId` through the rows until it meets a `World` row (real) or a `Carried`/`Applied` one (that
+member's display), bounded so a malformed graph cannot hang the projection. Without this, materializing a dropped container's contents made every one
+of them a `KindDisagrees` against a rule that only asked who owned them.
 **A container's view is built from its ROWS, never from the message that reported it.** The kernel keeps every contained item as a row of its
 own — `ItemData` "carries no children … so the container graph is authoritative and acyclic" (`GameState/Domains/Items/ItemData.cs`) — while a
 message about a container describes only that container. So materializing a world container from the message produced an EMPTY one whose children''s

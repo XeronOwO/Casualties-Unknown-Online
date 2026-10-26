@@ -240,4 +240,30 @@ public class ItemCustodyComparisonTests
 		Assert.Single(ItemCustodyComparison.ContainedIn(rows, 9));
 		Assert.Empty(ItemCustodyComparison.ContainedIn(rows, 8));
 	}
+	[Fact]
+	public void AnItemInsideAContainerInTheWorld_IsRealForEveryone()
+	{
+		// The receiver materializes a world container's contents from the rows, so those objects are real on every client even though the row is
+		// CONTAINED and owned by another member (2026-10-26: the dropped toolbox's water bottle was real and the projection called it a disagreement).
+		var rows = new Dictionary<ulong, ItemState>
+		{
+			[7] = Row(7, ItemLocation.World(0f, 0f), slot: -1),
+			[8] = Row(8, ItemLocation.Contained(new ActorId(Other), 7), slot: -1),
+		};
+
+		Assert.False(ItemCustodyComparison.IsDisplayFor(rows, rows[8].Location, Local));
+	}
+
+	[Fact]
+	public void AnItemInsideAContainerAMemberCarries_IsThatMembersDisplay()
+	{
+		var rows = new Dictionary<ulong, ItemState>
+		{
+			[7] = Row(7, ItemLocation.Carried(new ActorId(Other)), slot: 0),
+			[8] = Row(8, ItemLocation.Contained(new ActorId(Other), 7), slot: -1),
+		};
+
+		Assert.True(ItemCustodyComparison.IsDisplayFor(rows, rows[8].Location, Local));
+		Assert.False(ItemCustodyComparison.IsDisplayFor(rows, rows[8].Location, Other));
+	}
 }

@@ -192,3 +192,15 @@ and the numbers are the game's: the pancake's condition on its OWNER's copy fell
 
 **The peel half is not judgeable through this driver**: a bare use request for `stonefruitclosed` is refused by the entry classifier ("is empty or is
 not a family this [gesture] carries"), so the closed fruit's delegate only runs through the real drag — the row stays owed, together with the frame.
+
+## The closed fruit is a PEEL, and the classifier says so (2026-10-26, read at the source)
+
+The refusal the bare request met (`stonefruitclosed … is not a family this [gesture] carries`) is the classifier being RIGHT by its own definition, not
+a gap in it: `GameSolidFoodFacts` decides "is this a solid food" by reading the item's own `useAction` instructions for a `Body.Eat`/`Body.Drink` call,
+and the closed stone fruit's action calls `SlotOf`/`DropItem`/`Instantiate(stonefruitopen)`/`PickUpItem` — it PEELS, and the eating happens on the opened
+fruit afterwards, as a second gesture. `use-eligibility mode=one type=stonefruitclosed` answers `isUseItem false` while `type=pancake` answers `true`,
+which matches the natives.
+
+So today the gesture is REFUSED BY NAME rather than run, and the ticket''s remaining question is a product one, not a code one: should a cross-player
+gesture be able to PEEL a closed fruit into the eater''s hand (a new family whose native action runs on the eater''s client and whose replacement the owner
+reports), or is "the fruit cannot be used on somebody" the accepted answer?

@@ -103,6 +103,10 @@ dotnet format CasualtiesUnknownOnline.slnx   # mandatory before every commit
     `docs/architecture/member-report-validation.md`.
 18. **A console command's shape follows Minecraft's CURRENT template, fetched not rewritten from memory** (argument list,
     order, which are optional); a deviation records its reason at the point of design.
+19. **A wire field whose 0 is a legal value is encoded as `value + 1` (0 = absent).** protobuf-net omits 0-valued ints, so a
+    raw slot index, count or id cannot carry a real 0 — the omitted zero arrives as the class default and silently changes
+    meaning (a give answered for slot 0 became "no destination", 2026-10-26). Encode on send, decode on receive, and pin the
+    zero case with a test.
 
 ## Development workflow
 

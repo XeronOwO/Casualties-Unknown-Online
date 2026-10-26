@@ -1269,3 +1269,4 @@ tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/review/co
 docs/backlog/todo/a-world-item-is-rendered-by-a-display-object.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/player-name-and-panel-20261026.md | keep | claim | docs/backlog/done/a-zero-player-id-rendered-as-a-name.md
 docs/backlog/done/a-zero-player-id-rendered-as-a-name.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/a-dropped-container-arrives-empty-on-the-other-side.md | keep | index | docs/backlog/README.md

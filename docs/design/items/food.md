@@ -33,6 +33,12 @@ The cross-player food family is decided from the GAME'S OWN DATA, not from a lis
 - The eater must be conscious: eating is one of the two families where the TARGET consumes the item.
 - A food that replaces itself (an opened version of itself) produces a NEW item in the eater's hands; that creation is a
   registered creation, not a local object.
+- **Both hooks that see the replacement must answer the scope, and the object is published, not read back by slot.** The delegate instantiates
+  the opened fruit AND picks it up (`Item.cs:2619`), so `ItemWorldSync.OnItemInstantiated` and `PickupSync.OnPickedUp` both see it; each records the
+  object in `ItemReplacementObservation` and reports nothing. The eat reads that observation first and falls back to a slot read only for a delegate
+  that leaves its object where the arranged item stood — reading the slot alone missed the fruit, because its own `PickUpItem` had already placed it
+  in whichever slot the game found free (measured 2026-10-26: the eat reported no replacement, so the owner's row was destroyed instead of becoming
+  the opened fruit).
 - **The replacement the delegate creates is NOT a new item.** The object a replacing `useAction` instantiates is the OWNER's row becoming it in
   place — its identity and slot do not change, and only its definition travels back in the eat's outcome. So the creation is not registered: the
   eat runs the delegate inside `CallContext.Origin.ItemReplacementCreation`, and `ItemWorldSync.OnItemInstantiated` allocates no id and reports no

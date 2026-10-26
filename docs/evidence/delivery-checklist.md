@@ -135,6 +135,7 @@ by it. A box whose evidence names another cycle is not filled.
 
 
 
+
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development
       verification standard.

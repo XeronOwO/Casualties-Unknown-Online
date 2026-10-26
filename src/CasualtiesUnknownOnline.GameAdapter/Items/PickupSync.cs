@@ -76,6 +76,15 @@ internal sealed class PickupSync(
 			return;
 		}
 
+		// The replacement an eat's delegate creates is PICKED UP by that same delegate (`body.PickUpItem(Instantiate(…))`), so this hook
+		// sees it too. It is the owner's row becoming another definition in place, not a new item: the observation holds it for the eat to
+		// read and destroy, and nothing may be reported (a spawn-then-pickup pair here was the phantom `stonefruitopen`, 2026-10-26).
+		if (CallContext.IsWithin(CallContext.Origin.ItemReplacementCreation))
+		{
+			ItemReplacementObservation.Record(item);
+			return;
+		}
+
 		// The item left the world into an inventory/hand — if it was still
 		// frozen (Kinematic: the guest-side drop froze it and the host's stream
 		// never arrived before this pickup), restore Dynamic so a later drop

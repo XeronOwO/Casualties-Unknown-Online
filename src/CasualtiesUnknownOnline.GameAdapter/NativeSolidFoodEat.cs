@@ -123,15 +123,21 @@ internal static class NativeSolidFoodEat
 			// THE DELEGATE'S OWN CREATION IS A REPLACEMENT, NOT A NEW ITEM: a food that swaps its object (the peel instantiates the opened
 			// fruit and picks it up) created a phantom — a brand-new instance id reported as a world spawn at the origin, while the owner's
 			// row became the replacement in place (measured 2026-10-26, `[ItemSpawn] materializing stonefruitopen … at (0.0,0.0)`). The scope
-			// tells the creation report that what the delegate makes is this item's replacement, so no id is allocated and no spawn goes out.
+			// tells the creation report that what the delegate makes is this item's replacement, so no id is allocated and no spawn goes out;
+			// both hooks that see it (instantiation and the delegate's own pickup) publish it to the observation.
+			ItemReplacementObservation.Clear();
 			using (CallContext.Enter(CallContext.Origin.ItemReplacementCreation))
 			{
 				body.UseItem(item);
 			}
 
-			// Read the replacement INSIDE the call's own window: the restoration below is what would hide it, and the
-			// object only exists between the delegate's instantiate and the end of this scope.
-			replacementObject = carriedByEater ? null : ReadReplacement(body, arrangedSlot, item);
+			// Read the replacement from the OBSERVATION first: the delegate's own `PickUpItem` puts the opened fruit into whatever slot the
+			// game finds first, which is not necessarily the slot this client arranged, so a slot read missed it (measured the same evening:
+			// the eat reported no replacement and the owner's row was destroyed instead). The slot read stays as the fallback for a delegate
+			// that leaves its object where the arranged item stood.
+			replacementObject = carriedByEater
+				? null
+				: ItemReplacementObservation.Created ?? ReadReplacement(body, arrangedSlot, item);
 
 			domains.Log.LogInformation(
 				"[ItemUse] ran the game's own eat of {Type} (id {ItemId}) on the local body{Hand}.",

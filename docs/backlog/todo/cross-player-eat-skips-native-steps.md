@@ -310,3 +310,22 @@ checking: the host-side fallback that logged `<guest> ate … of <host>; con…`
 (`projected item use …`), and the `ItemReplacementCreation` scope never being entered because the delegate ran outside it.
 
 That is the next cycle''s first read; the guard and the observation stay (they are right for the path they cover, and unit-pinned behaviour did not change).
+
+## THE CAUSE, finally: two outcome reports for one grant, and the grant is consumed by the first (2026-10-26 22:58, deployed `992eaeeb`)
+
+```
+22:58:56.233 [ItemUse] <host> offers stonefruitclosed (id 1318875940803) to <guest> — the eat runs on the eater's own client
+22:58:56.327 [ItemUse] <guest> ate stonefruitclosed (id 1318875940803) of <host>; con…            ← the FIRST outcome settled the grant
+22:58:56.329 [ItemUse] local item 1318875940803 condition set to 0.00 by cross-player use.        ← the owner's copy takes the OLD definition
+22:58:56.331 [ItemUse] refused the affected-side outcome from <guest> for item 1318875940803:
+                       no admitted cross-player use of that item is in flight.                   ← the REPLACEMENT outcome, refused
+```
+
+The eat sends its own outcome (`ItemUseSync`: "[ItemUsed] … the eat's outcome reported to the owner") and `PlayerInteractionApply` sends a SECOND
+message for the replacement after `NativeSolidFoodEat` returns. `ItemActionGrants` is keyed on (actor, item) and "an entry is consumed by the report it
+authorizes", so the plain outcome takes the grant and the replacement is refused — the owner's row keeps its old definition, its condition goes to zero,
+the game destroys the object, and the replacement never lands. Every previous hunt (the phantom spawn, the id, the slot read) was downstream of this.
+
+**The fix, next cycle**: one admitted use, ONE outcome — the replacement must ride the same report as the eat's own state (either the eat's report
+becomes the only sender and carries the replacement it observed, or the grant survives exactly one follow-up from the same pair inside the same window).
+Anything else is two facts competing for one grant.

@@ -3,7 +3,7 @@
 // serves: heal-cheat-command-state-reset, health-simulation-and-host-authority
 // returns: ok, source, alive, conscious, brainHealth, consciousness, bloodVolume, bloodOxygen, bloodPressure,
 //          heartRate, respiratoryRate, bloodViscosity, fibrillationProgress, fibrillationForced, shock,
-//          painShock, temperature, hunger, thirst, septicShock, sicknessAmount, stamina, energy, happiness,
+//          sleeping, painShock, temperature, hunger, thirst, septicShock, sicknessAmount, stamina, energy, happiness,
 //          weightOffset, radiationSickness, disfigured, eyeGone, bothEyesGone, internalBleeding, hemothorax,
 //          traumaAmount, dirtyness, wetness, badSleepAmount, hearingLoss, adrenaline, curAdrenaline,
 //          venomCurrent, venomTotal, clawHealth, caffeinated, opiateHappiness, antidepressantHappiness,
@@ -32,6 +32,7 @@
 		return "{\"ok\":true,\"source\":\"local\""
 			+ ",\"alive\":" + (body.alive ? "true" : "false")
 			+ ",\"conscious\":" + (body.conscious ? "true" : "false")
+			+ ",\"sleeping\":" + (body.sleeping ? "true" : "false")
 			+ ",\"brainHealth\":" + num(body.brainHealth)
 			+ ",\"consciousness\":" + num(body.consciousness)
 			+ ",\"bloodVolume\":" + num(body.bloodVolume)
@@ -96,6 +97,7 @@
 		return "{\"ok\":true,\"source\":\"saved\""
 			+ ",\"alive\":" + (health.Alive ? "true" : "false")
 			+ ",\"conscious\":" + (health.Conscious ? "true" : "false")
+			+ ",\"sleeping\":" + (health.Sleeping ? "true" : "false")
 			+ ",\"brainHealth\":" + num(health.BrainHealth)
 			+ ",\"consciousness\":" + num(health.Consciousness)
 			+ ",\"bloodVolume\":" + num(health.BloodVolume)

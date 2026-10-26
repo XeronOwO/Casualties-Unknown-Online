@@ -76,3 +76,17 @@ row 186.
 
 **Wire note**: this adds a protobuf field. Before the first release the protocol version does not move (decision 241); the change is recorded here and
 in its commit.
+
+## The fact path is judged on the machine (2026-10-26 20:44, the paradise batch)
+
+The precondition of decision 270 — that the host can TELL asleep from unconscious, from the target's own client — was read on the deployed build:
+
+1. the guest napped through the game's own entry (`body-call kind=nap` → `Body.TakeANap`), and its own body then read
+   `conscious=False sleeping=True consciousness=10`;
+2. the host's stored snapshot of that guest read the same: `alive=True conscious=False sleeping=True consciousness=10`.
+
+So `CharacterHealthMsg.Sleeping` round-trips through the wire and the host holds it. `health-read` gained the `sleeping` field for both sources so
+this is re-readable in any batch.
+
+**Still owed**: rows 1-3 (an actual cross-player USE on the sleeping target, per family) — no in-process driver sends a use request whose target is
+another player yet, so those rows need either that driver or a hand on the mouse.

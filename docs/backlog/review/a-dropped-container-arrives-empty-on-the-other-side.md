@@ -82,3 +82,18 @@ The rule is on `model/item-custody.md` and in audit ledger row 190. One test pin
 direct children only, id-ordered, so two clients build the same tree).
 
 **Owed**: acceptance rows 1-3 on a batch — the same drop that reproduced it (a toolbox with a water bottle, dropped and picked up on the other side).
+
+## Verified on the machine (2026-10-26 21:08, deployed `0308ef29`)
+
+The same fixture, rebuilt on the fixed build — a toolbox with one water bottle inside, dropped by the guest:
+
+```
+21:08:10.456 [ItemSpawn] toolbox (id 22377858709) carries 1 row(s) — materializing its contents from the authority.
+21:08:10.463 [ItemSpawn] materializing waterbottle (id 26672826005) at (1.0,487.4), vel (0.0,0.0), container 22377858709
+```
+
+and the projection settled instead of holding a disagreement: `rows=346 objects=345 mismatches=1` on the drop frame, then
+`21:08:09.427 rows=347 objects=347 mismatches=0` — the transient the drop itself produces, then agree.
+
+**Judged**: row 1 (a container dropped with one item inside arrives with it) and row 2 (the projection stays clean across it). **Owed**: row 3, the same
+for a container that holds a NESTED container, and the player-facing read (open the dropped container on the receiver and see the item in it).

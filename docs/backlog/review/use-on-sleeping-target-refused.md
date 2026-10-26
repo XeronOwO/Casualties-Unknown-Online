@@ -90,3 +90,24 @@ this is re-readable in any batch.
 
 **Still owed**: rows 1-3 (an actual cross-player USE on the sleeping target, per family) — no in-process driver sends a use request whose target is
 another player yet, so those rows need either that driver or a hand on the mouse.
+
+## The eat family on a sleeping target is judged (2026-10-26 20:45, clean re-test)
+
+The first attempt was ambiguous — the target woke before the use, so no exemption fired — and the clean re-test settles it:
+
+1. the guest napped again (`body-call kind=nap`) and its own body read `conscious=False sleeping=True consciousness=10` immediately before;
+2. the alt sent one cross-player use at it through the product''s own sender (new recipe `use-request`, which calls
+   `IPlayerInteractionControl.SendUseRequest` by reflection);
+3. the host''s gate logged the exemption this ticket added, in the same second:
+
+```
+20:45:09.472 [ItemUse] … is asleep — the SolidFood proceeds (decision 270: sleep is not a refusal condition).
+20:45:09.472 [ItemUse] … offers dogfood (id 14451443822) to …
+20:45:09.513 [ItemUse] … ate dogfood (id 14451443822) of …
+```
+
+4. after the feed the target read `conscious=False sleeping=False hunger 102.95 → 107.35`: the food was consumed, and the game''s own eat ended the
+   SLEEP state without restoring consciousness — CUO invented none of that, the eat runs on the eater''s own client.
+
+**Judged**: row 1 for the eat family (a sleeping target is a valid target and the consuming gate exempts sleep). **Owed**: row 1''s other families
+(drink, wear, bandage, splint, injection) and rows 2-3; `use-request` now makes those drivable, one item id at a time.

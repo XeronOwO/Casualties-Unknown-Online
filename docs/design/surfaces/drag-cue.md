@@ -26,6 +26,11 @@ here would act, and the label names the player whose body the release will use t
   the family gate ACCEPTS … so the cue itself teaches what can be handed over".
 - The cue's state and its drawing are one fact: a cue reported as shown but not drawn is a defect, not a rendering
   detail.
+- **The pointer the centre guard reads comes from one place.** `DragUseCenter` reads `StagedPointer` when an acceptance batch has staged one and
+  `Input.mousePosition` otherwise, and `StagePointer` is the only setter. The seam exists because the guard read the real pointer directly, which made
+  "drag onto the displayed backpack's centre" the one gesture family a batch could not drive at all (measured 2026-10-26: three release attempts
+  answered "produced no intent"); a staged pointer is set for the length of ONE release and cleared immediately after, so a player's own pointer is
+  never read from it.
 - **The centre is tested by GEOMETRY, because the native hit tag is unusable here.** `GameAdapter/DragUseCenter.cs`: the hit
   test is "GEOMETRY — the guard the game's own `PlayerCamera.TryPerformRadialAction` applies to the [radial]: the window has
   finished opening and the pointer is inside the centre circle. The native hit TAG cannot be [used because] CUO's remote view

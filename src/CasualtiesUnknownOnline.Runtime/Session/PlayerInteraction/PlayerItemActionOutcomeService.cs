@@ -131,7 +131,16 @@ internal sealed class PlayerItemActionOutcomeService(
 		}
 
 		var newItem = PlayerCharacterAccess.CloneItem(originalItem);
-		newItem.Condition = msg.Condition;
+
+		// A REPLACING action's state report is NOT authoritative for the condition: the delegate zeroes the condition of the object it is about to
+		// swap, so that number describes the item BEFORE its replacement, and applying it destroys the owner's object before the follow-up can make
+		// it the opened fruit (measured 2026-10-26: `replaced … in place` landed and was then overwritten by `condition set to 0.00`, and the game
+		// destroyed the item). The follow-up's own condition is what the row takes; the state report contributes nothing for this family.
+		var replacing = verdict == SolidFoodVerdict.Replaces;
+		if (!replacing)
+		{
+			newItem.Condition = msg.Condition;
+		}
 
 		// The action REPLACED the definition in place (the peel's opened fruit). Only the client that ran the
 		// delegate could see the object it instantiated, and only the owner's own client can show it, so the

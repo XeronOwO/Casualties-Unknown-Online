@@ -88,3 +88,14 @@ guest''s backpack and `<guest> takes lantern … from <host>` followed. The **ce
 cast=0` first, and a fresh `mode=open` immediately before — all answered
 `the release of item … produced no intent — unclassified native gesture`, so `DragUseCenter.IsUnderPointer` is not satisfied by the staged pointer the
 recipe can move. Rows 1 and 2 therefore still need either a recipe that stages the real pointer inside the centre circle, or a hand on the mouse.
+
+## The pointer seam is deployed and the centre still classifies as NO-OP (2026-10-26 21:52)
+
+`DragUseCenter` now reads a staged pointer (`StagePointer`, cleared after one release), and with it staged at the live radial circle's own position the proxy
+release STILL answered `the release of item 18082891413 … produced no intent — unclassified native gesture`. The probe taken right after reads
+`viewOpen=true radialOpen=true ringScale=1 uiScale=0.667 tag=RadialCenter radius=135`, so the ring is open and finished opening.
+
+That points the next read at `ClassifyNoOp` / `RemoteDragIntentWindow.Open` — the classification is taken when the window OPENS (in the patch''s prefix),
+and something in it answers no-op even though the centre guard''s own inputs look satisfied. The candidates, in the order worth reading: the ring''s scale
+at the moment the classification runs (it animates), whether the classification runs before the staged pointer is visible to it, and whether the dragged
+proxy object is the one `DragUseCenter` measures against.

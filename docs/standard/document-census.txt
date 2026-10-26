@@ -1267,3 +1267,5 @@ docs/backlog/todo/item-custody-single-authority.md | keep | index | docs/backlog
 docs/backlog/todo/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
 tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/review/context-menu-does-not-block-the-pointer.md
 docs/backlog/todo/a-world-item-is-rendered-by-a-display-object.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/player-name-and-panel-20261026.md | keep | claim | docs/backlog/done/a-zero-player-id-rendered-as-a-name.md
+docs/backlog/done/a-zero-player-id-rendered-as-a-name.md | keep | index | docs/backlog/README.md

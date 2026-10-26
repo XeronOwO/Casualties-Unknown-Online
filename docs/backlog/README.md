@@ -164,6 +164,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A zero player id rendered as a player named player-0](done/a-zero-player-id-rendered-as-a-name.md) — **High** — fixed, judged.
+
 - [Right-clicking an item also opens the member menu](done/right-click-on-an-item-also-opens-the-menu.md) — **High** — judged.
 
 - [Giving an item into another player's backpack is not the native transfer](done/give-into-backpack-plays-no-sound.md) — **High** — closed: click only.

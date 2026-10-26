@@ -243,3 +243,28 @@ Two defects follow it, both read from the clients' own rows and censuses:
 
 **Row 5 verdict**: the peel STEP now runs, but its custody does not agree after the replacement — rows 1-2 above are the disagreement, so the row
 stays FAILING until the placement and the fresh id are fixed.
+
+## Findings refined: one of the two is NOT a defect, the other has a precise cause (2026-10-26, same evening)
+
+**Correction on the "id collision".** Decoding the ids (`ItemInstanceIds`: `(counter << 32) | low-32-of-account`) shows the fruit''s id is
+`counter 5` in the GUEST''s own id space (`903022229` = the low 32 bits of its account), and the highest restored item of that space is `counter 4`.
+So the fruit''s id was FRESHLY allocated — the id `22377858709` had been used by the same guest in the PREVIOUS process (a session that ended at the
+restart), and reusing a counter across processes is harmless because rows are per session. The waterbottle was not lost by the collision: it simply was
+not in the restored character file (the save predates it). No defect here.
+
+**The placement defect has a precise cause.** The owner-side row handling is ALREADY right: `PlayerItemActionOutcomeService` clones the original row,
+sets `newItem.ItemId = msg.ReplacementItemId` and keeps the identity — "the item in my hand became the peeled one". What actually happened instead:
+
+```
+22:26:52.277 [ItemUse] local item 1280221235139 condition set to 0.00 by cross-player use.
+22:26:52.291 [ItemTrace] op=7 item=1280221235139 origin=OnItemDestroyed result=Committed(1) events=[Destroyed]
+22:26:52.325 [ItemSpawn] materializing stonefruitopen (id 22377858709) at (0.0,0.0) …
+```
+
+The EATER''s client instantiated the replacement (the delegate''s own `Instantiate`), and that instantiation went through the CREATION-REGISTRATION path
+— a brand-new item with a brand-new id, reported as a world spawn — while the owner''s row for the closed fruit was destroyed (its condition was zeroed
+by the delegate, and the game''s own zero-condition destroy reported it). Two items for one event, one of them a phantom at the origin.
+
+So the fix is one shape: the object the eat delegate instantiates is a REPLACEMENT of the owner''s row, not a new item — its creation must not be
+registered as a world spawn (the definition travels in the outcome report instead, which the owner already applies in place). That is the
+`item-creation-registration` family''s rule, and it is the next work item.

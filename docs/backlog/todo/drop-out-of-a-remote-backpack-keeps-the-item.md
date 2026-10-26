@@ -82,3 +82,27 @@ The structural cause of the fourth row is that a destination travelled as TWO op
 **Still open from this audit**: the last row (a drop out of an opened remote backpack commits a drop report and keeps the item — the "disappeared" half
 of the report), and the machine row for the container destination (a ground item into a teammate's trashbag, read back with `item-row` as `Contained`
 by that bag on both clients).
+
+## The container destination lands in the bag — and the ROW still calls it a pickup (2026-10-26 21:36)
+
+On the deployed fix, a ground plastic chunk handed to a teammate with its trashbag as the destination:
+
+```
+21:36:06.869 (eater side) [ItemTrace] op=30 item=1387595417539 origin=OnItemLoadedIntoContainer result=Committed(1) events=[Pickup]
+21:36:06.869 [RemoteIntent] item plasticchunk entered container 5197989525 through the native guard.
+21:36:06.869 [RemoteIntent] replayed native PickUpToSlot on item 1387595417539 (container 5197989525, slot -1).
+```
+
+So the OBJECT is in the bag now (the game''s own `Container.LoadItem` accepted it) — the destination fix works. But the kernel row for it reads
+
+```
+{"kind":"Carried","owner":76561198863287957,"parent":0,"slot":-1,"revision":2}
+```
+
+i.e. the report path recorded the load as a PICKUP, not as a `Contained` row with that parent. That is the next row of the same audit: the container-load report
+(`ContainerItemSync`''s `OnItemLoadedIntoContainer`) and the kernel command it produces. The scene and the row disagree — exactly the class this ticket
+exists for — and the custody projection will report it on the receiver''s next tick.
+
+**Also observed, and the reason one attempt failed first**: a bag the guest itself created got a 13-digit LOCAL id (`1366120581059`) that the receiver''s
+lookup could not resolve ("container … is not resolvable on the owner''s body"), while an older bag (`5197989525`) resolved — an id-space question for the
+same audit (a freshly created item''s id is not yet the authoritative one when another client names it).

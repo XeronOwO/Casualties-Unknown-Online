@@ -56,6 +56,34 @@ public sealed record StartingSupplyGrantReport(
 	public bool Complete => Unplaced.Count == 0;
 
 	/// <summary>
+	/// The catalogue key of <see cref="Describe"/>, one per disposition shape, with <see cref="LineArgs"/> as its arguments.
+	///
+	/// <para>
+	/// The console prints this report to the PLAYER, so the sentence must be the reader's own: a Chinese client read the English account this
+	/// method's text is written in (user report 2026-10-25, the frame that judged the completion hints). <see cref="Describe"/> stays as the log
+	/// line and as the console's fallback when a catalogue lacks the key.
+	/// </para>
+	/// </summary>
+	public string LineKey() => Outcome switch
+	{
+		Disposition.Granted when Items.Count == 0 && Unplaced.Count > 0 => "starting_supplies.unplaced_only",
+		Disposition.Granted when Complete => "starting_supplies.given",
+		Disposition.Granted => "starting_supplies.given_partial",
+		Disposition.Disabled => "starting_supplies.disabled",
+		_ => "starting_supplies.already_owned",
+	};
+
+	/// <summary>The key's arguments, in the order the catalogues' placeholders use: the setting, then the items or the unplaced names.</summary>
+	public IReadOnlyList<object?> LineArgs => Outcome switch
+	{
+		Disposition.Granted when Items.Count == 0 && Unplaced.Count > 0 => [Setting, string.Join(", ", Unplaced)],
+		Disposition.Granted when Complete => [Setting, string.Join(", ", Items)],
+		Disposition.Granted => [Setting, string.Join(", ", Items), Unplaced.Count, string.Join(", ", Unplaced)],
+		Disposition.Disabled => [],
+		_ => [Setting],
+	};
+
+	/// <summary>
 	/// The one-line account the console prints as its notification and the log keeps —
 	/// the same words on both, so a log and a player's screen can be compared directly.
 	///

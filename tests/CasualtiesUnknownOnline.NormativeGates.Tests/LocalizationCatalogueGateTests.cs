@@ -76,6 +76,7 @@ public sealed class LocalizationCatalogueGateTests
 	[
 		("KindKeyOf", "OnlineUiWorldsDrawer's world-backup kind switch, whose literals reach ctx.T through ctx.T(KindKeyOf(backup.Kind)) at the only call site"),
 		("WaitLineKey", "SessionWaitText's wait-kind switch: the loading screen's line is a key the local catalogue renders, handed to the coordinator's renderer by SessionWaitText.Line"),
+		("LineKey", "StartingSupplyGrantReport's per-disposition key switch: the report's line is printed by the console through AddKeyedLine, so a Chinese client reads the account in Chinese (2026-10-25)"),
 		("WaitNobodyKey", "SessionWaitText's word for an empty name list, rendered by the same catalogue so a Chinese sentence never carries an English clause"),
 	];
 

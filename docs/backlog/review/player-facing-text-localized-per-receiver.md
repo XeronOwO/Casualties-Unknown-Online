@@ -60,6 +60,11 @@ ANSWER half of the console family (a text line rather than a keyed part), which 
 It is recorded here rather than fixed in the localisation commit because the answer path (`ConsoleAnswer` text lines) needs the
 keyed-part shape the four host commands already use, which is a different change.
 
+**Fixed 2026-10-26**: that line now travels as a KEY plus its arguments — `StartingSupplyGrantReport.LineKey()` / `LineArgs` (one key per
+disposition shape, five of them) printed through `CommandConsoleService.AddKeyedLine`, so the console renders it in the reader's language while
+`Describe()` stays as the host's log line and as the fallback a catalogue gap degrades to. Five keys in both catalogues; `LineKey` is declared in the
+localisation census so a new disposition has to carry a key.
+
 The game's own console prompt ("Enter command (type help for command list)") is the game's prefab text, not CUO's: it is absent from
 `src/` and from `reversing/Assembly-CSharp/Assembly-CSharp/ConsoleScript.cs`, whose input field carries a scene-set placeholder.
 

@@ -337,13 +337,15 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// to learn it was never placed.
 	/// </summary>
 	private void OnStartingSuppliesReported(StartingSupplyGrantReport report) =>
-		AddLine(
+		AddKeyedLine(
+			report.LineKey(),
 			report.Describe(),
 			report.Outcome == StartingSupplyGrantReport.Disposition.Granted && report.Complete
 				? ConsoleLineKind.Success
 				: report.Outcome == StartingSupplyGrantReport.Disposition.Granted
 					? ConsoleLineKind.Error
-					: ConsoleLineKind.Info);
+					: ConsoleLineKind.Info,
+			[.. report.LineArgs.Select(arg => arg?.ToString() ?? string.Empty)]);
 
 	private bool ExecuteCommand(string commandLine)
 	{

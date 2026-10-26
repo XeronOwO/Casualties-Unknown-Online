@@ -149,6 +149,15 @@ internal static class CallContext
 		/// hand, not this body dropping an item into the world.</summary>
 		HandFeed,
 
+		/// <summary>
+		/// Inside the delegated <c>useAction</c> of a cross-player eat, when the action may leave a REPLACEMENT object behind
+		/// (the peel instantiates <c>stonefruitopen</c> and picks it up — <c>Item.cs:2606-2621</c>). A creation inside this
+		/// scope is that replacement, NOT a new item: the owner's row becomes it in place (its identity already travels in the
+		/// eat's outcome), so the object must get no instance id and must not be reported as a spawn — which is exactly what
+		/// happened before the scope existed (a phantom `stonefruitopen` at the world origin, 2026-10-26).
+		/// </summary>
+		ItemReplacementCreation,
+
 		/// <summary>Inside <c>Body.HandleVisuals</c> for a local body — the meal-end
 		/// <c>"burp"</c> (Body.cs:3137-3142) reports from this scope. The scope
 		/// exists for that one clip, the way <see cref="CharacterLockpickPain"/>

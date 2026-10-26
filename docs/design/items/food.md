@@ -33,6 +33,11 @@ The cross-player food family is decided from the GAME'S OWN DATA, not from a lis
 - The eater must be conscious: eating is one of the two families where the TARGET consumes the item.
 - A food that replaces itself (an opened version of itself) produces a NEW item in the eater's hands; that creation is a
   registered creation, not a local object.
+- **The replacement the delegate creates is NOT a new item.** The object a replacing `useAction` instantiates is the OWNER's row becoming it in
+  place — its identity and slot do not change, and only its definition travels back in the eat's outcome. So the creation is not registered: the
+  eat runs the delegate inside `CallContext.Origin.ItemReplacementCreation`, and `ItemWorldSync.OnItemInstantiated` allocates no id and reports no
+  spawn inside that scope. Before the scope existed the peel produced a phantom `stonefruitopen` at the world origin with a brand-new id while the
+  owner's row became the replacement (measured 2026-10-26).
 - **A use action that REPLACES the item without feeding a body is this family too** (user ruling 2026-10-26: "run the item's own
   action for any usable item"). The closed stone fruit is the case: its delegate never calls `Body.Eat`/`Body.Drink`, so a verdict
   keyed on "feeds a body" answered "not a solid food" for an item the game marks `usable = true` and the cross-player gesture refused

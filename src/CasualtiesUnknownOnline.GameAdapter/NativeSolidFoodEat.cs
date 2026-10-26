@@ -120,7 +120,14 @@ internal static class NativeSolidFoodEat
 		var replacementObject = (Item?)null;
 		try
 		{
-			body.UseItem(item);
+			// THE DELEGATE'S OWN CREATION IS A REPLACEMENT, NOT A NEW ITEM: a food that swaps its object (the peel instantiates the opened
+			// fruit and picks it up) created a phantom — a brand-new instance id reported as a world spawn at the origin, while the owner's
+			// row became the replacement in place (measured 2026-10-26, `[ItemSpawn] materializing stonefruitopen … at (0.0,0.0)`). The scope
+			// tells the creation report that what the delegate makes is this item's replacement, so no id is allocated and no spawn goes out.
+			using (CallContext.Enter(CallContext.Origin.ItemReplacementCreation))
+			{
+				body.UseItem(item);
+			}
 
 			// Read the replacement INSIDE the call's own window: the restoration below is what would hide it, and the
 			// object only exists between the delegate's instantiate and the end of this scope.

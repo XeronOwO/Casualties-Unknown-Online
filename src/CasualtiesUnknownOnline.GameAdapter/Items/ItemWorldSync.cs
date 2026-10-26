@@ -223,6 +223,15 @@ internal sealed class ItemWorldSync(
 			return;
 		}
 
+		// A food's own use action whose delegate replaces the item (the peel) creates its replacement INSIDE the eat's window. That object is
+		// the owner's row becoming it in place — its definition travels back in the eat's outcome — so it is NOT a new item: it gets no id here
+		// and no spawn is reported (before this guard a phantom `stonefruitopen` was spawned at the world origin, 2026-10-26).
+		if (CallContext.IsWithin(CallContext.Origin.ItemReplacementCreation))
+		{
+			_log.LogInformation("[ItemSpawn] {Type} created inside the eat's replacement window — the owner's row becomes it in place, no spawn reported.", item.id);
+			return;
+		}
+
 		// A tutorial-claw prop is per-player course state: each side's
 		// TutorialHandler creates its own copy (TutorialHandler.cs:255-271),
 		// and reporting both copies made every prop appear twice on both

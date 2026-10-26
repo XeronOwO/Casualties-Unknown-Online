@@ -72,3 +72,18 @@ The same-id trail in the same log, for the reader who wants the history:
 and NO `[ItemCustody]` warning appeared on any client afterwards. So the carried→world transition retires its display object and materializes the world
 copy, which is acceptance row 1 for this route; the route that produced `1151372216259:KindDisagrees:World` is still unknown, and the next reading
 will name its marker (`clone-render` / `standing`).
+
+## A KindDisagrees can be a one-second transition, not a stuck ghost (2026-10-26 20:46)
+
+While the refused medical use ran, the host's projection reported one disagreement and then cleared it on the very next tick:
+
+```
+20:46:58.643 [ItemCustody] rows=356 objects=356 mismatches=1 — 27336345710:KindDisagrees:Carried
+20:46:59.659 [ItemCustody] rows=356 objects=356 mismatches=0 — the kernel's rows and this client's objects agree.
+```
+
+`27336345710` is the gauze the alt had just been given; its row said `Carried` (another member's, so a display is expected) while the object the host held was
+a REAL one — and one snapshot later the two agreed. That distinction matters for this ticket and for the projection's own reading rule: a line that
+appears once and clears is a TRANSITION (a snapshot or event in flight), while the 20:18 `1151372216259` case persisted across at least three ticks and
+is the only shape that can be a stuck ghost. Any future batch must therefore say how many consecutive ticks a disagreement survived before calling it a
+defect.

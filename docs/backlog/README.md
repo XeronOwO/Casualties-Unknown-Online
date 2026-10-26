@@ -80,7 +80,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Giving a ground item swallows it](review/give-from-the-ground-swallows-the-item.md) — **High** — ground path exercised.
 
-- [A dropped container arrives empty on the other side](review/a-dropped-container-arrives-empty-on-the-other-side.md) — **High** — fixed.
 
 - [A new recipe file is rejected by the evaluator](review/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — not reproduced.
 
@@ -168,6 +167,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A dropped container arrives empty on the other side](done/a-dropped-container-arrives-empty-on-the-other-side.md) — **High** — judged.
 
 - [A zero player id rendered as a player named player-0](done/a-zero-player-id-rendered-as-a-name.md) — **High** — fixed, judged.
 

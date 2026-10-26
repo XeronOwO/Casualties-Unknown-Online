@@ -1,6 +1,6 @@
 # A dropped container arrives empty on the other side
 
-- Status: Review — fixed 2026-10-26 (`MaterializeRowContents`); the machine row (a dropped container arriving with its content) is owed to the next batch.
+- Status: Done — fixed 2026-10-26 (`MaterializeRowContents` + the chain rule) and judged by the user's own eyes on all three clients.
 - Priority: High — a user-visible loss of contents: the receiver's copy of the container has nothing in it.
 - Category: Item custody / container contents / world materialization
 
@@ -96,7 +96,7 @@ and the projection settled instead of holding a disagreement: `rows=346 objects=
 `21:08:09.427 rows=347 objects=347 mismatches=0` — the transient the drop itself produces, then agree.
 
 **Judged**: row 1 (a container dropped with one item inside arrives with it), row 2 (the projection stays clean across it) and row 3 (a container
-holding a NESTED container arrives, below). **Owed**: the player-facing read — open the dropped container on the receiver and see the item in it.
+holding a NESTED container arrives, below). **Owed**: none — the player-facing read closed on 2026-10-26 (below).
 
 ## Row 3, and the shape the game allows (2026-10-26 21:09)
 
@@ -112,3 +112,9 @@ with the projection settling at `350/350/0`.
 **A deeper tree is not a shape the game has**: `Container.LoadItem` refuses to load an item into a container that is itself inside another container
 ("alertcontainerstackingalt", `reversing/Assembly-CSharp/Assembly-CSharp/Container.cs:125-129`), so `toolbox → pouch → item` cannot be built through
 the game's own path. The recursion this fix added is exercised to the depth the game permits, which is container-inside-container.
+
+## The player-facing read, judged by the user (2026-10-26)
+
+The user opened both dropped toolboxes in the live world and reported: the host sees the water bottle and the pouch, and **both guests see the same
+contents** on their own screens. That is acceptance row 1 read the way a player reads it — the container arrives with what is inside it, on every
+client — so the ticket closes with all three rows and the fix''s own tests behind it.

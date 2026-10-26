@@ -150,3 +150,17 @@ destroyed by hand — and the custody projection stayed at `mismatches=0`.
 
 **Judged**: the swallow is gone on the deployed build and the item lands where the player aimed. **Owed**: the give's own acceptance rows on the
 ticket (a full body refusing by name, a container destination) and a frame with a hand on the mouse.
+
+## The full-body row, and a second ground object that was refused (2026-10-26 21:14)
+
+**The full-body case did not happen**: `item-provide` on the host answered `no-free-slot` ("every body slot is occupied or unusable"), yet the ground
+hand-over of a fresh lantern then succeeded and the host's census grew 13 → 14 items with nothing displaced. So the body the recipe calls full still
+accepts the destination the release names — the refusal row needs a receiver that is full in the NATIVE sense (every slot the pickup guard tests),
+which the recipe's own "usable slot" search does not produce. Owed.
+
+**A second ground object was refused by name**, and the shape is worth recording: a dogfood the guest had DROPPED (`item-provide mode=drop`) was
+refused twice with `refused GiveToBody: … has no item instance 14451443822` — the carried-item branch — while a lantern that was created straight into
+the world went through. That is correct behaviour for an object whose kernel row is not `World`, but it means the probe had picked a WORLD OBJECT whose
+row does not say world: either the drop report had not committed yet (it was retried four seconds later, same answer) or that object is another instance
+of the ghost family (`todo/a-world-item-is-rendered-by-a-display-object.md`). The next batch reads the row kind for the id it is about to hand over
+before handing it over.

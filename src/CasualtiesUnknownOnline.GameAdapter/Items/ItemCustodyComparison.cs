@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
@@ -67,7 +68,8 @@ internal static class ItemCustodyComparison
 	internal static IReadOnlyList<Mismatch> Compare(
 		IReadOnlyDictionary<ulong, ItemState> rows,
 		IReadOnlyList<LocalObject> objects,
-		ulong localSteamId)
+		ulong localSteamId,
+		IReadOnlyCollection<ulong>? presentOwners = null)
 	{
 		var mismatches = new List<Mismatch>();
 		var seen = new HashSet<ulong>();
@@ -100,6 +102,15 @@ internal static class ItemCustodyComparison
 				continue;
 			}
 
+			// A row owned by a member who is NOT here is not something this client should be showing: the kernel keeps a departed member's carried
+			// rows (that is where their inventory lives), while the display objects for them are destroyed when they leave. Without this the
+			// projection reports every departed member's inventory forever (host log 2026-10-26 20:18: `5197989525:RowWithoutObject:Carried`,
+			// `9492956821:RowWithoutObject:Carried`, `13787924117:RowWithoutObject:Carried` — all of the guest who had left).
+			if (presentOwners is { } present && !IsOwnedBySomeonePresent(row.Value.Location, localSteamId, present))
+			{
+				continue;
+			}
+
 			if (row.Value.Location.Kind != ItemLocationKind.Terminal)
 			{
 				mismatches.Add(new Mismatch(row.Key, MismatchKind.RowWithoutObject));
@@ -108,6 +119,18 @@ internal static class ItemCustodyComparison
 
 		return mismatches;
 	}
+
+	/// <summary>
+	/// Whether the row's owner is a client whose objects belong on this screen: this client itself, or a member in the roster. A WORLD or
+	/// TERMINAL row has no member owner and is always in scope.
+	/// </summary>
+	internal static bool IsOwnedBySomeonePresent(ItemLocation location, ulong localSteamId, IReadOnlyCollection<ulong> presentOwners) =>
+		location.Kind switch
+		{
+			ItemLocationKind.Carried or ItemLocationKind.Contained or ItemLocationKind.Applied =>
+				location.Owner.Value == localSteamId || presentOwners.Contains(location.Owner.Value),
+			_ => true,
+		};
 
 	/// <summary>
 	/// The row a clone render should show in one of its owner's slots — the query that lets a READER ask the authority instead of

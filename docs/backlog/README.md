@@ -62,6 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [A world item is rendered by a display-marked object](todo/a-world-item-is-rendered-by-a-display-object.md) — **High** — display vs World.
+
 
 
 - [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".

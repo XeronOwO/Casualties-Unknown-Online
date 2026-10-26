@@ -33,7 +33,7 @@ internal sealed class ItemCustodyProjection(IItemControl items, ILogger<ItemCust
 	private float _nextAt;
 	private bool _reportedClean;
 
-	internal void Tick(ulong localSteamId)
+	internal void Tick(ulong localSteamId, IReadOnlyCollection<ulong>? presentOwners = null)
 	{
 		var now = Time.realtimeSinceStartup;
 		if (now < _nextAt)
@@ -50,7 +50,7 @@ internal sealed class ItemCustodyProjection(IItemControl items, ILogger<ItemCust
 		}
 
 		var objects = LocalObjects();
-		var mismatches = ItemCustodyComparison.Compare(rows, objects, localSteamId);
+		var mismatches = ItemCustodyComparison.Compare(rows, objects, localSteamId, presentOwners);
 		if (mismatches.Count == 0)
 		{
 			if (!_reportedClean)

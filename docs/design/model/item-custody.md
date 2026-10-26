@@ -143,6 +143,14 @@ had one would be a second place to keep in step, which is the defect the rest of
 projection (`GameAdapter/Items/ItemCustodyComparison.cs`) reads exactly those two markers, which is why the comparison and the
 renderer can never disagree about what an object is.
 
+**The projection only asks about the members who are HERE.** A row's owner can leave while the row stays: the kernel keeps a
+departed member's carried rows — that is where their inventory lives — and the display objects for them are destroyed when they
+leave. So a `RowWithoutObject` for an owner who is not in the roster is not a disagreement, and the comparison takes the roster
+(`Compare(..., presentOwners)`, `IsOwnedBySomeonePresent`) and skips those rows. The first reading that needed it was the host's
+own log on 2026-10-26 20:18, which reported three of a departed guest's carried ids every second
+(`5197989525:RowWithoutObject:Carried`, `9492956821:RowWithoutObject:Carried`, `13787924117:RowWithoutObject:Carried`); a
+`KindDisagrees` on a `World` row is a different defect and is not excused by this rule.
+
 ## Who judges
 
 The holder's client writes its own side of an item's state and the host arbitrates; an incarnation is written by nobody, because it is a view.

@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
@@ -227,7 +228,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 		// The custody projection (shadow mode): the kernel's rows against this client's objects, once a second, changing nothing. Stage 1 of
 		// docs/backlog/todo/item-custody-single-authority.md — a running session with `mismatches=0` is what lets the readers be switched.
-		_domains.ItemCustody.Tick(_domains.Session.LocalSteamId);
+		_domains.ItemCustody.Tick(_domains.Session.LocalSteamId, [.. _domains.Session.Members.Select(member => member.SteamId)]);
 
 		_lastLocalBody = localBody;
 		using (_latency.Measure("StartGate"))

@@ -173,4 +173,40 @@ public class ItemCustodyComparisonTests
 		OwnerSteamId = owner,
 		Items = [.. items.Select(item => new CharacterItemMsg { InstanceId = item.Id, ItemId = "cu:widget", SlotIndex = item.Slot })],
 	};
+	[Fact]
+	public void ARowOwnedByADepartedMember_IsNotReported()
+	{
+		// Host log 2026-10-26 20:18 reported `5197989525:RowWithoutObject:Carried` and two more for a guest who had LEFT: the kernel keeps a departed
+		// member's carried rows (their inventory lives there) while the display objects are destroyed when they leave, so demanding an object for
+		// them reports the inventory of everyone who ever left.
+		var rows = RowsOf((5197989525, ItemLocation.Carried(new ActorId(Other))));
+		var objects = Array.Empty<ItemCustodyComparison.LocalObject>();
+
+		var withoutRoster = Assert.Single(ItemCustodyComparison.Compare(rows, objects, Local));
+		Assert.Equal(ItemCustodyComparison.MismatchKind.RowWithoutObject, withoutRoster.Kind);
+
+		Assert.Empty(ItemCustodyComparison.Compare(rows, objects, Local, presentOwners: []));
+	}
+
+	[Fact]
+	public void ARowOwnedByAPresentMember_IsStillReported()
+	{
+		var rows = RowsOf((5197989525, ItemLocation.Carried(new ActorId(Other))));
+		var objects = Array.Empty<ItemCustodyComparison.LocalObject>();
+
+		var mismatch = Assert.Single(ItemCustodyComparison.Compare(rows, objects, Local, presentOwners: [Other]));
+
+		Assert.Equal(ItemCustodyComparison.MismatchKind.RowWithoutObject, mismatch.Kind);
+	}
+
+	private static Dictionary<ulong, ItemState> RowsOf(params (ulong Id, ItemLocation Location)[] rows)
+	{
+		var map = new Dictionary<ulong, ItemState>();
+		foreach (var (id, location) in rows)
+		{
+			map[id] = new ItemState(new ItemIdentity(id, "cu:widget"), 1, location);
+		}
+
+		return map;
+	}
 }

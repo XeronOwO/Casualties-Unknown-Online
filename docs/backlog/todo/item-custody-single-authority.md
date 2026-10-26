@@ -238,3 +238,28 @@ whether the object is repaired by the next snapshot (the earlier settled reading
 
 A note for the next batch: `give-probe slot=0` is refused by name ("the destination body accepted the placement without naming a slot or a
 container"), because the wire carries `slot + 1` and 0 means "no slot operand" — the probe must pass `slot=1` for ring slot 0.
+
+### Stage 5, the host's own reading, and the two rules it exposed (2026-10-26 20:18)
+
+The user's live session produced the projection's longest reading so far:
+
+```
+rows=287 objects=271 mismatches=6
+1151372216259:KindDisagrees:World
+5197989525:RowWithoutObject:Carried
+5861509230:RowWithoutObject:Carried
+9492956821:RowWithoutObject:Carried
+13787924117:RowWithoutObject:Carried
+```
+
+Two different things, and only one of them was a rule gap:
+
+1. **The four `RowWithoutObject:Carried` were the DEPARTED guest's inventory** — the host keeps their rows (that is where the items
+   live) while their display objects are destroyed on leave. The projection was asking for objects it should not want, and would have
+   done so forever. Fixed: `ItemCustodyComparison.Compare` now takes the roster and skips rows owned by someone not present
+   (`IsOwnedBySomeonePresent`), with two tests; the design page states the rule and audit ledger row 188 records it.
+2. **`1151372216259:KindDisagrees:World` is a real defect and stays open**: a WORLD row expects a real object on every client, and an
+   object carrying a display marker stands for it. That is `docs/backlog/todo/a-world-item-is-rendered-by-a-display-object.md`.
+
+The `give` chain itself was clean in the same session (the item adopted, taken and placed by the host's own log lines quoted above), so
+row 1's give half is judged; its rearrange half still needs a hand.

@@ -300,4 +300,17 @@ public sealed class CharacterHealthMsg
 	/// </summary>
 	[ProtoMember(81)]
 	public float TotalBleedSpeed { get; set; }
+
+	/// <summary>
+	/// This body is ASLEEP (the game's own <c>Body.sleeping</c>), reported by the body's own client.
+	///
+	/// <para>
+	/// It exists because "unconscious" and "asleep" look the same in every other field this snapshot carries: both read <c>Conscious</c> false with a
+	/// low consciousness value. Decision 270 rules that a sleeping teammate IS a valid target for every cross-player item use, while an
+	/// unconscious-from-injury one keeps the consuming families (eat, drink) refused, so the host needs the distinction from the only side that can
+	/// read it — the target's own body.
+	/// </para>
+	/// </summary>
+	[ProtoMember(82)]
+	public bool Sleeping { get; set; }
 }

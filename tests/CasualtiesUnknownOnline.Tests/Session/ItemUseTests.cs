@@ -384,6 +384,28 @@ public class ItemUseTests
 	}
 
 	[Fact]
+	public void Use_ADrinkOnASleepingTarget_IsAllowed()
+	{
+		// DECISION 270: sleep is not the refusal condition, unconsciousness from injury is. The two look identical in every other field of the snapshot
+		// (Conscious false, a low consciousness value), so the target's own client reports Sleeping and this is the pair the decision needs: the same
+		// body, the same family, only the sleep flag differs from Use_ADrinkOnAnUnconsciousTarget_IsRefused.
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var sleeping = SnapshotWithLimbs(HostId, conscious: false);
+		sleeping.Health!.Sleeping = true;
+		characters.SaveHostCharacterData(sleeping);
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, doseMl: 100f);
+
+		Assert.Contains(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
+	}
+
+	[Fact]
 	public void Use_RefusedByTheOperatorsOwnClient_AlsoReadsOnTheScreen()
 	{
 		// The wound view refuses some gestures before any request leaves this client (a display proxy, no patient, an

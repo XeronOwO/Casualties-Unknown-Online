@@ -169,10 +169,20 @@ internal sealed class PlayerItemUseExecution(
 			return RefuseItemUse("refusal.patient_is_dead");
 		}
 
-		if (ItemUseTargetPolicy.RequiresAConsciousTarget(family) && !targetHealth.Conscious)
+		// DECISION 270: being ASLEEP is not the refusal condition; being unconscious from injury is. The two states look identical in every other field
+		// this snapshot carries (Conscious false, a low consciousness value), which is why the target's own client reports `Sleeping` explicitly — it is
+		// the only side that can read the body's own field. The chain that follows runs on the target's client, so a wake-on-use the game performs
+		// happens there, where the native call happens.
+		if (ItemUseTargetPolicy.RequiresAConsciousTarget(family) && !targetHealth.Conscious && !targetHealth.Sleeping)
 		{
-			_log.LogInformation("[ItemUse] refused: {Target} is unconscious and cannot {Family} an item.", target, family);
+			_log.LogInformation("[ItemUse] refused: {Target} is unconscious (not asleep) and cannot {Family} an item.", target, family);
 			return RefuseItemUse("refusal.patient_is_unconscious");
+		}
+
+		if (ItemUseTargetPolicy.RequiresAConsciousTarget(family) && !targetHealth.Conscious && targetHealth.Sleeping)
+		{
+			// Observable, because "it worked on a sleeping teammate" and "the game woke them for it" are two claims a run must be able to tell apart.
+			_log.LogInformation("[ItemUse] {Target} is asleep — the {Family} proceeds (decision 270: sleep is not a refusal condition).", target, family);
 		}
 
 		var newItem = PlayerCharacterAccess.CloneItem(originalItem);

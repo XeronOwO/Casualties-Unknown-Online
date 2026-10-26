@@ -47,6 +47,11 @@ internal static class RemoteCharacterDisplayProjection
 		// weakness/slouch CrouchAmount input on a frozen render clone.
 		health.LegSpeedMult = Mathf.Clamp01(body.legSpeedMult);
 
+		// The sleep state, reported by the body's OWN client. It is the fact decision 270 needs: a SLUMBERING teammate is a valid target for every
+		// cross-player item use, while an unconscious-from-injury one keeps the consuming families refused — and only this side can tell them apart,
+		// because the host's snapshot of a remote player is a report and `sleeping` is the body's own field (`Body.cs`, `public bool sleeping`).
+		health.Sleeping = body.sleeping;
+
 		// [Saveable] component state (painkillers, drinkable medicines) that
 		// Mapster cannot see and that the medical display must restore.
 		CharacterComponentSync.Capture(body, health);

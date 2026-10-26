@@ -1,12 +1,17 @@
 # An item cannot be used on a sleeping teammate
 
-- Status: Todo — opened 2026-10-25 from the user's report (translated): "the guest is asleep — why can I not use items on them?".
+- Status: Review — implemented 2026-10-26; the per-family rows need a live session — opened 2026-10-25 from the user's report (translated): "the guest is asleep — why can I not use items on them?".
 - Priority: Medium
 - Category: Cross-player item use / target gate
 - Source: user report (2026-10-25). The measured refusal: `[ItemUse] refused: 76561198863287957 is unconscious and cannot …` and the
   operator's status line was the Chinese refusal frame (`hud.use_refused`) wrapped around an English sentence, while the
   guest's own body read `sleeping=True, conscious=False,
   consciousness=10, alive=True`.
+
+## Design
+
+`docs/design/mechanics/item-use.md` is the page that owns the family gate this ticket changes: "the TARGET's gate is the family's", and the
+decision-270 rule now sits under it. The decision itself is 270 in `docs/decisions/active.md`.
 
 ## Goal
 
@@ -52,3 +57,22 @@ What is left is the code and its rows.
 
 - The rule the ticket questions came from a recorded user ruling; changing it needs the user's decision recorded in
   `docs/decisions/active.md` before the code moves.
+
+## Implemented (2026-10-26)
+
+Decision 270's code, in three places:
+
+1. **The fact is reported.** `CharacterHealthMsg.Sleeping` (ProtoMember 82) with the body's own `Body.sleeping` captured by
+   `RemoteCharacterDisplayProjection.Capture` — the host cannot read a remote body's sleep state any other way, and every other field of the snapshot
+   reads identically for asleep and unconscious.
+2. **The gate exempts sleep only.** `PlayerItemUseExecution` refuses the consuming families on `!Conscious && !Sleeping`, logs the exemption when it
+   applies (`{Target} is asleep — the {Family} proceeds (decision 270: sleep is not a refusal condition)`), and keeps the
+   `refusal.patient_is_unconscious` line for the injury case, which is what the remaining refusal names.
+3. **The chain does not move.** The call still runs on the target's own client, so a wake-on-use the game performs happens there.
+
+Tested at the gate: `Use_ADrinkOnASleepingTarget_IsAllowed` (26/26 in `ItemUseTests`) sits beside the existing
+`Use_ADrinkOnAnUnconsciousTarget_IsRefused`, so the pair differs only in the sleep flag. Written back on `mechanics/item-use.md` and audit ledger
+row 186.
+
+**Wire note**: this adds a protobuf field. Before the first release the protocol version does not move (decision 241); the change is recorded here and
+in its commit.

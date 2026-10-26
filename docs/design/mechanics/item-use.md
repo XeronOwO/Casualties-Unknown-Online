@@ -70,6 +70,12 @@ is playing a different game.
 - The target's gate is the family's: a body must be alive to receive anything, and only the two families where the
   TARGET consumes the item (drink, food) additionally require a conscious target. Bandaging, splinting, injecting and a
   topical are exactly what an unconscious teammate needs, so they must not require consciousness.
+- **Being ASLEEP is not a refusal condition; being unconscious from injury is** (decision 270, user ruling 2026-10-25). Every
+  cross-player item use is valid on a sleeping teammate, and the operation runs the native chain on the TARGET's own client — its animation, its
+  sound, its state, including any wake-on-use the game itself performs, because that is where the call runs. The distinction has to be REPORTED,
+  because every other field of the health snapshot reads the same for both states: the body's own client sends `Sleeping`
+  (`CharacterHealthMsg`, `Body.sleeping`), and the host's gate reads `Conscious == false && Sleeping == false` as the refusal. The refusal that
+  remains names unconsciousness, not sleep.
 - A solid food's consumption is the delegate's own: a pancake takes one bite per use and reduces its condition by its
   own amount; a closed stone fruit consumes itself, drops itself from the body and picks up an opened replacement. Both
   steps are written in terms of the body's slots.
@@ -129,7 +135,7 @@ must never be a gesture that silently does nothing.
 Decisions 184 (the affected side judges), 154 (authority kind), 246 (the entry decides the family), 265 (reports are
 checked against data). Accepted: `../../backlog/done/drink-measurement-destructive-use-action.md`,
 `done/give-gesture-own-ui-and-center-use.md`. Open corrections: `../../backlog/todo/cross-player-eat-skips-native-steps.md`,
-`todo/use-on-sleeping-target-refused.md`.
+`review/use-on-sleeping-target-refused.md`.
 
 ## Gaps
 

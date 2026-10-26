@@ -169,3 +169,16 @@ order in which a mistake is cheapest to see.
   evidence.
 - The display objects' own identity space is unnamed today; stage 1 kinds them in the projection, and stage 2 may need the name the design
   page's Incarnations section implies.
+
+### Stage 4, the craft row — a second attempt, and what it needs (2026-10-26)
+
+`.acceptance/batch-craftrow`: three clients in one world, the guest forged `stick` (slot 0), `scrapmetal` (slot 1) and `rope` (slot 2) with the
+product's own grant path, and `craft-drive mode=list` still answered `craftable: 0` with an empty result list. So the blocker is not "no materials on
+the body" — it is that none of those three satisfies a recipe's material set.
+
+Two ways forward, and the ticket needs one of them before that row can be judged:
+1. read a concrete recipe's material list from the game's own table and forge exactly those ids (the honest fixture), or
+2. unlock a recipe and craft it with the materials it names, which is what `recipe-unlock-forge index=<n>` + `craft-drive mode=make index=<n>` are for.
+
+What the batch DID confirm: the world entry and the guest's item creation are healthy, and `[ItemCustody]` stayed at `mismatches=0` on both clients
+while the three materials existed. The row stays open.

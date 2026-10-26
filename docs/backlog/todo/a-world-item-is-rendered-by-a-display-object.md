@@ -49,10 +49,26 @@ The same-id trail in the same log, for the reader who wants the history:
 
 | Row | The check |
 |---|---|
-| 1 | A row that becomes `World` while a display object stands for it leaves no display object behind on any client |
+| 1 | A row that becomes `World` while a display object stands for it leaves no display object behind on any client — **drop path judged 2026-10-26** (below) |
 | 2 | The projection reports `mismatches=0` for a session in which an item goes carried → world (a drop) and world → carried (a pickup) |
 | 3 | The mismatch line names the marker, so the next reading locates the object without a second run — **done 2026-10-26**: `LocalObject.Marker` (`clone-render` / `standing`) rides the `Mismatch` and `Describe` prints it, so any reading now carries it |
 
 ## Limits
 
 - The reading above came from a session that ended before it could be re-read; the next batch must reproduce it with the marker named.
+
+## The drop path is clean (2026-10-26 20:39, the paradise batch)
+
+`item-provide mode=drop` on the guest dropped a carried `lantern` (slot 3), and the host — the client that held a STANDING materialization of it
+(`[StandingItem] materialized lantern (id 9492956821) for …`) — walked the exact chain this ticket exists to check:
+
+```
+20:39:26.637 [StandingItem] retired lantern (id 9492956821, owner 76561198863287957): the row left the inventory into the world
+20:39:26.641 [ItemDrop] lantern (id 9492956821) not present — requesting materialization at (-1.5,498.1)
+20:39:26.647 [ItemSpawn] materializing lantern (id 9492956821) at (-1.5,498.1)
+20:39:26.649 [CarriedSync] removed 9492956821 from 76561198887957's snapshot — re-rendering the clone
+```
+
+and NO `[ItemCustody]` warning appeared on any client afterwards. So the carried→world transition retires its display object and materializes the world
+copy, which is acceptance row 1 for this route; the route that produced `1151372216259:KindDisagrees:World` is still unknown, and the next reading
+will name its marker (`clone-render` / `standing`).

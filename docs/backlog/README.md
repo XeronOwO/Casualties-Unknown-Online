@@ -62,7 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Music and recursive-crafting mods fail to load](todo/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — stale contract.
+- [Launcher reports failure when the alt box cannot start](todo/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — alt optional.
+
 
 - [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
 - [Giving a ground item swallows it](todo/give-from-the-ground-swallows-the-item.md) — **High** — refused until designed.
@@ -78,6 +79,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+
+- [Music and recursive-crafting mods fail to load](review/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — fixed, all rows judged.
 
 - [Closing a teammate's backpack teleports the ring](review/closing-a-teammates-backpack-teleports-the-ring.md) — **Medium-High** — fixed; far close unjudged.
 - [Dragging out of a backpack to use it drops the item](review/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — fixed: the use circle is back.

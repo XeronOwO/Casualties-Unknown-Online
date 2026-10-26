@@ -217,3 +217,24 @@ So the fact table is a **derived view** (payload + pre-judgement fallback) and s
 is gone (`IsTransferredToAnyGuest`). The rule is now pinned by two tests in `ItemCustodyComparisonTests` —
 `TheCloneRender_PrefersTheRowOverTheSnapshotsOwnSlot` (the row wins, so no second authority creeps back) and
 `TheCloneRender_FallsBackToTheSnapshotsSlotWhenNoRowAnswers` (the fallback exists on purpose) — so a future deletion attempt fails loudly.
+
+### Stage 5, row 1 attempt — the give landed, and the projection then reported a disagreement (2026-10-26)
+
+The give half of row 1 was driven in process (`give-probe mode=give target=<alt> slot=1`), and it LANDED: the host logged
+`Item 18082891413 destroyed while owned by 76561198863287957 — removed from the transfer table`, `Item 18082891413 adopted into 76561199526807662's
+transfer table`, `[Take] 76561199526807662 takes funguschunk (id 18082891413)`, `[Placement] item 18082891413 is where this host wrote it`.
+
+Then the projection started reporting, for the first time in these batches:
+
+```
+19:57:57.300 [WRN] [ItemCustody] rows=279 objects=278 mismatches=1 — the first ones: 1151372216259:KindDisagree…
+19:57:57.408 [WRN] [ItemCustody] rows=279 objects=280 mismatches=2 — the first ones: 39557727893:KindDisagree…
+```
+
+**KindDisagree is the projection doing its job** (a local object kinds as display while its row says this client simulates it, or the reverse), and it
+now has a real case to explain: the giver's / receiver's object classification for the adopted item. This is exactly what stage 5 exists to read, so the
+row stays open with this as its first data point rather than being called a regression: what has to be established next is WHICH side's kind is wrong and
+whether the object is repaired by the next snapshot (the earlier settled readings were all 0, so it is not steady state).
+
+A note for the next batch: `give-probe slot=0` is refused by name ("the destination body accepted the placement without naming a slot or a
+container"), because the wire carries `slot + 1` and 0 means "no slot operand" — the probe must pass `slot=1` for ring slot 0.

@@ -33,6 +33,13 @@ The cross-player food family is decided from the GAME'S OWN DATA, not from a lis
 - The eater must be conscious: eating is one of the two families where the TARGET consumes the item.
 - A food that replaces itself (an opened version of itself) produces a NEW item in the eater's hands; that creation is a
   registered creation, not a local object.
+- **A use action that REPLACES the item without feeding a body is this family too** (user ruling 2026-10-26: "run the item's own
+  action for any usable item"). The closed stone fruit is the case: its delegate never calls `Body.Eat`/`Body.Drink`, so a verdict
+  keyed on "feeds a body" answered "not a solid food" for an item the game marks `usable = true` and the cross-player gesture refused
+  the peel. `GameSolidFoodFacts` reads the replacement shape FIRST (`Instantiate`/`PickUpItem`/`Utils.Create`), answers
+  `SolidFoodVerdict.Replaces` when the action replaces and does not feed, and `SolidFoodAdmission.IsFeedable` carries it; the execution
+  is the existing one — the affected side runs `Body.UseItem` and reports the definition it became, so the owner's item becomes it in
+  place. An action that neither feeds nor replaces is still `NotSolidFood`.
 
 ## Refusals
 

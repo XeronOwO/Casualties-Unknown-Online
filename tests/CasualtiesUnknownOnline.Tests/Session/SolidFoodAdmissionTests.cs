@@ -61,6 +61,23 @@ public sealed class SolidFoodAdmissionTests
 		Assert.True(SolidFoodAdmission.IsFeedable(FakeSolidFoodSemantics.Instance, "nondescriptcan"));
 	}
 
+	/// <summary>
+	/// The shape the family missed until the user's 2026-10-26 ruling ("run the item's own action for any usable item"): the closed stone
+	/// fruit's action REPLACES the item (<c>Item.cs:2606-2621</c>) and never calls <c>Body.Eat</c>/<c>Body.Drink</c>, so a verdict keyed on
+	/// "feeds a body" classified a <c>usable = true</c> item as "not a solid food" and the cross-player gesture refused the peel. Its own
+	/// shape now admits it, and an action that neither feeds nor replaces stays out.
+	/// </summary>
+	[Fact]
+	public void AUseActionThatReplacesTheItemWithoutFeeding_IsThisFamily()
+	{
+		Assert.Equal(SolidFoodVerdict.Replaces, FakeSolidFoodSemantics.Instance.Classify("stonefruitclosed"));
+		Assert.True(SolidFoodAdmission.IsFeedable(FakeSolidFoodSemantics.Instance, "stonefruitclosed"));
+
+		// The control: an item whose action does neither is still not this family's, so the new shape did not open the door to every
+		// usable item.
+		Assert.False(SolidFoodAdmission.IsFeedable(FakeSolidFoodSemantics.Instance, "scrapmetal"));
+	}
+
 	[Fact]
 	public void AUseActionThatDoesNotFeedABody_IsNotThisFamily()
 	{

@@ -204,3 +204,17 @@ which matches the natives.
 So today the gesture is REFUSED BY NAME rather than run, and the ticket''s remaining question is a product one, not a code one: should a cross-player
 gesture be able to PEEL a closed fruit into the eater''s hand (a new family whose native action runs on the eater''s client and whose replacement the owner
 reports), or is "the fruit cannot be used on somebody" the accepted answer?
+
+## The peel's refusal was the verdict's, and the user's ruling fixed the family (2026-10-26)
+
+Read on the live client: `use-request target=<guest> item=<closed stone fruit>` was refused with "stonefruitclosed … is empty or is not a
+family this gesture carries". The game's own data says the opposite — `usable = true` and a `useAction` (`Item.cs:2600-2621`) — so the refusal
+was `GameSolidFoodFacts`' feeding requirement: the delegate never calls `Body.Eat`/`Body.Drink`, and the verdict was keyed on that alone.
+
+User ruling the same evening: "run the item's own action for any usable item". Implemented as the minimal true shape: the replacement is read
+FIRST, a replacing-but-not-feeding action answers `SolidFoodVerdict.Replaces`, `SolidFoodAdmission.IsFeedable` carries it, and the existing
+execution runs the affected side's `Body.UseItem` and reports the definition it became (so the owner's item becomes it in place — the same
+arrangement `EatsAndReplaces` already used). An action that neither feeds nor replaces stays `NotSolidFood`.
+
+Pinned by `SolidFoodAdmissionTests.AUseActionThatReplacesTheItemWithoutFeeding_IsThisFamily` (with a control: `scrapmetal` is still refused).
+**Owed**: the live row — the same `use-request` now peeling the fruit on the target, read from both clients' rows.

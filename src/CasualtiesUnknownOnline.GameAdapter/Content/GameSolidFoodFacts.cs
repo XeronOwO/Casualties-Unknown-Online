@@ -101,14 +101,20 @@ internal sealed class GameSolidFoodFacts(ILogger<GameSolidFoodFacts> log) : ISol
 			return SolidFoodVerdict.NotSolidFood;
 		}
 
-		if (!UseActionInstructions.Calls(instructions, typeof(Body), BodyFeedingMethods))
+		// The replacement shape is read FIRST, because feeding a body is not what every object-replacing action does: the vanilla closed
+		// stone fruit only swaps the definition (`Item.cs:2606-2621` — the stamina/energy writes, `DropItem(2)`, `condition = 0`,
+		// `DropItem(item)`, `Instantiate("stonefruitopen")`, `PickUpItem`), so the feeding test alone classified a `usable = true` item as
+		// "not a solid food" and the cross-player gesture refused it (user ruling 2026-10-26: "run the item's own action for any usable item").
+		var replaces = UseActionInstructions.Calls(instructions, typeof(Body), HandOverMethods)
+			|| UseActionInstructions.Calls(instructions, typeof(Object), "Instantiate")
+			|| UseActionInstructions.Calls(instructions, typeof(Utils), "Create");
+		var feeds = UseActionInstructions.Calls(instructions, typeof(Body), BodyFeedingMethods);
+		if (!feeds)
 		{
-			return SolidFoodVerdict.NotSolidFood;
+			return replaces ? SolidFoodVerdict.Replaces : SolidFoodVerdict.NotSolidFood;
 		}
 
-		if (UseActionInstructions.Calls(instructions, typeof(Body), HandOverMethods)
-			|| UseActionInstructions.Calls(instructions, typeof(Object), "Instantiate")
-			|| UseActionInstructions.Calls(instructions, typeof(Utils), "Create"))
+		if (replaces)
 		{
 			return SolidFoodVerdict.EatsAndReplaces;
 		}

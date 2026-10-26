@@ -37,11 +37,19 @@ public enum SolidFoodVerdict
 	/// <summary>
 	/// The use action feeds the eating body AND hands the eater a replacement
 	/// object (the vanilla <c>bucketofchicken</c> and <c>popcorn</c> at their
-	/// last bite). The cross-player path refuses this shape by name: the
-	/// replacement would be created on the EATER's machine — a phantom object in
-	/// that world, plus the game's own "too far" alert when it tries to put it in
-	/// the eater's hand — and the eater is not the item's owner, so there is
-	/// nothing to hand it to.
+	/// last bite). The cross-player path CARRIES it: the hand-feed arrangement makes the replacement reach the OWNER's
+	/// slot — the eating client parents the item into a hand slot, watches the object the delegate instantiates and reports
+	/// its definition back, so the owner's own item becomes it in place.
 	/// </summary>
 	EatsAndReplaces,
+
+	/// <summary>
+	/// The use action runs against the item and REPLACES it, without feeding a body — the vanilla closed stone fruit
+	/// (<c>stonefruitclosed</c>): it costs stamina, drops the hand item and instantiates <c>stonefruitopen</c>
+	/// (<c>Item.cs:2606-2621</c>). No <c>Body.Eat</c>/<c>Body.Drink</c> call appears in its delegate, so the feeding test alone
+	/// classified it as "not a solid food" and the cross-player gesture refused it. The path carries it exactly like
+	/// <see cref="EatsAndReplaces"/>: the item's own action runs on the affected side and the replacement travels back through
+	/// the outcome report (user ruling 2026-10-26: "run the item's own action for any usable item").
+	/// </summary>
+	Replaces,
 }

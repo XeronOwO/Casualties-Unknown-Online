@@ -34,5 +34,6 @@ public static class SolidFoodAdmission
 	/// </para>
 	/// </summary>
 	public static bool IsFeedable(ISolidFoodSemantics semantics, string itemId) =>
-		semantics.Classify(itemId) is SolidFoodVerdict.Eats or SolidFoodVerdict.EatsAndDestroys or SolidFoodVerdict.EatsAndReplaces;
+		semantics.Classify(itemId) is SolidFoodVerdict.Eats or SolidFoodVerdict.EatsAndDestroys or SolidFoodVerdict.EatsAndReplaces
+			or SolidFoodVerdict.Replaces;
 }

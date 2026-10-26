@@ -43,8 +43,15 @@ internal sealed class FakeSolidFoodSemantics : ISolidFoodSemantics
 	/// <summary>The two whose action instantiates a replacement and hands it to the eater at the last bite.</summary>
 	private static readonly HashSet<string> HandsOverAnItem = new(StringComparer.Ordinal) { "bucketofchicken", "popcorn" };
 
+	/// <summary>
+	/// The one whose action replaces the item WITHOUT feeding a body: the closed stone fruit's own action costs stamina and swaps the
+	/// definition (`Item.cs:2606-2621`). It is the shape the cross-player gesture refused until the user's 2026-10-26 ruling.
+	/// </summary>
+	private static readonly HashSet<string> ReplacesWithoutFeeding = new(StringComparer.Ordinal) { "stonefruitclosed" };
+
 	public SolidFoodVerdict Classify(string itemId) =>
-		!FeedsTheBody.Contains(itemId) ? SolidFoodVerdict.NotSolidFood
+		ReplacesWithoutFeeding.Contains(itemId) ? SolidFoodVerdict.Replaces
+		: !FeedsTheBody.Contains(itemId) ? SolidFoodVerdict.NotSolidFood
 		: HandsOverAnItem.Contains(itemId) ? SolidFoodVerdict.EatsAndReplaces
 		: DestroysTheItem.Contains(itemId) ? SolidFoodVerdict.EatsAndDestroys
 		: SolidFoodVerdict.Eats;

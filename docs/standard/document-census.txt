@@ -1270,5 +1270,5 @@ docs/backlog/todo/a-world-item-is-rendered-by-a-display-object.md | keep | index
 docs/evidence/acceptance/player-name-and-panel-20261026.md | keep | claim | docs/backlog/done/a-zero-player-id-rendered-as-a-name.md
 docs/backlog/done/a-zero-player-id-rendered-as-a-name.md | keep | index | docs/backlog/README.md
 docs/backlog/done/a-dropped-container-arrives-empty-on-the-other-side.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/drop-out-of-a-remote-backpack-keeps-the-item.md | keep | index | docs/backlog/README.md
-tools/acceptance/recipes/item-row.cs | keep | claim | docs/backlog/todo/drop-out-of-a-remote-backpack-keeps-the-item.md
+docs/backlog/review/drop-out-of-a-remote-backpack-keeps-the-item.md | keep | index | docs/backlog/README.md
+tools/acceptance/recipes/item-row.cs | keep | claim | docs/backlog/review/drop-out-of-a-remote-backpack-keeps-the-item.md

@@ -125,6 +125,15 @@ internal static class PlayerCameraDragUsePatch
 			RemoteBackpackView.IsOpen,
 			ClassifyNoOp(__instance, dragItem, uiCasts));
 		__state.ProxyWindow = true;
+
+		// THE PROXY MUST NOT REACH THE NATIVE BODY. `HandleReleaseDragging` acts on `dragItem`, and a display proxy is not this
+		// client's item: released outside the remote view (dragging it to the screen edge to drop it) the native body ran its own drop
+		// on the proxy — the host's local drop path reported a drop for an item it does not own, the row stayed with the owner, and the
+		// object vanished from the view while nothing moved (user report, 2026-10-26: "dragged it out of the bag and it was gone").
+		// Clearing the drag here makes the native body take its own "nothing held" path (it lowers the drag image and closes the ring
+		// unless the pointer is over UI), and the Finalizer still emits the intents the window classified — the take/move/use the player
+		// aimed at, decided by the same window as before.
+		ClearDrag(__instance);
 	}
 
 	private static void Finalizer(PlayerCamera __instance, ReleaseState __state)

@@ -1,6 +1,6 @@
 # A ground item dragged into an opened remote backpack lands in the LOCAL body (and disappears from the player's view)
 
-- Status: Todo — from the user's report (2026-10-26, translated): "I put it in the trashbag indirectly, then dragged it straight out to the screen edge to
+- Status: Review — the proxy half is fixed (2026-10-26, `PlayerCameraDragUsePatch` clears the drag so the native body never mutates a display proxy); the machine row is owed. Original report: from the user's report (2026-10-26, translated): "I put it in the trashbag indirectly, then dragged it straight out to the screen edge to
   drop it — and the plastic chunk was gone."
 - Priority: High — the gesture reports success and does nothing; the player cannot tell where the item went.
 - Category: Remote backpack / drop / custody
@@ -106,3 +106,15 @@ exists for — and the custody projection will report it on the receiver''s next
 **Also observed, and the reason one attempt failed first**: a bag the guest itself created got a 13-digit LOCAL id (`1366120581059`) that the receiver''s
 lookup could not resolve ("container … is not resolvable on the owner''s body"), while an older bag (`5197989525`) resolved — an id-space question for the
 same audit (a freshly created item''s id is not yet the authoritative one when another client names it).
+
+## The cause of the "disappeared" half (2026-10-26, read from the patch)
+
+`PlayerCameraDragUsePatch` opens the intent window for a proxied drag and then let the native body run. `HandleReleaseDragging` acts on `dragItem`, so a
+proxy released outside the remote view (dragged to the screen edge to drop it) went through the native drop path: the host reported a drop for an item it
+does not own, the authority kept the row with its owner, and the proxy object vanished from the screen — nothing moved, which is exactly what the player
+saw. The patch now clears the drag after opening the window, so the native body takes its own "nothing held" path (lower the drag image, close the ring
+unless the pointer is over UI) and the Finalizer still emits the intents the window classified. Written back on `mechanics/give-and-take.md` and audit
+ledger row 194.
+
+**Owed**: the machine row — open a teammate's backpack, drag a proxy to the screen edge, and read: no local `[ItemDropped]` line for an item the client
+does not own, the proxy still drawn, and the owner''s row unchanged.

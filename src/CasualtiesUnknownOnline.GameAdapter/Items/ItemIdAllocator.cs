@@ -90,6 +90,17 @@ public sealed class ItemIdAllocator(ISessionControl session, IItemControl items,
 			return 0; // generation-time instantiation — the world-gen determinism covers it
 		}
 
+		// THE ONE PLACE EVERY CREATION REPORT PASSES. An object an eat's delegate created to REPLACE its item is the owner's row becoming another
+		// definition in place, so it must never be given an id: with an id, every reporting hook (instantiation, pickup, slot, use, container) is
+		// free to announce a "new item", which is how a phantom opened fruit reached the world origin while the owner's slot went empty (measured
+		// 2026-10-26). Guarding each hook was the wrong shape — this is the allocation they all funnel through.
+		if (ItemReplacementObservation.IsArmed)
+		{
+			ItemReplacementObservation.Record(item);
+			_log.LogInformation("[ItemSpawn] {Type} created inside the eat's replacement window — no id allocated (the owner's row becomes it).", item.id);
+			return 0;
+		}
+
 		return Allocate(item);
 	}
 

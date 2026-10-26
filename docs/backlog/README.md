@@ -62,6 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [A ground item dragged into an opened remote backpack lands in the local body](todo/drop-out-of-a-remote-backpack-keeps-the-item.md) — **High** — mis-target.
+
 
 - [A world item is rendered by a display-marked object](todo/a-world-item-is-rendered-by-a-display-object.md) — **High** — display vs World.
 

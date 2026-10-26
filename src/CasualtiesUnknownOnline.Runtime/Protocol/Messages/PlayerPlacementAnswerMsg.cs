@@ -20,9 +20,17 @@ public sealed class PlayerPlacementAnswerMsg
 	[ProtoMember(2)]
 	public bool Accepted { get; set; }
 
-	/// <summary>The body slot this client will place the item in, or -1 for a container destination.</summary>
+	/// <summary>
+	/// The body slot this client will place the item in, ENCODED as <c>slot + 1</c> — 0 means "no body slot" (a container destination, or a refusal).
+	///
+	/// <para>
+	/// protobuf-net omits a 0-valued int, so a plain slot field cannot carry slot 0 at all (the trap <c>CharacterDataMsg.HandSlot</c> documents).
+	/// A give answered for the receiver's first slot therefore arrived as the default and the host refused it as "accepted without naming a slot"
+	/// (measured 2026-10-26). Write <c>slot + 1</c>, read <c>Slot - 1</c>.
+	/// </para>
+	/// </summary>
 	[ProtoMember(3)]
-	public int Slot { get; set; } = -1;
+	public int Slot { get; set; }
 
 	/// <summary>The container instance this client will load the item into, or 0 for a body-slot destination.</summary>
 	[ProtoMember(4)]

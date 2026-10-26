@@ -165,6 +165,31 @@ public class PlacementAnswerTests
 	}
 
 	/// <summary>
+	/// The WORST slot to lose on the wire: a give the receiver answers for its FIRST slot (0). protobuf-net omits a 0-valued int, so a plain slot field
+	/// carried "no destination" and the host refused the hand-over as "accepted without naming a slot or a container" (measured 2026-10-26 with the
+	/// in-process release). The answer and the outcome both travel as <c>slot + 1</c>, so slot 0 settles exactly like slot 2 does.
+	/// </summary>
+	[Fact]
+	public void AnAnswerForSlotZero_SettlesTheGive()
+	{
+		var resolver = new FixedPlacementResolver { Resolution = RemotePlacementResolution.ToSlot(0) };
+		var (host, guest, received) = CreateSession(s => s.AddSingleton<IRemotePlacementResolver>(resolver));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryIntent(Give(HostId, 42, GuestId, slot: 0));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPlacementOutcome(42, applied: true, slot: 0, containerInstanceId: 0, reason: "");
+
+		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42 && i.SlotIndex == 0);
+		Assert.Single(KernelEvents(received).Where(e => e.Kind == WireEventKind.PlayerInventoryTransfer));
+	}
+
+	/// <summary>
 	/// Acceptance row 1: the receiving client applied the item at the answered destination and reports that same
 	/// place. The host compares it with the row it wrote, sees a match, and writes nothing — no return, no ledger
 	/// change. A repeated outcome for the same give settles nothing a second time: the committed record is taken by
@@ -308,8 +333,8 @@ public class PlacementAnswerTests
 			.SendRemoteInventoryIntent(Give(HostId, 42, GuestId));
 
 		var control = host.Services.GetRequiredService<IPlayerInteractionControl>();
-		control.HandlePlacementOutcome(HostId, new PlayerPlacementOutcomeMsg { ItemInstanceId = 42, Applied = false, Slot = -1, Reason = "not the receiver" });
-		control.HandlePlacementOutcome(GuestId, new PlayerPlacementOutcomeMsg { ItemInstanceId = 999, Applied = true, Slot = 2, Reason = "no such give" });
+		control.HandlePlacementOutcome(HostId, new PlayerPlacementOutcomeMsg { ItemInstanceId = 42, Applied = false, Slot = 0, Reason = "not the receiver" });
+		control.HandlePlacementOutcome(GuestId, new PlayerPlacementOutcomeMsg { ItemInstanceId = 999, Applied = true, Slot = 3, Reason = "no such give" });
 
 		// Neither report matched, so the committed give stands: the giver does not have the item back.
 		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
@@ -334,7 +359,7 @@ public class PlacementAnswerTests
 			.SendRemoteInventoryIntent(Give(HostId, 42, GuestId));
 
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
-			.HandlePlacementOutcome(GuestId, new PlayerPlacementOutcomeMsg { ItemInstanceId = 42, Applied = true, Slot = -1, ContainerInstanceId = 0 });
+			.HandlePlacementOutcome(GuestId, new PlayerPlacementOutcomeMsg { ItemInstanceId = 42, Applied = true, Slot = 0, ContainerInstanceId = 0 });
 
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
@@ -361,7 +386,7 @@ public class PlacementAnswerTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendRemoteInventoryIntent(Give(HostId, 42, GuestId));
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
-			.HandlePlacementOutcome(GuestId, new PlayerPlacementOutcomeMsg { ItemInstanceId = 42, Applied = false, Slot = -1, Reason = raw });
+			.HandlePlacementOutcome(GuestId, new PlayerPlacementOutcomeMsg { ItemInstanceId = 42, Applied = false, Slot = 0, Reason = raw });
 
 		var line = recorder.Entries.Single(entry => entry.Message.Contains("refused the placement outcome", StringComparison.Ordinal)).Message;
 		Assert.DoesNotContain('\u0007', line);

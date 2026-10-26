@@ -135,15 +135,15 @@ internal sealed class RemotePlacementService(
 			return;
 		}
 
-		// An "accepted" answer must NAME its destination: a slot index or a container. One that names neither is
-		// malformed and is refused by name rather than committed as "slot -1".
-		if (msg.Slot < 0 && msg.ContainerInstanceId == 0)
+		// The wire carries slot + 1 (protobuf omits a 0-valued int, so a plain slot field cannot name slot 0 — the same trap `CharacterDataMsg.HandSlot`
+		// documents). 0 therefore means "no body slot", and an accepted answer that names neither a slot nor a container is malformed.
+		if (msg.Slot == 0 && msg.ContainerInstanceId == 0)
 		{
 			RefuseGiver(pending.Giver, pending.Msg, "the destination body accepted the placement without naming a slot or a container.");
 			return;
 		}
 
-		Commit(pending.Giver, pending.Msg, new RemotePlacementResolution(true, msg.Slot, msg.ContainerInstanceId, string.Empty));
+		Commit(pending.Giver, pending.Msg, new RemotePlacementResolution(true, msg.Slot - 1, msg.ContainerInstanceId, string.Empty));
 	}
 
 	/// <summary>Receiving client: the host asks where this give would land — answer with this client's own rules.</summary>
@@ -169,7 +169,8 @@ internal sealed class RemotePlacementService(
 		{
 			QueryId = msg.QueryId,
 			Accepted = answer.Accepted,
-			Slot = answer.Slot,
+			// slot + 1 on the wire (0 = no body slot): protobuf omits a 0-valued int, so a plain field cannot name slot 0.
+			Slot = answer.Accepted && answer.ContainerId == 0 ? answer.Slot + 1 : 0,
 			ContainerInstanceId = answer.ContainerId,
 			Reason = ClampReason(answer.Reason),
 		});
@@ -250,7 +251,7 @@ internal sealed class RemotePlacementService(
 		{
 			ItemInstanceId = itemInstanceId,
 			Applied = applied,
-			Slot = applied ? slot : -1,
+			Slot = applied ? slot + 1 : 0,
 			ContainerInstanceId = applied ? containerInstanceId : 0,
 			Reason = ClampReason(reason),
 		};
@@ -441,7 +442,8 @@ internal sealed class RemotePlacementService(
 	private static bool PlaceMatches(CommittedPlacement written, PlayerPlacementOutcomeMsg msg) =>
 		msg.ContainerInstanceId != 0
 			? written.ContainerId == msg.ContainerInstanceId
-			: written.ContainerId == 0 && written.Slot == msg.Slot;
+			// The wire carries slot + 1 (protobuf omits 0), so the reported slot is decoded before the comparison.
+			: written.ContainerId == 0 && written.Slot == msg.Slot - 1;
 
 	private static string DescribePlace(int slot, ulong containerId) =>
 		containerId != 0 ? $"container {containerId}" : slot >= 0 ? $"slot {slot}" : "no place";

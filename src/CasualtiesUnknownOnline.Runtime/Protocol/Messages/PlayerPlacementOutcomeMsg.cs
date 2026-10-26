@@ -30,9 +30,18 @@ public sealed class PlayerPlacementOutcomeMsg
 	[ProtoMember(2)]
 	public bool Applied { get; set; }
 
-	/// <summary>The body slot the item landed in, or -1 when it landed in a container (or nowhere).</summary>
+	/// <summary>
+	/// The body slot the item landed in, ENCODED as <c>slot + 1</c> — 0 means "no body slot" (a container destination, or nothing).
+	///
+	/// <para>
+	/// The encoding is not decoration: protobuf-net omits a 0-valued int, so a plain slot field cannot carry slot 0 at all (the same trap
+	/// <c>CharacterDataMsg.HandSlot</c> documents). A give whose destination is the receiver's first slot answered 0 and the host read it as
+	/// "no destination", refusing the hand-over by name (measured 2026-10-26 with the in-process release). Always write <c>slot + 1</c> and read
+	/// <c>Slot - 1</c>.
+	/// </para>
+	/// </summary>
 	[ProtoMember(3)]
-	public int Slot { get; set; } = -1;
+	public int Slot { get; set; }
 
 	/// <summary>The container the item landed in, or 0 when it landed in a body slot (or nowhere).</summary>
 	[ProtoMember(4)]

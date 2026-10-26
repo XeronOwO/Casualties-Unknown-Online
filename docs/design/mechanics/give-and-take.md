@@ -112,6 +112,11 @@ somebody else's backpack").
 
 Each of these reaches the player as a sentence in their own language; the wire carries the key, never prose.
 
+**A body slot on the wire is `slot + 1`; 0 means "no slot".** protobuf-net omits a 0-valued int, so a plain `int Slot` field cannot name slot 0 at
+all — and slot 0 is a legal destination. The placement answer and the placement outcome both carry the encoded value; the host decodes `- 1` before it
+compares or commits. The defect this removes: a give whose receiver answered "slot 0" arrived as the field's default, the host read it as "accepted
+without naming a slot or a container", and the hand-over was refused by name while nothing moved (measured 2026-10-26 with the in-process release; the
+same trap `CharacterDataMsg.HandSlot` documents).
 **A release names ONE destination, and the applier reads that one value.** A hand-over's destination is either a body slot or a container — never
 both, never neither — and the receiver's placement branch consumes the SAME value the sender's release named. The rule exists because the two operands
 travelled separately and one branch read only the slot: a ground item dropped into a teammate's trashbag landed in their body instead, because the

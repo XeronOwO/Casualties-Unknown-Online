@@ -134,3 +134,25 @@ captured intent.
 
 **Kept from this evening''s work**: the pointer seam (`DragUseCenter.StagedPointer` + `stage-pointer`) is independent of this and stays deployed; the
 in-process give-into-a-remote-slot capability stays.
+
+## What the native release actually does with a proxy, traced call by call (2026-10-26, last read of the night)
+
+`PlayerCamera.HandleReleaseDragging` → `TryPerformWorldActions` (`PlayerCamera.cs:1686-1710`) does three things in order, and the window already covers
+two of them for a display proxy:
+
+1. `container.UnloadItem(this.dragItem, null)` (`:1691`) — absorbed by `RemoteDragContainerUnloadPatch` (the window records it and the native call is
+   skipped), so a proxy is never detached from the remote backpack by the local release;
+2. `this.body.DropItem(this.dragItem)` (`:1696`) — reached only when `this.body.HoldingItem(dragItem)` is true, which is false for a proxy, and
+   `Body.DropItem(Item)` is patched for a proxy anyway (`RemoteDragBodyDropItemPatch`: captured, not run);
+3. a world container under the pointer (`:1704-1709`) — its `LoadItem` is patched the same way.
+
+So a proxied release **cannot** drop or move the proxy locally; it either produces the window''s intents (a slot or the centre) or nothing at all. That
+leaves the two explanations for the report, and both are LOSS-FREE — the item''s row never left its owner:
+
+- the release produced no intent (the open remote panel hid nothing: the item was never moved, and the next snapshot re-draws it), or
+- the drop landed on the player''s OWN ring (`GiveGestureMode.OwnUi`), where the native local pickup is the correct behaviour and the item really is in
+  the player''s own body — which is exactly the row this ticket''s evidence recorded (`Carried`, owner = the player themselves, slot 2, both clients
+  agreeing) and what the body census confirmed.
+
+**What is left is a player-facing question, not a custody defect**: while a teammate''s backpack is displayed, a drop can land on either the remote panel or
+the player''s own ring, and nothing on screen says which one a given slot belongs to.

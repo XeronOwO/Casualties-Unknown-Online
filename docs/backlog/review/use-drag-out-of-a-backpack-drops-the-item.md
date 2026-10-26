@@ -80,3 +80,11 @@ R10 consumes the release, and the owner replays the use.
 
 Rows 1 and 3 are therefore judged (a use happens, and the user reports no drop). Row 2 — the ring CLOSED case — is still unjudged, and that is what
 keeps this ticket in `review/` rather than `done/`.
+
+## What the in-process release can and cannot drive (2026-10-26)
+
+With `remote-gesture` composed (`mode=open` → `mode=list` → `mode=release`), a **slot** destination works end to end: the host gave a lantern into the
+guest''s backpack and `<guest> takes lantern … from <host>` followed. The **centre** (the use target) does not: three attempts — `cast=-2`, a `mode=hover
+cast=0` first, and a fresh `mode=open` immediately before — all answered
+`the release of item … produced no intent — unclassified native gesture`, so `DragUseCenter.IsUnderPointer` is not satisfied by the staged pointer the
+recipe can move. Rows 1 and 2 therefore still need either a recipe that stages the real pointer inside the centre circle, or a hand on the mouse.

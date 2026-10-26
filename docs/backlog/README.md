@@ -78,7 +78,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 
-- [Right-clicking an item also opens the member menu](review/right-click-on-an-item-also-opens-the-menu.md) — **High** — item owns the press.
 
 - [Launcher starts all three together and fails only for real reasons](review/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — 25 s cold start.
 
@@ -161,6 +160,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [Right-clicking an item also opens the member menu](done/right-click-on-an-item-also-opens-the-menu.md) — **High** — judged.
 
 - [Giving an item into another player's backpack is not the native transfer](done/give-into-backpack-plays-no-sound.md) — **High** — closed: click only.
 - [Merge the remote-inventory design into the corpus](done/merge-remote-inventory-design-into-corpus.md) — **Medium** — the rules live in the corpus

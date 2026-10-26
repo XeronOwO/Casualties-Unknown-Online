@@ -1,6 +1,6 @@
 # Right-clicking an item that overlaps a teammate opens the member menu as well as picking the item up
 
-- Status: Review — implemented 2026-10-26; the three rows need a mouse on a live session — opened 2026-10-25 from the user's report (translated): "when the item overlaps the guest, right-clicking to pick the item up also
+- Status: Done — implemented and judged 2026-10-26 (all three rows confirmed by the user on a live three-client session) — opened 2026-10-25 from the user's report (translated): "when the item overlaps the guest, right-clicking to pick the item up also
   opened the guest's right-click menu".
 - Priority: High — one gesture fires two actions, and the menu then covers the world the player is working in.
 - Category: Online UI / pointer priority
@@ -70,3 +70,13 @@ The rule is written back on `docs/design/surfaces/member-menu.md` and in the aud
 
 - The report does not say whether the menu closed when the drag began; the first batch reads that too, because a menu that opens and immediately
   closes would be a different (and lesser) defect than one that stays.
+
+## Judged (2026-10-26, three clients in one world)
+
+The user right-clicked all three cases on the deployed build and answered "all three rows are correct":
+
+1. an item lying on a teammate — the pickup starts and the menu stays closed;
+2. a bare-handed teammate — the menu opens as before;
+3. the empty ground — unchanged.
+
+That closes the rule this ticket added: the item under the pointer owns the press, and the game's own order is what decides it.

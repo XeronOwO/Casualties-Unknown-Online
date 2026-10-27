@@ -29,7 +29,7 @@
 |---|---|---|
 | 1 | Closing a teammate's backpack shrinks the ring AT the teammate, with the two players far apart | **MEASURED 2026-10-27, NOT MET**: the view was closed in-process (`remote-gesture mode=close`) and a frame was captured INSIDE that call (the new `frame=` argument, so the capture lands on the closing frame). With the ring open around the teammate (`ring-a.png`), the closing frame (`ring-close.png`) shows NO ring at all — no jump to the local player, but no shrink at the teammate either: the ring is gone in the same frame. So the "teleport" is gone and the animation half of this row is not what the build does |
 | 2 | The quit/stale close keeps the ring at the focused body | **judged** by `.acceptance/frames/close1.png` and `close2.png` (close3 shows the clean world view) |
-| 3 | A normal own-backpack open/close is unchanged | **owed**: the same in-call frame now makes it judgeable (`container-panel` to open the local container, then `remote-gesture mode=close frame=…`), which the next batch does |
+| 3 | A normal own-backpack open/close is unchanged | **PASS 2026-10-27**: `container-panel mode=local container=trashbag` opened the player's own container (`opened: true`, the window strip on screen) and `remote-gesture mode=close frame=own-close` closed it. The open frame shows the container strip and the ring; the closing frame shows both gone — the same behaviour as the remote case, and no jump in either |
 
 ## The in-call frame, and what it showed (2026-10-27)
 

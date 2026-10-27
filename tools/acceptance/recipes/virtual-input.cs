@@ -1,107 +1,21 @@
 // recipe: virtual-input
 // args: mode=s x=n y=n button=n
-// serves: cross-player-drag-use-feedback, use-drag-out-of-a-backpack-drops-the-item, context-menu-does-not-block-the-pointer (the rows a batch could not aim)
-// returns: ok, mode, installed, enabled, pointer, realPointer, answer, error, detail
+// serves: the-acceptance-channel-replaces-its-staged-pointer, cross-player-drag-use-feedback, context-menu-does-not-block-the-pointer
+// returns: ok, mode, answer, installed, buttonPatches, held, down, up, pointerX, pointerY, inputX, inputY, error, detail
 //
-// The acceptance channel's virtual pointer: installs the Harmony postfix on UnityEngine.Input.mousePosition (a MANAGED getter on this build, unlike the
-// mouse-button methods, which are internal calls with no IL), then stages a screen position the game's own reads answer instead of the real mouse.
-//  - mode=install:   patch the getter; the answer says what was patched or why it could not be
-//  - mode=move:      stage (x, y) — the game's own screen coordinates, origin bottom-left
-//  - mode=clear:     drop the staged pointer; the real one answers again, the patch stays
-//  - mode=uninstall: remove the patch and the staged pointer
-//  - mode=report:    the staged pointer, the real one, and what Input.mousePosition now answers
+// The acceptance channel's virtual mouse: installs the Harmony patches on `UnityEngine.Input.mousePosition` (a managed getter) and on
+// `GetMouseButton`/`GetMouseButtonDown`/`GetMouseButtonUp` (internal calls, which HarmonyX patches through its NATIVE detour backend — the backend
+// answered `patched` for all three on this build, so "no IL body" was never a verdict), then stages a pointer and/or button state the game's own reads
+// answer instead of the real mouse.
+//  - mode=install        patch everything; `answer` is the per-method report the seam builds
+//  - mode=move           stage the pointer at (x, y) — the game's screen coordinates, origin bottom-left
+//  - mode=press          press `button` (DOWN this frame, HELD afterwards)
+//  - mode=release        release `button` (UP this frame only)
+//  - mode=clear          drop the staged pointer
+//  - mode=clear-buttons  drop every staged button
+//  - mode=uninstall      remove the patches and the staged state; the real input answers again
+//  - mode=report         read the three Input answers and the staged state without changing anything
 //
-// Why this shape: OS-level input costs the user a permission every batch, and there is no other way to aim a row at a screen position the batch cannot
-// reach with a real mouse. The reflex to check first is whether the patch took at all — a getter the JIT inlined answers the real pointer even with the
-// postfix installed, which is why every mode reports both values.
-//
-// Why reflection: `VirtualInput` is internal to the adapter, so the type is looked up BY NAME like the other adapter surfaces these recipes reach.
-((System.Func<string>)(() => {
-	var mode = {{s:mode}};
-	var x = {{n:x}};
-	var y = {{n:y}};
-	var button = (int){{n:button}};
-	var findType = new System.Func<string, System.Type>((simpleName) => {
-		var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-		for (var i = 0; i < assemblies.Length; i++) {
-			System.Type[] types;
-			try { types = assemblies[i].GetTypes(); } catch { continue; }
-			for (var t = 0; t < types.Length; t++) {
-				if (types[t].Name == simpleName) { return types[t]; }
-			}
-		}
-		return null;
-	});
-	var virtualInput = findType("VirtualInput");
-	if (virtualInput == null) { return "{\"ok\":false,\"error\":\"no-VirtualInput\"}"; }
-	const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
-	var inv = System.Globalization.CultureInfo.InvariantCulture;
-	var answer = "";
-	var harmonyName = "none";
-	var monoModName = "none";
-	var loaded = System.AppDomain.CurrentDomain.GetAssemblies();
-	for (var a = 0; a < loaded.Length; a++) {
-		var simple = loaded[a].GetName().Name;
-		if (simple == "0Harmony" || simple == "HarmonyX") { harmonyName = simple + " " + loaded[a].GetName().Version; }
-		if (simple != null && simple.StartsWith("MonoMod", System.StringComparison.Ordinal)) { monoModName = simple + " " + loaded[a].GetName().Version; }
-	}
-	if (mode == "install" || mode == "move" || mode == "clear" || mode == "uninstall" || mode == "press" || mode == "release" || mode == "clear-buttons") {
-		if (mode == "install") {
-			var install = virtualInput.GetMethod("Install", Flags);
-			var args = new object[] { false };
-			answer = (string)install.Invoke(null, args);
-		} else if (mode == "move") {
-			var install = virtualInput.GetMethod("Install", Flags);
-			install.Invoke(null, new object[] { false });
-			answer = "moved";
-		} else if (mode == "press") {
-			virtualInput.GetMethod("Install", Flags).Invoke(null, new object[] { false });
-			virtualInput.GetMethod("Press", Flags).Invoke(null, new object[] { button });
-			answer = "pressed";
-		} else if (mode == "release") {
-			virtualInput.GetMethod("Release", Flags).Invoke(null, new object[] { button });
-			answer = "released";
-		} else if (mode == "clear-buttons") {
-			virtualInput.GetMethod("ClearButtons", Flags).Invoke(null, null);
-			answer = "buttons cleared";
-		} else if (mode == "clear") {
-			virtualInput.GetMethod("Clear", Flags).Invoke(null, null);
-			answer = "cleared";
-		} else {
-			virtualInput.GetMethod("Uninstall", Flags).Invoke(null, null);
-			answer = "uninstalled";
-		}
-		if (mode == "move") {
-			virtualInput.GetMethod("MoveTo", Flags).Invoke(null, new object[] { x, y });
-		}
-	}
-	var installed = (bool)virtualInput.GetProperty("Installed", Flags).GetValue(null, null);
-	var enabled = (bool)virtualInput.GetProperty("Enabled", Flags).GetValue(null, null);
-	var hasPointer = false;
-	var pointerX = 0f;
-	var pointerY = 0f;
-	var tryGet = virtualInput.GetMethod("TryGetStaged", Flags);
-	if (tryGet != null) {
-		var args = new object[] { null };
-		if ((bool)tryGet.Invoke(null, args)) {
-			var staged = (UnityEngine.Vector3)args[0];
-			hasPointer = true;
-			pointerX = staged.x;
-			pointerY = staged.y;
-		}
-	}
-	var real = UnityEngine.Input.mousePosition;
-	return "{\"ok\":true,\"mode\":\"" + mode + "\""
-		+ ",\"installed\":" + (installed ? "true" : "false")
-		+ ",\"enabled\":" + (enabled ? "true" : "false")
-		+ ",\"buttonPatches\":" + ((int)virtualInput.GetProperty("ButtonPatches", Flags).GetValue(null, null)).ToString(inv)
-		+ ",\"buttonHeld\":" + (UnityEngine.Input.GetMouseButton(button) ? "true" : "false")
-		+ ",\"buttonDown\":" + (UnityEngine.Input.GetMouseButtonDown(button) ? "true" : "false")
-		+ ",\"buttonUp\":" + (UnityEngine.Input.GetMouseButtonUp(button) ? "true" : "false")
-		+ ",\"answer\":\"" + answer + "\"
-		+ ",\"harmony\":\"" + harmonyName + "\"
-		+ ",\"monomod\":\"" + monoModName + "\""
-		+ ",\"pointer\":\"" + (hasPointer ? pointerX.ToString("0.###", inv) + "," + pointerY.ToString("0.###", inv) : "none") + "\""
-		+ ",\"inputAnswers\":\"" + real.x.ToString("0.###", inv) + "," + real.y.ToString("0.###", inv) + "\""
-		+ "}";
-}))()
+// ONE LINE, because the evaluator compiles a submission as one top-level expression: a body with newlines is refused as `(1,1): InteractiveHost`
+// (measured 2026-10-27 — this recipe answered as separate probes and died only when written multi-line).
+((System.Func<string>)(() => { var mode = {{s:mode}}; var x = {{n:x}}; var y = {{n:y}}; var button = (int){{n:button}}; var findType = new System.Func<string, System.Type>((simpleName) => { var assemblies = System.AppDomain.CurrentDomain.GetAssemblies(); for (var i = 0; i < assemblies.Length; i++) { System.Type[] types; try { types = assemblies[i].GetTypes(); } catch { continue; } for (var t = 0; t < types.Length; t++) { if (types[t].Name == simpleName) { return types[t]; } } } return null; }); var vi = findType("VirtualInput"); if (vi == null) { return "{\"ok\":false,\"error\":\"no-VirtualInput\"}"; } const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic; var answer = ""; var install = vi.GetMethod("Install", Flags); if (mode == "install") { var args = new object[] { false }; answer = (string)install.Invoke(null, args); } else if (mode == "move") { install.Invoke(null, new object[] { false }); vi.GetMethod("MoveTo", Flags).Invoke(null, new object[] { x, y }); answer = "moved"; } else if (mode == "press") { install.Invoke(null, new object[] { false }); vi.GetMethod("Press", Flags).Invoke(null, new object[] { button }); answer = "pressed"; } else if (mode == "release") { vi.GetMethod("Release", Flags).Invoke(null, new object[] { button }); answer = "released"; } else if (mode == "clear") { vi.GetMethod("Clear", Flags).Invoke(null, null); answer = "cleared"; } else if (mode == "clear-buttons") { vi.GetMethod("ClearButtons", Flags).Invoke(null, null); answer = "buttons cleared"; } else if (mode == "uninstall") { vi.GetMethod("Uninstall", Flags).Invoke(null, null); answer = "uninstalled"; } else if (mode == "report") { answer = "reported"; } else { return "{\"ok\":false,\"error\":\"bad-mode\",\"detail\":\"install, move, press, release, clear, clear-buttons, uninstall or report\"}"; } var installed = (bool)vi.GetProperty("Installed", Flags).GetValue(null, null); var patches = (int)vi.GetProperty("ButtonPatches", Flags).GetValue(null, null); var held = UnityEngine.Input.GetMouseButton(button); var down = UnityEngine.Input.GetMouseButtonDown(button); var up = UnityEngine.Input.GetMouseButtonUp(button); var px = "-1"; var py = "-1"; var tryGet = vi.GetMethod("TryGetStaged", Flags); if (tryGet != null) { var staged = new object[] { null }; if ((bool)tryGet.Invoke(null, staged)) { var v = (UnityEngine.Vector3)staged[0]; px = v.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture); py = v.y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture); } } var input = UnityEngine.Input.mousePosition; var text = (answer ?? "").Replace("\\", "/").Replace("\"", "''"); return "{\"ok\":true,\"mode\":\"" + mode + "\",\"answer\":\"" + text + "\",\"installed\":" + (installed ? "true" : "false") + ",\"buttonPatches\":" + patches.ToString(System.Globalization.CultureInfo.InvariantCulture) + ",\"held\":" + (held ? "true" : "false") + ",\"down\":" + (down ? "true" : "false") + ",\"up\":" + (up ? "true" : "false") + ",\"pointerX\":\"" + px + "\",\"pointerY\":\"" + py + "\",\"inputX\":\"" + input.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "\",\"inputY\":\"" + input.y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "\"}"; }))()

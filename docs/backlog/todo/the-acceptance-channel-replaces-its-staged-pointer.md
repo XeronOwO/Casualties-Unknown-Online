@@ -27,6 +27,7 @@ verified live on 2026-10-27:
 | `virtual-input mode=install` | `installed: true`, `inputAnswers: 1634,-159` (the real pointer) |
 | `mode=move x=640 y=360` | `pointer: 640,360`, `inputAnswers: 640,360` — the game's own read answers the staged value while the real pointer stayed at 1634,-159 |
 | `mode=uninstall` | `installed: false`, `inputAnswers: 1709,54` — the real pointer again |
+| `mode=press button=0` (2026-10-27, native backend) | `held: true, down: true, up: false` in the press frame, with the real mouse NOT pressed; a later call reads `held: true, down: false, up: false`; `mode=release` reads `up: true` for its frame only |
 
 With that, a batch can put the REAL pointer where it wants and let the game's own `EventSystem`, `PlayerCamera` and UI code answer it — which is what the
 hand-staged seams were standing in for.
@@ -51,4 +52,6 @@ hand-staged seams were standing in for.
 
 ## Limits
 
-- Buttons are icall on this build; a click needs the game's own managed entry (or a batch-authorised OS input), and this ticket does not change that.
+- ~~Buttons are icall and cannot be patched~~ **WRONG, corrected 2026-10-27**: the three button methods ARE patched through HarmonyX's native detour
+  backend (`buttonPatches: 3`), and a staged press answers `held/down/up` exactly as a real one would. Harmony and MonoMod load as `0Harmony 2.9.0.0`
+  plus MonoMod assemblies from the BepInEx core. The batch's remaining work is the REAL behaviour rows below, not the button channel.

@@ -265,8 +265,8 @@ public sealed class LocalizationCatalogueGateTests
 		var source = """var label = ctx.T($"alpha.color.{name}");""";
 		var census = Census(source);
 		AssertSame(
-			["alpha.color."],
-			census.Prefixes,
+			["alpha.color.|"],
+			census.Spaces.Select(space => space.Prefix + "|" + space.Suffix),
 			"an interpolated argument names a key space, not one key");
 		AssertSame([], census.Keys, "an interpolated argument names no key of its own");
 	}
@@ -296,11 +296,23 @@ public sealed class LocalizationCatalogueGateTests
 	}
 
 	[Fact]
-	public void TheCensus_IgnoresAnInteriorHoleInterpolation()
+	public void TheCensus_ReadsAMiddleHoleAsAPrefixAndSuffixSpace()
 	{
 		var source = "var title = ctx.T($\"alpha.{kind}.title\");";
 		var census = Census(source);
-		AssertSame([], census.Prefixes, "a hole that does not end the literal names no key space");
+		AssertSame(
+			["alpha.|.title"],
+			census.Spaces.Select(space => space.Prefix + "|" + space.Suffix),
+			"a hole in the MIDDLE names a space with a suffix, which is what a per-name entry family looks like");
+		AssertSame([], census.Keys, "and it names no key of its own");
+	}
+
+	[Fact]
+	public void TheCensus_ReadsNoSpaceFromAHoleThatSplicesLetters()
+	{
+		var source = "var title = ctx.T($\"alpha{kind}title\");";
+		var census = Census(source);
+		AssertSame([], census.Spaces.Select(space => space.Prefix + "|" + space.Suffix), "a hole between letters names no space");
 		AssertSame([], census.Keys, "and it names no key of its own");
 	}
 
@@ -377,8 +389,15 @@ public sealed class LocalizationCatalogueGateTests
 		return [.. Census(sourceText).Keys.Where(key => !declared.Contains(key)).OrderBy(key => key, StringComparer.Ordinal)];
 	}
 
-	private static bool IsRead(string key, (HashSet<string> Keys, HashSet<string> Prefixes, int Unresolved) census) =>
-		census.Keys.Contains(key) || census.Prefixes.Any(prefix => key.StartsWith(prefix, StringComparison.Ordinal));
+	/// <summary>
+	/// Whether a declared key is read: named outright, or covered by a key SPACE — the prefix matches and the suffix (when the space has one)
+	/// ends the key. A space with a prefix only is the older shape (<c>$"prefs.color.{name}"</c>); the suffix form is the one a per-name entry
+	/// family needs (<c>console.cmd.&lt;name&gt;.desc</c>).
+	/// </summary>
+	private static bool IsRead(string key, (HashSet<string> Keys, List<(string Prefix, string Suffix)> Spaces, int Unresolved) census) =>
+		census.Keys.Contains(key)
+		|| census.Spaces.Any(space => key.StartsWith(space.Prefix, StringComparison.Ordinal)
+			&& (space.Suffix.Length == 0 || key.EndsWith(space.Suffix, StringComparison.Ordinal)));
 
 	private static HashSet<string> DeclaredKeySet(string catalogueText, string? chineseText = null)
 	{
@@ -421,28 +440,25 @@ public sealed class LocalizationCatalogueGateTests
 	/// limit rather than a silent pass: a key only such a site can produce is reported as unread, which
 	/// is the loud direction.
 	/// </summary>
-	private static (HashSet<string> Keys, HashSet<string> Prefixes, int Unresolved) Census(string sourceText)
+	private static (HashSet<string> Keys, List<(string Prefix, string Suffix)> Spaces, int Unresolved) Census(string sourceText)
 	{
 		var flattened = SourceScan.Flatten(sourceText);
 		var keys = new HashSet<string>(StringComparer.Ordinal);
-		var prefixes = new HashSet<string>(StringComparer.Ordinal);
+		var spaces = new List<(string Prefix, string Suffix)>();
 		var unresolved = 0;
 		foreach (var argument in SourceScan.MemberCallArguments(flattened, Accessors))
 		{
 			var keyArgument = FirstArgument(argument);
 			var literals = PlainKeyLiterals(keyArgument);
-			var spaces = KeyPrefixes(keyArgument);
+			var keySpaces = KeySpaces(keyArgument);
 			foreach (var key in literals)
 			{
 				keys.Add(key);
 			}
 
-			foreach (var prefix in spaces)
-			{
-				prefixes.Add(prefix);
-			}
+			spaces.AddRange(keySpaces);
 
-			if (literals.Length == 0 && spaces.Length == 0 && !CarriesADeclaredKey(keyArgument))
+			if (literals.Length == 0 && keySpaces.Length == 0 && !CarriesADeclaredKey(keyArgument))
 			{
 				unresolved++;
 			}
@@ -484,7 +500,7 @@ public sealed class LocalizationCatalogueGateTests
 			}
 		}
 
-		return (keys, prefixes, unresolved);
+		return (keys, spaces, unresolved);
 	}
 
 	/// <summary>Every plain string literal in <paramref name="text"/> whose content is key-shaped.</summary>
@@ -605,11 +621,16 @@ public sealed class LocalizationCatalogueGateTests
 		return seen == index ? argument.Substring(start) : "";
 	}
 
-	/// <summary>The key spaces the interpolated literals in <paramref name="text"/> open: the literal
-	/// text before the first <c>{</c>, when that fragment is itself a dotted key fragment.</summary>
-	private static string[] KeyPrefixes(string text)
+	/// <summary>
+	/// The key spaces the interpolated literals in <paramref name="text"/> open — the literal text around its first hole, when both halves are
+	/// dotted key fragments. A hole at the END names a space by its PREFIX (<c>$"prefs.color.{name}"</c>); a hole in the MIDDLE names the same kind
+	/// of space with a SUFFIX (<c>$"console.cmd.{name}.desc"</c>), which is what a rule about a key family looks like when the family is a
+	/// per-name entry rather than a per-name prefix. Both are a family with one reader; a hole that neither starts nor ends a dotted fragment is
+	/// opaque and opens nothing.
+	/// </summary>
+	private static (string Prefix, string Suffix)[] KeySpaces(string text)
 	{
-		var prefixes = new List<string>();
+		var spaces = new List<(string Prefix, string Suffix)>();
 		for (var i = 1; i < text.Length; i++)
 		{
 			if (text[i] != '"' || text[i - 1] != '$')
@@ -620,25 +641,27 @@ public sealed class LocalizationCatalogueGateTests
 			var end = SourceScan.LiteralEnd(text, i);
 			var body = text.Substring(i + 1, Math.Max(0, end - i - 2));
 			var brace = body.IndexOf('{');
-			var close = brace >= 0 ? body.IndexOf('}', brace) : -1;
-			if (close != body.Length - 1)
+			if (brace < 0)
 			{
-				// Only a hole that ENDS the literal names a key space. An interior hole would
-				// otherwise open a prefix that keeps every declared key under it alive with no
-				// reader, which is the silent direction.
+				i = end - 1;
 				continue;
 			}
 
+			var close = body.IndexOf('}', brace);
 			var prefix = body.Substring(0, brace);
-			if (SourceScan.KeyPrefixShape.IsMatch(prefix))
+			var suffix = close >= 0 && close < body.Length - 1 ? body.Substring(close + 1) : "";
+			var closed = close >= 0;
+
+			// The suffix must begin at a dot, so the two halves cannot be spliced into a key of a different family.
+			if (closed && SourceScan.KeyPrefixShape.IsMatch(prefix) && (suffix.Length == 0 || suffix.StartsWith(".", StringComparison.Ordinal)))
 			{
-				prefixes.Add(prefix);
+				spaces.Add((prefix, suffix));
 			}
 
 			i = end - 1;
 		}
 
-		return [.. prefixes];
+		return [.. spaces];
 	}
 
 	/// <summary>The key-shaped literals a helper method returns: its declaration through the closing

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,7 @@ internal sealed class ItemGiveCommands(
 	{
 		if (args.Count < 2)
 		{
-			return ConsoleAnswer.Refused($"Usage: {ItemGiveParser.Usage}");
+			return ConsoleAnswer.Refused($"Usage: {ItemGiveParser.Usage}", "give.answer.usage", ItemGiveParser.Usage);
 		}
 
 		var tokens = new List<string>(args.Count - 1);
@@ -68,7 +69,7 @@ internal sealed class ItemGiveCommands(
 		{
 			_log.LogWarning("[Command] /give refused: the selector '{Selector}' matched {Count} bodies ({Owners}).",
 				request.Selector, owners.Count, ItemDataTargets.Owners(owners));
-			return ConsoleAnswer.Refused($"That selector matched {owners.Count} bodies ({ItemDataTargets.Owners(owners)}) — /give names ONE body, so name one player: @p, a selector with [limit=1], or the player's id.");
+			return ConsoleAnswer.Refused($"That selector matched {owners.Count} bodies of {ItemDataTargets.Owners(owners)} — /give names ONE body, so name one player: @p, a selector with [limit=1], or the player's id.", "give.answer.refused_many_bodies", owners.Count.ToString(CultureInfo.InvariantCulture), ItemDataTargets.Owners(owners));
 		}
 
 		return ConsoleAnswer.Ok(_playerInteraction.GiveItem(owners[0], request.DefinitionId, request.Slot, request.StateText));

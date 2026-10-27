@@ -362,5 +362,19 @@
   "rules.answer.current": "Game rule {0} is currently set to: {1}.",
   "cheat.refused.no_session": "No active session — a cheat verb needs one: the host's own permission is the online switch, and a member's is the host's grant for the session. /{0} did nothing here.",
   "cheat.refused.switch_closed": "Refused locally: the host's cheat switch ({0}) is off, so no member may run a cheat verb (the host announces its rules to this client). Nothing was done here.",
-  "cheat.refused.not_on_roster": "Refused locally: the host's cheat roster (announced to this client) does not name you, so /{0} cannot land. The host grants it with /op. Nothing was done here."
+  "cheat.refused.not_on_roster": "Refused locally: the host's cheat roster (announced to this client) does not name you, so /{0} cannot land. The host grants it with /op. Nothing was done here.",
+  "gamemode.answer.unknown": "Unknown mode '{0}'. Usage: /gamemode survivor|spectator",
+  "selector.answer.no_match": "No players match selector '{0}'.",
+  "selector.answer.matches_many": "Selector '{0}' matches {1} players; name one of them.",
+  "spectator.answer.watching": "Watching {0}.",
+  "spectator.answer.refused": "Cannot watch that member: this client is not in spectator mode (/gamemode spectator), or their body is not here to follow.",
+  "give.answer.usage": "Usage: {0}",
+  "give.answer.refused_many_bodies": "That selector matched {0} bodies of {1} — /give names ONE body, so name one player: @p, a selector with [limit=1], or the player's id.",
+  "data.answer.usage": "Usage: {0}",
+  "data.answer.unknown_verb": "Unknown /data verb '{0}'. The verbs are {1}. Usage: {2}",
+  "data.answer.no_item": "No item #{0} is recorded in this session.",
+  "data.answer.modify_needs_path": "modify needs a path inside the state — the whole state is not replaced; merge its keys with /data merge. Usage: {0}",
+  "data.answer.remove_needs_path": "remove needs a path inside the state — the whole state is not removable. Usage: {0}",
+  "summon.answer.usage": "Usage: {0}",
+  "save.answer.refused": "Cannot save: {0}."
 }

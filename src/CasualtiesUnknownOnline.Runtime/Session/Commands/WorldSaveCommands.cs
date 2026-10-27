@@ -33,7 +33,7 @@ internal sealed class WorldSaveCommands(
 		if (!_saves.TryRequestCut(WorldCutReason.Command, out var refusal))
 		{
 			_log.LogWarning("[Command] /save refused: {Refusal}", refusal);
-			return ConsoleAnswer.Refused($"Cannot save: {refusal}.");
+			return ConsoleAnswer.Refused($"Cannot save: {refusal}.", "save.answer.refused", refusal ?? "");
 		}
 
 		_log.LogInformation("[Command] /save armed a cut for the pump's last step.");

@@ -389,9 +389,9 @@ internal sealed class CommandConsoleOverlay
 	};
 
 	/// <summary>
-	/// One command's one-line description in the reader's language. Every key is a LITERAL handed straight to <c>ctx.T</c>, which is the shape the
-	/// localisation census reads: it can then prove each catalogue entry has a reader, which a name-shaped interpolation (`console.cmd.{name}.desc`)
-	/// could not. A command with no entry answers null rather than showing English.
+	/// One command's one-line description in the reader's language, or null when the catalogue has no entry (a hint never shows a key). Every key is a
+	/// LITERAL handed straight to <c>ctx.T</c>, which is the shape the localisation census reads, so it can prove each catalogue entry has a reader; a
+	/// command the table does not name answers null and the hint row shows nothing rather than English.
 	/// </summary>
 	private static string? CommandHint(OnlineUiContext ctx, string command) => command switch
 	{

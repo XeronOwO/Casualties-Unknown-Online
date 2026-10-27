@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -82,23 +83,26 @@ internal sealed class SpectatorCommands(
 		var targets = CommandPlayerTargets.Resolve(_session, _entities, args[1]);
 		if (targets.Count == 0)
 		{
-			return ConsoleAnswer.Refused($"No players match selector '{args[1]}'.");
+			return ConsoleAnswer.Refused($"No players match selector '{args[1]}'.", "selector.answer.no_match", args[1]);
 		}
 
 		if (targets.Count > 1)
 		{
 			// One camera, one body: following several is not a thing the game's camera can do, and picking the
 			// first match for the player would be the fallback the entry-mapping rule forbids.
-			return ConsoleAnswer.Refused($"Selector '{args[1]}' matches {targets.Count} players; name one of them.");
+			return ConsoleAnswer.Refused($"Selector '{args[1]}' matches {targets.Count} players; name one of them.", "selector.answer.matches_many", args[1], Count(targets.Count));
 		}
 
 		if (!spectator.TryWatch(targets[0]))
 		{
 			_log.LogInformation("[Command] /spectate {Selector} was refused: nothing to watch from this client's state.", args[1]);
-			return ConsoleAnswer.Refused("Cannot watch that member: this client is not in spectator mode (/gamemode spectator), or their body is not here to follow.");
+			return ConsoleAnswer.Refused("Cannot watch that member: this client is not in spectator mode (/gamemode spectator), or their body is not here to follow.", "spectator.answer.refused");
 		}
 
 		_log.LogInformation("[Command] /spectate is now following {SteamId}.", targets[0]);
-		return ConsoleAnswer.Ok($"Watching {targets[0]}.");
+		return ConsoleAnswer.Ok($"Watching {targets[0]}.", "spectator.answer.watching", targets[0].ToString(CultureInfo.InvariantCulture));
 	}
+
+	/// <summary>A count as the catalogue's argument form (invariant digits, so the sentence reads the same on every machine).</summary>
+	private static string Count(int value) => value.ToString(CultureInfo.InvariantCulture);
 }

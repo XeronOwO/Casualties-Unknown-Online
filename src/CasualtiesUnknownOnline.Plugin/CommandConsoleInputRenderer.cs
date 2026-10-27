@@ -39,9 +39,13 @@ internal sealed class CommandConsoleInputRenderer
 
 		if (ShouldDrawCaret() && session.IsOpen)
 		{
+			// Measured with the SAME style the glyphs are DRAWN with (zero padding, no background). The input style carries padding, and
+			// `CalcSize` lays the content out the way the style would, padding included — so measuring the prefix with it put the caret one
+			// padding PAST the text it follows (a constant offset the player reads as "the cursor is misaligned", reported twice).
+			var draw = SegmentStyle();
 			var cursor = session.Cursor;
 			var prefix = session.Input.Substring(0, cursor);
-			var width = style.CalcSize(new GUIContent(prefix)).x;
+			var width = draw.CalcSize(new GUIContent(prefix)).x;
 			var caretRect = new Rect(
 				rect.x + style.padding.left + width,
 				rect.y + 4f,
@@ -85,10 +89,11 @@ internal sealed class CommandConsoleInputRenderer
 			return;
 		}
 
-		var caretX = rect.x + style.padding.left + style.CalcSize(new GUIContent(session.Input.Substring(0, session.Cursor))).x;
+		var draw = SegmentStyle();
+		var caretX = rect.x + style.padding.left + draw.CalcSize(new GUIContent(session.Input.Substring(0, session.Cursor))).x;
 		var previous = GUI.color;
 		GUI.color = OnlineUiTheme.Muted;
-		GUI.Label(new Rect(caretX, rect.y, style.CalcSize(new GUIContent(ime.Composition)).x, rect.height), ime.Composition, style);
+		GUI.Label(new Rect(caretX, rect.y, draw.CalcSize(new GUIContent(ime.Composition)).x, rect.height), ime.Composition, draw);
 		GUI.color = previous;
 	}
 
@@ -99,7 +104,7 @@ internal sealed class CommandConsoleInputRenderer
 			return;
 		}
 
-		var caretX = rect.x + style.padding.left + style.CalcSize(new GUIContent(session.Input.Substring(0, session.Cursor))).x;
+		var caretX = rect.x + style.padding.left + SegmentStyle().CalcSize(new GUIContent(session.Input.Substring(0, session.Cursor))).x;
 		// GUI rects use a top-left origin; the legacy Input IME position uses
 		// screen coordinates, so convert the caret's vertical center.
 		Input.compositionCursorPos = new Vector2(caretX, Screen.height - (rect.y + (rect.height * 0.5f)));
@@ -107,10 +112,11 @@ internal sealed class CommandConsoleInputRenderer
 
 	private static void DrawSelectionBackground(Rect rect, ConsoleInputSession session, GUIStyle style)
 	{
+		var draw = SegmentStyle();
 		var start = session.SelectionStart;
 		var end = session.SelectionEnd;
-		var startX = rect.x + style.padding.left + style.CalcSize(new GUIContent(session.Input.Substring(0, start))).x;
-		var endX = rect.x + style.padding.left + style.CalcSize(new GUIContent(session.Input.Substring(0, end))).x;
+		var startX = rect.x + style.padding.left + draw.CalcSize(new GUIContent(session.Input.Substring(0, start))).x;
+		var endX = rect.x + style.padding.left + draw.CalcSize(new GUIContent(session.Input.Substring(0, end))).x;
 		var previous = GUI.color;
 		GUI.color = new Color(0.35f, 0.55f, 0.85f, 0.35f);
 		GUI.DrawTexture(new Rect(startX, rect.y + 3f, Mathf.Max(0f, endX - startX), rect.height - 6f), Texture2D.whiteTexture);
@@ -203,13 +209,15 @@ internal sealed class CommandConsoleInputRenderer
 
 	private static int GetCursorAtMouse(Rect rect, ConsoleInputSession session, Vector2 mouse)
 	{
+		// The same style the glyphs are drawn with: a click must land where the character under the pointer IS, not one padding to its right.
 		var style = InputStyle();
+		var draw = SegmentStyle();
 		var text = session.Input;
 		var best = 0;
 		var bestDistance = float.MaxValue;
 		for (var i = 0; i <= text.Length; i++)
 		{
-			var width = style.CalcSize(new GUIContent(text.Substring(0, i))).x;
+			var width = draw.CalcSize(new GUIContent(text.Substring(0, i))).x;
 			var x = rect.x + style.padding.left + width;
 			var distance = Mathf.Abs(mouse.x - x);
 			if (distance < bestDistance)

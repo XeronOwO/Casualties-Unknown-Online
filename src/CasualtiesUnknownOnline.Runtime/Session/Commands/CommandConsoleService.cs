@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -54,6 +55,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IHealResetControl _healReset;
 	private readonly AnnouncedHostRules _hostRules;
 	private readonly IHostRuleChangeControl _hostRuleChanges;
+	private readonly ILocalizationService? _localization;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -82,7 +84,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		CheatPermissions cheatRoster,
 		ICheatPermissionAnnouncement cheatAnnouncement,
 		IWorldControl world,
-		ISpectatorControl? spectator = null)
+		ISpectatorControl? spectator = null,
+		ILocalizationService? localization = null)
 	{
 		_chat = chat;
 		_session = session;
@@ -98,6 +101,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_healReset = healReset;
 		_hostRules = hostRules;
 		_hostRuleChanges = hostRuleChanges;
+		_localization = localization;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += ResetSessionState;
 		// The console is the player's surface for the save system's three answers: the
@@ -421,8 +425,11 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// must not teach a word by help and then pretend it does not exist. The list above hides the same
 		// commands, so a player who reads /help never learns one the console would refuse.
 		return _authority.TryRefusal(command)
-			?? ConsoleAnswer.Ok($"/{command.Name} — {command.Description}\nUsage: {command.Usage}");
+			?? ConsoleAnswer.Ok($"/{command.Name} — {Describe(command.Name)}\nUsage: {command.Usage}");
 	}
+
+	/// <summary>One command's one-line description in the reader's language (see <see cref="CommandDescriptions"/>).</summary>
+	private string Describe(string name) => CommandDescriptions.Of(_localization, name, FindCommand(name)?.Description);
 
 	[ConsoleCommand("clear", "Clear the console output.", CommandPermission.Anyone, "/clear")]
 	private ConsoleAnswer ClearCommand(IReadOnlyList<string> _)
@@ -542,7 +549,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		{
 			if (_authority.MayRun(command))
 			{
-				names.Add($"/{command.Name} — {command.Description}");
+				names.Add($"/{command.Name} — {Describe(command.Name)}");
 			}
 		}
 

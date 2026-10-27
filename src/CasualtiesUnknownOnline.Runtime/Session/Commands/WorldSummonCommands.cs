@@ -30,7 +30,7 @@ internal sealed class WorldSummonCommands(IWorldSummonControl summon, CheatVerbG
 	{
 		if (args.Count < 2)
 		{
-			return ConsoleAnswer.Refused($"Usage: {WorldSummonParser.Usage}");
+			return ConsoleAnswer.Refused($"Usage: {WorldSummonParser.Usage}", "summon.answer.usage", WorldSummonParser.Usage);
 		}
 
 		var tokens = new List<string>(args.Count - 1);

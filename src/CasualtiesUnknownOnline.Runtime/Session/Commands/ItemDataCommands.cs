@@ -54,7 +54,7 @@ internal sealed class ItemDataCommands(
 	{
 		if (args.Count < 2)
 		{
-			return ConsoleAnswer.Refused($"Usage: {ItemDataVerbParser.Usage}");
+			return ConsoleAnswer.Refused($"Usage: {ItemDataVerbParser.Usage}", "data.answer.usage", ItemDataVerbParser.Usage);
 		}
 
 		var tail = Tail(args, 2);
@@ -64,7 +64,7 @@ internal sealed class ItemDataCommands(
 			ItemDataVerbParser.MergeOperation => _writes.Merge(tail),
 			ItemDataVerbParser.ModifyOperation => _writes.Modify(tail),
 			ItemDataVerbParser.RemoveOperation => _writes.Remove(tail),
-			_ => ConsoleAnswer.Refused($"Unknown /data verb '{args[1]}'. The verbs are {Verbs}. Usage: {ItemDataVerbParser.Usage}"),
+			_ => ConsoleAnswer.Refused($"Unknown /data verb '{args[1]}'. The verbs are {Verbs}. Usage: {ItemDataVerbParser.Usage}", "data.answer.unknown_verb", args[1], Verbs, ItemDataVerbParser.Usage),
 		};
 	}
 
@@ -90,7 +90,7 @@ internal sealed class ItemDataCommands(
 	{
 		if (!rows.TryGetValue(instanceId, out var item))
 		{
-			return ConsoleAnswer.Refused($"No item #{instanceId} is recorded in this session.");
+			return ConsoleAnswer.Refused($"No item #{instanceId} is recorded in this session.", "data.answer.no_item", instanceId.ToString(CultureInfo.InvariantCulture));
 		}
 
 		if (!_language.TryDescribe(item.Data, out var document))

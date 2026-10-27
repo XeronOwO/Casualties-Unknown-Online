@@ -68,6 +68,6 @@ internal sealed class GamemodeCommands(
 			return ConsoleAnswer.Ok("Normal play.");
 		}
 
-		return ConsoleAnswer.Refused($"Unknown mode '{args[1]}'. Usage: /gamemode survivor|spectator");
+		return ConsoleAnswer.Refused($"Unknown mode '{args[1]}'. Usage: /gamemode survivor|spectator", "gamemode.answer.unknown", args[1]);
 	}
 }

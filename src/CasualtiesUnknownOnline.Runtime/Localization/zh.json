@@ -362,5 +362,19 @@
   "rules.answer.current": "游戏规则 {0} 当前设置为：{1}。",
   "cheat.refused.no_session": "没有进行中的会话——作弊指令需要一局：主机自己的权限就是联机开关，成员的是主机为这一局授予的权限。/{0} 没有做任何事。",
   "cheat.refused.switch_closed": "本地拒绝：主机关闭了作弊开关（{0}），因此任何成员都不能运行作弊指令（主机会把规则广播给本客户端）。什么都没做。",
-  "cheat.refused.not_on_roster": "本地拒绝：主机广播的作弊名单里没有你，所以 /{0} 无法生效。主机用 /op 授予。什么都没做。"
+  "cheat.refused.not_on_roster": "本地拒绝：主机广播的作弊名单里没有你，所以 /{0} 无法生效。主机用 /op 授予。什么都没做。",
+  "gamemode.answer.unknown": "未知模式'{0}'。用法：/gamemode survivor|spectator",
+  "selector.answer.no_match": "没有玩家匹配选择器'{0}'。",
+  "selector.answer.matches_many": "选择器'{0}'匹配到 {1} 名玩家；请指定其中一位。",
+  "spectator.answer.watching": "正在观战 {0}。",
+  "spectator.answer.refused": "无法观战该成员：本客户端不在观战模式（/gamemode spectator），或者对方的身躯不在这里可供跟随。",
+  "give.answer.usage": "用法：{0}",
+  "give.answer.refused_many_bodies": "该选择器匹配到 {1} 的 {0} 个角色——/give 只接受一个角色，请指定一名玩家：@p、带 [limit=1] 的选择器，或玩家的 id。",
+  "data.answer.usage": "用法：{0}",
+  "data.answer.unknown_verb": "未知的 /data 子命令'{0}'。可用子命令：{1}。用法：{2}",
+  "data.answer.no_item": "本局没有记录编号 #{0} 的物品。",
+  "data.answer.modify_needs_path": "modify 需要指向状态内部的一个位置——整个状态不会被替换；要合并键请用 /data merge。用法：{0}",
+  "data.answer.remove_needs_path": "remove 需要指向状态内部的一个位置——整个状态不能删除。用法：{0}",
+  "summon.answer.usage": "用法：{0}",
+  "save.answer.refused": "无法保存：{0}。"
 }

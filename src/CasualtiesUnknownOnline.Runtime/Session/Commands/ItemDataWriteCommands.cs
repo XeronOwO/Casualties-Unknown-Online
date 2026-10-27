@@ -85,7 +85,7 @@ internal sealed class ItemDataWriteCommands(
 
 		if (request.Path.IsRoot)
 		{
-			return ConsoleAnswer.Refused($"modify needs a path inside the state — the whole state is not replaced; merge its keys with /data merge. Usage: {ItemDataVerbParser.Usage}");
+			return ConsoleAnswer.Refused($"modify needs a path inside the state — the whole state is not replaced; merge its keys with /data merge. Usage: {ItemDataVerbParser.Usage}", "data.answer.modify_needs_path", ItemDataVerbParser.Usage);
 		}
 
 		return Write(ItemDataVerbParser.ModifyOperation, request.Target, before =>
@@ -101,7 +101,7 @@ internal sealed class ItemDataWriteCommands(
 
 		if (request.Path.IsRoot)
 		{
-			return ConsoleAnswer.Refused($"remove needs a path inside the state — the whole state is not removable. Usage: {ItemDataVerbParser.Usage}");
+			return ConsoleAnswer.Refused($"remove needs a path inside the state — the whole state is not removable. Usage: {ItemDataVerbParser.Usage}", "data.answer.remove_needs_path", ItemDataVerbParser.Usage);
 		}
 
 		return Write(ItemDataVerbParser.RemoveOperation, request.Target, before =>

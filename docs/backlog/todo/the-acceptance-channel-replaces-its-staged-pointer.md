@@ -27,6 +27,7 @@ verified live on 2026-10-27:
 | `virtual-input mode=install` | `installed: true`, `inputAnswers: 1634,-159` (the real pointer) |
 | `mode=move x=640 y=360` | `pointer: 640,360`, `inputAnswers: 640,360` — the game's own read answers the staged value while the real pointer stayed at 1634,-159 |
 | `mode=uninstall` | `installed: false`, `inputAnswers: 1709,54` — the real pointer again |
+| `mode=press button=0`, six-method build (2026-10-27) | the game's OWN click path answers too: `keyHeld: true, keyDown: true, keyUp: false` for `Input.GetKey(KeyCode.Mouse0)` — which is what `KeyBinds.GetBind("attack")` = `323 / Mouse0` makes the game read — next to `held/down/up: true/true/false`; `mode=release` gives `keyUp: true` for its frame only |
 | `mode=press button=0` (2026-10-27, native backend) | `held: true, down: true, up: false` in the press frame, with the real mouse NOT pressed; a later call reads `held: true, down: false, up: false`; `mode=release` reads `up: true` for its frame only |
 
 With that, a batch can put the REAL pointer where it wants and let the game's own `EventSystem`, `PlayerCamera` and UI code answer it — which is what the

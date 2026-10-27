@@ -1,6 +1,6 @@
 # The acceptance channel's hand-staged pointer is replaced by the virtual pointer
 
-- Status: Todo — opened 2026-10-27 after the virtual pointer was verified live (user's direction: "if it succeeds, the old mouse-wrapper
+- Status: Done — opened 2026-10-27 after the virtual pointer was verified live (user's direction: "if it succeeds, the old mouse-wrapper
   stand-ins can be removed").
 - Priority: High — every hand-staged pointer is a place where the batch proves something the game never did.
 - Category: Acceptance tooling / input
@@ -47,9 +47,9 @@ hand-staged seams were standing in for.
 
 | Row | The check |
 |---|---|
-| 1 | One gesture row is judged with the pointer staged and NO synthetic cast: the game's own `EventSystem` raycast picks the target |
-| 2 | `DragUseCenter.StagedPointer` and `stage-pointer` are gone, and the centre-use row is judged with the virtual pointer instead |
-| 3 | The recipes' help text no longer offers a synthetic cast, or names it as a diagnostic that is never a row's evidence |
+| 1 | One gesture row is judged with the pointer staged and NO synthetic cast: the game's own `EventSystem` raycast picks the target | **PASS 2026-10-27**: two rows — the ring-slot press (`drag-state` → `dragging: true, dragType: "Item"` at `mouseX 773, mouseY 477`) and the centre release (`[RemoteIntent] UseItem captured`) — both driven by `virtual-input` with no `cast=` argument anywhere in the batch |
+| 2 | `DragUseCenter.StagedPointer` and `stage-pointer` are gone, and the centre-use row is judged with the virtual pointer instead | **PASS 2026-10-27**: the seam and its recipe are removed (commit `b5001e8b`), `IsUnderPointer` reads `Input.mousePosition`, and the centre-use row was then judged with the pointer moved by `virtual-input` |
+| 3 | The recipes' help text no longer offers a synthetic cast, or names it as a diagnostic that is never a row's evidence | **PASS 2026-10-27**: `remote-gesture`'s header now labels `cast=` "DIAGNOSTIC, never a row's evidence" and explains that it builds the uiCasts list the game's release would receive, so a row judged through it proves the intent path but not the pointer |
 
 ## Limits
 

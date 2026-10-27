@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [The hand-staged pointer gives way to the virtual pointer](todo/the-acceptance-channel-replaces-its-staged-pointer.md) — **High** — new.
 
 
 
@@ -166,6 +165,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [The hand-staged pointer gives way to the virtual pointer](done/the-acceptance-channel-replaces-its-staged-pointer.md) — **High** — done.
 
 - [A drag out of a backpack drops the item](done/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — done.
 

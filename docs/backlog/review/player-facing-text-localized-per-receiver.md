@@ -90,3 +90,15 @@ The game's own console prompt ("Enter command (type help for command list)") is 
 siblings). Those 42 are the family row 1 fails on: each names a fact (an unknown member, a rule, an item, a position) and each is read by a client that may
 have the other language. The ticket''s next work item is the same shape the five starting-supply keys already use — one key per answer with its arguments in
 `en.json`/`zh.json` — and the census above is the work list, not a sample.
+
+## Two families now read Chinese on a Chinese client (2026-10-27, frames)
+
+| Family | Before | After (captured frame) |
+|---|---|---|
+| `/gamerule` unknown rule | `Unknown game rule 'duelSpawn'. Known rules: …` | `未知游戏规则'duelSpawn'。已知规则：allow_late_join, …` |
+| the cheat gate''s three refusals | `No active session — a cheat verb needs one: …` | `没有进行中的会话——作弊指令需要一局：主机自己的权限就是联机开关，成员的是主机为这一局授予的权限。/give 没有做任何事。` |
+
+Two causes had to fall, and the second one is the lesson: the answers had no key, AND `ConsoleLineText.Resolve` resolved only a switch over six
+`console.*` literals — so even a keyed answer printed English. Identifiers (`/give`, rule ids) stay as they are; only the sentence shell is translated.
+
+What is left of row 1 is the raw-answer census the gate budgets (42 at the last count), one family per commit.

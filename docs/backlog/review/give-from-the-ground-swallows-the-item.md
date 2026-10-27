@@ -121,9 +121,9 @@ by the item existing exactly once, in the receiver's inventory, with the giver's
 
 | Row | The check | State |
 |---|---|---|
-| 1 | A ground item dragged onto a teammate ends in that teammate's inventory (the item exists exactly once, in the receiver's custody) | not run |
+| 1 | A ground item dragged onto a teammate ends in that teammate's inventory (the item exists exactly once, in the receiver's custody) | **PASS 2026-10-27** (deployed): `give-probe mode=give-world` handed a world plastic chunk to the guest, whose own body census then listed `slot0=plasticchunk#1421955155907` and whose row reads `Carried`, owner = the guest — one instance, in the receiver's custody |
 | 2 | A ground item released anywhere else keeps the native behaviour (it lands where the game puts it) | not run |
-| 3 | A body with no free slot answers the release by name instead of losing the item | not run |
+| 3 | A body with no free slot keeps both items (user ruling 2026-10-27: the aimed slot's occupant drops into the world, the native slot-release rule) | **PASS 2026-10-27** (deployed): the guest's six slots were all full and the aimed slot 0 held a lantern; the give landed the chunk in slot 0 and the lantern's row became `World` — both items exist, neither is lost. The earlier "refuse by name" wording was the design's guess and the user replaced it with the native rule |
 | 4 | A ground item whose definition is hand-only follows the native hand rule | not run |
 
 ## Limits

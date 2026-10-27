@@ -117,6 +117,10 @@ all — and slot 0 is a legal destination. The placement answer and the placemen
 compares or commits. The defect this removes: a give whose receiver answered "slot 0" arrived as the field's default, the host read it as "accepted
 without naming a slot or a container", and the hand-over was refused by name while nothing moved (measured 2026-10-26 with the in-process release; the
 same trap `CharacterDataMsg.HandSlot` documents).
+**A give into an OCCUPIED slot follows the native slot-release rule: the aimed slot's occupant drops into the world and the given item takes the
+slot.** A receiver whose body is full is not a refusal case — the player aimed at a slot, and the game's own rule for an occupied slot is to displace
+the occupant (user ruling 2026-10-27, after a full body was measured keeping both items: the given chunk in slot 0 and the displaced lantern's row
+`World`). The design's earlier "refuse when there is no room" guess is superseded.
 **A release names ONE destination, and the applier reads that one value.** A hand-over's destination is either a body slot or a container — never
 both, never neither — and the receiver's placement branch consumes the SAME value the sender's release named. The rule exists because the two operands
 travelled separately and one branch read only the slot: a ground item dropped into a teammate's trashbag landed in their body instead, because the

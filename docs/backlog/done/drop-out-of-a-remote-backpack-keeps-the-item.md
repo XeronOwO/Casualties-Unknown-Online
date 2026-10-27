@@ -1,6 +1,6 @@
 # A ground item dragged into an opened remote backpack lands in the LOCAL body (and disappears from the player's view)
 
-- Status: Review — the proxy half is fixed (2026-10-26, `PlayerCameraDragUsePatch` clears the drag so the native body never mutates a display proxy); the machine row is owed. Original report: from the user's report (2026-10-26, translated): "I put it in the trashbag indirectly, then dragged it straight out to the screen edge to
+- Status: Done — the proxy half is fixed (2026-10-26, `PlayerCameraDragUsePatch` clears the drag so the native body never mutates a display proxy); the machine row is owed. Original report: from the user's report (2026-10-26, translated): "I put it in the trashbag indirectly, then dragged it straight out to the screen edge to
   drop it — and the plastic chunk was gone."
 - Priority: High — the gesture reports success and does nothing; the player cannot tell where the item went.
 - Category: Remote backpack / drop / custody
@@ -156,3 +156,24 @@ leaves the two explanations for the report, and both are LOSS-FREE — the item'
 
 **What is left is a player-facing question, not a custody defect**: while a teammate''s backpack is displayed, a drop can land on either the remote panel or
 the player''s own ring, and nothing on screen says which one a given slot belongs to.
+
+## Judged on the deployed build (2026-10-27, `3b3c9a81`): the release is an INTENT, nothing vanishes
+
+With the guest''s backpack open and a proxy of its lantern dragged to empty space (`remote-gesture mode=release cast=-1`), the host''s log shows the release
+CAPTURED and forwarded, and no local drop at all:
+
+```
+21:32:08.994 [RemoteIntent] DropItem captured for item 9492956821 of 76561198863287957 (container 0, slot -1, body 0, limb -1, …)
+21:32:08.997 [RemoteIntent] 76561198281246659 → 76561198863287957 DropItem (item 9492956821, …)
+```
+
+and the owner''s own client then dropped its item:
+
+| Row | Verdict |
+|---|---|
+| 1 — the item ends on the ground on every client, its row says `World` | **PASS**: `item-row` reads `{"kind":"World","owner":0,"parent":0,"slot":-1,"revision":2}` and the guest''s own body census no longer lists the lantern |
+| 2 — the item is drawn where it was dropped, the former slot empty | **PASS on data, RESIDUAL on the frame**: the slot is empty on the owner''s body and the object is a world item; the frame taken (`capture-frame`) shows the CUO panel over the world, so the on-screen half was not judged this cycle |
+| 3 — a ground item dragged into a container of an opened remote backpack lands in it | **PASS** (judged 2026-10-26): the object entered the bag through the native guard and the bag''s census shows it inside |
+
+The old behavior this ticket was opened for — a local `[ItemDropped]` for an item the client does not own, the proxy destroyed and the item "gone" — does not
+occur on this build.

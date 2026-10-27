@@ -79,7 +79,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 
-- [A dragged display proxy vanishes out of an opened remote backpack](review/drop-out-of-a-remote-backpack-keeps-the-item.md) — **High** — fixed.
 
 - [Giving a ground item swallows it](review/give-from-the-ground-swallows-the-item.md) — **High** — ground path exercised.
 
@@ -170,6 +169,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A dragged display proxy vanishes out of an opened remote backpack](done/drop-out-of-a-remote-backpack-keeps-the-item.md) — **High** — fixed.
 
 - [A dropped container arrives empty on the other side](done/a-dropped-container-arrives-empty-on-the-other-side.md) — **High** — judged.
 

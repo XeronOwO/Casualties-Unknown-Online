@@ -105,3 +105,10 @@ Two causes had to fall, and the second one is the lesson: the answers had no key
 `console.*` literals — so even a keyed answer printed English.
 
 What is left of row 1 is the raw-answer census the gate budgets (42 at the last count), one family per commit.
+
+## `/help <command>` and the caret, verified on frames (2026-10-27)
+
+- `/help clear` on a `Language = zh` client answers the Chinese description from `console.cmd.clear.desc` (`/clear — 清空控制台输出。`) and keeps the usage line
+  as syntax (`Usage: /clear`); the completion hint row under it says the same sentence, because both read `CommandDescriptions`.
+- The input row''s caret now sits immediately after the last glyph in a captured frame (three frames taken to catch the blink phase); the stylus the
+  glyphs are drawn with is the one every measurement uses.

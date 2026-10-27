@@ -131,12 +131,26 @@ internal static class PlayerCameraDragUsePatch
 		// stop the proxy being mutated removed the very calls the window records — every proxied release then answered "produced no intent —
 		// unclassified native gesture" (measured 2026-10-26 on the centre-use rows). The mutation the user saw (a proxy dropped away: "dragged it out of
 		// the bag and it was gone") therefore has to be stopped where the DROP IS REPORTED, not by keeping the drag away from the body.
+
+		// A release that landed in the WORLD is the take-and-drop the player performed, and the native body cannot record it: its `DropItem` step is
+		// gated on the body HOLDING the item, which a display proxy never is (measured 2026-10-27 with the virtual pointer: the outside release
+		// produced no intent at all, so a proxy could be dragged out of the ring and never dropped). The Finalizer records the drop itself, after the
+		// body ran and only for this destination, so a release on a slot or on the centre is untouched.
+		__state.ProxyItemId = itemId;
+		__state.WorldRelease = !AnyInvButtonUnderPointer(uiCasts) && !DragUseCenter.IsUnderPointer(__instance);
 	}
 
 	private static void Finalizer(PlayerCamera __instance, ReleaseState __state)
 	{
 		if (__state.ProxyWindow)
 		{
+			// The world release the native body cannot record: the drop the owner's own item must receive, captured here so `Close()` turns it into the
+			// `DropItem` intent (the same kind a real `Body.DropItem` on a held item produces).
+			if (__state.WorldRelease && __state.ProxyItemId != 0)
+			{
+				RemoteDragIntentWindow.Current.CaptureDropItem(__state.ProxyItemId);
+			}
+
 			PatchBridge.Impl?.EmitRemoteDragIntents(RemoteDragIntentWindow.Current.Close());
 			return;
 		}
@@ -172,6 +186,12 @@ internal static class PlayerCameraDragUsePatch
 		internal bool AutoOpened;
 		internal bool Give;
 		internal bool Center;
+
+		/// <summary>The dragged proxy's authoritative id, for the world-release drop the Finalizer records.</summary>
+		internal ulong ProxyItemId;
+
+		/// <summary>TRUE when the release landed in the WORLD: no slot button under the pointer and not the centre circle.</summary>
+		internal bool WorldRelease;
 	}
 
 	/// <summary>
@@ -182,6 +202,25 @@ internal static class PlayerCameraDragUsePatch
 	/// the native branch answers with its own alert (<c>:1609</c>); R14 — the
 	/// craft button, local UI on the viewer (<c>:1673</c>).
 	/// </summary>
+	private static bool AnyInvButtonUnderPointer(List<RaycastResult>? uiCasts)
+	{
+		if (uiCasts is null)
+		{
+			return false;
+		}
+
+		foreach (var raycastResult in uiCasts)
+		{
+			var button = raycastResult.gameObject.GetComponent<InvButton>();
+			if (button != null && button.Overlaps(uiCasts)) // Unity object — ==; the native gate (`PlayerCamera.cs:1532`)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private static RemoteDragNoOp ClassifyNoOp(PlayerCamera camera, Item dragItem, List<RaycastResult>? uiCasts)
 	{
 		if (uiCasts is null)

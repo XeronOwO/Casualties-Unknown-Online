@@ -117,6 +117,11 @@ all — and slot 0 is a legal destination. The placement answer and the placemen
 compares or commits. The defect this removes: a give whose receiver answered "slot 0" arrived as the field's default, the host read it as "accepted
 without naming a slot or a container", and the hand-over was refused by name while nothing moved (measured 2026-10-26 with the in-process release; the
 same trap `CharacterDataMsg.HandSlot` documents).
+**A display proxy released in the WORLD is the take-and-drop the player performed.** The native release cannot record it — its `DropItem` step is
+gated on the body HOLDING the item, which a display proxy never is — so the release produced no intent at all and a proxy could be dragged out of a
+teammate's ring and never dropped (measured 2026-10-27 with the acceptance channel's virtual pointer). `PlayerCameraDragUsePatch` now records the drop
+itself for exactly that destination (no slot button under the pointer and not the centre circle), and the window turns it into the same `DropItem`
+intent a real `Body.DropItem` produces; a release on a slot or on the centre is untouched.
 **A give into an OCCUPIED slot follows the native slot-release rule: the aimed slot's occupant drops into the world and the given item takes the
 slot.** A receiver whose body is full is not a refusal case — the player aimed at a slot, and the game's own rule for an occupied slot is to displace
 the occupant (user ruling 2026-10-27, after a full body was measured keeping both items: the given chunk in slot 0 and the displaced lantern's row

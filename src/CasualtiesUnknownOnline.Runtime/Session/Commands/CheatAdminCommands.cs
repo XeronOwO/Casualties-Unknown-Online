@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using Microsoft.Extensions.Logging;
@@ -42,12 +43,12 @@ internal sealed class CheatAdminCommands(
 		var verb = grant ? "op" : "deop";
 		if (args.Count < 2)
 		{
-			return ConsoleAnswer.Refused($"Usage: /{verb} <steamId|displayName>");
+			return ConsoleAnswer.Refused($"Usage: /{verb} <steamId|displayName>", "admin.answer.usage_cheat", verb);
 		}
 
 		if (!CommandMemberTargets.TryResolve(_session, args[1], out var steamId))
 		{
-			return ConsoleAnswer.Refused($"Unknown member '{args[1]}'.");
+			return ConsoleAnswer.Refused($"Unknown member '{args[1]}'.", "admin.answer.unknown_member", args[1]);
 		}
 
 		if (grant)
@@ -65,7 +66,7 @@ internal sealed class CheatAdminCommands(
 					_announcement.AnnounceAll();
 					_log.LogInformation("[Command] /{Verb} repeated for {SteamId}: the roster already names it — re-announced so a member holding a stale closed list converges.",
 						verb, steamId);
-					return ConsoleAnswer.Ok($"{steamId} already holds the cheat verbs; the roster is re-announced to every member so a stale local list converges.");
+					return ConsoleAnswer.Ok($"{steamId} already holds the cheat verbs; the roster is re-announced to every member so a stale local list converges.", "admin.answer.already_op", steamId.ToString(CultureInfo.InvariantCulture));
 				}
 
 				_log.LogWarning("[Command] /{Verb} refused for {SteamId}: {Reason}", verb, steamId, grantRefusal);

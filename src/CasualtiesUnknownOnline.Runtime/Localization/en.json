@@ -346,5 +346,18 @@
   "admin.rule_native_binding_parity": "Native binding parity",
   "admin.parity_allow": "Allow",
   "admin.parity_warn": "Warn",
-  "admin.parity_require": "Require"
+  "admin.parity_require": "Require",
+  "admin.answer.unknown_member": "Unknown member '{0}'.",
+  "admin.answer.usage_cheat": "Usage: /{0} <steamId|displayName>",
+  "admin.answer.already_op": "{0} already holds the cheat verbs; the roster is re-announced to every member so a stale local list converges.",
+  "admin.answer.kicked": "Kicked member {0}.",
+  "admin.answer.banned": "Banned member {0}.",
+  "admin.answer.unbanned": "Unbanned {0}.",
+  "admin.answer.refused_kick": "Could not kick {0} — not a removable guest, or already left.",
+  "admin.answer.refused_ban": "Could not ban {0} — not a removable guest, already banned, or not host.",
+  "admin.answer.refused_unban": "Could not unban {0} — not in the ban list.",
+  "admin.answer.refused_not_a_number": "SteamId '{0}' is not a number.",
+  "rules.answer.unknown": "Unknown game rule '{0}'. Known rules: {1}.",
+  "rules.answer.refused_with_reason": "Game rule {0}: {1}",
+  "rules.answer.current": "Game rule {0} is currently set to: {1}."
 }

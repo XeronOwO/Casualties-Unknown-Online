@@ -59,14 +59,14 @@ internal sealed class HostRuleCommands(
 		if (row is null)
 		{
 			_log.LogInformation("[Command] /gamerule refused the unknown rule name '{Name}'.", args[1]);
-			return ConsoleAnswer.Refused($"Unknown game rule '{args[1]}'. Known rules: {string.Join(", ", HostRuleCensus.Names)}.");
+			return ConsoleAnswer.Refused($"Unknown game rule '{args[1]}'. Known rules: {string.Join(", ", HostRuleCensus.Names)}.", "rules.answer.unknown", args[1], string.Join(", ", HostRuleCensus.Names));
 		}
 
 		var canonical = "";
 		if (args.Count == 3 && !HostRuleValueText.TryParse(row, args[2], out canonical, out var error))
 		{
 			_log.LogInformation("[Command] /gamerule refused {Rule} = '{Text}': {Reason}", row.Name, args[2], error);
-			return ConsoleAnswer.Refused($"Game rule {row.Name}: {error}");
+			return ConsoleAnswer.Refused($"Game rule {row.Name}: {error}", "rules.answer.refused_with_reason", row.Name, error ?? "");
 		}
 
 		if (_cheatVerbs.TryRefuse("gamerule", out var refusal))
@@ -78,7 +78,7 @@ internal sealed class HostRuleCommands(
 		{
 			var current = HostRuleValueText.Describe(HostRuleSet.From(_hostRules), row);
 			_log.LogDebug("[Command] /gamerule queried {Rule} = {Value}.", row.Name, current);
-			return ConsoleAnswer.Ok($"Game rule {row.Name} is currently set to: {current}.");
+			return ConsoleAnswer.Ok($"Game rule {row.Name} is currently set to: {current}.", "rules.answer.current", row.Name, current);
 		}
 
 		return ConsoleAnswer.Ok(_changes.Change(row.Id, canonical));

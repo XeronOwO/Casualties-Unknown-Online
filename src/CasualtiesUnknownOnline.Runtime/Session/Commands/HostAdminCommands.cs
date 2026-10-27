@@ -39,15 +39,15 @@ internal sealed class HostAdminCommands(
 
 		if (!CommandMemberTargets.TryResolve(_session, args[1], out var steamId))
 		{
-			return ConsoleAnswer.Refused($"Unknown member '{args[1]}'.");
+			return ConsoleAnswer.Refused($"Unknown member '{args[1]}'.", "admin.answer.unknown_member", args[1]);
 		}
 
 		if (!_session.KickMember(steamId, "kicked via console"))
 		{
-			return ConsoleAnswer.Refused($"Could not kick {steamId} — not a removable guest, or already left.");
+			return ConsoleAnswer.Refused($"Could not kick {steamId} — not a removable guest, or already left.", "admin.answer.refused_kick", Id(steamId));
 		}
 
-		return ConsoleAnswer.Ok($"Kicked member {steamId}.");
+		return ConsoleAnswer.Ok($"Kicked member {steamId}.", "admin.answer.kicked", Id(steamId));
 	}
 
 	[ConsoleCommand("ban", "Host only: ban a member by SteamId or display name.", CommandPermission.HostOnly, "/ban <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
@@ -60,15 +60,15 @@ internal sealed class HostAdminCommands(
 
 		if (!CommandMemberTargets.TryResolve(_session, args[1], out var steamId))
 		{
-			return ConsoleAnswer.Refused($"Unknown member '{args[1]}'.");
+			return ConsoleAnswer.Refused($"Unknown member '{args[1]}'.", "admin.answer.unknown_member", args[1]);
 		}
 
 		if (!_hostBans.Ban(steamId, "banned via console"))
 		{
-			return ConsoleAnswer.Refused($"Could not ban {steamId} — not a removable guest, already banned, or not host.");
+			return ConsoleAnswer.Refused($"Could not ban {steamId} — not a removable guest, already banned, or not host.", "admin.answer.refused_ban", Id(steamId));
 		}
 
-		return ConsoleAnswer.Ok($"Banned member {steamId}.");
+		return ConsoleAnswer.Ok($"Banned member {steamId}.", "admin.answer.banned", Id(steamId));
 	}
 
 	[ConsoleCommand("unban", "Host only: unban a SteamId.", CommandPermission.HostOnly, "/unban <steamId>", CommandArgumentKind.SteamId)]
@@ -81,14 +81,17 @@ internal sealed class HostAdminCommands(
 
 		if (!ulong.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var steamId))
 		{
-			return ConsoleAnswer.Refused($"SteamId '{args[1]}' is not a number.");
+			return ConsoleAnswer.Refused($"SteamId '{args[1]}' is not a number.", "admin.answer.refused_not_a_number", args[1]);
 		}
 
 		if (!_hostBans.Unban(steamId))
 		{
-			return ConsoleAnswer.Refused($"Could not unban {steamId} — not in the ban list.");
+			return ConsoleAnswer.Refused($"Could not unban {steamId} — not in the ban list.", "admin.answer.refused_unban", Id(steamId));
 		}
 
-		return ConsoleAnswer.Ok($"Unbanned {steamId}.");
+		return ConsoleAnswer.Ok($"Unbanned {steamId}.", "admin.answer.unbanned", Id(steamId));
 	}
+
+	/// <summary>A Steam id as the catalogue's argument form (invariant digits, so the sentence reads the same on every machine).</summary>
+	private static string Id(ulong steamId) => steamId.ToString(CultureInfo.InvariantCulture);
 }

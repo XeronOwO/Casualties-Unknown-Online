@@ -346,5 +346,18 @@
   "admin.rule_native_binding_parity": "原生绑定一致性",
   "admin.parity_allow": "允许",
   "admin.parity_warn": "警告",
-  "admin.parity_require": "要求一致"
+  "admin.parity_require": "要求一致",
+  "admin.answer.unknown_member": "未知成员'{0}'。",
+  "admin.answer.usage_cheat": "用法：/{0} <SteamID|显示名>",
+  "admin.answer.already_op": "{0} 已拥有作弊指令权限；名单会重新广播给每位成员，让过期的本地名单收敛。",
+  "admin.answer.kicked": "已踢出成员 {0}。",
+  "admin.answer.banned": "已封禁成员 {0}。",
+  "admin.answer.unbanned": "已解封 {0}。",
+  "admin.answer.refused_kick": "无法踢出 {0}——不是可移除的客人，或已经离开。",
+  "admin.answer.refused_ban": "无法封禁 {0}——不是可移除的客人、已被封禁，或你不是主机。",
+  "admin.answer.refused_unban": "无法解封 {0}——不在封禁名单里。",
+  "admin.answer.refused_not_a_number": "SteamID '{0}' 不是数字。",
+  "rules.answer.unknown": "未知游戏规则'{0}'。已知规则：{1}。",
+  "rules.answer.refused_with_reason": "游戏规则 {0}：{1}",
+  "rules.answer.current": "游戏规则 {0} 当前设置为：{1}。"
 }

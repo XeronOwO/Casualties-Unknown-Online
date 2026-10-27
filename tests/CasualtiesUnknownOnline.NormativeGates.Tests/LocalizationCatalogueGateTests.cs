@@ -38,6 +38,15 @@ public sealed class LocalizationCatalogueGateTests
 	private static readonly string[] Accessors = ["T", "F", "Format", "lookup"];
 
 	/// <summary>
+	/// A console answer that names its catalogue key: <c>ConsoleAnswer.Refused(sentence, "key", args…)</c> and its <c>Ok</c> sibling. The
+	/// console renders that key in the reader's language, so the literal is a read of the catalogue even though it never reaches an
+	/// accessor directly. The key is at least one dotted segment, which a sentence never is.
+	/// </summary>
+	private static readonly Regex AnswerWithKey = new(
+		@"ConsoleAnswer\.(?:Refused|Ok)\([^\r\n]*?""([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)""",
+		RegexOptions.Compiled);
+
+	/// <summary>
 	/// The name a helper parameter carries when the helper is handed a catalogue KEY rather than a
 	/// translated label: the helper resolves it through an accessor of its own, so a key-shaped literal
 	/// passed at that position is a read. The convention is derived, never listed; the fact below
@@ -438,6 +447,19 @@ public sealed class LocalizationCatalogueGateTests
 			}
 		}
 
+		// A console answer carries its key as the SECOND argument when its sentence comes from a closed set
+		// (`ConsoleAnswer.Refused(sentence, "key", args…)`): the first argument stays the sentence for the log and the fallback,
+		// and the console renders the key in the reader's language. Without this pass every converted answer would read as an
+		// unread key, which is the opposite of the truth.
+		// A console answer carries its key when its sentence comes from a closed set: `ConsoleAnswer.Refused(sentence, "key", args…)`. The
+		// sentence stays for the log and the fallback, and the console renders the key in the reader's language. Read as a pattern over the
+		// source rather than through the argument splitter, because a sentence may interpolate a string of its own
+		// (`{string.Join(", ", Names)}`), which makes the balanced split see a stray comma.
+		foreach (Match answer in AnswerWithKey.Matches(flattened))
+		{
+			keys.Add(answer.Groups[1].Value);
+		}
+
 		foreach (var method in KeyCarryingMethods(flattened))
 		{
 			foreach (var argument in SourceScan.MemberCallArguments(flattened, method))
@@ -493,8 +515,7 @@ public sealed class LocalizationCatalogueGateTests
 	/// key-shaped literal in a later argument is a message parameter, not a key.</summary>
 	private static string FirstArgument(string argument)
 	{
-		var depth = 0;
-		for (var i = 0; i < argument.Length; i++)
+		var depth = 0; for (var i = 0; i < argument.Length; i++)
 		{
 			var current = argument[i];
 			if (current == '"' || current == '"')
@@ -522,6 +543,53 @@ public sealed class LocalizationCatalogueGateTests
 		}
 
 		return argument;
+	}
+
+	/// <summary>
+	/// One top-level argument of a call's argument text, counting from zero: the same balanced split <see cref="FirstArgument"/>
+	/// performs, continued past the commas before the wanted one. Returns empty when the call has fewer arguments.
+	/// </summary>
+	private static string ArgumentAt(string argument, int index)
+	{
+		var depth = 0;
+		var seen = 0;
+		var start = 0;
+		for (var i = 0; i < argument.Length; i++)
+		{
+			var current = argument[i];
+			if (current == '"' || current == '"')
+			{
+				i = SourceScan.LiteralEnd(argument, i) - 1;
+				continue;
+			}
+
+			if (current == '(' || current == '[' || current == '{')
+			{
+				depth++;
+				continue;
+			}
+
+			if (current == ')' || current == ']' || current == '}')
+			{
+				depth--;
+				continue;
+			}
+
+			if (current != ',' || depth != 0)
+			{
+				continue;
+			}
+
+			if (seen == index)
+			{
+				return argument.Substring(start, i - start);
+			}
+
+			seen++;
+			start = i + 1;
+		}
+
+		return seen == index ? argument.Substring(start) : "";
 	}
 
 	/// <summary>The key spaces the interpolated literals in <paramref name="text"/> open: the literal

@@ -374,7 +374,7 @@ docs/backlog/review/music-and-recursive-crafting-mods-fail-to-load.md | keep | i
 docs/backlog/review/launcher-fails-when-the-alt-box-cannot-start.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/review/player-facing-text-localized-per-receiver.md | keep | index | docs/backlog/README.md
-docs/backlog/review/context-menu-does-not-block-the-pointer.md | keep | index | docs/backlog/README.md
+docs/backlog/done/context-menu-does-not-block-the-pointer.md | keep | index | docs/backlog/README.md
 docs/backlog/review/context-menu-name-wraps-behind-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/done/console-completion-shows-no-suggestions.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/console-caret-misaligned-with-text.md | keep | index | docs/backlog/README.md
@@ -1265,7 +1265,7 @@ docs/evidence/acceptance/remote-medical-panel-alarm-follows-viewed-player-202610
 docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | claim | docs/backlog/done/snapshot-overtakes-item-reports.md
 docs/backlog/todo/item-custody-single-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
-tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/review/context-menu-does-not-block-the-pointer.md
+tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/done/context-menu-does-not-block-the-pointer.md
 docs/backlog/todo/a-world-item-is-rendered-by-a-display-object.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/player-name-and-panel-20261026.md | keep | claim | docs/backlog/done/a-zero-player-id-rendered-as-a-name.md
 docs/backlog/done/a-zero-player-id-rendered-as-a-name.md | keep | index | docs/backlog/README.md

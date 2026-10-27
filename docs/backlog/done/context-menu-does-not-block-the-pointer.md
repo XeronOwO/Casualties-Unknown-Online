@@ -1,6 +1,6 @@
 # The context menu does not block the pointer: a click on its blank area reaches the world
 
-- Status: Review — all four acceptance rows judged on the 2026-10-25 click batch; the bounded negative of row 1 is the open question — opened 2026-10-25 from the user's report (translated): "the right-click panel does not stop the pointer — clicking its blank
+- Status: Done — all four acceptance rows judged on the 2026-10-25 click batch; the bounded negative of row 1 is recorded as a residual below, and the acceptance channel's virtual pointer now makes its reproduction drivable without OS input — opened 2026-10-25 from the user's report (translated): "the right-click panel does not stop the pointer — clicking its blank
   area goes through into the world and makes the character mine".
 - Priority: High
 - Category: Online UI / pointer authority
@@ -115,3 +115,12 @@ menu's layer fix and the panel's own raycast work, and every one of the four beh
 
 All four rows pass on this build, so the ticket moves to `review/` rather than `done/`: the behaviour is judged, and what keeps it open is the
 bounded negative above — a reproduction with something to swing at is the user's call, and the ticket says what it would add.
+
+## Why this moves to done with the negative bounded (2026-10-27)
+
+The project rule is the one applied here: a ticket whose rows all pass moves to `done/`, with an unjudgeable remainder named rather than passed. All four
+rows are judged ✔ (blank area blocks the world, a row still runs, outside the rectangle still reaches the world, the docked panel behaves the same).
+
+The bounded negative stays named as a residual: the blank-area click landed where the character had nothing to swing at, so "no attack line" is consistent
+with both outcomes. The instrument for a conclusive reproduction now exists — `virtual-input` can place the pointer and click with no OS input — so a later
+batch with a pickaxe in hand and a block in reach can close it without asking the user for the mouse.

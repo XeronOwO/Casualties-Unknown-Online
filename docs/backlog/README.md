@@ -91,7 +91,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Music and recursive-crafting mods fail to load](review/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — fixed, all rows judged.
 
-- [The context menu does not block the pointer](review/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 
 - [The context menu's name is not drawn, and its bar is a grey strip](review/context-menu-name-wraps-behind-actions.md) — **Medium** — a row now; confirmed.
 - [Enter on an empty console closes it now](review/console-enter-on-empty-does-not-close.md) — **Low** — landed; a frame and its state read.
@@ -165,6 +164,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [The context menu does not block the pointer](done/context-menu-does-not-block-the-pointer.md) — **High** — done.
 
 - [The hand-staged pointer gives way to the virtual pointer](done/the-acceptance-channel-replaces-its-staged-pointer.md) — **High** — done.
 

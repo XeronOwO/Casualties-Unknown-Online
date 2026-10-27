@@ -92,7 +92,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Music and recursive-crafting mods fail to load](review/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — fixed, all rows judged.
 
-- [Dragging out of a backpack to use it drops the item](review/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — fixed: the use circle is back.
 - [The context menu does not block the pointer](review/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 
 - [The context menu's name is not drawn, and its bar is a grey strip](review/context-menu-name-wraps-behind-actions.md) — **Medium** — a row now; confirmed.
@@ -167,6 +166,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A drag out of a backpack drops the item](done/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — done.
 
 - [The console's completion shows nothing while a command is typed](done/console-completion-shows-no-suggestions.md) — **High** — done.
 

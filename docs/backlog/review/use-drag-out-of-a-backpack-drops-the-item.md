@@ -51,8 +51,8 @@ the user's two reports and the host log quoted above.
 | Row | The check |
 |---|---|
 | 1 | With the radial OPEN and the pointer inside the circle, releasing an item dragged from a displayed backpack produces a USE intent (`UseItem`/`WearItem`), not a drop — read from the captured intent plus the owner-side apply |
-| 2 | With the radial CLOSED (or the pointer outside it), the same release keeps the world drop it has today, and the two cases are distinguishable in the log |
-| 3 | The item never leaves the owner's inventory when the intent was a use, read from the custody projection on both clients |
+| 2 | With the radial CLOSED (or the pointer outside it), the same release keeps the world drop it has today, and the two cases are distinguishable in the log | **PARTIAL 2026-10-27**: the two cases ARE distinguishable — the outside release logs `[DragFlow] release fell through to the WORLD path (no UI target hit)` and `the release of item 9492956821 … produced no intent — unclassified native gesture`, against the inside release's `UseItem captured`. **But the world-drop half is NOT met with the real pointer**: the proxy is not dropped at all (its row stays `Carried` with its owner), so "the world drop it has today" does not exist outside the synthetic cast. The earlier `DropItem captured` evidence for the same release came from `remote-gesture`'s SYNTHETIC `uiCasts` — the instrument this batch replaced — so that judgement was made on a weaker tool and is withdrawn here |
+| 3 | The item never leaves the owner's inventory when the intent was a use, read from the custody projection on both clients | **PASS 2026-10-27**: `item-row` for 13787924117 after the use intent reads `{"kind":"Carried","owner":"<guest>","parent":0,"slot":-1,"revision":2}` — it never left its owner's inventory |
 
 ## Limits
 
@@ -99,3 +99,12 @@ That points the next read at `ClassifyNoOp` / `RemoteDragIntentWindow.Open` — 
 and something in it answers no-op even though the centre guard''s own inputs look satisfied. The candidates, in the order worth reading: the ring''s scale
 at the moment the classification runs (it animates), whether the classification runs before the staged pointer is visible to it, and whether the dragged
 proxy object is the one `DragUseCenter` measures against.
+
+## The world-drop half is a real gap, not a wording problem (2026-10-27, virtual pointer)
+
+With the pointer OUTSIDE the ring, the release ends the drag and produces NO intent — the proxy stays with its owner and never lands. The window captures
+nothing because the native world-drop steps are gated on the dragging body HOLDING the item, and a display proxy is not held by anyone; the synthetic
+`uiCasts` release that produced `DropItem captured` earlier fired a different path.
+
+So the next work item is the one this row names: a proxy released in the WORLD must become the take-and-drop the player performed — the same intent a real
+take-out plus drop would produce — instead of nothing. Until it exists, the honest reading of row 2 is "distinguishable, and the world half is missing".

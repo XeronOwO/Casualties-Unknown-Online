@@ -27,15 +27,18 @@ public sealed class LocalizationCatalogueGateTests
 
 	/// <summary>The accessor call sites the text scan cannot resolve (pass-throughs, echoed parameters
 	/// and unrelated `Format` methods): a diagnostic bound, so a broken accessor shape fails loudly
-	/// instead of reporting a census that quietly stopped seeing call sites.</summary>
-	private const int UnresolvedCeiling = 60;
+	/// instead of reporting a census that quietly stopped seeing call sites. Raised from 60 to 63 on
+	/// 2026-10-27 for the three `AddKeyedLine` sites that pass a key held in a variable (`answer.Key`,
+	/// a report part's key) — the writer became an accessor that day, and those three sites are its
+	/// pass-throughs, not a broken shape.</summary>
+	private const int UnresolvedCeiling = 63;
 
 	/// <summary>
 	/// Every call shape that reads a catalogue key. `lookup` is the console resolver's own parameter: a console line is rendered by
 	/// calling the localization service's lookup it is handed, which is the same read one indirection later, so a key reached only
 	/// through it is still read by product source.
 	/// </summary>
-	private static readonly string[] Accessors = ["T", "F", "Format", "lookup"];
+	private static readonly string[] Accessors = ["T", "F", "Format", "lookup", "AddKeyedLine"];
 
 	/// <summary>
 	/// A console answer that names its catalogue key: <c>ConsoleAnswer.Refused(sentence, "key", args…)</c> and its <c>Ok</c> sibling. The

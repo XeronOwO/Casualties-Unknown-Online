@@ -88,18 +88,15 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	[Fact]
 	public void EveryConsoleKeyTheCatalogueDeclaresIsResolvedByTheOverlay()
 	{
-		// A console key the catalogue declares but the overlay never reads would print its English text forever, which is the exact
-		// defect this ticket is about. The readers are the overlay itself and its resolver, both internal to the plugin and reached
-		// by name, so the pin reads their sources and requires every catalogued console.* key to appear in one of them.
-		var sources = File.ReadAllText(Path.Combine(PluginDirectory(), "ConsoleLineText.cs"))
-			+ File.ReadAllText(Path.Combine(PluginDirectory(), "CommandConsoleOverlay.cs"));
-		var consoleKeys = DeclaredUiKeys(ReadCatalogueSource()).Where(key => key.StartsWith("console.", StringComparison.Ordinal)).ToArray();
+		// A console key the catalogue declares but nothing reads would print its English text forever, which is the exact defect this
+		// ticket is about. The console's resolver is GENERIC since 2026-10-27: it once carried a switch over the six console.* literals the
+		// overlay itself used, and every OTHER keyed answer (the /op, /kick, /ban and /gamerule family) printed its English text on a
+		// Chinese client because of it — measured in a captured frame. The pin therefore holds the generic path: the resolver must resolve
+		// ANY key, and it must not grow a key whitelist again.
+		var resolver = File.ReadAllText(Path.Combine(PluginDirectory(), "ConsoleLineText.cs"));
 
-		Assert.NotEmpty(consoleKeys);
-		foreach (var key in consoleKeys)
-		{
-			Assert.Contains($"\"{key}\"", sources, StringComparison.Ordinal);
-		}
+		Assert.Contains("lookup(line.Key)", resolver, StringComparison.Ordinal);
+		Assert.DoesNotContain("line.Key switch", resolver, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -277,7 +274,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	private static readonly Regex DeclaredKeyPattern = new($@"\""({UiKeyPattern})\""\s*:", RegexOptions.Compiled);
 	// A key is "referenced" by the UI when it is read through the localization accessor (`T("…")`) or through the console
 	// resolver's own lookup parameter (`lookup("…")`), which is the same read one indirection later.
-	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|F|lookup)\(""({UiKeyPattern})""", RegexOptions.Compiled);
+	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|F|lookup|AddKeyedLine)\(""({UiKeyPattern})""", RegexOptions.Compiled);
 	private static readonly Regex ConsoleInputFieldPattern = new(@"\bConsoleInput\b", RegexOptions.Compiled);
 
 	/// <summary>

@@ -56,3 +56,22 @@ hand-staged seams were standing in for.
 - ~~Buttons are icall and cannot be patched~~ **WRONG, corrected 2026-10-27**: the three button methods ARE patched through HarmonyX's native detour
   backend (`buttonPatches: 3`), and a staged press answers `held/down/up` exactly as a real one would. Harmony and MonoMod load as `0Harmony 2.9.0.0`
   plus MonoMod assemblies from the BepInEx core. The batch's remaining work is the REAL behaviour rows below, not the button channel.
+
+## The real drag bracket runs on a virtual press (2026-10-27, three clients in a world)
+
+The game does not read clicks the way the first draft assumed: `KeyBinds.GetBind("iteminteract")` answers 324 (`Mouse1`) and `HandleDragging`
+(`PlayerCamera.cs:1353-1364`) starts the drag on `Input.GetKeyDown(iteminteract)`, while `attack` is 323 (`Mouse0`) and only attacks. With that known:
+
+| Step | Read |
+|---|---|
+| drop a plastic chunk at the player's feet, read its screen point | `item-world-read` → `screenX 655.878, screenY 356.088` |
+| `virtual-input mode=move` there, then `mode=press button=1` | the seam: `held: true, keyHeld: true` |
+| `drag-state` | **`dragging: true, dragType: "Item"`** — `HandleStartDragging` + `TryPickupFromWorld` took the chunk |
+| `mode=release button=1` | `drag-state` → `dragging: false`, and the game''s own line `[DragFlow] release fell through to the WORLD path (no UI target hit)` |
+
+So a VIRTUAL right press engages the game''s real drag bracket, moves an item under the game''s own pointer read, and its release runs the game''s own
+release path — with the real mouse untouched. Two facts worth keeping: the drag/pickup button is `iteminteract` (Mouse1), and a press must be stamped for
+the NEXT frame, because the eval can run after the game''s `Update` in its frame (a same-frame stamp was never seen).
+
+**Still open**: one UI click (the Online UI is IMGUI and may not read the virtual pointer at all — to be measured, not assumed), and then the removals this
+ticket exists for.

@@ -31,7 +31,7 @@ in the plain-chat opener or after the prefix is deleted.
 |---|---|---|
 | 1 | Empty console + Enter closes it (frame before/after and the visibility state) | **passes** — `wasOpen=true, emptied="", consumed=true, isOpenAfter=false`; `row1-before.png` shows the panel and its suggestion list, `row1-after.png` shows it gone |
 | 2 | Text + Enter executes and keeps the console open | **passes** — `input="/"`: `consumed=true, isOpenAfter=true`, and the panel printed its refusal |
-| 3 | The console key still opens and closes; Tab still completes | **residual** — the code is unchanged and Tab was judged at the same build in `review/console-completion-shows-no-suggestions.md`; the key toggle itself needs an OS-level key press |
+| 3 | The console key still opens and closes; Tab still completes | **residual** — the code is unchanged and Tab was judged at the same build in `done/console-completion-shows-no-suggestions.md`; the key toggle itself needs an OS-level key press |
 | 4 | Whitespace-only counts as empty and closes | **passes by test** |
 
 ## Limits

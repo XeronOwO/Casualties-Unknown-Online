@@ -1,6 +1,6 @@
 # The console's completion shows nothing while a command is typed
 
-- Status: Review — code landed 2026-10-25 (`a0600135`, `7b1f53da`, `84ea4c76`); every row judged on the host's own console in
+- Status: Done — code landed 2026-10-25 (`a0600135`, `7b1f53da`, `84ea4c76`); every row judged on the host's own console in
   batches `batch-console-ui`, `batch-console-ui2` and `batch-console-ui4`.
 - Priority: High
 - Category: Console / completion / Online UI

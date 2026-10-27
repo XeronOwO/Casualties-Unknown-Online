@@ -95,7 +95,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The context menu's name is not drawn, and its bar is a grey strip](review/context-menu-name-wraps-behind-actions.md) — **Medium** — a row now; confirmed.
 - [Enter on an empty console closes it now](review/console-enter-on-empty-does-not-close.md) — **Low** — landed; a frame and its state read.
-- [The console's completion shows nothing while typing](review/console-completion-shows-no-suggestions.md) — **High** — all positions complete; frames
 - [Player-facing text crosses as a key, never prose](review/player-facing-text-localized-per-receiver.md) — **High** — keyed; two rows need a two-client batch.
 - [`@a` now names the executor too](review/selectors-exclude-the-executor.md) — **Medium** — code landed; the runtime rows need a session.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
@@ -166,6 +165,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [The console's completion shows nothing while a command is typed](done/console-completion-shows-no-suggestions.md) — **High** — done.
 
 - [Closing a teammate's backpack teleports the ring before it shrinks](done/closing-a-teammates-backpack-teleports-the-ring.md) — **Medium-High** — done.
 

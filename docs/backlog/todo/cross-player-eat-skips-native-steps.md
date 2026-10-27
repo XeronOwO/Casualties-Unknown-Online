@@ -329,3 +329,23 @@ the game destroys the object, and the replacement never lands. Every previous hu
 **The fix, next cycle**: one admitted use, ONE outcome — the replacement must ride the same report as the eat's own state (either the eat's report
 becomes the only sender and carries the replacement it observed, or the grant survives exactly one follow-up from the same pair inside the same window).
 Anything else is two facts competing for one grant.
+
+## After the admitted-definition fix: the row becomes the replacement, and a SECOND writer zeroes it (2026-10-27 21:30, deployed `3b3c9a81`)
+
+```
+21:30:02.223 [ItemUse] local item 1400480319427 condition set to 1.00 by cross-player use.      ← the replacement's own condition
+21:30:02.225 [ItemUse] <guest> replaced stonefruitclosed (id 1400480319427) … in place           ← the row becomes stonefruitopen
+21:30:02.225 [ItemUse] <guest> ate stonefruitclosed (id 1400480319427) …                          ← the plain state report, applied
+21:30:02.226 [ItemUse] local item 1400480319427 condition set to 0.00 by cross-player use.      ← a THIRD write, one millisecond later
+21:30:02.252 [ItemTrace] op=7 item=1400480319427 origin=OnItemDestroyed …                        ← and the game destroys it
+21:30:02.291 [ItemSpawn] materializing stonefruitopen (id 22377858709) at (0.0,0.0) …            ← the phantom, still
+```
+
+The replacement now lands and the row takes its condition — the two-report problem is fixed. What remains is that the OWNER'S OBJECT still receives a
+`condition = 0` write AFTER the replacement, which zeroes it and lets the game destroy it; the "ate" line in between says the plain state report was
+applied, and the write after it comes through the adapter's own apply (`ItemDefinitionSwap`'s non-replacing line). So the next read is: WHICH writer
+still carries condition 0 for this item after the replacement — the plain report's row (`newItem.Condition` is supposed to be untouched for a replacing
+action now), the owner's character-data capture it triggers, or the adapter's apply of that capture.
+
+Also unchanged: the phantom `stonefruitopen` at the world origin with the same id every session — the guest still reports the object its delegate created,
+so the allocator refusal is not on that path yet. Both stay open on this ticket.

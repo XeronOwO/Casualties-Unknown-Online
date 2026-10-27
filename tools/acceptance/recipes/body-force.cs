@@ -1,5 +1,5 @@
 // recipe: body-force
-// args: consciousness=n energy=n brainHealth=n badSleepAmount=n idleTime=n intelligence=n heartRate=n bloodPressure=n bloodOxygen=n strength=n
+// args: sleep=n consciousness=n energy=n brainHealth=n badSleepAmount=n idleTime=n intelligence=n heartRate=n bloodPressure=n bloodOxygen=n strength=n
 // serves: carried-unconscious-body-simulation, carried-rider-own-body-stops-simulating,
 //         host-severe-sleepiness-posture-desync, host-fall-injury-mouth-expression-desync,
 //         carried-player-idle-sit-suppression, carrier-sit-when-carrying,
@@ -27,6 +27,7 @@
 ((System.Func<string>)(() => {
 	var num = new System.Func<float, string>((value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
 	var consciousness = {{n:consciousness}};
+	var sleep = {{n:sleep}};
 	var energy = {{n:energy}};
 	var brainHealth = {{n:brainHealth}};
 	var badSleepAmount = {{n:badSleepAmount}};
@@ -38,6 +39,9 @@
 	var strength = {{n:strength}};
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-local-body\"}"; }
+	// `sleep` is the game's own Body.sleeping: the acceptance suite cannot open Body.TakeANap's `canTakeNap` gate with the fields it can force (energy 0 and an empty room were not enough), and every sleeping-target row needs a body that IS asleep. 1 sleeps, 0 wakes, -1 leaves it alone.
+	if (sleep > 0f) { body.sleeping = true; }
+	if (sleep == 0f) { body.sleeping = false; }
 	if (consciousness >= 0f) { body.consciousness = consciousness; }
 	if (energy >= 0f) { body.energy = energy; }
 	if (brainHealth >= 0f) { body.brainHealth = brainHealth; }

@@ -49,9 +49,9 @@ What is left is the code and its rows.
 
 | Row | The check |
 |---|---|
-| 1 | The decided behaviour on a sleeping target, per family: eat, drink, wear, bandage, splint, injection — each read once with the target asleep |
-| 2 | Whatever the refusal is, the operator's line names the actual state (asleep vs unconscious) in their own language |
-| 3 | Applying a treatment to a sleeping teammate does not require waking them, and the patient's own client shows the state it applied |
+| 1 | The decided behaviour on a sleeping target, per family: eat, drink, wear, bandage, splint, injection — each read once with the target asleep | **PARTIAL PASS 2026-10-27** (deployed): EAT — the host logs `<guest> is asleep — the SolidFood proceeds (decision 270 …)`, the guest's own client runs the game's own eat (`ran the game's own eat of dogfood … out of the giver's hand`), its hunger rose 75.74 → 81.53 and it stayed asleep. DRINK — the gate passes the same way (`<guest> is asleep — the Drink proceeds`), and the refusal that followed was the container's own rule (`carried no dose to drink`), not sleep. **Wear, bandage, splint and injection are RESIDUALS**: each needs an item and a gesture the preset does not hand the batch (the treatment families go through the wound view's limb release) |
+| 2 | Whatever the refusal is, the operator's line names the actual state (asleep vs unconscious) in their own language | **PARTIAL PASS 2026-10-27**: the operator-side line names the state exactly — `<id> is asleep — the SolidFood proceeds` / `the Drink proceeds` — and it is a keyed sentence; the HUD frame that wraps it was NOT read this cycle (no frame taken), so its language half stays a residual |
+| 3 | Applying a treatment to a sleeping teammate does not require waking them, and the patient's own client shows the state it applied | **RESIDUAL**: the treatment families reach the patient through the wound view's limb release, which this batch cannot drive; the eating family is the one judged above, and it did not wake the patient |
 
 ## Limits
 
@@ -127,3 +127,10 @@ alt drank at it:
 **Where `use-request` stops**: a bandage through the same request is refused by name — "analgesicgauze … is empty or is not a family this [gesture]
 carries" — because the medical families are decided by the DRAG GESTURE (the wound view's own cast), not by a bare request. So wear/bandage/splint/
 injection still need the gesture path, and rows 2-3 with them; the consuming pair is what this driver can judge.
+
+## How the batch got a sleeping body (2026-10-27)
+
+`Body.TakeANap` would not start on demand — its own `canTakeNap` gate stayed closed with `energy = 0` and an empty room — so the batch could not reach a
+sleeping target at all until the driver grew the field. `tools/acceptance/recipes/body-force.cs` now takes `sleep=` and writes the game's own
+`Body.sleeping` directly (1 sleeps, 0 wakes, -1 leaves it alone), which put the guest at `sleeping=True, conscious=False, consciousness=10` — the exact
+state the ticket's source report described — and made the rows above judgeable.

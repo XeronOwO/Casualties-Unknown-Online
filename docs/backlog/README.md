@@ -62,6 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [The hand-staged pointer gives way to the virtual pointer](todo/the-acceptance-channel-replaces-its-staged-pointer.md) — **High** — new.
+
 
 
 - [A world item is rendered by a display-marked object](todo/a-world-item-is-rendered-by-a-display-object.md) — **High** — display vs World.

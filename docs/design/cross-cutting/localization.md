@@ -11,6 +11,8 @@ whose panel read Chinese and whose console read English for `/gamerule`, `/give`
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
 
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
+
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and
 `LocalizationCatalogueGateTests` counts the key as read only when the answer passes it — a keyed answer whose key nothing resolves is a key that would
@@ -35,6 +37,8 @@ whose panel read Chinese and whose console read English for `/gamerule`, `/give`
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
 
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
+
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and
 `LocalizationCatalogueGateTests` counts the key as read only when the answer passes it — a keyed answer whose key nothing resolves is a key that would
@@ -58,6 +62,8 @@ whose panel read Chinese and whose console read English for `/gamerule`, `/give`
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
 
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
+
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and
 `LocalizationCatalogueGateTests` counts the key as read only when the answer passes it — a keyed answer whose key nothing resolves is a key that would
@@ -80,6 +86,8 @@ whose panel read Chinese and whose console read English for `/gamerule`, `/give`
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
 
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
+
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and
 `LocalizationCatalogueGateTests` counts the key as read only when the answer passes it — a keyed answer whose key nothing resolves is a key that would
@@ -99,6 +107,8 @@ whose panel read Chinese and whose console read English for `/gamerule`, `/give`
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
 
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
+
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and
 `LocalizationCatalogueGateTests` counts the key as read only when the answer passes it — a keyed answer whose key nothing resolves is a key that would
@@ -115,6 +125,8 @@ degrades to. An answer built as a raw interpolated English sentence therefore re
 whose panel read Chinese and whose console read English for `/gamerule`, `/give` and `/op` refusals.
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
+
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
 
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and
@@ -136,6 +148,8 @@ whose panel read Chinese and whose console read English for `/gamerule`, `/give`
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
 
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
+
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and
 `LocalizationCatalogueGateTests` counts the key as read only when the answer passes it — a keyed answer whose key nothing resolves is a key that would
@@ -154,6 +168,8 @@ whose panel read Chinese and whose console read English for `/gamerule`, `/give`
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
 
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
+
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and
 `LocalizationCatalogueGateTests` counts the key as read only when the answer passes it — a keyed answer whose key nothing resolves is a key that would
@@ -171,6 +187,8 @@ degrades to. An answer built as a raw interpolated English sentence therefore re
 whose panel read Chinese and whose console read English for `/gamerule`, `/give` and `/op` refusals.
 
 The rule is the same one the panel labels follow: a sentence a player reads is a key plus its arguments. **The console's resolver is generic**: `ConsoleLineText.Resolve` looks up whatever key a line carries. It used to be a switch over the six `console.*` literals the overlay itself used, and every other keyed answer fell through to its English text — which is why the command conversions alone changed nothing on screen until the switch was removed (measured in a captured frame on 2026-10-27). A key the catalogue does not answer still falls back to the line's own sentence, so a missing entry can never blank a line.
+
+A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds `ConsoleAnswer.Refused(sentence, "cheat.refused.<ground>", args…)` per ground it can name (no session, switch closed, not on the roster), and `ConsoleCommandAuthority` hands that answer straight to the console — so the sentence a player meets before anything is sent is in their own language, while the log line keeps the English text.
 
 `ConsoleAnswerLocalizationGateTests` holds the
 line with a budget that only falls (42 raw interpolated answers were left at the time of the measurement, the cheat/admin/rule families converted), and

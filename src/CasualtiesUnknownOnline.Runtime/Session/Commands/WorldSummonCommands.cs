@@ -46,7 +46,7 @@ internal sealed class WorldSummonCommands(IWorldSummonControl summon, CheatVerbG
 
 		if (_cheatVerbs.TryRefuse("summon", out var refusal))
 		{
-			return ConsoleAnswer.Refused(refusal);
+			return refusal;
 		}
 
 		return ConsoleAnswer.Ok(_summon.Summon(request.PrefabId, request.Kind, request.Position, request.StateText));

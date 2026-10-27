@@ -359,5 +359,8 @@
   "admin.answer.refused_not_a_number": "SteamID '{0}' 不是数字。",
   "rules.answer.unknown": "未知游戏规则'{0}'。已知规则：{1}。",
   "rules.answer.refused_with_reason": "游戏规则 {0}：{1}",
-  "rules.answer.current": "游戏规则 {0} 当前设置为：{1}。"
+  "rules.answer.current": "游戏规则 {0} 当前设置为：{1}。",
+  "cheat.refused.no_session": "没有进行中的会话——作弊指令需要一局：主机自己的权限就是联机开关，成员的是主机为这一局授予的权限。/{0} 没有做任何事。",
+  "cheat.refused.switch_closed": "本地拒绝：主机关闭了作弊开关（{0}），因此任何成员都不能运行作弊指令（主机会把规则广播给本客户端）。什么都没做。",
+  "cheat.refused.not_on_roster": "本地拒绝：主机广播的作弊名单里没有你，所以 /{0} 无法生效。主机用 /op 授予。什么都没做。"
 }

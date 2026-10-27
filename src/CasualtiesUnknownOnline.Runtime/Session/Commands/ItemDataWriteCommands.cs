@@ -164,7 +164,7 @@ internal sealed class ItemDataWriteCommands(
 	{
 		if (_cheatVerbs.TryRefuse("data " + verb, out var cheatRefusal))
 		{
-			return ConsoleAnswer.Refused(cheatRefusal);
+			return cheatRefusal;
 		}
 
 		var all = new List<ItemState>(_items.QueryItems().Values);

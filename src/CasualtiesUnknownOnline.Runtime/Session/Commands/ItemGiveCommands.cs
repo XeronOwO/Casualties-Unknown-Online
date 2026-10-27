@@ -55,7 +55,7 @@ internal sealed class ItemGiveCommands(
 
 		if (_cheatVerbs.TryRefuse("give", out var refusal))
 		{
-			return ConsoleAnswer.Refused(refusal);
+			return refusal;
 		}
 
 		var owners = _targets.ResolveOwners(request.Selector, out var ownerRefusal);

@@ -420,9 +420,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// A command this caller may not run answers the refusal it would meet, not "unknown": the console
 		// must not teach a word by help and then pretend it does not exist. The list above hides the same
 		// commands, so a player who reads /help never learns one the console would refuse.
-		return _authority.TryRefusal(command) is { } refusal
-			? ConsoleAnswer.Refused(refusal)
-			: ConsoleAnswer.Ok($"/{command.Name} — {command.Description}\nUsage: {command.Usage}");
+		return _authority.TryRefusal(command)
+			?? ConsoleAnswer.Ok($"/{command.Name} — {command.Description}\nUsage: {command.Usage}");
 	}
 
 	[ConsoleCommand("clear", "Clear the console output.", CommandPermission.Anyone, "/clear")]

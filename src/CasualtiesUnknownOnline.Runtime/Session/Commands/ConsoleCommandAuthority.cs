@@ -24,6 +24,9 @@ internal sealed class ConsoleCommandAuthority(ISessionControl session, CheatVerb
 	/// <summary>The console's one host-only refusal sentence, printed by the dispatcher and by <c>/help</c>.</summary>
 	internal const string HostOnlyRefusal = "Permission denied: this command is host-only.";
 
+	/// <summary>The catalogue key of <see cref="HostOnlyRefusal"/>, so the console renders it in the reader's language.</summary>
+	internal const string HostOnlyRefusalKey = "console.command.host_only";
+
 	private readonly ISessionControl _session = session;
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 
@@ -31,14 +34,15 @@ internal sealed class ConsoleCommandAuthority(ISessionControl session, CheatVerb
 	internal bool MayRun(CommandDefinition command) => TryRefusal(command) is null;
 
 	/// <summary>
-	/// The sentence this caller would meet by running the command now, or null when it may run. The
-	/// cheat arm is the gate's QUIET form: no log line per keystroke or per help row the filter asks about.
+	/// The answer this caller would meet by running the command now, or null when it may run — the refusal as the console's own answer shape, so its
+	/// sentence reaches the reader in the reader's language. The cheat arm is the gate's QUIET form: no log line per keystroke or per help row the filter
+	/// asks about.
 	/// </summary>
-	internal string? TryRefusal(CommandDefinition command)
+	internal ConsoleAnswer? TryRefusal(CommandDefinition command)
 	{
 		if (command.Permission == CommandPermission.HostOnly && _session.Role != SessionRole.Host)
 		{
-			return HostOnlyRefusal;
+			return ConsoleAnswer.Refused(HostOnlyRefusal, HostOnlyRefusalKey);
 		}
 
 		if (command.Gate == ConsoleCommandGate.Cheat && _cheatVerbs.TryRefuseQuiet(command.Name, out var refusal))

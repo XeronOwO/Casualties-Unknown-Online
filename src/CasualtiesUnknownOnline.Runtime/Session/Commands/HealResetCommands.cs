@@ -47,7 +47,7 @@ internal sealed class HealResetCommands(
 
 		if (_cheatVerbs.TryRefuse("heal", out var refusal))
 		{
-			return ConsoleAnswer.Refused(refusal);
+			return refusal;
 		}
 
 		var targets = CommandPlayerTargets.Resolve(_session, _entities, args[1]);

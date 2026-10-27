@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Permissions;
 using Microsoft.Extensions.Logging;
@@ -69,8 +70,12 @@ internal sealed class CheatVerbGate(
 		NotOnRoster,
 	}
 
-	/// <summary>One judge's answer: the ground and the sentence the operator reads (empty when allowed).</summary>
-	private readonly record struct Verdict(Ground Ground, string Refusal)
+	/// <summary>
+	/// One judge's answer: the ground and the ANSWER the operator reads (silent when allowed). The answer is the console's own shape, so the sentence
+	/// carries the catalogue key this gate names for that ground — the gate is the one place that knows WHICH of its three grounds it hit, and the
+	/// console renders the key in the reader's language.
+	/// </summary>
+	private readonly record struct Verdict(Ground Ground, ConsoleAnswer Answer)
 	{
 		internal bool Allowed => Ground == Ground.None;
 	}
@@ -82,26 +87,26 @@ internal sealed class CheatVerbGate(
 	internal bool MayRun(string verb) => Judge(verb).Allowed;
 
 	/// <summary>
-	/// The quiet REFUSAL form: the sentence the verb would print, without the log line. <c>/help</c>
+	/// The quiet REFUSAL form: the answer the verb would print, without the log line. <c>/help</c>
 	/// answers a hidden command with exactly this, so a player never learns a command by help that the
 	/// console then refuses as unknown.
 	/// </summary>
-	internal bool TryRefuseQuiet(string verb, out string refusal)
+	internal bool TryRefuseQuiet(string verb, out ConsoleAnswer answer)
 	{
 		var verdict = Judge(verb);
-		refusal = verdict.Refusal;
+		answer = verdict.Answer;
 		return !verdict.Allowed;
 	}
 
 	/// <summary>
-	/// Whether this client must refuse <paramref name="verb"/> right now, with the sentence the operator
+	/// Whether this client must refuse <paramref name="verb"/> right now, with the answer the operator
 	/// reads. False means the verb may proceed — never that it will land, which is the host's answer. One
 	/// log line per refusal, at the ground's level; the decision itself is <see cref="Judge"/>.
 	/// </summary>
-	internal bool TryRefuse(string verb, out string refusal)
+	internal bool TryRefuse(string verb, out ConsoleAnswer answer)
 	{
 		var verdict = Judge(verb);
-		refusal = verdict.Refusal;
+		answer = verdict.Answer;
 		switch (verdict.Ground)
 		{
 			case Ground.None:
@@ -133,26 +138,41 @@ internal sealed class CheatVerbGate(
 	{
 		if (!_session.SessionActive)
 		{
-			return new Verdict(Ground.NoSession, $"No active session — a cheat verb needs one: the host's own permission is the online switch, and a member's is the host's grant for the session. /{verb} did nothing here.");
+			return new Verdict(
+				Ground.NoSession,
+				ConsoleAnswer.Refused(
+					$"No active session — a cheat verb needs one: the host's own permission is the online switch, and a member's is the host's grant for the session. /{verb} did nothing here.",
+					"cheat.refused.no_session",
+					verb));
 		}
 
 		if (_session.Role == SessionRole.Host)
 		{
-			return new Verdict(Ground.None, "");
+			return new Verdict(Ground.None, ConsoleAnswer.Silent);
 		}
 
 		if (_hostRules.Forbids(HostRuleId.AllowMemberCheatVerbs))
 		{
-			return new Verdict(Ground.SwitchClosed, $"Refused locally: the host's cheat switch ({HostRuleId.AllowMemberCheatVerbs}) is off, so no member may run a cheat verb (the host announces its rules to this client). Nothing was done here.");
+			return new Verdict(
+				Ground.SwitchClosed,
+				ConsoleAnswer.Refused(
+					$"Refused locally: the host's cheat switch ({HostRuleId.AllowMemberCheatVerbs}) is off, so no member may run a cheat verb (the host announces its rules to this client). Nothing was done here.",
+					"cheat.refused.switch_closed",
+					HostRuleId.AllowMemberCheatVerbs.ToString()));
 		}
 
 		if (_announced.Refuses(_session.LocalSteamId))
 		{
-			return new Verdict(Ground.NotOnRoster, $"Refused locally: the host's cheat roster (announced to this client) does not name you, so /{verb} cannot land. The host grants it with /op. Nothing was done here.");
+			return new Verdict(
+				Ground.NotOnRoster,
+				ConsoleAnswer.Refused(
+					$"Refused locally: the host's cheat roster (announced to this client) does not name you, so /{verb} cannot land. The host grants it with /op. Nothing was done here.",
+					"cheat.refused.not_on_roster",
+					verb));
 		}
 
 		// Either the announced roster names this client, or nothing was announced and the host's own
 		// verdict is the only one — the two cases the ticket keeps apart on purpose.
-		return new Verdict(Ground.None, "");
+		return new Verdict(Ground.None, ConsoleAnswer.Silent);
 	}
 }

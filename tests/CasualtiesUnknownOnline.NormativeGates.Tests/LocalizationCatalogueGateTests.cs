@@ -43,10 +43,16 @@ public sealed class LocalizationCatalogueGateTests
 	/// <summary>
 	/// A console answer that names its catalogue key: <c>ConsoleAnswer.Refused(sentence, "key", args…)</c> and its <c>Ok</c> sibling. The
 	/// console renders that key in the reader's language, so the literal is a read of the catalogue even though it never reaches an
-	/// accessor directly. The key is at least one dotted segment, which a sentence never is.
+	/// accessor directly. Two patterns because the answer's sentence may interpolate a call of its own
+	/// (<c>{string.Join(", ", Names)}</c>) and may wrap across lines: the first captures the call's whole argument text with one level of
+	/// nested parentheses, the second takes the first dotted-lowercase literal inside it (a sentence is never one).
 	/// </summary>
-	private static readonly Regex AnswerWithKey = new(
-		@"ConsoleAnswer\.(?:Refused|Ok)\([^\r\n]*?""([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)""",
+	private static readonly Regex AnswerCall = new(
+		@"ConsoleAnswer\.(?:Refused|Ok)\((?:[^()]|\([^()]*\))*\)",
+		RegexOptions.Compiled);
+
+	private static readonly Regex AnswerKeyLiteral = new(
+		@"""([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)""",
 		RegexOptions.Compiled);
 
 	/// <summary>
@@ -458,9 +464,13 @@ public sealed class LocalizationCatalogueGateTests
 		// sentence stays for the log and the fallback, and the console renders the key in the reader's language. Read as a pattern over the
 		// source rather than through the argument splitter, because a sentence may interpolate a string of its own
 		// (`{string.Join(", ", Names)}`), which makes the balanced split see a stray comma.
-		foreach (Match answer in AnswerWithKey.Matches(flattened))
+		foreach (Match answer in AnswerCall.Matches(flattened))
 		{
-			keys.Add(answer.Groups[1].Value);
+			var key = AnswerKeyLiteral.Match(answer.Value);
+			if (key.Success)
+			{
+				keys.Add(key.Groups[1].Value);
+			}
 		}
 
 		foreach (var method in KeyCarryingMethods(flattened))

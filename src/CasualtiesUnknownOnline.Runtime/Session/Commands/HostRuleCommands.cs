@@ -71,7 +71,7 @@ internal sealed class HostRuleCommands(
 
 		if (_cheatVerbs.TryRefuse("gamerule", out var refusal))
 		{
-			return ConsoleAnswer.Refused(refusal);
+			return refusal;
 		}
 
 		if (args.Count == 2)

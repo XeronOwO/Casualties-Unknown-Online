@@ -62,7 +62,7 @@ internal sealed class AcceptanceCommands(ISessionControl session, IWorldControl 
 
 		if (_cheatVerbs.TryRefuse("traderreport", out var refusal))
 		{
-			return ConsoleAnswer.Refused(refusal);
+			return refusal;
 		}
 
 		_world.SendTraderAction(new TraderActionMsg

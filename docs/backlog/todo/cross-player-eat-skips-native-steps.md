@@ -349,3 +349,17 @@ action now), the owner's character-data capture it triggers, or the adapter's ap
 
 Also unchanged: the phantom `stonefruitopen` at the world origin with the same id every session — the guest still reports the object its delegate created,
 so the allocator refusal is not on that path yet. Both stay open on this ticket.
+
+## The third write is the SECOND report''s `ItemAfter` (2026-10-27, read from the code, not a new run)
+
+`[ItemUse] {Actor} {Family} …` is logged at the END of `PlayerItemActionOutcomeService.HandleOutcome` (after `CommitItemAfterUse`), and the
+`replaced … in place` line is inside the same call. So the two lines `.225 replaced` and `.225 ate` belong to ONE report — the one that carried a
+replacement — and its result was applied at `.223` (`condition set to 1.00`, correct).
+
+The `.226 condition set to 0.00` is therefore the OTHER report: the follow-up whose `ItemAfter` (`destroyed ? null : CloneItem(newItem)`) still
+describes the item BEFORE the swap. `ItemDefinitionSwap.ApplyOwnerSide` takes that `after` and, since its definition equals the object''s current one,
+writes its condition straight onto the owner''s object — zeroing it, and the game destroys the item.
+
+**The next edit**: a follow-up report''s result must carry the row''s settled form (the replacement definition and its condition), not the pre-swap state
+— either `HandleOutcome` builds `ItemAfter` from the committed row for a follow-up, or a result that changes nothing but the definition is not sent as a
+state write at all.

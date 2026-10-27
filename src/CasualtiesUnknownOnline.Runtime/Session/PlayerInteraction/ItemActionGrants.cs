@@ -29,11 +29,17 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// </summary>
 internal sealed class ItemActionGrants
 {
-	/// <summary>Who owns the item, and which limb the use was authorized on (-1 for a family with no limb).</summary>
-	private readonly record struct Admission(ulong Owner, int LimbIndex);
+	/// <summary>
+	/// Who owns the item, which limb the use was authorized on (-1 for a family with no limb), and the item's DEFINITION as it was when the host
+	/// admitted the use. The definition rides the admission because the two reports are classified by it: a replacing action renames the row in one
+	/// report, and the other report — the one carrying the pre-swap condition — must still be judged by what the item WAS, or it is read as an
+	/// ordinary eat and zeroes the very condition that then destroys the owner's item (measured 2026-10-27, the peel).
+	/// </summary>
+	private readonly record struct Admission(ulong Owner, int LimbIndex, string DefinitionId);
 
 	private readonly Dictionary<(ulong Actor, ulong ItemId), Admission> _grants = [];
 	private readonly Dictionary<(ulong Actor, ulong ItemId), ulong> _followUps = [];
+	private readonly Dictionary<(ulong Actor, ulong ItemId), string> _followUpDefinitions = [];
 
 	/// <summary>
 	/// The host admitted a cross-player use of this item by this actor — remember who
@@ -42,7 +48,7 @@ internal sealed class ItemActionGrants
 	/// overwriting it would let a second admission for the same pair extend the first
 	/// one's life.
 	/// </summary>
-	internal void Grant(ulong actor, ulong itemId, ulong owner, int limbIndex = -1)
+	internal void Grant(ulong actor, ulong itemId, ulong owner, string definitionId, int limbIndex = -1)
 	{
 		if (actor == 0 || itemId == 0 || owner == 0)
 		{
@@ -52,7 +58,7 @@ internal sealed class ItemActionGrants
 		var key = (actor, itemId);
 		if (!_grants.ContainsKey(key))
 		{
-			_grants[key] = new Admission(owner, limbIndex);
+			_grants[key] = new Admission(owner, limbIndex, definitionId ?? string.Empty);
 		}
 	}
 
@@ -61,12 +67,13 @@ internal sealed class ItemActionGrants
 	/// for this pair: the report is refused rather than applied, because without the
 	/// admission it would be one member writing another member's item.
 	/// </summary>
-	internal bool TryTake(ulong actor, ulong itemId, out ulong owner, out int limbIndex)
+	internal bool TryTake(ulong actor, ulong itemId, out ulong owner, out int limbIndex, out string definitionId)
 	{
 		if (!_grants.TryGetValue((actor, itemId), out var grant))
 		{
 			owner = 0;
 			limbIndex = -1;
+			definitionId = string.Empty;
 			return false;
 		}
 
@@ -78,24 +85,30 @@ internal sealed class ItemActionGrants
 		// destroyed as an ordinary consumed item instead of becoming the replacement (2026-10-26). One admission therefore remembers itself for
 		// exactly ONE follow-up from the same pair; a third report finds nothing, and the session boundary clears it like the grants.
 		_followUps[(actor, itemId)] = grant.Owner;
+		_followUpDefinitions[(actor, itemId)] = grant.DefinitionId;
 		owner = grant.Owner;
 		limbIndex = grant.LimbIndex;
+		definitionId = grant.DefinitionId;
 		return true;
 	}
 
 	/// <summary>
 	/// The one follow-up an admission allows, taken at most once per (actor, item): the report that carries what the affected side's delegate
-	/// REPLACED the item with. False for any other report, so a second write still needs its own admission.
+	/// REPLACED the item with. False for any other report, so a second write still needs its own admission. The definition comes back with it so the
+	/// caller classifies the report by what the item WAS when it was admitted, never by what an earlier report renamed it to.
 	/// </summary>
-	internal bool TryTakeFollowUp(ulong actor, ulong itemId, out ulong owner)
+	internal bool TryTakeFollowUp(ulong actor, ulong itemId, out ulong owner, out string definitionId)
 	{
 		if (!_followUps.TryGetValue((actor, itemId), out owner))
 		{
 			owner = 0;
+			definitionId = string.Empty;
 			return false;
 		}
 
 		_followUps.Remove((actor, itemId));
+		definitionId = _followUpDefinitions.TryGetValue((actor, itemId), out var known) ? known : string.Empty;
+		_followUpDefinitions.Remove((actor, itemId));
 		return true;
 	}
 
@@ -104,6 +117,7 @@ internal sealed class ItemActionGrants
 	{
 		_grants.Clear();
 		_followUps.Clear();
+		_followUpDefinitions.Clear();
 	}
 
 	/// <summary>Diagnostics: how many admitted uses are in flight on this host.</summary>

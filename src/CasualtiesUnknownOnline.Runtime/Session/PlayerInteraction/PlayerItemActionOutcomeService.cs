@@ -49,8 +49,12 @@ internal sealed class PlayerItemActionOutcomeService(
 	/// <summary>The admitted uses whose outcome is still owed (one report per admission).</summary>
 	private readonly ItemActionGrants _uses = new();
 
-	/// <summary>The host admitted a cross-player use of this item by this actor — remember who owns it, and the limb when the family is about one.</summary>
-	internal void Admit(ulong actor, ulong itemId, ulong owner, int limbIndex = -1) => _uses.Grant(actor, itemId, owner, limbIndex);
+	/// <summary>
+	/// The host admitted a cross-player use of this item by this actor — remember who owns it, the item's definition as it is NOW (the reports are
+	/// classified by it), and the limb when the family is about one.
+	/// </summary>
+	internal void Admit(ulong actor, ulong itemId, ulong owner, string definitionId, int limbIndex = -1) =>
+		_uses.Grant(actor, itemId, owner, definitionId, limbIndex);
 
 	/// <summary>Session ended: an admission belongs to the session that issued it.</summary>
 	public void ResetSessionState()
@@ -75,7 +79,9 @@ internal sealed class PlayerItemActionOutcomeService(
 		var followUp = false;
 		ulong owner;
 		int appliedLimbIndex;
-		if (msg.ItemInstanceId == 0 || !_uses.TryTake(sender, msg.ItemInstanceId, out owner, out appliedLimbIndex))
+		string admittedDefinition;
+		if (msg.ItemInstanceId == 0
+			|| !_uses.TryTake(sender, msg.ItemInstanceId, out owner, out appliedLimbIndex, out admittedDefinition))
 		{
 			// The ONE follow-up an admission allows: the eating client sees the object its delegate created only after the delegate returns, so its
 			// replacement definition travels in a SECOND message for the same pair. Without this the first report consumed the grant and the
@@ -83,7 +89,7 @@ internal sealed class PlayerItemActionOutcomeService(
 			// (measured 2026-10-26). A follow-up MUST carry a replacement — anything else is a second write without an admission.
 			if (msg.ItemInstanceId == 0
 				|| string.IsNullOrEmpty(msg.ReplacementItemId)
-				|| !_uses.TryTakeFollowUp(sender, msg.ItemInstanceId, out owner))
+				|| !_uses.TryTakeFollowUp(sender, msg.ItemInstanceId, out owner, out admittedDefinition))
 			{
 				_log.LogWarning("[ItemUse] refused the affected-side outcome from {Actor} for item {ItemId}: no admitted cross-player use of that item is in flight.",
 					sender, msg.ItemInstanceId);
@@ -102,7 +108,12 @@ internal sealed class PlayerItemActionOutcomeService(
 			return null;
 		}
 
-		var verdict = SolidFoodAdmission.Classify(_solidFoodSemantics, originalItem.ItemId);
+		// The ADMITTED definition decides the shape, never the definition the row names now: a replacing action renames the row in one of its two
+		// reports, and classifying the other one by the new name read it as an ordinary eat — which is how the pre-swap condition came back and
+		// destroyed the owner's item after the replacement had already landed (measured 2026-10-27). The admission is the only place that knows what
+		// the item WAS, so it is asked first; a report from an admission recorded before the definition travelled falls back to the row.
+		var admittedItemId = string.IsNullOrEmpty(admittedDefinition) ? originalItem.ItemId : admittedDefinition;
+		var verdict = SolidFoodAdmission.Classify(_solidFoodSemantics, admittedItemId);
 		bool destroyed;
 		string family;
 		if (verdict != SolidFoodVerdict.NotSolidFood)

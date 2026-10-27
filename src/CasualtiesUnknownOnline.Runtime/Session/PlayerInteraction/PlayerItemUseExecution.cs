@@ -290,7 +290,7 @@ internal sealed class PlayerItemUseExecution(
 			// cost) — so the host's whole part of the request is the ADMISSION: the
 			// grant the eater's one outcome report is matched against, because without
 			// it that report would be one member writing another member's item.
-			_outcomes.Admit(target, originalItem.InstanceId, user);
+			_outcomes.Admit(target, originalItem.InstanceId, user, originalItem.ItemId);
 			_log.LogInformation("[ItemUse] {User} offers {ItemId} (id {InstanceId}) to {Target} — the eat runs on the eater's own client.",
 				user, originalItem.ItemId, originalItem.InstanceId, target);
 			PublishUse(new PlayerItemUseResultMsg
@@ -329,7 +329,7 @@ internal sealed class PlayerItemUseExecution(
 			// The deleted RemoteLimbToolCatalog's transcribed numbers (condition cost,
 			// per-tool body deltas, the component fields, the timed ramp) are what this
 			// branch no longer carries.
-			_outcomes.Admit(target, originalItem.InstanceId, user, limbIndex);
+			_outcomes.Admit(target, originalItem.InstanceId, user, originalItem.ItemId, limbIndex);
 			_log.LogInformation("[ItemUse] {User} uses {ItemId} (id {InstanceId}) on {Target} — the item's own limb action runs on the affected side.",
 				user, originalItem.ItemId, originalItem.InstanceId, target);
 			PublishUse(new PlayerItemUseResultMsg

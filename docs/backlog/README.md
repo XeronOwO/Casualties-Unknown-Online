@@ -90,7 +90,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Music and recursive-crafting mods fail to load](review/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — fixed, all rows judged.
 
-- [Closing a teammate's backpack teleports the ring](review/closing-a-teammates-backpack-teleports-the-ring.md) — **Medium-High** — fixed; far close unjudged.
 - [Dragging out of a backpack to use it drops the item](review/use-drag-out-of-a-backpack-drops-the-item.md) — **Critical** — fixed: the use circle is back.
 - [The context menu does not block the pointer](review/context-menu-does-not-block-the-pointer.md) — **High** — a click on its blank area mines.
 
@@ -167,6 +166,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [Closing a teammate's backpack teleports the ring before it shrinks](done/closing-a-teammates-backpack-teleports-the-ring.md) — **Medium-High** — done.
 
 - [New recipe files are rejected by the evaluator](done/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — done.
 

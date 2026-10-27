@@ -1,6 +1,6 @@
 # Closing a teammate's backpack teleports the ring before it shrinks
 
-- Status: Review — fixed in `c2cf6bdd`; all three rows are judged (2026-10-27) and one residual is named: the on-screen shrink was not photographed mid-animation (the ring's own state stands in its place).
+- Status: Done — fixed in `c2cf6bdd`; all three rows are judged (2026-10-27) and one residual is named: the on-screen shrink was not photographed mid-animation (the ring's own state stands in its place).
 - Priority: Medium-High — the player sees the ring leave the teammate and land on themselves, which reads as "the game moved my bag".
 - Category: Remote backpack view / radial menu presentation
 - Source: user report (2026-10-25): "after opening another player's backpack ring, closing it makes the ring jump to me and then play the close animation".

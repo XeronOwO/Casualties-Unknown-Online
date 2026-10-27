@@ -53,6 +53,19 @@ internal static class VirtualInput
 		(nameof(Input.GetMouseButtonUp), nameof(PrefixUp)),
 	];
 
+	/// <summary>
+	/// The GAME reads its clicks as KEYS, not as mouse buttons: `KeyBinds.GetBind("attack")` answers 323 (`Mouse0`) and the call sites are
+	/// <c>Input.GetKeyDown(KeyBinds.GetBind(…))</c> (`PlayerCamera`, `AltHoverScript`, the console, …) — the whole game assembly contains ONE
+	/// <c>Input.GetMouseButton</c> read (a UI <c>AdaptiveButton</c>). So the same staged button must also answer the three key questions for
+	/// <c>Mouse0/1/2</c>, or a virtual click would move the pointer and never click anything.
+	/// </summary>
+	private static readonly (string Name, string PrefixName)[] KeyEntries =
+	[
+		(nameof(Input.GetKey), nameof(PrefixKeyHeld)),
+		(nameof(Input.GetKeyDown), nameof(PrefixKeyDown)),
+		(nameof(Input.GetKeyUp), nameof(PrefixKeyUp)),
+	];
+
 	private static Harmony? _harmony;
 	private static Vector3? _pointer;
 	private static int _buttonCensus;
@@ -117,6 +130,27 @@ internal static class VirtualInput
 			{
 				harmony.Patch(method, prefix: new HarmonyMethod(typeof(VirtualInput), entry.PrefixName));
 				_buttonCensus++;
+				report.Add(entry.Name + ": patched (" + Describe(method) + ")");
+			}
+			catch (Exception exception)
+			{
+				report.Add(entry.Name + ": FAILED " + DescribeFailure(exception));
+			}
+		}
+
+		// The game's own click path: the three key questions, answered for Mouse0/1/2 only.
+		foreach (var entry in KeyEntries)
+		{
+			var method = AccessTools.Method(typeof(Input), entry.Name, [typeof(KeyCode)]);
+			if (method == null)
+			{
+				report.Add(entry.Name + ": no method on this build");
+				continue;
+			}
+
+			try
+			{
+				harmony.Patch(method, prefix: new HarmonyMethod(typeof(VirtualInput), entry.PrefixName));
 				report.Add(entry.Name + ": patched (" + Describe(method) + ")");
 			}
 			catch (Exception exception)
@@ -245,6 +279,29 @@ internal static class VirtualInput
 	private static bool PrefixDown(int button, ref bool __result) => Answer(button, ButtonQuery.Down, ref __result);
 
 	private static bool PrefixUp(int button, ref bool __result) => Answer(button, ButtonQuery.Up, ref __result);
+
+	private static bool PrefixKeyHeld(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Held, ref __result);
+
+	private static bool PrefixKeyDown(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Down, ref __result);
+
+	private static bool PrefixKeyUp(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Up, ref __result);
+
+	/// <summary>
+	/// Answers a KEY question for a staged MOUSE button, and only then: any other key is the real keyboard's, so a batch can never type for the game by
+	/// accident. Which index a mouse key means is the engine's own numbering: Mouse0 = 323, the value the game's `attack` bind answers.
+	/// </summary>
+	private static bool AnswerKey(KeyCode key, ButtonQuery query, ref bool __result)
+	{
+		var button = key switch
+		{
+			KeyCode.Mouse0 => 0,
+			KeyCode.Mouse1 => 1,
+			KeyCode.Mouse2 => 2,
+			_ => -1,
+		};
+
+		return button < 0 || Answer(button, query, ref __result);
+	}
 
 	private static bool Answer(int button, ButtonQuery query, ref bool __result)
 	{

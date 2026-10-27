@@ -82,7 +82,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [A new recipe file is rejected by the evaluator](review/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — not reproduced.
 
 - [An item cannot be used on a sleeping teammate](review/use-on-sleeping-target-refused.md) — **Medium** — decision 270 implemented.
 
@@ -168,6 +167,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [New recipe files are rejected by the evaluator](done/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — done.
 
 - [A give from the ground swallows the item](done/give-from-the-ground-swallows-the-item.md) — **High** — fixed.
 

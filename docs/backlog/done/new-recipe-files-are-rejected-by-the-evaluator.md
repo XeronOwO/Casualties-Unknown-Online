@@ -1,6 +1,6 @@
 # A new recipe file is rejected by the client's evaluator as `(1,1) InteractiveHost`
 
-- Status: Review — not reproducible on 2026-10-26: a new multi-line recipe runs; the ticket's own case stays unexplained, and the two failure shapes that DO explain the symptom are recorded below. (original note: cause measured 2026-10-25: a MULTI-LINE body is refused, a one-line body runs; the working shape is now committed as `tools/acceptance/recipes/ui-raycast-at.cs`, which ran four times in one batch.
+- Status: Done — not reproducible on 2026-10-26: a new multi-line recipe runs; the ticket's own case stays unexplained, and the two failure shapes that DO explain the symptom are recorded below. (original note: cause measured 2026-10-25: a MULTI-LINE body is refused, a one-line body runs; the working shape is now committed as `tools/acceptance/recipes/ui-raycast-at.cs`, which ran four times in one batch.
 - Priority: High (tooling: it blocks every new acceptance instrument)
 - Category: Acceptance tooling / eval channel
 - Source: measured in batch `.acceptance/batch-menu2`, 2026-10-25 20:4x.

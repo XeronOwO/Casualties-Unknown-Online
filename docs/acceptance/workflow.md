@@ -210,6 +210,13 @@ collected while its scenario is up.
   clip (`WoundView`'s is `healthpanel-alert`, which already reads the displayed body) while the heartbeat
   family is `heartthump*`: read the clip off each AudioSource and call a panel "double sound" only when the
   same native sound is duplicated, not when two different native sounds play.
+- **A recipe''s body is ONE line.** The client evaluates a submission as one top-level expression through a Mono.CSharp REPL, so a body that opens a
+  block on one line and closes it on another is refused as `eval ''recipe:<name>'' failed: (1,1): InteractiveHost` — the same answer whether the file is
+  new or an existing recipe''s header with a new body, which is why the failure looked like "new files are rejected" (ticket
+  `done/new-recipe-files-are-rejected-by-the-evaluator.md`). Statements are fine inside the block; newlines in the body are not. The older recipes that
+  are multi-line predate this and reach the evaluator through a buffering path — write new ones on one line. Two other shapes explain the same symptom and
+  are worth ruling out first: a UTF-8 BOM (PowerShell''s `[System.IO.File]::WriteAllText` adds one; the evaluator answers `(1,1)` for it) and a body
+  whose last token is not the closing `}))()`.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
 
 ## 6. Verdicts

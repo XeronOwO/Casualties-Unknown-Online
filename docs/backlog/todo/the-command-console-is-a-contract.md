@@ -63,6 +63,57 @@ Shipped completers a mod composes with (and the built-ins migrate onto):
 (mods register while the game runs), and cannot be validated as a unit. An object can do all three, and it is what the mod surface already half is
 (`ModConsoleCommand` is a class — this ticket unifies the two paths instead of keeping two dialects).
 
+## The context a completer and a handler receive (the selector case, generalised)
+
+The user's selector example is the case that makes this a design question rather than a plumbing detail: a selector argument must offer the `@`
+forms (`@a`, `@p`, `@s`, `@r`, with their bracket filters `[limit=…]`, `[name=…]`) AND the concrete names of the players who are actually
+reachable right now — which is a fact only the session holds, and only the LOCAL client's view of it. A completer that can answer that needs more
+than the partial token; it needs the CUO context. Three rules make that safe.
+
+**1. Injection is by NARROW fact interfaces, not one god object.** A completer or handler asks for what it needs; the framework hands it a view:
+
+```
+public interface ICompletionContext
+{
+    IReadOnlyList<string> Arguments { get; }   // already accepted in this line (context for argument N-1)
+    string Partial { get; }                    // the token being typed
+    string CommandName { get; }
+    int ArgumentIndex { get; }
+    ISessionFacts Session { get; }             // role, members, their readiness, host rules the client was told
+    IWorldFacts? World { get; }                // entered? local body? nearby entities/containers (adapter-provided)
+    IContentFacts Content { get; }             // item/entity definition ids, resource locations
+    IModFacts Mods { get; }                    // what THIS mod may ask about (its own registered content)
+}
+```
+
+- `ISessionFacts.Members` answers "who is online, and is this member reachable for this command" — the selector half that depends on CUO's own
+  state; `ISessionFacts.HostRules` answers what the host announced, so a completer can refuse to offer an option the host forbids.
+- `IWorldFacts` exists only where the Game Adapter is loaded; a headless or pre-world client answers `null`, and the completer says so rather than
+  guessing (the same shape `ILocalCharacterCapture` already uses).
+- The interface is the PERMISSION BOUNDARY: `IModFacts` is scoped to the calling mod's own registrations, so a mod cannot enumerate another mod's
+  content through the completion channel. A fact a mod may not see is absent from its view, not filtered by the caller.
+
+**2. The context is a SNAPSHOT, per request, never held.** The console builds one context object for one completion request (per keystroke) and one
+for one invocation. A completer runs inside that request: it may read, it may not keep the object, and the framework hands it a copy-on-read list of
+members rather than a live collection — a completer that runs while a member leaves must not observe a half-updated session, and a mod that stashes
+the context for later must be unable to read a stale "who is online" as if it were current.
+
+**3. Completing is cheap and idle-safe.** Completion runs on every keystroke while the console is open, so the framework caches the member list per
+frame and a completer's cost must be O(candidates). A completer that would need the world (a nearby-item list) asks the adapter for a bounded query
+(the framework passes an explicit bound, e.g. 64 candidates), never an unbounded scene walk. The existing ten kinds already pay this cost; the
+contract has to keep it.
+
+**The selector, written against that contract** (this is the shape the framework ships, not something a mod must reinvent):
+
+```
+SelectorCompleter : IArgumentCompleter
+// Partial starts with '@'  -> offer the selector forms the command accepts, with their bracket filters
+// Partial is a name prefix -> offer Session.Members whose state allows this command (role, readiness, host rules)
+// Partial has a bracket    -> offer that selector's own filters ([limit=…] for @a/@p, [name=…] for @a)
+```
+
+The same three-way split applies to the built-ins' existing `Selector` kind, so the migration in stage 1 changes WHERE the list comes from, not what
+the player sees.
 ## The non-local half (the part with a wire decision)
 
 `CommandScope.HostRelayed` means: the invoking client sends the line to the host, the host runs the command's handler against its own authority and
@@ -109,12 +160,18 @@ sends the answer back. That needs three things this ticket must state before any
 | 5 | A member without the grant, or with the cheat switch off, is refused locally and the host sees no invocation |
 | 6 | A mod answer with a key renders from the mod's own catalogue on both clients; a text-only answer still prints |
 | 7 | The old `ModConsoleCommand` adapter still registers and runs (the deprecation window is real, not a claim) |
+| 8 | A selector argument offers BOTH the `@` forms with their filters and the names of the members who are actually reachable, judged from a frame |
+| 9 | The list follows the session: a member who joins or leaves between two completion requests changes what the second one offers, and no completer can cache the first into the second |
+| 10 | A mod's completer cannot see another mod's facts (the view is scoped to the caller), proven by a mod that asks for content it did not register |
+| 11 | Completion stays cheap: a completer that needs the world receives a bounded candidate list, and the frame drawn per keystroke does not stall |
 
 ## Limits
 
 - The ten built-in kinds stay: this is a contract change, not a new set of sources; a "one source per kind" test keeps the migration honest.
 - A host-relayed command runs with the HOST's authority by design; a mod cannot raise its own permission by declaring one.
 - Sandboxing/anti-cheat is out of MVP scope: a mod that ships a destructive command is the server owner's decision, and the host rules are the gate.
+- The context is a SNAPSHOT, so a completer is never a source of truth for an INVOCATION: a command must re-read `ISessionFacts` inside its handler (the
+  member may have left between the keystroke and the Enter), and the framework's own commands already do exactly that.
 
 ## Open decisions for the user
 

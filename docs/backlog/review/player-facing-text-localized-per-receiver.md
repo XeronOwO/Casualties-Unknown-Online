@@ -43,7 +43,7 @@ that shows it:
 | 0 | A console COMPLETION hint is a typed fact the reader's catalogue renders: `heal` and `help` read in Chinese on a Chinese client | **judged 2026-10-25** by `.acceptance/frames/console-zh.png` — the two hint rows read in Chinese (translated: "immediately fully restore the selected player(s) … (a cheat verb)" and "list available commands, or show one command's usage"), where they used to read in English (the user's report) |
 | 1 | A refusal of each family reaches a Chinese client as a Chinese sentence and an English client as an English one — read from the status line of one real batch, not from the key | **owed**: needs a two-client batch |
 | 2 | No status line, console reply, panel title or tooltip contains a run of the other language's words | **met by the gate** for the catalogues (`c940d45f`); a frame of each surface is owed with row 1 |
-| 3 | A host-answered command (`/heal`, `/give`, `/summon`, `/gamerule`) reads in the member's language | **owed**: same batch |
+| 3 | A host-answered command (`/heal`, `/give`, `/summon`, `/gamerule`) reads in the member's language | **PASS 2026-10-27** (same batch): on the English member each family answered in English — `/heal` → "76561198863287957 fully reset your state." + "Reset …: sent to that player's own client, which applies the full reset and re-reports the state."; `/give` → "Gave dogfood (#1314580973507) to … in slot 4."; `/summon` → the English usage refusal; `/gamerule` → the English unknown-rule refusal with its known list |
 | 4 | A key with no text in one of the two catalogues fails the gate | **met**: `LocalizationCatalogueGateTests` floor |
 
 ## What blocks rows 1 and 3
@@ -83,3 +83,10 @@ The game's own console prompt ("Enter command (type help for command list)") is 
 - The keys were a wire change; the protocol version follows decision 241 (pre-release: the frozen baseline does not move, the change
   is recorded by its commits and this ticket).
 - Mods may register languages; their strings are their own and out of scope here.
+
+## The census behind the failing rows (2026-10-27)
+
+`ConsoleAnswer.*` has **124 call sites under `src/`**, and **42 of them build an interpolated raw English sentence** (`ConsoleAnswer.Refused($"…")` and
+siblings). Those 42 are the family row 1 fails on: each names a fact (an unknown member, a rule, an item, a position) and each is read by a client that may
+have the other language. The ticket''s next work item is the same shape the five starting-supply keys already use — one key per answer with its arguments in
+`en.json`/`zh.json` — and the census above is the work list, not a sample.

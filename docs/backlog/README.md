@@ -62,6 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [A command owns its usage line](todo/a-command-owns-its-usage-line.md) — **Medium** — new.
+
 
 
 

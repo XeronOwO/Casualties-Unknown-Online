@@ -1273,3 +1273,4 @@ docs/backlog/done/a-dropped-container-arrives-empty-on-the-other-side.md | keep 
 docs/backlog/done/drop-out-of-a-remote-backpack-keeps-the-item.md | keep | index | docs/backlog/README.md
 tools/acceptance/recipes/item-row.cs | keep | claim | docs/backlog/done/drop-out-of-a-remote-backpack-keeps-the-item.md
 docs/backlog/done/the-acceptance-channel-replaces-its-staged-pointer.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/a-command-owns-its-usage-line.md | keep | index | docs/backlog/README.md

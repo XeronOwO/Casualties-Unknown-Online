@@ -80,7 +80,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Review
 
 
-- [Giving a ground item swallows it](review/give-from-the-ground-swallows-the-item.md) — **High** — ground path exercised.
 
 
 - [A new recipe file is rejected by the evaluator](review/new-recipe-files-are-rejected-by-the-evaluator.md) — **High** — not reproduced.
@@ -169,6 +168,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A give from the ground swallows the item](done/give-from-the-ground-swallows-the-item.md) — **High** — fixed.
 
 - [A dragged display proxy vanishes out of an opened remote backpack](done/drop-out-of-a-remote-backpack-keeps-the-item.md) — **High** — fixed.
 

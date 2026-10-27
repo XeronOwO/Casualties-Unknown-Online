@@ -1264,7 +1264,7 @@ docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md |
 docs/evidence/acceptance/remote-medical-panel-alarm-follows-viewed-player-20261023-c.md | keep | claim | docs/backlog/done/remote-medical-panel-alarm-follows-viewed-player.md
 docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | claim | docs/backlog/done/snapshot-overtakes-item-reports.md
 docs/backlog/todo/item-custody-single-authority.md | keep | index | docs/backlog/README.md
-docs/backlog/review/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
+docs/backlog/done/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
 tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/review/context-menu-does-not-block-the-pointer.md
 docs/backlog/todo/a-world-item-is-rendered-by-a-display-object.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/player-name-and-panel-20261026.md | keep | claim | docs/backlog/done/a-zero-player-id-rendered-as-a-name.md

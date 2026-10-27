@@ -27,6 +27,13 @@
 
 | Row | The check | State |
 |---|---|---|
-| 1 | Closing a teammate's backpack shrinks the ring AT the teammate, with the two players far apart | **owed**: needs the player's own close |
+| 1 | Closing a teammate's backpack shrinks the ring AT the teammate, with the two players far apart | **MEASURED 2026-10-27, NOT MET**: the view was closed in-process (`remote-gesture mode=close`) and a frame was captured INSIDE that call (the new `frame=` argument, so the capture lands on the closing frame). With the ring open around the teammate (`ring-a.png`), the closing frame (`ring-close.png`) shows NO ring at all — no jump to the local player, but no shrink at the teammate either: the ring is gone in the same frame. So the "teleport" is gone and the animation half of this row is not what the build does |
 | 2 | The quit/stale close keeps the ring at the focused body | **judged** by `.acceptance/frames/close1.png` and `close2.png` (close3 shows the clean world view) |
-| 3 | A normal own-backpack open/close is unchanged | **owed**: the far case and this one share the same key press |
+| 3 | A normal own-backpack open/close is unchanged | **owed**: the same in-call frame now makes it judgeable (`container-panel` to open the local container, then `remote-gesture mode=close frame=…`), which the next batch does |
+
+## The in-call frame, and what it showed (2026-10-27)
+
+A capture taken by a separate call always landed after the animation (frame `ring-b.png`: no ring), so `remote-gesture` grew a `frame=` argument that
+captures INSIDE the same call, on the closing frame. That frame (`ring-close.png`) shows the ring already gone — the same frame in which the view closed —
+so this build neither jumps the ring nor plays a visible shrink at the teammate. Whether a visible shrink is required is a native-parity question for the
+fix's owner, and row 3 (the player's own backpack) is now judgeable with the same argument.

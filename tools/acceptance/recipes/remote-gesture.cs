@@ -1,5 +1,5 @@
 // recipe: remote-gesture
-// args: mode=s item=s cast=n moved=n owner=s limb=n
+// args: mode=s item=s cast=n moved=n owner=s limb=n frame=s
 // serves: remote-inventory-native-parity-rework, remote-fentanyl-injection-and-medical-panel-desync
 // returns: ok, mode, item, itemId, itemOwner, itemType, itemHeld, itemParentContainer, castIndex, castKind, castTag, castSlot, moved, dragAfter, ringDistance, ringScaleBefore, ringScaleForced, calls, error, detail
 //          wound-view: viewOpen, opened, limbLookingAt, selectedLimbIndex, selectedIsLocal, displayBodyName
@@ -77,6 +77,10 @@
 	var moved = {{n:moved}};
 	var ownerArg = {{s:owner}};
 	var limbIndex = (int){{n:limb}};
+	// An optional frame captured INSIDE this call, on the same frame as the action. A shrink animation lasts a few frames and a separate
+	// capture call lands after it is over (measured 2026-10-27: the ring was already gone), so the row that needs "the ring shrinks AT the
+	// teammate" can only be judged from a capture taken here.
+	var frameName = {{s:frame}};
 	var camera = PlayerCamera.main;
 	if (camera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; }
 	var findType = new System.Func<string, System.Type>((fullName) => {
@@ -252,6 +256,15 @@
 		if (viewType != null) {
 			var close = viewType.GetMethod("Close", staticFlags);
 			if (close != null) { close.Invoke(null, null); }
+		}
+		if (!string.IsNullOrEmpty(frameName)) {
+			var safeFrame = frameName.Replace("/", "-").Replace("\\", "-");
+			var frameConfigured = System.Environment.GetEnvironmentVariable("CUO_FRAME_DIR");
+			var frameDirectory = string.IsNullOrEmpty(frameConfigured) ? System.IO.Path.Combine(System.IO.Path.GetTempPath(), "cuo-frames") : frameConfigured;
+			System.IO.Directory.CreateDirectory(frameDirectory);
+			var framePath = System.IO.Path.Combine(frameDirectory, safeFrame + ".png");
+			if (System.IO.File.Exists(framePath)) { System.IO.File.Delete(framePath); }
+			UnityEngine.ScreenCapture.CaptureScreenshot(framePath);
 		}
 		return "{\"ok\":true,\"mode\":\"close\",\"radialOpen\":false}";
 	}

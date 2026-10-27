@@ -47,6 +47,8 @@
 		sb.Append(",\"hasId\":").Append(itemId != 0UL ? "true" : "false");
 		sb.Append(",\"fresh\":").Append(item.GetComponent("FreshItemDrop") != null ? "true" : "false");
 		sb.Append(",\"x\":").Append(pos.x.ToString("0.###", inv)).Append(",\"y\":").Append(pos.y.ToString("0.###", inv));
+					var screen = UnityEngine.Camera.main != null ? UnityEngine.Camera.main.WorldToScreenPoint(pos) : UnityEngine.Vector3.zero;
+					sb.Append(",\"screenX\":").Append(screen.x.ToString("0.###", inv)).Append(",\"screenY\":").Append(screen.y.ToString("0.###", inv));
 		sb.Append('}');
 	}
 	return "{\"ok\":true,\"cellX\":" + cell.x.ToString(inv) + ",\"cellY\":" + cell.y.ToString(inv)

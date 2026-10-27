@@ -200,7 +200,11 @@ internal static class VirtualInput
 		if (!state.Held)
 		{
 			state.Held = true;
-			state.DownFrame = UnityTime.frameCount;
+
+			// The NEXT frame, not this one: the eval that stages a press can run AFTER the game's own Update in its frame (measured 2026-10-27: a
+			// same-frame stamp was never seen by `PlayerCamera`'s `Input.GetKeyDown(attack)` and the click did nothing), so the press is stamped for
+			// the frame the game will read next.
+			state.DownFrame = UnityTime.frameCount + 1;
 			state.UpFrame = -1;
 		}
 	}
@@ -217,7 +221,7 @@ internal static class VirtualInput
 		if (state.Held)
 		{
 			state.Held = false;
-			state.UpFrame = UnityTime.frameCount;
+			state.UpFrame = UnityTime.frameCount + 1;
 		}
 	}
 

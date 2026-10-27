@@ -24,7 +24,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Application/Kernel` | 31 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core/Audio` | 1 | read |
-| `CasualtiesUnknownOnline.GameAdapter` | 75 | read |
+| `CasualtiesUnknownOnline.GameAdapter` | 76 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 6 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Character` | 95 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Content` | 36 | read |

@@ -565,7 +565,7 @@ public class DriverToolTests
 
 		var run = DriverToolHarness.Run(
 			"-Url", server.Url, "-Action", "recipe", "-Recipe", "body-force",
-			"-RecipeArg", "consciousness=0,energy=-1,brainHealth=1,badSleepAmount=150,idleTime=-1,intelligence=-1,heartRate=-1,bloodPressure=-1,bloodOxygen=-1,strength=-1");
+			"-RecipeArg", "consciousness=0,energy=-1,brainHealth=1,badSleepAmount=150,idleTime=-1,intelligence=-1,heartRate=-1,bloodPressure=-1,bloodOxygen=-1,strength=-1,sleep=-1");
 
 		Assert.Equal(0, run.ExitCode);
 		Assert.Equal("0", DriverToolHarness.Field(run.Output, "consciousness"));

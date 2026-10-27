@@ -39,6 +39,10 @@ param(
 	[string]$GuestUrl,
 	[string]$AltUrl,
 	[switch]$NoJoin,
+	# One client only, by name. Every row that is the CLIENT's own (an input patch, a UI frame, a console line) needs one client and no lobby, so
+	# a single-client launch is the cheap shape for those — and it never touches the other boxes.
+	[ValidateSet('host', 'guest', 'alt')]
+	[string]$Only,
 	[int]$SteamGraceSeconds = 60,
 	[int]$ReadyTimeoutSeconds = 300
 )
@@ -274,13 +278,15 @@ function Restart-BoxGame([string]$Box, [string]$Client, [string]$GameRoot) {
 # ALL clients start together, then ONE wait loop watches all of them. The old shape started host, waited up to 300 s, then guest, waited,
 # then alt: the launch cost the SUM of the three, and every readiness poll spawned a powershell. A slow alt box must not make the run look
 # failed — it only has to be waited for.
-if (-not (Ensure-SandboxService)) { Write-Run 'FAIL: the sandbox cannot start, so no boxed client can come up'; exit 7 }
+#
+# -Only narrows the run to ONE client: a row that is the client's own (an input patch, a UI frame, a console line) needs no lobby, and a single
+# client touches neither the other boxes nor the network. The sandbox service is only ensured when a BOXED client is in the run.
+$clients = if ($Only) { @($Only) } else { @('host', 'guest', 'alt') }
+$needsSandbox = @($clients | Where-Object { $_ -ne 'host' }).Count -gt 0
+if ($needsSandbox -and -not (Ensure-SandboxService)) { Write-Run 'FAIL: the sandbox cannot start, so no boxed client can come up'; exit 7 }
 
-Start-ClientProcess 'host'
-Start-ClientProcess 'guest'
-Start-ClientProcess 'alt'
+foreach ($client in $clients) { Start-ClientProcess $client }
 
-$clients = @('host', 'guest', 'alt')
 $boxes = @{ 'guest' = $GuestBox; 'alt' = $AltBox }
 $roots = @{ 'guest' = $GuestRoot; 'alt' = $AltRoot }
 $restarted = @{}
@@ -316,7 +322,7 @@ if ($missing.Count -gt 0) {
 	exit 8
 }
 
-foreach ($client in @('guest', 'alt')) {
+foreach ($client in @($clients | Where-Object { $_ -ne 'host' })) {
 	$root = $roots[$client]
 	if (-not (Test-SteamInitialized $root)) {
 		Write-Run "FAIL: $client answered without Steam initialized (its log says so); this box needs its Steam up before a session"
@@ -325,9 +331,10 @@ foreach ($client in @('guest', 'alt')) {
 	}
 }
 
-Write-Run 'all three up'
+if ($Only) { Write-Run "$Only up" } else { Write-Run 'all three up' }
 
-if ($NoJoin) { exit 0 }
+# A single-client run has no lobby to join and no world to enter: the endpoint that answered IS the deliverable.
+if ($Only -or $NoJoin) { exit 0 }
 $lobbyAnswer = Invoke-Driver 'host' 'create-lobby'
 $lobby = [string]$lobbyAnswer.result.lobby
 if ([string]::IsNullOrWhiteSpace($lobby)) { Write-Run 'FAIL: no lobby id'; exit 6 }

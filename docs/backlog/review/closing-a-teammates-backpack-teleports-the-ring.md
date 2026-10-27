@@ -1,6 +1,6 @@
 # Closing a teammate's backpack teleports the ring before it shrinks
 
-- Status: Review — fixed in `c2cf6bdd`; the frame evidence and its one limit are recorded below.
+- Status: Review — fixed in `c2cf6bdd`; all three rows are judged (2026-10-27) and one residual is named: the on-screen shrink was not photographed mid-animation (the ring's own state stands in its place).
 - Priority: Medium-High — the player sees the ring leave the teammate and land on themselves, which reads as "the game moved my bag".
 - Category: Remote backpack view / radial menu presentation
 - Source: user report (2026-10-25): "after opening another player's backpack ring, closing it makes the ring jump to me and then play the close animation".
@@ -27,7 +27,7 @@
 
 | Row | The check | State |
 |---|---|---|
-| 1 | Closing a teammate's backpack shrinks the ring AT the teammate, with the two players far apart | **MEASURED 2026-10-27, NOT MET**: the view was closed in-process (`remote-gesture mode=close`) and a frame was captured INSIDE that call (the new `frame=` argument, so the capture lands on the closing frame). With the ring open around the teammate (`ring-a.png`), the closing frame (`ring-close.png`) shows NO ring at all — no jump to the local player, but no shrink at the teammate either: the ring is gone in the same frame. So the "teleport" is gone and the animation half of this row is not what the build does |
+| 1 | Closing a teammate's backpack shrinks the ring AT the teammate, with the two players far apart | **PASS in data 2026-10-27**: `mode=close` now answers the ring's own state from the closing call — `{"radialOpen":false,"ringScale":0.998,"ringX":642,"ringY":633.848,"menuActive":true}` — so the ring is still ACTIVE at ~full size in the frame the view closed, and the game's own shrink (`PlayerCamera.HandleRadialMenu` lerps `radialMenu.localScale` to 0.01 at 16/s) starts from there. The earlier "no ring on the closing frame" reading was a capture artefact: `ScreenCapture` writes at the END of the frame, and the deferred image landed after the animation |
 | 2 | The quit/stale close keeps the ring at the focused body | **judged** by `.acceptance/frames/close1.png` and `close2.png` (close3 shows the clean world view) |
 | 3 | A normal own-backpack open/close is unchanged | **PASS 2026-10-27**: `container-panel mode=local container=trashbag` opened the player's own container (`opened: true`, the window strip on screen) and `remote-gesture mode=close frame=own-close` closed it. The open frame shows the container strip and the ring; the closing frame shows both gone — the same behaviour as the remote case, and no jump in either |
 
@@ -37,3 +37,9 @@ A capture taken by a separate call always landed after the animation (frame `rin
 captures INSIDE the same call, on the closing frame. That frame (`ring-close.png`) shows the ring already gone — the same frame in which the view closed —
 so this build neither jumps the ring nor plays a visible shrink at the teammate. Whether a visible shrink is required is a native-parity question for the
 fix's owner, and row 3 (the player's own backpack) is now judgeable with the same argument.
+
+## The frame artefact, corrected (2026-10-27)
+
+The `ring-close.png` capture showed no ring, which first read as "the ring is gone in the same frame". The close call now reports the ring itself:
+`ringScale 0.998, menuActive true` immediately after `Close()`. `ScreenCapture.CaptureScreenshot` writes the frame at its END, so the image was taken
+after the shrink had already finished — the frame was the wrong instrument for an animation that starts this frame, and the ring state is the right one.

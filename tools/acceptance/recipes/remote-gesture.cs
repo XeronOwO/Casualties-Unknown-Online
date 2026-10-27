@@ -266,7 +266,12 @@
 			if (System.IO.File.Exists(framePath)) { System.IO.File.Delete(framePath); }
 			UnityEngine.ScreenCapture.CaptureScreenshot(framePath);
 		}
-		return "{\"ok\":true,\"mode\":\"close\",\"radialOpen\":false}";
+		return "{\"ok\":true,\"mode\":\"close\",\"radialOpen\":false"
+			+ ",\"ringScale\":" + (camera.radialMenu != null ? camera.radialMenu.localScale.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "-1")
+			+ ",\"ringX\":" + (camera.radialMenu != null ? camera.radialMenu.transform.position.x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "-1")
+			+ ",\"ringY\":" + (camera.radialMenu != null ? camera.radialMenu.transform.position.y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : "-1")
+			+ ",\"menuActive\":" + (camera.radialMenu != null && camera.radialMenu.gameObject.activeSelf ? "true" : "false")
+			+ "}";
 	}
 	if (mode == "open") {
 		if (services == null) { return "{\"ok\":false,\"error\":\"no-services\"}"; }

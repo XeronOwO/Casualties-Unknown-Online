@@ -75,3 +75,14 @@ the NEXT frame, because the eval can run after the game''s `Update` in its frame
 
 **Still open**: one UI click (the Online UI is IMGUI and may not read the virtual pointer at all — to be measured, not assumed), and then the removals this
 ticket exists for.
+
+## The GAME''s own Unity UI reads the virtual pointer; CUO''s IMGUI panel does not (2026-10-27, same batch)
+
+| What was aimed at | How | Read |
+|---|---|---|
+| a slot of the game''s own radial UI (the remote-backpack ring) | `remote-gesture mode=list` gave the button at `x=773, y=477`; `virtual-input mode=move` there, then `mode=press button=1` | `drag-state` → **`dragging: true, dragType: "Item"` with `mouseX 773, mouseY 477`** — `TryPickupFromUI`''s raycast found the button, and `mode=release` ended the drag (`dragging: false`) |
+| CUO''s own Online UI panel | the window opened over a known button position; `virtual-input` staged the pointer there and pressed | **no `ControlInvoked` line at all** — the panel is IMGUI and reads `Event.current`, which comes from the engine''s event queue, not from `Input.mousePosition` |
+
+So the channel''s UI half is exactly the GAME''s UI: a row that needs a real Unity-UI press (`TryPickupFromUI`, `TryPerformUIActions`) can now be driven with no OS input. CUO''s own panel keeps the driver''s control-id channel (`-Action click`), which is the better instrument for it anyway — a control id cannot drift with the layout.
+
+That closes the two behaviour rows this ticket needed measured; what remains is the removals it exists for.

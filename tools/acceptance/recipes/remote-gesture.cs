@@ -58,6 +58,9 @@
 //                  ApplyToLimb with the ml the item's own limb action computes. It refuses by name
 //                  unless the selected limb is this client's OWN body's limb and the view points at it,
 //                  so a drive cannot silently treat the wrong limb.
+//  - mode=release: (DIAGNOSTIC, never a row's evidence) the release's cast is SYNTHETIC: `cast=<n>` builds the uiCasts list the game's own
+//                  release would receive from the EventSystem, so a row judged through it proves the intent path but not the pointer. A row that needs
+//                  the real pointer uses `virtual-input` to place it and lets the game build its own casts. Keep the option for diagnostics only.
 //  - mode=release: dragItem = item ("<instanceId>" for a proxy, "local<slot>" for the
 //                  local body's own slot), clickPos moved (1) or not (0) relative to the
 //                  real pointer, uiCasts = the cast-th InvButton (-1 = an empty list, -2 = the

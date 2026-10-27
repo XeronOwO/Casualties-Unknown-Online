@@ -13,14 +13,6 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal static class DragUseCenter
 {
-	/// <summary>
-	/// The pointer this guard reads, when an acceptance batch has staged one — <c>null</c> for every real player, where the game's own
-	/// <c>Input.mousePosition</c> is the answer. Set by the driver recipe for the length of one release and cleared immediately after.
-	/// </summary>
-	internal static Vector2? StagedPointer { get; private set; }
-
-	/// <summary>Stages (or clears, with <c>null</c>) the pointer this guard reads. Test-only entry: nothing in the product calls it.</summary>
-	internal static void StagePointer(Vector2? pointer) => StagedPointer = pointer;
 	internal static bool IsUnderPointer(PlayerCamera? camera)
 	{
 		if (camera == null) // Unity object — ==
@@ -38,11 +30,11 @@ internal static class DragUseCenter
 			return false;
 		}
 
-		// The pointer comes from ONE place, so an acceptance batch can stage the position the guard reads without OS-level input:
-		// `StagePointer` is set by the driver's own recipe for the length of ONE release and cleared immediately after, and the real pointer is the
-		// default for every player. Without this seam "drag onto the displayed backpack's centre" was the only gesture family left that a batch could
-		// not drive (the guard read `Input.mousePosition` directly, so no staged `clickPos` could satisfy it — measured 2026-10-26).
-		var pointer = StagedPointer ?? (Vector2)Input.mousePosition;
+		// The REAL pointer, and nothing staged: a batch moves the pointer itself through the acceptance channel's virtual mouse
+		// (`GameAdapter/Acceptance/VirtualInput.cs`, which patches `Input.mousePosition`), so this guard needs no seam of its own. The staged-pointer
+		// seam that used to live here was removed with `todo/the-acceptance-channel-replaces-its-staged-pointer.md`: a guard that answers a position the
+		// game never had is a weaker instrument than one that answers the game's own read.
+		var pointer = (Vector2)Input.mousePosition;
 		var distance = Vector2.Distance(pointer, camera.radialCircle.transform.position) / PlayerCamera.uiScale;
 		return distance < camera.radialCircle.rectTransform.sizeDelta.x * 0.5f;
 	}

@@ -26,6 +26,10 @@ here would act, and the label names the player whose body the release will use t
   the family gate ACCEPTS … so the cue itself teaches what can be handed over".
 - The cue's state and its drawing are one fact: a cue reported as shown but not drawn is a defect, not a rendering
   detail.
+- **The centre guard reads the GAME''s pointer, and a batch moves that pointer itself.** `GameAdapter/DragUseCenter.cs` reads `Input.mousePosition` and
+  nothing else; the staged-pointer seam that used to sit in front of it is gone with the acceptance channel''s virtual mouse
+  (`GameAdapter/Acceptance/VirtualInput.cs`), which patches that read. The rule is the one that removed it: a guard answering a position the game never had
+  is a weaker instrument than one answering the game''s own read.
 - **The pointer the centre guard reads comes from one place.** `DragUseCenter` reads `StagedPointer` when an acceptance batch has staged one and
   `Input.mousePosition` otherwise, and `StagePointer` is the only setter. The seam exists because the guard read the real pointer directly, which made
   "drag onto the displayed backpack's centre" the one gesture family a batch could not drive at all (measured 2026-10-26: three release attempts

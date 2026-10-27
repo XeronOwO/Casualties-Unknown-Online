@@ -95,10 +95,13 @@ have the other language. The ticket''s next work item is the same shape the five
 
 | Family | Before | After (captured frame) |
 |---|---|---|
-| `/gamerule` unknown rule | `Unknown game rule 'duelSpawn'. Known rules: …` | `未知游戏规则'duelSpawn'。已知规则：allow_late_join, …` |
-| the cheat gate''s three refusals | `No active session — a cheat verb needs one: …` | `没有进行中的会话——作弊指令需要一局：主机自己的权限就是联机开关，成员的是主机为这一局授予的权限。/give 没有做任何事。` |
+| `/gamerule` unknown rule | the English sentence `Unknown game rule 'duelSpawn'. Known rules: …` | the Chinese catalogue's sentence for `rules.answer.unknown`, with the rule id and the known-rule list as its arguments |
+| the cheat gate's three refusals | the English sentence `No active session — a cheat verb needs one: …` | the Chinese catalogue's sentence for `cheat.refused.no_session`, with the verb as its argument |
+
+Both frames are the console overlay of a `Language = zh` client, read back image by image. Identifiers (`/give`, the rule ids, the command names) stay as
+they are; only the sentence shell is translated, which is what "the reader's language" means here.
 
 Two causes had to fall, and the second one is the lesson: the answers had no key, AND `ConsoleLineText.Resolve` resolved only a switch over six
-`console.*` literals — so even a keyed answer printed English. Identifiers (`/give`, rule ids) stay as they are; only the sentence shell is translated.
+`console.*` literals — so even a keyed answer printed English.
 
 What is left of row 1 is the raw-answer census the gate budgets (42 at the last count), one family per commit.

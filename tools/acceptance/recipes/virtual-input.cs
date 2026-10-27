@@ -1,5 +1,5 @@
 // recipe: virtual-input
-// args: mode=s x=n y=n
+// args: mode=s x=n y=n button=n
 // serves: cross-player-drag-use-feedback, use-drag-out-of-a-backpack-drops-the-item, context-menu-does-not-block-the-pointer (the rows a batch could not aim)
 // returns: ok, mode, installed, enabled, pointer, realPointer, answer, error, detail
 //
@@ -20,6 +20,7 @@
 	var mode = {{s:mode}};
 	var x = {{n:x}};
 	var y = {{n:y}};
+	var button = (int){{n:button}};
 	var findType = new System.Func<string, System.Type>((simpleName) => {
 		var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 		for (var i = 0; i < assemblies.Length; i++) {
@@ -35,8 +36,16 @@
 	if (virtualInput == null) { return "{\"ok\":false,\"error\":\"no-VirtualInput\"}"; }
 	const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
-	if (mode == "install" || mode == "move" || mode == "clear" || mode == "uninstall") {
-		string answer = "";
+	var answer = "";
+	var harmonyName = "none";
+	var monoModName = "none";
+	var loaded = System.AppDomain.CurrentDomain.GetAssemblies();
+	for (var a = 0; a < loaded.Length; a++) {
+		var simple = loaded[a].GetName().Name;
+		if (simple == "0Harmony" || simple == "HarmonyX") { harmonyName = simple + " " + loaded[a].GetName().Version; }
+		if (simple != null && simple.StartsWith("MonoMod", System.StringComparison.Ordinal)) { monoModName = simple + " " + loaded[a].GetName().Version; }
+	}
+	if (mode == "install" || mode == "move" || mode == "clear" || mode == "uninstall" || mode == "press" || mode == "release" || mode == "clear-buttons") {
 		if (mode == "install") {
 			var install = virtualInput.GetMethod("Install", Flags);
 			var args = new object[] { false };
@@ -45,6 +54,16 @@
 			var install = virtualInput.GetMethod("Install", Flags);
 			install.Invoke(null, new object[] { false });
 			answer = "moved";
+		} else if (mode == "press") {
+			virtualInput.GetMethod("Install", Flags).Invoke(null, new object[] { false });
+			virtualInput.GetMethod("Press", Flags).Invoke(null, new object[] { button });
+			answer = "pressed";
+		} else if (mode == "release") {
+			virtualInput.GetMethod("Release", Flags).Invoke(null, new object[] { button });
+			answer = "released";
+		} else if (mode == "clear-buttons") {
+			virtualInput.GetMethod("ClearButtons", Flags).Invoke(null, null);
+			answer = "buttons cleared";
 		} else if (mode == "clear") {
 			virtualInput.GetMethod("Clear", Flags).Invoke(null, null);
 			answer = "cleared";
@@ -75,6 +94,13 @@
 	return "{\"ok\":true,\"mode\":\"" + mode + "\""
 		+ ",\"installed\":" + (installed ? "true" : "false")
 		+ ",\"enabled\":" + (enabled ? "true" : "false")
+		+ ",\"buttonPatches\":" + ((int)virtualInput.GetProperty("ButtonPatches", Flags).GetValue(null, null)).ToString(inv)
+		+ ",\"buttonHeld\":" + (UnityEngine.Input.GetMouseButton(button) ? "true" : "false")
+		+ ",\"buttonDown\":" + (UnityEngine.Input.GetMouseButtonDown(button) ? "true" : "false")
+		+ ",\"buttonUp\":" + (UnityEngine.Input.GetMouseButtonUp(button) ? "true" : "false")
+		+ ",\"answer\":\"" + answer + "\"
+		+ ",\"harmony\":\"" + harmonyName + "\"
+		+ ",\"monomod\":\"" + monoModName + "\""
 		+ ",\"pointer\":\"" + (hasPointer ? pointerX.ToString("0.###", inv) + "," + pointerY.ToString("0.###", inv) : "none") + "\""
 		+ ",\"inputAnswers\":\"" + real.x.ToString("0.###", inv) + "," + real.y.ToString("0.###", inv) + "\""
 		+ "}";

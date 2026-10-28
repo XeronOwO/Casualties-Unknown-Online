@@ -307,3 +307,23 @@ What landed in this commit: the observation now ALSO answers by IDENTITY (`IsThe
 frame window — so the object the eat created can never be reported as a world item on a later frame. It is a hardening of the same rule, not yet proof for this row: the
 leaked object carried a fresh id, so it was NOT the recorded object, and which hook created it is the next read (`ItemWorldSync.OnItemInstantiated`'s patch site and whether
 its `CallContext` scope is the one the eat entered).
+## Row 5 PASSES after the hand-position fix (2026-10-29 02:00, build ce5b2bbb)
+
+Same gesture as the failing run: a closed stone fruit dragged onto the teammate's body and released on its centre (mode: DisplayedBackpack). The owner's log this time:
+
+`offers stonefruitclosed (id 1284516202435) …` → `[DragUse] used … on …` → `… ate stonefruitclosed …` → `condition set to 1.00` → `… ate …` — and NO
+`materializing … at (0.0,0.0)` anywhere in the session (the phantom count for the run is 0, where every previous run logged one). The owner's row for that id is
+`Terminal`: the whole fruit was eaten, which is the correct end state for a feed — the peel's opened fruit is consumed by the same eat.
+
+The eater's log names the fix: `the eat of stonefruitclosed (id 1284516202435) replaced the item with stonefruitopen (condition …)'', where the failing runs said
+`replaced the item with stonefruitclosed (condition 0.00)'' — the item it had just dropped. Two causes, both now closed:
+
+1. **The arranged hand item kept its world position at the origin.** Re-parenting alone left it 497 units from the eater, so the game's own peel dropped it there, instantiated the
+   opened fruit beside it, and the delegate's `PickUpItem` refused it (`distance 497.6, line-of-sight blocked True`) — the opened fruit then entered the world at (0,0) with a
+   fresh id. It now MOVES to the arranged slot's position (transform and rigidbody), the position the game's own pickup would have given it, so distance and line of sight
+   answer truthfully and the pickup lands.
+2. **The replacement window recorded the eaten item.** `Record` took the first object a hook saw inside the window, which is the item the delegate drops; `Arm` now names the
+   item being eaten and `Record` refuses it, so the definition that travels back is the opened fruit (both hooks also answer by identity, past the frame window).
+
+What is still not proven by this batch: the same gesture on a body whose slots are FULL (the user's 2026-10-25 ruling says a full inventory must still be feedable — the hand
+arrangement exists for exactly that) — that row stays open as a named residual rather than being folded into this pass.

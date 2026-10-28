@@ -110,6 +110,10 @@ is playing a different game.
 Every sentence is rendered by the client that reads it, in that client's language; the refusal travels as the key, never
 as prose.
 
+**The hand case arranges the game's own truth, not a parallel one.** A feed whose item sits in the GIVER's hand (the 2026-10-25 ruling: the other player eats it out of my hand, so a full inventory must still be feedable) runs the target's own use delegate on the target's client. That delegate resolves slots and distances against the body it is handed (`Body.SlotOf`, `Body.GetItem`, `PickUpItem`'s distance and line-of-sight check, `Item.cs:2606-2621`), so the item is parented into an EMPTY hand slot **and moved to that slot's position**: re-parenting alone left it at the world origin, the peel then dropped it there and its `PickUpItem` refused the opened fruit 497 units away, and the replacement entered the world at (0,0) with a fresh id while the owner's row was consumed (measured 2026-10-29, both clients' logs). The arrangement is a scope, not a transfer: every report it could cause is suppressed, and the custody tables are never told anything — the item never changes hands, only its state does.
+
+**A replacement the delegate creates is the owner's row becoming another definition.** The window that catches it is armed for the item being eaten, so the object the delegate drops inside the same call can never be mistaken for the replacement; the created object gets no instance id and no world report, its definition and condition travel back in the outcome, and the eat destroys it after reading them.
+
 ## Who judges
 
 The host validates the request (both players in world, the item really carried, the family's target gate) and admits it.

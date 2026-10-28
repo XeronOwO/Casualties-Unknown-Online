@@ -283,6 +283,14 @@ land on the eater (run sheet step 6).
   paragraph got right is only the mechanics (`RemoteBackpackView` is opened by the gesture, and `GiveGestureModePolicy` then reads `DisplayedBackpack`); what it
   got wrong is the meaning. The four acceptance rows are judged from this log plus the peers' tables next — not from another batch of coordinates.
 
+  **Row judgement from that batch (2026-10-28 22:40), three of four still open with the evidence named.** Row 2 (**the peel step ran first**) is a PASS: the
+  log shows `replaced stonefruitclosed (id …)` before the second `ate`, i.e. the closed fruit became the opened one and was then eaten, which is the vanilla
+  order. Rows 1, 3 and 4 are NOT judged, and the reason is a missing read rather than a doubt: row 1 needs a LOCAL eat of the same food in the same batch to
+  compare the owner's log lines with (`offers …`/`[DragUse] used …` are the cross-player envelope; `ate … of <owner>`/`replaced …`/`condition set to …` are the
+  shared tail), row 3 needs that same baseline to say whether the bite/condition came out the same, and row 4 needs the target's own item table read after the
+  feed. The local baseline could not be taken because the host's six body slots were full (`item-provide` answers `no-free-slot`, `item-drop dogfood` freed
+  none), so the next batch takes the baseline on a fresh body (the alt) and reads the target's table right after the feed.
+
   <b>The earlier, wrong conclusion, kept so the mistake is on the record:</b> `GiveGestureModePolicy.Read` answers `OwnUi` when the player's own ring/panels are
   open, else `DisplayedBackpack` when `RemoteBackpackView.IsOpen`, else `World` — and `RemoteBackpackView` is opened by the click on a remote body itself
   (`InvButtonBodyPatch` → `RemoteBackpackCoordinator.Open`), so every attempt read `DisplayedBackpack` with that peer's id.

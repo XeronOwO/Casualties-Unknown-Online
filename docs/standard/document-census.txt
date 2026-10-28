@@ -384,6 +384,7 @@ docs/backlog/done/use-drag-out-of-a-backpack-drops-the-item.md | keep | index | 
 docs/backlog/todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-into-backpack-plays-no-sound.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/cross-player-eat-skips-native-steps.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/a-disconnected-member-leaves-his-arrow-on-the-hud.md | keep | index | docs/backlog/README.md
 docs/backlog/review/selectors-exclude-the-executor.md | keep | index | docs/backlog/README.md
 docs/backlog/done/merge-remote-inventory-design-into-corpus.md | keep | index | docs/backlog/README.md
 docs/backlog/done/run-coordinator-over-the-class-line.md | keep | index | docs/backlog/README.md

@@ -295,6 +295,16 @@ land on the eater (run sheet step 6).
   open, else `DisplayedBackpack` when `RemoteBackpackView.IsOpen`, else `World` — and `RemoteBackpackView` is opened by the click on a remote body itself
   (`InvButtonBodyPatch` → `RemoteBackpackCoordinator.Open`), so every attempt read `DisplayedBackpack` with that peer's id.
 
+  **Rows 1 and 3 now PASS on numbers taken on the same build (2026-10-28 22:50).** The local baseline came from a fresh body (the alt, whose six slots were
+  free): `item-use type=pancake` answered `usable: true, condition 0.995, heldAfter: true`, and two more uses walked it `0.995 → 0.743 → 0.492` — i.e. one
+  bite is about a quarter of the pancake and the item survives the bite. The cross-player feed of the same food, from the host's log, ended with
+  `[ItemUse] local item … condition set to 0.75 by cross-player use` — the SAME first-bite value (0.743 against 0.75, the difference being the capture's
+  rounding), and the item was not destroyed either. So row 3 (the pancake is consumed the way a local eat consumes it — bites and condition, not whole in one
+  gesture) passes by the numbers, and row 1 passes with it: the tail of the cross-player chain (`… ate <food> (id …) of <owner>` and `condition set to …`)
+  is logged by the same `PlayerInteractionService`/`GameAdapter` pair a local eat uses, on the `Body.UseItem` path `NativeSolidFoodEat.Apply` runs — the
+  `offers …`/`[DragUse] used … on …` lines in front of it are the cross-player envelope, not a second implementation. Row 4 (the remaining condition agrees
+  between the operator's and the target's tables) still needs one read per end of the fed instance.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

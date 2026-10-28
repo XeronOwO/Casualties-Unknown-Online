@@ -256,6 +256,13 @@ land on the eater (run sheet step 6).
   The drag itself survives the ring closing (`drag-state` reads `dragging: true, dragItem: stonefruitclosed`), so the order that works is: ring open → stage
   the pointer → `drag-start` → ring closed → stage the pointer on the body below the HUD → `drag-release`. The clients stay open for it.
 
+  **The release now resolves a TARGET — the displayed backpack, not the body (2026-10-28 22:40).** With the whole order above driven in one go (provide a
+  fruit → ring open read-then-press → stage the pointer on its slot → `drag-start` answers `dragItem: stonefruitclosed(Clone)` → ring closed → the drag
+  survives → stage the pointer at the feet pixel `screen-point2 x=0 y=468.4` = `(640,362)`, `ui-raycast-at` there `isUiHit: false` → `drag-release`), the
+  answer changed shape: `mode: DisplayedBackpack, focusedSteamId: 76561199526807662, hadItem: stonefruitclosed(Clone), after: none`. So the decision reached a
+  PEER, and it read the peer's displayed backpack rather than their body — the CUO remote-inventory panel was open on this client. The next run closes that
+  panel first (the release must hit the body), and the reads to judge are the same four rows this ticket already lists.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

@@ -240,6 +240,22 @@ land on the eater (run sheet step 6).
   So the remaining piece is the RELEASE TARGET, not the item: the ring must be out of the pointer's way (toggle it closed with one Tab press before the
   release) and the release must land on the teammate's body rather than the ring's centre. The clients stay open for it.
 
+  **The remaining piece is the HUD, and the ring is a state machine (2026-10-28 22:30, same clients).** Two things were established by reading, not by trying
+  more coordinates:
+
+  - **The ring is a TOGGLE, so a batch must read it, not count presses.** `PlayerCamera.HandleInput` flips `radialOpen` on every `toggleinventory` DOWN
+    (`PlayerCamera.cs:933`), and three sequences in this batch opened or closed it one step out of phase — `before: radialOpen true`, then a press, then
+    `dragItem: none`, then `radialOpen false`. The driver needs a `ring-open`/`ring-close` verb that reads the state and presses at most once, and re-reads to
+    confirm.
+  - **The teammate's pixel is UNDER the player's HUD, so the release is classified `OwnUi` even with the ring closed.** `ui-raycast-at` answers `isUiHit:
+    true, first: MainMiddleBack` at the teammate's centre `(626,421)`, `MainUpperBack`/`MainLowerBack` around it, and the only tried point that reaches the
+    world is `(626,560)` (`isUiHit: false`). That is why `PlayerCameraDragUsePatch` keeps answering `mode: OwnUi, centreUnderPointer: True` while the ring is
+    shut; the release must land on the teammate's body BELOW the HUD — `screen-point2` on a lower world point of their body (feet, not centre) is the read
+    that picks it.
+
+  The drag itself survives the ring closing (`drag-state` reads `dragging: true, dragItem: stonefruitclosed`), so the order that works is: ring open → stage
+  the pointer → `drag-start` → ring closed → stage the pointer on the body below the HUD → `drag-release`. The clients stay open for it.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

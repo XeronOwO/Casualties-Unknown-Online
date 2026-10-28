@@ -3,7 +3,6 @@
 # require a Design section from them. The list may not grow: a ticket opened after the gate
 # exists has to name the corpus page it was designed from.
 
-docs/backlog/todo/console-caret-misaligned-with-text.md
 docs/backlog/review/console-enter-on-empty-does-not-close.md
 docs/backlog/review/context-menu-name-wraps-behind-actions.md
 docs/backlog/todo/cross-player-eat-skips-native-steps.md

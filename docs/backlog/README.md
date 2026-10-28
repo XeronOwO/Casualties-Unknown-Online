@@ -73,7 +73,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
-- [The console caret does not line up with the text](todo/console-caret-misaligned-with-text.md) — **Medium** — the frame's inset vs the field's rect.
 - [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
 - [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
@@ -167,6 +166,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [The console caret lines up with the text](done/console-caret-misaligned-with-text.md) — **Medium** — done.
 
 - [A world item is rendered by a display object](done/a-world-item-is-rendered-by-a-display-object.md) — **High** — done.
 

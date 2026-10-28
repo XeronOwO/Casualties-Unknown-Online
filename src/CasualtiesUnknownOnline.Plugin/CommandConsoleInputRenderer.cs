@@ -28,13 +28,28 @@ internal sealed class CommandConsoleInputRenderer
 
 		DrawInputBackground(rect);
 		var style = InputStyle();
+		var draw = SegmentStyle();
+
+		// The row must CLIP: a line longer than the field is scrolled so the caret stays at its right edge, instead of running out of the panel and
+		// over the world behind it (measured 2026-10-28: a 120-character line drew past the panel's edge with the caret following it).
+		var clipLeft = rect.x + style.padding.left;
+		var clipWidth = Mathf.Max(0f, rect.width - style.padding.left - style.padding.right);
+		var caretX = clipLeft + draw.CalcSize(new GUIContent(session.Input.Substring(0, session.Cursor))).x;
+		var scroll = Mathf.Max(0f, caretX - (clipLeft + clipWidth));
+		var clip = new Rect(clipLeft, rect.y, clipWidth, rect.height);
+
 		if (session.HasSelection)
 		{
-			DrawSelectionBackground(rect, session, style);
+			DrawSelectionBackground(rect, session, style, scroll);
 		}
 
-		DrawHighlightedInput(rect, session, style);
-		DrawImeComposition(rect, session, ime, style);
+		// Inside a clip the children are laid out in the CLIP's own space (origin 0,0), so the row is drawn at y=0 and x starts at -scroll: the
+		// absolute x the rest of this file uses would be shifted by the clip's own offset.
+		GUI.BeginClip(clip);
+		DrawHighlightedInput(rect.height, session, style, scroll);
+		DrawImeComposition(rect.height, session, ime, style, scroll);
+		GUI.EndClip();
+
 		UpdateImeCursorPosition(rect, session, style);
 
 		if (ShouldDrawCaret() && session.IsOpen)
@@ -42,12 +57,8 @@ internal sealed class CommandConsoleInputRenderer
 			// Measured with the SAME style the glyphs are DRAWN with (zero padding, no background). The input style carries padding, and
 			// `CalcSize` lays the content out the way the style would, padding included — so measuring the prefix with it put the caret one
 			// padding PAST the text it follows (a constant offset the player reads as "the cursor is misaligned", reported twice).
-			var draw = SegmentStyle();
-			var cursor = session.Cursor;
-			var prefix = session.Input.Substring(0, cursor);
-			var width = draw.CalcSize(new GUIContent(prefix)).x;
 			var caretRect = new Rect(
-				rect.x + style.padding.left + width,
+				caretX - scroll,
 				rect.y + 4f,
 				1f,
 				rect.height - 8f);
@@ -82,7 +93,7 @@ internal sealed class CommandConsoleInputRenderer
 		GUI.color = previous;
 	}
 
-	private static void DrawImeComposition(Rect rect, ConsoleInputSession session, ConsoleImeState ime, GUIStyle style)
+	private static void DrawImeComposition(float height, ConsoleInputSession session, ConsoleImeState ime, GUIStyle style, float scroll)
 	{
 		if (!ime.IsComposing)
 		{
@@ -90,10 +101,10 @@ internal sealed class CommandConsoleInputRenderer
 		}
 
 		var draw = SegmentStyle();
-		var caretX = rect.x + style.padding.left + draw.CalcSize(new GUIContent(session.Input.Substring(0, session.Cursor))).x;
+		var caretX = draw.CalcSize(new GUIContent(session.Input.Substring(0, session.Cursor))).x - scroll;
 		var previous = GUI.color;
 		GUI.color = OnlineUiTheme.Muted;
-		GUI.Label(new Rect(caretX, rect.y, draw.CalcSize(new GUIContent(ime.Composition)).x, rect.height), ime.Composition, draw);
+		GUI.Label(new Rect(caretX, 0f, draw.CalcSize(new GUIContent(ime.Composition)).x, height), ime.Composition, draw);
 		GUI.color = previous;
 	}
 
@@ -110,7 +121,7 @@ internal sealed class CommandConsoleInputRenderer
 		Input.compositionCursorPos = new Vector2(caretX, Screen.height - (rect.y + (rect.height * 0.5f)));
 	}
 
-	private static void DrawSelectionBackground(Rect rect, ConsoleInputSession session, GUIStyle style)
+	private static void DrawSelectionBackground(Rect rect, ConsoleInputSession session, GUIStyle style, float scroll)
 	{
 		var draw = SegmentStyle();
 		var start = session.SelectionStart;
@@ -152,30 +163,30 @@ internal sealed class CommandConsoleInputRenderer
 		return _segmentStyle;
 	}
 
-	private static void DrawHighlightedInput(Rect rect, ConsoleInputSession session, GUIStyle style)
+	private static void DrawHighlightedInput(float height, ConsoleInputSession session, GUIStyle style, float scroll)
 	{
 		var draw = SegmentStyle();
 		var tokens = CommandLineTokenizer.Tokenize(session.Input);
-		var x = rect.x + style.padding.left;
+		var x = -scroll;
 		var consumed = 0;
 		foreach (var token in tokens)
 		{
 			if (token.Start > consumed)
 			{
-				DrawSegment(rect, x, draw, session.Input.Substring(consumed, token.Start - consumed), OnlineUiTheme.Text, ref x);
+				DrawSegment(height, x, draw, session.Input.Substring(consumed, token.Start - consumed), OnlineUiTheme.Text, ref x);
 			}
 
-			DrawSegment(rect, x, draw, token.Text, TokenColor(token), ref x);
+			DrawSegment(height, x, draw, token.Text, TokenColor(token), ref x);
 			consumed = token.Start + token.Length;
 		}
 
 		if (consumed < session.Input.Length)
 		{
-			DrawSegment(rect, x, draw, session.Input.Substring(consumed), OnlineUiTheme.Text, ref x);
+			DrawSegment(height, x, draw, session.Input.Substring(consumed), OnlineUiTheme.Text, ref x);
 		}
 	}
 
-	private static void DrawSegment(Rect rect, float x, GUIStyle style, string text, Color color, ref float nextX)
+	private static void DrawSegment(float height, float x, GUIStyle style, string text, Color color, ref float nextX)
 	{
 		if (text.Length == 0)
 		{
@@ -185,7 +196,7 @@ internal sealed class CommandConsoleInputRenderer
 		var previous = GUI.color;
 		GUI.color = color;
 		var width = style.CalcSize(new GUIContent(text)).x;
-		GUI.Label(new Rect(x, rect.y, width, rect.height), text, style);
+		GUI.Label(new Rect(x, 0f, width, height), text, style);
 		GUI.color = previous;
 		nextX = x + width;
 	}

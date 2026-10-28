@@ -1,6 +1,6 @@
 # The console input's caret does not line up with the text it edits
 
-- Status: Todo — opened 2026-10-25 from the user's report (translated): "when I type, the text caret does not line up with the characters",
+- Status: Done — opened 2026-10-25 from the user's report (translated): "when I type, the text caret does not line up with the characters",
   with the user's own guess (translated): "I can see you frame the characters with a rounded rectangle — could that be the cause?".
 - Priority: Medium
 - Category: Console / text input / Online UI
@@ -61,9 +61,9 @@ The row was judged by capturing the client's own frame with the text in the fiel
 - **after** (`.acceptance/frames/caret-fixed2.png`): one text run `/give waterbottle @a`, no per-token frames, and the caret is a thin bar at the
   end of `@a` on the same baseline — exactly where the next character goes.
 
-**Residual, not judged:** the CJK half of row 1. The in-process driver cannot deliver Chinese text — `-Text '/give 水壶 @a'` arrives as the
-misdecoded `姘村６`, a transport artifact of the batch (PowerShell → JSON → eval), not of the console. Judging the caret after an IME composition
-needs the user's own keyboard, so it stays a named residual.
+**Residual, not judged:** the CJK half of row 1. The in-process driver cannot deliver Chinese text: a CJK token arrives as three unrelated glyphs (a transport artifact of the batch PowerShell-to-JSON-to-eval, not of the console). Judging the caret after an IME composition needs the user's own keyboard, so it stays a named residual.
+
+
 
 ## Acceptance rows
 
@@ -76,3 +76,19 @@ needs the user's own keyboard, so it stays a named residual.
 ## Notes on method
 
 Frames, not probes: the defect is a pixel fact, and the user's report came from looking at the screen.
+
+## The caret follows the drawn style, and the row clips (2026-10-28)
+
+Two more halves were needed after the 2026-10-25 fix, both found by reading the renderer and both judged from frames:
+
+1. **The caret measured with the padded style while the glyphs were drawn with the zero-padded one.** After the first fix the text and the caret were
+   still a constant inset apart, because `style.CalcSize` lays the content out the way the style would — padding included. The caret, the selection band,
+   the IME line and the click hit test now all measure with `SegmentStyle()`, the style the glyphs are drawn with; `CommandConsoleCaretPinTests` fails if
+   a measurement returns to the padded style.
+2. **The row did not clip.** A line longer than the field drew past the panel and over the world, with the caret following it (judged from a frame with a
+   120-character line). The row now clips to its own rect and SCROLLS by the overflow, so the caret stays at the last glyph at the row's right edge
+   (frame: the text starts mid-word, ends at the edge, caret immediately after it).
+
+Rows 1 (ASCII) and 2 pass by those frames; row 3's inset is visible in the same images (the first glyph starts right after the prompt, the caret with an
+empty field sits at that same origin). The CJK half of row 1 stays the named residual: the in-process driver cannot deliver Chinese text, so an IME
+composition needs the user's own keyboard.

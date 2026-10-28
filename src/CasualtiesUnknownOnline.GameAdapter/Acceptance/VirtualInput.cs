@@ -46,6 +46,13 @@ internal static class VirtualInput
 	}
 
 	private static readonly Dictionary<int, ButtonState> Buttons = [];
+
+	/// <summary>
+	/// Keys a batch staged for the KEYBOARD (the inventory key, the console key, …): the game reads bindings through `Input.GetKeyDown(KeyCode)`, so a
+	/// virtual KEY is the same mechanism as a virtual MOUSE button — one staged state per key, answered by the same three prefixes. Empty until a batch
+	/// stages one: every other key is the real keyboard's.
+	/// </summary>
+	private static readonly Dictionary<KeyCode, ButtonState> Keys = [];
 	private static readonly (string Name, string PrefixName)[] ButtonEntries =
 	[
 		(nameof(Input.GetMouseButton), nameof(PrefixHeld)),
@@ -228,6 +235,48 @@ internal static class VirtualInput
 	/// <summary>Drops every staged button (the pointer keeps its own staged value).</summary>
 	internal static void ClearButtons() => Buttons.Clear();
 
+	/// <summary>
+	/// Presses one KEY for the game's own reads: HELD from now on, DOWN on the frame the game reads next. Same stamping rule as a button, and for the
+	/// same reason — the eval that stages a press can run after the game's own Update for that frame.
+	/// </summary>
+	internal static void PressKey(KeyCode key)
+	{
+		if (!Keys.TryGetValue(key, out var state))
+		{
+			state = new ButtonState();
+			Keys[key] = state;
+		}
+
+		if (!state.Held)
+		{
+			state.Held = true;
+			state.DownFrame = UnityTime.frameCount + 1;
+			state.UpFrame = -1;
+		}
+	}
+
+	/// <summary>Releases one staged key: UP on the frame the game reads next, then nothing.</summary>
+	internal static void ReleaseKey(KeyCode key)
+	{
+		if (!Keys.TryGetValue(key, out var state))
+		{
+			state = new ButtonState();
+			Keys[key] = state;
+		}
+
+		if (state.Held)
+		{
+			state.Held = false;
+			state.UpFrame = UnityTime.frameCount + 1;
+		}
+	}
+
+	/// <summary>Drops every staged key, so the real keyboard answers again.</summary>
+	internal static void ClearKeys() => Keys.Clear();
+
+	/// <summary>How many keys a batch currently stages (the install report and the acceptance reads quote it).</summary>
+	internal static int StagedKeyCount => Keys.Count;
+
 	/// <summary>The staged pointer, when a batch has one.</summary>
 	internal static bool TryGetStaged(out Vector3 position)
 	{
@@ -291,11 +340,24 @@ internal static class VirtualInput
 	private static bool PrefixKeyUp(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Up, ref __result);
 
 	/// <summary>
-	/// Answers a KEY question for a staged MOUSE button, and only then: any other key is the real keyboard's, so a batch can never type for the game by
-	/// accident. Which index a mouse key means is the engine's own numbering: Mouse0 = 323, the value the game's `attack` bind answers.
+	/// Answers a KEY question for a staged KEY first, then for a staged MOUSE button (Mouse0 = 323, the value the game's `attack` bind answers): any
+	/// other key is the real keyboard's, so a batch can never type for the game by accident.
 	/// </summary>
 	private static bool AnswerKey(KeyCode key, ButtonQuery query, ref bool __result)
 	{
+		if (Keys.TryGetValue(key, out var state))
+		{
+			var frame = UnityTime.frameCount;
+			__result = query switch
+			{
+				ButtonQuery.Held => state.Held,
+				ButtonQuery.Down => state.DownFrame == frame,
+				ButtonQuery.Up => state.UpFrame == frame,
+				_ => false,
+			};
+			return false; // the real method is skipped for THIS key
+		}
+
 		var button = key switch
 		{
 			KeyCode.Mouse0 => 0,

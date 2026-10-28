@@ -29,6 +29,8 @@ dotnet format CasualtiesUnknownOnline.slnx   # mandatory before every commit
 - Only `GameAdapter` references game assemblies.
 - Deploy with `tools/deploy.ps1 -GameDir "<game-dir>"`, verify with `tools/verify-deploy.ps1`; commit BEFORE deploying.
 - Gates green in the same commit as the change; `tools/check-delivery.ps1` runs before the commit (see *Delivery*).
+- **A red gate is evidence the work is not finished — it licenses continuing, never stopping and never reverting.** A gate, matcher, fixture or
+  sample that the change made stale is part of that change and is fixed in the same commit.
 - Fast loop: run the focused test/gate first; the full suite ONCE before the commit (`--no-build` after a build).
 
 ## Engineering discipline

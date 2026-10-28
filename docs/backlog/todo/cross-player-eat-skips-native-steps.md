@@ -201,6 +201,14 @@ land on the eater (run sheet step 6).
   <b>Recipe for the next batch:</b> launch → (lobby auto-created) → `click window.close` → `virtual-key key=Tab,down=1` → `ring-buttons` reads the slots →
   `drag-start` at the slot's point → `drag-release` over the teammate's body point → read both clients and the frame.
 
+  **Where the batch stands (2026-10-28 22:02, three clients in a world).** The ring opens from the batch on the host with the fruit in slot 0:
+  `radialOpen: true`, buttons `Untagged@524,458:0:stonefruitclosed | Untagged@524,293:3:lantern | Untagged@764,296:5:waterbottle |
+  Untagged@764,458:1:trashbag | Untagged@645,234:4:dogfood | Untagged@645,516:2:none` — i.e. the drag's start point is `(524,458)` for the closed fruit. The
+  RELEASE needs the teammate's pixel, which needs its world point, and there is no recipe for another member's position: `body-read` is local only,
+  `clone-components` answers distance/name/hierarchy but not `position`, and the drafted `member-position` recipe (scan `Transform`s, keep the closest named
+  like a clone, report its world point) is refused by the evaluator as `(1,1): InteractiveHost` — a compile failure in the snippet that has to be isolated
+  before it is committed. That one read is all that stands between this batch and its first `drag-start`/`drag-release`.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 using UnityTime = UnityEngine.Time;
@@ -61,30 +63,11 @@ internal static class VirtualInput
 	];
 
 	/// <summary>
-	/// The GAME reads its clicks as KEYS, not as mouse buttons: `KeyBinds.GetBind("attack")` answers 323 (`Mouse0`) and the call sites are
-	/// <c>Input.GetKeyDown(KeyBinds.GetBind(…))</c> (`PlayerCamera`, `AltHoverScript`, the console, …) — the whole game assembly contains ONE
-	/// <c>Input.GetMouseButton</c> read (a UI <c>AdaptiveButton</c>). So the same staged button must also answer the three key questions for
-	/// <c>Mouse0/1/2</c>, or a virtual click would move the pointer and never click anything.
-	///
-	/// <para>
-	/// The targets are the <c>*Int</c> methods, not the <c>KeyCode</c> wrappers: the wrapper is a one-line managed body the JIT may INLINE into each
-	/// caller, so a detour on it can be bypassed entirely — measured 2026-10-28, when a staged `S` never reached `Input.GetKey` inside `PlayerCamera`
-	/// (the game's crouch branch read false for 300+ frames). The <c>*Int</c> methods are <c>[MethodImpl(InternalCall)]</c> and take a <c>KeyCode</c> on
-	/// this build (read from `UnityEngine.Input` itself: `GetKeyInt(KeyCode)`/`GetKeyDownInt(KeyCode)`/`GetKeyUpInt(KeyCode)`, all with no IL body).
-	/// </para>
+	/// The game's key read, replaced at its CALL SITE inside <c>PlayerCamera.HandleInput</c> (see <see cref="TranspileHandleInput"/>). The three questions are
+	/// answered from the staged state, and every query is counted whether or not a key is staged, so a zero count means "the game never asked", never "the
+	/// count looked at the wrong thing".
 	/// </summary>
-	private static readonly (string Name, string PrefixName)[] KeyEntries =
-	[
-		("GetKeyInt", nameof(PrefixKeyHeld)),
-		("GetKeyDownInt", nameof(PrefixKeyDown)),
-		("GetKeyUpInt", nameof(PrefixKeyUp)),
-
-		// The public wrappers too, counted SEPARATELY: the mouse internals are demonstrably reached (28 queries in one world on 2026-10-28) while the key
-		// internals were not, so the question is which entry point the game's key reads actually take. Two targets and two counters answer it in one read.
-		("GetKey", nameof(PrefixWrapperHeld)),
-		("GetKeyDown", nameof(PrefixWrapperDown)),
-		("GetKeyUp", nameof(PrefixWrapperUp)),
-	];
+	private static int _handleInputReplacements;
 
 	private static Harmony? _harmony;
 	private static Vector3? _pointer;
@@ -158,24 +141,29 @@ internal static class VirtualInput
 			}
 		}
 
-		// The game's own click path: the three key questions, answered for Mouse0/1/2 only.
-		foreach (var entry in KeyEntries)
+		// The game's own key path: the CALL SITES inside PlayerCamera.HandleInput, not UnityEngine.Input itself. A detour on Input's own methods was installed
+		// successfully and never invoked (0 queries in 300+ frames while the mouse internals answered 28), so the read is replaced where the game makes it:
+		// one `call Input.GetKey*(KeyCode)` becomes one call to the probe below, and every query is counted whether or not a key is staged. The game's own
+		// branch — GetBind → the query → HandleStartDragging/HandleReleaseDragging — still decides what happens; only the ANSWER to the query is staged.
+		var handleInput = AccessTools.Method(typeof(PlayerCamera), "HandleInput", Type.EmptyTypes);
+		if (handleInput == null)
 		{
-			var method = AccessTools.Method(typeof(Input), entry.Name, [typeof(KeyCode)]);
-			if (method == null)
-			{
-				report.Add(entry.Name + ": no method on this build");
-				continue;
-			}
-
+			report.Add("PlayerCamera.HandleInput: no method on this build");
+		}
+		else
+		{
 			try
 			{
-				harmony.Patch(method, prefix: new HarmonyMethod(typeof(VirtualInput), entry.PrefixName));
-				report.Add(entry.Name + ": patched (" + Describe(method) + ")");
+				_handleInputReplacements = 0;
+				harmony.Patch(
+					handleInput,
+					prefix: new HarmonyMethod(typeof(VirtualInput), nameof(PrefixHandleInput)),
+					transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(TranspileHandleInput)));
+				report.Add("PlayerCamera.HandleInput: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
 			}
 			catch (Exception exception)
 			{
-				report.Add(entry.Name + ": FAILED " + DescribeFailure(exception));
+				report.Add("PlayerCamera.HandleInput: FAILED " + DescribeFailure(exception));
 			}
 		}
 
@@ -352,7 +340,7 @@ internal static class VirtualInput
 
 	private static bool PrefixKeyUp(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Up, ref __result);
 
-	/// <summary>The same three questions on the PUBLIC wrappers, counted separately so one read says which entry point the game's key reads take.</summary>
+	/// <summary>The same three questions, called from the REPLACED call sites inside <c>PlayerCamera.HandleInput</c>; every query is counted.</summary>
 	private static bool PrefixWrapperHeld(KeyCode key, ref bool __result) => AnswerWrapperKey(key, ButtonQuery.Held, ref __result);
 
 	private static bool PrefixWrapperDown(KeyCode key, ref bool __result) => AnswerWrapperKey(key, ButtonQuery.Down, ref __result);
@@ -440,6 +428,99 @@ internal static class VirtualInput
 
 		__result = value;
 		return false; // the real method is skipped
+	}
+
+	/// <summary>
+	/// How many times <c>PlayerCamera.HandleInput</c> was entered, and how many <c>Input.GetKey*</c> call sites the transpiler replaced in it. The first
+	/// separates "the method never runs" from "the method runs and the query is never reached"; the second is a fact about the patch, not about a frame.
+	/// </summary>
+	internal static int HandleInputEntries { get; private set; }
+
+	/// <summary>The number of call sites the transpiler replaced when the patch was installed (0 means the install looked at the wrong method).</summary>
+	internal static int HandleInputReplacements => _handleInputReplacements;
+
+	private static void PrefixHandleInput() => HandleInputEntries++;
+
+	/// <summary>
+	/// Replaces the game's own <c>Input.GetKey/GetKeyDown/GetKeyUp(KeyCode)</c> calls inside <c>PlayerCamera.HandleInput</c> with the probes below. The
+	/// instruction keeps its labels and exception-block markers (only the operand changes), so the game's control flow — <c>KeyBinds.GetBind</c>, the branch,
+	/// <c>HandleStartDragging</c>/<c>HandleReleaseDragging</c> — is the game's own; only the answer to the query is staged.
+	/// </summary>
+	private static IEnumerable<CodeInstruction> TranspileHandleInput(IEnumerable<CodeInstruction> instructions)
+	{
+		var get = AccessTools.Method(typeof(Input), nameof(Input.GetKey), [typeof(KeyCode)]);
+		var down = AccessTools.Method(typeof(Input), nameof(Input.GetKeyDown), [typeof(KeyCode)]);
+		var up = AccessTools.Method(typeof(Input), nameof(Input.GetKeyUp), [typeof(KeyCode)]);
+		var probeGet = AccessTools.Method(typeof(VirtualInput), nameof(ProbeGetKey), [typeof(KeyCode)]);
+		var probeDown = AccessTools.Method(typeof(VirtualInput), nameof(ProbeGetKeyDown), [typeof(KeyCode)]);
+		var probeUp = AccessTools.Method(typeof(VirtualInput), nameof(ProbeGetKeyUp), [typeof(KeyCode)]);
+
+		var replaced = 0;
+		foreach (var instruction in instructions)
+		{
+			if (instruction.Calls(get))
+			{
+				instruction.operand = probeGet;
+				replaced++;
+			}
+			else if (instruction.Calls(down))
+			{
+				instruction.operand = probeDown;
+				replaced++;
+			}
+			else if (instruction.Calls(up))
+			{
+				instruction.operand = probeUp;
+				replaced++;
+			}
+
+			yield return instruction;
+		}
+
+		_handleInputReplacements = replaced;
+	}
+
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	private static bool ProbeGetKey(KeyCode key) => Probe(key, ButtonQuery.Held);
+
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	private static bool ProbeGetKeyDown(KeyCode key) => Probe(key, ButtonQuery.Down);
+
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	private static bool ProbeGetKeyUp(KeyCode key) => Probe(key, ButtonQuery.Up);
+
+	/// <summary>
+	/// One query from the replaced call site: counted ALWAYS, answered from the staged state when that key is staged, and handed to the real
+	/// <c>UnityEngine.Input</c> otherwise. The count is what makes a zero honest.
+	/// </summary>
+	private static bool Probe(KeyCode key, ButtonQuery query)
+	{
+		KeyQueries++;
+		if (Keys.TryGetValue(key, out var state))
+		{
+			var frame = UnityTime.frameCount;
+			var value = query switch
+			{
+				ButtonQuery.Held => state.Held,
+				ButtonQuery.Down => state.DownFrame == frame,
+				ButtonQuery.Up => state.UpFrame == frame,
+				_ => false,
+			};
+
+			if (query == ButtonQuery.Down && value)
+			{
+				KeyDownAnswers++;
+			}
+
+			return value;
+		}
+
+		return query switch
+		{
+			ButtonQuery.Held => Input.GetKey(key),
+			ButtonQuery.Down => Input.GetKeyDown(key),
+			_ => Input.GetKeyUp(key),
+		};
 	}
 
 	private static string Describe(MethodInfo method) =>

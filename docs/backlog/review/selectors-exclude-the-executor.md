@@ -121,3 +121,19 @@ The change was reverted rather than half-shipped (`git checkout --` on the six f
 1. teach each test helper to read EVERY line an answer printed (the heal cycle already learned this: the joined text, not the last line);
 2. re-point the six assertions at the parts' sentences (they are the catalogue's, which is the point of the change);
 3. then the same for `/summon`, and `/data` last.
+### The second `/give` attempt found the real decision (2026-10-28, reverted again)
+
+Applying the same shape a second time (with the joined-line test helper) made the failures readable, and they name a DESIGN choice rather than a test-update
+chore: the wire answer deliberately replaces a refusal whose reason is free text with the generic keyed line `answer.refused_see_host_log` ("Refused — the
+host's log names the reason."), and keeps the detailed sentence in the host's log (`PlayerItemGiveService`, the two `GiveOutcome` refusal branches: the
+keyed one passes its `labelKey`, the unkeyed one passes the generic line). The host's own answer prints `Refused: {reason}` with the real reason.
+
+So converting the local answer needs one of two shapes, and the choice is the user's because it changes what a player reads:
+
+1. **generic line** — the host sees the same keyed sentence a member sees; the detail stays in the host's log (consistent, one sentence to translate, the
+   local player loses the reason on screen);
+2. **keyed shell + the reason as an argument** — `answer.refused_detail` = "Refused: {0}", the shell translated, the free-text reason stays English
+   (the host keeps the detail; the technical sentence is not translatable anyway, which is WHY the wire answer went generic).
+
+The second is recommended and is one key plus one call site; the first is zero work but deliberately blindfolds the host. Either way the six test
+assertions follow the chosen wording, and `/summon` shares the same helper (`AnswerPart("answer.refused_see_host_log")`), so it takes the same decision.

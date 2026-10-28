@@ -137,3 +137,18 @@ So converting the local answer needs one of two shapes, and the choice is the us
 
 The second is recommended and is one key plus one call site; the first is zero work but deliberately blindfolds the host. Either way the six test
 assertions follow the chosen wording, and `/summon` shares the same helper (`AnswerPart("answer.refused_see_host_log")`), so it takes the same decision.
+### The keyed-origin slice, attempted and mapped (2026-10-28)
+
+The first slice of the redesign's rule 1 (a refusal is a key at its origin) was written and reverted: a `GrantRefusal` type in
+`Runtime/GameAdapter`, `ItemDefinitionTable.TryResolve` returning a key plus its arguments, `IItemGrantSource`/`ItemGrantSource` carrying it,
+`PlayerItemGiveService` passing it into the answer part, and five catalogue entries per language. The build then named exactly three call sites the slice
+must also touch, which is the useful result:
+
+| Site | What it needs |
+|---|---|
+| `WorldSummoner.Refused(string)` | `WorldSummonOutcome` carries a reason STRING and no parts, so a keyed refusal has nowhere to travel; the outcome gains a parts list (the heal/give answers already have that shape) |
+| `ItemStateDocument.DefinitionSchema` | probes `TryResolve` for a template only; it takes the two new `out` parameters |
+| `UnavailableItemGrantSource` | the no-adapter source also implements the port; its refusal becomes keyed too |
+
+None of it is design work — it is the mechanical half of a slice whose design is settled. Reverted rather than half-shipped (the tree is green and the
+deployment matches `778d43fd`), and this table is the next attempt's starting point.

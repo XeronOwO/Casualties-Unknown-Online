@@ -174,6 +174,14 @@ land on the eater (run sheet step 6).
   (`Harmony.GetPatchInfo` for the transpiler plus a dump of the compiled instructions) to see whether the operand swap survived, before anything else is
   re-targeted.
 
+  **Harmony's own bookkeeping contradicts the install (2026-10-28 21:52), which narrows the fault to the patch, not the game.** The install report now carries
+  the identity it patched and Harmony's answer at that moment: `PlayerCamera.HandleInput: patched, 26 call(s) replaced, target PlayerCamera#100665115,
+  applied yes`. A later read through `HarmonyLib.Harmony.GetPatchInfo` (resolved by FULL name — the first version matched a type called `Harmony` by simple
+  name and reported a default) answers, for the SAME metadata token `100665115` in `Assembly-CSharp`: `prefixes 0, transpilers 0, il 1281`. So the method
+  is one and the same, the install sees its patch, and a later frame sees none; meanwhile the prefix did run (575 entries). The next read is inside the
+  plugin: `GetPatchInfo` immediately after `Patch` and again on the next tick, so "never applied" and "applied and then dropped" stop being
+  indistinguishable — and the IL dump follows only once that is settled.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

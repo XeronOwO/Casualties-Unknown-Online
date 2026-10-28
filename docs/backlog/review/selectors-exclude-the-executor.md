@@ -107,3 +107,17 @@ The rule the fix encodes: **an answer a command builds for its OWN console must 
 sentences already exist in the catalogue, so each of the rows above is the same small change (service returns `ConsoleAnswer`, command returns it).
 Verified on a captured frame the same evening: the host's `/heal @a` now draws the Chinese catalogue''s sentence for `heal.answer.refused_for` and its reason
 part (`heal.answer.reason_host_not_in_world`) — the per-part rendering path — where the same answer used to print one assembled English sentence.
+### `/give` attempted and reverted the same evening (2026-10-28)
+
+The same change was applied to `/give` (`PlayerItemGiveService.Give` returning `ConsoleAnswer.Ok(text, parts)`, the control and the command forwarding
+it) and reached a green build with **six behaviour tests failing**, all of them because their assertions quote the ASSEMBLED sentence while the parts
+carry the catalogue's own wording:
+
+- `CommandConsoleItemGiveTests` (five: the state/property refusals and the drop-at-position reply),
+- `CommandConsoleWorldSummonTests` (one, which shares the give fixture).
+
+The change was reverted rather than half-shipped (`git checkout --` on the six files), so the tree is green and this note is the plan:
+
+1. teach each test helper to read EVERY line an answer printed (the heal cycle already learned this: the joined text, not the last line);
+2. re-point the six assertions at the parts' sentences (they are the catalogue's, which is the point of the change);
+3. then the same for `/summon`, and `/data` last.

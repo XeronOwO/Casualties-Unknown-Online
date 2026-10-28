@@ -48,7 +48,7 @@ public class ConsoleAnswerLocalizationGateTests
 	/// Raw interpolated answers still standing at 2026-10-28, with the keyed ones excluded. This is a ceiling: convert
 	/// one, lower it by the number converted, never raise it.
 	/// </summary>
-	internal const int RawAnswerBudget = 11;
+	internal const int RawAnswerBudget = 7;
 
 	/// <summary>One console answer's argument text, one level of nested parentheses tolerated (a sentence may call <c>string.Join(…)</c>).</summary>
 	private static readonly Regex AnswerCall = new(

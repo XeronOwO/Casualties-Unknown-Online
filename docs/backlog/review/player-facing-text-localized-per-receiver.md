@@ -112,3 +112,11 @@ What is left of row 1 is the raw-answer census the gate budgets (42 at the last 
   as syntax (`Usage: /clear`); the completion hint row under it says the same sentence, because both read `CommandDescriptions`.
 - The input row''s caret now sits immediately after the last glyph in a captured frame (three frames taken to catch the blink phase); the stylus the
   glyphs are drawn with is the one every measurement uses.
+
+## The census reached its floor: 42 was never the number (2026-10-28)
+
+The gate that counts raw answers counted the CALL, not the absence of a key, so it read 42 before and after thirteen conversions. Counting only the
+answers that carry no key literal gives **12**, of which this cycle converted five: the `/help` template (`console.help.command`), the music command's
+three answers, and the `/session`-style diagnostic line. The **seven** left are the two families that are not the player surface — the example mods (six,
+the sample a mod author reads and copies) and the acceptance driver's report line — and the gate's budget now says so with its reason. Converting those
+would put sample text in the shipped catalogue, which is why the budget stops at seven instead of zero.

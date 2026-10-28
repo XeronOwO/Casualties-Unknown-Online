@@ -470,7 +470,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 	[ConsoleCommand("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, "/whoami")]
 	private ConsoleAnswer WhoAmI(IReadOnlyList<string> _) =>
-		ConsoleAnswer.Ok($"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}");
+		ConsoleAnswer.Ok($"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}", "console.answer.session_facts", _session.Role.ToString(), _session.LocalSteamId.ToString(CultureInfo.InvariantCulture), _session.HostSteamId.ToString(CultureInfo.InvariantCulture), _session.SessionActive ? "true" : "false");
 
 	// The membership commands (/kick, /ban, /unban) live in HostAdminCommands, the host-rule
 	// verb in HostRuleCommands and the save commands (/save) in WorldSaveCommands: each group

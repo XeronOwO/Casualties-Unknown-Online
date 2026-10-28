@@ -284,6 +284,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	/// </summary>
 	private static readonly string[] ExpectedUiKeys =
 	[
+		"console.answer.session_facts",
 		"console.chat.not_sent",
 		"console.cmd.ban.desc",
 		"console.cmd.clear.desc",

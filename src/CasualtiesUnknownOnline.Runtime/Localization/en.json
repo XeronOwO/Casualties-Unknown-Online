@@ -377,5 +377,9 @@
   "data.answer.remove_needs_path": "remove needs a path inside the state — the whole state is not removable. Usage: {0}",
   "summon.answer.usage": "Usage: {0}",
   "save.answer.refused": "Cannot save: {0}.",
-  "console.help.command": "/{0} — {1}\nUsage: {2}"
+  "console.help.command": "/{0} — {1}\nUsage: {2}",
+  "music.answer.refused": "refused: {0}",
+  "music.answer.playing": "playing {0} ({1}s).",
+  "music.answer.unknown_verb": "unknown verb '{0}' — usage: /music play <path> | share <path> | stop | status",
+  "console.answer.session_facts": "Role={0} SteamId={1} Host={2} SessionActive={3}"
 }

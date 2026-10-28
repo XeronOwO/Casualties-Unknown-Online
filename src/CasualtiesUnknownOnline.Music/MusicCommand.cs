@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -40,10 +41,10 @@ internal static class MusicCommand
 				if (refused is not null)
 				{
 					MusicGate.Log?.LogWarning($"[Music] refused {requested}: {refused}");
-					return ConsoleAnswer.Refused($"refused: {refused}");
+					return ConsoleAnswer.Refused($"refused: {refused}", "music.answer.refused", refused);
 				}
 
-				return ConsoleAnswer.Ok($"playing {requested} ({Device.Length:0.0}s).");
+				return ConsoleAnswer.Ok($"playing {requested} ({Device.Length:0.0}s).", "music.answer.playing", requested, Device.Length.ToString("0.0", CultureInfo.InvariantCulture));
 
 			case "share":
 				if (arguments.Count < 2)
@@ -70,7 +71,7 @@ internal static class MusicCommand
 				return ConsoleAnswer.Ok(_share?.Status() ?? "not playing.");
 
 			default:
-				return ConsoleAnswer.Refused($"unknown verb '{arguments[0]}' — usage: /music play <path> | share <path> | stop | status");
+				return ConsoleAnswer.Refused($"unknown verb '{arguments[0]}' — usage: /music play <path> | share <path> | stop | status", "music.answer.unknown_verb", arguments[0]);
 		}
 	}
 }

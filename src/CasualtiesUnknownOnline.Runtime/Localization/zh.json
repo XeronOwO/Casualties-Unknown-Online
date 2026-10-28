@@ -377,5 +377,9 @@
   "data.answer.remove_needs_path": "remove 需要指向状态内部的一个位置——整个状态不能删除。用法：{0}",
   "summon.answer.usage": "用法：{0}",
   "save.answer.refused": "无法保存：{0}。",
-  "console.help.command": "/{0} —— {1}\n用法：{2}"
+  "console.help.command": "/{0} —— {1}\n用法：{2}",
+  "music.answer.refused": "已拒绝：{0}",
+  "music.answer.playing": "正在播放 {0}（{1} 秒）。",
+  "music.answer.unknown_verb": "未知子命令'{0}'——用法：/music play <文件> | share <文件> | stop | status",
+  "console.answer.session_facts": "角色={0} SteamID={1} 主机={2} 会话进行中={3}"
 }

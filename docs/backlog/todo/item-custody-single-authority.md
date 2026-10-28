@@ -259,7 +259,7 @@ Two different things, and only one of them was a rule gap:
    done so forever. Fixed: `ItemCustodyComparison.Compare` now takes the roster and skips rows owned by someone not present
    (`IsOwnedBySomeonePresent`), with two tests; the design page states the rule and audit ledger row 188 records it.
 2. **`1151372216259:KindDisagrees:World` is a real defect and stays open**: a WORLD row expects a real object on every client, and an
-   object carrying a display marker stands for it. That is `docs/backlog/todo/a-world-item-is-rendered-by-a-display-object.md`.
+   object carrying a display marker stands for it. That is `docs/backlog/done/a-world-item-is-rendered-by-a-display-object.md`.
 
 The `give` chain itself was clean in the same session (the item adopted, taken and placed by the host's own log lines quoted above), so
 row 1's give half is judged; its rearrange half still needs a hand.

@@ -1266,7 +1266,7 @@ docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | 
 docs/backlog/todo/item-custody-single-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
 tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/done/context-menu-does-not-block-the-pointer.md
-docs/backlog/todo/a-world-item-is-rendered-by-a-display-object.md | keep | index | docs/backlog/README.md
+docs/backlog/done/a-world-item-is-rendered-by-a-display-object.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/player-name-and-panel-20261026.md | keep | claim | docs/backlog/done/a-zero-player-id-rendered-as-a-name.md
 docs/backlog/done/a-zero-player-id-rendered-as-a-name.md | keep | index | docs/backlog/README.md
 docs/backlog/done/a-dropped-container-arrives-empty-on-the-other-side.md | keep | index | docs/backlog/README.md

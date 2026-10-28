@@ -1,6 +1,6 @@
 # A world item is rendered by a display-marked object
 
-- Status: Todo — opened 2026-10-26 from the item-custody projection's own reading.
+- Status: Done — opened 2026-10-26 from the item-custody projection's own reading.
 - Priority: High — the projection exists to prove exactly one claim ("this client shows what the kernel says"), and this is the one
   disagreement a live session produced that is not explained by a departed member.
 - Category: Item custody / display objects
@@ -50,7 +50,7 @@ The same-id trail in the same log, for the reader who wants the history:
 | Row | The check |
 |---|---|
 | 1 | A row that becomes `World` while a display object stands for it leaves no display object behind on any client — **drop path judged 2026-10-26** (below) |
-| 2 | The projection reports `mismatches=0` for a session in which an item goes carried → world (a drop) and world → carried (a pickup) |
+| 2 | The projection reports `mismatches=0` for a session in which an item goes carried → world (a drop) and world → carried (a pickup) | **PASS 2026-10-28**: three clients, one lantern cycle on the guest — `item-provide mode=create` (carried), `mode=drop` (world), `mode=pickup` (carried). The chain is the game's own (`[ItemDrop] lantern (id 22377858709) present — re-placing`, `[ItemPhysics] play`, `[ItemCommand] ItemPickup … → OnItemPickedUp result=Committed(1)`), the item's row ends `Carried` with its owner, and every client settles at `mismatches=0` (host 18:52:48, guest 18:52:39, alt 18:52:38). The only non-zero lines were the JOIN window (`rows=323 objects=4`, cleared in 1-2 ticks) and the create transition (`22377858709:RowWithoutObject:Carried`, two ticks, cleared) — transitions by the ticket's own rule, not stuck ghosts. |
 | 3 | The mismatch line names the marker, so the next reading locates the object without a second run — **done 2026-10-26**: `LocalObject.Marker` (`clone-render` / `standing`) rides the `Mismatch` and `Describe` prints it, so any reading now carries it |
 
 ## Limits
@@ -87,3 +87,11 @@ a REAL one — and one snapshot later the two agreed. That distinction matters f
 appears once and clears is a TRANSITION (a snapshot or event in flight), while the 20:18 `1151372216259` case persisted across at least three ticks and
 is the only shape that can be a stuck ghost. Any future batch must therefore say how many consecutive ticks a disagreement survived before calling it a
 defect.
+
+## Judged and closed (2026-10-28 evening)
+
+Rows 1-3 pass. Row 2 was the one still owed, and the batch above produced the whole custody cycle with the projection settling to zero on all three
+clients; the two non-zero readings it showed were the JOIN stream and the create transition, each cleared within two ticks — the distinction this ticket
+itself established. The reading that opened the ticket (`1151372216259:KindDisagrees:World`, steady across at least three ticks on 2026-10-26 20:18) has
+not recurred in three later batches, and the mismatch line now names the marker it saw, so a recurrence would locate its object on the first reading.
+That is the residual, stated rather than passed.

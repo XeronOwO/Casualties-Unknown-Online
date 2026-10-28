@@ -167,7 +167,7 @@ display shows everywhere else on this page: the row is the fact, the message is 
 `<instance id>:<mismatch>:<row kind>[:<marker>]`, where the marker is `clone-render` or `standing` — WHICH display stood for
 the id (`LocalObject.Marker`, filled in `ItemCustodyProjection.LocalObjects`, carried on `Mismatch`). Without it the first
 `KindDisagrees` a session reports is an id and nothing else, and finding the object costs a second run; the `World` row
-disagreement that is open today (`../backlog/todo/a-world-item-is-rendered-by-a-display-object.md`) exists because that name
+disagreement that is open today (`../backlog/done/a-world-item-is-rendered-by-a-display-object.md`) exists because that name
 was missing.
 
 ## Who judges

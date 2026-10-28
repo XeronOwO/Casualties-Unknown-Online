@@ -69,7 +69,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [A world item is rendered by a display-marked object](todo/a-world-item-is-rendered-by-a-display-object.md) — **High** — display vs World.
 
 
 
@@ -168,6 +167,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A world item is rendered by a display object](done/a-world-item-is-rendered-by-a-display-object.md) — **High** — done.
 
 - [The context menu does not block the pointer](done/context-menu-does-not-block-the-pointer.md) — **High** — done.
 

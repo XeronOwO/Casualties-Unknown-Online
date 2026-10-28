@@ -162,7 +162,7 @@ which the recipe's own "usable slot" search does not produce. Owed.
 refused twice with `refused GiveToBody: … has no item instance 14451443822` — the carried-item branch — while a lantern that was created straight into
 the world went through. That is correct behaviour for an object whose kernel row is not `World`, but it means the probe had picked a WORLD OBJECT whose
 row does not say world: either the drop report had not committed yet (it was retried four seconds later, same answer) or that object is another instance
-of the ghost family (`todo/a-world-item-is-rendered-by-a-display-object.md`). **Root cause of that refusal, found the same hour**: the probe had picked a DISPLAY object — a standing materialization of a member's carried row — because
+of the ghost family (`done/a-world-item-is-rendered-by-a-display-object.md`). **Root cause of that refusal, found the same hour**: the probe had picked a DISPLAY object — a standing materialization of a member's carried row — because
 its filters covered `RemoteCloneRender`, containers and bodies but not `StandingItems.Is`. With that marker also excluded (reached by name, like every
 other adapter type in this recipe) the same dropped dogfood went through: `PickUpToSlot resolved item 13787924117 from the WORLD … ground hand-over
 sent`. So the refusal was the probe's pick, not the product's rule, and no row-kind read is needed.

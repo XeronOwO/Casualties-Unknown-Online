@@ -55,7 +55,7 @@ the HOST:
 
 So on this build a clean quit leaves no visible marker, and the ticket cannot be closed as fixed on this evidence — it also cannot be reproduced, so the cause is not
 established. What the read rules out: `ArrowGuide` (`reversing/…/ArrowGuide.cs`) is a decoration that bobs ±1 unit on `sin(Time.time)`, not a teammate marker;
-no CUO catalogue string or class draws an arrow (`arrow`, `方向`, `指向`, `Marker`, `Indicator`, `Pointer` all come up empty outside `ArrowGuide`).
+no CUO catalogue string or class draws an arrow (`arrow`, the catalogue words for "direction" and "pointing", `Marker`, `Indicator` and `Pointer` all come up empty outside `ArrowGuide`).
 The remaining candidate is the situation the USER saw, which this batch did not recreate: a peer whose row the host still holds (the roster above proves the host keeps it) drawn
 by whichever surface the game uses for an off-screen teammate. The next step is to read the game's own UI for how a second `Body` is presented at the screen edge
 (`PlayerCamera`'s UI actions and the pod's HUD), now that `ArrowGuide` is excluded by reading rather than by guess.

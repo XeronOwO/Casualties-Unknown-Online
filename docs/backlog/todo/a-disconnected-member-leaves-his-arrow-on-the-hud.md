@@ -33,3 +33,9 @@ before any code is touched; a fix without that read would be a guess about which
 | 1 | A peer that leaves the world takes its arrow with it within one frame, read on the still-connected client (frame before/after and the roster read) |
 | 2 | A peer that rejoins gets its arrow back without a restart |
 | 3 | A peer that leaves while its arrow is off-screen leaves no marker, and no clone is left active in the scene |
+## Observed while trying to reproduce (2026-10-28 23:35)
+
+After both peers dropped and rejoined the same lobby, each peer's own gate read `Waiting for the host to load… The host is not in the world yet.` while the
+host's own client answered `inWorld: true`. So the disagreement this ticket is about is not only the ARROW: a member's client can hold a stale answer about
+the host's world, and the host can hold a stale answer about the member. The first read should therefore capture both sides of that fact in one frame (the
+host's member list and each peer's gate) — the arrow is one symptom of it, and fixing the arrow without it would be treating the picture, not the fact.

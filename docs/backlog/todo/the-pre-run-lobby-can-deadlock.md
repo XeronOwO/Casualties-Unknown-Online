@@ -32,3 +32,9 @@ ignores it for a member it still lists as gone, or the host's list drops the mem
 | 1 | A member that re-joins a lobby whose run has not started is counted again by the host, and both gates clear without a restart (both clients' `gateText` read in the same batch) |
 | 2 | A member that drops while the pre-run gate is waiting does not hold the gate: the host either departs or names the missing member (read on both ends) |
 | 3 | The same session, restarted from scratch, departs on the first try — so a fresh lobby is not the only way out |
+## Where the gate lives (read 2026-10-28, after the report)
+
+The gate is CUO's own, not the game's: `SessionWaitText` words every wait from a `SessionWaitState` (`SessionWaitKind.HostLoading` / `MembersLoading`,
+both keyed into the catalogue as `wait.*`), and `StartGateCoordinator` decides when a wait clears. So the deadlock is in our own start gate: those two kinds
+are waiting for each other's fact, and the member list that should clear `MembersLoading` came back empty after the peers re-joined. The first read is therefore
+inside `StartGateCoordinator`: what it counts for `HostLoading` and `MembersLoading`, and what removes a member from the set it counts.

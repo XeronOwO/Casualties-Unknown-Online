@@ -1,3 +1,5 @@
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
+
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
@@ -18,34 +20,45 @@ internal static class ItemDefinitionTable
 	/// with the operator's refusal when this build cannot. The refusal is the give verb's
 	/// sentence: a caller that only wants a silent completion answer maps false to null.
 	/// </summary>
-	internal static bool TryResolve(string definitionId, out Item? template, out string? refusal)
+	internal static bool TryResolve(string definitionId, out Item? template, out GrantRefusal? refusal)
 	{
 		template = null;
 		refusal = null;
 
 		if (string.IsNullOrWhiteSpace(definitionId))
 		{
-			refusal = "No item id was given — name the game's own item id, e.g. bandage.";
+			refusal = new GrantRefusal(
+				"No item id was given — name the game's own item id, e.g. bandage.",
+				"item.answer.refused_no_definition_id");
 			return false;
 		}
 
 		if (Item.GlobalItems is not { } known || !known.ContainsKey(definitionId))
 		{
-			refusal = $"No item definition '{definitionId}' is known to this game — /give names a definition from the game's own item table.";
+			refusal = new GrantRefusal(
+				$"No item definition '{definitionId}' is known to this game — a verb names a definition from the game's own item table.",
+				"item.answer.refused_unknown_definition",
+				definitionId);
 			return false;
 		}
 
 		var prefab = ItemPrefabResolver.Load(definitionId);
 		if (prefab == null) // Unity object — ==
 		{
-			refusal = $"Item definition '{definitionId}' has no prefab this build can load, so it cannot be created.";
+			refusal = new GrantRefusal(
+				$"Item definition '{definitionId}' has no prefab this build can load, so it cannot be created.",
+				"item.answer.refused_no_prefab",
+				definitionId);
 			return false;
 		}
 
 		template = prefab.GetComponent<Item>();
 		if (template == null) // Unity object — ==
 		{
-			refusal = $"Item definition '{definitionId}' has no Item component on its prefab, so it cannot be created.";
+			refusal = new GrantRefusal(
+				$"Item definition '{definitionId}' has no Item component on its prefab, so it cannot be created.",
+				"item.answer.refused_no_item_component",
+				definitionId);
 			return false;
 		}
 

@@ -30,11 +30,16 @@ internal sealed class ItemGrantSource(ItemIdAllocator ids, ILogger<ItemGrantSour
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger _log = log;
 
-	public bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out string? refusal)
+	public bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out GrantRefusal? refusal)
 	{
 		item = null;
-		if (!ItemDefinitionTable.TryResolve(definitionId, out var template, out refusal) || template is null)
+		refusal = null;
+		if (!ItemDefinitionTable.TryResolve(definitionId, out var template, out var tableRefusal) || template is null)
 		{
+			refusal = tableRefusal ?? new GrantRefusal(
+				"the definition could not be resolved.",
+				"item.answer.refused_unknown_definition",
+				definitionId);
 			return false;
 		}
 
@@ -43,8 +48,12 @@ internal sealed class ItemGrantSource(ItemIdAllocator ids, ILogger<ItemGrantSour
 			? ItemStateDocument.Describe(capture)
 			: SnbtTree.Overlay(ItemStateDocument.Describe(capture), state);
 
-		if (!ItemStateDocument.TryBind(template, capture, document, out var bound, out refusal))
+		if (!ItemStateDocument.TryBind(template, capture, document, out var bound, out var stateText))
 		{
+			refusal = new GrantRefusal(
+				stateText ?? "the state text was not accepted for this definition.",
+				"item.answer.refused_state_text",
+				stateText ?? string.Empty);
 			return false;
 		}
 

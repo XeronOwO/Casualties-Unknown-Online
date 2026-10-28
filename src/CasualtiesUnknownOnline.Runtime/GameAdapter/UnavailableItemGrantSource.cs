@@ -12,10 +12,10 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 /// </summary>
 public sealed class UnavailableItemGrantSource : IItemGrantSource
 {
-	public bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out string? refusal)
+	public bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out GrantRefusal? refusal)
 	{
 		item = null;
-		refusal = $"This build cannot create items: no Game Adapter is loaded, so '{definitionId}' cannot be resolved to a prefab or given an instance id.";
+		refusal = new GrantRefusal($"This build cannot create items: no Game Adapter is loaded, so '{definitionId}' cannot be resolved to a prefab or given an instance id.", "item.answer.refused_no_adapter", definitionId);
 		return false;
 	}
 }

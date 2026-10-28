@@ -84,14 +84,24 @@ internal sealed class PlayerItemGiveService(
 	}
 
 	/// <summary>
-	/// A refusal the answer cannot render in the reader's language — a parser's usage line, the creation port's ground, the
-	/// custody path's own words. The member reads ONE sentence the catalogue owns ("refused; the host's log names the reason")
-	/// instead of the host's English inside a localized frame, and the detail stays in the log where it can be acted on. A port
-	/// that returns a catalogue key of its own can be promoted to a real part later without changing this shape.
+	/// A refusal whose sentence the catalogue owns when its source names a KEY (the creation port's grounds do since 2026-10-28); a source that still
+	/// answers free text (the state parser, the custody path) falls back to the generic "the host's log names the reason" line, and the detail stays in
+	/// the log. The command-console redesign promotes the rest one family at a time.
 	/// </summary>
-	private GiveOutcome RefuseUnconverted(string reason)
+	private GiveOutcome RefuseUnconverted(string reason, GrantRefusal? keyed = null)
 	{
 		_log.LogWarning("[Give] refused: {Reason}", reason);
+		if (keyed is not null)
+		{
+			var keyedArgs = new string[keyed.Args.Count];
+			for (var i = 0; i < keyedArgs.Length; i++)
+			{
+				keyedArgs[i] = keyed.Args[i];
+			}
+
+			return new GiveOutcome(false, $"Refused: {reason}", 0, -1, [AnswerPart(keyed.Key, keyedArgs)]);
+		}
+
 		return new GiveOutcome(false, $"Refused: {reason}", 0, -1, [AnswerPart("answer.refused_see_host_log")]);
 	}
 
@@ -200,9 +210,9 @@ internal sealed class PlayerItemGiveService(
 		{
 			// The port's contract names the ground; the fallback exists so a broken
 			// implementation cannot answer with an empty "Refused:" line.
-			var reason = createRefusal ?? $"the definition '{definitionId}' could not be created by this build.";
+			var reason = createRefusal?.Text ?? $"the definition '{definitionId}' could not be created by this build.";
 			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, reason);
-			return RefuseUnconverted(reason);
+			return RefuseUnconverted(reason, createRefusal);
 		}
 
 		var delivery = _take.DeliverCreatedItem(targetSteamId, item, slot);

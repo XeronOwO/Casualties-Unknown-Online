@@ -152,3 +152,6 @@ must also touch, which is the useful result:
 
 None of it is design work — it is the mechanical half of a slice whose design is settled. Reverted rather than half-shipped (the tree is green and the
 deployment matches `778d43fd`), and this table is the next attempt's starting point.
+### The keyed-origin slice landed (2026-10-28)
+
+`ItemDefinitionTable` now answers a `GrantRefusal` (sentence + catalogue key + arguments) for each of its four grounds, `IItemGrantSource`/`ItemGrantSource` carry it, and `PlayerItemGiveService` renders the key — so `/give`'s creation refusals read in the operator's language on the operator's own client, which is the half that used to be English while only a member's answer was translated. Six catalogue entries per language; `LocalizationCatalogueGateTests` learned the `new GrantRefusal(…)` shape as a read, so the keyed-refusal rule is enforced for the next one. The summon port keeps the text for now: its outcome carries no parts, and that is the next slice.

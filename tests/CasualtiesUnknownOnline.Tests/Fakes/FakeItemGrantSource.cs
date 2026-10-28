@@ -34,29 +34,33 @@ internal sealed class FakeItemGrantSource : IItemGrantSource
 	/// <summary>Every fact this source created, in order.</summary>
 	internal List<CharacterItemMsg> Created { get; } = [];
 
-	public bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out string? refusal)
+	public bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out GrantRefusal? refusal)
 	{
 		Attempts.Add(definitionId);
 		item = null;
 		refusal = null;
 		if (string.IsNullOrWhiteSpace(definitionId) || Unknown.Contains(definitionId))
 		{
-			refusal = $"No item definition '{definitionId}' is known to this game — /give names a definition from the game's own item table.";
+			refusal = new GrantRefusal($"No item definition '{definitionId}' is known to this game — a verb names a definition from the game's own item table.", "item.answer.refused_unknown_definition", definitionId);
 			return false;
 		}
 
 		var capture = FakeItemState.Definition(definitionId);
 		if (capture is null)
 		{
-			refusal = $"No item definition '{definitionId}' is known to this game — /give names a definition from the game's own item table.";
+			refusal = new GrantRefusal($"No item definition '{definitionId}' is known to this game — a verb names a definition from the game's own item table.", "item.answer.refused_unknown_definition", definitionId);
 			return false;
 		}
 
 		var document = state is null
 			? FakeItemState.Describe(capture)
 			: SnbtTree.Overlay(FakeItemState.Describe(capture), state);
-		if (!FakeItemState.TryBind(capture, document, out var bound, out refusal))
+		if (!FakeItemState.TryBind(capture, document, out var bound, out var stateText))
 		{
+			refusal = new GrantRefusal(
+				stateText ?? "the state text was not accepted.",
+				"item.answer.refused_state_text",
+				stateText ?? string.Empty);
 			return false;
 		}
 

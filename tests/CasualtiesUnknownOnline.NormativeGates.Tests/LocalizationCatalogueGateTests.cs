@@ -51,6 +51,14 @@ public sealed class LocalizationCatalogueGateTests
 		@"ConsoleAnswer\.(?:Refused|Ok)\((?:[^()]|\([^()]*\))*\)",
 		RegexOptions.Compiled);
 
+	/// <summary>
+	/// A KEYED REFUSAL built where its reason is known: <c>new GrantRefusal(sentence, "key", args…)</c>. The item-creation port answers this shape
+	/// (the definition table's grounds), and the console renders the key, so a literal there is a read of the catalogue like any other keyed answer.
+	/// </summary>
+	private static readonly Regex KeyedRefusalCall = new(
+		@"new GrantRefusal\((?:[^()]|\([^()]*\))*\)",
+		RegexOptions.Compiled);
+
 	private static readonly Regex AnswerKeyLiteral = new(
 		@"""([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)""",
 		RegexOptions.Compiled);
@@ -483,6 +491,17 @@ public sealed class LocalizationCatalogueGateTests
 		foreach (Match answer in AnswerCall.Matches(flattened))
 		{
 			var key = AnswerKeyLiteral.Match(answer.Value);
+			if (key.Success)
+			{
+				keys.Add(key.Groups[1].Value);
+			}
+		}
+
+		// The same read one layer earlier: a KEYED REFUSAL built where its reason is known (`new GrantRefusal(sentence, "key", args…)`), which the
+		// item-creation port answers and the console renders.
+		foreach (Match refusal in KeyedRefusalCall.Matches(flattened))
+		{
+			var key = AnswerKeyLiteral.Match(refusal.Value);
 			if (key.Success)
 			{
 				keys.Add(key.Groups[1].Value);

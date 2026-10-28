@@ -48,5 +48,5 @@ public interface IItemGrantSource
 	/// key, component, field or value the definition's capture does not carry. The state is
 	/// bound BEFORE the id is allocated, so a refusal creates nothing.
 	/// </summary>
-	bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out string? refusal);
+	bool TryCreate(string definitionId, SnbtValue? state, out CharacterItemMsg? item, out GrantRefusal? refusal);
 }

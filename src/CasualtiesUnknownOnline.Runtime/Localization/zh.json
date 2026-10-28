@@ -381,5 +381,11 @@
   "music.answer.refused": "已拒绝：{0}",
   "music.answer.playing": "正在播放 {0}（{1} 秒）。",
   "music.answer.unknown_verb": "未知子命令'{0}'——用法：/music play <文件> | share <文件> | stop | status",
-  "console.answer.session_facts": "角色={0} SteamID={1} 主机={2} 会话进行中={3}"
+  "console.answer.session_facts": "角色={0} SteamID={1} 主机={2} 会话进行中={3}",
+  "item.answer.refused_no_definition_id": "没有给出物品 ID——请写游戏自己的物品 ID，例如 bandage。",
+  "item.answer.refused_unknown_definition": "游戏里没有名为'{0}'的物品定义——指令要写游戏物品表里的定义。",
+  "item.answer.refused_no_prefab": "物品定义'{0}'没有本版本可加载的预制体，因此无法创建。",
+  "item.answer.refused_no_item_component": "物品定义'{0}'的预制体上没有 Item 组件，因此无法创建。",
+  "item.answer.refused_state_text": "该定义不接受这段状态文本：{0}",
+  "item.answer.refused_no_adapter": "本版本无法创建物品：没有加载 Game Adapter，因此'{0}'无法解析成预制体，也无法分配实例 ID。"
 }

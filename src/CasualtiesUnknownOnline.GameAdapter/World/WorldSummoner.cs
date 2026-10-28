@@ -139,7 +139,7 @@ internal sealed class WorldSummoner(
 	{
 		if (!_grant.TryCreate(prefabId, state, out var item, out var refusal) || item is null)
 		{
-			return Refused(refusal ?? $"the item definition '{prefabId}' could not be created by this build.");
+			return Refused(refusal?.Text ?? $"the item definition '{prefabId}' could not be created by this build.");
 		}
 
 		if (!_worldItems.TryCreateAt(new Vector3(x, y, 0f), item, "Summon", out var createRefusal))

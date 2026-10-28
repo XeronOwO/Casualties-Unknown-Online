@@ -381,5 +381,11 @@
   "music.answer.refused": "refused: {0}",
   "music.answer.playing": "playing {0} ({1}s).",
   "music.answer.unknown_verb": "unknown verb '{0}' — usage: /music play <path> | share <path> | stop | status",
-  "console.answer.session_facts": "Role={0} SteamId={1} Host={2} SessionActive={3}"
+  "console.answer.session_facts": "Role={0} SteamId={1} Host={2} SessionActive={3}",
+  "item.answer.refused_no_definition_id": "No item id was given — name the game's own item id, e.g. bandage.",
+  "item.answer.refused_unknown_definition": "No item definition '{0}' is known to this game — a verb names a definition from the game's own item table.",
+  "item.answer.refused_no_prefab": "Item definition '{0}' has no prefab this build can load, so it cannot be created.",
+  "item.answer.refused_no_item_component": "Item definition '{0}' has no Item component on its prefab, so it cannot be created.",
+  "item.answer.refused_state_text": "The state text was not accepted for this definition: {0}",
+  "item.answer.refused_no_adapter": "This build cannot create items: no Game Adapter is loaded, so '{0}' cannot be resolved to a prefab or given an instance id."
 }

@@ -105,3 +105,5 @@ when an entry is missing), and `PlayerHealResetService.Reset` returns those part
 
 The rule the fix encodes: **an answer a command builds for its OWN console must carry parts or a key, exactly like one that crosses the wire** — the
 sentences already exist in the catalogue, so each of the rows above is the same small change (service returns `ConsoleAnswer`, command returns it).
+Verified on a captured frame the same evening: the host's `/heal @a` now draws the Chinese catalogue''s sentence for `heal.answer.refused_for` and its reason
+part (`heal.answer.reason_host_not_in_world`) — the per-part rendering path — where the same answer used to print one assembled English sentence.

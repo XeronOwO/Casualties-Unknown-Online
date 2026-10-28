@@ -57,3 +57,13 @@ reported scene state, two arms), `SceneStateHandler` (host, on a scene-state mes
 set true on a sync) — and `Remove(steamId)` drops the entry outright, so a re-join after a drop depends on one of those two host-side writes running again.
 The next read is therefore the host's re-join path in `HandshakeHandler`/`SceneStateHandler` (does a re-joining peer send a fresh scene state?) plus the source of
 `StartGateRemainingMs` — a countdown that never clears is the other half.
+## The gate's own release rule, and the symptom that contradicts it (2026-10-29 00:05)
+
+`WorldStartGate` states its lifecycle in its own words: the host's click arms the gate, **every confirmed member's InWorld report releases its slot**, and a
+**30 s fallback releases the gate**. `StartGateCoordinator.Update` calls `_world.MaybeForceStartGate()` → `WorldStartGate.PumpTimeout()` whenever the host's gate is
+active, and `WaitingForReady` for a host is exactly `_world.StartGateActive`.
+
+The session read the CONTRADICTION: the host's line already showed `(0 秒)` — the countdown at zero — while `StartGateActive` was still true and no departure
+happened. So either the fallback never fires at `RemainingMs == 0` (an off-by-one/`<` vs `<=`), or `PumpTimeout` is not reached in that frame order. That
+is the next read, and it is one function: `WorldStartGate.PumpTimeout` plus the arm/release bookkeeping beside it. The member side (`IsRemoteInWorld(host)`) is
+a separate stale fact and stays as recorded above.

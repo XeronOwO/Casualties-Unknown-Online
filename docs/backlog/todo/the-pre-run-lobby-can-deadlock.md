@@ -45,3 +45,15 @@ inside `StartGateCoordinator`: what it counts for `HostLoading` and `MembersLoad
 Both can be true at once if a re-joined member's `InWorld` is never set back to true on the host (and the host's world edge never reaches the peer). The next two
 reads are therefore `SessionWaitPolicy.Decide` (the exact predicate order) and the single place that sets `member.InWorld` — one write, or one missing write, not a
 missing timeout.
+## The decision, read end to end (2026-10-28 23:55)
+
+`SessionWaitPolicy.Decide` has three arms and the first one is unconditional for a host: `if (input.IsHost) return MembersLoading(waiting, gateRemaining)` — so the
+host's loading line is ALWAYS `MembersLoading`, and what actually lets the team depart is `StartGateRemainingMs` (the world's start-gate countdown), not the
+names. The member arms are `!HostInWorld → HostLoading` (the peer's own `IsRemoteInWorld(host)`) and then `OthersLoading` for named third players.
+
+So the deadlock is two separate stale facts, not one: the host's countdown never reaches zero (nothing in the read above names WHAT holds it), and each peer's
+`IsRemoteInWorld(host)` stays false after it re-joined. `MemberPresence.InWorld` is written in exactly four places — `HandshakeHandler` (host, the peer's
+reported scene state, two arms), `SceneStateHandler` (host, on a scene-state message), `HandshakeAckHandler` (guest, the host's state) and `EntitySyncService` (guest,
+set true on a sync) — and `Remove(steamId)` drops the entry outright, so a re-join after a drop depends on one of those two host-side writes running again.
+The next read is therefore the host's re-join path in `HandshakeHandler`/`SceneStateHandler` (does a re-joining peer send a fresh scene state?) plus the source of
+`StartGateRemainingMs` — a countdown that never clears is the other half.

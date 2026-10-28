@@ -226,6 +226,20 @@ land on the eater (run sheet step 6).
   compares — the live `radialMenu.position` and `PlayerCamera.uiScale` at that instant (`remote-gesture mode=list` reports `ringX`, `ringY`, `uiScale`) — and
   the button's own rect against them. The clients stay open for it.
 
+  **The head of the chain works: a staged drag peels the fruit, and the release is still classified as the player's own UI (2026-10-28 22:22).** The staged
+  pointer was the missing piece for the pickup — with `virtual-input mode=move x=509 y=461` the game's own `Input.mousePosition` reads `(509,461)`
+  (`remote-gesture mode=list` agrees) and `drag-start` answers `overlaps: True, dragItem: stonefruitclosed(Clone)`. Two more facts follow from one gesture:
+
+  - the RING's screen centre is `(624, 394.924)` with `uiScale 0.667` (read from `remote-gesture mode=list`), which is what the annulus test uses;
+  - releasing the drag at the teammate's pixel `(626, 421)` runs the game's own consume path but classifies the release as `mode: OwnUi`,
+    `focusedSteamId: 0`, `centreUnderPointer: True` — i.e. the release landed on the ring's centre region, so `PlayerCameraDragUsePatch` decided "the player
+    used it themselves". The proof that the native chain ran is in the host's own log: `[PickUpResult] stonefruitopen → slot (slot 0)`, the closed→open
+    replacement in slot 0, `[ItemUsed] stonefruitclosed … world item, peers corrected` and `[ItemUsed] stonefruitopen … host fact broadcast` — the peel, the
+    pickup and the two sync facts, all from a staged gesture.
+
+  So the remaining piece is the RELEASE TARGET, not the item: the ring must be out of the pointer's way (toggle it closed with one Tab press before the
+  release) and the release must land on the teammate's body rather than the ring's centre. The clients stay open for it.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

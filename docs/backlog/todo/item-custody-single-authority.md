@@ -290,3 +290,20 @@ Two things make that reading stronger than the empty-world ones before it:
   no new warning on any client afterwards (it reports only when the state flips), where the 19:57 give produced `KindDisagree` lines.
 
 The `KindDisagrees:World` defect stays open as its own ticket; this batch simply did not reproduce it.
+## Row 5 reproduced on `b43734d7`, and the first hole closed (2026-10-29 01:20)
+
+A cross-player peel of a closed stone fruit, released on the teammate's body with the ring closed (`mode: DisplayedBackpack`). The owner's log, in order:
+
+`[ItemUse] … offers stonefruitclosed (id 1430545090499) …` → `[DragUse] used … on …` → `… ate stonefruitclosed …` → `condition set to 1.00` →
+`… replaced stonefruitclosed …` → `… ate stonefruitclosed …` → `condition set to 0.00` → `[ItemSpawn] materializing stonefruitopen (id 23041378414) at (0.0,0.0)`.
+The owner's slots afterwards hold no fruit at all, so the row 5 defect is exactly as recorded: the replacement became a NEW world item at the origin instead of staying the owner's row.
+
+The eater's own log names where it escaped: `[ItemSpawned] local stonefruitopen (id 23041378414) reported at (0.0,0.0), fresh False` — the report ran AFTER
+`NativeSolidFoodEat.Apply` had returned and its frame window had closed, so all three hooks (`ItemIdAllocator`, `ItemWorldSync`, `PickupSync`) saw an ordinary new
+item. The vanilla peel is synchronous (`Item.cs:2606-2621`: `DropItem(item)` then `PickUpItem(Instantiate(stonefruitopen, item.transform.position, …))`), so the
+object IS created inside the window — which leaves ONE candidate for the late report: a hook that runs after the delegate returns, on a frame the window no longer covers.
+
+What landed in this commit: the observation now ALSO answers by IDENTITY (`IsTheCreatedReplacement`, kept past `Disarm`), and every hook asks it in addition to the
+frame window — so the object the eat created can never be reported as a world item on a later frame. It is a hardening of the same rule, not yet proof for this row: the
+leaked object carried a fresh id, so it was NOT the recorded object, and which hook created it is the next read (`ItemWorldSync.OnItemInstantiated`'s patch site and whether
+its `CallContext` scope is the one the eat entered).

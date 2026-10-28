@@ -37,11 +37,21 @@ internal static class ItemReplacementObservation
 		_armedUntilFrame = UnityTime.frameCount + 1;
 	}
 
-	/// <summary>Closes the window once the eat has read the result, so a later creation can never be swallowed by it.</summary>
+	/// <summary>
+	/// Closes the window once the eat has read the result, so a later creation can never be swallowed by it. The OBJECT stays known: the report that leaked
+	/// (measured 2026-10-29: <c>[ItemSpawned] local stonefruitopen … reported at (0.0,0.0), fresh False</c>, a fresh id and a world spawn at the origin)
+	/// arrived on a frame AFTER the eat returned, outside any window — identity is what makes it a replacement, not the frame it was created on.
+	/// </summary>
 	internal static void Disarm() => _armedUntilFrame = -1;
 
 	/// <summary>True while this frame or the previous one ran an eat's delegate — what every creation and pickup hook asks first.</summary>
 	internal static bool IsArmed => UnityTime.frameCount <= _armedUntilFrame;
+
+	/// <summary>
+	/// True for the exact object this window's delegate created, on whichever frame a hook meets it. The frame window alone missed a report that ran after the
+	/// eat returned, so the hooks ask this as well: the replacement is never a world item, no matter when it is first seen.
+	/// </summary>
+	internal static bool IsTheCreatedReplacement(Item item) => _created != null && item == _created; // Unity object — ==
 
 	/// <summary>The object the delegate created, when this client saw one — otherwise <c>null</c>.</summary>
 	internal static Item? Created => _created;

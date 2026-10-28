@@ -80,7 +80,7 @@ internal sealed class PickupSync(
 		// sees it too. It is the owner's row becoming another definition in place, not a new item: the observation holds it for the eat to
 		// read and destroy, and nothing may be reported (a spawn-then-pickup pair here was the phantom `stonefruitopen`, 2026-10-26).
 		// The ARMED window is asked as well as the scope: the game's own pickup of the created object can run a frame after the delegate.
-		if (CallContext.IsWithin(CallContext.Origin.ItemReplacementCreation) || ItemReplacementObservation.IsArmed)
+		if (CallContext.IsWithin(CallContext.Origin.ItemReplacementCreation) || ItemReplacementObservation.IsArmed || ItemReplacementObservation.IsTheCreatedReplacement(item))
 		{
 			ItemReplacementObservation.Record(item);
 			return;

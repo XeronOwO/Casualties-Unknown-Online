@@ -84,7 +84,7 @@ public sealed class ItemIdAllocator(ISessionControl session, IItemControl items,
 		// container) is free to announce a "new item", which is how a phantom opened fruit reached the world origin while the owner's slot went empty
 		// (measured 2026-10-26, five runs). This is asked BEFORE the existing-component read, because the replacement can arrive with an id already
 		// stamped (the prefab's own), and returning it was the last way the phantom kept a stable id across every run.
-		if (ItemReplacementObservation.IsArmed)
+		if (ItemReplacementObservation.IsArmed || ItemReplacementObservation.IsTheCreatedReplacement(item))
 		{
 			ItemReplacementObservation.Record(item);
 			_log.LogInformation("[ItemSpawn] {Type} seen inside the eat's replacement window — no id (the owner's row becomes it in place).", item.id);
@@ -109,7 +109,7 @@ public sealed class ItemIdAllocator(ISessionControl session, IItemControl items,
 	internal ulong Allocate(Item item)
 	{
 		// The same refusal as <see cref="EnsureId"/>'s, for the one caller that allocates directly (`ItemWorldSync.OnItemInstantiated`).
-		if (ItemReplacementObservation.IsArmed)
+		if (ItemReplacementObservation.IsArmed || ItemReplacementObservation.IsTheCreatedReplacement(item))
 		{
 			ItemReplacementObservation.Record(item);
 			return 0;

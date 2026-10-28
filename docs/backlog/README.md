@@ -77,6 +77,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 - [A disconnected member leaves his arrow on the HUD](todo/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — reported.
+- [The pre-run lobby can deadlock](todo/the-pre-run-lobby-can-deadlock.md) — **High** — both gates wait for each other.
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
 ### In progress

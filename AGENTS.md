@@ -129,9 +129,10 @@ implement → build/gates → deploy → runtime verification → adversarial se
    (`docs/development/review-prompt.md`).
 8. A rejected delivery runs a root-cause loop and records the lesson in the rule file that loads next time.
 9. **Keep incomplete or unverified work open**: no completion claim, no "future", no moving on.
-10. **A work item runs to its written end**: the RUN SHEET in the ticket decides, not the feeling. Between steps only tool
-    calls; a message ends the cycle only when the sheet is complete, a decision needs the user, or the user asked. "The
-    context is spent" does not exist. A cycle that ends incomplete is recorded as failed, with where it stopped.
+10. **A work item runs to its written end**: the RUN SHEET in the ticket decides, not the feeling — the ticket names the rows to
+    judge and the commands that judge them, so "done" is read off the sheet. The continuous-work mode itself (tool calls between
+    steps, one message at the close) is the user-level rule and is not restated here. A cycle that ends incomplete is recorded as
+    failed, with where it stopped.
 
 ## Quality & delivery
 

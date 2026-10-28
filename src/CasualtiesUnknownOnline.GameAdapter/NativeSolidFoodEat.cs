@@ -125,7 +125,7 @@ internal static class NativeSolidFoodEat
 			// row became the replacement in place (measured 2026-10-26, `[ItemSpawn] materializing stonefruitopen … at (0.0,0.0)`). The scope
 			// tells the creation report that what the delegate makes is this item's replacement, so no id is allocated and no spawn goes out;
 			// both hooks that see it (instantiation and the delegate's own pickup) publish it to the observation.
-			ItemReplacementObservation.Arm();
+			ItemReplacementObservation.Arm(item);
 			using (CallContext.Enter(CallContext.Origin.ItemReplacementCreation))
 			{
 				body.UseItem(item);

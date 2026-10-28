@@ -24,15 +24,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 internal static class ItemReplacementObservation
 {
 	private static Item? _created;
+	private static Item? _eaten;
 	private static int _armedUntilFrame = -1;
 
 	/// <summary>
-	/// Opens a fresh window: one eat, at most one replacement, armed for this frame AND the next. The game's own pickup of the
-	/// created object is not guaranteed to run inside the delegate's call, and a scope alone therefore missed it (measured
-	/// 2026-10-26: the replacement still got a fresh id and a world spawn at the origin while the eat logged nothing).
+	/// Opens a fresh window for ONE eat, naming the item that eat is about to use. The name matters: the window is open while the delegate drops the item it was
+	/// handed, so the first object a hook meets inside it is the EATEN item, not the replacement — and recording that one made the eat report "replaced the item
+	/// with stonefruitclosed (condition 0.00)" while the opened fruit it really created got a fresh id and became a world item at the origin (measured
+	/// 2026-10-29, both clients' logs).
 	/// </summary>
-	internal static void Arm()
+	internal static void Arm(Item eaten)
 	{
+		_eaten = eaten;
 		_created = null;
 		_armedUntilFrame = UnityTime.frameCount + 1;
 	}
@@ -56,9 +59,14 @@ internal static class ItemReplacementObservation
 	/// <summary>The object the delegate created, when this client saw one — otherwise <c>null</c>.</summary>
 	internal static Item? Created => _created;
 
-	/// <summary>Records the object a hook saw created or picked up inside the eat's window (first one wins).</summary>
+	/// <summary>Records the object a hook saw created or picked up inside the eat's window (first one wins), never the eaten item itself.</summary>
 	internal static void Record(Item item)
 	{
+		if (item == _eaten) // Unity object — ==: the delegate drops the item it was handed inside this same window
+		{
+			return;
+		}
+
 		if (_created == null) // Unity object — ==
 		{
 			_created = item;

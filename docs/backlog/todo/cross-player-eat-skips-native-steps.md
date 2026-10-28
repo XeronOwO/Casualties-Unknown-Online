@@ -311,6 +311,14 @@ land on the eater (run sheet step 6).
   `carry-read` returns bodies, not carried items. So the row needs a small acceptance read that prints the carried item's `ItemData.Condition` per end; until
   it exists the row is a named residual rather than a pass, and no weaker check stands in for it.
 
+  **That read now exists (2026-10-28 23:10): `body-items` answers `slot:name:condition` for the local body.** It walks the game's own `Body.GetItem` and
+  reads `Item.condition`, so the number is the one the player reads off the item. The host's line on the batch that had already run reads
+  `0:stonefruitopen:0.903|1:trashbag:1|2:pancake:0.645|3:lantern:0.91|4:dogfood:0.919|5:waterbottle:1` — the fed pancake is there with its remaining
+  condition, and the earlier `condition set to 0.75 by cross-player use` was the eater's report applied to exactly this row. Row 4 as written ("agrees
+  between the operator's and the target's tables") is still open for a clean ONE-shot read, because this batch fed the same pancake more than once and the
+  body had no free slot left to give a fresh one (`item-provide` answers `no-free-slot`); a fresh body with a fresh item and the read on both sides is the
+  remaining step, and it is now a two-command one instead of a missing capability.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

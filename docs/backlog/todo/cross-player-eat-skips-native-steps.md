@@ -263,6 +263,13 @@ land on the eater (run sheet step 6).
   PEER, and it read the peer's displayed backpack rather than their body — the CUO remote-inventory panel was open on this client. The next run closes that
   panel first (the release must hit the body), and the reads to judge are the same four rows this ticket already lists.
 
+  **Closing the panel through the gesture verb was not enough (2026-10-28 22:47): the release still reads `DisplayedBackpack`.** `remote-gesture mode=close`
+  answers `ok`, then the same order (provide a pancake → ring open → stage on its slot → `drag-start` answers `pancake(Clone)` → ring closed → stage the feet
+  pixel → `drag-release`) still answers `mode: DisplayedBackpack, focusedSteamId: 76561199526807662, after: none`. So either the panel re-opens between the
+  close and the release (CUO's remote-inventory display is driven by hover/selection, not only by an explicit open), or the release point itself is inside
+  that panel's rect. The next read is the release recipe's own panel fields (`backpackOpen`, and who it names) printed TOGETHER with the mode, plus
+  `container-panel`'s `opened` at that instant — the mode's cause is in those two, not in the item or the drag.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

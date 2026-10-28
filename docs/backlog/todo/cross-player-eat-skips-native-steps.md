@@ -142,6 +142,15 @@ land on the eater (run sheet step 6).
   inventory is FULL, then read: the peel step happened, the peeled fruit is registered on both sides, the remainder's condition
   agrees on both clients, and a frame at the eating moment shows the eater's own animation and the food's own sprite.
 
+  **The batch needs one key press, and the acceptance channel can now stage it (2026-10-28 21:15).** The drag starts from the ring the game's own
+  `toggleinventory` binding opens (`PlayerCamera.cs:933` — the binding answers `KeyCode.Tab` on this machine, read through `keybind-read`), which was
+  an OS-level press until now. `VirtualInput` staged keys (`PressKey`/`ReleaseKey`/`ClearKeys`) and a `virtual-key` recipe, so a batch can do it
+  in-process; `Input.GetKey(Tab)` answers the staged key (`input-probe` read `heldKey: true`). **Named residual, with the reading attempted:** the game's
+  `Input.GetKeyDown` read of that binding did not flip `PlayerCamera.radialOpen` in five attempts (ring-buttons `radialOpen: false`, `count: 0`), with
+  the game unpaused (`timeScale 1`) and in the world — so the held state reaches the game and the DOWN frame does not, and the next step is to
+  instrument that read (or try a binding with an effect outside `PlayerCamera`, e.g. `pause`) before judging this row again. Nothing about the
+  consume flow itself changed.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

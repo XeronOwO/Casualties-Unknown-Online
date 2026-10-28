@@ -357,6 +357,16 @@ internal static class VirtualInput
 	internal static int KeyDownAnswers { get; private set; }
 
 	/// <summary>
+	/// How many MOUSE-BUTTON questions the game asked, and how many were answered "down": the same census for the mouse internals, because the two
+	/// families share one backend and a key patch that never runs next to a button patch that does is a fact about the TARGETS, not about the input
+	/// (read 2026-10-28, when the key detour answered nothing while the mouse one was believed live).
+	/// </summary>
+	internal static int ButtonQueries { get; private set; }
+
+	/// <summary>How many of those button questions the staged state answered with "down".</summary>
+	internal static int ButtonDownAnswers { get; private set; }
+
+	/// <summary>
 	/// Answers a KEY question for a staged KEY first, then for a staged MOUSE button (Mouse0 = 323, the value the game's `attack` bind answers): any
 	/// other key is the real keyboard's, so a batch can never type for the game by accident.
 	/// </summary>
@@ -395,9 +405,15 @@ internal static class VirtualInput
 
 	private static bool Answer(int button, ButtonQuery query, ref bool __result)
 	{
+		ButtonQueries++;
 		if (!TryAnswer(button, query, out var value))
 		{
 			return true; // not staged: the real method answers
+		}
+
+		if (query == ButtonQuery.Down && value)
+		{
+			ButtonDownAnswers++;
 		}
 
 		__result = value;

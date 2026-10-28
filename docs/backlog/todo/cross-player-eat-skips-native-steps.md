@@ -145,11 +145,12 @@ land on the eater (run sheet step 6).
   **The batch needs one key press, and the acceptance channel can now stage it (2026-10-28 21:15).** The drag starts from the ring the game's own
   `toggleinventory` binding opens (`PlayerCamera.cs:933` — the binding answers `KeyCode.Tab` on this machine, read through `keybind-read`), which was
   an OS-level press until now. `VirtualInput` staged keys (`PressKey`/`ReleaseKey`/`ClearKeys`) and a `virtual-key` recipe, so a batch can do it
-  in-process; `Input.GetKey(Tab)` answers the staged key (`input-probe` read `heldKey: true`). **Named residual, with the reading attempted:** the game's
-  `Input.GetKeyDown` read of that binding did not flip `PlayerCamera.radialOpen` in five attempts (ring-buttons `radialOpen: false`, `count: 0`), with
-  the game unpaused (`timeScale 1`) and in the world — so the held state reaches the game and the DOWN frame does not, and the next step is to
-  instrument that read (or try a binding with an effect outside `PlayerCamera`, e.g. `pause`) before judging this row again. Nothing about the
-  consume flow itself changed.
+  in-process. **The census then separated the two causes (2026-10-28 21:23, host alone in a world, `body-read` reporting `inWorld: true`):** with `Tab`
+  staged, `virtual-key-stats` read `keyQueries: 0` and `keyDownAnswers: 0` across 318 frames (`frame` 5417 → 5735). So the patch answers any key question
+  it is asked (the earlier `heldKey: true` came from the batch's OWN `Input.GetKey` read, not the game's), and the game's `PlayerCamera.Update` is
+  **not asking at all** in this state — the press mechanism is not the blocker. The next diagnostic is therefore about `PlayerCamera`: confirm its
+  `Update` runs (move the body through the product's own path and read the position back), and only then retry the press. Nothing about the consume
+  flow itself changed.
 
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's

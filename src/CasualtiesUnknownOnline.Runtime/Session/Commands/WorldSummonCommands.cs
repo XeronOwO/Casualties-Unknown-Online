@@ -49,6 +49,6 @@ internal sealed class WorldSummonCommands(IWorldSummonControl summon, CheatVerbG
 			return refusal;
 		}
 
-		return ConsoleAnswer.Ok(_summon.Summon(request.PrefabId, request.Kind, request.Position, request.StateText));
+		return _summon.Summon(request.PrefabId, request.Kind, request.Position, request.StateText);
 	}
 }

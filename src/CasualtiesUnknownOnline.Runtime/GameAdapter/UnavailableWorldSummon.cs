@@ -19,5 +19,5 @@ internal sealed class UnavailableWorldSummon : IWorldSummon
 	}
 
 	public WorldSummonOutcome TrySummon(string prefabId, WorldSummonKind kind, SnbtValue? state, float x, float y) =>
-		new(false, 0, "", $"No prefab can be created: {Ground}.");
+		new(false, 0, "", new GrantRefusal($"No prefab can be created: {Ground}.", "summon.answer.refused_no_adapter"));
 }

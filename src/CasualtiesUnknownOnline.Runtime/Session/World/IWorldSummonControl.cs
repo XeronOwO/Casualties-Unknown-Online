@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -22,7 +23,7 @@ public interface IWorldSummonControl
 	/// resolves the position on its own scene and sends the request, returning null because its answer arrives
 	/// later through <see cref="Answered"/>.
 	/// </summary>
-	string? Summon(string prefabId, WorldSummonKind kind, WorldSummonPosition position, string stateText);
+	ConsoleAnswer Summon(string prefabId, WorldSummonKind kind, WorldSummonPosition position, string stateText);
 
 	/// <summary>Host only: a member's summon request arrived — judge this host's cheat switch and roster, then create and answer.</summary>
 	void HandleSummonRequest(ulong sender, WorldSummonRequestMsg msg);

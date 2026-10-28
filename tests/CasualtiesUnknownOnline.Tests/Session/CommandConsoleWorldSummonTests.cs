@@ -99,7 +99,9 @@ public class CommandConsoleWorldSummonTests
 
 		var item = Assert.Single(summon.CreatedItems);
 		Assert.Equal(0.25f, item.Condition);
-		Assert.Contains($"Summoned bandage (#{item.InstanceId}) at (1.0, 2.0) with state {{Condition:0.25f,", answer);
+		// The state is its own PART of the answer (`summon.answer.state`), so it reads as its own line after the sentence that named the creation.
+		Assert.Contains($"Summoned bandage (#{item.InstanceId}) at (1.0, 2.0)", answer);
+		Assert.Contains("Its state: {Condition:0.25f,", answer);
 		Assert.Equal(0.25f, Kernel(host).FindItem(item.InstanceId)!.Value.Data.Condition);
 	}
 
@@ -151,8 +153,8 @@ public class CommandConsoleWorldSummonTests
 
 		var answer = Run(host, "/summon notanprefab");
 
-		Assert.Contains("Refused:", answer);
-		Assert.Contains("no prefab 'notanprefab'", answer);
+		// The refusal is a keyed answer now: the catalogue's sentence, not the "Refused: <host's English>" wrapper.
+		Assert.Contains("No prefab 'notanprefab' could be materialized", answer);
 		Assert.Equal(0, Registry(host).Count);
 		Assert.Empty(WorldItems(host).GetWorldItemsForDiagnostics());
 		Assert.Equal(("notanprefab", WorldSummonKind.Entity, ""), Assert.Single(summon.Attempts));
@@ -271,11 +273,21 @@ public class CommandConsoleWorldSummonTests
 	private static ItemKernelAuthority Kernel(TestNode node) =>
 		node.Services.GetRequiredService<ItemKernelAuthority>();
 
-	/// <summary>Runs one console line and answers with the line it printed.</summary>
+	/// <summary>
+	/// Runs one console line and answers with EVERY line it printed, joined: a summon answer is more than one line (the created object, then the item's
+	/// state as a second part), and a test that read only the last line would miss the first.
+	/// </summary>
 	private static string Run(TestNode node, string line)
 	{
 		var console = node.Services.GetRequiredService<ICommandControl>();
+		var before = console.Lines.Count;
 		Assert.True(console.TryExecute(line), $"'{line}' was not accepted by the console");
-		return console.Lines[console.Lines.Count - 1].Text;
+		var text = "";
+		for (var i = before; i < console.Lines.Count; i++)
+		{
+			text = text.Length == 0 ? console.Lines[i].Text : text + "\n" + console.Lines[i].Text;
+		}
+
+		return text;
 	}
 }

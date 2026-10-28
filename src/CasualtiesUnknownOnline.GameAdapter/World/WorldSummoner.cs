@@ -98,12 +98,17 @@ internal sealed class WorldSummoner(
 	{
 		if (string.IsNullOrWhiteSpace(prefabId))
 		{
-			return Refused("no prefab id was given.");
+			return Refused(new GrantRefusal(
+				"no prefab id was given.",
+				"summon.answer.refused_no_prefab_id"));
 		}
 
 		if (!IsInWorld(out var worldRefusal))
 		{
-			return Refused(worldRefusal!);
+			return Refused(new GrantRefusal(
+				worldRefusal!,
+				"summon.answer.refused_position_unavailable",
+				worldRefusal ?? string.Empty));
 		}
 
 		var isItemDefinition = Item.GlobalItems?.ContainsKey(prefabId) == true;
@@ -111,7 +116,10 @@ internal sealed class WorldSummoner(
 		{
 			if (!isItemDefinition)
 			{
-				return Refused($"'/summon item' names an item definition from the game's own item table, and '{prefabId}' is not one. An entity prefab is summoned without the word: /summon {prefabId}. Nothing was created.");
+				return Refused(new GrantRefusal(
+					$"'/summon item' names an item definition from the game's own item table, and '{prefabId}' is not one. An entity prefab is summoned without the word: /summon {prefabId}. Nothing was created.",
+					"summon.answer.refused_unknown_item_prefab",
+					prefabId));
 			}
 
 			return SummonItem(prefabId, state, x, y);
@@ -121,14 +129,21 @@ internal sealed class WorldSummoner(
 		{
 			// The bare form names a world entity; an item definition belongs to the other type word. Refused
 			// BEFORE anything is created, so no orphan object can outlive the answer.
-			return Refused($"'{prefabId}' is an item definition, so it is summoned as a loose item entity: /summon item {prefabId}{StateHint(state)}. Nothing was created.");
+			return Refused(new GrantRefusal(
+				$"'{prefabId}' is an item definition, so it is summoned as a loose item entity: /summon item {prefabId}{StateHint(state)}. Nothing was created.",
+				"summon.answer.refused_item_needs_the_word",
+				prefabId,
+				StateHint(state)));
 		}
 
 		if (state is not null)
 		{
 			// An entity's creation-time values (a geyser's liquid type, a keypad's code, a crystal's tint) are the
 			// game's own, and this tree has no entity state document.
-			return Refused($"'{prefabId}' is not an item definition, so it takes no state argument — an entity's creation-time values are the game's own. Nothing was created.");
+			return Refused(new GrantRefusal(
+				$"'{prefabId}' is not an item definition, so it takes no state argument — an entity's creation-time values are the game's own. Nothing was created.",
+				"summon.answer.refused_entity_takes_no_state",
+				prefabId));
 		}
 
 		return SummonEntity(prefabId, x, y);
@@ -139,12 +154,20 @@ internal sealed class WorldSummoner(
 	{
 		if (!_grant.TryCreate(prefabId, state, out var item, out var refusal) || item is null)
 		{
-			return Refused(refusal?.Text ?? $"the item definition '{prefabId}' could not be created by this build.");
+			return refusal is not null
+				? Refused(refusal)
+				: Refused(new GrantRefusal(
+					$"the item definition '{prefabId}' could not be created by this build.",
+					"item.answer.refused_unknown_definition",
+					prefabId));
 		}
 
 		if (!_worldItems.TryCreateAt(new Vector3(x, y, 0f), item, "Summon", out var createRefusal))
 		{
-			return Refused(createRefusal ?? $"the item '{prefabId}' could not be materialized at the position.");
+			return Refused(new GrantRefusal(
+				createRefusal ?? $"the item '{prefabId}' could not be materialized at the position.",
+				"summon.answer.refused_materialize",
+				prefabId));
 		}
 
 		// The answer names the state the item REALLY carries: the bind may derive or drop a value (a container's
@@ -162,7 +185,10 @@ internal sealed class WorldSummoner(
 		var created = RuntimeEntityFactory.TryCreate(prefabId, new Vector2(x, y), _log, "Summon");
 		if (created == null) // Unity object — ==
 		{
-			return Refused($"no prefab '{prefabId}' could be materialized: it is not an item definition this build knows, and no world-entity prefab by that id exists.");
+			return Refused(new GrantRefusal(
+				$"no prefab '{prefabId}' could be materialized: it is not an item definition this build knows, and no world-entity prefab by that id exists.",
+				"summon.answer.refused_unknown_prefab",
+				prefabId));
 		}
 
 		if (string.IsNullOrEmpty(created.id))
@@ -170,7 +196,10 @@ internal sealed class WorldSummoner(
 			// A prefab with no entity id cannot be reported — the creation message carries the id a peer
 			// recreates from — so it would exist on this side only. Destroy it instead of leaving the divergence.
 			Object.Destroy(created.gameObject);
-			return Refused($"the prefab '{prefabId}' carries no entity id, so no peer could recreate it. Nothing was created.");
+			return Refused(new GrantRefusal(
+				$"the prefab '{prefabId}' carries no entity id, so no peer could recreate it. Nothing was created.",
+				"summon.answer.refused_no_entity_id",
+				prefabId));
 		}
 
 		_log.LogInformation("[Summon] created {Prefab} at ({X:F1},{Y:F1}); its own Start report replicates it.", prefabId, x, y);
@@ -197,5 +226,6 @@ internal sealed class WorldSummoner(
 		return true;
 	}
 
-	private static WorldSummonOutcome Refused(string reason) => new(false, 0, "", reason);
+	/// <summary>A refusal whose KEY is chosen at the call site (where the reason is known), so the reader's console renders it in the reader's language.</summary>
+	private static WorldSummonOutcome Refused(GrantRefusal refusal) => new(false, 0, "", refusal);
 }

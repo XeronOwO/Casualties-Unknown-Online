@@ -94,7 +94,10 @@ internal sealed class FakeWorldSummon : IWorldSummon
 		{
 			if (definition is null)
 			{
-				return new WorldSummonOutcome(false, 0, "", $"'/summon item' names an item definition from the game's own item table, and '{prefabId}' is not one. An entity prefab is summoned without the word: /summon {prefabId}. Nothing was created.");
+				return new WorldSummonOutcome(false, 0, "", new GrantRefusal(
+					$"'/summon item' names an item definition from the game's own item table, and '{prefabId}' is not one. An entity prefab is summoned without the word: /summon {prefabId}. Nothing was created.",
+					"summon.answer.refused_unknown_item_prefab",
+					prefabId));
 			}
 
 			return SummonItem(prefabId, definition, state, x, y);
@@ -103,17 +106,27 @@ internal sealed class FakeWorldSummon : IWorldSummon
 		if (definition is not null)
 		{
 			var hint = state is null ? "" : " {<state>}";
-			return new WorldSummonOutcome(false, 0, "", $"'{prefabId}' is an item definition, so it is summoned as a loose item entity: /summon item {prefabId}{hint}. Nothing was created.");
+			return new WorldSummonOutcome(false, 0, "", new GrantRefusal(
+				$"'{prefabId}' is an item definition, so it is summoned as a loose item entity: /summon item {prefabId}{hint}. Nothing was created.",
+				"summon.answer.refused_item_needs_the_word",
+				prefabId,
+				hint));
 		}
 
 		if (state is not null)
 		{
-			return new WorldSummonOutcome(false, 0, "", $"'{prefabId}' is not an item definition, so it takes no state argument — an entity's creation-time values are the game's own. Nothing was created.");
+			return new WorldSummonOutcome(false, 0, "", new GrantRefusal(
+				$"'{prefabId}' is not an item definition, so it takes no state argument — an entity's creation-time values are the game's own. Nothing was created.",
+				"summon.answer.refused_entity_takes_no_state",
+				prefabId));
 		}
 
 		if (!EntityPrefabs.Contains(prefabId) && !Animals.Contains(prefabId))
 		{
-			return new WorldSummonOutcome(false, 0, "", $"no prefab '{prefabId}' could be materialized: it is not an item definition this build knows, and no world-entity prefab by that id exists.");
+			return new WorldSummonOutcome(false, 0, "", new GrantRefusal(
+				$"no prefab '{prefabId}' could be materialized: it is not an item definition this build knows, and no world-entity prefab by that id exists.",
+				"summon.answer.refused_unknown_prefab",
+				prefabId));
 		}
 
 		// The report the adapter's BuildingEntity.Start hook makes for a creation outside generation.
@@ -136,7 +149,10 @@ internal sealed class FakeWorldSummon : IWorldSummon
 			: SnbtTree.Overlay(FakeItemState.Describe(capture), state);
 		if (!FakeItemState.TryBind(capture, document, out var bound, out var refusal))
 		{
-			return new WorldSummonOutcome(false, 0, "", refusal);
+			return new WorldSummonOutcome(false, 0, "", new GrantRefusal(
+				refusal ?? "the state text was not accepted.",
+				"item.answer.refused_state_text",
+				refusal ?? string.Empty));
 		}
 
 		bound.InstanceId = _nextItemId++;

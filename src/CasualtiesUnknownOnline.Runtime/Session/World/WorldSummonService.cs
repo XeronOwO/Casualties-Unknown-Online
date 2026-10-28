@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
@@ -83,12 +84,23 @@ public sealed class WorldSummonService(
 
 	/// <summary>
 	/// A refusal the answer cannot render in the reader's language — the layer stamp's own description, the creation port's
-	/// ground, the prefab parse. The member reads ONE sentence the catalogue owns ("refused; the host's log names the reason")
-	/// instead of the host's English inside a localized frame, and the detail stays in the log where it can be acted on.
+	/// A refusal whose sentence the catalogue owns when its source names a KEY (the creation port's grounds do since 2026-10-28); a source that still
+	/// answers free text (a layer stamp's description, the prefab parse) falls back to the generic line, and the detail stays in the log.
 	/// </summary>
-	private SummonResult RefuseUnconverted(string reason)
+	private SummonResult RefuseUnconverted(string reason, GrantRefusal? keyed = null)
 	{
 		_log.LogWarning("[Summon] refused: {Reason}", reason);
+		if (keyed is not null)
+		{
+			var keyedArgs = new string[keyed.Args.Count];
+			for (var i = 0; i < keyedArgs.Length; i++)
+			{
+				keyedArgs[i] = keyed.Args[i];
+			}
+
+			return new SummonResult(false, $"Refused: {reason}", 0, [AnswerPart(keyed.Key, keyedArgs)]);
+		}
+
 		return new SummonResult(false, $"Refused: {reason}", 0, [AnswerPart("answer.refused_see_host_log")]);
 	}
 
@@ -96,18 +108,21 @@ public sealed class WorldSummonService(
 	public event Action<WorldSummonResultMsg>? Answered;
 
 	/// <inheritdoc />
-	public string? Summon(string prefabId, WorldSummonKind kind, WorldSummonPosition position, string stateText)
+	public ConsoleAnswer Summon(string prefabId, WorldSummonKind kind, WorldSummonPosition position, string stateText)
 	{
 		if (!_session.SessionActive)
 		{
-			return "Refused: no active session — a cheat verb needs one: the host's own permission is the online switch, and a member's is the host's grant for the session.";
+			return ConsoleAnswer.Refused(
+				"Refused: no active session — a cheat verb needs one: the host's own permission is the online switch, and a member's is the host's grant for the session.",
+				"cheat.refused.no_session",
+				"summon");
 		}
 
 		if (!TryResolvePosition(position, out var x, out var y, out var positionRefusal))
 		{
 			var reason = positionRefusal ?? "this client's scene cannot answer that position.";
 			_log.LogWarning("[Summon] {Actor} -> {Prefab} refused before a position was resolved: {Reason}", _session.LocalSteamId, prefabId, reason);
-			return $"Refused: {reason}";
+			return ConsoleAnswer.Refused($"Refused: {reason}", "summon.answer.refused_position", reason);
 		}
 
 		if (_session.Role == SessionRole.Guest)
@@ -125,10 +140,18 @@ public sealed class WorldSummonService(
 			});
 			_log.LogInformation("[Summon] {Actor} requested {Kind} {Prefab} at ({X:F1},{Y:F1}){State} from the host.",
 				_session.LocalSteamId, kind, prefabId, x, y, stateText.Length == 0 ? "" : " with state " + stateText);
-			return null;
+			return ConsoleAnswer.Silent;
 		}
 
-		return Apply(_session.LocalSteamId, prefabId, kind, stateText, x, y).Answer;
+		// The outcome's PARTS are the answer, exactly as the give verb's: one line per catalogue key, rendered by whichever client reads it.
+		var outcome = Apply(_session.LocalSteamId, prefabId, kind, stateText, x, y);
+		var parts = new List<ConsoleAnswerPart>(outcome.Parts.Count);
+		foreach (var part in outcome.Parts)
+		{
+			parts.Add(new ConsoleAnswerPart(part.Key, [.. part.Args]));
+		}
+
+		return outcome.Applied ? ConsoleAnswer.Ok(outcome.Answer, parts) : ConsoleAnswer.Refused(outcome.Answer, parts);
 	}
 
 	/// <inheritdoc />
@@ -220,9 +243,9 @@ public sealed class WorldSummonService(
 		var outcome = _summon.TrySummon(prefabId, kind, state, x, y);
 		if (!outcome.Created)
 		{
-			var reason = outcome.Refusal ?? $"'{prefabId}' could not be created by this build.";
+			var reason = outcome.Refusal?.Text ?? $"'{prefabId}' could not be created by this build.";
 			LogRefused(actor, prefabId, x, y, reason);
-			return RefuseUnconverted(reason);
+			return RefuseUnconverted(reason, outcome.Refusal);
 		}
 
 		var what = outcome.InstanceId != 0

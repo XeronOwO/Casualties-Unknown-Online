@@ -387,5 +387,15 @@
   "item.answer.refused_no_prefab": "Item definition '{0}' has no prefab this build can load, so it cannot be created.",
   "item.answer.refused_no_item_component": "Item definition '{0}' has no Item component on its prefab, so it cannot be created.",
   "item.answer.refused_state_text": "The state text was not accepted for this definition: {0}",
-  "item.answer.refused_no_adapter": "This build cannot create items: no Game Adapter is loaded, so '{0}' cannot be resolved to a prefab or given an instance id."
+  "item.answer.refused_no_adapter": "This build cannot create items: no Game Adapter is loaded, so '{0}' cannot be resolved to a prefab or given an instance id.",
+  "summon.answer.refused_no_prefab_id": "No prefab id was given.",
+  "summon.answer.refused_position_unavailable": "This client cannot resolve that position: {0}",
+  "summon.answer.refused_position": "Refused: {0}",
+  "summon.answer.refused_unknown_item_prefab": "'/summon item' names an item definition from the game's own item table, and '{0}' is not one. An entity prefab is summoned without the word: /summon {0}. Nothing was created.",
+  "summon.answer.refused_item_needs_the_word": "'{0}' is an item definition, so it is summoned as a loose item entity: /summon item {0}{1}. Nothing was created.",
+  "summon.answer.refused_entity_takes_no_state": "'{0}' is not an item definition, so it takes no state argument — an entity's creation-time values are the game's own. Nothing was created.",
+  "summon.answer.refused_materialize": "The item '{0}' could not be materialized at the position.",
+  "summon.answer.refused_unknown_prefab": "No prefab '{0}' could be materialized: it is not an item definition this build knows, and no world-entity prefab by that id exists.",
+  "summon.answer.refused_no_entity_id": "The prefab '{0}' carries no entity id, so no peer could recreate it. Nothing was created.",
+  "summon.answer.refused_no_adapter": "No prefab can be created: this build has no Game Adapter."
 }

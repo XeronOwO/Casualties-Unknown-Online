@@ -270,6 +270,15 @@ land on the eater (run sheet step 6).
   that panel's rect. The next read is the release recipe's own panel fields (`backpackOpen`, and who it names) printed TOGETHER with the mode, plus
   `container-panel`'s `opened` at that instant — the mode's cause is in those two, not in the item or the drag.
 
+  **The cause is in our own code, and it is self-fulfilling (2026-10-28 22:52).** Reading the decision instead of trying more points: `GiveGestureModePolicy.Read`
+  answers `OwnUi` when the player's own ring/panels are open, else `DisplayedBackpack` when `RemoteBackpackView.IsOpen`, else `World` — and
+  `RemoteBackpackView` is opened by the CLICK ON A REMOTE BODY itself (`InvButtonBodyPatch` → `RemoteBackpackCoordinator.Open`). So a drag released on a teammate's
+  body opens their backpack on that very gesture, and the release that follows reads `remoteViewOpen: true`, which is why every attempt answers
+  `DisplayedBackpack` with that peer's id — the mode is produced by the gesture it then classifies. Against the user's ruling of 2026-10-25 ("the other player
+  has to eat it out of my hand", recorded above), a release of a held item on a teammate's body is the FEED gesture and must not turn into "open their
+  backpack"; `PlayerCameraDragUsePatch` already has the `DisplayedBackpack` branch, so the fix belongs where the body click is turned into a view open — that
+  is a behaviour change against the accepted shape and is the next work item, not another batch.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

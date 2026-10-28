@@ -340,6 +340,16 @@ internal static class VirtualInput
 	private static bool PrefixKeyUp(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Up, ref __result);
 
 	/// <summary>
+	/// How many KEY questions the GAME asked for a staged key, and how many of those were answered "down". A batch reads these to separate "my press
+	/// never reached the game" from "the game asked and the branch did nothing" — the two causes a single frame's state cannot tell apart
+	/// (2026-10-28: `Input.GetKey(Tab)` answered true while `PlayerCamera.radialOpen` stayed false, and only the census could say which half failed).
+	/// </summary>
+	internal static int KeyQueries { get; private set; }
+
+	/// <summary>How many of those KEY questions the staged state answered with "down".</summary>
+	internal static int KeyDownAnswers { get; private set; }
+
+	/// <summary>
 	/// Answers a KEY question for a staged KEY first, then for a staged MOUSE button (Mouse0 = 323, the value the game's `attack` bind answers): any
 	/// other key is the real keyboard's, so a batch can never type for the game by accident.
 	/// </summary>
@@ -355,6 +365,13 @@ internal static class VirtualInput
 				ButtonQuery.Up => state.UpFrame == frame,
 				_ => false,
 			};
+
+			KeyQueries++;
+			if (query == ButtonQuery.Down && __result)
+			{
+				KeyDownAnswers++;
+			}
+
 			return false; // the real method is skipped for THIS key
 		}
 

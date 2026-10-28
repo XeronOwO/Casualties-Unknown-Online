@@ -38,3 +38,10 @@ The gate is CUO's own, not the game's: `SessionWaitText` words every wait from a
 both keyed into the catalogue as `wait.*`), and `StartGateCoordinator` decides when a wait clears. So the deadlock is in our own start gate: those two kinds
 are waiting for each other's fact, and the member list that should clear `MembersLoading` came back empty after the peers re-joined. The first read is therefore
 inside `StartGateCoordinator`: what it counts for `HostLoading` and `MembersLoading`, and what removes a member from the set it counts.
+## The facts the gate sums (read 2026-10-28, last)
+
+`StartGateCoordinator.WaitingState` gathers and `SessionWaitPolicy.Decide` decides; the gathered facts are `_session.Members` (each member's `Handshaken` /
+`InWorld` / display name) and `_session.IsRemoteInWorld(host)`, plus the world's start-gate countdown. So the deadlock is facts, not wording: the host's`MembersLoading` means some member entry still reads `InWorld == false`, and the peer's `HostLoading` means its own `IsRemoteInWorld(host)` reads false.
+Both can be true at once if a re-joined member's `InWorld` is never set back to true on the host (and the host's world edge never reaches the peer). The next two
+reads are therefore `SessionWaitPolicy.Decide` (the exact predicate order) and the single place that sets `member.InWorld` — one write, or one missing write, not a
+missing timeout.

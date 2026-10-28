@@ -159,7 +159,9 @@ internal static class VirtualInput
 					handleInput,
 					prefix: new HarmonyMethod(typeof(VirtualInput), nameof(PrefixHandleInput)),
 					transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(TranspileHandleInput)));
-				report.Add("PlayerCamera.HandleInput: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
+				report.Add("PlayerCamera.HandleInput: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced, target "
+					+ handleInput.DeclaringType?.FullName + "#" + handleInput.MetadataToken.ToString(CultureInfo.InvariantCulture)
+					+ ", applied " + (Harmony.GetPatchInfo(handleInput) is null ? "no" : "yes"));
 			}
 			catch (Exception exception)
 			{

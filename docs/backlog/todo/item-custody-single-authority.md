@@ -327,3 +327,16 @@ The eater's log names the fix: `the eat of stonefruitclosed (id 1284516202435) r
 
 What is still not proven by this batch: the same gesture on a body whose slots are FULL (the user's 2026-10-25 ruling says a full inventory must still be feedable — the hand
 arrangement exists for exactly that) — that row stays open as a named residual rather than being folded into this pass.
+## The full-body feed row is blocked by the HARNESS, not by the feature (2026-10-29 02:40)
+
+The batch filled the target's six slots (three dogfoods on top of its own trashbag, lantern and water bottle; `item-provide` then answers `no-free-slot`) to drive
+the case the hand arrangement exists for. It could not be driven, and the reason is the acceptance channel, not the gesture:
+
+- `ring-buttons` reports every `InvButton` with the item its body slot holds, but the press that matters is decided by `HandleStartDragging`'s own raycast. At the
+  reported pixel for slot 0 the cast answers `MainMainHand` with `inv:empty` — the hand display sits exactly on that button — so the press finds no item;
+- the HUD's buttons also move a few pixels between two answers (the ring's wobble), so a pixel read by one call and pressed by the next lands on a neighbour;
+- the new `grab-slot` recipe removes the second problem by computing a button's point and pressing it inside ONE call (it grabbed slot 3's lantern that way), but slot 2's
+  button still answers `GetItem() == null` while `body.GetItem(2)` holds the fruit — the HUD simply does not show that slot, so there is no pixel to press.
+
+So the row stays open with its cause named: the acceptance channel needs a way to start the drag from a body SLOT (not from a highlighted widget) before a full-body feed can be
+judged. The feature side is unchanged: the hand arrangement is exercised by every cross-player feed, and the earlier pass (row 5) covers the eaten path end to end.

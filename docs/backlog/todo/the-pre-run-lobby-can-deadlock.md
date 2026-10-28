@@ -82,3 +82,16 @@ So the real defect is narrower than the ticket's title: **the handshake does not
 host→peer delivery is the broken direction. `HandshakeAckHandler` on the peer does the right thing when the ack arrives (sets `InWorld`/`Handshaken`,
 activates the session, fires the scene edge, sends the `AckAck`), which leaves the delivery path as the thing to read: the sender's per-peer target resolution after a
 re-join, and whatever the peer's packet pump refuses before the handler (latest generation / lazy channel).
+## Design
+
+Read `docs/design/model/session-lifecycle.md` — the lobby rules, the session-end conditions and the wait states this ticket is about — and
+`docs/design/model/session-lifecycle.md`'s Gaps for the re-join path.
+## Root cause and fix (2026-10-29)
+
+The guest's own log named it: `Host left the lobby — ending session (save kept)`. `SessionPeerMaintenance.CheckPeerPresence` ended the session on ONE lobby
+reading that omitted the host, and the read right after a re-join was exactly that — an empty or stale list. The host meanwhile still held the lobby and kept
+re-sending acks to a peer that had already ended its session, which is why the host logged `retrying its handshake` forever and both sides waited.
+
+The fix: the session ends only after `HostMissingChecks` (3) consecutive readings agree the host is gone, an EMPTY list never counts, and a reading that names the
+host clears the streak. `SessionPeerMaintenanceTests` pins all four cases; the two tests that ended a session on a single tick now advance three checks, which is
+the rule they are asserting.

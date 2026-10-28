@@ -85,7 +85,7 @@ public class SessionServiceTests
 	public void HostPresence_LastGuestLeavesLobby_SessionContinues()
 	{
 		// The observed chain (2026-08-14): a guest quitting ended the HOST's
-		// session ("Members 0, lobby 无效"), and the re-joining guest could
+		// session ("Members 0, lobby invalid" (the log read so, in the client's own language)), and the re-joining guest could
 		// never handshake back in — EndSession is irreversible (SessionActive
 		// only re-arms on OnLobbyCreated). A guest leaving removes the member;
 		// the session continues (the host may be playing alone, and the next
@@ -107,8 +107,14 @@ public class SessionServiceTests
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 
+		// One stale reading is not a verdict: the guest needs three consecutive checks that omit the host (the empty-list guard and the streak are pinned by
+		// SessionPeerMaintenanceTests).
 		guest.Steam.LobbyMembers = [GuestId]; // the host vanished
-		guest.Update();
+		for (var check = 0; check < 3; check++)
+		{
+			guest.Clock.Advance(2100);
+			guest.Update();
+		}
 
 		Assert.False(guest.Session.SessionActive, "no host migration in the MVP — the session ends");
 		Assert.True(SessionRole.Guest == guest.Session.Role, "the lobby identity survives — a rejoining host rebuilds the session");

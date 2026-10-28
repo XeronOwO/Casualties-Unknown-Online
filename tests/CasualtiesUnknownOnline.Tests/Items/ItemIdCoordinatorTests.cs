@@ -66,6 +66,8 @@ public class ItemIdCoordinatorTests
 		w.Host.Steam.LobbyMembers = [w.Host.SteamId, w.G2.SteamId];
 		w.G1.Steam.LobbyMembers = [w.G1.SteamId];
 		w.Driver.Tick(2100);
+		w.Driver.Tick(2100);
+		w.Driver.Tick(2100); // the absence must read on consecutive checks
 		Assert.False(w.G1.Session.SessionActive, "the guest's session must end when the lobby loses the host");
 
 		// The guest returns: the lobby membership restores, the rejoin flow
@@ -165,6 +167,8 @@ public class ItemIdCoordinatorTests
 		// The guest that owns that space leaves the lobby before the host continues.
 		restarted.Host.Steam.LobbyMembers = [restarted.Host.SteamId, restarted.G1.SteamId];
 		restarted.G2.Steam.LobbyMembers = [restarted.G2.SteamId];
+		restarted.Driver.Tick(2100);
+		restarted.Driver.Tick(2100);
 		restarted.Driver.Tick(2100);
 		Assert.False(restarted.G2.Session.SessionActive, "the guest's session must end when the lobby loses the host");
 

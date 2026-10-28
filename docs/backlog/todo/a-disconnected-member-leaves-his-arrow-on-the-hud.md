@@ -39,3 +39,7 @@ After both peers dropped and rejoined the same lobby, each peer's own gate read 
 host's own client answered `inWorld: true`. So the disagreement this ticket is about is not only the ARROW: a member's client can hold a stale answer about
 the host's world, and the host can hold a stale answer about the member. The first read should therefore capture both sides of that fact in one frame (the
 host's member list and each peer's gate) — the arrow is one symptom of it, and fixing the arrow without it would be treating the picture, not the fact.
+## Design
+
+Read `docs/design/model/session-lifecycle.md` (what a member's presence means to the other clients) and `docs/design/surfaces/online-window.md` (the HUD surface
+this marker belongs to) before opening this ticket.

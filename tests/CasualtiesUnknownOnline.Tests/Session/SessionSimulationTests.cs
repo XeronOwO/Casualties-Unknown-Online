@@ -85,7 +85,7 @@ public class SessionSimulationTests
 	public void Host_GuestLeavesThenRejoins_SameSessionHandshakesBack()
 	{
 		// The observed chain: the guest quit, the host's session ended, the
-		// rejoining guest could never handshake back in ("lobby 无效").
+		// rejoining guest could never handshake back in ("lobby invalid", the log read so in the client's own language).
 		// The fix keeps the session alive — the rejoin handshakes into it.
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 
@@ -118,10 +118,14 @@ public class SessionSimulationTests
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 
-		// The host vanishes from the lobby — after the 2 s check the guest ends its session (no host migration).
+		// The host vanishes from the lobby — one stale reading is not a verdict, three consecutive checks are (no host migration).
 		guest.Steam.LobbyMembers = [GuestId];
-		guest.Clock.Advance(2100);
-		guest.Update();
+		for (var check = 0; check < 3; check++)
+		{
+			guest.Clock.Advance(2100);
+			guest.Update();
+		}
+
 		Assert.False(guest.Session.SessionActive);
 		Assert.True(guest.Session.Role == SessionRole.Guest, "the lobby identity survives — the rejoin path rebuilds on it");
 

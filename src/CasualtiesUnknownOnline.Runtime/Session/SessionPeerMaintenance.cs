@@ -33,6 +33,15 @@ internal sealed class SessionPeerMaintenance(
 	private const float MemberCheckInterval = 2f;
 	private const float HandshakeRetryInterval = 1f;
 
+	/// <summary>
+	/// How many member checks in a row must name a lobby WITHOUT the host before a guest ends its session. One reading is not a verdict: a lobby member list
+	/// read while Steam is still populating it, or a single stale snapshot right after a join, names nobody the host over — and ending the session on it is
+	/// irreversible (`SessionActive` only re-arms on `OnLobbyCreated`), so the guest would retry handshakes into a session it had already ended while the host
+	/// still held the lobby. Measured 2026-10-28: the guest logged "Host left the lobby — ending session (save kept)" during the very session whose host was
+	/// running and whose start gate had already released, and never re-joined it.
+	/// </summary>
+	private const int HostMissingChecks = 3;
+
 	private readonly ISteamService _steam = steam;
 	private readonly PacketSender _sender = sender;
 	private readonly ITimeSource _time = time;
@@ -46,6 +55,7 @@ internal sealed class SessionPeerMaintenance(
 	private readonly ILogger _log = log;
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
+	private int _hostMissingChecks;
 
 	internal void KickHandshake()
 	{
@@ -199,9 +209,31 @@ internal sealed class SessionPeerMaintenance(
 		}
 		else if (!lobbyMembers.Contains(_identity.HostSteamId))
 		{
+			// One reading is not a verdict. A list that names NOBODY says nothing about the host (Steam is still filling it, or this is a stale snapshot
+			// between two lobby updates), and a single stale snapshot that does name others but not the host is equally weak evidence — so the session only
+			// ends after <see cref="HostMissingChecks"/> readings in a row agree. Ending it is irreversible: `SessionActive` re-arms only on
+			// `OnLobbyCreated`, so a false positive leaves the guest retrying handshakes into a session it already dropped while the host still holds the
+			// lobby (measured 2026-10-28 — see the constant's comment).
+			if (lobbyMembers.Length == 0)
+			{
+				_hostMissingChecks = 0;
+				return;
+			}
+
+			_hostMissingChecks++;
+			if (_hostMissingChecks < HostMissingChecks)
+			{
+				_log.LogInformation("The lobby does not name the host this check ({Checks}/{Required}) — the session waits for the next one.", _hostMissingChecks, HostMissingChecks);
+				return;
+			}
+
 			// The host is gone — no host migration in the MVP.
-			_log.LogWarning("Host left the lobby — ending session (save kept).");
+			_log.LogWarning("Host left the lobby — ending session (save kept) after {Checks} consecutive checks named it absent.", _hostMissingChecks);
 			_endSession();
+		}
+		else
+		{
+			_hostMissingChecks = 0;
 		}
 	}
 

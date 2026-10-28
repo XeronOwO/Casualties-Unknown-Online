@@ -43,3 +43,19 @@ host's member list and each peer's gate) — the arrow is one symptom of it, and
 
 Read `docs/design/model/session-lifecycle.md` (what a member's presence means to the other clients) and `docs/design/surfaces/online-window.md` (the HUD surface
 this marker belongs to) before opening this ticket.
+## Reproduction attempt on the fixed build: no arrow, and the clone is gone (2026-10-29 00:50)
+
+Fresh three-client session on `b43734d7` (the session fix): the guest first left the world (`leave-world`), then quit for good (`quit`). Read at each step on
+the HOST:
+
+- roster after the quit: both peers still listed (`76561198863287957`, `76561199526807662`) — the host keeps a row for a peer that is gone;
+- scene scan around the host (`clone-components`): no `Body` clone for the peer — only the pancake clone and particle/liquid effects, so the peer's render clone was
+  torn down;
+- frames before and after the quit (`arrow-a` / `arrow-c`): pixel-identical in the HUD, and NEITHER shows an arrow or marker for the peer.
+
+So on this build a clean quit leaves no visible marker, and the ticket cannot be closed as fixed on this evidence — it also cannot be reproduced, so the cause is not
+established. What the read rules out: `ArrowGuide` (`reversing/…/ArrowGuide.cs`) is a decoration that bobs ±1 unit on `sin(Time.time)`, not a teammate marker;
+no CUO catalogue string or class draws an arrow (`arrow`, `方向`, `指向`, `Marker`, `Indicator`, `Pointer` all come up empty outside `ArrowGuide`).
+The remaining candidate is the situation the USER saw, which this batch did not recreate: a peer whose row the host still holds (the roster above proves the host keeps it) drawn
+by whichever surface the game uses for an off-screen teammate. The next step is to read the game's own UI for how a second `Body` is presented at the screen edge
+(`PlayerCamera`'s UI actions and the pod's HUD), now that `ArrowGuide` is excluded by reading rather than by guess.

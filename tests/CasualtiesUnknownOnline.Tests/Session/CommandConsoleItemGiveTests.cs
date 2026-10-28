@@ -120,7 +120,8 @@ public class CommandConsoleItemGiveTests
 		var answer = Run(host, "/give @p[distance=1..] bandage");
 
 		var item = Assert.Single(creation.Created);
-		Assert.Equal($"Gave bandage (#{item.InstanceId}) to {GuestId}, dropped at its position (the ladder's last rung).", answer);
+		// The answer is the catalogue's own sentence now (`give.answer.dropped`): the rung that settled the item, phrased for the reader.
+		Assert.Equal($"Gave bandage (#{item.InstanceId}) to {GuestId}, dropped at that player's position because nothing accepted it.", answer);
 		Assert.Equal(3, Characters(host).GetSavedCharacter(GuestId)!.Items.Count);
 		Assert.Empty(Items(host).GetTransferredItems(GuestId));
 		// The host writes no row here: a drop is not a carried item, and the world row is the RECEIVING client's
@@ -197,7 +198,8 @@ public class CommandConsoleItemGiveTests
 		var answer = Run(host, "/give @p[distance=1..] bandage{Condition:0.25f}");
 
 		var item = Assert.Single(creation.Created);
-		Assert.Contains("with state {Condition:0.25f,", answer);
+		// The state is its own PART of the answer now (`give.answer.state`), so it reads as its own line after the sentence that settled the item.
+		Assert.Contains("Its state: {Condition:0.25f,", answer);
 		Assert.Equal(0.25f, Assert.Single(Characters(host).GetSavedCharacter(GuestId)!.Items).Condition);
 		Assert.Equal(0.25f, Kernel(host).FindItem(item.InstanceId)!.Value.Data.Condition);
 	}
@@ -269,7 +271,7 @@ public class CommandConsoleItemGiveTests
 		SeedGuestSnapshot(host);
 
 		var answer = host.Services.GetRequiredService<IPlayerInteractionControl>()
-			.GiveItem(9999, "bandage", -1, "");
+			.GiveItem(9999, "bandage", -1, "").Text;
 
 		Assert.Contains("9999 is not in-world", answer);
 		Assert.Empty(Characters(host).GetSavedCharacter(GuestId)!.Items);
@@ -409,11 +411,21 @@ public class CommandConsoleItemGiveTests
 	private static ItemKernelAuthority Kernel(TestNode node) =>
 		node.Services.GetRequiredService<ItemKernelAuthority>();
 
-	/// <summary>Runs one console line and answers with the line it printed.</summary>
+	/// <summary>
+	/// Runs one console line and answers with EVERY line it printed, joined: a give answer is more than one line (the rung it settled, then the item's
+	/// state as a second part), and a test that read only the last line would miss the first.
+	/// </summary>
 	private static string Run(TestNode node, string line)
 	{
 		var console = node.Services.GetRequiredService<ICommandControl>();
+		var before = console.Lines.Count;
 		Assert.True(console.TryExecute(line), $"'{line}' was not accepted by the console");
-		return console.Lines[console.Lines.Count - 1].Text;
+		var text = "";
+		for (var i = before; i < console.Lines.Count; i++)
+		{
+			text = text.Length == 0 ? console.Lines[i].Text : text + "\n" + console.Lines[i].Text;
+		}
+
+		return text;
 	}
 }

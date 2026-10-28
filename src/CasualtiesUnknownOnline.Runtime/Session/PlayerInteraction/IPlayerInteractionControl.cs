@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -72,7 +73,7 @@ public interface IPlayerInteractionControl
 	/// item id (empty = the definition's own capture), parsed and bound where the item is
 	/// created.
 	/// </summary>
-	string? GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText);
+	ConsoleAnswer GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText);
 
 	/// <summary>Host only: a member's give request arrived — the host judges its own cheat switch and roster, creates the item, and answers.</summary>
 	void HandleGiveRequest(ulong sender, PlayerInventoryGiveRequestMsg msg);

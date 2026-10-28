@@ -1,6 +1,7 @@
 using System.Linq;
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -951,7 +952,7 @@ public sealed class OnlineUiMemberProjectionTests
 			remove { }
 		}
 
-		public string? GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText) => null;
+		public ConsoleAnswer GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText) => ConsoleAnswer.Silent;
 
 		public void HandleGiveRequest(ulong sender, PlayerInventoryGiveRequestMsg msg)
 		{

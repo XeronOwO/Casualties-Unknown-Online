@@ -1,4 +1,3 @@
-using System;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -123,11 +122,12 @@ public class CommandConsoleWorldSummonTests
 		var given = Run(host, "/give @a[name=2001] bandage{Condition:0.25f}");
 		var summoned = Run(host, "/summon item bandage player {Condition:0.25f}");
 
-		const string State = "with state {Condition:0.25f,";
-		Assert.Contains(State, given);
-		Assert.Contains(State, summoned);
-		var givenDoc = given.Substring(given.IndexOf(State, StringComparison.Ordinal) + "with state ".Length);
-		var summonedDoc = summoned.Substring(summoned.IndexOf(State, StringComparison.Ordinal) + "with state ".Length);
+		// Both answers carry the canonical state document, each behind its own catalogue sentence (`give.answer.state` for the give, the summon's own
+		// wording for the summon), so the comparison starts at the document itself: the first `{`.
+		Assert.Contains("{Condition:0.25f,", given);
+		Assert.Contains("{Condition:0.25f,", summoned);
+		var givenDoc = given.Substring(given.IndexOf('{'));
+		var summonedDoc = summoned.Substring(summoned.IndexOf('{'));
 		Assert.Equal(givenDoc, summonedDoc);
 		Assert.Single(summon.CreatedItems);
 	}

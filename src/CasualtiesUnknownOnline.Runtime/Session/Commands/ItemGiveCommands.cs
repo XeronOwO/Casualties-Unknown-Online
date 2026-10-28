@@ -72,6 +72,6 @@ internal sealed class ItemGiveCommands(
 			return ConsoleAnswer.Refused($"That selector matched {owners.Count} bodies of {ItemDataTargets.Owners(owners)} — /give names ONE body, so name one player: @p, a selector with [limit=1], or the player's id.", "give.answer.refused_many_bodies", owners.Count.ToString(CultureInfo.InvariantCulture), ItemDataTargets.Owners(owners));
 		}
 
-		return ConsoleAnswer.Ok(_playerInteraction.GiveItem(owners[0], request.DefinitionId, request.Slot, request.StateText));
+		return _playerInteraction.GiveItem(owners[0], request.DefinitionId, request.Slot, request.StateText);
 	}
 }

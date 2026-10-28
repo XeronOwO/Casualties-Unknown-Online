@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
@@ -46,7 +47,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 		remove => _take.TransferReceived -= value;
 	}
 
-	public string? GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText) =>
+	public ConsoleAnswer GiveItem(ulong targetSteamId, string definitionId, int slot, string stateText) =>
 		_give.Give(targetSteamId, definitionId, slot, stateText);
 
 	public void HandleGiveRequest(ulong sender, PlayerInventoryGiveRequestMsg msg) =>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Data;
@@ -131,11 +132,14 @@ internal sealed class PlayerItemGiveService(
 	/// the answer line; a member sends the request and returns null, because its answer
 	/// arrives later through <see cref="Answered"/>.
 	/// </summary>
-	public string? Give(ulong targetSteamId, string definitionId, int slot, string stateText)
+	public ConsoleAnswer Give(ulong targetSteamId, string definitionId, int slot, string stateText)
 	{
 		if (!_session.SessionActive)
 		{
-			return "No active session — /give needs one: the host's own permission is the online switch, and a member's is the host's grant for the session.";
+			return ConsoleAnswer.Refused(
+				"No active session — /give needs one: the host's own permission is the online switch, and a member's is the host's grant for the session.",
+				"cheat.refused.no_session",
+				"give");
 		}
 
 		if (_session.Role == SessionRole.Guest)
@@ -149,10 +153,19 @@ internal sealed class PlayerItemGiveService(
 			});
 			_log.LogInformation("[Give] {Actor} requested {Definition} for {Target} (slot {Slot}, state {State}) from the host.",
 				_session.LocalSteamId, definitionId, targetSteamId, slot, stateText.Length == 0 ? "(the definition's own)" : stateText);
-			return null;
+			return ConsoleAnswer.Silent;
 		}
 
-		return Apply(_session.LocalSteamId, targetSteamId, definitionId, slot, stateText).Answer;
+		// The outcome's PARTS are the answer: each is a catalogue key plus its arguments, so the operator's own console renders them in the operator's
+		// language (the created item's sentence and, for a refusal, the ground the creation port named).
+		var outcome = Apply(_session.LocalSteamId, targetSteamId, definitionId, slot, stateText);
+		var parts = new List<ConsoleAnswerPart>(outcome.Parts.Count);
+		foreach (var part in outcome.Parts)
+		{
+			parts.Add(new ConsoleAnswerPart(part.Key, [.. part.Args]));
+		}
+
+		return outcome.Applied ? ConsoleAnswer.Ok(outcome.Answer, parts) : ConsoleAnswer.Refused(outcome.Answer, parts);
 	}
 
 	/// <summary>

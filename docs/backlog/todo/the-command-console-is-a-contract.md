@@ -3,7 +3,7 @@
 - Status: Todo — opened 2026-10-27 from the user's direction: "the command system probably needs a proper design; hand the interface down to mod
   authors, split local and non-local commands, delegate per-parameter completion (with presets), let completion depend on the context, and treat it as
   a ceiling on what the mod can do".
-- Priority: High — this is the mod-facing surface; its shape is hard to change once third-party mods depend on it.
+- Priority: High — this is the mod-facing surface, and the localisation contract rides on it: a refusal must be a KEY at its origin, which is the only way a player reads a Chinese shell AND a Chinese reason (the user's ruling, 2026-10-28). Its shape is hard to change once third-party mods depend on it.
 - Category: Console / mod contract / architecture
 
 ## Design
@@ -69,6 +69,40 @@ Shipped completers a mod composes with (and the built-ins migrate onto):
 (mods register while the game runs), and cannot be validated as a unit. An object can do all three, and it is what the mod surface already half is
 (`ModConsoleCommand` is a class — this ticket unifies the two paths instead of keeping two dialects).
 
+## The answer contract is part of this redesign (user's direction, 2026-10-28)
+
+The localisation work found the ceiling of the current shape and the user's ruling was to fold it in here rather than patch it family by family: *"use the
+command-registration redesign to redo the whole command system, localisation included, so a Chinese shell AND a Chinese reason are possible from the
+root."* That is the right home for it, and it changes the contract in three ways.
+
+**1. A refusal is a KEY at its ORIGIN, never a sentence.** Today a parser or a service returns free English text for the detailed reason
+(`ItemDefinitionTable`: "No item definition '{id}' is known to this game"; the state parser's "not part of an item's state"), and the console can only
+print it or replace it with the generic `answer.refused_see_host_log` ("Refused — the host's log names the reason") — which is why the host sees English
+and the member sees a sentence with no reason. In the contract, every refusal is a `CommandRefusal(Key, Args)` produced where the reason is KNOWN (the
+parser, the definition table, the permission gate), so both the shell and the reason are catalogue entries and the generic line disappears.
+
+**2. One answer shape for both sides.** An answer is a list of `(Key, Args)`, whether it is composed locally or arrives over the wire — `ConsoleAnswer.Parts`
+and `ConsoleAnswerPartMsg` already are that shape, so the redesign keeps them and makes them the ONLY shape. The assembled English text stays as the log
+line and the fallback, never as what a player reads.
+
+**3. The catalogue is the command's own.** A command's sentences (description, usage, refusals, result lines, argument hints) live beside its definition —
+built-ins in the shipped `en.json`/`zh.json`, a mod in its own catalogue — and the key namespace is derived from the command's name, not listed in a table
+(the `console.cmd.<name>.desc` rule this tree already uses).
+
+**What that means for the sweep already recorded** (the `give`/`summon`/`data`/`heal` family, `review/selectors-exclude-the-executor.md`): those are no
+longer four small conversions. Each becomes "move the refusal reasons to keys at their origin", which is exactly what this ticket's contract makes
+possible, and the family table there is the checklist for it. The two attempted `/give` conversions are recorded there with the reason they stopped:
+without the keyed-origin rule, converting the LOCAL answer would either lose the detail (the generic line) or leave it English (shell + free reason).
+
+**Acceptance rows added to this ticket**
+
+| Row | The check |
+|---|---|
+| 12 | A refusal whose reason is technical ("no item definition", "not part of the state") reads in the reader's language on the client that typed it — judged from a frame, and the reason is translated, not the English sentence with a Chinese shell |
+| 13 | The same refusal reads in the same language on a member who received it over the wire: one key, two clients, two languages, same meaning |
+| 14 | `answer.refused_see_host_log` no longer exists: every refusal names its own reason |
+| 15 | A mod's refusal uses the mod's own catalogue entry, and a missing entry falls back to the command's text rather than to a key |
+| 16 | The give/summon/data/heal family's rows from the selector ticket are re-judged through the new shape, one row per family |
 ## The context a completer and a handler receive (the selector case, generalised)
 
 The user's selector example is the case that makes this a design question rather than a plumbing detail: a selector argument must offer the `@`

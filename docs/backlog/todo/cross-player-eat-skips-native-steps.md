@@ -270,14 +270,22 @@ land on the eater (run sheet step 6).
   that panel's rect. The next read is the release recipe's own panel fields (`backpackOpen`, and who it names) printed TOGETHER with the mode, plus
   `container-panel`'s `opened` at that instant — the mode's cause is in those two, not in the item or the drag.
 
-  **The cause is in our own code, and it is self-fulfilling (2026-10-28 22:52).** Reading the decision instead of trying more points: `GiveGestureModePolicy.Read`
-  answers `OwnUi` when the player's own ring/panels are open, else `DisplayedBackpack` when `RemoteBackpackView.IsOpen`, else `World` — and
-  `RemoteBackpackView` is opened by the CLICK ON A REMOTE BODY itself (`InvButtonBodyPatch` → `RemoteBackpackCoordinator.Open`). So a drag released on a teammate's
-  body opens their backpack on that very gesture, and the release that follows reads `remoteViewOpen: true`, which is why every attempt answers
-  `DisplayedBackpack` with that peer's id — the mode is produced by the gesture it then classifies. Against the user's ruling of 2026-10-25 ("the other player
-  has to eat it out of my hand", recorded above), a release of a held item on a teammate's body is the FEED gesture and must not turn into "open their
-  backpack"; `PlayerCameraDragUsePatch` already has the `DisplayedBackpack` branch, so the fix belongs where the body click is turned into a view open — that
-  is a behaviour change against the accepted shape and is the next work item, not another batch.
+  **CORRECTION (2026-10-28 22:35): the feed WORKS — the mode name was misread, and the log proves the chain.** The paragraph below concluded "the release
+  becomes a put-into-backpack"; that was wrong, and the user's question ("the circle in the middle IS the use area, isn't it?") is what caught it.
+  `PlayerCameraDragUsePatch`'s own doc says a release on the DISPLAYED backpack's CENTRE is the USE/WEAR of the displayed player (user ruling 2026-10-23) —
+  `DisplayedBackpack` is the MODE that contains both a slot give and a centre use, not a synonym for "put it in". The host's log from the same gesture reads:
+
+  - `[ItemUse] 76561198281246659 offers stonefruitclosed (id …) to 76561199526807662` → `[DragUse] used stonefruitclosed on 76561199526807662` →
+    `[ItemUse] 76561199526807662 ate stonefruitclosed …` → `[ItemUse] … replaced stonefruitclosed …` (the peel) → `… ate` again with `condition set to 0.00`;
+  - the pancake: `offers pancake … to 76561199526807662` → `[DragUse] used pancake on …` → `… ate pancake …` → `condition set to 0.75`.
+
+  So the cross-player feed runs the game's own offer → delegate → report chain, peels a stone fruit and consumes a pancake with a condition. What the earlier
+  paragraph got right is only the mechanics (`RemoteBackpackView` is opened by the gesture, and `GiveGestureModePolicy` then reads `DisplayedBackpack`); what it
+  got wrong is the meaning. The four acceptance rows are judged from this log plus the peers' tables next — not from another batch of coordinates.
+
+  <b>The earlier, wrong conclusion, kept so the mistake is on the record:</b> `GiveGestureModePolicy.Read` answers `OwnUi` when the player's own ring/panels are
+  open, else `DisplayedBackpack` when `RemoteBackpackView.IsOpen`, else `World` — and `RemoteBackpackView` is opened by the click on a remote body itself
+  (`InvButtonBodyPatch` → `RemoteBackpackCoordinator.Open`), so every attempt read `DisplayedBackpack` with that peer's id.
 
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's

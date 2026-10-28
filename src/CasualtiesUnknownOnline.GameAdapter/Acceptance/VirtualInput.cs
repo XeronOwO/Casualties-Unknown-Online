@@ -241,6 +241,13 @@ internal static class VirtualInput
 	/// <summary>
 	/// Presses one KEY for the game's own reads: HELD from now on, DOWN on the frame the game reads next. Same stamping rule as a button, and for the
 	/// same reason — the eval that stages a press can run after the game's own Update for that frame.
+	///
+	/// <para>
+	/// A press is a PRESS even when the key is already staged as held: the down frame is re-stamped every time. Keeping the original frame (so a repeated
+	/// call could not become two clicks) cost a batch — a press staged while the game was not reading (a CUO modal suppresses `PlayerCamera.HandleInput` by
+	/// design) left an ancient frame behind, so every later press answered "held" and never "down" (measured 2026-10-28: `keyDownAnswers: 0` across 23,738
+	/// queries, then `radialOpen: true` on the first press after a release).
+	/// </para>
 	/// </summary>
 	internal static void PressKey(KeyCode key)
 	{
@@ -250,12 +257,9 @@ internal static class VirtualInput
 			Keys[key] = state;
 		}
 
-		if (!state.Held)
-		{
-			state.Held = true;
-			state.DownFrame = UnityTime.frameCount + 1;
-			state.UpFrame = -1;
-		}
+		state.Held = true;
+		state.DownFrame = UnityTime.frameCount + 1;
+		state.UpFrame = -1;
 	}
 
 	/// <summary>Releases one staged key: UP on the frame the game reads next, then nothing.</summary>

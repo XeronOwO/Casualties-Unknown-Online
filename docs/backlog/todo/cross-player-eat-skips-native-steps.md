@@ -182,6 +182,25 @@ land on the eater (run sheet step 6).
   plugin: `GetPatchInfo` immediately after `Patch` and again on the next tick, so "never applied" and "applied and then dropped" stop being
   indistinguishable — and the IL dump follows only once that is settled.
 
+  **SOLVED (2026-10-28 22:00): a virtual Tab opens the game's own ring, entirely in process.** The patch was never the problem. Two causes, both observed:
+
+  1. **The read was wrong, not the patch.** `Harmony.GetPatchInfo` DOES carry our entries — `Prefixes=2, Postfixes=1, Transpilers=1` on the same metadata
+     token `100665115`. The "0/0" came from the recipe reading the bookkeeping by the wrong member names: `HarmonyLib.Patches` exposes `Prefixes`,
+     `Postfixes`, `Transpilers` as capitalised properties, and the field dump that finally answered is what closed this. (The other prefix/postfix on
+     `HandleInput` is CUO's own.)
+  2. **CUO's own modal suppresses the game's input by design.** `PlayerCameraHandleInputPatch.Prefix` returns `false` — the whole native `HandleInput` body is
+     skipped — while the Online UI window is open (`PatchBridge.SessionSurface.IsOnlineUiModalOpen`) or a spectator gate is active. The batch had the window
+     open (the launcher opens it for `create-lobby`), so the probes never ran while our own prefix still counted: `handleInputEntries` climbed, `keyQueries`
+     stayed 0. After clicking `window.close` (`windowVisible: false`), the same read gave `keyQueries: 2706` and climbing.
+
+  **And one real defect of ours, fixed:** `PressKey` kept the ORIGINAL down frame while a key was already held, so a press staged while the game was not reading
+  left an ancient frame behind — `keyDownAnswers: 0` across 23,738 queries, with the key reported as merely held. A press now re-stamps the frame. The
+  batch's next action: release + press, and the game answers `radialOpen: true` with six ring buttons
+  (`Untagged@…:slot:itemId` — lantern, waterbottle, trashbag, dogfood on this run), which is the surface the cross-player drag starts from.
+
+  <b>Recipe for the next batch:</b> launch → (lobby auto-created) → `click window.close` → `virtual-key key=Tab,down=1` → `ring-buttons` reads the slots →
+  `drag-start` at the slot's point → `drag-release` over the teammate's body point → read both clients and the frame.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

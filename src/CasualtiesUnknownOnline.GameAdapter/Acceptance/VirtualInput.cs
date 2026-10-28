@@ -69,7 +69,8 @@ internal static class VirtualInput
 	/// <para>
 	/// The targets are the <c>*Int</c> methods, not the <c>KeyCode</c> wrappers: the wrapper is a one-line managed body the JIT may INLINE into each
 	/// caller, so a detour on it can be bypassed entirely — measured 2026-10-28, when a staged `S` never reached `Input.GetKey` inside `PlayerCamera`
-	/// (the game's crouch branch read false for 300+ frames). The <c>*Int</c> methods are <c>[MethodImpl(InternalCall)]</c>: no body, nothing to inline.
+	/// (the game's crouch branch read false for 300+ frames). The <c>*Int</c> methods are <c>[MethodImpl(InternalCall)]</c> and take a <c>KeyCode</c> on
+	/// this build (read from `UnityEngine.Input` itself: `GetKeyInt(KeyCode)`/`GetKeyDownInt(KeyCode)`/`GetKeyUpInt(KeyCode)`, all with no IL body).
 	/// </para>
 	/// </summary>
 	private static readonly (string Name, string PrefixName)[] KeyEntries =
@@ -154,7 +155,7 @@ internal static class VirtualInput
 		// The game's own click path: the three key questions, answered for Mouse0/1/2 only.
 		foreach (var entry in KeyEntries)
 		{
-			var method = AccessTools.Method(typeof(Input), entry.Name, [typeof(int)]);
+			var method = AccessTools.Method(typeof(Input), entry.Name, [typeof(KeyCode)]);
 			if (method == null)
 			{
 				report.Add(entry.Name + ": no method on this build");
@@ -339,11 +340,11 @@ internal static class VirtualInput
 
 	private static bool PrefixUp(int button, ref bool __result) => Answer(button, ButtonQuery.Up, ref __result);
 
-	private static bool PrefixKeyHeld(int key, ref bool __result) => AnswerKey((KeyCode)key, ButtonQuery.Held, ref __result);
+	private static bool PrefixKeyHeld(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Held, ref __result);
 
-	private static bool PrefixKeyDown(int key, ref bool __result) => AnswerKey((KeyCode)key, ButtonQuery.Down, ref __result);
+	private static bool PrefixKeyDown(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Down, ref __result);
 
-	private static bool PrefixKeyUp(int key, ref bool __result) => AnswerKey((KeyCode)key, ButtonQuery.Up, ref __result);
+	private static bool PrefixKeyUp(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Up, ref __result);
 
 	/// <summary>
 	/// How many KEY questions the GAME asked for a staged key, and how many of those were answered "down". A batch reads these to separate "my press

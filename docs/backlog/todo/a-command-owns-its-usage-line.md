@@ -29,7 +29,7 @@ Two halves, and the second is the one with a shape question.
    **Done 2026-10-28, differently and better**: the whole answer is one keyed template — `console.help.command` = `/{name} — {description}` + the
    usage line — so the label AND the layout travel as one catalogue sentence instead of a label spliced in front of an English usage string. The
    answer keeps its assembled text for the log and as the fallback a catalogue gap degrades to. **Verified on a captured frame 2026-10-28**: the console
-   draws `/clear —— 清空控制台输出。` and `用法：/clear` on a `Language = zh` client, where the same line read `Usage: /clear` before.
+   draws the Chinese catalogue's sentence for that key on a `Language = zh` client, label included, where the same answer read `Usage: /clear` before.
 
 2. **The usage text belongs to the command.** The user's proposal is an `ICommandUsage`-style surface (`string Usage { get; }`) a command can
    implement, with the catalogue's `console.cmd.<name>.desc` (read: the command's own attribute text) as the fallback when it does not.

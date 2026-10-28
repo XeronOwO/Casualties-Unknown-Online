@@ -387,6 +387,32 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 				// An answer that names its catalogue key is printed in the client's own language; one that does not keeps its
 				// sentence (the log, the fallback, and every answer assembled from free data).
 				var kind = answer.Kind == ConsoleAnswerKind.Refusal ? ConsoleLineKind.Error : ConsoleLineKind.Success;
+				if (answer.HasParts)
+				{
+					// One line per part, each rendered by THIS client's catalogue: a host's own answer never crosses the wire, so its parts are
+					// the only way its lines reach the operator in the operator's language.
+					foreach (var part in answer.Parts!)
+					{
+						var partArgs = new string[part.Args.Count];
+						for (var i = 0; i < partArgs.Length; i++)
+						{
+							partArgs[i] = part.Args[i];
+						}
+
+						// The line keeps the ANSWER's own sentence as its fallback: a client whose catalogue has no entry for the part (a test host, an
+						// older table) must print the sentence the command built, never the key.
+						var text = _localization?.Format(part.Key, partArgs) ?? "";
+						if (text.Length == 0 || string.Equals(text, part.Key, StringComparison.Ordinal))
+						{
+							text = answer.Text ?? part.Key;
+						}
+
+						AddKeyedLine(part.Key, text, kind, partArgs);
+					}
+
+					return true;
+				}
+
 				if (answer.Key is { } key)
 				{
 					AddKeyedLine(key, answer.Text!, kind, [.. answer.Args ?? []]);

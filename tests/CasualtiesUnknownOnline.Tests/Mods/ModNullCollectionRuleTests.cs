@@ -55,7 +55,8 @@ public class ModNullCollectionRuleTests
 	/// </summary>
 	private static readonly string[] ParameterObjectMembers =
 	[
-		"CuoModAttribute.Dependencies",
+		"ConsoleAnswerPart.Args",
+	"CuoModAttribute.Dependencies",
 		"ModConsoleCommand.ArgumentKinds",
 		"ModManifest.Dependencies",
 		"ModPacket.Handlers",

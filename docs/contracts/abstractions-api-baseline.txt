@@ -29,17 +29,24 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.Text|enum
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.Anyone|enumvalue|implicit #0
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.HostOnly|enumvalue|implicit #1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Args|property|-> IReadOnlyList<string>? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.HasParts|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.HasText|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Key|property|-> string? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Kind|property|-> ConsoleAnswerKind { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Ok(string text, string key, params string[] args)|static method|-> ConsoleAnswer
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Ok(string? text)|static method|-> ConsoleAnswer
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Ok(string? text, IReadOnlyList<ConsoleAnswerPart> parts)|static method|-> ConsoleAnswer
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Parts|property|-> IReadOnlyList<ConsoleAnswerPart>? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Refused(string text)|static method|-> ConsoleAnswer
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Refused(string text, string key, params string[] args)|static method|-> ConsoleAnswer
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Refused(string? text, IReadOnlyList<ConsoleAnswerPart> parts)|static method|-> ConsoleAnswer
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Silent|static property|-> ConsoleAnswer { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Text|property|-> string? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind.Refusal|enumvalue|implicit #1
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind.Success|enumvalue|implicit #0
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart.Args|property|-> IReadOnlyList<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart.Key|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart.ctor(string key, params string[] args)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.BuiltInNamespace|const field|-> string = "cu"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.CompareTo(ContentId other)|method|-> int
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.Equals(ContentId other)|method|-> bool
@@ -1185,6 +1192,7 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer|readonly struct|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind|enum|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ContentId|readonly struct|IEquatable<ContentId>, IComparable<ContentId>
 type|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute|sealed class|Attribute
 type|Stable|CasualtiesUnknownOnline.Abstractions.ICuoMod|interface|ICuoService

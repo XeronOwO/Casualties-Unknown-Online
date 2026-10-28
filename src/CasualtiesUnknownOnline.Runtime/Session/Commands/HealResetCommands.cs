@@ -56,6 +56,6 @@ internal sealed class HealResetCommands(
 			return ConsoleAnswer.Refused($"No players match selector '{args[1]}'.", "selector.answer.no_match", args[1]);
 		}
 
-		return ConsoleAnswer.Ok(_healReset.Reset(targets));
+		return _healReset.Reset(targets);
 	}
 }

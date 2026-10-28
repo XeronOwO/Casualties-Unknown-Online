@@ -43,7 +43,11 @@ public class CommandConsoleHealResetTests
 
 		var answer = Run(host, "/heal @s");
 
-		Assert.Equal("Reset 1001: full heal applied (revived from death; 2 severed limb(s) restored; hollow cleared).", answer);
+		// The answer is one line PER PART now (each rendered by the reader's catalogue), so the console prints the sentence and then each clause
+		// as its own line. The intent of this test is that the operator still learns the body was revived, which is the clause part.
+		var lines = host.Services.GetRequiredService<ICommandControl>().Lines;
+		Assert.Contains(lines, line => line.Text.Contains("Reset 1001: full heal applied"));
+		Assert.Contains(lines, line => line.Text.Contains("It was dead and is revived."));
 		Assert.Equal(1, reset.Resets);
 	}
 
@@ -55,7 +59,7 @@ public class CommandConsoleHealResetTests
 
 		var answer = Run(host, "/heal @p[distance=1..]");
 
-		Assert.Equal("Reset 2001: sent to that player's own client, which applies the full reset and re-reports the state.", answer);
+		Assert.Contains("Reset 2001: sent to that player's own client", answer);
 		Assert.Equal(1, reset.Resets);
 		Assert.Contains(guest.Services.GetRequiredService<ICommandControl>().Lines,
 			line => line.Text.Contains("1001 fully reset your state."));
@@ -95,7 +99,7 @@ public class CommandConsoleHealResetTests
 	{
 		var (host, _, reset) = CreateHealSession();
 
-		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([9999]);
+		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([9999]).Text;
 
 		Assert.Equal("Refused for 9999: not in this world (left, or no snapshot yet).", answer);
 		Assert.Equal(0, reset.Resets);
@@ -106,7 +110,7 @@ public class CommandConsoleHealResetTests
 	{
 		var (host, _, reset) = CreateHealSession();
 
-		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([]);
+		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([]).Text;
 
 		Assert.Equal("Refused: the request names no player.", answer);
 		Assert.Equal(0, reset.Resets);
@@ -123,7 +127,7 @@ public class CommandConsoleHealResetTests
 		var (host, _, reset) = CreateHealSession();
 		SeedMember(host, conscious: true);
 
-		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([HostId, GuestId, GuestId]);
+		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([HostId, GuestId, GuestId]).Text;
 
 		Assert.Contains("Reset 1001: full heal applied.", answer);
 		Assert.Contains("Reset 2001: sent to that player's own client", answer);

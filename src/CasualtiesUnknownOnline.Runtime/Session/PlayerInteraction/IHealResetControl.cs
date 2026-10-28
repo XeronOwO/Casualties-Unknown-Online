@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -25,7 +26,7 @@ public interface IHealResetControl
 	/// member targets, returning the answer line; a member sends the request and returns null,
 	/// because its answer arrives later through <see cref="Answered"/>.
 	/// </summary>
-	string? Reset(IReadOnlyList<ulong> targetSteamIds);
+	ConsoleAnswer Reset(IReadOnlyList<ulong> targetSteamIds);
 
 	/// <summary>Host only: a member's heal request arrived — judge this host's cheat switch and roster, then carry the reset out.</summary>
 	void HandleRequest(ulong sender, HealResetRequestMsg msg);

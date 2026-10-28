@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
@@ -109,11 +110,14 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 	public event Action<HealResetResultMsg>? Answered;
 
 	/// <inheritdoc />
-	public string? Reset(IReadOnlyList<ulong> targetSteamIds)
+	public ConsoleAnswer Reset(IReadOnlyList<ulong> targetSteamIds)
 	{
 		if (!_session.SessionActive)
 		{
-			return "Refused: no active session — a cheat verb needs one: the host's own permission is the online switch, and a member's is the host's grant for the session.";
+			return ConsoleAnswer.Refused(
+				"Refused: no active session — a cheat verb needs one: the host's own permission is the online switch, and a member's is the host's grant for the session.",
+				"cheat.refused.no_session",
+				"heal");
 		}
 
 		if (_session.Role == SessionRole.Guest)
@@ -122,10 +126,17 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 			_sender.Send(_session.HostSteamId, NetMsg.HealResetRequest, new HealResetRequestMsg { TargetSteamIds = targets });
 			_log.LogInformation("[HealReset] {Actor} requested a full reset of {Count} player(s): {Targets}.",
 				_session.LocalSteamId, targets.Count, string.Join(", ", targets));
-			return null;
+			return ConsoleAnswer.Silent;
 		}
 
-		return Execute(_session.LocalSteamId, targetSteamIds).Answer;
+		var result = Execute(_session.LocalSteamId, targetSteamIds);
+		var parts = new List<ConsoleAnswerPart>(result.Parts.Count);
+		foreach (var part in result.Parts)
+		{
+			parts.Add(new ConsoleAnswerPart(part.Key, [.. part.Args]));
+		}
+
+		return result.Applied ? ConsoleAnswer.Ok(result.Answer, parts) : ConsoleAnswer.Refused(result.Answer, parts);
 	}
 
 	/// <inheritdoc />

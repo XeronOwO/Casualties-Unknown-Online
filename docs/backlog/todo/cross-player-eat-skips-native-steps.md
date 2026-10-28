@@ -305,6 +305,12 @@ land on the eater (run sheet step 6).
   `offers …`/`[DragUse] used … on …` lines in front of it are the cross-player envelope, not a second implementation. Row 4 (the remaining condition agrees
   between the operator's and the target's tables) still needs one read per end of the fed instance.
 
+  **Row 4 is half-judged: the custody row agrees exactly on both ends, the condition field is not readable yet (2026-10-28 23:00).** `item-row id=1344645744579`
+  answers, on the host and on the target's client, the SAME four facts: `kind: Carried, owner: 76561198281246659, slot: 2, revision: 4` — two clients, one
+  row, no disagreement. The condition itself (0.75, from the host's log line) is not exposed by any current read: `item-row` returns the location only, and
+  `carry-read` returns bodies, not carried items. So the row needs a small acceptance read that prints the carried item's `ItemData.Condition` per end; until
+  it exists the row is a named residual rather than a pass, and no weaker check stands in for it.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

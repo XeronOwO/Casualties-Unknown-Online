@@ -113,7 +113,14 @@ internal static class NativeSolidFoodEat
 			arrangedSlot = FirstEmptyHandSlot(body);
 			if (arrangedSlot >= 0)
 			{
-				item.transform.SetParent(body.slots[arrangedSlot].transform, worldPositionStays: true);
+				// WHERE IT SITS, NOT ONLY WHOSE CHILD IT IS. Keeping the world position left the item at the ORIGIN while the eater stood 497 units away, and the
+				// game's own peel then did what it does to a far-away item: it dropped the eaten fruit there, instantiated the opened one at the same spot, and the
+				// delegate's `PickUpItem` refused it ("distance 497.6, line-of-sight blocked True") — leaving the opened fruit in the world at (0,0) with a fresh id
+				// while the owner's row was consumed (measured 2026-10-29, both clients' logs). The slot's own position IS the hand: the game's pickup path puts an
+				// item there, so the delegate's distance and line-of-sight checks answer truthfully.
+				item.transform.SetParent(body.slots[arrangedSlot].transform, worldPositionStays: false);
+				item.transform.position = body.slots[arrangedSlot].transform.position;
+				item.rb.position = item.transform.position;
 			}
 		}
 

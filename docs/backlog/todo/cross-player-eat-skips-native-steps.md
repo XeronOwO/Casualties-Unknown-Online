@@ -218,6 +218,14 @@ land on the eater (run sheet step 6).
   follow-up `drag-release` at the teammate reads `casts: RadialCenter, mode: OwnUi, hadItem: none`. So the next read is inside `TryPickupFromUI`'s own
   conditions (`PlayerCamera.TryPickupFromUI` asks the InvButton for the item before `dragItem` is set) — not another coordinate.
 
+  **The condition is named now, and it is the ring's annulus (2026-10-28 22:16).** `PlayerCamera.TryPickupFromUI` (decompiled, `PlayerCamera.cs` in the
+  reversing tree) takes the item from an `InvButton` only when `invButton.Overlaps(uiCasts)` answers true, and `InvButton.Overlaps` is a pure distance test:
+  unless `centerButtons` is off, it needs `Vector2.Distance(PlayerCamera.main.radialMenu.position, Input.mousePosition) / PlayerCamera.uiScale` to fall in
+  `152 < d ≤ 281` — the ring's annulus, not the button's rect. The batch's cast list still reports that test false, both before and after staging the pointer
+  at the button's own point with `virtual-input mode=move` (`overlaps=False`, `dragItem: none` both times), so the next read is the two numbers that test
+  compares — the live `radialMenu.position` and `PlayerCamera.uiScale` at that instant (`remote-gesture mode=list` reports `ringX`, `ringY`, `uiScale`) — and
+  the button's own rect against them. The clients stay open for it.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

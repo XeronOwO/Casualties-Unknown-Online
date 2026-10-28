@@ -68,3 +68,17 @@ The session read the CONTRADICTION: the host's line already showed its countdown
 happened. So either the fallback never fires at `RemainingMs == 0` (an off-by-one/`<` vs `<=`), or `PumpTimeout` is not reached in that frame order. That
 is the next read, and it is one function: `WorldStartGate.PumpTimeout` plus the arm/release bookkeeping beside it. The member side (`IsRemoteInWorld(host)`) is
 a separate stale fact and stays as recorded above.
+## The log names it: the handshake never COMPLETES (2026-10-29 00:20)
+
+The host's own log from the stuck session, in order:
+
+- `Start gate armed — waiting for 2 member(s)` … `Start gate released — everyone is in the world`: the GATE WORKS. It armed for two members and released.
+  The host's `(0 s)` line was the generic host arm of `SessionWaitPolicy.Decide` (`if (IsHost) return MembersLoading`), not a blocked gate.
+- `Peer 76561198863287957 is retrying its handshake — the previous ack was not delivered` — five times, and the same for `76561199526807662`. That warning
+  fires in `HandshakeHandler`'s else branch, i.e. the host has the member but `Handshaken` is still false because the third leg never arrived.
+
+So the real defect is narrower than the ticket's title: **the handshake does not complete after a re-join**, and both peers sit in `HostLoading` because the ack's
+`SceneState` never reaches them. The host receives their handshakes (it logs them), and `SessionPeerMaintenance` re-sends acks while a member stays unconfirmed — so
+host→peer delivery is the broken direction. `HandshakeAckHandler` on the peer does the right thing when the ack arrives (sets `InWorld`/`Handshaken`,
+activates the session, fires the scene edge, sends the `AckAck`), which leaves the delivery path as the thing to read: the sender's per-peer target resolution after a
+re-join, and whatever the peer's packet pump refuses before the handler (latest generation / lazy channel).

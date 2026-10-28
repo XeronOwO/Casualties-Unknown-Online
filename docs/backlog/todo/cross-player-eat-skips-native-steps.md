@@ -164,6 +164,16 @@ land on the eater (run sheet step 6).
   mouse method both report as patched and whether either prefix runs, and check that the patch resolves the method from the runtime's own
   `UnityEngine.Input` rather than the reference assembly's.
 
+  **The call-site injection is installed and inert (2026-10-28 21:47), with the numbers that say so.** Following a review, the global `Input.GetKey*`
+  detours were dropped and `PlayerCamera.HandleInput` was transpiled instead: each `call Input.GetKey/GetKeyDown/GetKeyUp(KeyCode)` becomes a call to a
+  probe that counts EVERY query and answers from the staged state for a staged key (the game's own `KeyBinds` → branch → `HandleStartDragging` /
+  `HandleReleaseDragging` flow is untouched). The install reports `PlayerCamera.HandleInput: patched, 26 call(s) replaced`, and its prefix counts
+  `handleInputEntries` 459 → 575 over four reads — i.e. the method runs every frame — while `keyQueries` stays 0 across all 575 entries, with
+  `gameConsoleActive: false` (so `HandleInput` does not return at its first gate) and `radialOpen: false` after a staged `Tab`. So the body that runs is
+  the patched one (the prefix fires) and the replaced call sites inside it never execute: the next read is the patched method's own IL
+  (`Harmony.GetPatchInfo` for the transpiler plus a dump of the compiled instructions) to see whether the operand swap survived, before anything else is
+  re-targeted.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

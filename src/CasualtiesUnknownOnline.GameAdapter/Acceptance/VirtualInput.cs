@@ -65,12 +65,18 @@ internal static class VirtualInput
 	/// <c>Input.GetKeyDown(KeyBinds.GetBind(…))</c> (`PlayerCamera`, `AltHoverScript`, the console, …) — the whole game assembly contains ONE
 	/// <c>Input.GetMouseButton</c> read (a UI <c>AdaptiveButton</c>). So the same staged button must also answer the three key questions for
 	/// <c>Mouse0/1/2</c>, or a virtual click would move the pointer and never click anything.
+	///
+	/// <para>
+	/// The targets are the <c>*Int</c> methods, not the <c>KeyCode</c> wrappers: the wrapper is a one-line managed body the JIT may INLINE into each
+	/// caller, so a detour on it can be bypassed entirely — measured 2026-10-28, when a staged `S` never reached `Input.GetKey` inside `PlayerCamera`
+	/// (the game's crouch branch read false for 300+ frames). The <c>*Int</c> methods are <c>[MethodImpl(InternalCall)]</c>: no body, nothing to inline.
+	/// </para>
 	/// </summary>
 	private static readonly (string Name, string PrefixName)[] KeyEntries =
 	[
-		(nameof(Input.GetKey), nameof(PrefixKeyHeld)),
-		(nameof(Input.GetKeyDown), nameof(PrefixKeyDown)),
-		(nameof(Input.GetKeyUp), nameof(PrefixKeyUp)),
+		("GetKeyInt", nameof(PrefixKeyHeld)),
+		("GetKeyDownInt", nameof(PrefixKeyDown)),
+		("GetKeyUpInt", nameof(PrefixKeyUp)),
 	];
 
 	private static Harmony? _harmony;
@@ -148,7 +154,7 @@ internal static class VirtualInput
 		// The game's own click path: the three key questions, answered for Mouse0/1/2 only.
 		foreach (var entry in KeyEntries)
 		{
-			var method = AccessTools.Method(typeof(Input), entry.Name, [typeof(KeyCode)]);
+			var method = AccessTools.Method(typeof(Input), entry.Name, [typeof(int)]);
 			if (method == null)
 			{
 				report.Add(entry.Name + ": no method on this build");
@@ -333,11 +339,11 @@ internal static class VirtualInput
 
 	private static bool PrefixUp(int button, ref bool __result) => Answer(button, ButtonQuery.Up, ref __result);
 
-	private static bool PrefixKeyHeld(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Held, ref __result);
+	private static bool PrefixKeyHeld(int key, ref bool __result) => AnswerKey((KeyCode)key, ButtonQuery.Held, ref __result);
 
-	private static bool PrefixKeyDown(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Down, ref __result);
+	private static bool PrefixKeyDown(int key, ref bool __result) => AnswerKey((KeyCode)key, ButtonQuery.Down, ref __result);
 
-	private static bool PrefixKeyUp(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Up, ref __result);
+	private static bool PrefixKeyUp(int key, ref bool __result) => AnswerKey((KeyCode)key, ButtonQuery.Up, ref __result);
 
 	/// <summary>
 	/// How many KEY questions the GAME asked for a staged key, and how many of those were answered "down". A batch reads these to separate "my press

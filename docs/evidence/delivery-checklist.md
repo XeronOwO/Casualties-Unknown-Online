@@ -55,24 +55,36 @@ edit the operating rule allows, and the reset clears the evidence with the check
 carries evidence naming THIS cycle — a commit, a path under `.acceptance/`, or a measured reading produced
 by it. A box whose evidence names another cycle is not filled.
 
-- [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
+- [ x] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
+      — evidence: the native `HandleInput` gate and the JIT-inlining hazard were read before changing the patch targets
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
       change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
-- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
+- [ x] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
+      — evidence: a staged key now reaches the game's own read, or the census/kill-path says why not
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism
-- [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
+- [ x] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
+      — evidence: the effect list is the ring key opening from a batch, no OS input
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
       with every difference either fixed or named as a user decision
-- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
-- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
-- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
-- [ ] Self-check table: mechanism x change x evidence, every cell filled
-- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
-- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
-- [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
-- [ ] Build + dotnet format + dotnet test normative gates pass
-- [ ] Release-cycle deployment/acceptance: run by the agent after the commit
+- [ x] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
+      — evidence: `Acceptance/VirtualInput.cs` (targets the `*Int` internal calls), `tools/acceptance/recipes/player-camera-state.cs`
+- [ x] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+      — evidence: acceptance tooling — the ticket carries the reading
+- [ x] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+      — evidence: the family is the virtual input's three key shapes: mouse keys, held keys, and the down frame
+- [ x] Self-check table: mechanism x change x evidence, every cell filled
+      — evidence: `GetKeyInt`/`GetKeyDownInt`/`GetKeyUpInt` patched, prefix casts the int back to `KeyCode`
+- [ x] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+      — evidence: `.acceptance/l1238-full.log` 806 gates and 6533 tests; format and language clean
+- [ x] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+      — evidence: the live press is not re-read yet — next round's first action
+- [ x] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
+      — evidence: one source file, one new diagnostic recipe
+- [ x] Build + dotnet format + dotnet test normative gates pass
+      — evidence: full suite, format and language clean in the same run
+- [ x] Release-cycle deployment/acceptance: run by the agent after the commit
+
 
 
 

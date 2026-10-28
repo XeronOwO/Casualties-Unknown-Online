@@ -1,6 +1,6 @@
 # A cross-player eat skips the game's own eating steps and swallows the whole item
 
-- Status: Todo — opened 2026-10-25 from the user's report (translated): "I dragged a pancake and a stone fruit into the guest's backpack, then
+- Status: Review — opened 2026-10-25 from the user's report (translated): "I dragged a pancake and a stone fruit into the guest's backpack, then
   dragged them onto the guest to use, and it ate the WHOLE pancake in one go! Then it 'ate' the stone fruit! The stone fruit's eating has a
   peeling step!".
 - Priority: High
@@ -541,3 +541,12 @@ writes its condition straight onto the owner''s object — zeroing it, and the g
 — either `HandleOutcome` builds `ItemAfter` from the committed row for a follow-up, or a result that changes nothing but the definition is not sent as a
 state write at all.
   **The batch's three clients are no longer all in a world (2026-10-28 23:20).** Read through the driver's own state: host `inWorld: true`, the guest and the alt both `inWorld: false` (the guest's own line says it is waiting for the host to load, which the host already did), and both peers answer `no-local-body` to a provide and `no-camera` to a ring read. So row 4's one-shot comparison cannot be taken on THIS session — the next attempt starts a fresh one (relaunch, lobby, run) with the giver being whichever body has a free slot, and reads `body-items` on both ends after a single feed.
+## Row 4 PASSES on a clean one-shot feed (2026-10-29 00:35, fresh session on `b43734d7`)
+
+One pancake, one release on the teammate's body with the ring closed (`mode: DisplayedBackpack, focusedSteamId: 76561198863287957` — the displayed
+backpack's CENTRE is the use, per the 2026-10-23 ruling). The host's log:
+
+`[ItemUse] … offers pancake (id 1426250123203) to …` → `[DragUse] used pancake on … (instance 1426250123203)` → `… ate pancake (id …)` →
+`[ItemUse] local item 1426250123203 condition set to 0.75 by cross-player use.` And the owner's own table, read straight after with `body-items`:
+`0:pancake:0.747`. The value the eater reported (0.75) and the row it was applied to (0.747) are the same number at the wire's rounding — so the operator's
+and the target's facts agree, and the item survived the bite with the consumed amount removed. All four acceptance rows now pass; the ticket moves to `review/`.

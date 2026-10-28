@@ -101,7 +101,7 @@ on both clients.
 ## Records
 
 Decisions 184 and 246. Accepted: `../../backlog/done/cross-player-item-use-random-determinism.md`. Open:
-`../../backlog/todo/cross-player-eat-skips-native-steps.md` (the item must be the eater's CARRIED item, and a replacement
+`../../backlog/review/cross-player-eat-skips-native-steps.md` (the item must be the eater's CARRIED item, and a replacement
 the food creates must be registered).
 
 ## Gaps

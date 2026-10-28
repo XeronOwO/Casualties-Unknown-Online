@@ -73,7 +73,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
-- [A cross-player eat skips the game's own steps](todo/cross-player-eat-skips-native-steps.md) — **High** — peel, bites and sound.
+
 - [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 - [A disconnected member leaves his arrow on the HUD](todo/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — reported.
@@ -89,6 +89,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [An item cannot be used on a sleeping teammate](review/use-on-sleeping-target-refused.md) — **Medium** — decision 270 implemented.
+- [A cross-player eat runs the game's own steps](review/cross-player-eat-skips-native-steps.md) — **High** — all four rows pass.
 
 
 - [Launcher starts all three together and fails only for real reasons](review/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — 25 s cold start.

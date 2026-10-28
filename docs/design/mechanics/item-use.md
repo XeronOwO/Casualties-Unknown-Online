@@ -134,7 +134,7 @@ must never be a gesture that silently does nothing.
 
 Decisions 184 (the affected side judges), 154 (authority kind), 246 (the entry decides the family), 265 (reports are
 checked against data). Accepted: `../../backlog/done/drink-measurement-destructive-use-action.md`,
-`done/give-gesture-own-ui-and-center-use.md`. Open corrections: `../../backlog/todo/cross-player-eat-skips-native-steps.md`,
+`done/give-gesture-own-ui-and-center-use.md`. Open corrections: `../../backlog/review/cross-player-eat-skips-native-steps.md`,
 `review/use-on-sleeping-target-refused.md`.
 
 ## Gaps

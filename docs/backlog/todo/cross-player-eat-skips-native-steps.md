@@ -152,6 +152,18 @@ land on the eater (run sheet step 6).
   `Update` runs (move the body through the product's own path and read the position back), and only then retry the press. Nothing about the consume
   flow itself changed.
 
+  **The camera is alive, so the patch target was the suspect — and the targets were wrong (2026-10-28 21:28).** `player-camera-state` read
+  `enabled: true`, `activeInHierarchy: true`, `paused: false`, `body: set`, `gameConsoleActive: false`, i.e. `PlayerCamera.Update → HandleInput` runs
+  (`PlayerCamera.cs:1327`) and therefore asks for the key every frame; `HandleInput`'s own first gate (the GAME console, line 845) is closed. So the
+  earlier "the game never asks" reading was the PATCH's failure. `input-methods` then enumerated `UnityEngine.Input`: the key internals are
+  `GetKeyInt(KeyCode)`, `GetKeyDownInt(KeyCode)`, `GetKeyUpInt(KeyCode)`, all with no IL body, while `GetKey(KeyCode)` and its siblings are managed
+  one-liners a JIT may inline past a detour. The patches were re-targeted to the `*Int` methods (the `KeyCode` wrappers were the first target and are
+  named as the reason). **Still open, with the numbers:** after the retarget the install reports `GetKeyInt: patched`, yet staging `S` leaves
+  `keyQueries: 0` and `body.crouching: false` for 300+ frames — so the detour is NOT invoked, not even by an explicit `Input.GetKey` from the batch, while
+  the MOUSE internals (`GetMouseButton…`) answer through the same backend. Next diagnostic: in ONE eval, read whether a patched key method and a patched
+  mouse method both report as patched and whether either prefix runs, and check that the patch resolves the method from the runtime's own
+  `UnityEngine.Input` rather than the reference assembly's.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

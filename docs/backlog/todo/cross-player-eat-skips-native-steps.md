@@ -209,6 +209,15 @@ land on the eater (run sheet step 6).
   like a clone, report its world point) is refused by the evaluator as `(1,1): InteractiveHost` — a compile failure in the snippet that has to be isolated
   before it is committed. That one read is all that stands between this batch and its first `drag-start`/`drag-release`.
 
+  **The release point is now readable, and the drag itself refuses (2026-10-28 22:10, same three clients).** `member-position` (multi-line, `.x=n y=n radius=n
+  name=s`) answers the teammate's world point by the name the game itself uses: `remote-hand` lists what renders another member — `Body` on this build — and
+  the first version's name guess ("anything with Clone") answered `wallholes(Clone)` instead. With `name=Body` the read is `found: true, x 0, y 469.616,
+  candidates 2` (the local body's own hierarchy is skipped), and `screen-point2 x=0 y=469.616` answers the pixel `(626, 421)`. The ring's fruit sits at
+  `(509, 461)` in the same frame. **But `drag-start` there does not pick the item up:** its cast list names the button
+  (`MainMainHand#inv:stonefruitclosed(Clone):overlaps=False`) while `dragItem` stays `none`, with the body `standing: true, conscious: true`, and the
+  follow-up `drag-release` at the teammate reads `casts: RadialCenter, mode: OwnUi, hadItem: none`. So the next read is inside `TryPickupFromUI`'s own
+  conditions (`PlayerCamera.TryPickupFromUI` asks the InvButton for the item before `dragItem` is set) — not another coordinate.
+
   **The plan, and what of it landed (2026-10-25):**
   1. ✅ The eater's client holds the giver's item as a STANDING object; the giver's BODY is a render clone there, so the owner's
      real slots are unreachable from this client — confirmed, and it is why the shape makes the stand-in occupy a hand slot.

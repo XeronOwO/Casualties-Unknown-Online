@@ -69,14 +69,14 @@ internal sealed class FakeWorldSummon : IWorldSummon
 	/// <summary>The last position word resolved, or null when the invocation named a literal point.</summary>
 	internal WorldSummonAnchor? LastAnchor { get; private set; }
 
-	public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out string? refusal)
+	public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out GrantRefusal? refusal)
 	{
 		LastAnchor = anchor;
 		if (AnchorRefusal is not null)
 		{
 			x = 0f;
 			y = 0f;
-			refusal = AnchorRefusal;
+			refusal = new GrantRefusal(AnchorRefusal, "summon.answer.refused_not_in_world");
 			return false;
 		}
 

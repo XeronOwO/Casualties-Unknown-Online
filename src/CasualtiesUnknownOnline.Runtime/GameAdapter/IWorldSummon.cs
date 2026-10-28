@@ -38,7 +38,7 @@ public interface IWorldSummon
 	/// controls, or the layer it is in. False with <paramref name="refusal"/> naming the ground when the scene
 	/// cannot answer (no world, no live body, no camera).
 	/// </summary>
-	bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out string? refusal);
+	bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out GrantRefusal? refusal);
 
 	/// <summary>
 	/// Summon <paramref name="prefabId"/> at the point and answer what was created. <paramref name="kind"/> is

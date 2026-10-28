@@ -390,12 +390,15 @@
   "item.answer.refused_no_adapter": "本版本无法创建物品：没有加载 Game Adapter，因此'{0}'无法解析成预制体，也无法分配实例 ID。",
   "summon.answer.refused_no_prefab_id": "没有给出 prefab 名称。",
   "summon.answer.refused_position_unavailable": "本客户端无法解析那个位置：{0}",
-  "summon.answer.refused_position": "已拒绝：{0}",
   "summon.answer.refused_unknown_item_prefab": "'/summon item' 要写游戏物品表里的物品定义，而'{0}'不是。实体 prefab 不带这个类型词，直接 /summon {0} 即可。什么都没创建。",
   "summon.answer.refused_item_needs_the_word": "'{0}'是物品定义，要作为掉落物品实体召唤：/summon item {0}{1}。什么都没创建。",
   "summon.answer.refused_entity_takes_no_state": "'{0}'不是物品定义，因此不接受状态参数——实体的初始值由游戏自己决定。什么都没创建。",
   "summon.answer.refused_materialize": "物品'{0}'无法在那个位置实体化。",
   "summon.answer.refused_unknown_prefab": "无法实体化 prefab'{0}'：它既不是本版本认识的物品定义，也没有同名的世界实体 prefab。",
   "summon.answer.refused_no_entity_id": "prefab'{0}'没有实体 id，其他客户端无法重建它。什么都没创建。",
-  "summon.answer.refused_no_adapter": "无法创建任何 prefab：本版本没有加载 Game Adapter。"
+  "summon.answer.refused_no_adapter": "无法创建任何 prefab：本版本没有加载 Game Adapter。",
+  "summon.answer.refused_not_in_world": "这个客户端不在世界里，所以没有可以放置任何东西的层。",
+  "summon.answer.refused_no_camera": "这个客户端没有摄像机，指针无法读成世界坐标。",
+  "summon.answer.refused_no_body": "这个客户端的身体现在读不到，所以 'player' 没有位置。",
+  "summon.answer.refused_unknown_anchor": "'{0}' 不是本版本认识的位置写法。"
 }

@@ -120,9 +120,12 @@ public sealed class WorldSummonService(
 
 		if (!TryResolvePosition(position, out var x, out var y, out var positionRefusal))
 		{
-			var reason = positionRefusal ?? "this client's scene cannot answer that position.";
-			_log.LogWarning("[Summon] {Actor} -> {Prefab} refused before a position was resolved: {Reason}", _session.LocalSteamId, prefabId, reason);
-			return ConsoleAnswer.Refused($"Refused: {reason}", "summon.answer.refused_position", reason);
+			var keyed = positionRefusal ?? new GrantRefusal(
+				"this client's scene cannot answer that position.",
+				"summon.answer.refused_position_unavailable",
+				"the scene answered no position");
+			_log.LogWarning("[Summon] {Actor} -> {Prefab} refused before a position was resolved: {Reason}", _session.LocalSteamId, prefabId, keyed.Text);
+			return ConsoleAnswer.Refused(keyed.Text, keyed.Key, [.. keyed.Args]);
 		}
 
 		if (_session.Role == SessionRole.Guest)
@@ -294,8 +297,9 @@ public sealed class WorldSummonService(
 		return builder.ToString();
 	}
 
-	/// <summary>The position the creation really uses: a literal point as typed, or the scene seam's answer for a keyword.</summary>
-	private bool TryResolvePosition(WorldSummonPosition position, out float x, out float y, out string? refusal)
+	/// <summary>The position the creation really uses: a literal point as typed, or the scene seam's answer for a keyword — the latter as a KEYED
+	/// refusal, because the keyword's own grounds (no world, no camera, no body) are known there.</summary>
+	private bool TryResolvePosition(WorldSummonPosition position, out float x, out float y, out GrantRefusal? refusal)
 	{
 		if (position.Anchor is { } anchor)
 		{

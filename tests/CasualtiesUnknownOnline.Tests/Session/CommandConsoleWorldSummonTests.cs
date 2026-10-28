@@ -208,7 +208,8 @@ public class CommandConsoleWorldSummonTests
 
 		var answer = Run(host, "/summon item bandage player");
 
-		Assert.Contains("Refused: this client is not in a world", answer);
+		// The refusal is the catalogue's own sentence now (`summon.answer.refused_not_in_world`), not a "Refused: <host's English>" wrapper.
+		Assert.Contains("This client is not in a world, so there is no layer to create anything in.", answer);
 		Assert.Empty(summon.Attempts);
 		Assert.Empty(WorldItems(host).GetWorldItemsForDiagnostics());
 	}

@@ -10,11 +10,11 @@ internal sealed class UnavailableWorldSummon : IWorldSummon
 {
 	private const string Ground = "this build has no Game Adapter, so it cannot create world objects";
 
-	public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out string? refusal)
+	public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out GrantRefusal? refusal)
 	{
 		x = 0f;
 		y = 0f;
-		refusal = $"No position can be resolved: {Ground}.";
+		refusal = new GrantRefusal($"No position can be resolved: {Ground}.", "summon.answer.refused_position_unavailable", Ground);
 		return false;
 	}
 

@@ -415,7 +415,21 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 				if (answer.Key is { } key)
 				{
-					AddKeyedLine(key, answer.Text!, kind, [.. answer.Args ?? []]);
+					// The line keeps the ANSWER's own sentence as its fallback, and the catalogue's sentence as its text when this client's table has
+					// the key: one keyed answer behaves like one keyed PART, so the history and the host's log read what the player reads.
+					var keyArgs = new string[answer.Args?.Count ?? 0];
+					for (var i = 0; i < keyArgs.Length; i++)
+					{
+						keyArgs[i] = answer.Args![i];
+					}
+
+					var text = _localization?.Format(key, keyArgs) ?? "";
+					if (text.Length == 0 || string.Equals(text, key, StringComparison.Ordinal))
+					{
+						text = answer.Text!;
+					}
+
+					AddKeyedLine(key, text, kind, keyArgs);
 				}
 				else
 				{

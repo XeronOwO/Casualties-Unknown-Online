@@ -75,7 +75,7 @@ public class WorldSummonContractGateTests
 		{ "x = Random.Range(-1f, 1f) * WorldGeneration.world.halfWidth;", "x = 0f;" },
 		{ "y = Random.Range(-1f, 1f) * WorldGeneration.world.halfHeight;", "y = 0f;" },
 		{ "'{anchor}' is not a position this build knows.", "lost position-word sentence" },
-		{ "if (!IsInWorld(out refusal))", "if (false)" },
+		{ "if (!IsInWorld(out var sceneRefusal))", "if (false)" },
 		{ "if (WorldGeneration.world == null || !WorldGeneration.world.worldExists)", "if (false)" },
 		{ "this client is not in a world, so there is no layer to create anything in.", "lost not-in-world sentence" },
 		{ "=> state is null ? \"\" : \" {<state>}\"", "=> \"\"" },
@@ -171,14 +171,14 @@ public class WorldSummonContractGateTests
 				"the refusal for an entity prefab with no recreatable id lost its sentence", failures);
 		}
 
-		var resolveAnchor = SourceScan.MethodBody(text, "public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out string? refusal)");
+		var resolveAnchor = SourceScan.MethodBody(text, "public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out GrantRefusal? refusal)");
 		if (resolveAnchor.Length == 0)
 		{
 			failures.Add("TryResolveAnchor() not found — the position words would pass by checking nothing");
 		}
 		else
 		{
-			Require(resolveAnchor, "if (!IsInWorld(out refusal))",
+			Require(resolveAnchor, "if (!IsInWorld(out var sceneRefusal))",
 				"TryResolveAnchor() no longer checks that this client is in a world", failures);
 			Require(resolveAnchor, "switch (anchor)",
 				"the position word is no longer the switch", failures);
@@ -239,14 +239,17 @@ public class WorldSummonContractGateTests
 		{
 			private readonly WorldItemCreation _worldItems = new(items, log);
 
-			public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out string? refusal)
+			public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out GrantRefusal? refusal)
 			{
 				x = 0f;
 				y = 0f;
 				refusal = null;
 
-				if (!IsInWorld(out refusal))
+				if (!IsInWorld(out var sceneRefusal))
 				{
+					refusal = new GrantRefusal(
+						sceneRefusal ?? "this client is not in a world, so there is no layer to create anything in.",
+						"summon.answer.refused_not_in_world");
 					return false;
 				}
 
@@ -255,7 +258,9 @@ public class WorldSummonContractGateTests
 					case WorldSummonAnchor.Cursor:
 						if (Camera.main == null)
 						{
-							refusal = "this client has no camera, so the pointer cannot be read as a world point.";
+							refusal = new GrantRefusal(
+								"this client has no camera, so the pointer cannot be read as a world point.",
+								"summon.answer.refused_no_camera");
 							return false;
 						}
 
@@ -268,7 +273,9 @@ public class WorldSummonContractGateTests
 						var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
 						if (body == null)
 						{
-							refusal = "this client's body cannot be read right now, so 'player' has no position.";
+							refusal = new GrantRefusal(
+								"this client's body cannot be read right now, so 'player' has no position.",
+								"summon.answer.refused_no_body");
 							return false;
 						}
 
@@ -282,7 +289,10 @@ public class WorldSummonContractGateTests
 						return true;
 
 					default:
-						refusal = $"'{anchor}' is not a position this build knows.";
+						refusal = new GrantRefusal(
+							$"'{anchor}' is not a position this build knows.",
+							"summon.answer.refused_unknown_anchor",
+							anchor.ToString());
 						return false;
 				}
 			}

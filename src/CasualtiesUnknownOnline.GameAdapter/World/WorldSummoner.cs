@@ -44,14 +44,17 @@ internal sealed class WorldSummoner(
 	private readonly WorldItemCreation _worldItems = new(items, log);
 
 	/// <summary>The native command's position words, read from the same three places the game's own <c>ParsePosition</c> reads.</summary>
-	public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out string? refusal)
+	public bool TryResolveAnchor(WorldSummonAnchor anchor, out float x, out float y, out GrantRefusal? refusal)
 	{
 		x = 0f;
 		y = 0f;
 		refusal = null;
 
-		if (!IsInWorld(out refusal))
+		if (!IsInWorld(out var sceneRefusal))
 		{
+			refusal = new GrantRefusal(
+				sceneRefusal ?? "this client is not in a world, so there is no layer to create anything in.",
+				"summon.answer.refused_not_in_world");
 			return false;
 		}
 
@@ -60,7 +63,9 @@ internal sealed class WorldSummoner(
 			case WorldSummonAnchor.Cursor:
 				if (Camera.main == null) // Unity object — ==
 				{
-					refusal = "this client has no camera, so the pointer cannot be read as a world point.";
+					refusal = new GrantRefusal(
+						"this client has no camera, so the pointer cannot be read as a world point.",
+						"summon.answer.refused_no_camera");
 					return false;
 				}
 
@@ -73,7 +78,9 @@ internal sealed class WorldSummoner(
 				var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
 				if (body == null) // Unity object — ==
 				{
-					refusal = "this client's body cannot be read right now, so 'player' has no position.";
+					refusal = new GrantRefusal(
+						"this client's body cannot be read right now, so 'player' has no position.",
+						"summon.answer.refused_no_body");
 					return false;
 				}
 
@@ -88,7 +95,10 @@ internal sealed class WorldSummoner(
 				return true;
 
 			default:
-				refusal = $"'{anchor}' is not a position this build knows.";
+				refusal = new GrantRefusal(
+					$"'{anchor}' is not a position this build knows.",
+					"summon.answer.refused_unknown_anchor",
+					anchor.ToString());
 				return false;
 		}
 	}

@@ -19,6 +19,8 @@ A refusal the gate itself decides is a keyed answer too: `CheatVerbGate` builds 
 
 **A verb whose answer is more than one fact answers in PARTS.** An item verb reports the rung that settled the item AND the state the item really carries; one sentence cannot hold both without an English clause stranded inside another language. `PlayerItemGiveService.Give` and `WorldSummonService.Summon` therefore return `ConsoleAnswer.Ok/Refused` with one `ConsoleAnswerPart` per fact, and the console prints one keyed line each.
 
+**One keyed answer renders like one keyed part.** The console resolves a single keyed answer through the reader's catalogue before it becomes a line, keeping the answer's own sentence as the fallback — so the history and the host's log read what the player reads, instead of carrying the host's English until the overlay draws it (measured 2026-10-28: the summon's position refusal printed its raw sentence in the console history while its key was correct).
+
 Two gates keep that honest. `ConsoleAnswerLocalizationGateTests` counts only the answers that carry **no** key, and its budget only falls — the earlier figure of 42 was never a progress number, because the call was counted whether or not it carried a key. `LocalizationCatalogueGateTests` counts a key as read when an ANSWER (`ConsoleAnswer.Refused/Ok`), a KEYED REFUSAL (`new GrantRefusal(…)`) or a keyed console line names it, so a keyed answer whose key nothing resolves cannot hide.
 ## The rule
 

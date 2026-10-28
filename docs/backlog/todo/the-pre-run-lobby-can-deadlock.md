@@ -63,7 +63,8 @@ The next read is therefore the host's re-join path in `HandshakeHandler`/`SceneS
 **30 s fallback releases the gate**. `StartGateCoordinator.Update` calls `_world.MaybeForceStartGate()` → `WorldStartGate.PumpTimeout()` whenever the host's gate is
 active, and `WaitingForReady` for a host is exactly `_world.StartGateActive`.
 
-The session read the CONTRADICTION: the host's line already showed `(0 秒)` — the countdown at zero — while `StartGateActive` was still true and no departure
+The session read the CONTRADICTION: the host's line already showed its countdown at zero — `wait.members_loading` renders the remaining seconds and it read
+`0` — while `StartGateActive` was still true and no departure
 happened. So either the fallback never fires at `RemainingMs == 0` (an off-by-one/`<` vs `<=`), or `PumpTimeout` is not reached in that frame order. That
 is the next read, and it is one function: `WorldStartGate.PumpTimeout` plus the arm/release bookkeeping beside it. The member side (`IsRemoteInWorld(host)`) is
 a separate stale fact and stays as recorded above.

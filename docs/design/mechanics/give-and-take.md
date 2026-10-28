@@ -35,6 +35,27 @@ The refusal is never a fallback for "not sure": an unclassifiable release keeps 
 
 ## What the game itself does
 
+**The gesture chain, end to end, read before any behaviour is judged.** One gesture carries every destination, so the whole chain is written here once
+instead of being inferred from a diagnostic's field name (the 2026-10-28 lesson: `DisplayedBackpack` was read as "put it in the backpack" while the branch
+that consumes it says the ring's CENTRE is the use/wear target).
+
+| # | The game does (native, quoted) | What CUO adds or changes |
+|---|---|---|
+| 1 | `PlayerCamera.Update` → `HandleInput` (`PlayerCamera.cs:1327`), which returns at once while the GAME's console is open (`:845-848`) | nothing |
+| 2 | `Input.GetKeyDown(KeyBinds.GetBind("toggleinventory"))` flips `radialOpen` (`:933`) — the ring is a TOGGLE, one DOWN per flip | the acceptance channel stages that key; a batch must READ the state, not count presses |
+| 3 | `HandleDragging` (`:1355-1363`): DOWN `iteminteract` → `HandleStartDragging`, UP → `HandleReleaseDragging` | CUO's modal suppresses the whole of `HandleInput` by design (`PlayerCameraHandleInputPatch`), so no key reaches the game while its window is open |
+| 4 | `HandleStartDragging` (`:1367-1393`): conscious, `allowUseItem`, then `TryPickupFromUI`, else `TryPickupFromWorld` | nothing |
+| 5 | `TryPickupFromUI` (`:1396-1418`): an `ItemLabel`, or an `InvButton` whose `Overlaps` is true — a pure distance test into the ring's annulus, `152 < d/uiScale ≤ 281` (`InvButton.cs:31`) | nothing; a batch must stage `Input.mousePosition` or `Overlaps` sees the real pointer |
+| 6 | `HandleReleaseDragging` (`:1456-1497`): pickup check → `TryPerformUIActions` (inventory → radial → special, `:1500-1518`) → else the world action | CUO decides which of ITS destinations the release means (`PlayerCameraDragUsePatch` → `GiveGestureModePolicy`: own UI, then a displayed backpack, then the world) |
+| 7 | The displayed backpack's CENTRE is the use/wear of the player it displays (user ruling 2026-10-23, cited at `:83` of this page) | `PlayerCameraDragUsePatch` runs the use on the DISPLAYED player instead of the giver |
+| 8 | A slot under the pointer receives the item (a give) | CUO routes a give into the peer's authoritative inventory; an occupied slot follows the native release rule |
+
+**Two features share the same release, and only one can own it.** CUO opens the peer's backpack mid-drag (`CrossPlayerDragUse.AutoOpenFor` →
+`RemoteBackpackView.Open`) so an item can be dropped into it, and the same release is what the 2026-10-25 ruling makes a FEED ("the other player has to eat
+it out of my hand"). They do not conflict in the CODE — the centre is the use, a slot is the give — but they conflict in the PLAYER'S aim: a release on the
+body lands on the centre graphic (use) only when the ring is closed or the centre is not under the pointer, and otherwise on a slot (give). Which of the two
+the gesture should mean is a product decision, not a code fact; it is recorded on the `cross-player-eat-skips-native-steps` ticket.
+
 Both directions are the game's own custody operations: an item moves into another holder through the game's container and
 pickup path (`Container.LoadItem` for a container, the body's own pickup for a slot), and leaves one through the
 container's unload path. The transfer's sound, the container's refresh and the item's own presentation are produced by

@@ -120,3 +120,5 @@ answers that carry no key literal gives **12**, of which this cycle converted fi
 three answers, and the `/session`-style diagnostic line. The **seven** left are the two families that are not the player surface — the example mods (six,
 the sample a mod author reads and copies) and the acceptance driver's report line — and the gate's budget now says so with its reason. Converting those
 would put sample text in the shipped catalogue, which is why the budget stops at seven instead of zero.
+Verified on a captured frame the same day: `/whoami` draws the Chinese catalogue's sentence for `console.answer.session_facts` (its four labels translated,
+the role, the ids and the flag left as the identifiers they are), where it read the English template before.

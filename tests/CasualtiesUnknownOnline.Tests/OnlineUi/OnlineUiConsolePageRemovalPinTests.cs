@@ -274,7 +274,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	private static readonly Regex DeclaredKeyPattern = new($@"\""({UiKeyPattern})\""\s*:", RegexOptions.Compiled);
 	// A key is "referenced" by the UI when it is read through the localization accessor (`T("…")`) or through the console
 	// resolver's own lookup parameter (`lookup("…")`), which is the same read one indirection later.
-	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|F|lookup|AddKeyedLine)\(""({UiKeyPattern})""", RegexOptions.Compiled);
+	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|F|lookup|AddKeyedLine|Ok|Refused)\(""({UiKeyPattern})""", RegexOptions.Compiled);
 	private static readonly Regex ConsoleInputFieldPattern = new(@"\bConsoleInput\b", RegexOptions.Compiled);
 
 	/// <summary>
@@ -307,6 +307,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		"console.command.empty",
 		"console.command.host_only",
 		"console.command.unknown",
+		"console.help.command",
 		"console.overlay.empty",
 		"console.ready",
 		"console.session_ended",
@@ -377,15 +378,24 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 
 	/// <summary>
 	/// The keys some source file actually names, comments dropped so a comment naming a key can
-	/// neither satisfy nor break the census. The catalogue itself is excluded: it declares them.
+	/// neither satisfy nor break the census. The catalogue itself is excluded: it declares them. A console ANSWER names its key after its sentence
+	/// (`ConsoleAnswer.Ok($"…", "console.help.command", …)`, which the accessor pattern cannot see) and the console renders that key, so the answer
+	/// shape counts as a reference too.
 	/// </summary>
-	private static string[] ReferencedUiKeys(string referencedSource) =>
-		ReferencedKeyPattern.Matches(Flatten(referencedSource))
-			.Cast<Match>()
-			.Select(match => match.Groups[1].Value)
-			.Distinct()
-			.OrderBy(key => key, StringComparer.Ordinal)
-			.ToArray();
+	private static string[] ReferencedUiKeys(string referencedSource)
+	{
+		var flattened = Flatten(referencedSource);
+		return
+		[
+			.. AnswerWithKeyPattern.Matches(flattened).Cast<Match>().Select(match => match.Groups[1].Value)
+				.Concat(ReferencedKeyPattern.Matches(flattened).Cast<Match>().Select(match => match.Groups[1].Value))
+				.Distinct()
+				.OrderBy(key => key, StringComparer.Ordinal),
+		];
+	}
+
+	/// <summary>A console answer's dotted key, after its interpolated sentence.</summary>
+	private static readonly Regex AnswerWithKeyPattern = new($@"(?:Ok|Refused)\([^;]*?""({UiKeyPattern})""", RegexOptions.Compiled);
 
 	private static string BlockBetween(string text, char open, char close)
 	{

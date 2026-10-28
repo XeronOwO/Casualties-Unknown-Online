@@ -376,5 +376,6 @@
   "data.answer.modify_needs_path": "modify needs a path inside the state — the whole state is not replaced; merge its keys with /data merge. Usage: {0}",
   "data.answer.remove_needs_path": "remove needs a path inside the state — the whole state is not removable. Usage: {0}",
   "summon.answer.usage": "Usage: {0}",
-  "save.answer.refused": "Cannot save: {0}."
+  "save.answer.refused": "Cannot save: {0}.",
+  "console.help.command": "/{0} — {1}\nUsage: {2}"
 }

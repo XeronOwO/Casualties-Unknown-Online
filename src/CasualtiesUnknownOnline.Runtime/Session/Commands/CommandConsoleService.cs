@@ -425,7 +425,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// must not teach a word by help and then pretend it does not exist. The list above hides the same
 		// commands, so a player who reads /help never learns one the console would refuse.
 		return _authority.TryRefusal(command)
-			?? ConsoleAnswer.Ok($"/{command.Name} — {Describe(command.Name)}\nUsage: {command.Usage}");
+			?? ConsoleAnswer.Ok($"/{command.Name} — {Describe(command.Name)}\nUsage: {command.Usage}", "console.help.command", command.Name, Describe(command.Name), command.Usage);
 	}
 
 	/// <summary>One command's one-line description in the reader's language (see <see cref="CommandDescriptions"/>).</summary>

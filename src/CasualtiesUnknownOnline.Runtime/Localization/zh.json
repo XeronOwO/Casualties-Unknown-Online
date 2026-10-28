@@ -376,5 +376,6 @@
   "data.answer.modify_needs_path": "modify 需要指向状态内部的一个位置——整个状态不会被替换；要合并键请用 /data merge。用法：{0}",
   "data.answer.remove_needs_path": "remove 需要指向状态内部的一个位置——整个状态不能删除。用法：{0}",
   "summon.answer.usage": "用法：{0}",
-  "save.answer.refused": "无法保存：{0}。"
+  "save.answer.refused": "无法保存：{0}。",
+  "console.help.command": "/{0} —— {1}\n用法：{2}"
 }

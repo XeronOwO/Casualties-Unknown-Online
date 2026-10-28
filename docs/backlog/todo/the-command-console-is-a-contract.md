@@ -6,6 +6,12 @@
 - Priority: High — this is the mod-facing surface; its shape is hard to change once third-party mods depend on it.
 - Category: Console / mod contract / architecture
 
+## Design
+
+`docs/design/surfaces/command-overlay.md` owns the console's player-facing surface and `docs/design/cross-cutting/localization.md` owns the rule that a
+sentence a player reads is a key plus arguments — a mod command's answer has to satisfy both, which is why the answer shape is part of this ticket rather
+than an afterthought. The console's own page records today's input/render behaviour; the mod contract it would gain is what this ticket designs.
+
 ## What exists today (read, not remembered)
 
 | Piece | Where | What it can express |

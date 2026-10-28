@@ -17,9 +17,18 @@ so the word `Usage:` and the whole usage string are English no matter who reads 
 
 ## Design
 
+`docs/design/cross-cutting/localization.md` carries the rule this ticket finishes: a sentence a player reads is a catalogue KEY plus its arguments,
+rendered by the reader's own table, and the console's `/help` answer is one of those sentences. The page's console section already says a keyed answer is
+rendered generically; what it does not yet cover is the usage TEMPLATE, whose label (`Usage:`) is English text baked into the answer instead of a
+catalogue entry.
+
 Two halves, and the second is the one with a shape question.
 
 1. **The label is a catalogue key** — `console.help.usage` = `Usage: {0}` (and the Chinese catalogue's own label sentence). That closes the English word with no design work.
+
+   **Done 2026-10-28, differently and better**: the whole answer is one keyed template — `console.help.command` = `/{name} — {description}` + the
+   usage line — so the label AND the layout travel as one catalogue sentence instead of a label spliced in front of an English usage string. The
+   answer keeps its assembled text for the log and as the fallback a catalogue gap degrades to.
 
 2. **The usage text belongs to the command.** The user's proposal is an `ICommandUsage`-style surface (`string Usage { get; }`) a command can
    implement, with the catalogue's `console.cmd.<name>.desc` (read: the command's own attribute text) as the fallback when it does not.

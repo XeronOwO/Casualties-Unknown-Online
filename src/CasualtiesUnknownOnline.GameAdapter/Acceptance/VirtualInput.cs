@@ -78,6 +78,12 @@ internal static class VirtualInput
 		("GetKeyInt", nameof(PrefixKeyHeld)),
 		("GetKeyDownInt", nameof(PrefixKeyDown)),
 		("GetKeyUpInt", nameof(PrefixKeyUp)),
+
+		// The public wrappers too, counted SEPARATELY: the mouse internals are demonstrably reached (28 queries in one world on 2026-10-28) while the key
+		// internals were not, so the question is which entry point the game's key reads actually take. Two targets and two counters answer it in one read.
+		("GetKey", nameof(PrefixWrapperHeld)),
+		("GetKeyDown", nameof(PrefixWrapperDown)),
+		("GetKeyUp", nameof(PrefixWrapperUp)),
 	];
 
 	private static Harmony? _harmony;
@@ -346,6 +352,19 @@ internal static class VirtualInput
 
 	private static bool PrefixKeyUp(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Up, ref __result);
 
+	/// <summary>The same three questions on the PUBLIC wrappers, counted separately so one read says which entry point the game's key reads take.</summary>
+	private static bool PrefixWrapperHeld(KeyCode key, ref bool __result) => AnswerWrapperKey(key, ButtonQuery.Held, ref __result);
+
+	private static bool PrefixWrapperDown(KeyCode key, ref bool __result) => AnswerWrapperKey(key, ButtonQuery.Down, ref __result);
+
+	private static bool PrefixWrapperUp(KeyCode key, ref bool __result) => AnswerWrapperKey(key, ButtonQuery.Up, ref __result);
+
+	private static bool AnswerWrapperKey(KeyCode key, ButtonQuery query, ref bool __result)
+	{
+		WrapperKeyQueries++;
+		return AnswerKey(key, query, ref __result);
+	}
+
 	/// <summary>
 	/// How many KEY questions the GAME asked for a staged key, and how many of those were answered "down". A batch reads these to separate "my press
 	/// never reached the game" from "the game asked and the branch did nothing" — the two causes a single frame's state cannot tell apart
@@ -365,6 +384,9 @@ internal static class VirtualInput
 
 	/// <summary>How many of those button questions the staged state answered with "down".</summary>
 	internal static int ButtonDownAnswers { get; private set; }
+
+	/// <summary>How many KEY questions arrived through the PUBLIC <c>GetKey(KeyCode)</c> wrappers (the counters above belong to the <c>*Int</c> internals).</summary>
+	internal static int WrapperKeyQueries { get; private set; }
 
 	/// <summary>
 	/// Answers a KEY question for a staged KEY first, then for a staged MOUSE button (Mouse0 = 323, the value the game's `attack` bind answers): any

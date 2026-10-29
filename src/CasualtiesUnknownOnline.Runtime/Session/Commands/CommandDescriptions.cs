@@ -64,4 +64,51 @@ internal static class CommandDescriptions
 
 		return localized ?? ownDescription ?? string.Empty;
 	}
+
+	/// <summary>
+	/// The usage line of <paramref name="name"/> in the reader's language, or <paramref name="ownUsage"/> when the catalogue has no entry for it.
+	/// The line is not prose: a command name, a placeholder (<c>&lt;steamId|displayName&gt;</c>) and a token such as <c>cursor</c> or <c>slot</c> stay
+	/// exactly as they are, because they are what the player must TYPE. What a language may change is the connective wording around them (English
+	/// "or", the "target:" lead-in), which is why the whole line is a catalogue entry instead of a string the console assembles.
+	/// </summary>
+	internal static string UsageOf(ILocalizationService? localization, string name, string? ownUsage)
+	{
+		if (localization is null)
+		{
+			return ownUsage ?? string.Empty;
+		}
+
+		var key = $"console.cmd.{name}.usage";
+		var localized = name switch
+		{
+			"traderreport" => localization.T("console.cmd.traderreport.usage"),
+			"op" => localization.T("console.cmd.op.usage"),
+			"deop" => localization.T("console.cmd.deop.usage"),
+			"help" => localization.T("console.cmd.help.usage"),
+			"clear" => localization.T("console.cmd.clear.usage"),
+			"players" => localization.T("console.cmd.players.usage"),
+			"rtt" => localization.T("console.cmd.rtt.usage"),
+			"whoami" => localization.T("console.cmd.whoami.usage"),
+			"gamemode" => localization.T("console.cmd.gamemode.usage"),
+			"heal" => localization.T("console.cmd.heal.usage"),
+			"kick" => localization.T("console.cmd.kick.usage"),
+			"ban" => localization.T("console.cmd.ban.usage"),
+			"unban" => localization.T("console.cmd.unban.usage"),
+			"gamerule" => localization.T("console.cmd.gamerule.usage"),
+			"data" => localization.T("console.cmd.data.usage"),
+			"give" => localization.T("console.cmd.give.usage"),
+			"spectate" => localization.T("console.cmd.spectate.usage"),
+			"save" => localization.T("console.cmd.save.usage"),
+			"summon" => localization.T("console.cmd.summon.usage"),
+			_ => null,
+		};
+
+		// A catalogue without the entry answers with the key itself: keep the command's own line then, never the key.
+		if (string.IsNullOrEmpty(localized) || string.Equals(localized, key, StringComparison.Ordinal))
+		{
+			return ownUsage ?? string.Empty;
+		}
+
+		return localized ?? ownUsage ?? string.Empty;
+	}
 }

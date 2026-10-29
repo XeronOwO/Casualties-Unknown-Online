@@ -43,6 +43,30 @@ public class CommandDescriptionCatalogueTests
 			+ string.Join(", ", missing));
 	}
 
+	[Fact]
+	public void EveryRegisteredCommandHasItsUsageLineInBothLanguages()
+	{
+		var missing = new List<string>();
+		foreach (var name in CommandNames())
+		{
+			var key = $"console.cmd.{name}.usage";
+			if (!LocalizationCatalog.English.ContainsKey(key))
+			{
+				missing.Add($"en:{key}");
+			}
+
+			if (!LocalizationCatalog.Chinese.ContainsKey(key))
+			{
+				missing.Add($"zh:{key}");
+			}
+		}
+
+		Assert.True(
+			missing.Count == 0,
+			"a command without its usage line falls back to the attribute's English string on a Chinese client: "
+			+ string.Join(", ", missing));
+	}
+
 	/// <summary>
 	/// The command names the registry declares, read from the source of the attribute that declares them: the same source of truth the registry
 	/// composes itself from, so a command added anywhere in the tree is covered without a list to update here.

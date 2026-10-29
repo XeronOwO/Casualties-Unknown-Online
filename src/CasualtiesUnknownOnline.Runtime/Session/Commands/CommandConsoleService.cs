@@ -465,11 +465,11 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// must not teach a word by help and then pretend it does not exist. The list above hides the same
 		// commands, so a player who reads /help never learns one the console would refuse.
 		return _authority.TryRefusal(command)
-			?? ConsoleAnswer.Ok($"/{command.Name} — {Describe(command.Name)}\nUsage: {command.Usage}", "console.help.command", command.Name, Describe(command.Name), command.Usage);
+			?? ConsoleAnswer.Ok($"/{command.Name} — {CommandDescriptions.Of(_localization, command.Name, command.Description)}\nUsage: {command.Usage}", "console.help.command", command.Name, CommandDescriptions.Of(_localization, command.Name, command.Description), CommandDescriptions.UsageOf(_localization, command.Name, command.Usage));
 	}
 
 	/// <summary>One command's one-line description in the reader's language (see <see cref="CommandDescriptions"/>).</summary>
-	private string Describe(string name) => CommandDescriptions.Of(_localization, name, FindCommand(name)?.Description);
+
 
 	[ConsoleCommand("clear", "Clear the console output.", CommandPermission.Anyone, "/clear")]
 	private ConsoleAnswer ClearCommand(IReadOnlyList<string> _)
@@ -589,7 +589,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		{
 			if (_authority.MayRun(command))
 			{
-				names.Add($"/{command.Name} — {Describe(command.Name)}");
+				names.Add($"/{command.Name} — {CommandDescriptions.Of(_localization, command.Name, command.Description)}");
 			}
 		}
 

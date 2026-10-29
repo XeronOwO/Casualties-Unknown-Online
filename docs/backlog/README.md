@@ -77,6 +77,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [A disconnected member leaves his arrow on the HUD](todo/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — reported.
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
+- [No compatibility branches before the first release](todo/no-compatibility-branches-before-the-first-release.md) — **High** — nothing is owed to old shapes.
 - [Completion is not a command system yet](todo/completion-list-keys-and-ids-disagree.md) — **High** — five defects, one list.
 ### In progress
 

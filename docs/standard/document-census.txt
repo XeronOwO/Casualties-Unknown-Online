@@ -1278,3 +1278,4 @@ docs/backlog/done/the-acceptance-channel-replaces-its-staged-pointer.md | keep |
 docs/backlog/review/a-command-owns-its-usage-line.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/the-command-console-is-a-contract.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/completion-list-keys-and-ids-disagree.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/no-compatibility-branches-before-the-first-release.md | keep | index | docs/backlog/README.md

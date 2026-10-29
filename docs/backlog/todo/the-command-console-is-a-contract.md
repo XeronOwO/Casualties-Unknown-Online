@@ -231,8 +231,10 @@ system**, not "a line that runs". The four answers, and what each obliges:
    catalogue. A mod cannot raise its own permission by declaring one, and a `HostRelayed` command requires the mod on BOTH sides (the join-time mod check is
    already the gate; a member without it never sees the command).
 4. **Built-ins stay attribute SUGAR over the same definition vocabulary** (the recommended option): the attribute produces a definition at registration, so
-   there is one vocabulary and no second implementation, while the diff stays bounded. `ModConsoleCommand` stays as an adapter for one release window (the
-   pre-1.0 exception: `ModExample`, `Music`, `cuo.pinyinsearch` are already published).
+   there is one vocabulary and no second implementation, while the diff stays bounded. **`ModConsoleCommand` is replaced OUTRIGHT and deleted in the same
+   change — no adapter, no deprecation window** (superseded 2026-10-30 by the standing ruling: nothing is released, the wire version does not increment, so a
+   breaking change is free and a compatibility branch is debt; the earlier "adapter for one release window" answer is withdrawn, and `ModExample`, `Music`
+   and `cuo.pinyinsearch` move to the definition contract in the same stage).
 
 **Two interaction details the user asked for, beyond this ticket's own rows** (they ride the completion ticket, which is where the list and keys live):
 parameter-level errors highlighted in place with a hint of what is expected, and a candidate list that can be CLICKED to complete and HOVERED to preview —
@@ -245,4 +247,5 @@ so the list is an input surface, not a caption.
 2. **Mod commands and the host**: require the mod installed on BOTH sides for `HostRelayed` (recommended, matches the version check at join) or let a
    host-side mod expose a command to members who do not have it? **Answered: both sides.**
 3. **Deprecation window** for `ModConsoleCommand`: keep it as an adapter (recommended) or replace it outright (pre-1.0, but mods already exist —
-   `ModExample`, `Music`, `cuo.pinyinsearch`). **Answered: adapter for one release window.**
+   `ModExample`, `Music`, `cuo.pinyinsearch`). **Answered twice: first as an adapter for one window (2026-10-30), then withdrawn the same day — the
+   standing ruling is that nothing is released and no compatibility branch is kept, so it is replaced outright.**

@@ -229,7 +229,7 @@ mutation call happens where the mutation happens — on the owner's client — a
 - **The adapter does not read the location this page makes authoritative.** `ItemLocation` appears zero times under
   `src/CasualtiesUnknownOnline.GameAdapter/`, while five adapter-side stores each keep their own copy of "where is it" and three layers infer
   intent from Unity lifecycle callbacks (`ItemWorldSync`, `PickupSync`, `ItemReconcile`). Both item losses of 2026-10-25 came from that gap, not
-  from a missing rule; the work is `../backlog/todo/item-custody-single-authority.md`. **Progress (2026-10-25):** the projection exists and is
+  from a missing rule; the work is `../backlog/review/item-custody-single-authority.md`. **Progress (2026-10-25):** the projection exists and is
   judged on two clients — the rows and this client's objects agree at 285/285 on both ends, `[ItemCustody] mismatches=0` — so what remains is
   switching the readers to it and deleting the copies, not closing this gap.
 

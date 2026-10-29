@@ -72,7 +72,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [Item custody: one authority and one local projection](todo/item-custody-single-authority.md) — **Critical** — five stores of "where is it".
 
 - [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
@@ -89,6 +88,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [An item cannot be used on a sleeping teammate](review/use-on-sleeping-target-refused.md) — **Medium** — decision 270 implemented.
+- [Item custody: one authority and one local projection](review/item-custody-single-authority.md) — **Critical** — all five rows pass.
 - [A cross-player eat runs the game's own steps](review/cross-player-eat-skips-native-steps.md) — **High** — all four rows pass.
 
 

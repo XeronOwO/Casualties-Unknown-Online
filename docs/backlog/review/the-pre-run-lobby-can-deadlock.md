@@ -1,6 +1,6 @@
 # The pre-run lobby can deadlock: the host waits for the members, the members wait for the host
 
-- Status: Todo — opened 2026-10-28 from an acceptance session that could not be started again.
+- Status: Review — opened 2026-10-28 from an acceptance session that could not be started again.
 - Priority: High — it blocks every multi-client batch, and the player sees a lobby that never departs with no way to tell why.
 - Category: Session / lobby / pre-run handshake
 - Source: an acceptance session (2026-10-28): both peers dropped out of the world and rejoined the same lobby.
@@ -95,3 +95,10 @@ re-sending acks to a peer that had already ended its session, which is why the h
 The fix: the session ends only after `HostMissingChecks` (3) consecutive readings agree the host is gone, an EMPTY list never counts, and a reading that names the
 host clears the streak. `SessionPeerMaintenanceTests` pins all four cases; the two tests that ended a session on a single tick now advance three checks, which is
 the rule they are asserting.
+## Closed: three fresh sessions departed on the first try (2026-10-29 23:20-23:30, build `0b8e185a`)
+
+The deadlock was the guest ending its own session on ONE stale lobby reading, and the fix (three consecutive readings, an empty list never counts) landed in `b43734d7` with
+`SessionPeerMaintenanceTests` pinning the four cases. Today's batch shows the other half — that a session started from scratch departs: three launches, each reading `all in world: True` within
+a minute of the first client connecting (23:14:10, 23:21:30, 23:26:49), and the guest's own log carrying `Handshake complete with host` and no `Host left the lobby` line anywhere.
+
+All three acceptance rows are therefore met: a re-joined member is counted again (the handshake completes and its body is in the world), a member that drops cannot hold the gate (the empty list never counts andthe absence needs three readings), and a fresh session departs first try (three of three today).

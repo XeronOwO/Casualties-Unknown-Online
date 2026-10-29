@@ -198,3 +198,20 @@ silent with a marker — and the same suppression is what a standing proxy needs
 - The first batch must read BOTH clients' logs: the placement answer is the receiver's sentence about its own inventory, and the host's
   log only shows what it did with the answer.
 - The ids in this record are from the run; they must not be copied into a page (only into this ticket's evidence).
+## Row 1 passes live on the current build; rows 3-4 stay open with the channel's reason (2026-10-29 23:55, build `0b8e185a`)
+
+A give driven through the release seam (give-probe mode=give target=<guest> slot=2): the host's log reads `[RemoteIntent] GiveToBody captured …` →
+`[Placement] asked <guest> where item lantern …` → `[Placement] item … is where this host wrote it (slot 2): the placement stands`, the guest's own log reads
+`[PlayerInteraction] placed lantern (id 1452019926979) in local slot 2`, the kernel row is `kind: Carried, owner: <guest>, slot: 2`, and the world holds no lantern at
+the origin. **Row 1 PASS** — the item reaches the backpack and exists once.
+
+The REFUSAL half of row 2 was also observed: with the alt's six slots full the same give answered `[RemoteIntent] refused GiveToBody: waterbottle does not fit
+any free slot on this client`, the giver kept the bottle in slot 0, and no row went terminal. What is NOT captured is the second half of row 2 — the target's own on-screen line — because
+the target had no window open; it stays a named residual.
+
+Rows 3 and 4 (rearranging inside a DISPLAYED backpack, three moves, every id in one place) could not be driven in this session, and the reason is the
+acceptance channel rather than the feature: the three bodies stand at the same world position, the displayed backpack is opened by RANGE (CrossPlayerDragUse.AutoOpenFor), and
+separating one leaves its body under the HUD, where the hover raycast finds no body at all (ing-buttons answers empty, drag-state still dragging). The code those rows test
+is pinned by tests instead — `StandingItemGateTests.TheWorldTransition_RetiresTheStandingObjectAtEverySite` and
+`.TheWorldMaterialization_RetiresAStandingIncarnationBeforeItsIdempotencyCheck`, plus the swap fix's own rows — and a batch that can separate the players on screen would judge
+them live.

@@ -78,6 +78,8 @@ fact, so this ticket is judged on frames: a candidate list that differs from wha
 | 4 | The same id is inserted as `cu:waterbottle`; typing the bare `waterbottle` still runs, and `/give @s cu:waterbottle` lands the item — a frame plus the item's row |
 | 5 | Typing a Chinese transliteration shows the matching id WITH its namespace and its Chinese name in the row — frame |
 | 6 | A completion the player cannot run is still hidden (the 2026-10-24 rule), and the gate that pins it keeps passing |
+| 7 | A token the grammar refuses is marked IN PLACE with a hint of what was expected (a frame with a wrong argument typed), and the hint names the parameter rather than restating the line |
+| 8 | A candidate row can be CLICKED to complete the token and HOVERED to preview its full usage; the frame shows the preview, and the click lands the same text Tab would |
 
 ## Limits
 
@@ -88,3 +90,4 @@ fact, so this ticket is judged on frames: a candidate list that differs from wha
 - Selector completion (`@a`, filters) is judged by `command-tree-resource-location-selector.md`; this ticket only requires that its rows and the item rows use
   the same list.
 - A mod's own completer may offer anything; the standard here is the framework's own sources, plus the contract the mod surface gets from the console ticket.
+- The two interaction rows (7 and 8) assume the list is a real input surface; until the definition contract lands they are judged against the framework's own`n  sources only, and a mod's custom parser inherits them from the same surface.

@@ -213,11 +213,36 @@ sends the answer back. That needs three things this ticket must state before any
 - The context is a SNAPSHOT, so a completer is never a source of truth for an INVOCATION: a command must re-read `ISessionFacts` inside its handler (the
   member may have left between the keystroke and the Enter), and the framework's own commands already do exactly that.
 
-## Open decisions for the user
+## Decisions taken (user, 2026-10-30) — and the ceiling they set
+
+The user's direction this round answers the three questions below AND raises the ceiling: the console is to become a **mature, mod-extensible command
+system**, not "a line that runs". The four answers, and what each obliges:
+
+1. **Scope: a full mod-extensible command registration** — the most ambitious of the three options. A mod registers a command TREE (literals and arguments at
+   any depth, `/give`-style branches), its own aliases and short forms, and declared cross-side execution. The console becomes a formal mod-API layer, which
+   is why stage 1 (the definition contract) must be designed for the tree from the start rather than growing into it: a definition carries a name and
+   parameters, and a tree is what a definition may CONTAIN (a literal node names a child set; an argument node carries its parser/completer).
+2. **Mod capability: declarative PLUS a custom parser** — a mod declares the shape and MAY supply its own argument parser and completer for one parameter.
+   The framework still owns the line's tokenisation, the list, the keys, the permission gate, the answer shape and the localisation; a custom parser only
+   decides "does this token belong to this parameter, and what does it suggest". A parser that throws or hangs must be sandboxed by the framework (a
+   per-call budget and a named refusal), because third-party code runs inside a frame.
+3. **Non-local: declared `HostRelayed` behind a DOUBLE gate** — the mod declares that its command runs on the host and names the permission it needs; the
+   HOST decides (its rules plus the cheat switch, exactly the `/give` authority model). The answer travels back as keys and is rendered by the member's own
+   catalogue. A mod cannot raise its own permission by declaring one, and a `HostRelayed` command requires the mod on BOTH sides (the join-time mod check is
+   already the gate; a member without it never sees the command).
+4. **Built-ins stay attribute SUGAR over the same definition vocabulary** (the recommended option): the attribute produces a definition at registration, so
+   there is one vocabulary and no second implementation, while the diff stays bounded. `ModConsoleCommand` stays as an adapter for one release window (the
+   pre-1.0 exception: `ModExample`, `Music`, `cuo.pinyinsearch` are already published).
+
+**Two interaction details the user asked for, beyond this ticket's own rows** (they ride the completion ticket, which is where the list and keys live):
+parameter-level errors highlighted in place with a hint of what is expected, and a candidate list that can be CLICKED to complete and HOVERED to preview —
+so the list is an input surface, not a caption.
+
+## Open decisions for the user (answered above on 2026-10-30; kept for the record)
 
 1. **Built-ins**: migrate every built-in onto the definition object now (uniform, bigger diff) or keep the attribute as sugar that produces a
-   definition (recommended: smaller risk, one vocabulary anyway)?
+   definition (recommended: smaller risk, one vocabulary anyway)? **Answered: sugar.**
 2. **Mod commands and the host**: require the mod installed on BOTH sides for `HostRelayed` (recommended, matches the version check at join) or let a
-   host-side mod expose a command to members who do not have it?
+   host-side mod expose a command to members who do not have it? **Answered: both sides.**
 3. **Deprecation window** for `ModConsoleCommand`: keep it as an adapter (recommended) or replace it outright (pre-1.0, but mods already exist —
-   `ModExample`, `Music`, `cuo.pinyinsearch`).
+   `ModExample`, `Music`, `cuo.pinyinsearch`). **Answered: adapter for one release window.**

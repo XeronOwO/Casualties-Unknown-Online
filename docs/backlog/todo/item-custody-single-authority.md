@@ -340,3 +340,21 @@ the case the hand arrangement exists for. It could not be driven, and the reason
 
 So the row stays open with its cause named: the acceptance channel needs a way to start the drag from a body SLOT (not from a highlighted widget) before a full-body feed can be
 judged. The feature side is unchanged: the hand arrangement is exercised by every cross-player feed, and the earlier pass (row 5) covers the eaten path end to end.
+## The FULL-body feed row PASSES too (2026-10-29 23:30, build `0b8e185a`)
+
+The eater's six slots were filled first (`item-provide` then answers `no-free-slot`), then a closed stone fruit was dragged from the giver's slot 0 onto the
+teammate's body with `drag-from-slot` + `drag-release` (the release ran as `mode: DisplayedBackpack`). The owner's log:
+
+`offers stonefruitclosed (id 1464904828867) …` → `[DragUse] used … on …` → `… ate …` → `… replaced …` → `… ate …` →
+`local item stonefruitclosed (id 1464904828867) became stonefruitopen in place at the same slot.` The phantom count for the run is **0** (`materializing stonefruitopen` appears
+nowhere), the row ends `Terminal` because the eater ate the opened fruit, and the eater's body is still full — the vanilla peel dropped and re-took its own slot 2, which is
+the game's own action, not a loss.
+
+Two causes closed on the way, both the same mistake in different clothes — the replacement window recorded whatever it saw first instead of the object that had no identity before:
+
+1. **A full body had nothing to arrange.** With all six slots taken the standing item could not be parented, stayed at the world origin, and the peel worked on a far-away
+   object (dropped fruit there, instantiated the opened one beside it, failed its own pickup). It is now stood on the eater's own position (restored afterwards), so the
+   delegate's distance and line-of-sight checks answer truthfully and its own peel frees slot 2 before picking the opened fruit up.
+2. **The dropped dogfood was recorded as the replacement.** The peel drops slot 2 and the eaten item inside the same window, and the allocator's armed branch recorded whatever it
+   was asked about — the eat reported `the item became dogfood in place`. The refusal now covers only objects that carry no identity yet (plus the recorded one by identity),
+   so a pre-existing dropped item keeps its id and is never mistaken for the replacement.

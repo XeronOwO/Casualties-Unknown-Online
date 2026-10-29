@@ -64,7 +64,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The command console is a contract, not attribute methods](todo/the-command-console-is-a-contract.md) — **High** — new.
 
-- [A command owns its usage line](todo/a-command-owns-its-usage-line.md) — **Medium** — new.
 
 
 
@@ -89,6 +88,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [An item cannot be used on a sleeping teammate](review/use-on-sleeping-target-refused.md) — **Medium** — decision 270 implemented.
 - [Item custody: one authority and one local projection](review/item-custody-single-authority.md) — **Critical** — all five rows pass.
 - [The pre-run lobby can deadlock](review/the-pre-run-lobby-can-deadlock.md) — **High** — root cause fixed; three fresh sessions departed.
+- [A command owns its usage line](review/a-command-owns-its-usage-line.md) — **Medium** — all five rows pass.
 - [A cross-player eat runs the game's own steps](review/cross-player-eat-skips-native-steps.md) — **High** — all four rows pass.
 
 

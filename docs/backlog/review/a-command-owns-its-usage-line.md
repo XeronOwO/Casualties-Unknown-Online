@@ -1,6 +1,6 @@
 # A command owns its usage line, and the "Usage:" label comes from the catalogue
 
-- Status: Todo — opened 2026-10-27 from the user's design note while the `/help <command>` translation landed.
+- Status: Review — opened 2026-10-27 from the user's design note while the `/help <command>` translation landed.
 - Priority: Medium — the sentence around it is translated now; the usage half still reads English on a Chinese client.
 - Category: Console / localisation
 - Related: [player-facing-text-localized-per-receiver](../review/player-facing-text-localized-per-receiver.md) — the row this completes.
@@ -72,3 +72,22 @@ Two halves, and the second is the one with a shape question.
 - The usage text's syntax is not translatable: `<steamId|displayName>`, `@p`, `[limit=1]` and the command names stay as identifiers, and a frame that
   shows them is not a defect.
 - This ticket does not touch the 42 raw answers the console gate budgets; it is the help surface only.
+## Shape decided, and all five rows judged (2026-10-29 23:55, build `fabbfe10`)
+
+**The shape question is answered: the catalogue key travels with the ATTRIBUTE'S COMMAND, and no command TYPE is introduced.** `CommandDescriptions.UsageOf` holds one
+literal `console.cmd.<name>.usage` per registered command — the same shape the description already uses, chosen for the same reason: the catalogue census reads literals, and
+the whole line is what a language may reword around its identifiers. The `ICommandUsage` interface the ticket proposed stays the door to open the day a command's usage must be
+COMPUTED; nothing needs it today, and the registry refactor it would force buys nothing for a fixed line of syntax. The design page (`docs/design/surfaces/command-overlay.md`)
+names the attribute-key shape and the interface as deferred.
+
+Judged from two captured frames (host `Language = zh`, alt `Language = en`, same command `/data`):
+
+| Row | Result |
+|---|---|
+| 1 | **PASS** — the zh frame shows the description and the label in Chinese, the usage line carrying the Chinese connective around the identifiers; the only Latin left is what the player types (`get`/`merge`/`slot`/`cursor`/`id`, `<target>`, `<snbt>`, `<selector>`) |
+| 2 | **PASS** — the en frame reads `Usage: /data get <target> …` for the same command |
+| 3 | **PASS** — one label from the catalogue, two languages: the zh frame draws the Chinese label the catalogue holds for `console.help.command`, the en frame draws its English one |
+| 4 | **PASS** — `CommandDescriptionCatalogueTests.EveryRegisteredCommandHasItsUsageLineInBothLanguages` fails on any registered command without both entries, so a new command cannot ship English |
+| 5 | **PASS** — this section records the decision and names it in the design page |
+
+**What the frame also caught, and what it is not:** the zh frame's translated lead-in to the target shows the translation reaching the SENTENCE, while `<selector>`, `<n>` and `cursor` stay as typed.

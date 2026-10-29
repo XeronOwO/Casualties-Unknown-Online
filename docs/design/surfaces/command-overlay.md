@@ -61,6 +61,8 @@ history.
 The overlay itself decides only what to show. A command's outcome is judged where that command's own rules say.
 
 **Who may run a verb is one predicate, shared by the three places that ask it.** `ConsoleCommandAuthority` is "the console's
+**A command's usage line is a catalogue entry, and the command's ATTRIBUTE carries the key.** `/help <command>` is one keyed template (`console.help.command`) whose description and usage both come from the reader's catalogue (`console.cmd.<name>.desc`, `console.cmd.<name>.usage`, resolved by `CommandDescriptions` from literals so the catalogue census can read them). What a language may change is the connective wording; a command name, a placeholder (`<steamId|displayName>`) and a token such as `cursor` or `slot` are what the player types and never move. An `ICommandUsage`-style interface is the recorded door for the day a usage must be COMPUTED — it would turn a command into a type and rewrite the registry, so it stays unbuilt while every line is fixed syntax (user direction 2026-10-27; shape decided 2026-10-29).
+
 authority predicate: may THIS caller run THIS command? One decision, asked by the completion filter, by `/help` and (for the
 declaration half) by the dispatcher, so a command the console hides is exactly a command the console would refuse" — with two
 sources, "the declared `CommandPermission` … and the declared `ConsoleCommandGate` (a cheat verb asks the family's gate)". A

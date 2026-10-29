@@ -106,6 +106,8 @@ internal static class NativeSolidFoodEat
 		// reason, that a full inventory must still be feedable).
 		var arrangedSlot = -1;
 		var originalParent = item.transform.parent;
+		var originalPosition = item.transform.position;
+		var movedForTheDelegate = false;
 		using var scope = CallContext.Enter(CallContext.Origin.CharacterItemUse);
 		using var handFeed = carriedByEater ? null : CallContext.Enter(CallContext.Origin.HandFeed);
 		if (!carriedByEater)
@@ -121,6 +123,18 @@ internal static class NativeSolidFoodEat
 				item.transform.SetParent(body.slots[arrangedSlot].transform, worldPositionStays: false);
 				item.transform.position = body.slots[arrangedSlot].transform.position;
 				item.rb.position = item.transform.position;
+				movedForTheDelegate = true;
+			}
+			else
+			{
+				// A FULL BODY HAS NO FREE HAND SLOT, AND THAT IS THE CASE THIS ARRANGEMENT EXISTS FOR (the user's 2026-10-25 ruling: a full inventory must still
+				// be feedable). Nothing can be parented, but the delegate still measures the DISTANCE and LINE OF SIGHT from the item to the eater, and its own peel
+				// frees slot 2 (`Body.DropItem(2)`, `Item.cs:2606-2621`) before it picks the opened fruit up. Left at the world origin the delegate then worked on a
+				// far-away object: it dropped the eaten fruit there, instantiated the opened one beside it and failed its own pickup — the world item at (0,0) that
+				// this ticket measured on a full body (2026-10-29). Standing the item on the eater makes every one of those numbers true.
+				item.transform.position = body.transform.position;
+				item.rb.position = item.transform.position;
+				movedForTheDelegate = true;
 			}
 		}
 
@@ -159,11 +173,18 @@ internal static class NativeSolidFoodEat
 		{
 			// The delegate may have consumed, dropped or replaced the item; only put back what is still
 			// the same live object sitting in the slot we arranged, so a destroyed or re-parented item
-			// cannot be yanked out of wherever the game's own step put it.
+			// cannot be yanked out of wherever the game's own step put it. The full-body fallback moved the
+			// item without re-parenting it, so its own position is what goes back.
 			if (arrangedSlot >= 0 && item != null // Unity object — ==
 				&& item.transform.parent == body.slots[arrangedSlot].transform) // Unity object — ==
 			{
 				item.transform.SetParent(originalParent, worldPositionStays: true);
+			}
+			else if (movedForTheDelegate && arrangedSlot < 0 && item != null // Unity object — ==
+				&& item.transform.parent == originalParent) // Unity object — ==
+			{
+				item.transform.position = originalPosition;
+				item.rb.position = originalPosition;
 			}
 		}
 

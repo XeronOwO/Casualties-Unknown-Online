@@ -159,7 +159,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// the contextual sources and asks the same authority predicate the dispatcher and /help use.
 		_completion = new CommandConsoleCompletion(
 			_commands, session, hostBans, resourceLocations, _authority, cheatVerbs,
-			kernelItems, itemStateLanguage, targets, hostRuleSurface);
+			kernelItems, itemStateLanguage, targets, hostRuleSurface, log);
 		AddKeyedLine("console.ready", "CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 

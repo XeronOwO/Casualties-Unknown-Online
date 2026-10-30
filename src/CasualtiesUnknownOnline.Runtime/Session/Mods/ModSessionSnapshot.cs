@@ -20,6 +20,14 @@ internal static class ModSessionSnapshot
 		session.HostSteamId,
 		[.. session.Members.Select(m => m.SteamId)]);
 
+	/// <summary>The same projection from the console's own view of the session (a completion runs there and does not hold the concrete service).</summary>
+	public static ISessionInfo Capture(ISessionControl session) => new Snapshot(
+		session.Role == SessionRole.Host,
+		session.SessionActive,
+		session.LocalSteamId,
+		session.HostSteamId,
+		[.. session.Members.Select(m => m.SteamId)]);
+
 	private sealed class Snapshot(bool isHost, bool active, ulong local, ulong host, ulong[] members) : ISessionInfo
 	{
 		private readonly ulong[] _members = members;

@@ -19,7 +19,7 @@ cannot drift away from the tree.
 
 | Block | Files | Status |
 |---|---|---|
-| `CasualtiesUnknownOnline.Abstractions` | 151 | read |
+| `CasualtiesUnknownOnline.Abstractions` | 160 | read |
 | `CasualtiesUnknownOnline.Application` | 1 | read |
 | `CasualtiesUnknownOnline.Application/Kernel` | 31 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | read |

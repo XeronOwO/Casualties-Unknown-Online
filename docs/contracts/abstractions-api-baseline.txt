@@ -26,8 +26,15 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.ResourceL
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.Selector|enumvalue|implicit #7
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.SteamId|enumvalue|implicit #3
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind.Text|enumvalue|implicit #5
+member|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion.HintArgs|property|-> IReadOnlyList<object?> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion.HintKey|property|-> string? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion.Text|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion.Verbatim|property|-> bool { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion.ctor(string text, string? hintKey = null, IReadOnlyList<object?>? hintArgs = null, bool verbatim = false)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.CommandCompletion
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.Anyone|enumvalue|implicit #0
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.HostOnly|enumvalue|implicit #1
+member|Stable|CasualtiesUnknownOnline.Abstractions.CommandScope.HostRelayed|enumvalue|implicit #1
+member|Stable|CasualtiesUnknownOnline.Abstractions.CommandScope.Local|enumvalue|implicit #0
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.Args|property|-> IReadOnlyList<string>? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.HasParts|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer.HasText|property|-> bool { get; }
@@ -47,6 +54,21 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind.Success|enu
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart.Args|property|-> IReadOnlyList<string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart.Key|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart.ctor(string key, params string[] args)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.Aliases|property|-> IReadOnlyList<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.Description|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.DescriptionKey|property|-> string? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.Invoke(ICommandInvocation invocation)|method|-> ConsoleAnswer
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.Name|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.Parameters|property|-> IReadOnlyList<ICommandParameter> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.Permission|property|-> CommandPermission { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.Scope|property|-> CommandScope { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.Usage|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition.ctor(string name, string description, Func<ICommandInvocation, ConsoleAnswer> handler, CommandPermission permission = Anyone, CommandScope scope = Local, IReadOnlyList<ICommandParameter>? parameters = null, IReadOnlyList<string>? aliases = null, string? descriptionKey = null, string? usage = null)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandParameter.Completer|property|-> IArgumentCompleter? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandParameter.HintKey|property|-> string? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandParameter.Kind|property|-> CommandArgumentKind { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandParameter.Name|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandParameter.ctor(string name, IArgumentCompleter? completer = null, string? hintKey = null, CommandArgumentKind kind = Text)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ConsoleCommandParameter
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.BuiltInNamespace|const field|-> string = "cu"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.CompareTo(ContentId other)|method|-> int
 member|Stable|CasualtiesUnknownOnline.Abstractions.ContentId.Equals(ContentId other)|method|-> bool
@@ -77,6 +99,34 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.NetworkMode|p
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.Permissions|property|-> ModPermission { get; set; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.Version|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute.ctor(string id, string displayName, string version)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.CuoModAttribute
+member|Stable|CasualtiesUnknownOnline.Abstractions.DelegateCompleter.Complete(ICompletionContext context)|method|-> IReadOnlyList<CommandCompletion>
+member|Stable|CasualtiesUnknownOnline.Abstractions.DelegateCompleter.ctor(Func<ICompletionContext, IReadOnlyList<CommandCompletion>> complete)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.DelegateCompleter
+member|Stable|CasualtiesUnknownOnline.Abstractions.FixedChoiceCompleter.Complete(ICompletionContext context)|method|-> IReadOnlyList<CommandCompletion>
+member|Stable|CasualtiesUnknownOnline.Abstractions.FixedChoiceCompleter.ctor(params string[] words)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.FixedChoiceCompleter
+member|Stable|CasualtiesUnknownOnline.Abstractions.IArgumentCompleter.Complete(ICompletionContext context)|method|-> IReadOnlyList<CommandCompletion>
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.Aliases|property|-> IReadOnlyList<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.Description|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.DescriptionKey|property|-> string? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.Invoke(ICommandInvocation invocation)|method|-> ConsoleAnswer
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.Name|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.Parameters|property|-> IReadOnlyList<ICommandParameter> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.Permission|property|-> CommandPermission { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.Scope|property|-> CommandScope { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition.Usage|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.Alias|property|-> string? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.Arguments|property|-> IReadOnlyList<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.LocalSteamId|property|-> ulong { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.Name|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.Session|property|-> ISessionInfo { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandParameter.Completer|property|-> IArgumentCompleter? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandParameter.HintKey|property|-> string? { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandParameter.Kind|property|-> CommandArgumentKind { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandParameter.Name|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICompletionContext.Arguments|property|-> IReadOnlyList<string> { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICompletionContext.CommandName|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICompletionContext.ParameterIndex|property|-> int { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICompletionContext.Partial|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICompletionContext.Session|property|-> ISessionInfo { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICuoMod.Bind(IModContext context)|method|-> void
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICuoService.Initialize()|method|-> void
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICuoService.Start()|method|-> void
@@ -134,12 +184,8 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModCommandResult.Success|pro
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModCommands.IsRegistered(string name)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModCommands.Register(ModCommand command)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModCommands.TryExecute(string name, IReadOnlyList<string> arguments, Action<IModCommandResult> callback)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommandContext.Arguments|property|-> IReadOnlyList<string> { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommandContext.LocalSteamId|property|-> ulong { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommandContext.Name|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommandContext.Session|property|-> ISessionInfo { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommands.IsRegistered(string name)|method|-> bool
-member|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommands.Register(ModConsoleCommand command)|method|-> bool
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommands.Register(ICommandDefinition command)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommands.Unregister(string name)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContent.CanRegister|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContent.Count|property|-> int { get; }
@@ -711,13 +757,6 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand.Handler|property|-
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand.IsHostAction|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand.Name|property|-> string { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand.ctor(string name, Func<IModCommandContext, string?> handler, string? description = null, bool isHostAction = false)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModCommand
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.ArgumentKinds|property|-> IReadOnlyList<CommandArgumentKind> { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Description|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Handler|property|-> Func<IModConsoleCommandContext, ConsoleAnswer> { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Name|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Permission|property|-> CommandPermission { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.Usage|property|-> string { get; }
-member|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand.ctor(string name, string description, string usage, CommandPermission permission, IReadOnlyList<CommandArgumentKind> argumentKinds, Func<IModConsoleCommandContext, ConsoleAnswer> handler)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.ModConsoleCommand
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentContract.TryGetKind(Type contract, out string kind)|static method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Building|const field|-> string = "building"
 member|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind.Item|const field|-> string = "item"
@@ -1189,12 +1228,23 @@ member|Experimental|CasualtiesUnknownOnline.Abstractions.ResourceLocationEntry.c
 type|Stable|CasualtiesUnknownOnline.Abstractions.ApiStabilityAttribute|sealed class|Attribute
 type|Stable|CasualtiesUnknownOnline.Abstractions.ApiStabilityLevel|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.CommandArgumentKind|enum|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission|enum|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.CommandScope|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswer|readonly struct|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerKind|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleAnswerPart|sealed class|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandDefinition|sealed class|ICommandDefinition
+type|Stable|CasualtiesUnknownOnline.Abstractions.ConsoleCommandParameter|sealed class|ICommandParameter
 type|Stable|CasualtiesUnknownOnline.Abstractions.ContentId|readonly struct|IEquatable<ContentId>, IComparable<ContentId>
 type|Stable|CasualtiesUnknownOnline.Abstractions.CuoModAttribute|sealed class|Attribute
+type|Stable|CasualtiesUnknownOnline.Abstractions.DelegateCompleter|sealed class|IArgumentCompleter
+type|Stable|CasualtiesUnknownOnline.Abstractions.FixedChoiceCompleter|sealed class|IArgumentCompleter
+type|Stable|CasualtiesUnknownOnline.Abstractions.IArgumentCompleter|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ICommandDefinition|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ICommandParameter|interface|-
+type|Stable|CasualtiesUnknownOnline.Abstractions.ICompletionContext|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ICuoMod|interface|ICuoService
 type|Stable|CasualtiesUnknownOnline.Abstractions.ICuoService|interface|IDisposable
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingDefinition|interface|IModContentDefinition
@@ -1203,7 +1253,6 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.IModBuildingRuntime|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModCommandContext|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModCommandResult|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModCommands|interface|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommandContext|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModConsoleCommands|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModContent|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModContentDefinition|interface|-
@@ -1274,7 +1323,6 @@ type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingInstanceRequest|seal
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingPlacement|enum|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModBuildingPrefabRequest|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModCommand|sealed class|-
-type|Stable|CasualtiesUnknownOnline.Abstractions.ModConsoleCommand|sealed class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentAttribute|sealed class|Attribute
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentContract|static class|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.ModContentKind|static class|-

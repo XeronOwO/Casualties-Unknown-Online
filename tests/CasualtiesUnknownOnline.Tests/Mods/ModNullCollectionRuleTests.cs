@@ -57,7 +57,9 @@ public class ModNullCollectionRuleTests
 	[
 		"ConsoleAnswerPart.Args",
 	"CuoModAttribute.Dependencies",
-		"ModConsoleCommand.ArgumentKinds",
+		"CommandCompletion.HintArgs",
+		"ConsoleCommandDefinition.Aliases",
+		"ConsoleCommandDefinition.Parameters",
 		"ModManifest.Dependencies",
 		"ModPacket.Handlers",
 	];
@@ -134,8 +136,8 @@ public class ModNullCollectionRuleTests
 		Assert.Empty(new CuoModAttribute("mod.a", "A", "1.0.0") { Dependencies = null! }.Dependencies);
 		Assert.Empty(new ModManifest("mod.a", "A", "1.0.0", NetworkMode.Synchronized, null, dependencies: null!).Dependencies);
 		Assert.Empty(new ModPacket("packet.a", ModPacketSender.AnyMember, ModPacketDelivery.EveryMember, (ModPacketHandler[])null!).Handlers);
-		Assert.Empty(new ModConsoleCommand(
-			"echo", "Echo a line", "echo <text>", CommandPermission.Anyone, null!, _ => ConsoleAnswer.Silent).ArgumentKinds);
+		Assert.Empty(new ConsoleCommandDefinition(
+			"echo", "Echo a line", _ => ConsoleAnswer.Silent, parameters: (IReadOnlyList<ICommandParameter>)null!).Parameters);
 	}
 
 	/// <summary>

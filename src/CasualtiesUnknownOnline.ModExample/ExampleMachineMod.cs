@@ -66,13 +66,17 @@ public sealed class ExampleMachineMod : ICuoMod
 		context.Packets.Register(new ModPacket(StatePacket, ModPacketSender.HostOnly, ModPacketDelivery.EveryMember,
 			new ModPacketHandler(ModPacketStage.Apply, ApplyState)));
 
-		context.ConsoleCommands.Register(new ModConsoleCommand(
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
 			"machineuse",
 			"Report a use of the example machine to the host",
-			"/machineuse <1-10>",
-			CommandPermission.Anyone,
-			[CommandArgumentKind.Number],
-			UseFromConsole));
+			UseFromConsole,
+			parameters:
+			[
+				new ConsoleCommandParameter(
+					"amount",
+					new FixedChoiceCompleter("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")),
+			],
+			usage: "/machineuse <1-10>"));
 
 		context.Logger.LogInformation("[Machine] bound (charge {Charge}, packets {Use}/{State}).",
 			_charge, UsePacket, StatePacket);
@@ -119,7 +123,7 @@ public sealed class ExampleMachineMod : ICuoMod
 			_charge, ctx.IsHost ? "the host" : "a member");
 	}
 
-	private ConsoleAnswer UseFromConsole(IModConsoleCommandContext ctx)
+	private ConsoleAnswer UseFromConsole(ICommandInvocation ctx)
 	{
 		if (!int.TryParse(ctx.Arguments.Count > 0 ? ctx.Arguments[0] : string.Empty, out var delta)
 			|| delta is < 1 or > MaxStep)

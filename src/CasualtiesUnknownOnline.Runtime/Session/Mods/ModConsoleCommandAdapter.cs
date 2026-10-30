@@ -8,11 +8,9 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
-/// The per-mod local console command surface. A command registered here is
-/// local-only (no host relay), appears in the in-game console registry, and is
-/// scoped to one mod id so Unregister can never remove another mod's command.
-/// Registration is gated by <see cref="ModPermission.RegisterLocalCommand"/> and, for
-/// HostOnly commands, <see cref="ModPermission.ExecuteHostAction"/>.
+/// The per-mod console command surface. Every command — built-in or mod — is an <see cref="ICommandDefinition"/>; this adapter turns one into the registry's
+/// entry, keeping the definition itself so completion can ask its parameters' completers and the notion of "what the player may run" stays the declared
+/// permission. A command registered here is scoped to one mod id, so Unregister can never remove another mod's command.
 /// </summary>
 internal sealed class ModConsoleCommandAdapter(
 	ConsoleCommandRegistry registry,
@@ -20,9 +18,9 @@ internal sealed class ModConsoleCommandAdapter(
 	SessionService session,
 	ILogger log) : IModConsoleCommands
 {
-	private readonly HashSet<string> _registered = [with(StringComparer.Ordinal)];
+	private readonly HashSet<string> _registered = [with(StringComparer.OrdinalIgnoreCase)];
 
-	public bool Register(ModConsoleCommand command)
+	public bool Register(ICommandDefinition command)
 	{
 		if (command is null)
 		{
@@ -30,16 +28,19 @@ internal sealed class ModConsoleCommandAdapter(
 			return false;
 		}
 
-		if (command.Handler is null)
-		{
-			log.LogWarning("[Mods] {ModId} tried to register a console command without a handler — refused.", manifest.Id);
-			return false;
-		}
-
 		if (!ModCommandPolicy.IsValidName(command.Name))
 		{
 			log.LogWarning("[Mods] {ModId} tried to register an invalid console command name — refused.", manifest.Id);
 			return false;
+		}
+
+		foreach (var alias in command.Aliases)
+		{
+			if (!ModCommandPolicy.IsValidName(alias))
+			{
+				log.LogWarning("[Mods] {ModId} tried to register /{Name} with the invalid alias '{Alias}' — refused.", manifest.Id, command.Name, alias);
+				return false;
+			}
 		}
 
 		if (!ModPermissionGate.Try(log, manifest, ModPermission.RegisterLocalCommand))
@@ -53,6 +54,10 @@ internal sealed class ModConsoleCommandAdapter(
 			return false;
 		}
 
+		// The registry reads ONE kind per parameter: a definition's own completer is asked first (see CommandConsoleCompletion), and the parameter's declared
+		// Kind is the framework source the console falls back to when it offers none.
+		var kinds = command.Parameters.Select(parameter => parameter.Kind).ToList();
+
 		var definition = new CommandDefinition(
 			command.Name,
 			command.Description,
@@ -61,8 +66,10 @@ internal sealed class ModConsoleCommandAdapter(
 			// can be applied: a mod command is never classified as a cheat verb here.
 			ConsoleCommandGate.Open,
 			command.Usage,
-			command.ArgumentKinds,
-			args => Execute(command, args));
+			kinds,
+			args => Execute(command, args),
+			command.Aliases,
+			command);
 
 		if (!registry.TryAdd(definition, out var error))
 		{
@@ -72,7 +79,13 @@ internal sealed class ModConsoleCommandAdapter(
 		}
 
 		_registered.Add(command.Name);
-		log.LogInformation("[Mods] {ModId} registered local console command /{Name}.", manifest.Id, command.Name);
+		foreach (var alias in command.Aliases)
+		{
+			_registered.Add(alias);
+		}
+
+		log.LogInformation("[Mods] {ModId} registered console command /{Name} ({Aliases} alias(es), {Parameters} parameter(s), {Scope}).",
+			manifest.Id, command.Name, command.Aliases.Count, command.Parameters.Count, command.Scope);
 		return true;
 	}
 
@@ -85,33 +98,44 @@ internal sealed class ModConsoleCommandAdapter(
 			return false;
 		}
 
-		if (!registry.TryRemove(name))
+		var definition = registry.Find(name);
+		if (definition is null || !registry.TryRemove(definition.Name))
 		{
 			return false;
 		}
 
-		_registered.Remove(name);
-		log.LogInformation("[Mods] {ModId} unregistered local console command /{Name}.", manifest.Id, name);
+		foreach (var word in definition.Aliases.Concat([definition.Name]).Where(_registered.Contains).ToList())
+		{
+			_registered.Remove(word);
+		}
+
+		log.LogInformation("[Mods] {ModId} unregistered console command /{Name}.", manifest.Id, definition.Name);
 		return true;
 	}
 
-	private ConsoleAnswer Execute(ModConsoleCommand command, IReadOnlyList<string> args)
+	private ConsoleAnswer Execute(ICommandDefinition command, IReadOnlyList<string> args)
 	{
-		var context = new ModConsoleCommandContext(
+		var typed = args.Count > 0 ? args[0] : "/" + command.Name;
+		var typedWord = typed.StartsWith("/", StringComparison.Ordinal) ? typed.Substring(1) : typed;
+		var alias = string.Equals(typedWord, command.Name, StringComparison.OrdinalIgnoreCase) ? null : typedWord;
+		return command.Invoke(new CommandInvocation(
 			command.Name,
+			alias,
 			[.. args.Skip(1)],
 			session.LocalSteamId,
-			ModSessionSnapshot.Capture(session));
-		return command.Handler(context);
+			ModSessionSnapshot.Capture(session)));
 	}
 
-	private sealed class ModConsoleCommandContext(
+	private sealed class CommandInvocation(
 		string name,
+		string? alias,
 		IReadOnlyList<string> arguments,
 		ulong localSteamId,
-		ISessionInfo session) : IModConsoleCommandContext
+		ISessionInfo session) : ICommandInvocation
 	{
 		public string Name { get; } = name;
+
+		public string? Alias { get; } = alias;
 
 		public IReadOnlyList<string> Arguments { get; } = arguments;
 

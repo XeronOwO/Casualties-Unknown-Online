@@ -20,7 +20,7 @@ internal static class MusicCommand
 
 	internal static void Bind(MusicShareService share) => _share = share;
 
-	internal static ConsoleAnswer Execute(IModConsoleCommandContext context)
+	internal static ConsoleAnswer Execute(ICommandInvocation context)
 	{
 		var arguments = context.Arguments;
 		if (arguments.Count == 0)

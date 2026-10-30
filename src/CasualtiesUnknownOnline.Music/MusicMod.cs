@@ -44,13 +44,16 @@ public sealed class MusicMod : ICuoMod
 			context.Logger.LogWarning("[Music] the packet declarations were refused; sharing is unavailable (local playback still works).");
 		}
 
-		if (context.ConsoleCommands.Register(new ModConsoleCommand(
+		if (context.ConsoleCommands.Register(new ConsoleCommandDefinition(
 			"music",
 			"Play a local WAV file, or share it with the session",
-			"/music play <path> | share <path> | stop | status",
-			CommandPermission.Anyone,
-			[CommandArgumentKind.Text, CommandArgumentKind.Text],
-			MusicCommand.Execute)))
+			MusicCommand.Execute,
+			parameters:
+			[
+				new ConsoleCommandParameter("action", new FixedChoiceCompleter("play", "share", "stop", "status")),
+				new ConsoleCommandParameter("path"),
+			],
+			usage: "/music play <path> | share <path> | stop | status")))
 		{
 			context.Logger.LogInformation("[Music] console command /music registered.");
 			return;

@@ -82,14 +82,39 @@ public sealed class ConsoleCommandRegistry
 			return false;
 		}
 
-		if (_commandsByName.ContainsKey(definition.Name))
+		// Every word that reaches the command claims a slot: the name and each alias, so a second command cannot shadow one and a removal takes them all.
+		var words = new List<string> { definition.Name };
+		foreach (var alias in definition.Aliases)
 		{
-			error = $"command '/{definition.Name}' is already registered";
-			return false;
+			if (string.IsNullOrWhiteSpace(alias))
+			{
+				error = $"command '/{definition.Name}' declares an empty alias";
+				return false;
+			}
+
+			if (string.Equals(alias, definition.Name, StringComparison.OrdinalIgnoreCase))
+			{
+				continue;
+			}
+
+			words.Add(alias);
+		}
+
+		foreach (var word in words)
+		{
+			if (_commandsByName.ContainsKey(word))
+			{
+				error = $"command '/{word}' is already registered";
+				return false;
+			}
 		}
 
 		_commands.Add(definition);
-		_commandsByName.Add(definition.Name, definition);
+		foreach (var word in words)
+		{
+			_commandsByName.Add(word, definition);
+		}
+
 		error = null;
 		return true;
 	}
@@ -101,7 +126,11 @@ public sealed class ConsoleCommandRegistry
 			return false;
 		}
 
-		_commandsByName.Remove(name);
+		foreach (var word in _commandsByName.Where(pair => ReferenceEquals(pair.Value, definition)).Select(pair => pair.Key).ToList())
+		{
+			_commandsByName.Remove(word);
+		}
+
 		_commands.Remove(definition);
 		return true;
 	}

@@ -25,13 +25,12 @@ public sealed class RecursiveCraftingMod : ICuoMod
 		{
 			context.Logger.LogInformation("[Recursive] recipe-panel third state installed (name marker + tooltip steps).");
 		}
-		if (context.ConsoleCommands.Register(new ModConsoleCommand(
+		if (context.ConsoleCommands.Register(new ConsoleCommandDefinition(
 			"craftchain",
 			"Show how a recipe is reachable (now, through steps, or why not)",
-			"/craftchain <itemId>",
-			CommandPermission.Anyone,
-			[CommandArgumentKind.Text],
-			RecursiveCraftingCommand.Execute)))
+			RecursiveCraftingCommand.Execute,
+			parameters: [new ConsoleCommandParameter("itemId")],
+			usage: "/craftchain <itemId>")))
 		{
 			context.Logger.LogInformation("[Recursive] console command /craftchain registered.");
 			return;

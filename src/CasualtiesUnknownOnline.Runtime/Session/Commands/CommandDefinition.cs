@@ -18,7 +18,11 @@ internal sealed record CommandDefinition(
 	ConsoleCommandGate Gate,
 	string Usage,
 	IReadOnlyList<CommandArgumentKind> ArgumentKinds,
-	Func<IReadOnlyList<string>, ConsoleAnswer> Answer)
+	Func<IReadOnlyList<string>, ConsoleAnswer> Answer,
+	IReadOnlyList<string>? Aliases = null,
+	ICommandDefinition? Contract = null)
 {
-	public CommandSpec ToSpec() => new(Name, Description, Usage, Permission, Gate, ArgumentKinds);
+	public IReadOnlyList<string> Aliases { get; } = Aliases ?? [];
+
+	public CommandSpec ToSpec() => new(Name, Description, Usage, Permission, Gate, ArgumentKinds, Aliases);
 }

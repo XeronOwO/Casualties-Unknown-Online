@@ -17,4 +17,5 @@ public sealed record CommandSpec(
 	string Usage,
 	CommandPermission Permission,
 	ConsoleCommandGate Gate,
-	IReadOnlyList<CommandArgumentKind> ArgumentKinds);
+	IReadOnlyList<CommandArgumentKind> ArgumentKinds,
+	IReadOnlyList<string>? Aliases = null);

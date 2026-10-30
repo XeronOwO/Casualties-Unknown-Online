@@ -85,4 +85,10 @@ public enum CommandSuggestionHint
 
 	/// <summary>A resource-location suggestion: <c>Args[0]</c> is its kind, <c>Args[1]</c> its display name.</summary>
 	ResourceLocation,
+
+	/// <summary>
+	/// A sentence from a MOD's own catalogue: <c>Args[0]</c> is the key, the rest are its arguments. The catalogue entry belongs to the mod that registered
+	/// the command, so the client that draws the row renders it in its own language exactly like a framework key.
+	/// </summary>
+	KeyedText,
 }

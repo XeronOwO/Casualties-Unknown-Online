@@ -249,3 +249,17 @@ so the list is an input surface, not a caption.
 3. **Deprecation window** for `ModConsoleCommand`: keep it as an adapter (recommended) or replace it outright (pre-1.0, but mods already exist —
    `ModExample`, `Music`, `cuo.pinyinsearch`). **Answered twice: first as an adapter for one window (2026-10-30), then withdrawn the same day — the
    standing ruling is that nothing is released and no compatibility branch is kept, so it is replaced outright.**
+## Stage 1 landed: the definition contract, and the old mod type is gone (2026-10-30)
+
+`Abstractions` now carries the contract both sides speak: `ICommandDefinition` (name, aliases, description + key, usage, permission, scope, parameters,`n`Invoke`), `ICommandParameter` (name, completer, hint key, fallback kind), `IArgumentCompleter` / `ICompletionContext` / `CommandCompletion`,`n``ICommandInvocation` and `CommandScope`; plus the shipped shapes a mod builds — `ConsoleCommandDefinition`, `ConsoleCommandParameter`,`n``FixedChoiceCompleter` and `DelegateCompleter`. `IModConsoleCommands.Register` takes the interface, and `ModConsoleCommand` +`n``IModConsoleCommandContext` are DELETED in the same change (the pre-release ruling: no adapter, no deprecation window); the three published mods and the two test`nmods moved to the new shape, and the example mod shows an alias plus a delegate completer.
+
+What the console does with a definition now:
+
+- **completion asks the parameter first** (`CommandConsoleCompletion.FromTheParameter`): the completer runs with `ICompletionContext` — the command, the parameter`n  index, the arguments already accepted, the partial token and the session snapshot — so argument N can depend on N-1; a completer that throws is caught and logged and the`n  keystroke offers nothing instead of taking the overlay down;
+- **the ten kinds stay**: a parameter that offers no completer answers from its declared `Kind`, so a mod composes with the framework's own sources and ranking;
+- **name completion offers every ALIAS** beside its command, and the registry registers aliases as words that reach the same handler (`TryAdd`/`TryRemove` cover them);
+- **a mod hint may be its own catalogue sentence**: `CommandSuggestionHint.KeyedText` carries a key plus its arguments and the overlay renders it like any framework key.
+
+**Deliberately NOT in stage 1, and named so nobody reads it as done:** `CommandScope.HostRelayed` is declared, validated and logged, but nothing relays it yet — a
+relaid command still runs locally, which is stage 3 (the wire pair, the host registry, the permission and host-rule gates). A command TREE (literals with children at any depth) is
+not expressible yet either: the contract has parameters, and the tree is the shape stage 1's successor adds without changing what a definition is.

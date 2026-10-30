@@ -385,8 +385,29 @@ internal sealed class CommandConsoleOverlay
 		CommandSuggestionHint.GamemodeValue => ctx.T("console.suggest.gamemode_value"),
 		CommandSuggestionHint.HostRuleCurrent => ctx.F("console.suggest.rule_current", suggestion.Args[0] ?? string.Empty),
 		CommandSuggestionHint.HostRuleValue => ctx.F("console.suggest.rule_value", suggestion.Args[0] ?? string.Empty),
+		CommandSuggestionHint.KeyedText => KeyedHint(ctx, suggestion),
 		_ => null,
 	};
+
+	/// <summary>
+	/// A mod's own sentence: <c>Args[0]</c> is its catalogue key and the rest are the values that sentence places. The row is rendered by the client that draws
+	/// it, in that client's language, exactly like a framework key.
+	/// </summary>
+	private static string? KeyedHint(OnlineUiContext ctx, CommandSuggestion suggestion)
+	{
+		if (suggestion.Args.Length == 0 || suggestion.Args[0] is not string key || key.Length == 0)
+		{
+			return null;
+		}
+
+		var arguments = new object?[suggestion.Args.Length - 1];
+		for (var index = 1; index < suggestion.Args.Length; index++)
+		{
+			arguments[index - 1] = suggestion.Args[index];
+		}
+
+		return ctx.F(key, arguments);
+	}
 
 	/// <summary>
 	/// One command's one-line description in the reader's language, or null when the catalogue has no entry (a hint never shows a key). Every key is a

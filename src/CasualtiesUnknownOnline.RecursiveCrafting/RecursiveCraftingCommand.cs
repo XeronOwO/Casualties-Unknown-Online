@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline.RecursiveCrafting;
 /// </summary>
 internal static class RecursiveCraftingCommand
 {
-	internal static ConsoleAnswer Execute(IModConsoleCommandContext context)
+	internal static ConsoleAnswer Execute(ICommandInvocation context)
 	{
 		var rows = GameCraftingTable.ReadRecipes();
 		var supported = rows.Where(row => row.Recipe is not null).Select(row => row.Recipe!).ToList();

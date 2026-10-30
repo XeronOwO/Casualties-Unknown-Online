@@ -6,6 +6,8 @@ using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
@@ -39,7 +41,8 @@ internal sealed class CommandConsoleCompletion(
 	IKernelItemFacts kernelItems,
 	IItemStateLanguage itemStateLanguage,
 	ItemDataTargets targets,
-	IHostRules hostRules)
+	IHostRules hostRules,
+	ILogger log)
 {
 	private static readonly CommandSuggestion[] JsonSuggestions =
 	[
@@ -55,6 +58,7 @@ internal sealed class CommandConsoleCompletion(
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;
 	private readonly ItemStateCompletion _itemState = new(kernelItems, itemStateLanguage, targets);
 	private readonly HostRuleCompletion _hostRules = new(hostRules);
+	private readonly ILogger _log = log;
 
 	internal IReadOnlyList<CommandSuggestion> Suggest(string input)
 	{
@@ -78,11 +82,17 @@ internal sealed class CommandConsoleCompletion(
 				partial = partial.Substring(1);
 			}
 
-			return [.. _commands.All
-				.Where(_authority.MayRun)
-				.Where(c => c.Name.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
-				.Select(c => new CommandSuggestion(c.Name, CommandSuggestionHint.Command, Args: [c.Name]))
-				.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
+			// A command is offered by its NAME and by every ALIAS it declares (user direction 2026-10-30): an alias reaches the same handler, so a list that
+			// hid it would teach the player fewer words than the console accepts.
+			return
+			[
+				.. _commands.All
+					.Where(_authority.MayRun)
+					.SelectMany(command => command.Aliases.Prepend(command.Name).Select(word => (Word: word, command.Name)))
+					.Where(candidate => candidate.Word.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
+					.Select(candidate => new CommandSuggestion(candidate.Word, CommandSuggestionHint.Command, Args: [candidate.Name]))
+					.OrderBy(suggestion => suggestion.Text, StringComparer.OrdinalIgnoreCase)
+			];
 		}
 
 		if (!isCommand)
@@ -133,7 +143,20 @@ internal sealed class CommandConsoleCompletion(
 		}
 
 		var argumentIndex = current.Length == 0 ? tokens.Count : tokens.Count - 1;
-		if (argumentIndex < 1 || argumentIndex > command.ArgumentKinds.Count)
+		if (argumentIndex < 1)
+		{
+			return [];
+		}
+
+		// A DEFINITION'S OWN COMPLETER IS ASKED FIRST (user direction 2026-10-30): the mod's parameter knows its words and may depend on the arguments already
+		// typed, which no per-kind source can express. The framework still owns the list's behaviour, so a completer only proposes; a throw or a hang is
+		// isolated here and reads as "this argument offered nothing" instead of taking the overlay down.
+		if (FromTheParameter(command, tokens, argumentIndex, current) is { } fromParameter)
+		{
+			return fromParameter;
+		}
+
+		if (argumentIndex > command.ArgumentKinds.Count)
 		{
 			return [];
 		}
@@ -234,4 +257,95 @@ internal sealed class CommandConsoleCompletion(
 			.Select(entry => new CommandSuggestion(
 				bareGameId ? entry.Id.Path : entry.Id.ToString(),
 				CommandSuggestionHint.ResourceLocation, Args: [entry.Kind, entry.DisplayName]))];
+
+	/// <summary>
+	/// The parameter's own completer, when the command is a definition that declares one for the argument under the cursor. Returns <c>null</c> when the
+	/// command has no definition, the parameter has no completer, or the completer could not answer — so the caller falls back to the framework's own sources.
+	/// </summary>
+	private IReadOnlyList<CommandSuggestion>? FromTheParameter(
+		CommandDefinition command,
+		IReadOnlyList<CommandLineTokenizer.Token> tokens,
+		int argumentIndex,
+		CommandLineTokenizer.Token current)
+	{
+		if (command.Contract is not { } contract)
+		{
+			return null;
+		}
+
+		var index = argumentIndex - 1;
+		if (index < 0 || index >= contract.Parameters.Count)
+		{
+			return null;
+		}
+
+		if (contract.Parameters[index].Completer is not { } completer)
+		{
+			return null;
+		}
+
+		IReadOnlyList<string> previous = tokens.Count > 1
+			? [.. tokens.Skip(1).Take(index).Select(token => token.Unquoted)]
+			: [];
+		var context = new ParameterCompletionContext(
+			contract.Name,
+			index,
+			previous,
+			current.Length == 0 ? string.Empty : current.Unquoted,
+			ModSessionSnapshot.Capture(_session));
+		IReadOnlyList<CommandCompletion> candidates;
+		try
+		{
+			candidates = completer.Complete(context) ?? [];
+		}
+		catch (Exception exception)
+		{
+			// A mod's completer runs inside a frame; a throw must not take the overlay down, and a silent empty list would hide the cause.
+			_log.LogWarning(
+				"[Console] /{Command} parameter {Index}'s completer threw {Exception}: the argument offers nothing this keystroke.",
+				contract.Name, index, exception.GetType().Name);
+			return [];
+		}
+
+		return [.. candidates.Select(candidate => ToSuggestion(candidate, contract.Parameters[index].HintKey))];
+	}
+
+	/// <summary>One proposed candidate, as the list draws it: its text, its insertion rule, and the hint the row shows (the parameter's key when it has one).</summary>
+	private static CommandSuggestion ToSuggestion(CommandCompletion candidate, string? parameterHintKey)
+	{
+		if (!string.IsNullOrEmpty(candidate.HintKey))
+		{
+			return new CommandSuggestion(
+				candidate.Text,
+				CommandSuggestionHint.KeyedText,
+				candidate.Verbatim,
+				[candidate.HintKey!, .. candidate.HintArgs]);
+		}
+
+		if (!string.IsNullOrEmpty(parameterHintKey))
+		{
+			return new CommandSuggestion(candidate.Text, CommandSuggestionHint.KeyedText, candidate.Verbatim, [parameterHintKey!]);
+		}
+
+		return new CommandSuggestion(candidate.Text, CommandSuggestionHint.None, candidate.Verbatim);
+	}
+
+	/// <summary>The context one parameter's completer reads: the command, which parameter, the arguments before it, the partial token and the session.</summary>
+	private sealed class ParameterCompletionContext(
+		string commandName,
+		int parameterIndex,
+		IReadOnlyList<string> arguments,
+		string partial,
+		ISessionInfo session) : ICompletionContext
+	{
+		public string CommandName { get; } = commandName;
+
+		public int ParameterIndex { get; } = parameterIndex;
+
+		public IReadOnlyList<string> Arguments { get; } = arguments;
+
+		public string Partial { get; } = partial;
+
+		public ISessionInfo Session { get; } = session;
+	}
 }

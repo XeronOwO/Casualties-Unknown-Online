@@ -164,20 +164,13 @@ public sealed class ExampleMod : ICuoMod
 
 		context.Commands.Register(new ModCommand("echo", c => $"echo:{string.Join(" ", c.Arguments)}"));
 		context.Commands.Register(new ModCommand("whoami", c => $"requester:{c.RequesterSteamId}", isHostAction: true));
-		context.ConsoleCommands.Register(new ModConsoleCommand(
-			"exampleecho",
-			"Send the example's declared echo packet",
-			"/exampleecho <text>",
-			CommandPermission.Anyone,
-			[CommandArgumentKind.Text],
-			EchoFromConsole));
-		context.ConsoleCommands.Register(new ModConsoleCommand(
-			"exampleweight",
-			"Set the weight the attribute-declared Example Dressing reports",
-			"/exampleweight <weight>",
-			CommandPermission.Anyone,
-			[CommandArgumentKind.Number],
-			SetDeclaredWeightFromConsole));
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"exampleecho", "Send the example's declared echo packet", EchoFromConsole,
+			parameters: [new ConsoleCommandParameter("text")], usage: "/exampleecho <text>"));
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"exampleweight", "Set the weight the attribute-declared Example Dressing reports", SetDeclaredWeightFromConsole,
+			parameters: [new ConsoleCommandParameter("weight", new DelegateCompleter(_ => [new CommandCompletion("0.5"), new CommandCompletion("1")]))],
+			aliases: ["eweight"], usage: "/exampleweight <weight>"));
 		context.Ui.Register("example", "CUO Example", window =>
 		{
 			window.Label($"session active: {context.Session.SessionActive}");
@@ -270,7 +263,7 @@ public sealed class ExampleMod : ICuoMod
 	{
 	}
 
-	private ConsoleAnswer EchoFromConsole(IModConsoleCommandContext ctx)
+	private ConsoleAnswer EchoFromConsole(ICommandInvocation ctx)
 	{
 		if (ctx.Arguments.Count == 0)
 		{
@@ -294,7 +287,7 @@ public sealed class ExampleMod : ICuoMod
 			: ConsoleAnswer.Refused("the send was refused locally — see the log");
 	}
 
-	private ConsoleAnswer SetDeclaredWeightFromConsole(IModConsoleCommandContext ctx)
+	private ConsoleAnswer SetDeclaredWeightFromConsole(ICommandInvocation ctx)
 	{
 		if (ctx.Arguments.Count == 0
 			|| !float.TryParse(ctx.Arguments[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var weight)

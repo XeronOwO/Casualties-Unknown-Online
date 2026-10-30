@@ -67,7 +67,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Network` | 模组消息通道，即[匿名通道](glossary.md)（anonymous tunnel）那一种形式。 |
 | `Packets` | [声明数据包](glossary.md)（declared packet）：模组自己拥有的消息 id，带自己的发送方与投递策略和自己的[处理链](glossary.md)（packet chain），实验性。 |
 | `Commands` | 主机权威命令。 |
-| `ConsoleCommands` | 本地游戏内控制台命令，不过网络；主机命令接口面是 `Commands`。 |
+| `ConsoleCommands` | 游戏内控制台命令，以**定义**注册（`ConsoleCommandDefinition`：名字、别名、带补全器的参数、权限、作用域）；内置命令产出的也是同一形状，所以只有一套词汇（见[控制台契约](../../backlog/todo/the-command-console-is-a-contract.md)）。`Local` 在本进程执行；`HostRelayed` 已可声明并会如实记录，但转发本身尚未接线（该票阶段 3）。 |
 | `State` | 主机持久化的模组状态。 |
 | `Data` | 运行时按作用域声明的模组数据。 |
 | `StatusRuntime` | 运行时的逐玩家／逐肢体模组状态值。 |

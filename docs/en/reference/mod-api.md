@@ -104,7 +104,7 @@ thread, every stage exception-isolated. `IModContext` is what `Bind` receives:
 | `Network` | the mod message channel (the [anonymous tunnel](glossary.md) form). |
 | `Packets` | [declared packets](glossary.md): a mod-owned message id with its own policy and chain (**experimental**). |
 | `Commands` | host-authoritative commands. |
-| `ConsoleCommands` | local in-game console commands with no wire relay; the host-command surface is `Commands`. |
+| `ConsoleCommands` | in-game console commands, registered as a definition (`ConsoleCommandDefinition`: name, aliases, parameters with completers, permission, scope). The same shape a built-in command produces, so one vocabulary — see [the console contract](../../backlog/todo/the-command-console-is-a-contract.md). A `Local` command runs in this process; `HostRelayed` is declared and reported but the relay itself is not wired yet (stage 3 of that ticket). |
 | `State` | host-persistent per-mod state. |
 | `Data` | runtime scope-declared per-mod data. |
 | `StatusRuntime` | runtime per-player/per-limb mod status values. |

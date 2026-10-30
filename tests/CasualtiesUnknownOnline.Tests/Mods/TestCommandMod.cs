@@ -31,21 +31,51 @@ public sealed class TestCommandMod : ICuoMod
 		context.Commands.Register(new ModCommand("hostaction", HostAction, isHostAction: true));
 		context.Commands.Register(new ModCommand("fail", _ => throw new InvalidOperationException("test.commands fail always throws")));
 		context.Commands.Register(new ModCommand("long", _ => new string('x', 64 * 1024)));
-		context.ConsoleCommands.Register(new ModConsoleCommand(
-			"cping", "Local console echo", "/cping <text>", CommandPermission.Anyone,
-			[CommandArgumentKind.Text], ConsoleEcho));
-		context.ConsoleCommands.Register(new ModConsoleCommand(
-			"chost", "Local host-only console echo", "/chost", CommandPermission.HostOnly,
-			[], ConsoleHost));
-		context.ConsoleCommands.Register(new ModConsoleCommand(
-			"cresource", "Local resource-location echo", "/cresource <location>", CommandPermission.Anyone,
-			[CommandArgumentKind.ResourceLocation], ConsoleResource));
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"cping", "Local console echo", ConsoleEcho,
+			parameters: [new ConsoleCommandParameter("text")], usage: "/cping <text>"));
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"chost", "Local host-only console echo", ConsoleHost,
+			permission: CommandPermission.HostOnly, usage: "/chost"));
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"cresource", "Local resource-location echo", ConsoleResource,
+			parameters: [new ConsoleCommandParameter("location", kind: CommandArgumentKind.ResourceLocation)], usage: "/cresource <location>"));
 		// A mod command that REFUSES: the console must print its answer with the error kind, which is what the
 		// typed-result contract exists for (a mod cannot forget to mark a refusal).
-		context.ConsoleCommands.Register(new ModConsoleCommand(
-			"crefuse", "Local console refusal", "/crefuse", CommandPermission.Anyone,
-			[], _ => ConsoleAnswer.Refused("refused by the test mod")));
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"crefuse", "Local console refusal", _ => ConsoleAnswer.Refused("refused by the test mod"),
+			usage: "/crefuse"));
+		// A definition's own completer answers its parameter, and the second parameter sees the first one's value — the two facts a per-kind source cannot state.
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"cmode", "Pick a mode, then one of its levels", invocation => ConsoleAnswer.Ok("mode " + string.Join(" ", invocation.Arguments)),
+			parameters:
+			[
+				new ConsoleCommandParameter("mode", new FixedChoiceCompleter("survivor", "spectator")),
+				new ConsoleCommandParameter("level", new DelegateCompleter(Levels)),
+			],
+			aliases: ["cm"],
+			usage: "/cmode <mode> <level>"));
+		// A completer that throws must be isolated: the console logs it and offers nothing instead of taking the overlay down.
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"cthrow", "A completer that fails on purpose", _ => ConsoleAnswer.Silent,
+			parameters:
+			[
+				new ConsoleCommandParameter(
+					"anything",
+					new DelegateCompleter(_ => throw new InvalidOperationException("completer failure, on purpose"))),
+			],
+			usage: "/cthrow <anything>"));
 	}
+
+	private static IReadOnlyList<CommandCompletion> Levels(ICompletionContext context) =>
+		context.Arguments.Count == 0
+			? []
+			: context.Arguments[0] switch
+			{
+				"survivor" => [new CommandCompletion("calm"), new CommandCompletion("rough")],
+				"spectator" => [new CommandCompletion("fast")],
+				_ => [],
+			};
 
 	public void Initialize()
 	{
@@ -79,19 +109,19 @@ public sealed class TestCommandMod : ICuoMod
 		return $"host:{context.RequesterSteamId}";
 	}
 
-	private ConsoleAnswer ConsoleEcho(IModConsoleCommandContext context)
+	private ConsoleAnswer ConsoleEcho(ICommandInvocation context)
 	{
 		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
 		return ConsoleAnswer.Ok($"console:{string.Join(" ", context.Arguments)}");
 	}
 
-	private ConsoleAnswer ConsoleHost(IModConsoleCommandContext context)
+	private ConsoleAnswer ConsoleHost(ICommandInvocation context)
 	{
 		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
 		return ConsoleAnswer.Ok($"host-only:{context.LocalSteamId}");
 	}
 
-	private ConsoleAnswer ConsoleResource(IModConsoleCommandContext context)
+	private ConsoleAnswer ConsoleResource(ICommandInvocation context)
 	{
 		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
 		return ConsoleAnswer.Ok($"resource:{string.Join(" ", context.Arguments)}");

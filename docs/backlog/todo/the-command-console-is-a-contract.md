@@ -263,3 +263,4 @@ What the console does with a definition now:
 **Deliberately NOT in stage 1, and named so nobody reads it as done:** `CommandScope.HostRelayed` is declared, validated and logged, but nothing relays it yet — a
 relaid command still runs locally, which is stage 3 (the wire pair, the host registry, the permission and host-rule gates). A command TREE (literals with children at any depth) is
 not expressible yet either: the contract has parameters, and the tree is the shape stage 1's successor adds without changing what a definition is.
+**Live check on the deployed build (`9930281d`):** typing `/music ` in the real client drew four candidate rows — `play`, `share`, `stop`, `status` — which are the`n`music` mod's own `FixedChoiceCompleter` words, not a framework kind; the driver's suggestion list read the same four. So a mod definition's completer reaches the`nplayer's list on a deployed client, which is the fact stage 1 was for.

@@ -21,6 +21,20 @@
 	var positionField = parameter.ParameterType.GetField("position", flags);
 	if (positionField == null) { return "{\"ok\":false,\"error\":\"no-position-field\"}"; }
 	positionField.SetValue(param, new UnityEngine.Vector2(x, y));
-	method.Invoke(null, new object[] { param });
+	// The prerequisites the native body reads, reported separately so a failure names the missing one instead of an
+	// "exception thrown by the target of an invocation".
+	if (WorldGeneration.world == null) { return "{\"ok\":false,\"error\":\"no-world\"}"; }
+	if (PlayerCamera.main == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; }
+	var soundField = parameter.ParameterType.GetField("sound", flags);
+	if (soundField != null && soundField.GetValue(param) == null) { soundField.SetValue(param, ""); }
+	try
+	{
+		method.Invoke(null, new object[] { param });
+	}
+	catch (System.Exception ex)
+	{
+		var inner = ex.InnerException != null ? ex.InnerException : ex;
+		return "{\"ok\":false,\"error\":\"native-threw\",\"detail\":\"" + inner.GetType().Name + ": " + inner.Message.Replace("\"", "'") + "\"}";
+	}
 	return "{\"ok\":true,\"found\":true,\"x\":" + x.ToString("0.##", inv) + ",\"y\":" + y.ToString("0.##", inv) + "}";
 }))()

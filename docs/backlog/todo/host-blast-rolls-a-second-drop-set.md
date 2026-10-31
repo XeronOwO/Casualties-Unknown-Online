@@ -334,3 +334,16 @@ host's own `[ItemSpawned]` line for that victim: zero times). Record:
 more descents gave 8 turrets, 8 turrets, then two empty layers, and **no `MineExploded` carrier**, while a hand-staged mine
 lives only on the host's client. The chain shape needs a generated layer with mines (or a generation-time placement); its
 code (slice 2, `ChainedBlastReplay`) is landed and unit-pinned. The ticket therefore stays in todo for that one shape.
+
+## The missing capability is in place (2026-10-31, build `0c282f7f`)
+
+The row's one missing capability was a client-side `WorldGeneration.CreateExplosion` inside the evaluator; three shapes had been refused with `(1,1): InteractiveHost`.
+The recipe `blast-at` already in the tree reaches the call by REFLECTION, and it now compiles and runs: `blast-at x=0 y=443` on the host answered `ok: true, found: true`,
+so the game's own explosion (particles, blast mark, shake, and the structural damage that runs a building's death branch) can be produced on demand from a driver call.
+
+The same call on the guest answered `no-world` — `WorldGeneration.world` was null there, which is the correct reading of a client that had been KICKED out of the session in the
+previous batch (its world object was gone). The probe also exercised the recipe's new diagnostics: it now names the missing prerequisite (`no-world`, `no-camera`) instead of
+the opaque "exception thrown by the target of an invocation" the first attempt reported.
+
+So the capability is ready and the row's batch is the NEXT step: a fresh session, a descent to a layer both clients share, a carrier the blast kills on the MEMBER's side, and
+then the count read on both clients. Nothing about the mechanism is missing any more; what is owed is the run.

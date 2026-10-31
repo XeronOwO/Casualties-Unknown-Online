@@ -134,3 +134,9 @@ injection still need the gesture path, and rows 2-3 with them; the consuming pai
 sleeping target at all until the driver grew the field. `tools/acceptance/recipes/body-force.cs` now takes `sleep=` and writes the game's own
 `Body.sleeping` directly (1 sleeps, 0 wakes, -1 leaves it alone), which put the guest at `sleeping=True, conscious=False, consciousness=10` — the exact
 state the ticket's source report described — and made the rows above judgeable.
+
+## The asleep fixture, first reading (2026-11-01)
+
+The medication probe plants the sleeping-pills component on the LOCAL body (`medication-component-probe mode=plant-sleepingpills,target=local`) and answers `ok=true, amount=300`, but its own report field `sleepingPills` comes back **false** and `body-read` three seconds later still says `sleeping=false, conscious=true`. So planting the component is not the same as the body being asleep: the game advances a medication effect on its own ticks, and the body's sleep state is that effect's result, not the component's presence.
+
+Row 3 is the one this ticket can still close with instruments that exist — the bandage chain is proven end to end (a wounded limb treated through the remote chart, `terminal Completed`, the patient's own client applying it), so what it needs is exactly the sleeping state this note is chasing. The next reading is the component's effect over time (`medication-component-probe mode=read` after longer waits, and whether the body's sleep is gated on the day/night cycle).

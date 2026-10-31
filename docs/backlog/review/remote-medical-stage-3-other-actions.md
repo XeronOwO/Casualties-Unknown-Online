@@ -107,3 +107,13 @@ Row 2 of the matrix ("host uses each action on guest") is being read action by a
 So four treatment families read end to end in this direction, and the topical/liquid rows keep their own readings on
 `topical-limb-action-shape`. What the column still needs is the actions whose fixtures the batch cannot produce (a syringe holding a
 liquid, the chest drain and the other liquid containers), and each of those is named in the triage page rather than assumed.
+
+## Two more actions land on the named limb, with a field-reading caveat (2026-11-01, 08:50)
+
+A fresh session with the guest wounded on limb 3 (`skinHealth=73.6`):
+
+- **pain cream** — `remote-medical-release item=paincream,limb=3` answered `limbLookingAt=3` and the patient read `pain=87.919` immediately after. It leaves no component, so this pass proves the release reached the named limb but not the effect (no before-value was taken).
+- **disinfectant** — the same release answered `limbLookingAt=3`; `limb-read` carries no disinfection field on this recipe's projection, so the effect is unread here.
+- **medical suture** — the release found nothing (`limbLookingAt` empty): the host's slots were full by then and the item had gone into its carried container, the fixture rule this project already carries ("one treatment per fresh launch").
+
+So the column's component-visible families stay the four already tabled (bandage, splint, tourniquet, icepack); the cream, the disinfectant and the other field-only treatments need their own before/after field readings, one per fresh session, and `limb-read` needs the fields those rows ask about (pain and disinfection are the two this pass could not read).

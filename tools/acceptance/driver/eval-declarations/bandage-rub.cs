@@ -26,17 +26,20 @@ public static class AcceptanceBandageRub
 
 	public static IEnumerator Rub(int steps)
 	{
-		var main = MinigameBase.main;
-		if (main == null) { yield break; }
-
+		UnityEngine.Debug.Log("[BandageRub] coroutine started, steps=" + steps);
 		var angle = 0f;
 		var sawMinigame = 0;
 		var drove = 0;
 		for (var n = 0; n < steps; n++)
 		{
+			// The singleton appears when a minigame starts and is gone when it ends, so it is re-read EVERY frame: a rub that captured
+			// it once at the start saw null, broke out silently, and looked exactly like a minigame that never came (measured
+			// 2026-11-01: no counter line at all from a 120-frame rub).
+			var main = MinigameBase.main;
+			if (main == null) { yield return null; continue; }
+
 			// The minigame appears a frame or two AFTER the release that starts it, and it ends on its own: wait for it, drive it while
-			// it lasts, and spend the rest of the budget skipping frames rather than breaking on the first empty one (measured: a rub
-			// started right after the release found no minigame on its first frame and finished without touching anything).
+			// it lasts, and spend the rest of the budget skipping frames rather than breaking on the first empty one.
 			if (main.currentMinigame == null || !(main.currentMinigame is BandageMinigame)) { yield return null; continue; }
 
 			sawMinigame++;

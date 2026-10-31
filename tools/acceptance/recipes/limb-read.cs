@@ -40,6 +40,10 @@
 	var dismembered = false;
 	var isHead = false;
 	var isVital = false;
+	var disinfection = 0f;
+	var infected = false;
+	var infectionAmount = 0f;
+	var broken = false;
 	var distanceToHeart = 0;
 	var componentText = "";
 
@@ -78,6 +82,10 @@
 		dismembered = limb.dismembered;
 		isHead = limb.isHead;
 		isVital = limb.isVital;
+		disinfection = limb.disinfectionTime;
+		infected = limb.infected;
+		infectionAmount = limb.infectionAmount;
+		broken = limb.broken;
 		distanceToHeart = limb.distanceToHeart;
 		if (limb.GetComponent<SplintLimb>() != null) { componentText = "SplintLimb"; }
 		if (limb.GetComponent<TourniquetScript>() != null) { componentText = componentText.Length > 0 ? componentText + ",TourniquetScript" : "TourniquetScript"; }
@@ -123,6 +131,10 @@
 		+ ",\"dismembered\":" + (dismembered ? "true" : "false")
 		+ ",\"isHead\":" + (isHead ? "true" : "false")
 		+ ",\"isVital\":" + (isVital ? "true" : "false")
+		+ ",\"disinfectionTime\":" + num(disinfection)
+		+ ",\"infected\":" + (infected ? "true" : "false")
+		+ ",\"infectionAmount\":" + num(infectionAmount)
+		+ ",\"broken\":" + (broken ? "true" : "false")
 		+ ",\"distanceToHeart\":" + distanceToHeart
 		+ ",\"components\":\"" + componentText + "\"}";
 }))()

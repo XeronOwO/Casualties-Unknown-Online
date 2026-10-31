@@ -112,8 +112,8 @@ liquid, the chest drain and the other liquid containers), and each of those is n
 
 A fresh session with the guest wounded on limb 3 (`skinHealth=73.6`):
 
-- **pain cream** — `remote-medical-release item=paincream,limb=3` answered `limbLookingAt=3` and the patient read `pain=87.919` immediately after. It leaves no component, so this pass proves the release reached the named limb but not the effect (no before-value was taken).
-- **disinfectant** — the same release answered `limbLookingAt=3`; `limb-read` carries no disinfection field on this recipe's projection, so the effect is unread here.
+- **pain cream** — `remote-medical-release item=paincream,limb=3` answered `limbLookingAt=3`, and the host's own log says what that answer does NOT mean: `[MedicalView] refused limb use: paincream is not a supported remote medical/limb-treatment item.` The recipe reports the limb under the pointer, not an accepted application.
+- **disinfectant** — the same release answered `limbLookingAt=4` and the host refused it the same way (`disinfectant is not a supported remote medical/limb-treatment item`), which the patient's `limb-read` confirms: `disinfectionTime=0` before and after, `infected=false`, `infectionAmount=0`. The field is readable now; the refusal is the answer.
 - **medical suture** — the release found nothing (`limbLookingAt` empty): the host's slots were full by then and the item had gone into its carried container, the fixture rule this project already carries ("one treatment per fresh launch").
 
 So the column's component-visible families stay the four already tabled (bandage, splint, tourniquet, icepack); the cream, the disinfectant and the other field-only treatments need their own before/after field readings, one per fresh session, and `limb-read` needs the fields those rows ask about (pain and disinfection are the two this pass could not read).
@@ -127,3 +127,5 @@ With the batch-side way to free a slot (consume a carried item: `item-use type=d
 - **medical suture** -> `limbLookingAt=4` on a freshly wounded limb (`skinHealth=35.32`), and the patient's `skinHealth` moved to 37.816 with no component: the suture's outcome is a wound state this recipe does not project, so the row needs a field reading (the wound's sutured/closed flag) rather than a component check.
 
 So the column reads four component-visible families (bandage, splint, tourniquet, icepack) and the field-only ones (suture, pain cream, disinfectant, the drain) are each one `limb-read` field away — the fields, not the fixtures, are what those rows still need.
+
+**The lesson those two rows carry**: a release answering a limb index is NOT an accepted application. The operator-side answer names the limb under the pointer, and the host's own `refused limb use: <item> is not a supported remote medical/limb-treatment item` line is the verdict — so every reading in this ticket pairs the release answer with the host's line, and the families that are refused by name (saline, waterbottle, pain cream, disinfectant) are refuse-by-design rows, not failures.

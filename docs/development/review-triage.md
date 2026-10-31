@@ -92,6 +92,9 @@ The remote chart is proven end to end for a BANDAGE (release, native minigame, h
 | `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
 | `guest-background-ghost-item-ground-sounds.md` | measured to the end as an EAR question: the capture probes record what a client plays, but the judgement is the user's ear |
 
+## The one fixture the medical stage tickets share (2026-11-01)
+
+Every remaining medical stage row needs a container holding a LIQUID — the injection rows need a syringe with something in it, and the topical row needs a limb-action container refilled with a health-usable liquid. This build offers no batch path to that state: the console carries no fill or liquid argument, and the item catalog has no prefilled syringe variant the batch could spawn. The readings that bound it are on `topical-limb-action-shape` (a health-usable liquid in a limb-action container refuses by name, plain water refuses by name, an empty syringe does nothing), and the honest route to the fixture is the game's own water-fill interaction, which a player performs — the same class of gap as the drag family's one human motion.
 ## How this list is kept honest
 
 A row leaves this page only through the ticket's own status moving to `done/`, and every claim above names the instrument, the code or the

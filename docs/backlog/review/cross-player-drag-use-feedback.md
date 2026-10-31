@@ -623,3 +623,9 @@ The next batch makes the two agree — bring the guest nearest, or aim the cue r
 The guest was teleported beside the host (2 units) and the alt moved 60 units away so the proximity resolution had an obvious answer, then the drag was armed and the auto-open called: **`isOpen=false, focused=0`** — the view did not open at all this time, and the cue stayed hidden.
 
 Two readings are consistent with that and both are cheap to separate next: the gesture's `_openedFor` remembers the member it last opened for and skips the work for a repeat, and the game's own while-dragging pass may close the view between the arm and the call. Either way the sequence a batch needs is the one a player performs — the drag STARTS while the teammate is already in range — rather than an arm followed by an open, and the instrument now reports the view's own state, so the next batch can tell the two apart instead of guessing.
+
+## The frame answers it: the teammate was 22 metres away (2026-11-01)
+
+The same pass captured a frame, and the frame carries the answer the readings could not: the game's own drag label hangs under the ring (the item and the container it came from), and the teammate's name at the bottom right carries a distance of **22 m**. The auto-open refuses out of range, which is exactly what `isOpen=false, focused=0` was reporting — the teleport had not put the guest beside the host by the time the drag ran.
+
+So nothing in the cue path is wrong, and nothing needs inventing: the batch has to read the DISTANCE (the frame shows it, and `pointer-truth` shows the screen point) and only then arm the drag. That is one more precondition on the list this ticket has accumulated, and it is the last one standing between the batch and the cue.

@@ -179,6 +179,9 @@ sends the answer back. That needs three things this ticket must state before any
 
 ## Staging (each stage ships and is verified on its own)
 
+**All four stages have landed (2026-10-31).** The stage bodies below are the plan as written; what each one actually shipped is
+recorded in its own section further down, and the acceptance rows below carry their state.
+
 1. **The contract** — definitions, parameters, completers, parsers in `Abstractions`; the framework's ten kinds become completer objects; built-ins
    migrate behind the attribute (no behaviour change); `IModConsoleCommands.Register(ICommandDefinition)` replaces `ModConsoleCommand` (the old type
    stays as an obsolete adapter for one release window).
@@ -341,3 +344,27 @@ why the frame is the evidence here and not the reading: the rendered history is 
 
 **Caveat kept from the previous row:** the member client is the English one; no Chinese member has been watched reading a relayed answer. Both sentences ship, and the resolver is the
 same generic one already proven on the Chinese client for hint and answer rows.
+## Stage 4 landed: the recipes exist, and where the acceptance rows stand (2026-10-31)
+
+`docs/en/how-to/write-console-commands.md` and its Chinese pair carry the two recipes on one page (they are one contract): a local command with a preset completer — the
+parameter answers from its own completer, then the shipped ones, then the declared kind, and the completer sees the arguments already accepted — and a `HostRelayed` command whose
+answer is a key plus arguments from the mod''s own catalogue. The reference tables gained `Localisation` on both sides, and the row that still claimed the relay was not wired is
+corrected.
+
+Where the acceptance rows actually stand, so nobody reads this ticket as finished:
+
+| Row | State |
+|---|---|
+| 1 | judged: a mod''s own words in the list (the `/music ` frame) and the `FixedChoiceCompleter` tests |
+| 2 | judged by tests (the second parameter reads the first); no separate frame |
+| 3 | judged: the built-ins'' frames show the same suggestions they offered before the migration |
+| 4 | judged live: the host ran the member''s line, logged the requester, and the member read the keyed answer |
+| 5 | **OPEN for mod commands**: a mod''s declared permission is honoured for `HostOnly`, but a `Cheat` declaration is not gated by the host''s roster — the adapter registers `ConsoleCommandGate.Open` deliberately, and that is the gap this row names |
+| 6 | judged: a keyed answer renders from the mod''s own catalogue (live, English member) and a text-only answer still prints (tests). The Chinese member''s render is a named residual |
+| 7 | **WITHDRAWN** by the user''s 2026-10-30 ruling: nothing has been released, so `ModConsoleCommand` was deleted instead of kept for a deprecation window |
+| 8 | judged for built-ins and for a mod parameter that declares `Selector` (test); no frame of the mod case |
+| 9 | per-request recomputation is structural (every `Suggest` asks again) and pinned by the completion tests; no dedicated session-change frame |
+| 10 | **OPEN**: a completer receives the invocation''s session snapshot and its command''s own definition, but no test proves one mod''s completer cannot see another mod''s facts |
+| 11 | **OPEN**: completion is bounded by the list caps, but no measurement proves a per-keystroke frame stays cheap |
+
+The four rows still open (5, 10, 11) and the two residuals (2''s frame, 6''s Chinese member) are what remains before this ticket can be reviewed.

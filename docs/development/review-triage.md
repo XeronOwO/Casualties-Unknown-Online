@@ -61,7 +61,7 @@ hover preview (row 8 of the completion ticket, which finally drew once the toolt
 | `give-degrades-to-a-ground-drop-and-rearranging-retires-it.md` | rows 1, 3 and 4 pass; row 2's target-screen line needs a real refusal on the receiving side |
 | `launcher-fails-when-the-alt-box-cannot-start.md` | rows 1-4 judged except the reboot path, which needs a machine restart |
 | `the-pre-run-lobby-can-deadlock.md` | the deadlock was hit once; the row needs the same shape reproduced |
-| `no-compatibility-branches-before-the-first-release.md` | rows 1, 2 and 5 are judged by the census and the gate; rows 3 and 4 carry written reasons (no save code touched, no released format to produce) and only need a close decision |
+
 
 ## N — measured to the end: not stageable on this build
 

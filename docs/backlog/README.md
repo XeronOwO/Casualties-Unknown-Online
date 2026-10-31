@@ -81,7 +81,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [A give degrades to a ground drop, and rearranging retires it](review/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — handled.
 
-- [No compatibility branches before the first release](review/no-compatibility-branches-before-the-first-release.md) — **High** — nothing is owed to old shapes.
 
 - [The command console is a contract, not attribute methods](review/the-command-console-is-a-contract.md) — **High** — code-complete; residuals named.
 
@@ -168,6 +167,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [No compatibility branches before the first release](done/no-compatibility-branches-before-the-first-release.md) — **High** — gate proven, rows read.
 
 - [Completion is not a command system yet](done/completion-list-keys-and-ids-disagree.md) — **High** — five defects, one list, eight rows.
 

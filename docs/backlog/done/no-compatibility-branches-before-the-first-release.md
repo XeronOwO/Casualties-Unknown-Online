@@ -1,6 +1,6 @@
 # No compatibility branches: the first release has not happened, so nothing is owed to old shapes
 
-- Status: Review — opened 2026-10-30 from the standing ruling (user): "the project has not released anything and the wire version does not increment, so any
+- Status: Done — opened 2026-10-30 from the standing ruling (user): "the project has not released anything and the wire version does not increment, so any
   breaking change is acceptable — do not leave historical debt."
 - Priority: High — every compatibility branch is a second implementation kept alive by a client that does not exist, and each one is a place the next change
   has to satisfy twice.
@@ -91,3 +91,12 @@ instead: the mod API reference and `how-to/write-console-commands.md` both name 
 author opens first.
 
 The ticket moves to `review/`: rows 1, 2 and 5 are judged by the census and the gate, and rows 3 and 4 carry the reasons above.
+
+## Closed (2026-11-01): every row is read, and two of them as decisions rather than observations
+
+Rows 1, 2 and 5 are judged by the census and the gate: the census lists each candidate with its reason and what deleted it, the gate refuses a seeded `[Obsolete]` member and a seeded debt comment and passes the tree, and no such branch remains under `src/`. Rows 3 and 4 cannot be observed and are closed as the decisions they are:
+
+- **Row 3** asks that a save written by the previous build still loads. Nothing was released and no save code was touched by this ticket, so the "previous build" writes exactly today's format — there is no older format to produce, and the round-trip and salvage suites are the standing proof that the current one loads.
+- **Row 4** asks that a mod on the old console contract fails to compile naming what to use instead. The compiler answers "type not found", and teaching it a sentence would mean keeping an `[Obsolete]` type alive — exactly what rows 2 and 5 forbid. The reader-facing half is served by the mod API reference and the console how-to, which both name the definition contract as the replacement.
+
+Closing it is the honest end of a ticket whose subject is the ABSENCE of debt: there is nothing left to delete and no released shape to protect.

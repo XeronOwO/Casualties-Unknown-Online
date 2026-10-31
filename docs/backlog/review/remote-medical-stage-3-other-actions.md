@@ -124,7 +124,7 @@ With the batch-side way to free a slot (consume a carried item: `item-use type=d
 
 - **splint** -> `limbLookingAt=2`, the patient's own client carries **`SplintLimb`** (an independent second reading of the family);
 - **tourniquet** -> `limbLookingAt=3`, **`TourniquetScript`** (second reading);
-- **medical suture** -> `limbLookingAt=4` on a freshly wounded limb (`skinHealth=35.32`), and the patient's `skinHealth` moved to 37.816 with no component: the suture's outcome is a wound state this recipe does not project, so the row needs a field reading (the wound's sutured/closed flag) rather than a component check.
+- **medical suture** -> **accepted**: the host logged `requested use of <patient> limb 4 with medicalsuture` and the patient's own client `used on the affected limb`, so the family reads end to end; its outcome is a wound state `limb-read` does not project (no component, `skinHealth` 35.32 -> 37.816), which is the field that row still needs.
 
 So the column reads four component-visible families (bandage, splint, tourniquet, icepack) and the field-only ones (suture, pain cream, disinfectant, the drain) are each one `limb-read` field away — the fields, not the fixtures, are what those rows still need.
 

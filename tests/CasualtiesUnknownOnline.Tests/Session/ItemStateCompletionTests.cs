@@ -245,6 +245,9 @@ public class ItemStateCompletionTests
 		var (host, _) = CreateSession();
 		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
 
+		var canonical = completion.Suggest("/give @p cu:waterbottle{");
+		Assert.Contains(canonical, candidate => candidate.Text.EndsWith("{Condition:", StringComparison.Ordinal) && candidate.Text.StartsWith("cu:waterbottle", StringComparison.Ordinal));
+
 		var suggestions = completion.Suggest("/give @p waterbottle{");
 
 		Assert.Contains(suggestions, candidate => candidate.Text.EndsWith("{Condition:", StringComparison.Ordinal));

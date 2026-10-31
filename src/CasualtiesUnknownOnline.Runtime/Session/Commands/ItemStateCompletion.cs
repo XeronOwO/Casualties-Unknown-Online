@@ -105,7 +105,13 @@ internal sealed class ItemStateCompletion(
 		}
 
 		var brace = text.IndexOf('{');
-		var definitionId = text.Substring(0, brace);
+		var typedId = text.Substring(0, brace);
+		// The schema is keyed by the GAME's own id, while the player may have typed the canonical form; the inserted text keeps what they typed.
+		if (!ItemDefinitionId.TryResolve(typedId, out var definitionId, out _))
+		{
+			return false;
+		}
+
 		var schema = _language.DescribeDefinitionSchema(definitionId);
 		if (schema is null)
 		{
@@ -113,7 +119,7 @@ internal sealed class ItemStateCompletion(
 		}
 
 		return SnbtCompletion.TryFragments(text.Substring(brace), schema.Root, out var prefix, out var fragments)
-			&& ToSuggestions(definitionId + prefix, fragments, out suggestions);
+			&& ToSuggestions(typedId + prefix, fragments, out suggestions);
 	}
 
 	/// <summary>
@@ -187,7 +193,13 @@ internal sealed class ItemStateCompletion(
 		}
 
 		var brace = text.IndexOf('{');
-		var definitionId = text.Substring(0, brace);
+		var typedId = text.Substring(0, brace);
+		// The schema is keyed by the GAME's own id, while the player may have typed the canonical form; the inserted text keeps what they typed.
+		if (!ItemDefinitionId.TryResolve(typedId, out var definitionId, out _))
+		{
+			return false;
+		}
+
 		var schema = _language.DescribeDefinitionSchema(definitionId);
 		if (schema is null)
 		{
@@ -195,7 +207,7 @@ internal sealed class ItemStateCompletion(
 		}
 
 		return SnbtCompletion.TryFragments(text.Substring(brace), schema.Root, out var prefix, out var fragments)
-			&& ToSuggestions(definitionId + prefix, fragments, out suggestions);
+			&& ToSuggestions(typedId + prefix, fragments, out suggestions);
 	}
 
 	/// <summary>

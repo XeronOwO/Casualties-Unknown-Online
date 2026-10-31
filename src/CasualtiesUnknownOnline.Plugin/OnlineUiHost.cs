@@ -290,15 +290,15 @@ internal sealed class OnlineUiHost
 			_log.LogInformation("CUO ESC-closing surface closed this frame — keeping native input modal for one frame to swallow the closing ESC.");
 		}
 
-		// Keep the game's background UI input suppressed while the Online UI
-		// modal window or the standalone command console is open (IMGUI does
-		// not participate in UGUI input). A non-modal quick panel is not in the
-		// modal guard while open, but its pause-toggle suppression is set below;
-		// its close frame is covered by escCloseFrame.
+		// Keep the game's background UI input suppressed while the Online UI modal window or the standalone command console is open
+		// (IMGUI does not participate in UGUI input). A non-modal quick panel is not in the modal guard while open, but its pause-toggle
+		// suppression is set below and its close frame is covered by escCloseFrame; the console is an ESC-closing surface of its own, so
+		// Escape closes it without also toggling the game's pause.
 		if (_inputBlocker is { } inputBlocker)
 		{
 			inputBlocker.SetOnlineUiModal(windowVisible || consoleOpen || escCloseFrame);
-			inputBlocker.SetOnlineUiEscapeSurfaceVisible(quickPanelVisible);
+			// The console is an ESC-closing surface too: Escape closes it, so the game's TogglePause must not also run on that press.
+			inputBlocker.SetOnlineUiEscapeSurfaceVisible(quickPanelVisible || consoleOpen);
 		}
 
 		if (!_onlineUi.IsCommandConsoleOpen && HotkeyPressed(_quickPanelKey))

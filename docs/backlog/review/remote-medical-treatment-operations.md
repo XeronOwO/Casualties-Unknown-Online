@@ -240,3 +240,18 @@ A new recipe (`minigame-live`) reads the minigame's own state as the GAME comput
 Then a staged pointer press at the ring and twelve staged moves around it, and the same reading afterwards: `clicking=False, angle=0, lastAction=0, fill=0`. So the minigame is real, the ring is where the batch thinks it is (the hand sits at radius 250, the game's own clamp), and **the game never sees the attack button held**.
 
 The reason is the instrument, not the feature: `MinigameBase.UpdateHandVisuals` asks `Input.GetKey(KeyBinds.GetBind("attack"))` DIRECTLY, while `VirtualInput` stages the keyboard by replacing the game's key reads at their call sites inside `PlayerCamera.HandleInput` (a transpiler) and patches only `Input.GetMouseButton*` for the mouse. A read that happens somewhere else — the minigame's own update — still reaches the real keyboard. **The next change is therefore in the acceptance harness**: patch `Input.GetKey`/`GetKeyDown`/`GetKeyUp(KeyCode)` with the same staged state the mouse buttons already answer (they are the same native shape `GetMouseButton` detours today), so a batch can hold the attack bind the way a player does. Nothing about the product changes; the minigame then has an honest input and the operation's progress is what gets read.
+
+## THE TREATMENT LANDS (2026-11-01): the wound went from 76.24 to 100 through the remote chart
+
+Two harness gaps closed and the whole chain ran:
+
+1. `VirtualInput` now replaces the `Input.GetKey` call sites inside **`MinigameBase.UpdateHandVisuals`** with the same transpiler that already serves `PlayerCamera.HandleInput` (a detour on `Input`'s own methods is never invoked on this build). The lookup falls back to a name-only search — the exact-signature form answered "no method on this build", and the name form found it and replaced **3 call sites**.
+2. The `virtual-input` recipe grew `press-key`/`release-key`, which stage the ATTACK KEY (`KeyCode.Mouse0`) rather than only the mouse button — the minigame asks `Input.GetKey`, not `Input.GetMouseButton`.
+
+With the key held and the pointer stepped in **15°** increments around the ring (`BandageMinigame`'s guard only processes a step under 20°, so 22° steps were silently ignored — that was the last wrong detail), the live reader answered:
+
+    kind=BandageMinigame clicking=True angle=27.549 lastAction=20 fill=1
+
+— the game's own action had fired and the wrap sprite was full. And the patient's limb, which the fixture had wounded to `skinHealth=76.24, bleedAmount=2.731`, then read **`skinHealth=100, bleedAmount=0`**. A bandage released on a remote limb, played through the game's own minigame, treats the patient.
+
+The rows this ticket carries can now be judged on that evidence; what is left to write is the per-row verdict, not another instrument.

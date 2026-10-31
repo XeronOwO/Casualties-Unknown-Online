@@ -3040,9 +3040,9 @@
 
       "row": "K3",
 
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/FrameTick.cs",
 
-      "quote": "_domains.WorldEventSync.Update();"
+      "quote": "domains.WorldEventSync.Update();"
 
     },
 

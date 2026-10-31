@@ -1,6 +1,4 @@
 using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
@@ -67,7 +65,6 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	private readonly PlayerInteractionApply _playerInteraction;
 	private readonly RemoteIntentApplier _remoteInventoryApply;
 	private readonly GameAdapterSessionBinding _sessionBinding;
-	private readonly LatencyInstrumentation _latency;
 	private readonly PatchInstallLifecycle _patches;
 	// The Online UI's read-only probe of the game's own UI (ticket online-ui-art-and-controls-overhaul,
 	// S1): it owns the CUO canvas parented under the game's main canvas and the game's settings rows.
@@ -76,7 +73,8 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	// parented under the game's canvas with the game's own launcher control on it. The probe above READS
 	// the game's UI; this one IS the UI — it renders, takes input and owns the game objects.
 	private readonly OnlineUiSurfaceHost _onlineUiSurface;
-	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
+
+	private readonly FrameTick _frameTick;
 
 	public GameAdapter(
 		ISessionControl session,
@@ -129,7 +127,6 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	{
 		_patches = new PatchInstallLifecycle(log);
 		_onlineUiSurface = new OnlineUiSurfaceHost(log);
-		_latency = latency;
 		_introCoverLog = reason => log.LogInformation("[Intro] {Reason}", reason);
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
 			enemies, worldTime, layerAdvance, reentry, playerInteraction, tutorialClaw, worldSaves, restoreAudit, startingSupplies, respawnOptions, hostRules,
@@ -146,6 +143,8 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		var medicalOperationApply = new MedicalOperationApply(_domains);
 
 		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction, _remoteInventoryApply, pushApply, medicalOperationApply);
+		_frameTick = new FrameTick(_domains, _playerInteraction, latency);
+
 		PatchBridge.Bind(_bridge); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
 
@@ -199,143 +198,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	{
 	}
 
-	void ICuoService.Update()
-	{
-		var frameStopwatch = _latency.IsEnabled ? Stopwatch.StartNew() : null;
-		_domains.GuestMenu.Update();
-		_domains.RunSettingsRange.Update();
-		_domains.MenuInput.Update();
-		using (_latency.Measure("Run"))
-		{
-			_domains.Run.Update();
-		}
-		_domains.Reentry.Update(); // guest: the bounded ask for the entry instruction it may have missed; host: the answer rides the event
-		_domains.PlayerInteraction.Update(); // host: a placement question nobody answered is refused at its deadline, not at the next give
-
-		using (_latency.Measure("WorldTime"))
-		{
-			_domains.WorldTimeSync.Update(); // host policy + direct-write adoption + resend; guest ramp stepping and host-speed enforcement (suspended while a local initiation is in flight)
-		}
-
-		// World-entry edge: the teardown of the PREVIOUS scene finished (its
-		// destroys were suppressed, #191) — the new world's real destroys report
-		// again. The edge rides the local body (null in any menu scene; Unity
-		// object — ==).
-		var localBody = _domains.Run.LocalBody;
-		if (localBody != null && _lastLocalBody == null) // Unity objects — ==
-		{
-			_domains.ItemWorldSync.ResetDestroySuppression();
-		}
-
-		// The custody projection (shadow mode): the kernel's rows against this client's objects, once a second, changing nothing. Stage 1 of
-		// docs/backlog/todo/item-custody-single-authority.md — a running session with `mismatches=0` is what lets the readers be switched.
-		_domains.ItemCustody.Tick(_domains.Session.LocalSteamId, [.. _domains.Session.Members.Select(member => member.SteamId)]);
-
-		_lastLocalBody = localBody;
-		using (_latency.Measure("StartGate"))
-		{
-			_domains.Gate.Update(_domains.Run.LocalBody);
-		}
-
-		_domains.LayerAdvance.UpdatePanelChoices(); // the end-of-layer panel's two choices belong to the host
-		_domains.GenItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
-		_domains.GenItemApplication.Update(_domains.Run.IsEnteringWorld); // guest: apply the host's generation snapshot once the local generation finished (held while the entry loads its world)
-		_domains.StartingSupplies.Update(); // a player this world has no character for: the run's starting supplies, once per body (S4.3)
-		using (_latency.Measure("Respawn"))
-		{
-			_domains.Respawn.Update(); // host: next-level respawn once a world generation finishes
-		}
-		_domains.TrapLayoutScanner.Update(); // host: report the generated trap layout on the same falling edge
-		_domains.TrapLayoutApplication.Update(); // guest: apply a deferred layout snapshot once the local generation finished
-		_domains.LayerModifierSync.Update(); // guest: apply the host's layer modifier once the local generation finished
-		_domains.CarriedInventoryReporter.Update(); // both sides: register/report the carried inventory with instance ids once the local generation finished
-		_domains.ItemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
-		_domains.EntityEventSync.FlushPendingDrops(); // a destructive trap's building-death drops fold into the same event after the hold window
-		_domains.BlockBreakSync.FlushPendingBlockBreak(); // a break's drops fold in one frame after the break — the break + drops go out as ONE message
-		using (_latency.Measure("ItemPosition"))
-		{
-			if (_domains.Session.Role == SessionRole.Host && _domains.Session.SessionActive)
-			{
-				_domains.ItemPositionAuthority.Update(); // the host's physics is the single position authority
-			}
-			else
-			{
-				_domains.ItemPositionFollow.Update(); // the guest copies simulate locally (ground-layer isolation), soft-corrected by the host's stream
-			}
-		}
-
-		using (_latency.Measure("WorldEvent"))
-		{
-			_domains.WorldEventSync.Update();
-		}
-		_domains.GeyserStateSync.Update(); // host/solo: capture + broadcast the geysers' liquid types once the generation finished
-		_domains.RadiationLineSync.Update(); // host: publish the authoritative radiation-line state (active + timeGone)
-		_domains.Spectator.Update(); // every client: a dead player's own camera, from this client's own facts
-		_domains.EntitySpawnSync.Update(); // the creation channel's deferred reports (a geyser's type, after its child Start) and carried-data applications
-		using (_latency.Measure("Fluid"))
-		{
-			_domains.FluidSync.Update(); // host: stream the members' fluid viewports (10 Hz diff + 1 Hz full)
-		}
-
-		using (_latency.Measure("Trader"))
-		{
-			_domains.TradeSync.Update(); // host: the 5 s trader-state fallback broadcast
-		}
-		_domains.BlockBreakSync.Update(); // expire break records without a consuming drops report
-		using (_latency.Measure("Renderer"))
-		{
-			_domains.Renderer.Update(localBody);
-		}
-
-		// A carried local body follows the remote carrier's RENDER clone. The
-		// renderer must run first so the carrier clone has already received this
-		// frame's SessionStatePump interpolation; reading the raw entity buffer
-		// there would reintroduce the step/snap the render path intentionally
-		// smooths away.
-		_playerInteraction.UpdateCarriedBody(localBody);
-
-		_domains.CharacterRagdollSync.Update(); // flush clone-creation-race ragdoll one-shots after the renderer created clones
-		_domains.RemoteBackpack.Update();
-		_domains.RemoteMedical.Update();
-		using (_latency.Measure("EnemySync"))
-		{
-			_domains.EnemySync.Update(); // host: capture + publish the simulated enemies; guest: (event-driven bind/apply)
-		}
-
-		using (_latency.Measure("EnemyCombat"))
-		{
-			_domains.EnemyCombat.Update(); // host: enemy combat decisions (target guidance rides the patch callbacks; bite arbitration here)
-		}
-		_domains.TutorialClawSync.Update(); // host: publish the tutorial-claw presentation state (Runtime throttles the 20 Hz fan-out)
-
-		// THE CUT SEAM — the last step of the frame pump. Every domain above has
-		// finished this frame's work (the drop/break flushes included), so the
-		// kernel is at a committed revision and no frame flush is in flight: the
-		// one point where the armed /save cut and the host's deliberate menu return
-		// are taken. Nothing else in the adapter may call the save control.
-		using (_latency.Measure("SaveSeam"))
-		{
-			_domains.SaveCutSeam.Update(_domains.Run.IsInWorld);
-		}
-
-		if (frameStopwatch != null)
-		{
-			_latency.RecordFrame(frameStopwatch.Elapsed.TotalMilliseconds);
-		}
-
-		_latency.Flush();
-
-		// The call-identity guard's frame boundary (CallContext.EndFrame): a scope still open here was leaked
-		// by a frame that threw between its Prefix and its Postfix, and one line per leak episode is what an
-		// operator reads — never one per frame.
-		var recovery = CallContext.EndFrame();
-		if (recovery is not null)
-		{
-			_domains.Log.LogError(
-				"[CallContext] frame boundary: {Recovery} — a game-side throw inside a patched original skips the postfix that owns the release.",
-				recovery);
-		}
-	}
+	void ICuoService.Update() => _frameTick.Run();
 
 	/// <summary>
 	/// Late-frame carry presentation pass (the <see cref="ICarryPresentationPump"/>

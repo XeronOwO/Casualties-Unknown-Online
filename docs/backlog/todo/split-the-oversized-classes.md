@@ -209,3 +209,16 @@ deleted (three left). The switch still names every arm, the guards are the same 
 refusal was about.
 
 **What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine), `GameAdapter` (712) and `GameAdapterBridge` (649).
+
+## Split 14: the adapter's frame pump (2026-10-31)
+
+`GameAdapter` was 712 lines, and the largest block in it was not a domain but the ORDER: one ordered walk over every domain, from the menu guards at the top of the
+frame to the cut seam at the bottom, with the latency measurements around the sections that can stall. That walk is `FrameTick.Run()` now — **577 lines** in the
+adapter, whose `ICuoService.Update` is one line, and its entry is deleted (two left).
+
+The order is the behaviour and it was moved verbatim: same calls, same sequence, same comments explaining why each one stands where it does. Two pieces of state moved
+with it — the previous frame's local body (the world-entry edge for the destroy-suppression reset) and the latency instrumentation, each of which now belongs to the
+pump that reads it. Two gates followed the move: the call-context boundary gate now asserts `CallContext.EndFrame()` sits once in `FrameTick.Run` **and** that the
+adapter pumps exactly once (so a future move cannot drop either half), and one sync-coverage quote moved with its call.
+
+**What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine) and `GameAdapterBridge` (649).

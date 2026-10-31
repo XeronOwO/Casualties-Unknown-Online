@@ -419,8 +419,45 @@ internal sealed class CommandConsoleOverlay
 		CommandSuggestionHint.GamemodeValue => ctx.T("console.suggest.gamemode_value"),
 		CommandSuggestionHint.HostRuleCurrent => ctx.F("console.suggest.rule_current", suggestion.Args[0] ?? string.Empty),
 		CommandSuggestionHint.HostRuleValue => ctx.F("console.suggest.rule_value", suggestion.Args[0] ?? string.Empty),
+		CommandSuggestionHint.ResourceLocation => ResourceLocationHint(ctx, suggestion),
 		CommandSuggestionHint.KeyedText => KeyedHint(ctx, suggestion),
 		_ => null,
+	};
+
+	/// <summary>
+	/// A content-id candidate's row: the reader's own name for the content, and what kind it is (`cu:waterbottle` + "bottled water (item)"). The id itself is the
+	/// button's text; this is the grey half that makes a transliterated match readable (user's 2026-10-30 report: a pinyin hit listed a bare id with nothing else).
+	/// </summary>
+	private static string? ResourceLocationHint(OnlineUiContext ctx, CommandSuggestion suggestion)
+	{
+		var kind = suggestion.Args.Length > 1 ? suggestion.Args[0] as string : null;
+		var name = suggestion.Args.Length > 1 ? suggestion.Args[1] as string : null;
+		if (string.IsNullOrWhiteSpace(name))
+		{
+			return null;
+		}
+
+		var kindLabel = KindLabel(ctx, kind);
+		return string.IsNullOrWhiteSpace(kindLabel) ? name : ctx.F("console.suggest.resource", name, kindLabel);
+	}
+
+	/// <summary>
+	/// One content kind in the reader's language. A kind a mod invented has no catalogue entry, and then the raw tag is shown — the row says what it can, and
+	/// never prints a key.
+	/// </summary>
+	private static string KindLabel(OnlineUiContext ctx, string? kind) => kind switch
+	{
+		"item" => ctx.T("console.suggest.kind.item"),
+		"recipe" => ctx.T("console.suggest.kind.recipe"),
+		"liquid" => ctx.T("console.suggest.kind.liquid"),
+		"liquidtile" => ctx.T("console.suggest.kind.liquidtile"),
+		"tile" => ctx.T("console.suggest.kind.tile"),
+		"building" => ctx.T("console.suggest.kind.building"),
+		"structure" => ctx.T("console.suggest.kind.structure"),
+		"status" => ctx.T("console.suggest.kind.status"),
+		"moodle" => ctx.T("console.suggest.kind.moodle"),
+		null or "" => string.Empty,
+		_ => kind,
 	};
 
 	/// <summary>

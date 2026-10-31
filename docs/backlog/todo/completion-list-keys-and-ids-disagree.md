@@ -113,3 +113,9 @@ verb refused the canonical one) is deleted with its test rewritten: the suggesti
 
 What row 4 still owes: the FRAME (a client showing `cu:...` in the list and landing the item) — the code half and the unit tests are here, the visual half is the next batch.
 **Row 4 judged on a frame (2026-10-31, build `63b2d407`, deployed):** typing `/give @s cu:wat` drew `cu:watch`, `cu:waterbottle`, `cu:waterjug` — the canonical`nform with its namespace — and the history above it carries the answer to `/give @s cu:waterbottle`: the item landed in slot 0. So the list teaches the namespaced id AND the verb accepts`nit, which was the pair the old `TakesTheGamesOwnId` special case existed to avoid.
+## Row 5 landed: a content row says what it is (2026-10-31)
+
+`CommandSuggestionHint.ResourceLocation` had no renderer — the hint switch fell through to `null`, so a row showed its id and nothing else, which is why a pinyin hit read as a bare name.
+The overlay now renders `console.suggest.resource` (`{0} ({1})` / `{0}（{1}）`) with the reader's own name for the content and a label for its KIND (nine
+`console.suggest.kind.*` entries; a kind a mod invented shows its raw tag rather than a key). The localisation census and the console-page pin carry the ten new keys, and the full suite is
+green. The frame for this row rides the next batch (the row is drawn only when one of those hints exists, and this deployment needs the plugin rebuilt).

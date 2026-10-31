@@ -589,3 +589,9 @@ The previous note was wrong about the instrument: `drag-from-slot` answers its i
 and `drag-state` then agrees: **`dragging=true, item=bandage, mouse=(672,358)`**. So the batch can hold a real drag with a real bandage in hand.
 
 What the cue then waits on is the other side of the gesture: with the pointer moved onto the teammate, `drag-cue` still answers `showing=false, target=0`. The cue's target is resolved against the DISPLAYED backpack (the remote pack view CUO opens), and that view was not open — the batch never opened it. The next instrument is therefore one call: open the teammate's displayed backpack the way the player's right-click does, then re-read the cue with the drag held. A `remote-backpack-open`-shaped recipe is what is missing, and it is the same call the Online UI already makes when a player right-clicks a teammate.
+
+## The reach the next instrument needs (2026-11-01)
+
+With a real drag held (`dragging=true, item=bandage`) and the pointer on the teammate, the cue stayed hidden after a two-second settle, so the displayed backpack really is its precondition. A recipe that tried to open it (`remote-backpack-open`) could not reach the coordinator: walking the bridge's own properties for an `Open(ulong, string)` returning `bool` answered `no-backpack-open`, so the coordinator is not a property there (it was removed again rather than left as a recipe that always fails).
+
+The reach that should work is the one the Online UI itself uses: `CrossPlayerDragUse` calls `domains.RemoteBackpack.Open(target, displayName)`, and the `domains` object of that call site is what a recipe has to name — either as the Runtime service the adapter binds (the same place `drag-cue` reads its cue state from) or through an adapter accessor that exists for the purpose. Naming that accessor is the whole of the next step; the cue itself has never been the question.

@@ -130,4 +130,19 @@ so the authority-absorption rule (the host's own push is never an injury) lives 
 that number rather than deleted: the class is not under the line yet, and the queue's row 1 allows an entry that names this ticket and no higher number. The injury pin
 followed the trigger into the reporter and still asserts both halves (the rise test and the payload).
 
-**What is left in the queue**: `RunCoordinator` (922), `GameAdapter` (667), `GameAdapterBridge` (663), `WorldService` (640) and `CharacterDataSync` (620, this ticket).
+**What is left in the queue**: `RunCoordinator` (922), `GameAdapter` (712), `GameAdapterBridge` (649), `WorldService` (640) and `CharacterDataSync` (620, this ticket).
+
+## Split 8: the local heal-item query leaves the apply path (2026-10-31)
+
+`GameAdapter.PlayerInteractionApply` was one line over the ceiling (601). The cut is the two questions the Online UI asks about the local body's heal items — whether it
+carries one, and which instance ids it can offer — which shared one subtree scan and one exclusion rule (skip anything under a render clone: that is another player's
+presentation, not this body's items). They are `LocalHealItems` now (a static helper with the scan in one place), and the apply path keeps two expression-bodied
+forwarders. The class is **545 lines** and its entry is DELETED.
+
+## The debt file after the sweep (2026-10-31)
+
+Seven entries remain, each one measured against the gate's own count and re-recorded where it had drifted: `RunCoordinator` 922, `GameAdapter` 712, `GameAdapterBridge`
+649 (was 663 before the world-generation port took its nine members), `WorldService` 640, `RemoteIntentApplier` 621 (was 684), `CharacterDataSync` 620 and `ExampleMod` 608.
+`PlayerInteractionApply` and `PlayerInventoryTakeService` are gone from the file entirely.
+
+**The gate counts a file's lines once per type it declares**, so a class with nested types counts higher than its raw line count; every number above is the gate's.

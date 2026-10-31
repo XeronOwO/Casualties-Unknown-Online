@@ -5,7 +5,6 @@ using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
-using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -493,65 +492,9 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 		}
 	}
 
-	public bool HasLocalHealItem()
-	{
-		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
-		if (body == null) // Unity object — ==
-		{
-			return false;
-		}
+	public bool HasLocalHealItem() => LocalHealItems.Any();
 
-		// Recursive full-subtree scan: a heal item inside a carried container is
-		// just as requestable as one in a direct slot, and the rest of this file
-		// now resolves carried items recursively.
-		foreach (var item in body.GetComponentsInChildren<Item>(true))
-		{
-			if (item == null || item.GetComponentInParent<RemoteCloneRender>() != null) // Unity objects — ==
-			{
-				continue;
-			}
-
-			if (RemoteHealProfiles.IsHealItem(item.id))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	public IReadOnlyList<LocalHealItem> GetLocalHealItems()
-	{
-		var result = new List<LocalHealItem>();
-		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
-		if (body == null) // Unity object — ==
-		{
-			return result;
-		}
-
-		// Recursive full-subtree scan (same reason as HasLocalHealItem): the
-		// selector must not miss heal items inside a carried container.
-		foreach (var item in body.GetComponentsInChildren<Item>(true))
-		{
-			if (item == null || item.GetComponentInParent<RemoteCloneRender>() != null) // Unity objects — ==
-			{
-				continue;
-			}
-
-			if (!RemoteHealProfiles.IsHealItem(item.id))
-			{
-				continue;
-			}
-
-			var id = item.GetComponent<ItemInstanceId>();
-			if (id != null && id.Id != 0) // Unity object — ==
-			{
-				result.Add(new LocalHealItem(id.Id, item.id));
-			}
-		}
-
-		return result;
-	}
+	public IReadOnlyList<LocalHealItem> GetLocalHealItems() => LocalHealItems.List();
 
 	private void ApplyCarryStateToBody(Body body, PlayerCarryStateMsg msg)
 	{

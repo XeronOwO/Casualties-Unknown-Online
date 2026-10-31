@@ -133,3 +133,7 @@ Neither is a product question; both are named here so the next pass picks one de
 ## The real pointer does not turn it either, without focus (2026-11-01)
 
 Moving the REAL pointer to the top of the screen (`send-input -Action move`) and re-placing the body left the entity at the same projected point `(1359, 217)`. The game turns the camera from the pointer while its window has the mouse CAPTURED and focused, and a `move` that the window does not read leaves the view exactly where it was. So the honest order for this row is: focus the client window first (a click inside it), then move the pointer, then place the body — the same focus-first rule the older input notes carry for OS presses.
+
+## Absolute pointer moves do not turn it either (2026-11-01)
+
+Focusing the window first (a click inside it), then placing the body and moving the real pointer to the top of the screen left the entity at `(1359, 221)`. The look direction follows pointer DELTAS while the cursor is captured, and an absolute move that the capture does not translate into a delta leaves the view where it was. A batch that needs to face something therefore needs either a delta-producing input path or a camera control of its own; the row is unaffected in what it asks for — the host's swing and the guest's frame — but the aiming step is the instrument still missing.

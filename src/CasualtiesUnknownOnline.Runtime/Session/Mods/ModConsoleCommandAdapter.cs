@@ -69,7 +69,9 @@ internal sealed class ModConsoleCommandAdapter(
 			kinds,
 			args => Execute(command, args),
 			command.Aliases,
-			command);
+			command,
+			manifest.Id,
+			(requester, args) => Execute(command, args, requester));
 
 		if (!registry.TryAdd(definition, out var error))
 		{
@@ -113,16 +115,17 @@ internal sealed class ModConsoleCommandAdapter(
 		return true;
 	}
 
-	private ConsoleAnswer Execute(ICommandDefinition command, IReadOnlyList<string> args)
+	private ConsoleAnswer Execute(ICommandDefinition command, IReadOnlyList<string> args, ulong? requester = null)
 	{
 		var typed = args.Count > 0 ? args[0] : "/" + command.Name;
 		var typedWord = typed.StartsWith("/", StringComparison.Ordinal) ? typed.Substring(1) : typed;
 		var alias = string.Equals(typedWord, command.Name, StringComparison.OrdinalIgnoreCase) ? null : typedWord;
+		var local = requester ?? session.LocalSteamId;
 		return command.Invoke(new CommandInvocation(
 			command.Name,
 			alias,
 			[.. args.Skip(1)],
-			session.LocalSteamId,
+			local,
 			ModSessionSnapshot.Capture(session)));
 	}
 
@@ -140,6 +143,8 @@ internal sealed class ModConsoleCommandAdapter(
 		public IReadOnlyList<string> Arguments { get; } = arguments;
 
 		public ulong LocalSteamId { get; } = localSteamId;
+
+		public ulong RequesterSteamId { get; } = localSteamId;
 
 		public ISessionInfo Session { get; } = session;
 	}

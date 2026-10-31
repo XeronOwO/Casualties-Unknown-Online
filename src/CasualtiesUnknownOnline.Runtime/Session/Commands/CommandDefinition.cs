@@ -20,7 +20,9 @@ internal sealed record CommandDefinition(
 	IReadOnlyList<CommandArgumentKind> ArgumentKinds,
 	Func<IReadOnlyList<string>, ConsoleAnswer> Answer,
 	IReadOnlyList<string>? Aliases = null,
-	ICommandDefinition? Contract = null)
+	ICommandDefinition? Contract = null,
+	string? OwnerModId = null,
+	Func<ulong, IReadOnlyList<string>, ConsoleAnswer>? RelayAnswer = null)
 {
 	public IReadOnlyList<string> Aliases { get; } = Aliases ?? [];
 

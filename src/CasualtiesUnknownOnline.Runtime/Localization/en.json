@@ -231,6 +231,8 @@
 "console.suggest.resource": "{0} ({1})",
   "console.suggest.item_state": "item state (SNBT) — Tab fills the next key",
   "console.hint.no_match": "nothing here matches '{0}'. Usage: {1}",
+  "console.command.relay_not_hosted": "the host does not run '/{0}' here.",
+  "console.command.relay_unavailable": "this command runs on the host, but it cannot be sent there right now.",
   "console.hint.unknown_command": "there is no command named '{0}' — /help lists the commands.",
   "console.hint.usage": "Usage: {0}",
 "console.suggest.kind.item": "item",

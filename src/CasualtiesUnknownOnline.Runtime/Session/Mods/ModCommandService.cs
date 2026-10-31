@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Time;
@@ -25,6 +26,7 @@ internal sealed class ModCommandService(
 	SessionService session,
 	PacketSender sender,
 	ITimeSource time,
+	CommandRelayHub relay,
 	ILogger log)
 {
 	private readonly ModCatalog _catalog = catalog;
@@ -32,6 +34,7 @@ internal sealed class ModCommandService(
 	private readonly PacketSender _sender = sender;
 	private readonly ITimeSource _time = time;
 	private readonly ILogger _log = log;
+	private readonly CommandRelayHub _relay = relay;
 	private readonly Dictionary<ulong, ModRateLimiter> _commandRateLimiters = [];
 
 	internal ModCommandAdapter CreateAdapter(ModManifest manifest) => new(this, manifest);
@@ -40,6 +43,12 @@ internal sealed class ModCommandService(
 
 	internal void FireCommandRequestReceived(ulong sender, ModCommandRequestMsg msg)
 	{
+		if (msg.SourceKind == CommandRelaySource.Console)
+		{
+			HandleConsoleRequest(sender, msg);
+			return;
+		}
+
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			_log.LogWarning("[Mods] command request from {Sender} arrived outside a host session — dropped.", sender);
@@ -92,6 +101,13 @@ internal sealed class ModCommandService(
 
 	internal void FireCommandResultReceived(ulong sender, ModCommandResultMsg msg)
 	{
+		// A console command's answer belongs to the line that asked for it, not to a mod's pending callback: the console prints it in the requester's language.
+		if (msg.SourceKind == CommandRelaySource.Console)
+		{
+			_relay.Deliver(msg.RequestId, CommandRelayOutcome.FromResult(msg));
+			return;
+		}
+
 		if (!ModCommandPolicy.IsValidResult(msg))
 		{
 			_log.LogWarning("[Mods] command result from {Sender} failed the shape caps — dropped.", sender);
@@ -198,6 +214,68 @@ internal sealed class ModCommandService(
 			_log.LogError(e, "[Mods] {Id}/{Name} command threw — the failure is returned to the requester.", mod.Manifest.Id, name);
 			return new CommandResultData(requestId, name, requester, false, null, ModCommandPolicy.ClampError(e.Message));
 		}
+	}
+
+	/// <summary>
+	/// A member's console command declared <c>HostRelayed</c>: the request frame names the console registry, and the answer comes back as parts so the
+	/// requester prints it in its own language. The host resolves the definition, gates it and runs it on its own copy of the mod.
+	/// </summary>
+	internal void SubmitConsoleCommand(uint requestId, string modId, string name, IReadOnlyList<string> arguments)
+	{
+		if (!_session.SessionActive || _session.HostSteamId == 0)
+		{
+			_log.LogWarning("[Console] relayed command /{Name} not sent: no host in this session.", name);
+			return;
+		}
+
+		_sender.Send(_session.HostSteamId, NetMsg.ModCommandRequest, new ModCommandRequestMsg
+		{
+			RequestId = requestId,
+			ModId = modId,
+			Name = name,
+			Arguments = [.. arguments],
+			SourceKind = CommandRelaySource.Console,
+		});
+	}
+
+	/// <summary>
+	/// The host half of a relayed console command: the same shape caps, rate limit and membership checks the mod-API half applies, then the console's own
+	/// registry and gates run the definition and the answer goes back as parts.
+	/// </summary>
+	private void HandleConsoleRequest(ulong sender, ModCommandRequestMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			_log.LogWarning("[Console] relayed command from {Sender} arrived outside a host session — dropped.", sender);
+			return;
+		}
+
+		if (!ModCommandPolicy.IsValidRequest(msg) || !TryConsumeCommandRequest(sender))
+		{
+			return;
+		}
+
+		if (!_session.Members.Any(m => m.SteamId == sender && m.Handshaken))
+		{
+			_log.LogWarning("[Console] relayed command from {Sender} ignored: not a handshaken member.", sender);
+			return;
+		}
+
+		if (_relay.AnswerOnHost(msg.Name, msg.Arguments, sender, out var answer))
+		{
+			_log.LogInformation("[Console] relayed /{Name} from {Sender} answered on the host.", msg.Name, sender);
+		}
+
+		var result = new ModCommandResultMsg
+		{
+			RequestId = msg.RequestId,
+			ModId = msg.ModId,
+			Name = msg.Name,
+			Success = answer.Kind != ConsoleAnswerKind.Refusal,
+			SourceKind = CommandRelaySource.Console,
+		};
+		CommandRelayOutcome.WriteInto(result, answer);
+		_sender.Send(sender, NetMsg.ModCommandResult, result);
 	}
 
 	internal void SendCommandRequest(ulong target, uint requestId, string modId, string name, IReadOnlyList<string> arguments)

@@ -327,6 +327,8 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		"console.cmd.whoami.usage",
 		"console.command.empty",
 		"console.command.host_only",
+		"console.command.relay_not_hosted",
+		"console.command.relay_unavailable",
 		"console.command.unknown",
 		"console.help.command",
 		"console.hint.no_match",

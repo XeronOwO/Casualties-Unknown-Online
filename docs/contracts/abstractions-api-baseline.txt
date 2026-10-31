@@ -117,6 +117,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.Alias|prop
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.Arguments|property|-> IReadOnlyList<string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.LocalSteamId|property|-> ulong { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.Name|property|-> string { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.RequesterSteamId|property|-> ulong { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandInvocation.Session|property|-> ISessionInfo { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandParameter.Completer|property|-> IArgumentCompleter? { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.ICommandParameter.HintKey|property|-> string? { get; }

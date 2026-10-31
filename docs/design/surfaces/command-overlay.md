@@ -120,6 +120,13 @@ A hint is a catalogue KEY and its arguments (`CommandHint`), never a finished se
 reader's language, the same rule the console answers follow. The overlay's hint vocabulary lives in `CommandSuggestionHintText`,
 so the drawing surface stays a surface and its size stays within the aggregate line gate.
 
+### Non-local commands: declared, gated, answered (2026-10-31)
+
+A definition that declares `HostRelayed` is never run by the member who typed it. The member's console sends the line to the host, the host resolves it in its OWN registry,
+refuses a `HostOnly` definition to a member, and runs the definition with the member as the requester; the answer comes back as catalogue parts, so the member reads it in the
+member's language. A host that has not built its console refuses the line with a keyed answer rather than dropping it. The member's completion still asks the definition
+locally, which is right because the definition is installed on both sides (the handshake already refuses a session whose mod versions disagree).
+
 ## Gaps
 
 - The panel's exact geometry (heights, paddings, font sizes) is not recorded here yet; the accepted design's frames hold

@@ -34,7 +34,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// no host relay. Host-only commands are enforced by role and use the existing
 /// session/ban services on the host process.
 /// </summary>
-public sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource, ICommandArgumentSuggestions, ISessionReset
+public sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource, ICommandArgumentSuggestions, ISessionReset, IConsoleLineSink
 {
 	private const int MaxLines = 200;
 
@@ -43,6 +43,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IPlayerInteractionControl _playerInteraction;
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
+	private readonly ConsoleCommandRelay _consoleRelay;
 	private readonly List<ConsoleLine> _lines = [];
 	private readonly ConsoleCommandRegistry _commands;
 	private readonly CommandConsoleCompletion _completion;
@@ -84,11 +85,16 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		CheatPermissions cheatRoster,
 		ICheatPermissionAnnouncement cheatAnnouncement,
 		IWorldControl world,
+		CommandRelayHub relayHub,
 		ISpectatorControl? spectator = null,
 		ILocalizationService? localization = null)
 	{
 		_chat = chat;
 		_session = session;
+		// The member↔host seam: this side answers what it can run and prints what comes back; the mod domain owns the frames.
+		_consoleRelay = new ConsoleCommandRelay(relayHub, commandRegistry, this, log);
+		relayHub.RunOnHost = _consoleRelay.AnswerOnHost;
+		relayHub.Arrived = (_, outcome) => _consoleRelay.Print(outcome);
 		_playerInteraction = playerInteraction;
 		_time = time;
 		_log = log;
@@ -377,6 +383,13 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			return false;
 		}
 
+		// A member's HostRelayed command runs on the HOST: this line goes over the wire, and the answer prints here when it arrives (user direction 2026-10-30:
+		// a declared non-local command is declared, gated and run by the host, never silently run locally).
+		if (_consoleRelay.TrySend(command, tokens, _session.Role == SessionRole.Host))
+		{
+			return true;
+		}
+
 		try
 		{
 			// The handler says what its answer IS: a refusal prints in the error colour, so a verb that answers
@@ -560,6 +573,14 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// has no entry, and the key lets the UI print the same line in the client's own language. This is the funnel the console's
 	/// player-facing prose moves through family by family (see `docs/backlog/todo/console-command-replies-bilingual.md`).
 	/// </summary>
+	/// <summary>
+	/// Runs a relayed definition on the HOST for the member who asked: the declared permission is the first gate and the host's cheat roster the second, then the
+	/// definition's own relay answer runs with that member as the requester (so its handler says "you" about the player who typed). A command that did not
+	/// declare <c>HostRelayed</c> is refused here: the member should have run it locally.
+	/// </summary>
+	void IConsoleLineSink.AddKeyedLine(string key, string text, ConsoleLineKind kind, params string[] args) =>
+		AddKeyedLine(key, text, kind, args);
+
 	private void AddKeyedLine(string key, string text, ConsoleLineKind kind, params string[] args) =>
 		_lines.Add(new ConsoleLine(kind, text, _time.UtcNowTicks, true, key, args.Length == 0 ? null : args));
 
@@ -569,6 +590,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	/// <see cref="ConsoleLine.Notifiable"/>).
 	/// </summary>
 	private void AddHistoryLine(string text) => AddLine(text, ConsoleLineKind.Info, notifiable: false);
+
+	void IConsoleLineSink.AddLine(string text, ConsoleLineKind kind, bool notifiable) => AddLine(text, kind, notifiable);
 
 	private void AddLine(string text, ConsoleLineKind kind, bool notifiable)
 	{

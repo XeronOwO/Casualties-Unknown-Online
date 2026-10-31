@@ -45,6 +45,12 @@ public sealed class TestCommandMod : ICuoMod
 		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
 			"cselect", "Local selector echo", invocation => ConsoleAnswer.Ok(string.Join(" ", invocation.Arguments)),
 			parameters: [new ConsoleCommandParameter("target", kind: CommandArgumentKind.Selector)], usage: "/cselect <target>"));
+		// A command that declared the NON-LOCAL scope: a member's line travels to the host, the host runs this handler against its own copy, and the answer goes
+		// back keyed so the member prints it in its own language (stage 3 of the console contract).
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"crelay", "Runs on the host, answers the member", ConsoleRelay,
+			scope: CommandScope.HostRelayed,
+			usage: "/crelay <text>"));
 		// A mod command that REFUSES: the console must print its answer with the error kind, which is what the
 		// typed-result contract exists for (a mod cannot forget to mark a refusal).
 		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
@@ -124,6 +130,12 @@ public sealed class TestCommandMod : ICuoMod
 	{
 		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
 		return ConsoleAnswer.Ok($"host-only:{context.LocalSteamId}");
+	}
+
+	private ConsoleAnswer ConsoleRelay(ICommandInvocation context)
+	{
+		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
+		return ConsoleAnswer.Ok("relayed hello", "test.commands.relay_answer", context.Arguments.Count > 0 ? context.Arguments[0] : string.Empty);
 	}
 
 	private ConsoleAnswer ConsoleResource(ICommandInvocation context)

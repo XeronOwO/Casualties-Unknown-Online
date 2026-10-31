@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using ProtoBuf;
+
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -34,4 +36,19 @@ public sealed class ModCommandResultMsg
 	/// <summary>The failure reason when <see cref="Success"/> is false.</summary>
 	[ProtoMember(6)]
 	public string Error { get; set; } = string.Empty;
+
+	/// <summary>
+	/// The answer's catalogue parts when the command came from the console registry: one entry per printed line, each a key plus its arguments, so the
+	/// requester renders them in its own language. Empty when the answer carries no keys (a plain sentence, or the original host-command half).
+	/// </summary>
+	[ProtoMember(7)]
+	public List<ConsoleAnswerPartMsg> AnswerParts { get; set; } = [];
+
+	/// <summary>Which registry answered: <c>0</c> the mod's own API, <c>1</c> the console command registry (mirrors the request).</summary>
+	[ProtoMember(9)]
+	public int SourceKind { get; set; }
+
+	/// <summary>True when the console answer was a refusal, so the requester prints it in the error colour.</summary>
+	[ProtoMember(10)]
+	public bool Refused { get; set; }
 }

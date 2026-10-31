@@ -30,8 +30,10 @@ public sealed class LocalizationCatalogueGateTests
 	/// instead of reporting a census that quietly stopped seeing call sites. Raised from 60 to 63 on
 	/// 2026-10-27 for the three `AddKeyedLine` sites that pass a key held in a variable (`answer.Key`,
 	/// a report part's key) — the writer became an accessor that day, and those three sites are its
-	/// pass-throughs, not a broken shape.</summary>
-	private const int UnresolvedCeiling = 63;
+	/// pass-throughs, not a broken shape. Raised to 66 on 2026-10-31 for the relay's three: the console's
+	/// answer printer writes a relayed answer's PART keys through `IConsoleLineSink` (one key variable and
+	/// one delegation each way), which is the same pass-through in a new seam.</summary>
+	private const int UnresolvedCeiling = 66;
 
 	/// <summary>
 	/// Every call shape that reads a catalogue key. `lookup` is the console resolver's own parameter: a console line is rendered by

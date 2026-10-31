@@ -29,4 +29,11 @@ public sealed class ModCommandRequestMsg
 	/// <summary>The command arguments (framework shape caps: ≤16 entries, ≤256 chars each).</summary>
 	[ProtoMember(4)]
 	public List<string> Arguments { get; set; } = [];
+
+	/// <summary>
+	/// Which registry the name belongs to: <c>0</c> the mod's own <c>IModCommands</c> API (the original host-command half), <c>1</c> the console command
+	/// registry (a definition that declared <c>CommandScope.HostRelayed</c>). The two spaces are separate, so a name may exist in both.
+	/// </summary>
+	[ProtoMember(5)]
+	public int SourceKind { get; set; }
 }

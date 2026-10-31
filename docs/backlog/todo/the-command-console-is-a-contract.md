@@ -268,11 +268,34 @@ not expressible yet either: the contract has parameters, and the tree is the sha
 **Live check on the deployed build (`9930281d`):** typing `/music ` in the real client drew four candidate rows — `play`, `share`, `stop`, `status` — which are the`n`music` mod's own `FixedChoiceCompleter` words, not a framework kind; the driver's suggestion list read the same four. So a mod definition's completer reaches the`nplayer's list on a deployed client, which is the fact stage 1 was for.
 ## Stage 2 landed: a declaration composes with the framework's own sources (2026-10-31)
 
-The completion path already asks a definition's parameter first (\CommandConsoleCompletion.FromTheParameter\) and hands the completer an \ICompletionContext\ with the command, the
-parameter index, the arguments already accepted and the partial token; what stage 2 still owed was proof that a MOD declaration reaches the framework's own sources, not only that a
-custom completer runs. That is now pinned: the test mod declares \cselect <target>\ with \kind: CommandArgumentKind.Selector\ and NO completer, and the completion answers the \@\ forms with
-their filter hints and the reachable members — the same source a built-in selector parameter uses (\ModConsoleCommandTests.ModConsoleCommand_DeclaredKind_GetsTheFrameworkSource\). It sits beside the
-existing \cresource\ case (a ResourceLocation kind that inserts the canonical mod id) and the \cmode\ case (a definition's own completer, with the second parameter reading the first's value).
+The completion path already asks a definition's parameter first (`CommandConsoleCompletion.FromTheParameter`) and hands the completer an `ICompletionContext` with the
+command, the parameter index, the arguments already accepted and the partial token; what stage 2 still owed was proof that a MOD declaration reaches the framework's own
+sources, not only that a custom completer runs. That is now pinned: the test mod declares `cselect <target>` with `kind: CommandArgumentKind.Selector` and NO completer, and
+the completion answers the `@` forms with their filter hints and the reachable members — the same source a built-in selector parameter uses
+(`ModConsoleCommandTests.ModConsoleCommand_DeclaredKind_GetsTheFrameworkSource`). It sits beside the existing `cresource` case (a ResourceLocation kind that inserts the
+canonical mod id) and the `cmode` case (a definition's own completer, with the second parameter reading the first's value).
 
-So a mod parameter has three ways to answer, all through one contract: its own \IArgumentCompleter\, a shipped completer (\FixedChoiceCompleter\, \DelegateCompleter\), or a declared
-\Kind\ that falls back to the framework source — and \ConsoleCommandParameter\ documents exactly that composition.
+So a mod parameter has three ways to answer, all through one contract: its own `IArgumentCompleter`, a shipped completer (`FixedChoiceCompleter`, `DelegateCompleter`), or a
+declared `Kind` that falls back to the framework source — and `ConsoleCommandParameter` documents exactly that composition.
+
+## Stage 3's mechanism landed: a declared non-local command crosses the wire and comes back keyed (2026-10-31)
+
+The relay already existed in the protocol (`ModCommandRequest` / `ModCommandResult`, the host's shape caps, rate limit and directed answer); what stage 3 owed was the CONSOLE
+riding it.
+
+- `CommandScope.HostRelayed` on a definition is honoured: on a member the console does not run the line — it sends a request with `SourceKind = Console` (the host must know
+  which registry the name belongs to, because a mod's `IModCommands` API and its console registry are separate spaces) and prints the answer when it arrives.
+- The host resolves the name in its own console registry, refuses a `HostOnly` definition to a member, and runs the definition's `RelayAnswer` with THE MEMBER as the
+  requester. `ICommandInvocation.RequesterSteamId` is new, so a handler that says "you" means the player who typed, not the machine that executed.
+- The answer travels as `ConsoleAnswerPartMsg` parts, so the member renders it in its own language; a plain text answer still prints.
+- `CommandRelayHub` is the mediator: the console owns definitions and answers, the mod domain owns the frames, and neither references the other — the session container would
+  not survive that cycle. The console's own half is `ConsoleCommandRelay`, and the console service's line writer is now `IConsoleLineSink`.
+
+**Why not `/give`:** the ticket suggested porting `/give` first to prove the road, but `/give` ALREADY relays — its member half is a request whose answer comes back through
+`PlayerItemGiveService` — so it would prove nothing new about this mechanism. The road is proven by the mod-facing half, where no such service exists.
+
+**Judged so far, with a real host/guest pair in the tests:** a guest's relayed command runs ONLY on the host with the guest as requester and its keyed answer reaches the guest;
+the host's own line runs in place; and a host that never built its console refuses the line with a keyed answer instead of dropping it. Full suite: 806 gates, 6551 tests.
+
+**Still open in stage 3:** a SHIPPED sample command that declares `HostRelayed`, so the two-client live row can be judged (the host's log names the requester, the member
+reads the answer in its own language).

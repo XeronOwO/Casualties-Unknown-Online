@@ -20,6 +20,13 @@ public interface ICommandInvocation
 	/// <summary>The local SteamId of the process that runs the handler.</summary>
 	ulong LocalSteamId { get; }
 
+	/// <summary>
+	/// The SteamId of the player who ASKED for this run. It equals <see cref="LocalSteamId"/> for a command this process ran for its own player, and is the
+	/// member's id when the host runs a <see cref="CommandScope.HostRelayed"/> command on that member's behalf — so a handler that says "you" means the player
+	/// who typed, not the machine that executed.
+	/// </summary>
+	ulong RequesterSteamId { get; }
+
 	/// <summary>The session state at execution time (not the bind-time snapshot).</summary>
 	ISessionInfo Session { get; }
 }

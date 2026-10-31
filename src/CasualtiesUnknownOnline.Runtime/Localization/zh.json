@@ -231,6 +231,8 @@
 "console.suggest.resource": "{0}（{1}）",
   "console.suggest.item_state": "物品状态（SNBT）—— 按 Tab 逐个补全键与值",
   "console.hint.no_match": "这里没有匹配 '{0}' 的项。用法：{1}",
+  "console.command.relay_not_hosted": "主机没有在这里运行 '/{0}'。",
+  "console.command.relay_unavailable": "这条命令要在主机上运行，但现在无法送达主机。",
   "console.hint.unknown_command": "没有名叫 '{0}' 的命令 —— 输入 /help 查看可用命令。",
   "console.hint.usage": "用法：{0}",
 "console.suggest.kind.item": "物品",

@@ -38,6 +38,7 @@ internal static class ConsoleComposition
 		// REPLACES this with the real one; without it the verb answers that this build cannot reset a
 		// body instead of resetting nothing and saying nothing.
 		services.AddSingleton<ILocalBodyReset>(new UnavailableLocalBodyReset());
+		services.AddSingleton<CommandRelayHub>();
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());

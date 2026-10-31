@@ -61,7 +61,7 @@ hover preview (row 8 of the completion ticket, which finally drew once the toolt
 | `console-enter-on-empty-does-not-close.md` | rows 1, 2 and 4 are judged; row 3's key toggle is an IMGUI event the virtual keyboard cannot stage (measured: `keyQueries=0`) |
 | `give-degrades-to-a-ground-drop-and-rearranging-retires-it.md` | rows 1, 3 and 4 pass; row 2's target-screen line needs a real refusal on the receiving side |
 | `launcher-fails-when-the-alt-box-cannot-start.md` | rows 1-4 judged except the reboot path, which needs a machine restart |
-| `the-pre-run-lobby-can-deadlock.md` | the deadlock was hit once; the row needs the same shape reproduced |
+| `the-pre-run-lobby-can-deadlock.md` | **reproduced 2026-11-01**: a member that joins a running session waits forever (its log has no `World join received`) while both gates blame the other side, and the re-entry ask that would cure it is armed only on a host world-exit — the ticket now names the join-armed ask as the fix |
 
 
 ## N — measured to the end: not stageable on this build

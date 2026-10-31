@@ -102,3 +102,18 @@ The deadlock was the guest ending its own session on ONE stale lobby reading, an
 a minute of the first client connecting (23:14:10, 23:21:30, 23:26:49), and the guest's own log carrying `Handshake complete with host` and no `Host left the lobby` line anywhere.
 
 All three acceptance rows are therefore met: a re-joined member is counted again (the handshake completes and its body is in the world), a member that drops cannot hold the gate (the empty list never counts andthe absence needs three readings), and a fresh session departs first try (three of three today).
+
+## Reproduced (2026-11-01, build `487073fd`): a member that JOINS a running session waits forever, and both gates blame the other side
+
+The batch restarted one client (`launch-clients.ps1 -Only guest`) while the host kept its world, then had it join the host's lobby. The handshake completed — the member's own log ends with `Handshake complete with host …` after three `Retrying handshake …` lines — and then nothing. The two clients' gates, read in the same session:
+
+| side | `inWorld` | gate text (translated) |
+|---|---|---|
+| host | true | "waiting for Kaguya to load… (0 s) the team departs together" |
+| member | false | "waiting for the host to load… the host has not entered the world" |
+
+So the host waits for a member that never loads, and the member waits for a host that is already in its world: the two sentences are each other's deadlock, and neither side acts. The member's log holds NO `World join received` line, so the one-shot invite the host sends at the handshake (`HandshakeHandler`'s `LocalSceneState == InWorld` branch) either never left or was dropped on arrival — which is the loss this project already documents ("the lazy-P2P swallow", `ReentryCoordinator`'s remarks).
+
+**Why nothing recovers it**: the re-entry window that asks the host to re-issue the instruction is armed ONLY on the host's world-exit edge (`ReentryCoordinator.OnRemoteSceneChanged`, `inWorld == false`), and `ReentryWindow.TryArm` refuses when the member "was already in the menu". A member that JOINS in the menu has no host-exit edge to arm on, so it never asks — the cure exists for the host-caused exit and not for the join, which is exactly the shape this ticket was opened from.
+
+**What the fix has to decide**: a join-armed ask. The member has a legitimate reason to be in the menu that the host cannot see (it just joined), so the window's arm policy needs a second entrance — handshake complete, host in a world, this member out of it, nothing in hand — with the same bounded budget and cooldown as the exit-armed one, so a member cannot turn a lost invite into an unbounded stream of asks. Rows 1 and 3 above are then read with the same batch that reads this reproduction.

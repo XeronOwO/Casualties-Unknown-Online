@@ -95,7 +95,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [An item cannot be used on a sleeping teammate](review/use-on-sleeping-target-refused.md) — **Medium** — decision 270 implemented.
-- [Item custody: one authority and one local projection](review/item-custody-single-authority.md) — **Critical** — all five rows pass.
 - [The pre-run lobby can deadlock](review/the-pre-run-lobby-can-deadlock.md) — **High** — root cause fixed; three fresh sessions departed.
 - [A cross-player eat runs the game's own steps](review/cross-player-eat-skips-native-steps.md) — **High** — all four rows pass.
 
@@ -175,6 +174,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [Item custody: one authority and one local projection](done/item-custody-single-authority.md) — **Critical** — all five rows pass.
 
 - [The satellite mods failed to load](done/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — three rows judged.
 - [Player-facing text is localized per receiver](done/player-facing-text-localized-per-receiver.md) — **High** — every row judged 2026-11-01.

@@ -1,6 +1,6 @@
 # Item custody: the adapter projects the kernel's rows instead of keeping five copies
 
-- Status: Review — opened 2026-10-25 by the user's decision: "directly do the big change, root it out, overturn whatever needs overturning —
+- Status: Done — opened 2026-10-25 by the user's decision: "directly do the big change, root it out, overturn whatever needs overturning —
   keeping it is only a hidden danger" (translated). **Where it stands on 2026-10-28:** stages 1-3 are done and judged (the projection runs in shadow mode
   on real sessions with `rows=N objects=N mismatches=0`; the readers are switched; the writes were already command-first), stage 4's three candidates are
   answered by reading (the transfer cache is a derived view, the clone fact table is payload plus a pre-judgement fallback, the suppressions are report
@@ -153,8 +153,8 @@ stores still hold their own copy of "where is it" even though nothing needs that
       is possible without a fixture that supplies materials. What the batch DID read: both clients at `[ItemCustody] rows=282 objects=282
       mismatches=0` (host 19:59:38.646, guest 19:59:41.167) with the changed line deployed — the projection was unaffected. The craft row is
       judged in a batch with materials on hand, and this box stays open until then.
-- [ ] `IsTransferredToGuest` itself stays: two acceptance recipes read it by name (`carried-registration`, `container-read`), and its doc now
-      says it is the derived view rather than a truth.
+- [x] **Read 2026-11-01**: `IsTransferredToGuest` itself stays — two acceptance recipes read it by name (`carried-registration`, `container-read`) — and its doc now
+  says it is the DERIVED view rather than a truth (`ItemArbitration.cs`: "the table is a DERIVED view — `RebuildCarriedTableFromKernel` rebuilds it from the kernel's Carried rows after every committed batch, so this answer and `ItemService.OwnsCarriedItem` cannot disagree"); production asks the rows instead.
 
 The second candidate is the clone fact table's custody fields, and the third `ItemReconcile`'s kill sweep — in that order, because that is the
 order in which a mistake is cheapest to see.

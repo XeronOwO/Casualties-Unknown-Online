@@ -142,3 +142,6 @@ how a mature console completes. The candidate is now the OPENING brace only (`cu
 against the same schema: `/give @p waterbottle{` offers `{Condition:`, `{Liquids:`, … one key at a time from the existing fragment source, then the value, then the next key.
 `ItemStateSkeleton` is deleted — a whole-document builder was the wrong idea, not just a wrong label. The tests pin the opening step (typed id form kept, verbatim) and the key step inside
 the block.
+**Judged on a frame (2026-10-31, build `a1df2183`, deployed):** `/give @s cu:waterbottle{` drew four rows, one PER KEY — `cu:waterbottle{Condition:`,
+`cu:waterbottle{Favourited:`, `cu:waterbottle{Liquids:`, `cu:waterbottle{Components:` — and the driver's Tab sequence walked them: `…waterbottle` → Tab → 
+`…waterbottle{` → Tab → `…waterbottle{Condition:`. So the completion is token by token inside the block, not a pasted template, and it keeps working on the canonical id.

@@ -112,3 +112,4 @@ list now offers the canonical `namespace:path` for every verb — the line it te
 verb refused the canonical one) is deleted with its test rewritten: the suggestion is `cu:widget` and accepting it is accepted.
 
 What row 4 still owes: the FRAME (a client showing `cu:...` in the list and landing the item) — the code half and the unit tests are here, the visual half is the next batch.
+**Row 4 judged on a frame (2026-10-31, build `63b2d407`, deployed):** typing `/give @s cu:wat` drew `cu:watch`, `cu:waterbottle`, `cu:waterjug` — the canonical`nform with its namespace — and the history above it carries the answer to `/give @s cu:waterbottle`: the item landed in slot 0. So the list teaches the namespaced id AND the verb accepts`nit, which was the pair the old `TakesTheGamesOwnId` special case existed to avoid.

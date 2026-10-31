@@ -226,3 +226,14 @@ The reading above came from a sampler that asks one instant per driver call, and
 Under that watcher the peer caught **nothing** for a completed remote bandage treatment: the guest ran 1730 frames across the release, the minigame and its end (`minigame-end` answering `ended=true`), and its hits string stayed empty. Its own log for the same window carries no `[CharacterSound]` line for the bandage — only an unrelated `[Sound] lifePodHit` pair.
 
 So row 2 is **NOT proven**; the earlier single catch is not reproducible and must not be cited as a pass. The next reading is the relay itself: whether `CharacterSoundSync` reports the operator's `bandage` clip at all (its send-side line for the treatment window), before any listener measurement can mean anything.
+
+## FINAL reading (2026-11-01, 08:20): both clips DO reach the peer — the earlier "nothing" was a broken instrument
+
+The watcher above cached the scene's `AudioSource`s once, and `Sound.Play` creates a NEW GameObject with its own source per call (`reversing/Assembly-CSharp/Assembly-CSharp/Sound.cs`: `new GameObject("a", new Type[] { typeof(AudioSource) })` then `PlayOneShot`), so a cached scan can never see a one-shot clip. `audio-watch2` re-scans every fifth frame, and it was validated the honest way: it catches an ambient loop (`wind|windLoop`) and a one-shot the game plays through the same path (`vomitwarning`, from `body-call kind=vomit`).
+
+With that instrument, the SAME two actions that answered "nothing" before:
+
+- **Row 2 (a remote bandage treatment, watched on the peer): `bandage` is caught.** The run drove the minigame to a completed wrap (`minigame-live` answering `lastAction=300, fill=1`) and the peer's hits gained `bandage`. The earlier empty run had NOT wrapped (`fill` under 1), and the clip lives only in the wrap branch (`BandageMinigame.PhysicsUpdate`: the `bandageAngle > 350` wrap case is the only `Sound.Play("bandage", …)` in that file).
+- **Row 5 (a landing world item, watched on the peer): `drop` is caught.** `item-drop type=bandage,height=45` on the host, the peer's hits gained `drop`, so the authority-side impact presentation does reach the guest through `ItemImpact`.
+
+Both rows are therefore proven from the listener side, and the two earlier notes on this page are superseded by this one. **A caveat the next batch needs**: the watcher's hit list is static and accumulates across starts, so a reading must be diffed against the previous list, not read as "the clip played in this window" on its own.

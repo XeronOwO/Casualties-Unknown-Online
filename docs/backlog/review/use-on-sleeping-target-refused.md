@@ -146,3 +146,14 @@ Row 3 is the one this ticket can still close with instruments that exist — the
 A later `medication-component-probe mode=read,target=local` answers **`sleepingPills=True`** — so the planted effect did become active, and the earlier `false` was simply time: the game advances medication on its own ticks. The same moment's `body-read` still says `sleeping=false, conscious=true`.
 
 So "asleep" is not a state the drug sets by itself: the body enters sleep through the game's own resting path (a bed and the rest action), and the pills are one of its inputs. The fixture this row needs is therefore that resting path, not a stronger dose — the next reading is what the game requires for a body to enter sleep (the bed/night conditions in `reversing/`), and then the bandage chain on that sleeping body judges row 3.
+
+## Row 3 READ on the deployed build (2026-11-01): a sleeping patient is treated without waking
+
+The path to "asleep" is now known and it is the game's own: `Body.canTakeNap` is true when `energy < 35 && averagePain < 31 && sicknessAmount < 80`, OR the body carries the `SleepingPills` component (`reversing/Assembly-CSharp/Assembly-CSharp/Body.cs`, the `canTakeNap` getter), and the body enters sleep through the nap coroutine that sets `sleeping = true` after its lay-down animation. So: plant the pills (`medication-component-probe mode=plant-sleepingpills,target=local` — the effect activates on the game's own ticks, which is why an immediate `read` said false), then `body-call kind=nap` (whose own note says it "starts only when canTakeNap holds"). The guest read **`sleeping=true, conscious=false`**.
+
+With the patient asleep, the proven remote chart handled a bandage on a freshly wounded limb 4 (`skinHealth=63.04`): release on limb 4, the game's own minigame up, ended through its exit tip, and afterwards
+
+- the patient was **still `sleeping=true`** — the treatment did not wake them;
+- the limb read **from the patient's own client** moved (`skinHealth` 63.04 → 63.841, bleeding 1.872) — the state the treatment applied is visible on their side.
+
+That is row 3 of this ticket, read end to end on the deployed artifact. Rows 1 and 2 keep their earlier partial passes (each family read once with the target asleep, and the operator-side line naming the actual state).

@@ -1,107 +1,93 @@
 # Review-block triage — what each open ticket actually waits on
 
-One row per ticket in `docs/backlog/review/`, classified by the reader it waits for. The point is to make the queue
-answerable in one pass: a `U` row is the user's, a `C` row needs a capability an agent could still build, and a `T` row can
-close in a cycle with the instruments that already exist. A ticket may move between classes as instruments land — this page is
-regenerated when a batch changes the picture, never accumulated.
+One row per ticket in `docs/backlog/review/`, classified by what has to happen next. The point is to make the queue answerable in one
+pass: a `U` row is the user's, an `E` row needs one more live reading with instruments that exist, and an `N` row cannot be staged on
+this build at all. A ticket moves between classes as instruments land — this page is regenerated when a batch changes the picture,
+never accumulated.
 
-## U — waits on a user decision or a user's own check
+## Closed by the sweep (2026-10-31 → 2026-11-01)
+
+Ten tickets left `review/` with their rows judged and their evidence written: `a-command-owns-its-usage-line`,
+`music-and-recursive-crafting-mods-fail-to-load`, `player-facing-text-localized-per-receiver`, `item-custody-single-authority`,
+`context-menu-name-wraps-behind-actions`, `split-the-oversized-classes`, `host-blast-rolls-a-second-drop-set`,
+`selectors-exclude-the-executor`, `a-disconnected-member-leaves-his-arrow-on-the-hud`, `completion-list-keys-and-ids-disagree`. Two of
+them needed a code change in the same commit: the mod adapter's gate classification (row 5 of the console contract) and the console's
+hover preview (row 8 of the completion ticket, which finally drew once the tooltip outlived the event that reports it).
+
+## U — waits on a user decision, a user's own pass, or a user's own look
 
 | Ticket | What it waits on |
 |---|---|
 | `adapter-capability-catalog.md` | stage rows beyond stage 1 need the user's call on which capability levels ship |
-| `dead-player-right-click-name-suffix.md` | the menu's 240 px title clips a long name: grow the panel or elide the name (a layout choice) |
-| `trap-layout-crystal-rows-empty.md` | its rows need a prefab carrying `CrystalBehaviour`, which this build does not have — a build capability and the decision to add one |
-| `layer-complete-choice-for-members.md` | the dead-host row is answered by the user's ruling that only the host presses the choices; the ticket wants that confirmation |
-| `player-music-sync-playback.md` | the listener controls (mute, volume, "only during rest") are a design the user owns |
-| `plugin-host-shell.md` | every acceptance clause is read; the remaining item is the user's judgement of the Online UI's look |
-| `remote-medical-panel-speech-text-desync.md` | row 6: should the remote chart open OVER the trade menu, or is refusing while trading intended? |
-| `save-layer-end-save-and-restore.md` | the in-game rows need the user's own save/restore pass |
-| `save-native-character-field-parity.md` | rows 1-3 are three game UI displays: the wound window's text, the death-stats number and the tooltip's happiness |
-| `save-native-run-field-parity.md` | row 2's factual line is read (items persist across a cut, the recipe's made-before flag does not); whether that flag is a field CUO must persist is a design decision |
-| `save-mid-run-consistent-cut.md` | the final unified pass is the user's, but two rows wait on fixtures this station lacks: row 2's `worn` resting and row 3's opened lockables ("no drive path") |
-| `save-system-mid-run-and-layer-end.md` | the umbrella over the save stages; it closes when S1-S4's tickets do, not on its own |
-| `unified-remote-display-projection-rework.md` | every criterion is marked Met except the real dual-client visual pass, which the page itself calls the user's final unified acceptance |
-| `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
-| `pinyin-search-standalone-mod.md` | every row machine-read (78 cases, 0 failures); only the native search box's own look is left, and that is the user's |
-| `recursive-crafting-mod.md` | only the panel's on-screen look is left; frames can read it with the mod installed — and that look is the user's visual pass, as its own status says |
+| `dead-player-right-click-name-suffix.md` | the row lands for a short name; the long-name case needs the panel-width decision (grow the panel or elide the name) |
+| `layer-complete-choice-for-members.md` | its premise is superseded by the ruling that only the host presses the choices; it wants the confirmation written |
+| `player-music-sync-playback.md` | built and read; the listener controls (mute, volume, "only during rest") are a design the user owns |
+| `plugin-host-shell.md` | every acceptance clause is read; what is left is the user's judgement of the Online UI's look |
+| `pinyin-search-standalone-mod.md` | every row machine-read; the native search box's own look is the user's |
+| `recursive-crafting-mod.md` | the resolver, the game half, the command and the panel's states are read; the panel's look is the user's |
+| `save-layer-end-save-and-restore.md` | the in-game rows are the user's own save/restore pass |
+| `save-native-character-field-parity.md` | three game UI displays (wound window text, death-stats number, tooltip happiness) are the user's to read |
+| `save-native-run-field-parity.md` | rows 1 and 2 need a continue at a layer with non-default settings and a crafted recipe; row 3 asks whether the made-before flag is a field CUO must persist |
+| `save-mid-run-consistent-cut.md` | the final unified pass is the user's; two rows also wait on fixtures this station lacks |
+| `save-system-mid-run-and-layer-end.md` | the umbrella over the save stages; it closes when S1-S4's tickets do |
+| `unified-remote-display-projection-rework.md` | every criterion is Met except the real dual-client visual pass, which the page itself calls the user's |
+| `concurrent-medical-operations.md` | rows 1-6 are pinned by the 36-case concurrency suite; row 7 is the user's dual-client acceptance |
+| `trade-domain-dual-side-runtime.md` | rows 1-7 pass; rows 8 (recruit) and 9 (hostile swing) need the in-game dialogue and an aim-driven swing |
+| `the-command-console-is-a-contract.md` | rows 5, 10 and 11 are judged and the rest is complete; rows 6 (a Chinese member's keyed answer) and 8 (a mod's selector frame) need a Chinese member client and an example-mod selector parameter |
+| `remote-medical-panel-speech-text-desync.md` | row 6 asks whether the remote chart should open OVER the trade menu or is meant to refuse while trading |
 
-## E — blocked by a TARGET or a state, NOT by input delivery (the earlier claim here was WRONG)
+## E — one more live reading with instruments that already exist
 
-**Retracted 2026-10-25 by the user and by measurement.** This section used to say no mouse button reaches Unity on this
-station. That is false: with a 6 s right hold in flight the client answered `rightHeld=True` on every sample, and a probe-driven
-press/release flipped it back to `False`. The two things that actually broke the earlier batches were:
-
-1. **focus timing** — `GetForegroundWindow` still returned the OTHER client's handle for the first ~1 s of the hold, so the press
-   edge (`Input.GetKeyDown`, which is what the drag bracket reads) landed in the wrong window; and
-2. **an unconscious operator** — `HandleStartDragging`'s first line is `if (!this.body.conscious) return;`, and the failing reads
-   said `conscious=False, allowUseItem=False`. After `/heal @s` the same start answered `dragItem=emergencylight(Clone)` and a
-   release answered `had=… → after=none`.
-
-Two more measured facts decide how a drag must be driven: the inventory ring DRIFTS (buttons moved `515,290 → 526,272` between two
-reads) and the game's `Input.mousePosition` is a bottom-left DPI-scaled space (`x_game ≈ 1.25·x_set`, `y_game ≈ 757 − 1.25·y_set`,
-verified to 1 px), so a fixed OS click chases a moving target. The instruments that do not care are in-process:
-`recipes/drag-start.cs` and `recipes/drag-release.cs` run the EventSystem's own raycast and call the very functions the press and
-release call.
-
-So every row below is now waiting on a TARGET (an on-screen point for the other member) or a STATE (the operator alive, the view
-open), and each is a reading away rather than a capability that does not exist.
-
-| Ticket | The row that needs the button |
+| Ticket | The reading it waits on |
 |---|---|
-| `cross-player-drag-use-feedback.md` | rows 1-7 are drags; the ring lists carried items on its own slots (`funguschunk` at `520,568`), so the page hypothesis is retired |
+| `cross-player-drag-use-feedback.md` | the give gesture's release/refusal family. The own-UI gate is ruled out and the ring opens again with focus-first; the next batch needs a two-phase right press (down, close the ring, move, up), a small addition to the input helper |
 | `cross-player-drag-use-model-bounds.md` | the same drags; its detection shape landed |
-| `host-entity-hit-red-flash-not-visible-on-guest.md` | the swing is the player's click; every attempt damaged a block or a pod fixture |
-| `remote-medical-treatment-operations.md` | its live row is a treatment performed through the wound view |
-| `concurrent-medical-operations.md` | row 7's second half: two operators START the same limb's operation through that view |
-| `enter-opener-keybind-capture.md` | a key-bind row must be clicked in the game's settings UI before the Enter/Slash press means anything |
-| `mod-cross-player-native-semantics.md` | its LOCAL native halves are already driven by the probes (`item-use` calls `Body.UseItem`, the same call a player's gesture makes), but every CROSS-player half needs the remote view's own entry — the medical chart or a drag — so it waits with the rows above |
-| `suppressed-native-call-sounds-stay-unheard.md` | rows 1-4b are the remote-medical and minigame setups, i.e. the same chart entry |
-| `sync-player-pain-vocalizations-and-bark.md` | rows 1-3 need a lockable entity and a jammed lockpick driven through the game's own interaction |
-| `trade-domain-dual-side-runtime.md` | rows 8 (recruit) and 9 (hostile swing): the recruit runs through the in-game dialogue and the swing through the aim the right button drives; `trade-drive` covers the purchase/give halves only |
+| `cross-player-eat-skips-native-steps.md` | the eat path through a real dragged release onto a teammate |
+| `host-entity-hit-red-flash-not-visible-on-guest.md` | a swing that damages a teammate rather than a block or a pod |
+| `enter-opener-keybind-capture.md` | a key-bind row clicked in the game's own settings UI before the Enter/Slash press means anything |
+| `mod-cross-player-native-semantics.md` | its local halves are driven by the probes; every CROSS half is the drag/medical entry |
+| `suppressed-native-call-sounds-stay-unheard.md` | rows 1-4b are the remote-medical and minigame setups |
 | `unhooked-item-and-body-sound-families.md` | rows 1-2 and the nap/shake half of row 6 are limb treatments through the chart |
-| `remote-medical-stage-2-shrapnel-multiplayer.md` | row 7: the CUO session runs with NO native minigame on either client here (`minigame-end` read `before=none` right after `started=true`), so the piece-breaking path has nothing to act on — and the ticket then needs a design call between a state that creates the native minigame and a session-level piece removal |
-| `guest-remote-pose-head-orientation-desync.md` | the clone's type is NAMED (`Character_…/Body` carries `isRight` and `targetLookPos`, equal to the guest's own body while idle), so what is left is a NON-ZERO facing: the game writes a look target only while AIMING, the right-button hold this station cannot deliver |
+| `remote-medical-stage-1-injection-session.md` | all eight rows are an operator injecting a patient through the chart's own action |
+| `remote-medical-stage-2-shrapnel-multiplayer.md` | rows 1-9; row 7 additionally needs a native minigame this state does not create |
+| `remote-medical-stage-3-other-actions.md` | every action row, same entrance |
+| `remote-medical-native-minigame-parity.md` | the umbrella over the three stages above |
+| `remote-medical-treatment-operations.md` | its live row is a treatment performed through the wound view |
+| `topical-limb-action-shape.md` | the parity rows need an item used on the remote chart; its classifier half landed |
+| `use-on-sleeping-target-refused.md` | rows 1-2 read the eating family; row 3's treatment families reach the patient through the wound view |
+| `sync-player-pain-vocalizations-and-bark.md` | rows 1-3 need a lockable entity and a jammed lockpick driven through the game's own interaction |
+| `guest-remote-pose-head-orientation-desync.md` | the clone's type is named; the facing pair needs one aim-drive read |
+| `console-enter-on-empty-does-not-close.md` | rows 1, 2 and 4 are judged; row 3's key toggle is an IMGUI event the virtual keyboard cannot stage (measured: `keyQueries=0`) |
+| `give-degrades-to-a-ground-drop-and-rearranging-retires-it.md` | rows 1, 3 and 4 pass; row 2's target-screen line needs a real refusal on the receiving side |
+| `launcher-fails-when-the-alt-box-cannot-start.md` | rows 1-4 judged except the reboot path, which needs a machine restart |
+| `the-pre-run-lobby-can-deadlock.md` | the deadlock was hit once; the row needs the same shape reproduced |
+| `no-compatibility-branches-before-the-first-release.md` | rows 1, 2 and 5 are judged by the census and the gate; rows 3 and 4 carry written reasons (no save code touched, no released format to produce) and only need a close decision |
 
-## C — needs a capability an agent could still build
-
-| Ticket | What it waits on |
-|---|---|
-## N — measured to the end: not stageable through the game's own calls
+## N — measured to the end: not stageable on this build
 
 | Ticket | Why it cannot be staged |
 |---|---|
-| `nested-container-clone-proxy-leaks-as-world-item.md` | the container machinery works (`bandage` into a `trashbag` → `loaded=true`, contents 0→1) but loading a bag into a bag is refused by the game's own guard (`canHold=true, distance=0`), which is exactly the refused-call precondition the fix defends — the nested shape cannot exist through production calls |
-| `runtime-entity-markerless-bind-absorption.md` | row 9 needs a world that CARRIES a runtime creation: `runtime-entity-tables` reads `accepted=0, animals=0, pending=0` in two separate sessions, and a real explosion added none, so there is no backfill copy to stamp |
-| `guest-background-ghost-item-ground-sounds.md` | measured to the end as an EAR question: the capture probes (`pant-sound`, `generation-audio-probe`) can record what a client plays, but the ticket's claim is what a backgrounded guest HEARS, and no instrument here turns a recording into that judgement |
-
-## E — the medical stage tickets, whose rows are all live two-client scenarios
-
-| Ticket | The row that needs the remote view |
-|---|---|
-| `remote-medical-stage-1-injection-session.md` | all eight rows are an operator injecting a patient through the chart's own action |
-| `remote-medical-stage-2-shrapnel-multiplayer.md` | rows 1-9 (row 10 is read from the path; row 7 additionally needs a native minigame this state does not create) |
-| `remote-medical-stage-3-other-actions.md` | every action row, same entrance |
-| `remote-medical-native-minigame-parity.md` | the umbrella over the three stages above |
-| `topical-limb-action-shape.md` | the parity rows need an item used on the remote chart; its classifier half landed |
+| `trap-layout-crystal-rows-empty.md` | no prefab carries `CrystalBehaviour` on this build, so no scan can produce a crystal row |
+| `nested-container-clone-proxy-leaks-as-world-item.md` | the shape (a container holding a container with contents) does not occur in a generated world: 269 items and 6 containers scanned, none nested-with-contents |
+| `runtime-entity-markerless-bind-absorption.md` | row 9 needs a world that CARRIES a runtime creation (`accepted=0, animals=0, pending=0` in two sessions) |
+| `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
+| `guest-background-ghost-item-ground-sounds.md` | measured to the end as an EAR question: the capture probes record what a client plays, but the judgement is the user's ear |
 
 ## How this list is kept honest
 
-A row leaves this page only through the ticket's own status moving to `done/`, and every claim above names the instrument or the
-missing fixture rather than a mood. The classes are not priorities: they say WHO is blocked, not what to do first.
+A row leaves this page only through the ticket's own status moving to `done/`, and every claim above names the instrument, the code or the
+missing fixture rather than a mood. The classes are not priorities: they say who is blocked, not what to do first.
 
-## The state the page reaches (2026-10-25, end of the cycle)
+## Where the instruments stand (2026-11-01)
 
-Every remaining ticket is in one of two conditions, and both are outside what this station can do alone:
-
-- **U — the user's own judgement.** A decision (which of two behaviours is intended), a look at a screen this repository cannot
-  assert (`PlayerCamera`-driven UI, a mod's panel, the native search box) or a save/restore pass the user runs on purpose.
-- **E — the station's input delivery, plus one design choice.** No mouse BUTTON reaches Unity here (measured for both buttons);
-  the remote view's own entry is a click, so the drag, the chart-driven treatments, the concurrent-medical start, the key-bind
-  capture and the facing comparison all wait on that one fact. The shrapnel session's row 7 additionally needs a decision between
-  two designs (a state that creates the native minigame, or a session-level piece removal) — that is the user's, not the agent's.
-
-The C class is empty of agent work: each of its rows was measured to the end — the nested container cannot be constructed through
-the game's own calls, the markerless row needs a world that carries a runtime creation (none in two sessions, and an explosion adds
-none), the destruction drops were produced and read, the recruit and hostile rows need the in-game dialogue and a swing, and the
-sound-family rows need the remote chart. Nothing on this page is waiting for a probe that does not exist; the probes were written.
+- **Virtual pointer and keyboard** (`VirtualInput` plus the `virtual-input` / `virtual-key` recipes): the pointer patches
+  `Input.mousePosition` and the three button methods, and a `pointer-truth` recipe reads back both the staged point and every remote's
+  streamed position with its screen point. The keyboard reaches `Input.GetKey*` only — an IMGUI overlay reads `Event`, so a console key
+  press cannot be staged (measured: `keyQueries=0`), and the game's own while-dragging loop does not run the bracket for a
+  `drag-from-slot` arm even with the virtual button held.
+- **OS input** (`send-input.ps1`, authorised for this work): a key press reaches the game when the target window is focused FIRST and the
+  press follows about a second later — that is how the ring opened this sweep (`radialOpen=true, count=6`, its six slots with their
+  items). A one-call drag helper exists; the give gesture needs a two-phase press, close, move, release instead.
+- **Frames** (`capture-frame`): the sandboxed clients write to their own sandbox's temp directory, so a guest's frame is read from there.
+- **The console's own surfaces**: `console-ui` types a line and reports the live suggestions; the hover preview now draws after the tooltip
+  fix, which is what closed the completion ticket.

@@ -530,3 +530,24 @@ The in-process channel now covers the pointer: this repository ships a virtual m
 The reason is in the cue's own code (DragUseCueTracker.Update): the label is drawn only while the **displayed backpack is open and the pointer is on its centre**, and that backpack is opened by the give gesture's own entry (CrossPlayerDragUse.AutoOpenFor, called from the while-dragging patch). A bracket armed by drag-from-slot sets PlayerCamera.dragItem directly, but the give path's _dragActive latch — which Observe reads to offer the remotes — is set on the gesture's own start edge, so the automatic open never runs and nothing downstream (the open, the centre, the cue, the use-on-release) can fire.
 
 **The gap, named**: the batch needs one read of CrossPlayerDragUse.Observe's latch (which edge sets _dragActive) before the next attempt; a bracket armed in the middle is not the same state as a bracket started by the right button on the item, and only the latter enters the give family. Every other instrument this family needs already exists and answered.
+## Batch 20261101-b: the own-UI gate is ruled out, and the gesture still does not engage
+
+The previous batch's finding was that the give gesture's own latch might be the blocker. The latch is not: CrossPlayerDragUse.Observe sets _dragActive on the first frame it sees a non-null dragItem, which drag-from-slot provides. This batch removed the other candidate the code names — the own-UI gate — and the gesture still stayed off:
+
+- the console and the Online UI window were both CLOSED before the drag (the escape key through the OS channel answered consoleActive=false; windowVisible was false), so GiveGestureModePolicy.Read had nothing to refuse;
+- drag-from-slot slot=4 armed the bracket on the dogfood, the virtual right button was pressed and held (held=true), and the pointer was staged at the remote's own screen point from the game's own projection (pointer-truth: both remotes at world (0,438.62), screen (654,420), which is also where Camera.main.ScreenToWorldPoint puts the staged pointer);
+- drag-cue still answered showing=false, and a release at that same point answered mode=World, backpackOpen=False, focusedSteamId=0, centreUnderPointer=False — the game's own world-drop path.
+
+So the two filters left are the ones between Observe and a target: domains.Session.IsRemoteInWorld(steamId) (the presence table's InWorld bit for each remote) and TryModelHalfSize (the remote body's BoxCollider2D, falling back to the local body's). The next instrument is a drag-use-state recipe that reports those four facts for each remote (presence bit, clone found, collider found, half-size) beside the pointer's world point, so the next batch reads which filter answers no instead of guessing between them.
+## The gesture's entry is open again: the ring answers when the window is focused FIRST
+
+The batch above also re-established the one thing the earlier batches lost: the OS channel's key press reaches the game when the focus is taken BEFORE it. The triage page's retracted section names the cause (the first second after a focus change still reports the other client), and this batch's sequence confirms the cure — a harmless click on the target window, a wait, then the key press answered adialOpen=true, count=6 with the ring's own buttons and items:
+
+| slot | game screen point | item |
+|---|---|---|
+| 4 | 658,217 | dogfood |
+| 5 | 777,279 | waterbottle |
+| 3 | 537,276 | lantern |
+| 1 | 777,441 | trashbag |
+
+So the drag family's next batch has the complete recipe: focus-then-press to open the ring, a right-button drag from a slot's own point (client pixels = game point x 1038/1280, y = (720 - game y) x 614/720), the ring closed again mid-drag by the same key so the world context is entered, and the release on the teammate's own projected point. What it still needs is a two-phase press/move/release (a down call, a close, a move, an up call) rather than the one-call drag helper, which is a small tooling addition and not a game-side unknown.

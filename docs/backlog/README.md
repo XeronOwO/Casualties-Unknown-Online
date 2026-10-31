@@ -97,7 +97,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [An item cannot be used on a sleeping teammate](review/use-on-sleeping-target-refused.md) — **Medium** — decision 270 implemented.
 - [Item custody: one authority and one local projection](review/item-custody-single-authority.md) — **Critical** — all five rows pass.
 - [The pre-run lobby can deadlock](review/the-pre-run-lobby-can-deadlock.md) — **High** — root cause fixed; three fresh sessions departed.
-- [A command owns its usage line](review/a-command-owns-its-usage-line.md) — **Medium** — all five rows pass.
 - [A cross-player eat runs the game's own steps](review/cross-player-eat-skips-native-steps.md) — **High** — all four rows pass.
 
 
@@ -178,6 +177,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A command owns its usage line](done/a-command-owns-its-usage-line.md) — **Medium** — five rows judged, closed by the review sweep.
 
 - [The console caret lines up with the text](done/console-caret-misaligned-with-text.md) — **Medium** — done.
 

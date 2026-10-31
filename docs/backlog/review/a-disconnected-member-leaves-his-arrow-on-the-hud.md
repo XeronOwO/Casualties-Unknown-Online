@@ -1,6 +1,6 @@
 # A disconnected member leaves his arrow on the HUD
 
-- Status: Todo — opened 2026-10-28 from the user's report (translated): "why does the arrow marker of a teammate still show after the guest disconnected?".
+- Status: Review — opened 2026-10-28 from the user's report (translated): "why does the arrow marker of a teammate still show after the guest disconnected?".
 - Priority: Medium — a wrong marker is a lie about who is in the session, and it sits on top of the world the player is playing in.
 - Category: Online UI / remote render clones / member lifecycle
 - Source: user report (2026-10-28), observed after both peers dropped out of the world in the acceptance session.
@@ -59,3 +59,24 @@ no CUO catalogue string or class draws an arrow (`arrow`, the catalogue words fo
 The remaining candidate is the situation the USER saw, which this batch did not recreate: a peer whose row the host still holds (the roster above proves the host keeps it) drawn
 by whichever surface the game uses for an off-screen teammate. The next step is to read the game's own UI for how a second `Body` is presented at the screen edge
 (`PlayerCamera`'s UI actions and the pod's HUD), now that `ArrowGuide` is excluded by reading rather than by guess.
+## The read the ticket asked for: the arrow leaves with the peer (2026-10-31, build `0c282f7f`)
+
+The batch needed a peer whose arrow was actually on screen, and the two bodies spawned on the same tile in terrain that boxes a walking body in (both stopped after two
+12-unit nudges). A new acceptance recipe 	eleport puts the local body at a given world point for exactly this: the guest went to x=400 and its marker left the screen.
+
+**Before** (rrow-edge frame, read as an image): the host's screen shows the guest's OFF-SCREEN arrow at the right edge — `Kaguya（小号） 128米` with the arrow mark beside
+it — while the roster read answers that member inWorld: true. So the arrow really is drawn, by the overlay, from the same member row the roster answers.
+
+**After** (rrow-gone frame, same screen, one host action between): the host kicked that member (`已踢出成员 76561198863287957。`); the roster read then answers **no members at all**, and the
+arrow and its label are **gone from the frame** — no marker at the right edge, no residue anywhere on the screen.
+
+**Row 1 PASS**: a peer that leaves takes its arrow with it, read from the frame before/after and the roster in the same batch. **Row 3** passes for the marker half (the arrow was off-screen when thepeer left and no marker remained); its second half — no clone left active in the scene — has no clone census in this batch and is a named residual. **Row 2**
+(an arrow returns after a rejoin without a restart) needs a rejoin, which this batch did not drive, and stays a named residual.
+
+**What the code says, and why the report does not reproduce here:** `OnlineUiOverlay.BuildNameplateMarkers` skips every remote whose `ctx.Session.IsRemoteInWorld` is false, and the
+marker buffer is CLEARED at the start of every build (`_worldMarkers.Clear()`), so a member that leaves cannot keep a marker from either direction. The frame pair above shows that
+behaviour end to end. The remaining candidate for the user's report is the GAME's own render-clone marker (candidate 1 in this ticket), which this batch did not exercise: the
+overlay's marker is not the only thing that can sit on the HUD, and a leftover clone would carry the game's own marker rather than a CUO one.
+
+The ticket moves to `review/` with rows 1 and 3 judged, row 2 and the clone-census half named as residuals, and the render-clone candidate recorded for whoever picks the clone
+teardown up next.

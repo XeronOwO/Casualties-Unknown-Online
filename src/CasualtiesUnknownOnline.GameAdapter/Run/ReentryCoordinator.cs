@@ -95,9 +95,12 @@ internal sealed class ReentryCoordinator(
 					sender);
 				break;
 
-			case ReentryDecision.NoRunBaseline:
-				_log.LogWarning(
-					"[Reentry] {Sender} asked to be taken back in but this host has no committed run baseline — refused: an entry now would hold the member's generation on params that never arrive.",
+			case ReentryDecision.InviteWithoutBaseline:
+				// The instruction the member needs is the ENTRY, not the RNG: it joins a world this host already built and generates
+				// nothing, and the instruction itself carries RunBaselineFollows=false in this case, so the member is never told to wait.
+				_world.SendWorldJoinTo(sender);
+				_log.LogInformation(
+					"[Reentry] {Sender} asked to be taken back in — sent the entry instruction WITHOUT a run baseline (this host has none committed); the member joins the world that is already built and generates nothing.",
 					sender);
 				break;
 

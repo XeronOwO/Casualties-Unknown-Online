@@ -13458,7 +13458,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/ReentryPolicy.cs",
 
-      "quote": "return runBaselinePublished ? ReentryDecision.Invite : ReentryDecision.NoRunBaseline;"
+      "quote": "return runBaselinePublished ? ReentryDecision.Invite : ReentryDecision.InviteWithoutBaseline;"
 
     },
 

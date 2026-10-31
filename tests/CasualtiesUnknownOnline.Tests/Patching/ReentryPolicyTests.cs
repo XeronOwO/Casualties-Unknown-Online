@@ -33,7 +33,7 @@ public class ReentryPolicyTests
 	[Theory]
 	[InlineData(SessionRole.Host, true, true, true, "Invite")]              // the host's world is up and it holds the run baseline the entry promises
 	[InlineData(SessionRole.Host, true, false, true, "NoLiveWorld")]        // entering or regenerating: the member's window asks again
-	[InlineData(SessionRole.Host, true, true, false, "NoRunBaseline")]      // an entry now would wait for params that never arrive
+	[InlineData(SessionRole.Host, true, true, false, "InviteWithoutBaseline")] // the entry is sent; the instruction says no baseline follows
 	[InlineData(SessionRole.Host, true, false, false, "NoLiveWorld")]       // no world is the first ground
 	[InlineData(SessionRole.Guest, true, true, true, "NotThisSide")]        // a member has no world to invite anybody into
 	[InlineData(SessionRole.None, true, true, true, "NotThisSide")]         // solo

@@ -32,6 +32,6 @@ internal static class ReentryPolicy
 			return ReentryDecision.NoLiveWorld;
 		}
 
-		return runBaselinePublished ? ReentryDecision.Invite : ReentryDecision.NoRunBaseline;
+		return runBaselinePublished ? ReentryDecision.Invite : ReentryDecision.InviteWithoutBaseline;
 	}
 }

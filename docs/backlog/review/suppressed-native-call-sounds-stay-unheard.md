@@ -172,3 +172,21 @@ velocity > 3) and `PlushScript.OnCollisionEnter2D` (the plush's own squeak, velo
   routing, the scope guards and the census gate.
 - Not a general "every game sound becomes a message" sweep: each row needs its own decision, and
   "the sound stays silent, because …" is a valid outcome that must be written down.
+
+## Row 2 read from the LISTENER side (2026-11-01, 07:00)
+
+The row — a bandage whose limb action starts the native `BandageMinigame`, "every peer hears `bandage`
+once when the wrap completes" — was staged end to end on a fresh three-client session and measured on the
+peer, not in a log: a new read-only recipe (`audio-recent`) samples every `AudioSource` in the scene and
+answers the clips playing right now, and a sampler loop on the GUEST caught this while the HOST played the
+treatment on the guest's limb 4:
+
+    playing=1, matches="bandage"
+
+So the peer's client really plays the game's own `bandage` clip during the remote treatment, and it is one
+window, not a loop. The host side of the same run completed normally (`operation 1 (Bandage) ended …`,
+terminal `Completed`).
+
+Row 3 (a LOCAL bandage treatment, no remote view) is the same instrument pointed the other way — the host
+samples while the guest treats its own limb — and row 4b is the carried follow-up's. The instrument is
+committed as `tools/acceptance/recipes/audio-recent.cs`.

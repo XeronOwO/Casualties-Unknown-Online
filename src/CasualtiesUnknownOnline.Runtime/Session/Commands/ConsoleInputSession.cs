@@ -50,6 +50,53 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		? _completion.Suggest(_editor.Input)
 		: [];
 
+	/// <summary>
+	/// The list the overlay DRAWS and the keys WALK. It is the cycle's own list while a Tab/arrow cycle is in progress, and the live list otherwise — the two
+	/// used to be different objects, so after a completion the screen could show one candidate while Tab went on to another (the user's 2026-10-30 report: the
+	/// list showed `waterbottle`, Tab reached `waterjug`). One list, one truth.
+	/// </summary>
+	public IReadOnlyList<CommandSuggestion> DisplaySuggestions => _completionCandidates.Count > 0
+		? _completionCandidates
+		: LiveSuggestions;
+
+	/// <summary>Which row of <see cref="DisplaySuggestions"/> the keys are on, or <c>-1</c> when nothing is selected yet.</summary>
+	public int SelectedSuggestionIndex => _completionCandidates.Count > 0 ? _completionIndex : -1;
+
+	/// <summary>
+	/// Moves the highlight inside the drawn list and previews the highlighted candidate in the field. The first move ADOPTS the list that is already on screen,
+	/// so the arrows never start a cycle over a set the player was not looking at; a move wraps at both ends.
+	/// </summary>
+	public bool MoveSelection(int delta)
+	{
+		if (!_open)
+		{
+			return false;
+		}
+
+		var drawn = DisplaySuggestions;
+		if (drawn.Count == 0)
+		{
+			return false;
+		}
+
+		if (_completionCandidates.Count == 0)
+		{
+			CaptureUndo();
+			_completionCandidates = [.. drawn];
+			_completionIndex = 0;
+		}
+		else
+		{
+			var count = _completionCandidates.Count;
+			_completionIndex = ((_completionIndex + delta) % count + count) % count;
+		}
+
+		var chosen = _completionCandidates[_completionIndex];
+		var completed = ReplaceCurrentToken(_editor.Input, _editor.Cursor, chosen.Text, chosen.Verbatim);
+		_editor.SetInput(completed, completed.Length);
+		return true;
+	}
+
 	public IReadOnlyList<string> CompletionCandidates => [.. _completionCandidates.Select(c => c.Text)];
 
 	public string? Hint => _open ? _completion.GetHint(_editor.Input) : null;

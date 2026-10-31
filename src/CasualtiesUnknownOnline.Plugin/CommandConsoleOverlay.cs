@@ -134,10 +134,23 @@ internal sealed class CommandConsoleOverlay
 
 	private void HandleKeys()
 	{
-		var evt = Event.current;
+		// The IMGUI event is only valid inside OnGUI; the seam below takes it as a parameter so the SAME handler can be driven from a batch (a synthetic
+		// `Event.KeyboardEvent`) and the keys that move the list are judgeable from a frame instead of by hand.
+		if (Event.current is { } current)
+		{
+			HandleKey(current);
+		}
+	}
+
+	/// <summary>
+	/// One key event through the overlay's own switch. Returns true when the overlay consumed it. The parameter is the IMGUI event a player's key press
+	/// produces; a batch hands in a synthetic one, which is the same code path minus the keyboard.
+	/// </summary>
+	internal bool HandleKey(Event evt)
+	{
 		if (evt == null || evt.type != EventType.KeyDown)
 		{
-			return;
+			return false;
 		}
 
 		// The key that opened the console is still the current IMGUI event on this first OnGUI frame; swallow it so
@@ -150,7 +163,7 @@ internal sealed class CommandConsoleOverlay
 			_focusPending = false;
 			_log.LogInformation($"Command console opened by {_focusOpener}; swallowing that key so it is not typed or submitted.");
 			evt.Use();
-			return;
+			return true;
 		}
 
 		// While an OS IME composition is active, keystrokes belong to the IME,
@@ -158,14 +171,14 @@ internal sealed class CommandConsoleOverlay
 		if (_ime.IsComposing)
 		{
 			evt.Use();
-			return;
+			return true;
 		}
 
 		if (evt.character != '\0' && !char.IsControl(evt.character))
 		{
 			_session.InsertChar(evt.character);
 			evt.Use();
-			return;
+			return true;
 		}
 
 		switch (evt.keyCode)
@@ -290,12 +303,31 @@ internal sealed class CommandConsoleOverlay
 				_session.MoveEnd(evt.shift);
 				evt.Use();
 				break;
+			// The arrows belong to the LIST while one is drawn (user direction 2026-10-30): they move the highlight and preview the row, and they reach the
+			// command history only when no list is on screen. Minecraft's console does exactly this, and a history jump under a visible list is how the player
+			// loses the word they were looking at.
 			case KeyCode.UpArrow:
-				_session.PreviousHistory();
+				if (_session.DisplaySuggestions.Count > 0)
+				{
+					_session.MoveSelection(-1);
+				}
+				else
+				{
+					_session.PreviousHistory();
+				}
+
 				evt.Use();
 				break;
 			case KeyCode.DownArrow:
-				_session.NextHistory();
+				if (_session.DisplaySuggestions.Count > 0)
+				{
+					_session.MoveSelection(1);
+				}
+				else
+				{
+					_session.NextHistory();
+				}
+
 				evt.Use();
 				break;
 			case KeyCode.Escape:
@@ -304,11 +336,13 @@ internal sealed class CommandConsoleOverlay
 				evt.Use();
 				break;
 		}
+
+		return true;
 	}
 
 	private void DrawHistory(OnlineUiContext ctx, Rect panel)
 	{
-		var suggestions = _session.LiveSuggestions;
+		var suggestions = _session.DisplaySuggestions;
 		var suggestionHeight = suggestions.Count == 0
 			? 0f
 			: Mathf.Min(SuggestionMaxHeight, 14f + (suggestions.Count * 22f));
@@ -440,7 +474,7 @@ internal sealed class CommandConsoleOverlay
 
 	private void DrawSuggestions(OnlineUiContext ctx, Rect panel)
 	{
-		var suggestions = _session.LiveSuggestions;
+		var suggestions = _session.DisplaySuggestions;
 		if (suggestions.Count == 0)
 		{
 			return;
@@ -460,12 +494,17 @@ internal sealed class CommandConsoleOverlay
 			_suggestionScroll,
 			GUILayout.ExpandWidth(true),
 			GUILayout.ExpandHeight(true));
-		foreach (var suggestion in suggestions)
+		var selected = _session.SelectedSuggestionIndex;
+		for (var index = 0; index < suggestions.Count; index++)
 		{
+			var suggestion = suggestions[index];
 			GUILayout.BeginHorizontal();
 			var hint = HintText(ctx, suggestion);
-			var content = new GUIContent(suggestion.Text, hint);
-			if (GUILayout.Button(content, OnlineUiTheme.Button(), GUILayout.ExpandWidth(false)))
+			// The highlighted row is the one ↑/↓ and Enter act on, so it must be visually the current one: the marker is part of the list, not a decoration.
+			var marker = index == selected ? "▶ " : "   ";
+			var content = new GUIContent(marker + suggestion.Text, hint);
+			var style = OnlineUiTheme.Button();
+			if (GUILayout.Button(content, style, GUILayout.ExpandWidth(false)))
 			{
 				_session.AcceptSuggestion(suggestion);
 			}

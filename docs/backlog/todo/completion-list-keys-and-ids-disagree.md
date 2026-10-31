@@ -91,3 +91,12 @@ fact, so this ticket is judged on frames: a candidate list that differs from wha
   the same list.
 - A mod's own completer may offer anything; the standard here is the framework's own sources, plus the contract the mod surface gets from the console ticket.
 - The two interaction rows (7 and 8) assume the list is a real input surface; until the definition contract lands they are judged against the framework's own`n  sources only, and a mod's custom parser inherits them from the same surface.
+## Rows 1 and 2 landed: one list, and the arrows belong to it (2026-10-31)
+
+The drawn list and the list Tab walks are now the SAME object: `ConsoleInputSession.DisplaySuggestions` answers the cycle's own list while a cycle is in progress and
+the live list otherwise, `SelectedSuggestionIndex` says which row the keys are on, and the overlay draws that list (with a `>` marker on the selected row) instead of
+recomputing its own. `MoveSelection(±1)` adopts the list already on screen on the first move and wraps, and `CommandConsoleOverlay` routes ↑/↓ to it whenever a list is
+drawn — the command history is reached only when no list is on screen. `ConsoleInputSessionTests` pins both facts: the drawn list stays the two-candidate set after Tab has
+completed the first word (a fresh query for that token would answer one row), and the arrows walk the list, wrap, and preview each row in the field.
+
+Still open on this ticket, in order: SNBT/component completion after a resolved id (row 3), the canonical `namespace:path` as the inserted form plus `/give` and /summon`naccepting it (row 4), and the pinyin row carrying id + reader-language name (row 5). Rows 7 and 8 (in-place argument errors, click/hover) stay open with them.

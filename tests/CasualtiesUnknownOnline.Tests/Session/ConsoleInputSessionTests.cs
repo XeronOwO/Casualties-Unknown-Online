@@ -172,6 +172,49 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void TheDrawnList_IsTheListTabWalks()
+	{
+		var calls = 0;
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => ++calls == 1
+			? [new CommandSuggestion("waterbottle"), new CommandSuggestion("waterjug")]
+			: [new CommandSuggestion("waterbottle")], _ => null));
+		session.Open();
+		session.SetInput("/give @s water");
+
+		Assert.True(session.CycleCompletion());
+		Assert.Equal("/give @s waterbottle", session.Input);
+
+		// The screen keeps showing the list the cycle is walking, even though a fresh query for the completed token would answer one row.
+		Assert.Equal(2, session.DisplaySuggestions.Count);
+		Assert.Equal(0, session.SelectedSuggestionIndex);
+
+		Assert.True(session.CycleCompletion());
+		Assert.Equal("/give @s waterjug", session.Input);
+		Assert.Equal(1, session.SelectedSuggestionIndex);
+	}
+
+	[Fact]
+	public void MoveSelection_WalksTheDrawnListAndWraps()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("calm"), new CommandSuggestion("rough")], _ => null));
+		session.Open();
+		session.SetInput("/cmode survivor ");
+
+		Assert.Equal(-1, session.SelectedSuggestionIndex);
+		Assert.True(session.MoveSelection(1));
+		Assert.Equal("/cmode survivor calm", session.Input);
+
+		Assert.True(session.MoveSelection(1));
+		Assert.Equal("/cmode survivor rough", session.Input);
+
+		Assert.True(session.MoveSelection(1));
+		Assert.Equal("/cmode survivor calm", session.Input);
+
+		Assert.True(session.MoveSelection(-1));
+		Assert.Equal("/cmode survivor rough", session.Input);
+	}
+
+	[Fact]
 	public void CycleCompletion_QuotesSpacedArgument()
 	{
 		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("John Doe")], _ => null));

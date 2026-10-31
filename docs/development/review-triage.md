@@ -95,6 +95,18 @@ The remote chart is proven end to end for a BANDAGE (release, native minigame, h
 ## The one fixture the medical stage tickets share (2026-11-01)
 
 Every remaining medical stage row needs a container holding a LIQUID — the injection rows need a syringe with something in it, and the topical row needs a limb-action container refilled with a health-usable liquid. This build offers no batch path to that state: the console carries no fill or liquid argument, and the item catalog has no prefilled syringe variant the batch could spawn. The readings that bound it are on `topical-limb-action-shape` (a health-usable liquid in a limb-action container refuses by name, plain water refuses by name, an empty syringe does nothing), and the honest route to the fixture is the game's own water-fill interaction, which a player performs — the same class of gap as the drag family's one human motion.
+## The sweep of 2026-11-01 (after the sandbox came back)
+
+Every ticket in `review/` was opened and read this sweep. What changed:
+
+- **`the-command-console-is-a-contract`** — all five rows now read: two from the host log and the member's own answer (a `HostRelayed` command landing on the host and a cheat refusal staying local), three from `console-ui` plus frames (`/exam` offering exactly its three words, `/gamerule a` offering exactly the three settings and drawing their values).
+- **`suppressed-native-call-sounds-stay-unheard`** — row 2 read from the LISTENER side with a new audio sampler: the peer really plays the game's `bandage` clip during a remote treatment. Row 3 is a fixture gap (a member cannot give itself a bandage — `/give` is cheat-gated).
+- **`unhooked-item-and-body-sound-families`** — the nap half of row 6 read: the host hears nothing named `stretch` while the guest naps, so that family is local to the body that naps.
+- **`runtime-entity-markerless-bind-absorption`** — rows 1-8 and 10 re-read on the tree (every case maps to a green test); row 9 stays owed as a live runtime-spawn fixture, and this world has none (`runtimeSpawns=0`).
+- **`remote-medical-panel-speech-text-desync`** — the speech line is now readable (`talk-text-read`); the "panel closed entirely" condition read, and row 6's precondition named (the chart must open over the trade menu, which needs the viewed player in range).
+- **`remote-medical-treatment-operations`** and **`the-pre-run-lobby-can-deadlock`** closed earlier in the same night.
+
+Everything else keeps the class it already carried, and each row names what it waits on. The two instruments this sweep added (`audio-recent`, `talk-text-read`) and the two it corrected (`remote-backpack-open`'s verdict, `remote-clone-probe`) are committed.
 ## How this list is kept honest
 
 A row leaves this page only through the ticket's own status moving to `done/`, and every claim above names the instrument, the code or the

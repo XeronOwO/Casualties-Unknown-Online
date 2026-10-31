@@ -57,7 +57,7 @@ The instruments those two cycles produced are reusable and are named here so the
 | `cross-player-drag-use-feedback.md` | the give gesture's release/refusal family. The own-UI gate is ruled out and the ring opens again with focus-first; the next batch needs a two-phase right press (down, close the ring, move, up), a small addition to the input helper |
 | `cross-player-drag-use-model-bounds.md` | the same drags; its detection shape landed |
 | `cross-player-eat-skips-native-steps.md` | the eat path through a real dragged release onto a teammate |
-| `host-entity-hit-red-flash-not-visible-on-guest.md` | a swing that damages a teammate rather than a block or a pod |
+| `host-entity-hit-red-flash-not-visible-on-guest.md` | the host's real swing and the guest's frame — the instruments exist (`entity-attack mode=place`, `screen-point2`, `capture-frame`), and the missing piece is AIMING: the view follows pointer deltas while the cursor is captured, so neither the staged pointer nor an absolute `send-input` move turns the camera and the entity stays projected off screen (read 2026-11-01) |
 | `enter-opener-keybind-capture.md` | a key-bind row clicked in the game's own settings UI before the Enter/Slash press means anything |
 | `mod-cross-player-native-semantics.md` | its local halves are driven by the probes; every CROSS half is the drag/medical entry |
 | `suppressed-native-call-sounds-stay-unheard.md` | rows 1-4b are the remote-medical and minigame setups |

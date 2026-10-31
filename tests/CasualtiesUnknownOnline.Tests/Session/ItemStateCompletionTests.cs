@@ -215,4 +215,36 @@ public class ItemStateCompletionTests
 
 		Assert.Empty(completion.Suggest("/give @p notanitem{Condition:"));
 	}
+
+	[Fact]
+	public void GiveCompletion_AfterAResolvedId_OffersTheStateSkeleton()
+	{
+		// The user's 2026-10-30 report: with the caret right after the id nothing completed at all. The grammar expects the state there, so the item's own skeleton
+		// is offered — inserted verbatim, with the id kept when the caret is still on it. After a space the verb's own `slot` word is legal too, so both are listed.
+		var (host, _) = CreateSession();
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var onTheId = Assert.Single(completion.Suggest("/give @p waterbottle"));
+		Assert.True(onTheId.Verbatim, "an SNBT state is one command-line token");
+		Assert.StartsWith("waterbottle{", onTheId.Text, StringComparison.Ordinal);
+		Assert.EndsWith("}", onTheId.Text, StringComparison.Ordinal);
+
+		var afterTheId = completion.Suggest("/give @p waterbottle ");
+		var skeleton = Assert.Single(afterTheId, candidate => candidate.Text.StartsWith("{", StringComparison.Ordinal));
+		Assert.DoesNotContain("waterbottle", skeleton.Text, StringComparison.Ordinal);
+		Assert.Contains(afterTheId, candidate => candidate.Text == "slot");
+	}
+
+	[Fact]
+	public void GiveCompletion_Skeleton_IsAParseableState()
+	{
+		var (host, _) = CreateSession();
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestion = Assert.Single(completion.Suggest("/give @p waterbottle"));
+
+		Assert.True(
+			ItemStateText.TryParse(suggestion.Text.Substring(suggestion.Text.IndexOf('{')), out _, out _, out var error),
+			$"the skeleton must be a state the verb accepts: {error}");
+	}
 }

@@ -125,21 +125,26 @@ internal sealed class CommandConsoleCompletion(
 			return modeSuggestions;
 		}
 
-		// …and so does an argument whose legal words come from the parser the verb reads (a summon position, a give slot).
-		if (ArgumentWordCompletion.TrySuggest(command.Name, tokens, current, out var wordSuggestions))
-		{
-			return wordSuggestions;
-		}
-
 		// The write half's SNBT state is the same cheat verb's argument: a caller the gate refuses gets no
 		// state vocabulary either, while /data get's own completion is unaffected.
 		var dataWriteLocked = isData
 			&& tokens.Count > 1
 			&& ItemDataVerbParser.IsWriteVerb(tokens[1].Unquoted)
 			&& !mayRunCheatVerbs;
-		if (!dataWriteLocked && _itemState.TrySuggest(command.Name, tokens, current, out var stateSuggestions))
+
+		// The state comes BEFORE the verb's own word list (user direction 2026-10-30): after a resolved item id the grammar expects the component block, and the
+		// list must carry it — a give also accepts `slot` there, so the two sources are MERGED instead of one winning the keystroke.
+		if (!dataWriteLocked && _itemState.TrySuggest(command.Name, tokens, current, out var stateSuggestions) && stateSuggestions.Count > 0)
 		{
-			return stateSuggestions;
+			return ArgumentWordCompletion.TrySuggest(command.Name, tokens, current, out var alsoWords)
+				? [.. stateSuggestions, .. alsoWords]
+				: stateSuggestions;
+		}
+
+		// …and so does an argument whose legal words come from the parser the verb reads (a summon position, a give slot).
+		if (ArgumentWordCompletion.TrySuggest(command.Name, tokens, current, out var wordSuggestions))
+		{
+			return wordSuggestions;
 		}
 
 		var argumentIndex = current.Length == 0 ? tokens.Count : tokens.Count - 1;

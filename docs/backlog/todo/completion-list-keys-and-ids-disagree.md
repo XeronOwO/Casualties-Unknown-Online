@@ -122,3 +122,13 @@ green. The frame for this row rides the next batch (the row is drawn only when o
 **Row 5 judged on a frame (2026-10-31, build `b050e262`):** `/give @s cu:wat` drew three rows, each with the id AND the reader's name plus its kind —
 `cu:watch` / `electronic watch (item)`, `cu:waterbottle` / `bottled water (item)`, `cu:waterjug` / `water jug (item)` (the catalogue's Chinese sentences). Before this change the
 hint half was empty, so the same rows read as bare ids — the shape the user reported for a pinyin hit.
+## Row 3 landed: after a resolved id, the item's own state block (2026-10-31)
+
+`ItemStateCompletion` used to return early unless the token already carried a `{`, so the moment the user describes — caret right after a completed id — offered nothing. It now asks
+`TryOpenState` first: with the caret on the id or in the blank after it, the item's schema becomes one VERBATIM candidate built by `ItemStateSkeleton` (`{'Condition': 0,
+'Favourited': false, 'Liquids': [], 'Components': {}}`) — the id included when the caret is still on it, the block alone after a space. The state source now runs BEFORE the verb's
+own word list and MERGES with it, because a give also accepts `slot` at that position: `/give @p waterbottle ` offers the skeleton AND `slot`, while `/give @p waterbottle` offers the
+skeleton alone. `ItemStateCompletionTests` pins both positions and that the skeleton parses as a state (`ItemStateText.TryParse`).
+
+Still open on this ticket: row 2's frame (needs a driver action that drives an arrow), rows 7 and 8 (in-place argument errors; click/hover), and row 6's authority filter (already covered by the
+2026-10-24 rule and its gate).

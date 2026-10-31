@@ -45,6 +45,14 @@ internal sealed class ItemStateCompletion(
 		out IReadOnlyList<CommandSuggestion> suggestions)
 	{
 		suggestions = [];
+
+		// NOTHING TYPED YET IS THE COMMON MOMENT (user direction 2026-10-30): with the caret after a resolved item id the grammar expects the state block, so the
+		// item's skeleton is offered there. Returning early on an empty token is what made this undiscoverable.
+		if (TryOpenState(command, tokens, current, out suggestions))
+		{
+			return true;
+		}
+
 		if (current.Length == 0)
 		{
 			return false;
@@ -106,6 +114,63 @@ internal sealed class ItemStateCompletion(
 
 		return SnbtCompletion.TryFragments(text.Substring(brace), schema.Root, out var prefix, out var fragments)
 			&& ToSuggestions(definitionId + prefix, fragments, out suggestions);
+	}
+
+	/// <summary>
+	/// The state a resolved item id EXPECTS: with the caret on the id or in the blank right after it, the item's own skeleton is the one thing the line needs next.
+	/// The candidate carries the state as it should be inserted — the id plus the block when the id is still under the caret, the block alone after a space — and it
+	/// is Verbatim, because an SNBT state is already one command-line token.
+	/// </summary>
+	private bool TryOpenState(
+		string command,
+		IReadOnlyList<CommandLineTokenizer.Token> tokens,
+		CommandLineTokenizer.Token current,
+		out IReadOnlyList<CommandSuggestion> suggestions)
+	{
+		suggestions = [];
+		var itemArgument = command.ToLowerInvariant() switch
+		{
+			"give" => tokens.Count > 1 && tokens[1].Unquoted.StartsWith("@", StringComparison.Ordinal) ? 2 : 1,
+			"summon" => tokens.Count > 1 && string.Equals(tokens[1].Unquoted, WorldSummonParser.ItemKeyword, StringComparison.OrdinalIgnoreCase) ? 2 : -1,
+			_ => -1,
+		};
+		if (itemArgument < 0 || tokens.Count <= itemArgument)
+		{
+			return false;
+		}
+
+		// Two caret positions mean "the state comes next": on the id token itself, and in the blank the player just opened after it.
+		var onTheId = current.Length > 0 && current.Start == tokens[itemArgument].Start;
+		var afterTheId = current.Length == 0 && tokens.Count == itemArgument + 1;
+		if (!onTheId && !afterTheId)
+		{
+			return false;
+		}
+
+		if (tokens[itemArgument].Unquoted.IndexOf('{') >= 0)
+		{
+			return false; // already inside the state: the fragment path owns this token
+		}
+
+		if (!ItemDefinitionId.TryResolve(tokens[itemArgument].Unquoted, out var definitionId, out _))
+		{
+			return false;
+		}
+
+		if (_language.DescribeDefinitionSchema(definitionId) is not { } schema)
+		{
+			return false;
+		}
+
+		var skeleton = ItemStateSkeleton.Of(schema.Root);
+		suggestions =
+		[
+			new CommandSuggestion(
+				(onTheId ? definitionId : string.Empty) + skeleton,
+				CommandSuggestionHint.JsonTemplate,
+				Verbatim: true),
+		];
+		return true;
 	}
 
 	private bool TryGive(IReadOnlyList<CommandLineTokenizer.Token> tokens, CommandLineTokenizer.Token current, string text, out IReadOnlyList<CommandSuggestion> suggestions)

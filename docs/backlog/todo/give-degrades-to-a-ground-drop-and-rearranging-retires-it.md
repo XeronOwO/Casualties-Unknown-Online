@@ -215,3 +215,20 @@ separating one leaves its body under the HUD, where the hover raycast finds no b
 is pinned by tests instead — `StandingItemGateTests.TheWorldTransition_RetiresTheStandingObjectAtEverySite` and
 `.TheWorldMaterialization_RetiresAStandingIncarnationBeforeItsIdempotencyCheck`, plus the swap fix's own rows — and a batch that can separate the players on screen would judge
 them live.
+## Row 3 judged live: three moves, six ids, one place each, on both clients (2026-10-31, build `0c282f7f`)
+
+The channel that blocked this row was the MOUSE: the displayed backpack opens by range and a separated body sits under the HUD, so the hover raycast found nothing. This batch drove the
+other half of the same path — the native INVENTORY INTENTS the drag capture produces — through a new acceptance recipe `remote-intent` (IPlayerInteractionControl.SendRemoteInventoryIntent),
+which is exactly the call the capture makes; the capture itself is pinned by RemoteDragIntentCaptureTests. What the row is about is what the OWNER does with those intents.
+
+Setup: the host carried six local items (bandage 1417660188611 in slot 0, trashbag slot 1, waterbottle 1421955155907 slot 2, lantern slot 3, dogfood slot 4, waterbottle
+1413365221315 slot 5). The GUEST then sent three intents against the host's inventory — `SwapSlots` (bandage, slot 3), `PickUpToSlot` (dogfood, slot 0), `SwapSlots` (waterbottle, slot 5). The
+host's log shows each one accepted and replayed natively (`[RemoteIntent] <guest> → <host> SwapSlots (item 1417660188611 …)` followed by `replayed native SwapSlots`).
+
+Read back afterwards, the host's own rows hold **six items, each exactly once**: dogfood slot 0, trashbag slot 1, waterbottle 1413365221315 slot 2, bandage slot 3, lantern slot 4,
+waterbottle 1421955155907 slot 5 — every id still present, every id in one slot, nothing retired and nothing duplicated. The GUEST's display of the same inventory lists the same six
+instance ids under the host's ownership. **Row 3 PASS** for the owner half and the both-clients half.
+
+**Limit of this row:** the drag CAPTURE half (a real mouse pressing the displayed slots) is not what this batch exercised; it is pinned by the capture tests and would need the channel
+this ticket already named. Row 4 stays pinned by StandingItemGateTests (the world-transition retirement rule at every site); this batch had no world-item fixture to name, so its
+live variant is a named residual rather than a weaker check.

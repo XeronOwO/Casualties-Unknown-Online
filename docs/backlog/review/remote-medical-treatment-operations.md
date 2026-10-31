@@ -241,6 +241,17 @@ Then a staged pointer press at the ring and twelve staged moves around it, and t
 
 The reason is the instrument, not the feature: `MinigameBase.UpdateHandVisuals` asks `Input.GetKey(KeyBinds.GetBind("attack"))` DIRECTLY, while `VirtualInput` stages the keyboard by replacing the game's key reads at their call sites inside `PlayerCamera.HandleInput` (a transpiler) and patches only `Input.GetMouseButton*` for the mouse. A read that happens somewhere else — the minigame's own update — still reaches the real keyboard. **The next change is therefore in the acceptance harness**: patch `Input.GetKey`/`GetKeyDown`/`GetKeyUp(KeyCode)` with the same staged state the mouse buttons already answer (they are the same native shape `GetMouseButton` detours today), so a batch can hold the attack bind the way a player does. Nothing about the product changes; the minigame then has an honest input and the operation's progress is what gets read.
 
+## Row-by-row verdict on the evidence above (2026-11-01)
+
+| row (acceptance) | verdict | evidence |
+|---|---|---|
+| a player can open the remote panel and perform a treatment through the native UI | **PASS** | bandage given into a slot, chart opened (`nativeOpen=true`), released on the patient's limb 3: the game's own `BandageMinigame` ran (`clicking=True`, `lastAction=20`, `fill=1`) and the patient's limb went from `skinHealth=76.24, bleed=2.731` to `100, 0` |
+| the treatment runs through host arbitration, with a verified commit and replay | **OWED** | it IS host-arbitrated: the host opened `Bandage operation 3`, the operator's updates arrived (terminal reads `progress 0.088`, where every earlier batch read `0.000`), and the PATIENT's own client applied the effect. What is missing is a normal COMMIT: the operation's terminal state is `TimedOut` because the batch produced ~1.6 wraps in 20 s, so the terminal line is a timeout rather than an end. A batch whose action rate completes the operation is what closes this row |
+| the display-only path is not bypassed with writes into the remote clone | **PASS (by the fix)** | the native local apply that used to run behind CUO's remote handle is gone (`bool Prefix`, false on the handled branches), so the item is consumed by the operation, not by a local mutation of the display; the patient's client is what applied the wound change |
+| unsupported operations recorded | **PASS** | the "Supported operation set" section names the four families and the deliberate exclusions |
+| build, tests, gates, deployed artifact | **PASS** | 811 gates and 6573 behaviour tests green; deployed artifact verified against the tree before the batch |
+
+So one row is owed, and it is a batch question with a known shape: the minigame needs roughly eighteen wraps and this batch produced under two. The driver that fixes it is already understood — 15° steps with the attack KEY held (the guard accepts only sub-20° steps) and enough of them, or a tighter cadence so consecutive steps land on consecutive frames.
 ## THE TREATMENT LANDS (2026-11-01): the wound went from 76.24 to 100 through the remote chart
 
 Two harness gaps closed and the whole chain ran:

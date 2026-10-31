@@ -60,6 +60,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// <summary>The event-merge rules over the table below (enemy terminal states, limb/injury, the heal reset result).</summary>
 	private readonly CharacterEventMerges _eventMerges;
 
+	/// <summary>The one-shot visual policy the four presentation senders share (report on a guest, broadcast on the host).</summary>
+	private readonly CharacterVisualPublisher _visuals;
+
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
 		ILogger<CharacterDataStore> log, IItemControl items,
 		PlayerKernelLimbProjection playerLimbKernel,
@@ -75,6 +78,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		_appliedItems = appliedItems;
 		_savedCharacters = [];
 		_eventMerges = new CharacterEventMerges(FindSaved, playerLimbKernel, log);
+		_visuals = new CharacterVisualPublisher(session, sender);
 
 		// The table is SESSION-scoped and starts EMPTY, deliberately: the world archive is
 		// the only persistent copy of a character (decisions 162/164), and it feeds this
@@ -447,24 +451,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// already heard the sound locally). Reliable — one sound = one message,
 	/// the presentation trigger never rides the snapshot stream.
 	/// </summary>
-	public void SendCharacterSound(CharacterSoundMsg msg)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Host)
-		{
-			_sender.SendToAll(
-				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-				NetMsg.CharacterSound, msg, reliable: true);
-		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.CharacterSound, msg);
-		}
-	}
+	public void SendCharacterSound(CharacterSoundMsg msg) =>
+		_visuals.Publish(NetMsg.CharacterSound, msg);
 
 	/// <summary>
 	/// Report/broadcast a character attack animation: a guest reports its own
@@ -472,24 +460,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// guest. Reliable — one animation = one message, the visual trigger never
 	/// rides the snapshot stream.
 	/// </summary>
-	public void SendCharacterAttackAnim(CharacterAttackAnimMsg msg)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Host)
-		{
-			_sender.SendToAll(
-				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-				NetMsg.CharacterAttackAnim, msg, reliable: true);
-		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.CharacterAttackAnim, msg);
-		}
-	}
+	public void SendCharacterAttackAnim(CharacterAttackAnimMsg msg) =>
+		_visuals.Publish(NetMsg.CharacterAttackAnim, msg);
 
 	/// <summary>
 	/// Report/broadcast a character landing visual: a guest reports its own
@@ -497,24 +469,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// guest. Reliable — one landing = one message, the visual trigger never
 	/// rides the snapshot stream.
 	/// </summary>
-	public void SendCharacterLandingVisual(CharacterLandingVisualMsg msg)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Host)
-		{
-			_sender.SendToAll(
-				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-				NetMsg.CharacterLandingVisual, msg, reliable: true);
-		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.CharacterLandingVisual, msg);
-		}
-	}
+	public void SendCharacterLandingVisual(CharacterLandingVisualMsg msg) =>
+		_visuals.Publish(NetMsg.CharacterLandingVisual, msg);
 
 	/// <summary>
 	/// Report/broadcast a character ragdoll toggle: a guest reports its own
@@ -522,24 +478,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// guest. Reliable — one collapse = one message, the presentation trigger
 	/// never rides the snapshot stream.
 	/// </summary>
-	public void SendCharacterRagdoll(CharacterRagdollMsg msg)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Host)
-		{
-			_sender.SendToAll(
-				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-				NetMsg.CharacterRagdoll, msg, reliable: true);
-		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.CharacterRagdoll, msg);
-		}
-	}
+	public void SendCharacterRagdoll(CharacterRagdollMsg msg) =>
+		_visuals.Publish(NetMsg.CharacterRagdoll, msg);
 
 
 	// ---- ICharacterDataControl (the packet handlers' control surface) ----

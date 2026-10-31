@@ -91,5 +91,16 @@ The resolver is the shape the entry asked for: the rules that change for their o
 share, so the give path and the take path cannot drift about where an item lands. `PlayerInventoryTakeService` keeps the ladder, the kernel bookkeeping and the
 publication; the two `ResolveDestinationSlot` call sites now ask `_destinations`, the four static rules are addressed through the type.
 
-**What is left in the queue**: `RunCoordinator` (922), `CharacterDataSync` (738), `GameAdapter` (667), `GameAdapterBridge` (663), `WorldService` (640), `CharacterDataStore`
-(629), `PlayerInventoryTakeService` (626) and `IPatchBridge` (608, the frozen patch aggregate whose own doc names the per-domain port migration as the way it shrinks).
+**What is left in the queue**: `RunCoordinator` (922), `CharacterDataSync` (738), `GameAdapter` (667), `GameAdapterBridge` (663), `WorldService` (640) and `IPatchBridge`
+(608, the frozen patch aggregate whose own doc names the per-domain port migration as the way it shrinks).
+
+## Split 5: the character store's four duplicated visual senders (2026-10-31)
+
+`Runtime.Session.CharacterData.CharacterDataStore` was 628 lines, and the block worth moving was not a subsystem but a FOURFOLD COPY: `SendCharacterSound`,
+`SendCharacterAttackAnim`, `SendCharacterLandingVisual` and `SendCharacterRagdoll` each carried the same eight-line policy — nothing without an active session, a guest
+reports to the host, the host broadcasts to every handshaken member, reliable — with only the message type differing. A policy change had to be made four times and
+could drift between them.
+
+That policy is `CharacterVisualPublisher.Publish(NetMsg, payload)` now, and each store method is a one-line expression. The store is **568 lines** and its debt entry is
+deleted (9 entries left). The four sync-coverage evidence entries that quoted the old send bodies point at the publisher's own line, and the folder count follows the
+new file.

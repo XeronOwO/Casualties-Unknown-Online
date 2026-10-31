@@ -17,12 +17,6 @@
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The host-state cycle added the local injury trigger and the owner-state report; the heal authority fix added the applied-reset retry tick and its body/session drop (the retry state itself lives in Runtime's HealResetReportRetry); the craft-report fix added the owner-addressed RetireCarriedItem delegation the session binding calls (+2 code lines and its doc), which is the domain's own seam, not new state; the host-descent follow added the saved-character handback refusal for the body that came through it (a Func seam the composition binds to the run's preserved-body fact), and the descent-spawn follow added the snapshot's layer stamp (reports and the local cut) and the restore's stale-layer position refusal. The planned split is still the trigger into LocalInjuryReporter (owning the baseline, the host-row absorption and the report call), leaving the coordinator the snapshot/restore/render seams."
   },
-  "CasualtiesUnknownOnline.Runtime.Session.CharacterData.CharacterDataStore": {
-    "Lines": 629,
-    "BoolFlags": 0,
-    "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
-    "Note": "The heal authority event added the applied-reset send seam (whose verdict the caller must see) after the event-merge seams moved into CharacterEventMerges; the descent-spawn follow only expanded the handback's comment (the save's kernel projection makes the respawn alive before this send, so the send's projection confirms it). The planned split is still the host-model companion (advance marks + refusal window) fed by this store, leaving the table the save/restore and the report filter."
-  },
   "CasualtiesUnknownOnline.Runtime.Session.World.WorldService": {
     "Lines": 640,
     "BoolFlags": 0,

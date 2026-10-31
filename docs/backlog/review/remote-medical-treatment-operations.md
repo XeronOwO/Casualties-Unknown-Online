@@ -129,3 +129,9 @@ The host's own log says what happened next, and it is not "nothing":
 - `[MedicalView] started remote Bandage minigame for … limb 2 (item bandage).` — the retry STARTED the treatment as the game's own bandage minigame.
 
 The patient's limb read unchanged (`skinHealth=8.92, bleedAmount=17.9`) because a minigame-start is not a completed operation: the wound view's own minigame has to be played to its end before the effect lands. **So this ticket's live row now waits on a minigame driver, exactly like the shrapnel and CPR rows** — the same shape `shrapnel-break` and `cpr-rhythm` already solve with a declaration rather than a recipe, because the pieces have to be driven across frames the game itself runs. The next batch starts from that instrument, not from another release.
+
+## The minigame driver exists (`bandage-rub`), and what it has not yet caught
+
+The same batch built the driver the row waits on: a declaration (`bandage-rub`) that moves the minigame's OWN hand — `MinigameBase.main.handPos`, the field the game reads as the pointer — around a circle one step per frame with the hand held, so `BandageMinigame.PhysicsUpdate` measures its angle between frames the game itself advances and calls `DoBandageAction` (the game's function, never ours). A recipe (`bandage-rub steps=n`) starts it; both compile and load on the client.
+
+What is still owed is TIMING, and the batch measured it: the bandage minigame ends on its own within a frame or two unless a hand is driving it, and a rub started in the same call as the release performed `steps=120` frames while `minigame-end` answered `before=none` — the window had already closed. The next attempt starts the rub FIRST and keeps it running ACROSS the release (the driver now waits for a `BandageMinigame` to appear instead of breaking on the first empty frame), then reads the patient's limb for the applied effect.

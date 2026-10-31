@@ -35,6 +35,12 @@
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The world surface's contract. The descent-spawn follow added the CurrentGeneration read — the kernel run baseline stamp a character snapshot is captured in, which the CharacterData restore compares against its own layer. The spectator notice added its four members (send, relay, fire and the event), all forwarding to SpectatorNoticeChannel. The interface has no state; its size is the world/persistence surface collected here, and the next grower owes the per-domain port extraction the facade's own split plan names."
   },
+  "CasualtiesUnknownOnline.ModExample.ExampleMod": {
+    "Lines": 606,
+    "BoolFlags": 0,
+    "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
+    "Note": "The shipped sample now demonstrates the non-local console command too (HostRelayed), which is the one surface stage 3 of the console contract needed a live example for. The split moves the console examples into their own sample mod rather than trimming what a reader is meant to see."
+  },
   "CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService": {
     "Lines": 621,
     "BoolFlags": 0,

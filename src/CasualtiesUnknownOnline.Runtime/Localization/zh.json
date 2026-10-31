@@ -253,6 +253,7 @@
   "console.command.unknown": "未知命令“{0}”。输入 /help 查看可用命令。",
   "console.chat.not_sent": "消息未发送（会话未激活或文本无效）。",
   "console.ready": "CUO 命令控制台已就绪。输入 /help 查看可用命令。",
+  "console.sample.hostecho": "主机回答 {0}：{1}",
   "console.session_ended": "会话已结束。",
   "content.cu_player": "玩家",
   "prefs.title": "多人游戏偏好",

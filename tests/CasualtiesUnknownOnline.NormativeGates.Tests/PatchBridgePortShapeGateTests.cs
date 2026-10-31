@@ -151,7 +151,8 @@ public class PatchBridgePortShapeGateTests
 		"TryDeferMenuReturn",
 		"TryDeferStartGateAlert",
 		"TryHandleDraggedItemUseOnRemote",
-	];
+			"WorldGen",
+];
 
 	/// <summary>
 	/// The seam portfolio. <c>Composed</c> marks the interfaces IPatchBridge
@@ -265,6 +266,7 @@ public class PatchBridgePortShapeGateTests
 		"_modContent",
 		"_remoteMedicalOps",
 		"_remoteDragIntents",
+		"_worldGen",
 	];
 
 	/// <summary>The static seam's whole census: the one field holding the bound bridge, and the accessors — the aggregate's plus one per port-shaped seam. A new accessor is a new door and is a red.</summary>
@@ -318,7 +320,6 @@ public class PatchBridgePortShapeGateTests
 		"ISpectatorPatchPort",
 		"ISaveCutPatchPort",
 		"ILayerPanelPatchPort",
-		"IWorldGenPatchBridge",
 	];
 
 	public static IEnumerable<object[]> SeamCensus() =>

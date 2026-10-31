@@ -221,4 +221,21 @@ with it — the previous frame's local body (the world-entry edge for the destro
 pump that reads it. Two gates followed the move: the call-context boundary gate now asserts `CallContext.EndFrame()` sits once in `FrameTick.Run` **and** that the
 adapter pumps exactly once (so a future move cannot drop either half), and one sync-coverage quote moved with its call.
 
-**What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine) and `GameAdapterBridge` (649).
+**What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine) and `GameAdapterBridge` (600 by its file, still over the gate's count
+because the aggregate it serves is what the gate measures).
+
+## Split 15: the world-generation port gets an implementation object (2026-10-31)
+
+`GameAdapterBridge` was 649 lines, and its own doc names the way it shrinks: the port forwarders become per-port adapter objects. The world-generation port went first
+because it is the largest (nine hooks) — `WorldGenPatchAdapter` implements `IWorldGenPatchBridge` and the bridge composes it as `WorldGen`, exactly the shape
+`IModContentPatchBridge` already had. The bridge is **600 lines** by its file.
+
+Two things stayed where they were: `OnWorldGenerate`'s body (it also resets the enemy roster, keeps the loading animation alive, clears a stale layer modifier and
+empties the pre-generation tables — it is a generation boundary, not a forwarder) moved with the port because it IS the port's implementation, and the aggregate keeps
+declaring `WorldGen` so a patch still reaches it through `PatchBridge.Impl`.
+
+Five pins followed the move: the seam table now marks the port as implementation-served (not self-served), the implementation census gained `_worldGen`, the aggregate
+census gained `WorldGen`, the enemy-roster pin reads the adapter for the generation boundary, and the damage-block gate reads the declaration in the port and the
+implementation in the adapter. The debt entry's note was rewritten to record that the publish path has already moved and what the descent split now owes.
+
+**What is left in the queue**: `RunCoordinator` (832, this ticket — `HostDescentFollow`, then the bind/unbind table).

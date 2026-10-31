@@ -54,9 +54,10 @@ public class DamageBlockHookCoverageGateTests
 	private const string PatchFile = AdapterDir + "Patches/WorldGenerationDamageBlockPatch.cs";
 
 	/// <summary>The port that declares the report now belongs with the other world-generation hooks; the aggregate stopped carrying it in the 2026-10-31 migration.</summary>
-	private const string AggregateFile = AdapterDir + "IWorldGenPatchBridge.cs";
+	private const string AggregateFile = AdapterDir + "WorldGenPatchAdapter.cs";
 
-	private const string BridgeFile = AdapterDir + "GameAdapterBridge.cs";
+	/// <summary>The implementation file for the same reason: the bridge forwards the report through the composed port, so the bridge itself declares nothing.</summary>
+	private const string PortFile = AdapterDir + "IWorldGenPatchBridge.cs";
 
 	private const string BlockBreakFile = AdapterDir + "World/BlockBreakSync.cs";
 
@@ -106,7 +107,7 @@ public class DamageBlockHookCoverageGateTests
 	[Fact]
 	public void TheReport_CarriesTheCellRatherThanAWorldPosition()
 	{
-		foreach (var file in new[] { AggregateFile, BridgeFile, BlockBreakFile })
+		foreach (var file in new[] { PortFile, AggregateFile, BlockBreakFile })
 		{
 			var declarations = FirstParameterTypes(file, "OnBlockDamaged");
 			Assert.True(

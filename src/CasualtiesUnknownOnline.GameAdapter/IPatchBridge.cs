@@ -44,6 +44,9 @@ internal interface IPatchBridge
 	/// <summary>The mod-content half of this bridge (template / drop-source / tile-behaviour resolution).</summary>
 	IModContentPatchBridge ModContent { get; }
 
+	/// <summary>The world-generation half of this bridge (the generation passes and the cell-keyed block writes). Patches that need only those hooks read <c>PatchBridge.WorldGen</c>.</summary>
+	IWorldGenPatchBridge WorldGen { get; }
+
 	/// <summary>Guest: generation finished (or finishing) but the start gate still holds — the GlobalDark fade must not black out the kept loading screen.</summary>
 	bool IsInGateWindow { get; }
 

@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
@@ -24,14 +23,18 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// casting the bound bridge, so this declaration is what makes it reachable.
 /// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort, ILayerPanelPatchPort, IWorldGenPatchBridge
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort, ILayerPanelPatchPort
 {
 	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
 	private readonly ModContentPatchBridge _modContent = new(domains);
+	private readonly WorldGenPatchAdapter _worldGen = new(domains);
 	private readonly CarriagePatchBridge _carriage = new(domains);
 
 	public IModContentPatchBridge ModContent => _modContent;
+
+	/// <summary>The world-generation port: the generation passes and the cell-keyed block writes, composed so the frozen aggregate does not carry them.</summary>
+	public IWorldGenPatchBridge WorldGen => _worldGen;
 
 	public ICarriagePatchBridge Carriage => _carriage;
 
@@ -81,44 +84,6 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool TryDeferStartGateAlert(string text, bool important) => domains.Gate.DeferAlert(text, important);
 
-	public void OnWorldGenerate()
-	{
-		domains.Run.OnWorldGenerate();
-		// Every enemy id and match hint names the layer being left: the roster state starts empty on BOTH roles, and the host holds snapshots until its new capture is complete.
-		domains.EnemySync.OnWorldGenerationStarted();
-		domains.Gate.AttachKeepLoading(); // both roles: while the gate waits for the others, the loading animation keeps playing
-										  // The tutorial/debug layers skip the game's ResetLayerModifiers
-										  // (WorldGeneration.cs:3280-3283 — it only runs for biomeOverride == None),
-										  // so the previous layer's modifier keeps its static active state: a run
-										  // with a modifier followed by the tutorial showed no banner (the tutorial
-										  // never rolls one, WorldGeneration.cs:3626-3628) but the modifier's
-										  // effects still ran. Clear it on EVERY side — the modifier instances are
-										  // process-static (LayerModifier.availableModifiers), one set per game;
-										  // the guest's active was set by the snapshot path.
-		if (WorldGeneration.world != null && HarmonyTraverse.ReadBiomeOverride() != 0) // Unity object — ==; 0 = None
-		{
-			WorldGeneration.world.ResetLayerModifiers();
-			domains.Log.LogInformation("[LayerMod] non-none layer — cleared the previous layer's residual modifiers.");
-		}
-
-		if (domains.Session.Role != SessionRole.Guest)
-		{
-			// A new world/layer is generating — the old layer's world items are
-			// gone with the scene; the authoritative table starts empty again
-			// (regression guard: this call lived inside the old GameAdapter's
-			// OnWorldGenerate and was lost in the domain split).
-			domains.Items.ResetItems();
-			domains.ItemWorldSync.ResetPending(); // a pending drop's item is gone with the old layer
-			domains.BlockBreakSync.ResetPending(); // a pending break's drops are gone with the old layer
-		}
-	}
-
-	public void OnBlockSet(Vector2Int pos, ushort block) => domains.WorldEventSync.OnBlockSet(pos, block);
-
-	public void OnBlockDamaged(Vector2Int cell, float dmg, bool bonusMetal, float applied) => domains.BlockBreakSync.OnBlockDamaged(cell, dmg, bonusMetal, applied);
-
-	public void OnCustomTileBroken(WorldGeneration world, Vector2Int cell, ushort block) =>
-		domains.TileContent.TrySpawnDrops(world, cell, block);
 
 	public void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound, bool playHitFlash)
 	{
@@ -247,21 +212,6 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		// generatingWorld flag is already down).
 		domains.Run.OnLocalGenerationStarted();
 	}
-
-	public IEnumerator WrapStructureWorldGen(IEnumerator original, WorldGeneration world) =>
-		domains.StructureWorldGen.Wrap(original, world);
-
-	public void OnCustomTileOreGeneration(WorldGeneration world) =>
-		domains.TileWorldGen.Distribute(world);
-
-	public void OnCustomLiquidWorldGeneration(WorldGeneration world) =>
-		domains.LiquidTileWorldGen.Distribute(world);
-
-	public void OnCustomBuildingWorldGeneration(WorldGeneration world) =>
-		domains.BuildingWorldGen.Distribute(world);
-
-	public void OnCustomItemWorldGeneration(WorldGeneration world) =>
-		domains.ItemWorldGen.Scatter(world);
 
 	public void OnEarthquakeStarted(float duration, float nextDelay) =>
 		domains.WorldEventSync.OnEarthquakeStarted(duration, nextDelay);

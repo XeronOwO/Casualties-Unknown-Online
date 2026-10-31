@@ -1088,6 +1088,7 @@ public class SourceShapeGateTests
 		var coordinator = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs"))
 			+ binder;
 		var bridge = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs"));
+		var worldGen = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/WorldGenPatchAdapter.cs"));
 		var service = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs"));
 		var publisher = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyRosterPublisher.cs"));
 		var handler = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.Runtime/Session/Handlers/EnemySnapshotHandler.cs"));
@@ -1108,7 +1109,7 @@ public class SourceShapeGateTests
 		Assert.True(coordinator.Contains("if (unresolvedCount > 0)", StringComparison.Ordinal), "the destroy gate must use the combined completeness condition, not the plan's unresolved set alone");
 		Assert.True(coordinator.Contains("EnemyRosterReset +=", StringComparison.Ordinal), "the adapter must drop its bindings when the host resets the roster for a new layer");
 		Assert.True(coordinator.Contains("CanPublishRoster(HarmonyTraverse.HasWorld, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating())", StringComparison.Ordinal), "the adoption must be gated on a SETTLED world: the regeneration fade is not IsGenerating and a copy of the scene being replaced must not be adopted");
-		Assert.True(bridge.Contains("domains.EnemySync.OnWorldGenerationStarted()", StringComparison.Ordinal), "the generation boundary must reset the roster state on both roles");
+		Assert.True(worldGen.Contains("domains.EnemySync.OnWorldGenerationStarted()", StringComparison.Ordinal), "the generation boundary must reset the roster state on both roles");
 		Assert.False(publisher.Contains("if (_enemies.Count == 0)", StringComparison.Ordinal), "the empty roster is authoritative — suppressing it kept every member's divergent local set");
 		Assert.True(publisher.Contains("Generation = _generations.Stamp()", StringComparison.Ordinal), "a roster must carry the world/layer generation it was derived in");
 		Assert.True(publisher.Contains("FlushHeld();", StringComparison.Ordinal), "a held snapshot must be flushed at the ready transition — its member's entry window may already be closed");

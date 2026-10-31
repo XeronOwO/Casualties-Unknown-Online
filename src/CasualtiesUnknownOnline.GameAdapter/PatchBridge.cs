@@ -50,7 +50,7 @@ internal static class PatchBridge
 	public static ILayerPanelPatchPort? LayerPanel => _bound as ILayerPanelPatchPort;
 
 	/// <summary>The world-generation patch port (the generation passes and the cell-keyed block writes). The aggregate does not declare it, so this accessor is the only way a patch reaches those hooks.</summary>
-	public static IWorldGenPatchBridge? WorldGen => _bound as IWorldGenPatchBridge;
+	public static IWorldGenPatchBridge? WorldGen => _bound?.WorldGen;
 
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 

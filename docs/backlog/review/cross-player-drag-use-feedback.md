@@ -607,3 +607,13 @@ The cue still answered `showing=false, target=0` immediately after, which says w
 With the CUO window CLOSED (it was open and owning the screen in the first capture — the modal guard was doing its job), the drag armed from slot 0 and `AutoOpenRemoteBackpackForDrag` answering `opened=true`, the captured frame shows the game's own inventory RING with the LOCAL body's limbs (its own hand, upper- and mid-arm labels), a bandage in the hand, and no teammate panel anywhere. So the call reports success and the surface still is not on screen — which is why `drag-cue` keeps answering `showing=false, target=0` with the pointer on the teammate's body and on the ring's centre alike (`drag-state` confirms `dragging=true, item=bandage, mouse=(637,399)` throughout).
 
 That is the next question, and it is a product question rather than an instrument one: what has to hold for the displayed backpack to be DRAWN — the view's own open flag, the renderer's clone for that teammate, the drag path's auto-open timing — and `opened=true` answering while nothing renders is exactly the kind of "reports success, changes nothing" gap this project treats as a defect. The reading that decides it is `RemoteBackpackView.IsOpen` plus whatever draws the panel, read at the same moment as the frame.
+
+## The instrument reported its own assumption; corrected, it reads the view (2026-11-01)
+
+The recipe above answered `opened=true` for the mere fact that the call returned, which hides every silent refusal the auto-open makes (no render clone, out of range, no target). It now reads the VIEW'S own state after the call, and the first honest reading is:
+
+    {"ok":true,"isOpen":true,"focused":76561199526807662}
+
+So the displayed backpack IS open — and it is focused on the ALT member, not the guest the batch was aiming at: the gesture's target is resolved by proximity (`Observe` + `IsTargetInRange`), and the alt was the nearer teammate. That is why the frame showed no panel where the batch looked and why the cue stayed hidden with the pointer over the guest: the open view belongs to somebody else.
+
+The next batch makes the two agree — bring the guest nearest, or aim the cue reading at the focused member — and then the frame plus `drag-cue` decide the row together.

@@ -35,5 +35,20 @@
 	if (open == null) { return "{\"ok\":false,\"error\":\"no-auto-open\"}"; }
 
 	open.Invoke(impl, new object[] { item });
-	return "{\"ok\":true,\"opened\":true}";
+
+	// The verdict is the VIEW'S OWN state, never the fact that the call returned: the auto-open refuses silently for a target with no
+	// render clone, out of range, or with no target at all, and a recipe that answered "opened" for the call's return would hide every
+	// one of those (measured 2026-11-01: opened=true reported while the frame showed no teammate panel).
+	System.Type view = null;
+	for (var i = 0; i < assemblies.Length; i++) {
+		try { view = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.RemoteBackpackView", false); } catch { view = null; }
+		if (view != null) { break; }
+	}
+	if (view == null) { return "{\"ok\":false,\"error\":\"no-view\"}"; }
+	var statics = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+	var isOpenProperty = view.GetProperty("IsOpen", statics);
+	var focusedProperty = view.GetProperty("FocusedSteamId", statics);
+	var isOpen = isOpenProperty == null ? false : (bool)isOpenProperty.GetValue(null, null);
+	var focused = focusedProperty == null ? 0UL : (ulong)focusedProperty.GetValue(null, null);
+	return "{\"ok\":true,\"isOpen\":" + (isOpen ? "true" : "false") + ",\"focused\":" + focused.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
 }))()

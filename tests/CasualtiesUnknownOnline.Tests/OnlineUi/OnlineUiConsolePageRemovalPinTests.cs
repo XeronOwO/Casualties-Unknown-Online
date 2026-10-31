@@ -336,7 +336,6 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		"console.hint.usage",
 		"console.overlay.empty",
 		"console.ready",
-		"console.sample.hostecho",
 		"console.session_ended",
 		"console.suggest.banned_steamid",
 		"console.suggest.banned_steamid_hex",

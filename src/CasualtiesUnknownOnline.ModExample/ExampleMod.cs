@@ -163,6 +163,8 @@ public sealed class ExampleMod : ICuoMod
 			})));
 
 		context.Commands.Register(new ModCommand("echo", c => $"echo:{string.Join(" ", c.Arguments)}"));
+		// The mod's own sentences: an answer a PLAYER reads is rendered by that player's client, so the mod embeds one catalogue per language it speaks.
+		SampleCatalogues.Register(context);
 		// The shipped NON-LOCAL sample: declared HostRelayed, so a member's line runs on the host and the answer comes back keyed (stage 3 of the console contract).
 		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
 			"examplehost", "Ask the HOST to echo a line — the answer names who asked", HostEchoFromConsole,
@@ -273,7 +275,7 @@ public sealed class ExampleMod : ICuoMod
 	{
 		var text = string.Join(" ", ctx.Arguments);
 		_context?.Logger.LogInformation("[Example] host echo for {Requester}: {Text}", ctx.RequesterSteamId, text);
-		return ConsoleAnswer.Ok($"host echo for {ctx.RequesterSteamId}: {text}", "console.sample.hostecho", ctx.RequesterSteamId.ToString(), text);
+		return ConsoleAnswer.Ok($"host echo for {ctx.RequesterSteamId}: {text}", "cuo.example.hostecho.answer", ctx.RequesterSteamId.ToString(), text);
 	}
 
 

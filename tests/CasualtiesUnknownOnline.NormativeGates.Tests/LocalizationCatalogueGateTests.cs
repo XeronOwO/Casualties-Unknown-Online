@@ -128,11 +128,33 @@ public sealed class LocalizationCatalogueGateTests
 	[Fact]
 	public void EveryKeyTheSourceReads_IsDeclared()
 	{
-		var dangling = DanglingKeys(CatalogueText(), ProductSourceText());
+		// A key under a DECLARED MOD NAMESPACE is the mod's own: it is declared at bind time through IModLocalisation, in the mod's own catalogue, and the
+		// framework tables must not carry it (that would be the framework speaking for a mod). Every other key still has to be in the built-in tables.
+		var namespaces = ModNamespaces(ProductSourceText());
+		var dangling = DanglingKeys(CatalogueText(), ProductSourceText())
+			.Where(key => !namespaces.Any(ns => key.StartsWith(ns + ".", StringComparison.Ordinal)))
+			.ToArray();
 		Assert.True(
 			dangling.Length == 0,
 			$"{dangling.Length} key(s) are read by src/ but the catalogue does not declare: {string.Join(", ", dangling)}");
 	}
+
+	[Fact]
+	public void AKeyOutsideAModNamespace_IsStillDeclaredHere()
+	{
+		// The guard for the rule above: a key that LOOKS mod-ish but sits outside every declared mod namespace is a framework key and must be declared.
+		var namespaces = ModNamespaces(ProductSourceText());
+		Assert.DoesNotContain("cuo.unclaimed.key", namespaces.Select(ns => ns + ".key"));
+		Assert.Contains("cuo.example", namespaces);
+	}
+
+	/// <summary>Every mod id a shipped mod declares (<c>[CuoMod("id", …)]</c>), which is the namespace its catalogue must live under.</summary>
+	private static string[] ModNamespaces(string sourceText) =>
+	[
+		.. ModIdPattern.Matches(sourceText).Cast<Match>().Select(match => match.Groups[1].Value).Distinct(StringComparer.Ordinal),
+	];
+
+	private static readonly Regex ModIdPattern = new(@"\[CuoMod\(""([a-z0-9_.]+)""", RegexOptions.Compiled);
 
 	[Fact]
 	public void BothLanguageTables_DeclareTheSameKeySet()

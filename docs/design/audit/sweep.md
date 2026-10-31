@@ -19,7 +19,7 @@ cannot drift away from the tree.
 
 | Block | Files | Status |
 |---|---|---|
-| `CasualtiesUnknownOnline.Abstractions` | 160 | read |
+| `CasualtiesUnknownOnline.Abstractions` | 161 | read |
 | `CasualtiesUnknownOnline.Application` | 1 | read |
 | `CasualtiesUnknownOnline.Application/Kernel` | 31 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | read |
@@ -46,7 +46,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.GameState/Domains/WorldEntities` | 19 | read |
 | `CasualtiesUnknownOnline.GameState/Kernel` | 6 | read |
 | `CasualtiesUnknownOnline.GameState/Projections` | 2 | read |
-| `CasualtiesUnknownOnline.ModExample` | 3 | read |
+| `CasualtiesUnknownOnline.ModExample` | 4 | read |
 | `CasualtiesUnknownOnline.Music` | 7 | read |
 | `CasualtiesUnknownOnline.PinyinSearch` | 1 | read |
 | `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | read |
@@ -84,7 +84,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Session/Handlers` | 111 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/HostRules` | 16 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Items` | 64 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/Mods` | 89 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/Mods` | 90 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic` | 7 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Permissions` | 5 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Persistence` | 44 | read |

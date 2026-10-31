@@ -25,7 +25,7 @@ public interface IModContext
 	/// <summary>Mod-scoped logger — logs as [Mod:&lt;id&gt;].</summary>
 	ILogger Logger { get; }
 
-	/// <summary>The mod message channel (report/定向 semantics, star topology — no auto-relay).</summary>
+	/// <summary>The mod message channel (report/targeted semantics, star topology — no auto-relay).</summary>
 	IModNetwork Network { get; }
 
 	/// <summary>
@@ -48,6 +48,12 @@ public interface IModContext
 
 	/// <summary>Local in-game console commands — the handler runs on the local process, with no wire relay.</summary>
 	IModConsoleCommands ConsoleCommands { get; }
+
+	/// <summary>
+	/// The mod's own sentences, so an answer, a completion row or a hint reaches a player in the player's language instead of the author's. A command that
+	/// answers by key needs this to exist at all: without a catalogue the key falls back to the text the mod passed.
+	/// </summary>
+	IModLocalisation Localisation { get; }
 
 	/// <summary>
 	/// Host-persistent per-mod state (typed <see cref="ModValue"/> entries,

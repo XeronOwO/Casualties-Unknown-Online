@@ -321,3 +321,14 @@ client for the hint and answer rows, but this row did not watch a Chinese member
 **Still open (stage 4):** a MOD's own language catalogue. A mod has no catalogue registration today — the census gates require every key in `src/` to be declared in the
 framework tables, which is why the sample's sentence lives under `console.sample.*`. That gap is the mod-catalogue item the next stage has to close before a mod can ship its
 own sentences.
+## Stage 4's mechanism landed: a mod ships its own sentences (2026-10-31)
+
+The gap the live batch exposed is closed on the MOD surface, not in the framework: the localisation service has been able to merge a mod's catalogue for a while (RegisterCatalog, additive,
+never overwriting a built-in entry), but a mod had no way to reach it. IModContext.Localisation exposes it as IModLocalisation.RegisterCatalog(language, json), and the adapter guards the
+namespace: every key must start with the mod's own id and a foreign key refuses the WHOLE table (a half-applied catalogue would leave a mod partly translated with nothing to see).
+
+Two facts follow, and both are pinned: a mod's key renders in the reader's language, and a mod cannot redefine a framework sentence — the namespace guard refuses it, and the service refuses it again
+on its own. 3 tests. The shipped sample now carries its own cuo.example.hostecho.answer in n and zh and answers HostRelayed with that key, so the sentence a member reads comes from the
+MOD's catalogue; the framework table no longer holds it at all.
+
+**Still open in stage 4:** the two how-to recipes (a local command with a preset completer; a non-local command with a keyed answer) and the reference row for the shipped completers.

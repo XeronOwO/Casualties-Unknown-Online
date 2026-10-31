@@ -210,6 +210,7 @@ member|Experimental|CasualtiesUnknownOnline.Abstractions.IModContext.ItemActions
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.ItemSpawn|property|-> IModItemSpawn { get; }
 member|Experimental|CasualtiesUnknownOnline.Abstractions.IModContext.LiquidEffects|property|-> IModLiquidEffects { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.LiquidPlacement|property|-> IModLiquidPlacement { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Localisation|property|-> IModLocalisation { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.Logger|property|-> ILogger { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.MoodleRuntime|property|-> IModMoodleRuntime { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModContext.NativeApi|property|-> IModNativeApi { get; }
@@ -473,6 +474,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition.Visu
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition.VisualLiquidByte|property|-> int { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition.VisualMode|property|-> ModLiquidTileVisualMode { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition.WetnessPerSecond|property|-> float { get; }
+member|Stable|CasualtiesUnknownOnline.Abstractions.IModLocalisation.RegisterCatalog(string language, string json)|method|-> bool
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleAnimation.FramePaths|property|-> List<string> { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleAnimation.FramesPerSecond|property|-> float { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleAnimation.Loop|property|-> bool { get; }
@@ -1287,6 +1289,7 @@ type|Experimental|CasualtiesUnknownOnline.Abstractions.IModLiquidEffectContext|i
 type|Experimental|CasualtiesUnknownOnline.Abstractions.IModLiquidEffects|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidPlacement|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModLiquidTileDefinition|interface|IModContentDefinition
+type|Stable|CasualtiesUnknownOnline.Abstractions.IModLocalisation|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleAnimation|interface|-
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleDefinition|interface|IModContentDefinition
 type|Stable|CasualtiesUnknownOnline.Abstractions.IModMoodleRuntime|interface|-

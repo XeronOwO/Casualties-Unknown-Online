@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -36,6 +37,7 @@ internal sealed class ModLifecycle(
 	RemoteVitalsService remoteVitals,
 	RemoteInventoryService remoteInventory,
 	IKernelItemFacts itemFacts,
+	ILocalizationService localisation,
 	IModEntitySpawner entitySpawner,
 	IModItemSpawner itemSpawner,
 	IModTilePlacer tilePlacer,
@@ -65,6 +67,7 @@ internal sealed class ModLifecycle(
 	private readonly RemoteVitalsService _remoteVitals = remoteVitals;
 	private readonly RemoteInventoryService _remoteInventory = remoteInventory;
 	private readonly IKernelItemFacts _itemFacts = itemFacts;
+	private readonly ILocalizationService _localisation = localisation;
 	private readonly IModEntitySpawner _entitySpawner = entitySpawner;
 	private readonly IModTilePlacer _tilePlacer = tilePlacer;
 	private readonly IModItemSpawner _itemSpawner = itemSpawner;
@@ -188,7 +191,8 @@ internal sealed class ModLifecycle(
 					_consoleCommands,
 					_remoteVitals,
 					_remoteInventory,
-					_itemFacts,
+			_itemFacts,
+			_localisation,
 					_entitySpawner,
 					_itemSpawner,
 					_tilePlacer,

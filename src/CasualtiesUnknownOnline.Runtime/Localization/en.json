@@ -253,7 +253,6 @@
   "console.command.unknown": "Unknown command '{0}'. Type /help for available commands.",
   "console.chat.not_sent": "Message was not sent (session inactive or invalid text).",
   "console.ready": "CUO command console ready. Type /help for available commands.",
-  "console.sample.hostecho": "the host answered {0}: {1}",
   "console.session_ended": "Session ended.",
   "content.cu_player": "Player",
   "prefs.title": "MULTIPLAYER PREFERENCES",

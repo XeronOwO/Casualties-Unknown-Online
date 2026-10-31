@@ -41,6 +41,12 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The mod's own sentences: a translator edits these files, not C#. They are embedded so the mod is one DLL a player installs. -->
+    <EmbeddedResource Include="Localization\en.json" />
+    <EmbeddedResource Include="Localization\zh.json" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
   </ItemGroup>

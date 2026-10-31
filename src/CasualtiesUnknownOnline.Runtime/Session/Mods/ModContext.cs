@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using Microsoft.Extensions.Logging;
@@ -36,6 +37,7 @@ internal sealed class ModContext(
 	RemoteVitalsService remoteVitals,
 	RemoteInventoryService remoteInventory,
 	IKernelItemFacts itemFacts,
+	ILocalizationService localisation,
 	IModEntitySpawner entitySpawner,
 	IModItemSpawner itemSpawner,
 	IModTilePlacer tilePlacer,
@@ -74,6 +76,7 @@ internal sealed class ModContext(
 	private readonly ModNativeApiAdapter _nativeApi = new(manifest, nativeApiProvider, frameworkLog);
 	private readonly IModContentOwnerQuery _contentOwners = new ModContentOwnerQueryAdapter(contentControl);
 	private readonly IModResourceCompletion _resourceCompletion = new ModResourceCompletionAdapter(resourceCompletionStore, manifest, frameworkLog);
+	private readonly IModLocalisation _localisation = new ModLocalisationAdapter(manifest, localisation, frameworkLog);
 
 	public ILogger Logger { get; } = logger;
 
@@ -84,6 +87,8 @@ internal sealed class ModContext(
 	public IModCommands Commands => _commands;
 
 	public IModConsoleCommands ConsoleCommands => _consoleCommands;
+
+	public IModLocalisation Localisation => _localisation;
 
 	public IModState State => _state;
 

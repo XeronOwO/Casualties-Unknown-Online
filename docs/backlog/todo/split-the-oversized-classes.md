@@ -252,4 +252,14 @@ the phase mapping onto the run, the menu-return origin rule) is still there and 
 a session — and it is: `HostDescentFollowTests` pins the transition table (launch without an edge changes nothing, an early release keeps the generation in flight,
 waiting is not aborted by the clocks), the abort ladder's order and its three reasons, and that ending the follow closes the host's window.
 
-**What is left in the queue**: `RunCoordinator` (794, this ticket — the bind/unbind table and the session edges).
+**What is left in the queue**: `RunCoordinator` (784, this ticket — the descent's scene plumbing and the world-join family, both now unblocked by `RunPhase`).
+
+## Split 17: the run phase becomes a type (2026-10-31)
+
+`RunCoordinator` was 794 lines, and every extraction still owed in it hit the same wall: `RunPhase` was a private nested enum, so no collaborator could take the
+phase as an argument. It is `RunPhase` in its own file now — the seven states with the one-line reason for each — exactly as `DescentPhase` came out before it. The
+coordinator is **784 lines** and its entry is re-recorded.
+
+This is a preparatory cut, and it is recorded as one: the next extraction (the descent's scene plumbing into a controller, then the world-join family) needs the phase
+to be a value two objects can pass, which is what this change makes possible. A bind/unbind helper was tried and REVERTED in the same session: wrapping six
+subscriptions in a handler record added an indirection without removing a line of meaning, and the aggregate it served is not what made the class large.

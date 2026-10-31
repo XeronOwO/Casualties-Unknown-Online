@@ -43,17 +43,6 @@ internal sealed class RunCoordinator(
 	DescentBodyPreservation descentBody,
 	ILogger<RunCoordinator> log)
 {
-	/// <summary>Guest run-follow phases — one enum replaces the scattered booleans (pending/started/ready/frozen).</summary>
-	private enum RunPhase
-	{
-		Idle,         // menu — not following any run
-		JoinPending,  // WorldJoin received, waiting for PreRunScript to start the run
-		Starting,     // StartRun/StartTutorial called — transition/loading underway
-		Generating,   // the generation boundary passed (the gen wrapper engaged)
-		Descending,   // the host announced its own layer advance — this member generates its new layer in parallel
-		WaitingReady, // world generated — waiting for the host's WorldReady (gate freeze)
-		Playing,      // WorldReady received — playing
-	}
 
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
@@ -167,6 +156,7 @@ internal sealed class RunCoordinator(
 		_world.LayerDescentReceived += OnLayerDescent;
 	}
 
+	/// <summary>The exact reverse of <see cref="BindToSession"/>: every edge the run follows is released here, in the same set.</summary>
 	internal void Unbind()
 	{
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;

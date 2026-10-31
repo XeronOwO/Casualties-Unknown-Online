@@ -6,6 +6,11 @@
   outside the documented exemptions (`docs/zh/`, `zh.json`, the pinyin dictionary, fixtures that must contain non-English text).
 - `check-delivery.ps1` — the delivery checklist, run before a commit: validates every required box and its evidence, archives the
   cycle's record under `docs/evidence/checklists/`, resets the boxes for the next cycle.
+- `check-goal-completion.ps1` — the completion gate for an autonomous run: reads every `- Status:` line in `docs/backlog/todo/`
+  and `docs/backlog/review/` and exits 1 while any ticket is still actionable (an ordinary status, a missing status, or a status
+  that still carries a residual row). Run it as the last action before `update_goal complete`; its output is the reading that
+  claim has to carry. A ticket is "parked" only when its own status says why nobody can do it alone — blocked on the user, on a
+  human motion, on build capability, or on a fixture a batch cannot produce.
 - `acceptance/preflight.ps1` — the read-only dependency preflight of an acceptance run
   ([`../docs/acceptance/dependencies.md`](../docs/acceptance/dependencies.md)); it changes nothing and its machine values come from
   the gitignored `docs/acceptance/AGENTS.local.md`.

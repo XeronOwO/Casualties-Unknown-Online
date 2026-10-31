@@ -197,3 +197,15 @@ and `Bind` calls one method. The mod is **550 lines** and its entry is deleted (
 The registration lines themselves were copied, not rewritten: a sample's value is that it shows the framework's contract verbatim (name, description, handler,
 parameters, scope, aliases, usage), and the handlers are the same code with the context passed in instead of a field on the mod. The sample still ships as ONE mod:
 a reader who opens the example meets the content declarations and the console surface in the same place, one file apart instead of one screen apart.
+
+## Split 13: the container intents (2026-10-31)
+
+`GameAdapter.RemoteIntentApplier` was 621 lines: one switch over the intent kind with a native call per arm. The container family came out first because all four of
+its arms share one guard — take an item out of its container, move it into another, expand a container's children into one, drain a liquid stack — and the rule they
+share is "run the game's own guard on the owner's real objects, then verify the write on the scene rather than on the call's return".
+
+That is `ContainerIntentApplier` now: `TakeOut`, `MoveInto`, `MoveChildren`, `Drain` and the direct-child snapshot. The applier is **498 lines** and its entry is
+deleted (three left). The switch still names every arm, the guards are the same calls in the same order, and the logs still say which item and which container a
+refusal was about.
+
+**What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine), `GameAdapter` (712) and `GameAdapterBridge` (649).

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
@@ -37,6 +36,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 {
 	private readonly ILogger _log = domains.Log;
+	private readonly ContainerIntentApplier _containers = new(domains.Log);
 
 	public void Apply(RemoteInventoryIntentMsg msg)
 	{
@@ -98,16 +98,16 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 					ApplyDropWearable(body, item);
 					break;
 				case RemoteInventoryIntentKind.TakeOutOfContainer:
-					ApplyTakeOutOfContainer(item);
+					_containers.TakeOut(item);
 					break;
 				case RemoteInventoryIntentKind.MoveIntoContainer:
-					ApplyMoveIntoContainer(body, item, msg.TargetContainerInstanceId);
+					_containers.MoveInto(body, item, msg.TargetContainerInstanceId);
 					break;
 				case RemoteInventoryIntentKind.MoveContainerChildren:
-					ApplyMoveContainerChildren(body, item, msg.TargetContainerInstanceId);
+					_containers.MoveChildren(body, item, msg.TargetContainerInstanceId);
 					break;
 				case RemoteInventoryIntentKind.Drain:
-					ApplyDrain(item, msg.Amount);
+					_containers.Drain(item, msg.Amount);
 					break;
 				case RemoteInventoryIntentKind.UseItem:
 					ApplyUseItem(body, item);
@@ -215,130 +215,6 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 	}
 
 	/// <summary><c>Container.UnloadItem(item, null)</c> (W1): the item leaves its container into the world.</summary>
-	private void ApplyTakeOutOfContainer(Item item)
-	{
-		var parent = item.transform.parent;
-		var container = parent != null ? parent.GetComponent<Container>() : null; // Unity object — ==
-		if (container == null) // Unity object — ==
-		{
-			_log.LogWarning("[RemoteIntent] take-out refused: item {Item} is not inside a container on the owner's body.", item.id);
-			return;
-		}
-
-		container.UnloadItem(item, null);
-	}
-
-	/// <summary>The native move pair, evaluated by the container's own guards (weight, tags, nesting, distance).</summary>
-	private void ApplyMoveIntoContainer(Body body, Item item, ulong containerInstanceId)
-	{
-		var containerItem = CarriedItemLocator.FindById(body, containerInstanceId);
-		var container = containerItem != null ? containerItem.GetComponent<Container>() : null; // Unity objects — ==
-		if (container == null) // Unity object — ==
-		{
-			_log.LogWarning("[RemoteIntent] move refused: container {Container} is not resolvable on the owner's body.", containerInstanceId);
-			return;
-		}
-
-		container.UnloadItem(item, null);
-		container.LoadItem(item);
-		if (item.transform.parent != container.transform) // Unity objects — ==
-		{
-			_log.LogWarning("[RemoteIntent] move refused by the native container guard: item {Item} did not enter container {Container} (weight, tag restriction or distance).",
-				item.id, containerInstanceId);
-			return;
-		}
-
-		_log.LogInformation("[RemoteIntent] item {Item} entered container {Container} through the native guard.", item.id, containerInstanceId);
-	}
-
-	/// <summary>
-	/// R5's per-child loop on the owner's real objects (<c>PlayerCamera.cs:1585</c>):
-	/// every direct child of the dragged item's OWN container that the target's native
-	/// <c>CanHoldItem</c> admits is unloaded from that container and loaded into the
-	/// target, one pair at a time — the same guard, the same child order and the same
-	/// partial outcome the local gesture would have had. A child the guard refuses
-	/// stays where it is and the rest still move, exactly as natively.
-	/// </summary>
-	private void ApplyMoveContainerChildren(Body body, Item item, ulong containerInstanceId)
-	{
-		var source = item.GetComponent<Container>();
-		var targetItem = CarriedItemLocator.FindById(body, containerInstanceId);
-		var target = targetItem != null ? targetItem.GetComponent<Container>() : null; // Unity objects — ==
-		if (source == null || target == null) // Unity objects — ==
-		{
-			_log.LogWarning("[RemoteIntent] container expansion refused: item {Item} is not a container on the owner's body, or container {Container} is not resolvable there.",
-				item.id, containerInstanceId);
-			return;
-		}
-
-		// The children are snapshotted before the first unload: unloading reparents
-		// them, and enumerating a transform while it changes skips entries.
-		var children = DirectChildren(source);
-		var moved = 0;
-		var refused = 0;
-		foreach (var child in children)
-		{
-			if (!target.CanHoldItem(child))
-			{
-				refused++;
-				continue;
-			}
-
-			source.UnloadItem(child, null);
-			target.LoadItem(child);
-
-			// LoadItem returns void and refuses silently (a nested container that still
-			// holds something, a container inside a container, or its own final weight,
-			// tag and distance test), so the count is taken from what the scene shows —
-			// a hook reports only verified writes. A child whose load was refused is left
-			// unloaded by the pair that already ran, exactly as the native loop leaves it.
-			if (child.transform.parent == target.transform) // Unity objects — ==
-			{
-				moved++;
-			}
-			else
-			{
-				refused++;
-			}
-		}
-
-		_log.LogInformation("[RemoteIntent] container expansion of item {Item} into container {Container}: {Moved} of {Total} direct child item(s) entered the container; {Refused} did not (the native guard, or a native load refusal).",
-			item.id, containerInstanceId, moved, children.Count, refused);
-	}
-
-	/// <summary>
-	/// <c>WaterContainerItem.Drain</c> (<c>PlayerCamera.cs:1732</c>): the owner removes
-	/// this frame's amount from its own stack. The requester sent the amount, not the
-	/// per-stack list it computed from the proxy, so the distribution is derived here
-	/// — from the stack the item really has.
-	/// </summary>
-	private void ApplyDrain(Item item, float amount)
-	{
-		var water = item.GetComponent<WaterContainerItem>();
-		if (water == null) // Unity object — ==
-		{
-			_log.LogWarning("[RemoteIntent] drain refused: item {Item} carries no liquid container on the owner's body.", item.id);
-			return;
-		}
-
-		water.Drain(water.CalculateDrain(amount));
-	}
-
-	private static List<Item> DirectChildren(Container container)
-	{
-		var children = new List<Item>();
-		var parent = container.transform;
-		for (var index = 0; index < parent.childCount; index++)
-		{
-			var child = parent.GetChild(index).GetComponent<Item>();
-			if (child != null) // Unity object — ==
-			{
-				children.Add(child);
-			}
-		}
-
-		return children;
-	}
 
 	/// <summary><c>Body.SwapSlots(slot, body.SlotOf(item))</c> (R8) — both slots are direct slots of the owner's body.</summary>
 	private void ApplySwapSlots(Body body, Item item, int targetSlot)
@@ -385,7 +261,7 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 		// a teammate's trashbag landed in their body, because only the slot operand was read).
 		if (containerInstanceId != 0)
 		{
-			ApplyMoveIntoContainer(body, item, containerInstanceId);
+			_containers.MoveInto(body, item, containerInstanceId);
 			return;
 		}
 

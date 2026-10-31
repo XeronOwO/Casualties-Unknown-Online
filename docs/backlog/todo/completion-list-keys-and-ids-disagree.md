@@ -157,3 +157,7 @@ is exactly as much a keyed message as a console answer.
 Also judged this round: **row 2's arrows on a frame.** The driver gained a console-arrow action that calls ConsoleInputSession.MoveSelection (the same call the overlay's key
 switch makes): /give @s water → Tab → cu:waterbottle → down → cu:waterjug → up → cu:waterbottle, and the captured frame shows the marker on the second row with its name and
 kind. Row 2 is no longer resting on a test.
+**Row 7 judged on frames (2026-10-31, build `7761dbb8`, deployed):** `/give @s notanitem` drew the hint line `nothing here matches 'notanitem'. Usage: /give …` above the
+input; `/nonsense` drew `there is no command named 'nonsense' — /help lists the commands.`; and `/give @s cu:wat` drew NO hint at all, only the three candidate rows — the
+line the list already explains stays quiet, which is the rule that keeps the hint from competing with the candidates. All three rendered in the client's Chinese, because the hint is
+a key plus arguments rather than a sentence.

@@ -197,3 +197,9 @@ The release patch is a `bool Prefix` now and the two branches whose comments alr
 | patient's client | `[LimbEvent] reported local limb` only | `[MedicalTargetCheck] answered request 1` |
 
 So the double handling was the whole reason the minigame could never be played: with it fixed, the game's own minigame runs for as long as the driver keeps rubbing, the operation starts on the host, and the patient's client answers the target check. What is left is the operation's COMPLETION reaching the patient's limb (`skinHealth` moved 76.24 → 77.27 over the same minutes, which is the game's own healing, and no treatment line appeared on either side yet) — the next reading is the operation's progress/end, and the minigame's own progress is what should drive it.
+
+## The progress path reads complete in code, so the next reading is the host's operation state (2026-11-01)
+
+A remote bandage's progress is wired end to end on this tree: `TryStartRemoteBandageUse` constructs the game's `BandageMinigame` with `_ => ReportBandageWrap()` as its `OnUse`, `ReportBandageWrap` sends `Wrap` on the operation id once the start ack has assigned one (before that it counts `PendingWraps`), and `FlushPending` — called when the ack arrives — sends every pending wrap. `RemoteOtherMedicalMinigamePatch` patches the dislocation, amputation, AED and defibrillate minigames but not the bandage one, which is correct: the bandage reports through its own `OnUse` callback rather than through a patch.
+
+So nothing in the progress path is missing on paper. What the next batch reads is the HOST's side of it: `[MedicalOps3]`'s progress/terminal lines for the operation the fix let start, and then the patient's limb. The batch that verified the fix could not read a completion in the minutes it had — the patient's `skinHealth` moved 76.24 → 77.27, which is the game's healing — so the reading is either the host's progress log or the operation's state, not the limb alone.

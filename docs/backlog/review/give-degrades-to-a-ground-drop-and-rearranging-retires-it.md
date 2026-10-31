@@ -1,6 +1,6 @@
 # A give degrades to a ground drop, and rearranging that item then retires it
 
-- Status: Todo — opened 2026-10-25 from two user reports in one session (translated from the Chinese originals): "I gave an item to another
+- Status: Review — opened 2026-10-25 from two user reports in one session (translated from the Chinese originals): "I gave an item to another
   player, then rearranged items on that player, and when the move finished the item had been swallowed", and
   earlier the same chain losing a flashlight ("I dragged the flashlight, dragged it a few times in a row, and the flashlight was gone").
 - Priority: Critical — an item the player gave is destroyed without reaching anybody.
@@ -232,3 +232,14 @@ instance ids under the host's ownership. **Row 3 PASS** for the owner half and t
 **Limit of this row:** the drag CAPTURE half (a real mouse pressing the displayed slots) is not what this batch exercised; it is pinned by the capture tests and would need the channel
 this ticket already named. Row 4 stays pinned by StandingItemGateTests (the world-transition retirement rule at every site); this batch had no world-item fixture to name, so its
 live variant is a named residual rather than a weaker check.
+## Row 4 judged live: a world-carried id is refused by name, and the item stays (2026-10-31)
+
+Same session, same recipe. The host spawned one world item through the game's own Utils.Create (item-drop type=bandage height=1), and item-world-read found exactly one world
+item at that point: instance id **421227775939**. The GUEST then sent a PickUpToSlot intent naming that id with the host as owner.
+
+- The host refused it BY NAME: `[RemoteIntent] refused PickUpToSlot: <host> has no item instance 421227775939.` — a world-carried item is not in anybody's carried inventory, so
+  an intent that names it is answered rather than guessed at.
+- Read back after the refusal, the world still holds **exactly one item, the same id** — the item stayed where it was. Nothing was retired and nothing was duplicated, which is the row's claim:
+  either it lands where the intent says, or it stays; never both gone.
+
+**Row 4 PASS.** With rows 1, 3 and 4 judged on real sessions and row 2 judged except the target's own on-screen line (a named residual from the give batch), the ticket moves to eview/.

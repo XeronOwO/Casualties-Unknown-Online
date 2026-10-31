@@ -71,7 +71,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [A give degrades to a ground drop, and rearranging retires it](todo/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — loss
 - [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 - [A disconnected member leaves his arrow on the HUD](todo/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — reported.
 
@@ -79,6 +78,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+
+- [A give degrades to a ground drop, and rearranging retires it](review/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — handled.
 
 - [No compatibility branches before the first release](review/no-compatibility-branches-before-the-first-release.md) — **High** — nothing is owed to old shapes.
 

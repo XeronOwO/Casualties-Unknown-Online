@@ -100,3 +100,7 @@ drawn — the command history is reached only when no list is on screen. `Consol
 completed the first word (a fresh query for that token would answer one row), and the arrows walk the list, wrap, and preview each row in the field.
 
 Still open on this ticket, in order: SNBT/component completion after a resolved id (row 3), the canonical `namespace:path` as the inserted form plus `/give` and /summon`naccepting it (row 4), and the pinyin row carrying id + reader-language name (row 5). Rows 7 and 8 (in-place argument errors, click/hover) stay open with them.
+**Judged on frames (2026-10-31, build `b2a06b32`, deployed):** typing `/give @s water` drew `waterbottle|waterjug`; after Tab the field read`n`/give @s waterbottle` and the SAME two rows stayed on screen with `> waterbottle` marked; a second Tab moved the field to `/give @s waterjug` and the marker to`n`> waterjug`. Before this change the list recomputed itself for the completed token and collapsed to one row while Tab walked two — the exact shape of the user's report. Row 2's arrows are
+pinned by `ConsoleInputSessionTests.MoveSelection_WalksTheDrawnListAndWraps` and by the overlay's routing line; the batch could not press a real arrow because the driver has no
+action for it (the `console-accept` action cycles Tab only), so the arrow HALF is resting on the test plus a code read, and a driver action that drives `MoveSelection` is the
+step that would make it a frame.

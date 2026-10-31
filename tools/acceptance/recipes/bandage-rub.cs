@@ -4,7 +4,7 @@
 //         chart: the minigame's own hand is rotated once per frame until the game finishes the treatment.
 // returns: ok, started, steps, error, detail
 //
-// Starts the `bandage-rub3` declaration's coroutine. The recipe returns at once; the rub happens while the game keeps running, so
+// Starts the `bandage-rub6` declaration's coroutine. The recipe returns at once; the rub happens while the game keeps running, so
 // `BandageMinigame.PhysicsUpdate` measures the angle between frames the game itself advances. The effect on the patient is then
 // read from the patient's own limb, never from here.
 ((System.Func<string>)(() => {
@@ -13,10 +13,10 @@
 	var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 	System.Type rub = null;
 	for (var i = 0; i < assemblies.Length; i++) {
-		try { rub = assemblies[i].GetType("AcceptanceBandageRub3", false); } catch { rub = null; }
+		try { rub = assemblies[i].GetType("AcceptanceBandageRub6", false); } catch { rub = null; }
 		if (rub != null) { break; }
 	}
-	if (rub == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare bandage-rub3 first\"}"; }
+	if (rub == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare bandage-rub6 first\"}"; }
 	var method = rub.GetMethod("Start");
 	if (method == null) { return "{\"ok\":false,\"error\":\"no-start\"}"; }
 	var started = (string)method.Invoke(null, new object[] { steps });

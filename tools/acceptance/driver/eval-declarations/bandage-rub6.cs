@@ -1,5 +1,5 @@
-// eval declaration: bandage-rub3
-// declares: AcceptanceBandageRub3
+// eval declaration: bandage-rub6
+// declares: AcceptanceBandageRub6
 // serves: remote-medical-treatment-operations, topical-limb-action-shape — the bandage minigame that a remote treatment starts and
 //         whose completion is what applies the effect to the patient.
 //
@@ -14,7 +14,7 @@
 // minigame ends on its own. The verdicts are read from the operator's log and the patient's own limb, never from this file.
 using System.Collections;
 
-public static class AcceptanceBandageRub3
+public static class AcceptanceBandageRub6
 {
 	/// <summary>
 	/// The counters a recipe reads back. They live here rather than in a log line because a `Debug.Log` from this dynamic assembly
@@ -27,6 +27,8 @@ public static class AcceptanceBandageRub3
 	public static bool Running;
 	public static int MainNull;
 	public static string Other = "";
+	/// <summary>The game's own action counter: BandageMinigame.lastActionAngle grows by 20 per DoBandageAction, so its growth IS the number of actions the game performed.</summary>
+	public static int Actions;
 
 	public static string Start(int steps)
 	{
@@ -58,14 +60,22 @@ public static class AcceptanceBandageRub3
 			sawMinigame++;
 			Saw = sawMinigame;
 			main.handClicking = true;
-			main.handStartedClicking = n == 0;
+			// `BandageMinigame.Update` computes holdingBandage ONLY on the frame handStartedClicking is true, so that edge belongs to the
+			// first DRIVEN frame — an n==0 test keys it to the loop counter, which has already advanced past 0 by the time a minigame
+			// appears (measured 2026-11-01: 34 driven frames, zero actions).
+			main.handStartedClicking = drove == 0;
 			main.handStoppedClicking = false;
-			angle += 30f;
-			if (angle >= 360f) { angle -= 360f; }
+			// The hand must stay ON the ring: BandageMinigame.holdingBandage is Dot(angleVector, handPos.normalized) > 0.9, and its
+			// angle only advances while that holds — a hand that jumps 30 degrees per frame fails the test on the first one and the game
+			// never performs an action (measured 2026-11-01: 35 driven frames, lastActionAngle 0). So the hand leads the minigame
+			// angle by a few degrees, which keeps the dot above 0.9 and still advances the angle past its 20-degree action step.
+			angle = (main.currentMinigame as BandageMinigame).bandageAngle + 6f;
 			// Radius above the game's own 250-unit floor, so its clamp branch does not fight the gesture.
 			main.handPos = new UnityEngine.Vector2(UnityEngine.Mathf.Sin(angle * 0.017453292f), UnityEngine.Mathf.Cos(angle * 0.017453292f)) * 320f;
 			drove++;
 			Drove = drove;
+			Actions = (main.currentMinigame as BandageMinigame).lastActionAngle / 20;
+			yield return null;
 		}
 		if (MinigameBase.main != null)
 		{

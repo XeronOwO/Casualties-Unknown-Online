@@ -218,3 +218,15 @@ So the operation existed and the minigame ran for 826 frames, and the host's pro
 2. **The minigame's `OnUse` never fired.** The driver sets `MinigameBase.main`'s hand fields, and `BandageMinigame.PhysicsUpdate` only calls `DoBandageAction` when its `holdingBandage` test (the dot product of the hand vector and the tracked angle) holds; a hand that jumps 30° per frame may never satisfy it. Read: `bandageSprite.fillAmount` (the game's own progress ring) on a captured frame during a rub, or a counter of `DoBandageAction` calls.
 
 The first one settles whether this is a protocol gap or the driver's gesture, and the operation's terminal line is the reading that cannot lie about whether anything landed.
+
+## Why driving the minigame`s FIELDS cannot work (2026-11-01): the game recomputes them from Input every frame
+
+The instrumented rub drove `MinigameBase.main`'s `handPos`, `handClicking` and `handStartedClicking` and read the game's own action counter back (`BandageMinigame.lastActionAngle / 20`): 33 driven frames, **zero actions** — and the operation timed out with progress 0.000 again.
+
+The game's own update says why, and it rules this approach out entirely:
+
+- `MinigameBase.UpdateHandVisuals` assigns `handClicking = Input.GetKey(attack)`, `handStartedClicking = Input.GetKeyDown(attack)` and `handStoppedClicking = Input.GetKeyUp(attack)` on EVERY frame, so a value written from outside survives at most until the next update;
+- `handPos` is computed from `Input.mousePosition` (`MinigameBase.cs`: `(Input.mousePosition - this.minigameScreen.transform.position) / PlayerCamera.uiScale` plus noise), so a written position is overwritten as well;
+- `BandageMinigame.Update` computes `holdingBandage` only on the frame `handStartedClicking` is true, and `PhysicsUpdate` — the only caller of `DoBandageAction` — needs `holdingBandage`.
+
+**So the rub has to be a real gesture**: hold the attack button (the game's own bind) and move the POINTER around the ring while it is held. Both instruments for that already exist in this tree — `virtual-input` stages `Input.mousePosition` and the buttons for the game's own reads, and `send-input` can hold a real button. The next driver moves the staged pointer in small steps (`bandageAngle`-led, a few degrees per frame, radius above the game's 250-unit clamp) with the left button held, and reads `bandage-rub-state`'s `actions` counter to prove `DoBandageAction` fired before it looks at the patient.

@@ -407,9 +407,9 @@ public class HostVitalsSuppressionPinTests
 	[Fact]
 	public void TheOwnerSide_PublishesTheThreeModelInputs()
 	{
-		var run = Stripped(ReadSource("Run", "RunCoordinator.cs"));
-		Assert.Contains("var vitals = HostVitalsInputs.FromBody(body);", run, StringComparison.Ordinal);
-		Assert.Contains("limbPoses, vitals.InWater, vitals.Moving, vitals.Exercising);", run, StringComparison.Ordinal);
+		var publish = Stripped(ReadSource("Run", "LocalBodyStatePublisher.cs"));
+		Assert.Contains("var vitals = HostVitalsInputs.FromBody(body);", publish, StringComparison.Ordinal);
+		Assert.Contains("limbPoses, vitals.InWater, vitals.Moving, vitals.Exercising);", publish, StringComparison.Ordinal);
 
 		var inputs = Stripped(ReadSource("Character", "HostVitalsInputs.cs"));
 		var fromBody = MemberBlock(inputs, "internal static HostVitalsInputs FromBody(Body body)");

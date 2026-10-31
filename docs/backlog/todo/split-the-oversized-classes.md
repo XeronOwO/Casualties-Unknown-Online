@@ -146,3 +146,18 @@ Seven entries remain, each one measured against the gate's own count and re-reco
 `PlayerInteractionApply` and `PlayerInventoryTakeService` are gone from the file entirely.
 
 **The gate counts a file's lines once per type it declares**, so a class with nested types counts higher than its raw line count; every number above is the gate's.
+
+## Split 9, partial: the local body's state stream leaves the run coordinator (2026-10-31)
+
+`GameAdapter.Run.RunCoordinator` was 922 lines and its entry names three cuts; the one with no phase-machine coupling is the middle one, the local-body publish path. It is
+one method whose every rule is about the GAME's body behaviour rather than about the run — the ragdoll torso anchor with the carried rider's deliberate exception, the look
+target and its timed override, the pose flags (sitting, sleeping, climbing, working out, the nap variant, dog shake, wall slide, exact limb poses) and the vitals-model
+inputs the host reads.
+
+It is `LocalBodyStatePublisher.Publish(Body)` now. The coordinator is **832 lines**; its entry is re-recorded at that number rather than deleted, because the phase machine
+and the bind/unbind jump table are still in it and this ticket owes both. Three pins followed the moved code: the carried-pose pin (which file it reads the publish path
+from), the vitals pin (the three model inputs' call site) and one sync-coverage entry (the exact-limb-pose capture). The state stream itself is unchanged — the publish
+call carries the same arguments in the same order.
+
+**What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine and the bind/unbind table), `GameAdapter` (712), `GameAdapterBridge` (649),
+`WorldService` (640), `RemoteIntentApplier` (621), `CharacterDataSync` (620) and `ExampleMod` (608).

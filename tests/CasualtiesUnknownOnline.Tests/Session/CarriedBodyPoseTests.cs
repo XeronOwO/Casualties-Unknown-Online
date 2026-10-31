@@ -191,7 +191,7 @@ public class CarriedBodyPoseTests
 		// Keep the publish path pinned to the local Body's active
 		// CarriedBodyDriver, the same source used by ShouldPublishBodyRoot.
 		var root = FindRepositoryRoot();
-		var path = Path.Combine(root, "src", "CasualtiesUnknownOnline.GameAdapter", "Run", "RunCoordinator.cs");
+		var path = Path.Combine(root, "src", "CasualtiesUnknownOnline.GameAdapter", "Run", "LocalBodyStatePublisher.cs");
 		var text = File.ReadAllText(path);
 		Assert.Contains("var isCarried = CarriedBodyDriver.IsCarrying(body);", text);
 		Assert.DoesNotContain("var isCarried = _playerInteraction.TryGetCarried", text);

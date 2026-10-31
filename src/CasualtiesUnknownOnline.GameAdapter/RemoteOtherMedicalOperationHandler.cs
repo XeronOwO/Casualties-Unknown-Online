@@ -224,6 +224,7 @@ internal sealed class RemoteOtherMedicalOperationHandler
 			var total = session.Kind switch
 			{
 				MedicalOperationKind.Amputation => session.Progress,
+				MedicalOperationKind.Bandage => session.Progress,
 				MedicalOperationKind.Dislocation => session.DislocationSucceeded ? 1f : 0f,
 				_ => 0f,
 			};
@@ -329,6 +330,8 @@ internal sealed class RemoteOtherMedicalOperationHandler
 
 		if (session.OperationId != 0)
 		{
+			// One wrap is one eighteenth of the treatment, and the LOCAL total must advance with it: the end request carries `session.Progress`, so a total that stayed 0 committed the operation as 0 even after eighteen wraps reached the host (measured 2026-11-01: `terminal TimedOut: progress 1.0`).
+			session.Progress = Math.Min(1f, session.Progress + (1f / 18f));
 			_updateSender?.Invoke(session.OperationId, MedicalOperationUpdateAction.Wrap, 1f, 0f, 0f, false);
 		}
 		else
@@ -541,10 +544,7 @@ internal sealed class RemoteOtherMedicalOperationHandler
 
 	private static void FlushPending(RemoteOtherUseSession session)
 	{
-		if (session.OperationId == 0)
-		{
-			return;
-		}
+		if (session.OperationId == 0) { return; }
 
 		while (session.PendingWraps > 0)
 		{

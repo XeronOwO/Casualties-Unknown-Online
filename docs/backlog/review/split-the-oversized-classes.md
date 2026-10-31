@@ -1,6 +1,6 @@
 # The recorded over-line classes still owe their splits
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Structure / maintainability
 - Source: the delivery checklist's structure rule, whose recorded-ceiling path now requires an owning ticket
@@ -273,3 +273,48 @@ coordinator is **784 lines** and its entry is re-recorded.
 This is a preparatory cut, and it is recorded as one: the next extraction (the descent's scene plumbing into a controller, then the world-join family) needs the phase
 to be a value two objects can pass, which is what this change makes possible. A bind/unbind helper was tried and REVERTED in the same session: wrapping six
 subscriptions in a handler record added an indirection without removing a line of meaning, and the aggregate it served is not what made the class large.
+
+## Splits 19 and 20: the descent's scene plumbing and the world join (2026-11-01)
+
+Two extractions finished the class, in this order:
+
+- **`DescentFollowController`** — everything about a descent that needs the game: deciding whether an edge applies to this member, the body guard, the accept/settle/abort
+  drive, the menu-return origin rule and handing the client back to the ordinary entry path. It reads the run phase and the world flag through delegates and writes the
+  phase through one, so the phase stays owned by the coordinator while the rules live with the controller.
+- **`WorldJoinFollow`** — the guest's join state machine: a duplicate WorldJoin never restarts the run (only `Idle` accepts one), a member following a descent undoes the
+  invite's baseline promise instead of taking it, the pre-run script is waited for, and the run or the tutorial is started exactly once. The join's `joinIsTutorial` moved
+  into it with the rules that use it.
+
+`RunCoordinator` is **541 lines**, its entry is gone, and `docs/architecture-debt.json` is now an EMPTY object: no class in `src/` is over the gate's ceiling and the gate
+proves it. Both new classes follow the shape the queue established: state and decisions in objects that can be tested without a session, the game reads in one
+collaborator that takes the phase as a delegate.
+
+## The queue is empty (2026-11-01)
+
+Every class the queue listed has either been split under 600 lines or left the file by a change that made it smaller:
+
+| # | What left | Where it went |
+|---|---|---|
+| 1 | the console's report half | `ConsoleReportWriter` (CommandConsoleService 684 → 556) |
+| 2 | the overlay's report-once family | `ReportOnce` (OnlineUiWorldOverlayView 609 → 587) |
+| 3 | the world control's social half | `IWorldSocialControl` (IWorldControl 615 → 577) |
+| 4 | the take ladder's destination rules | `ItemDestinationResolver` (629 → 511) |
+| 5 | the character store's four copied senders | `CharacterVisualPublisher` (628 → 568) |
+| 6 | the patch aggregate's world-generation hooks | `IWorldGenPatchBridge` (IPatchBridge 608 → 548) |
+| 7 | the owner-state event | `OwnerStateEventReporter` (738 → 620, re-recorded) |
+| 8 | the local heal-item query | `LocalHealItems` (601 → 545) |
+| 9 | the local body's state stream | `LocalBodyStatePublisher` (922 → 832) |
+| 10 | the report-recovery surface | `IWorldBlockReportControl` (WorldService 640 → 589, partial deleted) |
+| 11 | a snapshot's wire half | `CharacterReportSender` (620 → 574) |
+| 12 | the example mod's console half | `ExampleConsoleCommands` (608 → 550) |
+| 13 | the container intents | `ContainerIntentApplier` (RemoteIntentApplier 621 → 498) |
+| 14 | the adapter's frame pump | `FrameTick` (GameAdapter 712 → 577) |
+| 15 | the world-generation port | `WorldGenPatchAdapter` (GameAdapterBridge 649 → 600) |
+| 16 | the descent's state machine | `HostDescentFollow` (832 → 794) |
+| 17 | the run phase | `RunPhase` (794 → 784) |
+| 18 | the settle decision | `HostDescentFollow.TryDecideSettle` (784 → 779) |
+| 19 | the descent's scene plumbing | `DescentFollowController` (779 → 611) |
+| 20 | the world join | `WorldJoinFollow` (611 → 541) |
+
+**Rows**: row 1 passes with an empty debt file (the gate is the proof), row 2 passes because every extraction moved statements without changing them and the suite's
+6562 behaviour tests ran unchanged through all twenty, and row 3 passes with the file smaller than it has ever been. The ticket moves to `review/`.

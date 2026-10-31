@@ -72,10 +72,11 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
 ### In progress
 
 ### Review
+
+- [The oversized classes](review/split-the-oversized-classes.md) — **High** — queue empty; debt file empty.
 
 - [The host rolls a second drop set for a death a member already rolled](review/host-blast-rolls-a-second-drop-set.md) — **Medium** — one set, both clients.
 

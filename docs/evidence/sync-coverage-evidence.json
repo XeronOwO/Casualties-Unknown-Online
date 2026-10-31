@@ -10576,7 +10576,7 @@
 
       "row": "W1",
 
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/WorldJoinFollow.cs",
 
       "quote": "// StartTutorial sets the tutorial flag and nulls runSettings itself"
 

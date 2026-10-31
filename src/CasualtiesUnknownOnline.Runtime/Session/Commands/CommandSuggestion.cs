@@ -16,4 +16,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// its own quoted strings), and quoting it again would rewrite the operator's text and double its escapes.
 /// </param>
 /// <param name="Args">The hint's parts: a command name, a filter key, a rule name, a value.</param>
-public sealed record CommandSuggestion(string Text, CommandSuggestionHint Hint = CommandSuggestionHint.None, bool Verbatim = false, params object?[] Args);
+public sealed record CommandSuggestion(
+	string Text,
+	CommandSuggestionHint Hint = CommandSuggestionHint.None,
+	bool Verbatim = false,
+	params object?[] Args)
+{
+	/// <summary>
+	/// The insertion ENDS this grammatical position (an opening brace, a key and its colon, a whole value), so the next keystroke must recompute the list instead of
+	/// cycling the one the position used to have (user correction 2026-10-31: after the brace, Tab must complete the keys inside it, not walk the old ids again).
+	/// </summary>
+	public bool ResetCycle { get; init; }
+}

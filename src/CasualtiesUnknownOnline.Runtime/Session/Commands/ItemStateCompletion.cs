@@ -169,7 +169,10 @@ internal sealed class ItemStateCompletion(
 			new CommandSuggestion(
 				(onTheId ? tokens[itemArgument].Unquoted : string.Empty) + "{",
 				CommandSuggestionHint.ItemState,
-				Verbatim: true),
+				Verbatim: true)
+			{
+				ResetCycle = true,
+			},
 		];
 		return true;
 	}
@@ -334,7 +337,7 @@ internal sealed class ItemStateCompletion(
 		var result = new List<CommandSuggestion>(fragments.Count);
 		foreach (var fragment in fragments)
 		{
-			result.Add(new CommandSuggestion(prefix + fragment.Text, Verbatim: true));
+			result.Add(new CommandSuggestion(prefix + fragment.Text, Verbatim: true) { ResetCycle = true });
 		}
 
 		suggestions = result;

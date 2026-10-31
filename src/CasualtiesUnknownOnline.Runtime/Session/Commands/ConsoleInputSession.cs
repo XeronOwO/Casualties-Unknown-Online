@@ -474,8 +474,17 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			}
 		}
 
-		var completed = ReplaceCurrentToken(input, _editor.Cursor, _completionCandidates[_completionIndex].Text, _completionCandidates[_completionIndex].Verbatim);
+		var chosen = _completionCandidates[_completionIndex];
+		var completed = ReplaceCurrentToken(input, _editor.Cursor, chosen.Text, chosen.Verbatim);
 		_editor.SetInput(completed, completed.Length);
+
+		// A suggestion that ENDS the grammatical position (the opening brace of a state, a key and its colon) hands the list back to a fresh computation, so the NEXT Tab
+		// completes what the new text expects instead of walking the list the old position had (user correction 2026-10-31).
+		if (chosen.ResetCycle)
+		{
+			ResetCompletions();
+		}
+
 		return true;
 	}
 

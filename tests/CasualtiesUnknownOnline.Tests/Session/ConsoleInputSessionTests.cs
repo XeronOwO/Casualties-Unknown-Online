@@ -215,6 +215,25 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void CycleCompletion_AfterAPositionEndingSuggestion_RecomputesTheList()
+	{
+		// The user correction of 2026-10-31: after the opening brace the next Tab must complete the keys INSIDE the block, not walk the id list again.
+		var calls = 0;
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => ++calls == 1
+			? [new CommandSuggestion("cu:waterbottle{", Verbatim: true) { ResetCycle = true }]
+			: [new CommandSuggestion("cu:waterbottle{Condition:", Verbatim: true) { ResetCycle = true }], _ => null));
+		session.Open();
+		session.SetInput("/give @s cu:waterbottle");
+
+		Assert.True(session.CycleCompletion());
+		Assert.Equal("/give @s cu:waterbottle{", session.Input);
+		Assert.Equal(-1, session.SelectedSuggestionIndex);
+
+		Assert.True(session.CycleCompletion());
+		Assert.Equal("/give @s cu:waterbottle{Condition:", session.Input);
+	}
+
+	[Fact]
 	public void CycleCompletion_QuotesSpacedArgument()
 	{
 		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("John Doe")], _ => null));

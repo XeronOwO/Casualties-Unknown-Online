@@ -78,10 +78,11 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
 - [No compatibility branches before the first release](todo/no-compatibility-branches-before-the-first-release.md) — **High** — nothing is owed to old shapes.
-- [Completion is not a command system yet](todo/completion-list-keys-and-ids-disagree.md) — **High** — five defects, one list.
 ### In progress
 
 ### Review
+
+- [Completion is not a command system yet](review/completion-list-keys-and-ids-disagree.md) — **High** — five defects, one list; all rows judged.
 
 
 

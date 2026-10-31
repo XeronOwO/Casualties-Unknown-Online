@@ -255,7 +255,9 @@ so the list is an input surface, not a caption.
 
 What the console does with a definition now:
 
-- **completion asks the parameter first** (`CommandConsoleCompletion.FromTheParameter`): the completer runs with `ICompletionContext` — the command, the parameter`n  index, the arguments already accepted, the partial token and the session snapshot — so argument N can depend on N-1; a completer that throws is caught and logged and the`n  keystroke offers nothing instead of taking the overlay down;
+- **completion asks the parameter first** (`CommandConsoleCompletion.FromTheParameter`): the completer runs with `ICompletionContext` — the command, the parameter
+  index, the arguments already accepted, the partial token and the session snapshot — so argument N can depend on N-1; a completer that throws is caught and logged and the
+  keystroke offers nothing instead of taking the overlay down;
 - **the ten kinds stay**: a parameter that offers no completer answers from its declared `Kind`, so a mod composes with the framework's own sources and ranking;
 - **name completion offers every ALIAS** beside its command, and the registry registers aliases as words that reach the same handler (`TryAdd`/`TryRemove` cover them);
 - **a mod hint may be its own catalogue sentence**: `CommandSuggestionHint.KeyedText` carries a key plus its arguments and the overlay renders it like any framework key.

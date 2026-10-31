@@ -1,6 +1,6 @@
 # Completion is not a command system yet: the list, the keys and the ids all disagree
 
-- Status: Todo — opened 2026-10-30 from five observations in one sitting (translated from the user's Chinese report): the candidate list under the field is
+- Status: Review — opened 2026-10-30 from five observations in one sitting (translated from the user's Chinese report): the candidate list under the field is
   not what Tab accepts; ↑/↓ walk the command history instead of the list; nothing is offered after a completed item id; completion yields the bare game id
   instead of the namespaced one; and a pinyin hit shows a bare name with neither namespace nor Chinese label.
 - Priority: High — the console is the mod-facing surface and the place a player learns what a command accepts; a list that lies teaches the wrong thing.
@@ -90,7 +90,9 @@ fact, so this ticket is judged on frames: a candidate list that differs from wha
 - Selector completion (`@a`, filters) is judged by `command-tree-resource-location-selector.md`; this ticket only requires that its rows and the item rows use
   the same list.
 - A mod's own completer may offer anything; the standard here is the framework's own sources, plus the contract the mod surface gets from the console ticket.
-- The two interaction rows (7 and 8) assume the list is a real input surface; until the definition contract lands they are judged against the framework's own`n  sources only, and a mod's custom parser inherits them from the same surface.
+- The two interaction rows (7 and 8) assume the list is a real input surface; until the definition contract lands they are judged against the framework's own
+  sources only, and a mod's custom parser inherits them from the same surface.
+
 ## Rows 1 and 2 landed: one list, and the arrows belong to it (2026-10-31)
 
 The drawn list and the list Tab walks are now the SAME object: `ConsoleInputSession.DisplaySuggestions` answers the cycle's own list while a cycle is in progress and
@@ -161,3 +163,16 @@ kind. Row 2 is no longer resting on a test.
 input; `/nonsense` drew `there is no command named 'nonsense' — /help lists the commands.`; and `/give @s cu:wat` drew NO hint at all, only the three candidate rows — the
 line the list already explains stays quiet, which is the rule that keeps the hint from competing with the candidates. All three rendered in the client's Chinese, because the hint is
 a key plus arguments rather than a sentence.
+
+## Row 8 judged, and the one residual this ticket leaves (2026-10-31)
+
+Click: every candidate row is a `GUILayout.Button` whose handler calls `ConsoleInputSession.AcceptSuggestion`; the driver's `console-accept` invokes that same method, and the
+captured frame shows the row as a button with its hint and the accepted text in the field. The physical click (IMGUI hit-test under a real pointer) cannot be staged in-process, so
+the button's handler is the judged path.
+
+Hover: the row is built with `new GUIContent(text, hint)`, IMGUI turns that into `GUI.tooltip` while the pointer rests on it, and the overlay already draws that tooltip near the
+mouse (`DrawTooltip`). Seeing it needs a real pointer over the game window; the in-process driver cannot move one, and the OS input channel is not authorised for this.
+**Residual, named:** the hover preview's appearance is unjudged on a frame. Everything else in this ticket is judged on frames or readings.
+
+**Status set to Review and the file moved to `review/`:** rows 1, 2, 3, 4, 5 and 7 are judged (frames and driver readings recorded above), row 6 was already covered by the
+2026-10-24 authority rule and its gate, and row 8 is judged on its click half with the hover half as the named residual.

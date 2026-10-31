@@ -100,7 +100,11 @@ internal static class PatchInventory
 			Harmony.GetPatchInfo(m) is { } info
 			&& (info.Prefixes.Any(p => p.owner == harmony.Id)
 				|| info.Postfixes.Any(p => p.owner == harmony.Id)
-				|| info.Transpilers.Any(p => p.owner == harmony.Id))));
+				|| info.Transpilers.Any(p => p.owner == harmony.Id)
+				// A FINALIZER-only patch is a patch: the guard patches that disable a game component whose registration failed have
+				// no prefix or postfix at all, and leaving them out of this set reported two APPLIED hooks as "not applied" on every
+				// startup (2026-11-01).
+				|| info.Finalizers.Any(p => p.owner == harmony.Id))));
 
 		var missing = new List<PatchVerificationFailure>();
 		foreach (var type in typeof(PatchInventory).Assembly.GetTypes())

@@ -34,6 +34,7 @@
 	var muscle = 0f;
 	var shrapnel = 0;
 	var hasShrapnel = false;
+	var blockedBleeding = false;
 	var splinted = false;
 	var dislocated = false;
 	var dismembered = false;
@@ -71,6 +72,7 @@
 		muscle = limb.muscleHealth;
 		shrapnel = limb.shrapnel;
 		hasShrapnel = limb.hasShrapnel;
+		blockedBleeding = limb.blockedBleeding;
 		splinted = limb.splinted;
 		dislocated = limb.dislocated;
 		dismembered = limb.dismembered;
@@ -115,6 +117,7 @@
 		+ ",\"skinHealth\":" + num(skin) + ",\"bleedAmount\":" + num(bleed) + ",\"pain\":" + num(pain)
 		+ ",\"muscleHealth\":" + num(muscle) + ",\"shrapnel\":" + shrapnel
 		+ ",\"hasShrapnel\":" + (hasShrapnel ? "true" : "false")
+		+ ",\"blockedBleeding\":" + (blockedBleeding ? "true" : "false")
 		+ ",\"splinted\":" + (splinted ? "true" : "false")
 		+ ",\"dislocated\":" + (dislocated ? "true" : "false")
 		+ ",\"dismembered\":" + (dismembered ? "true" : "false")

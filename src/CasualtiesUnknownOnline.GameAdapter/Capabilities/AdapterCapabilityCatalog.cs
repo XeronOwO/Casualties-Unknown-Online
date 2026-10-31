@@ -120,6 +120,11 @@ internal static class AdapterCapabilityCatalog
 				typeof(LimbItemTransformPatches.LimbApplyWoundItemPatch),
 				typeof(LimbItemTransformPatches.SplintTakeOffPatch),
 				typeof(LimbItemTransformPatches.TourniquetTakeOffPatch),
+				// The limb component's own registration, guarded so a failed icon registration disables the component instead of
+				// throwing from `Update` on every frame (a limb carried across a world boundary can arrive when the wound view's
+				// arrays do not hold its limb).
+				typeof(LimbComponentStartGuardPatches.SplintStartPatch),
+				typeof(LimbComponentStartGuardPatches.TourniquetStartPatch),
 				// The host's access rule on the VIEW: the middle value opens a conscious
 				// owner's pack view only, so the game's own red slot fill (recoloured
 				// without changing canPickUp, whose false answer would drop a slot item

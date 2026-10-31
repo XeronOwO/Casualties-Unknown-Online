@@ -75,6 +75,13 @@ The instruments those two cycles produced are reusable and are named here so the
 | `the-pre-run-lobby-can-deadlock.md` | **fixed 2026-11-01** (three breaks: the member never asked, the host refused without a baseline, the member could not accept the instruction) and read end to end — a restarted member asks `1/12`, the host invites, the member enters, both gates clear. Rows 1 and 2 keep their exact sub-cases owed (a re-join BEFORE the run starts; a drop while the gate waits) |
 
 
+## The drag family needs one human motion (2026-11-01)
+
+The four drag tickets (`cross-player-drag-use-feedback`, `cross-player-drag-use-model-bounds`, `cross-player-eat-skips-native-steps`, and the cross halves of `mod-cross-player-native-semantics`) share one condition a batch cannot satisfy: the give cue and its displayed backpack are ONE question — what is under the pointer — and the pack is drawn only once that question is answered. Every instrument around it exists and reads its own state honestly (the arm from a slot, the view's `IsOpen`/`FocusedSteamId`, `drag-cue`, the staged pointer), and the batches ruled out the window, the range and the arm. What is left is the motion the game itself needs: drag a bandage onto a teammate standing beside you. Until a player does that, those rows are the user's.
+
+## What the working medical chain already covers (2026-11-01)
+
+The remote chart is proven end to end for a BANDAGE (release, native minigame, host-arbitrated progress, `terminal Completed`, the patient's own client applying it). For the stage tickets that is one action in one role: `remote-medical-stage-3-other-actions` still needs its action × role matrix, `remote-medical-stage-1-injection-session` needs the injection action (a syringe holding a liquid), `remote-medical-stage-2-shrapnel-multiplayer` needs the shrapnel minigame, and `remote-medical-native-minigame-parity` is the umbrella over them.
 ## N — measured to the end: not stageable on this build
 
 | Ticket | Why it cannot be staged |

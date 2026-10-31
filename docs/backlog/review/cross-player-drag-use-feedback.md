@@ -629,3 +629,9 @@ Two readings are consistent with that and both are cheap to separate next: the g
 The same pass captured a frame, and the frame carries the answer the readings could not: the game's own drag label hangs under the ring (the item and the container it came from), and the teammate's name at the bottom right carries a distance of **22 m**. The auto-open refuses out of range, which is exactly what `isOpen=false, focused=0` was reporting — the teleport had not put the guest beside the host by the time the drag ran.
 
 So nothing in the cue path is wrong, and nothing needs inventing: the batch has to read the DISTANCE (the frame shows it, and `pointer-truth` shows the screen point) and only then arm the drag. That is one more precondition on the list this ticket has accumulated, and it is the last one standing between the batch and the cue.
+
+## Range is not the condition either (2026-11-01)
+
+With the guest confirmed at 1.5 units from the host (both positions read in the same command, before the drag), the same sequence still answered `isOpen=false, focused=0` and the cue stayed hidden. So the auto-open's target does not come from proximity: `AutoOpenFor` resolves it through `Observe(dragItem)`, the same resolution the cue uses, which is why the two agree — and why neither produces a target for a batch whose pointer is not on the teammate's DISPLAYED pack.
+
+That closes the loop this ticket has been chasing: the cue and the open are one question (what is under the pointer), and the answer needs a pointer on a surface that only appears once the question is answered. A player has the surface because the game draws the teammate's pack when they walk up and look at it; a batch can only draw it by pointing at it. The honest next step is therefore the one the ticket's own note already names: a REAL hand at the keyboard for this row — drag a bandage onto a teammate while they stand beside you, and read whether the cue names them.

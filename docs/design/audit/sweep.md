@@ -46,7 +46,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.GameState/Domains/WorldEntities` | 19 | read |
 | `CasualtiesUnknownOnline.GameState/Kernel` | 6 | read |
 | `CasualtiesUnknownOnline.GameState/Projections` | 2 | read |
-| `CasualtiesUnknownOnline.ModExample` | 4 | read |
+| `CasualtiesUnknownOnline.ModExample` | 5 | read |
 | `CasualtiesUnknownOnline.Music` | 7 | read |
 | `CasualtiesUnknownOnline.PinyinSearch` | 1 | read |
 | `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | read |

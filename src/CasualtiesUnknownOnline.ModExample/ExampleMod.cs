@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -58,7 +57,7 @@ public sealed class ExampleMod : ICuoMod
 	/// reference to the mod instance; that is what "the declaration reads the
 	/// mod's own configuration" means in practice.
 	/// </summary>
-	private static float DeclaredWeight { get; set; } = 1.5f;
+
 
 	public void Bind(IModContext context)
 	{
@@ -165,20 +164,9 @@ public sealed class ExampleMod : ICuoMod
 		context.Commands.Register(new ModCommand("echo", c => $"echo:{string.Join(" ", c.Arguments)}"));
 		// The mod's own sentences: an answer a PLAYER reads is rendered by that player's client, so the mod embeds one catalogue per language it speaks.
 		SampleCatalogues.Register(context);
-		// The shipped NON-LOCAL sample: declared HostRelayed, so a member's line runs on the host and the answer comes back keyed (stage 3 of the console contract).
-		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
-			"examplehost", "Ask the HOST to echo a line — the answer names who asked", HostEchoFromConsole,
-			scope: CommandScope.HostRelayed,
-			parameters: [new ConsoleCommandParameter("text")],
-			usage: "/examplehost <text>"));
-		context.Commands.Register(new ModCommand("whoami", c => $"requester:{c.RequesterSteamId}", isHostAction: true));
-		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
-			"exampleecho", "Send the example's declared echo packet", EchoFromConsole,
-			parameters: [new ConsoleCommandParameter("text")], usage: "/exampleecho <text>"));
-		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
-			"exampleweight", "Set the weight the attribute-declared Example Dressing reports", SetDeclaredWeightFromConsole,
-			parameters: [new ConsoleCommandParameter("weight", new DelegateCompleter(_ => [new CommandCompletion("0.5"), new CommandCompletion("1")]))],
-			aliases: ["eweight"], usage: "/exampleweight <weight>"));
+		// The console half lives in ExampleConsoleCommands: the host-relayed echo, the packet echo and the weight dial.
+		ExampleConsoleCommands.Register(context);
+
 		context.Ui.Register("example", "CUO Example", window =>
 		{
 			window.Label($"session active: {context.Session.SessionActive}");
@@ -269,53 +257,6 @@ public sealed class ExampleMod : ICuoMod
 
 	public void Dispose()
 	{
-	}
-
-	private ConsoleAnswer HostEchoFromConsole(ICommandInvocation ctx)
-	{
-		var text = string.Join(" ", ctx.Arguments);
-		_context?.Logger.LogInformation("[Example] host echo for {Requester}: {Text}", ctx.RequesterSteamId, text);
-		return ConsoleAnswer.Ok($"host echo for {ctx.RequesterSteamId}: {text}", "cuo.example.hostecho.answer", ctx.RequesterSteamId.ToString(), text);
-	}
-
-
-	private ConsoleAnswer EchoFromConsole(ICommandInvocation ctx)
-	{
-		if (ctx.Arguments.Count == 0)
-		{
-			return ConsoleAnswer.Refused("usage: /exampleecho <text>");
-		}
-
-		var text = string.Join(" ", ctx.Arguments);
-		var value = ModValue.Text(text);
-
-		// The packet is declared AnyMember + EveryOtherMember, so the sender's own
-		// copy never runs it: a guest reports it (the host and the other members
-		// run the chain) and the host broadcasts it to the other members.
-		var sent = ctx.Session.IsHost
-			? _context!.Packets.Broadcast(EchoPacket, value)
-			: _context!.Packets.SendToHost(EchoPacket, value);
-
-		return sent
-			? ctx.Session.IsHost
-				? ConsoleAnswer.Ok($"broadcast \"{text}\" to the other members")
-				: ConsoleAnswer.Ok($"reported \"{text}\" — the host and the other members run the chain")
-			: ConsoleAnswer.Refused("the send was refused locally — see the log");
-	}
-
-	private ConsoleAnswer SetDeclaredWeightFromConsole(ICommandInvocation ctx)
-	{
-		if (ctx.Arguments.Count == 0
-			|| !float.TryParse(ctx.Arguments[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var weight)
-			|| weight < 0f)
-		{
-			return ConsoleAnswer.Refused("usage: /exampleweight <weight>");
-		}
-
-		DeclaredWeight = weight;
-		_context!.Logger.LogInformation(
-			"[Example] the declared dressing now reports weight {Weight}; the next item-table rebuild carries it.", weight);
-		return ConsoleAnswer.Ok($"the declared dressing reports weight {weight} from the next item-table rebuild");
 	}
 
 	/// <summary>
@@ -472,11 +413,11 @@ public sealed class ExampleMod : ICuoMod
 
 		public string DisplayName => "Example Dressing";
 
-		public string Description => $"Declared by attribute; the mod now reports weight {DeclaredWeight:0.##}.";
+		public string Description => $"Declared by attribute; the mod now reports weight {ExampleConsoleCommands.DeclaredWeight:0.##}.";
 
 		public string Category => "nospawn";
 
-		public float Weight => DeclaredWeight;
+		public float Weight => ExampleConsoleCommands.DeclaredWeight;
 
 		public int Value => 10;
 

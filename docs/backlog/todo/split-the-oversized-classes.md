@@ -185,5 +185,15 @@ That is `CharacterReportSender` now: `Send(data, throttled, nativeFailure)` and 
 capture stays where the body is — the sender never reads a body, it only decides how one snapshot travels. Two sync-coverage quotes followed their call sites and the
 folder count follows the new file.
 
-**What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine), `GameAdapter` (712), `GameAdapterBridge` (649), `RemoteIntentApplier`
-(621) and `ExampleMod` (608).
+**What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine), `GameAdapter` (712), `GameAdapterBridge` (649) and `RemoteIntentApplier`
+(621).
+
+## Split 12: the example mod's console half (2026-10-31)
+
+`ModExample.ExampleMod` was 608 lines and its entry named the console examples as the cut, with the note that a reader is meant to see them. They are
+`ExampleConsoleCommands` now — the host-relayed echo (the shipped non-local sample), the packet echo and the weight dial, each with its registration and its handler —
+and `Bind` calls one method. The mod is **550 lines** and its entry is deleted (four left).
+
+The registration lines themselves were copied, not rewritten: a sample's value is that it shows the framework's contract verbatim (name, description, handler,
+parameters, scope, aliases, usage), and the handlers are the same code with the context passed in instead of a field on the mod. The sample still ships as ONE mod:
+a reader who opens the example meets the content declarations and the console surface in the same place, one file apart instead of one screen apart.

@@ -11,12 +11,6 @@
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The host-descent follow added the descent state machine, its scene-state guards, the settle edge, the abort paths (world lost, hold/settle timeouts) and the release branches; the independent review's blocker and majors then added the abort policy, the menu-return origin guard and the baseline-cancel branch — the guest's new-layer generation itself remains the game's own coroutine, started from LayerAdvanceCoordinator. The descent-spawn follow added the bodyless-follow guard input and the same guard on the WaitingReady branch (the native placement dereferences PlayerCamera.main.body). The planned split now owes three extractions, in this order: HostDescentFollow (the DescentPhase enum, the accept/settle/abort transitions, the bounded waits and the preserved-body note; the run keeps only the phase mapping), the local-body publish path into LocalBodyStatePublisher, and the remaining jump table (bind/unbind, session edges) into a small coordinator. This is the top of this file's split list."
   },
-  "CasualtiesUnknownOnline.ModExample.ExampleMod": {
-    "Lines": 608,
-    "BoolFlags": 0,
-    "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
-    "Note": "The shipped sample now demonstrates the non-local console command and its own two-language catalogue too (HostRelayed), which is the one surface stage 3 of the console contract needed a live example for. The split moves the console examples into their own sample mod rather than trimming what a reader is meant to see."
-  },
   "CasualtiesUnknownOnline.GameAdapter.RemoteIntentApplier": {
     "Lines": 621,
     "BoolFlags": 0,

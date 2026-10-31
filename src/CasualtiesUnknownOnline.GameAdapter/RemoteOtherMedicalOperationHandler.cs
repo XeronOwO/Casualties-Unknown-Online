@@ -11,11 +11,9 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
-/// Remote-medical Stage 3 adapter. It starts the native Bandage/Dislocation/
-/// AED/ManualDefib/Amputation minigames on the remote display body, routes
-/// semantic updates through the generic medical operation session, and handles
-/// the one-shot splint/tourniquet removal sessions. This client holds one
-/// session at a time, because the native engine runs one minigame per client.
+/// Remote-medical Stage 3 adapter: starts the native Bandage/Dislocation/AED/ManualDefib/Amputation minigames on the remote display
+/// body, routes semantic updates through the generic medical operation session, and handles the one-shot splint/tourniquet removal
+/// sessions. One session at a time — the native engine runs one minigame per client.
 /// </summary>
 internal sealed class RemoteOtherMedicalOperationHandler
 {
@@ -294,9 +292,7 @@ internal sealed class RemoteOtherMedicalOperationHandler
 		}
 		else if (EndedOperationIds.Contains(operationId))
 		{
-			// A terminal for a previous operation arrived while a new session is
-			// still waiting for its StartAck. It must not kill the new pending
-			// session.
+			// A terminal for a previous operation, while a new session still waits for its StartAck: it must not kill the pending one.
 			EndedOperationIds.Remove(operationId);
 			return;
 		}
@@ -462,15 +458,20 @@ internal sealed class RemoteOtherMedicalOperationHandler
 	private void OnStartAckReceived(MedicalOperationStartAckMsg msg)
 	{
 		var session = _active;
-		if (session == null)
-		{
-			return;
-		}
+		if (session == null) { return; }
 
 		if (!msg.Accepted)
 		{
 			_domains.Log.LogWarning("[MedicalView] remote {Kind} start rejected for {Target}: {Reason}.",
 				msg.Kind, msg.TargetSteamId, msg.RejectReason);
+
+			// Only the rejection of THIS session may clear it: the first release is refused for line of sight and the retry starts a new one, so a stale rejection would take the LIVE session down and its wraps would never leave (0.088 on one run, 0.000 on the next).
+			if (msg.TargetSteamId != session.Target || msg.ItemInstanceId != session.ItemInstanceId || msg.Kind != session.Kind)
+			{
+				_domains.Log.LogInformation("[MedicalView] ignored a stale {Kind} rejection for {Target} — it names a session this client is not running.", msg.Kind, msg.TargetSteamId);
+				return;
+			}
+
 			_active = null;
 			RemoteOtherMedicalItemRestore.Restore(session);
 			RemoteOtherMedicalMinigamePatch.Reset();

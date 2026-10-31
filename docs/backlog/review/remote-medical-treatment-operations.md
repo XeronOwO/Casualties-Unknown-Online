@@ -288,3 +288,17 @@ Fresh clients (a free slot, so the bandage landed in slot 0), a wounded limb 5 (
 - the patient's limb went `63.04` → **`76.358`, bleeding `0`** — the treatment is being applied to the patient by the patient's own client.
 
 What this ticket's last row needs is the same reading taken to the operation's END (a commit line rather than an interruption), and the mechanism for that is in place: keep the hand moving until the operation reports its terminal commit, which the batches have not yet driven long enough to see. The 0.000/timeout failure that made this row unjudgeable is gone.
+
+## What the fixed build reads now, and the one number the last row needs (2026-11-01)
+
+The same session, after the stale-rejection fix:
+
+| reading | before the fix | after it |
+|---|---|---|
+| operation terminal progress | `0.000`, always | **`0.4`, then `0.449`** — the wraps that were played reached the host |
+| operation lifetime | timed out 20 s after the start | stays alive while the hand keeps moving (operation 2 was still open after a 145-step pass) |
+| patient's limb | unchanged | `63.04` → `76.358`, bleeding `0` |
+
+What is still missing is a COMMIT, and the arithmetic is now simple: one operation needs eighteen wraps, each wrap needs ~7.5 driver steps at ~0.6 s per step in this harness (every step is a separate process call), so a completing pass is ~90 s of unbroken driving. The batches above stopped at 8-17 wraps because each tool round trip between passes was long enough for the minigame to end and a new operation to start at zero.
+
+**So the last row is a matter of one uninterrupted pass** — either a longer single loop, or the driver moved inside the client (a coroutine stepping the staged pointer) so the cadence stops being a process round trip. The second is the better instrument and is the same pattern `cpr-rhythm` already established; what it needs is a way for a declaration to reach the staged pointer, which today only the recipe can. That is the next change, and it unblocks this row and the shrapnel row together.

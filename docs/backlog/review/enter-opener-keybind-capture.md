@@ -63,6 +63,16 @@ scene scan, and the settings menu has to be open for it: a closed or absent menu
 console; with no capture running they open the console as before". That needs a settings menu and two real key
 presses — a batch with keyboard input, which the acceptance tooling does not drive.
 
+**Where the capture state is read (2026-11-01, 07:40).** The guard's second arm is in the adapter
+(`OnlineUiKeyboardFacts.IsAKeybindCaptureWaiting`): an active `SettingsMenu` carrying a `TMP_Text` whose text is exactly `...` is
+the capture, because `SettingsMenu.WaitForKeyPress` (`reversing/Assembly-CSharp/Assembly-CSharp/SettingsMenu.cs:196-213`) writes
+that literal into the row it is binding and keeps it until a key arrives. So the state the row needs is observable in-process —
+`menu open + a row reading "..."` — and what the row still needs is the two REAL key presses: `WaitForKeyPress` binds the first
+`Input.GetKeyDown` it sees, and the acceptance tooling drives no keyboard. **This row therefore waits on one-time authorisation to
+use `tools/acceptance/send-input.ps1 -Action key` for a single batch** (the same OS channel the earlier batch used for its
+clicks), and the batch is: open the game's settings menu, click a key-bind row so its capture starts, then press Enter and Slash
+and read (a) whether the console opened and (b) what the row bound.
+
 ## The batch that tried it (2026-11-01): the row is reachable, and a click cannot leave it waiting
 
 The settings menu is reachable with the OS channel and was driven to its controls tab (frames `settings1.png`, `settings2.png`: the tabs and the key-bind rows, the jump row reading Space through the throw row reading T). Clicking a key-bind row starts the game's capture — and BINDS `Mouse0` in the same click, so the row is never left waiting: the next frame already showed the throw row reading `Mouse0` (`bind-waiting.png`). An Enter pressed after that capture had ended opened the CUO console (`bind-enter.png`), which is the ticket's own "with no capture running they open the console as before" case, not a failure of the guard.

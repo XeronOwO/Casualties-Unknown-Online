@@ -238,4 +238,18 @@ Five pins followed the move: the seam table now marks the port as implementation
 census gained `WorldGen`, the enemy-roster pin reads the adapter for the generation boundary, and the damage-block gate reads the declaration in the port and the
 implementation in the adapter. The debt entry's note was rewritten to record that the publish path has already moved and what the descent split now owes.
 
-**What is left in the queue**: `RunCoordinator` (832, this ticket — `HostDescentFollow`, then the bind/unbind table).
+**What is left in the queue**: `RunCoordinator` (794, this ticket — the bind/unbind table and the session edges).
+
+## Split 16: the host-descent follow becomes a state machine (2026-10-31)
+
+`RunCoordinator` was 832 lines and its entry named `HostDescentFollow` as the first of two cuts. The descent's STATE is the piece the run phase does not carry — how
+far the follow's own generation got (accepted, launched, released-early, waiting for the ready) — together with the anchor its bounded waits run from and the host's
+own presentation window. All of that is `HostDescentFollow` now, a value-level object with no game types: eight transitions and two questions (is an abort due, and
+why), answered against `LayerDescentPolicy`.
+
+The coordinator is **794 lines** and its entry is RE-RECORDED at that number, because the descent's scene plumbing (the decision to accept an edge, the settle read,
+the phase mapping onto the run, the menu-return origin rule) is still there and is the second thing the entry owes. What moved is the part that can be tested without
+a session — and it is: `HostDescentFollowTests` pins the transition table (launch without an edge changes nothing, an early release keeps the generation in flight,
+waiting is not aborted by the clocks), the abort ladder's order and its three reasons, and that ending the follow closes the host's window.
+
+**What is left in the queue**: `RunCoordinator` (794, this ticket — the bind/unbind table and the session edges).

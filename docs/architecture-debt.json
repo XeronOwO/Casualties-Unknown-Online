@@ -1,6 +1,6 @@
 {
   "CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
-    "Lines": 832,
+    "Lines": 794,
     "BoolFlags": 5,
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The host-descent follow added the descent state machine, its scene-state guards, the settle edge, the abort paths (world lost, hold/settle timeouts) and the release branches; the independent review's blocker and majors then added the abort policy, the menu-return origin guard and the baseline-cancel branch — the guest's new-layer generation itself remains the game's own coroutine, started from LayerAdvanceCoordinator. The descent-spawn follow added the bodyless-follow guard input and the same guard on the WaitingReady branch (the native placement dereferences PlayerCamera.main.body). The local-body publish path has since moved to LocalBodyStatePublisher, so the split this owes now is HostDescentFollow (the DescentPhase enum, the accept/settle/abort transitions, the bounded waits and the preserved-body note; the run keeps only the phase mapping) and then the remaining jump table (bind/unbind, session edges) into a small coordinator. Its decision table (LayerDescentPolicy) is already unit-pinned."

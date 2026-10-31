@@ -40,6 +40,11 @@ public sealed class TestCommandMod : ICuoMod
 		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
 			"cresource", "Local resource-location echo", ConsoleResource,
 			parameters: [new ConsoleCommandParameter("location", kind: CommandArgumentKind.ResourceLocation)], usage: "/cresource <location>"));
+		// A mod parameter that declares a FRAMEWORK source instead of a completer of its own: the selector offers the @ forms and the members who are
+		// reachable, exactly as a built-in selector parameter does (stage 2 of the console contract).
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"cselect", "Local selector echo", invocation => ConsoleAnswer.Ok(string.Join(" ", invocation.Arguments)),
+			parameters: [new ConsoleCommandParameter("target", kind: CommandArgumentKind.Selector)], usage: "/cselect <target>"));
 		// A mod command that REFUSES: the console must print its answer with the error kind, which is what the
 		// typed-result contract exists for (a mod cannot forget to mark a refusal).
 		context.ConsoleCommands.Register(new ConsoleCommandDefinition(

@@ -88,6 +88,22 @@ public class ModConsoleCommandTests
 	}
 
 	[Fact]
+	public void ModConsoleCommand_DeclaredKind_GetsTheFrameworkSource()
+	{
+		// Stage 2 of the console contract: a mod parameter that declares a framework KIND gets the same source a built-in parameter of that kind gets — the
+		// selector offers the @ forms (with their filters) and the members who are actually reachable, without the mod writing a completer.
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var all = completion.Suggest("/cselect @a");
+		var every = completion.Suggest("/cselect @");
+
+		Assert.Contains(all, s => s.Text == "@a" && s.Hint == CommandSuggestionHint.SelectorAllPlayers);
+		Assert.Contains(every, s => s.Text == "@a");
+		Assert.Contains(every, s => s.Text == "@p");
+	}
+
+	[Fact]
 	public void ModConsoleCommand_ResourceLocationCompletion_InsertsCanonicalModId()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);

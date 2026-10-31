@@ -266,3 +266,13 @@ What the console does with a definition now:
 relaid command still runs locally, which is stage 3 (the wire pair, the host registry, the permission and host-rule gates). A command TREE (literals with children at any depth) is
 not expressible yet either: the contract has parameters, and the tree is the shape stage 1's successor adds without changing what a definition is.
 **Live check on the deployed build (`9930281d`):** typing `/music ` in the real client drew four candidate rows — `play`, `share`, `stop`, `status` — which are the`n`music` mod's own `FixedChoiceCompleter` words, not a framework kind; the driver's suggestion list read the same four. So a mod definition's completer reaches the`nplayer's list on a deployed client, which is the fact stage 1 was for.
+## Stage 2 landed: a declaration composes with the framework's own sources (2026-10-31)
+
+The completion path already asks a definition's parameter first (\CommandConsoleCompletion.FromTheParameter\) and hands the completer an \ICompletionContext\ with the command, the
+parameter index, the arguments already accepted and the partial token; what stage 2 still owed was proof that a MOD declaration reaches the framework's own sources, not only that a
+custom completer runs. That is now pinned: the test mod declares \cselect <target>\ with \kind: CommandArgumentKind.Selector\ and NO completer, and the completion answers the \@\ forms with
+their filter hints and the reachable members — the same source a built-in selector parameter uses (\ModConsoleCommandTests.ModConsoleCommand_DeclaredKind_GetsTheFrameworkSource\). It sits beside the
+existing \cresource\ case (a ResourceLocation kind that inserts the canonical mod id) and the \cmode\ case (a definition's own completer, with the second parameter reading the first's value).
+
+So a mod parameter has three ways to answer, all through one contract: its own \IArgumentCompleter\, a shipped completer (\FixedChoiceCompleter\, \DelegateCompleter\), or a declared
+\Kind\ that falls back to the framework source — and \ConsoleCommandParameter\ documents exactly that composition.

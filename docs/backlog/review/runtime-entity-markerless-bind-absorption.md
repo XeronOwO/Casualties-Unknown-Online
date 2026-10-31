@@ -212,3 +212,9 @@ The re-review of the fixes rejected the cycle again; all findings were fixed and
   this world contains no runtime-created entity, so the backfill stamp (row 9) has no fact to stamp. Row 9 therefore waits on a
   world that CARRIES a runtime creation — an enemy spawn or a member-created entity — not on another read; the code review and the
   unified dual-client pass remain its only evidence until such a world is staged.
+
+## Verification re-read on this tree (2026-11-01, 07:40)
+
+The ticket's own coverage table maps every acceptance bullet to a named test, and those tests are on the tree and green: `RuntimeEntityMatchTests` carries the markerless-decoy, beside-the-own-copy, whatever-prefab, drifted-remote, same-cell-sibling and three-turret cases (`FindIndex_*`), `EnemyStateRoundtripTests` carries the enemy backfill creation-key pair, and `NetPacketTests` the trap-layout round trip. So "a regression test covers the absorption case" and "the positional pass is deleted" are both satisfied on this tree, and the E3 loss-semantics cell is the ticket's own coverage table (rows 1-8 and 10).
+
+The ONE row that is not machine-covered is row 9 — the adapter stamping the backfill copies — because it needs a live Unity world with a RUNTIME enemy spawn to stamp. This session's world has 46 enemies and **0 runtime spawns** (`enemy-table-read`: `count=46, runtimeSpawns=0`), so the row stays owed until a session kills an animal and sees the re-report materialize a stamped copy. That is a fixture, not a code question.

@@ -85,7 +85,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The command console is a contract, not attribute methods](review/the-command-console-is-a-contract.md) — **High** — code-complete; residuals named.
 
-- [Completion is not a command system yet](review/completion-list-keys-and-ids-disagree.md) — **High** — five defects, one list; all rows judged.
 
 
 
@@ -169,6 +168,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [Completion is not a command system yet](done/completion-list-keys-and-ids-disagree.md) — **High** — five defects, one list, eight rows.
 
 - [A disconnected member leaves his arrow on the HUD](done/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — leaves and returns.
 

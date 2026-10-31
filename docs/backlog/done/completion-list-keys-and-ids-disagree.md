@@ -1,6 +1,6 @@
 # Completion is not a command system yet: the list, the keys and the ids all disagree
 
-- Status: Review — opened 2026-10-30 from five observations in one sitting (translated from the user's Chinese report): the candidate list under the field is
+- Status: Done — opened 2026-10-30 from five observations in one sitting (translated from the user's Chinese report): the candidate list under the field is
   not what Tab accepts; ↑/↓ walk the command history instead of the list; nothing is offered after a completed item id; completion yields the bare game id
   instead of the namespaced one; and a pinyin hit shows a bare name with neither namespace nor Chinese label.
 - Priority: High — the console is the mod-facing surface and the place a player learns what a command accepts; a list that lies teaches the wrong thing.
@@ -79,7 +79,7 @@ fact, so this ticket is judged on frames: a candidate list that differs from wha
 | 5 | Typing a Chinese transliteration shows the matching id WITH its namespace and its Chinese name in the row — frame |
 | 6 | A completion the player cannot run is still hidden (the 2026-10-24 rule), and the gate that pins it keeps passing |
 | 7 | A token the grammar refuses is marked IN PLACE with a hint of what was expected (a frame with a wrong argument typed), and the hint names the parameter rather than restating the line |
-| 8 | A candidate row can be CLICKED to complete the token and HOVERED to preview its full usage; the frame shows the preview, and the click lands the same text Tab would |
+| 8 | A candidate row can be CLICKED to complete the token and HOVERED to preview its full usage; the frame shows the preview, and the click lands the same text Tab would | **PASS 2026-11-01, both halves**: the click half landed earlier (`console-accept`); the hover half needed a real pointer over the row and the preview never drew — `DrawTooltip` read `GUI.tooltip` in the drawing pass, where IMGUI had already cleared it, so the text had to be captured in the event that reports it and drawn on the repaint (`CaptureTooltip` + the stored field, same commit). Frame `hover1.png` on build `8b279fe3`: the pointer sits on `cu:waterbottle` and the preview box draws its full description under the row, which is the surface the row asked for |
 
 ## Limits
 

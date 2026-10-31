@@ -48,7 +48,7 @@ own cursor, a candidate list, and a hint line. It is not the game's native conso
   argument parser/completer for one parameter while the framework keeps the tokenisation, the list, the keys, the permission gate and the answer shape; a
   `HostRelayed` command runs on the host behind its own declared permission AND the host's rules, and needs the mod on both sides. The LIST is an input
   surface: rows are clickable to complete and hoverable to preview, and a refused token is explained in place with what was expected. The five gaps measured
-  on 2026-10-30 are recorded in `../backlog/review/completion-list-keys-and-ids-disagree.md`; this rule is what a fix is judged against, not a wish list.
+  on 2026-10-30 are recorded in `../backlog/done/completion-list-keys-and-ids-disagree.md`; this rule is what a fix is judged against, not a wish list.
 - **The line is a small editor over one immutable registry, and its output is bounded.**
   `CommandConsoleService` registers commands "once at construction from `ConsoleCommandAttribute`-marked methods into an
   immutable command registry", parses "a slash-prefixed line, gated by a role permission, executed on this side, and answered

@@ -62,3 +62,11 @@ scene scan, and the settings menu has to be open for it: a closed or absent menu
 **Runtime row still owed**: "with a key-bind row waiting, Enter and Slash bind the key and do NOT open the CUO
 console; with no capture running they open the console as before". That needs a settings menu and two real key
 presses — a batch with keyboard input, which the acceptance tooling does not drive.
+
+## The batch that tried it (2026-11-01): the row is reachable, and a click cannot leave it waiting
+
+The settings menu is reachable with the OS channel and was driven to its controls tab (frames `settings1.png`, `settings2.png`: the tabs and the key-bind rows, the jump row reading Space through the throw row reading T). Clicking a key-bind row starts the game's capture — and BINDS `Mouse0` in the same click, so the row is never left waiting: the next frame already showed the throw row reading `Mouse0` (`bind-waiting.png`). An Enter pressed after that capture had ended opened the CUO console (`bind-enter.png`), which is the ticket's own "with no capture running they open the console as before" case, not a failure of the guard.
+
+**So the row needs a capture that is still waiting when the key arrives, and this build gives no click-driven way to hold one open.** Two ways forward, both a decision rather than a guess: press a key the game IGNORES as the binding while the row is fresh (so the capture stays open across the batch's next key), or drive the row's capture through the game's own code path (a probe that calls the row's capture entry directly, the way `open-own-wound` calls the game's panel entry). The second is the honest instrument; the first is a trick that depends on the game's ignore list.
+
+**One UX question the frames raise**: with the console open over the settings menu, both are drawn at once and the console takes the keyboard. Whether the console should open while the game's own settings menu is up — or refuse with a line — is a player-facing choice, and the settings menu is the one place a player expects the keyboard to belong to the game.

@@ -62,6 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [Escape closing the console also opens the pause menu](todo/escape-closing-the-console-also-opens-the-pause-menu.md) — **Low** — one press, two surfaces.
+
 
 
 
@@ -100,7 +102,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [Enter on an empty console closes it now](review/console-enter-on-empty-does-not-close.md) — **Low** — landed; a frame and its state read.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.
@@ -169,6 +170,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [Enter on an empty console does not close it](done/console-enter-on-empty-does-not-close.md) — **Low** — four rows judged.
 
 - [A limb component applied outside a world throws every frame](done/a-limb-component-applied-outside-a-world-throws-every-frame.md) — **Critical** — fixed
 

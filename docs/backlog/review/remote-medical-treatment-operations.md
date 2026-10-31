@@ -148,3 +148,18 @@ The frame taken right after a release shows the remote view with a **joint-reset
 The instrumented rub never printed its line — not the per-run summary, and not the first-frame line added to prove the coroutine runs at all — in either log (`BepInEx/LogOutput.log` and Unity's own `Player.log`). `Start` answers `started`, so `StartCoroutine` was called on a live `PlayerCamera`; what is missing is any evidence that the coroutine body executes, and a `Debug.Log` from the evaluator's dynamic assembly appears to reach neither file.
 
 **So the next instrument reports through CUO's own logger, not Unity's**: the driver's counters need to go where the rest of the acceptance reads live (the adapter's `ILogger`, which is what puts `[MedicalView]` lines in `LogOutput.log`), or the driver needs to write its counters into a field the acceptance can read with a recipe (`minigame-end`-style) instead of a log line. Until one of those exists, "the rub drove nothing" and "the rub never ran" are indistinguishable — which is exactly the class of defect this project keeps recording.
+
+## The counters are readable now, and they say the minigame is not where the operator's hand is
+
+The driver's counters moved into static fields (`Starts`, `Saw`, `Drove`, `Running`, `MainNull`, `Other`) that a recipe reads (`bandage-rub-state`), because a `Debug.Log` from the evaluator's dynamic assembly reaches neither log. The reading, after a 800-frame rub running across a release on limb 4:
+
+| counter | value | what it means |
+|---|---|---|
+| `starts` | 2 | the coroutine really starts and runs to its end (`running=false` after the first) |
+| `mainNull` | 0 | `MinigameBase.main` was present on every sampled frame |
+| `other` | `none` | `MinigameBase.main.currentMinigame` was NULL on every frame |
+| `saw` / `drove` | 0 / 0 | the hand was never driven, because there was no current minigame to drive |
+
+And the host's own log, in the same seconds, says `[MedicalView] started remote Bandage minigame for … limb 4`. **So the bandage minigame a remote treatment starts is NOT `MinigameBase.main.currentMinigame` on the operator's client** — either CUO's remote path drives a different object, or the minigame lives on the patient's side. That is the next question, and it is now a readable one: the counters separate "no minigame object" from "a different minigame" (the `Other` field names it).
+
+The patient's limb confirms nothing landed: `skinHealth` went 19.75 → 23.58 and `bleedAmount` 15.6 → 2.8 over the same minutes, which is the game's own wound healing, not a bandage — its log carries `[LimbEvent] reported local limb 4` and no treatment line.

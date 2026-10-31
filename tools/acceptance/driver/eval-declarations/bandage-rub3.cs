@@ -1,5 +1,5 @@
-// eval declaration: bandage-rub
-// declares: AcceptanceBandageRub
+// eval declaration: bandage-rub3
+// declares: AcceptanceBandageRub3
 // serves: remote-medical-treatment-operations, topical-limb-action-shape — the bandage minigame that a remote treatment starts and
 //         whose completion is what applies the effect to the patient.
 //
@@ -14,19 +14,32 @@
 // minigame ends on its own. The verdicts are read from the operator's log and the patient's own limb, never from this file.
 using System.Collections;
 
-public static class AcceptanceBandageRub
+public static class AcceptanceBandageRub3
 {
+	/// <summary>
+	/// The counters a recipe reads back. They live here rather than in a log line because a `Debug.Log` from this dynamic assembly
+	/// reaches neither BepInEx's log nor Unity's `Player.log` (measured 2026-11-01), which left "the rub drove nothing" and "the rub
+	/// never ran" indistinguishable. `bandage-rub-state` reads these fields.
+	/// </summary>
+	public static int Starts;
+	public static int Saw;
+	public static int Drove;
+	public static bool Running;
+	public static int MainNull;
+	public static string Other = "";
+
 	public static string Start(int steps)
 	{
 		var camera = PlayerCamera.main;
 		if (camera == null) { return "no-camera"; }
+		Starts++;
 		camera.StartCoroutine(Rub(steps));
 		return "started";
 	}
 
 	public static IEnumerator Rub(int steps)
 	{
-		UnityEngine.Debug.Log("[BandageRub] coroutine started, steps=" + steps);
+		Running = true;
 		var angle = 0f;
 		var sawMinigame = 0;
 		var drove = 0;
@@ -36,13 +49,14 @@ public static class AcceptanceBandageRub
 			// it once at the start saw null, broke out silently, and looked exactly like a minigame that never came (measured
 			// 2026-11-01: no counter line at all from a 120-frame rub).
 			var main = MinigameBase.main;
-			if (main == null) { yield return null; continue; }
+			if (main == null) { MainNull++; yield return null; continue; }
 
 			// The minigame appears a frame or two AFTER the release that starts it, and it ends on its own: wait for it, drive it while
 			// it lasts, and spend the rest of the budget skipping frames rather than breaking on the first empty one.
-			if (main.currentMinigame == null || !(main.currentMinigame is BandageMinigame)) { yield return null; continue; }
+			if (main.currentMinigame == null || !(main.currentMinigame is BandageMinigame)) { Other = main.currentMinigame == null ? "none" : main.currentMinigame.GetType().Name; yield return null; continue; }
 
 			sawMinigame++;
+			Saw = sawMinigame;
 			main.handClicking = true;
 			main.handStartedClicking = n == 0;
 			main.handStoppedClicking = false;
@@ -51,13 +65,13 @@ public static class AcceptanceBandageRub
 			// Radius above the game's own 250-unit floor, so its clamp branch does not fight the gesture.
 			main.handPos = new UnityEngine.Vector2(UnityEngine.Mathf.Sin(angle * 0.017453292f), UnityEngine.Mathf.Cos(angle * 0.017453292f)) * 320f;
 			drove++;
-			yield return null;
+			Drove = drove;
 		}
-		UnityEngine.Debug.Log("[BandageRub] frames with a bandage minigame: " + sawMinigame + ", driven: " + drove);
 		if (MinigameBase.main != null)
 		{
 			MinigameBase.main.handStoppedClicking = true;
 			MinigameBase.main.handClicking = false;
 		}
+		Running = false;
 	}
 }

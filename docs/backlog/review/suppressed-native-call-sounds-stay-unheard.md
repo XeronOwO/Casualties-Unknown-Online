@@ -5,7 +5,7 @@
 - Priority: Low
 - Category: Audio sync / report coverage
 - Source: the 2026-09-26 census of `review/unhooked-item-and-body-sound-families.md` — closing that family's routing left two rows whose clip is not merely unreported: the native call that would play it is suppressed or blocked on every side.
-- Related: `review/unhooked-item-and-body-sound-families.md` (the census these rows come from), `review/remote-medical-treatment-operations.md`, `docs/architecture/remote-inventory-native-parity.md` (§3.4)
+- Related: `review/unhooked-item-and-body-sound-families.md` (the census these rows come from), `done/remote-medical-treatment-operations.md`, `docs/architecture/remote-inventory-native-parity.md` (§3.4)
 
 ## The gap
 

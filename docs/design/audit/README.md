@@ -293,7 +293,7 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 268 | `review/remote-medical-stage-1-injection-session.md` | landed | `items/injection.md` | `corpus page` | the injection page's operation rules |
 | 269 | `review/remote-medical-stage-2-shrapnel-multiplayer.md` | landed; its rows are the page's open gap | `mechanics/medical-view.md` | `corpus page` (open rows) | the shrapnel flow's multiplayer rows are named on the page's `Gaps` |
 | 270 | `review/remote-medical-stage-3-other-actions.md` | landed | `mechanics/medical-view.md` | `corpus page` | the remaining native actions are the medical page's family |
-| 271 | `review/remote-medical-treatment-operations.md` | landed | `mechanics/medical-view.md` | `corpus page` | the treatment operations are the page's subject |
+| 271 | `done/remote-medical-treatment-operations.md` | landed | `mechanics/medical-view.md` | `corpus page` | the treatment operations are the page's subject |
 | 272 | `review/runtime-entity-markerless-bind-absorption.md` | open; a same-prefab copy absorbs a creation | `mechanics/enemy-combat.md` | `corpus page` (open) | the enemy page's spawn classification is the family |
 | 273 | `review/save-layer-end-save-and-restore.md` | code and machine verification complete | `cross-cutting/saves-and-recovery.md` | `corpus page` | S2 of the save family |
 | 274 | `review/save-mid-run-consistent-cut.md` | landed 2026-09-17 | `cross-cutting/saves-and-recovery.md` | `corpus page` | S3 of the same family |

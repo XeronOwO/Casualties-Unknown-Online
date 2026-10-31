@@ -25,7 +25,6 @@ docs/backlog/review/remote-medical-panel-speech-text-desync.md
 docs/backlog/review/remote-medical-stage-1-injection-session.md
 docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/backlog/review/remote-medical-stage-3-other-actions.md
-docs/backlog/review/remote-medical-treatment-operations.md
 docs/backlog/review/runtime-entity-markerless-bind-absorption.md
 docs/backlog/review/save-layer-end-save-and-restore.md
 docs/backlog/review/save-mid-run-consistent-cut.md

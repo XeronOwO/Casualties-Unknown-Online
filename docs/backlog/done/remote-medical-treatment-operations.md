@@ -1,6 +1,6 @@
 # Remote medical treatment operations
 
-- Status: Review
+- Status: Done
 - Priority: Medium
 - Category: Remote player UI / cross-player medical actions
 - Source: User request (2026-09-05) — the remote medical panel is view-only and cannot perform medical treatment operations, e.g. using a syringe on a remote player.

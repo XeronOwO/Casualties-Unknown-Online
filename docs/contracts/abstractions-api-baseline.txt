@@ -32,6 +32,7 @@ member|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion.Text|proper
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion.Verbatim|property|-> bool { get; }
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandCompletion.ctor(string text, string? hintKey = null, IReadOnlyList<object?>? hintArgs = null, bool verbatim = false)|sealed constructor|-> CasualtiesUnknownOnline.Abstractions.CommandCompletion
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.Anyone|enumvalue|implicit #0
+member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.Cheat|enumvalue|implicit #2
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandPermission.HostOnly|enumvalue|implicit #1
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandScope.HostRelayed|enumvalue|implicit #1
 member|Stable|CasualtiesUnknownOnline.Abstractions.CommandScope.Local|enumvalue|implicit #0

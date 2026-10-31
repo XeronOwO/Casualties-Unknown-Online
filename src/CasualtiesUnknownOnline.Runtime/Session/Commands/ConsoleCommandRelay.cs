@@ -14,6 +14,7 @@ internal sealed class ConsoleCommandRelay(
 	CommandRelayHub hub,
 	ConsoleCommandRegistry registry,
 	IConsoleLineSink lines,
+	Func<ulong, ConsoleAnswer?> refuseCheat,
 	ILogger log)
 {
 	/// <summary>
@@ -64,6 +65,14 @@ internal sealed class ConsoleCommandRelay(
 		if (contract.Permission == CommandPermission.HostOnly)
 		{
 			return ConsoleAnswer.Refused(ConsoleCommandAuthority.HostOnlyRefusal, "console.command.host_only");
+		}
+
+		// The cheat family is judged about the MEMBER who asked, by the host that is acting for them: a switch that is off or a roster that does not name them refuses
+		// here, and the handler never runs.
+		if (contract.Permission == CommandPermission.Cheat && refuseCheat(requester) is { } cheatRefusal)
+		{
+			log.LogInformation("[Console] relayed /{Name} from {Requester} refused by the cheat family.", name, requester);
+			return cheatRefusal;
 		}
 
 		if (command.RelayAnswer is not { } answer)

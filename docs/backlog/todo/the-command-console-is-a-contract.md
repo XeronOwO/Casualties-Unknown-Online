@@ -368,3 +368,16 @@ Where the acceptance rows actually stand, so nobody reads this ticket as finishe
 | 11 | **OPEN**: completion is bounded by the list caps, but no measurement proves a per-keystroke frame stays cheap |
 
 The four rows still open (5, 10, 11) and the two residuals (2''s frame, 6''s Chinese member) are what remains before this ticket can be reviewed.
+## Row 5 closed: a mod can declare the cheat family, and both sides judge it (2026-10-31)
+
+`CommandPermission.Cheat` is a declared permission now, and it means the same thing every built-in cheat verb means: the host's family SWITCH must be open, and for a member the
+host's ROSTER must name that player. The judgement happens twice, deliberately:
+
+- on the side that typed the line, through the same `CheatVerbGate` the built-in verbs use (its announced switch and roster), so a member learns the ground before anything is
+  sent and the host sees no invocation;
+- on the host that would run a relayed one, through its OWN authoritative switch and roster, asked about the member who requested it — so a client that lies about its roster
+  still cannot run the handler.
+
+The list follows the same rule: the authority predicate that filters completion now treats `Permission == Cheat` like the built-in family gate, so a command the console
+would refuse is not offered by name either. Four tests pin it: without the grant (`not_on_roster`), with a closed switch and a grant (`switch_closed`), after both rulings (the relayed
+command runs with the member as requester), and the list hiding it.

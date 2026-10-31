@@ -44,6 +44,9 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly ConsoleCommandRelay _consoleRelay;
+	private readonly CheatPermissions _cheatRoster;
+	private readonly CheatVerbGate _cheatVerbs;
+	private readonly IHostRules _hostRuleValues;
 	private readonly List<ConsoleLine> _lines = [];
 	private readonly ConsoleCommandRegistry _commands;
 	private readonly CommandConsoleCompletion _completion;
@@ -92,7 +95,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_chat = chat;
 		_session = session;
 		// The member↔host seam: this side answers what it can run and prints what comes back; the mod domain owns the frames.
-		_consoleRelay = new ConsoleCommandRelay(relayHub, commandRegistry, this, log);
+		_consoleRelay = new ConsoleCommandRelay(relayHub, commandRegistry, this, RefuseCheatFor, log);
 		relayHub.RunOnHost = _consoleRelay.AnswerOnHost;
 		relayHub.Arrived = (_, outcome) => _consoleRelay.Print(outcome);
 		_playerInteraction = playerInteraction;
@@ -107,6 +110,9 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_healReset = healReset;
 		_hostRules = hostRules;
 		_hostRuleChanges = hostRuleChanges;
+		_cheatRoster = cheatRoster;
+		_cheatVerbs = new CheatVerbGate(session, _hostRules, cheatPermissions, log);
+		_hostRuleValues = hostRuleSurface;
 		_localization = localization;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += ResetSessionState;
@@ -147,24 +153,23 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// The item-data family's two verb groups share one gate and one target
 		// resolver: /data writes this client's own item, /give makes a new one, and
 		// both answer the same cheat rulings and the same selector verdict.
-		var cheatVerbs = new CheatVerbGate(session, _hostRules, cheatPermissions, log);
-		_authority = new ConsoleCommandAuthority(session, cheatVerbs);
+		_authority = new ConsoleCommandAuthority(session, _cheatVerbs);
 		// The host-rule verb is the cheat family's too (the user's 2026-10-24 ruling); its own group holds the gate.
-		_commands.AddBuiltIns(new HostRuleCommands(hostRuleSurface, hostRuleChanges, cheatVerbs, log));
+		_commands.AddBuiltIns(new HostRuleCommands(hostRuleSurface, hostRuleChanges, _cheatVerbs, log));
 		var targets = new ItemDataTargets(kernelItems, session, entities, localItems);
-		var writes = new ItemDataWriteCommands(kernelItems, session, localItems, itemControl, itemStateLanguage, log, cheatVerbs, targets);
+		var writes = new ItemDataWriteCommands(kernelItems, session, localItems, itemControl, itemStateLanguage, log, _cheatVerbs, targets);
 		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, itemStateLanguage, log, targets, writes));
-		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, cheatVerbs, targets, log));
-		_commands.AddBuiltIns(new WorldSummonCommands(worldSummon, cheatVerbs));
-		_commands.AddBuiltIns(new HealResetCommands(healReset, cheatVerbs, session, entities));
+		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, _cheatVerbs, targets, log));
+		_commands.AddBuiltIns(new WorldSummonCommands(worldSummon, _cheatVerbs));
+		_commands.AddBuiltIns(new HealResetCommands(healReset, _cheatVerbs, session, entities));
 		// A run's own levers: the acceptance-only verbs must be reachable from the console, and their
 		// owner registers itself through the same attribute scan as every other group above. The cheat
 		// gate is the permission: a lever that can move a trader's credit is not a player's shortcut.
-		_commands.AddBuiltIns(new AcceptanceCommands(session, world, cheatVerbs));
+		_commands.AddBuiltIns(new AcceptanceCommands(session, world, _cheatVerbs));
 		// The completion side is its own collaborator (this class is at the aggregate-size gate): it owns
 		// the contextual sources and asks the same authority predicate the dispatcher and /help use.
 		_completion = new CommandConsoleCompletion(
-			_commands, session, hostBans, resourceLocations, _authority, cheatVerbs,
+			_commands, session, hostBans, resourceLocations, _authority, _cheatVerbs,
 			kernelItems, itemStateLanguage, targets, hostRuleSurface, log);
 		AddKeyedLine("console.ready", "CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
@@ -383,6 +388,14 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			return false;
 		}
 
+		// The cheat family's two rulings, on the side that typed the line: a member whose host has the switch closed or who is not on the roster learns it here, before
+		// anything is sent or applied (user direction 2026-10-30: a declared cheat command is gated, never silently run).
+		if (command.Permission == CommandPermission.Cheat && _cheatVerbs.TryRefuse(command.Name, out var cheatRefusal))
+		{
+			PrintRefusal(cheatRefusal);
+			return false;
+		}
+
 		// A member's HostRelayed command runs on the HOST: this line goes over the wire, and the answer prints here when it arrives (user direction 2026-10-30:
 		// a declared non-local command is declared, gated and run by the host, never silently run locally).
 		if (_consoleRelay.TrySend(command, tokens, _session.Role == SessionRole.Host))
@@ -548,6 +561,56 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		}
 
 		return $"player-{line.SenderSteamId:X}: {line.Text}";
+	}
+
+	/// <summary>
+	/// The cheat family's judgement for ONE player: the host's switch and roster, asked about a member the host is acting for (a relayed command) or about the local
+	/// player (the line typed here). Null means the family admits them; a refusal names its ground, so the operator learns whether to ask for the switch or a grant.
+	/// </summary>
+	private ConsoleAnswer? RefuseCheatFor(ulong member)
+	{
+		if (_session.Role == SessionRole.Host && member == _session.LocalSteamId)
+		{
+			return null;
+		}
+
+		if (!_session.SessionActive)
+		{
+			return ConsoleAnswer.Refused("No active session — a cheat verb needs one. Nothing was done here.", "cheat.refused.no_session");
+		}
+
+		if (!_hostRuleValues.AllowMemberCheatVerbs)
+		{
+			return ConsoleAnswer.Refused(
+				"Refused: the host's cheat switch is off, so no member may run a cheat verb. Nothing was done here.",
+				"cheat.refused.switch_closed",
+				HostRuleId.AllowMemberCheatVerbs.ToString());
+		}
+
+		return _cheatRoster.IsGranted(member)
+			? null
+			: ConsoleAnswer.Refused(
+				"Refused: the host's cheat roster does not name you, so this command cannot land. The host grants it with /op. Nothing was done here.",
+				"cheat.refused.not_on_roster");
+	}
+
+	/// <summary>Prints a keyed refusal in the error colour: the cheat family's grounds reach the operator as the family's own sentences.</summary>
+	private void PrintRefusal(ConsoleAnswer answer)
+	{
+		var args = new string[answer.Args?.Count ?? 0];
+		for (var index = 0; index < args.Length; index++)
+		{
+			args[index] = answer.Args![index];
+		}
+
+		if (answer.Key is not { } key)
+		{
+			// An answer with no key is still printed: the cheat family always keys its grounds, and this branch keeps a future one from blanking the line.
+			AddLine(answer.Text ?? string.Empty, ConsoleLineKind.Error, notifiable: true);
+			return;
+		}
+
+		AddKeyedLine(key, answer.Text ?? string.Empty, ConsoleLineKind.Error, args);
 	}
 
 	private CommandDefinition? FindCommand(string name)

@@ -42,7 +42,7 @@
     "Note": "The shipped sample now demonstrates the non-local console command and its own two-language catalogue too (HostRelayed), which is the one surface stage 3 of the console contract needed a live example for. The split moves the console examples into their own sample mod rather than trimming what a reader is meant to see."
   },
   "CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService": {
-    "Lines": 621,
+    "Lines": 684,
     "BoolFlags": 0,
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The console's host-relay seam (2026-10-31) added the member's send branch, the line sink it writes through and the relay it holds; the reporting handlers (cut/restore/give/summon/heal answers) are the next extraction, and they move out with the relay printer already split into ConsoleCommandRelay."
@@ -60,7 +60,7 @@
     "Note": "The receiving half of a cross-player transfer: it applies the custody answer on the side it names. It reached 601 with the ruling that a give no longer plays a sound of its own (the release click is the game own, and the cloth belongs to container moves), which removed a call and left the comments that explain why beside it. The split this owes is one applier per direction (give, take, return) behind the dispatch it already has."
   },
 "CasualtiesUnknownOnline.GameAdapter.RemoteIntentApplier": {
-    "Lines": 621,
+    "Lines": 684,
     "BoolFlags": 0,
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The receiver half of the remote intents: one method per intent kind, each replaying the game own call on the owner real objects. It crossed 600 with the ground hand-over (a world item resolved through the scene and placed by the receiver own native pickup) and with the detach-before-place step that keeps a cross-player give from playing the container sound the native slot move never plays. The split this owes is one applier per intent family (drop/container, slot, use/wear, battery/trader) behind the same dispatch, the shape RemoteIntentSlotRelease already gives one shared sub-rule."

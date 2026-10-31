@@ -45,7 +45,10 @@ internal sealed class ConsoleCommandAuthority(ISessionControl session, CheatVerb
 			return ConsoleAnswer.Refused(HostOnlyRefusal, HostOnlyRefusalKey);
 		}
 
-		if (command.Gate == ConsoleCommandGate.Cheat && _cheatVerbs.TryRefuseQuiet(command.Name, out var refusal))
+		// The cheat family is declared EITHER way: a built-in verb carries it as its gate, a mod definition as its permission. Both ask the same gate, so the
+		// filter and the dispatcher cannot disagree about which family a command belongs to.
+		if ((command.Gate == ConsoleCommandGate.Cheat || command.Permission == CommandPermission.Cheat)
+			&& _cheatVerbs.TryRefuseQuiet(command.Name, out var refusal))
 		{
 			return refusal;
 		}

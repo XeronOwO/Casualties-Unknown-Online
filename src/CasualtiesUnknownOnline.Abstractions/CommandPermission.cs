@@ -8,6 +8,16 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// </summary>
 public enum CommandPermission
 {
+	/// <summary>Any player may run it.</summary>
 	Anyone,
+
+	/// <summary>Only the host may run it; a member is refused before the handler.</summary>
 	HostOnly,
+
+	/// <summary>
+	/// The cheat family: the host's cheat SWITCH must be open, and for a member the host's ROSTER must name that player — the same two rulings every built-in
+	/// cheat verb follows (`/give`, `/summon`, the write half of `/data`). A refusal names its ground, and it happens on the side that typed the line as well
+	/// as on the host, so a relayed attempt the host would refuse never runs its handler.
+	/// </summary>
+	Cheat,
 }

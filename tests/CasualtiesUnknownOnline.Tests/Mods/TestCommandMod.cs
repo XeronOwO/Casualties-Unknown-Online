@@ -47,6 +47,12 @@ public sealed class TestCommandMod : ICuoMod
 			parameters: [new ConsoleCommandParameter("target", kind: CommandArgumentKind.Selector)], usage: "/cselect <target>"));
 		// A command that declared the NON-LOCAL scope: a member's line travels to the host, the host runs this handler against its own copy, and the answer goes
 		// back keyed so the member prints it in its own language (stage 3 of the console contract).
+		// A CHEAT-FAMILY command that also runs on the host: the host's switch and roster decide, on both sides, before the handler runs.
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"ccheat", "Cheat family, relayed", ConsoleRelay,
+			permission: CommandPermission.Cheat,
+			scope: CommandScope.HostRelayed,
+			usage: "/ccheat <text>"));
 		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
 			"crelay", "Runs on the host, answers the member", ConsoleRelay,
 			scope: CommandScope.HostRelayed,

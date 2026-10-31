@@ -62,12 +62,14 @@ by whichever surface the game uses for an off-screen teammate. The next step is 
 ## The read the ticket asked for: the arrow leaves with the peer (2026-10-31, build `0c282f7f`)
 
 The batch needed a peer whose arrow was actually on screen, and the two bodies spawned on the same tile in terrain that boxes a walking body in (both stopped after two
-12-unit nudges). A new acceptance recipe 	eleport puts the local body at a given world point for exactly this: the guest went to x=400 and its marker left the screen.
+12-unit nudges). A new acceptance recipe `teleport` puts the local body at a given world point for exactly this: the guest went to x=400 and its marker left the screen.
 
-**Before** (rrow-edge frame, read as an image): the host's screen shows the guest's OFF-SCREEN arrow at the right edge — `Kaguya（小号） 128米` with the arrow mark beside
-it — while the roster read answers that member inWorld: true. So the arrow really is drawn, by the overlay, from the same member row the roster answers.
+**Before** (`arrow-edge` frame, read as an image): the host's screen shows the guest's OFF-SCREEN arrow at the right edge — the label carries the guest's name and
+its distance (read off the frame, quoted in translation: "Kaguya (alt) 128 m") with the arrow mark beside it — while the roster read answers that member
+inWorld: true. So the arrow really is drawn, by the overlay, from the same member row the roster answers.
 
-**After** (rrow-gone frame, same screen, one host action between): the host kicked that member (`已踢出成员 76561198863287957。`); the roster read then answers **no members at all**, and the
+**After** (`arrow-gone` frame, same screen, one host action between): the host kicked that member (the console line read off the frame, translated: "kicked member
+76561198863287957"); the roster read then answers **no members at all**, and the
 arrow and its label are **gone from the frame** — no marker at the right edge, no residue anywhere on the screen.
 
 **Row 1 PASS**: a peer that leaves takes its arrow with it, read from the frame before/after and the roster in the same batch. **Row 3** passes for the marker half (the arrow was off-screen when thepeer left and no marker remained); its second half — no clone left active in the scene — has no clone census in this batch and is a named residual. **Row 2**

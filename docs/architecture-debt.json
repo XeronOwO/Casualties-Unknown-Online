@@ -41,12 +41,6 @@
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The shipped sample now demonstrates the non-local console command and its own two-language catalogue too (HostRelayed), which is the one surface stage 3 of the console contract needed a live example for. The split moves the console examples into their own sample mod rather than trimming what a reader is meant to see."
   },
-  "CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService": {
-    "Lines": 684,
-    "BoolFlags": 0,
-    "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
-    "Note": "The console's host-relay seam (2026-10-31) added the member's send branch, the line sink it writes through and the relay it holds; the reporting handlers (cut/restore/give/summon/heal answers) are the next extraction, and they move out with the relay printer already split into ConsoleCommandRelay."
-  },
   "CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.PlayerInventoryTakeService": {
     "Lines": 629,
     "BoolFlags": 0,

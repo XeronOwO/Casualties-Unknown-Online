@@ -51,3 +51,13 @@ For each class, in the order that keeps the tree compiling between commits:
 | 1 | Every class in the queue is under 600 aggregate lines, or its entry names this ticket and no higher number |
 | 2 | Each split changes no behaviour: the suites pass unchanged and the log lines a run depends on are identical |
 | 3 | The gate passes with the debt file smaller than it is today (entries deleted, none raised) |
+## Split 1: the console's report half (2026-10-31)
+
+`Runtime.Session.Commands.CommandConsoleService` was not in the queue above when the queue was measured; it grew past 600 with the console contract's four stages (the relay,
+the line sink, the cheat family's gate and its refusals) and stood at 684 with a debt entry. The extraction its entry named was the reporting family, and that is what moved:
+**`ConsoleReportWriter`** owns the ten subscriptions (cut, restore, live write, starting supplies, the write verb's late refusal, the give/summon/heal/gamerule answers, the
+applied reset) and the lines they print, including the parts-to-lines rule for a host answer. The console keeps the editor, the panel and the dispatch, and is now **556 lines**.
+
+Behaviour is unchanged: the writer prints through the same `IConsoleLineSink` the console already implemented, and the suites pass unchanged. Two gates had to follow the moved code,
+which is the point of them: the sync-coverage evidence entries that quoted the old subscriptions now quote the writer's, and the sweep's file count for the `Commands` folder went
+from 77 to 78. The debt entry is DELETED rather than re-recorded (the class is under the line), so the file is smaller than it was.

@@ -6,7 +6,6 @@ using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
@@ -44,6 +43,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly ConsoleCommandRelay _consoleRelay;
+	private readonly ConsoleReportWriter _reports;
 	private readonly CheatPermissions _cheatRoster;
 	private readonly CheatVerbGate _cheatVerbs;
 	private readonly IHostRules _hostRuleValues;
@@ -96,6 +96,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_session = session;
 		// The member↔host seam: this side answers what it can run and prints what comes back; the mod domain owns the frames.
 		_consoleRelay = new ConsoleCommandRelay(relayHub, commandRegistry, this, RefuseCheatFor, log);
+		_reports = new ConsoleReportWriter(this);
 		relayHub.RunOnHost = _consoleRelay.AnswerOnHost;
 		relayHub.Arrived = (_, outcome) => _consoleRelay.Print(outcome);
 		_playerInteraction = playerInteraction;
@@ -121,29 +122,25 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		// click's own account, and the live-world half of a restore. All three are
 		// subscribable state, so the console renders them where the player is already
 		// reading — no polling and no second output buffer.
-		_saves.CutReported += OnCutReported;
-		_saves.RestoreReported += OnRestoreReported;
-		_restoreAudit.Reported += OnRestoreLiveWrite;
+		_reports.Attach(_saves, _restoreAudit, _startingSupplies, _itemStateSettlement, _playerInteraction, _worldSummon, _healReset, _hostRuleChanges);
 		// ...and for the one answer S4.3 added to the same story: what a player entering
 		// a world the world has no character for was handed (decision 179's rule — one
 		// notification, the account behind it).
-		_startingSupplies.Reported += OnStartingSuppliesReported;
+
 		// ...and the write verb's own answer, which cannot be the command's return
 		// value: the host judges a member's console write after the fact, so the
 		// verdict reaches the operator here, where they typed the command.
-		_itemStateSettlement.Refused += OnItemDataWriteRefused;
+
 		// ...and the answer to a member's /give, which the host authors: without this
 		// subscription a granted give would print nothing on the member's screen and a
 		// refused one would look like a line that did nothing.
-		_playerInteraction.GiveAnswered += OnGiveAnswered;
-		_worldSummon.Answered += OnSummonAnswered; // the same answer shape for the world verb
-												   // ...and the two answers the heal cheat verb prints where the player reads: the host's own
-												   // sentence to a member's request, and the notice of a reset the host applied to THIS client's
-												   // body (a member's reset arrives as an instruction, never as its own command's return).
-		_healReset.Answered += OnHealResetAnswered;
-		_healReset.Applied += OnHealResetApplied;
+
+		// ...and the two answers the heal cheat verb prints where the player reads: the host's own
+		// sentence to a member's request, and the notice of a reset the host applied to THIS client's
+		// body (a member's reset arrives as an instruction, never as its own command's return).
+
 		// ...and the host's answer to a member's /gamerule, whose config write is the host's (never this client's).
-		_hostRuleChanges.Answered += OnGameRuleAnswered;
+
 		_commands.AddBuiltIns(this);
 		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session));
 		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
@@ -221,147 +218,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	{
 		_chat.MessageReceived -= OnChatLine;
 		_session.SessionEnded -= ResetSessionState;
-		_saves.CutReported -= OnCutReported;
-		_saves.RestoreReported -= OnRestoreReported;
-		_restoreAudit.Reported -= OnRestoreLiveWrite;
-		_startingSupplies.Reported -= OnStartingSuppliesReported;
-		_itemStateSettlement.Refused -= OnItemDataWriteRefused;
-		_playerInteraction.GiveAnswered -= OnGiveAnswered;
-		_worldSummon.Answered -= OnSummonAnswered;
-		_healReset.Answered -= OnHealResetAnswered;
-		_healReset.Applied -= OnHealResetApplied;
-		_hostRuleChanges.Answered -= OnGameRuleAnswered;
+		_reports.Detach();
 	}
 
 	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
-	private void OnCutReported(WorldCutReport report)
-	{
-		if (report.PlayerInitiated)
-		{
-			AddLine(report.Describe(), report.Captured ? ConsoleLineKind.Success : ConsoleLineKind.Error);
-		}
-	}
-
-	/// <summary>
-	/// The Continue click's account (§6: no silent loss). The DISPOSITION becomes the
-	/// one notification the player is interrupted by, and the account itself — the
-	/// one-line summary with its per-domain counts, then one line per skipped content
-	/// id, refused claimant, unbindable native field and backup fallback — goes into
-	/// the history behind it, where it can be read without pushing the player's other
-	/// notices out of the closed console's newest-few window.
-	/// </summary>
-	private void OnRestoreReported(WorldRestoreReport report)
-	{
-		var headline = report.Result switch
-		{
-			WorldRestoreReport.Disposition.Refused => $"CUO continue refused: {report.Summary}",
-			WorldRestoreReport.Disposition.Abandoned => $"CUO continue abandoned: {report.Summary}",
-			_ when report.Clean => $"CUO restored world {report.WorldId}: nothing was lost.",
-			_ => $"CUO restored world {report.WorldId} with {report.Details.Count} damaged item(s); the console history names them.",
-		};
-		AddLine(headline, report.Clean ? ConsoleLineKind.Success : ConsoleLineKind.Error);
-
-		// The refusal and abandonment headlines ARE the account's one line; the applied
-		// ones are a short form of it, so only those add the summary to the history.
-		if (report.Result == WorldRestoreReport.Disposition.Applied)
-		{
-			AddHistoryLine(report.Summary);
-		}
-
-		foreach (var detail in report.Details)
-		{
-			AddHistoryLine(detail);
-		}
-	}
-
-	/// <summary>The live-world half of a restore: the world-entry seam wrote — or could not write — the restored facts.</summary>
-	private void OnRestoreLiveWrite(WorldRestoreLiveWriteReport report) =>
-		AddLine($"CUO restore of world {report.WorldId}: {report.Summary}", report.Complete ? ConsoleLineKind.Success : ConsoleLineKind.Error);
-
-	/// <summary>
-	/// The host refused a console item-data write this client had already typed. The
-	/// answer arrives after the verb's own line — the write is applied locally and
-	/// reported, so the verdict is a round trip behind it — and it belongs in the
-	/// console because that is where the operator is reading: the value they wrote is
-	/// no longer there, and this is the only line that says so. Always an error line:
-	/// the write did not land, whichever ground the host refused it on.
-	/// </summary>
-	private void OnItemDataWriteRefused(ItemDataWriteRefusal refusal) =>
-		AddLine(refusal.Describe(), ConsoleLineKind.Error);
-
-	/// <summary>
-	/// The host's answer to this member's <c>/give</c>: the item it created, where it
-	/// landed and the state it was given — printed where the operator typed the verb, in
-	/// the member's own language through the answer's parts. One line per part, and the
-	/// kind follows the verdict.
-	/// </summary>
-	private void OnGiveAnswered(PlayerInventoryGiveResultMsg msg) =>
-		AddAnswerParts(msg.Parts, msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
-
-	/// <summary>The host's answer to this member's <c>/summon</c> — the created object and its point, or the refusal; the kind follows the verdict.</summary>
-	private void OnSummonAnswered(WorldSummonResultMsg msg) =>
-		AddAnswerParts(msg.Parts, msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
-
-	/// <summary>The host's answer to this member's <c>/heal</c> — what was reset, revived or restored, or the refusal that answered it.</summary>
-	private void OnHealResetAnswered(HealResetResultMsg msg) =>
-		AddAnswerParts(msg.Parts, msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
-
-	/// <summary>
-	/// A host answer that carries catalogue PARTS: each part is one line, rendered by THIS client's catalogue, so the member
-	/// reads the answer in the member's language (the answer half of the localization rule). An answer with no parts — a shape
-	/// the producing side has not converted yet — falls back to the text the host sent, which is why the text field stays.
-	/// </summary>
-	private void AddAnswerParts(IReadOnlyList<ConsoleAnswerPartMsg>? parts, string fallback, ConsoleLineKind kind)
-	{
-		if (parts is not { Count: > 0 })
-		{
-			AddLine(fallback, kind);
-			return;
-		}
-
-		foreach (var part in parts)
-		{
-			AddKeyedLine(part.Key, fallback, kind, [.. part.Args]);
-		}
-	}
-
-	/// <summary>The host's answer to this member's /gamerule — the value the host's entry holds, printed where the verb was typed.</summary>
-	private void OnGameRuleAnswered(HostRuleChangeResultMsg msg) =>
-		AddAnswerParts(msg.Parts, msg.Answer, msg.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
-
-	/// <summary>
-	/// The host reset THIS client's body. A member's reset is never its own command's return — the
-	/// host instructs, this client applies — so this notice is the only line on the player's own
-	/// screen that says what happened to it; an incomplete reset is announced as an error.
-	/// </summary>
-	private void OnHealResetApplied(HealResetNotice notice) =>
-		AddLine(notice.Text, notice.Outcome.Applied ? ConsoleLineKind.Success : ConsoleLineKind.Error);
-
-	/// <summary>
-	/// The starting-supplies grant of a player this world had no character for (S4.3):
-	/// ONE line, the same words the log carries, so the player's screen and the log can
-	/// be compared without translating. The three dispositions are one event each and the
-	/// account is one line long by construction, so nothing goes into the history behind
-	/// it — a granted report names its items in that same line, and an empty grant
-	/// (disabled, or already owned through the game's own first-layer grant) has nothing
-	/// behind it to read.
-	///
-	/// An incomplete grant is the one failure shape: the line says so (it names what
-	/// stayed on the ground), and it is announced as an error rather than a success —
-	/// a player who cannot find a given item must not have to read the sentence twice
-	/// to learn it was never placed.
-	/// </summary>
-	private void OnStartingSuppliesReported(StartingSupplyGrantReport report) =>
-		AddKeyedLine(
-			report.LineKey(),
-			report.Describe(),
-			report.Outcome == StartingSupplyGrantReport.Disposition.Granted && report.Complete
-				? ConsoleLineKind.Success
-				: report.Outcome == StartingSupplyGrantReport.Disposition.Granted
-					? ConsoleLineKind.Error
-					: ConsoleLineKind.Info,
-			[.. report.LineArgs.Select(arg => arg?.ToString() ?? string.Empty)]);
-
 	private bool ExecuteCommand(string commandLine)
 	{
 		var tokens = Split(commandLine);

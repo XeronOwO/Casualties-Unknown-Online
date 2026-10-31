@@ -123,3 +123,9 @@ satisfied) — a capability question, not a defect in the replay path, which the
 `entity-attack mode=place` put the host's body beside the nearest live `BuildingEntity` (body at `(44.59064, 474.4713)`, entity at `(44.59064, 476.9713)`, distance 28.3), and the very next reading shows the wall the remaining row runs into: `screen-point2` projects that entity to **(1375, 191)** — outside the 1280-wide screen, so a real click cannot be aimed at it.
 
 The instrument for the swing already exists and the recipe's own contract says why it must be a real click (`Body.Attack(AttackInfo)` takes a struct a probe would fabricate, and a fabricated swing is not the hit the red-flash patch hooks). So the next step is the camera: after `place`, the body must face the entity for the projection to land on screen — a short camera-wait or a yaw at the entity — and only then does the click, the guest's frame, and the red flash become readable in one pass.
+
+## The staged pointer does not turn the camera (2026-11-01)
+
+Aiming the staged pointer at `(640, 560)` and waiting a second left the same entity projected at `(1359, 217)` — still off screen. So the acceptance channel's pointer stages the POSITION the game reads (`Input.mousePosition`) but not the camera look, which the game drives from the real pointer's movement. A batch that needs the camera to face something has to move the REAL pointer (`send-input -Action move`, sanctioned per batch) or read a camera control the channel does not have yet.
+
+Neither is a product question; both are named here so the next pass picks one deliberately. The row itself is unaffected: what it needs is the host's swing and the guest's frame, and the swing remains a real click by the recipe's own contract.

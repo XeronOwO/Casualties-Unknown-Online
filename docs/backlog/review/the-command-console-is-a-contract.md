@@ -410,3 +410,19 @@ guest typed `/heal @s` and was answered `refused locally: the host's announced c
 while the host's log shows no `/heal` invocation in that window — only the network-health lines for that peer. Both
 halves hold: the refusal is local and localized, and nothing reached the host.
 
+## The completion rows, judged on frames (2026-11-01, 07:10)
+
+`console-ui` opens the console the player sees, types a line into it, and reports the list the overlay draws; a
+`capture-frame` then shows it. Both reads, in that order:
+
+- **`/exam`** — the client's list holds exactly three entries (`exampleecho|examplehost|exampleweight`), and the frame
+  shows the three buttons under the field with `exampleecho` and `examplehost` legible and the third one partly behind
+  the hint line.
+- **`/gamerule a`** — the list holds exactly three (`auto_continue|allow_late_join|allow_member_cheat_verbs`), and the
+  frame draws each with its current value (`auto_continue` reads false, the other two read true; the values are drawn beside each name).
+
+So the first row (a mod's `OneOf` line offers exactly its words), the second (the completer sees the first argument and
+offers only the second parameter's allowed words) and the third (a built-in that used a `CommandArgumentKind` offers its
+list) all read from the overlay itself, not from a probe.
+
+

@@ -209,3 +209,12 @@ That is the ticket's own kind of outcome ("the sound stays silent, because ...")
 than inferred.
 
 Row 6's plush-toy half needs a plush item id this machine's catalog does not hand the batch; row 3's fixture gap is recorded above.
+
+## Row 1's local-treatment fixture, read as far as the batch can take it (2026-11-01, 07:55)
+
+Row 1 is "a player treats a limb (syringe / splint / goo / bandage) -> every other client hears the exact clip". The remote half of that family is read (row 2, the peer really plays `bandage`); the LOCAL half needs a player treating its own limb, and the batch tried both ways an agent can reach it:
+
+- **Through the inventory use path.** With a bandage in slot 0 and the local wound panel open (`open-own-wound` answering `open=True`), `item-use type=bandage aim-x=640 aim-y=395` answered `usable=False, aimed=True` both on a healthy body and after the same body was wounded to `skinHealth=70.96`; a second attempt aimed from `screen-point2` of the body's own position answered the same. So the aim the recipe takes is not the wound panel's limb target — `usable` stays false because nothing in that panel is selected by a screen point.
+- **Through a second player's chart.** No: that is the remote path, which is row 2 and already read.
+
+So row 1 waits on the game's own limb selection inside the wound panel — a click on the panel's limb — which is the OS channel, not an in-process recipe. The row is parked on that (one real click with the panel open), and the peer-side instrument for it is already built and proven (`audio-recent`).

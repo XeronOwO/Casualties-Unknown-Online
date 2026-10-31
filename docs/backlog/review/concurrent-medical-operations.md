@@ -149,3 +149,19 @@ landed": the operation id names the OPERATION, so it cannot key the unit.
 - Rewriting the medical minigames or their UI (native reuse stays the rule).
 - Cross-victim scheduling or a work queue.
 - Anti-cheat (a client that lies about its own progress is out of scope).
+
+## Row 7's setup, read as far as the batch can take it (2026-11-01, 07:50)
+
+Row 7 ("native UI with a second operator — no stuck panel, no duplicated progress on one body") is the one row the suite does not
+pin, and the fixture it needs is a SECOND operator holding a treatment item. This batch tried to build that fixture twice and both
+paths are closed to an agent:
+
+- **The second client cannot equip itself.** The alt ran `/give @s splint` and was refused in its own language — the host's cheat
+  roster does not include a member, which is the product's own rule, not a batch problem.
+- **A world pickup did not equip it either.** The host spawned a splint as a world item (`item-drop type=splint` answering
+  `ok=true, at=(0, 495.615)`), the alt was teleported onto that point, and its own inventory still read only
+  `trashbag/lantern/dogfood/waterbottle`.
+
+So a second operator gets a treatment item the same way a player does: from another player's hands (the give gesture) or from a
+container it can open — both of which are the drag path this run cannot drive. Row 7 therefore waits on the same one human motion
+as the drag family, and the panel/progress halves it asks about need that fixture before any reading means anything.

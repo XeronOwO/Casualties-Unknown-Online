@@ -1,8 +1,8 @@
-// recipe: bandage-ring-state
+// recipe: bandage-ring2-state
 // args: none
 // returns: ok, frames, moves, actions, running, kind, error, detail
 //
-// Reads the counters the `bandage-ring` declaration keeps: how many frames it ran, how many pointer moves it staged, how many of the
+// Reads the counters the `bandage-ring2` declaration keeps: how many frames it ran, how many pointer moves it staged, how many of the
 // game's own actions it saw, whether it is still running, and what it last saw (the minigame kind, or why it could not start).
 ((System.Func<string>)(() => {
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -10,10 +10,10 @@
 	var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 	System.Type ring = null;
 	for (var i = 0; i < assemblies.Length; i++) {
-		try { ring = assemblies[i].GetType("AcceptanceBandageRing", false); } catch { ring = null; }
+		try { ring = assemblies[i].GetType("AcceptanceBandageRing2", false); } catch { ring = null; }
 		if (ring != null) { break; }
 	}
-	if (ring == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare bandage-ring first\"}"; }
+	if (ring == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare bandage-ring2 first\"}"; }
 
 	var num = new System.Func<System.Type, string, int>((type, name) => {
 		var info = type.GetField(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);

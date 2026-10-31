@@ -1,5 +1,5 @@
-// eval declaration: bandage-ring
-// declares: AcceptanceBandageRing
+// eval declaration: bandage-ring2
+// declares: AcceptanceBandageRing2
 // serves: remote-medical-treatment-operations — the completing pass: eighteen wraps inside ONE operation, driven from the client
 //         itself so the cadence stops being a process round trip.
 //
@@ -16,7 +16,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
-public static class AcceptanceBandageRing
+public static class AcceptanceBandageRing2
 {
 	public static int Frames;
 	public static int Moves;
@@ -76,7 +76,8 @@ public static class AcceptanceBandageRing
 
 			// Lead the minigame's own angle by a few degrees: enough for `num2` to pass its 20-degree action step after a couple of
 			// frames, small enough that `num` stays under 20 (the guard that discards a bigger jump).
-			var angle = current.bandageAngle + 7f;
+			// Two degrees per frame: the game runs its physics update at a lower rate than the frame rate, so several frames pass between its angle reads; a bigger lead accumulates past the 20-degree guard and is discarded (measured 2026-11-01: 7 degrees per frame produced zero actions in 165 frames).
+			var angle = current.bandageAngle + 2f;
 			var radians = angle * 0.017453292f;
 			move.Invoke(null, new object[] { 640f + 150f * Mathf.Sin(radians), 360f + 150f * Mathf.Cos(radians) });
 			Moves++;

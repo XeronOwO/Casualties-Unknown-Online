@@ -117,3 +117,13 @@ A fresh session with the guest wounded on limb 3 (`skinHealth=73.6`):
 - **medical suture** — the release found nothing (`limbLookingAt` empty): the host's slots were full by then and the item had gone into its carried container, the fixture rule this project already carries ("one treatment per fresh launch").
 
 So the column's component-visible families stay the four already tabled (bandage, splint, tourniquet, icepack); the cream, the disinfectant and the other field-only treatments need their own before/after field readings, one per fresh session, and `limb-read` needs the fields those rows ask about (pain and disinfection are the two this pass could not read).
+
+## The slot technique applied to the limb-tool actions (2026-11-01, 09:20)
+
+With the batch-side way to free a slot (consume a carried item: `item-use type=dogfood` / `type=waterbottle` answering `usable=True`), the same release path was re-run on a fresh run, one action per freed slot:
+
+- **splint** -> `limbLookingAt=2`, the patient's own client carries **`SplintLimb`** (an independent second reading of the family);
+- **tourniquet** -> `limbLookingAt=3`, **`TourniquetScript`** (second reading);
+- **medical suture** -> `limbLookingAt=4` on a freshly wounded limb (`skinHealth=35.32`), and the patient's `skinHealth` moved to 37.816 with no component: the suture's outcome is a wound state this recipe does not project, so the row needs a field reading (the wound's sutured/closed flag) rather than a component check.
+
+So the column reads four component-visible families (bandage, splint, tourniquet, icepack) and the field-only ones (suture, pain cream, disinfectant, the drain) are each one `limb-read` field away — the fields, not the fixtures, are what those rows still need.

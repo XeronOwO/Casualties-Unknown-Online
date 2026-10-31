@@ -57,6 +57,7 @@ hover preview (row 8 of the completion ticket, which finally drew once the toolt
 | `use-on-sleeping-target-refused.md` | rows 1-2 read the eating family; row 3's treatment families reach the patient through the wound view |
 | `sync-player-pain-vocalizations-and-bark.md` | rows 1-3 need a lockable entity and a jammed lockpick driven through the game's own interaction |
 | `guest-remote-pose-head-orientation-desync.md` | the clone's type is named; the facing pair needs one aim-drive read |
+| `a-limb-component-applied-outside-a-world-throws-every-frame.md` | the codec guard landed (inert until the view exists) and rows 1/3 read clean on the fixed build; row 2 owes the bleeding/icon reading and row 4 one reading per component kind |
 | `console-enter-on-empty-does-not-close.md` | rows 1, 2 and 4 are judged; row 3's key toggle is an IMGUI event the virtual keyboard cannot stage (measured: `keyQueries=0`) |
 | `give-degrades-to-a-ground-drop-and-rearranging-retires-it.md` | rows 1, 3 and 4 pass; row 2's target-screen line needs a real refusal on the receiving side |
 | `launcher-fails-when-the-alt-box-cannot-start.md` | rows 1-4 judged except the reboot path, which needs a machine restart |

@@ -1,6 +1,6 @@
 # A limb component applied while no wound view exists throws every frame
 
-- Status: Todo
+- Status: Review
 - Priority: Critical
 - Category: Medical / limb state (cross-player application and load)
 - Source: the 2026-11-01 acceptance batch, while trying to build a wounded-patient fixture for the medical rows.
@@ -53,13 +53,19 @@ survives a character save and is rebuilt on a later load.
 
 | Row | The check | State |
 |---|---|---|
-| 1 | A tourniquet applied to a member whose client has no world loaded produces no per-frame exception, and the client reaches its world entry — read from the target's own log for a full minute | unjudged |
-| 2 | A tourniquet applied inside a running world still blocks bleeding on the affected limbs and shows its icon in the wound view — the native behaviour, unchanged | unjudged |
-| 3 | A character saved while carrying a tourniquet, then loaded, runs without the storm | unjudged |
-| 4 | The rule covers every limb component the codec can apply (the splint family included), proven by the same reading for each kind | unjudged |
+| 1 | A tourniquet applied to a member whose client has no world loaded produces no per-frame exception, and the client reaches its world entry — read from the target's own log for a full minute | **PASS 2026-11-01** on the fixed build: the apply now creates the component INERT when `WoundView.view` is absent, and the client's log held ZERO `TourniquetScript.Update` stacks after the batch that used to produce them |
+| 2 | A tourniquet applied inside a running world still blocks bleeding on the affected limbs and shows its icon in the wound view — the native behaviour, unchanged | **half read**: the in-world apply answered `componentsAfter=TourniquetScript` and produced no exception, so the component runs; the bleeding/icon reading is owed (the acceptance recipe reports the component, not `blockedBleeding`) |
+| 3 | A character saved while carrying a tourniquet, then loaded, runs without the storm | **PASS 2026-11-01**: the guest took a tourniquet in-world (its log stayed clean), left the world so the character saved with it, and a fresh client loaded that character — ZERO storm lines after the reload |
+| 4 | The rule covers every limb component the codec can apply (the splint family included), proven by the same reading for each kind | **by construction**: one decision (`var inert = display \|\| WoundView.view == null`) governs all three kinds in `LimbComponentStateCodec`, so a kind cannot be left out; a live reading per kind is owed with row 2 |
 
 ## Limits
 
 - The batch's own fixture is what produced the state; the ticket is not about the fixture being wrong but about a client being
   allowed to reach a state where a game component throws every frame. The fixture was cleaned up with
   `limb-component-apply mode=drop`, and the client was stopped to end the storm.
+
+## The fix (2026-11-01) and what is still owed
+
+LimbComponentStateCodec now decides ONE thing before touching a limb: whether the view the game's components bind to exists (WoundView.view != null). When it does not, the component is created inert — the same state/behaviour split the display half already kept, keyed on the view instead of on who owns the body — and the first apply that HAS a view enables it, which is exactly when Unity runs the game's own Start and the icon can register. Verified on the deployed build: an in-world apply (componentsAfter=TourniquetScript) produced no exception, the saved character reloaded with no exception storm, and the case that produced 28,901 stacks is gone.
+
+Still owed: the bleeding/icon reading for row 2 (the acceptance recipe reports the component, not the game's lockedBleeding), and one live reading per component kind for row 4.

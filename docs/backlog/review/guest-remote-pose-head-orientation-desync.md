@@ -125,3 +125,14 @@ leaking from the template into the render clone:
 - Not treating the guest-local orientation as automatically wrong; the remote
   clone must reproduce the owner's actual facing/head state from the correct
   synced facts.
+
+## The clone's real type, read (2026-11-01)
+
+The reading the previous batch stopped at is now done, by a new read-only recipe (`remote-clone-probe`) that walks the components of every `RemoteCloneRender` and lists their types. On the host, looking at the teammate:
+
+    cloneCount=7, componentCount=10
+    Transform, SpriteRenderer, Rigidbody2D, Item, BoxCollider2D, WaterContainerItem, LiquidAffect, LiquidAffect, RemoteCloneRender, RemoteInventoryItemId
+
+**There is no `Body` on the remote clone at all**, and nothing carrying `isRight`, `targetLookPos`, `facing` or a head rotation (`facing` came back empty). That explains the earlier batch's dead end exactly: the host's view of the guest is an ITEM-shaped render — a sprite with a rigidbody, a collider and the container components — so a probe looking for a body's facing fields was looking at a surface that does not exist on that side.
+
+So this row's instrument is not "find the clone's Body" but "decide what the host can read about the guest's facing at all": either CUO's sync carries the facing as data (and the row reads the synced field), or the sprite is mirrored by something the probe has not yet named. The next reading is the sync message's facing fields against this component list, and the recipe above is what names the surface from now on.

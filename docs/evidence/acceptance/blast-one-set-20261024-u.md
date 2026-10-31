@@ -1,6 +1,6 @@
 # Batch 20261024-u — the count row is read: ONE set of a turret's drops, identical on both clients
 
-- Ticket: `docs/backlog/todo/host-blast-rolls-a-second-drop-set.md`
+- Ticket: `docs/backlog/review/host-blast-rolls-a-second-drop-set.md`
 - Artifact: `0.1.0+19aeb2f5`, deployed and verified against `<game-dir>` before the run
 - Session: host + one member, one launch. Two descents reached a layer whose census lists the same
   `TurretSelfDestructed` carriers on both clients.

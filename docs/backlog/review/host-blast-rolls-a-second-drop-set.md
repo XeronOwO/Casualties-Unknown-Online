@@ -1,6 +1,6 @@
 # The host rolls a second drop set for a death a member already rolled
 
-- Status: Todo — **blocked on a staging capability** (this ticket stays here, not in review: one acceptance row has never been
+- Status: Review — **was blocked on a staging capability** (this ticket stays here, not in review: one acceptance row has never been
   read). Opened 2026-10-18 by the audit inside the entity-event drop bound (the
   `NetMsg.EntityEvent` row of `docs/backlog/done/member-report-bounds.md`). All three slices are landed and deployed, and the
   mechanism is read on the machine (`docs/evidence/acceptance/blast-marked-victims-20261024-r.md`: a member-pressed mine's
@@ -12,13 +12,18 @@
   i.e. a world-generation one; reaching such a layer needs either a descent the driver has no action for, or a placement at
   generation time. That is the capability to add before the row can be read.
 - Priority: Medium
-- Category: Sync / item ownership
-- Source: the bounds cycle's family audit — the same audit that gave a member's reported event drops a bound
+- Category: Sync / item ownership- Source: the bounds cycle's family audit — the same audit that gave a member's reported event drops a bound
   found that the host's OWN application of the event still rolls a set for the same death.
 - Related: `docs/backlog/done/member-report-bounds.md` (the bound that admits the member's report),
   `docs/evidence/sync-coverage-matrix.md` (row E2), `docs/architecture/member-report-validation.md`
   (`NetMsg.EntityEvent`), `done/trap-destruction-drop-quantity-desync.md` (the support-loss carrier's
   "one death, one roll" rule), `done/validation-and-source-checks.md` (S2b)
+
+## Design
+
+Read `docs/design/model/item-custody.md` (the one-authority rule this row is an instance of: a death has exactly one roller, and the side that set the cause off owns it) and
+`docs/design/model/session-lifecycle.md` (what a member's report may carry on behalf of a world fact) before touching the drop path; the admission side of the same rule is
+`docs/architecture/member-report-validation.md`.
 
 ## The defect
 
@@ -347,3 +352,26 @@ the opaque "exception thrown by the target of an invocation" the first attempt r
 
 So the capability is ready and the row's batch is the NEXT step: a fresh session, a descent to a layer both clients share, a carrier the blast kills on the MEMBER's side, and
 then the count read on both clients. Nothing about the mechanism is missing any more; what is owed is the run.
+
+## The chain row PASSES (2026-10-31, build `8d435967`, deployed and verified)
+
+Fresh session, three clients, all in world. Two descents (`layer-descend twice=0`, the game's own `WorldGeneration.RegenerateWorld`) brought both clients to a layer they
+agree on: **5521 buildings and the same 8 `TurretSelfDestructed` carriers at the same positions** (census read on both sides, identical). World items before: **323 on each**.
+
+The member then ran the game's own explosion at a carrier's position three times (`blast-at x=-191 y=299`; the turret's own census entry disappeared from the member's layer
+afterwards). What each side did with the death:
+
+| reading | value |
+|---|---|
+| member's own roll | `[ItemSpawned] local browncap (22377858709)`, `scrapmetal (26672826005)`, `scrapmetal (30967793301)`, `scrapmetal (35262760597)`, `circuitboard (39557727893)` — all at the turret's position |
+| host applied them | `[ItemSpawn] materializing …` for **those same five ids**, and each one `[ItemTrace] origin=OnItemInstantiated result=Skipped events=[AlreadySynced]` |
+| host's own roll | **none** — no `[ItemSpawned] local …` line for that death |
+| both worlds after | **328 items on each**, same count, same ids |
+
+So **row 2 passes**: the blast killed a carrier both clients shared, the death rolled exactly one set on the side that set it off, and the host materialised that set instead of
+rolling its own. With rows 1 and 3 already judged in batch 20261024-u (`docs/evidence/acceptance/blast-one-set-20261024-u.md`), the ticket's acceptance is complete: the ticket
+moves to `review/`.
+
+**What made it possible, recorded so the next chain-shaped row does not start from zero**: `blast-at` reaches `WorldGeneration.CreateExplosion` by reflection (naming
+`ExplosionParams` fails the evaluator's compile check), the explosion's defaults carry the structural damage (`structuralDamage = 500f`, `range = 12f`), and two descents were
+needed before a layer with carriers appeared.

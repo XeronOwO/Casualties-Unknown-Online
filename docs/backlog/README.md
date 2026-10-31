@@ -71,12 +71,13 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [The host rolls a second drop set for a member's death](todo/host-blast-rolls-a-second-drop-set.md) — **Medium** — slices landed; blocked on a shared carrier.
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
 ### In progress
 
 ### Review
+
+- [The host rolls a second drop set for a death a member already rolled](review/host-blast-rolls-a-second-drop-set.md) — **Medium** — one set, both clients.
 
 - [A disconnected member leaves his arrow on the HUD](review/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — arrow leaves with the peer.
 

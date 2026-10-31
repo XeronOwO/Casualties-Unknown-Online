@@ -87,7 +87,7 @@ death screen and may follow the party as a spectator.
 `../../architecture/surfaces.md` (cross-player use row and world overlays row), decisions 156 (ownership consistency and
 death preservation) and 161 (accept-first only for what the host can represent). Accepted:
 `done/entity-destruction-drop-guest-fresh-state-loss.md` for the boundary rule. Open:
-`../../backlog/todo/host-blast-rolls-a-second-drop-set.md`.
+`../../backlog/review/host-blast-rolls-a-second-drop-set.md`.
 
 ## Gaps
 

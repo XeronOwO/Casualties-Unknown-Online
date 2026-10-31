@@ -1,6 +1,6 @@
 # Batch 20261024-t — a descent that reaches a carrier layer, and what the member's roll really looked like
 
-- Ticket: `docs/backlog/todo/host-blast-rolls-a-second-drop-set.md`
+- Ticket: `docs/backlog/review/host-blast-rolls-a-second-drop-set.md`
 - Artifact: `0.1.0+19aeb2f5`, deployed and verified against `<game-dir>` before the run
 - Session: host + one member, one launch, kept for the whole batch.
 

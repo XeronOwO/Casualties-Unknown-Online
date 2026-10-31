@@ -1,6 +1,6 @@
 # Batch 20261024-r — a member-pressed mine, applied by the host, with its victims marked
 
-- Ticket: `docs/backlog/todo/host-blast-rolls-a-second-drop-set.md`
+- Ticket: `docs/backlog/review/host-blast-rolls-a-second-drop-set.md`
 - Artifact: `0.1.0+62cabe42`, deployed and verified against `<game-dir>` before the run
 - Session: host + one member. The mine and a crate were staged by `trap-stage` (the game's own `landmine` and a named
   crate prefab), the mine was PRESSED by the member's client through `trap-trigger` (the field `MineScript.pressed`, i.e.

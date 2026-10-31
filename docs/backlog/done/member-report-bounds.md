@@ -625,7 +625,7 @@ described above:
   the set, never which entity dropped what. This row does NOT change who owns a death: the host's own
   application of a member's blast still kills its own copies of the blast's victims natively and rolls a
   second set for them — a separate ownership defect, found by this cycle's family audit and filed as
-  `todo/host-blast-rolls-a-second-drop-set.md` (the direct-blast mark was attempted and withdrawn because a
+  `review/host-blast-rolls-a-second-drop-set.md` (the direct-blast mark was attempted and withdrawn because a
   chain explosion runs outside the apply scope and the per-side random damage can make a death host-only).
   Evidence: `TrapDropBoundJudgeTests` (five cases; RED recorded three times by neutralizing the bound, the
   kind arm and the reason arm) — the capture and the caller's use of the returned list are Unity-typed and

@@ -128,6 +128,13 @@ internal static class LimbComponentStateCodec
 		}
 
 		var carried = new HashSet<string>(StringComparer.Ordinal);
+		// The game's own limb components bind to the WOUND VIEW in `Start` (the icon they register) and write that icon in `Update`.
+		// With no world loaded there is no view, so such a component throws on its first frame and on every frame after it — measured
+		// on a live client: a tourniquet applied through the authoritative path while that client sat in the menu left 28,901 copies
+		// of `TourniquetScript.Update` NullReferenceException in one log. The rule is the display half's own, keyed on whether the view
+		// exists rather than on who owns the body: create the component INERT, and let the first apply that HAS a view enable it (Unity
+		// runs `Start` on that enable, so the icon registers exactly when it can).
+		var inert = display || WoundView.view == null;
 		foreach (var state in states)
 		{
 			carried.Add(state.TypeName);
@@ -140,17 +147,22 @@ internal static class LimbComponentStateCodec
 						splint = limb.gameObject.AddComponent<SplintLimb>();
 					}
 
-					if (display)
+					if (inert)
 					{
 						// Defence in depth on top of the parked hierarchy: a disabled behaviour receives no
 						// Start/Update/OnEnable while its fields stay readable and writable, so a display
-						// copy that were somehow activated still could not register the game's own icon.
-						// The load-bearing guard for a LIVE body is IsDisplayCopy above — that is the shape
-						// the storm came from — and this covers the parked copy underneath it.
+						// copy that were somehow activated still could not register the game's own icon — and a
+						// live body with no wound view gets the same treatment for the same reason.
 						// `tools/acceptance/recipes/limb-component-apply.cs` reproduces the pair on a live
 						// client: `mode=add-disabled` then `mode=status` reads the game's own Start unrun,
 						// and the same component left enabled reads it run.
 						splint.enabled = false;
+					}
+					else
+					{
+						// An instance created inert by an earlier apply runs the game's own `Start` on this
+						// enable, which is the moment its view exists — the icon registers then, or never.
+						splint.enabled = true;
 					}
 
 					RestoreFields(splint, state.Fields);
@@ -162,9 +174,13 @@ internal static class LimbComponentStateCodec
 						tourniquet = limb.gameObject.AddComponent<TourniquetScript>();
 					}
 
-					if (display)
+					if (inert)
 					{
 						tourniquet.enabled = false;
+					}
+					else
+					{
+						tourniquet.enabled = true;
 					}
 
 					RestoreFields(tourniquet, state.Fields);
@@ -176,9 +192,13 @@ internal static class LimbComponentStateCodec
 						chilled = limb.gameObject.AddComponent<ChilledLimb>();
 					}
 
-					if (display)
+					if (inert)
 					{
 						chilled.enabled = false;
+					}
+					else
+					{
+						chilled.enabled = true;
 					}
 
 					RestoreFields(chilled, state.Fields);

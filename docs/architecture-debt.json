@@ -70,11 +70,5 @@
     "BoolFlags": 0,
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The host-descent edge added the ILayerAdvancePatchPort member and the generation-launch notification on ResetGenStreamToBaseline — both forward to their domains. The give gesture's entry added AutoOpenRemoteBackpackForDrag, one forwarding member on the existing remote-inventory seam, plus its blank line; the cue's one-resolution fix widened UpdateDragUseCue with the frame's UI raycasts, which added its two using directives. The 2026-10-22 cue-wiring fix turned OnSceneLoadBegin from an expression body into a block that also clears the drag cue (the scene destruction the label must not outlive). The spectator entry added the ISpectatorPatchPort member and its one forwarding method (TryEnterFromDeathScreen -> the spectator domain), the same shape every other port forwarder here has, and the end-of-layer save added ISaveCutPatchPort with TakeWorldCutInsteadOfTheNativeSave (a port forwarder that arms the CUO cut and returns to the menu, so the native save is never written). The bridge is the aggregate's forwarding half; the planned split is the port forwarders into per-port adapter objects, the shape IModContentPatchBridge already uses."
-  },
-  "CasualtiesUnknownOnline.GameAdapter.OnlineUi.OnlineUiWorldOverlayView": {
-    "Lines": 609,
-    "BoolFlags": 0,
-    "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
-    "Note": "The overlay view grew past 600 with the spectator strip: its label construction, the shown flag and the ApplySpectatorStrip pass are the addition, because the watched player's vitals belong on the same overlay the readout and the markers already use. The split this owes is the label pool (the HUD pair, the strip and the marker labels) out of the view, leaving the projection and the per-frame apply rules here; recorded rather than split in this change because the strip's acceptance rows have to run against the view the rest of the overlay already reads."
   }
 }

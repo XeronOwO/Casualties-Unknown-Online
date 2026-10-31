@@ -110,7 +110,7 @@ internal sealed class OnlineUiWorldOverlayView
 	private readonly HashSet<string> _reportedMissingGlyphs = [];
 
 	/// <summary>Which one-shot reports have already been written: three separate bools pushed this type over the boolean-state gate, and a set of names says the same thing with one field.</summary>
-	private readonly HashSet<string> _reportedOnce = [];
+	private readonly ReportOnce _reports;
 
 	private bool _hudShown;
 	private bool _statusShown;
@@ -128,6 +128,7 @@ internal sealed class OnlineUiWorldOverlayView
 		TextMeshProUGUI spectatorStrip)
 	{
 		_log = log;
+		_reports = new ReportOnce(log);
 		_root = root;
 		_rect = rect;
 		_canvas = canvas;
@@ -312,50 +313,27 @@ internal sealed class OnlineUiWorldOverlayView
 
 	/// <summary>One line per surface, at Debug: the game has no main camera while a menu is up, which is the
 	/// ordinary state before a run loads, so this must be neither a warning nor a line per frame.</summary>
-	private void ReportMissingCamera()
-	{
-		if (!_reportedOnce.Add("missing-camera"))
-		{
-			return;
-		}
-
-		_log.LogDebug("Online UI world overlay: the game has no main camera yet — the markers wait for one.");
-	}
+	private void ReportMissingCamera() =>
+		_reports.Debug("missing-camera", "Online UI world overlay: the game has no main camera yet — the markers wait for one.");
 
 	/// <summary>
 	/// One warning per surface: the canvas refused a world point, so that marker is hidden rather than
 	/// placed. A warning, once, because this is the one branch that makes a marker vanish while the game
 	/// runs, and the likely reason (a canvas mode whose camera cannot see the point) is worth a line.
 	/// </summary>
-	private void ReportRefusedProjection()
-	{
-		if (!_reportedOnce.Add("refused-projection"))
-		{
-			return;
-		}
-
-		_log.LogWarning(
+	private void ReportRefusedProjection() =>
+		_reports.Warning(
+			"refused-projection",
 			"Online UI world overlay: CUO's canvas could not map a world point onto itself — that marker is hidden for this frame; check the canvas's render mode against the camera the game is using.");
-	}
 
 	/// <summary>
 	/// One warning per surface: a label is wider than the screen room there is for it, so the rule pinned it
-	/// to the canvas's centre and the text runs under both edges. A warning, once, because the state is a
-	/// window-size or name-length fact rather than a per-frame one, and because this is the ticket's own
-	/// "cannot fit at all" branch — without this line nothing in the product would ever report it.
+	/// to the canvas's centre and the text runs under both edges.
 	/// </summary>
-	private void ReportLabelPinned(float labelWidth, float canvasWidth)
-	{
-		if (!_reportedOnce.Add("pinned-label"))
-		{
-			return;
-		}
-
-		_log.LogWarning(
-			"Online UI world overlay: a marker label needs {LabelWidth:F0} units but the canvas is {CanvasWidth:F0} wide, so it is pinned to the centre and its text runs under both edges; the marker's own box stays inside the screen.",
-			labelWidth,
-			canvasWidth);
-	}
+	private void ReportLabelPinned(float labelWidth, float canvasWidth) =>
+		_reports.Warning(
+			"pinned-label",
+			$"Online UI world overlay: a marker label needs {labelWidth:F0} units but the canvas is {canvasWidth:F0} wide, so it is pinned to the centre and its text runs under both edges; the marker's own box stays inside the screen.");
 
 	/// <summary>
 	/// A world position as a point in the canvas, in the canvas's OWN units and in the top-left-origin

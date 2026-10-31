@@ -61,3 +61,12 @@ applied reset) and the lines they print, including the parts-to-lines rule for a
 Behaviour is unchanged: the writer prints through the same `IConsoleLineSink` the console already implemented, and the suites pass unchanged. Two gates had to follow the moved code,
 which is the point of them: the sync-coverage evidence entries that quoted the old subscriptions now quote the writer's, and the sweep's file count for the `Commands` folder went
 from 77 to 78. The debt entry is DELETED rather than re-recorded (the class is under the line), so the file is smaller than it was.
+## Split 2: the overlay view's report-once family (2026-10-31)
+
+`GameAdapter.OnlineUi.OnlineUiWorldOverlayView` was 609 lines with a debt entry that owed the LABEL POOL. The smallest honest extraction was a differentone the class
+actually had: three methods that each existed only to wrap a logger behind a per-surface key (the missing camera, the refused projection, the pinned label) plus the key set they
+shared. That family is `ReportOnce` now — a tiny type any overlay surface can hold — and the view is **587 lines**.
+
+The label pool the entry named stays available as a later split if the view grows again; `ReportOnce` was the extraction that cleared the line without touching a rendering rule,
+which is what the acceptance rows for the spectator strip depend on. The debt entry is DELETED (entries are 12 now, down from 14 at the start of this queue's work), and the folder
+count follows the new file.

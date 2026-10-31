@@ -157,3 +157,7 @@ With the patient asleep, the proven remote chart handled a bandage on a freshly 
 - the limb read **from the patient's own client** moved (`skinHealth` 63.04 → 63.841, bleeding 1.872) — the state the treatment applied is visible on their side.
 
 That is row 3 of this ticket, read end to end on the deployed artifact. Rows 1 and 2 keep their earlier partial passes (each family read once with the target asleep, and the operator-side line naming the actual state).
+
+## The splint family needs a free slot (2026-11-01)
+
+The same batch tried the LIMB-TOOL family on the same sleeping patient — the one treatment family left that does not need the drag: give a `splint`, open the chart, release it on limb 4. The give answered "packed into its carried container trashbag" (every slot was taken by the evening's earlier items), and the release then found nothing to drag (`limbLookingAt` empty). So the family is one free slot away, not one instrument away — the same rule the medical batch already learned, now confirmed for this ticket: **one treatment per fresh launch**. The next batch starts clean, re-naps the patient (the pills make `canTakeNap` hold, so a re-nap is one call), and reads the splint the way the bandage was read.

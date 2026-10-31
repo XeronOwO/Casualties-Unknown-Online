@@ -272,3 +272,9 @@ With the key held and the pointer stepped in **15°** increments around the ring
 — the game's own action had fired and the wrap sprite was full. And the patient's limb, which the fixture had wounded to `skinHealth=76.24, bleedAmount=2.731`, then read **`skinHealth=100, bleedAmount=0`**. A bandage released on a remote limb, played through the game's own minigame, treats the patient.
 
 The rows this ticket carries can now be judged on that evidence; what is left to write is the per-row verdict, not another instrument.
+
+## The flakiness has a cause, and it is fixed: a stale rejection cleared the live session (2026-11-01)
+
+`RemoteOtherMedicalOperationHandler.OnStartAckReceived` acted on whatever session happened to be active. The first release against a displayed limb is refused by the game for want of line of sight, and the batch retries — so a REJECTION for the first attempt can arrive after the retry's session is live, and the handler's `_active = null` then took the live session down: every wrap after that counted into `PendingWraps` and never left, and the host's operation timed out with `progress 0.000`. That is exactly the shape the batches saw — the same driver reporting `0.088` on one attempt and `0.000` on the next.
+
+The rejection branch now checks that the message names the session this client is actually running (target, item instance and kind) and logs a stale rejection as ignored instead of ending the live one. Committed, deployed and gated; **its live verification is owed** because the batch that followed found no bandage left in the operator's slots (`/give` had filled them and the earlier attempts consumed them), so no operation started at all. The next batch starts from a client with a free slot — or drops the container items first — and reads the operation's terminal line, which is the reading that decides this ticket's last row.

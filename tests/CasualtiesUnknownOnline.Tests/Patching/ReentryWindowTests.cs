@@ -166,4 +166,36 @@ public class ReentryWindowTests
 		Assert.Equal("Waiting", Step(window, nowMs: 10, inWorld: false, generating: false, entering: false, hostInWorld: true));
 		Assert.Equal("Ready", Step(window, nowMs: 11, inWorld: false, generating: false, entering: false, hostInWorld: true));
 	}
+
+	[Fact]
+	public void AMemberThatJoinsWhileTheHostIsInAWorld_ArmsTheSameBoundedAsk()
+	{
+		// The join entrance: no host exit ever happened, and the handshake's one-shot invite can be lost (the reproduction on the
+		// pre-run deadlock ticket). The exit-armed rule "already in the menu = not the host's to pull back" cannot apply to a
+		// member that never had a world, so the same window opens here and asks on the same cadence.
+		var window = New();
+		Assert.True(TryArmOnJoin(window, nowMs: 0, hostInWorld: true, memberInWorldOrEntering: false));
+		Assert.True(Armed(window));
+		Assert.Equal("Ready", Step(window, nowMs: 0, inWorld: false, generating: false, entering: false, hostInWorld: true));
+	}
+
+	[Fact]
+	public void AJoinWithNoHostWorldOrWhileAlreadyIn_DoesNotArm()
+	{
+		Assert.False(TryArmOnJoin(New(), nowMs: 0, hostInWorld: false, memberInWorldOrEntering: false));
+		Assert.False(TryArmOnJoin(New(), nowMs: 0, hostInWorld: true, memberInWorldOrEntering: true));
+	}
+
+	[Fact]
+	public void AnAlreadyArmedWindow_IsNotRefilledByAJoin()
+	{
+		// The budget belongs to the window, not to the entrance: a join cannot hand a member a second round of asks.
+		var window = New();
+		Assert.True(TryArm(window, nowMs: 0, memberInWorldOrEntering: true));
+		Assert.False(TryArmOnJoin(window, nowMs: 1_000, hostInWorld: true, memberInWorldOrEntering: false));
+		Assert.True(Armed(window));
+	}
+
+	private static bool TryArmOnJoin(object window, long nowMs, bool hostInWorld, bool memberInWorldOrEntering) =>
+		(bool)Window.GetMethod("TryArmOnJoin", Flags)!.Invoke(window, [nowMs, hostInWorld, memberInWorldOrEntering])!;
 }

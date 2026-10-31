@@ -52,6 +52,7 @@ internal sealed class ReentryCoordinator(
 	{
 		_reentry.ReentryRequested += OnReentryRequested;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
+		_session.SessionActivated += OnSessionActivated;
 		_session.SessionEnded += ResetSessionState;
 	}
 
@@ -59,6 +60,7 @@ internal sealed class ReentryCoordinator(
 	{
 		_reentry.ReentryRequested -= OnReentryRequested;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
+		_session.SessionActivated -= OnSessionActivated;
 		_session.SessionEnded -= ResetSessionState;
 		DropWindow("the session binding was unbound");
 	}
@@ -112,8 +114,16 @@ internal sealed class ReentryCoordinator(
 	/// </summary>
 	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
 	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive || steamId != _session.HostSteamId || inWorld)
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive || steamId != _session.HostSteamId)
 		{
+			return;
+		}
+
+		if (inWorld)
+		{
+			// The other order the two facts can arrive in: the member is in the session already and the host's world state comes
+			// after it. Same join-armed ask, because a member that just arrived has no host exit to arm on either way.
+			OnHostEnteredWorldWhileOut();
 			return;
 		}
 
@@ -134,6 +144,36 @@ internal sealed class ReentryCoordinator(
 
 		_log.LogInformation(
 			"[Reentry] the host left the world — this member follows it to the menu and will ask for its entry instruction again if the host's one-shot invite does not land.");
+	}
+
+	/// <summary>
+	/// Guest: this side just became part of a session, and the host may ALREADY be inside its world — the join the host's
+	/// one-shot invite can be lost on, with no host exit to arm the window on afterwards. The same bounded ask is armed here
+	/// (same cadence, budget and cooldown), and only when the host really is in a world and this member is not.
+	/// </summary>
+	private void OnSessionActivated() => ArmJoinWindow("this member joined a session whose host was already in a world");
+
+	/// <summary>
+	/// Guest: the host's scene state arrived as InWorld while this member is out of the world. A member that joins while the
+	/// host is playing learns the host's state through this edge rather than through the activation one, so the same join-armed
+	/// ask is opened here — the two entrances are the two orders the facts can arrive in.
+	/// </summary>
+	private void OnHostEnteredWorldWhileOut() => ArmJoinWindow("the host reported a world while this member is out of one");
+
+	private void ArmJoinWindow(string why)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive || !_session.IsRemoteInWorld(_session.HostSteamId))
+		{
+			return;
+		}
+
+		var memberInWorldOrEntering = _run.IsInWorld || _run.IsEnteringWorld || HarmonyTraverse.IsGenerating();
+		if (!_window.TryArmOnJoin(_time.NowMs, hostInWorld: true, memberInWorldOrEntering))
+		{
+			return;
+		}
+
+		_log.LogInformation("[Reentry] {Why} — armed the bounded ask for the entry instruction, so a lost one-shot invite cannot leave this member in the menu.", why);
 	}
 
 	/// <summary>

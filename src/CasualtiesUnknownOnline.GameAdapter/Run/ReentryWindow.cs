@@ -58,6 +58,28 @@ internal sealed class ReentryWindow
 			return false;
 		}
 
+		return Arm(nowMs);
+	}
+
+	/// <summary>
+	/// Arms on a JOIN. The member just became part of a session whose host is already in a world while this side is not — a
+	/// legitimate reason to be in the menu that the host cannot see, and the same place the one-shot invite can be lost. The
+	/// exit-armed window's contrary rule ("a member already in the menu is not the host's to pull back") does not apply to a
+	/// member that has just arrived: it never had a world to leave. An already-armed window keeps its budget, so a join cannot
+	/// refill one the exit spent.
+	/// </summary>
+	internal bool TryArmOnJoin(long nowMs, bool hostInWorld, bool memberInWorldOrEntering)
+	{
+		if (_armed || !hostInWorld || memberInWorldOrEntering)
+		{
+			return false;
+		}
+
+		return Arm(nowMs);
+	}
+
+	private bool Arm(long nowMs)
+	{
 		_armed = true;
 		_wasOut = false;
 		_armedMs = nowMs;

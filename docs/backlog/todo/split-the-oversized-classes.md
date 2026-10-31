@@ -173,5 +173,17 @@ The channel declares them now: `IWorldBlockReportControl` (block state W1, parti
 and its debt entry is gone. The call sites moved with it: four adapter files and four test files now read `world.BlockReports.X`, three sync-coverage entries follow their
 quotes, and the "half-open" seam is gone as well.
 
-**What is left in the queue**: `RunCoordinator` (832, this ticket), `GameAdapter` (712), `GameAdapterBridge` (649), `RemoteIntentApplier` (621), `CharacterDataSync` (620)
-and `ExampleMod` (608).
+**What is left in the queue**: `RunCoordinator` (832, this ticket), `GameAdapter` (712), `GameAdapterBridge` (649), `RemoteIntentApplier` (621) and `ExampleMod` (608).
+
+## Split 11: the character snapshot's wire half (2026-10-31)
+
+`GameAdapter.Character.CharacterDataSync` was 620 lines, twenty over the ceiling. The cut is the SEND side of a snapshot rather than the capture: whether it goes as a
+guest report or a host broadcast, whether it logs (only the 1 Hz report does, so a burst of inventory moves cannot flood the log), the missing-native-fields warning
+and the layer stamp every snapshot carries so a receiver in another layer refuses it.
+
+That is `CharacterReportSender` now: `Send(data, throttled, nativeFailure)` and `Stamp(data)`. The sync is **574 lines** and its debt entry is deleted (five left). The
+capture stays where the body is — the sender never reads a body, it only decides how one snapshot travels. Two sync-coverage quotes followed their call sites and the
+folder count follows the new file.
+
+**What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine), `GameAdapter` (712), `GameAdapterBridge` (649), `RemoteIntentApplier`
+(621) and `ExampleMod` (608).

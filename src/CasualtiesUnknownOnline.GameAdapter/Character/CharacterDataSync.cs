@@ -260,7 +260,7 @@ internal sealed class CharacterDataSync(
 		}
 
 		_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);
-		ReportCharacterData(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: true, nativeFailure);
+		Reports.Send(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: true, nativeFailure);
 	}
 
 
@@ -270,66 +270,14 @@ internal sealed class CharacterDataSync(
 		if (localBody != null && _session.SessionActive && !_restore.HasPending && !_restore.WipePending) // Unity object — ==
 		{
 			_log.LogInformation("[CloneRender] local body changed — immediate re-report.");
-			ReportCharacterData(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: false, nativeFailure);
+			Reports.Send(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: false, nativeFailure);
 		}
-	}
-
-	private void ReportCharacterData(CharacterDataMsg data, bool throttled, string? nativeFailure = null)
-	{
-		// The position in this snapshot belongs to the layer that captured it — stamp it so a
-		// receiver still in another layer refuses to apply it.
-		data.Generation = _world.CurrentGeneration;
-
-		if (_session.Role == SessionRole.Host)
-		{
-			// Host → guests: their clones of the host render its carried items.
-			if (throttled)
-			{
-				_log.LogDebug("[CloneRender] host broadcasting char data ({Count} items).", data.Items.Count);
-				LogMissingNativeFields(nativeFailure);
-			}
-
-			_characterData.BroadcastHostCharacterData(data);
-		}
-		else
-		{
-			if (throttled)
-			{
-				_log.LogDebug("[CloneRender] guest reporting char data ({Count} items).", data.Items.Count);
-				LogMissingNativeFields(nativeFailure);
-			}
-
-			_characterData.ReportCharacterData(data);
-		}
-	}
-
-	/// <summary>
-	/// The snapshot this report just built carries no native character fields: say
-	/// WHY, because the reason decides what the player loses — a missing camera or
-	/// wound window is a live-scene problem, while a body without its happiness
-	/// window is a data problem. Only the throttled (1 Hz) reports log it, so a
-	/// scene that cannot be read does not flood the log from every inventory move.
-	/// </summary>
-	private void LogMissingNativeFields(string? nativeFailure)
-	{
-		if (nativeFailure is not null)
-		{
-			_log.LogWarning("Character snapshot without native character fields ({Missing}); the snapshot still reconnects the character, but a restore of it keeps the game's defaults for those fields.",
-				nativeFailure);
-		}
-	}
-
-	/// <summary>Name the layer a snapshot's position belongs to — the capturing client's current world generation.</summary>
-	private CharacterDataMsg StampGeneration(CharacterDataMsg data)
-	{
-		data.Generation = _world.CurrentGeneration;
-		return data;
 	}
 
 	/// <summary>Capture the LOCAL body's character snapshot right now — the save system's cut needs the state at the instant the host leaves the world, not the last 1 Hz report.</summary>
 	internal CharacterDataMsg CaptureLocal(Body body)
 	{
-		var captured = StampGeneration(_favouriteMarks.Capture(body, out var nativeFailure));
+		var captured = Reports.Stamp(_favouriteMarks.Capture(body, out var nativeFailure));
 		if (nativeFailure is not null)
 		{
 			// The cut's own snapshot: this is the one a later continue restores, so its
@@ -381,7 +329,7 @@ internal sealed class CharacterDataSync(
 		}
 		else if (!_restore.HasPending)
 		{
-			_characterData.ReportCharacterData(StampGeneration(_favouriteMarks.Capture(prevBody, out _)));
+			Reports.Send(_favouriteMarks.Capture(prevBody, out _), throttled: false);
 		}
 
 		// The body left the world — the next body's restore position applies
@@ -617,4 +565,10 @@ internal sealed class CharacterDataSync(
 
 	/// <summary>The host-computed vitals row's apply target (its own logic lives in <see cref="LocalVitalsApplier"/>).</summary>
 	private readonly LocalVitalsApplier _vitals = new(session);
+
+	/// <summary>The wire half of a snapshot (report on a guest, broadcast on the host, stamped with the layer it belongs to). Built on first use: it needs the same world and session this sync holds.</summary>
+	private CharacterReportSender Reports =>
+		_reports ??= new(_session, _world, _characterData, _log);
+
+	private CharacterReportSender? _reports;
 }

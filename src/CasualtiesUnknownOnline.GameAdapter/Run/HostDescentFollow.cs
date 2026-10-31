@@ -84,4 +84,30 @@ internal sealed class HostDescentFollow
 
 	/// <summary>Guest: whether the settle rule applies yet (the generation has launched, so it has something to settle).</summary>
 	internal bool HasLaunched => _phase != DescentPhase.Accepted;
+
+	/// <summary>
+	/// Guest: the settle decision — has this member's own new layer finished generating, and if so does the follow end in playing or in waiting for the host's
+	/// release?
+	/// </summary>
+	/// <param name="generating">The game's generation flag.</param>
+	/// <param name="regenerating">The game's regeneration flag.</param>
+	/// <param name="liveWorld">A world object exists and is alive.</param>
+	/// <param name="startsPlaying">True when the host's release was already in hand, so the follow ends in playing instead of waiting on the loading screen.</param>
+	/// <returns>False while the follow is still waiting, or when it is not following at all; true when the caller must act on the outcome.</returns>
+	internal bool TryDecideSettle(bool generating, bool regenerating, bool liveWorld, out bool startsPlaying)
+	{
+		startsPlaying = false;
+		if (_phase is DescentPhase.None or DescentPhase.WaitingReady)
+		{
+			return false;
+		}
+
+		if (!LayerDescentPolicy.IsSettled(HasLaunched, generating, regenerating, liveWorld))
+		{
+			return false;
+		}
+
+		startsPlaying = _phase == DescentPhase.ReleasedEarly;
+		return true;
+	}
 }

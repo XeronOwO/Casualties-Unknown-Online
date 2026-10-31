@@ -102,6 +102,32 @@ public class HostDescentFollowTests
 	}
 
 	[Fact]
+	public void TheSettleDecision_AnswersOnlyWhenTheGenerationFinished()
+	{
+		var follow = new HostDescentFollow();
+		follow.Accept(0);
+		follow.Launched();
+
+		// Still generating: no decision yet, either flag.
+		Assert.False(follow.TryDecideSettle(generating: true, regenerating: false, liveWorld: true, out _));
+		Assert.False(follow.TryDecideSettle(generating: false, regenerating: true, liveWorld: true, out _));
+		Assert.False(follow.TryDecideSettle(generating: false, regenerating: false, liveWorld: false, out _));
+
+		// Settled with no release in hand: the caller waits for the host on the loading screen.
+		Assert.True(follow.TryDecideSettle(generating: false, regenerating: false, liveWorld: true, out var startsPlaying));
+		Assert.False(startsPlaying);
+
+		// A release that arrived while the generation was running ends in playing instead.
+		follow.ReleaseEarly();
+		Assert.True(follow.TryDecideSettle(generating: false, regenerating: false, liveWorld: true, out startsPlaying));
+		Assert.True(startsPlaying);
+
+		// A follow that is not following (or is already waiting) answers nothing.
+		follow.WaitForReady();
+		Assert.False(follow.TryDecideSettle(generating: false, regenerating: false, liveWorld: true, out _));
+	}
+
+	[Fact]
 	public void TheHostsPresentationWindow_OpensOnItsOwnDescentAndClosesWithTheGate()
 	{
 		var follow = new HostDescentFollow();

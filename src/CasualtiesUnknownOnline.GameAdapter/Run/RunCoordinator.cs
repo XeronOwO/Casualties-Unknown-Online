@@ -257,17 +257,12 @@ internal sealed class RunCoordinator(
 	/// </summary>
 	private void UpdateDescent()
 	{
-		if (!_descentFollow.IsActive || _descentFollow.Phase == DescentPhase.WaitingReady)
+		if (!_descentFollow.TryDecideSettle(HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating(), HarmonyTraverse.HasLiveWorld, out var startsPlaying))
 		{
 			return;
 		}
 
-		if (!LayerDescentPolicy.IsSettled(_descentFollow.HasLaunched, HarmonyTraverse.IsGenerating(), HarmonyTraverse.IsRegenerating(), HarmonyTraverse.HasLiveWorld))
-		{
-			return;
-		}
-
-		if (_descentFollow.Phase == DescentPhase.ReleasedEarly)
+		if (startsPlaying)
 		{
 			_descentFollow.End();
 			_phase = RunPhase.Playing;

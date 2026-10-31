@@ -252,7 +252,17 @@ the phase mapping onto the run, the menu-return origin rule) is still there and 
 a session — and it is: `HostDescentFollowTests` pins the transition table (launch without an edge changes nothing, an early release keeps the generation in flight,
 waiting is not aborted by the clocks), the abort ladder's order and its three reasons, and that ending the follow closes the host's window.
 
-**What is left in the queue**: `RunCoordinator` (784, this ticket — the descent's scene plumbing and the world-join family, both now unblocked by `RunPhase`).
+**What is left in the queue**: `RunCoordinator` (779, this ticket — the descent's scene plumbing and the world-join family, both now unblocked by `RunPhase`).
+
+## Split 18: the settle decision joins the state machine (2026-10-31)
+
+The descent's SETTLE question — has this member's own new layer finished generating, and does the follow then end in playing or in waiting for the host's release? —
+moved out of the coordinator's `UpdateDescent` into `HostDescentFollow.TryDecideSettle`, which answers against the already-pinned `LayerDescentPolicy`. The coordinator
+keeps the three flag reads and the two actions (end the follow and start playing, or wait for the ready). It is **779 lines** and its entry is re-recorded.
+
+The win is that the settle mapping is now TESTED: `HostDescentFollowTests` pins that a still-generating layer answers nothing, that a settled layer with no release in
+hand answers "wait", that an early release answers "play", and that a follow which is not following (or is already waiting) answers nothing at all. That branch used to
+have the live descent batches as its only witness.
 
 ## Split 17: the run phase becomes a type (2026-10-31)
 

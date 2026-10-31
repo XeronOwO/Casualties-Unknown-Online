@@ -90,7 +90,6 @@ The remote chart is proven end to end for a BANDAGE (release, native minigame, h
 | `nested-container-clone-proxy-leaks-as-world-item.md` | the shape (a container holding a container with contents) does not occur in a generated world: 269 items and 6 containers scanned, none nested-with-contents |
 | `runtime-entity-markerless-bind-absorption.md` | row 9 needs a world that CARRIES a runtime creation (`accepted=0, animals=0, pending=0` in two sessions) |
 | `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
-| `guest-background-ghost-item-ground-sounds.md` | measured to the end as an EAR question: the capture probes record what a client plays, but the judgement is the user's ear |
 
 ## The one fixture the medical stage tickets share (2026-11-01)
 

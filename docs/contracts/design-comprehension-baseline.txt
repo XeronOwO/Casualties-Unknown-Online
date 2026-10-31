@@ -10,7 +10,6 @@ docs/backlog/review/cross-player-drag-use-feedback.md
 docs/backlog/review/cross-player-drag-use-model-bounds.md
 docs/backlog/review/dead-player-right-click-name-suffix.md
 docs/backlog/review/enter-opener-keybind-capture.md
-docs/backlog/review/guest-background-ghost-item-ground-sounds.md
 docs/backlog/review/guest-remote-pose-head-orientation-desync.md
 docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md
 docs/backlog/review/layer-complete-choice-for-members.md

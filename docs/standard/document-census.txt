@@ -226,7 +226,7 @@ docs/backlog/done/enemy-generation-pairing-late-join.md | keep | index | docs/ba
 docs/backlog/done/enemy-hit-determination-local.md | keep | index | docs/backlog/README.md
 docs/backlog/done/entity-destruction-drop-guest-fresh-state-loss.md | keep | index | docs/backlog/README.md
 docs/backlog/done/pickup-early-return-kernel-relocation.md | keep | index | docs/backlog/README.md
-docs/backlog/review/guest-background-ghost-item-ground-sounds.md | keep | index | docs/backlog/README.md
+docs/backlog/done/guest-background-ghost-item-ground-sounds.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-break-drops-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-frame-rate-lower-than-host.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-remote-pose-head-orientation-desync.md | keep | index | docs/backlog/README.md
@@ -864,7 +864,7 @@ docs/evidence/selfchecks/items/dynamite-fuse-presentation-selfcheck.md | keep | 
 docs/evidence/selfchecks/items/enemy-item-hit-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/enemies/enemy-stun-presentation-selfcheck.md
 docs/evidence/selfchecks/items/entity-destruction-drop-fresh-presentation-selfcheck.md | keep | claim | docs/backlog/done/entity-destruction-drop-guest-fresh-state-loss.md
 docs/evidence/selfchecks/items/favourite-marks-local-and-saved-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/items/guest-background-ghost-item-ground-sounds-selfcheck.md | keep | claim | docs/backlog/review/guest-background-ghost-item-ground-sounds.md
+docs/evidence/selfchecks/items/guest-background-ghost-item-ground-sounds-selfcheck.md | keep | claim | docs/backlog/done/guest-background-ghost-item-ground-sounds.md
 docs/evidence/selfchecks/items/gun-state-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/heal-item-selection-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/items/heater-cook-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

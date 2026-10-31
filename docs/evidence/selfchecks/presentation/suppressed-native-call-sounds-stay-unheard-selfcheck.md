@@ -81,7 +81,7 @@
 | 7 | `ItemImpactMsg` / `ItemImpactKind` / `ItemImpactHandler` | the host-only event and its handler | `TheImpactEvent_IsAHostToGuestWorldEvent` + `ItemImpactPresentationTests` |
 | 8 | `WorldItemImpactSync` / `WorldItemImpactReplay` | report on the authority, replay the game's own presentation under `RemoteApply` | `TheImpactReplay_RunsUnderRemoteApplyAndUsesTheGamesOwnPresentation` + the presentation-table tests |
 | 9 | Wire bookkeeping | `NetMsg.ItemImpact = 141` + the vocabulary index row + matrix row I9 (18 anchors) + `ProtocolVersion.Current = 43` | `SyncCoverageGateTests` (vocabulary index, evidence quotes, verdict summary) + `ConsumeSoundCaptureGateTests.EveryProtocolBump_CarriesItsPerNumberLogEntry` |
-| 10 | The reversed non-goal | `review/guest-background-ghost-item-ground-sounds.md` records the supersede (the guest-side suppression is unchanged) | the ticket's non-goal paragraph + the matrix row's loss cell |
+| 10 | The reversed non-goal | `done/guest-background-ghost-item-ground-sounds.md` records the supersede (the guest-side suppression is unchanged) | the ticket's non-goal paragraph + the matrix row's loss cell |
 
 ## 5. The red and the ladder
 

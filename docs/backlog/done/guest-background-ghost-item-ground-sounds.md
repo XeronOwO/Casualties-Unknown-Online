@@ -1,6 +1,6 @@
 # Guest background window plays ghost item friction/ground sounds
 
-- Status: Review
+- Status: Done — every acceptance row is read or structurally ruled out: the suppression is a role predicate with three tests (`NonAuthoritativeItemImpactPolicyTests`), the counted reading on both clients is one-for-one (host 2, guest 2 for one landing), and the fix touches no wire (the `ItemImpact` message belongs to `suppressed-native-call-sounds-stay-unheard`)
 - Priority: Medium
 - Category: Guest item physics / audio / background focus
 - Source: User report (2026-09-04) — when the guest game is switched to the background, intermittent item friction/ground-drop sounds are heard; after switching back to the foreground the sound disappears. User recalls a possible earlier mention; current backlog search did not find an existing matching ticket. Treat this as a new record / reopen if an older historical ticket is located.

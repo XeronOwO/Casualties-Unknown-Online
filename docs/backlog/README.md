@@ -132,7 +132,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
 - [Dead-player context-menu name suffix](review/dead-player-right-click-name-suffix.md) — **Medium** — the localized dead suffix.
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
-- [Guest background ghost item sounds](review/guest-background-ghost-item-ground-sounds.md) — **Medium** — non-authoritative impacts are suppressed.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
@@ -169,6 +168,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Guest background ghost item sounds](done/guest-background-ghost-item-ground-sounds.md) — **Medium** — ghost impacts suppressed by role.
 - [Remote medical treatment operations](done/remote-medical-treatment-operations.md) — **Medium** — the limb drag commits through the host-arbitrated operation.
 - [Escape closing the console also opens the pause menu](done/escape-closing-the-console-also-opens-the-pause-menu.md) — **Low** — one press, one surface.
 

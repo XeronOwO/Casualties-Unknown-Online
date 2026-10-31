@@ -62,6 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [A limb component applied outside a world throws every frame](todo/a-limb-component-applied-outside-a-world-throws-every-frame.md) — **Critical** — see ticket
+
 
 
 

@@ -200,6 +200,7 @@ docs/backlog/future/phase5-tooling-ecosystem.md | keep | index | docs/backlog/RE
 docs/backlog/future/pvp.md | keep | index | docs/backlog/README.md
 docs/backlog/future/strict-validation-anti-cheat.md | keep | index | docs/backlog/README.md
 docs/backlog/future/wire-surface-baseline.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/a-limb-component-applied-outside-a-world-throws-every-frame.md | keep | index | docs/backlog/README.md
 docs/backlog/README.md | keep | index | -
 docs/backlog/resolved/check-architecture-performance.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/command-authorization-gateway.md | keep | index | docs/backlog/README.md

@@ -1,6 +1,6 @@
 # The music and recursive-crafting mods fail to load against the current Abstractions
 
-- Status: Review — fixed 2026-10-25 and judged 2026-10-26 — opened 2026-10-25 from the client logs of both peers, after the user corrected the first report ("the pinyin mod is fine; the other
+- Status: Done — fixed 2026-10-25 and judged 2026-10-26 (all three rows), closed by the review sweep 2026-11-01 — opened 2026-10-25 from the client logs of both peers, after the user corrected the first report ("the pinyin mod is fine; the other
   two blew up — fix them together").
 - Priority: High — two shipped satellite mods are dead on every client, and the reason is a stale deployed binary, not their source.
 - Category: Satellite mods / deployment

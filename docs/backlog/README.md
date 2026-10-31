@@ -102,12 +102,10 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Launcher starts all three together and fails only for real reasons](review/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — 25 s cold start.
 
-- [Music and recursive-crafting mods fail to load](review/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — fixed, all rows judged.
 
 
 - [The context menu's name is not drawn, and its bar is a grey strip](review/context-menu-name-wraps-behind-actions.md) — **Medium** — a row now; confirmed.
 - [Enter on an empty console closes it now](review/console-enter-on-empty-does-not-close.md) — **Low** — landed; a frame and its state read.
-- [Player-facing text crosses as a key, never prose](review/player-facing-text-localized-per-receiver.md) — **High** — keyed; two rows need a two-client batch.
 - [`@a` now names the executor too](review/selectors-exclude-the-executor.md) — **Medium** — code landed; the runtime rows need a session.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
@@ -177,6 +175,9 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [The satellite mods failed to load](done/music-and-recursive-crafting-mods-fail-to-load.md) — **High** — three rows judged.
+- [Player-facing text is localized per receiver](done/player-facing-text-localized-per-receiver.md) — **High** — every row judged 2026-11-01.
 
 - [A command owns its usage line](done/a-command-owns-its-usage-line.md) — **Medium** — five rows judged, closed by the review sweep.
 

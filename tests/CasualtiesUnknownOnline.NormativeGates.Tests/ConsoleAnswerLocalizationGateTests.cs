@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 
 /// <summary>
 /// The console-answer localisation gate (ticket
-/// <c>docs/backlog/review/player-facing-text-localized-per-receiver.md</c>): a
+/// <c>docs/backlog/done/player-facing-text-localized-per-receiver.md</c>): a
 /// console answer a PLAYER reads carries its catalogue key, so the console renders
 /// it in the reader's own language. An answer built as a raw interpolated English
 /// sentence (<c>ConsoleAnswer.Refused($"Unknown member '{name}'.")</c>) reaches a

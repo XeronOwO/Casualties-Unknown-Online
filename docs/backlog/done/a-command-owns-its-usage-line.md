@@ -3,7 +3,7 @@
 - Status: Done — opened 2026-10-27 from the user's design note while the `/help <command>` translation landed; all five rows judged 2026-10-29 and closed by the review sweep 2026-11-01.
 - Priority: Medium — the sentence around it is translated now; the usage half still reads English on a Chinese client.
 - Category: Console / localisation
-- Related: [player-facing-text-localized-per-receiver](../review/player-facing-text-localized-per-receiver.md) — the row this completes.
+- Related: [player-facing-text-localized-per-receiver](../done/player-facing-text-localized-per-receiver.md) — the row this completes.
 
 ## Goal
 

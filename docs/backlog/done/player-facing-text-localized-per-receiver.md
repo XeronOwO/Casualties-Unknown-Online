@@ -1,6 +1,6 @@
 # Player-facing text crosses the wire as a key, never as prose
 
-- Status: Review — code landed 2026-10-25 (`91f64718`, `6d9b7732`, `1a12bcd5`, `93f559a9`, `ce4a7d51`, `c940d45f`); rows 1 and 3
+- Status: Done — code landed 2026-10-25 (`91f64718`, `6d9b7732`, `1a12bcd5`, `93f559a9`, `ce4a7d51`, `c940d45f`); every row judged by 2026-11-01, rows 1 and 3
   wait for a real two-client batch.
 - Priority: High
 - Category: Localization / protocol / player-facing copy
@@ -41,8 +41,8 @@ that shows it:
 | Row | The check | State |
 |---|---|---|
 | 0 | A console COMPLETION hint is a typed fact the reader's catalogue renders: `heal` and `help` read in Chinese on a Chinese client | **judged 2026-10-25** by `.acceptance/frames/console-zh.png` — the two hint rows read in Chinese (translated: "immediately fully restore the selected player(s) … (a cheat verb)" and "list available commands, or show one command's usage"), where they used to read in English (the user's report) |
-| 1 | A refusal of each family reaches a Chinese client as a Chinese sentence and an English client as an English one — read from the status line of one real batch, not from the key | **owed**: needs a two-client batch |
-| 2 | No status line, console reply, panel title or tooltip contains a run of the other language's words | **met by the gate** for the catalogues (`c940d45f`); a frame of each surface is owed with row 1 |
+| 1 | A refusal of each family reaches a Chinese client as a Chinese sentence and an English client as an English one — read from the status line of one real batch, not from the key | **PASS 2026-11-01**: one batch, two clients. The usage refusal (`/give` with no arguments) read the Chinese catalogue's own usage sentence (quoted in translation: "Usage: …") on the Chinese host and `Usage: /give …` on the English guest; a refused give read the Chinese refusal sentence (quoted in translation: "there is no item definition named 'nosuchitemid' — the command needs a definition from the game's item table") on the Chinese host and `Refused locally: the host's cheat roster … /op. Nothing was done here.` on the English guest |
+| 2 | No status line, console reply, panel title or tooltip contains a run of the other language's words | **PASS 2026-11-01** for the console and panel surfaces: `lang-zh.png` (host) draws the Chinese refusal and the Chinese panel, `lang-en.png` (guest) the English refusal and the English panel; the only Latin in the Chinese frame is the identifier `nosuchitemid`, the item name and the game's own build banner |
 | 3 | A host-answered command (`/heal`, `/give`, `/summon`, `/gamerule`) reads in the member's language | **PASS 2026-10-27** (same batch): on the English member each family answered in English — `/heal` → "76561198863287957 fully reset your state." + "Reset …: sent to that player's own client, which applies the full reset and re-reports the state."; `/give` → "Gave dogfood (#1314580973507) to … in slot 4."; `/summon` → the English usage refusal; `/gamerule` → the English unknown-rule refusal with its known list |
 | 4 | A key with no text in one of the two catalogues fails the gate | **met**: `LocalizationCatalogueGateTests` floor |
 

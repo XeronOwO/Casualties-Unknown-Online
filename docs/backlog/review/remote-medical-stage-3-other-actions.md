@@ -91,3 +91,19 @@ Each action needs a focused failing test before implementation, typically provin
 
 - CPR (future).
 - Strict anti-cheat validation (separate future item).
+
+## The "host treats a member" column, four actions read on the deployed build (2026-11-01)
+
+Row 2 of the matrix ("host uses each action on guest") is being read action by action, each through the chart's own release path
+(`medical-open` then `remote-medical-release`), with the patient's own client answering for what landed:
+
+| action | reading on the patient | the host's own line |
+|---|---|---|
+| bandage | the limb healed (`skinHealth` 63.04 -> 100, bleeding 0) | `started remote Bandage minigame … limb 4`, then `operation 1 (Bandage) ended`, terminal `Completed` |
+| splint | `SplintLimb` component on the limb | `requested use of <patient> limb 4 with splint`, `<patient> installed splint` |
+| tourniquet | `TourniquetScript` component on the limb | the same request/installed pair for the tourniquet |
+| icepack | `ChilledLimb` component on limb 3 | the same pair for the icepack |
+
+So four treatment families read end to end in this direction, and the topical/liquid rows keep their own readings on
+`topical-limb-action-shape`. What the column still needs is the actions whose fixtures the batch cannot produce (a syringe holding a
+liquid, the chest drain and the other liquid containers), and each of those is named in the triage page rather than assumed.

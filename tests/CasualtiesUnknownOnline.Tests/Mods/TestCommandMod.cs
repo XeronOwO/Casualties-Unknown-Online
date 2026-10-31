@@ -24,6 +24,8 @@ public sealed class TestCommandMod : ICuoMod
 
 	public List<(string Name, IReadOnlyList<string> Arguments, ulong LocalSteamId)> ConsoleExecutions { get; } = [];
 
+	public List<string> Completions { get; } = [];
+
 	public void Bind(IModContext context)
 	{
 		Context = context;
@@ -84,8 +86,11 @@ public sealed class TestCommandMod : ICuoMod
 			usage: "/cthrow <anything>"));
 	}
 
-	private static IReadOnlyList<CommandCompletion> Levels(ICompletionContext context) =>
-		context.Arguments.Count == 0
+	private IReadOnlyList<CommandCompletion> Levels(ICompletionContext context)
+	{
+		// Every completion request this mod's completer was asked about, so a test can see whose parameter reached whose code.
+		Completions.Add(context.CommandName);
+		return context.Arguments.Count == 0
 			? []
 			: context.Arguments[0] switch
 			{
@@ -93,6 +98,7 @@ public sealed class TestCommandMod : ICuoMod
 				"spectator" => [new CommandCompletion("fast")],
 				_ => [],
 			};
+	}
 
 	public void Initialize()
 	{

@@ -1,6 +1,6 @@
 # The command console is a contract, not a set of attribute-marked methods
 
-- Status: Todo — opened 2026-10-27 from the user's direction: "the command system probably needs a proper design; hand the interface down to mod
+- Status: Review — opened 2026-10-27 from the user's direction: "the command system probably needs a proper design; hand the interface down to mod
   authors, split local and non-local commands, delegate per-parameter completion (with presets), let completion depend on the context, and treat it as
   a ceiling on what the mod can do".
 - Priority: High — this is the mod-facing surface, and the localisation contract rides on it: a refusal must be a KEY at its origin, which is the only way a player reads a Chinese shell AND a Chinese reason (the user's ruling, 2026-10-28). Its shape is hard to change once third-party mods depend on it.
@@ -381,3 +381,17 @@ host's ROSTER must name that player. The judgement happens twice, deliberately:
 The list follows the same rule: the authority predicate that filters completion now treats `Permission == Cheat` like the built-in family gate, so a command the console
 would refuse is not offered by name either. Four tests pin it: without the grant (`not_on_roster`), with a closed switch and a grant (`switch_closed`), after both rulings (the relayed
 command runs with the member as requester), and the list hiding it.
+## Rows 10 and 11 closed, and the ticket's code is complete (2026-10-31)
+
+**Row 10 (scoping)** has two halves and both are pinned. The SHAPE: `ICompletionContext` carries exactly the line and the session — command name, parameter index,
+the accepted arguments, the partial token, the session snapshot — and no mod-scoped surface (`IModContext`, `IModState`, `IModData`, `IModConsoleCommands`, `IModContent`),
+so a completer has no handle on any mod's facts, its own or another's; the test fails if one is ever added. The ADDRESSING: only the owning command's completer is asked for its
+parameter (`ConsoleCompletionScopeTests` records every request the test mod's completer receives and shows the other command's line never reaches it).
+
+**Row 11 (cost)** has a stall detector rather than a benchmark: 200 completions of a realistic id line average under 1.6 ms — a tenth of a 60 Hz frame, generous on purpose so a
+loaded machine reports a regression instead of its own noise — and the widest line the console can draw (`/`, every command word at once) is measured the same way. The FRAME half of that row
+(nothing stutters as the list is drawn per keystroke) is a residual: it needs a real client and a keystroke sequence, not an in-process call.
+
+**Where the ticket stands:** all eleven acceptance rows are judged or have a named residual — rows 2 and 6 keep their residuals (no frame for the argument-dependent list; no Chinese
+member watched reading a relayed answer), row 11 keeps the frame half, and row 7 is withdrawn by the pre-release ruling. The ticket moves to `review/`; what it leaves behind is a contract
+every command — built-in or mod — is defined by, one completion path, one answer shape, one relay, and one place a player reads the result in their own language.

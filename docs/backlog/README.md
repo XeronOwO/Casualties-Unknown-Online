@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [The command console is a contract, not attribute methods](todo/the-command-console-is-a-contract.md) — **High** — new.
 
 
 
@@ -81,6 +80,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+
+- [The command console is a contract, not attribute methods](review/the-command-console-is-a-contract.md) — **High** — code-complete; residuals named.
 
 - [Completion is not a command system yet](review/completion-list-keys-and-ids-disagree.md) — **High** — five defects, one list; all rows judged.
 

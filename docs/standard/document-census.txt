@@ -1278,6 +1278,6 @@ docs/backlog/done/drop-out-of-a-remote-backpack-keeps-the-item.md | keep | index
 tools/acceptance/recipes/item-row.cs | keep | claim | docs/backlog/done/drop-out-of-a-remote-backpack-keeps-the-item.md
 docs/backlog/done/the-acceptance-channel-replaces-its-staged-pointer.md | keep | index | docs/backlog/README.md
 docs/backlog/review/a-command-owns-its-usage-line.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/the-command-console-is-a-contract.md | keep | index | docs/backlog/README.md
+docs/backlog/review/the-command-console-is-a-contract.md | keep | index | docs/backlog/README.md
 docs/backlog/review/completion-list-keys-and-ids-disagree.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/no-compatibility-branches-before-the-first-release.md | keep | index | docs/backlog/README.md

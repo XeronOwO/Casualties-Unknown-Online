@@ -7,7 +7,7 @@
 - Category: Console / completion / ids / localisation
 - Related: `docs/backlog/done/command-id-name-completion.md`, `docs/backlog/done/command-tree-resource-location-selector.md`,
   `docs/backlog/done/console-completion-shows-no-suggestions.md`, `docs/backlog/review/pinyin-search-standalone-mod.md`,
-  `docs/backlog/todo/the-command-console-is-a-contract.md` (the definition contract these five defects will be shaped by).
+  `docs/backlog/review/the-command-console-is-a-contract.md` (the definition contract these five defects will be shaped by).
 
 ## Design
 

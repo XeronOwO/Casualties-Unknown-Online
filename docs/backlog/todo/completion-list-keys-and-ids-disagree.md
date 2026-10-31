@@ -119,3 +119,6 @@ What row 4 still owes: the FRAME (a client showing `cu:...` in the list and land
 The overlay now renders `console.suggest.resource` (`{0} ({1})` / `{0}（{1}）`) with the reader's own name for the content and a label for its KIND (nine
 `console.suggest.kind.*` entries; a kind a mod invented shows its raw tag rather than a key). The localisation census and the console-page pin carry the ten new keys, and the full suite is
 green. The frame for this row rides the next batch (the row is drawn only when one of those hints exists, and this deployment needs the plugin rebuilt).
+**Row 5 judged on a frame (2026-10-31, build `b050e262`):** `/give @s cu:wat` drew three rows, each with the id AND the reader's name plus its kind —
+`cu:watch` / `electronic watch (item)`, `cu:waterbottle` / `bottled water (item)`, `cu:waterjug` / `water jug (item)` (the catalogue's Chinese sentences). Before this change the
+hint half was empty, so the same rows read as bare ids — the shape the user reported for a pinyin hit.

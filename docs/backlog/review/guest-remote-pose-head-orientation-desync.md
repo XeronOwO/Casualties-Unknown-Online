@@ -136,3 +136,9 @@ The reading the previous batch stopped at is now done, by a new read-only recipe
 **There is no `Body` on the remote clone at all**, and nothing carrying `isRight`, `targetLookPos`, `facing` or a head rotation (`facing` came back empty). That explains the earlier batch's dead end exactly: the host's view of the guest is an ITEM-shaped render — a sprite with a rigidbody, a collider and the container components — so a probe looking for a body's facing fields was looking at a surface that does not exist on that side.
 
 So this row's instrument is not "find the clone's Body" but "decide what the host can read about the guest's facing at all": either CUO's sync carries the facing as data (and the row reads the synced field), or the sprite is mirrored by something the probe has not yet named. The next reading is the sync message's facing fields against this component list, and the recipe above is what names the surface from now on.
+
+## There is no facing on the wire and no flip on the sprite (2026-11-01)
+
+The follow-up reading the component list pointed at: a search of `src/` for the facing facts (`isRight`, `targetLookPos`, a facing field) finds only "player-facing" in doc comments, and the only sprite flip anywhere in the adapter is the blood replay's random one. So the host's view of a teammate carries **no facing data and no mirrored sprite**: the row's premise ("pose/head-orientation desync on the host view") describes content that does not exist on that side yet.
+
+That makes this a DESIGN decision rather than a residual instrument: either the character sync grows a facing field (a wire change with a visible effect on every teammate's sprite) or the row is dropped as out of scope for the current display model. Both are the user's call, so the ticket moves to the `U` class until then — no agent work is blocked on an instrument any more, and the probe that named the surface is committed (`remote-clone-probe`).

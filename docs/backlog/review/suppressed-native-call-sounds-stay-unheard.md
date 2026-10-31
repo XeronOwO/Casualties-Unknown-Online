@@ -237,3 +237,11 @@ With that instrument, the SAME two actions that answered "nothing" before:
 - **Row 5 (a landing world item, watched on the peer): `drop` is caught.** `item-drop type=bandage,height=45` on the host, the peer's hits gained `drop`, so the authority-side impact presentation does reach the guest through `ItemImpact`.
 
 Both rows are therefore proven from the listener side, and the two earlier notes on this page are superseded by this one. **A caveat the next batch needs**: the watcher's hit list is static and accumulates across starts, so a reading must be diffed against the previous list, not read as "the clip played in this window" on its own.
+
+## Row 5's "once", counted (2026-11-01, 08:30)
+
+The counting watcher (`audio-watch3`) makes "once" countable: one play is one `AudioSource` instance, and `Sound.Play` creates a fresh one per call. A fresh session, both clients watching, ONE host-side landing item (`item-drop type=bandage,height=60`):
+
+    host plays=2   guest plays=2
+
+The item bounces once, so two collisions are two presentations — and the counts MATCH, which is the row: the guest hears exactly the authority's presentations, once each, with no extra ghost echo of its own.

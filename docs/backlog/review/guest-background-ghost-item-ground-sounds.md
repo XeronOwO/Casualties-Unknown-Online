@@ -74,3 +74,13 @@ Evidence: `docs/evidence/selfchecks/items/guest-background-ghost-item-ground-sou
   `review/suppressed-native-call-sounds-stay-unheard.md`: the impact presentation —
   the sound AND the dust — is now carried from the authority side through
   `ItemImpact`, and the guest-side suppression this ticket landed is unchanged.
+
+## The presentation is 1:1 with the authority, read on both clients (2026-11-01, 08:30)
+
+A fresh session, both clients watching their own `AudioSource`s with the frame-accurate counting watcher (`audio-watch3`: one play = one source instance, because `Sound.Play` creates a GameObject per call), then ONE host-side landing item (`item-drop type=bandage,height=60`):
+
+    host plays=2   guest plays=2
+
+Two plays is the item's own bounce, and the point is that the numbers are EQUAL: the guest presents exactly what the authority presented, so the ghost copy adds nothing of its own and the relayed presentation is not doubled. That is the acceptance's runtime half — "normal host-authoritative sounds continue to work" and the ghost echo is gone — while the suppression itself is the role predicate (`NonAuthoritativeItemImpactPolicy.ShouldSuppress`: live session, not host, standalone world item) with its own three tests, including the one asserting the two halves can never both fire for one collision.
+
+The background/foreground half of the acceptance is structural in the same predicate: nothing in the suppression or the replay reads focus or frame cadence, which is what the selfcheck records. What this session did NOT do is run the client unfocused for a long window — that is the remaining runtime reading if the incident is to be re-created rather than ruled out by construction.

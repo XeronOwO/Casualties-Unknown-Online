@@ -59,7 +59,7 @@ hover preview (row 8 of the completion ticket, which finally drew once the toolt
 | `guest-remote-pose-head-orientation-desync.md` | the clone's type is named; the facing pair needs one aim-drive read |
 | `give-degrades-to-a-ground-drop-and-rearranging-retires-it.md` | rows 1, 3 and 4 pass; row 2's target-screen line needs a real refusal on the receiving side |
 | `launcher-fails-when-the-alt-box-cannot-start.md` | rows 1-4 judged except the reboot path, which needs a machine restart |
-| `the-pre-run-lobby-can-deadlock.md` | **reproduced 2026-11-01**: a member that joins a running session waits forever (its log has no `World join received`) while both gates blame the other side, and the re-entry ask that would cure it is armed only on a host world-exit — the ticket now names the join-armed ask as the fix |
+| `the-pre-run-lobby-can-deadlock.md` | **fixed 2026-11-01** (three breaks: the member never asked, the host refused without a baseline, the member could not accept the instruction) and read end to end — a restarted member asks `1/12`, the host invites, the member enters, both gates clear. Rows 1 and 2 keep their exact sub-cases owed (a re-join BEFORE the run starts; a drop while the gate waits) |
 
 
 ## N — measured to the end: not stageable on this build

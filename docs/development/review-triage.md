@@ -106,6 +106,11 @@ Every ticket in `review/` was opened and read this sweep. What changed:
 - **`remote-medical-treatment-operations`** and **`the-pre-run-lobby-can-deadlock`** closed earlier in the same night.
 
 Everything else keeps the class it already carried, and each row names what it waits on. The two instruments this sweep added (`audio-recent`, `talk-text-read`) and the two it corrected (`remote-backpack-open`'s verdict, `remote-clone-probe`) are committed.
+## The fixture wall this batch kept hitting (2026-11-01, 09:05)
+
+The host character KEEPS its inventory across launches — a fresh client restores the same body and slots — so after a few batches every slot holds something and `/give` starts answering "packed into its carried container". The batch hit that wall four times in one hour (a splint, a tourniquet, a medical suture and a nested-container fixture all went into the carried bag instead of a slot). There is no inventory-clear command in the console; the ways out are the game's own drop (the drag path, a human motion) or a fresh RUN (`start-run`), which resets the character but also the world.
+
+So the standing rule for the next batch is sharper than "one treatment per fresh launch": **one treatment per fresh RUN**, or drop the carried items first with a real hand. Every reading in this sweep whose release answered an empty `limbLookingAt` is an instance of this wall, not of the feature.
 ## How this list is kept honest
 
 A row leaves this page only through the ticket's own status moving to `done/`, and every claim above names the instrument, the code or the

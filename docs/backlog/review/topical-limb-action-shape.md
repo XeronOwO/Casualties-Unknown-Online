@@ -109,3 +109,7 @@ flow starts whatever the player filled the syringe with. What landed:
 **Still owed**: the ticket's two-client row — a `saline` bag holding a health-usable liquid released through the remote
 wound view starts the injection flow on the patient's side (no pour, no refusal), and the same release with a syringe
 holding water does too. That needs two clients and a real drag.
+
+## The owed row's path is open, and the fixture it needs (2026-11-01)
+
+The two-client row no longer waits on an instrument. `medical-open steamId=<member>` opened the remote chart through the same call the Online UI makes (`opened=true, nativeOpen=true`), and `remote-medical-release item=saline limb=2` released the host's saline onto that limb through the game's own release path: the item left its slot (`dragAfter=none`), the view stayed open, and the answer carried `calls=none`. The patient's own read of that limb answered a healthy limb (`skinHealth=100, bleedAmount=0, components=` empty), so the injection flow had nothing to start on — the row needs a WOUNDED patient as its fixture, and that is the missing precondition rather than a missing entry.

@@ -53,7 +53,7 @@ hover preview (row 8 of the completion ticket, which finally drew once the toolt
 | `remote-medical-stage-3-other-actions.md` | every action row, same entrance |
 | `remote-medical-native-minigame-parity.md` | the umbrella over the three stages above |
 | `remote-medical-treatment-operations.md` | its live row is a treatment performed through the wound view |
-| `topical-limb-action-shape.md` | the parity rows need an item used on the remote chart; its classifier half landed |
+| `topical-limb-action-shape.md` | the remote chart opens in-process (`medical-open`) and a release lands on it (`remote-medical-release`, item consumed, view stays open); the owed row now needs a WOUNDED patient as its fixture — a healthy limb answered `calls=none` and nothing to start |
 | `use-on-sleeping-target-refused.md` | rows 1-2 read the eating family; row 3's treatment families reach the patient through the wound view |
 | `sync-player-pain-vocalizations-and-bark.md` | rows 1-3 need a lockable entity and a jammed lockpick driven through the game's own interaction |
 | `guest-remote-pose-head-orientation-desync.md` | the clone's type is named; the facing pair needs one aim-drive read |

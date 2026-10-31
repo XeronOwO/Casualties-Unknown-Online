@@ -67,7 +67,7 @@ The instruments those two cycles produced are reusable and are named here so the
 | `remote-medical-stage-3-other-actions.md` | every action row, same entrance |
 | `remote-medical-native-minigame-parity.md` | the umbrella over the three stages above |
 | `topical-limb-action-shape.md` | the remote chart opens in-process (`medical-open`) and a release lands on it (`remote-medical-release`, item consumed, view stays open); the owed row now needs a WOUNDED patient as its fixture — a healthy limb answered `calls=none` and nothing to start |
-| `use-on-sleeping-target-refused.md` | rows 1-2 read the eating family; row 3's treatment families reach the patient through the wound view |
+| `use-on-sleeping-target-refused.md` | **row 3 read (2026-11-01)**: the asleep fixture is the game's own (pills + `body-call kind=nap`), and a bandage through the chart left the patient `sleeping=true` with the limb changed on their own client. Rows 1-2 keep their partial passes: the remaining families need the drag (a human motion) |
 | `sync-player-pain-vocalizations-and-bark.md` | rows 1-3 need a lockable entity and a jammed lockpick driven through the game's own interaction |
 | `guest-remote-pose-head-orientation-desync.md` | the clone's type is named; the facing pair needs one aim-drive read |
 | `give-degrades-to-a-ground-drop-and-rearranging-retires-it.md` | rows 1, 3 and 4 pass; row 2's target-screen line needs a real refusal on the receiving side |

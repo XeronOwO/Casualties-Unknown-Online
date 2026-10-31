@@ -258,7 +258,6 @@ public class PatchBridgePortShapeGateTests
 	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
 	private static readonly string[] BridgeImplementationMembers =
 	[
-		"GetRemoteProxyItemId",
 		"_carriage",
 		"_modContent",
 		"_remoteMedicalOps",
@@ -411,8 +410,10 @@ public class PatchBridgePortShapeGateTests
 	[Fact]
 	public void Bridge_DeclaresExactlyThePinnedImplementationMembers()
 	{
+		// The floor moved from 5 to 4 with the compatibility sweep (2026-10-31): the class's only private helper, GetRemoteProxyItemId, was a fallback for a build
+		// that never shipped and had no callers, so it went. A pin emptied alongside its class still fails here.
 		Assert.True(
-			BridgeImplementationMembers.Length >= 5,
+			BridgeImplementationMembers.Length >= 4,
 			$"the pinned implementation census holds only {BridgeImplementationMembers.Length} name(s) — the pin was emptied, not the class");
 
 		Assert.Equal(Census(BridgeImplementationMembers), Census(NonPublicMembers(BridgeFile)));

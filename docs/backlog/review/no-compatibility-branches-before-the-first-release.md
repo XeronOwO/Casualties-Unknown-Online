@@ -1,6 +1,6 @@
 # No compatibility branches: the first release has not happened, so nothing is owed to old shapes
 
-- Status: Todo — opened 2026-10-30 from the standing ruling (user): "the project has not released anything and the wire version does not increment, so any
+- Status: Review — opened 2026-10-30 from the standing ruling (user): "the project has not released anything and the wire version does not increment, so any
   breaking change is acceptable — do not leave historical debt."
 - Priority: High — every compatibility branch is a second implementation kept alive by a client that does not exist, and each one is a place the next change
   has to satisfy twice.
@@ -55,3 +55,39 @@ still load), and it does not forbid the game's own legacy surfaces — the game'
 - A branch kept for a REAL current constraint (a save field that older sessions of the same run wrote, the game's own two API shapes) stays, and the ticket
   says which constraint — the rule forbids debt, not documentation of a live constraint.
 - The release date (the game's 2026-11-09 official build) does not change this: nothing of ours ships before that, and the rule is re-read on that day.
+
+## The census, and what it deleted (2026-10-31)
+
+A full scan of `src/**/*.cs` for `[Obsolete`, `// legacy`, `// compat`, `legacy fallback`, `backwards compat` and `pre-namespace` returns FIVE lines. They are the
+whole census, and each one is classified here (row 1):
+
+| Where | What it is | Verdict |
+|---|---|---|
+| `Abstractions/ModConsoleCommand.cs` and its registration path | the flat console contract that predates the definition contract | **deleted with** `the-command-console-is-a-contract` (the type, `IModConsoleCommandContext` and the adapter are gone) |
+| `GameAdapter/GameAdapterBridge.GetRemoteProxyItemId` | a fallback to `ItemInstanceId` for very old clone renders that predate the id-free display boundary | **deleted here**: a branch for a client that never shipped, and it had NO callers at all |
+| `Runtime/Session/Mods/ModContentCatalog` bare-id lookup | a comment calling the bare id "legacy" and "pre-namespace" | **kept, comment corrected**: a bare id is a CURRENT form — the game names its own items bare and `/give` accepts both forms — so the branch serves the current format, not debt |
+| `Application/Kernel/KernelEnemyCombatWireMapper` | "legacy protobuf messages a version adapter still speaks" | **kept**: it names the GAME's own legacy surface, which this ticket does not own |
+| `Application/Kernel/KernelLimbWireMapper` | "legacy work and forward the limb conversion here" | **kept**: the same, the game's own modules |
+| `Runtime/Session/Items/ItemProjection` | "legacy `WorldItemTable` projection" | **kept**: it describes a current design decision (the kernel row is authoritative and the table is its projection), not an old version of ours |
+
+The only line that was debt is deleted, and it is the shape the rule exists for: a fallback whose whole reason was an older build of this project.
+
+## The gate (rows 2 and 5)
+
+`CompatibilityDebtGateTests` refuses two shapes across `src/**/*.cs`: an `[Obsolete]` attribute (a marker that means "kept for a released caller") and a comment
+announcing debt to a client, save or protocol that never shipped (`legacy fallback`, `backwards-compat`, `compat branch`, `for old clients`, `for old data`,
+`pre-namespace semantics`, `older protocol version`). It deliberately PASSES the three comments above that name the game's own legacy modules. Its matcher is
+pinned with both samples inside the test itself, so it cannot quietly stop seeing the shape it was written for.
+
+## Rows 3 and 4
+
+**Row 3** (a save written by the previous build still loads): no save code was touched by this ticket — the deletions are a dead method and a comment — so the
+format a previous build wrote is today's format, and `SaveArchiveRoundTripTests` plus the salvage and contract-fix suites are the evidence it still loads. There
+is no older format to produce, because nothing has been released.
+
+**Row 4** (a mod using the old console contract fails to compile with a name that says what to use): the type is gone, so the compiler answers "not found".
+Teaching the compiler a sentence would mean keeping an `[Obsolete]` type alive, which is exactly what this ticket forbids. The reader-facing half is served
+instead: the mod API reference and `how-to/write-console-commands.md` both name the definition contract as the replacement, and the how-to is the page a mod
+author opens first.
+
+The ticket moves to `review/`: rows 1, 2 and 5 are judged by the census and the gate, and rows 3 and 4 carry the reasons above.

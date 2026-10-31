@@ -76,10 +76,11 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [A disconnected member leaves his arrow on the HUD](todo/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — reported.
 
 - [The recorded over-line classes still owe their splits](todo/split-the-oversized-classes.md) — **High** — the ten recorded ceilings now name their owner.
-- [No compatibility branches before the first release](todo/no-compatibility-branches-before-the-first-release.md) — **High** — nothing is owed to old shapes.
 ### In progress
 
 ### Review
+
+- [No compatibility branches before the first release](review/no-compatibility-branches-before-the-first-release.md) — **High** — nothing is owed to old shapes.
 
 - [The command console is a contract, not attribute methods](review/the-command-console-is-a-contract.md) — **High** — code-complete; residuals named.
 

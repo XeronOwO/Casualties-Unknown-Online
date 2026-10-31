@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// The default read-only content catalog backed by <see cref="IModContentControl"/>.
 /// It deliberately performs no interpretation and makes no ownership choice:
 /// it enumerates the framework-wide view, supports kind/id lookup (canonical
-/// <c>namespace:path</c> ids first, legacy bare ids second), and returns
+/// <c>namespace:path</c> ids first, the game's own bare ids second), and returns
 /// conflict diagnostics for future binders. The underlying registry already
 /// enforces per-mod id uniqueness; this catalog adds the cross-mod view.
 ///
@@ -63,8 +63,8 @@ public sealed class ModContentCatalog(IModContentControl control, ILogger<ModCon
 			return ResolveUnique(canonicalMatches, kind, id, out entry);
 		}
 
-		// Legacy bare id: unique match over every entry (namespaced or not)
-		// preserves the pre-namespace semantics.
+		// A BARE id is a current form, not a legacy one: the game names its own items bare, and a player typing an id the console offers (or the bare half of a
+		// namespaced one) must reach the same content. The match is unique-or-nothing over every entry, so two namespaces holding the same bare id stay ambiguous.
 		var matches = Entries
 			.Where(e => string.Equals(e.Definition.Kind, kind, StringComparison.Ordinal)
 				&& string.Equals(e.Definition.Id, id, StringComparison.Ordinal))

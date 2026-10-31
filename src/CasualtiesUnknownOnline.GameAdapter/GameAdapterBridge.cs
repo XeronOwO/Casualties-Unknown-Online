@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Linq;
-using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.World;
@@ -634,19 +633,6 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		domains.HeaterCookSync.OnCookCompleted(sourceItemId, cookedItem, sourceCondition, sourcePosition);
 
 	public void OnHeaterCookCaptureFailed(ulong sourceItemId) => domains.HeaterCookSync.OnCaptureFailed(sourceItemId);
-
-	private static ulong GetRemoteProxyItemId(Item item)
-	{
-		var marker = item.GetComponent<RemoteInventoryItemId>();
-		if (marker != null && marker.Id != 0) // Unity object — ==
-		{
-			return marker.Id;
-		}
-
-		// Legacy fallback: extremely old clone renders may still carry a domain
-		// item id from before the id-free display boundary.
-		return item.GetComponent<ItemInstanceId>()?.Id ?? 0;
-	}
 
 	/// <summary>The death receipt's menu button (the ruling's second entrance): a dead player on the receipt enters
 	/// the spectator mode instead of the menu load that follows the click.</summary>

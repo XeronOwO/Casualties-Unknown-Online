@@ -89,7 +89,7 @@ line and the fallback, never as what a player reads.
 built-ins in the shipped `en.json`/`zh.json`, a mod in its own catalogue — and the key namespace is derived from the command's name, not listed in a table
 (the `console.cmd.<name>.desc` rule this tree already uses).
 
-**What that means for the sweep already recorded** (the `give`/`summon`/`data`/`heal` family, `review/selectors-exclude-the-executor.md`): those are no
+**What that means for the sweep already recorded** (the `give`/`summon`/`data`/`heal` family, `done/selectors-exclude-the-executor.md`): those are no
 longer four small conversions. Each becomes "move the refusal reasons to keys at their origin", which is exactly what this ticket's contract makes
 possible, and the family table there is the checklist for it. The two attempted `/give` conversions are recorded there with the reason they stopped:
 without the keyed-origin rule, converting the LOCAL answer would either lose the detail (the generic line) or leave it English (shell + free reason).

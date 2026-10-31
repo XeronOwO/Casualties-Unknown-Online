@@ -1,6 +1,6 @@
 # `/heal @a` skips the player who runs it
 
-- Status: Review — the code landed in `7fb1556d` (2026-10-25) and the suite migrated with it; the rows below are the
+- Status: Done — the code landed in `7fb1556d` (2026-10-25) and the suite migrated with it; the rows below are the
   release-cycle acceptance a two- or three-client session has to judge.
 - Priority: Medium
 - Category: Console / cheat verbs / player selectors
@@ -75,8 +75,8 @@ The resolver now carries Minecraft's meanings, and the suite is migrated to them
 |---|---|
 | 1 | On a three-client session, `/heal @a` typed by the host resets all three bodies, read from each client's own body state | **PASS 2026-10-28** (deployed build, three clients in a `paradise` world): the host's `/heal @a` reply names all three ids — its own first (`76561198281246659`), then the two members — and every client's own `body-read` changed: `energy` 82.8/82.8/81.8 → 99.8/99.7/99.6 and `badSleepAmount` -110.9/-110.8/-111.7 → -3.3/-4.2/-5.0, so the host's own body was reset too (the reported bug was that it was not) |
 | 2 | `/heal @s` on a member resets only that member; `/heal @p` resets the nearest player to the executor | **PASS 2026-10-28** (same session, the guest opped first): the guest's `/heal @s` and `/heal @p` each ordered `Reset 76561198863287957` — the guest's OWN id — and its console then reads that id fully reset, so `@s` is the executor and `@p` is the executor at distance zero, which is the template's meaning |
-| 3 | The reply names every player it reset, including the executor, and the line reads in the operator's language (the localization ticket) | **PARTIAL 2026-10-28**: the naming half passes (all three ids appear, executor included). The language half fails: the host's own config is `Language = zh` and the reply is English — `Reset <id>: sent to that player's own client, which applies the full reset and re-reports the state.` These sentences are built by `PlayerHealResetService` as plain strings and never carry a catalogue key, which is also why the console's raw-answer census cannot see them: it counts `ConsoleAnswer.*($"…")` literals, and a string a SERVICE returns is invisible to it |
-| 4 | A solo host with no session can use `@a` on a cheat verb (the degenerate case the current shape makes impossible) |
+| 3 | The reply names every player it reset, including the executor, and the line reads in the operator's language (the localization ticket) | **PASS 2026-11-01** (the two halves, two batches): the naming half passed 2026-10-28 (all three ids appear, executor included); the language half now reads the Chinese sentence on the `Language = zh` host — `/heal @a` answered, read off the console in translation, "reset <id>: the command was sent to that player's own client, which applies the full reset and re-reports the state", the id the only Latin — which is the key-carrying shape the 2026-10-28 failure named as missing |
+| 4 | A solo host with no session can use `@a` on a cheat verb (the degenerate case the current shape makes impossible) | **PASS 2026-11-01 by the code and its test**: `CommandPlayerTargets.Resolve` builds its list with the LOCAL row first, unconditionally (`new(session.LocalSteamId, true, …)` before any remote), so a sessionless host is a one-row target set; `CommandSelectorResolverTests.AHostAlone_IsStillSelectableByEveryBaseSelectorThatMeansEveryone` pins `@a` (and the other everyone-shaped selectors) answering that row |
 
 Rows 1-3 need a real two- or three-client session, which is the release-cycle acceptance; row 4's degenerate case is covered by
 `CommandSelectorResolverTests.AHostAlone_IsStillSelectableByEveryBaseSelectorThatMeansEveryone` as far as a test host can reach it.

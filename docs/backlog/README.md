@@ -102,7 +102,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [Enter on an empty console closes it now](review/console-enter-on-empty-does-not-close.md) — **Low** — landed; a frame and its state read.
-- [`@a` now names the executor too](review/selectors-exclude-the-executor.md) — **Medium** — code landed; the runtime rows need a session.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.
@@ -171,6 +170,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [Selectors exclude the executor](done/selectors-exclude-the-executor.md) — **Medium** — every row judged, including the solo case.
 
 - [The host rolls a second drop set](done/host-blast-rolls-a-second-drop-set.md) — **Medium** — one set, both clients.
 

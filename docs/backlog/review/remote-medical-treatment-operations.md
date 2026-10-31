@@ -203,3 +203,18 @@ So the double handling was the whole reason the minigame could never be played: 
 A remote bandage's progress is wired end to end on this tree: `TryStartRemoteBandageUse` constructs the game's `BandageMinigame` with `_ => ReportBandageWrap()` as its `OnUse`, `ReportBandageWrap` sends `Wrap` on the operation id once the start ack has assigned one (before that it counts `PendingWraps`), and `FlushPending` — called when the ack arrives — sends every pending wrap. `RemoteOtherMedicalMinigamePatch` patches the dislocation, amputation, AED and defibrillate minigames but not the bandage one, which is correct: the bandage reports through its own `OnUse` callback rather than through a patch.
 
 So nothing in the progress path is missing on paper. What the next batch reads is the HOST's side of it: `[MedicalOps3]`'s progress/terminal lines for the operation the fix let start, and then the patient's limb. The batch that verified the fix could not read a completion in the minutes it had — the patient's `skinHealth` moved 76.24 → 77.27, which is the game's healing — so the reading is either the host's progress log or the operation's state, not the limb alone.
+
+## That host reading, done: `progress 0.000`, `TimedOut` — the wraps never left the operator (2026-11-01)
+
+The host's own log for the operation the prefix fix let start:
+
+    [MedicalOps3] started Bandage operation 1: …
+    [MedicalOps3] operation 1 timed out after 20015 ms idle.
+    [MedicalOps3] operation 1 terminal TimedOut: progress 0.000.
+
+So the operation existed and the minigame ran for 826 frames, and the host's progress stayed at ZERO. With the progress path complete in the code, that leaves exactly two candidates, and both are cheap readings:
+
+1. **The start ack never reached the operator.** Then `OperationId` stayed 0, every wrap went to `PendingWraps`, and `FlushPending` was never called. Read: the operator's own log for the ack (`RemoteOtherMedicalOperationHandler.OnStartAckReceived`), or a counter beside `PendingWraps`.
+2. **The minigame's `OnUse` never fired.** The driver sets `MinigameBase.main`'s hand fields, and `BandageMinigame.PhysicsUpdate` only calls `DoBandageAction` when its `holdingBandage` test (the dot product of the hand vector and the tracked angle) holds; a hand that jumps 30° per frame may never satisfy it. Read: `bandageSprite.fillAmount` (the game's own progress ring) on a captured frame during a rub, or a counter of `DoBandageAction` calls.
+
+The first one settles whether this is a protocol gap or the driver's gesture, and the operation's terminal line is the reading that cannot lie about whether anything landed.

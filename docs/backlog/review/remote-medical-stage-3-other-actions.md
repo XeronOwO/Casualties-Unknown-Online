@@ -129,3 +129,20 @@ With the batch-side way to free a slot (consume a carried item: `item-use type=d
 So the column reads four component-visible families (bandage, splint, tourniquet, icepack) and the field-only ones (suture, pain cream, disinfectant, the drain) are each one `limb-read` field away — the fields, not the fixtures, are what those rows still need.
 
 **The lesson those two rows carry**: a release answering a limb index is NOT an accepted application. The operator-side answer names the limb under the pointer, and the host's own `refused limb use: <item> is not a supported remote medical/limb-treatment item` line is the verdict — so every reading in this ticket pairs the release answer with the host's line, and the families that are refused by name (saline, waterbottle, pain cream, disinfectant) are refuse-by-design rows, not failures.
+
+## The accepted and the refused sets, read item by item (2026-11-01, 09:40)
+
+The eligibility predicate is `LocalUseItemEligibility.IsMedicalLimbUseItem` (heal profile, limb tool by the game's own semantics, bandage catalog, defibrillator, amputation tool, dislocation wrench, injectable, topical). Reading one item per freed slot through the chart, with the host's own line as the verdict:
+
+| item | host line | patient |
+|---|---|---|
+| bandage | `started remote Bandage minigame … limb 4`, terminal `Completed` | limb healed |
+| splint | `requested use … installed splint` | `SplintLimb` |
+| tourniquet | the same pair | `TourniquetScript` |
+| icepack | the same pair | `ChilledLimb` |
+| medicalsuture | `requested use … limb 4`, `used on the affected limb` | no component; a wound state the recipe does not project |
+| clottingmush | `requested use … limb 2`, `used on the affected limb` | no component on a non-bleeding limb |
+| woundglue | **`refused limb use: woundglue is not a supported remote medical/limb-treatment item`** | unchanged |
+| paincream, disinfectant, saline, waterbottle | the same refusal by name | unchanged |
+
+So six families are accepted end to end in this direction and five are refused by name, each with its own line. What the accepted ones whose effect is not a component still need is the field their row asks about (a sutured/closed wound state, a blocked-bleeding flag on a limb that is actually bleeding).

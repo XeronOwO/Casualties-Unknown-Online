@@ -173,10 +173,12 @@ internal static class VirtualInput
 		// replacement above never reaches it — and a detour on Input's own methods is never invoked on this build (see the note above). The same call-site
 		// replacement therefore has to be applied to it as well: without this a staged press can hold a world gesture and never the hand of a minigame
 		// (measured 2026-11-01: `minigame-live` read handClicking=False with a press staged at the ring).
-		var updateHandVisuals = AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals", [typeof(bool)]);
+		var updateHandVisuals = AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals", [typeof(bool)])
+			?? AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals")
+			?? FirstDeclaredMethod(typeof(MinigameBase), "UpdateHandVisuals");
 		if (updateHandVisuals == null)
 		{
-			report.Add("MinigameBase.UpdateHandVisuals: no method on this build");
+			report.Add("MinigameBase.UpdateHandVisuals: no method on this build (" + DescribeDeclaredMethods(typeof(MinigameBase)) + ")");
 		}
 		else
 		{
@@ -469,6 +471,37 @@ internal static class VirtualInput
 	internal static int HandleInputReplacements => _handleInputReplacements;
 
 	private static void PrefixHandleInput() => HandleInputEntries++;
+
+	/// <summary>The first method declared on <paramref name="type"/> with this name, whatever its signature (the fallback when the exact one is not found).</summary>
+	private static MethodInfo? FirstDeclaredMethod(Type type, string name)
+	{
+		foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+		{
+			if (method.Name == name)
+			{
+				return method;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>The names the type declares, for a report that says what the install DID see instead of only what it missed.</summary>
+	private static string DescribeDeclaredMethods(Type type)
+	{
+		var names = new List<string>();
+		foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+		{
+			names.Add(method.Name);
+			if (names.Count >= 24)
+			{
+				names.Add("…");
+				break;
+			}
+		}
+
+		return string.Join(", ", names);
+	}
 
 	/// <summary>
 	/// Replaces the game's own <c>Input.GetKey/GetKeyDown/GetKeyUp(KeyCode)</c> calls inside <c>PlayerCamera.HandleInput</c> with the probes below. The

@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Escape closing the console also opens the pause menu](todo/escape-closing-the-console-also-opens-the-pause-menu.md) — **Low** — one press, two surfaces.
 
 
 
@@ -170,6 +169,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [Escape closing the console also opens the pause menu](done/escape-closing-the-console-also-opens-the-pause-menu.md) — **Low** — one press, one surface.
 
 - [Enter on an empty console does not close it](done/console-enter-on-empty-does-not-close.md) — **Low** — four rows judged.
 

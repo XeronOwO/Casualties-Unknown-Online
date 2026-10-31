@@ -1,6 +1,6 @@
 # Escape closing the console also opens the game's pause menu
 
-- Status: Todo
+- Status: Done — fixed 2026-11-01, all three rows judged on the deployed build.
 - Priority: Low
 - Category: Console / input behaviour
 - Source: the 2026-11-01 acceptance batch that judged the console's key toggle (frames `console-key-open.png`, `console-key-closed.png`).
@@ -40,10 +40,14 @@ overlay owns the line and its keys while it is open. A key the overlay consumed 
 
 | Row | The check | State |
 |---|---|---|
-| 1 | Escape with the console open closes the console and does NOT open the pause menu — one frame, one press | unjudged |
-| 2 | Escape with the console closed still opens the pause menu | unjudged |
-| 3 | A movement key pressed while the console is open does not move the player — read from the body's position across the press | unjudged |
+| 1 | Escape with the console open closes the console and does NOT open the pause menu — one frame, one press | **PASS 2026-11-01**: real `/` then Escape on the deployed build; frame `esc-after-fix.png` shows the world with no console and no pause menu, where the pre-fix batch's `console-key-closed.png` showed the pause wheel behind the closed console |
+| 2 | Escape with the console closed still opens the pause menu | **PASS 2026-11-01**: frame `esc-pause.png` — the game's own pause screen with its wheel, so the guard suppresses only the console's press |
+| 3 | A movement key pressed while the console is open does not move the player — read from the body's position across the press | **PASS 2026-11-01**: the body read `(0, 488.615)` before and after a held `W` (VK 87, 0.7 s) with the console open — identical, so the line was consuming the keys |
 
 ## Limits
 
 - The batch that found this had one client and no session; the leak is a local input question and does not need two.
+
+## The fix and the reading (2026-11-01)
+
+The guard existed and simply did not include the console: `OnlineUiHost` set the "a non-modal ESC-closing CUO surface is open" fact from the quick panel's visibility alone, so while the console was open the fact read false and the game's `TogglePause` ran on the same Escape. The console's open state now joins that fact (`quickPanelVisible || consoleOpen`), which is the rule the Online UI window and the quick panel already followed. Verified by three frames and one body read on the deployed build: the console closes without the pause menu, Escape with the console closed still opens it, and a held movement key with the console open moves the body by nothing.

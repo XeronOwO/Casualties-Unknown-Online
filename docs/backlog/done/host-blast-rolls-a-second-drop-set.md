@@ -1,6 +1,6 @@
 # The host rolls a second drop set for a death a member already rolled
 
-- Status: Review — **was blocked on a staging capability** (this ticket stays here, not in review: one acceptance row has never been
+- Status: Done — **was blocked on a staging capability** (this ticket stays here, not in review: one acceptance row has never been
   read). Opened 2026-10-18 by the audit inside the entity-event drop bound (the
   `NetMsg.EntityEvent` row of `docs/backlog/done/member-report-bounds.md`). All three slices are landed and deployed, and the
   mechanism is read on the machine (`docs/evidence/acceptance/blast-marked-victims-20261024-r.md`: a member-pressed mine's

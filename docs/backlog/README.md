@@ -77,7 +77,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Review
 
 
-- [The host rolls a second drop set for a death a member already rolled](review/host-blast-rolls-a-second-drop-set.md) — **Medium** — one set, both clients.
 
 - [A disconnected member leaves his arrow on the HUD](review/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — arrow leaves with the peer.
 
@@ -172,6 +171,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [The host rolls a second drop set](done/host-blast-rolls-a-second-drop-set.md) — **Medium** — one set, both clients.
 
 - [The oversized classes](done/split-the-oversized-classes.md) — **High** — twenty splits, queue empty, debt file empty.
 

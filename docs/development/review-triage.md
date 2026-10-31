@@ -114,11 +114,14 @@ missing fixture rather than a mood. The classes are not priorities: they say who
 - **The console's own surfaces**: `console-ui` types a line and reports the live suggestions; the hover preview now draws after the tooltip
   fix, which is what closed the completion ticket.
 
-## What is left after the night (2026-11-01, 03:00)
+## What is left (2026-11-01, after the sandbox came back)
 
-Forty-two tickets remain and every one of them now needs something only the user can supply. Two kinds:
+The night started with forty-two tickets and the sandbox stopped; both changed. Two closed with their rows judged end to end (`the-pre-run-lobby-can-deadlock`, `remote-medical-treatment-operations`), and four product defects fell out of them: a void release prefix that let the native local apply run behind CUO's remote handle, a stale start rejection that cleared the live session, an end request that carried zero progress for a completed bandage, and a join phase nothing could leave.
 
-- **The sandbox service.** `SbieSvc` is Stopped and an unelevated `Start-Service` is refused ("cannot open the service"), so no boxed client can start: the launcher's own `Ensure-SandboxService` would raise a UAC prompt, and nobody is at the keyboard to approve it. Every two-client row — the drag family, the medical family, the join/re-entry reproduction, the trade fixtures — waits on that one approval. Starting the service (or rebooting, after which the launcher's elevated start runs) unblocks the `E` section in one step.
-- **A decision, a look, or a pass of the user's own.** The `U` section: the panel-width choice on the dead-player menu, the listener controls for the music, the three mod panels' look, the save/restore passes, and the two open design questions (whether the remote chart opens over the trade menu, and whether the console should open while the game's own settings menu is up — a question the 03:00 batch's frames raised).
+What remains splits three ways:
 
-Nothing else is left: the single-client rows that remained were read tonight (the console key, the escape leak, the limb-component storm and its icon, the key-bind capture's reachability), and the key-bind ticket now carries the exact instrument it still needs rather than a hope.
+- **One human motion** — the four drag tickets and the families behind `use-on-sleeping-target-refused`'s rows 1-2. The instruments around the give gesture all work and report their own state; the cue and the displayed pack are one question (what is under the pointer) that only a player's hand answers.
+- **One fixture this build cannot batch-produce** — a container holding a liquid, which the injection and topical rows need. The console has no fill and the catalog has no prefilled variant.
+- **A decision, a look, or a pass of the user's own** — the `U` section: the dead-player panel width, the music listener controls, the three mod panels' look, the save/restore passes, and the capability-catalog levels.
+
+Everything else that was read tonight was read: the console key, the escape leak, the limb-component storm and its icon, the join chain, the remote chart end to end, the asleep fixture, and the drag path as far as a batch can take it.

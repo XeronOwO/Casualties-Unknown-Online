@@ -559,3 +559,13 @@ The input helper gained the three actions the gesture needs (`move`, `rpress`, `
 The batch calibrated the coordinate frame first, with the game's own read as the ruler: `move` to client (100,100) answered `Input.mousePosition` (100,619) and (900,500) answered (900,219), so `game_x = client_x` and `game_y = 719 - client_y` on this window — a fixed offset, not a scale, which the earlier batches had been guessing at.
 
 With the ring open on its own six slots (focus click, wait, Tab: `radialOpen=true`), a right press held on the waterbottle's slot centre (game 777,279) read back as `dragging=false, dragItem=none` while `Input.mousePosition` was exactly (777,279): the press arrives and the bracket does not start, which is the same split the 2026-10-25 batches found for slot buttons — the control consumes the press. The next attempt therefore starts the gesture on a WORLD item (an item lying in the world has a collider and no ring control in front of it), which is also the mode the user's ruling describes: drag the item onto a teammate with the bag closed.
+
+## Batch 20261101-c: the blocker was the CUO window, and the batch recipe now checks it first
+
+Three client session, host and guest both in a world, the item found on the host's own layer (`item-world-read` at the host's cell answered one world item at -500.2, 16.2) and both bodies teleported beside it (host at -498.9, 17.6; guest 4 units away). Then:
+
+- `screen-point2` projected the item to game (189,405), and a real right press there read back `dragging=false, dragItem=none` with the pointer exactly on that point;
+- `drag-start` at the same point answered `ok=true` with **one cast: `CUO Online Input Blocker#noInvButton`** — a CUO blocker sat over the item, so the cast never reached it;
+- the reason was visible in the client's own state: `windowVisible=true` — the Online UI window was OPEN, and the guard's blockers cover the screen while a CUO surface owns it. Closing it (`window.close`) cleared the blockers.
+
+That explains several earlier attempts in this family: the window (or the console) was open, the guard was doing its job, and the gesture is refused by design while a CUO surface owns the screen. **The batch recipe is now: `state` must answer `windowVisible=false` (and the console closed) before any press**, then `drag-start` at the item's own projected point must answer at least one cast that is not a CUO blocker. After the close the same point answered NO casts at all, so the item's own projection is the next thing to re-read on a settled world (the body had just been teleported, and the item may sit on another sub-layer than the point the camera projected).

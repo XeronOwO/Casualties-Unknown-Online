@@ -229,6 +229,7 @@
   "console.suggest.json_template": "JSON 对象模板",
   "console.suggest.summon_position": "/summon 可接受的位置",
 "console.suggest.resource": "{0}（{1}）",
+  "console.suggest.item_state": "物品状态（SNBT）—— 按 Tab 逐个补全键与值",
 "console.suggest.kind.item": "物品",
 "console.suggest.kind.recipe": "配方",
 "console.suggest.kind.liquid": "液体",

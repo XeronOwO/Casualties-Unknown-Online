@@ -135,3 +135,10 @@ Still open on this ticket: row 2's frame (needs a driver action that drives an a
 **Row 3 judged on a frame (2026-10-31, build `344c0dc8`, deployed):** with the caret on `/give @s cu:waterbottle` the list drew one row —
 `cu:waterbottle{'Condition': 0, 'Favourited': false, 'Liquids': [], 'Components': {}}` — labelled `JSON object template` in the reader's language. The typed namespace form survives (the
 first build of this row rewrote `cu:waterbottle` to `waterbottle{…}`; fixed and pinned by a test), and the candidate is inserted verbatim, which is what a one-token SNBT state needs.
+## The state is completed TOKEN BY TOKEN, not pasted as a template (user correction 2026-10-31)
+
+The first cut of row 3 offered the whole brace-block as one candidate labelled as a JSON object template. The user rejected that shape: a template paste hides the grammar and is not
+how a mature console completes. The candidate is now the OPENING brace only (`cu:waterbottle{`, verbatim, its own hint key = item state, SNBT), and the next keystroke completes INSIDE it
+against the same schema: `/give @p waterbottle{` offers `{Condition:`, `{Liquids:`, … one key at a time from the existing fragment source, then the value, then the next key.
+`ItemStateSkeleton` is deleted — a whole-document builder was the wrong idea, not just a wrong label. The tests pin the opening step (typed id form kept, verbatim) and the key step inside
+the block.

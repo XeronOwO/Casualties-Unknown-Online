@@ -336,6 +336,7 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		"console.suggest.body_slot",
 		"console.suggest.filter_by",
 		"console.suggest.gamemode_value",
+		"console.suggest.item_state",
 		"console.suggest.json_empty",
 		"console.suggest.json_template",
 		"console.suggest.kind.building",

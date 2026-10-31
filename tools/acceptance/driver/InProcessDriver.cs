@@ -447,6 +447,26 @@
 		return finish(fields);
 	}
 
+	if (command == "console-arrow") {
+		// The arrow bindings the player uses (user direction 2026-10-30: the arrows move the LIST while one is drawn, and reach the command history only when it is
+		// not). ConsoleInputSession.MoveSelection is the same call the overlay's key switch makes, so a batch can judge the row from a frame instead of by hand.
+		if (overlay == null) {
+			return fail(escape, "no-cuo-online-ui", "the CUO Online UI is not reachable in this process");
+		}
+		var arrowOverlay = findField(overlay, "_commandOverlay");
+		var arrowSession = findField(arrowOverlay, "_session");
+		if (arrowOverlay == null || arrowSession == null) { return fail(escape, "no-console-ui", "the console overlay or its input session was not found"); }
+		var move = findMethodWith(arrowSession, "MoveSelection", 1);
+		if (move == null) { return fail(escape, "no-console-ui", "ConsoleInputSession.MoveSelection was not found"); }
+		var delta = argument == "up" ? -1 : 1;
+		move.Invoke(arrowSession, new object[] { delta });
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putText(fields, escape, "accepted", argument ?? "");
+		putText(fields, escape, "input", (findProperty(arrowSession, "Input") as string) ?? "");
+		return finish(fields);
+	}
+
 	if (command == "quit") {
 		putRaw(fields, escape, "ok", "true");
 		putText(fields, escape, "command", command);

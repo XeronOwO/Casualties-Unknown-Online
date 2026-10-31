@@ -162,12 +162,13 @@ internal sealed class ItemStateCompletion(
 			return false;
 		}
 
-		var skeleton = ItemStateSkeleton.Of(schema.Root);
+		// THE BLOCK IS OPENED, NOT PASTED (user correction 2026-10-31): a whole `{…}` skeleton in the list reads as a template and hides the token-by-token grammar.
+		// The candidate inserts the opening brace only, and the NEXT keystroke completes inside it against the same schema — key, then value, then the next key.
 		suggestions =
 		[
 			new CommandSuggestion(
-				(onTheId ? tokens[itemArgument].Unquoted : string.Empty) + skeleton,
-				CommandSuggestionHint.JsonTemplate,
+				(onTheId ? tokens[itemArgument].Unquoted : string.Empty) + "{",
+				CommandSuggestionHint.ItemState,
 				Verbatim: true),
 		];
 		return true;

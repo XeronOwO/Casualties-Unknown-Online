@@ -229,6 +229,7 @@
   "console.suggest.json_template": "JSON object template",
   "console.suggest.summon_position": "A position /summon accepts",
 "console.suggest.resource": "{0} ({1})",
+  "console.suggest.item_state": "item state (SNBT) — Tab fills the next key",
 "console.suggest.kind.item": "item",
 "console.suggest.kind.recipe": "recipe",
 "console.suggest.kind.liquid": "liquid",

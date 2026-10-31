@@ -217,38 +217,39 @@ public class ItemStateCompletionTests
 	}
 
 	[Fact]
-	public void GiveCompletion_AfterAResolvedId_OffersTheStateSkeleton()
+	public void GiveCompletion_AfterAResolvedId_OpensTheStateBlock()
 	{
-		// The user's 2026-10-30 report: with the caret right after the id nothing completed at all. The grammar expects the state there, so the item's own skeleton
-		// is offered — inserted verbatim, with the id kept when the caret is still on it. After a space the verb's own `slot` word is legal too, so both are listed.
+		// The user's 2026-10-30 report: with the caret right after the id nothing completed at all. The correction (2026-10-31) is that the block is OPENED, not
+		// pasted: one candidate inserts the brace, and the next keystroke completes the keys inside it.
 		var (host, _) = CreateSession();
 		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
 
 		var onTheId = Assert.Single(completion.Suggest("/give @p waterbottle"));
-		Assert.True(onTheId.Verbatim, "an SNBT state is one command-line token");
-		Assert.StartsWith("waterbottle{", onTheId.Text, StringComparison.Ordinal);
-		Assert.EndsWith("}", onTheId.Text, StringComparison.Ordinal);
+		Assert.True(onTheId.Verbatim, "opening a state is one command-line token");
+		Assert.Equal("waterbottle{", onTheId.Text);
 
-		// The typed id form is kept: a player who wrote the namespace must not have it rewritten by accepting the state.
+		// The typed id form is kept: a player who wrote the namespace must not have it rewritten by accepting the brace.
 		var namespaced = Assert.Single(completion.Suggest("/give @p cu:waterbottle"));
-		Assert.StartsWith("cu:waterbottle{", namespaced.Text, StringComparison.Ordinal);
+		Assert.Equal("cu:waterbottle{", namespaced.Text);
 
 		var afterTheId = completion.Suggest("/give @p waterbottle ");
-		var skeleton = Assert.Single(afterTheId, candidate => candidate.Text.StartsWith("{", StringComparison.Ordinal));
-		Assert.DoesNotContain("waterbottle", skeleton.Text, StringComparison.Ordinal);
+		var opened = Assert.Single(afterTheId, candidate => candidate.Text == "{");
+		Assert.True(opened.Verbatim, "the brace is inserted as typed");
 		Assert.Contains(afterTheId, candidate => candidate.Text == "slot");
 	}
 
 	[Fact]
-	public void GiveCompletion_Skeleton_IsAParseableState()
+	public void GiveCompletion_InsideTheOpenedBlock_OffersTheNextKeys()
 	{
+		// The token-by-token grammar the user asked for: after the brace, the keys of THIS item's schema — not a template with values filled in.
 		var (host, _) = CreateSession();
 		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
 
-		var suggestion = Assert.Single(completion.Suggest("/give @p waterbottle"));
+		var suggestions = completion.Suggest("/give @p waterbottle{");
 
-		Assert.True(
-			ItemStateText.TryParse(suggestion.Text.Substring(suggestion.Text.IndexOf('{')), out _, out _, out var error),
-			$"the skeleton must be a state the verb accepts: {error}");
+		Assert.Contains(suggestions, candidate => candidate.Text.EndsWith("{Condition:", StringComparison.Ordinal));
+		Assert.Contains(suggestions, candidate => candidate.Text.EndsWith("{Liquids:", StringComparison.Ordinal));
+		Assert.DoesNotContain(suggestions, candidate => candidate.Text.Contains(" false", StringComparison.Ordinal));
 	}
 }
+

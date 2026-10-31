@@ -87,6 +87,11 @@ public enum CommandSuggestionHint
 	ResourceLocation,
 
 	/// <summary>
+	/// The opening of an item state: the candidate inserts <c>{</c> and the next keystroke completes the keys inside it.
+	/// </summary>
+	ItemState,
+
+	/// <summary>
 	/// A sentence from a MOD's own catalogue: <c>Args[0]</c> is the key, the rest are its arguments. The catalogue entry belongs to the mod that registered
 	/// the command, so the client that draws the row renders it in its own language exactly like a framework key.
 	/// </summary>

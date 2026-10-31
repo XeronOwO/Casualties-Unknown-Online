@@ -420,6 +420,7 @@ internal sealed class CommandConsoleOverlay
 		CommandSuggestionHint.HostRuleCurrent => ctx.F("console.suggest.rule_current", suggestion.Args[0] ?? string.Empty),
 		CommandSuggestionHint.HostRuleValue => ctx.F("console.suggest.rule_value", suggestion.Args[0] ?? string.Empty),
 		CommandSuggestionHint.ResourceLocation => ResourceLocationHint(ctx, suggestion),
+		CommandSuggestionHint.ItemState => ctx.T("console.suggest.item_state"),
 		CommandSuggestionHint.KeyedText => KeyedHint(ctx, suggestion),
 		_ => null,
 	};

@@ -51,7 +51,18 @@ try {
 	if (-not $WorkingTree) {
 		$files = git diff --cached --name-only --diff-filter=ACM
 	} else {
-		$files = git status --porcelain | ForEach-Object { if ($_.Length -gt 3) { $_.Substring(3).Trim('"') } }
+		# A rename appears as "R  old -> new": BOTH sides carry text, and the arrow is not a path (the old side is gone from
+		# the working tree, so it is skipped by the leaf test below). Reading either side as one string is what a Test-Path
+		# then rejects as an illegal character.
+		$files = git status --porcelain | ForEach-Object {
+			if ($_.Length -le 3) { return }
+			$path = $_.Substring(3).Trim('"')
+			if ($path -match ' -> ') {
+				foreach ($side in $path -split ' -> ') { $side.Trim('"') }
+			} else {
+				$path
+			}
+		}
 	}
 
 	$bad = @()

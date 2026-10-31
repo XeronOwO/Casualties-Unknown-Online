@@ -269,7 +269,7 @@ public class GuestBlockReportRecoveryTests
 		// The guest applied a new world/layer baseline (the adapter's
 		// WorldParamsService calls this at the generation boundary): the previous
 		// world's cells must not be arbitrated into the new one.
-		guestWorld.ResetPendingBlockReports();
+		guestWorld.BlockReports.ResetPendingBlockReports();
 		w.Driver.Tick(61_000);
 		Assert.Single(reports);
 	}

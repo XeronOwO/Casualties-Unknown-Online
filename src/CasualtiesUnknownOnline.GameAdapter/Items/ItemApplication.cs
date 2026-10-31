@@ -228,7 +228,7 @@ internal sealed class ItemApplication
 			// must still leave the set. It is also a Runtime call outside the
 			// remote-apply scope below: the scope silences the scene's local-report
 			// hooks, and this touches no scene.
-			_world.ForgetBreakDrop(itemId);
+			_world.BlockReports.ForgetBreakDrop(itemId);
 		}
 
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))

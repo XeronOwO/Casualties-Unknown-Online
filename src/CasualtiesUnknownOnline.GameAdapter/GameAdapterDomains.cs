@@ -326,7 +326,7 @@ internal sealed class GameAdapterDomains
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), HostVitals, playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, hostRules, announced, remoteVitals, BackpackNotice, localization, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
 		RemoteMedical = new RemoteMedicalCoordinator(session, CharacterDataSync, mapper, loggerFactory.CreateLogger<RemoteMedicalCoordinator>());
-		DropGuard = new DropProtectionGuard(world.IsBreakDropPending);
+		DropGuard = new DropProtectionGuard(world.BlockReports.IsBreakDropPending);
 		// The carried rows' local incarnation (ticket mod-cross-player-solid-food-semantics, §6 step 2):
 		// the carried fact table's second consumer beside the clone renderer. Built before the item
 		// application and the reconcile, which route their drop / destroy / landing edges into it.

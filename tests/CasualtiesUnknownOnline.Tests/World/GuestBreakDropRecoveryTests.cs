@@ -130,7 +130,7 @@ public class GuestBreakDropRecoveryTests
 
 			if (sender == w.Host.SteamId && (drops is { Count: > 0 } || buildingDrops is { Count: > 0 }))
 			{
-				world.AnswerBreakDrops(cellX, cellY, drops, buildingDrops);
+				world.BlockReports.AnswerBreakDrops(cellX, cellY, drops, buildingDrops);
 			}
 		};
 	}
@@ -157,7 +157,7 @@ public class GuestBreakDropRecoveryTests
 	/// <summary>The guest side of a break: record the drops (the adapter's pre-send call) and send the live report.</summary>
 	private static void BreakBlock(ItemSimWorld w, TestNode guest, int cellX, int cellY, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops = null, WorldGenerationMsg? generation = null)
 	{
-		guest.Services.GetRequiredService<IWorldControl>()
+		guest.Services.GetRequiredService<IWorldControl>().BlockReports
 			.ReportBreakDrops(cellX, cellY, drops, buildingDrops);
 		SendBreakReport(w, guest, cellX, cellY, drops, buildingDrops, generation);
 	}
@@ -257,7 +257,7 @@ public class GuestBreakDropRecoveryTests
 		w.G1.Session.EndSession();
 
 		Assert.Equal(0, guestWorld.PendingBreakDropReportCount);
-		Assert.False(w.G1.Services.GetRequiredService<IWorldControl>().IsBreakDropPending(87));
+		Assert.False(w.G1.Services.GetRequiredService<IWorldControl>().BlockReports.IsBreakDropPending(87));
 	}
 
 	[Fact]
@@ -289,7 +289,7 @@ public class GuestBreakDropRecoveryTests
 		// The refusal's local half is the adapter's (it destroys the refused drop and
 		// forgets it from the pending set); the double models that step here so the
 		// test proves the re-report actually stops, instead of parking a cap slot.
-		w.G1.Services.GetRequiredService<IWorldControl>().ForgetBreakDrop(78);
+		w.G1.Services.GetRequiredService<IWorldControl>().BlockReports.ForgetBreakDrop(78);
 		Assert.Equal(0, PendingDropReports(w.G1));
 	}
 
@@ -363,7 +363,7 @@ public class GuestBreakDropRecoveryTests
 		w.G1.Services.GetRequiredService<IWorldControl>().BlockDamagedReceived += (_, _, _, _, _, _, _, relation) => relations.Add(relation);
 
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
-		guestWorld.ReportBreakDrops(CellX, CellY, [Drop(93)], null);
+		guestWorld.BlockReports.ReportBreakDrops(CellX, CellY, [Drop(93)], null);
 		Assert.Equal(1, PendingDropReports(w.G1));
 
 		// The relay's own shape: the break's drops plus a stamp that belongs to
@@ -467,7 +467,7 @@ public class GuestBreakDropRecoveryTests
 		// forgets it from the pending set (ItemApplication.OnItemRejected) — is
 		// adapter-side and not executed here; the forget surface itself is covered
 		// by PendingBreakDropTableTests.ForgetItem and the pending-count case below.
-		w.G2.Services.GetRequiredService<IWorldControl>().ForgetBreakDrop(82);
+		w.G2.Services.GetRequiredService<IWorldControl>().BlockReports.ForgetBreakDrop(82);
 		Assert.Equal(0, PendingDropReports(w.G2));
 	}
 
@@ -507,7 +507,7 @@ public class GuestBreakDropRecoveryTests
 
 		// A new world/layer baseline: a previous world's break must never be
 		// arbitrated (or registered) into the new one.
-		w.G1.Services.GetRequiredService<IWorldControl>().ResetPendingBreakDropReports();
+		w.G1.Services.GetRequiredService<IWorldControl>().BlockReports.ResetPendingBreakDropReports();
 		w.Driver.Tick(61_000);
 
 		Assert.Empty(host.Registered);
@@ -520,11 +520,11 @@ public class GuestBreakDropRecoveryTests
 		using var w = ItemSimWorld.Create();
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 
-		hostWorld.ReportBreakDrops(CellX, CellY, [Drop(85)], null);
+		hostWorld.BlockReports.ReportBreakDrops(CellX, CellY, [Drop(85)], null);
 		w.Driver.Tick(61_000);
 
 		Assert.Equal(0, w.Host.Services.GetRequiredService<WorldService>().PendingBreakDropReportCount);
-		Assert.False(hostWorld.IsBreakDropPending(85));
+		Assert.False(hostWorld.BlockReports.IsBreakDropPending(85));
 	}
 
 	[Fact]
@@ -544,13 +544,13 @@ public class GuestBreakDropRecoveryTests
 		// The item keyframe's reconcile asks this before killing a locally-created
 		// drop: the 5-30 s keyframe is far inside the 60 s fallback, so an
 		// unacknowledged drop must survive it.
-		Assert.True(guestWorld.IsBreakDropPending(86));
-		Assert.False(guestWorld.IsBreakDropPending(999));
+		Assert.True(guestWorld.BlockReports.IsBreakDropPending(86));
+		Assert.False(guestWorld.BlockReports.IsBreakDropPending(999));
 
 		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
 		w.Driver.Tick(61_000);
 
-		Assert.False(guestWorld.IsBreakDropPending(86));
+		Assert.False(guestWorld.BlockReports.IsBreakDropPending(86));
 	}
 
 	[Fact]

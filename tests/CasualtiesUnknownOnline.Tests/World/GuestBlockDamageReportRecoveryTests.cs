@@ -74,7 +74,7 @@ public class GuestBlockDamageReportRecoveryTests
 	private static void SwallowGuestReport(ItemSimWorld w, IWorldControl guestWorld, float contribution)
 	{
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		var cumulative = guestWorld.AddLocalBlockDamage(CellX, CellY, contribution);
+		var cumulative = guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, contribution);
 		guestWorld.SendBlockDamaged(CellX, CellY, contribution, false, cumulative, null, null);
 		w.Driver.Tick(33);
 
@@ -157,7 +157,7 @@ public class GuestBlockDamageReportRecoveryTests
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.AddLocalBlockDamage(CellX, CellY, Contribution);
+		guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, Contribution);
 		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
 
 		// The host holds damage for the very same cell (another sender's), and its
@@ -208,12 +208,12 @@ public class GuestBlockDamageReportRecoveryTests
 		ModelHostDamageApplication(w, native);
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.AddLocalBlockDamage(CellX, CellY, Contribution);
+		guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, Contribution);
 		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
 
 		// A block write landed on the cell before the fallback fired (a break, a
 		// placement): the contribution belonged to the block that is gone.
-		guestWorld.ForgetBlockDamageAccounting(CellX, CellY);
+		guestWorld.BlockReports.ForgetBlockDamageAccounting(CellX, CellY);
 		w.Driver.Tick(61_000);
 
 		Assert.Equal(0, OutstandingContributions(w));
@@ -228,12 +228,12 @@ public class GuestBlockDamageReportRecoveryTests
 		ModelHostDamageApplication(w, native);
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { Down = true });
-		guestWorld.AddLocalBlockDamage(CellX, CellY, Contribution);
+		guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, Contribution);
 		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
 
 		// A new world/layer baseline: the previous world's contributions must
 		// never be merged into the new one.
-		guestWorld.ResetPendingBlockDamageReports();
+		guestWorld.BlockReports.ResetPendingBlockDamageReports();
 		w.Driver.Tick(61_000);
 
 		Assert.Equal(0, OutstandingContributions(w));
@@ -274,7 +274,7 @@ public class GuestBlockDamageReportRecoveryTests
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 
-		guestWorld.AddLocalBlockDamage(CellX, CellY, Contribution); // this side holds the cell outstanding
+		guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, Contribution); // this side holds the cell outstanding
 		hostWorld.HandleBlockDamageReport(
 			w.G1.SteamId,
 			[new BlockDamageEntryMsg { X = CellX, Y = CellY, Damage = Contribution }],
@@ -292,7 +292,7 @@ public class GuestBlockDamageReportRecoveryTests
 		using var w = ItemSimWorld.Create();
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 
-		Assert.Equal(0f, hostWorld.AddLocalBlockDamage(CellX, CellY, Contribution));
+		Assert.Equal(0f, hostWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, Contribution));
 		w.Driver.Tick(61_000);
 
 		Assert.Equal(0, w.Host.Services.GetRequiredService<WorldService>().PendingBlockDamageReportCount);

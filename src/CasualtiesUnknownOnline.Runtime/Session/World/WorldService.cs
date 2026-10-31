@@ -19,7 +19,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// This facade keeps <see cref="IWorldControl"/> stable for packet handlers and
 /// the Game Adapter without turning one class into a mixed god-object.
 /// </summary>
-public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDisposable, ISessionReset
+public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly WorldChannelRelay _channels;
@@ -194,6 +194,9 @@ public sealed partial class WorldService : IWorldControl, IWorldFactSource, IDis
 		_facts.ApplyFacts(blockStates, radiationLine, restoreSequence);
 
 	/// <inheritdoc cref="CaptureBlockStates"/>
+	/// <summary>The guest report-recovery surface: the three channels whose tables and fallback windows make a swallowed report heal itself. Callers reach the object that keeps the table instead of a forwarding member.</summary>
+	public IWorldBlockReportControl BlockReports => _blockReports;
+
 	public bool HasPendingLiveReplay => _facts.HasPendingLiveReplay;
 
 	/// <inheritdoc cref="CaptureBlockStates"/>

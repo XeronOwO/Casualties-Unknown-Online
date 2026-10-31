@@ -160,4 +160,18 @@ from), the vitals pin (the three model inputs' call site) and one sync-coverage 
 call carries the same arguments in the same order.
 
 **What is left in the queue**: `RunCoordinator` (832, this ticket — the descent phase machine and the bind/unbind table), `GameAdapter` (712), `GameAdapterBridge` (649),
-`WorldService` (640), `RemoteIntentApplier` (621), `CharacterDataSync` (620) and `ExampleMod` (608).
+`RemoteIntentApplier` (621), `CharacterDataSync` (620) and `ExampleMod` (608).
+
+## Split 10: the world service's report-recovery surface (2026-10-31)
+
+`Runtime.Session.World.WorldService` counted **640** because it was split across two files: the service itself plus a partial that carried the guest report-recovery
+surface "split out at the 600-line gate" by forwarding every call to `BlockReportChannel`. A partial exists only to satisfy the gate, and it kept the world control
+declaring nine members whose state lives somewhere else.
+
+The channel declares them now: `IWorldBlockReportControl` (block state W1, partial damage W2, break drops W1's drop half) is implemented by `BlockReportChannel`, and
+`IWorldControl` exposes it as `BlockReports` — one door to the object that owns the tables. The partial file is DELETED, the service is a plain class again at **589 lines**,
+and its debt entry is gone. The call sites moved with it: four adapter files and four test files now read `world.BlockReports.X`, three sync-coverage entries follow their
+quotes, and the "half-open" seam is gone as well.
+
+**What is left in the queue**: `RunCoordinator` (832, this ticket), `GameAdapter` (712), `GameAdapterBridge` (649), `RemoteIntentApplier` (621), `CharacterDataSync` (620)
+and `ExampleMod` (608).

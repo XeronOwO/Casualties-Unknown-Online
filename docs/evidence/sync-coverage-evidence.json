@@ -9894,7 +9894,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs",
 
-      "quote": "_world.ResetPendingBlockReports();"
+      "quote": "_world.BlockReports.ResetPendingBlockReports();"
 
     },
 
@@ -10746,7 +10746,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
 
-      "quote": "var contribution = _world.AddLocalBlockDamage(cell.x, cell.y, applied);"
+      "quote": "var contribution = _world.BlockReports.AddLocalBlockDamage(cell.x, cell.y, applied);"
 
     },
 
@@ -10842,7 +10842,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
 
-      "quote": "_world.ReportBreakDrops(flushed.CellX, flushed.CellY, flushed.Drops, flushed.BuildingDrops);"
+      "quote": "_world.BlockReports.ReportBreakDrops(flushed.CellX, flushed.CellY, flushed.Drops, flushed.BuildingDrops);"
 
     },
 

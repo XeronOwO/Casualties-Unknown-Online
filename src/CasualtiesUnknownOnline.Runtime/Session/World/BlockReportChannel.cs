@@ -31,7 +31,7 @@ internal sealed class BlockReportChannel(
 	PacketSender sender,
 	INativeWorldFacts? nativeWorldFacts,
 	KernelWorldGenerationSource generations,
-	ILogger<WorldService> log)
+	ILogger<WorldService> log) : IWorldBlockReportControl
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
@@ -326,6 +326,20 @@ internal sealed class BlockReportChannel(
 
 	/// <summary>Guest only: add a locally-applied hit to the cell's own contribution and return the new cumulative value (0 when the cell cannot be tracked — the live report then carries no contribution and the host applies the raw delta).</summary>
 	public float AddLocalBlockDamage(int x, int y, float increment) => _guestReports.AddLocalDamage(x, y, increment);
+
+	// ---- Guest break-drop report recovery (audit gap W1's drop half): the same record/answer/forget cycle keyed by cell, carrying the drop payload ----
+
+	public void ReportBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) =>
+		_guestReports.ReportBreakDrops(x, y, drops, buildingDrops);
+
+	public void AnswerBreakDrops(int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) =>
+		_guestReports.AnswerBreakDrops(x, y, drops, buildingDrops);
+
+	public void ForgetBreakDrop(ulong itemId) => _guestReports.ForgetBreakDrop(itemId);
+
+	public bool IsBreakDropPending(ulong itemId) => _guestReports.IsBreakDropPending(itemId);
+
+	public void ResetPendingBreakDropReports() => _guestReports.ResetBreakDrops();
 
 	/// <summary>
 	/// Either role: a block write landed on the cell (air, placement, restore) —

@@ -128,7 +128,7 @@ internal sealed class BlockBreakSync(
 			// contribution is THIS hit's own damage (the guest's cumulative value for
 			// the cell, 0 when the cell could not be tracked — the host then applies
 			// the raw damage, which is the pre-ledger behaviour).
-			var contribution = _world.AddLocalBlockDamage(cell.x, cell.y, applied);
+			var contribution = _world.BlockReports.AddLocalBlockDamage(cell.x, cell.y, applied);
 			_world.SendBlockDamaged(cell.x, cell.y, dmg, bonusMetal, contribution, null, null);
 			_trace.End(op, 0, "OnBlockDamaged", "Committed(1)", "Damage");
 			return;
@@ -176,7 +176,7 @@ internal sealed class BlockBreakSync(
 			// drops-free report takes the damage-only path, which relays no
 			// payload), so the entry would occupy the table for the whole session
 			// and eventually starve the cap.
-			_world.ReportBreakDrops(flushed.CellX, flushed.CellY, flushed.Drops, flushed.BuildingDrops);
+			_world.BlockReports.ReportBreakDrops(flushed.CellX, flushed.CellY, flushed.Drops, flushed.BuildingDrops);
 		}
 
 		_world.SendBlockDamaged(
@@ -368,7 +368,7 @@ internal sealed class BlockBreakSync(
 			// only this side can run.
 			if (_session.Role == SessionRole.Guest && sender == _session.HostSteamId && hasDropPayload)
 			{
-				_world.AnswerBreakDrops(cell.x, cell.y, drops, buildingDrops);
+				_world.BlockReports.AnswerBreakDrops(cell.x, cell.y, drops, buildingDrops);
 			}
 
 			_buildingEntities.MarkSupportLossRemote(cell);
@@ -477,7 +477,7 @@ internal sealed class BlockBreakSync(
 	/// and never be applied.
 	/// </summary>
 	internal void ForgetBlockDamageAccounting(Vector2Int cell) =>
-		_world.ForgetBlockDamageAccounting(cell.x, cell.y);
+		_world.BlockReports.ForgetBlockDamageAccounting(cell.x, cell.y);
 
 	/// <summary>
 	/// The host's partial block-damage snapshot arrived (world entry / the

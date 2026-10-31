@@ -100,8 +100,8 @@ public class PartialDamageAccountingTests
 		// Two guests damage the same cell, each from its own view (neither saw the
 		// other's hit), and both live delta reports are swallowed: only the
 		// fallback's outstanding set ever reaches the host.
-		w.G1.Services.GetRequiredService<IWorldControl>().AddLocalBlockDamage(CellX, CellY, 20f);
-		w.G2.Services.GetRequiredService<IWorldControl>().AddLocalBlockDamage(CellX, CellY, 30f);
+		w.G1.Services.GetRequiredService<IWorldControl>().BlockReports.AddLocalBlockDamage(CellX, CellY, 20f);
+		w.G2.Services.GetRequiredService<IWorldControl>().BlockReports.AddLocalBlockDamage(CellX, CellY, 30f);
 
 		w.Driver.Tick(33); // the fallback's window arms on the first frame with work
 		w.Driver.Tick(61_000);
@@ -121,7 +121,7 @@ public class PartialDamageAccountingTests
 
 		// The guest's hit applied locally and recorded its contribution; its live
 		// delta was swallowed, so the fallback's report is what reaches the host.
-		var cumulative = guestWorld.AddLocalBlockDamage(CellX, CellY, 20f);
+		var cumulative = guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, 20f);
 		Assert.Equal(20f, cumulative);
 		w.Driver.Tick(33);
 		w.Driver.Tick(61_000);
@@ -147,7 +147,7 @@ public class PartialDamageAccountingTests
 		WorldGenerationReports.CommitRun(w.Host, layerIndex: 1);
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 
-		var cumulative = guestWorld.AddLocalBlockDamage(CellX, CellY, 20f);
+		var cumulative = guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, 20f);
 		LandDelta(w, w.G1.SteamId, 20f, cumulative);
 
 		Assert.True(Row(native) == 20f, $"the live delta lands once, the row ended at {Row(native)}");
@@ -186,13 +186,13 @@ public class PartialDamageAccountingTests
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 
 		// First hit: reported (so the ledger holds 20) but its answer was lost.
-		guestWorld.AddLocalBlockDamage(CellX, CellY, 20f);
+		guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, 20f);
 		Report(w, w.G1.SteamId, 20f);
 		Assert.Equal(20f, Row(native));
 
 		// A second hit at the same cell: the contribution is cumulative, so only
 		// the difference is new to this host.
-		var cumulative = guestWorld.AddLocalBlockDamage(CellX, CellY, 5f);
+		var cumulative = guestWorld.BlockReports.AddLocalBlockDamage(CellX, CellY, 5f);
 		Assert.Equal(25f, cumulative);
 		Report(w, w.G1.SteamId, cumulative);
 

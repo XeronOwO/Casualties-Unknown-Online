@@ -132,3 +132,6 @@ skeleton alone. `ItemStateCompletionTests` pins both positions and that the skel
 
 Still open on this ticket: row 2's frame (needs a driver action that drives an arrow), rows 7 and 8 (in-place argument errors; click/hover), and row 6's authority filter (already covered by the
 2026-10-24 rule and its gate).
+**Row 3 judged on a frame (2026-10-31, build `344c0dc8`, deployed):** with the caret on `/give @s cu:waterbottle` the list drew one row —
+`cu:waterbottle{'Condition': 0, 'Favourited': false, 'Liquids': [], 'Components': {}}` — labelled `JSON object template` in the reader's language. The typed namespace form survives (the
+first build of this row rewrote `cu:waterbottle` to `waterbottle{…}`; fixed and pinned by a test), and the candidate is inserted verbatim, which is what a one-token SNBT state needs.

@@ -32,13 +32,24 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(PlayerCamera), "HandleReleaseDragging")]
 internal static class PlayerCameraDragUsePatch
 {
-	private static void Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts, out ReleaseState __state)
+	/// <summary>
+	/// True = the game's own <c>HandleReleaseDragging</c> runs (the drop, the local own-UI action, and the proxy release whose native
+	/// calls the intent window CAPTURES). False = CUO already did the work and the original must not run as well: the native body
+	/// applies the item locally, which is what consumed the bandage the remote medical minigame had just been handed, so the minigame
+	/// ended on its next frame (<c>MinigameBase.ActiveMinigameUpdate</c>: <c>!currentItem &amp;&amp; NeedsItem()</c>).
+	/// <para>
+	/// Only the two branches whose own comments already say the native body is skipped return false — the give onto the displayed
+	/// backpack and the use on its centre (and the proxy with no authoritative identity, which the comment says the native body would
+	/// mutate). Every other branch keeps the behaviour it had when this was a void prefix.
+	/// </para>
+	/// </summary>
+	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts, out ReleaseState __state)
 	{
 		__state = new ReleaseState { AutoOpened = RemoteBackpackView.AutoOpened };
 		var dragItem = __instance.dragItem;
 		if (dragItem == null) // Unity object — ==
 		{
-			return;
+			return true;
 		}
 
 		if (dragItem.GetComponent<RemoteCloneRender>() == null) // Unity object — ==
@@ -49,7 +60,7 @@ internal static class PlayerCameraDragUsePatch
 			var mode = GiveGestureModePolicy.Read(__instance);
 			if (mode == GiveGestureMode.OwnUi)
 			{
-				return;
+				return true;
 			}
 
 			if (mode == GiveGestureMode.DisplayedBackpack)
@@ -74,7 +85,7 @@ internal static class PlayerCameraDragUsePatch
 						// stand-in.
 						__instance.PlayUISound(PlayerCamera.UISoundType.Click, 1f);
 						ClearDrag(__instance);
-						return;
+						return false;
 					}
 				}
 
@@ -89,15 +100,15 @@ internal static class PlayerCameraDragUsePatch
 					// The same release tail the native body would have run (see the give branch above): a consumed release keeps the click.
 					__instance.PlayUISound(PlayerCamera.UISoundType.Click, 1f);
 					ClearDrag(__instance);
-					return;
+					return false;
 				}
 
 				// Anywhere else the game's own drop semantics run: the range only chose whose backpack is shown.
-				return;
+				return true;
 			}
 
 			// World: no displayed backpack, so nothing of this family applies; the native release keeps the drop.
-			return;
+			return true;
 		}
 
 		var itemId = RemoteDragProxyQuery.InstanceId(dragItem);
@@ -111,7 +122,7 @@ internal static class PlayerCameraDragUsePatch
 			// an intent.
 			PatchBridge.Impl?.ReportRemoteDragUnresolved(dragItem);
 			ClearDrag(__instance);
-			return;
+			return false;
 		}
 
 		// While the remote view is open the native inventory ring shows the
@@ -138,6 +149,7 @@ internal static class PlayerCameraDragUsePatch
 		// body ran and only for this destination, so a release on a slot or on the centre is untouched.
 		__state.ProxyItemId = itemId;
 		__state.WorldRelease = !AnyInvButtonUnderPointer(uiCasts) && !DragUseCenter.IsUnderPointer(__instance);
+		return true;
 	}
 
 	private static void Finalizer(PlayerCamera __instance, ReleaseState __state)

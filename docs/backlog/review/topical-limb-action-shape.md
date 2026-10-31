@@ -129,3 +129,13 @@ No minigame came up (`minigame-live` answered `kind=none`), no dose was measured
 Retrying with the fixture rule followed (world live, `placed syringe in local slot 0`, release `limbLookingAt=5`): an EMPTY syringe produces nothing at all — no minigame (`minigame-live` answered `kind=none`), no `[MedicalView]` line and no refusal. That is a different shape from the row: the row names "a syringe holding water", and the native `useLimbAction` is what runs the injection, so an empty one has nothing to run.
 
 So the syringe half is a LIQUID fixture away, not an instrument away: the batch needs a syringe filled with water (the game's own container fill, or a spawn that carries a liquid) and then the same release. The saline half above and this empty-syringe reading together bound the shape: a bag with a health-usable liquid is refused by name, and a syringe with nothing in it does nothing.
+
+## The waterbottle half reads the same way (2026-11-01)
+
+A plain `waterbottle` given into slot 2 and released on limb 5 (`limbLookingAt=5`) answered the same named refusal:
+
+    [MedicalView] refused limb use: waterbottle is not a supported remote medical/limb-treatment item.
+
+with no minigame (`kind=none`). That is consistent with the classifier section, not against it: the admission asks for a container holding a **health-usable** liquid whose own limb action is the TOPICAL branch, and plain water is neither. So both halves of the owed row now need the same fixture — a container REFILLED with a health-usable liquid (the saline bag holds one but its own limb action is the drink, which is why it is refused) — and this build has no way to produce that refill from the batch: the console carries no fill command and the item catalog has no prefilled variant.
+
+The readings bound the shape completely, and each is now recorded with its own log line: a health-usable liquid in a limb-action container is refused by name; plain water in a bottle is refused by name; an empty syringe does nothing. What is left is the one refilled container, and it is a game-mechanic fixture rather than an acceptance instrument.

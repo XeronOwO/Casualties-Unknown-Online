@@ -230,3 +230,13 @@ The game's own update says why, and it rules this approach out entirely:
 - `BandageMinigame.Update` computes `holdingBandage` only on the frame `handStartedClicking` is true, and `PhysicsUpdate` — the only caller of `DoBandageAction` — needs `holdingBandage`.
 
 **So the rub has to be a real gesture**: hold the attack button (the game's own bind) and move the POINTER around the ring while it is held. Both instruments for that already exist in this tree — `virtual-input` stages `Input.mousePosition` and the buttons for the game's own reads, and `send-input` can hold a real button. The next driver moves the staged pointer in small steps (`bandageAngle`-led, a few degrees per frame, radius above the game's 250-unit clamp) with the left button held, and reads `bandage-rub-state`'s `actions` counter to prove `DoBandageAction` fired before it looks at the patient.
+
+## The instrument cannot hold the attack bind yet, and that is the last blocker (2026-11-01)
+
+A new recipe (`minigame-live`) reads the minigame's own state as the GAME computes it — `MinigameBase.handClicking`/`handPos` and the bandage minigame's `bandageAngle`, `lastActionAngle`, `didWrap` and the sprite's `fillAmount`. Read right after a release that started the minigame:
+
+    kind=BandageMinigame clicking=False mag=250 angle=0 lastAction=0 fill=0
+
+Then a staged pointer press at the ring and twelve staged moves around it, and the same reading afterwards: `clicking=False, angle=0, lastAction=0, fill=0`. So the minigame is real, the ring is where the batch thinks it is (the hand sits at radius 250, the game's own clamp), and **the game never sees the attack button held**.
+
+The reason is the instrument, not the feature: `MinigameBase.UpdateHandVisuals` asks `Input.GetKey(KeyBinds.GetBind("attack"))` DIRECTLY, while `VirtualInput` stages the keyboard by replacing the game's key reads at their call sites inside `PlayerCamera.HandleInput` (a transpiler) and patches only `Input.GetMouseButton*` for the mouse. A read that happens somewhere else — the minigame's own update — still reaches the real keyboard. **The next change is therefore in the acceptance harness**: patch `Input.GetKey`/`GetKeyDown`/`GetKeyUp(KeyCode)` with the same staged state the mouse buttons already answer (they are the same native shape `GetMouseButton` detours today), so a batch can hold the attack bind the way a player does. Nothing about the product changes; the minigame then has an honest input and the operation's progress is what gets read.

@@ -190,3 +190,5 @@ terminal `Completed`).
 Row 3 (a LOCAL bandage treatment, no remote view) is the same instrument pointed the other way — the host
 samples while the guest treats its own limb — and row 4b is the carried follow-up's. The instrument is
 committed as `tools/acceptance/recipes/audio-recent.cs`.
+
+and row 3 is blocked by the fixture rather than the instrument: a LOCAL bandage treatment needs the guest to OWN a bandage, and a member cannot give itself one — `/give` is a cheat-gated command and the guest is not on the host's granted list, so it answered `refused locally` (its own message naming the grant). A world pickup or a host-side give would stage it; that is the next batch's first step.

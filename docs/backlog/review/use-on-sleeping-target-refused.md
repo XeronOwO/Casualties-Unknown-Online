@@ -161,3 +161,15 @@ That is row 3 of this ticket, read end to end on the deployed artifact. Rows 1 a
 ## The splint family needs a free slot (2026-11-01)
 
 The same batch tried the LIMB-TOOL family on the same sleeping patient — the one treatment family left that does not need the drag: give a `splint`, open the chart, release it on limb 4. The give answered "packed into its carried container trashbag" (every slot was taken by the evening's earlier items), and the release then found nothing to drag (`limbLookingAt` empty). So the family is one free slot away, not one instrument away — the same rule the medical batch already learned, now confirmed for this ticket: **one treatment per fresh launch**. The next batch starts clean, re-naps the patient (the pills make `canTakeNap` hold, so a re-nap is one call), and reads the splint the way the bandage was read.
+
+## The SPLINT family on a sleeping patient (2026-11-01)
+
+Clean session, pills + `body-call kind=nap` (`sleeping=true`), a fresh wound on limb 4 (`skinHealth=63.04`) and a splint given into slot 0. The release went through the chart and the host's own lines carry it:
+
+    [ItemUse] <operator> uses splint (id …) on <patient>
+    [MedicalView] requested use of <patient> limb 4 with splint (id …)
+    [ItemUse] <patient> installed splint (id …)
+
+and the patient, read on their own client, carries the component (**`SplintLimb`**) and is **still `sleeping=true`**. So the second treatment family reads on a sleeping target without waking them, the same way the bandage did.
+
+The families left on row 1 are the ones that go through the give gesture (eat, drink, wear) and the injection (which needs a liquid-filled container); bandage and splint are read.

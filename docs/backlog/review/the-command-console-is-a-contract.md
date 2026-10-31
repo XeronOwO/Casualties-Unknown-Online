@@ -406,7 +406,7 @@ language half of the row is the mod surface's: the example command answers with 
 receiver renders, so the refusal below is what exercises that half.
 
 **A member without the grant is refused locally, in their own language, and the host never sees the invocation.** The
-guest typed `/heal @s` and was answered `本地拒绝：主机广播的作弊名单里没有你，所以 /heal 无法生效。主机用 /op 授予。什么都没做。`
+guest typed `/heal @s` and was answered `refused locally: the host's announced cheat list does not include you, so /heal cannot take effect; the host grants it with /op; nothing was done (translated from the member's Chinese answer)`
 while the host's log shows no `/heal` invocation in that window — only the network-health lines for that peer. Both
 halves hold: the refusal is local and localized, and nothing reached the host.
 

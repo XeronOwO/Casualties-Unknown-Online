@@ -113,3 +113,13 @@ holding water does too. That needs two clients and a real drag.
 ## The owed row's path is open, and the fixture it needs (2026-11-01)
 
 The two-client row no longer waits on an instrument. `medical-open steamId=<member>` opened the remote chart through the same call the Online UI makes (`opened=true, nativeOpen=true`), and `remote-medical-release item=saline limb=2` released the host's saline onto that limb through the game's own release path: the item left its slot (`dragAfter=none`), the view stayed open, and the answer carried `calls=none`. The patient's own read of that limb answered a healthy limb (`skinHealth=100, bleedAmount=0, components=` empty), so the injection flow had nothing to start on — the row needs a WOUNDED patient as its fixture, and that is the missing precondition rather than a missing entry.
+
+## The saline half of the owed row, read on the deployed build (2026-11-01)
+
+A `saline` given into a free slot, the guest's chart opened (`opened=true`) and the bag released on limb 5 (`limbLookingAt=5`) answered exactly what the landed design decides, and the host said it by name:
+
+    [MedicalView] refused limb use: saline is not a supported remote medical/limb-treatment item.
+
+No minigame came up (`minigame-live` answered `kind=none`), no dose was measured, and nothing was poured — the refusal-by-name this ticket's classifier section describes ("a limb release of a saline bag is claimed by no family"). The owed row's OLD wording — "starts the injection flow on the patient's side" — is the pre-2026-10-24 shape and is superseded by the native-parity resolution recorded above; the reading that matches the design is the refusal.
+
+**Still owed**: the syringe half, with the fixture rule the medical batch learned today — a give issued before the host's world is live is refused (`This client is not the host of a live session world`) and a give into full slots lands in the carried container, where the release cannot reach it. The batch that closes it starts fresh, waits for the world to settle, and checks the give line before releasing.

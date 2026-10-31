@@ -375,7 +375,7 @@ docs/backlog/review/launcher-fails-when-the-alt-box-cannot-start.md | keep | ind
 docs/backlog/review/host-blast-rolls-a-second-drop-set.md | keep | index | docs/backlog/README.md
 docs/backlog/done/player-facing-text-localized-per-receiver.md | keep | index | docs/backlog/README.md
 docs/backlog/done/context-menu-does-not-block-the-pointer.md | keep | index | docs/backlog/README.md
-docs/backlog/review/context-menu-name-wraps-behind-actions.md | keep | index | docs/backlog/README.md
+docs/backlog/done/context-menu-name-wraps-behind-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/done/console-completion-shows-no-suggestions.md | keep | index | docs/backlog/README.md
 docs/backlog/done/console-caret-misaligned-with-text.md | keep | index | docs/backlog/README.md
 docs/backlog/review/use-on-sleeping-target-refused.md | keep | index | docs/backlog/README.md
@@ -389,7 +389,7 @@ docs/backlog/review/the-pre-run-lobby-can-deadlock.md | keep | index | docs/back
 docs/backlog/review/selectors-exclude-the-executor.md | keep | index | docs/backlog/README.md
 docs/backlog/done/merge-remote-inventory-design-into-corpus.md | keep | index | docs/backlog/README.md
 docs/backlog/done/run-coordinator-over-the-class-line.md | keep | index | docs/backlog/README.md
-docs/backlog/review/split-the-oversized-classes.md | keep | index | docs/backlog/README.md
+docs/backlog/done/split-the-oversized-classes.md | keep | index | docs/backlog/README.md
 docs/backlog/done/new-recipe-files-are-rejected-by-the-evaluator.md | keep | index | docs/backlog/README.md
 docs/backlog/review/console-enter-on-empty-does-not-close.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/blast-marked-victims-20261024-r.md | keep | claim | docs/backlog/review/host-blast-rolls-a-second-drop-set.md

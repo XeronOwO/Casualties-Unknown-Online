@@ -144,7 +144,7 @@ right-button press, a stepped pointer move and a release), so this batch tried r
 **The same batch then tried that band point and two others, and all three answered `dragging=false`** (`dragItem=none`,
 `drag-state` sampled mid-hold, with the ring open and the emergency light in the ring's own button list): `520,419` (the slot's
 own button), `717,317` and `514,460`. The difference from the earlier success is STATE, not the coordinate: the ring drawn in
-these frames is the EQUIPMENT page (`主手/副手/上臂部/中臂部/下臂部`), while the earlier `dragItem=bandage` came from a page
+these frames is the EQUIPMENT page (its five slot labels read, in translation: main hand / off hand / upper arm / mid arm / lower arm), while the earlier `dragItem=bandage` came from a page
 whose slots held a carried item, and `ring-buttons` lists the emergency light as a slot of THIS page. So the drag row's missing
 capability is now precise: the batch must put the cursor over the CARRIED item's own band (the inventory page's slot band), not
 the equipment page's, before the right-press can enter `PlayerCamera`'s drag bracket. Parked there by the two-batch rule; the next
@@ -207,7 +207,7 @@ because a compiled class with no caller is still green.
 - **The name is the Online UI's own resolution.** `OnlineUiHost.DisplayName` delegates to the frame's
   `OnlineUiContext.DisplayName` (IP-direct name, Steam persona, `player-{steamId:X}` fallback) — the same answer
   the member list shows, not a fourth copy.
-- **The sentence is localized.** `cue.use_on` = `Use on {0}` / `对{0}使用`, formatted by the plugin
+- **The sentence is localized.** `cue.use_on` = `Use on {0}` in the English catalogue and its own Chinese sentence (read in translation: "use on {0}") in the other, formatted by the plugin
   (`ILocalizationService.Format`), so a Chinese client no longer reads a mixed-language label.
 - **A stale decision cannot outlive the gesture.** `DragUseCueTracker.Clear` is now called from
   `GameAdapterBridge.OnSceneLoadBegin` and `GameAdapterSessionBinding.OnSessionEnded`; the tracker also hides the
@@ -446,7 +446,7 @@ reading — the disappearance half. So a `bandage` is the item `LocalUseItemElig
 one-shot use), and the five-clause chain recorded in the previous batch is otherwise sound.
 
 The name the overlay draws is the member list's own: `PluginHost.DrawDragUseCue` formats `cue.use_on` with
-`_onlineUi.DisplayName(cue.TargetSteamId)`, and the probe's own fallback shows the id (`对76561198863287957使用`) because that
+`_onlineUi.DisplayName(cue.TargetSteamId)`, and the probe's own fallback shows the id inside the localized sentence (read in translation: "use on 76561198863287957") because that
 method lives on the plugin host, which the probe cannot reach through the service container. Row 1's substance — a cue that names
 the teammate the release would act on, and only while the pointer is on the use centre — is therefore read.
 
@@ -469,7 +469,7 @@ nothing — `rup` then `rdown` fixed it) and the ring closed with Tab rather tha
 `had=fentanyl(Clone) → after=none`, `mode=DisplayedBackpack`, `backpackOpen=True`, `focusedSteamId=76561198863287957`,
 `centreUnderPointer=True`. The operator's log then carries the whole chain: `[DragUse] used fentanyl on 76561198863287957 (instance
 …)`, `[ItemUse] refused: injectable …`, and — the row's own evidence — the OPERATOR'S SCREEN line
-**`使用被拒绝：injectable medicine goes through the medical …`** (`[OnlineUi] status line`). The target's state was untouched
+**the refusal sentence (read in translation: "use refused: injectable medicine goes through the medical …")** (`[OnlineUi] status line`). The target's state was untouched
 (`pain=0, skin=100`, consciousness 100) and the fentanyl stayed in its slot, so a refusal moved nothing.
 
 That also settles row 2's item: **fentanyl is the wrong family** — an injectable must go through the medical operation session, and
@@ -518,3 +518,15 @@ So the use lands, on the right player, and consumes the item by condition — an
 gesture ended. What this batch cannot read is the row's other half, "the success cue plays on the operator's screen": there is no
 probe that reports the last UI clip played (the audio probes capture named families, not the UI's own click), so that half is an ear
 residual and is named as one rather than claimed.
+## Batch 20261101-a: the virtual pointer reaches the game, and the give gesture's own gate is what the cue waits on
+
+The in-process channel now covers the pointer: this repository ships a virtual mouse (Acceptance/VirtualInput.cs: a Harmony postfix on Input.mousePosition and its button backend) and the batch used it instead of any OS-level press. What it read:
+
+- irtual-input mode=install answered mousePosition: patched (managed body), the three button methods patched through the native backend, and PlayerCamera.HandleInput: patched, 26 call(s) replaced.
+- The pointer is really the game's: with the pointer staged at the frame-derived point, a new pointer-truth recipe read Input.mousePosition back at that point and Camera.main.ScreenToWorldPoint gave **(153.63, 480.38)** — the guest's streamed position, to within a unit (pointer-truth also lists every remote's streamed position and screen point).
+- drag-from-slot slot=0 armed the game's bracket on the bandage (drag-state: dragging=True, dragItem=bandage), and with the right button HELD through the virtual backend the bracket stayed armed.
+- **The cue still read showing=False**, and the release at the guest's own screen point answered mode=World, backpackOpen=False, focusedSteamId=0, centreUnderPointer=False, centreDistance=3545 — i.e. the release took the game's own world-drop path.
+
+The reason is in the cue's own code (DragUseCueTracker.Update): the label is drawn only while the **displayed backpack is open and the pointer is on its centre**, and that backpack is opened by the give gesture's own entry (CrossPlayerDragUse.AutoOpenFor, called from the while-dragging patch). A bracket armed by drag-from-slot sets PlayerCamera.dragItem directly, but the give path's _dragActive latch — which Observe reads to offer the remotes — is set on the gesture's own start edge, so the automatic open never runs and nothing downstream (the open, the centre, the cue, the use-on-release) can fire.
+
+**The gap, named**: the batch needs one read of CrossPlayerDragUse.Observe's latch (which edge sets _dragActive) before the next attempt; a bracket armed in the middle is not the same state as a bracket started by the right button on the item, and only the latter enters the give family. Every other instrument this family needs already exists and answered.

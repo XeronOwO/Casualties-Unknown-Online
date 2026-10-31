@@ -62,9 +62,10 @@ internal sealed class ModConsoleCommandAdapter(
 			command.Name,
 			command.Description,
 			command.Permission,
-			// A mod's own runtime gate is not knowable to the console, so only its declared permission
-			// can be applied: a mod command is never classified as a cheat verb here.
-			ConsoleCommandGate.Open,
+			// The declared permission IS the classification: a definition that declares the cheat family is a cheat verb here too, so the console's
+			// completion filter, its help rows and its dispatcher read one field and cannot disagree about which family the command belongs to (the
+			// authority asks the gate family for either shape, and this adapter makes the two say the same thing).
+			command.Permission == CommandPermission.Cheat ? ConsoleCommandGate.Cheat : ConsoleCommandGate.Open,
 			command.Usage,
 			kinds,
 			args => Execute(command, args),

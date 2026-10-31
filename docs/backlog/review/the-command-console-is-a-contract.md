@@ -359,13 +359,13 @@ Where the acceptance rows actually stand, so nobody reads this ticket as finishe
 | 2 | judged by tests (the second parameter reads the first); no separate frame |
 | 3 | judged: the built-ins'' frames show the same suggestions they offered before the migration |
 | 4 | judged live: the host ran the member''s line, logged the requester, and the member read the keyed answer |
-| 5 | **OPEN for mod commands**: a mod''s declared permission is honoured for `HostOnly`, but a `Cheat` declaration is not gated by the host''s roster — the adapter registers `ConsoleCommandGate.Open` deliberately, and that is the gap this row names |
+| 5 | **PASS** (marker found stale 2026-11-01): `ConsoleCommandCheatPermissionTests` holds the three cases — a member without the grant is refused locally with `cheat.refused.not_on_roster` and the host never runs it, a member whose host has the switch closed is refused with `cheat.refused.switch_closed`, and after both rulings the relayed line runs on the host naming the requester; the adapter now also CLASSIFIES such a definition as `ConsoleCommandGate.Cheat`, so the console's filter and its dispatcher read one field instead of two sources that happened to agree |
 | 6 | judged: a keyed answer renders from the mod''s own catalogue (live, English member) and a text-only answer still prints (tests). The Chinese member''s render is a named residual |
 | 7 | **WITHDRAWN** by the user''s 2026-10-30 ruling: nothing has been released, so `ModConsoleCommand` was deleted instead of kept for a deprecation window |
 | 8 | judged for built-ins and for a mod parameter that declares `Selector` (test); no frame of the mod case |
 | 9 | per-request recomputation is structural (every `Suggest` asks again) and pinned by the completion tests; no dedicated session-change frame |
-| 10 | **OPEN**: a completer receives the invocation''s session snapshot and its command''s own definition, but no test proves one mod''s completer cannot see another mod''s facts |
-| 11 | **OPEN**: completion is bounded by the list caps, but no measurement proves a per-keystroke frame stays cheap |
+| 10 | **PASS** (marker found stale 2026-11-01): `ConsoleCompletionScopeTests.ACompleterIsHandedTheLineAndTheSession_AndNoModSurface` pins `ICompletionContext`'s public surface to the five line-and-session facts and fails if any mod-scoped type (`IModContext`, `IModState`, `IModData`, `IModConsoleCommands`, `IModContent`) ever appears on it, so another mod's facts are unreachable by construction; `OnlyTheCommandsOwnCompleter_IsAsked_ForItsParameter` covers the addressing half |
+| 11 | **PASS** (marker found stale 2026-11-01): `ConsoleCompletionCostTests` bounds a realistic line to many completions inside a tenth of a 60 Hz frame and pins the widest line as the worst case against the same budget, which is the per-keystroke stall detector the row asked for (a stall, not a benchmark, so a loaded machine reports a regression instead of its own noise) |
 
 The four rows still open (5, 10, 11) and the two residuals (2''s frame, 6''s Chinese member) are what remains before this ticket can be reviewed.
 ## Row 5 closed: a mod can declare the cheat family, and both sides judge it (2026-10-31)

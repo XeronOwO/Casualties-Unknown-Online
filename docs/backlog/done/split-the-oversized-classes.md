@@ -1,6 +1,6 @@
 # The recorded over-line classes still owe their splits
 
-- Status: Review
+- Status: Done
 - Priority: High
 - Category: Structure / maintainability
 - Source: the delivery checklist's structure rule, whose recorded-ceiling path now requires an owning ticket

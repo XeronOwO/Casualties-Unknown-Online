@@ -1,6 +1,6 @@
 # The player context menu's name is not drawn (and its empty title bar is a grey strip)
 
-- Status: Review — code landed 2026-10-25 (`9300ee5f`, `e2910f78`, `4988c83a`, `a2091d33`); the user confirmed the result on the running build
+- Status: Done — code landed 2026-10-25 (`9300ee5f`, `e2910f78`, `4988c83a`, `a2091d33`); the user confirmed the result on the running build
   (translated): "there is text, and there is no grey box".
 - Priority: Medium
 - Category: Online UI / panel layout

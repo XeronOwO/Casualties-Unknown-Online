@@ -76,7 +76,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 
-- [The oversized classes](review/split-the-oversized-classes.md) — **High** — queue empty; debt file empty.
 
 - [The host rolls a second drop set for a death a member already rolled](review/host-blast-rolls-a-second-drop-set.md) — **Medium** — one set, both clients.
 
@@ -103,7 +102,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [The context menu's name is not drawn, and its bar is a grey strip](review/context-menu-name-wraps-behind-actions.md) — **Medium** — a row now; confirmed.
 - [Enter on an empty console closes it now](review/console-enter-on-empty-does-not-close.md) — **Low** — landed; a frame and its state read.
 - [`@a` now names the executor too](review/selectors-exclude-the-executor.md) — **Medium** — code landed; the runtime rows need a session.
 - [A health-usable liquid cannot reach the wound view](review/topical-limb-action-shape.md) — **Medium** — native parity landed; a drag batch is owed.
@@ -174,6 +172,10 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [The oversized classes](done/split-the-oversized-classes.md) — **High** — twenty splits, queue empty, debt file empty.
+
+- [The player context menu's name is not drawn](done/context-menu-name-wraps-behind-actions.md) — **Medium** — user-confirmed, rows settled.
 
 - [Item custody: one authority and one local projection](done/item-custody-single-authority.md) — **Critical** — all five rows pass.
 

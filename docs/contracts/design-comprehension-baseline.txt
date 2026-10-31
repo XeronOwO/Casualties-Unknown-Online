@@ -4,7 +4,6 @@
 # exists has to name the corpus page it was designed from.
 
 docs/backlog/review/console-enter-on-empty-does-not-close.md
-docs/backlog/review/context-menu-name-wraps-behind-actions.md
 docs/backlog/review/cross-player-eat-skips-native-steps.md
 docs/backlog/review/host-blast-rolls-a-second-drop-set.md
 docs/backlog/review/adapter-capability-catalog.md

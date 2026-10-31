@@ -617,3 +617,9 @@ The recipe above answered `opened=true` for the mere fact that the call returned
 So the displayed backpack IS open — and it is focused on the ALT member, not the guest the batch was aiming at: the gesture's target is resolved by proximity (`Observe` + `IsTargetInRange`), and the alt was the nearer teammate. That is why the frame showed no panel where the batch looked and why the cue stayed hidden with the pointer over the guest: the open view belongs to somebody else.
 
 The next batch makes the two agree — bring the guest nearest, or aim the cue reading at the focused member — and then the frame plus `drag-cue` decide the row together.
+
+## Aiming the two at the same member closes the view instead (2026-11-01)
+
+The guest was teleported beside the host (2 units) and the alt moved 60 units away so the proximity resolution had an obvious answer, then the drag was armed and the auto-open called: **`isOpen=false, focused=0`** — the view did not open at all this time, and the cue stayed hidden.
+
+Two readings are consistent with that and both are cheap to separate next: the gesture's `_openedFor` remembers the member it last opened for and skips the work for a repeat, and the game's own while-dragging pass may close the view between the arm and the call. Either way the sequence a batch needs is the one a player performs — the drag STARTS while the teammate is already in range — rather than an arm followed by an open, and the instrument now reports the view's own state, so the next batch can tell the two apart instead of guessing.

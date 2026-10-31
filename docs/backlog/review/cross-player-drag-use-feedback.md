@@ -569,3 +569,13 @@ Three client session, host and guest both in a world, the item found on the host
 - the reason was visible in the client's own state: `windowVisible=true` — the Online UI window was OPEN, and the guard's blockers cover the screen while a CUO surface owns it. Closing it (`window.close`) cleared the blockers.
 
 That explains several earlier attempts in this family: the window (or the console) was open, the guard was doing its job, and the gesture is refused by design while a CUO surface owns the screen. **The batch recipe is now: `state` must answer `windowVisible=false` (and the console closed) before any press**, then `drag-start` at the item's own projected point must answer at least one cast that is not a CUO blocker. After the close the same point answered NO casts at all, so the item's own projection is the next thing to re-read on a settled world (the body had just been teleported, and the item may sit on another sub-layer than the point the camera projected).
+
+## Batch 20261101-e: the give is reliable now, the ARM is not (2026-11-01)
+
+A fresh launch, a fifteen-second settle, then the sequence the ticket needs:
+
+- `/give @s bandage` answered **`placed in slot 0`** — the timing rule from the medical batch holds: a give issued before the world is live is refused, one issued after it lands in a slot;
+- `pointer-truth` named the teammate at screen `(672,358)`, so the hover target is known;
+- **`drag-from-slot slot=0` answered with an EMPTY `dragItem`**, and `drag-state` confirmed `dragging=false, item=none`.
+
+So the batch never reaches the cue: it cannot start the drag. That is an instrument question, not a product one, and it is the next reading — the recipe's own contract (`drag-from-slot`) against the game's `HandleStartDragging`: what does it call, and on which object does it expect the ring to be drawn. The window rule from the previous batch still stands (a CUO surface owning the screen refuses the press by design, `windowVisible=false` before any press), and it was satisfied here.

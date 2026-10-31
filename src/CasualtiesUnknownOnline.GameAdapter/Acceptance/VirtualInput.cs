@@ -169,6 +169,29 @@ internal static class VirtualInput
 			}
 		}
 
+		// The minigame's own hand read. `MinigameBase.UpdateHandVisuals` asks `Input.GetKey(attack)` DIRECTLY — outside `PlayerCamera.HandleInput`, so the
+		// replacement above never reaches it — and a detour on Input's own methods is never invoked on this build (see the note above). The same call-site
+		// replacement therefore has to be applied to it as well: without this a staged press can hold a world gesture and never the hand of a minigame
+		// (measured 2026-11-01: `minigame-live` read handClicking=False with a press staged at the ring).
+		var updateHandVisuals = AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals", [typeof(bool)]);
+		if (updateHandVisuals == null)
+		{
+			report.Add("MinigameBase.UpdateHandVisuals: no method on this build");
+		}
+		else
+		{
+			try
+			{
+				_handleInputReplacements = 0;
+				harmony.Patch(updateHandVisuals, transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(TranspileHandleInput)));
+				report.Add("MinigameBase.UpdateHandVisuals: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
+			}
+			catch (Exception exception)
+			{
+				report.Add("MinigameBase.UpdateHandVisuals: FAILED " + DescribeFailure(exception));
+			}
+		}
+
 		_harmony = harmony;
 		installed = failures == 0;
 		return string.Join(" | ", report);

@@ -29,12 +29,6 @@
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The world re-entry recovery added the HasCommittedRunBaseline read (the fact the targeted world-join's baseline promise is made from) to the world facade, which stood at 598 across its two partial files. The host-descent edge added its three pass-throughs (send, fire, event) whose flow lives in LayerDescentChannel; the descent-spawn follow added the CurrentGeneration read (the kernel run baseline stamp a character snapshot is captured in). The spectator notice added the same three pass-through shape (send, relay, fire plus its event) whose flow lives in SpectatorNoticeChannel. The next split here takes those pass-throughs with the report-recovery ones the second partial's own comment names."
   },
-  "CasualtiesUnknownOnline.Runtime.Session.World.IWorldControl": {
-    "Lines": 615,
-    "BoolFlags": 0,
-    "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
-    "Note": "The world surface's contract. The descent-spawn follow added the CurrentGeneration read — the kernel run baseline stamp a character snapshot is captured in, which the CharacterData restore compares against its own layer. The spectator notice added its four members (send, relay, fire and the event), all forwarding to SpectatorNoticeChannel. The interface has no state; its size is the world/persistence surface collected here, and the next grower owes the per-domain port extraction the facade's own split plan names."
-  },
   "CasualtiesUnknownOnline.ModExample.ExampleMod": {
     "Lines": 608,
     "BoolFlags": 0,

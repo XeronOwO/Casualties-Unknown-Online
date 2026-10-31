@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// Handlers depend on this narrow interface instead of the concrete service,
 /// which keeps the constructor graph acyclic (abstract extraction, user rule).
 /// </summary>
-public interface IWorldControl
+public interface IWorldControl : IWorldSocialControl
 {
 	WorldStartParams? WorldParams { get; set; }
 
@@ -574,42 +574,4 @@ public interface IWorldControl
 	void FireRadiationLineStateReceived(RadiationLineStateMsg state);
 
 	event Action<RadiationLineStateMsg>? RadiationLineStateReceived;
-
-	/// <summary>Guest: report a locally-authored text-chat line to the host.</summary>
-	void SendChat(ChatMsg msg);
-
-	/// <summary>Host only: fan a chat line out to every member except the author.</summary>
-	void BroadcastChat(ulong excludeSteamId, ChatMsg msg);
-
-	/// <summary>A chat line arrived: a guest's report on the host, a relay on the guests.</summary>
-	void FireChatReceived(ulong sender, ChatMsg msg);
-
-	event Action<ulong, ChatMsg>? ChatReceived;
-
-	/// <summary>Watcher: report the start or the end of watching a member to the host.</summary>
-	void SendSpectatorNotice(SpectatorNoticeMsg msg);
-
-	/// <summary>Host only: relay a spectator notice to the watched member alone.</summary>
-	void RelaySpectatorNotice(SpectatorNoticeMsg msg);
-
-	/// <summary>A spectator notice arrived: a watcher's report on the host, a relay on the watched member.</summary>
-	void FireSpectatorNoticeReceived(ulong sender, SpectatorNoticeMsg msg);
-
-	event Action<ulong, SpectatorNoticeMsg>? SpectatorNoticeReceived;
-
-	/// <summary>
-	/// Report a locally-placed co-op location ping: guest → host as a report
-	/// (the host adds it to its own UI and relays), host → broadcast to all
-	/// synced members. The reporting player's client already added the marker
-	/// locally. Ping is transient UI presentation — no authority/world state.
-	/// </summary>
-	void SendLocationPing(LocationPingMsg msg);
-
-	/// <summary>Host only: relay an accepted location ping to the other members (source excluded — it already added the marker locally).</summary>
-	void BroadcastLocationPing(ulong excludeSteamId, LocationPingMsg msg);
-
-	void FireLocationPingReceived(ulong sender, LocationPingMsg msg);
-
-	/// <summary>A location ping arrived — the receiver adds the transient marker locally (host: after a guest report; guest: the host's relay).</summary>
-	event Action<ulong, LocationPingMsg>? LocationPingReceived;
 }

@@ -91,7 +91,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction` | 121 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Tutorial` | 2 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/World` | 124 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/World` | 125 | read |
 | `CasualtiesUnknownOnline.Runtime/Steam` | 5 | read |
 | `CasualtiesUnknownOnline.Runtime/Time` | 2 | read |
 | `CasualtiesUnknownOnline.Runtime/World` | 1 | read |

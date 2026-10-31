@@ -70,3 +70,16 @@ shared. That family is `ReportOnce` now — a tiny type any overlay surface can 
 The label pool the entry named stays available as a later split if the view grows again; `ReportOnce` was the extraction that cleared the line without touching a rendering rule,
 which is what the acceptance rows for the spectator strip depend on. The debt entry is DELETED (entries are 12 now, down from 14 at the start of this queue's work), and the folder
 count follows the new file.
+
+## Split 3: the world control's social half (2026-10-31)
+
+`Runtime.Session.World.IWorldControl` was 615 lines: the whole world surface — generation, blocks, items, entities, weather, radiation, chat, spectator, pings — in one
+interface. The three things one player says to another came out first because they are the one group whose members are not facts about the world at all: a text-chat line, a
+watch notice and a transient location ping, each a report/relay pair with its own receive event. They are `IWorldSocialControl` now, and `IWorldControl` inherits it, so every
+existing reader compiles unchanged while a reader that only needs the social surface can take the narrow one.
+
+`IWorldControl` is **577 lines** and its debt entry is deleted (11 entries now). `WorldService` implements the members unchanged — the compiler proves that, because the
+inheritance keeps them part of `IWorldControl` for every caller that already holds it. The folder count follows the new file.
+
+**What is left in the queue**: `RunCoordinator` (922), `CharacterDataSync` (738), `GameAdapter` (667), `GameAdapterBridge` (663), `WorldService` (640), `CharacterDataStore`
+(629), `PlayerInventoryTakeService` (626) and `IPatchBridge` (608, the frozen patch aggregate whose own doc names the per-domain port migration as the way it shrinks).

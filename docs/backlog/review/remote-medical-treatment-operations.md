@@ -185,3 +185,15 @@ and `BandageMinigame.NeedsItem()` returns true. So the minigame ends on the next
 `PlayerCameraDragUsePatch` hooks `PlayerCamera.HandleReleaseDragging` with `private static void Prefix(...)` — a void prefix. Every handled branch inside it ends with a bare `return;`, which means "handled here" but also **lets the original method run**, and the original is the game's own local apply/use — the call that consumes the item and starts the minigame with it. So the remote path does the work twice: CUO routes the operation to the host AND the native body applies the item locally.
 
 The change its fix needs is therefore mechanical and small: `bool Prefix` — `return false;` on the branches CUO handled (the give onto the displayed backpack, the use on its centre), `return true;` where the game's own drop semantics are the answer (the "anywhere else" branch). Each branch's verdict has to be stated one by one, because skipping the original too eagerly removes the game's own drop and too timidly leaves the double apply — and the batch that reads the result is the one this ticket already carries: the minigame must survive its first frame (the counters say so) and the patient's limb must change.
+
+## After the prefix fix (2026-11-01, build with `bool Prefix`): the minigame lives and is driven — 826 frames of it
+
+The release patch is a `bool Prefix` now and the two branches whose comments already said "the native body is skipped" return false. The same batch, on the deployed build, with a fresh wound (`skin=76.24`) and a bandage given into slot 0:
+
+| reading | before the fix | after it |
+|---|---|---|
+| `bandage-rub-state` | `saw=0 drove=0` (the minigame never survived a frame) | **`saw=826 drove=826`** |
+| host log | `started remote Bandage minigame` then silence | `started remote Bandage minigame … limb 3` then `[MedicalOps3] started Bandage operation 1` |
+| patient's client | `[LimbEvent] reported local limb` only | `[MedicalTargetCheck] answered request 1` |
+
+So the double handling was the whole reason the minigame could never be played: with it fixed, the game's own minigame runs for as long as the driver keeps rubbing, the operation starts on the host, and the patient's client answers the target check. What is left is the operation's COMPLETION reaching the patient's limb (`skinHealth` moved 76.24 → 77.27 over the same minutes, which is the game's own healing, and no treatment line appeared on either side yet) — the next reading is the operation's progress/end, and the minigame's own progress is what should drive it.

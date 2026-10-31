@@ -30,6 +30,8 @@ public static class AcceptanceBandageRub
 		if (main == null) { yield break; }
 
 		var angle = 0f;
+		var sawMinigame = 0;
+		var drove = 0;
 		for (var n = 0; n < steps; n++)
 		{
 			// The minigame appears a frame or two AFTER the release that starts it, and it ends on its own: wait for it, drive it while
@@ -37,6 +39,7 @@ public static class AcceptanceBandageRub
 			// started right after the release found no minigame on its first frame and finished without touching anything).
 			if (main.currentMinigame == null || !(main.currentMinigame is BandageMinigame)) { yield return null; continue; }
 
+			sawMinigame++;
 			main.handClicking = true;
 			main.handStartedClicking = n == 0;
 			main.handStoppedClicking = false;
@@ -44,9 +47,10 @@ public static class AcceptanceBandageRub
 			if (angle >= 360f) { angle -= 360f; }
 			// Radius above the game's own 250-unit floor, so its clamp branch does not fight the gesture.
 			main.handPos = new UnityEngine.Vector2(UnityEngine.Mathf.Sin(angle * 0.017453292f), UnityEngine.Mathf.Cos(angle * 0.017453292f)) * 320f;
+			drove++;
 			yield return null;
 		}
-
+		UnityEngine.Debug.Log("[BandageRub] frames with a bandage minigame: " + sawMinigame + ", driven: " + drove);
 		if (MinigameBase.main != null)
 		{
 			MinigameBase.main.handStoppedClicking = true;

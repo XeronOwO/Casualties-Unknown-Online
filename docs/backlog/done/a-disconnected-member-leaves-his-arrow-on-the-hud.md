@@ -1,6 +1,6 @@
 # A disconnected member leaves his arrow on the HUD
 
-- Status: Review — opened 2026-10-28 from the user's report (translated): "why does the arrow marker of a teammate still show after the guest disconnected?".
+- Status: Done — opened 2026-10-28 from the user's report (translated): "why does the arrow marker of a teammate still show after the guest disconnected?".
 - Priority: Medium — a wrong marker is a lie about who is in the session, and it sits on top of the world the player is playing in.
 - Category: Online UI / remote render clones / member lifecycle
 - Source: user report (2026-10-28), observed after both peers dropped out of the world in the acceptance session.
@@ -30,9 +30,9 @@ before any code is touched; a fix without that read would be a guess about which
 
 | Row | The check |
 |---|---|
-| 1 | A peer that leaves the world takes its arrow with it within one frame, read on the still-connected client (frame before/after and the roster read) |
-| 2 | A peer that rejoins gets its arrow back without a restart |
-| 3 | A peer that leaves while its arrow is off-screen leaves no marker, and no clone is left active in the scene |
+| 1 | A peer that leaves the world takes its arrow with it within one frame, read on the still-connected client (frame before/after and the roster read) | **PASS 2026-11-01** (a fresh pair on build `0c52727`): with the guest moved off-screen the host frame draws its marker at the right edge (name + distance, the arrow at the panel edge); the guest then left the world (`leave-world`) and the next host frame shows no marker anywhere, with the host's roster still counting three members |
+| 2 | A peer that rejoins gets its arrow back without a restart | **PASS 2026-11-01**: the same guest left the lobby, rejoined it (`join-lobby`), was pulled into the running world by the host's invite (`inWorld=True`, no host action), and after moving it off-screen the host frame draws the marker again — same name, same shape, no restart on either side |
+| 3 | A peer that leaves while its arrow is off-screen leaves no marker, and no clone is left active in the scene | **PASS 2026-11-01**: the leaving peer's arrow WAS the off-screen marker, so the frame pair above is this row's marker half; for the clone half the alt member left the world from a spot beside the host and a scene scan of the 40-unit box around its last position answered 132 objects — the host's own `Experiment/Body/...` with its carried items and world prefabs, no second body and no `RemoteCloneRender` entry |
 ## Observed while trying to reproduce (2026-10-28 23:35)
 
 After both peers dropped and rejoined the same lobby, each peer's own gate read `Waiting for the host to load… The host is not in the world yet.` while the

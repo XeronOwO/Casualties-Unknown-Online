@@ -78,7 +78,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [A disconnected member leaves his arrow on the HUD](review/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — arrow leaves with the peer.
 
 - [A give degrades to a ground drop, and rearranging retires it](review/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — handled.
 
@@ -170,6 +169,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A disconnected member leaves his arrow on the HUD](done/a-disconnected-member-leaves-his-arrow-on-the-hud.md) — **Medium** — leaves and returns.
 
 - [Selectors exclude the executor](done/selectors-exclude-the-executor.md) — **Medium** — every row judged, including the solo case.
 

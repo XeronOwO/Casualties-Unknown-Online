@@ -118,3 +118,14 @@ wrong UI.
 - Not mutating the remote render clone as the operation path.
 - Not implementing remote special-removal actions in this cycle (recorded above).
 - Not expanding beyond the native medical UI's own operations without user direction.
+
+## Batch 20261101-d: the release does reach the operation, and the row now waits on the MINIGAME, not on the gesture
+
+A wounded patient was made on purpose (new recipe `wound-seed`: the game's own `Limb.ImpactDamage`, `reversing/Assembly-CSharp/Assembly-CSharp/Limb.cs` — force 220 left the guest's limb 2 at `skinHealth=8.92, bleedAmount=18.184`). Then the host gave itself a bandage, opened the guest's chart (`medical-open` → `opened=true, nativeOpen=true`) and released the bandage on limb 2 (`remote-medical-release` → the item left its slot).
+
+The host's own log says what happened next, and it is not "nothing":
+
+- `[MedicalOps3] refused start for … ` then `[MedicalView] remote Bandage start rejected for …: No line of sight.` — the first attempt was refused with a named reason (the operator's body was not in line of sight after the teleports);
+- `[MedicalView] started remote Bandage minigame for … limb 2 (item bandage).` — the retry STARTED the treatment as the game's own bandage minigame.
+
+The patient's limb read unchanged (`skinHealth=8.92, bleedAmount=17.9`) because a minigame-start is not a completed operation: the wound view's own minigame has to be played to its end before the effect lands. **So this ticket's live row now waits on a minigame driver, exactly like the shrapnel and CPR rows** — the same shape `shrapnel-break` and `cpr-rhythm` already solve with a declaration rather than a recipe, because the pieces have to be driven across frames the game itself runs. The next batch starts from that instrument, not from another release.

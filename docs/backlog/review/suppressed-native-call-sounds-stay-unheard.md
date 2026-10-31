@@ -245,3 +245,9 @@ The counting watcher (`audio-watch3`) makes "once" countable: one play is one `A
     host plays=2   guest plays=2
 
 The item bounces once, so two collisions are two presentations — and the counts MATCH, which is the row: the guest hears exactly the authority's presentations, once each, with no extra ghost echo of its own.
+
+## What the LOCAL-treatment row needs, read off a frame (2026-11-01, 09:00)
+
+With the CUO window closed and `open-own-wound` answering `open=True`, the captured frame shows the game's own wound view: the body silhouette with its limbs, a selected-limb panel on the left (reading its bar values) and the limb icons over the body. So a local treatment selects its limb by clicking the DRAWN LIMB, and the item is then used on that selection — which is why `item-use` answered `usable=False` for every aim point this batch tried: the aim never landed on a limb of that panel, and the panel had another limb selected (a healthy one read 100/100 while the wounded limb was a different one).
+
+That makes the local-treatment row (and row 3 of this ticket) wait on a click inside the game's wound view — the OS channel, or a UI-click instrument the batch does not have. The remote half of the same family is read (rows 2 and 5, above).

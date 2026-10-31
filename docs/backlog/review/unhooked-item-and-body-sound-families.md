@@ -122,3 +122,17 @@ followed the delegates' callees (`useLimbAction` → `ApplyToLimb` → `onHealth
 - Not inventing a clip for a native call that never played one (the blocked remote-medical apply), and
   not relaying a suppressed native impact through the character channel: both are the new ticket's
   question.
+
+## The nap half of row 6, read from the listener side (2026-11-01, 07:10)
+
+The setups this ticket was waiting for now exist, and the reading is direct: the guest was put to sleep
+with `body-call kind=nap` (its own nap coroutine runs, and the game plays `stretch` locally —
+`reversing/Assembly-CSharp/Assembly-CSharp/Body.cs`, the nap coroutine's `Sound.Play("stretch", …)`), while
+the host sampled every `AudioSource` through a new read-only recipe (`audio-recent`, `match=stretch`) for
+the whole window. The host caught **no clip named `stretch`** — so the nap's own sound does not reach a
+peer today through the character-sound channel.
+
+That is the answer this row's nap half needed, and it is an "unhooked family" outcome rather than a broken
+relay: the clip is local to the body that naps. The shake half and row 1's plain limb treatments are the
+same instrument pointed at their own actions, and the remote treatment's `bandage` clip — the one the
+sibling ticket read — was captured on the peer in the same session layout.

@@ -278,3 +278,13 @@ The rows this ticket carries can now be judged on that evidence; what is left to
 `RemoteOtherMedicalOperationHandler.OnStartAckReceived` acted on whatever session happened to be active. The first release against a displayed limb is refused by the game for want of line of sight, and the batch retries — so a REJECTION for the first attempt can arrive after the retry's session is live, and the handler's `_active = null` then took the live session down: every wrap after that counted into `PendingWraps` and never left, and the host's operation timed out with `progress 0.000`. That is exactly the shape the batches saw — the same driver reporting `0.088` on one attempt and `0.000` on the next.
 
 The rejection branch now checks that the message names the session this client is actually running (target, item instance and kind) and logs a stale rejection as ignored instead of ending the live one. Committed, deployed and gated; **its live verification is owed** because the batch that followed found no bandage left in the operator's slots (`/give` had filled them and the earlier attempts consumed them), so no operation started at all. The next batch starts from a client with a free slot — or drops the container items first — and reads the operation's terminal line, which is the reading that decides this ticket's last row.
+
+## The fixed build, a clean session: the operation stays alive and the patient heals (2026-11-01)
+
+Fresh clients (a free slot, so the bandage landed in slot 0), a wounded limb 5 (`skinHealth=63.04`), chart opened, bandage released on limb 5 (`limbLookingAt=5`), then the minigame driven with the attack key held and 15° pointer steps:
+
+- the live reader answered `lastAction=160, fill=1` — the game's own wrap completed;
+- the host's operation **did not time out and did not read 0.000** — `started Bandage operation 1` stayed the last line while updates kept arriving, which is the fixed `OnStartAckReceived` keeping the live session alive through the stale rejection;
+- the patient's limb went `63.04` → **`76.358`, bleeding `0`** — the treatment is being applied to the patient by the patient's own client.
+
+What this ticket's last row needs is the same reading taken to the operation's END (a commit line rather than an interruption), and the mechanism for that is in place: keep the hand moving until the operation reports its terminal commit, which the batches have not yet driven long enough to see. The 0.000/timeout failure that made this row unjudgeable is gone.

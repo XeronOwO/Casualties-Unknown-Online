@@ -173,7 +173,7 @@ velocity > 3) and `PlushScript.OnCollisionEnter2D` (the plush's own squeak, velo
 - Not a general "every game sound becomes a message" sweep: each row needs its own decision, and
   "the sound stays silent, because …" is a valid outcome that must be written down.
 
-## Row 2 read from the LISTENER side (2026-11-01, 07:00)
+## Row 2 read from the LISTENER side (2026-11-01, 07:00) — CORRECTED, see below
 
 The row — a bandage whose limb action starts the native `BandageMinigame`, "every peer hears `bandage`
 once when the wrap completes" — was staged end to end on a fresh three-client session and measured on the
@@ -218,3 +218,11 @@ Row 1 is "a player treats a limb (syringe / splint / goo / bandage) -> every oth
 - **Through a second player's chart.** No: that is the remote path, which is row 2 and already read.
 
 So row 1 waits on the game's own limb selection inside the wound panel — a click on the panel's limb — which is the OS channel, not an in-process recipe. The row is parked on that (one real click with the panel open), and the peer-side instrument for it is already built and proven (`audio-recent`).
+
+## CORRECTION (2026-11-01, 08:05): the one-second poll is not evidence, and the peer caught nothing under a frame-accurate watch
+
+The reading above came from a sampler that asks one instant per driver call, and a driver call costs 0.3-0.6 s of process startup — so a short clip can fall entirely between two polls, and one catch could equally have been a different source. A frame-accurate watcher now exists (`audio-watch2` declaration + `audio-watch2`/`audio-watch2-read` recipes): it runs INSIDE the client, re-scans the scene's `AudioSource`s every fifth frame and records every clip name it has ever seen playing. Validated on an ambient clip it answers `hits='wind|windLoop|'`, so the instrument works.
+
+Under that watcher the peer caught **nothing** for a completed remote bandage treatment: the guest ran 1730 frames across the release, the minigame and its end (`minigame-end` answering `ended=true`), and its hits string stayed empty. Its own log for the same window carries no `[CharacterSound]` line for the bandage — only an unrelated `[Sound] lifePodHit` pair.
+
+So row 2 is **NOT proven**; the earlier single catch is not reproducible and must not be cited as a pass. The next reading is the relay itself: whether `CharacterSoundSync` reports the operator's `bandage` clip at all (its send-side line for the treatment window), before any listener measurement can mean anything.

@@ -299,3 +299,25 @@ the host's own line runs in place; and a host that never built its console refus
 
 **Still open in stage 3:** a SHIPPED sample command that declares `HostRelayed`, so the two-client live row can be judged (the host's log names the requester, the member
 reads the answer in its own language).
+
+## Stage 3 judged live: a member's line ran on the host and the answer came back keyed (2026-10-31)
+
+The shipped sample now carries the road: `/examplehost <text>` declares `CommandScope.HostRelayed`. With the sample installed on both clients (it is a separate plugin the
+deploy script does not install — this batch installed it by hand), the GUEST ran `/examplehost probe3`.
+
+- The HOST executed it and logged the requester: `[Mod:cuo.example] [Example] host echo for 76561198863287957: probe3` — the id is the guest's, so the handler saw the player
+  who typed, not the machine that ran it.
+- The GUEST's console printed `the host answered 76561198863287957: probe3` — the answer crossed as `console.sample.hostecho` plus arguments and was rendered by the guest's
+  OWN catalogue. That client's CUO language is English while the host's is Chinese, so the frame shows the READER's language, not the writer's.
+- The reply is asynchronous: the command's own call returns before the answer, which is why the driver's `lastLine` right after the line still shows the previous line and the
+  answer appears in the history a moment later. That is the intended shape for a non-local command.
+
+The batch also caught a real defect in the sample: it registered console commands WITHOUT `ModPermission.RegisterLocalCommand`, so the adapter had been refusing every one of
+them at bind time (`/examplehost` answered that the command was unknown). Fixed in the same cycle; the permission is part of what a sample has to demonstrate.
+
+**Limit of this row:** the member's client was the English one. The Chinese sentence exists, and the rendering path is the generic keyed resolver already proven on the Chinese
+client for the hint and answer rows, but this row did not watch a Chinese member read a relayed answer.
+
+**Still open (stage 4):** a MOD's own language catalogue. A mod has no catalogue registration today — the census gates require every key in `src/` to be declared in the
+framework tables, which is why the sample's sentence lives under `console.sample.*`. That gap is the mod-catalogue item the next stage has to close before a mod can ship its
+own sentences.

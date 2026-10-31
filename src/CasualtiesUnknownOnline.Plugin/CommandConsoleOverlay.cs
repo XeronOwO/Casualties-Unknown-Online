@@ -35,6 +35,9 @@ internal sealed class CommandConsoleOverlay
 	private KeyCode _focusOpener = KeyCode.Slash;
 	private IMECompositionMode _previousImeMode = IMECompositionMode.Auto;
 
+	/// <summary>The tooltip the last pointer event reported, kept for the repaint that draws it (see <see cref="CaptureTooltip"/>).</summary>
+	private string _tooltipText = string.Empty;
+
 	internal CommandConsoleOverlay(ConsoleInputSession session, ILogger<CommandConsoleOverlay> log)
 	{
 		_session = session;
@@ -99,6 +102,7 @@ internal sealed class CommandConsoleOverlay
 		DrawSuggestions(ctx, rect);
 		DrawInput(rect);
 		DrawTooltip();
+		CaptureTooltip();
 	}
 
 	private void DrawClosedNotifications(OnlineUiContext ctx)
@@ -473,17 +477,44 @@ internal sealed class CommandConsoleOverlay
 	private static Rect InputRect(Rect panel) =>
 		new(panel.x + 10f, panel.y + panel.height - InputHeight - 8f, panel.width - 20f, InputHeight);
 
+	/// <summary>
+	/// Draws the preview of the candidate the pointer is over — the one thing a CLICK cannot show, because the row is already printing its
+	/// own hint and the preview is what a hover adds without accepting the row.
+	/// </summary>
+	/// <remarks>
+	/// The text is the LAST captured value, never <c>GUI.tooltip</c> read here: IMGUI reports the hovered control's tooltip while it PROCESSES
+	/// the pointer event and clears it before the repaint that could draw it, so reading it in the drawing pass found it empty on every frame —
+	/// which is why the preview had never appeared.
+	/// </remarks>
 	private void DrawTooltip()
 	{
-		if (string.IsNullOrEmpty(GUI.tooltip))
+		if (Event.current.type != EventType.Repaint || string.IsNullOrEmpty(_tooltipText))
 		{
 			return;
 		}
 
 		var mouse = Event.current.mousePosition;
-		var width = Mathf.Min(360f, Screen.width - mouse.x - 24f);
+		var width = Mathf.Max(120f, Mathf.Min(360f, Screen.width - mouse.x - 24f));
 		var rect = new Rect(mouse.x + 14f, mouse.y + 14f, width, 44f);
 		OnlineUiTheme.DrawOverlayBackground(rect);
-		GUI.Label(new Rect(rect.x + 6f, rect.y + 4f, rect.width - 12f, rect.height - 8f), GUI.tooltip, OnlineUiTheme.MutedLabel());
+		GUI.Label(new Rect(rect.x + 6f, rect.y + 4f, rect.width - 12f, rect.height - 8f), _tooltipText, OnlineUiTheme.MutedLabel());
+	}
+
+	/// <summary>
+	/// Keeps the hovered control's tooltip across the two events IMGUI splits it over: the pointer event that reports it and the repaint that
+	/// draws it. An input event that reports none clears the stored text, so a preview cannot outlive the pointer leaving the row.
+	/// </summary>
+	private void CaptureTooltip()
+	{
+		if (!string.IsNullOrEmpty(GUI.tooltip))
+		{
+			_tooltipText = GUI.tooltip;
+			return;
+		}
+
+		if (Event.current.type is EventType.MouseMove or EventType.MouseDrag or EventType.MouseDown or EventType.MouseUp)
+		{
+			_tooltipText = string.Empty;
+		}
 	}
 }

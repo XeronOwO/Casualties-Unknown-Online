@@ -229,6 +229,10 @@ public class ItemStateCompletionTests
 		Assert.StartsWith("waterbottle{", onTheId.Text, StringComparison.Ordinal);
 		Assert.EndsWith("}", onTheId.Text, StringComparison.Ordinal);
 
+		// The typed id form is kept: a player who wrote the namespace must not have it rewritten by accepting the state.
+		var namespaced = Assert.Single(completion.Suggest("/give @p cu:waterbottle"));
+		Assert.StartsWith("cu:waterbottle{", namespaced.Text, StringComparison.Ordinal);
+
 		var afterTheId = completion.Suggest("/give @p waterbottle ");
 		var skeleton = Assert.Single(afterTheId, candidate => candidate.Text.StartsWith("{", StringComparison.Ordinal));
 		Assert.DoesNotContain("waterbottle", skeleton.Text, StringComparison.Ordinal);

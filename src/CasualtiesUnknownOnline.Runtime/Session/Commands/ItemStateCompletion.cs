@@ -166,7 +166,7 @@ internal sealed class ItemStateCompletion(
 		suggestions =
 		[
 			new CommandSuggestion(
-				(onTheId ? definitionId : string.Empty) + skeleton,
+				(onTheId ? tokens[itemArgument].Unquoted : string.Empty) + skeleton,
 				CommandSuggestionHint.JsonTemplate,
 				Verbatim: true),
 		];

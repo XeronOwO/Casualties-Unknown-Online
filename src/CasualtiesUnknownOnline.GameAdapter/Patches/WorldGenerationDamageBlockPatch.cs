@@ -64,7 +64,7 @@ internal static class WorldGenerationDamageBlockPatch
 
 			if (!ignoreLoot && __state.World.GetBlock(__state.Cell) == 0)
 			{
-				PatchBridge.Impl?.OnCustomTileBroken(__state.World, __state.Cell, __state.OriginalBlock);
+				PatchBridge.WorldGen?.OnCustomTileBroken(__state.World, __state.Cell, __state.OriginalBlock);
 			}
 
 			// How much this call actually added to the cell's row, in the game's own
@@ -76,7 +76,7 @@ internal static class WorldGenerationDamageBlockPatch
 			var applied = __state.World.GetBlock(__state.Cell) == 0
 				? 0f
 				: (__state.World.GetBlockDamage(__state.Cell)?.damage ?? 0f) - __state.PreviousDamage;
-			PatchBridge.Impl?.OnBlockDamaged(__state.Cell, dmg, bonusMetal, applied);
+			PatchBridge.WorldGen?.OnBlockDamaged(__state.Cell, dmg, bonusMetal, applied);
 		}
 		finally
 		{

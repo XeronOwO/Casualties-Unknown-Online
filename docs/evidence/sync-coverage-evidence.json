@@ -5358,7 +5358,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationSetBlockPatch.cs",
 
-      "quote": "PatchBridge.Impl?.OnBlockSet(pos, block);"
+      "quote": "PatchBridge.WorldGen?.OnBlockSet(pos, block);"
 
     },
 
@@ -5454,7 +5454,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationDamageBlockPatch.cs",
 
-      "quote": "PatchBridge.Impl?.OnBlockDamaged(__state.Cell, dmg, bonusMetal, applied);"
+      "quote": "PatchBridge.WorldGen?.OnBlockDamaged(__state.Cell, dmg, bonusMetal, applied);"
 
     },
 

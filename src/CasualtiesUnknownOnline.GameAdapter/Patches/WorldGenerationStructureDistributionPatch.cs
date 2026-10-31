@@ -15,9 +15,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(WorldGeneration), "WorldGenerateWorldBorders")]
 internal static class WorldGenerationStructureDistributionPatch
 {
-	private static IEnumerator Postfix(IEnumerator __result, WorldGeneration __instance)
-	{
-		var adapter = PatchBridge.Impl;
-		return adapter is null ? __result : adapter.WrapStructureWorldGen(__result, __instance);
-	}
+	private static IEnumerator Postfix(IEnumerator __result, WorldGeneration __instance) =>
+		PatchBridge.WorldGen is { } worldGen ? worldGen.WrapStructureWorldGen(__result, __instance) : __result;
 }

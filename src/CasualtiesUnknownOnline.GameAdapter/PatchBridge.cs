@@ -49,6 +49,9 @@ internal static class PatchBridge
 	/// <summary>The end-of-layer panel's close port (the host rule closing what the game's own latch re-opens). Declared on the aggregate as well.</summary>
 	public static ILayerPanelPatchPort? LayerPanel => _bound as ILayerPanelPatchPort;
 
+	/// <summary>The world-generation patch port (the generation passes and the cell-keyed block writes). The aggregate does not declare it, so this accessor is the only way a patch reaches those hooks.</summary>
+	public static IWorldGenPatchBridge? WorldGen => _bound as IWorldGenPatchBridge;
+
 	public static void Bind(IPatchBridge impl) => _bound = impl;
 
 	public static void Unbind(IPatchBridge impl)

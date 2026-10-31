@@ -20,7 +20,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(WorldGeneration), "GenerateWorld")]
 internal static class WorldGenerationGenerateWorldPatch
 {
-	private static void Prefix() => PatchBridge.Impl?.OnWorldGenerate(); // host: capture + publish params; guest: apply the host's
+	private static void Prefix() => PatchBridge.WorldGen?.OnWorldGenerate(); // host: capture + publish params; guest: apply the host's
 
 	private static void Postfix(ref IEnumerator __result)
 	{

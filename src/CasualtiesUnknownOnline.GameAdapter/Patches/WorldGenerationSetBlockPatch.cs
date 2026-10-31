@@ -55,7 +55,7 @@ internal static class WorldGenerationSetBlockPatch
 	{
 		if (WorldGeneration.world.GetBlock(pos) == block) // Unity object — ==; the write landed
 		{
-			PatchBridge.Impl?.OnBlockSet(pos, block);
+			PatchBridge.WorldGen?.OnBlockSet(pos, block);
 		}
 	}
 }

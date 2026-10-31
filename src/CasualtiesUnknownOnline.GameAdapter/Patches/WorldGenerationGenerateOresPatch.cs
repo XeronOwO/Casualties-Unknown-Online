@@ -17,7 +17,7 @@ internal static class WorldGenerationGenerateOresPatch
 {
 	private static void Postfix(WorldGeneration __instance)
 	{
-		PatchBridge.Impl?.OnCustomTileOreGeneration(__instance);
-		PatchBridge.Impl?.OnCustomLiquidWorldGeneration(__instance);
+		PatchBridge.WorldGen?.OnCustomTileOreGeneration(__instance);
+		PatchBridge.WorldGen?.OnCustomLiquidWorldGeneration(__instance);
 	}
 }

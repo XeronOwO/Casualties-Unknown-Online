@@ -77,8 +77,6 @@ public class PatchBridgePortShapeGateTests
 		"ModContent",
 		"OnArmSwing",
 		"OnAttackAnim",
-		"OnBlockDamaged",
-		"OnBlockSet",
 		"OnBrokenItemUpdate",
 		"OnBuildingEntityDamaged",
 		"OnBuildingEntityDestroyed",
@@ -94,11 +92,6 @@ public class PatchBridgePortShapeGateTests
 		"OnCrystalEnemyBodyResolved",
 		"OnCrystalLungeBegin",
 		"OnCrystalLungeEnd",
-		"OnCustomBuildingWorldGeneration",
-		"OnCustomItemWorldGeneration",
-		"OnCustomLiquidWorldGeneration",
-		"OnCustomTileBroken",
-		"OnCustomTileOreGeneration",
 		"OnDarkenSkipped",
 		"OnDragReleasedToWorld",
 		"OnDynamiteExploded",
@@ -145,7 +138,6 @@ public class PatchBridgePortShapeGateTests
 		"OnTraderSwing",
 		"OnTrapTriggered",
 		"OnWorldBloodSpawn",
-		"OnWorldGenerate",
 		"OnWorldItemImpact",
 		"OnWorldJoinRequested",
 		"OnXalorisSepticTick",
@@ -159,7 +151,6 @@ public class PatchBridgePortShapeGateTests
 		"TryDeferMenuReturn",
 		"TryDeferStartGateAlert",
 		"TryHandleDraggedItemUseOnRemote",
-		"WrapStructureWorldGen",
 	];
 
 	/// <summary>
@@ -253,6 +244,18 @@ public class PatchBridgePortShapeGateTests
 		[
 			"CloseTheEndOfLayerPanelIfThisClientMustNotShowIt",
 		]),
+		("IWorldGenPatchBridge", AdapterDir + "IWorldGenPatchBridge.cs", false,
+		[
+			"OnBlockDamaged",
+			"OnBlockSet",
+			"OnCustomBuildingWorldGeneration",
+			"OnCustomItemWorldGeneration",
+			"OnCustomLiquidWorldGeneration",
+			"OnCustomTileBroken",
+			"OnCustomTileOreGeneration",
+			"OnWorldGenerate",
+			"WrapStructureWorldGen",
+		]),
 	];
 
 	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
@@ -280,11 +283,12 @@ public class PatchBridgePortShapeGateTests
 		"Spectator",
 		"Unbind",
 		"Wearable",
+		"WorldGen",
 		"_bound",
 	];
 
 	/// <summary>The aggregate census floor — a pin emptied alongside its source would otherwise pass by checking nothing.</summary>
-	private const int AggregateFloor = 90;
+	private const int AggregateFloor = 81;
 
 	/// <summary>
 	/// The composed seams' floor, for the same reason. It moved from 20 to 10
@@ -314,6 +318,7 @@ public class PatchBridgePortShapeGateTests
 		"ISpectatorPatchPort",
 		"ISaveCutPatchPort",
 		"ILayerPanelPatchPort",
+		"IWorldGenPatchBridge",
 	];
 
 	public static IEnumerable<object[]> SeamCensus() =>

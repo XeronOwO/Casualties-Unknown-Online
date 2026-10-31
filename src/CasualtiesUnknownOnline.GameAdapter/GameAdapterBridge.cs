@@ -24,7 +24,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// casting the bound bridge, so this declaration is what makes it reachable.
 /// </para>
 /// </summary>
-internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort, ILayerPanelPatchPort
+internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge, IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort, ILayerPanelPatchPort, IWorldGenPatchBridge
 {
 	private readonly RemoteDragIntentDispatcher _remoteDragIntents = new(domains);
 	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);

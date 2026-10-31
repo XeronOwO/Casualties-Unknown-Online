@@ -104,3 +104,17 @@ could drift between them.
 That policy is `CharacterVisualPublisher.Publish(NetMsg, payload)` now, and each store method is a one-line expression. The store is **568 lines** and its debt entry is
 deleted (9 entries left). The four sync-coverage evidence entries that quoted the old send bodies point at the publisher's own line, and the folder count follows the
 new file.
+
+## Split 6: the patch aggregate's world-generation hooks (2026-10-31)
+
+`GameAdapter.IPatchBridge` was 608 lines and FROZEN by its own doc: no member may be added, and new patch work declares a per-domain port instead. The next domain to
+take that route was the world-generation family — the generation-pass hooks (structure wrap, ore, liquid, building, item distribution) and the cell-keyed block writes
+(set, damaged, custom-tile break). They are `IWorldGenPatchBridge` now, reached through `PatchBridge.WorldGen`, and the aggregate neither declares nor inherits them:
+**548 lines**, debt entry deleted (8 entries left).
+
+This is the migration path the aggregate's doc names, applied once more: the six patches that call those hooks now state the domain they depend on and cannot reach the
+rest of the bridge through that reference. The shape gate followed the change — a ninth seam entry, `WorldGen` in the static seam's census, `IWorldGenPatchBridge` in
+the port list, the nine names out of the frozen aggregate census, and the aggregate floor from 90 to 81 — and the damage-block gate reads its declaration in the port
+that now carries it.
+
+**What is left in the queue**: `RunCoordinator` (922), `CharacterDataSync` (738), `GameAdapter` (667), `GameAdapterBridge` (663) and `WorldService` (640).

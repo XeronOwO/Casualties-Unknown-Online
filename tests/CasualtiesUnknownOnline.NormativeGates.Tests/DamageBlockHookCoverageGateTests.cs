@@ -53,7 +53,8 @@ public class DamageBlockHookCoverageGateTests
 
 	private const string PatchFile = AdapterDir + "Patches/WorldGenerationDamageBlockPatch.cs";
 
-	private const string AggregateFile = AdapterDir + "IPatchBridge.cs";
+	/// <summary>The port that declares the report now belongs with the other world-generation hooks; the aggregate stopped carrying it in the 2026-10-31 migration.</summary>
+	private const string AggregateFile = AdapterDir + "IWorldGenPatchBridge.cs";
 
 	private const string BridgeFile = AdapterDir + "GameAdapterBridge.cs";
 

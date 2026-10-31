@@ -1,4 +1,3 @@
-using System.Collections;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using UnityEngine;
@@ -55,9 +54,6 @@ internal interface IPatchBridge
 	/// lets the popup show normally.
 	/// </summary>
 	bool TryDeferStartGateAlert(string text, bool important);
-
-	void OnWorldGenerate();
-
 	/// <summary>SceneManager.LoadScene(string) prefix — the old scene unloads inside the load: engage the destroy-report suppression BEFORE the teardown destroys (#191).</summary>
 	void OnSceneLoadBegin();
 
@@ -73,63 +69,6 @@ internal interface IPatchBridge
 	/// decision, passed in rather than re-derived.
 	/// </summary>
 	bool TryDeferMenuReturn(bool hasLiveWorld);
-
-	/// <summary>
-	/// Wrap the vanilla <c>WorldGenerateWorldBorders</c> iterator so the Game
-	/// Adapter can distribute mod-bound structures after the vanilla worldgen
-	/// has finished its terrain/structures but before the collider pass. The
-	/// returned coroutine is driven by <see cref="WorldGenRandomIsolation"/>,
-	/// so its Random consumption stays on the sealed generation stream.
-	/// </summary>
-	IEnumerator WrapStructureWorldGen(IEnumerator original, WorldGeneration world);
-
-	/// <summary>
-	/// Vanilla <c>WorldGeneration.GenerateOres</c> finished — distribute
-	/// mod-bound custom tile ore after the vanilla ore pass but before the
-	/// structure/liquid passes, all inside the sealed generation stream.
-	/// </summary>
-	void OnCustomTileOreGeneration(WorldGeneration world);
-
-	/// <summary>
-	/// Vanilla <c>WorldGeneration.GenerateOres</c> finished — distribute
-	/// mod-bound liquid-tile pools after the vanilla ore pass, inside the same
-	/// sealed generation stream.
-	/// </summary>
-	void OnCustomLiquidWorldGeneration(WorldGeneration world);
-
-	/// <summary>
-	/// Vanilla <c>WorldGeneration.PlaceCrystals</c> finished — distribute
-	/// mod-bound custom building entities after colliders exist, inside the same
-	/// sealed generation stream. The deterministic buildings never need a wire
-	/// message; runtime Start reports are suppressed during generation.
-	/// </summary>
-	void OnCustomBuildingWorldGeneration(WorldGeneration world);
-
-	/// <summary>
-	/// Vanilla <c>WorldGeneration.PlaceCrystals</c> finished — scatter
-	/// mod-bound custom items' loose world spawns, inside the same sealed
-	/// generation stream. The resulting ground items are later bound by the
-	/// existing generation-item snapshot.
-	/// </summary>
-	void OnCustomItemWorldGeneration(WorldGeneration world);
-
-	void OnBlockSet(Vector2Int pos, ushort block);
-
-	/// <summary>
-	/// A LOCAL <c>WorldGeneration.DamageBlock</c> roll finished: the raw damage
-	/// plus how much THIS call added to the cell's row. The CELL travels, not a
-	/// world position — the patch binds the overload that already holds it, and
-	/// the peers apply the report by cell.
-	/// </summary>
-	void OnBlockDamaged(Vector2Int cell, float dmg, bool bonusMetal, float applied);
-
-	/// <summary>
-	/// A local block break hit a custom tile index. The Game Adapter spawns the
-	/// tile's authored drops while still inside the damage-block scope so they
-	/// ride the pending break report like vanilla block drops.
-	/// </summary>
-	void OnCustomTileBroken(WorldGeneration world, Vector2Int cell, ushort block);
-
 	/// <summary>
 	/// PlayerCamera.SetTimeScale is starting (outside CUO apply/sleep-suppress
 	/// scopes), carrying the native flags that say what the call IS

@@ -19,7 +19,7 @@ internal static class WorldGenerationPlaceCrystalsPatch
 {
 	private static void Postfix(WorldGeneration __instance)
 	{
-		PatchBridge.Impl?.OnCustomBuildingWorldGeneration(__instance);
-		PatchBridge.Impl?.OnCustomItemWorldGeneration(__instance);
+		PatchBridge.WorldGen?.OnCustomBuildingWorldGeneration(__instance);
+		PatchBridge.WorldGen?.OnCustomItemWorldGeneration(__instance);
 	}
 }

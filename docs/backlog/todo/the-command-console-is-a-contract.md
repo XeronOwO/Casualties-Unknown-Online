@@ -332,3 +332,12 @@ on its own. 3 tests. The shipped sample now carries its own cuo.example.hostecho
 MOD's catalogue; the framework table no longer holds it at all.
 
 **Still open in stage 4:** the two how-to recipes (a local command with a preset completer; a non-local command with a keyed answer) and the reference row for the shipped completers.
+## The mod catalogue is judged live (2026-10-31, build `bd50eb47`)
+
+The framework table no longer carries the sample''s sentence at all: `console.sample.hostecho` was removed from `en.json`/`zh.json`, and the sentence lives only in the
+mod''s own embedded `Localization/en.json`/`zh.json`. After that removal the guest ran `/examplehost modcat2` and its console rendered 
+the host answered 76561198863287957: modcat2 — so the sentence the member read could only have come from the MOD''s catalogue. The guest''s log records the registration:`n[Mods] cuo.example registered 1 en sentence(s) under ''cuo.example.''` (and the `zh` one). The driver''s `console-read` shows the line''s raw TEXT (the mod''s fallback), which is
+why the frame is the evidence here and not the reading: the rendered history is what a player sees.
+
+**Caveat kept from the previous row:** the member client is the English one; no Chinese member has been watched reading a relayed answer. Both sentences ship, and the resolver is the
+same generic one already proven on the Chinese client for hint and answer rows.

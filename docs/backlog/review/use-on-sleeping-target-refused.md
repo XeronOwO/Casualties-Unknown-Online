@@ -140,3 +140,9 @@ state the ticket's source report described — and made the rows above judgeable
 The medication probe plants the sleeping-pills component on the LOCAL body (`medication-component-probe mode=plant-sleepingpills,target=local`) and answers `ok=true, amount=300`, but its own report field `sleepingPills` comes back **false** and `body-read` three seconds later still says `sleeping=false, conscious=true`. So planting the component is not the same as the body being asleep: the game advances a medication effect on its own ticks, and the body's sleep state is that effect's result, not the component's presence.
 
 Row 3 is the one this ticket can still close with instruments that exist — the bandage chain is proven end to end (a wounded limb treated through the remote chart, `terminal Completed`, the patient's own client applying it), so what it needs is exactly the sleeping state this note is chasing. The next reading is the component's effect over time (`medication-component-probe mode=read` after longer waits, and whether the body's sleep is gated on the day/night cycle).
+
+## The effect takes (the component reports true) and the body still does not sleep (2026-11-01)
+
+A later `medication-component-probe mode=read,target=local` answers **`sleepingPills=True`** — so the planted effect did become active, and the earlier `false` was simply time: the game advances medication on its own ticks. The same moment's `body-read` still says `sleeping=false, conscious=true`.
+
+So "asleep" is not a state the drug sets by itself: the body enters sleep through the game's own resting path (a bed and the rest action), and the pills are one of its inputs. The fixture this row needs is therefore that resting path, not a stronger dose — the next reading is what the game requires for a body to enter sleep (the bed/night conditions in `reversing/`), and then the bandage chain on that sleeping body judges row 3.

@@ -482,6 +482,7 @@ docs/en/contributing/repository-map-and-pitfalls.md | keep | index | docs/en/con
 docs/en/contributing/review-and-delivery.md | keep | index | docs/en/contributing/README.md
 docs/en/how-to/add-a-ui-panel.md | keep | index | docs/en/how-to/README.md
 docs/en/how-to/decide-which-side-judges-an-action.md | keep | index | docs/en/how-to/README.md
+docs/en/how-to/write-console-commands.md | keep | index | docs/en/how-to/README.md
 docs/en/how-to/declare-permissions-and-commands.md | keep | index | docs/en/how-to/README.md
 docs/en/how-to/read-game-state.md | keep | index | docs/en/how-to/README.md
 docs/en/how-to/README.md | keep | index | docs/en/README.md
@@ -1160,6 +1161,7 @@ docs/zh/contributing/repository-map-and-pitfalls.md | keep | index | docs/zh/con
 docs/zh/contributing/review-and-delivery.md | keep | index | docs/zh/contributing/README.md
 docs/zh/how-to/add-a-ui-panel.md | keep | index | docs/zh/how-to/README.md
 docs/zh/how-to/decide-which-side-judges-an-action.md | keep | index | docs/zh/how-to/README.md
+docs/zh/how-to/write-console-commands.md | keep | index | docs/zh/how-to/README.md
 docs/zh/how-to/declare-permissions-and-commands.md | keep | index | docs/zh/how-to/README.md
 docs/zh/how-to/read-game-state.md | keep | index | docs/zh/how-to/README.md
 docs/zh/how-to/README.md | keep | index | docs/zh/README.md

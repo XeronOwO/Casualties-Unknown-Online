@@ -20,6 +20,8 @@ traps, and how to check that it worked. Every page assumes you have read [Your f
   by the host and read back on the next run.
 - [Decide which side judges an action](decide-which-side-judges-an-action.md) — whose client decides,
   and what the host keeps.
+- [Write a console command](write-console-commands.md) — the definition a player can find, complete and
+  read: one local recipe, and one that runs on the host and answers in the reader's language.
 
 The exact contracts behind these pages are in [Reference](../reference/README.md); the reasoning behind
 them is in [Internals](../internals/README.md).

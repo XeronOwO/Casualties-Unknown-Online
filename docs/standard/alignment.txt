@@ -14,9 +14,10 @@ docs/en/contributing/repository-map-and-pitfalls.md | 25228a7c4fefe71c4c21e7449f
 docs/en/contributing/review-and-delivery.md | f4629ce594e2adc76218d19293eada6a88fe55f1 | docs/zh/contributing/review-and-delivery.md | c3abe2e3546b8658def23a3286458078e1a7ffa8
 docs/en/how-to/add-a-ui-panel.md | b34056618c16656c3a1a39298ce4f73ab32901aa | docs/zh/how-to/add-a-ui-panel.md | 1820befe59646339773040744c57f581fe06770e
 docs/en/how-to/decide-which-side-judges-an-action.md | e0ab441854218be7b7686134b7cf5e3c549df16d | docs/zh/how-to/decide-which-side-judges-an-action.md | b04de63ffdc65068d9174a9c1f9ebcc39f3aa1f5
+docs/en/how-to/write-console-commands.md | 96d0aefa077e8ed5880e431e0064716f1201c2b0 | docs/zh/how-to/write-console-commands.md | 0cdca5b07e07b569915d8f1f0099edaf45b5c632
 docs/en/how-to/declare-permissions-and-commands.md | 3fcbb61e34b8da01f3e1de084362ed83869c2de8 | docs/zh/how-to/declare-permissions-and-commands.md | 88cdd1f381dd3f7d992b1a59130d38ef5cbfa914
 docs/en/how-to/read-game-state.md | b69d2945fe51d58e82850a99f65603672993b9df | docs/zh/how-to/read-game-state.md | d8753f9200b38df1e35f73ad8a249e6fdaed8f0d
-docs/en/how-to/README.md | 74cb8989b9e1bce21aaf51697d28acf525cbc9d4 | docs/zh/how-to/README.md | 9ec03770de1102c7a0780d81b4b83cc9b8e916c8
+docs/en/how-to/README.md | 7024678098d5393c80a63903a6190d1b6c3246dc | docs/zh/how-to/README.md | 3cab9b1e7f5044fc98a2eda470c9d543adc91be5
 docs/en/how-to/register-content.md | 3491fbce3ff090795355818251a82cd8987d6581 | docs/zh/how-to/register-content.md | ef754889e99b9ec478bd7209078ad733f850099b
 docs/en/how-to/save-mod-data-across-sessions.md | 73f5b3bc81abf6391b1e759b25cca55f74acc232 | docs/zh/how-to/save-mod-data-across-sessions.md | 29021ecce64d871e5cf07f432bb2df23559e6dbe
 docs/en/how-to/send-a-network-message.md | d199a20ac1034d973f0111de53c698270a395d18 | docs/zh/how-to/send-a-network-message.md | 64faef4ff3e378306011710be5265415b8b5350a
@@ -36,7 +37,7 @@ docs/en/reference/configuration.md | 1c502207e98fdbde3b60f5896b8d0a1d195bca26 | 
 docs/en/reference/feature-matrices.md | 3546f411e3a4f4f78f02c971bb14edc9bf486e05 | docs/zh/reference/feature-matrices.md | 6a942efc0bb693925c3321ad957df26a89ef08a6
 docs/en/reference/glossary.md | ae2b64fd15d80961ee531aa904a3ec8a74a7a5e3 | docs/zh/reference/glossary.md | e7d85f7f12e470b60e9f23feabe0583eaef6632e
 docs/en/reference/logs.md | 7f9656dc7a6dc6587fec2c41588cc9677125c707 | docs/zh/reference/logs.md | 0e12de22c2a89cc10bcda0ec12d4e596c12f78e2
-docs/en/reference/mod-api.md | 9e2454540ff2acc4ad61d41aa2648a4162b640bd | docs/zh/reference/mod-api.md | ee06f8d734453b84b8c0c503d8c6e41177a2dd63
+docs/en/reference/mod-api.md | 1e7bf3c066e035e18f86f597a34d2e7860c3c3cb | docs/zh/reference/mod-api.md | 1b260c25b9c339447d94feb31dd65df71e2ce0dc
 docs/en/reference/modification-policy.md | 17a30bc8cb5a7229b8edb8868257d1d7651b0d07 | docs/zh/reference/modification-policy.md | 8ba8ae30a72e0830c2cfa1e0a946e4775233f2b5
 docs/en/reference/protocol-messages.md | 86801e41e935661e05fccd803480000968c2b83d | docs/zh/reference/protocol-messages.md | 691bb6b9acccb394ad666bb752b7db05633eec9c
 docs/en/reference/README.md | 746bac1e857e688d5e17a0627cc724668371f40d | docs/zh/reference/README.md | 5f6930e1bb4f0285c9640b4f1f074f6056655cec
@@ -45,3 +46,4 @@ docs/en/start/README.md | ca30fc1d1b32f72c146cc78db12850a11130cd4e | docs/zh/sta
 docs/en/start/set-up-dev-environment.md | 6ae9fa5c64de11d0dde274ffa01d4eae4eeb6ad6 | docs/zh/start/set-up-dev-environment.md | c19f77df8c0acd3e0a9dee2a7a89c77d94971d50
 docs/en/start/what-is-cuo.md | 062db17bb99dfd3bf1e5fec87cccfd081e90df66 | docs/zh/start/what-is-cuo.md | 12631eb9527265097d0943d0d4a431f1c72dba62
 docs/en/start/your-first-mod.md | 6e274557ab4f9eaf62f9e0c9377457820d56cff1 | docs/zh/start/your-first-mod.md | 0a2f481da4c731d6b242c91bead9053f2a6f11a9
+

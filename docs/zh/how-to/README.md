@@ -13,6 +13,7 @@
 - [注册内容](register-content.md) —— 物品、配方、地块：世界会当作自己一部分的内容。
 - [让模组数据跨会话保留](save-mod-data-across-sessions.md) —— 模组自己的小表，由主机写入，下次开局读回。
 - [判断一个动作由哪一侧判定](decide-which-side-judges-an-action.md) —— 谁的客户端判定，主机又留着什么。
+- [写一条控制台命令](write-console-commands.md) —— 玩家能找到、能补全、能读懂的定义：一条本地配方，一条在主机执行、用读者语言回答的配方。
 
 这些页面背后的精确契约在[参考](../reference/README.md)，设计原因在[弄懂原理](../internals/README.md)。
 

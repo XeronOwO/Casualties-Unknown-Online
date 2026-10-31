@@ -35,12 +35,6 @@
     "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
     "Note": "The shipped sample now demonstrates the non-local console command and its own two-language catalogue too (HostRelayed), which is the one surface stage 3 of the console contract needed a live example for. The split moves the console examples into their own sample mod rather than trimming what a reader is meant to see."
   },
-  "CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.PlayerInventoryTakeService": {
-    "Lines": 629,
-    "BoolFlags": 0,
-    "Ticket": "docs/backlog/todo/split-the-oversized-classes.md",
-    "Note": "The give's answer-first custody added the exact-destination rung (ExactDestinationSlot and the two sentences that name a destination the receiver's answer lost), which took the class past 600; the return half was moved out again into GivenItemReturnService, so this is the forward custody alone. The split this owes is the destination resolution (this class's slot/container/slot-substitution rules and the ladder's candidate ordering) into their own object, the shape LocalBodyPlacement already gives the adapter side; the custody core, the kernel bookkeeping and the transfer publication stay here. Recorded rather than split in this change because the acceptance rows must run against the same class the earlier batches read."
-  },
     "CasualtiesUnknownOnline.GameAdapter.PlayerInteractionApply": {
     "Lines": 601,
     "BoolFlags": 0,

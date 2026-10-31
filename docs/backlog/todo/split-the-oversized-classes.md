@@ -81,5 +81,15 @@ existing reader compiles unchanged while a reader that only needs the social sur
 `IWorldControl` is **577 lines** and its debt entry is deleted (11 entries now). `WorldService` implements the members unchanged — the compiler proves that, because the
 inheritance keeps them part of `IWorldControl` for every caller that already holds it. The folder count follows the new file.
 
+## Split 4: the take ladder's destination rules (2026-10-31)
+
+`Runtime.Session.PlayerInteraction.PlayerInventoryTakeService` was 629 lines, and the entry named the split it owed: the destination resolution — which slot a
+custody transfer lands in, the first-free substitution with its log line, the exact-slot rule the give path refuses on, the container candidate order, the by-id lookup and
+the one-line destination description. Those five rules are `ItemDestinationResolver` now; the service is **511 lines** and its debt entry is deleted (10 entries left).
+
+The resolver is the shape the entry asked for: the rules that change for their own reasons (a slot rule, an ordering, a substitution policy) in one object both callers
+share, so the give path and the take path cannot drift about where an item lands. `PlayerInventoryTakeService` keeps the ladder, the kernel bookkeeping and the
+publication; the two `ResolveDestinationSlot` call sites now ask `_destinations`, the four static rules are addressed through the type.
+
 **What is left in the queue**: `RunCoordinator` (922), `CharacterDataSync` (738), `GameAdapter` (667), `GameAdapterBridge` (663), `WorldService` (640), `CharacterDataStore`
 (629), `PlayerInventoryTakeService` (626) and `IPatchBridge` (608, the frozen patch aggregate whose own doc names the per-domain port migration as the way it shrinks).

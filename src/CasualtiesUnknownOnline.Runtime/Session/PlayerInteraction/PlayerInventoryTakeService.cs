@@ -41,6 +41,7 @@ internal sealed class PlayerInventoryTakeService(
 	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
 	private readonly IItemContainerFit _containerFit = containerFit;
 	private readonly ILogger _log = log;
+	private readonly ItemDestinationResolver _destinations = new(log);
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
 	public event Action<PlayerInventoryTransferMsg>? TransferReceived;
@@ -201,7 +202,7 @@ internal sealed class PlayerInventoryTakeService(
 		// decision, never this one's.
 		if (requestedContainerId != 0)
 		{
-			var container = FindCarriedItem(newTarget.Items, requestedContainerId);
+			var container = ItemDestinationResolver.FindCarriedItem(newTarget.Items, requestedContainerId);
 			if (container is null)
 			{
 				return $"{to} carries no item {requestedContainerId} to receive {original.ItemId} (id {itemId}).";
@@ -216,8 +217,8 @@ internal sealed class PlayerInventoryTakeService(
 			// the host's own, which is the drift this path exists to end. The take direction keeps its landed
 			// substitution rule.
 			var targetSlot = exactDestination
-				? ExactDestinationSlot(target, requestedSlot)
-				: ResolveDestinationSlot(target, to, requestedSlot);
+				? ItemDestinationResolver.ExactDestinationSlot(target, requestedSlot)
+				: _destinations.ResolveDestinationSlot(target, to, requestedSlot);
 			if (targetSlot < 0)
 			{
 				return exactDestination
@@ -324,7 +325,7 @@ internal sealed class PlayerInventoryTakeService(
 		var newTarget = PlayerCharacterAccess.CloneCharacter(target);
 
 		// Rung 1: a free slot on the body (the named one when the operator's preference is usable).
-		var slot = ResolveDestinationSlot(target, to, requestedSlot, "[Give]");
+		var slot = _destinations.ResolveDestinationSlot(target, to, requestedSlot, "[Give]");
 		if (slot >= 0)
 		{
 			item.SlotIndex = slot;
@@ -335,10 +336,10 @@ internal sealed class PlayerInventoryTakeService(
 		// Rungs 2 and 3: a container the body carries, then one it wears. The candidates are top-level
 		// snapshot items in that order; which of them is a container and how much room it has is the
 		// adapter's answer, because it is the game's own rule.
-		var candidates = ContainerCandidates(target);
+		var candidates = ItemDestinationResolver.ContainerCandidates(target);
 		if (candidates.Count > 0 && _containerFit.TryFindContainer(candidates, item, out var containerId))
 		{
-			var container = FindCarriedItem(newTarget.Items, containerId);
+			var container = ItemDestinationResolver.FindCarriedItem(newTarget.Items, containerId);
 			if (container is null)
 			{
 				// The clone carries the same tree the candidates came from; an id the port answered that is not in
@@ -409,7 +410,7 @@ internal sealed class PlayerInventoryTakeService(
 
 		_log.LogInformation(
 			"[Give] {To} receives created {ItemId} (id {InstanceId}) {Where} (requested slot {Requested}).",
-			to, item.ItemId, item.InstanceId, Describe(destination, slot, containerId), requestedSlot);
+			to, item.ItemId, item.InstanceId, ItemDestinationResolver.Describe(destination, slot, containerId), requestedSlot);
 		PublishTransfer(new PlayerInventoryTransferMsg
 		{
 			FromSteamId = 0,
@@ -423,125 +424,6 @@ internal sealed class PlayerInventoryTakeService(
 	}
 
 	/// <summary>The placement a log line names: a body slot, or the container's id.</summary>
-	private static string Describe(PlayerInventoryDestination destination, int slot, ulong containerId) =>
-		destination == PlayerInventoryDestination.Container
-			? $"inside container {containerId} (parent slot {slot})"
-			: $"in slot {slot}";
-
-	/// <summary>
-	/// The ladder's candidates in rung order: the body's carried containers first (a slot of their own),
-	/// then the worn ones. The adapter filters them to containers that can hold the item; the order is the
-	/// ladder's, so the first fit is the rung the answer names.
-	/// </summary>
-	private static List<CharacterItemMsg> ContainerCandidates(CharacterDataMsg target)
-	{
-		var candidates = new List<CharacterItemMsg>(target.Items.Count);
-		foreach (var item in target.Items)
-		{
-			if (item.SlotIndex >= 0)
-			{
-				candidates.Add(item);
-			}
-		}
-
-		foreach (var item in target.Items)
-		{
-			if (item.SlotIndex < 0)
-			{
-				candidates.Add(item);
-			}
-		}
-
-		return candidates;
-	}
-
-	/// <summary>
-	/// One item in a character snapshot, found by instance id anywhere in the tree — the destination of a container
-	/// hand-over is named by id alone, and whether that item really is a container is the RECEIVING client's native
-	/// decision, not this snapshot's.
-	/// </summary>
-	private static CharacterItemMsg? FindCarriedItem(List<CharacterItemMsg> items, ulong instanceId)
-	{
-		foreach (var item in items)
-		{
-			if (item.InstanceId == instanceId)
-			{
-				return item;
-			}
-
-			if (FindCarriedItem(item.Contents, instanceId) is { } nested)
-			{
-				return nested;
-			}
-		}
-
-		return null;
-	}
-
-	/// <summary>
-	/// The destination slot of a custody transfer: the slot the native release
-	/// named when the recipient's own report shows it free, otherwise the first
-	/// free slot, with the substitution logged — the item must never be lost to
-	/// an unusable slot.
-	/// </summary>
-	private int ResolveDestinationSlot(CharacterDataMsg target, ulong recipient, int requestedSlot, string logTag = "[Take]")
-	{
-		var count = target.SlotCount > 0 ? target.SlotCount : 3;
-		var occupied = false;
-		foreach (var item in target.Items)
-		{
-			if (item.SlotIndex == requestedSlot)
-			{
-				occupied = true;
-				break;
-			}
-		}
-
-		if (requestedSlot >= 0 && requestedSlot < count && !occupied)
-		{
-			return requestedSlot;
-		}
-
-		var fallback = PlayerCharacterAccess.FirstEmptySlot(target);
-		if (requestedSlot >= 0 && fallback >= 0)
-		{
-			_log.LogInformation("{Tag} destination slot {Slot} is not free for {To}; using slot {Fallback} instead.",
-				logTag, requestedSlot, recipient, fallback);
-		}
-
-		return fallback;
-	}
-
-	/// <summary>
-	/// The slot the receiving client ANSWERED, or -1 when it is no longer free. The give path never substitutes
-	/// on its own: the host records the receiver's resolution, and a destination that changed between the answer
-	/// and the commit is refused before any custody moves, so the item stays with the giver.
-	/// </summary>
-	private static int ExactDestinationSlot(CharacterDataMsg target, int answeredSlot)
-	{
-		var count = target.SlotCount > 0 ? target.SlotCount : 3;
-		if (answeredSlot < 0 || answeredSlot >= count)
-		{
-			return -1;
-		}
-
-		foreach (var item in target.Items)
-		{
-			if (item.SlotIndex == answeredSlot)
-			{
-				return -1;
-			}
-		}
-
-		return answeredSlot;
-	}
-
-	/// <summary>
-	/// Make the kernel own the host's resulting carried item after a cross-player
-	/// take. Guest recipients already go through the transfer table's
-	/// adopt path; the host has no transfer-table row, so this keeps the item
-	/// kernel authoritative when the host is the recipient.
-	/// </summary>
 	internal void CommitCarriedToHost(ulong itemId, CharacterItemMsg item)
 	{
 		var current = _kernelAuthority.FindItem(itemId);

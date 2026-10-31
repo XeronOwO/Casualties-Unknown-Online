@@ -5,7 +5,7 @@ pass: a `U` row is the user's, an `E` row needs one more live reading with instr
 this build at all. A ticket moves between classes as instruments land — this page is regenerated when a batch changes the picture,
 never accumulated.
 
-## Closed by the sweep (2026-10-31 → 2026-11-01)
+## Closed by the medical and join sweeps (2026-11-01)
 
 Fifteen tickets left `review/` with their rows judged and their evidence written: `a-command-owns-its-usage-line`,
 `music-and-recursive-crafting-mods-fail-to-load`, `player-facing-text-localized-per-receiver`, `item-custody-single-authority`,
@@ -14,6 +14,20 @@ Fifteen tickets left `review/` with their rows judged and their evidence written
 them needed a code change in the same commit: the mod adapter's gate classification (row 5 of the console contract) and the console's
 hover preview (row 8 of the completion ticket, which finally drew once the tooltip outlived the event that reports it).
 
+## Closed since the first sweep (2026-11-01, after the sandbox came back)
+
+- `the-pre-run-lobby-can-deadlock` — three breaks fixed (the member never asked, the host refused for want of a baseline it could not have, and a join whose menu never loaded the pre-run script held its phase forever) and the chain read end to end: a restarted member asks `1/12`, the host invites, the member enters, both gates clear.
+- `remote-medical-treatment-operations` — a bandage released through the remote chart now runs the game's own minigame, its wraps reach the host (`terminal Completed: progress 0.481`), and the patient's own client applies the effect. Two product defects fell out of it (a void release prefix let the native local apply run behind CUO's remote handle; a stale start rejection cleared the live session) and two more were recorded with their evidence (the end request carried zero progress for a completed bandage; a minigame's hand cannot be driven by writing its fields).
+
+The instruments those two cycles produced are reusable and are named here so the next batch does not rebuild them: `wound-seed` (the game's own `Limb.ImpactDamage`), `minigame-live` (what the game itself sees of the minigame's hand and progress), `bandage-ring`/`bandage-ring2` (an in-client pointer driver), `virtual-input`'s `press-key`/`release-key`, and the printer rule that a give before the world is live is refused while a give into full slots lands in the carried container.
+
+## Medical family — what each remaining row now needs (2026-11-01)
+
+| Ticket | What it waits on |
+|---|---|
+| `topical-limb-action-shape.md` | its saline half reads as its design decides (refused by name, no minigame); the syringe half needs a syringe FILLED with a liquid — an empty one does nothing — which is a container-fill fixture, not an instrument |
+| `remote-medical-cpr.md` | needs the CPR control on a downed patient: `cpr-rhythm` already drives the presses, and the missing piece is the downed fixture (`cpr-rhythm` was read working on 2026-10-28) |
+| the other `remote-medical-*` rows | the wound-view release path itself is proven (see the closed ticket); each now needs its own item/liquid fixture, and the give-line rule above decides whether a batch can even start |
 ## U — waits on a user decision, a user's own pass, or a user's own look
 
 | Ticket | What it waits on |

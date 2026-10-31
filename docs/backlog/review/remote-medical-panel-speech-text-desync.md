@@ -3,7 +3,7 @@
 - Status: Review — code-complete; batch `20261023-b` passes rows 1-5 and 7-8 on the deployed artifact, row 6 (trade menu) stays `unproven` (no trader fixture); record `docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md`
 - Priority: High
 - Category: Remote medical / native HUD / character speech subtitle
-- Source: User report (2026-10-19, during acceptance batch `20261023-b`): "角色说的话，会在医疗面板以文字形式显示，这个不同步"; clarified by the user: what appears is the VIEWER's own spoken line, it shows only while the medical panel is open, and it disappears when the panel is closed.
+- Source: User report (2026-10-19, during acceptance batch `20261023-b`), translated from the reporter's Chinese: "what a character says shows as text on the medical panel, and it is out of sync"; clarified by the user: what appears is the VIEWER's own spoken line, it shows only while the medical panel is open, and it disappears when the panel is closed.
 - Related: `review/sync-player-pain-vocalizations-and-bark.md` (the audio sibling), `done/remote-player-medical-panel.md`, `done/remote-medical-panel-header-shows-viewer-identity.md`, `done/remote-medical-panel-alarm-follows-viewed-player.md`
 
 ## What the text is (final diagnosis, 2026-10-19)
@@ -78,3 +78,12 @@ judged — the code is consistent, the expectation is what is unstated.
 
 - Voice audio (the pain/bark sound family is `sync-player-pain-vocalizations-and-bark.md`).
 - A new speech UI; the native subtitle and the world bubble stay the only surfaces.
+
+## The speech line can be read directly now (2026-11-01, 07:25)
+
+A new read-only recipe (`talk-text-read`) reads `PlayerCamera.charTalkText` — its `enabled`, its `text` and its colour alpha — together with `RemoteMedicalView.IsOpen`, so the takeover/restore rules can be judged as state rather than inferred. Two readings from the deployed build:
+
+- with nothing open: **`enabled=false, text=(empty), medicalOpen=false`** — the row-8 condition (the "panel closed entirely" condition: the line is disabled and empty);
+- with the trade menu open (`trade-open mode=open` answering `menuActive=true`) the line still read `enabled=false` at that moment, and `medical-open` answered opened=false in that state — and also after the menu was closed, because the viewed player was out of range for a render clone. So row 6's "remote panel opened OVER the trade menu" needs the chart to be openable first: the guest has to be near enough for the clone.
+
+The recipe itself cost three failed casts to get right, and each is the same lesson the tools rules carry: `charTalkText` is a `TextMeshProUGUI` (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:3521`), so `as UnityEngine.UI.Text` answered null and read as no-text on a member that exists; the first attempt also looked only at `GetField` on the declaring type. It is committed as `tools/acceptance/recipes/talk-text-read.cs` and is what the next batch reads row 6 with.

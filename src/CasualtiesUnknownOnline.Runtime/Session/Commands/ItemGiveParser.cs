@@ -57,16 +57,22 @@ internal static class ItemGiveParser
 
 		var token = tokens[next++];
 		var brace = token.IndexOf('{');
-		var definitionId = brace < 0 ? token : token.Substring(0, brace);
+		var typedId = brace < 0 ? token : token.Substring(0, brace);
 		var stateText = brace < 0 ? null : token.Substring(brace);
-		if (definitionId.Length == 0)
+		if (typedId.Length == 0)
 		{
 			return Refuse($"No item id was given — name the game's own item id, e.g. /give @p bandage. Usage: {Usage}", out error);
 		}
 
-		if (definitionId.IndexOfAny(['[', ']', '}']) >= 0)
+		if (typedId.IndexOfAny(['[', ']', '}']) >= 0)
 		{
-			return Refuse($"the state attaches to the item id with '{{', e.g. /give @p <itemId>{{<key>:<value>}} — '{definitionId}' is not an item id. Usage: {Usage}", out error);
+			return Refuse($"the state attaches to the item id with '{{', e.g. /give @p <itemId>{{<key>:<value>}} — '{typedId}' is not an item id. Usage: {Usage}", out error);
+		}
+
+		// Both id forms reach the same object (user direction 2026-10-30): the bare id the game names and the canonical `namespace:path` every list shows.
+		if (!ItemDefinitionId.TryResolve(typedId, out var definitionId, out var idError))
+		{
+			return Refuse($"{idError} Usage: {Usage}", out error);
 		}
 
 		if (IsItemTargetKeyword(definitionId))

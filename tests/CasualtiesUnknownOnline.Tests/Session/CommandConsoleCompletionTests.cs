@@ -17,19 +17,17 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 public class CommandConsoleCompletionTests
 {
 	[Fact]
-	public void Suggest_ForAnItemIdArgument_OffersTheFormTheVerbAccepts()
+	public void Suggest_ForAnItemIdArgument_OffersTheCanonicalFormTheVerbAccepts()
 	{
-		// Measured on 2026-10-25: '/give @p cu:bandage' is answered "No item definition 'cu:bandage' is known to this game", while
-		// '/give @p bandage' lands. The catalog names content canonically (namespace:path), so the suggestion for a verb that resolves
-		// through the GAME's table has to be the bare id — a suggestion the verb refuses is worse than none. The test host registers
-		// one content entry, which is enough to read the projection.
+		// User direction 2026-10-30: /give and /summon resolve BOTH forms (the bare id the game names and the canonical namespace:path), so the list offers the
+		// canonical id — the form every other surface shows — and accepting it runs. The test host registers one content entry, which is enough to read the projection.
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations: services =>
 			services.AddSingleton<IResourceLocationSource>(new StubResourceSource(
 				new ResourceLocationEntry(ContentId.Parse("cu:widget"), ModContentKind.Item, "Widget"))));
 		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
 
-		Assert.Contains(completion.Suggest("/give @p wid"), s => s.Text == "widget");
-		Assert.DoesNotContain(completion.Suggest("/give @p wid"), s => s.Text.IndexOf(':') >= 0);
+		Assert.Contains(completion.Suggest("/give @p wid"), s => s.Text == "cu:widget");
+		Assert.DoesNotContain(completion.Suggest("/give @p wid"), s => s.Text == "widget");
 
 		// The kind's own endpoint still speaks the canonical form, because it is not tied to a verb.
 		var kinds = host.Services.GetRequiredService<ICommandArgumentSuggestions>();

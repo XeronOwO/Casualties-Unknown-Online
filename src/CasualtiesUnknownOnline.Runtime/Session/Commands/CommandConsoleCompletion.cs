@@ -228,34 +228,19 @@ internal sealed class CommandConsoleCompletion(
 		CommandArgumentKind.SteamId => CommandSuggestions.BannedSteamIds(_bans, prefix),
 		CommandArgumentKind.Selector => CommandSelectorSuggestions.Suggest(prefix),
 		CommandArgumentKind.Json => [.. JsonSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
-		CommandArgumentKind.ResourceLocation => SuggestResourceLocations(prefix, TakesTheGamesOwnId(command)),
+		CommandArgumentKind.ResourceLocation => SuggestResourceLocations(prefix),
 		_ => [],
 	};
 
 	/// <summary>
-	/// Whether this verb names the GAME's own definition id (the bare <c>bandage</c>) rather than CUO's canonical
-	/// <c>namespace:path</c>. A give and a summon resolve through the game's own item table, which is keyed by the bare id and
-	/// refuses a namespaced one by name ("No item definition 'cu:bandage' is known to this game"), so offering the canonical form
-	/// there would suggest a line the verb refuses — measured on 2026-10-25: accepting <c>cu:bandage</c> was answered with exactly
-	/// that refusal.
+	/// Resource/id completion from the content-id catalog: the user may type a canonical id prefix, the bare content id, or the localized display name, but every
+	/// suggestion is the CANONICAL <c>namespace:path</c> — the form `/give` and `/summon` now resolve back to the game's own id, so the list teaches exactly the
+	/// line the verb accepts (user direction 2026-10-30). The catalog owns matching and ranking; this method only projects it for the UI.
 	/// </summary>
-	private static bool TakesTheGamesOwnId(CommandDefinition? command) =>
-		command is not null
-		&& (string.Equals(command.Name, "give", StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(command.Name, "summon", StringComparison.OrdinalIgnoreCase));
-
-	/// <summary>
-	/// Resource/id completion from the content-id catalog: the user may type a
-	/// canonical id prefix, the bare content id, or the localized display name,
-	/// but every suggestion is the form the VERB accepts — the catalog's canonical
-	/// <c>namespace:path</c> id, or the bare path for the verbs that resolve through the
-	/// game's own item table (see <see cref="TakesTheGamesOwnId"/>). The catalog owns
-	/// matching/ranking; this method only projects it for the UI.
-	/// </summary>
-	private IReadOnlyList<CommandSuggestion> SuggestResourceLocations(string prefix, bool bareGameId) =>
+	private IReadOnlyList<CommandSuggestion> SuggestResourceLocations(string prefix) =>
 		[.. _resourceLocations.Suggest(prefix)
 			.Select(entry => new CommandSuggestion(
-				bareGameId ? entry.Id.Path : entry.Id.ToString(),
+				entry.Id.ToString(),
 				CommandSuggestionHint.ResourceLocation, Args: [entry.Kind, entry.DisplayName]))];
 
 	/// <summary>

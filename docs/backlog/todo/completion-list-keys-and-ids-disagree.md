@@ -104,3 +104,11 @@ Still open on this ticket, in order: SNBT/component completion after a resolved 
 pinned by `ConsoleInputSessionTests.MoveSelection_WalksTheDrawnListAndWraps` and by the overlay's routing line; the batch could not press a real arrow because the driver has no
 action for it (the `console-accept` action cycles Tab only), so the arrow HALF is resting on the test plus a code read, and a driver action that drives `MoveSelection` is the
 step that would make it a frame.
+## Row 4's command half landed: both id forms reach the same object (2026-10-31)
+
+`ItemDefinitionId.TryResolve` is now the one seam a typed item id passes: a bare token is returned as typed, `cu:<path>` resolves to the game's own `<path>` (its tables are keyed by
+the bare id), and any other namespace travels unchanged because a mod's content is registered under its canonical id. `/give` and `/summon item` call it, and the completion
+list now offers the canonical `namespace:path` for every verb — the line it teaches is a line that runs. The old `TakesTheGamesOwnId` special case (offer the bare id because the
+verb refused the canonical one) is deleted with its test rewritten: the suggestion is `cu:widget` and accepting it is accepted.
+
+What row 4 still owes: the FRAME (a client showing `cu:...` in the list and landing the item) — the code half and the unit tests are here, the visual half is the next batch.

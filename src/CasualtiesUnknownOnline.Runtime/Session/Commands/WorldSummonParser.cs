@@ -64,18 +64,29 @@ internal static class WorldSummonParser
 			}
 		}
 
-		var prefabId = tokens[next++];
-		if (prefabId.Length == 0)
+		var typedPrefabId = tokens[next++];
+		if (typedPrefabId.Length == 0)
 		{
 			return Refuse($"No prefab id was given — name the game's own item id or prefab id, e.g. /summon bandage. Usage: {Usage}", out error);
 		}
 
-		if (prefabId.IndexOfAny(['{', '}', '[', ']']) >= 0)
+		if (typedPrefabId.IndexOfAny(['{', '}', '[', ']']) >= 0)
 		{
 			// The state is its own argument here; the attached form is the shape a reader of /give would try.
 			// The correction names the form, not the rejected line, and does not assume the id's family: a bare
 			// id may be an item definition, which needs the type word as well.
 			return Refuse($"The state is its own argument, not attached to the id: /summon <prefabId> [<position>] {{<key>:<value>}} — an item definition also needs the item word, e.g. /summon item bandage player {{Condition:0.5f}}. Usage: {Usage}", out error);
+		}
+
+		// Both id forms reach the same object on the ITEM half (user direction 2026-10-30): `cu:bandage` and `bandage` name one definition. A prefab id is not an
+		// item definition, so the entity half passes the token through untouched and the game answers "no such prefab" itself.
+		var prefabId = typedPrefabId;
+		if (kind == WorldSummonKind.Item)
+		{
+			if (!ItemDefinitionId.TryResolve(typedPrefabId, out prefabId, out var idError))
+			{
+				return Refuse($"{idError} Usage: {Usage}", out error);
+			}
 		}
 
 		var position = WorldSummonPosition.Default;

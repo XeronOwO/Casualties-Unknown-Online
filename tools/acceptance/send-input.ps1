@@ -19,7 +19,7 @@
 param(
 	[string]$Name = 'CasualtiesUnknown',
 	[int]$ProcessId = 0,
-	[Parameter(Mandatory = $true)][ValidateSet('click', 'key', 'drag', 'rdrag')][string]$Action,
+	[Parameter(Mandatory = $true)][ValidateSet('click', 'key', 'drag', 'rdrag', 'move', 'rpress', 'rrelease')][string]$Action,
 	[int]$X = 0,
 	[int]$Y = 0,
 	[int]$X1 = 0,
@@ -270,6 +270,25 @@ switch ($Action) {
 			Start-Sleep -Milliseconds 40
 		}
 		[CuoInput]::MouseUpRight($to.X, $to.Y)
+	}
+	'move' {
+		# Pointer only. A two-phase gesture needs this on its own: the give family's press happens on an item, something
+		# (the game's own ring toggle) has to happen while the button is STILL held, and only then does the pointer travel
+		# to the target — a one-call drag helper cannot carry that middle step.
+		$p = ConvertTo-Screen $X $Y
+		[void][CuoInput]::SetCursorPos($p.X, $p.Y)
+	}
+	'rpress' {
+		# The right button DOWN and held, at a client point. Pairs with 'move' and 'rrelease' to drive the game's own
+		# while-dragging frames with a real press the game reads, instead of a virtual one it ignores.
+		if ($X -eq 0 -and $Y -eq 0) { throw 'rpress needs -X and -Y (the item it presses on)' }
+		$p = ConvertTo-Screen $X $Y
+		[CuoInput]::MouseDownRight($p.X, $p.Y)
+	}
+	'rrelease' {
+		# The right button UP at a client point, ending the drag a previous 'rpress' started.
+		$p = ConvertTo-Screen $X $Y
+		[CuoInput]::MouseUpRight($p.X, $p.Y)
 	}
 }
 

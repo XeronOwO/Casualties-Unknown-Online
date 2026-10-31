@@ -551,3 +551,11 @@ The batch above also re-established the one thing the earlier batches lost: the 
 | 1 | 777,441 | trashbag |
 
 So the drag family's next batch has the complete recipe: focus-then-press to open the ring, a right-button drag from a slot's own point (client pixels = game point x 1038/1280, y = (720 - game y) x 614/720), the ring closed again mid-drag by the same key so the world context is entered, and the release on the teammate's own projected point. What it still needs is a two-phase press/move/release (a down call, a close, a move, an up call) rather than the one-call drag helper, which is a small tooling addition and not a game-side unknown.
+
+## The two-phase press exists now, and what it measured
+
+The input helper gained the three actions the gesture needs (`move`, `rpress`, `rrelease`): a right press held on an item, something happening while it is still held, the pointer travelling to the target, and the release that ends it — the one-call drag helper could not carry that middle step.
+
+The batch calibrated the coordinate frame first, with the game's own read as the ruler: `move` to client (100,100) answered `Input.mousePosition` (100,619) and (900,500) answered (900,219), so `game_x = client_x` and `game_y = 719 - client_y` on this window — a fixed offset, not a scale, which the earlier batches had been guessing at.
+
+With the ring open on its own six slots (focus click, wait, Tab: `radialOpen=true`), a right press held on the waterbottle's slot centre (game 777,279) read back as `dragging=false, dragItem=none` while `Input.mousePosition` was exactly (777,279): the press arrives and the bracket does not start, which is the same split the 2026-10-25 batches found for slot buttons — the control consumes the press. The next attempt therefore starts the gesture on a WORLD item (an item lying in the world has a collider and no ring control in front of it), which is also the mode the user's ruling describes: drag the item onto a teammate with the bag closed.

@@ -123,3 +123,9 @@ A `saline` given into a free slot, the guest's chart opened (`opened=true`) and 
 No minigame came up (`minigame-live` answered `kind=none`), no dose was measured, and nothing was poured — the refusal-by-name this ticket's classifier section describes ("a limb release of a saline bag is claimed by no family"). The owed row's OLD wording — "starts the injection flow on the patient's side" — is the pre-2026-10-24 shape and is superseded by the native-parity resolution recorded above; the reading that matches the design is the refusal.
 
 **Still owed**: the syringe half, with the fixture rule the medical batch learned today — a give issued before the host's world is live is refused (`This client is not the host of a live session world`) and a give into full slots lands in the carried container, where the release cannot reach it. The batch that closes it starts fresh, waits for the world to settle, and checks the give line before releasing.
+
+## The syringe half needs a FILLED syringe (2026-11-01)
+
+Retrying with the fixture rule followed (world live, `placed syringe in local slot 0`, release `limbLookingAt=5`): an EMPTY syringe produces nothing at all — no minigame (`minigame-live` answered `kind=none`), no `[MedicalView]` line and no refusal. That is a different shape from the row: the row names "a syringe holding water", and the native `useLimbAction` is what runs the injection, so an empty one has nothing to run.
+
+So the syringe half is a LIQUID fixture away, not an instrument away: the batch needs a syringe filled with water (the game's own container fill, or a spawn that carries a liquid) and then the same release. The saline half above and this empty-syringe reading together bound the shape: a bag with a health-usable liquid is refused by name, and a syringe with nothing in it does nothing.

@@ -42,7 +42,7 @@ namespace CasualtiesUnknownOnline.ModExample;
 /// </summary>
 [CuoMod("cuo.example", "CUO Example", "0.1.0", NetworkMode = NetworkMode.Synchronized,
 	Permissions = ModPermission.SendNetworkMessage | ModPermission.RegisterCommand | ModPermission.ExecuteHostAction
-		| ModPermission.RegisterContent | ModPermission.AuthorEffects)]
+		| ModPermission.RegisterContent | ModPermission.AuthorEffects | ModPermission.RegisterLocalCommand)]
 public sealed class ExampleMod : ICuoMod
 {
 	/// <summary>The declared echo packet: whoever sends it, the other members run the chain.</summary>

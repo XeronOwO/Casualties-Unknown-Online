@@ -395,3 +395,18 @@ loaded machine reports a regression instead of its own noise — and the widest 
 **Where the ticket stands:** all eleven acceptance rows are judged or have a named residual — rows 2 and 6 keep their residuals (no frame for the argument-dependent list; no Chinese
 member watched reading a relayed answer), row 11 keeps the frame half, and row 7 is withdrawn by the pre-release ruling. The ticket moves to `review/`; what it leaves behind is a contract
 every command — built-in or mod — is defined by, one completion path, one answer shape, one relay, and one place a player reads the result in their own language.
+
+## Two more rows read on the deployed build (2026-11-01, after the sandbox came back)
+
+**A `HostRelayed` mod command run by a member lands on the HOST, and its answer reaches the member.** The guest typed
+`/examplehost hello-from-guest`; its own answer was `host echo for 76561198863287957: hello-from-guest`, and the host's
+log carries the path with the requester named by id: `[Console] relayed /examplehost from 76561198863287957 answered on
+the host.`, `[Mods] 76561198863287957 requests cuo.example/examplehost`, then the example mod's own echo line. The
+language half of the row is the mod surface's: the example command answers with a literal it wrote, not with a key the
+receiver renders, so the refusal below is what exercises that half.
+
+**A member without the grant is refused locally, in their own language, and the host never sees the invocation.** The
+guest typed `/heal @s` and was answered `本地拒绝：主机广播的作弊名单里没有你，所以 /heal 无法生效。主机用 /op 授予。什么都没做。`
+while the host's log shows no `/heal` invocation in that window — only the network-health lines for that peer. Both
+halves hold: the refusal is local and localized, and nothing reached the host.
+

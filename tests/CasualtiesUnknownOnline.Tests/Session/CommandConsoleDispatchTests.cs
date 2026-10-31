@@ -100,6 +100,7 @@ public class CommandConsoleDispatchTests
 
 		var hint = completion.GetHint("/kick");
 
-		Assert.Contains("/kick <steamId|displayName>", hint);
+		Assert.Equal("console.hint.usage", hint!.Key);
+		Assert.Contains("/kick <steamId|displayName>", hint.Args[0] as string);
 	}
 }

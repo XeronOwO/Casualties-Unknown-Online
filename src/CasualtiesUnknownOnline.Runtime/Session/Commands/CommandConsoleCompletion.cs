@@ -181,12 +181,12 @@ internal sealed class CommandConsoleCompletion(
 	internal IReadOnlyList<CommandSuggestion> Suggest(CommandArgumentKind kind, string prefix) => SuggestFor(kind, prefix, null);
 
 	/// <summary>
-	/// The usage hint for a typed command line, or null when there is nothing useful to show. A hint is not
-	/// a completion: the input session exposes it for whatever surface renders hints, and it is not what the
-	/// suggestion list hides. A hidden command typed in full still reaches the handler, so this line names
-	/// what that handler accepts.
+	/// The hint about the line as typed, or null when there is nothing to explain. A hint is not a completion: rows offer what COULD be typed, this explains what WAS
+	/// typed while the player can still fix it (user direction 2026-10-30: the console used to stay silent until Enter, and a refused token only got an answer after
+	/// the line had been sent). Two cases are worth a line — an unknown verb, and a token nothing matches at a position the grammar expects something in; a line the
+	/// list already explains stays quiet, so the hint never competes with the candidates.
 	/// </summary>
-	internal string? GetHint(string input)
+	internal CommandHint? GetHint(string input)
 	{
 		if (string.IsNullOrWhiteSpace(input) || !input.StartsWith("/", StringComparison.Ordinal))
 		{
@@ -199,13 +199,46 @@ internal sealed class CommandConsoleCompletion(
 			return null;
 		}
 
+		// A lone "/" is the console just opened, not a wrong command: nothing has been typed yet.
+		if (string.Equals(tokens[0].Unquoted, "/", StringComparison.Ordinal))
+		{
+			return null;
+		}
+
 		var command = FindCommand(tokens[0].Unquoted);
 		if (command is null)
 		{
-			return $"Unknown command '{tokens[0].Unquoted}'. Type /help for available commands.";
+			return new CommandHint("console.hint.unknown_command", tokens[0].Unquoted);
 		}
 
-		return $"Usage: {command.Usage} — {command.Description}";
+		// A verb typed out WHOLE and nothing after it names what it accepts; a partially typed name does not, because the list already explains that keystroke.
+		var current = CommandLineTokenizer.CurrentToken(input);
+		if (tokens.Count == 1 && current.Length > 0)
+		{
+			return new CommandHint("console.hint.usage", command.Usage);
+		}
+
+		if (tokens.Count <= 1)
+		{
+			return null;
+		}
+
+		if (current.Length > 0 && tokens.Count > 1 && Suggest(input).Count == 0 && !IsCompleteState(command, tokens, input))
+		{
+			return new CommandHint("console.hint.no_match", current.Unquoted, command.Usage);
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Whether the line already names something the verb accepts in full, so "nothing matches" would be a false alarm: an item state typed out, for instance, has no
+	/// candidates left but is exactly what the grammar wants.
+	/// </summary>
+	private static bool IsCompleteState(CommandDefinition command, IReadOnlyList<CommandLineTokenizer.Token> tokens, string input)
+	{
+		var current = CommandLineTokenizer.CurrentToken(input);
+		return current.Unquoted.IndexOf('{') >= 0 && current.Unquoted.TrimEnd().EndsWith("}");
 	}
 
 	private CommandDefinition? FindCommand(string name)

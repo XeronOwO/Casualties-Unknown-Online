@@ -176,7 +176,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 	public IReadOnlyList<CommandSuggestion> Suggest(CommandArgumentKind kind, string prefix) => _completion.Suggest(kind, prefix);
 
-	public string? GetHint(string input) => _completion.GetHint(input);
+	public CommandHint? GetHint(string input) => _completion.GetHint(input);
 
 	public bool TryExecute(string input)
 	{

@@ -272,9 +272,10 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	private const string UiKeyPattern = "(?:tab|console)\\.[a-zA-Z_.]+";
 
 	private static readonly Regex DeclaredKeyPattern = new($@"\""({UiKeyPattern})\""\s*:", RegexOptions.Compiled);
-	// A key is "referenced" by the UI when it is read through the localization accessor (`T("…")`) or through the console
-	// resolver's own lookup parameter (`lookup("…")`), which is the same read one indirection later.
-	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|F|lookup|AddKeyedLine|Ok|Refused)\(""({UiKeyPattern})""", RegexOptions.Compiled);
+	// A key is "referenced" by the UI when it is read through the localization accessor (`T("…")`), through the console resolver's own
+	// lookup parameter (`lookup("…")`, the same read one indirection later), or when the RUNTIME authors a hint as a key (`new CommandHint("…")`)
+	// that the overlay then renders — the hint must be a key + arguments, never a finished sentence (2026-10-31).
+	private static readonly Regex ReferencedKeyPattern = new($@"\b(?:T|F|lookup|AddKeyedLine|Ok|Refused|CommandHint)\(""({UiKeyPattern})""", RegexOptions.Compiled);
 	private static readonly Regex ConsoleInputFieldPattern = new(@"\bConsoleInput\b", RegexOptions.Compiled);
 
 	/// <summary>
@@ -328,6 +329,9 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		"console.command.host_only",
 		"console.command.unknown",
 		"console.help.command",
+		"console.hint.no_match",
+		"console.hint.unknown_command",
+		"console.hint.usage",
 		"console.overlay.empty",
 		"console.ready",
 		"console.session_ended",

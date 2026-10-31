@@ -145,3 +145,15 @@ the block.
 **Judged on a frame (2026-10-31, build `a1df2183`, deployed):** `/give @s cu:waterbottle{` drew four rows, one PER KEY — `cu:waterbottle{Condition:`,
 `cu:waterbottle{Favourited:`, `cu:waterbottle{Liquids:`, `cu:waterbottle{Components:` — and the driver's Tab sequence walked them: `…waterbottle` → Tab → 
 `…waterbottle{` → Tab → `…waterbottle{Condition:`. So the completion is token by token inside the block, not a pasted template, and it keeps working on the canonical id.
+## Row 7 landed: the console explains the line while it is still being typed (2026-10-31)
+
+There was no hint anywhere in the UI: ConsoleInputSession.Hint existed but nothing drew it, and GetHint returned a finished English sentence for any known verb. The hint
+is now a catalogue KEY plus arguments (CommandHint) rendered by the readers client, and it fires only where silence would be the only answer: an unknown verb, a whole verb with
+nothing after it (its usage), and a token nothing matches at a position the grammar fills (/give @s notanitem — the answer used to arrive only after Enter). A line the candidate
+list already explains shows no hint at all. The overlay's hint vocabulary moved to CommandSuggestionHintText in the same change, because the overlay had crossed the 600-line
+aggregate gate. Both localisation census gates learned the new shape: the console-page pin reads a key handed to CommandHint(, and the catalogue census counts it as a read — a hint
+is exactly as much a keyed message as a console answer.
+
+Also judged this round: **row 2's arrows on a frame.** The driver gained a console-arrow action that calls ConsoleInputSession.MoveSelection (the same call the overlay's key
+switch makes): /give @s water → Tab → cu:waterbottle → down → cu:waterjug → up → cu:waterbottle, and the captured frame shows the marker on the second row with its name and
+kind. Row 2 is no longer resting on a test.

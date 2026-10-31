@@ -99,7 +99,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 	public IReadOnlyList<string> CompletionCandidates => [.. _completionCandidates.Select(c => c.Text)];
 
-	public string? Hint => _open ? _completion.GetHint(_editor.Input) : null;
+	public CommandHint? Hint => _open ? _completion.GetHint(_editor.Input) : null;
 
 	public IReadOnlyList<string> History => _history;
 

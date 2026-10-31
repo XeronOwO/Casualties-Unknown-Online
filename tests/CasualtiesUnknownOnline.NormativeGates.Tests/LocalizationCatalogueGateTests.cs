@@ -59,6 +59,14 @@ public sealed class LocalizationCatalogueGateTests
 		@"new GrantRefusal\((?:[^()]|\([^()]*\))*\)",
 		RegexOptions.Compiled);
 
+	/// <summary>
+	/// A HINT authored in the Runtime as a key plus arguments: <c>new CommandHint("console.hint…", …)</c>. The message carries no sentence at all — the overlay
+	/// renders the key in the reader's language — so a literal there is a read of the catalogue, the same shape <see cref="KeyedRefusalCall"/> already allows.
+	/// </summary>
+	private static readonly Regex HintCall = new(
+		@"new CommandHint\((?:[^()]|\([^()]*\))*\)",
+		RegexOptions.Compiled);
+
 	private static readonly Regex AnswerKeyLiteral = new(
 		@"""([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)""",
 		RegexOptions.Compiled);
@@ -502,6 +510,17 @@ public sealed class LocalizationCatalogueGateTests
 		foreach (Match refusal in KeyedRefusalCall.Matches(flattened))
 		{
 			var key = AnswerKeyLiteral.Match(refusal.Value);
+			if (key.Success)
+			{
+				keys.Add(key.Groups[1].Value);
+			}
+		}
+
+		// A HINT authored as a key plus arguments (`new CommandHint("console.hint…", …)`): the message carries no sentence, the overlay renders the key in the
+		// reader's language, so the literal is a read like any other keyed message.
+		foreach (Match hint in HintCall.Matches(flattened))
+		{
+			var key = AnswerKeyLiteral.Match(hint.Value);
 			if (key.Success)
 			{
 				keys.Add(key.Groups[1].Value);

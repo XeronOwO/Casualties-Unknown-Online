@@ -23,8 +23,8 @@ public interface ICommandCompletionSource
 	IReadOnlyList<CommandSuggestion> Suggest(string input);
 
 	/// <summary>
-	/// Returns a short usage/hint line for the current command line, or null
-	/// when there is nothing useful to show.
+	/// The hint about the line being typed (a catalogue key and its arguments), or null when the line has nothing to explain. The caller renders it in the
+	/// reader's language — this surface never returns a finished sentence.
 	/// </summary>
-	string? GetHint(string input);
+	CommandHint? GetHint(string input);
 }

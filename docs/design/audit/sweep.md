@@ -52,7 +52,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | read |
 | `CasualtiesUnknownOnline.PinyinSearch.Core/Search` | 6 | read |
 | `CasualtiesUnknownOnline.PinyinSearch/Patches` | 2 | read |
-| `CasualtiesUnknownOnline.Plugin` | 43 | read |
+| `CasualtiesUnknownOnline.Plugin` | 44 | read |
 | `CasualtiesUnknownOnline.Protocol/Codecs` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Versioning` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Wire` | 55 | read |
@@ -77,7 +77,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync` | 12 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/CharacterData` | 33 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Chat` | 4 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/Commands` | 71 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/Commands` | 72 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Content` | 7 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/EntitySync` | 43 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/HandlerContexts` | 24 | read |

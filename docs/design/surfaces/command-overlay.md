@@ -92,6 +92,24 @@ Decision 228 (the `/` overlay is the only command and chat surface). Accepted:
 `../../backlog/done/in-game-command-console-interactive.md` (entry keys, live candidates, no-fade history, Escape
 interception), `done/command-console-esc-not-intercepted.md`, `done/console-command-replies-bilingual.md`.
 
+## The hint line: what is wrong while it can still be fixed
+
+A completion row offers what COULD be typed; a hint explains what WAS typed. The console draws one hint line above the input
+whenever the line has something to say, and stays quiet otherwise — a line the candidate list already explains shows no hint, so
+the two never compete for the same keystroke:
+
+| The line | The hint | Why |
+| --- | --- | --- |
+| `/` alone | none | the console just opened; nothing is wrong yet |
+| a verb typed whole, nothing after it (`/kick`) | its usage | the player named the verb and may not know what it takes |
+| a verb still being typed (`/ki`) | none | the candidate list already offers `/kick` |
+| an unknown verb (`/nonsense`) | no command named … | the list has nothing to offer, so silence would be the only answer |
+| a token nothing matches where the grammar fills something (`/give @s notanitem`) | nothing here matches … plus the usage | before this the answer arrived only after Enter |
+
+A hint is a catalogue KEY and its arguments (`CommandHint`), never a finished sentence: the client that draws it renders it in the
+reader's language, the same rule the console answers follow. The overlay's hint vocabulary lives in `CommandSuggestionHintText`,
+so the drawing surface stays a surface and its size stays within the aggregate line gate.
+
 ## Gaps
 
 - The panel's exact geometry (heights, paddings, font sizes) is not recorded here yet; the accepted design's frames hold

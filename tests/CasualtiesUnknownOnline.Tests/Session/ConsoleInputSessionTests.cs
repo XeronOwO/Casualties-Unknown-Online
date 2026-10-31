@@ -459,7 +459,7 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
-	public void RealCompletion_HintForKnownCommand()
+	public void RealCompletion_HintForAnIncompleteLine()
 	{
 		var (host, _) = TestNode.CreatePair(1001, 2001, 9001);
 		var control = host.Services.GetRequiredService<ICommandControl>();
@@ -467,9 +467,11 @@ public class ConsoleInputSessionTests
 		var session = new ConsoleInputSession(control, completion);
 
 		session.Open();
-		session.SetInput("/kick");
-
-		Assert.Contains("steamId|displayName", session.Hint);
+		// The hint is a key and its arguments, so the reader's client renders the sentence; a line the list already explains stays quiet.
+		Assert.Null(session.Hint);
+		session.SetInput("/nonsense");
+		Assert.NotNull(session.Hint);
+		Assert.Equal("console.hint.unknown_command", session.Hint!.Key);
 	}
 
 	private static ConsoleInputSession CreateSession(ICommandControl control, ICommandCompletionSource completion) =>
@@ -496,15 +498,15 @@ public class ConsoleInputSessionTests
 		}
 	}
 
-	private sealed class StubCompletion(Func<string, IReadOnlyList<CommandSuggestion>> suggest, Func<string, string?> hint) : ICommandCompletionSource
+	private sealed class StubCompletion(Func<string, IReadOnlyList<CommandSuggestion>> suggest, Func<string, CommandHint?> hint) : ICommandCompletionSource
 	{
 		private readonly Func<string, IReadOnlyList<CommandSuggestion>> _suggest = suggest;
-		private readonly Func<string, string?> _hint = hint;
+		private readonly Func<string, CommandHint?> _hint = hint;
 
 		public IReadOnlyList<CommandSpec> Commands => [];
 
 		public IReadOnlyList<CommandSuggestion> Suggest(string input) => _suggest(input);
 
-		public string? GetHint(string input) => _hint(input);
+		public CommandHint? GetHint(string input) => _hint(input);
 	}
 }

@@ -173,7 +173,8 @@ public class CommandConsoleCompletionTests
 
 		var hint = completion.GetHint("/heal");
 
-		Assert.Contains("/heal <selector>", hint);
+		Assert.Equal("console.hint.usage", hint!.Key);
+		Assert.Contains("/heal <selector>", hint.Args[0] as string);
 	}
 
 	[Fact]
@@ -184,6 +185,7 @@ public class CommandConsoleCompletionTests
 
 		var hint = completion.GetHint("/gamerule");
 
-		Assert.Contains("/gamerule <rule name> [<value>]", hint);
+		Assert.Equal("console.hint.usage", hint!.Key);
+		Assert.Contains("/gamerule <rule name> [<value>]", hint.Args[0] as string);
 	}
 }

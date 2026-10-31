@@ -88,7 +88,7 @@ powershell -ExecutionPolicy Bypass -File tools/acceptance/drive-in-process.ps1 -
 [CmdletBinding()]
 param(
 	[string]$Url,
-	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'console-ui', 'console-accept', 'quit', 'recipe', 'declare')]
+	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'console-ui', 'console-accept', 'console-arrow', 'quit', 'recipe', 'declare')]
 	[string]$Action,
 	[string]$ControlId,
 	[string]$Text,
@@ -696,6 +696,11 @@ function Invoke-DriverAction {
 		if (-not $step.ok) { return New-DriverFailure -ActionName $ActionName -Code $step.error -Detail $step.detail -Last $step }
 		return New-DriverSuccess -ActionName $ActionName -Step $step
 	}
+'console-arrow' {
+    $step = Invoke-DriverEval -Socket $Socket -Template $Template -CommandName 'console-arrow' -Argument $Text -TextValue '' -EvalTimeoutMs $EvalTimeoutMs
+    if (-not $step.ok) { return New-DriverFailure -ActionName $ActionName -Code $step.error -Detail $step.detail -Last $step }
+    return New-DriverSuccess -ActionName $ActionName -Step $step
+}
 	'quit' {
 			$note = 'the client was asked to quit'
 			try {

@@ -579,3 +579,13 @@ A fresh launch, a fifteen-second settle, then the sequence the ticket needs:
 - **`drag-from-slot slot=0` answered with an EMPTY `dragItem`**, and `drag-state` confirmed `dragging=false, item=none`.
 
 So the batch never reaches the cue: it cannot start the drag. That is an instrument question, not a product one, and it is the next reading — the recipe's own contract (`drag-from-slot`) against the game's `HandleStartDragging`: what does it call, and on which object does it expect the ring to be drawn. The window rule from the previous batch still stands (a CUO surface owning the screen refuses the press by design, `windowVisible=false` before any press), and it was satisfied here.
+
+## Correction: the drag DOES arm, and the cue waits on the displayed backpack (2026-11-01)
+
+The previous note was wrong about the instrument: `drag-from-slot` answers its item in a field called **`item`**, not `dragItem`, and read properly it says the drag armed
+
+    {"ok":true,"slot":0,"item":"bandage(Clone) (Item)","itemId":"bandage"}
+
+and `drag-state` then agrees: **`dragging=true, item=bandage, mouse=(672,358)`**. So the batch can hold a real drag with a real bandage in hand.
+
+What the cue then waits on is the other side of the gesture: with the pointer moved onto the teammate, `drag-cue` still answers `showing=false, target=0`. The cue's target is resolved against the DISPLAYED backpack (the remote pack view CUO opens), and that view was not open — the batch never opened it. The next instrument is therefore one call: open the teammate's displayed backpack the way the player's right-click does, then re-read the cue with the drag held. A `remote-backpack-open`-shaped recipe is what is missing, and it is the same call the Online UI already makes when a player right-clicks a teammate.

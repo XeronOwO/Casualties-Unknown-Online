@@ -117,3 +117,14 @@ So the host waits for a member that never loads, and the member waits for a host
 **Why nothing recovers it**: the re-entry window that asks the host to re-issue the instruction is armed ONLY on the host's world-exit edge (`ReentryCoordinator.OnRemoteSceneChanged`, `inWorld == false`), and `ReentryWindow.TryArm` refuses when the member "was already in the menu". A member that JOINS in the menu has no host-exit edge to arm on, so it never asks — the cure exists for the host-caused exit and not for the join, which is exactly the shape this ticket was opened from.
 
 **What the fix has to decide**: a join-armed ask. The member has a legitimate reason to be in the menu that the host cannot see (it just joined), so the window's arm policy needs a second entrance — handshake complete, host in a world, this member out of it, nothing in hand — with the same bounded budget and cooldown as the exit-armed one, so a member cannot turn a lost invite into an unbounded stream of asks. Rows 1 and 3 above are then read with the same batch that reads this reproduction.
+
+## The join-armed ask works (2026-11-01, build `ffeac5af`): the member now asks, and the host's own answer names the next link
+
+The join entrance landed (`ReentryWindow.TryArmOnJoin`, armed from the member's session activation and from the host-world report, asking without a host state the member cannot see). On the same reproduction — a client restarted while the host kept its world, then joined to the lobby — the host log now shows the member's asks arriving and being answered:
+
+- first `[Reentry] 76561198863287957 is out of the world and asks to be taken back in` → the host answered `this host has no live world (entering or regenerating)`;
+- then, every cadence, the same ask → `asked to be taken back in but this host has no committed run baseline — refused: an entry now would hold the member's generation on params that …`. 
+
+So the silence is gone: a member that joins now re-asks and the host answers with a NAMED reason each time. The next link is the reason itself — the host is in a world (its own `scene-read` answers `world=true, generating=false, worldExists=true` with the body at (0,488.62)) but `WorldService.HasCommittedRunBaseline` reads false, and that property is `_messages.Generations.Current`, i.e. `_authority.QueryRun() is { } run`. A host that is playing with no committed run in its kernel is either a start path that never commits the run for a solo host, or a commit that was dropped — and until it is committed the re-entry policy refuses every ask by design.
+
+**The next step is therefore a reading, not a guess**: which start path commits the kernel run on the host, and whether this host took it (the launcher's `start-run` calls the game's own `PreRunScript.StartRun`, so the question is whether the commit rides that call or the join handshake). The batch's evidence is in the two host log lines above plus the host's own `scene-read` values.

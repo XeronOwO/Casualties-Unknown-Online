@@ -230,15 +230,19 @@ public class HostVitalsSuppressionPinTests
 	[Fact]
 	public void TheInjuryTrigger_SendsTheOwnerStateWhenALimbBleedRises()
 	{
-		var source = Stripped(ReadSource("Character", "CharacterDataSync.cs"));
-		var trigger = MemberBlock(source, "private void TrackInjury(Body body)");
+		// The trigger and the payload live in OwnerStateEventReporter now; the sync keeps the call site that turns a rise into an event.
+		var reporter = Stripped(ReadSource("Character", "OwnerStateEventReporter.cs"));
+		var trigger = MemberBlock(reporter, "internal bool TrackInjury(Body body, int appliedRowCount)");
 		Assert.Contains("PlayerInjuryRule.AnyBleedRose(_injuryBleedBaseline, current)", trigger, StringComparison.Ordinal);
-		Assert.Contains("ReportOwnerStateEvent(body, \"injury\");", trigger, StringComparison.Ordinal);
-		Assert.Contains("_vitals.AppliedCount != _lastRowApplyCount", trigger, StringComparison.Ordinal);
-		Assert.Contains("_injuryBody = null;", MemberBlock(source, "internal void Update(Body? localBody)"), StringComparison.Ordinal);
+		Assert.Contains("appliedRowCount != _lastRowApplyCount", trigger, StringComparison.Ordinal);
 
-		var report = MemberBlock(source, "internal void ReportOwnerStateEvent(Body body, string reason)");
-		Assert.Contains("_characterData.SendLimbStateEvent(CaptureLimbStateEvent(body));", report, StringComparison.Ordinal);
+		var report = MemberBlock(reporter, "internal void ReportOwnerStateEvent(Body body, string reason)");
+		Assert.Contains("characterData.SendLimbStateEvent(Capture(body));", report, StringComparison.Ordinal);
+
+		var source = Stripped(ReadSource("Character", "CharacterDataSync.cs"));
+		var update = MemberBlock(source, "internal void Update(Body? localBody)");
+		Assert.Contains("OwnerState.ReportOwnerStateEvent(localBody, \"injury\");", update, StringComparison.Ordinal);
+		Assert.Contains("OwnerState.ResetInjury();", update, StringComparison.Ordinal);
 	}
 
 	[Fact]

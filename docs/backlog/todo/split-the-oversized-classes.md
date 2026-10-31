@@ -117,4 +117,17 @@ rest of the bridge through that reference. The shape gate followed the change �
 the port list, the nine names out of the frozen aggregate census, and the aggregate floor from 90 to 81 — and the damage-block gate reads its declaration in the port
 that now carries it.
 
-**What is left in the queue**: `RunCoordinator` (922), `CharacterDataSync` (738), `GameAdapter` (667), `GameAdapterBridge` (663) and `WorldService` (640).
+**What is left in the queue**: `RunCoordinator` (922), `CharacterDataSync` (620), `GameAdapter` (667), `GameAdapterBridge` (663) and `WorldService` (640).
+
+## Split 7, partial: the owner-state event leaves the character sync (2026-10-31)
+
+`GameAdapter.Character.CharacterDataSync` was 738 lines. Its entry named the injury trigger as one cut; the cut that clears the most is the whole OWNER-STATE EVENT: the
+limb-latch report, the injury-rise trigger with its three pieces of baseline state (the watched body, the last posted bleed set, and the host row's apply counter), and
+the full post-event payload both send.
+
+They are `OwnerStateEventReporter` now, and the sync asks it whether a rise happened before it reports — `OwnerState.TrackInjury(localBody, _vitals.AppliedCount)` —
+so the authority-absorption rule (the host's own push is never an injury) lives next to the baseline it reads. The sync is **620 lines**, so its entry is RE-RECORDED at
+that number rather than deleted: the class is not under the line yet, and the queue's row 1 allows an entry that names this ticket and no higher number. The injury pin
+followed the trigger into the reporter and still asserts both halves (the rise test and the payload).
+
+**What is left in the queue**: `RunCoordinator` (922), `GameAdapter` (667), `GameAdapterBridge` (663), `WorldService` (640) and `CharacterDataSync` (620, this ticket).

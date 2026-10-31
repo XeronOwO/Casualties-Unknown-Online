@@ -77,7 +77,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 
-- [A limb component applied outside a world throws every frame](review/a-limb-component-applied-outside-a-world-throws-every-frame.md) — **Critical** — fixed
 
 
 
@@ -170,6 +169,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A limb component applied outside a world throws every frame](done/a-limb-component-applied-outside-a-world-throws-every-frame.md) — **Critical** — fixed
 
 - [No compatibility branches before the first release](done/no-compatibility-branches-before-the-first-release.md) — **High** — gate proven, rows read.
 

@@ -76,8 +76,27 @@
 		if (limb.GetComponent<TourniquetScript>() != null) { componentsBefore = componentsBefore.Length > 0 ? componentsBefore + ",TourniquetScript" : "TourniquetScript"; }
 		if (limb.GetComponent<ChilledLimb>() != null) { componentsBefore = componentsBefore.Length > 0 ? componentsBefore + ",ChilledLimb" : "ChilledLimb"; }
 		splintedBefore = limb.splinted;
+
+		// The game's own ICON registration, read where the component keeps it: `SplintLimb.img` and `TourniquetScript.img` are the
+		// Images `WoundView.AddImageToLimb` returns in `Start`. A null one is a registration that never happened — the difference
+		// between "the component is there" and "the wound view shows it", which a frame at this zoom cannot separate.
+		var iconText = "none";
+		var splintIcon = (System.Object)null;
+		var tourniquetIcon = (System.Object)null;
+		var splintNowForIcon = limb.GetComponent<SplintLimb>();
+		if (splintNowForIcon != null) {
+			try { splintIcon = splintNowForIcon.GetType().GetField("img", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public).GetValue(splintNowForIcon); } catch { splintIcon = null; }
+		}
+		var tourniquetNow = limb.GetComponent<TourniquetScript>();
+		if (tourniquetNow != null) {
+			try { tourniquetIcon = tourniquetNow.GetType().GetField("img", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public).GetValue(tourniquetNow); } catch { tourniquetIcon = null; }
+		}
+		if (splintNowForIcon != null) { iconText = splintIcon != null ? "splint" : "splint-missing"; }
+		if (tourniquetNow != null) { iconText = (iconText == "none" ? "" : iconText + ",") + (tourniquetIcon != null ? "tourniquet" : "tourniquet-missing"); }
+
 		return "{\"ok\":true,\"mode\":\"status\",\"limb\":" + limbIndex
 			+ ",\"componentsBefore\":\"" + componentsBefore + "\",\"componentsAfter\":\"" + componentsBefore + "\""
+			+ ",\"icon\":\"" + iconText + "\""
 			+ ",\"splintedBefore\":" + (splintedBefore ? "true" : "false") + ",\"splintedAfter\":" + (splintedBefore ? "true" : "false")
 			+ ",\"startRanBefore\":" + (startRanBefore ? "true" : "false") + ",\"startRanAfter\":" + (startRanBefore ? "true" : "false")
 			+ ",\"conditionBefore\":" + num(conditionBefore) + ",\"conditionAfter\":" + num(conditionBefore)

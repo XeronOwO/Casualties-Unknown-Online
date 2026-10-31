@@ -117,3 +117,9 @@ at `(0, 506.6)`, because the game's own movement/collision puts it back out of s
 target to hit at all, and reaching one means real travel rather than a placement. **This row is parked** until a batch can walk a
 member to a plant/tree and swing there (the `move-drive` recipe is the natural instrument once its argument contract is
 satisfied) — a capability question, not a defect in the replay path, which the ticket's own selfcheck already covers.
+
+## The batch starts with the entity, and its projection is off screen (2026-11-01)
+
+`entity-attack mode=place` put the host's body beside the nearest live `BuildingEntity` (body at `(44.59064, 474.4713)`, entity at `(44.59064, 476.9713)`, distance 28.3), and the very next reading shows the wall the remaining row runs into: `screen-point2` projects that entity to **(1375, 191)** — outside the 1280-wide screen, so a real click cannot be aimed at it.
+
+The instrument for the swing already exists and the recipe's own contract says why it must be a real click (`Body.Attack(AttackInfo)` takes a struct a probe would fabricate, and a fabricated swing is not the hit the red-flash patch hooks). So the next step is the camera: after `place`, the body must face the entity for the projection to land on screen — a short camera-wait or a yaw at the entity — and only then does the click, the guest's frame, and the red flash become readable in one pass.

@@ -163,3 +163,13 @@ The driver's counters moved into static fields (`Starts`, `Saw`, `Drove`, `Runni
 And the host's own log, in the same seconds, says `[MedicalView] started remote Bandage minigame for … limb 4`. **So the bandage minigame a remote treatment starts is NOT `MinigameBase.main.currentMinigame` on the operator's client** — either CUO's remote path drives a different object, or the minigame lives on the patient's side. That is the next question, and it is now a readable one: the counters separate "no minigame object" from "a different minigame" (the `Other` field names it).
 
 The patient's limb confirms nothing landed: `skinHealth` went 19.75 → 23.58 and `bleedAmount` 15.6 → 2.8 over the same minutes, which is the game's own wound healing, not a bandage — its log carries `[LimbEvent] reported local limb 4` and no treatment line.
+
+## Why the minigame dies in the same frame it starts, read from the game's own update (2026-11-01)
+
+The counters said `currentMinigame` was null on every frame the rub sampled, while CUO's own start path asserts the opposite at the moment it runs: `RemoteOtherMedicalOperationHandler.StartMinigameSession` calls `MinigameBase.main.StartMinigame(session.Minigame!, item)` and immediately checks `ReferenceEquals(MinigameBase.main.currentMinigame, session.Minigame)` before logging that it started. So the object IS there at start, and it is gone by the next frame.
+
+The game says when that happens — `reversing/Assembly-CSharp/Assembly-CSharp/MinigameBase.cs`, `ActiveMinigameUpdate`'s first check:
+
+    if ((!this.currentItem && this.currentMinigame.NeedsItem()) || !this.body.conscious) { this.EndMinigame(); return; }
+
+and `BandageMinigame.NeedsItem()` returns true. So the minigame ends on the next frame when its `currentItem` is gone (or the operator's body is unconscious). The release path consumes the dragged item — `remote-medical-release` answers `dragAfter=none`, the item leaves its slot — which is exactly the shape that leaves `currentItem` empty on the following frame. **The next reading is `currentItem` itself** (add it to the driver's counters): if it is null by the first sampled frame, the batch must keep the item alive across the start (send the start before the release consumes it, or hand the minigame a live item), and that is a CUO-side question, not a gesture one.

@@ -168,23 +168,20 @@ public class ReentryWindowTests
 	}
 
 	[Fact]
-	public void AMemberThatJoinsWhileTheHostIsInAWorld_ArmsTheSameBoundedAsk()
+	public void AMemberThatJoinsWhileTheHostIsInAWorld_ArmsTheSameBoundedAsk_AndAsksWithoutHostState()
 	{
 		// The join entrance: no host exit ever happened, and the handshake's one-shot invite can be lost (the reproduction on the
-		// pre-run deadlock ticket). The exit-armed rule "already in the menu = not the host's to pull back" cannot apply to a
-		// member that never had a world, so the same window opens here and asks on the same cadence.
+		// pre-run deadlock ticket). The member also cannot see whether the host is in a world — the host's scene report goes to the
+		// members it already counts as in-world — so the ask goes out on the window's own cadence and the host's policy answers it.
 		var window = New();
-		Assert.True(TryArmOnJoin(window, nowMs: 0, hostInWorld: true, memberInWorldOrEntering: false));
+		Assert.True(TryArmOnJoin(window, nowMs: 0, memberInWorldOrEntering: false));
 		Assert.True(Armed(window));
-		Assert.Equal("Ready", Step(window, nowMs: 0, inWorld: false, generating: false, entering: false, hostInWorld: true));
+		Assert.Equal("Ready", Step(window, nowMs: 0, inWorld: false, generating: false, entering: false, hostInWorld: false));
 	}
 
 	[Fact]
-	public void AJoinWithNoHostWorldOrWhileAlreadyIn_DoesNotArm()
-	{
-		Assert.False(TryArmOnJoin(New(), nowMs: 0, hostInWorld: false, memberInWorldOrEntering: false));
-		Assert.False(TryArmOnJoin(New(), nowMs: 0, hostInWorld: true, memberInWorldOrEntering: true));
-	}
+	public void AJoinWhileAlreadyInAWorld_DoesNotArm() =>
+		Assert.False(TryArmOnJoin(New(), nowMs: 0, memberInWorldOrEntering: true));
 
 	[Fact]
 	public void AnAlreadyArmedWindow_IsNotRefilledByAJoin()
@@ -192,10 +189,10 @@ public class ReentryWindowTests
 		// The budget belongs to the window, not to the entrance: a join cannot hand a member a second round of asks.
 		var window = New();
 		Assert.True(TryArm(window, nowMs: 0, memberInWorldOrEntering: true));
-		Assert.False(TryArmOnJoin(window, nowMs: 1_000, hostInWorld: true, memberInWorldOrEntering: false));
+		Assert.False(TryArmOnJoin(window, nowMs: 1_000, memberInWorldOrEntering: false));
 		Assert.True(Armed(window));
 	}
 
-	private static bool TryArmOnJoin(object window, long nowMs, bool hostInWorld, bool memberInWorldOrEntering) =>
-		(bool)Window.GetMethod("TryArmOnJoin", Flags)!.Invoke(window, [nowMs, hostInWorld, memberInWorldOrEntering])!;
+	private static bool TryArmOnJoin(object window, long nowMs, bool memberInWorldOrEntering) =>
+		(bool)Window.GetMethod("TryArmOnJoin", Flags)!.Invoke(window, [nowMs, memberInWorldOrEntering])!;
 }

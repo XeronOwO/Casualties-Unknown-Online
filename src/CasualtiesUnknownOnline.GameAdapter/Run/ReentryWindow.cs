@@ -37,6 +37,12 @@ internal sealed class ReentryWindow
 	private long _lastAskMs;
 	private int _asks;
 
+	/// <summary>
+	/// This window was armed by a JOIN, where the member cannot see whether the host is in a world (the host's scene report goes to
+	/// the members it already counts as in-world). It asks without that fact and lets the host's own policy answer.
+	/// </summary>
+	private bool _askWithoutHostState;
+
 	internal bool Armed => _armed;
 
 	/// <summary>Asks this window has actually sent (spent by <see cref="NoteAsk"/>).</summary>
@@ -62,20 +68,27 @@ internal sealed class ReentryWindow
 	}
 
 	/// <summary>
-	/// Arms on a JOIN. The member just became part of a session whose host is already in a world while this side is not — a
-	/// legitimate reason to be in the menu that the host cannot see, and the same place the one-shot invite can be lost. The
-	/// exit-armed window's contrary rule ("a member already in the menu is not the host's to pull back") does not apply to a
-	/// member that has just arrived: it never had a world to leave. An already-armed window keeps its budget, so a join cannot
-	/// refill one the exit spent.
+	/// Arms on a JOIN. The member just became part of a session while it is out of a world — a legitimate reason to be in the menu
+	/// that the host cannot see, and the same place the one-shot invite can be lost. The exit-armed window's contrary rule ("a
+	/// member already in the menu is not the host's to pull back") does not apply to a member that never had a world.
+	/// <para>
+	/// This entrance does NOT ask whether the host is in a world, because the member cannot see that fact while it is out: the
+	/// host's scene report goes to the members it already counts as in-world, so a joining member has no way to learn it. The ask
+	/// is harmless — the host answers it with its own facts or names why it cannot yet — and the window's budget bounds it. An
+	/// already-armed window keeps its budget, so a join cannot refill one the exit spent.
+	/// </para>
 	/// </summary>
-	internal bool TryArmOnJoin(long nowMs, bool hostInWorld, bool memberInWorldOrEntering)
+	internal bool TryArmOnJoin(long nowMs, bool memberInWorldOrEntering)
 	{
-		if (_armed || !hostInWorld || memberInWorldOrEntering)
+		if (_armed || memberInWorldOrEntering)
 		{
 			return false;
 		}
 
-		return Arm(nowMs);
+		// AFTER Arm, which resets every per-window flag: the entrance decides what this window may ask without.
+		var armed = Arm(nowMs);
+		_askWithoutHostState = armed;
+		return armed;
 	}
 
 	private bool Arm(long nowMs)
@@ -85,6 +98,7 @@ internal sealed class ReentryWindow
 		_armedMs = nowMs;
 		_lastAskMs = 0;
 		_asks = 0;
+		_askWithoutHostState = false;
 		CloseReason = "";
 		return true;
 	}
@@ -141,7 +155,7 @@ internal sealed class ReentryWindow
 			return ReentryWindowState.Closed;
 		}
 
-		if (!hostInWorld)
+		if (!hostInWorld && !_askWithoutHostState)
 		{
 			return ReentryWindowState.Waiting; // the host is not in a world to enter yet
 		}

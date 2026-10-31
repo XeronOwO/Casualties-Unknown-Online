@@ -162,13 +162,13 @@ internal sealed class ReentryCoordinator(
 
 	private void ArmJoinWindow(string why)
 	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive || !_session.IsRemoteInWorld(_session.HostSteamId))
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
 		{
 			return;
 		}
 
 		var memberInWorldOrEntering = _run.IsInWorld || _run.IsEnteringWorld || HarmonyTraverse.IsGenerating();
-		if (!_window.TryArmOnJoin(_time.NowMs, hostInWorld: true, memberInWorldOrEntering))
+		if (!_window.TryArmOnJoin(_time.NowMs, memberInWorldOrEntering))
 		{
 			return;
 		}

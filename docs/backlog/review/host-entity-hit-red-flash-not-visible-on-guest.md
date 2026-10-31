@@ -129,3 +129,7 @@ The instrument for the swing already exists and the recipe's own contract says w
 Aiming the staged pointer at `(640, 560)` and waiting a second left the same entity projected at `(1359, 217)` — still off screen. So the acceptance channel's pointer stages the POSITION the game reads (`Input.mousePosition`) but not the camera look, which the game drives from the real pointer's movement. A batch that needs the camera to face something has to move the REAL pointer (`send-input -Action move`, sanctioned per batch) or read a camera control the channel does not have yet.
 
 Neither is a product question; both are named here so the next pass picks one deliberately. The row itself is unaffected: what it needs is the host's swing and the guest's frame, and the swing remains a real click by the recipe's own contract.
+
+## The real pointer does not turn it either, without focus (2026-11-01)
+
+Moving the REAL pointer to the top of the screen (`send-input -Action move`) and re-placing the body left the entity at the same projected point `(1359, 217)`. The game turns the camera from the pointer while its window has the mouse CAPTURED and focused, and a `move` that the window does not read leaves the view exactly where it was. So the honest order for this row is: focus the client window first (a click inside it), then move the pointer, then place the body — the same focus-first rule the older input notes carry for OS presses.

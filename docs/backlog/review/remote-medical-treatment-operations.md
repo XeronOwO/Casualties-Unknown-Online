@@ -251,6 +251,12 @@ The reason is the instrument, not the feature: `MinigameBase.UpdateHandVisuals` 
 | unsupported operations recorded | **PASS** | the "Supported operation set" section names the four families and the deliberate exclusions |
 | build, tests, gates, deployed artifact | **PASS** | 811 gates and 6573 behaviour tests green; deployed artifact verified against the tree before the batch |
 
+Two attempts at that completing batch, and they disagree — which is itself the next reading:
+
+- 60 steps of 15° with the key held: live reader answered `lastAction=160, fill=1` (eight actions), the host started operation 4 and — the first time in any batch — the terminal line carried progress (`0.088` on the previous run, where every earlier run read `0.000`).
+- 135 steps on a freshly wounded limb: `progress 0.0`, the minigame gone by the time the live reader ran, and the operation timed out with nothing at all.
+
+So the pipe CAN carry progress and sometimes does not, which points at the driver's cadence rather than the wire: each driver call is a fresh process and re-issues `Install` before staging, and the run that lost everything was the long one. Before blaming the cadence, the next reading is the operator's own counters: `VirtualInput` already exposes `KeyQueries`/`KeyDownAnswers` (did the minigame ask, and was the answer "down") — a batch reads them before and after a rub, and that separates "the key was never held during the long run" from "held, asked, and the progress still never left".
 So one row is owed, and it is a batch question with a known shape: the minigame needs roughly eighteen wraps and this batch produced under two. The driver that fixes it is already understood — 15° steps with the attack KEY held (the guard accepts only sub-20° steps) and enough of them, or a tighter cadence so consecutive steps land on consecutive frames.
 ## THE TREATMENT LANDS (2026-11-01): the wound went from 76.24 to 100 through the remote chart
 

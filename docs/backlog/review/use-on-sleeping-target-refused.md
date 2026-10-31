@@ -173,3 +173,9 @@ Clean session, pills + `body-call kind=nap` (`sleeping=true`), a fresh wound on 
 and the patient, read on their own client, carries the component (**`SplintLimb`**) and is **still `sleeping=true`**. So the second treatment family reads on a sleeping target without waking them, the same way the bandage did.
 
 The families left on row 1 are the ones that go through the give gesture (eat, drink, wear) and the injection (which needs a liquid-filled container); bandage and splint are read.
+
+## The tourniquet family, and why the nap is one-shot (2026-11-01)
+
+A tourniquet released through the chart on limb 5 applied as the game's own component (**`TourniquetScript`** on the patient's limb) — but the patient had woken by then (`sleeping=false`), so that reading is the family's chart path, not the sleeping case. Asking for a second nap answered `applied=true` and the body stayed **awake**, and a second tourniquet on limb 1 then did nothing at all.
+
+So the asleep fixture is one-shot per session: the pills and the nap that produced `sleeping=true` earlier are spent, and the game's `canTakeNap` stops holding once energy, pain and sickness move. The consequence for this ticket is a planning rule rather than a defect — **each family read on a sleeping target wants its own fresh session**, the same "one treatment per fresh launch" rule the medical batch already carries, and the batch that reads eat/drink/wear/injection asleep must plan one launch per family.

@@ -192,3 +192,20 @@ samples while the guest treats its own limb — and row 4b is the carried follow
 committed as `tools/acceptance/recipes/audio-recent.cs`.
 
 and row 3 is blocked by the fixture rather than the instrument: a LOCAL bandage treatment needs the guest to OWN a bandage, and a member cannot give itself one — `/give` is a cheat-gated command and the guest is not on the host's granted list, so it answered `refused locally` (its own message naming the grant). A world pickup or a host-side give would stage it; that is the next batch's first step.
+
+## Row 5 read: a landing world item plays on the acting client and is NOT relayed (2026-11-01, 07:25)
+
+The instrument pointed at row 5 ("any world item lands -> every client hears the `drop` clip"): `item-drop type=bandage,height=30`
+spawns a world item through the game's own `Utils.Create` and lets it fall, and `audio-recent match=drop` samples a client's
+`AudioSource`s while it lands. Both sides, same action, same window:
+
+- **The acting client plays them.** Sampling the host with no filter caught a frame whose playing list contained four clips
+  whose names carry the action: `1|drop`, `6|drop`, `13|drop`, `4|drop` — the landing sound really exists locally.
+- **The peer plays nothing.** The guest sampled with the same filter at a tightened cadence across the whole fall (two runs,
+  one of them with the sampler started four seconds before the drop) and answered **zero** playing clips for the entire window.
+
+So row 5's "every client hears the `drop` clip" is not met today: the landing sound is a LOCAL family, like the nap's `stretch`.
+That is the ticket's own kind of outcome ("the sound stays silent, because ..."), and it is now written with its reading rather
+than inferred.
+
+Row 6's plush-toy half needs a plush item id this machine's catalog does not hand the batch; row 3's fixture gap is recorded above.

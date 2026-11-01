@@ -36,3 +36,13 @@ family and replayed by every other member.
 - **The same silence covers `PantSound.Update`.** A new fixture (`pant-sound kind=pain`) drives the game's own pain one-shot through that method; the acting client plays it, the peer's list gains neither a pain nor a yawn clip across the window. So the failing set is the two PER-FRAME scopes (`PantSound.Update`, `LockpingMinigame.Update`), while every ONE-SHOT scope read in this session arrives (`dogshake` from `Body.WaterShake`, `vomit2` from `Vomiter`, `stretch` from `NapCoroutine`, and `pain1` from `PantSound.Bark` after its own fix).
 
 That difference — per-frame `Update` scope versus one-shot coroutine scope — is now the shape of the bug, and it is narrower than "the lockpick path is broken": something about a scope that is OPENED AND CLOSED EVERY FRAME keeps the report from arriving, or keeps the peer from replaying it.
+
+### Three more candidates ruled out by reading (2026-11-01, 20:40)
+
+A new probe (`call-context-state`) reads the scope stack the capture depends on, by reflection: depth, innermost origin, the number of REFUSED scopes, and the AudioClip skip latch. On the acting client it answers `depth=0, current=LocalAction, refused=0, skipAudioClipCapture=false`. So:
+
+- **The depth cap is not it.** `CallContext.Enter` stops accepting scopes at `MaxDepth = 16` and records refusals instead of throwing; zero refusals means no scope was ever refused in this session, so the lockpick origin — when its `Update` is running — is on top of the stack as designed.
+- **The AudioClip skip latch is not stuck.** The string patch sets `SoundCaptureContext.SetSkipAudioClipCapture()` and its postfix clears it; the flag reads false outside a call, so the AudioClip half of the family is not silently skipping.
+- **The sender has no rate limit or filter.** `CharacterVisualPublisher.Publish` only checks `SessionActive` and the role, then sends reliably to every handshaken member; there is no per-frame budget, dedup or kind filter between a classified report and the wire.
+
+With the catalogue registration, the origin mapping, the clip classification, the receiver's absence of a kind filter and the clip's resolvability already ruled out, what is left is whether `Report` is reached at all inside those two `Update` scopes. That is one question, and it needs the send path observed at a level that is ON rather than another guess — a single line at the report, removed once it has answered.

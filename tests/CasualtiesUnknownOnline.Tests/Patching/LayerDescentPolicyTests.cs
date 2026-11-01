@@ -28,9 +28,9 @@ public class LayerDescentPolicyTests
 		throwOnError: true)!;
 
 	private static string DecideFollow(
-		SessionRole role, bool sessionActive, bool inWorld, bool playingOrWaiting, bool generationInFlight, bool hasWorld, bool hasBody) =>
+		SessionRole role, bool sessionActive, bool inWorld, bool playingOrWaiting, bool generationInFlight, bool hasWorld, bool hasBody, bool bodyDead = false) =>
 		Policy.GetMethod("DecideFollow", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)!
-			.Invoke(null, [role, sessionActive, inWorld, playingOrWaiting, generationInFlight, hasWorld, hasBody])!
+			.Invoke(null, [role, sessionActive, inWorld, playingOrWaiting, generationInFlight, hasWorld, hasBody, bodyDead])!
 			.ToString()!;
 
 	private static bool IsSettled(bool generationStarted, bool generating, bool regenerating, bool liveWorld) =>
@@ -61,6 +61,22 @@ public class LayerDescentPolicyTests
 	[InlineData(true, false)] // the menu-return phase of a session that ended
 	public void Follow_RefusesAMemberThatIsNotPlaying(bool inWorld, bool playingOrWaiting) =>
 		Assert.Equal("NotPlaying", DecideFollow(SessionRole.Guest, true, inWorld, playingOrWaiting, false, true, true));
+
+	[Fact]
+	public void Follow_CarriesADeadBodyThroughTheDescent() =>
+		// A dead member is Idle and not "in world", so the live rule refuses it; the ordinary entry would
+		// then park it behind the loading screen waiting for a host start a descent never sends (the
+		// 2026-11-02 report: a dead guest held LoadingImage with a live world while the host was a layer
+		// down, and the host could not select it to revive). The body follows the same generation instead.
+		Assert.Equal("Follow", DecideFollow(SessionRole.Guest, true, inWorld: false, playingOrWaiting: false, generationInFlight: false, hasWorld: true, hasBody: true, bodyDead: true));
+
+	[Fact]
+	public void Follow_StillRefusesADeadMemberThatHasNoWorld() =>
+		Assert.Equal("NoWorld", DecideFollow(SessionRole.Guest, true, inWorld: false, playingOrWaiting: false, generationInFlight: false, hasWorld: false, hasBody: true, bodyDead: true));
+
+	[Fact]
+	public void Follow_StillRefusesADeadMemberWithNoBody() =>
+		Assert.Equal("NoBody", DecideFollow(SessionRole.Guest, true, inWorld: false, playingOrWaiting: false, generationInFlight: false, hasWorld: true, hasBody: false, bodyDead: true));
 
 	[Fact]
 	public void Follow_RefusesAPlayingMemberWithNoWorldObject() =>

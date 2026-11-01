@@ -31,7 +31,8 @@ internal static class LayerDescentPolicy
 		bool playingOrWaiting,
 		bool generationInFlight,
 		bool hasWorld,
-		bool hasBody)
+		bool hasBody,
+		bool bodyDead)
 	{
 		if (role != SessionRole.Guest || !sessionActive)
 		{
@@ -41,6 +42,19 @@ internal static class LayerDescentPolicy
 		if (generationInFlight)
 		{
 			return LayerDescentDecision.AlreadyDescending;
+		}
+
+		// A dead teammate travels with the team. Its run phase is Idle and it is not "in world" in the
+		// sense the live path means, so the ordinary rule refuses it — and the ordinary entry then parks
+		// it behind the loading screen waiting for a host start that a descent never sends (measured
+		// 2026-11-02: a dead guest stayed on LoadingImage with a live world object while the host was a
+		// layer down, and the host could not even select it to revive). Its body follows the same
+		// generation and lands in the new layer, where the team can revive it.
+		if (bodyDead)
+		{
+			return hasWorld
+				? hasBody ? LayerDescentDecision.Follow : LayerDescentDecision.NoBody
+				: LayerDescentDecision.NoWorld;
 		}
 
 		if (!inWorld || !playingOrWaiting)

@@ -162,7 +162,8 @@ internal sealed class DescentFollowController(
 			phase() is RunPhase.Playing or RunPhase.WaitingReady,
 			generationInFlight,
 			HarmonyTraverse.HasWorld,
-			localBody != null);
+			localBody != null,
+			localBody != null && !localBody.alive);
 		switch (decision)
 		{
 			case LayerDescentDecision.Follow:

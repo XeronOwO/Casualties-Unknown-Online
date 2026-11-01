@@ -631,5 +631,11 @@ button's own measured width`), because a label that expands lets the scroll view
 is what re-introduced the scrollbar; and the rows stay anchored to the input field's TEXT ORIGIN (`rowRingX == inputTextX`,
 328 in the frame), never to a glyph position, so a command long enough to scroll the field keeps the same left edge.
 
-Still to read in a frame: the selected row's usage layer. The staged Tab did not move the selection in this batch, so the layer
-is code-complete and unphotographed — the next batch drives the selection through the console's own key path and captures it.
+**The selected row's layer is photographed** (the driver's `console-arrow` action moves the selection the way the arrows do). One
+crop of the deployed build shows the whole design at once: `▶ ban 仅主机：按 SteamID 或显示名封禁一名成员。` with the usage
+`/ban <steamId|displayName>` on its own line beneath, indented to the description; `clear`/`data`/`deop` carry their description
+only; `craftchain` carries its usage only (no catalogue sentence); no horizontal scrollbar.
+
+One correction came from that crop: the usage layer was as wide as the description plus the marker and the button, and the
+horizontal group's own spacing pushed it past the view, which put the scrollbar back. The layer now takes ten pixels less than
+the description's width, and the frame above is after that fix.

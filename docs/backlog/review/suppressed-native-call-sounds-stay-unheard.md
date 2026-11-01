@@ -1,6 +1,6 @@
 # Sounds whose native call is suppressed never reach the peers
 
-- Status: Review — rows 4 and 5-8 judged; rows 1-4b stay unproven (the remote-medical and minigame setups are missing)
+- Status: Review - rows 1, 2, 3 and 5 are PASS, each with a counted listener-side reading (`audio-watch3`: the peer played the clip exactly once, for a local bandage treatment, a remote bandage wrap, and a landing world item); row 4 (injection) is read through the same family but needs a syringe holding a liquid; row 4b (gore) is unproven because the machete given for it never appeared in a body slot; row 6 (plush) needs an item id the catalog does not hand a batch; rows 7 and 8 stay as they were
 - Acceptance (20261001-l): rows 4 and 5-8 judged (the world-item impact replayed 219:219 on each guest from the authority's 219 reports, the plush squeak 12:12, the suite rows); rows 1-4b stay unproven and the dust puff visual was not captured — record `docs/evidence/acceptance/suppressed-native-call-sounds-stay-unheard-20261001-l.md`
 - Priority: Low
 - Category: Audio sync / report coverage

@@ -45,5 +45,5 @@ the values, and each names the other so the pair reads as one instruction.
 
 ## Editing
 
-One subject per file, under 2 KB. A file that explains itself is a file that gets skipped. A new rule that does not fit
+One subject per file, and never above 3 KB (a step that carries a rule and its exceptions is the realistic size). A file that explains itself is a file that gets skipped. A new rule that does not fit
 here belongs in a different step's file — not duplicated into two.

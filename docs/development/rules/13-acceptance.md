@@ -21,3 +21,7 @@ scope before it runs, so a row cannot be quietly judged by a weaker check afterw
 ## A blocked row never becomes the whole cycle
 
 At most two batches per row, then the next ticket. The block is recorded with its reading, not as a story.
+## Do not grow the harness on your own
+
+Never add a cursor or input API to the acceptance tooling on your own initiative: in-process calls first, and OS-level
+input only for one batch with a fresh authorisation from the user.

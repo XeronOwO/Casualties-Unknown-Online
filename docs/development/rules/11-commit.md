@@ -22,3 +22,18 @@ never rewritten to hide a mistake — a correction is its own commit with its re
 
 Implementation plus its affected tests, frozen, reviewed, fixed once, then one commit. Review never gets batched into a
 later commit.
+## Before the commit
+
+Run `tools/check-delivery.ps1` (the delivery checklist): it validates the cycle's boxes, archives the cycle's record and resets the boxes for
+the next cycle. Gates green in the same commit as the change; the language check reads the staged diff.
+
+## Release discipline
+
+This project has not released, and the protocol number is never a design input: a breaking change is free while the
+handshake is the only compatibility boundary. After the first release every behaviour-affecting wire change bumps the
+number in the same change, and a version mismatch refuses the connection instead of adapting to an old client.
+## No compatibility debt
+
+Before the first release nothing needs a compatibility layer, a deprecation window or a path for old clients: delete the
+old shape and say what it was for. A branch that exists only to stay compatible is debt, and debt is removed, not
+carried.

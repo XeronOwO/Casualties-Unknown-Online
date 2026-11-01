@@ -21,3 +21,8 @@ If the gesture cannot carry it, the behaviour refuses with a reason the player c
 ## Keep entries isolated
 
 The item's own data decides which entry runs. One entry must never be a superset that silently handles another's case.
+## Fallbacks ask a reachability question first
+
+Before claiming a refusal or a fallback path is reachable, point at the production code path that reaches it. A branch
+that only a test can reach is not a behaviour, and a fallback that exists "just in case" is a second entry nobody asked
+for.

@@ -23,3 +23,20 @@ by a command.
 
 Cover core, edge, exception and failure paths; every key path and branch must be observable from the log with context
 that locates a failure (branch, state, ids, input, result). Only the happy path is not verification.
+## Details that are gated elsewhere
+
+Prefer `using` directives and aliases; a fully qualified name only when unavoidable. Extension methods use the C# 14
+`extension` syntax. Empty directories that must stay carry a 0-byte `.gitkeep`. No erased type in the mod-visible
+contract (`byte[]`, `object`, `Delegate`, `dynamic`, `IntPtr`); a binary payload is an explicit leaf.
+
+## Reports are bounded by data
+
+A member's report is checked against a fact the receiver already holds, or the gap is named; a receiver never models
+what a player is able to do (that is anti-cheat, out of MVP scope). Census:
+`docs/architecture/member-report-validation.md`.
+
+## Learning is recorded
+
+Reusable, generalisable knowledge is recorded where it loads next time — this file or its local sibling, not only in
+the conversation. A hook that reports a write reports only verified writes: re-read the state or pass the verdict
+explicitly.

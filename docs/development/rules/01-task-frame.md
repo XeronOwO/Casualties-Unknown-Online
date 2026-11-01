@@ -27,3 +27,16 @@ design, not permission to replace it with one of your own.
 
 No completion claim, no "future work", no moving on. A cycle that ends incomplete is recorded as failed, with the point
 it stopped at.
+## Ask on design, execute on implementation
+
+Ambiguity with user-visible trade-offs goes to the user; routine detail does not. A rejection is a question, not a
+mandate — inferring a removal, rename or new mechanism from "this is wrong" is the violation. Which ticket comes next is
+not such a decision: it comes from priority and dependencies.
+
+## Incidental work
+
+"While I am here" covers only closely related small work, and one meta cycle may interrupt at most every two or three
+product cycles unless the user asks for it.
+## Deferred means decided, not pending
+
+A `future/` item is deferred by a decision; it is implemented only when the user promotes it.

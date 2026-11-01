@@ -61,11 +61,18 @@ internal sealed class LoadingScreenKeeper : MonoBehaviour
 			// scene switch's own loading is never touched: ShouldKeep stays
 			// true across it, and the game hides its own loading at generation
 			// end, so closing here only ever hands back what we pulled up.)
-			_kept = false;
+			//
+			// The hand-back is not cleared until the screen is actually down: on the frame the release
+			// lands the loading object can be replaced or momentarily absent (a scene switch), and
+			// clearing the flag there left the kept screen up for the rest of the session — measured
+			// 2026-11-02 on a member whose descent released while it was settled and waiting: its
+			// phase went Playing and the loading image stayed.
 			if (loading != null && loading.activeSelf) // Unity object — ==
 			{
 				loading.SetActive(false);
 			}
+
+			_kept = loading != null && loading.activeSelf; // Unity object — ==
 		}
 	}
 }

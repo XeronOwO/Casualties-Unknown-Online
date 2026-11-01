@@ -70,19 +70,21 @@ be faked:
 
 Acting on the rules is the other half. A round that prints the files and then does what the files forbid has still failed;
 the two failures are measured separately and both are failures.
-## Every step the round ENTERS is read, not just step 0
+## Read the step's rules at the MOMENT you step into it - work is forbidden until then
 
-The first call prints step 0''s two files. That is the START, not the whole duty: a round that then designs, implements,
-verifies or commits has entered those steps, and each one''s two files are read in full at the moment the round enters it,
-before the first act inside it. The transcript names them, the same way it names step 0.
-
-The failure this closes is a round that reads only the working-mode file and works the rest of the day from memory:
-measured 2026-11-02, a whole session of design, implementation, verification, commits and acceptance ran with step 0 read
-every round and steps 1-13 never opened — and the user had to ask whether they had ever been read. If a step file has never
-been read, the rules in it are not being followed; they are being guessed.
+The read is not a once-a-round ritual: it is the gate in front of EVERY step. The instant work moves from one step to the
+next - framing to design, design to implementation, implementation to verification, verification to self-check, self-check
+to commit, commit to acceptance - the FIRST action of the new step is to read that step's two files, in full, and the
+transcript shows it. Editing, building, verifying, committing or driving the game inside a step whose rules have not been
+read THIS round is forbidden work: what it produces is not evidence, and it is redone.
 
 A round that spans several steps prints several files. That is the cost of doing the work, and it is small next to doing it
-wrong.
+wrong. A step file that has never been opened is not being followed; it is being guessed at.
+
+Measured 2026-11-02, twice in one round: the working-mode file was read at the round's start and the source was then edited
+before steps 2, 4, 5, 6 and 7 had been opened, and later a catalogue was edited on the strength of a read taken before the
+edit rather than before the step. The direction is exact: every step forward reads that step's rules first, and work
+without them is forbidden.
 ## Every step re-reads its rules
 
 At the start of each step, read that step's two files — `<step>.md` here and `<step>.local.md` beside it — IN FULL.

@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Data;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using Microsoft.Extensions.Logging;
 
@@ -33,7 +34,8 @@ internal sealed class ItemDataCommands(
 	IItemStateLanguage language,
 	ILogger log,
 	ItemDataTargets targets,
-	ItemDataWriteCommands writes) : IConsoleCommandGroup
+	ItemDataWriteCommands writes,
+	ILocalizationService localization) : IConsoleCommandGroup
 {
 	/// <summary>The sentence a build with no Game Adapter answers: it cannot name the state's keys.</summary>
 	internal const string NoLanguage = "This build cannot read an item's state: no Game Adapter is loaded, so its keys are not known here.";
@@ -47,6 +49,13 @@ internal sealed class ItemDataCommands(
 	private readonly IItemStateLanguage _language = language;
 	private readonly ILogger _log = log;
 	private readonly ItemDataTargets _targets = targets;
+	private readonly ILocalizationService _localization = localization;
+
+	/// <summary>
+	/// The listing's one sentence, in the reader's language: the key carries the owner and the count, and every item line under
+	/// it is data. Two places print this header (a read with no path and a read with one), so both call this.
+	/// </summary>
+	private string Header(ulong owner, int count) => _localization.Format("console.data.items_header", owner, count);
 	private readonly ItemDataWriteCommands _writes = writes;
 
 	[ConsoleCommand("data", "Read or write one item's recorded state as SNBT: get, merge, modify or remove.", CommandPermission.Anyone, ItemDataVerbParser.Usage, CommandArgumentKind.Text)]
@@ -212,7 +221,7 @@ internal sealed class ItemDataCommands(
 				documents.Add(document);
 			}
 
-			return ItemDataRenderer.List(owner, held, documents);
+			return ItemDataRenderer.List(Header(owner, held.Count), held, documents);
 		}
 
 		var builder = new StringBuilder();

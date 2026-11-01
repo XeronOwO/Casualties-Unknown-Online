@@ -21,11 +21,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 internal static class ItemDataRenderer
 {
-	/// <summary>One line per item a body holds, in slot order, each with its state document.</summary>
-	internal static string List(ulong owner, IReadOnlyList<ItemState> items, IReadOnlyList<SnbtValue> documents)
+	/// <summary>
+	/// One line per item a body holds, in slot order, each with its state document. The HEADER is the caller's: it is the one
+	/// sentence in this answer, so it travels as a catalogue key and is rendered in the reader's language before it arrives.
+	/// The item lines themselves are data — identity, slot and the state document — and are not prose.
+	/// </summary>
+	internal static string List(string header, IReadOnlyList<ItemState> items, IReadOnlyList<SnbtValue> documents)
 	{
-		var builder = new StringBuilder();
-		builder.Append("Items recorded for ").Append(owner).Append(" (").Append(items.Count).Append("):");
+		var builder = new StringBuilder(header);
 		for (var i = 0; i < items.Count; i++)
 		{
 			builder.Append('\n').Append(ListLine(items[i], documents[i]));

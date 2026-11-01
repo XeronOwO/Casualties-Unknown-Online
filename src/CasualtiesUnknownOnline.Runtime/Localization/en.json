@@ -108,6 +108,7 @@
   "give.answer.carried_container": "Gave {0} (#{1}) to {2} inside the carried container {3} (#{4}).",
   "give.answer.dropped": "Gave {0} (#{1}) to {2}, dropped at that player's position because nothing accepted it.",
   "give.answer.state": "Its state: {0}.",
+  "data.answer.items_header": "Items recorded for {0} ({1}):",
   "summon.answer.item_entity": "Summoned {0} (#{1}) at ({2}, {3}).",
   "summon.answer.prefab": "Summoned {0} at ({1}, {2}).",
   "summon.answer.state": "Its state: {0}.",

@@ -438,3 +438,13 @@ Two smaller facts from the same batch, both worth keeping:
 - A host''s own drop from open air records eight one-shots (`9@41.3;10@41.3;6@41.4;6@41.7;3@46.0;5@46.0;9@46.2;7@46.4`), so the host path does produce impact sounds — which is what makes the member''s silence a difference rather than a quiet world.
 
 The next reading is the one that separates the two remaining causes: read the host''s entity table (or a world-item census) immediately after a member''s drop to see whether the item exists at all, and if it exists, whether its rigidbody is simulated.
+### Correction: `item-world-read` takes CELL coordinates, so those counts were not about the drop (2026-11-02, 15:45)
+
+The three "no item after the drop" readings above were taken with `item-world-read x=<body x> y=<body y>`, and that recipe''s arguments are the absolute CELL to search, not a world position. The items it did return sit hundreds of units away, which is the tell: the query was never around the drop. So those counts say nothing about whether the dropped item exists and must not be used as evidence.
+
+What the same batch does establish, with a reading that is valid:
+
+- `item-floating value=1` reads the game''s own fresh-drop setting: `settingFound=true`, `settingBefore=true`, `staticBefore=true`, `armed=true`, `changed=false` — the `itemfloating` bool is already ON, so a dropped item is not destroyed on landing by `FreshItemDrop`. The "the item evaporates" hypothesis is therefore not the default state of this build.
+- The sound reading stands on its own: with both recorders armed and proven, a member''s drop (`held=true dropped=true`) produced no `Sound.Play` on the host in five seconds, while a host''s own drop produced eight.
+
+The next attempt must convert the drop''s world position to the cell the recipe expects (the game''s own conversion, not a guess) before it can answer whether the member''s item exists on the host.

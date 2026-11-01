@@ -243,3 +243,19 @@ item at that point: instance id **421227775939**. The GUEST then sent a PickUpTo
   either it lands where the intent says, or it stays; never both gone.
 
 **Row 4 PASS.** With rows 1, 3 and 4 judged on real sessions and row 2 judged except the target's own on-screen line (a named residual from the give batch), the ticket moves to eview/.
+## Reproduced on 2026-11-02: `/give` says slot 0, the slot is empty and the item is in the world
+
+Found while building a fixture (a tool in a real slot), and it is this ticket''s exact shape, on the current deployed build.
+
+    alt: /give machete
+         console answer : "Gave machete (#1529329338307) to <alt> in slot 0."
+         its own log    : [PickUpResult] machete -> slot (slot 0) at (1.7,496.3).
+                          [PlayerInteraction] placed machete (id 1529329338307) in local slot 0.
+    body slots read    : handSlot=0; s0=-; s1=-; s2=-; s3=lantern; s4=dogfood; s5=waterbottle
+                         (ok=false, "no body slot holds machete")
+    world items read   : instance id 1529329338307 IS a world item at the body''s position
+                         (same for the previous give, 1520739403715)
+
+So all three of the answer, the pickup log and the placement log say "slot 0", the slot is verifiably empty, and the very same instance id exists as a world object at the body. That is the degradation this ticket was opened for — a give that ends up as a ground drop — and it is happening with three free slots (s0-s2) beside a body that is standing still.
+
+Two readings are owed and named here so the next pass starts from them rather than from the log lines again: whether the placement''s own verification (`body.GetItem(slot) != placed` in `LocalBodyPlacement.TryPlaceInBodySlot`) passed at the moment of the give and something dropped the item afterwards, or whether the world object is the give''s own spawn that the pickup did not consume (a duplicate). The distinguling evidence is a re-read immediately after the give in the same batch, which the next pass runs first.

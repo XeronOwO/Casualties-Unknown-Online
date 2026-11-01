@@ -80,6 +80,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 - [Third client drops a member as left](review/guest-entity-dropped-by-third-client.md) — **High** — a member's view of another member dies on a spurious leave.
+- [The trader keeps talking beside a corpse](review/trader-mutters-forever-near-a-corpse.md) — **Medium** — 20-65 bubbles/s.
 
 
 

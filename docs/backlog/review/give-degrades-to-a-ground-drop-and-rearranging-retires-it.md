@@ -270,3 +270,13 @@ The immediate re-read rules out "placed and later dropped":
 Two facts worth carrying forward. The instance id in this answer (**1533624305603**) is the SAME id the previous attempt answered with, so the give is answering with an id that already existed rather than allocating a new one — or the answer is being replayed. And the slot is empty on the first frame the read can see, which means the placement either never happened on this client at all (the item stayed on the host''s copy of this body) or it was undone inside the same frame.
 
 That points the next read at the third-client path specifically: the alt''s body slot is the host''s copy, so a give to a member who did not request it has to arrive through inventory sync rather than through this client''s own placement — and the log line `placed machete ... in local slot 0` is emitted with a `local` word on a body whose slot this client does not own.
+### The trace on the receiving client: the given item becomes a tracked WORLD item (2026-11-02, 23:55)
+
+The receiving client''s own log for the same instance id shows the item living as a world object after the give:
+
+    [ItemPhysics] settle 1529329338307 recovered at d=0.57 — 19 divergence line(s) suppressed
+    [ItemPhysics] settle 1529329338307 d=0.67 (repeat 0, 53 subject(s) held back)
+
+`ItemPositionFollow` only tracks world items, so the machete the give placed "in local slot 0" is being settled in the world, at the body, for the next frames — and the body''s slot reads empty. The give''s own success line (`[PlayerInteraction] placed machete (id …) in local slot 0`) and the world tracking of the same id cannot both be right.
+
+That narrows the read to one hand-off: the host''s `DeliverCreatedItem` clones the target''s character snapshot, adds the item and calls `Carry(...)` (`PlayerInventoryTakeService`), and the receiving client has to apply that snapshot. Either the apply re-materializes the item as a world object instead of a slot item, or the apply and the client''s own placement both run and the second one wins. The next read is the receiving half of `Carry` — which arm runs for a member who did not request the item, and whether it materializes through the placement path or the world path.

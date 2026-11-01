@@ -111,6 +111,7 @@
   "summon.answer.item_entity": "Summoned {0} (#{1}) at ({2}, {3}).",
   "summon.answer.prefab": "Summoned {0} at ({1}, {2}).",
   "summon.answer.state": "Its state: {0}.",
+  "give.answer.refused_target_dead": "{0} is dead, so a given item would be dropped on the ground beside the body - revive them first.",
   "give.answer.refused_switch_off": "The host's cheat switch is off, so no member may run /give.",
   "give.answer.refused_not_in_roster": "The host's cheat roster does not name you, so /give cannot land. The host grants it with /op.",
   "give.answer.refused_too_much_state": "The request carries {0} character(s) of state; at most {1} are accepted.",

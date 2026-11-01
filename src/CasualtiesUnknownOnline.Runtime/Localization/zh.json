@@ -111,6 +111,7 @@
   "summon.answer.item_entity": "已在 ({2}, {3}) 生成 {0}（#{1}）。",
   "summon.answer.prefab": "已在 ({1}, {2}) 生成 {0}。",
   "summon.answer.state": "它的状态：{0}。",
+  "give.answer.refused_target_dead": "{0} 已经死亡，给出的物品只会掉在他脚边——请先救活他。",
   "give.answer.refused_switch_off": "主机的作弊开关是关闭的，所以会员不能执行 /give。",
   "give.answer.refused_not_in_roster": "主机的作弊名单里没有你，/give 无法生效。主机用 /op 授予。",
   "give.answer.refused_too_much_state": "这次请求带的状态有 {0} 个字符；最多接受 {1} 个。",

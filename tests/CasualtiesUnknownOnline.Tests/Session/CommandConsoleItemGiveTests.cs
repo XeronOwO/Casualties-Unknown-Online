@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
@@ -131,6 +132,25 @@ public class CommandConsoleItemGiveTests
 		Assert.Equal(PlayerInventoryDestination.Drop, transfer!.Destination);
 		Assert.Equal(0UL, transfer.TargetParentItemId);
 		Assert.Equal(item.InstanceId, transfer.Item!.InstanceId);
+	}
+
+	/// <summary>
+	/// A dead target cannot hold an item: the RECEIVING client's own placement drops it beside the body, so an
+	/// answer naming a slot would name a slot the item never occupied. Measured 2026-11-02 on the deployed build:
+	/// `Gave machete (#…) in slot 0` for a corpse whose slot read empty while the same instance id was a world
+	/// object at the body — so the verb now refuses and says what to do about it.
+	/// </summary>
+	[Fact]
+	public void Host_GivesToADeadTarget_RefusesAndSaysWhy()
+	{
+		var (host, _, creation) = CreateGiveSession();
+		var snapshot = SnapshotWithLimbs(GuestId, conscious: false, alive: false);
+		Characters(host).SaveCharacterData(GuestId, snapshot);
+
+		var answer = Run(host, "/give @p[distance=1..] bandage");
+
+		Assert.Contains("is dead", answer, StringComparison.Ordinal);
+		Assert.Empty(creation.Created);
 	}
 
 	/// <summary>

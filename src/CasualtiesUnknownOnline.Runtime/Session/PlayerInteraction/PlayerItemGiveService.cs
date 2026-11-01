@@ -219,6 +219,25 @@ internal sealed class PlayerItemGiveService(
 			return RefuseUnconverted(parseError!);
 		}
 
+		// The target is checked BEFORE the item is created, so a refused give leaves no created object behind (the
+		// delivery service owns the rules; asking it here keeps them in one place).
+		if (_take.CheckCreatedItemTarget(targetSteamId, 1) is { } targetRefusal)
+		{
+			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, targetRefusal.Refusal);
+			return RefuseUnconverted(targetRefusal.Refusal!);
+		}
+
+		// A dead body cannot hold an item: the receiving client drops it beside the body, so an answer naming a slot would
+		// name a slot the item never occupied. Translated, because the player who typed the verb reads this line.
+		if (_take.IsTargetDead(targetSteamId))
+		{
+			var deadReason = $"{targetSteamId} is dead, so a given item would be dropped on the ground beside the body - revive them first.";
+			return RefuseByRule(
+				"give.answer.refused_target_dead",
+				deadReason,
+				targetSteamId.ToString(CultureInfo.InvariantCulture));
+		}
+
 		if (!_creation.TryCreate(definitionId, state, out var item, out var createRefusal) || item is null)
 		{
 			// The port's contract names the ground; the fallback exists so a broken
@@ -233,7 +252,13 @@ internal sealed class PlayerItemGiveService(
 		{
 			var reason = delivery.Refusal ?? $"the item could not be delivered to {targetSteamId}.";
 			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, reason);
-			return RefuseUnconverted(reason);
+			if (delivery.RefusalKey is not { } key)
+			{
+				return RefuseUnconverted(reason);
+			}
+
+			var args = delivery.RefusalArgs ?? [];
+			return RefuseUnconverted(reason, new GrantRefusal(reason, key, [.. args]));
 		}
 
 		// The answer names the state the item REALLY carries: the creation port binds the

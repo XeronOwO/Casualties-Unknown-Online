@@ -299,16 +299,31 @@ internal sealed class PlayerInventoryTakeService(
 	/// nothing is removed on any client, and only the recipient's projection fires.
 	/// </para>
 	/// </summary>
-	internal ItemDelivery DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)
+	/// <summary>
+	/// Whether a created item could be delivered to <paramref name="to"/> at all: the host/世界 guards, the target's
+	/// presence, its snapshot, and the one rule this verb learned the hard way — a dead body cannot hold an item, so a give
+	/// that answered "slot 0" for a corpse described a slot the item never occupied (measured 2026-11-02: both members were
+	/// dead, the answer said slot 0 while the item was a world object at the body). The refusal carries a catalogue key, so the
+	/// operator reads a translated sentence; and the give asks this BEFORE it creates the item, so a refused give leaves no
+	/// created object behind.
+	/// </summary>
+	/// <summary>
+	/// Whether <paramref name="to"/> is a dead body. The GIVE verb asks this before it creates anything, because a dead body
+	/// cannot hold an item: the receiving client''s own placement drops it to the ground, so an answer naming a slot would
+	/// name a slot the item never occupied (measured 2026-11-02: both members were dead, the answer said slot 0 while the
+	/// item was a world object at the body).
+	/// </summary>
+	internal bool IsTargetDead(ulong to) => _characters.GetCharacterData(to)?.Health is { Alive: false };
+	internal ItemDelivery? CheckCreatedItemTarget(ulong to, ulong itemInstanceId)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
 			return ItemDelivery.Refused("This client is not the host of a live session world, so it cannot deliver a created item.");
 		}
 
-		if (to == 0 || item.InstanceId == 0)
+		if (to == 0 || itemInstanceId == 0)
 		{
-			return ItemDelivery.Refused($"malformed give (target {to}, item id {item.InstanceId}).");
+			return ItemDelivery.Refused($"malformed give (target {to}, item id {itemInstanceId}).");
 		}
 
 		if (!_characters.IsInWorld(to))
@@ -322,6 +337,17 @@ internal sealed class PlayerInventoryTakeService(
 			return ItemDelivery.Refused($"No character snapshot for {to}, so /give cannot place an item on it.");
 		}
 
+		return null;
+	}
+
+	internal ItemDelivery DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)
+	{
+		if (CheckCreatedItemTarget(to, item.InstanceId) is { } refusal)
+		{
+			return refusal;
+		}
+
+		var target = _characters.GetCharacterData(to)!;
 		var newTarget = PlayerCharacterAccess.CloneCharacter(target);
 
 		// Rung 1: a free slot on the body (the named one when the operator's preference is usable).

@@ -56,11 +56,30 @@ It never licenses reverting, weakening a check, or declaring done.
 A judged acceptance row, a fixed defect, a ticket that moved, a gate that turned green. Recording a finding, writing a
 doc, or adding a tool is not progress on its own.
 
+## The first call of every round reads both files WHOLE
+
+The round''s first tool call is a `read` on `<step>.md` and on `<step>.local.md`, in full, and the transcript shows each
+file''s LAST line together with its total line count. That is the only accepted shape, because it is the only one that cannot
+be faked:
+
+- a `Get-Content … | Select-Object -First N`, a head, a tail, or a grep of the headings is NOT a read — it is a quote of the
+  rule, and a quote is what someone who already knows the rule writes. Measured 2026-11-02: many consecutive rounds printed
+  three lines of a 104-line step file, then cited that file correctly. The read never happened.
+- if the first call did anything else, the round has not started: stop, make the read, and only then touch the repository.
+- if the read''s output does not reach the last line, it was truncated: repeat it before anything else.
+
+Acting on the rules is the other half. A round that prints the files and then does what the files forbid has still failed;
+the two failures are measured separately and both are failures.
 ## Every step re-reads its rules
 
-At the start of each step, read that step's two files — `<step>.md` here and `<step>.local.md` beside it — in full.
-Not a skim, not from memory: the files, every round. This is the one mechanism that works; skipping it is how a rule
-gets broken by someone who knows it.
+At the start of each step, read that step's two files — `<step>.md` here and `<step>.local.md` beside it — IN FULL.
+Not a skim, not from memory, and not a piece: a `Select-Object -First N`, a head, a tail, or a grep of the headings is NOT a
+read. The transcript has to show the file's LAST line, because that is the only proof the whole file was printed. This is the
+one mechanism that works; skipping it is how a rule gets broken by someone who knows it.
+
+Measured 2026-11-02: the step-0 read was `Get-Content ... | Select-Object -First 3` for many consecutive rounds — three lines
+of a 104-line file — while the same rounds quoted this very paragraph correctly. The rule was known and not obeyed, which is
+exactly what "the files, every round" exists to prevent.
 ## One big thing, run to its end
 
 The unit of work is the thing the user asked for, not the smallest step that can be reported. A work item runs until it is
@@ -93,8 +112,9 @@ without reading its step files.
 1. **Before writing any message that is not one of the four end states, the next action must be a tool call.** The test is
    mechanical: if the item is not finished and no tool call follows this sentence, the message IS the violation — delete it
    and make the call. A "progress" message and a stop are the same act.
-2. **The round''s first call prints the current step''s two files.** Reading them is not a memory task: the call prints them,
-   so the transcript shows the read happened. A round whose first call did anything else has not started yet.
+2. **The round''s first call prints the current step''s two files, IN FULL.** Reading them is not a memory task: the call
+   prints them, and the transcript shows the LAST line of each — a `-First N` head does not count and is the measured way this
+   check was faked. A round whose first call did anything else has not started yet.
 ## The budget is never an input
 
 Do not name the budget, the context, the round count, or "running out" of anything — not in a report, not in a plan, not as

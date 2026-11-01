@@ -386,3 +386,9 @@ The `item-drop` fixture works with a real item id — `type=stick` answers `{"cr
 With the item created 6 units up and sampled every ~220 ms through `audio-recent match=drop` on BOTH clients, neither side answered a playing `drop` clip in five samples. So this pair cannot yet tell "the guest's impact is suppressed" from "the host never played it in the sampled window": the clip is a one-shot, and both the sampling interval and the moment the item lands are uncontrolled.
 
 The next reading is the host's own `Sound.Play("drop", …)` call (a log line at the call, or a probe that counts drop plays) so the host side is a fact rather than a miss, and a sample loop that starts before the drop and runs through the landing.
+
+### Close the window instead of widening it (same batch)
+
+A 20-unit fall (≈2 s of flight) sampled eight times from the drop call onwards answered no playing `drop` clip on EITHER client. That rules out "the sample started too late" as the explanation for the earlier miss and leaves the observer itself: `audio-recent` can only see a one-shot that happens to be mid-play when it is asked, and a landing that occurs between two round trips is invisible to it no matter how long the fall is.
+
+So the instrument that finishes this row is a RECORDER, not a sampler: a patch on the game's own sound entry (`Sound.Play`, the call the native impact path uses) that appends `(clip, frameTime, position)` to a ring buffer, plus a recipe that reads it. It belongs in `CasualtiesUnknownOnline.Acceptance` — the batch-only assembly — because it exists purely so a batch can see a one-shot after the fact. With it, "the host played `drop` at frame N" and "the guest played nothing within K frames of its clone landing" are both facts, and this row (and the other one-shot rows beside it) becomes judgeable instead of lucky.

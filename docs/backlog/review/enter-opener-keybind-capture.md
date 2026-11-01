@@ -117,8 +117,18 @@ Measured on the host:
 So the pause menu OPENS from a staged key and its round buttons do not take a staged click, even with the pointer moved onto
 them first. The staged pointer is not the suspect: `VirtualInput.MoveTo` stores it in `_pointer` and it STAYS set until it is
 changed or cleared (`src/CasualtiesUnknownOnline.Acceptance/VirtualInput.cs`), so `Input.mousePosition` answers the same
-position every frame. What is unknown is which input path those buttons read — the next step is to read the pause menu's own
-code (`reversing/Assembly-CSharp`) rather than to guess at the channel.
+position every frame. The buttons' own code answers the input question, and it is not the EventSystem:
+
+    AdaptiveButton.Update        if (Input.GetMouseButtonDown(0) && num <= 0f) { this.Clicked(); }
+    AdaptiveButton.GetDistanceToCursor
+                                 RectTransformUtility.ScreenPointToLocalPointInRectangle(this.rect, Input.mousePosition, null, ref vector);
+                                 return rect.Contains(vector) ? 0f : (clamped distance)
+
+So the click path is exactly what the channel stages — the button wants `Input.mousePosition` inside its OWN rect and a
+`GetMouseButtonDown(0)` — and the two attempts missed because their coordinates were estimated from a screenshot (and once
+from the image's top-left origin, while `Input.mousePosition` is bottom-left). The fixture step is therefore not a new
+capability but a MEASUREMENT: read the buttons' `RectTransform` rects in screen coordinates and click the centre of the one
+named for settings. Guessing a pixel is the thing that failed, not the channel.
 
 That is ordinary tooling work under this step's own rule (extending the in-process channel needs no authorisation), and it
 unblocks this row and row 4b of the sound ticket together.

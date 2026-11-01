@@ -5,7 +5,7 @@
 - Category: Final acceptance
 - Reference: original backlog #59 / #93
 
-Dual-side runtime pass for the trade domain.
+Dual-side runtime pass for the trade domain. The batch record it was opened from is `docs/evidence/acceptance/trade-domain-dual-side-runtime-20261003-e.md`.
 
 ## Rows 8 and 9: what the batch learned about the menu (2026-11-01, 14:45)
 

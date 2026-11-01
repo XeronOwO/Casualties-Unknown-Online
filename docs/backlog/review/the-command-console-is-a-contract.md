@@ -553,3 +553,18 @@ The user looked at the fixed list and said the indent was still there — and wa
 Both are zeroed now (button margin, and the same for the new label and text-field styles), and the frame after the deploy shows the list's buttons on the same left edge as the history lines and the `>` prompt.
 
 The rule, stated once for the whole plugin: **a style copied from the game's skin carries MORE than its colours** — padding, margin, border and font all come with it, and any of them can move a control. Copy deliberately, and zero what the panel's own layout is supposed to decide.
+## The list is aligned with the caret, measured (2026-11-02, 00:55)
+
+Three fixes, and the third one is the one the user asked for: the rows belong to the INPUT line, not to the panel.
+
+1. the scroll view stopped inheriting the game's padding (`ScrollBackground`);
+2. the button style stopped inheriting the game's MARGIN (`CreateButton`), which had kept a few pixels of indent through the first fix;
+3. the list's rect now begins exactly at the input control's left edge (`inputRect.x + PromptWidth`), and the overlay RECORDS the rects it drew.
+
+The reading is a measurement, not an impression — `console-rects` reads the overlay's own last frame:
+
+    promptX=310   inputTextX=328   rowRingX=328   rowInkX=336
+
+`rowRingX == inputTextX` is the alignment; `rowInkX` is the row's text, six pixels inside its own box, i.e. two pixels right of where the caret sits (the input field pads its text the same way). The enlarged crop of the region agrees.
+
+Step 8 and step 13 now carry the rule this cost: **a full-window capture is not the evidence for a layout row** — crop the region, enlarge it, and where the question is a position or an alignment, read a measured number beside it.

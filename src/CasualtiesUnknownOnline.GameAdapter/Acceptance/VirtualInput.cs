@@ -194,6 +194,29 @@ internal static class VirtualInput
 			}
 		}
 
+		// The game's key-bind capture. `SettingsMenu.WaitForKeyPress` enumerates every KeyCode and asks `Input.GetKeyDown` itself, outside every path
+		// replaced above, so a staged key can never bind a row and the acceptance row that needs it cannot be judged without OS-level input. The same
+		// call-site replacement applies: the coroutine still decides what the key means, only the ANSWER to its query is staged.
+		var waitForKeyPress = AccessTools.Method(typeof(SettingsMenu), "WaitForKeyPress")
+			?? FirstDeclaredMethod(typeof(SettingsMenu), "WaitForKeyPress");
+		if (waitForKeyPress == null)
+		{
+			report.Add("SettingsMenu.WaitForKeyPress: no method on this build (" + DescribeDeclaredMethods(typeof(SettingsMenu)) + ")");
+		}
+		else
+		{
+			try
+			{
+				_handleInputReplacements = 0;
+				harmony.Patch(waitForKeyPress, transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(TranspileHandleInput)));
+				report.Add("SettingsMenu.WaitForKeyPress: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
+			}
+			catch (Exception exception)
+			{
+				report.Add("SettingsMenu.WaitForKeyPress: FAILED " + DescribeFailure(exception));
+			}
+		}
+
 		_harmony = harmony;
 		installed = failures == 0;
 		return string.Join(" | ", report);

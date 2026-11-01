@@ -62,6 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [Move the acceptance input channel out](todo/move-acceptance-input-out-of-the-build.md) — **Medium-High** — its own plugin; production carries none.
 - [Split the body-verb service](todo/split-the-body-verb-service.md) — **Medium** — 619 aggregate lines; the debt ledger names it.
 
 

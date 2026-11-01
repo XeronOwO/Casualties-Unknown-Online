@@ -3,5 +3,10 @@
     "Lines": 619,
     "BoolFlags": 0,
     "Ticket": "docs/backlog/todo/split-the-body-verb-service.md"
+  },
+  "CasualtiesUnknownOnline.GameAdapter.Acceptance.VirtualInput": {
+    "Lines": 616,
+    "BoolFlags": 0,
+    "Ticket": "docs/backlog/todo/move-acceptance-input-out-of-the-build.md"
   }
 }

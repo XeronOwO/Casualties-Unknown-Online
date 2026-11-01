@@ -165,3 +165,11 @@ paths are closed to an agent:
 So a second operator gets a treatment item the same way a player does: from another player's hands (the give gesture) or from a
 container it can open — both of which are the drag path this run cannot drive. Row 7 therefore waits on the same one human motion
 as the drag family, and the panel/progress halves it asks about need that fixture before any reading means anything.
+
+## Row 7's fixture, attempted with a real second operator (2026-11-01, 10:10)
+
+The wall is no longer the item: the host CAN equip another member with a name-scoped selector (`/give @a[name=<member>,limit=1] splint` answered `placed in slot 0`, and the alt's own census showed `splint@slot0`). With that, the alt stood next to the patient and asked for the chart on the same guest the host was treating:
+
+    [MedicalView] refused open for <guest>: not in-world.
+
+and the alt's own log explains it a few lines earlier: `Member <guest> left (PlayerLeave …)` for a guest that never left — the host kept treating that guest throughout. So row 7's fixture is blocked by a DEFECT, not by a missing capability: a third client drops another member's entity as gone while the host still simulates it, and `IsRemoteInWorld` then refuses every third-party gesture. That is filed as `review/guest-entity-dropped-by-third-client.md`, and row 7 stays open until it is fixed.

@@ -152,3 +152,17 @@ The water shake is not a call the player makes: `Body.HandleDogWaterShaking` (`r
 A new fixture recipe (`body-wet wetness=n temperature=n`, which seeds the two numbers and clears `wasWater`, named as a substitution) got the condition to hold once — the answer reports `wetness=100, temperature=36, wasWater=False` — but NO `dogshake` followed, on either client, in a sixteen-second window: the host's own frame-accurate watcher answered `plays=0`. So the seeded state does not survive the twelve seconds (the body's own simulation moves it, and the routine resets when it does), and the fixture that would judge this row is a PER-FRAME seeder — the same shape as `bandage-ring2` and `amp-drive` — not a one-shot write.
 
 The row stays unproven with that named as what it needs; the trigger condition itself is now quoted from the game rather than guessed.
+
+## Row 6 read: the shake and the vomit, counted on the peer (2026-11-01, 17:40)
+
+The per-frame seeder the earlier note said was needed now exists (`frame-seed mode=wet`, which re-asserts `wetness=100, temperature=36, wasWater=false` every frame — the same shape `bandage-ring2` uses for its own timed gesture). With it the game ran its OWN routine, and the peer's counting watcher answered, for one shake:
+
+    plays 217 -> 218, names gained [dogshake]
+
+One playback of the game's own `dogshake` clip on a client that did not act, produced by `Body.HandleDogWaterShaking` rather than by a re-implementation of it ("the water shake arrives follow-based" is the follow fact the wrapper carries, pinned by `BodySoundFamily_CarriesTheFollowFactTheNativeCallHad`).
+
+The vomit half, the same way, one `Vomiter.Vomit` through `body-call kind=vomit`:
+
+    plays 219 -> 220, names gained [vomit2]
+
+One playback for one event — the "once, not once per coroutine step" clause read as a count, on the peer rather than in a log. The nap half of the row stays where the earlier note left it: the nap's own `stretch` clip never played on either client in this session, which is a separate reading (the clip's presence in this build) rather than a relay question.

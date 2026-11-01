@@ -518,3 +518,19 @@ So the invocation ran on the HOST (the host's own log names the requester), and 
 The refusal is local (no wire traffic, so the host has nothing to show), it names the reason in the member's own language, and it says what to do about it. Row 5 PASS.
 
 **Row 13 — the same key in two languages — is NOT read, and the reason is a fixture, not the product.** Both sandboxed clients render Chinese, and the channel has no language switch: the language is the game's own setting per client. The ticket's row needs one client on each language; the reachable half is that every answer travels as a CATALOGUE KEY plus its arguments (the give refusals, the mod's `cuo.example.hostecho.answer`), which is what makes two languages possible at all.
+## Rows 6, 7 and 12 read on the running session (2026-11-02, 22:30)
+
+**Row 6 — a mod answer with a key renders on the member, and a text-only answer still prints.** The guest typed both forms:
+
+    /exampleecho hi-there   -> reported 'hi-there' — the host and the other members run the chain   (the mod's keyed answer)
+    /exampleweight 2        -> the declared dressing reports weight 2 from the next item-table rebuild   (text only)
+
+So the keyed answer arrives and renders on the member that asked, and the text-only one prints next to it. Row 6 PASS.
+
+**Row 7 — the old flat `ModConsoleCommand` adapter still registers and runs.** The same guest typed `/whoami`, which the example mod registers through the OLD `new ModCommand(...)` form:
+
+    /whoami -> (translated) role=Guest SteamID=76561198863287957 host=76561198281246659 session active=true
+
+The deprecation window is real: the old form runs next to the new definitions in the same session. Row 7 PASS.
+
+**Row 12 — a technical refusal reads in the reader's language, judged from a frame.** The host's console overlay was captured after two technical refusals (`/give … notarealitem`, `/summon notarealprefab player`): the frame shows both refusal lines in the overlay, in Chinese, above the command list with its own descriptions. Row 12 PASS: the reason is translated, not an English sentence wrapped in Chinese, and it is on screen where the player typed the verb.

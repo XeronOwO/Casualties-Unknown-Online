@@ -62,3 +62,9 @@ for long names; a short-named player would render the suffix today.
 - Not changing the dead-status rendering for the Players page list.
 - Not adding a new wire field or remote state: `IsDead` already exists on the
   projected row.
+
+## The growth, implemented and read on the deployed build (2026-11-01, 12:00)
+
+The user's direction ("the panel grows") is now the code's behaviour: `OnlineUiPanelView.ContentFitWidth` measures every row's caption through `NameWidthOf` (the same reading the window's pages take), takes the model's width as a FLOOR and caps the growth at `MaxTitleFitWidth`, so a row that carries a control keeps the floor while a caption-only row (the member name plus its dead suffix) widens the panel. Built, 811 gates and 6,577 behavioural tests green, deployed as `0.1.0+00b0e623`.
+
+The frame taken from a live menu after the deploy shows the section title (`Kaguya（小号）`) whole with its actions under it — no clipping at this name length. What this frame does NOT prove is the LONG-name case, because that needs a display name close to the panel's cap: the roster name comes from the Steam persona (or the roster row the host announces), so producing one is a fixture this batch cannot make on its own. The next reading is that name, then the same menu with the suffix on a dead member.

@@ -296,3 +296,13 @@ so the machete is in NO slot the body indexes — including the hand slot the gi
 The earlier "no body slot holds machete" had a cause and it was not the item: a give to an UNCONSCIOUS body reports `placed in slot 0` and leaves the slot empty, and every weapon-shaped item tried (`machete`, `flimsyknife`) failed the same way. After `/heal @s` the very next give landed for real — `limb-use type=machete` then answered `ok=true, slot=0, usableOnLimb=true, actuallyUsable=true`, and the frame shows the machete equipped in the hand. **So the fixture rule is: heal the body before giving it anything**, and the same rule explains the two earlier "the give said slot 0 but the body is empty" readings on this page.
 
 With the item held, neither entry started the amputation: `ApplyWoundItem` returned ok and no minigame, and the game's special-action entry (`PlayerCamera.WoundSpecialAction`, which is what the wound view's special button runs) also left `minigame-live` answering `none`. The limb the view had selected was the left hand. The next reading is what that action requires — the limb's own state (a dismemberable limb, a shrapnel-bearing limb) or the special button's own availability — before row 4b can be judged; `limb-use mode=special` already exists to drive it.
+
+### Row 4b: the amputation minigame starts, and what it needs (2026-11-01, 14:15)
+
+`Item.DoAmputate` (`reversing/Assembly-CSharp/Assembly-CSharp/Item.cs`) is the gate, and it needs an INFECTED limb, not merely a wounded one:
+
+    if (limb.infectionAmount > 60f && Array.IndexOf<Limb>(limb.body.limbs, limb) > 2 && (!flag || !limb.isLegLimb))
+
+Infection only grows with game time, so the fixture seeds it (`wound-seed ... infection=n`, a substitution the recipe names in its own answer). Two readings make the condition concrete: seeded to `75` the amputation did NOT start (`minigame=none`) because the value had decayed to `55.22` by the time the machete was used; seeded to `300` and used in the same breath, `minigame-live` answered **`kind=AmputationMinigame`** on the host's right forearm.
+
+So row 4b's remaining need is the MINIGAME's own motion, not its trigger: the batch's alternating staged moves kept it running (still `AmputationMinigame` after thirty steps) and the peer's watcher recorded only ambient `drip*` clips, i.e. the gore sound has not been reached yet. That is the same shape as the bandage ring — a small in-client driver for this minigame's own gesture — and it is the next step here.

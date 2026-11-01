@@ -101,7 +101,8 @@ public sealed class WorldSummonService(
 			return new SummonResult(false, $"Refused: {reason}", 0, [AnswerPart(keyed.Key, keyedArgs)]);
 		}
 
-		return new SummonResult(false, $"Refused: {reason}", 0, [AnswerPart("answer.refused_see_host_log")]);
+		// Same rule as the give: every refusal names its own reason. A caller without a key is a gap, not a sentence.
+		throw new InvalidOperationException($"A summon refusal without a catalogue key reached the console: {reason}");
 	}
 
 	/// <inheritdoc />
@@ -179,8 +180,10 @@ public sealed class WorldSummonService(
 			// The position is layer-relative and the host has moved on: creating here would put the object at
 			// the old layer's coordinates in the new one. The reporter is answered so the refusal is visible
 			// where the verb was typed.
-			RefuseRequest(sender, msg, RefuseUnconverted($"the request belongs to {WorldReportGeneration.Describe(msg.Generation)} while this host is at "
-				+ $"{WorldReportGeneration.Describe(_generations.Current)} — positions are layer-relative, so nothing was created; run /summon again here."));
+			RefuseRequest(sender, msg, RefuseByRule(
+				"summon.answer.refused_stale_generation",
+				$"the request belongs to {WorldReportGeneration.Describe(msg.Generation)} while this host is at "
+				+ $"{WorldReportGeneration.Describe(_generations.Current)} - positions are layer-relative, so nothing was created; run /summon again here."));
 			return;
 		}
 
@@ -234,13 +237,13 @@ public sealed class WorldSummonService(
 			// finite check, and a NaN would poison every position written from the creation.
 			var reason = "the requested position is not a finite point, so nothing was created.";
 			LogRefused(actor, prefabId, x, y, reason);
-			return RefuseUnconverted(reason);
+			return RefuseByRule("summon.answer.refused_bad_position", reason);
 		}
 
 		if (!ItemStateText.TryParse(stateText, out var state, out _, out var parseError))
 		{
 			LogRefused(actor, prefabId, x, y, parseError!);
-			return RefuseUnconverted(parseError!);
+			return RefuseByRule("summon.answer.refused_bad_state", parseError!);
 		}
 
 		var outcome = _summon.TrySummon(prefabId, kind, state, x, y);

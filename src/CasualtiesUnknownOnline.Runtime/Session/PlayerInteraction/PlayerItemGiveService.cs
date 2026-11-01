@@ -103,7 +103,9 @@ internal sealed class PlayerItemGiveService(
 			return new GiveOutcome(false, $"Refused: {reason}", 0, -1, [AnswerPart(keyed.Key, keyedArgs)]);
 		}
 
-		return new GiveOutcome(false, $"Refused: {reason}", 0, -1, [AnswerPart("answer.refused_see_host_log")]);
+		// Every refusal names its own reason now (the console contract's row 14): a source that reaches this point without a
+		// catalogue key is a gap in the caller, not a sentence to show the player.
+		throw new InvalidOperationException($"A refusal without a catalogue key reached the console: {reason}");
 	}
 
 	/// <summary>The host's answer to a member's give request arrived — the console prints it.</summary>
@@ -216,15 +218,23 @@ internal sealed class PlayerItemGiveService(
 		if (!ItemGiveParser.TryParseState(stateText, out var state, out var canonical, out var parseError))
 		{
 			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, parseError);
-			return RefuseUnconverted(parseError!);
+			return RefuseUnconverted(parseError!, new GrantRefusal(parseError!, "give.answer.refused_bad_state"));
 		}
 
 		// The target is checked BEFORE the item is created, so a refused give leaves no created object behind (the
-		// delivery service owns the rules; asking it here keeps them in one place).
-		if (_take.CheckCreatedItemTarget(targetSteamId, 1) is { } targetRefusal)
+		// delivery service owns the rules; asking it here keeps them in one place). Every branch names a catalogue key,
+		// because the console contract says a refusal names its own reason in the reader's language.
+		if (_take.CheckCreatedItemTarget(targetSteamId, out var targetProblemReason) is { } targetProblem)
 		{
-			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, targetRefusal.Refusal);
-			return RefuseUnconverted(targetRefusal.Refusal!);
+			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, targetProblemReason);
+			var id = targetSteamId.ToString(CultureInfo.InvariantCulture);
+			return targetProblem switch
+			{
+				CreatedItemTargetProblem.NotHost => RefuseByRule("give.answer.refused_not_host", targetProblemReason),
+				CreatedItemTargetProblem.Malformed => RefuseByRule("give.answer.refused_malformed", targetProblemReason, id),
+				CreatedItemTargetProblem.NotInWorld => RefuseByRule("give.answer.refused_target_not_in_world", targetProblemReason, id),
+				_ => RefuseByRule("give.answer.refused_no_snapshot", targetProblemReason, id),
+			};
 		}
 
 		// A dead body cannot hold an item: the receiving client drops it beside the body, so an answer naming a slot would
@@ -254,7 +264,9 @@ internal sealed class PlayerItemGiveService(
 			_log.LogWarning("[Give] {Actor} -> {Target} refused: {Reason}", actor, targetSteamId, reason);
 			if (delivery.RefusalKey is not { } key)
 			{
-				return RefuseUnconverted(reason);
+				// Every refusal names its own reason now (the console contract's row 14); a refusal without a key is a
+				// gap in the caller, not a sentence to show the player. It never fires in a green build.
+				throw new InvalidOperationException($"A delivery refusal without a catalogue key reached the console: {reason}");
 			}
 
 			var args = delivery.RefusalArgs ?? [];

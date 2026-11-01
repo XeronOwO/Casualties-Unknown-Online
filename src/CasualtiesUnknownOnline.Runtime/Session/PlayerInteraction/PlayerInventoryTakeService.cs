@@ -314,21 +314,49 @@ internal sealed class PlayerInventoryTakeService(
 	/// item was a world object at the body).
 	/// </summary>
 	internal bool IsTargetDead(ulong to) => _characters.GetCharacterData(to)?.Health is { Alive: false };
-	internal ItemDelivery? CheckCreatedItemTarget(ulong to, ulong itemInstanceId)
+
+	/// <summary>
+	/// Which of the created-item guards a target fails, or null when it passes. The GIVE verb asks this BEFORE it creates
+	/// anything and renders the reason through its own catalogue helper (`RefuseByRule`), so the sentence a player reads is
+	/// keyed at the place that owns the localization — this service owns the RULES, not the wording.
+	/// </summary>
+	internal CreatedItemTargetProblem? CheckCreatedItemTarget(ulong to, out string reason)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
-			return ItemDelivery.Refused("This client is not the host of a live session world, so it cannot deliver a created item.");
+			reason = "This client is not the host of a live session world, so it cannot deliver a created item.";
+			return CreatedItemTargetProblem.NotHost;
 		}
 
-		if (to == 0 || itemInstanceId == 0)
+		if (to == 0)
 		{
-			return ItemDelivery.Refused($"malformed give (target {to}, item id {itemInstanceId}).");
+			reason = "malformed give (no target).";
+			return CreatedItemTargetProblem.Malformed;
 		}
 
 		if (!_characters.IsInWorld(to))
 		{
-			return ItemDelivery.Refused($"{to} is not in-world, so /give cannot reach its inventory.");
+			reason = $"{to} is not in-world, so /give cannot reach its inventory.";
+			return CreatedItemTargetProblem.NotInWorld;
+		}
+
+		if (_characters.GetCharacterData(to) is null)
+		{
+			reason = $"No character snapshot for {to}, so /give cannot place an item on it.";
+			return CreatedItemTargetProblem.NoSnapshot;
+		}
+
+		reason = "";
+		return null;
+	}
+
+	internal ItemDelivery DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)
+	{
+		// The caller has already run CheckCreatedItemTarget and rendered a keyed refusal for anything it names; the only
+		// guard that stays here is the one this method's own contract needs (a real item and a real target).
+		if (to == 0 || item.InstanceId == 0)
+		{
+			return ItemDelivery.Refused($"malformed give (target {to}, item id {item.InstanceId}).");
 		}
 
 		var target = _characters.GetCharacterData(to);
@@ -336,18 +364,6 @@ internal sealed class PlayerInventoryTakeService(
 		{
 			return ItemDelivery.Refused($"No character snapshot for {to}, so /give cannot place an item on it.");
 		}
-
-		return null;
-	}
-
-	internal ItemDelivery DeliverCreatedItem(ulong to, CharacterItemMsg item, int requestedSlot = -1)
-	{
-		if (CheckCreatedItemTarget(to, item.InstanceId) is { } refusal)
-		{
-			return refusal;
-		}
-
-		var target = _characters.GetCharacterData(to)!;
 		var newTarget = PlayerCharacterAccess.CloneCharacter(target);
 
 		// Rung 1: a free slot on the body (the named one when the operator's preference is usable).

@@ -144,3 +144,11 @@ The limb-treatment setup this row was waiting for now exists: `PlayerCamera.Appl
     plays=1, names=[bandage]
 
 One playback of the game's own clip on a client that did not act — the row's "every other client hears the exact clip once" half, measured rather than inferred. The other treatment families that start their own minigame (the dislocation wrench, the amputation tools) still need their own reading; this one covers the bandage family the row names first.
+
+## Row 6's shake half: the game's own trigger, and why a one-shot seed does not reach it (2026-11-01, 17:20)
+
+The water shake is not a call the player makes: `Body.HandleDogWaterShaking` (`reversing/Assembly-CSharp/Assembly-CSharp/Body.cs`) starts the `WaterShake` coroutine — whose `Sound.Play("dogshake", …)` is the clip this row is about — only while `conscious && wetness > 30f && temperature < 36.6f && !bodyAffect.wasWater` has held for more than twelve seconds, and it resets the timer whenever that condition stops holding.
+
+A new fixture recipe (`body-wet wetness=n temperature=n`, which seeds the two numbers and clears `wasWater`, named as a substitution) got the condition to hold once — the answer reports `wetness=100, temperature=36, wasWater=False` — but NO `dogshake` followed, on either client, in a sixteen-second window: the host's own frame-accurate watcher answered `plays=0`. So the seeded state does not survive the twelve seconds (the body's own simulation moves it, and the routine resets when it does), and the fixture that would judge this row is a PER-FRAME seeder — the same shape as `bandage-ring2` and `amp-drive` — not a one-shot write.
+
+The row stays unproven with that named as what it needs; the trigger condition itself is now quoted from the game rather than guessed.

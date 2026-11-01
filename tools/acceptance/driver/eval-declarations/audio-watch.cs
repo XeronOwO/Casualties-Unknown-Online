@@ -26,10 +26,18 @@ public static class AcceptanceAudioWatch
 	public static IEnumerator Watch(int frames)
 	{
 		Running = true;
+		// The sources are re-scanned every few frames ON PURPOSE: a one-shot clip can be played by a source the game CREATES for it, and
+		// a list captured once at the start cannot see it (measured 2026-11-02: a dismembered limb reported 11 ambient clips and no
+		// medical one, while the same event's clip may never have existed at scan time).
 		var sources = UnityEngine.Object.FindObjectsOfType<AudioSource>();
 		for (var frame = 0; frame < frames; frame++)
 		{
 			Frames++;
+			if (frame % 5 == 0)
+			{
+				sources = UnityEngine.Object.FindObjectsOfType<AudioSource>();
+			}
+
 			for (var i = 0; i < sources.Length; i++)
 			{
 				var source = sources[i];

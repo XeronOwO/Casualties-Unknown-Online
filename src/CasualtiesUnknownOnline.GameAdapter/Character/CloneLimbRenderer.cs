@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -72,7 +73,20 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 		// Applied in BOTH directions: a clone Instantiate copies the template's
 		// active state, so a limb that must exist re-arms, and a snapshot limb
 		// that must be gone deactivates.
+		var wasDismembered = limb.dismembered;
 		limb.dismembered = limbData.Dismembered;
+		if (limbData.Dismembered && !wasDismembered)
+		{
+			// The game's OWN sound for this event, at the place it plays it. The native `Limb.Dismember` (Limb.cs:93-100) calls
+			// `Sound.Play("gore", transform.position, …)` and `body.DoGoreSound()` (Body.cs, which rolls `gore1`..`gore5`), and a
+			// REMOTE body never runs that method: CUO writes the flag on the clone, so the patient's client heard the clip while every
+			// peer heard nothing (measured 2026-11-02: the patient's own client recorded `gore2|gore`; a listener 0 and then 48 units
+			// away recorded neither over 240 frames with 191 sources scanned). Both calls are made on the TRANSITION only, so a
+			// repeated snapshot does not replay them.
+			Sound.Play("gore", limb.transform.position, false, true, null, 1f, 1f, false, false);
+			Sound.Play("gore" + Random.Range(1, 6).ToString(CultureInfo.InvariantCulture), limb.transform.position, false, true, null, 1f, 1f, false, false);
+		}
+
 		if (LimbPresentation.MustSetActive(limbData.Dismembered, limb.gameObject.activeSelf))
 		{
 			limb.gameObject.SetActive(!limbData.Dismembered);

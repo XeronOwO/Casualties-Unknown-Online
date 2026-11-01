@@ -560,3 +560,21 @@ The peer plays the same blood-drip family during the cut, at the patient''s posi
 With the hand clicking, the saw ran: `cutProgress` accumulates `|handVelocity.x| * 5E-05` per physics frame (`AmputationMinigame.PhysicsUpdate`), the limb went to `skin=0, muscle=0`, and the peer already had the drip family (previous section). But the minigame then ENDED with `kind=none` and `dismembered=false` on every one of the fifteen limbs, and no `gore` clip on either side — because holding `attack`, the very key the hand needs, also fires the body''s own attack, which is what closes the minigame in this fixture.
 
 So the last step needs a hand that clicks `attack` without the body attacking, which is a fixture question with one named candidate: stage `attack` only on the frames the hand reads it (a press/release cadence rather than a hold) and see whether the cut completes. Everything before that step is read and recorded.
+### Row 4b's last step, one batch later (2026-11-02, 02:40)
+
+The recipe chain was rebuilt on a fresh session and each link was read:
+
+    /op <alt>                         -> the member's /give works
+    /give machete                     -> limb-use reports slot 0, condition 1
+    open-own-wound                    -> open=True
+    select-limb limb=10               -> {limb:10, name:"CrusF"}          (the field really is written)
+    limb-use type=machete mode=apply  -> {limb:0, limbName:"head", actuallyUsable:true}
+    minigame-live                     -> kind=none
+
+So `select-limb` writes the field and `ApplyWoundItem` still acts on the HEAD: the wound view recomputes its selection from the
+pointer's hover every frame, and a staged pointer that teleports between frames never hovers a limb — the same wall the first
+batch hit, now measured from the other side (the write is visible, the read is overwritten before use).
+
+That is the fixture the row needs, named exactly: **a pointer that HOVERS** (many frames arriving near the same limb point, not
+one jump), which the channel does not stage today. Row 4b stays carried with this reading; the two-batch limit for this row is
+spent, so the next attempt belongs to a batch that builds the hovering pointer first.

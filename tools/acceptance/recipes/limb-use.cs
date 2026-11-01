@@ -1,5 +1,5 @@
 // recipe: limb-use
-// args: type=s
+// args: type=s mode=s
 // returns: ok, type, slot, condition, usableOnLimb, actuallyUsable, limb, limbName, skinBefore, error, detail
 //
 // Uses a carried item on the limb the LOCAL wound view has selected, through the game's own entry for it: `PlayerCamera.ApplyWoundItem(item)`
@@ -12,6 +12,7 @@
 ((System.Func<string>)(() => {
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var type = {{s:type}};
+	var mode = {{s:mode}};
 	var camera = PlayerCamera.main;
 	if (camera == null) { return "{\"ok\":false,\"error\":\"no-player-camera\"}"; }
 	var body = camera.body;
@@ -41,7 +42,7 @@
 	var usableOnLimb = item.Stats != null && item.Stats.usableOnLimb;
 	var actuallyUsable = item.Stats != null && item.Stats.ActuallyUsableOnLimb(item);
 	var limbIndex = System.Array.IndexOf(body.limbs.ToArray(), limb);
-	camera.ApplyWoundItem(item);
+	if (mode == "special") { camera.WoundSpecialAction(); } else { camera.ApplyWoundItem(item); }
 
 	return "{\"ok\":true,\"type\":\"" + type + "\""
 		+ ",\"slot\":" + slot.ToString(inv)

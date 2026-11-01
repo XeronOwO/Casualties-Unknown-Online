@@ -401,3 +401,12 @@ Two readings settle the instrument and move the question to the fixture:
 - With the recorder proven, `item-drop type=stick height=8` records NOTHING on either client — not even on the host, which is authoritative for that item. So `Item.OnCollisionEnter2D` (Item.cs:238-247) never ran its `Sound.Play("drop", …)`: the factory places the item without the fall this row needs, and the row's premise (a world item hitting the ground) is not what the fixture creates.
 
 The next step is therefore a fixture that actually drops from a hand at height (`Body.DropItem`, the path a player uses) or a created item whose rigidbody is left simulated above the ground — not another sampling window.
+### Registered but never called, through three fixtures (2026-11-02, 15:08)
+
+The recorder is registered (Harmony reports a prefix owned by the acceptance assembly on `Sound.Play`) and the recipe arms and reads it, yet these produce `count=0` on the HOST — the authoritative side for the item:
+
+- `item-drop type=stick height=8`;
+- `item-drop type=stick height=3`;
+- `/give stick` + teleport to open air + `item-drop-hand slot=0` (the player's own drop path, `Body.DropItem`), which answered `held=true dropped=true`.
+
+One copy of the assembly is loaded (a recursive look under the game's BepInEx tree returns exactly one file), so this is not two `Enabled` flags. The remaining explanation is the classic one for a registered patch that never fires: `Sound.Play` is a small method the runtime has already inlined or JIT-compiled into its callers before the plug-in loaded, so the patch sits in Harmony's table and no call reaches it. The next reading decides it — a probe that calls `Sound.Play` directly through reflection from inside the game (one call, expected to land in the buffer if the patch is live at all) — and if that also misses, the recorder has to move onto a method that is not inlined, or be installed before the game's first sound.

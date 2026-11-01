@@ -536,3 +536,17 @@ Both act on `PlayerCamera.selectedLimb`, and `limb-use` reads that same field ba
 
 That is the single thing left for 4b, and it is a fixture question with a direct read: click limb 5''s point from `wound-limb-points` and ask `limb-use` what `limb` it sees.
 **And the read needs an item in a real slot.** The planned click-then-ask was tried on the alt: `wound-limb-points` answered limb 5 at (445,273), the click was staged there, and `limb-use type=bandage mode=read` came back empty because the bandage is in the carried list but in no body slot — so the selection question can only be answered once a tool is really in a slot. The two are the same fixture: a body with no container and one tool, which is also the state `/give` does not produce on a body that carries a bag (recorded above).
+## Row 4b read: the amputation cut reaches the peer (2026-11-02, 22:40)
+
+Three things had to be fixed before the row could be driven, and all three are recorded here because each one had silently blocked earlier attempts:
+
+1. **The CUO window was covering the game.** `ui-hits` at the wound view''s limb point answered `Viewport / CUO Online UI Window / CUO Online Input Blocker / Limbs` — so every click "on the limb" went to the CUO window. With the window closed the same point answers `Limbs` alone.
+2. **`/give` needs the member to be opped.** The alt''s `/give machete` had been silently doing nothing; after `/op <alt>` the tool landed in a body slot (`limb-use` answered `ok, usableOnLimb=true`).
+3. **The limb selection cannot be driven by a staged pointer.** The wound view selects on hover, and a pointer that teleports between frames does not hover: thirteen point-clicks left `PlayerCamera.selectedLimb` at 0, 2 or 12, never the seeded limb. A new fixture `select-limb` writes the same field the view writes, and with it `limb-use` finally reports `limb=3` (UpArmF).
+
+With those in place the native `AmputationMinigame` started (`minigame-live`: `kind=AmputationMinigame`) and the cut was driven with the pointer. Both recorders armed:
+
+    patient (alt) : drip13, drip17, drip1, drip7, drip19, drip18, … (~34 drip clips over ~3 s)
+    peer (host)   : drip21, drip22, drip13, drip11, drip20, drip7, …  (~34 drip clips over the same window)
+
+The peer plays the same blood-drip family during the cut, at the patient''s position — which is the row''s claim: the acting client''s minigame step sounds reach every other client. `cutProgress` did not reach 1 in this window (the game advances it only while the hand is actually moving, and a staged pointer moves in bursts), so the final dismember step is the one thing this reading does not yet cover; the cutting itself does.

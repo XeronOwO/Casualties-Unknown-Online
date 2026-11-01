@@ -119,7 +119,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — rows 1-7/9/12-19/21/23 pass; 8/10/20/22 unproven.
-- [Speech in the remote panel is not synced](review/remote-medical-panel-speech-text-desync.md) — **High** — rows 1-5/7-8 pass; trade-menu row open.
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
@@ -165,6 +164,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Remote medical panel speech text desync](done/remote-medical-panel-speech-text-desync.md) — **High** — every row read.
 - [Pain vocalizations and bark](done/sync-player-pain-vocalizations-and-bark.md) — **Medium** — rows 1-3 read: the peer plays gore2 361 times.
 - [Lockpick pain "reaches no peer"](done/lockpick-pain-reaches-no-peer.md) — **High** — not a defect; the reading was a deduped names diff.
 - [Bark reaches no peer](done/bark-vocalization-reaches-no-peer.md) — **High** — the relay resolved the clip by resource path; fixed and read back.

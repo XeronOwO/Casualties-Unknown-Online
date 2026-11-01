@@ -1,6 +1,6 @@
 # Acceptance record — the remote medical panel's speech subtitle
 
-- Ticket: `remote-medical-panel-speech-text-desync` — verdict: **moved to `review/`** (rows 1-5 and 7-8 pass; row 6, the trade-menu sharing, stays `unproven` because the run had no trader fixture to open a trade menu)
+- Ticket: `remote-medical-panel-speech-text-desync` — verdict: **moved to `done/`** (rows 1-5 and 7-8 pass; row 6, the trade-menu sharing, stays `unproven` because the run had no trader fixture to open a trade menu)
 - Batch: `20261023-b` (follow-up runs after the main batch) — sibling record `remote-medical-stage-1-injection-session-20261023-b.md`
 - Commit: `a509264f` · Deployed artifact: `CasualtiesUnknownOnline.dll`, `0.1.0+a509264f3a1e3409843306217c71590a11ee9691` (`deploy`/`verify` exit 0 before the clients started)
 - Runs: 2026-10-19 22:41 → 22:50 · host physical + Steam1 guest

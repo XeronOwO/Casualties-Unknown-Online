@@ -46,7 +46,6 @@ The instruments those two cycles produced are reusable and are named here so the
 | `concurrent-medical-operations.md` | rows 1-6 are pinned by the 36-case concurrency suite; row 7 is the user's dual-client acceptance |
 | `trade-domain-dual-side-runtime.md` | rows 1-7 pass; rows 8 (recruit) and 9 (hostile swing) need the in-game dialogue and an aim-driven swing |
 | `the-command-console-is-a-contract.md` | rows 5, 10 and 11 are judged and the rest is complete; rows 6 (a Chinese member's keyed answer) and 8 (a mod's selector frame) need a Chinese member client and an example-mod selector parameter |
-| `remote-medical-panel-speech-text-desync.md` | row 6 asks whether the remote chart should open OVER the trade menu or is meant to refuse while trading |
 
 ## E — one more live reading with instruments that already exist
 

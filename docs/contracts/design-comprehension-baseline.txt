@@ -18,7 +18,6 @@ docs/backlog/review/pinyin-search-standalone-mod.md
 docs/backlog/review/plugin-host-shell.md
 docs/backlog/review/recursive-crafting-mod.md
 docs/backlog/review/remote-medical-native-minigame-parity.md
-docs/backlog/review/remote-medical-panel-speech-text-desync.md
 docs/backlog/review/remote-medical-stage-1-injection-session.md
 docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/backlog/review/remote-medical-stage-3-other-actions.md

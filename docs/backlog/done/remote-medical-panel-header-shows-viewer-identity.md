@@ -3,7 +3,7 @@
 - Status: Done — accepted in batch `20261024-a` (rows 1-6 pass); record `docs/evidence/acceptance/remote-medical-panel-header-shows-viewer-identity-20261024-a.md`
 - Priority: High
 - Category: Remote medical / WoundView display / identity header
-- Source: User report (2026-10-19, during acceptance batch `20261023-b`): "现在查看他人面板，但是面板顶部显示的文本是不同步的". The user later clarified the sentence they meant was the character SPEECH subtitle, which has its own ticket (`review/remote-medical-panel-speech-text-desync.md`), and that the identity header "可能也是问题"; the values below are this ticket's own live evidence that the identity line IS the viewer's, whichever report named it.
+- Source: User report (2026-10-19, during acceptance batch `20261023-b`): "现在查看他人面板，但是面板顶部显示的文本是不同步的". The user later clarified the sentence they meant was the character SPEECH subtitle, which has its own ticket (`done/remote-medical-panel-speech-text-desync.md`), and that the identity header "可能也是问题"; the values below are this ticket's own live evidence that the identity line IS the viewer's, whichever report named it.
 - User ruling (2026-10-19): the header must show the VIEWED player's own data.
 
 ## Problem

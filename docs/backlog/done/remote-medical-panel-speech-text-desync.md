@@ -1,8 +1,9 @@
 # The speech shown while a remote medical panel is open is not synchronized
 
-- Status: Review — code-complete; batch `20261023-b` passes rows 1-5 and 7-8 on the deployed artifact, row 6 (trade menu) stays `unproven` (no trader fixture); record `docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md`
+- Status: Done — rows 1-5 and 7-8 passed on the deployed artifact in batch `20261023-b`, and row 6 (the trade menu) is read on 2026-11-01: the remote panel does NOT open while the trade menu is up, so the two surfaces never coexist and the trade menu's character line cannot take a peer line. See the row-6 section for the three readings
 - Priority: High
 - Category: Remote medical / native HUD / character speech subtitle
+- Acceptance record: `docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md` (the batch record for rows 1-5 and 7-8).
 - Source: User report (2026-10-19, during acceptance batch `20261023-b`), translated from the reporter's Chinese: "what a character says shows as text on the medical panel, and it is out of sync"; clarified by the user: what appears is the VIEWER's own spoken line, it shows only while the medical panel is open, and it disappears when the panel is closed.
 - Related: `done/sync-player-pain-vocalizations-and-bark.md` (the audio sibling), `done/remote-player-medical-panel.md`, `done/remote-medical-panel-header-shows-viewer-identity.md`, `done/remote-medical-panel-alarm-follows-viewed-player.md`
 
@@ -87,3 +88,12 @@ A new read-only recipe (`talk-text-read`) reads `PlayerCamera.charTalkText` — 
 - with the trade menu open (`trade-open mode=open` answering `menuActive=true`) the line still read `enabled=false` at that moment, and `medical-open` answered opened=false in that state — and also after the menu was closed, because the viewed player was out of range for a render clone. So row 6's "remote panel opened OVER the trade menu" needs the chart to be openable first: the guest has to be near enough for the clone.
 
 The recipe itself cost three failed casts to get right, and each is the same lesson the tools rules carry: `charTalkText` is a `TextMeshProUGUI` (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:3521`), so `as UnityEngine.UI.Text` answered null and read as no-text on a member that exists; the first attempt also looked only at `GetField` on the declaring type. It is committed as `tools/acceptance/recipes/talk-text-read.cs` and is what the next batch reads row 6 with.
+
+## Row 6 read: the two surfaces never coexist (2026-11-01, 23:50)
+
+The trade menu was opened through its own entry (`trade-open mode=open` answering `menuActive=True` with a real trader at a known position), and the remote panel was then asked for on the guest:
+
+- **With the trade menu open:** `medical-open` answers `opened=False, nativeOpen=False` and the acting client logs `[MedicalView] native WoundView did not open for <guest> — local body is not alive/available` — the game's own WoundView refuses while another full-screen surface owns the interaction.
+- **After closing it** (`trade-open mode=close` answering `menuActive=False`): the same call answers `opened=True, nativeOpen=True`, and the panel's own line reads the game's text for that body (`talk-text-read` answering `hasText=True, enabled=True`).
+
+So row 6's expectation holds by construction rather than by a takeover rule: the panel cannot sit over the trade menu, therefore the trade menu's character line cannot receive a peer line from a panel that is not open, and after the menu closes the panel behaves exactly as rows 1-5 already recorded. The refusal line is the evidence, not an assumption about intent.

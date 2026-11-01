@@ -289,7 +289,7 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 264 | `review/plugin-host-shell.md` | no agent work left | n/a | `out of corpus scope` | packaging/architecture |
 | 265 | `review/recursive-crafting-mod.md` | resolver, game half and command landed | `mechanics/crafting.md` | `corpus page` | the crafting page's report and product rules |
 | 266 | `review/remote-medical-native-minigame-parity.md` | roadmap parent of the medical stages | `mechanics/medical-view.md` | `corpus page` | the medical page's family with its open stages recorded |
-| 267 | `review/remote-medical-panel-speech-text-desync.md` | code-complete | `surfaces/medical-panel.md` | `corpus page` | ticket: "The speech shown while a remote medical panel is open is not synchronized"; the panel page's state rules |
+| 267 | `done/remote-medical-panel-speech-text-desync.md` | code-complete | `surfaces/medical-panel.md` | `corpus page` | ticket: "The speech shown while a remote medical panel is open is not synchronized"; the panel page's state rules |
 | 268 | `review/remote-medical-stage-1-injection-session.md` | landed | `items/injection.md` | `corpus page` | the injection page's operation rules |
 | 269 | `review/remote-medical-stage-2-shrapnel-multiplayer.md` | landed; its rows are the page's open gap | `mechanics/medical-view.md` | `corpus page` (open rows) | the shrapnel flow's multiplayer rows are named on the page's `Gaps` |
 | 270 | `review/remote-medical-stage-3-other-actions.md` | landed | `mechanics/medical-view.md` | `corpus page` | the remaining native actions are the medical page's family |

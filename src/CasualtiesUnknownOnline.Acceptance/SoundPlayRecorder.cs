@@ -118,6 +118,13 @@ internal static class SoundPlayRecorder
 		Record(clip == null ? "" : clip.name, pos); // Unity object — ==
 	}
 
+	/// <summary>Plays one probe sound through the game's own entry and answers how many calls the prefixes have seen since the process started. A managed call compiled in this assembly is a fresh call site, so a zero answer means the patch does not reach the method at all.</summary>
+	internal static long ProbePlay()
+	{
+		Sound.Play("probe", Vector2.zero, false, true, null, 1f, 1f, false, false);
+		return RawCalls;
+	}
+
 	/// <summary>How many calls the prefixes have seen, armed or not. A zero here means the patch never ran at all, which is a different fault from "the buffer was empty".</summary>
 	internal static long RawCalls { get; private set; }
 

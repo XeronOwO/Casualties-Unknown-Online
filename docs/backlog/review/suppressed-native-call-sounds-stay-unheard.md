@@ -316,3 +316,11 @@ The trigger is settled (an infected limb over 60, used with a cutting tool in ha
 - **The peer has heard nothing yet**, which follows from the above: its counting watcher recorded only ambient clips (`pant`, `wind`, `drip*`) across the whole attempt, so no gore clip has been reached rather than reached and missed.
 
 The driver lives in `tools/acceptance/driver/eval-declarations/amp-drive.cs` and is kept as the honest state of that attempt: it holds the button, alternates the pointer every frame at the bottom of the surface, and is ready for the one field reading above.
+
+## Rows 5 and 6: the drop recipe is broken on this build (2026-11-02, 01:40)
+
+Attempting rows 5 and 6 first needed a dropped item, and the recipe that provided one in the earlier batch no longer compiles: `item-drop` (and a fresh copy under a new name, `item-drop2`, created to rule out a cached failure) both answer `eval-error` with `(1,1): InteractiveHost`, which the driver documentation lists as the evaluator refusing the submission outright rather than a symbol error.
+
+That is a tooling defect, not a reading: the recipe is one top-level expression, UTF-8 without BOM, and the same shape as the recipes that still run. The next action is therefore to replace its body with the game's own drop entry and re-run it, then judge rows 5 and 6 with the `drop` counter (`plays`, not a `names` diff).
+
+The rest of this session's sound readings stand: `dogshake`, `vomit2`, `stretch`, `pain1` and `gore2` all reach peers, each confirmed by a playback count rather than by first sighting.

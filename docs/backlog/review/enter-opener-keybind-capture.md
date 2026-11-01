@@ -102,3 +102,22 @@ SettingsMenu.WaitForKeyPress: patched, 0 call(s) replaced
 ```
 
 Zero. The coroutine patched cleanly and its body carries no `call Input.GetKeyDown(KeyCode)` at all, which is the same fact the channel's own note records for `Input`'s methods (a detour installs and is never invoked). So on this build the capture reads the keyboard through a path no in-process instrument can answer, and the row cannot be judged without one authorised batch of real keys — that is now a reading, not an assumption.
+## Reaching the capture without real keys (2026-11-02, 03:20)
+
+The row's status said it waits on "one authorisation to drive real keys". The channel has since learned to replace the game's
+own capture call site (`VirtualInput` transpiles `SettingsMenu.WaitForKeyPress`, `src/CasualtiesUnknownOnline.Acceptance/VirtualInput.cs`),
+so staged keys can answer the capture — what is missing is only the way INTO the settings menu.
+
+Measured on the host:
+
+    click window.close            -> windowVisible=false
+    virtual-key Escape down/up    -> the game's own pause menu appears (the ring with its flavour text and three buttons: back, quit, settings)
+    virtual-input press at the settings gear's centre -> nothing; the menu stays
+
+So the pause menu OPENS from a staged key and its round buttons do not take a staged click, even with the pointer moved onto
+them first — the same pointer-freshness limit the wound view's limb selection hits (see
+`suppressed-native-call-sounds-stay-unheard`, "the CUO window was the wall"). Both rows therefore wait on ONE capability, not
+on two: **a staged pointer the EventSystem/native UI sees as moving onto a target and staying there**.
+
+That is ordinary tooling work under this step's own rule (extending the in-process channel needs no authorisation), and it
+unblocks this row and row 4b of the sound ticket together.

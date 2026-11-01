@@ -621,20 +621,21 @@ Each of these came from a screenshot the user sent, and each is now in the produ
 3. **Some rows had an empty right side** — the catalogue has no sentence for `craftchain` or a mod's verb. Such a row shows its
    usage in that space now, and no row is blank.
 
-The layout rule the user then gave, and the shape it took: the row's right side is **progressive**, not one crammed line. A row
-says what the command IS; the row the player is ON adds how to call it, on its own line beneath, indented to the description.
-Cramming both into one line made the list wider than the panel and put a horizontal scrollbar under it — which is what the
-second screenshot reported.
+The layout rule, after two rounds of the user's direction: **one option per line, and the usage inside that line**. A first
+attempt crammed description and usage into one line without constraining its width, which put a horizontal scrollbar under
+the list; a second attempt split the selected row into two lines, which read as two options. The shipped shape is one line per
+option — description then ` · ` then usage, clipped to the width the button leaves — so a long usage can neither widen the list
+nor wrap, and no row is ever taller than its neighbours.
 
 Two measurements behind the pixel work: the row's hint and usage labels get a COMPUTED width (`rect.width - marker - the
 button's own measured width`), because a label that expands lets the scroll view size its content to the longest hint and that
 is what re-introduced the scrollbar; and the rows stay anchored to the input field's TEXT ORIGIN (`rowRingX == inputTextX`,
 328 in the frame), never to a glyph position, so a command long enough to scroll the field keeps the same left edge.
 
-**The selected row's layer is photographed** (the driver's `console-arrow` action moves the selection the way the arrows do). One
-crop of the deployed build shows the whole design at once: `the marker, the ban row's description` with the usage
-`/ban <steamId|displayName>` on its own line beneath, indented to the description; `clear`/`data`/`deop` carry their description
-only; `craftchain` carries its usage only (no catalogue sentence); no horizontal scrollbar.
+**Photographed on the deployed build** (the driver's `console-arrow` action moves the selection the way the arrows do): one
+crop shows every row on a single line — the marker, then the ban row's description and its usage after the separator; clear,
+data and deop the same; craftchain and the example weight verb carrying their usage alone because the catalogue has no sentence
+for them; and no horizontal scrollbar.
 
 One correction came from that crop: the usage layer was as wide as the description plus the marker and the button, and the
 horizontal group's own spacing pushed it past the view, which put the scrollbar back. The layer now takes ten pixels less than

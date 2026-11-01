@@ -44,3 +44,9 @@ Row 9's hostile half needs one specific state, and `TraderScript` says exactly w
 Two attempts in this session show what is NOT enough: punching the trader (`body-call kind=attack`, six swings with the body aimed at it by `targetLookPos` and the trade menu closed) leaves its `buildHealth` at 1250 and the menu opening normally, and giving a `shotgun` (`/give @s shotgun` answering `placed in slot 0`) while standing beside the trader changes nothing either — the check reads the HAND slot, and the given weapon sits in a backpack slot.
 
 So the next pass is precise: put a gun-tagged weapon into the hand (the game's own switch/hand slot), stand at the trader, and read `hostility`/`hostile` until the menu refuses; then the swing is already covered by the replay reading above (`[AttackSwing:BSSwing4]` arriving on a peer).
+
+### The hostile state is reachable, and how (2026-11-02, 01:00)
+
+Following the script's own rule — a `gun`-tagged weapon in the HAND slot raises `hostility` by 50 per evaluation — the hostile state was produced: `/give @s shotgun` (slot 0 is the hand, confirmed by `body-call kind=switch` moving it to slot 1 and back), stand at the trader, then open and close its menu four times. `trade-open mode=open` then answers **`menuActive=False`**: the trader refuses interaction because `hostile` is true, and the frame shows the trader as a hostile body with its own health/stats panel and the player holding the shotgun.
+
+The peer's message record across that window carries the CONSEQUENCE of the hostile trader (the player being hit: `Pain:gore2`, `Pain:exp13`, …) but not yet the trader's own swing presentation — that rides a different channel (the entity attack animation family, which the character-sound watcher does not see). So row 9's remaining half is one instrument away: the same receive watcher pointed at the attack-animation message, with the hostile trader already producible by the recipe above.

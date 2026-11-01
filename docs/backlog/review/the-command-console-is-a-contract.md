@@ -541,3 +541,8 @@ Cause: the list drew inside `GUILayout.BeginScrollView(_suggestionScroll, …)` 
 Fix: `OnlineUiTheme.ScrollBackground()` is a zero-padding, zero-margin, borderless copy of the scroll view style with no background, and the list begins its scroll view through the explicit-style overload with the game's own scrollbars. The frame after the deploy shows the rows (`ban`, `clear`, `craftchain`, `data`, `deop`) starting on the same left edge as the history text and the prompt.
 
 This is the family's rule as well: any IMGUI control we draw inherits the GAME's skin unless we pass a style, so the one list that forgot it was the one that looked wrong.
+### The family: the history scroll view had the same defect (2026-11-02, 23:40)
+
+The list was the one the user photographed, not the only one with the defect: the HISTORY scroll view in the same file passed no style either, so it also laid its rows out inside the game's skin padding. Both now go through `OnlineUiTheme.ScrollBackground()`, and the frame after the second deploy shows the three edges that matter on one line: the history text, the suggestion buttons (`ban`, `clear`, `craftchain`, `data`, `deop`) and the `>` prompt below them.
+
+The rule the sweep produced, for any later panel: **an IMGUI control drawn without an explicit style inherits the GAME's skin**, and the game's skin is not this panel's layout. Every scroll view, button and label this plugin draws either passes a style of its own or is one the game's skin is knowingly wanted for.

@@ -136,3 +136,11 @@ That is the answer this row's nap half needed, and it is an "unhooked family" ou
 relay: the clip is local to the body that naps. The shake half and row 1's plain limb treatments are the
 same instrument pointed at their own actions, and the remote treatment's `bandage` clip — the one the
 sibling ticket read — was captured on the peer in the same session layout.
+
+## Row 1 read on the deployed build (2026-11-01, 13:20)
+
+The limb-treatment setup this row was waiting for now exists: `PlayerCamera.ApplyWoundItem` is the game's own entry for a local limb item (see `suppressed-native-call-sounds-stay-unheard`), and `limb-use` drives it. With the host's own wound view open and its left hand selected through the view's own `IPointerEnterHandler`, the bandage applied and the minigame driven to a completed wrap, the guest's frame-accurate counting watcher answered:
+
+    plays=1, names=[bandage]
+
+One playback of the game's own clip on a client that did not act — the row's "every other client hears the exact clip once" half, measured rather than inferred. The other treatment families that start their own minigame (the dislocation wrench, the amputation tools) still need their own reading; this one covers the bandage family the row names first.

@@ -602,9 +602,10 @@ staged move DOES move the selection: `limb-use` reports `limb=1` (chest) where i
 before.
 
 What it does not do yet is move the selection a SECOND time: six further points all answer `limb=2` (abdomen), i.e. the enter
-event fires once and then the staged pointer stops producing new enters. That is a pointer-freshness problem in the fixture (the
-staged position persists between calls), not a game problem — and it is the last step before the machete can be aimed at an arm
-or a leg and the dismember sound read.
+event fires once and then further staged positions produce no new enter. The staged position is not what changes: it persists
+(`VirtualInput._pointer`) by design, so the wall is elsewhere — the point list's coordinates and the hover target's own
+collider are the candidates to read, not the channel's memory of the pointer. That is the last step before the machete can be
+aimed at an arm or a leg and the dismember sound read.
 
 So row 4b's blocker is now three facts, each measured: the window must be closed; one hover works; repeated hovers need a
 pointer that really moves between frames.

@@ -115,9 +115,10 @@ Measured on the host:
     virtual-input press at the settings gear's centre -> nothing; the menu stays
 
 So the pause menu OPENS from a staged key and its round buttons do not take a staged click, even with the pointer moved onto
-them first — the same pointer-freshness limit the wound view's limb selection hits (see
-`suppressed-native-call-sounds-stay-unheard`, "the CUO window was the wall"). Both rows therefore wait on ONE capability, not
-on two: **a staged pointer the EventSystem/native UI sees as moving onto a target and staying there**.
+them first. The staged pointer is not the suspect: `VirtualInput.MoveTo` stores it in `_pointer` and it STAYS set until it is
+changed or cleared (`src/CasualtiesUnknownOnline.Acceptance/VirtualInput.cs`), so `Input.mousePosition` answers the same
+position every frame. What is unknown is which input path those buttons read — the next step is to read the pause menu's own
+code (`reversing/Assembly-CSharp`) rather than to guess at the channel.
 
 That is ordinary tooling work under this step's own rule (extending the in-process channel needs no authorisation), and it
 unblocks this row and row 4b of the sound ticket together.

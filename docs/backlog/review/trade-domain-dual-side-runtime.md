@@ -92,3 +92,13 @@ Row 8 is PASS on this reading. What is not re-read here is the "saved snapshot r
 ### The peer view refreshes with the revived body (2026-11-02, 17:16)
 
 The host's own player page, captured after the recruit, draws the revived member's row as `world, 30 ms - HP 75 H87 T91 St 100 - 6 item(s)`: the HP the revive produced (75.017) and no death marker. So the row's "the peer view refreshes" half is read on the frame the host was already looking at; the saved-snapshot half still needs a save/load fixture.
+### The hostile state is reachable with a fixture (2026-11-02, 17:28)
+
+Row 9''s hostile half needed a trader at `hostility = 100`, and the two doors the script has are now both understood. The gun door adds +50 **once per conversation** (`MeetPlayer` sets `startedConvo`, so a second open never repeats it) and the hostile branch inside `Update` only raises it further once the trader is ALREADY hostile — which is why a gun alone stops at 50.
+
+The other door is the menu interaction: `TraderScript.TryHug` ends with `if (this.reputation < 30f) this.hostility = 100f;`. Reaching it needs a low reputation, and the meet re-rolls reputation between 75 and 135, so no honest fixture can produce one. With the trader probe extended by two modes — `mode=rep` writes the reputation the meet would have rolled, `mode=hug` calls the native `TryHug` — the state is:
+
+    after mode=rep value=20 : hostility=0    reputation=20
+    after mode=hug          : hostility=100  hostile=true  reputation=12
+
+So the trader IS hostile now, and the swing row can be driven: stand inside its attack range and read the swing presentation on the client that did not run it. That read is the one thing this ticket still lacks, and it is now a matter of watching the right field rather than of reaching the state.

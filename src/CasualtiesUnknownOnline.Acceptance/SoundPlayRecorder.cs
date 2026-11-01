@@ -106,9 +106,20 @@ internal static class SoundPlayRecorder
 		harmony.Patch(byClip, prefix: new HarmonyMethod(typeof(SoundPlayRecorder), nameof(PrefixClip)));
 	}
 
-	private static void PrefixClipName(string clip, Vector2 pos) => Record(clip, pos);
+	private static void PrefixClipName(string clip, Vector2 pos)
+	{
+		RawCalls++;
+		Record(clip, pos);
+	}
 
-	private static void PrefixClip(AudioClip clip, Vector2 pos) => Record(clip == null ? "" : clip.name, pos); // Unity object — ==
+	private static void PrefixClip(AudioClip clip, Vector2 pos)
+	{
+		RawCalls++;
+		Record(clip == null ? "" : clip.name, pos); // Unity object — ==
+	}
+
+	/// <summary>How many calls the prefixes have seen, armed or not. A zero here means the patch never ran at all, which is a different fault from "the buffer was empty".</summary>
+	internal static long RawCalls { get; private set; }
 
 	private static void Record(string clip, Vector2 position)
 	{

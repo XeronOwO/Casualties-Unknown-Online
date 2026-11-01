@@ -60,3 +60,13 @@ encoded the old one-reading rule were updated to the new contract.
 The remaining half — a member that IS removed and then resumes traffic without a fresh handshake — stays open: members are
 re-added by a handshake, and a member whose session row was dropped while its transport stayed up has no path back. That is the
 next reading here.
+
+### The corroboration, read live (2026-11-01, 11:20)
+
+The deployed build, three clients, then the alt killed on purpose (its own sandbox pid, so the host and guest kept running). The host's log, in order:
+
+    Member 76561199526807662 is absent from lobby read 1/3; not removing it yet.
+    Member 76561199526807662 is absent from lobby read 2/3; not removing it yet.
+    Member 76561199526807662 removed: left the lobby.
+
+So the rule still removes a member who really left (a kill is exactly that), only later — and the two intermediate lines say why the earlier false removal cannot recur in one snapshot. A two-client session with all three present kept every row (`/players` answering all three `handshake=True inWorld=True`).

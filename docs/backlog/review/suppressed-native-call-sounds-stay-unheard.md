@@ -525,3 +525,12 @@ With the tool-in-a-container problem solved by using the guest (whose slots are 
 `wound-seed limb=1 force=90` on the guest answered `null` (the recipe refuses on that body), and `limb-read` afterwards still shows `skin=100, bleed=0`, so the limb was not wounded and the amputation remains unstarted.
 
 So row 4b''s remaining need is exact and small: a limb state the amputation/suture minigame accepts (a mangled limb, or a bleeding wound the suture treats), produced through a call this channel can reach. `wound-seed` is the right instrument and its refusal on the guest body is the next thing to read.
+### The exact missing fixture for 4b: a wound COMPONENT, not wound numbers (2026-11-02, 21:45)
+
+Two more paths were tried and both stop at the same place.
+
+**Amputation.** `Item.DoAmputate` (`reversing/Assembly-CSharp/Assembly-CSharp/Item.cs`) starts `AmputationMinigame` only when `limb.infectionAmount > 60f && index > 2 && (!flag || !limb.isLegLimb)`. A `wound-seed limb=3 force=5 infection=100` produced exactly that — `limb-read`: `infectionAmount=96.316`, index 3, no dismembered limb — and `limb-use type=machete` still answered `kind=none`. The same was tried on limbs 3, 4, 5, 6 and 7.
+
+**Suture.** With the containers dropped (which is why the tool "never appeared in a slot"), `medicalsuture` sits in slot 1 and `limb-use type=medicalsuture` answers `ok, slot=1` — and again `minigame-live` says `kind=none` on a limb whose `bleed` is 76.9.
+
+What both have in common is the fact `limb-read` reports as `components=""`: `wound-seed` writes the NUMBERS through `Limb.ImpactDamage` (skin, bleed, infection) and creates no wound OBJECT, and every one of these minigames is started from a wound object in the wound view rather than from the numbers. So the fixture this row needs is a limb carrying a real wound component (the thing the bandage minigame already consumes — the bandage path starts fine on a bleeding limb), and that is the named gap: the channel can write numbers and cannot yet create the component.

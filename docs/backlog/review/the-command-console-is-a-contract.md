@@ -546,3 +546,10 @@ This is the family's rule as well: any IMGUI control we draw inherits the GAME's
 The list was the one the user photographed, not the only one with the defect: the HISTORY scroll view in the same file passed no style either, so it also laid its rows out inside the game's skin padding. Both now go through `OnlineUiTheme.ScrollBackground()`, and the frame after the second deploy shows the three edges that matter on one line: the history text, the suggestion buttons (`ban`, `clear`, `craftchain`, `data`, `deop`) and the `>` prompt below them.
 
 The rule the sweep produced, for any later panel: **an IMGUI control drawn without an explicit style inherits the GAME's skin**, and the game's skin is not this panel's layout. Every scroll view, button and label this plugin draws either passes a style of its own or is one the game's skin is knowingly wanted for.
+### The second cause: the button style's inherited MARGIN (2026-11-02, 23:55)
+
+The user looked at the fixed list and said the indent was still there — and was right: a few pixels remained. The scroll-view padding was one cause; the other is that `OnlineUiTheme.Button()` copies `GUI.skin.button`, and the game's button style carries a **margin**, which offsets every button inside the layout that draws it. Removing the padding moved the rows to the scroll view's edge; the margin then kept the buttons a few pixels in from it.
+
+Both are zeroed now (button margin, and the same for the new label and text-field styles), and the frame after the deploy shows the list's buttons on the same left edge as the history lines and the `>` prompt.
+
+The rule, stated once for the whole plugin: **a style copied from the game's skin carries MORE than its colours** — padding, margin, border and font all come with it, and any of them can move a control. Copy deliberately, and zero what the panel's own layout is supposed to decide.

@@ -505,6 +505,9 @@ internal sealed class CommandConsoleOverlay
 				// The usage layer: syntax, the same words in every language, under the description and indented to it.
 				GUILayout.BeginHorizontal();
 				GUILayout.Space(MarkerWidth + buttonWidth);
+				// The layer takes a little LESS than the description's width: the horizontal group adds its own spacing between the two
+				// elements, and that surplus is what made the scroll view show a horizontal bar (measured 2026-11-02 on the selected row).
+				hintWidth -= 10f;
 				GUILayout.Label(suggestion.Usage, OnlineUiTheme.RowHint(), GUILayout.Width(hintWidth));
 				GUILayout.EndHorizontal();
 			}

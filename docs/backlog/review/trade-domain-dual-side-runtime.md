@@ -114,3 +114,13 @@ The user asked the right question and the first reading had not measured it. Rep
 So the body comes back **where it fell**, not at the trader: it is ~1.4 units from the death spot (a body settles a little as it dies) and ~3 units from the trader, which is simply where the dead body was lying. "In place" is the row's word for "the body does not move", and that is what the reading shows.
 
 One more gate, found the hard way between the two attempts: the OPERATOR must be alive and conscious — with the host dead, the coordinator answers `refused: 76561198281246659 is not alive/conscious.` and the click still returns ok on the sender's side (the request was sent; the host refused). A batch must read the host's own log for the verdict, not the click's answer.
+## The revive must happen at the trader — designed from the player's side (2026-11-02, 17:20)
+
+The reading said "the body stands up where it fell", and the user's answer to that was the design: **at the trader**. Written the way a player experiences it:
+
+- The operator walks to a trader with a dead teammate somewhere else in the world, opens the player page and pays the trader to bring them back. From the operator's seat this is a service bought AT the trader, so the teammate must stand up **there**, within sight of the person who paid.
+- The teammate's own screen jumps from the death view to standing beside the trader, with the operator next to them — not to the spot they died at, which is exactly what happened before and reads as "I came back somewhere else".
+- What stays where it fell is the corpse's own loot: the recruit grants trader-stock items (1–3), it does not gather the dropped inventory. That is the price of dying and it is unchanged.
+- Nobody else needs a teleport: the revived client owns its body's position and reports it, so the peer clones follow on the next body tick. The host's own view (the player page) already redraws the member alive.
+
+So the change is: the host sends the trader's position with the revive result, and the revived client places its body at that trader before the heal state lands, clearing the rigidbody's velocity so it does not inherit the fall. Both apply paths (the host reviving itself, and a guest receiving the result) go through the same placement so the two can never drift.

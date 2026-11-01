@@ -45,3 +45,13 @@ deviation records its reason at the point of design.
 
 A design page is read before a behaviour change and written back after it, with `docs/design/audit/code.md` updated in
 the same commit. A corpus neither read nor written back is dead weight.
+## Write the player's frame before the code's frame
+
+The three lines above are the *check*; this is the *act*. Before any behaviour change, write what the PLAYER sees, in order, on the frame it happens — where the body is, what the camera shows, what sounds, what the other players see at the same moment — and only then ask what code produces it. A change described as "set the position field" is a code frame and answers a question nobody asked.
+
+Two tests that catch the code frame:
+
+- **Would a designer have shipped this?** If the answer is "it is the smallest edit that makes the symptom go away", it is not a design, it is a patch.
+- **What does the game already do for this situation?** If the game has no equivalent, the design has to come from the product's own fiction and from what the player expects the service to be — a trader who revives people does it AT the trader, not wherever the body fell, because the player paid for it there and is standing there watching.
+
+Measured 2026-11-02: a trader revive was implemented as "heal the body where it lies", so the operator revived a teammate at the trader and the teammate stood up somewhere they could not see. The follow-up fix was then written as "add two floats and set the position", which is the same mistake one layer down — the position was right and the reasoning was still the code's.

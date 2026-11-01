@@ -156,6 +156,11 @@ internal sealed class TraderRecruitCoordinator(
 		}
 
 		_log.LogInformation("[TradeRecruit] applying revive to local body health={Health} gifts={Gifts}.", msg.Health.BrainHealth, msg.Items.Count);
+		if (msg.TraderX != 0f || msg.TraderY != 0f)
+		{
+			PlaceAtTrader(body, new Vector2(msg.TraderX, msg.TraderY));
+		}
+
 		ApplyRevive(body, msg.Health, msg.Limbs, msg.Items);
 	}
 
@@ -238,6 +243,7 @@ internal sealed class TraderRecruitCoordinator(
 			var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
 			if (body != null && revived.Health is { } health) // Unity object — ==
 			{
+				PlaceAtTrader(body, trader.transform.position);
 				ApplyRevive(body, health, revived.Limbs, giftItems);
 			}
 		}
@@ -249,6 +255,8 @@ internal sealed class TraderRecruitCoordinator(
 				Health = revived.Health,
 				Limbs = [.. revived.Limbs],
 				Items = [.. giftItems],
+				TraderX = trader.transform.position.x,
+				TraderY = trader.transform.position.y,
 			});
 		}
 	}
@@ -316,6 +324,27 @@ internal sealed class TraderRecruitCoordinator(
 		gift.InstanceId = _itemIds.AllocateId();
 		_log.LogInformation("[TradeRecruit] prepared gift {ItemId} (id {InstanceId}) for slot {Slot}.", itemId, gift.InstanceId, slot);
 		return gift;
+	}
+
+	/// <summary>
+	/// Put the revived body where the SERVICE happened — at the trader — before it is healed, so the
+	/// teammate stands up beside the operator instead of at the spot the body fell. The velocity is
+	/// cleared so the body does not inherit whatever the fall left in the rigidbody, and the look
+	/// target is reset to the new feet position so the first frame does not aim back at the corpse spot.
+	/// </summary>
+	private static void PlaceAtTrader(Body body, Vector2 traderPosition)
+	{
+		// The trader IS the service point, so that is where the player stands up. No vertical offset: the trader's own
+		// transform is where the game puts that object, and a guessed offset would bury the body in the floor or leave
+		// it hanging. Physics settles the rest once the heal state lands.
+		var target = new Vector3(traderPosition.x, traderPosition.y, body.transform.position.z);
+		body.transform.position = target;
+		body.targetLookPos = target;
+		if (body.rb != null) // Unity object — ==
+		{
+			body.rb.velocity = Vector2.zero;
+			body.rb.angularVelocity = 0f;
+		}
 	}
 
 	private void ApplyRevive(

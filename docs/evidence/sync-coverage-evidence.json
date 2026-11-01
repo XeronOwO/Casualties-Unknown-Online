@@ -4902,7 +4902,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs",
 
-      "quote": "_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);"
+      "quote": "_session.ReportSceneState(reportsInWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);"
 
     },
 

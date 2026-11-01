@@ -393,10 +393,18 @@ internal sealed class RunCoordinator(
 		// synonymous with the menu — during a layer descent this member is still in the world's scene
 		// with no live world, and the old hardcoded "PreGen" made that read as a menu exit in every log.
 		var sceneName = SceneManager.GetActiveScene().name;
-		var pos = inWorld && _localBody != null // Unity object — ==
+		// A member whose descent follow settled IS in its new world: the only thing outstanding is the
+		// host's release, and the host releases on this report. Reporting InMenu there deadlocked both
+		// sides (measured 2026-11-02: the member generated its layer, waited for a release the host had
+		// already broadcast before the member was waiting, and the host's gate read closed) — so the
+		// report states InWorld for the settled-and-waiting descent too, and the host's existing
+		// release-or-re-answer path resolves it.
+		var settledAfterDescent = _descentFollow.Phase == DescentPhase.WaitingReady && HarmonyTraverse.HasLiveWorld;
+		var reportsInWorld = inWorld || settledAfterDescent;
+		var pos = reportsInWorld && _localBody != null // Unity object — ==
 			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)
 			: (NetVector2?)null;
-		_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);
+		_session.ReportSceneState(reportsInWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);
 	}
 
 	/// <summary>Re-publish the local body stream after a carried-follow placement; the stream must carry the rider's final visual position.</summary>

@@ -26,7 +26,7 @@ re-report when a message is swallowed while both peers stay connected.
 2. **SceneState / PlayerJoin have no re-report.** `SceneState` is emitted only at
    the local InWorld/InMenu edge
    (`src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs`,
-   `_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);`), and
+   `_session.ReportSceneState(reportsInWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);`), and
    `PlayerJoin` once per member sync start
    (`src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs`,
    `StartMemberSync`). A swallowed `SceneState` means the host never marks the member

@@ -21,7 +21,12 @@
 
 	var item = (Item)null;
 	var slot = -1;
-	for (var i = 0; i < 6; i++) {
+
+	// The HAND is its own slot (`Body.handSlot`), which the six backpack indexes do not name: an item given straight into the hand is held but sits in no
+	// backpack slot (measured 2026-11-01: a given machete answered "placed in slot 0" and the six-slot search could not find it).
+	var handSlot = body.handSlot;
+	if (body.HoldingItem(handSlot) && body.GetItem(handSlot) != null && body.GetItem(handSlot).id == type) { item = body.GetItem(handSlot); slot = handSlot; }
+	for (var i = 0; i < 6 && item == null; i++) {
 		if (!body.HoldingItem(i)) { continue; }
 		var candidate = body.GetItem(i);
 		if (candidate != null && candidate.id == type) { item = candidate; slot = i; break; }

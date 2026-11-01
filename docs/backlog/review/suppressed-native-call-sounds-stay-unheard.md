@@ -278,3 +278,7 @@ The chain, on the deployed build, host and guest in one session:
 4. the minigame driven to a completed wrap (`fill=1, lastActionAngle=160`) with the peer's frame-accurate watcher running (`audio-watch3 match=bandage`).
 
 The peer's answer, after the wrap: **`plays=1, names=[bandage]`**. One playback, and it is the game's own clip — so row 1 ("a player treats a limb -> every other client hears the exact clip") and row 3 ("a LOCAL bandage treatment is heard by peers") both read PASS from the listener side, with the same instrument that proved rows 2 and 5.
+
+### Row 4b's amputation attempt, and where it stopped (2026-11-01, 13:00)
+
+The same entry should start an amputation — `limb-use type=machete` on a selected limb — and it answered `not-held` although `/give @s machete` reported "placed in slot 0". The census of the same body then listed the slots it does hold (`lantern@slot3, dogfood@slot4, waterbottle@slot5`) and no machete, so the item is not in any slot the body reports: either the give placed it somewhere the six-slot read cannot see (the HAND is a separate index, which `limb-use` now checks first), or that give did not land at all. The next reading is the give's own answer plus the body's hand slot; row 4b stays unproven until a machete is actually held when the limb is used.

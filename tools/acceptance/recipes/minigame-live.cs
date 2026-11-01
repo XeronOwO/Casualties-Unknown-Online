@@ -54,5 +54,11 @@
 	var cut = current.GetType().GetField("cutProgress", flags);
 	if (cut != null) { body += ",\"cutProgress\":" + System.Convert.ToSingle(cut.GetValue(current)).ToString("0.####", inv); }
 
+	// The amputation minigame's cutting band: `cutting` is `handPos.y <= maxHandPos + 10f` (AmputationMinigame.cs:46-50), and
+	// `PhysicsUpdate` clamps the hand to at least `maxHandPos`, so the hand has to sit INSIDE a ten-unit band for the cut to advance.
+	var maxHand = current.GetType().GetField("maxHandPos", flags);
+	if (maxHand != null) { body += ",\"maxHandPos\":" + System.Convert.ToSingle(maxHand.GetValue(current)).ToString("0.###", inv); }
+	body += ",\"handPosY\":" + main.handPos.y.ToString("0.###", inv);
+
 	return body + "}";
 }))()

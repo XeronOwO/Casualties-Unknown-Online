@@ -29,8 +29,16 @@ internal sealed class PointerShake : MonoBehaviour
 
 	private bool _atFirst;
 
+	private float _driftPerToggle;
+
 	/// <summary>Starts shaking between two points in the game's own pointer space (bottom-left origin).</summary>
-	internal static string Start(float firstX, float firstY, float secondX, float secondY, int framesPerSide)
+	/// <param name="driftPerToggle">
+	/// How far the whole shake slides DOWN the screen on every toggle. The amputation minigame needs it: its cutting band is
+	/// <c>handPos.y &lt;= maxHandPos + 10</c> and <c>maxHandPos</c> is <c>Lerp(120, -380, cutProgress)</c> (AmputationMinigame.cs:36-50), so the
+	/// hand has to follow the cut downwards or the band passes above it and the progress stalls (measured 2026-11-02: the hand sat at
+	/// -163 while the band had fallen to -175, and cutProgress stuck at 0.59).
+	/// </param>
+	internal static string Start(float firstX, float firstY, float secondX, float secondY, int framesPerSide, float driftPerToggle)
 	{
 		Stop();
 		var host = new GameObject("CUO acceptance pointer shake");
@@ -39,12 +47,14 @@ internal sealed class PointerShake : MonoBehaviour
 		shake._first = new Vector2(firstX, firstY);
 		shake._second = new Vector2(secondX, secondY);
 		shake._framesPerSide = Mathf.Max(1, framesPerSide);
+		shake._driftPerToggle = driftPerToggle;
 		shake._atFirst = true;
 		VirtualInput.MoveTo(firstX, firstY);
 		_running = shake;
 		return "{\"ok\":true,\"running\":true,\"first\":[" + firstX.ToString("0.#", CultureInfo.InvariantCulture)
 			+ "," + firstY.ToString("0.#", CultureInfo.InvariantCulture) + "],\"second\":[" + secondX.ToString("0.#", CultureInfo.InvariantCulture)
-			+ "," + secondY.ToString("0.#", CultureInfo.InvariantCulture) + "],\"framesPerSide\":" + framesPerSide + "}";
+			+ "," + secondY.ToString("0.#", CultureInfo.InvariantCulture) + "],\"framesPerSide\":" + framesPerSide
+			+ ",\"drift\":" + driftPerToggle.ToString("0.#", CultureInfo.InvariantCulture) + "}";
 	}
 
 	/// <summary>Stops the shake and leaves the pointer wherever it last was.</summary>
@@ -70,6 +80,12 @@ internal sealed class PointerShake : MonoBehaviour
 
 		_frames = 0;
 		_atFirst = !_atFirst;
+		if (_driftPerToggle != 0f)
+		{
+			_first.y -= _driftPerToggle;
+			_second.y -= _driftPerToggle;
+		}
+
 		var target = _atFirst ? _first : _second;
 		VirtualInput.MoveTo(target.x, target.y);
 	}

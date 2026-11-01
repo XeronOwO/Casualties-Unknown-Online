@@ -1,5 +1,5 @@
 // recipe: pointer-shake
-// args: mode=s x1=n y1=n x2=n y2=n frames=n
+// args: mode=s x1=n y1=n x2=n y2=n frames=n drift=n
 // returns: ok, running, first, second, framesPerSide, error
 //
 // Starts or stops a pointer that alternates between two points ON CONSECUTIVE FRAMES. A minigame that accumulates from the hand's
@@ -9,5 +9,5 @@
 ((System.Func<string>)(() => {
 	var mode = {{s:mode}};
 	if (mode == "stop") { return CasualtiesUnknownOnline.GameAdapter.Acceptance.PointerShake.Stop(); }
-	return CasualtiesUnknownOnline.GameAdapter.Acceptance.PointerShake.Start((float){{n:x1}}, (float){{n:y1}}, (float){{n:x2}}, (float){{n:y2}}, (int){{n:frames}});
+	return CasualtiesUnknownOnline.GameAdapter.Acceptance.PointerShake.Start((float){{n:x1}}, (float){{n:y1}}, (float){{n:x2}}, (float){{n:y2}}, (int){{n:frames}}, (float){{n:drift}});
 }))()

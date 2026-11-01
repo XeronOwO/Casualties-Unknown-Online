@@ -84,7 +84,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [A give degrades to a ground drop, and rearranging retires it](review/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — handled.
 
 
 - [The command console is a contract, not attribute methods](review/the-command-console-is-a-contract.md) — **High** — code-complete; residuals named.
@@ -160,6 +159,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A give degrades to a ground drop](done/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — closed.
 - [Dead suffix on the member menu](done/dead-player-right-click-name-suffix.md) — **Medium** — closed; the marker never pays for the name.
 - [A member dropped by a third client](done/guest-entity-dropped-by-third-client.md) — **High** — closed; both halves read.
 - [Markerless runtime binds](done/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — closed; row 9 read on both clients.

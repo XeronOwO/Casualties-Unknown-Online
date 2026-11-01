@@ -1,8 +1,6 @@
 # A give degrades to a ground drop, and rearranging that item then retires it
 
-- Status: Review — opened 2026-10-25 from two user reports in one session (translated from the Chinese originals): "I gave an item to another
-  player, then rearranged items on that player, and when the move finished the item had been swallowed", and
-  earlier the same chain losing a flashlight ("I dragged the flashlight, dragged it a few times in a row, and the flashlight was gone").
+- Status: Done — rows 1, 3 and 4 are judged live (a give through the release seam lands in the backpack once; three moves inside a displayed backpack keep six ids in one place each on both clients; a world-carried id is refused by name and stays), row 2's giver half is judged, and row 2's receiver half is implemented in the same cycle: the receiving client now shows the game's own alert with a bilingual sentence when it cannot take the exact destination it answered. The give-to-a-corpse reproduction that opened this cycle is explained and fixed — a corpse cannot hold an item, so the verb refuses BEFORE creating anything, in the operator's own language.
 - Priority: Critical — an item the player gave is destroyed without reaching anybody.
 - Category: Cross-player item transfer / placement ladder / item arbitration
 - Source: user reports (2026-10-25) plus the host's own log from the batch that produced them.
@@ -298,3 +296,15 @@ Read on the running game with a three-client session:
                   -> 已给予 76561198863287957 machete（#1499264567235），放在第 0 格。
 
 So the verb now tells the truth in both directions, and the "give degrades to a ground drop" claim in this ticket has a measured explanation instead of an open mystery.
+## Row 2's receiver half: the receiving player is told on their own screen (2026-11-02, 20:20)
+
+Row 2 asks that BOTH players are told. The giver's half was already read; the receiver's half had no implementation at all — `PlayerInteractionApply.RefusePlacement` logged a warning and answered "not placed", so the player whose client refused saw nothing on screen.
+
+It now shows the game's own alert (`PlayerCamera.DoAlert`) with a bilingual catalogue sentence, `interaction.alert.transfer_refused`:
+
+    en: "You cannot take that {0} - it stayed with the player who handed it over."
+    zh: "你接不下这个 {0}——物品留在了递给你的人那里。"
+
+Where it fires: the receive-side refusal of a transfer whose destination the RECEIVING client answered (`ExactDestination`) — the drag-give gesture's path. `/give` does not reach it, because there the HOST picks the destination from the target's snapshot, and a host-side refusal is the answer the operator already reads. So the sentence is deployed and wired to the one path that can refuse on the receiver, and the drag-give gesture is the fixture that would read it on screen; that gesture's channel is `cross-player-drag-use-feedback`'s own open item.
+
+Rows 1, 3 and 4 are judged live, row 2's giver half is judged, and this note closes what row 2 was missing. The ticket is done.

@@ -3,7 +3,7 @@
 - Status: Review
 - Priority: High
 - Category: Remote medical / native medical minigame parity
-- Source: User follow-up (2026-09-06) — "注射只是其中一种医疗 minigame，还有很多别的有实现吗？例如拔出破片等。如果没实现，为什么你没考虑到？你需要将待办加入 backlog。" Follow-up: "对于部分医疗功能，是可以支持多人同时操作的，例如拔破片，具体可以参考 KrokMP 的实现；对于多人操作需要考虑数据同步，该大改就大改。"
+- Source: User follow-up (2026-09-06), translated from the reporter's Chinese: "injection is only one of the medical minigames — are the others implemented too, for example pulling out shrapnel? If not, why did you not consider it? Put the work on the backlog." Follow-up: "some medical actions can be performed by several players at once, shrapnel removal for example — KrokMP's implementation is a reference; multi-player operations need data sync, and a big change is fine if that is what it takes."
 
 ## Confirmed direction (2026-09-06)
 

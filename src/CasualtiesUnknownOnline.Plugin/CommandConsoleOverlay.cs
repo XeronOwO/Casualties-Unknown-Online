@@ -443,11 +443,16 @@ internal sealed class CommandConsoleOverlay
 			height = 22f;
 		}
 
-		// The list belongs to the INPUT, so it starts where the typed text starts — after the `>` prompt — and not at the panel's
-		// own left edge (user direction 2026-11-02: the rows must line up with the caret, which is what the list is completing).
-		// `InputRect` is the prompt's own rect; the input control begins its width to the right of it.
+		// The list belongs to the INPUT, so its TEXT starts where the typed text does — after the `>` prompt — and not at the
+		// panel's own left edge (user direction 2026-11-02: the rows must line up with the caret the list is completing). The
+		// button style's own left padding is subtracted so the button's INK, not its box, is what lines up.
 		var inputTextX = inputRect.x + PromptWidth;
-		var rect = new Rect(inputTextX, inputRect.y - height - 4f, panel.width - (inputTextX - panel.x) - 8f, height);
+		var rowInk = OnlineUiTheme.Button().padding.left;
+		var rect = new Rect(
+			inputTextX - rowInk,
+			inputRect.y - height - 4f,
+			panel.width - (inputTextX - rowInk - panel.x) - 8f,
+			height);
 		OnlineUiTheme.DrawOverlayBackground(rect);
 		GUILayout.BeginArea(new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, rect.height - 4f));
 		// The scroll view's own style decides where its content starts: the game's skin indents it, so the zero-padding style

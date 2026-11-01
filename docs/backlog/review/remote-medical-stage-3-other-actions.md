@@ -146,3 +146,12 @@ The eligibility predicate is `LocalUseItemEligibility.IsMedicalLimbUseItem` (hea
 | paincream, disinfectant, saline, waterbottle | the same refusal by name | unchanged |
 
 So six families are accepted end to end in this direction and five are refused by name, each with its own line. What the accepted ones whose effect is not a component still need is the field their row asks about (a sutured/closed wound state, a blocked-bleeding flag on a limb that is actually bleeding).
+
+## The dislocation wrench opens its own remote minigame (2026-11-01, 10:45)
+
+The catalogue's third family beyond bandages and heal items (`RemoteOtherMedicalCatalog`: amputation tools, defibrillators, dislocation wrenches) was read live: with the patient's limb dislocated by the host (`wound-seed limb=3,force=400` leaving `dislocated=true, broken=true`), `/give @s wrench` then the chart release answered `limbLookingAt=3` and the host started the family's own minigame:
+
+    [MedicalView] started remote Dislocation minigame for <patient> limb 3
+    [MedicalOps3] started Dislocation operation …
+
+So the wrench is accepted and routed to a native minigame rather than a one-shot apply — the same shape as the bandage, and the same residual: the limb's `dislocated` stays true until that minigame is played, which this batch's per-step driving cannot do inside the operation's 20 s idle window. The amputation tools (`machete`, `titaniummachete`, `crudecleaver`, `sickle`, `claws`, `titaniummultitool`, `flimsyknife`) and the defibrillators (`aed`, `manualdefibrillator`) are the two remaining families in that catalogue and each needs its own fixture (a limb to cut, a stopped heart).

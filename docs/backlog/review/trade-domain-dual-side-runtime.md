@@ -59,3 +59,16 @@ With the trader hostile (the recipe above) the peer was watched on both channels
 - **The animation channel** (`anim-watch`, a prefix on the adapter's `CharacterAttackAnimSync.OnReceived`, installed fresh): the peer receives **zero** attack-animation messages across four player swings and the trader's own attacks.
 
 So the "one-shot swing presentation" the row names is the PLAYER's, and it is replayed — `[AttackSwing:BSSwing4@<host>]` on the peer, read earlier. The hostile TRADER's swing is an NPC's and does not travel on either channel: it is not a character-sound event (the capture is player-scoped) and it is not a character-attack-animation message. That is a fact about the two channels, recorded here rather than a defect claim: whether an NPC's swing should be synced belongs to the enemy-presentation rows, not to this ticket's #93 wording.
+### The +50 rule fires from a gun in the HAND slot, once per conversation (2026-11-02, 16:55)
+
+The earlier attempts missed one fact: the weapon has to be in the HAND slot, not a backpack slot. A new probe (`trader-hostility`) reads the nearest trader''s own state and can put a slot into the hand through the game''s own `PlayerCamera.SwitchHands`, so the fixture is now exact:
+
+    before: handSlot=0 hand=(empty)      tag=none  hostility=0.0  hostile=false rep=100.0
+    after `/give shotgun` + hold:        tag=gun   hostility=0.0  hostile=false
+    standing beside the trader:          hostility=50.0 hostile=false  buildHealth=1250
+
+So `MeetPlayer`''s `if (HoldingItem(handSlot) && GetItem(handSlot).Stats.HasTag("gun")) hostility += 50f` fires exactly as the script says, and the hand slot is what it reads. What it does NOT do is repeat: `MeetPlayer` sets `startedConvo` and runs once per conversation, so a second open/close cycle leaves hostility at 50 (`hostile` needs `hostility >= 100`).
+
+The other way in is the menu''s own interaction branch — `if (this.reputation < 30f) this.hostility = 100f;` after a haggle/hug — and that needs a reputation below 30, which the meet re-rolls (75–135 minus dirtyness/speech/disfigured penalties). That is the fixture row 9''s hostile half still lacks: a way to stand at reputation < 30 and interact.
+
+The replay half was already read (a swing reaches the peers). So row 9 is now split precisely: the swing replay is done, the hostile SWING needs the reputation fixture.

@@ -1,0 +1,31 @@
+# The lockpick-failure pain sound reaches no peer
+
+- Status: Review — found 2026-11-01 on the deployed build, in the same session as `bark-vocalization-reaches-no-peer` (which was the same family and is fixed): the acting client plays `gore2` when its lockpick sticks, and no other client ever does.
+- Priority: High — it is the exact event `sync-player-pain-vocalizations-and-bark` exists for, and the ticket that added it is marked code-complete.
+- Related: `sync-player-pain-vocalizations-and-bark` (the family), `done/bark-vocalization-reaches-no-peer.md` (its sibling, fixed the same day by resolving the clip the way the actor played it).
+
+## The reading
+
+One three-client session, both the acting client and a peer running the frame-accurate counting watcher (`audio-watch3 match=gore2`). The lockpick minigame was started through the game's own entry (`lockpick-open`, which calls `Openable.OnUse()`), the CUO window was closed so the presses reached the minigame, and the pick was pressed on the ring at a magnitude inside the stuck band (`handMagnitude=232.5`, the band being 195..247):
+
+    host names='[gore2]'        <- the acting client played it
+    peer names='[pain1]'        <- the peer never did
+
+Both watchers were started before the press and read inside the same window, so this is not the "the watcher had expired" mistake the earlier attempts in this session made twice.
+
+## What is already ruled out
+
+- **The patch is registered and its mapping exists.** `AdapterCapabilityCatalog` lists `typeof(LockpingSoundPatches)`, `LockpingSoundPatches.LockpingMinigamePainPatch` is a Prefix on `LockpingMinigame.Update` entering `CallContext.Origin.CharacterLockpickPain`, and `SoundPlayPatch` maps that origin to `CharacterSoundPolicy.Origin.LockpickPain`; the policy classifies `clip == "gore2"` as `CharacterSoundKind.Pain`.
+- **The receiver has no kind filter.** `CharacterSoundSync.OnReceived` replays every kind; the only drop is an echo of the local player's own sound.
+- **The clip resolves on the peer.** `audio-resource clip=gore2` answers `present=true`, so the same resolution the bark fix relies on cannot be the cause here.
+- **No patch failure in the log** on the acting client.
+
+## Where to look next
+
+The remaining difference between this path and the one that works (`Origin.CharacterBark`, whose reports do reach peers after the fix) is the CAPTURE side: the scope is opened around a whole `Update`, so the string-overload patch has to decide that THIS `Sound.Play` belongs to the local body — a condition the PantSound scopes never exercise. That decision, and whether the report is reached at all for this origin, is the next reading; the two candidates are the string patch's local-body test under this scope and the origin actually containing the call when `MinigameBase` drives `currentMinigame.Update`.
+
+## Design
+
+Read before touching this: [`docs/design/model/authority-and-judgement.md`](../../design/model/authority-and-judgement.md) and
+[`docs/design/mechanics/README.md`](../../design/mechanics/README.md). The rule it breaks: a one-shot presentation the acting client runs is reported through the character-sound
+family and replayed by every other member.

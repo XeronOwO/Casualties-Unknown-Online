@@ -77,6 +77,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+- [Lockpick pain reaches no peer](review/lockpick-pain-reaches-no-peer.md) — **High** — the acting client plays gore2, no other client does.
 - [Third client drops a member as left](review/guest-entity-dropped-by-third-client.md) — **High** — a member's view of another member dies on a spurious leave.
 
 

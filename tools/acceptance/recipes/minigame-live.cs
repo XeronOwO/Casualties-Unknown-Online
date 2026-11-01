@@ -1,6 +1,6 @@
 // recipe: minigame-live
 // args: none
-// returns: ok, hasMain, kind, handClicking, handStarted, handMagnitude, angle, didWrap, lastActionAngle, fill, error, detail
+// returns: ok, hasMain, kind, handClicking, handStarted, handMagnitude, angle, didWrap, lastActionAngle, fill, clickingInside, lockProgress, correctAngle, anglePrecision, error, detail
 //
 // Reads the LOCAL minigame's own state as the game computes it — the fields `MinigameBase.UpdateHandVisuals` writes from `Input`
 // and the bandage minigame's own progress fields. It exists because a driver that writes those fields is overwritten every frame
@@ -36,6 +36,18 @@
 		var image = sprite.GetValue(current) as UnityEngine.UI.Image;
 		if (image != null) { body += ",\"fill\":" + image.fillAmount.ToString("0.###", inv); }
 	}
+
+	// The lockpick minigame's own fields: the two it decides the stuck branch on, plus its progress and this run's correct angle. They are declared here rather
+	// than inferred because the stuck accumulation lives INSIDE `if (clickingInside)`, so a press that misses the ring looks exactly like a press that never
+	// registered (measured 2026-11-01: handClicking=true and handMagnitude inside 195..247, yet nothing played).
+	var inside = current.GetType().GetField("clickingInside", flags);
+	var progress = current.GetType().GetField("lockProgress", flags);
+	var correct = current.GetType().GetField("correctAngle", flags);
+	var precision = current.GetType().GetField("anglePrecision", flags);
+	if (inside != null) { body += ",\"clickingInside\":" + (System.Convert.ToBoolean(inside.GetValue(current)) ? "true" : "false"); }
+	if (progress != null) { body += ",\"lockProgress\":" + System.Convert.ToSingle(progress.GetValue(current)).ToString("0.###", inv); }
+	if (correct != null) { body += ",\"correctAngle\":" + System.Convert.ToSingle(correct.GetValue(current)).ToString("0.#", inv); }
+	if (precision != null) { body += ",\"anglePrecision\":" + System.Convert.ToSingle(precision.GetValue(current)).ToString("0.###", inv); }
 
 	return body + "}";
 }))()

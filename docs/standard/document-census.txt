@@ -269,7 +269,7 @@ docs/backlog/done/remote-medical-panel-acceptance-issues.md | keep | index | doc
 docs/backlog/done/remote-medical-panel-hide-local-only-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-stage-1-injection-session.md | keep | index | docs/backlog/README.md
 docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md | keep | index | docs/backlog/README.md
-docs/backlog/review/remote-medical-stage-3-other-actions.md | keep | index | docs/backlog/README.md
+docs/backlog/done/remote-medical-stage-3-other-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-medical-treatment-operations.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-player-medical-panel.md | keep | index | docs/backlog/README.md
 docs/backlog/review/runtime-entity-markerless-bind-absorption.md | keep | index | docs/backlog/README.md

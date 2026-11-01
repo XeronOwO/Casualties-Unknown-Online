@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 3: remaining native medical minigames/actions
 
-- Status: Review
+- Status: Done — all eight rows of the matrix have been read on the deployed build, each with its own reading: the host-to-member column (bandage, splint, tourniquet, icepack, suture, clotting mush), the member-to-host and member-to-member directions through the chart, the observer's copy agreeing with the patient's own limb (`comps=SplintLimb splinted=true skin=68.32` on both), and the accepted/refused item sets read item by item. Nothing in this ticket is waiting on a fixture: the rows it names all have their evidence recorded below.
 - Priority: High
 - Category: Remote medical / native minigame parity / special actions
 - Parent: `remote-medical-native-minigame-parity.md`

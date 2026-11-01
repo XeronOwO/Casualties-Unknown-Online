@@ -12,7 +12,7 @@
   not own.
 - Category: Remote medical / display-only body / native component behaviour
 - Related: `done/medical-removal-limb-component-not-applied.md` (the same component-state plumbing, opposite
-  direction: what a removal must take OFF a body), `review/remote-medical-stage-3-other-actions.md`,
+  direction: what a removal must take OFF a body), `done/remote-medical-stage-3-other-actions.md`,
   `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` (the run that found it).
 - Source: the agent's own three-client run, batch `20261011-b`; corrected and reproduced from the code by
   batch `20261011-c`.

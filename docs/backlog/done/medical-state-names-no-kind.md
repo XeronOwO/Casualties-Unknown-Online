@@ -32,7 +32,7 @@
 - Category: Players / cross-player semantics
 - Related: `docs/backlog/done/cross-player-item-use-random-determinism.md` (its row 1 is this ticket's
   acceptance), `docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md`,
-  `docs/backlog/review/remote-medical-stage-3-other-actions.md` (the family's third builder, which always
+  `docs/backlog/done/remote-medical-stage-3-other-actions.md` (the family's third builder, which always
   named its kind — that is what made the omission look like a working pattern),
   `docs/backlog/review/remote-medical-treatment-operations.md`,
   `docs/evidence/acceptance/cross-player-item-use-random-determinism-20261011-a.md`.

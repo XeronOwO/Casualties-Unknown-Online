@@ -13,7 +13,7 @@
   again: the run drove it twice and the operator received two `splint` items for one splint.
 - Category: Players / cross-player semantics (remote medical, Stage 3 removals)
 - Related: `done/display-clone-limb-component-runs-native-start.md` (the display half of the same
-  component-state plumbing), `review/remote-medical-stage-3-other-actions.md` (the family design),
+  component-state plumbing), `done/remote-medical-stage-3-other-actions.md` (the family design),
   `done/medical-state-names-no-kind.md` (the ticket whose row 4 found it),
   `docs/evidence/acceptance/medical-state-names-no-kind-20261011-b.md` (the run that found it).
 - Source: the agent's own three-client run, batch `20261011-b`; reproduced in one client by the probe of

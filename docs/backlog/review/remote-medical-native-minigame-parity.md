@@ -23,7 +23,7 @@ The user confirmed the design before implementation:
 |---|---|---|
 | 1 | [Medical operation session + real-time injection](remote-medical-stage-1-injection-session.md) | Generic `MedicalOperationSession` protocol and the migration of syringe/IV medicine to real-time incremental injection |
 | 2 | [Multiplayer shrapnel removal](remote-medical-stage-2-shrapnel-multiplayer.md) | Shared shrapnel minigame session with per-piece ownership, concurrent operators, force-ungrab and end/abort semantics |
-| 3 | [Remaining native medical minigames/actions](remote-medical-stage-3-other-actions.md) | Bandage/dressing minigame, splint/tourniquet removal, dislocation, AED, manual defibrillation, amputation and remaining WoundView actions |
+| 3 | [Remaining native medical minigames/actions](../done/remote-medical-stage-3-other-actions.md) | Bandage/dressing minigame, splint/tourniquet removal, dislocation, AED, manual defibrillation, amputation and remaining WoundView actions |
 | Promoted | [CPR enhancement](../done/remote-medical-cpr.md) | KrokMP custom CPR; not native parity, promoted to its own ticket on 2026-10-07 |
 
 ## Global acceptance criteria

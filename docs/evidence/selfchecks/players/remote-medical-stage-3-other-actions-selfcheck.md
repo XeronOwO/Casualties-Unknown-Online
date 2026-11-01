@@ -4,7 +4,7 @@
 > delivery record of a mechanism that is no longer the active path; check its
 > `MANIFEST.md` row before citing it.
 
-Owner cycle: backlog `review/remote-medical-stage-3-other-actions.md`.
+Owner cycle: backlog `done/remote-medical-stage-3-other-actions.md`.
 
 ## 1. Mechanism inventory
 

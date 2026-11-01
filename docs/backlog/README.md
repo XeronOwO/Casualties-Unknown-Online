@@ -122,7 +122,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — rows 1-7/9/12-19/21/23 pass; 8/10/20/22 unproven.
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
-- [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
@@ -166,6 +165,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Remote medical: the stage-3 actions](done/remote-medical-stage-3-other-actions.md) — **High** — closed; all eight matrix rows read.
 - [Dead member stranded by a host descent](done/dead-member-stranded-by-a-host-descent.md) — **High** — three causes fixed; verified end to end.
 - [`/kill` — the game's own kill verb](done/kill-command.md) — **High** — all six rows read on the deployed build.
 - [Remote medical panel speech text desync](done/remote-medical-panel-speech-text-desync.md) — **High** — every row read.

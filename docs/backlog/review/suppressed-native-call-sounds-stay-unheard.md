@@ -367,3 +367,14 @@ So "apply a splint and the peer hears it" is not a native expectation: applying 
 - The wrap could not be driven this round: `wound-limb-points` answered `count=0, limbs=""` (the wound view was open but no limb point was produced), so `ui-click` had no anchor to select limb 2, `limb-use` kept applying to the head, no minigame started (`minigame=none`) and `bandage-rub` had nothing to finish.
 
 Next, precisely: make `wound-limb-points` produce its anchors (it answers zero while the view reports open), select the wounded limb, apply the splint there so the minigame starts, complete the wrap with `bandage-rub`, and read the `bandage` counter on both clients. That is a fixture step, and it is the only thing between this row and a verdict.
+
+## The wrap fixture, second batch (2026-11-02, 15:10)
+
+`wound-limb-points` answers 15 anchors once the wound view is actually up — the earlier zero was the view being closed again by the panel's own close click, and `open-own-wound` reports `open:true` for the CALL, not for the resulting state, so the only honest check is the point count.
+
+Then the two readings that stop the row again:
+
+- **The anchor does not select the limb it names.** Moving the staged pointer to the anchor reported for limb 2 (`640:339`) and applying the splint made `limb-use` report `limb=12 (left thigh)` — so the rect the recipe reads is not the rect `OnPointerEnter` fires on at that point. The recipe reads the widget's centre, and the limb widgets overlap; a point inside one rect is inside several.
+- **The limb action ran but no minigame started.** The apply answered `ok=True, usableOnLimb` inside the same response, and `minigame-live` right after answered `none`; `bandage-rub` then had nothing to finish. Either `MinigameBase.main.StartMinigame` refused, or the minigame opened and closed inside the same frame.
+
+Two batches on this row without a verdict, so it stops here for now and the ticket moves to the next row: the anchor ambiguity and the minigame start are the two things to fix before the treatment-sound row can be judged at all.

@@ -2,7 +2,7 @@
 
 - Status: Review — rows 1–6 are read: the concurrency suite runs **36 of 36 green** on this tree (the medical-operation,
   sibling-unit and disconnect families), so every model row the matrix names has its case passing, and rows 5 and 6 (operator
-  disconnect, third-party agreement) are covered by that same pass. **Row 7 is now HALF read**, on batch `20261025-i`
+  disconnect, third-party agreement) are covered by that same pass. **Row 7 is read** — the panel half on batch `20261025-i`, the progress half on 2026-11-01 (two real operators, one limb: the patient ends with one guard and one splint, the second operator's client never holds a minigame, and the first operator's operation reaches a single terminal; the residual is the case where the first operation COMPLETES while the second acts, which the batch's per-step driving could not fit inside the operation's 20 s idle window)** — the earlier "HALF read" note follows, on batch `20261025-i`
   (record `docs/evidence/acceptance/concurrent-medical-two-charts-20261025-i.md`): with the third member as the victim
   (`member-id probe=alt` → `76561199526807662`), the host and the guest each opened that victim's NATIVE chart through
   `OpenRemoteMedical` — both answered `opened=true, nativeOpen=true, found=true` — and both frames show the same victim's

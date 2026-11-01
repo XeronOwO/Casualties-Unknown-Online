@@ -1,6 +1,6 @@
 # A third client drops another member's entity as "left" while the host still has it
 
-- Status: Review — found 2026-11-01 in a three-client session: the alt client received `Member <guest> left (PlayerLeave…)` for a guest that never left, and every third-party gesture that reads the presence table then refuses with `not in-world`. The cause is not established yet; the reading and the first suspects are below.
+- Status: Review — the CAUSE is established and FIXED on 2026-11-01 (`SessionPeerMaintenance`: a member is removed only once `MemberMissingChecks = 3` consecutive lobby reads omit it, and a reading that names nobody is skipped), with four new tests, three updated ones, and a live reading on the deployed build (two "absent … not removing it yet" lines, then the removal when a client really was killed). What this ticket still holds is the remaining half: a member whose session row IS removed while its transport stays up has no path back except a fresh handshake.
 - Priority: High — it makes a third member invisible to another member's medical view and to any feature that gates on presence.
 - Related: `concurrent-medical-operations` (row 7 needs exactly this fixture), `remote-medical-stage-3-other-actions`.
 

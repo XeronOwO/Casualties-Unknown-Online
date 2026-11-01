@@ -130,7 +130,7 @@ internal static class OnlineUiTheme
 		{
 			fontSize = 13,
 			alignment = TextAnchor.MiddleCenter,
-			padding = new RectOffset(10, 10, 5, 5),
+			padding = new RectOffset(6, 6, 5, 5),
 			// The game's button style carries a MARGIN, and a margin offsets every button inside the layout that draws it: the
 			// console's suggestion rows kept an indent after their scroll-view padding was removed, because this copy kept the
 			// margin (measured 2026-11-02). Zero here means the layout decides the edge, not the skin.

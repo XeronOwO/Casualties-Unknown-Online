@@ -443,18 +443,17 @@ internal sealed class CommandConsoleOverlay
 			height = 22f;
 		}
 
-		// The list belongs to the INPUT, so its TEXT starts where the typed text does — after the `>` prompt — and not at the
-		// panel's own left edge (user direction 2026-11-02: the rows must line up with the caret the list is completing). The
-		// button style's own left padding is subtracted so the button's INK, not its box, is what lines up.
+		// The row's BOX starts exactly at the input's text edge, so the list reads as a continuation of the line being typed (user
+		// direction 2026-11-02: aligned with the caret, not with the prompt and not with the window). The inner padding is the
+		// button style's own, kept small so the text does not drift far inside the box.
 		var inputTextX = inputRect.x + PromptWidth;
-		var rowInk = OnlineUiTheme.Button().padding.left;
 		var rect = new Rect(
-			inputTextX - rowInk,
+			inputTextX,
 			inputRect.y - height - 4f,
-			panel.width - (inputTextX - rowInk - panel.x) - 8f,
+			panel.width - (inputTextX - panel.x) - 8f,
 			height);
 		LastSuggestionRect = rect;
-		LastSuggestionInkRect = new Rect(rect.x + 2f + rowInk, rect.y, rect.width - 4f, rect.height);
+		LastSuggestionInkRect = new Rect(rect.x + 2f + OnlineUiTheme.Button().padding.left, rect.y, rect.width - 4f, rect.height);
 		OnlineUiTheme.DrawOverlayBackground(rect);
 		GUILayout.BeginArea(new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, rect.height - 4f));
 		// The scroll view's own style decides where its content starts: the game's skin indents it, so the zero-padding style

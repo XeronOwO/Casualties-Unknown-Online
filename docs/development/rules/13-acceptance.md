@@ -15,7 +15,7 @@ declaration or recipe change is re-declared under a new name and the same sessio
 
 ## Every row judged from its own evidence
 
-Machine rows from a reading, visual rows from a frame that was actually opened. The instrument is named in the batch
+Machine rows from a reading, visual rows from a CROP that was actually opened and enlarged (a full-window capture is not evidence for a layout row: crop the region, and for a position or alignment read a measured number beside it — see step 8). The instrument is named in the batch
 scope before it runs, so a row cannot be quietly judged by a weaker check afterwards.
 
 ## A blocked row never becomes the whole cycle

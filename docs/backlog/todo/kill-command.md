@@ -86,3 +86,16 @@ may name any player, and the ownership rule is what keeps it honest.
 - **Selector forms.** `@a` and `@s` resolve; a bare SteamID and a partial display name answered `no players match` — a selector gap worth a row of its own rather than a silent behaviour (the roster names are the strings `/players` prints, and the id form was assumed, not read, when the command was written).
 
 Rows 3-6 stay open. The first defect this run found was the member answer reading like a reset; it was fixed in the same cycle (`kill.answer.sent`).
+
+## The registration refactor, inventoried (2026-11-02, 12:40)
+
+`docs/development/agent-reference.md` states the rule: for large families of similar registration code (commands, handlers, providers, packets) prefer discoverable attribute + reflection registration over hard-coded linear registration. The console breaks it: `CommandConsoleService` constructs thirteen groups in a fixed list, and three of the inputs it passes are locals built in the same constructor (`ConsoleCommandAuthority`, `ItemDataTargets`, `ItemDataWriteCommands`), so the list cannot simply be deleted.
+
+The shape the refactor takes:
+
+1. A marker `IConsoleCommandGroup` in `Runtime/Session/Commands`, implemented by every group class (they already carry `[ConsoleCommand]` on their methods; the marker is what makes a group discoverable).
+2. The three locals become container services (they have no fields of their own beyond their inputs).
+3. Each group registers as itself in the composition, and the console takes `IEnumerable<IConsoleCommandGroup>` and calls `AddBuiltIns` once per element — the list moves into the container, where a new verb group is one registration and never an edit to this class.
+4. The thirteen groups: `HostAdminCommands`, `CheatAdminCommands`, `SpectatorCommands`, `GamemodeCommands`, `WorldSaveCommands`, `HostRuleCommands`, `ItemDataCommands`, `ItemDataWriteCommands`, `ItemGiveCommands`, `WorldSummonCommands`, `HealResetCommands`, `KillCommands`, `AcceptanceCommands` (plus this class itself, which registers its own verbs).
+
+It is a separate commit from the verb itself: the refactor must land with the full suite and the gates green on its own, and the verb is already deployed and verified.

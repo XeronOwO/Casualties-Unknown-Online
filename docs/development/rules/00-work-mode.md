@@ -15,7 +15,13 @@ still running leaves its result unread and makes the goal fire early, so waiting
 
 Everything else is a tool call. A progress message, a
 "here is where I am", a summary of what was just read, a list of what remains — all of them are the same violation: they
-hand the work back unfinished. The reader does not want the middle, they want the result; an intermediate result is not a
+hand the work back unfinished.
+
+**Substantial work is not an end state.** Landing one real result — a fix, a measurement, a ticket — is the most common
+moment to stop, and it is not one of the three. The test is mechanical: **the turn's last action must be a tool call whose
+result you have not yet described.** If you are about to describe what the last call returned, you are ending the turn, and
+unless the item is finished you are breaking this rule. Measured 2026-11-02: this failed nine times in one session, every
+time right after a result worth reporting, and every time the next round had to re-learn where the work stood. The reader does not want the middle, they want the result; an intermediate result is not a
 result. If a sentence would not change what the user does next, it must not be written — and after deleting it, the next
 action is a tool call, not a shorter sentence about why.
 

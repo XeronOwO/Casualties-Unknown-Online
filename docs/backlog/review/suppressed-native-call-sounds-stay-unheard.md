@@ -624,3 +624,29 @@ the CUO window closed (its blocker sits above the game's view and the EventSyste
 What still does not happen is the minigame: applying the machete to that leg answered `actuallyUsable=true` and
 `minigame-live` still says `kind=none`. That is the next thing to read in the game's own code (the machete's `useLimbAction`
 gate on the limb's state), not a fixture question any more.
+### The amputation minigame starts, and what ends it (2026-11-02, 07:05)
+
+The gate was infection, in the game's own code:
+
+    Item.DoAmputate (Item.cs:7127-7142)
+        if (limb.infectionAmount > 60f && index > 2 && (!anyLegDismembered || !limb.isLegLimb))
+            MinigameBase.main.StartMinigame(new AmputationMinigame(limb), item);
+
+So a healthy leg can never start it, which is why every earlier attempt answered `kind=none` after a usable apply. With the leg's
+infection raised to 80 by the new `limb-infect` fixture (a write to the game's own field), the same three calls now answer:
+
+    limb-infect value=80                -> { name: "right lower leg", infection: 80 }
+    limb-use type=machete mode=apply    -> { limb: 10, name: "right lower leg" }
+    minigame-live                       -> { kind: "AmputationMinigame", handClicking: true }
+
+and the cut runs: after ~200 pointer sweeps the limb reads `skin=0 muscle=0 dismembered=false` with the minigame still up.
+
+What ends it is `cutProgress`, not the limb's health:
+
+    AmputationMinigame.cs:105   cutProgress += Mathf.Abs(Minigame.game.handVelocity.x) * 5E-05f;   (per physics frame)
+    AmputationMinigame.cs:73-75 if (cutProgress >= 1f) { this.limb.Dismember(); … }
+
+The staged pointer moves the HAND to the position but the velocity the game reads stays small (the hand follows the pointer
+smoothly), so the progress bar fills far slower than the skin does. The row's remaining fixture step is a pointer whose *frame to
+frame* delta is large enough to fill `cutProgress` — a "shake" rather than a "move" — and that is the only thing between this
+batch's reading and the dismember sound.

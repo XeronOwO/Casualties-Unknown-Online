@@ -1303,3 +1303,4 @@ docs/development/rules/11-commit.md | keep | index | docs/development/rules/READ
 docs/development/rules/12-report.md | keep | index | docs/development/rules/README.md
 docs/development/rules/13-acceptance.md | keep | index | docs/development/rules/README.md
 docs/backlog/todo/split-the-body-verb-service.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/dead-member-stranded-by-a-host-descent.md | keep | index | docs/backlog/README.md

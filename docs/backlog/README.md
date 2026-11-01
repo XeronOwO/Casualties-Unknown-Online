@@ -62,6 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [Dead member stranded by a host descent](todo/dead-member-stranded-by-a-host-descent.md) — **High** — the guest keeps the loading image and cannot be revived.
 - [Split the body-verb service](todo/split-the-body-verb-service.md) — **Medium** — 619 aggregate lines; the debt ledger names it.
 
 

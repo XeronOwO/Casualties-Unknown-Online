@@ -1,6 +1,6 @@
 # Trade domain dual-side runtime pass
 
-- Status: Review — row 8 is now PASS (`2026-11-02, 17:16`: the recruit control revives the dead teammate in place with `brainHealth=75.017`, grants three trader-stock items, and the host's own player page redraws the member as alive at HP 75; its saved-snapshot half still needs a save/load fixture). Row 9 is split: its swing-REPLAY half is read (a swing reaches the peers), its HOSTILE half needs a reputation below 30 at a trader — the only remaining way into `hostility = 100` since `MeetPlayer` re-arms `startedConvo` and the gun rule only adds +50 once per conversation.
+- Status: Review — rows 8 and 9 are now PASS on the deployed build. Row 8: the recruit revives the teammate AT the trader that performed the service (killed 500 units away, revived at (-107.0, 272.6) against a trader at (-107.0, 270.0)), grants three trader-stock items, and the host's own page redraws the member alive at the revived HP; its "saved snapshot" half rests on `SaveCharacterData` running on the success path plus the peer view rendering from that same store — a full save/reload read needs a load fixture, and the toolbox has a `/save` verb but no load. Row 9: only the client that performed the swing reports it, the other replays it at the same trader (host 11 `reported`, guest 0 `reported` and 1 `replayed ... from 76561198281246659`); the hostile state is reachable with the reputation fixture (`mode=rep` + native `TryHug` -> `hostility=100`).
 - Priority: High
 - Category: Final acceptance
 - Reference: original backlog #59 / #93

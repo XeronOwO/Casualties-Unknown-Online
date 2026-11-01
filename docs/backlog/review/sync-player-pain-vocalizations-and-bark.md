@@ -63,3 +63,15 @@ Red→green complete: the regression tests first failed on the pre-fix code (3 f
 - Not syncing the continuous pant loop or physiological per-frame audio.
 - Not adding voice chat.
 - Not expanding to every remaining local-only one-shot body sound unless a later observed-data ticket re-opens them.
+
+## The fixture, read out of the game (2026-11-01, 18:30)
+
+The "lockable entity and a jammed lockpick" the rows wait on is a chain of five facts, each quoted from the game rather than guessed, and a batch can now stage every one of them:
+
+1. **An `Openable` on a `BuildingEntity`.** `Openable` starts the minigame with `MinigameBase.main.StartMinigame(new LockpingMinigame(base.GetComponent<BuildingEntity>(), this.lockpickAnglePrecision * WorldGeneration.GetRunSettingFloat("lockpickprecision")), item)` (`reversing/Assembly-CSharp/Assembly-CSharp/Openable.cs`), so the interactable is an `Openable` component, not a bare block.
+2. **A `lockpickingkit` in the body.** The same method resolves it with `PlayerCamera.main.body.FindByIdSurface("lockpickingkit", out item)` and then NULS it when `body.skills.INT < 10` — so the item alone is not enough: the skill gate is part of the fixture.
+3. **A wrong angle held for half a second.** `LockpingMinigame.Update` accumulates `timeWasStuck += Time.deltaTime` while the pick is off the lock and plays `Sound.Play("gore2", Minigame.game.body.transform.position, true, true, …)` when `timeWasStuck > 0.5f`, then resets it (`reversing/Assembly-CSharp/Assembly-CSharp/LockpingMinigame.cs`).
+4. **That clip is the one the policy classifies.** `CharacterSoundPolicy` maps only the lockpick-failure `gore2` to `CharacterSoundKind.Pain` (`CallContext.Origin.CharacterLockpickPain`), which is what makes this row a Pain-kind test rather than a generic sound test.
+5. **The listener reading.** The peer's frame-accurate counting watcher (`audio-watch3 match=gore2`) is the instrument; the clip's presence in this build is checkable first with `audio-resource clip=gore2`.
+
+So the next batch is: find an `Openable` in the world, give the host a `lockpickingkit` (and INT ≥ 10, which the `/data` write path can raise), start the minigame through the `Openable`'s own interaction, hold the pick off the lock past half a second, and read `gore2` on the peer — rows 1-3 in one session, with row 3 (third guest) needing the alt present.

@@ -578,3 +578,18 @@ batch hit, now measured from the other side (the write is visible, the read is o
 That is the fixture the row needs, named exactly: **a pointer that HOVERS** (many frames arriving near the same limb point, not
 one jump), which the channel does not stage today. Row 4b stays carried with this reading; the two-batch limit for this row is
 spent, so the next attempt belongs to a batch that builds the hovering pointer first.
+### Why the selection cannot be written, in the game's own code (2026-11-02, 02:55)
+
+`WoundView.Update` rewrites the selection every frame, and the only writer it obeys is a UI POINTER-ENTER:
+
+    WoundView.cs:152-153   Limb limb = this.body.limbs[this.limbLookingAt];
+                           PlayerCamera.main.selectedLimb = limb;
+    WoundViewLimb.cs:11-16 public void OnPointerEnter(PointerEventData eventData) { … this.woundview.limbLookingAt = this.limb; … }
+    (the only other writers: Limb.cs:97 and BasicCourse.cs:275, neither on a player's path)
+
+So `select-limb` writing `PlayerCamera.main.selectedLimb` is guaranteed to be overwritten before any use reads it — confirmed
+three ways on the running client (`select-limb limb=10` answers CrusF; `limb-use` then reports limb 0/head; the machete never
+starts its minigame). Reaching the minigame therefore needs the EventSystem to deliver `OnPointerEnter` for the limb image,
+which a staged pointer that is merely POSITIONED does not do: the pointer must move onto the element and stay there while the
+EventSystem's own hover pass runs. That is the fixture to build first, and it is what the two-batch limit on this row is waiting
+on — not the sound chain, which is already read for every step up to the dismember.

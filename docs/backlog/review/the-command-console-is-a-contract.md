@@ -501,3 +501,20 @@ So row 1's machine half PASSES: a mod's own `OneOf`/delegate completer offers ex
 What is NOT captured is the frame half of both rows: the console overlay reads typed TEXT through `Input.inputString`, and the acceptance channel stages `GetKey*` and the pointer only — so no batch can put `/exampleweight ` into the input field to photograph the list under it. That is the named gap for the visual half, not a product gap; the words above are the console's own.
 
 The previous claim in this page — that the authority refused every command — is dead three times over: the registry holds 25 commands, the projection through the concrete type lists them, and the completion answers.
+## Rows 4 and 5 read on the running session (2026-11-02, 22:15)
+
+**Row 4 — a `HostRelayed` mod command run by a member lands on the host.** The guest typed `/examplehost hello-from-guest`:
+
+    guest console: host echo for 76561198863287957: hello-from-guest
+    host log     : [Mod:cuo.example] [Example] host echo for 76561198863287957: hello-from-guest
+
+So the invocation ran on the HOST (the host's own log names the requester), and the answer reached the member who typed it. Row 4 PASS.
+
+**Row 5 — a member without the grant is refused locally, and the host sees no invocation.** The guest, not opped in this session, typed `/give @p[limit=1] notarealitem`:
+
+    guest console: (translated) locally refused: the host's broadcast cheat roster does not name you, so /give cannot take effect - the host grants it with /op. Nothing was done.
+    host console : (only its own earlier /give line — no invocation from the member)
+
+The refusal is local (no wire traffic, so the host has nothing to show), it names the reason in the member's own language, and it says what to do about it. Row 5 PASS.
+
+**Row 13 — the same key in two languages — is NOT read, and the reason is a fixture, not the product.** Both sandboxed clients render Chinese, and the channel has no language switch: the language is the game's own setting per client. The ticket's row needs one client on each language; the reachable half is that every answer travels as a CATALOGUE KEY plus its arguments (the give refusals, the mod's `cuo.example.hostecho.answer`), which is what makes two languages possible at all.

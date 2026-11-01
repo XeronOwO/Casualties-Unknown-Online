@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -42,6 +43,17 @@ internal sealed class SessionPeerMaintenance(
 	/// </summary>
 	private const int HostMissingChecks = 3;
 
+	/// <summary>
+	/// How many member checks in a row must omit a member before the host drops it from the session. The host has the same hazard the guest's own
+	/// <see cref="HostMissingChecks"/> names, and it was measured on 2026-11-01: a three-client session logged `Member <guest> removed: left the lobby` for a
+	/// member that was still playing (and later the same for the other member), because one lobby read did not name them — a snapshot Steam was still
+	/// populating. The removal is destructive in a way the log does not show: the other members receive a `PlayerLeave` for a player who never left, their
+	/// presence row is gone, and `IsRemoteInWorld` then refuses every third-party gesture (that session's alt could not open the medical view of the guest).
+	/// Three checks in a row (~6 s at <see cref="MemberCheckInterval"/>) is the same corroboration the guest side uses, and a reading that names NOBODY is not
+	/// evidence at all: it is skipped, the way the guest branch skips it.
+	/// </summary>
+	private const int MemberMissingChecks = 3;
+
 	private readonly ISteamService _steam = steam;
 	private readonly PacketSender _sender = sender;
 	private readonly ITimeSource _time = time;
@@ -56,6 +68,7 @@ internal sealed class SessionPeerMaintenance(
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
 	private int _hostMissingChecks;
+	private readonly Dictionary<ulong, int> _memberMissingChecks = [];
 
 	internal void KickHandshake()
 	{
@@ -199,12 +212,49 @@ internal sealed class SessionPeerMaintenance(
 			// host's session ended, and the rejoining guest could never
 			// handshake back in). Only the host's own absence ends the
 			// session (the guest branch below).
+			//
+			// One reading is not a verdict here either: a snapshot that names
+			// NOBODY says nothing about any member (Steam is still populating
+			// it), and a single snapshot that names others but not this one is
+			// equally weak. Dropping a member on it is not a quiet bookkeeping
+			// error — every other member receives a `PlayerLeave` for a player
+			// who is still playing, and their presence row is gone, so
+			// `IsRemoteInWorld` refuses every third-party gesture afterwards
+			// (measured 2026-11-01: an alt could not open the guest's medical
+			// view while the host kept treating that guest). The corroboration
+			// is <see cref="MemberMissingChecks"/> consecutive readings, the
+			// same rule the guest branch applies to the host.
+			var removedMembers = new List<ulong>();
 			foreach (var memberId in _presence.Members.Select(m => m.SteamId).ToList())
 			{
-				if (!lobbyMembers.Contains(memberId))
+				if (lobbyMembers.Contains(memberId))
 				{
-					_removeMember(memberId, "left the lobby");
+					_memberMissingChecks.Remove(memberId);
+					continue;
 				}
+
+				if (lobbyMembers.Count() == 0)
+				{
+					continue; // a reading that names nobody is not evidence about anybody
+				}
+
+				var missing = _memberMissingChecks.TryGetValue(memberId, out var seen) ? seen + 1 : 1;
+				if (missing < MemberMissingChecks)
+				{
+					_memberMissingChecks[memberId] = missing;
+					_log.LogInformation(
+						"Member {Member} is absent from lobby read {Missing}/{Required}; not removing it yet.",
+						memberId, missing, MemberMissingChecks);
+					continue;
+				}
+
+				removedMembers.Add(memberId);
+			}
+
+			foreach (var memberId in removedMembers)
+			{
+				_memberMissingChecks.Remove(memberId);
+				_removeMember(memberId, "left the lobby");
 			}
 		}
 		else if (!lobbyMembers.Contains(_identity.HostSteamId))

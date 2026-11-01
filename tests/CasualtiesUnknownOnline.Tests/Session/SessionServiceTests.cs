@@ -95,7 +95,12 @@ public class SessionServiceTests
 		host.Session.SessionEnded += () => ended++;
 
 		host.Steam.LobbyMembers = [HostId]; // the guest vanished from the lobby
-		host.Update(); // the 2 s presence check — the first pump runs it immediately
+		// One reading is not a verdict: the member is removed once the lobby has omitted it on consecutive checks.
+		for (var check = 0; check < 3; check++)
+		{
+			host.Clock.Advance(2100);
+			host.Update();
+		}
 
 		Assert.Empty(host.Session.Members);
 		Assert.True(host.Session.SessionActive);

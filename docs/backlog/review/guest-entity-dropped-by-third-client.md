@@ -37,3 +37,26 @@ The two-client direction is fine: the guest opened the HOST's chart in the same 
 - The host's log for the session, around the guest's scene re-entry: whether an `AnnounceLeave` was sent and whether the matching `PlayerJoin` reached the alt.
 - `EntitySyncService`'s member-timeout path: its threshold and what it does to the presence row.
 - Then the fix, with a test that a member who re-enters keeps a truthful `InWorld` on every other member's table.
+
+## Design
+
+Read before touching this: [`docs/design/model/session-lifecycle.md`](../../design/model/session-lifecycle.md) (lobby, run, rejoin —
+the table whose membership this rule maintains) and [`docs/design/mechanics/medical-view.md`](../../design/mechanics/medical-view.md)
+(the third-party gesture that refuses when presence is wrong). The rule this ticket exercises: a member's presence is a SESSION fact
+owned by the host's table and mirrored to every member, so a mirror that can lose a member who is still playing is a defect in the
+mirror — never in the features that read it.
+
+## What was fixed (2026-11-01, same day)
+
+The host's removal rule was the guest side's rule without its safeguard: ONE lobby read that omitted a member removed it
+(`Member <guest> removed: left the lobby`), while the guest branch had already learned that one reading is not a verdict
+(`HostMissingChecks`, measured 2026-10-28). `SessionPeerMaintenance` now applies the same corroboration to members:
+`MemberMissingChecks = 3` consecutive readings, a reading that names NOBODY is skipped entirely, and each intermediate reading
+logs `Member … is absent from lobby read N/3; not removing it yet` — so the next investigation starts from a line rather than a
+guess. Four tests pin it (`AHost_KeepsAMemberWhenOneReadingOmitsIt`, `…WhenTheReadingNamesNobody`,
+`…RemovesAMemberOnlyOnceConsecutiveReadingsAgree`, `…ForgetsTheAbsenceWhenTheMemberComesBackInBetween`), and the three tests that
+encoded the old one-reading rule were updated to the new contract.
+
+The remaining half — a member that IS removed and then resumes traffic without a fresh handshake — stays open: members are
+re-added by a handshake, and a member whose session row was dropped while its transport stayed up has no path back. That is the
+next reading here.

@@ -73,6 +73,12 @@ public class SessionSimulationTests
 		host.Clock.Advance(200);
 		host.Update();
 
+		// One reading is not a verdict: the member is removed only once the lobby has omitted it on consecutive checks.
+		host.Clock.Advance(2000);
+		host.Update();
+		host.Clock.Advance(2000);
+		host.Update();
+
 		// A guest leaving removes the MEMBER — the session itself CONTINUES
 		// (the host may be playing alone; ending it here was irreversible:
 		// SessionActive only re-arms on OnLobbyCreated, so the re-joining
@@ -89,11 +95,15 @@ public class SessionSimulationTests
 		// The fix keeps the session alive — the rejoin handshakes into it.
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 
-		// The guest vanishes from the lobby — the host removes the member.
+		// The guest vanishes from the lobby — the host removes the member, once consecutive reads agree.
 		host.Steam.LobbyMembers = [HostId];
 		guest.Steam.LobbyMembers = [GuestId];
-		host.Clock.Advance(2100);
-		host.Update();
+		for (var check = 0; check < 3; check++)
+		{
+			host.Clock.Advance(2100);
+			host.Update();
+		}
+
 		Assert.True(host.Session.SessionActive, "the host's session survives the guest's exit");
 		Assert.Empty(host.Session.Members);
 

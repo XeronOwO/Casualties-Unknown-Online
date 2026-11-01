@@ -706,3 +706,19 @@ accelerates that client's simulation, not the session. For the amputation that i
 `cutProgress` all live on the patient's client — and it leaves the peers on their normal clock, which is where the sound row has to
 be sampled anyway. What it deliberately does NOT do is make the peers hear the clip sooner; the clip plays on their clock when the
 dismember reaches them, exactly as it would in a real session.
+### The fixture's contract, derived from the corpus instead of discovered (2026-11-02, 09:10)
+
+The work above found the mechanic one experiment at a time. It should have been read first: `docs/design/mechanics/medical-view.md`
+already states the amputation rule — `cutProgress += Abs(handVelocity.x) * 5E-05f` "so a faster saw cuts faster" — and the page
+gained the two facts it was missing (the `DoAmputate` infection gate and the moving `maxHandPos` band), each with its game line.
+
+The contract a batch now starts from, written down before any input:
+
+| the player's gesture | what it feeds | what gates it |
+|---|---|---|
+| use an amputating tool on a selected limb in the wound view | `Item.DoAmputate` | `infectionAmount > 60f`, not head/torso, no lower leg already gone (`Item.cs:7127-7142`) |
+| hold attack and saw, dragging the hand DOWN as the bar fills | `cutProgress += |handVelocity.x| * 5E-05f` per physics frame | `cutting` = `handPos.y <= maxHandPos + 10f`, `maxHandPos` = `Lerp(120, -380, cutProgress)` (`AmputationMinigame.cs:34-50`) |
+| keep sawing to the end | `cutProgress >= 1f` | dismember + disinfect the limbs below; the minigame ends (`:73-82`) |
+
+A fixture is built from that table: the hand must move FAST and FOLLOW the band down. Our shake moved at ~0.7 units a frame against
+a player's ~40, which is why the run looked like "a ten-minute cut" — the number described the fixture, not the game.

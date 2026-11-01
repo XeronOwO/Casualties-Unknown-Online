@@ -81,6 +81,15 @@ medical operation the two clients perform together, which is why the drag gestur
   dismembered and every limb still connected below it is disinfected: `infected = false`, `infectionAmount = 0f`,
   `SetDisinfect(300f)` and `bleedAmount *= 0.5f`, with `body.traumaAmount -= 20f` — so an amputation is a treatment as well as
   a loss.
+- **The saw only runs while the limb is infected enough and the hand stays in a band that MOVES down.** `Item.DoAmputate`
+  (`Item.cs:7127-7142`) starts the minigame only when `limb.infectionAmount > 60f`, the limb is not the head or a torso
+  (`index > 2`), and no lower leg is already gone; a healthy limb can be selected and "used on" and nothing happens. Inside the
+  minigame, `cutting` is `handPos.y <= maxHandPos + 10f` (`AmputationMinigame.cs:46-50`) and `maxHandPos` is
+  `Lerp(120f, -380f, cutProgress)` (`:34-40`), with `PhysicsUpdate` raising the hand to `maxHandPos` when it falls below
+  (`:99-101`). The band therefore starts just above the hand and falls to -380 as the cut deepens, so a real saw drags the hand
+  DOWN with the progress; holding one height stops `cutProgress` wherever the band passes the hand (observation 2026-11-02: the
+  hand sat at -163 against a band at -175 and the bar froze at 0.59). A player at a hand velocity of ~40 fills the bar in about
+  ten seconds; a fixture moving the hand at ~0.7 needs minutes for the same bar, which is a property of the fixture, not the game.
 - **A blinded player is given light: the game's ambient light is a run setting, and `bothEyesGone` overrides it upward.**
   `WorldGeneration.UpdateAmbientLight` (`WorldGeneration.cs:992-1010`): `ambientlight` 1 sets `0.12f`, 2 sets `0.4f`, anything
   else `0f`, and then "`if (ConsoleScript.instance.fullBright || this.body.bothEyesGone)`" forces `0.7f` — the game's own mercy

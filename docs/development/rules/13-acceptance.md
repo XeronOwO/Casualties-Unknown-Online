@@ -21,7 +21,26 @@ scope before it runs, so a row cannot be quietly judged by a weaker check afterw
 ## A blocked row never becomes the whole cycle
 
 At most two batches per row, then the next ticket. The block is recorded with its reading, not as a story.
-## Do not grow the harness on your own
 
-Never add a cursor or input API to the acceptance tooling on your own initiative: in-process calls first, and OS-level
-input only for one batch with a fresh authorisation from the user.
+## The two ways to drive the game, and which one needs permission
+
+They are not interchangeable, and only the second one is restricted.
+
+**1. In-process driving — the default, and what most rows need.** The batch asks the client to run a recipe: call the
+game's own entry point, or answer the game's own input query from a staged value (`VirtualInput`: staged keys and a
+staged pointer, patched into `Input.GetMouseButton*`, and call-site-replaced inside `PlayerCamera.HandleInput`,
+`MinigameBase.UpdateHandVisuals` and `SettingsMenu.WaitForKeyPress`). Nothing outside the client is touched: the user's
+keyboard, mouse and focus are unaffected, so this can run while the user works.
+
+- **Extending this channel is ordinary tooling work. Build it when a row needs it; no permission is needed.**
+- The one rule that does apply: the game's own logic still decides what the input MEANS. A staged value answers a
+  query; it never replaces the decision the game makes after reading it (the keybind capture binds the key it read, the
+  recipe never binds it for the game).
+
+**2. OS-level input — needs the user's authorisation, per batch.** `tools/acceptance/send-input.ps1` and anything like it
+(`SendInput`, cursor warps, synthetic key events) takes over the user's real keyboard and mouse: it steals focus, moves
+their cursor and types into whatever window is focused. Ask for it in the batch that uses it, only after in-process
+driving provably cannot reach the row, and say in the batch scope why.
+
+So the restriction is on the second kind alone, and it is a restriction on taking it without asking — never on
+automation. A batch that frees the user's hands by staying in-process is exactly what this channel is for.

@@ -264,7 +264,11 @@ public sealed class OnlineUiMemberProjectionTests
 		Assert.False(rows[1].CanCarry);
 		Assert.False(rows[1].CanTake);
 		Assert.Empty(rows[1].TakeableItems);
-		Assert.False(rows[1].CanRecruit);
+
+		// The recruit is the one action that does NOT need line of sight: it is a service bought AT the trader, and
+		// its whole point is a teammate who went down out of the operator's sight. Everything that acts on the BODY
+		// still hides here.
+		Assert.True(rows[1].CanRecruit);
 		Assert.False(rows[1].CanHeal);
 		Assert.False(rows[1].CanPush);
 		Assert.False(rows[1].CanViewMedical);

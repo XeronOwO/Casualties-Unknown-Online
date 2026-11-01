@@ -129,10 +129,13 @@ public static class OnlineUiMemberProjection
 			// recruit happen, so the operator does not click into a refusal. Both sides
 			// read the same rule surface — the host its own config, the member the
 			// announced set — and the host still decides.
+			// NOT gated on `canSee`: the recruit is a service bought AT the trader, and its whole point is a teammate
+			// who went down somewhere the operator cannot see. Requiring line of sight to the corpse made the control
+			// disappear exactly when the player needed it (measured 2026-11-02: a teammate dead 70 units away simply had
+			// no recruit control on the player page). The trader, not the operator's eyes, is what the service needs.
 			var canRecruit = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
-				&& canSee
 				&& vitals is { Alive: false }
 				&& reviveFromTrader
 				&& !permadeath;

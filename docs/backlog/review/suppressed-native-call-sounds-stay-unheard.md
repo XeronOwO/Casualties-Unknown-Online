@@ -355,3 +355,15 @@ Three attempts, each with the reading that stopped it:
 3. **`/summon item lantern` produced neither.** The command answered with a real instance id at the requested point; no landing sound appeared on either client and `item-world-read` still answered `count=0` there. Until an item the game registers can be produced and read back, "the peer hears the landing sound" has no fixture.
 
 The instrument that owns this is the registration read: `item-creation-registration-first` exists for exactly "what does a created item have to be before it is a world item". Rows 5 and 6 wait on it, and the honest status of this ticket is that its remaining rows are fixture-blocked with those three readings, not that the behaviour is wrong.
+
+## Row 1: the native chain says when a treatment makes a sound (2026-11-02, 14:50)
+
+Reading the game first changed what the row can ask. `PlayerCamera.ApplyWoundItem` (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs`) does not run a generic item use: when the item is `usableOnLimb` it calls `item.Stats.useLimbAction(limb, item)`. The splint's `useLimbAction` (`Item.cs`) starts a `BandageMinigame` whose completion callback heals the limb — and the `bandage` sound is played from inside that minigame when a full wrap completes (`BandageMinigame.cs`, `Sound.Play("bandage", Minigame.game.currentItem.transform.position, …)` after `didWrap`). The `splint` clip lives in the item's GENERIC `useAction`, which this path never reaches.
+
+So "apply a splint and the peer hears it" is not a native expectation: applying starts the minigame silently, and the sound arrives when the wrap completes. Read out loud, with instruments:
+
+- `limb-use type=splint mode=apply` answered `ok=true, limb=0 (head), skinBefore=100`; the `splint` playback counter did not move on the acting client (230 → 230) nor on the peer (206 → 206) — which is exactly what the native chain predicts, since no wrap completed.
+- Control: `play-clip clip=splint` moved the acting client's own counter (230 → 231, `present=true`), so the instrument CAN see that clip. The silence is the game's, not the watcher's.
+- The wrap could not be driven this round: `wound-limb-points` answered `count=0, limbs=""` (the wound view was open but no limb point was produced), so `ui-click` had no anchor to select limb 2, `limb-use` kept applying to the head, no minigame started (`minigame=none`) and `bandage-rub` had nothing to finish.
+
+Next, precisely: make `wound-limb-points` produce its anchors (it answers zero while the view reports open), select the wounded limb, apply the splint there so the minigame starts, complete the wrap with `bandage-rub`, and read the `bandage` counter on both clients. That is a fixture step, and it is the only thing between this row and a verdict.

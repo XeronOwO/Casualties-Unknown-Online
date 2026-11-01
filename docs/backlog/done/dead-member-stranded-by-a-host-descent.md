@@ -1,6 +1,6 @@
 # A dead member is stranded behind the loading screen when the host descends a layer
 
-- Status: Todo — found 2026-11-02 by the user: "the guest's screen is frozen". Read as a real defect and reproduced
+- Status: Done — three causes, three fixes, read end to end on the deployed build (2026-11-02, 16:05): a dead member is classified as following the descent; a member whose follow has settled reports itself InWorld so the host's gate can release (or re-answer) it; and the loading-screen keeper now clears its own flag only once the screen actually reads inactive, so the hand-back cannot be lost to a frame where the object was absent. Verified with the guest killed from its own console before the descent: afterwards host and guest read the same position (0, 475.62), both `loading=False`, and the guest's body is alive again in the new layer, so rows 1 and 2 hold; the live-member and host cases were verified unchanged in the same session. Original report: found 2026-11-02 by the user: "the guest's screen is frozen". Read as a real defect and reproduced
   once, from the guest's own log and its live scene state. The fix depends on the intended rule for a dead teammate
   during a descent, which is a gameplay decision and is asked before any code changes.
 - Priority: High (a dead teammate is unrecoverable for the rest of the run, and the client looks hung to the player)
@@ -101,3 +101,10 @@ Twenty-five seconds after the descent the guest is still on `LoadingImage` and i
 Both readings are actionable and they are told apart by one probe: the host's start-gate state at the moment the member settles. If the gate is already open, this is a **missed edge** — the member must ask for the CURRENT state on settle, not only catch the transition. If the gate is still closed on the host, the host's descent never entered the gate cycle and the fixture is the problem (the recipe regenerates the world directly rather than travelling through a sink).
 
 Until that probe runs, this ticket owns both halves: the classification fix (landed) and the release edge (open).
+
+## The two further fixes (2026-11-02, 16:05)
+
+- **The member reported itself out of the world while it was in it.** `RunCoordinator` published `InMenu` for any state that was not `inWorld`, and a settled descent follow is exactly that: the new layer exists, the body is placed, and the only outstanding thing is the host's gate. The host therefore read a member that had not arrived, and the member waited for a release the host had already broadcast before it was waiting. The report now says `InWorld` for a settled-and-waiting descent, which is the report the host's gate already knows how to answer — release when armed, re-answer when already released.
+- **The kept loading screen could never be handed back.** `LoadingScreenKeeper` hid the image and cleared its own `_kept` flag in the same breath; on the frame a release lands the loading object can be absent or replaced (a scene switch), so the hide was skipped while the flag was already clear and the kept screen stayed up for the rest of the session — which is exactly what a player sees as "the screen is frozen". The flag now clears only once the screen actually reads inactive, so a skipped frame retries on the next.
+
+Both were confirmed against the members' own logs before and after: before, `Scene state: InMenu` next to `waiting for the host's release`; after, `InWorld` followed by the descent branch of `World ready — start playing`.

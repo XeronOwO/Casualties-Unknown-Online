@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Dead member stranded by a host descent](todo/dead-member-stranded-by-a-host-descent.md) — **High** — the guest keeps the loading image and cannot be revived.
 - [Split the body-verb service](todo/split-the-body-verb-service.md) — **Medium** — 619 aggregate lines; the debt ledger names it.
 
 
@@ -166,6 +165,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Dead member stranded by a host descent](done/dead-member-stranded-by-a-host-descent.md) — **High** — three causes fixed; verified end to end.
 - [`/kill` — the game's own kill verb](done/kill-command.md) — **High** — all six rows read on the deployed build.
 - [Remote medical panel speech text desync](done/remote-medical-panel-speech-text-desync.md) — **High** — every row read.
 - [Pain vocalizations and bark](done/sync-player-pain-vocalizations-and-bark.md) — **Medium** — rows 1-3 read: the peer plays gore2 361 times.

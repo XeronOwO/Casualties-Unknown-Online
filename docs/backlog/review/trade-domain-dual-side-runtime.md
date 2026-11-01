@@ -153,3 +153,22 @@ Two parts fixed it. The swing patch's prefix refuses the native call on a guest'
             guest  0 `reported` lines, and 1 `replayed swing at (88.0,267.0) from 76561198281246659`
 
 So the one-shot presentation is performed by exactly one client and replayed by the other, at the same trader position — row 9 is PASS, and the replay line is Information for the first occurrence of a session and Debug after it, because a hostile trader swings about once a second.
+## The saved snapshot has an instrument now, and the recruit needs one more condition (2026-11-02, 05:10)
+
+Row 8's remaining half was "the saved snapshot refresh", blocked on there being no save to read. There is one:
+
+    /save                       -> "cut written (world w-20261101-605b at revision 612, layer 0 …, backup …)"
+    <cut>/live/characters/steam-<id>.json
+                                -> one record per player with health, limbs, items, handSlot, position,
+                                   slotCount, nativeFields, skills, respawn, generation
+
+So the snapshot carries exactly the fields the row turns on: the revived player's `health` and `position`. Reading the
+refresh is now `recruit -> /save -> read the record`, with no load fixture needed — the file IS the saved side.
+
+What blocked the reading this pass is the recruit itself, and the difference from the 17:15 read is worth naming: this session
+offered `member.recruit.<bodyId>` and the click answered `applied=true`, but the dead guest stayed dead (`alive=false`,
+`brainHealth=0`) with the host alive at the trader (-106.9, 271.4) and `revive_from_trader` reading `true`. In the 17:15 read
+the same click revived the guest in place. So the action is accepted and does not complete, which is a real difference to
+explain (the earlier read had the DEAD BODY in the host's line of sight and this one has it 500 units away — the UI offered the
+control, the coordinator did not finish), or a defect in the coordinator's completion path. That is the next step, and it is
+named as such rather than as a missing capability.

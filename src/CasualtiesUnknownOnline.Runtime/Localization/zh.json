@@ -90,6 +90,7 @@
   "heal.answer.sent": "已重置 {0}：指令已发送给他/她自己的客户端，由那边执行完整重置并回传状态。",
   "heal.answer.sent_dead": "已重置 {0}：指令已发送给他/她自己的客户端——他/她原本已死亡，会因此复活。",
   "heal.answer.refused_for": "已拒绝 {0} 的重置。",
+    "kill.answer.sent": "已把杀死指令发给 {0}：由他/她自己的客户端执行并回传身体状态。",
     "kill.answer.applied": "已杀死 {0}：大脑健康归零。",
     "kill.answer.refused_for": "未能杀死 {0}：本机没有可杀死的身体。",
     "cheat.refused.no_operation": "拒绝：这次调用没有指明要对身体做什么。",

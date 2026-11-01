@@ -394,10 +394,13 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 			}
 
 			_pending[target] = new PendingReset(instructionId, nowMs);
-			parts.Add(DescribeRemote(target, wasDead));
-			keyedParts.Add(AnswerPart(
-				wasDead ? "heal.answer.sent_dead" : "heal.answer.sent",
-				target.ToString(CultureInfo.InvariantCulture)));
+			// The answer names the operation that was actually sent: a kill instruction must not read as a reset instruction.
+			parts.Add(operation == BodyOperation.Kill
+				? $"Sent the kill instruction to {target}; its own client applies it and reports the body back."
+				: DescribeRemote(target, wasDead));
+			keyedParts.Add(operation == BodyOperation.Kill
+				? AnswerPart("kill.answer.sent", target.ToString(CultureInfo.InvariantCulture))
+				: AnswerPart(wasDead ? "heal.answer.sent_dead" : "heal.answer.sent", target.ToString(CultureInfo.InvariantCulture)));
 			_log.LogInformation("[HealReset] {Actor} instructed {Target} to reset its own body (instruction {InstructionId}, wasDead={WasDead}).",
 				actor, target, instructionId, wasDead);
 		}

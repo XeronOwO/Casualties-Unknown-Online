@@ -90,6 +90,7 @@
   "heal.answer.sent": "Reset {0}: sent to that player's own client, which applies the full reset and re-reports the state.",
   "heal.answer.sent_dead": "Reset {0}: sent to that player's own client — it was dead, so it revives.",
   "heal.answer.refused_for": "Refused for {0}.",
+  "kill.answer.sent": "Sent the kill instruction to {0}; its own client applies it and reports the body back.",
   "kill.answer.applied": "Killed {0}: brain health set to 0.",
   "kill.answer.refused_for": "Refused to kill {0}: this client has no body to kill.",
   "cheat.refused.no_operation": "Refused: the invocation names no body operation.",

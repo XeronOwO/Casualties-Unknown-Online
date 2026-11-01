@@ -487,7 +487,7 @@ internal sealed class CommandConsoleOverlay
 
 			if (!string.IsNullOrWhiteSpace(hint))
 			{
-				GUILayout.Label(hint, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
+				GUILayout.Label(hint, OnlineUiTheme.RowHint(), GUILayout.ExpandWidth(true));
 			}
 
 			GUILayout.EndHorizontal();

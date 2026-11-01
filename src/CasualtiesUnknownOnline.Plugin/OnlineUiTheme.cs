@@ -38,6 +38,8 @@ internal static class OnlineUiTheme
 
 	private static GUIStyle? _mutedLabel;
 
+	private static GUIStyle? _rowHint;
+
 	private static GUIStyle? _scrollBackground;
 
 	private static GUIStyle? _label;
@@ -49,6 +51,29 @@ internal static class OnlineUiTheme
 	internal static GUIStyle Button() => _button ??= CreateButton();
 
 	internal static GUIStyle MutedLabel() => _mutedLabel ??= CreateMutedLabel();
+
+	/// <summary>
+	/// A completion row's hint: ONE line that clips rather than wrapping. The hint now carries the command's usage, and a long usage
+	/// (the data verb's four forms) wrapped to three lines and made its row taller than its neighbours (measured 2026-11-02).
+	/// </summary>
+	internal static GUIStyle RowHint()
+	{
+		if (_rowHint is not null)
+		{
+			return _rowHint;
+		}
+
+		_rowHint = new GUIStyle(GUI.skin.label)
+		{
+			fontSize = 12,
+			richText = true,
+			wordWrap = false,
+			clipping = TextClipping.Clip,
+			margin = new RectOffset(0, 0, 0, 0),
+		};
+		_rowHint.normal.textColor = Muted;
+		return _rowHint;
+	}
 
 	/// <summary>
 	/// The suggestion list's highlight marker: its own column, so a selected row and an unselected one put their buttons at the

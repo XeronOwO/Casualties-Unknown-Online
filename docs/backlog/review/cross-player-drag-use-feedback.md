@@ -675,3 +675,13 @@ That is one more step of the same kind, not a new obstacle. The rows stay open, 
 So the cue machinery runs (it carries the wheel''s centre radius, the leniency and a text template) and never picks a target from any of the three positions a batch can stage. Two facts fall out and both are worth keeping: the staged pointer''s world position (`mouseWorldX=0.125, mouseWorldY=505.6`) is correct — it sits on the local body — and the cue still answers no target, which means the hover test is not "pointer near the teammate" at all. The template reading `use on 0` is the unsubstituted form, another sign the cue never entered its focus branch.
 
 The next step is therefore a code read of the cue''s own hover test (`CrossPlayerDragUse`''s target resolution) rather than another pointer position: what does it actually ask the game for, and what does the game return while a staged pointer is over a clone.
+## Why no pointer position will ever focus it: the drag is the game's own state, not a UI event (2026-11-02, 19:15)
+
+The code read closes the loop. `CrossPlayerDragUse.Observe(Item? dragItem)` starts a drag only when `dragItem != null` and ends it the moment it is null; the target is then chosen from `domains.Entities.RemotePlayers` positions against each clone''s model box. So the cue''s focus depends on the GAME having picked an item up, not on where the pointer is.
+
+Two more readings support that:
+
+- the game''s assembly implements `IBeginDragHandler`/`IDragHandler` only in `TMP_InputField` (the whole `reversing/` tree searched) — the inventory wheel and its slots are NOT Unity EventSystem drag sources, so a staged pointer press never begins a drag the way a UI drag would;
+- three staged presses were tried against that state — the held-item HUD at (45,680), the wheel''s centre grid at (610,475), and the main-hand circle at (515,560), each followed by a move onto the teammate''s clone at (642,618) — and `drag-cue` answered `showing=false, target=0` with the unsubstituted template every time.
+
+So the missing capability is not a screen coordinate: it is the game''s own "this item is being dragged" state, which the wheel sets through its own pointer handling. The honest fixture is one that puts the game into that state through the game''s own input (the wheel''s slot hit-test runs on the game''s pointer, which the staged channel already feeds) and then reads `drag-cue` — and the reason all three presses missed is therefore inside the wheel''s own hit-test, not in the aiming.

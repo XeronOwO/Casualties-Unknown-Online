@@ -44,9 +44,34 @@ internal static class OnlineUiTheme
 
 	private static GUIStyle? _textField;
 
+	private static GUIStyle? _marker;
+
 	internal static GUIStyle Button() => _button ??= CreateButton();
 
 	internal static GUIStyle MutedLabel() => _mutedLabel ??= CreateMutedLabel();
+
+	/// <summary>
+	/// The suggestion list's highlight marker: its own column, so a selected row and an unselected one put their buttons at the
+	/// same x and each button's text stays centred in its box (a marker padded into the button's text was measured pushing the
+	/// label off-centre, 2026-11-02).
+	/// </summary>
+	internal static GUIStyle Marker()
+	{
+		if (_marker is not null)
+		{
+			return _marker;
+		}
+
+		_marker = new GUIStyle(GUI.skin.label)
+		{
+			fontSize = 12,
+			alignment = TextAnchor.MiddleCenter,
+			margin = new RectOffset(0, 0, 0, 0),
+			padding = new RectOffset(0, 0, 0, 0),
+		};
+		_marker.normal.textColor = Accent;
+		return _marker;
+	}
 
 	/// <summary>
 	/// The ordinary label this panel draws with. The game's <c>GUI.skin.label</c> brings its own font size and colour, which is

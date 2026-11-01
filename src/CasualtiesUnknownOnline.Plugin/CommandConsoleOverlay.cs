@@ -20,6 +20,9 @@ internal sealed class CommandConsoleOverlay
 	private const float InputHeight = 30f;
 	private const float SuggestionMaxHeight = 150f;
 
+	/// <summary>The marker column's width: fixed, so a selected row and an unselected one put their buttons at the same x.</summary>
+	private const float MarkerWidth = 14f;
+
 	/// <summary>The prompt's own width: the input control starts here, and so does the suggestion list (one number, because the two must line up).</summary>
 	private const float PromptWidth = 18f;
 	private const int MaxNotificationLines = 5;
@@ -473,11 +476,12 @@ internal sealed class CommandConsoleOverlay
 			var suggestion = suggestions[index];
 			GUILayout.BeginHorizontal();
 			var hint = CommandSuggestionHintText.Of(ctx, suggestion);
-			// The highlighted row is the one ↑/↓ and Enter act on, so it must be visually the current one: the marker is part of the list, not a decoration.
-			var marker = index == selected ? "▶ " : "   ";
-			var content = new GUIContent(marker + suggestion.Text, hint);
-			var style = OnlineUiTheme.Button();
-			if (GUILayout.Button(content, style, GUILayout.ExpandWidth(false)))
+			// The highlighted row is the one the arrows and Enter act on, so it must be visibly the current one. The marker is
+			// its OWN column: padding the button's text with spaces pushed the label off-centre inside its box, which read as a
+			// large left inset (measured 2026-11-02 — the row's text sat 6px in on one side and 0 on the other).
+			var marker = index == selected ? "▶" : "";
+			GUILayout.Label(marker, OnlineUiTheme.Marker(), GUILayout.Width(MarkerWidth));
+			if (GUILayout.Button(suggestion.Text, OnlineUiTheme.Button(), GUILayout.ExpandWidth(false)))
 			{
 				_session.AcceptSuggestion(suggestion);
 			}

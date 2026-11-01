@@ -166,7 +166,7 @@ separately, so a zero in either is visible in its own right.
 On the deployed build, one batch, all in-process:
 
     settings-open tab=3                                     -> parent="Canvas", active=true
-    staged press inside the 投掷 row's rect                  -> keybind-capture-state: captureWaiting=true
+    staged press inside the throw row's rect                  -> keybind-capture-state: captureWaiting=true
     virtual-key key=Return down=1 … down=0                   -> captureWaiting=false
     capture (cropped)                                       -> the row that read `...` now reads `Return`
     same frame                                              -> no CUO console panel anywhere on screen

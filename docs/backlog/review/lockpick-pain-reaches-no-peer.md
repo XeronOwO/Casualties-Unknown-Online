@@ -46,3 +46,9 @@ A new probe (`call-context-state`) reads the scope stack the capture depends on,
 - **The sender has no rate limit or filter.** `CharacterVisualPublisher.Publish` only checks `SessionActive` and the role, then sends reliably to every handshaken member; there is no per-frame budget, dedup or kind filter between a classified report and the wire.
 
 With the catalogue registration, the origin mapping, the clip classification, the receiver's absence of a kind filter and the clip's resolvability already ruled out, what is left is whether `Report` is reached at all inside those two `Update` scopes. That is one question, and it needs the send path observed at a level that is ON rather than another guess — a single line at the report, removed once it has answered.
+
+### The report path now has an eye on it (2026-11-01, 21:10)
+
+A new instrument answers the one question reading could not: `report-watch` is a DECLARATION that Harmony-prefixes the adapter's own `CharacterSoundSync.Report` and records every call with its arguments, read back by `report-watch-read`. It works — a bark during the same session answered `count=1` with `[Bark, death1, (19.08, 437.62), 1, False, False, 0]`, so the capture→report leg is observable event by event.
+
+That reading also shows the path is alive for the one-shot scope in the same session, while the lockpick attempt that followed produced only a `Footstep` report and no Pain entry at all. The remaining work on this ticket is therefore one measurement away rather than one hypothesis away: get the minigame into `clickingInside=true` (the frame the press lands on must have the hand inside the 195..247 band — the last attempts settled at 195.097 and 232.5 and still read `inside=false` on the press frame, which is itself a note about staging timing) and read `report-watch-read` across the stuck tick that plays `gore2`.

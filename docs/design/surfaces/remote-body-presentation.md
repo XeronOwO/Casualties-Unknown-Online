@@ -96,3 +96,9 @@ Accepted: `../../backlog/done/high-sleepiness-squint-not-visible-remotely.md`,
   user's instruction ('just consider it done'), not by a fix", with the finding that more than one source plays the same
   per-beat clip (`heartthump-heavy` / `-monitor` at `time 0 / 0.769 s`). That is a known, accepted limitation.
 - Which presentation values are per-frame and which are character-data rate is not tabulated here yet.
+- The panel's alarm follows the DISPLAYED body, and so does its flatline. The native clip is the viewer's own body's
+  (`PlayerCamera.cs:1859-1864`, gated on `inCardiacArrest`, which is `heartRate < 20` — `Body.cs:183-188`); while a remote
+  focus is open the cue helper plays it on the viewed body's beating-to-arrest edge instead, with the native call shape
+  (2D, volume 0.8, no reverb, mixer bypassed) and the native `unchipped` gate. Verified on the deployed build by stopping
+  the patient's heart from its own client: the viewer's recorder caught `flatline` once, nothing while the heart stayed
+  stopped, and a second `flatline` after the patient beat once more.

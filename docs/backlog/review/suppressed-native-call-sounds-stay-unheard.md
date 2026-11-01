@@ -345,3 +345,13 @@ Two findings follow, and neither is the row the ticket expected:
 2. **The HOST hears no item landing at all**, not even its own. Four windows, four zeroes, while the guest on the same windows counted four each. That is the shape "suppressed native call sounds stay unheard", but on the acting side rather than the listening side, and it needs its own cause reading before anything is changed.
 
 Row 6 does not pass or fail yet: a `plushie` created through the same factory produced no `drop` playback on the client that hears every lantern landing — so either its entity is not the item prefab the collision handler lives on, or it never fell. The next reading is what `Utils.Create("plushie", …)` actually instantiates, before any claim about a toy sound.
+
+## Rows 5 and 6 are blocked on an instrument, not on a behaviour (2026-11-02, 14:20)
+
+Three attempts, each with the reading that stopped it:
+
+1. **The raw create is not a world item.** `item-drop` calls `Utils.Create`, and after that call `item-world-read` answers `count=0` on the acting client AND on the peer, at a radius that comfortably covers the drop point. Whatever the call returns is not in the world table, so the four `drop` playbacks seen earlier came from something else and cannot be attributed to it.
+2. **A native drop at the feet is silent BY DESIGN.** `item-drop-hand slot=3` (the game's own `Body.DropItem`, `reversing/Assembly-CSharp/Assembly-CSharp/Body.cs:1431`) answered `dropped=true`, and neither client counted a landing sound — because the native collision handler gates on `collision.relativeVelocity.magnitude > 3f` (`Item.OnCollisionEnter2D`), and an item released at the player's feet never reaches that speed. A silent drop at the feet is correct behaviour, not a defect, and it cannot judge this row either.
+3. **`/summon item lantern` produced neither.** The command answered with a real instance id at the requested point; no landing sound appeared on either client and `item-world-read` still answered `count=0` there. Until an item the game registers can be produced and read back, "the peer hears the landing sound" has no fixture.
+
+The instrument that owns this is the registration read: `item-creation-registration-first` exists for exactly "what does a created item have to be before it is a world item". Rows 5 and 6 wait on it, and the honest status of this ticket is that its remaining rows are fixture-blocked with those three readings, not that the behaviour is wrong.

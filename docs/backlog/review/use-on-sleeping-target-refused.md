@@ -179,3 +179,15 @@ The families left on row 1 are the ones that go through the give gesture (eat, d
 A tourniquet released through the chart on limb 5 applied as the game's own component (**`TourniquetScript`** on the patient's limb) — but the patient had woken by then (`sleeping=false`), so that reading is the family's chart path, not the sleeping case. Asking for a second nap answered `applied=true` and the body stayed **awake**, and a second tourniquet on limb 1 then did nothing at all.
 
 So the asleep fixture is one-shot per session: the pills and the nap that produced `sleeping=true` earlier are spent, and the game's `canTakeNap` stops holding once energy, pain and sickness move. The consequence for this ticket is a planning rule rather than a defect — **each family read on a sleeping target wants its own fresh session**, the same "one treatment per fresh launch" rule the medical batch already carries, and the batch that reads eat/drink/wear/injection asleep must plan one launch per family.
+## The sleeping fixture: setting the field does not make a body sleep (2026-11-02, 22:50)
+
+Row 1 needs a SLEEPING target, and the obvious fixture does not hold:
+
+    guest: body-force sleep=1, consciousness=1, …       -> ok, every field applied
+    guest: type-members x,y radius 2 type=Body          -> sleeping:Boolean=False, canTakeNap~:Boolean=False
+    guest: body-call kind=nap                           -> applied, "starts only when canTakeNap holds"
+    guest afterwards                                    -> sleeping=False, conscious=True
+
+So `Body.sleeping` is a derived state: the game reverts it while its own `canTakeNap` gate is closed, and that gate needs a nap-capable surface (a bed or a sleeping bag and the safety the game checks for). The forced value lasts less than a frame.
+
+What the fixture therefore needs is a nap surface, not another field: the readable half is that `canTakeNap` is the gate and `type-members` is the instrument that shows both it and `sleeping` in one call. The remote medical view DID open for the host while the guest was the target (`medical-open` answered `opened=true, nativeOpen=true, found=true`), so the treatment side of the row is ready and only the sleeping state is missing.

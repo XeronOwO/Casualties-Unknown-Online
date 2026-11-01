@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using System.Text;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
@@ -135,8 +137,8 @@ internal static class SoundPlayRecorder
 	/// </summary>
 	internal static string Read(string match)
 	{
-		var builder = new System.Text.StringBuilder("raw=");
-		builder.Append(RawCalls.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('|');
+		var builder = new StringBuilder("raw=");
+		builder.Append(RawCalls.ToString(CultureInfo.InvariantCulture)).Append('|');
 		var first = true;
 		foreach (var entry in Since(match))
 		{
@@ -145,7 +147,7 @@ internal static class SoundPlayRecorder
 				builder.Append(';');
 			}
 
-			builder.Append(entry.Clip).Append('@').Append(entry.Time.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+			builder.Append(entry.Clip).Append('@').Append(entry.Time.ToString("0.0", CultureInfo.InvariantCulture));
 			first = false;
 			if (builder.Length > 900)
 			{

@@ -324,3 +324,24 @@ Attempting rows 5 and 6 first needed a dropped item, and the recipe that provide
 That is a tooling defect, not a reading: the recipe is one top-level expression, UTF-8 without BOM, and the same shape as the recipes that still run. The next action is therefore to replace its body with the game's own drop entry and re-run it, then judge rows 5 and 6 with the `drop` counter (`plays`, not a `names` diff).
 
 The rest of this session's sound readings stand: `dogshake`, `vomit2`, `stretch`, `pain1` and `gore2` all reach peers, each confirmed by a playback count rather than by first sighting.
+
+## Rows 5 and 6, read after the drop recipe was repaired (2026-11-02, 13:50)
+
+The recipe was broken by its own numeric argument: the driver substitutes `{{n:height}}` as a bare `1.5`, which is a double, and `new Vector2(float, double)` does not compile — Mono.CSharp reports that as `(1,1): InteractiveHost`, the same shape as a refused submission. Casting the placeholder to float fixed it, and a fresh name failed identically, so the name was never the problem. Lesson for the driver document: a numeric placeholder used where a float is expected is cast in the recipe.
+
+The native site is `Item.OnCollisionEnter2D` (`reversing/Assembly-CSharp/Assembly-CSharp/Item.cs`): a collision whose relative velocity exceeds 3 plays `Sound.Play("drop", …)`, a material step sound and a dust puff. Every bounce above that speed plays again, so one drop may legitimately produce several plays.
+
+| direction | acting client | listener | `drop` playbacks |
+|---|---|---|---|
+| host drops a lantern 1.5 above | 0 | **4** (guest) |
+| host drops a lantern 0.6 above | 0 | **4** (guest) |
+| host drops a lantern again (second window) | 0 | **4** (guest) |
+| guest drops a lantern | **7** (own) | 0 (host) |
+| either client drops a plushie | 0 | 0 |
+
+Two findings follow, and neither is the row the ticket expected:
+
+1. **The peer DOES hear a dropped world item** — the row passes for the listening side. Guests hear the host's drops and their own.
+2. **The HOST hears no item landing at all**, not even its own. Four windows, four zeroes, while the guest on the same windows counted four each. That is the shape "suppressed native call sounds stay unheard", but on the acting side rather than the listening side, and it needs its own cause reading before anything is changed.
+
+Row 6 does not pass or fail yet: a `plushie` created through the same factory produced no `drop` playback on the client that hears every lantern landing — so either its entity is not the item prefab the collision handler lives on, or it never fell. The next reading is what `Utils.Create("plushie", …)` actually instantiates, before any claim about a toy sound.

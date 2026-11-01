@@ -1,7 +1,7 @@
 # AGENTS.md
 
 **The first tool call of every round prints step 0's rules** (`rules/00-work-mode.md` + its `.local.md`, in full) before
-any other call touches the repository, and **every step is read in full at the MOMENT work steps into it** — design
+any other call touches the repository, and **every step the round WALKS is read in full before the work in it** — design
 before the first edit, implement before the first change, verify before the first reading, self-check before the review,
 commit before the commit, acceptance before the batch. Work in a step whose rules have not been read this round is
 forbidden: it is not evidence, and it is redone. No exception for a short round, a continued round, or "I already know this". If a round's first

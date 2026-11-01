@@ -95,6 +95,19 @@ one mechanism that works; skipping it is how a rule gets broken by someone who k
 Measured 2026-11-02: the step-0 read was `Get-Content ... | Select-Object -First 3` for many consecutive rounds — three lines
 of a 104-line file — while the same rounds quoted this very paragraph correctly. The rule was known and not obeyed, which is
 exactly what "the files, every round" exists to prevent.
+## The step you WALK must be read first - walking fewer steps is fine, walking an unread one is not
+
+No round has to pass through every step: a documentation ticket never designs an entrance, a fixture never commits a wire
+change. The obligation is per step WALKED: the moment a round's work becomes design, implementation, verification, self-check,
+structure review, commit or acceptance, that step's two files are read in full before the work in it, and the transcript shows
+it. Every step walked is read; no step is walked unread.
+
+The practical device that keeps this honest: at the start, name the steps the round EXPECTS to walk, and read each of those
+pairs before the first act that belongs to it. The naming is planning, not a promise to walk them all - a round that turns out
+to need another step reads that step when it gets there, and one that skips a step it named still owed nothing to it.
+
+Measured 2026-11-02: a round read step 0 and then implemented, verified and gated without opening steps 2, 4, 6, 7, 8 or 11 -
+the violation is walking a step unread, not failing to walk the ones the round did not need.
 ## One big thing, run to its end
 
 The unit of work is the thing the user asked for, not the smallest step that can be reported. A work item runs until it is

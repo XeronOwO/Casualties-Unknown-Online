@@ -1,6 +1,6 @@
 # Sounds whose native call is suppressed never reach the peers
 
-- Status: Judged - rows 1, 2, 3, 4, 5, 6 PASS with counted listener-side readings; rows 7 and 8 unchanged. Row 4b is now PASS too: the amputation minigame was driven to completion (`dismembered=true`) and the peer-side sound gap it exposed is fixed and read back (`gore1|gore|gore5` on the peer after the fix, nothing before it), with the native chain quoted from `Limb.Dismember` and `Body.DoGoreSound`. The fixture facts learned on the way (the infection gate, the moving cutting band, the wound view's top-left coordinates, the hover's per-client hittability) are on this ticket and on the mechanic page.
+- Status: Done — every row is judged. Rows 1-6 PASS with counted listener-side readings, rows 7 and 8 unchanged, and row 4b closed by a fix: the game's own gore clip was not played on any peer when a REMOTE limb came off (the native `Limb.Dismember` never runs on a clone), and `CloneLimbRenderer` now makes that call on the flag's false-to-true transition — read back as `gore1|gore|gore5` on a peer that heard nothing before it.
 
 - Acceptance (20261001-l): rows 4 and 5-8 judged (the world-item impact replayed 219:219 on each guest from the authority's 219 reports, the plush squeak 12:12, the suite rows); rows 1-4b stay unproven and the dust puff visual was not captured — record `docs/evidence/acceptance/suppressed-native-call-sounds-stay-unheard-20261001-l.md`
 - Priority: Low

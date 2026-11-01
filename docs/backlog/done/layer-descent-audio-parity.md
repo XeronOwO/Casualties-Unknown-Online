@@ -7,7 +7,7 @@
   the user believes that only happens on the first layer. They ask for the native code to be checked and for
   CUO's own descent (a guest following the host down a layer) to be verified against it.
 - Related: `done/unhooked-item-and-body-sound-families.md` (local-only one-shot sounds outside the ingest
-  family), `review/suppressed-native-call-sounds-stay-unheard.md` (a sound whose native call CUO suppresses),
+  family), `done/suppressed-native-call-sounds-stay-unheard.md` (a sound whose native call CUO suppresses),
   `docs/backlog/done/host-eating-sound-not-heard-on-guest.md` (the family's established shape),
   `done/layer-descent-spawn-separation.md` (the same transition, another symptom)
 

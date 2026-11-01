@@ -8,7 +8,7 @@
 - Priority: Medium (audible defect: the typing sound never stops while a corpse is near the trader)
 - Category: Audio / speech replication
 - Source: user report, 2026-11-02.
-- Related: `done/` speech sync records; `review/suppressed-native-call-sounds-stay-unheard.md` (the clip recorder this was read with).
+- Related: `done/` speech sync records; `done/suppressed-native-call-sounds-stay-unheard.md` (the clip recorder this was read with).
 
 ## What is read
 

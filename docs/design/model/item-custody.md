@@ -237,7 +237,7 @@ mutation call happens where the mutation happens — on the owner's client — a
 `../backlog/todo/merge-remote-inventory-design-into-corpus.md`): the two-client feel — native animation, sound and timing on the operator's
 screen — is the release-cycle acceptance and no test can produce it; an item sound produced INSIDE a replayed call is heard on the owner's client
 alone, because a remote-driven replay runs under the remote-apply scope whose sounds are deliberately not attributed to the local player
-(`../backlog/review/suppressed-native-call-sounds-stay-unheard.md`); the radial weight readout prints the operator's own encumbrance, because the
+(`../backlog/done/suppressed-native-call-sounds-stay-unheard.md`); the radial weight readout prints the operator's own encumbrance, because the
 native code reads the local body and the clone carries no encumbrance projection; an owner's body runs no release animation for the cross-player
 custody move, ruled accepted (decision 240) because the native world has no such call to replay; and no automated three-client test drives the
 third peer's view.

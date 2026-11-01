@@ -1,8 +1,16 @@
 # Step 0 — the working mode
 
-**Every round starts here.** Read this file and `00-work-mode.local.md` completely before the first tool call, even
-if the previous round read them.
+## No intermediate reporting. Ever.
 
+A turn ends in one of four states only: the item is finished, the user must decide something, a destructive action needs
+confirmation, or a subagent/background job is being waited on. Everything else is a tool call. A progress message, a
+"here is where I am", a summary of what was just read, a list of what remains — all of them are the same violation: they
+hand the work back unfinished. The reader does not want the middle, they want the result; an intermediate result is not a
+result. If a sentence would not change what the user does next, it must not be written — and after deleting it, the next
+action is a tool call, not a shorter sentence about why.
+
+Measured 2026-11-02: a batch was driven for hours and reported after every two or three calls; every message was a stop,
+and the work only advanced between them.
 ## One work item is one continuous stream
 
 A work item runs from reading evidence to a verified result as ONE chain of tool calls: read → judge → change → build →

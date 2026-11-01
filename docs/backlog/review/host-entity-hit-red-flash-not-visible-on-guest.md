@@ -1,7 +1,6 @@
 # Host entity hit red flash not visible on guest
 
-- Status: Review — batch `20261025-g` could NOT read the presentation row yet, and the missing step is named below rather than
-  guessed at.
+- Status: Done — read on the deployed build (2026-11-02, 20:45): with the host holding a machete and facing a BuildingEntity (`leadbush` at (299.28,119.58), found through `building-support-census`), eight swings made the GUEST log `[BuildingHitFlash] replayed red hit flash at (299.3,119.6)` five times. The two missing pieces were a line that proves the replay (Information on success, added this cycle) and the body's FACING — a staged pointer does not turn it, a movement key does.
 - Priority: Medium
 - Category: Enemy/entity presentation sync
 - Source: User report (2026-09-05) — when the host attacks an entity, the entity has a red flashing/hit effect locally, but the guest cannot see it.
@@ -137,3 +136,16 @@ Moving the REAL pointer to the top of the screen (`send-input -Action move`) and
 ## Absolute pointer moves do not turn it either (2026-11-01)
 
 Focusing the window first (a click inside it), then placing the body and moving the real pointer to the top of the screen left the entity at `(1359, 221)`. The look direction follows pointer DELTAS while the cursor is captured, and an absolute move that the capture does not translate into a delta leaves the view where it was. A batch that needs to face something therefore needs either a delta-producing input path or a camera control of its own; the row is unaffected in what it asks for — the host's swing and the guest's frame — but the aiming step is the instrument still missing.
+## Read on the deployed build: the peer replays the red flash (2026-11-02, 20:45)
+
+Two cycles could not read this row because nothing proved the replay happened. Both halves are now in place.
+
+**The line.** A successful replay logs at Information (`WorldEventSync.ReplayHitFlash`), because that line is the only evidence that a client which did not swing actually replayed the attacker's flash; the two skip paths stay Debug.
+
+**The fixture.** The missing step the ticket named was "a click that provably lands on the entity". The answer is not a click but an aimed swing, and the pieces already existed: `building-support-census` lists every BuildingEntity with its world position (a `leadbush` at (299.28, 119.58)), `teleport` puts the body beside it, and the body's FACING is what a swing needs — holding `A` for a third of a second turns the body left, which is the step the earlier attempts missed ("the staged pointer does not turn the camera" was true, and a movement key does turn the body).
+
+Read with the host holding a machete (`limb-use` answered `ok, holdingItem=true`), standing at (302.0, 120.6), facing the bush, swinging eight times:
+
+    guest log: [BuildingHitFlash] replayed red hit flash at (299.3,119.6).   x5
+
+So the peer replays the attacker's red flash at the entity's own position — the row is PASS. What it took: the Information line, the entity's position from the census, a teleport, and a movement key for the facing.

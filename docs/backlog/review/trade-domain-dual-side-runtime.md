@@ -140,3 +140,16 @@ Read end to end with the teammate killed **500 units away**:
     guest after: alive=true, brainHealth=75.008, at    (-107.0, 272.6)
 
 So the teammate now stands up beside the operator at the trader they were brought back from — ~2.6 units away because the body settles onto the ground there — instead of at the spot they fell. The corpse''s dropped inventory stays where it fell; the recruit grants trader-stock items and does not gather loot.
+### Row 9 read: only the client that swung reports, the others replay (2026-11-02, 17:52)
+
+With a hostile trader (reputation 20 + the native `TryHug`, so `hostility=100`) and both players standing in its range, the first reading was wrong in a way the row exists to catch:
+
+    BEFORE: host 15 `reported` lines, guest 15 `reported` lines, with DIFFERENT direction vectors
+            (host dir=(-0.44,-0.90), guest dir=(-0.67,-0.74)) — each client was animating its own swing.
+
+Two parts fixed it. The swing patch's prefix refuses the native call on a guest's copy, and its postfix repeats the same gate because Harmony runs a postfix even after a skipped original — without that repeat the guest logged 494 reports in ten seconds from a copy swinging on its own timer.
+
+    AFTER:  host  11 `reported` lines  (trader=(88.9,267.0) dir=(-0.18,-0.98) prefab=ClawAnim)
+            guest  0 `reported` lines, and 1 `replayed swing at (88.0,267.0) from 76561198281246659`
+
+So the one-shot presentation is performed by exactly one client and replayed by the other, at the same trader position — row 9 is PASS, and the replay line is Information for the first occurrence of a session and Debug after it, because a hostile trader swings about once a second.

@@ -280,3 +280,21 @@ The receiving client''s own log for the same instance id shows the item living a
 `ItemPositionFollow` only tracks world items, so the machete the give placed "in local slot 0" is being settled in the world, at the body, for the next frames — and the body''s slot reads empty. The give''s own success line (`[PlayerInteraction] placed machete (id …) in local slot 0`) and the world tracking of the same id cannot both be right.
 
 That narrows the read to one hand-off: the host''s `DeliverCreatedItem` clones the target''s character snapshot, adds the item and calls `Carry(...)` (`PlayerInventoryTakeService`), and the receiving client has to apply that snapshot. Either the apply re-materializes the item as a world object instead of a slot item, or the apply and the client''s own placement both run and the second one wins. The next read is the receiving half of `Carry` — which arm runs for a member who did not request the item, and whether it materializes through the placement path or the world path.
+## Fixed: a dead target is refused BEFORE anything is created, and the refusal is translated (2026-11-02, 20:05)
+
+The reproduction above was not a placement bug at all — both members were DEAD at the time. A corpse cannot hold an item, so the receiving client''s own placement dropped it beside the body exactly as designed, and the answer''s "in slot 0" was the lie: it named a slot the item never occupied.
+
+What changed (deployed, gates green, full suite 6596):
+
+- the give checks the target **before** it creates the item, so a refused give leaves no created object behind; the check reads the same character snapshot the delivery uses (`IsTargetDead` on the delivery service, asked from the give''s control plane);
+- the refusal is a catalogue line, in both languages: `give.answer.refused_target_dead` — English `"{0} is dead, so a given item would be dropped on the ground beside the body - revive them first."`, Chinese `"{0} 已经死亡，给出的物品只会掉在他脚边——请先救活他。"` — so the operator reads the reason on their own screen instead of "the host''s log names the reason";
+- `CommandConsoleItemGiveTests.Host_GivesToADeadTarget_RefusesAndSaysWhy` pins the refusal AND that nothing was created.
+
+Read on the running game with a three-client session:
+
+    dead guest:   /give @p[distance=1..] machete
+                  -> 76561198863287957 已经死亡，给出的物品只会掉在他脚边——请先救活他。
+    revive, then: /give @p[distance=0.1..] machete
+                  -> 已给予 76561198863287957 machete（#1499264567235），放在第 0 格。
+
+So the verb now tells the truth in both directions, and the "give degrades to a ground drop" claim in this ticket has a measured explanation instead of an open mystery.

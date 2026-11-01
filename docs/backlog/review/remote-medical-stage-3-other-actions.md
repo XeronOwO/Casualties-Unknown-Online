@@ -155,3 +155,16 @@ The catalogue's third family beyond bandages and heal items (`RemoteOtherMedical
     [MedicalOps3] started Dislocation operation …
 
 So the wrench is accepted and routed to a native minigame rather than a one-shot apply — the same shape as the bandage, and the same residual: the limb's `dislocated` stays true until that minigame is played, which this batch's per-step driving cannot do inside the operation's 20 s idle window. The amputation tools (`machete`, `titaniummachete`, `crudecleaver`, `sickle`, `claws`, `titaniummultitool`, `flimsyknife`) and the defibrillators (`aed`, `manualdefibrillator`) are the two remaining families in that catalogue and each needs its own fixture (a limb to cut, a stopped heart).
+
+## Rows 1 and 3 read: the other two directions, splint through the chart (2026-11-01, 16:45)
+
+The matrix's remaining directions were read on one three-client session, each through the chart's own path with the patient's client answering for what landed:
+
+| row | actor -> patient | reading |
+|---|---|---|
+| 1 (guest treats host) | guest -> host | the host gave the guest a splint by name (`placed in slot 0`), the guest opened the HOST's chart (`opened=True`) and released on limb 3; the host's own client ends with **`SplintLimb`** on that limb |
+| 3 (guest treats guest) | alt -> guest | the host gave the alt a splint, the alt opened the GUEST's chart (`opened=True`) and released on limb 5; the guest's own client ends with **`SplintLimb`** on that limb |
+
+With the host-to-member column read earlier (bandage, splint, tourniquet, icepack, suture, clotting mush), the matrix now has all three directions proven for at least one treatment each, and two of them for a limb tool applied by a NON-host operator — which is the direction the star topology could most plausibly have broken.
+
+Still open in this ticket: row 4 (an observer's view of the same treatment reading identically — the patient and the operator already agree, the third client's view has not been compared) and the actions whose fixtures the batch cannot produce (a syringe holding a liquid, the amputation tools, a defibrillator's stopped heart).

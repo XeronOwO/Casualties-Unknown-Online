@@ -149,7 +149,24 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 		domains.Log.LogWarning(
 			"[PlayerInteraction] {ItemId} (id {InstanceId}) cannot take the answered destination: {Reason} — reporting that nothing was placed instead of substituting.",
 			item.ItemId, item.InstanceId, reason);
+		AlertLocalPlayer("interaction.alert.transfer_refused", item.ItemId);
 		return LocalPlacement.NotPlaced(reason);
+	}
+
+	/// <summary>
+	/// Tell THIS client's player, on their own screen, why an incoming hand-over did not land. The receiving side is the one
+	/// that knows the reason, and the rule this serves is explicit that both players are told: the giver reads the answer, the
+	/// receiver reads this line. The game's own alert surface (`PlayerCamera.DoAlert`) is what every in-world notice uses.
+	/// </summary>
+	private void AlertLocalPlayer(string labelKey, params string[] args)
+	{
+		var camera = PlayerCamera.main;
+		if (camera == null) // Unity object — ==
+		{
+			return;
+		}
+
+		camera.DoAlert(domains.Localization.Format(labelKey, args), false);
 	}
 
 	/// <summary>

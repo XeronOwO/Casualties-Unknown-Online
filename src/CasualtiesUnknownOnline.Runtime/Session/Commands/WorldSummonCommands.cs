@@ -20,7 +20,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// own command returns the host's answer, which the console prints at once.
 /// </para>
 /// </summary>
-internal sealed class WorldSummonCommands(IWorldSummonControl summon, CheatVerbGate cheatVerbs)
+internal sealed class WorldSummonCommands(IWorldSummonControl summon, CheatVerbGate cheatVerbs) : IConsoleCommandGroup
 {
 	private readonly IWorldSummonControl _summon = summon;
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;

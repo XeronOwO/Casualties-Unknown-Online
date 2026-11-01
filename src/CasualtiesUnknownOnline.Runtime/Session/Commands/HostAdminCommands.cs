@@ -24,7 +24,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 internal sealed class HostAdminCommands(
 	IHostBanService hostBans,
-	ISessionControl session)
+	ISessionControl session) : IConsoleCommandGroup
 {
 	private readonly IHostBanService _hostBans = hostBans;
 	private readonly ISessionControl _session = session;

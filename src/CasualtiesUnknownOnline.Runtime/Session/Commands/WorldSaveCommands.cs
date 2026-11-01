@@ -22,7 +22,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 internal sealed class WorldSaveCommands(
 	IWorldSaveControl saves,
-	ILogger log)
+	ILogger log) : IConsoleCommandGroup
 {
 	private readonly IWorldSaveControl _saves = saves;
 	private readonly ILogger _log = log;

@@ -32,7 +32,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// member-only and refuses the host, which never reports its own trade actions.
 /// </para>
 /// </summary>
-internal sealed class AcceptanceCommands(ISessionControl session, IWorldControl world, CheatVerbGate cheatVerbs)
+internal sealed class AcceptanceCommands(ISessionControl session, IWorldControl world, CheatVerbGate cheatVerbs) : IConsoleCommandGroup
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;

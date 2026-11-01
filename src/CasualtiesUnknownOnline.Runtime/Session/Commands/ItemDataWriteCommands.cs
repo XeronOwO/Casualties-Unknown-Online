@@ -40,7 +40,7 @@ internal sealed class ItemDataWriteCommands(
 	IItemStateLanguage language,
 	ILogger log,
 	CheatVerbGate cheatVerbs,
-	ItemDataTargets targets)
+	ItemDataTargets targets) : IConsoleCommandGroup
 {
 	private readonly IKernelItemFacts _items = items;
 	private readonly ISessionControl _session = session;

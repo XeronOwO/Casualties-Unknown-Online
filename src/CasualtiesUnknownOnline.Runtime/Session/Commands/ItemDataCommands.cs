@@ -33,7 +33,7 @@ internal sealed class ItemDataCommands(
 	IItemStateLanguage language,
 	ILogger log,
 	ItemDataTargets targets,
-	ItemDataWriteCommands writes)
+	ItemDataWriteCommands writes) : IConsoleCommandGroup
 {
 	/// <summary>The sentence a build with no Game Adapter answers: it cannot name the state's keys.</summary>
 	internal const string NoLanguage = "This build cannot read an item's state: no Game Adapter is loaded, so its keys are not known here.";

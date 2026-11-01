@@ -25,7 +25,7 @@ internal sealed class CheatAdminCommands(
 	ISessionControl session,
 	CheatPermissions permissions,
 	ICheatPermissionAnnouncement announcement,
-	ILogger log)
+	ILogger log) : IConsoleCommandGroup
 {
 	private readonly ISessionControl _session = session;
 	private readonly CheatPermissions _permissions = permissions;

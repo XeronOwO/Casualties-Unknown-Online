@@ -25,7 +25,7 @@ internal sealed class SpectatorCommands(
 	ISessionControl session,
 	IEntitySyncControl entities,
 	ISpectatorControl? spectator,
-	ILogger log)
+	ILogger log) : IConsoleCommandGroup
 {
 	private readonly ISessionControl _session = session;
 	private readonly IEntitySyncControl _entities = entities;

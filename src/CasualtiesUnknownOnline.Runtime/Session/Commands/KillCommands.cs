@@ -26,7 +26,7 @@ internal sealed class KillCommands(
 	IHealResetControl healReset,
 	CheatVerbGate cheatVerbs,
 	ISessionControl session,
-	IEntitySyncControl entities)
+	IEntitySyncControl entities) : IConsoleCommandGroup
 {
 	private readonly IHealResetControl _healReset = healReset;
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;

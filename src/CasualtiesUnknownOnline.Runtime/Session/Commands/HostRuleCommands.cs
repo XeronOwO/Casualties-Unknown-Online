@@ -32,7 +32,7 @@ internal sealed class HostRuleCommands(
 	IHostRules hostRules,
 	IHostRuleChangeControl changes,
 	CheatVerbGate cheatVerbs,
-	ILogger log)
+	ILogger log) : IConsoleCommandGroup
 {
 	private readonly IHostRules _hostRules = hostRules;
 	private readonly IHostRuleChangeControl _changes = changes;

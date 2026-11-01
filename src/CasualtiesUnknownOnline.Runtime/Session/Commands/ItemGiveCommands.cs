@@ -28,7 +28,7 @@ internal sealed class ItemGiveCommands(
 	IPlayerInteractionControl playerInteraction,
 	CheatVerbGate cheatVerbs,
 	ItemDataTargets targets,
-	ILogger log)
+	ILogger log) : IConsoleCommandGroup
 {
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
 	private readonly CheatVerbGate _cheatVerbs = cheatVerbs;

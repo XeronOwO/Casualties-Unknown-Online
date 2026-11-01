@@ -33,7 +33,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// no host relay. Host-only commands are enforced by role and use the existing
 /// session/ban services on the host process.
 /// </summary>
-public sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource, ICommandArgumentSuggestions, ISessionReset, IConsoleLineSink
+internal sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource, ICommandArgumentSuggestions, ISessionReset, IConsoleLineSink
 {
 	private const int MaxLines = 200;
 
@@ -89,6 +89,9 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		CheatPermissions cheatRoster,
 		ICheatPermissionAnnouncement cheatAnnouncement,
 		IWorldControl world,
+		IEnumerable<IConsoleCommandGroup> groups,
+		ConsoleCommandAuthority authority,
+		ItemDataTargets itemTargets,
 		CommandRelayHub relayHub,
 		ISpectatorControl? spectator = null,
 		ILocalizationService? localization = null)
@@ -142,29 +145,19 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 		// ...and the host's answer to a member's /gamerule, whose config write is the host's (never this client's).
 
+		// This class's own verbs plus every group the container hands over: the attribute scan is the
+		// registry's, and the LIST lives in ConsoleComposition, so a new verb family is one registration
+		// there and never an edit here.
 		_commands.AddBuiltIns(this);
-		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session));
-		_commands.AddBuiltIns(new CheatAdminCommands(session, cheatRoster, cheatAnnouncement, log));
-		_commands.AddBuiltIns(new SpectatorCommands(session, entities, spectator, log));
-		_commands.AddBuiltIns(new GamemodeCommands(spectator, log));
-		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
+		foreach (var group in groups)
+		{
+			_commands.AddBuiltIns(group);
+		}
 		// The item-data family's two verb groups share one gate and one target
 		// resolver: /data writes this client's own item, /give makes a new one, and
 		// both answer the same cheat rulings and the same selector verdict.
-		_authority = new ConsoleCommandAuthority(session, _cheatVerbs);
-		// The host-rule verb is the cheat family's too (the user's 2026-10-24 ruling); its own group holds the gate.
-		_commands.AddBuiltIns(new HostRuleCommands(hostRuleSurface, hostRuleChanges, _cheatVerbs, log));
-		var targets = new ItemDataTargets(kernelItems, session, entities, localItems);
-		var writes = new ItemDataWriteCommands(kernelItems, session, localItems, itemControl, itemStateLanguage, log, _cheatVerbs, targets);
-		_commands.AddBuiltIns(new ItemDataCommands(kernelItems, itemStateLanguage, log, targets, writes));
-		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, _cheatVerbs, targets, log));
-		_commands.AddBuiltIns(new WorldSummonCommands(worldSummon, _cheatVerbs));
-		_commands.AddBuiltIns(new HealResetCommands(healReset, _cheatVerbs, session, entities));
-		_commands.AddBuiltIns(new KillCommands(healReset, _cheatVerbs, session, entities));
-		// A run's own levers: the acceptance-only verbs must be reachable from the console, and their
-		// owner registers itself through the same attribute scan as every other group above. The cheat
-		// gate is the permission: a lever that can move a trader's credit is not a player's shortcut.
-		_commands.AddBuiltIns(new AcceptanceCommands(session, world, _cheatVerbs));
+		_authority = authority;
+		var targets = itemTargets;
 		// The completion side is its own collaborator (this class is at the aggregate-size gate): it owns
 		// the contextual sources and asks the same authority predicate the dispatcher and /help use.
 		_completion = new CommandConsoleCompletion(

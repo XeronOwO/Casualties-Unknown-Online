@@ -1,7 +1,11 @@
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Composition;
 
@@ -44,6 +48,41 @@ internal static class ConsoleComposition
 		// body instead of killing nothing and saying nothing.
 		services.AddSingleton<ILocalBodyKill>(new UnavailableLocalBodyKill());
 		services.AddSingleton<CommandRelayHub>();
+		// The verb groups, registered as themselves. The console asks for
+		// IEnumerable<IConsoleCommandGroup> and runs its attribute scan once per element, so this block
+		// is the ONLY place a new family is announced — the console carries no list.
+		// (docs/development/agent-reference.md: attribute + reflection registration over hard-coded
+		// linear registration for large verb families.)
+		// The verb groups log through the console's own category (a non-generic ILogger), so the container
+		// bridges it once here instead of every group carrying a factory.
+		services.AddSingleton<ILogger>(p => p.GetRequiredService<ILogger<CommandConsoleService>>());
+		services.AddSingleton<CheatVerbGate>();
+		services.AddSingleton<ConsoleCommandAuthority>();
+		services.AddSingleton<ItemDataTargets>();
+		services.AddSingleton<IConsoleCommandGroup, HostAdminCommands>();
+		services.AddSingleton<IConsoleCommandGroup, CheatAdminCommands>();
+		// Two groups take the spectator surface, which a build without a game scene does not register: the
+		// factories pass null, which those groups already treat as "spectating unavailable".
+		services.AddSingleton<IConsoleCommandGroup>(p => new SpectatorCommands(
+			p.GetRequiredService<ISessionControl>(),
+			p.GetRequiredService<IEntitySyncControl>(),
+			p.GetService<ISpectatorControl>(),
+			p.GetRequiredService<ILogger>()));
+		services.AddSingleton<IConsoleCommandGroup>(p => new GamemodeCommands(
+			p.GetService<ISpectatorControl>(),
+			p.GetRequiredService<ILogger>()));
+		services.AddSingleton<IConsoleCommandGroup, WorldSaveCommands>();
+		services.AddSingleton<IConsoleCommandGroup, HostRuleCommands>();
+		// The write group is a dependency of the /data group as well as a verb group of its own, so it is
+		// registered as itself and the group registration points at the same instance.
+		services.AddSingleton<ItemDataWriteCommands>();
+		services.AddSingleton<IConsoleCommandGroup>(p => p.GetRequiredService<ItemDataWriteCommands>());
+		services.AddSingleton<IConsoleCommandGroup, ItemDataCommands>();
+		services.AddSingleton<IConsoleCommandGroup, ItemGiveCommands>();
+		services.AddSingleton<IConsoleCommandGroup, WorldSummonCommands>();
+		services.AddSingleton<IConsoleCommandGroup, HealResetCommands>();
+		services.AddSingleton<IConsoleCommandGroup, KillCommands>();
+		services.AddSingleton<IConsoleCommandGroup, AcceptanceCommands>();
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());

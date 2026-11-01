@@ -20,7 +20,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// </summary>
 internal sealed class GamemodeCommands(
 	ISpectatorControl? spectator,
-	ILogger log)
+	ILogger log) : IConsoleCommandGroup
 {
 	private readonly ISpectatorControl? _spectator = spectator;
 	private readonly ILogger _log = log;

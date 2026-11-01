@@ -1,6 +1,6 @@
 # Runtime entity creation can be absorbed by a markerless same-prefab copy
 
-- Status: Review
+- Status: Review — rows 1-8 and 10 are read; row 9 (a live runtime spawn) is blocked on a fixture: this build produces no runtime entity spawn on demand. Two attempts are recorded below (a blast on a live `BuildingEntity` removing three generation enemies left `runtimeSpawns=0`, and the earlier whole-world read also answered 0), so the row needs the game to spawn an animal rather than a batch to provoke one
 - Priority: Low-Medium
 - Category: Network / sync coverage / world entities
 - Source: round-4 independent re-review of `done/runtime-entity-spawn-backfill.md` (2026-09-09)

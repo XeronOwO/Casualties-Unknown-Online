@@ -1,5 +1,5 @@
 // recipe: item-world-read
-// args: x=n y=n radius=n   (x,y are WORLD positions; the recipe converts with WorldGeneration.WorldToBlockPos)
+// args: x=n y=n radius=n
 // serves: item-creation-registration-first rows 2 and 4 (the refused drop ids, and the world item two senders contend for)
 // returns: ok, cellX, cellY, radius, count, items, error, detail
 //

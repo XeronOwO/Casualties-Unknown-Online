@@ -176,6 +176,30 @@ public class RemoteMedicalHeartbeatTests
 		Assert.Contains("return false;", prefix);
 	}
 
+	[Fact]
+	public void ShouldPlayFlatline_OnlyOnTheBeatingToArrestEdge()
+	{
+		// The native edge (PlayerCamera.cs:1859-1863): the clip plays on the frame a beating body reads arrested, never
+		// again while it stays arrested, and again only after it has beaten once more.
+		Assert.True((bool)Call("ShouldPlayFlatline", true, true, false)!);
+		Assert.False((bool)Call("ShouldPlayFlatline", false, true, false)!);
+		Assert.False((bool)Call("ShouldPlayFlatline", true, false, false)!);
+		Assert.True((bool)Call("ShouldPlayFlatline", true, true, false)!);
+	}
+
+	[Fact]
+	public void ShouldPlayFlatline_IsRefusedInAnUnchippedRun() =>
+		// The native block is gated on !WorldGeneration.unchipped, so an unchipped run never plays it.
+		Assert.False((bool)Call("ShouldPlayFlatline", true, true, true)!);
+
+	[Fact]
+	public void FlatlineClip_IsTheNativeName()
+	{
+		Assert.NotNull(Heartbeat);
+		var field = Heartbeat!.GetField("FlatlineClip", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+		Assert.NotNull(field);
+		Assert.Equal("flatline", field!.GetRawConstantValue());
+	}
 	private static void Reset() => Call("Reset");
 
 	private static object? Call(string name, params object?[] args)

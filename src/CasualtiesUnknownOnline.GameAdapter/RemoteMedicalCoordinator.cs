@@ -164,6 +164,10 @@ internal sealed class RemoteMedicalCoordinator(
 			// its critical state and its fibrillation damping. The native local-body thump is refused while
 			// this focus is open (RemoteMedicalPatches.RemoteMedicalNativeHeartbeatPatch).
 			RemoteMedicalHeartbeat.Play(display, _log);
+
+			// The panel's other heart edge: the native flatline is tied to the VIEWER's body, so the displayed body's
+			// stop has to be announced from here or the panel goes silent exactly when its patient dies.
+			RemoteMedicalHeartbeat.PlayFlatline(display, _log);
 		}
 	}
 	/// <summary>

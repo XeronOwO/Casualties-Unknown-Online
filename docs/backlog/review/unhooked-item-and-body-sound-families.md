@@ -166,3 +166,12 @@ The vomit half, the same way, one `Vomiter.Vomit` through `body-call kind=vomit`
     plays 219 -> 220, names gained [vomit2]
 
 One playback for one event — the "once, not once per coroutine step" clause read as a count, on the peer rather than in a log. The nap half of the row stays where the earlier note left it: the nap's own `stretch` clip never played on either client in this session, which is a separate reading (the clip's presence in this build) rather than a relay question.
+
+## The nap half: the clip exists, its routine never ran (2026-11-01, 17:55)
+
+Two readings settle what the nap half is waiting on, and neither is the relay:
+
+- **The clip is in this build.** A new probe (`audio-resource clip=<name>`, which asks `Resources.Load<AudioClip>("Sounds/" + clip)` — the exact path `Sound.Play(string, …)` loads from) answers `present=true` for `stretch`, and for `dogshake`, `vomit2`, `bandage` and `drop` as a control set. So a silent nap is not a missing resource.
+- **Its routine never started.** `Body.NapCoroutine` plays `stretch` 0.3 s in, and `Body.TakeANap` starts that coroutine only when the body's own `canTakeNap` gate holds (`reversing/Assembly-CSharp/Assembly-CSharp/Body.cs`). `body-call kind=nap` answered `applied=true` with the note that it starts only when `canTakeNap` holds, and the host's frame-accurate watcher stayed at `plays=0` across the whole window — on the acting client itself, which is where the clip would play first.
+
+So the nap half needs a body that CAN nap (the gate is the game's own, not the batch's), and the relay question for it is unasked until then. The clip's presence, which was the other candidate explanation, is now ruled out.

@@ -103,7 +103,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
-- [A nested container's clone proxy leaks as a world item](review/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — attached at the door.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 - [Drag-use aims at the model, not a fixed circle](review/cross-player-drag-use-model-bounds.md) — **Medium** — the model measures itself; rows need a mouse.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
@@ -168,6 +167,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Nested container clone proxy leaks](done/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — defensive branch; the shape cannot be produced.
 - [Topical limb action shape](done/topical-limb-action-shape.md) — **Medium** — the classifier decides by the limb action; unfitting containers refuse by name.
 - [Guest background ghost item sounds](done/guest-background-ghost-item-ground-sounds.md) — **Medium** — ghost impacts suppressed by role.
 - [Remote medical treatment operations](done/remote-medical-treatment-operations.md) — **Medium** — the limb drag commits through the host-arbitrated operation.

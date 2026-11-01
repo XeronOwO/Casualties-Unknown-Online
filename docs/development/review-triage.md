@@ -86,7 +86,6 @@ The remote chart is proven end to end for a BANDAGE (release, native minigame, h
 | Ticket | Why it cannot be staged |
 |---|---|
 | `trap-layout-crystal-rows-empty.md` | no prefab carries `CrystalBehaviour` on this build, so no scan can produce a crystal row |
-| `nested-container-clone-proxy-leaks-as-world-item.md` | the shape (a container holding a container with contents) does not occur in a generated world: 269 items and 6 containers scanned, none nested-with-contents |
 | `runtime-entity-markerless-bind-absorption.md` | row 9 needs a world that CARRIES a runtime creation (`accepted=0, animals=0, pending=0` in two sessions) |
 | `unhooked-damage-block-callers.md` | row 2 needs a spider-burrow path this machine does not have |
 

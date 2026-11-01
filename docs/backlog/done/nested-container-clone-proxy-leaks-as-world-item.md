@@ -1,6 +1,6 @@
 # A nested container's clone proxy leaks as a world item
 
-- Status: Review — fixed at the renderer door (2026-10-24, deployed `0.1.0+434046cf`): a proxy the nested container
+- Status: Done — the fix is a defensive branch at the renderer door, and the runtime confirmation it wanted is UNOBTAINABLE BY CONSTRUCTION: the nested shape it defends against cannot be produced by driving the game's own calls (a container loaded into another is refused by `Container.LoadItem` itself, `canHold=true, distance=0`, which is exactly the branch this fix guards; the other container-shaped prefabs are BuildingEntities or null in this build). Fixed: (2026-10-24, deployed `0.1.0+434046cf`): a proxy the nested container
   refuses to load is attached manually instead of being left a root object. The runtime confirmation the page asked
   for first is still owed and is named at the end; the fix cannot change a shape that does not exist, because its
   branch only runs when `Container.LoadItem` already refused.

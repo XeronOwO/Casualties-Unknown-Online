@@ -88,7 +88,7 @@ The user retested and reported: the item lost after a rearrange is **the one jus
 ```
 
 So the authoritative row was never asked to move. What the host sees vanishing is the **display proxy**, and the likely mechanism is the one the
-`review/nested-container-clone-proxy-leaks-as-world-item.md` ticket already names: a drag on a proxy item runs the native body on the viewer,
+`done/nested-container-clone-proxy-leaks-as-world-item.md` ticket already names: a drag on a proxy item runs the native body on the viewer,
 which DROPS the proxy into the viewer's world; the row is intact and the other client still holds the item, while the viewer's own screen loses
 it and its clone table then diverges.
 

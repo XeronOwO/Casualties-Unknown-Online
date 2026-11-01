@@ -63,7 +63,7 @@ here they disagreed about all 80 enemies.
 ## Rejected alternatives
 
 - **Pair the runtime fact with the peer's generated copy by kind and position.** That is the markerless
-  positional absorption `review/runtime-entity-markerless-bind-absorption.md` deleted: it binds a record to
+  positional absorption `done/runtime-entity-markerless-bind-absorption.md` deleted: it binds a record to
   a copy that never carried its identity.
 - **Classify by the `RuntimeEntityCreation` marker instead of the event.** A tutorial prop and an entity
   with an empty `BuildingEntity.id` never enter the creation channel, so host and guest would classify

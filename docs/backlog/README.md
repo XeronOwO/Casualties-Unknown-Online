@@ -116,7 +116,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
-- [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — rows 1-7/9/12-19/21/23 pass; 8/10/20/22 unproven.
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
@@ -163,6 +162,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Markerless runtime binds](done/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — closed; row 9 read on both clients.
 - [Item and body sound families](done/unhooked-item-and-body-sound-families.md) — **Low-Medium** — closed; row 2 became decision 271.
 - [The trader kept talking beside a corpse](done/trader-mutters-forever-near-a-corpse.md) — **Medium** — fixed; 329 in 5s -> 2 in 12s.
 - [State streams flooded the wire](done/item-move-stream-floods-the-wire.md) — **High** — closed; 213 -> 20 KB/s.

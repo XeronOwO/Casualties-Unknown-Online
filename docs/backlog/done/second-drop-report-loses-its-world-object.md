@@ -22,7 +22,7 @@
   `done/nested-container-clone-proxy-leaks-as-world-item.md` (the same clone-proxy family one level down: a
   proxy the renderer cannot load at all stays a root object and enters the item domain at its own `Start` —
   source reading, not yet observed at runtime),
-  `review/runtime-entity-markerless-bind-absorption.md` (the runtime-ENTITY sibling of this pattern — a
+  `done/runtime-entity-markerless-bind-absorption.md` (the runtime-ENTITY sibling of this pattern — a
   record bound to a markerless same-prefab copy by position; this ticket is the item-domain instance),
   `done/guest-container-contents-ghost-drops-on-host.md` (the display-proxy family this path escaped, and the
   ticket that first named the proxy skips as the live defence),

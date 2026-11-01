@@ -15,7 +15,7 @@
   appears as a world drop on the other side"); that fix removed the periodic rebuild, not this path.
 - Related: `done/guest-container-contents-ghost-drops-on-host.md` (the user report, and the ticket that
   named the display-proxy skips as the live defence), `done/second-drop-report-loses-its-world-object.md`
-  (the same family's adopt-path half, fixed 2026-10-06), `review/runtime-entity-markerless-bind-absorption.md`
+  (the same family's adopt-path half, fixed 2026-10-06), `done/runtime-entity-markerless-bind-absorption.md`
 
 ## The reading (source, not yet observed)
 

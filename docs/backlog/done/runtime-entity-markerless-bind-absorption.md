@@ -1,6 +1,6 @@
 # Runtime entity creation can be absorbed by a markerless same-prefab copy
 
-- Status: Review — rows 1-8 and 10 are read; row 9 (a live runtime spawn) is blocked on a fixture: this build produces no runtime entity spawn on demand. Two attempts are recorded below (a blast on a live `BuildingEntity` removing three generation enemies left `runtimeSpawns=0`, and the earlier whole-world read also answered 0), so the row needs the game to spawn an animal rather than a batch to provoke one
+- Status: Done — rows 1-8 and 10 were read earlier, and row 9 now has its dual-client reading (2026-11-02, 18:05): `/summon shadecrawler player` raises the host's enemy table from 44 to 45 with `runtimeSpawns=1` and the row carrying `counter=44` at (85.8,267.4); the guest's runtime census shows the same creation (`seq=23913414`, creator the host) at once, and the same enemy row reads `runtimeSpawned=true` after the roster cadence. The marker travels with the creation channel; the kernel fact that stamps the row arrives with the roster snapshot, which is the retry case the binder names.
 - Priority: Low-Medium
 - Category: Network / sync coverage / world entities
 - Source: round-4 independent re-review of `done/runtime-entity-spawn-backfill.md` (2026-09-09)
@@ -233,3 +233,21 @@ Two further readings, so the next attempt does not repeat them:
 - `layer-descend twice=0` answered `ok=true, worldY=0` and left the table unchanged (same 49, same `runtimeSpawns=0`), so this position has no sink to descend through and a descent is not a spawn source from here.
 
 The condition row 9 waits on is therefore exact and can be checked in one read next time: **a world in which `enemy-table-read` lists an animal prefab**. Until then the adapter's stamp-at-materialization half has no live input, and the row stays a named residual rather than a weaker check.
+## Row 9 read: a live runtime spawn, stamped on BOTH clients (2026-11-02, 18:05)
+
+The fixture the row was waiting for exists and was never tried: the console's own `/summon` verb creates a world entity on demand.
+
+    host, before:  enemy table count=44  runtimeSpawns=0
+    /summon shadecrawler player -> "spawned shadecrawler at (87.2, 267.5)"
+    host, after:   count=45  runtimeSpawns=1
+                   row prefab=shadecrawler at (85.8,267.4) epoch=639291234316467584 counter=44 generation=0
+    host census:   marked=1  seq=23913414 id=shadecrawler cell=(87,267) creator=76561198281246659 animal=True
+
+The guest side then reads the same creation:
+
+    guest census (immediately): marked=1, seq=23913414, cell=(87,267), creator=76561198281246659
+    guest enemy table (immediately): count=45, runtimeSpawns=0
+    guest enemy table (after ~12 s, the roster cadence): count=45, runtimeSpawns=1,
+                   prefab=shadecrawler at (85.7,267.4) counter=44
+
+So the marker read at capture travels to the peer's runtime-creation census at once, and the KERNEL fact that makes the enemy row `runtimeSpawned=true` arrives with the roster snapshot — not missing, just on that cadence. That is exactly what the binder's comment says it should do ("the fact's absence is the retry case, not a judgment"), and it is the dual-client verification this row was missing.

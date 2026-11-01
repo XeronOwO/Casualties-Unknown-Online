@@ -19,7 +19,6 @@ docs/backlog/review/recursive-crafting-mod.md
 docs/backlog/review/remote-medical-native-minigame-parity.md
 docs/backlog/review/remote-medical-stage-1-injection-session.md
 docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md
-docs/backlog/review/runtime-entity-markerless-bind-absorption.md
 docs/backlog/review/save-layer-end-save-and-restore.md
 docs/backlog/review/save-mid-run-consistent-cut.md
 docs/backlog/review/save-native-character-field-parity.md
@@ -30,6 +29,7 @@ docs/backlog/review/trade-domain-dual-side-runtime.md
 docs/backlog/review/trap-layout-crystal-rows-empty.md
 docs/backlog/review/unhooked-damage-block-callers.md
 docs/backlog/review/unified-remote-display-projection-rework.md
+
 
 
 

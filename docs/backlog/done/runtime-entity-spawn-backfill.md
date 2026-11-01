@@ -254,7 +254,7 @@ found two MAJOR regressions plus four MINORs. All are fixed and re-verified:
    is restored but restricted to MARKERLESS candidates, which keeps an
    enemy-domain backfill copy binding a live animal re-report while a sibling
    creation's marked copy can never be bound. **Coverage — SUPERSEDED: the markerless positional bind
-   was DELETED later by `review/runtime-entity-markerless-bind-absorption.md`, so the positional pass
+   was DELETED later by `done/runtime-entity-markerless-bind-absorption.md`, so the positional pass
    described here no longer exists; the current key-based binding is pinned by**
    `RuntimeEntityMatchTests.FindIndex_BindsTheCandidateCarryingTheSameCreationKey` +
    `FindIndex_TwoCreationsOfTheSamePrefabInOneCell_NeverShareACopy`; the
@@ -372,14 +372,14 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
 - The markerless positional pass could also ABSORB a genuine runtime creation into
   an unrelated markerless same-prefab copy within 1 m (a generated entity), and
   the bind then stamped that copy with the creation key. **RESOLVED 2026-09-09** by
-  `review/runtime-entity-markerless-bind-absorption.md`: the enemy backfill and the
+  `done/runtime-entity-markerless-bind-absorption.md`: the enemy backfill and the
   trap-layout materialization now carry the creation key, and the positional pass is
   deleted — a markerless copy is never a bind target.
 - The enemy domain's own late-join copy (`EnemySyncCoordinator.CreateRuntimeSpawn`)
   carried no creation marker; it bound a live re-report only through the
   markerless 1 m positional pass, so a late joiner's animal that had already
   drifted could still be duplicated by a surviving live re-report. **RESOLVED
-  2026-09-09** by `review/runtime-entity-markerless-bind-absorption.md` (the N1
+  2026-09-09** by `done/runtime-entity-markerless-bind-absorption.md` (the N1
   identity half): `EnemySpawnEntryMsg.CreationKey` rides the snapshot and the
   backfill copy is stamped, so the bind is by identity and distance-free. N1's
   remaining work (periodic snapshot resend, attack recovery) stays open in

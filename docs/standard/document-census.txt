@@ -272,7 +272,7 @@ docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md | keep | inde
 docs/backlog/done/remote-medical-stage-3-other-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-medical-treatment-operations.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-player-medical-panel.md | keep | index | docs/backlog/README.md
-docs/backlog/review/runtime-entity-markerless-bind-absorption.md | keep | index | docs/backlog/README.md
+docs/backlog/done/runtime-entity-markerless-bind-absorption.md | keep | index | docs/backlog/README.md
 docs/backlog/done/save-guest-restore-claim-and-legacy-store-retirement.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-layer-end-save-and-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-mid-run-consistent-cut.md | keep | index | docs/backlog/README.md

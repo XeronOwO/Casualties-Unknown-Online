@@ -5,7 +5,7 @@
 - Priority: Medium
 - Category: Network / sync coverage / enemies (host-authoritative binding)
 - Source: Sync coverage audit 2026-09-09 (`docs/evidence/sync-coverage-matrix.md` row N1, verdict `Event-only gap`); split from the former `enemy-snapshot-and-attack-recovery` umbrella — the attack half stays open in `review/enemy-hit-determination-local.md`
-- Related: `review/runtime-entity-markerless-bind-absorption.md` (the runtime-spawn creation key), `done/runtime-entity-spawn-backfill.md`, `done/trap-layout-snapshot-recovery.md` (the same repair-set family, W6)
+- Related: `done/runtime-entity-markerless-bind-absorption.md` (the runtime-spawn creation key), `done/runtime-entity-spawn-backfill.md`, `done/trap-layout-snapshot-recovery.md` (the same repair-set family, W6)
 
 ## Problem (evidence)
 
@@ -179,7 +179,7 @@ independent adversarial review reproduced both figures (and the checklist-filter
   stored anchor is "position at bind" — if the host binds that animal tens of milliseconds after its
   creation, the anchor is that later frame, not the creation spot. It is sound today because both
   sides' copies exist from the creation moment and the keyed cases are covered by
-  `review/runtime-entity-markerless-bind-absorption.md`; the generated baseline's anchor is the only
+  `done/runtime-entity-markerless-bind-absorption.md`; the generated baseline's anchor is the only
   key this change moved.
 - **An empty host table stays a no-op**, so a member is never "repaired" into an empty set (there is
   nothing to bind, and its own generated enemies stay) — the entry and repair paths agree.

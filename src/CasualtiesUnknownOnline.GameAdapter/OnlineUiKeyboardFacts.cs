@@ -61,7 +61,12 @@ internal static class OnlineUiKeyboardFacts
 			return false;
 		}
 
-		foreach (var text in menu.GetComponentsInChildren<TMP_Text>(true))
+		// ACTIVE texts only. The scan used to include inactive children, and the key-bind rows live on a tab that
+		// is deactivated while another tab is shown: with the menu open on Video, the Controls tab's rows still
+		// held their "..." labels and every Enter was refused as if a capture were running (measured 2026-11-02:
+		// the marker answered true on the Video tab with no capture started, and the console never opened).
+		var texts = menu.GetComponentsInChildren<TMP_Text>(false);
+		foreach (var text in texts)
 		{
 			if (text != null && text.text == "...") // Unity object — ==
 			{

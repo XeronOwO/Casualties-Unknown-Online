@@ -621,11 +621,14 @@ Each of these came from a screenshot the user sent, and each is now in the produ
 3. **Some rows had an empty right side** — the catalogue has no sentence for `craftchain` or a mod's verb. Such a row shows its
    usage in that space now, and no row is blank.
 
-The layout rule, after two rounds of the user's direction: **one option per line, and the usage inside that line**. A first
-attempt crammed description and usage into one line without constraining its width, which put a horizontal scrollbar under
-the list; a second attempt split the selected row into two lines, which read as two options. The shipped shape is one line per
-option — description then ` · ` then usage, clipped to the width the button leaves — so a long usage can neither widen the list
-nor wrap, and no row is ever taller than its neighbours.
+The layout rule, after three rounds of the user's direction: **one option per line, showing what the command IS and nothing
+else**. A first attempt crammed description and usage into one line without constraining its width (horizontal scrollbar); a
+second split the selected row into two lines (reads as two options); a third put the usage inside the one line, where the more
+complex a command is the less of its usage a player can read. The usage is gone from the list entirely, because the progressive
+explanation the user means is the ARGUMENT-BASED one: the list already steps from the verb to its arguments, and each level's
+hint says what that level expects. What a command row shows is its description — the built-in catalogue sentence, or the
+author's own sentence for a mod's verb (craftchain and the example weight verb are mod registrations, which is why those two
+rows read in English).
 
 Two measurements behind the pixel work: the row's hint and usage labels get a COMPUTED width (`rect.width - marker - the
 button's own measured width`), because a label that expands lets the scroll view size its content to the longest hint and that

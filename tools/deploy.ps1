@@ -199,6 +199,7 @@ foreach ($file in $stale) {
 # the contract (user report 2026-10-25: cuo.music and cuo.recursivecrafting both failed to load while pinyin, built the same day as the contract,
 # worked). Each entry is: built assembly -> the folder the game loads it from; the timestamp is printed so a stale copy is visible in the deploy log.
 $satelliteMods = @(
+    @{ Assemblies = @("CasualtiesUnknownOnline.ModExample.dll"); Folder = "CuoExample"; Project = "CasualtiesUnknownOnline.ModExample" },
     @{ Assemblies = @("CasualtiesUnknownOnline.Music.dll"); Folder = "MusicShare"; Project = "CasualtiesUnknownOnline.Music" },
     @{ Assemblies = @("CasualtiesUnknownOnline.RecursiveCrafting.dll", "CasualtiesUnknownOnline.RecursiveCrafting.Core.dll"); Folder = "RecursiveCrafting"; Project = "CasualtiesUnknownOnline.RecursiveCrafting" }
 )

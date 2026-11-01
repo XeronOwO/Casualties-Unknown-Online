@@ -568,3 +568,21 @@ The reading is a measurement, not an impression — `console-rects` reads the ov
 `rowRingX == inputTextX` is the alignment; `rowInkX` is the row's text, six pixels inside its own box, i.e. two pixels right of where the caret sits (the input field pads its text the same way). The enlarged crop of the region agrees.
 
 Step 8 and step 13 now carry the rule this cost: **a full-window capture is not the evidence for a layout row** — crop the region, enlarge it, and where the question is a position or an alignment, read a measured number beside it.
+## Rows 2 and 15 read, with a fixture the example mod now carries (2026-11-02, 01:15)
+
+Rows 2 and 15 needed a mod command with TWO parameters and one with a refusal whose key is missing. The example mod now registers `/exampledress <colour> <size>`, whose second parameter's words are a function of the first (`ICompletionContext.Arguments`), and whose three answers carry catalogue keys — one declared, two not on purpose.
+
+**Row 2** — the completer narrows on the earlier argument, read through the console's own `Suggest`:
+
+    /exampledress        -> 3 suggestions, first "red"
+    /exampledress red    -> 2, first "small"    (red: small, large)
+    /exampledress green  -> 1, "medium"         (green: medium only)
+    /exampledress blue   -> 2, first "tiny"     (blue: tiny, huge)
+
+**Row 15** — a mod's refusal uses its own catalogue entry, and a missing entry falls back to the command's text:
+
+    /exampledress red small   -> (translated) dressed the example in red (small)   (the declared key, in the client's language)
+    /exampledress purple small-> (translated) the example has no dressing colour 'purple' - it knows red, green and blue.   (declared key: the mod's own sentence)
+    /exampledress red huge    -> 'red' has no size 'huge'.          (UNDECLARED key: the command's text, not a key name)
+
+Both rows PASS. The deploy also learned something it should have known: the example mod was NOT in `deploy.ps1`'s satellite list, so the game kept a day-old copy of it — the list now carries `CuoExample` beside the other satellites, and the deploy log names its timestamp like theirs.

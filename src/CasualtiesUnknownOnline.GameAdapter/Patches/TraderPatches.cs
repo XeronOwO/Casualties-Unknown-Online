@@ -192,6 +192,16 @@ internal static class TraderPatches
 	[HarmonyPatch(typeof(TraderScript), "Swing")]
 	internal static class TraderSwingPatch
 	{
+		/// <summary>
+		/// A guest's trader COPY must not swing on its own: the host's trader is authoritative, and a copy that decides for
+		/// itself swings at a different moment and angle (measured 2026-11-02: with a hostile trader in range, BOTH clients
+		/// logged `reported`, with different direction vectors — each was animating its own swing instead of one being
+		/// replayed). The host keeps the native swing and reports it; everyone else receives it through
+		/// <see cref="TraderSwingReplay"/>, which does not call this method, so there is no recursion.
+		/// </summary>
+		private static bool Prefix(TraderScript __instance) =>
+			PatchBridge.Impl is not { } bridge || !bridge.IsSessionActive || bridge.IsHostMode;
+
 		private static void Postfix(TraderScript __instance) =>
 			PatchBridge.Impl?.OnTraderSwing(__instance);
 	}

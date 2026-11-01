@@ -80,7 +80,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 - [Third client drops a member as left](review/guest-entity-dropped-by-third-client.md) — **High** — a member's view of another member dies on a spurious leave.
-- [The trader keeps talking beside a corpse](review/trader-mutters-forever-near-a-corpse.md) — **Medium** — 20-65 bubbles/s.
 
 
 
@@ -165,6 +164,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The trader kept talking beside a corpse](done/trader-mutters-forever-near-a-corpse.md) — **Medium** — fixed; 329 in 5s -> 2 in 12s.
 - [State streams flooded the wire](done/item-move-stream-floods-the-wire.md) — **High** — closed; 213 -> 20 KB/s.
 - [Concurrent medical operations](done/concurrent-medical-operations.md) — **Medium-High** — closed; every matrix row read, including no-duplicated-progress.
 - [Remote medical: the stage-3 actions](done/remote-medical-stage-3-other-actions.md) — **High** — closed; all eight matrix rows read.

@@ -4,7 +4,7 @@
 
 `docs/design/surfaces/remote-body-presentation.md` owns what a peer may hear from another body. Read before the fix; the fix writes its conclusion back there.
 
-- Status: Review — found 2026-11-02 from the user's report ("at the trader the typing sound of speech never stops"). Two readings place it: with the dead member lying beside the trader the HOST logs ~20-65 trader bubbles per second and the `speech` clip plays continuously on BOTH clients; moving the dead member 600 units away drops the host to 2 bubbles in five seconds. The speaker is a trader-attached talker (`talker.trader != null`) whose line reads like a BODY line (translated: "let it spread, no!" — a body's own mutter, not the trader's dialogue). A diagnostic is deployed (`0.1.0+2c876fcd`): the bubble log now names the talker's GameObject, its body and the text, so the next occurrence identifies the exact talker.
+- Status: Done — fixed and measured (2026-11-02, 17:58). The cause was the one in the mechanism section: a body''s talker calls `Talker.PromptTraderResponse`, which forwards to `PlayerCamera.main.lastTrader.PromptResponse`, and `PromptResponse` starts a `DelayedTalk` coroutine per call — so a REMOTE CLONE whose condition poll fired repeatedly made the local trader answer over and over. The talk patch''s rule ("a clone''s speech is reported, never performed") now covers this second door: the forward is refused when the talker belongs to a remote body. Read on the deployed build with a dead player lying beside the trader: **2 trader bubbles in twelve seconds**, against 329 in five before the fix.
 - Priority: Medium (audible defect: the typing sound never stops while a corpse is near the trader)
 - Category: Audio / speech replication
 - Source: user report, 2026-11-02.

@@ -1305,5 +1305,5 @@ docs/development/rules/13-acceptance.md | keep | index | docs/development/rules/
 docs/backlog/todo/split-the-body-verb-service.md | keep | index | docs/backlog/README.md
 docs/backlog/done/dead-member-stranded-by-a-host-descent.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/move-acceptance-input-out-of-the-build.md | keep | index | docs/backlog/README.md
-docs/backlog/review/trader-mutters-forever-near-a-corpse.md | keep | index | docs/backlog/README.md
+docs/backlog/done/trader-mutters-forever-near-a-corpse.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-move-stream-floods-the-wire.md | keep | index | docs/backlog/README.md

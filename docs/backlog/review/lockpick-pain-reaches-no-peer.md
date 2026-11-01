@@ -60,3 +60,16 @@ That reading also shows the path is alive for the one-shot scope in the same ses
 So the staged channel holds the key (`handClicking=true`) but does not deliver the `GetKeyDown` edge this minigame needs, and the row's remaining needs are now precise: either make the staged press deliver a real down edge on the frame the game reads it (a change to `VirtualInput`, i.e. `src/`), or drive the pick with OS input for one batch. Both are named; neither was taken in this session.
 
 The instrument built along the way stays useful for the first option: `report-watch` records every character-sound report with its arguments, so whichever way the press is delivered, the next run answers "did the report happen" in one read.
+
+### The break is on the RECEIVER's replay, not on the wire (2026-11-01, 22:20)
+
+Four watchers on two clients, all live in the same windows, settle where the event stops:
+
+| layer | instrument | reading |
+|---|---|---|
+| the acting client's report | `report-watch` on `CharacterSoundSync.Report` | 37 further reports, every one `Pain:gore2` |
+| the send | `publish-watch` on `CharacterVisualPublisher.Publish` | 39 further publishes |
+| the peer's receive | `receive-watch3` on `CharacterSoundSync.OnReceived` | 124 messages, and **`[Pain:gore2]` is among them**, every one carrying `OwnerSteamId=<host>`, which is NOT the peer's own id — so the echo guard does not fire (the peer's log has zero `own sound echo` lines) |
+| the peer's audio | `audio-watch3` (no filter) on the same client | the window gained footstep and speech clips and **no `gore2`** |
+
+And the clip itself is fine on that client: a new `play-clip clip=gore2 twoDimensional=true` recipe — the same `Sound.Play(string, pos, true, true, null, 1, 1, false, false)` the replay makes — was recorded by the watcher (`plays 0 -> 1, names=[gore2]`). So the message arrives, the handler runs, the clip is playable, and the replay still produces no audible clip. That is the last gap, and it is inside `OnReceived` after the echo guard: the next instrument is a counter on `Sound.Play(AudioClip, …)` installed on the PEER, which says whether the replay reaches the play call at all.

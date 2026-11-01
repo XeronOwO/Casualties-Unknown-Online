@@ -172,7 +172,7 @@ internal static class AdapterCapabilityCatalog
 			AdapterCapabilityKind.Required,
 			[
 				typeof(BodyPatches), typeof(WearableQueryPatches), typeof(BodyUpdatePatch), typeof(BodyNapPatch), typeof(BodyWorkoutPatch),
-				typeof(CarryEncumbrancePatch), typeof(FacialExpressionHeadPatch), typeof(PantSoundPatches),
+				typeof(CarryEncumbrancePatch), typeof(FacialExpressionHeadPatch), typeof(PantSoundPatches), typeof(SettingsKeybindCapturePatch),
 				// The host clone's vitals pass suppressions: camera/audio/vomit/talk/coroutines/ragdoll/terminal
 				// side effects of running the game's own stages on a remote body belong to the body domain.
 				typeof(HostVitalsSuppressionPatches),

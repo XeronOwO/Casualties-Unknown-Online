@@ -1,6 +1,5 @@
+using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
-using TMPro;
-using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -48,32 +47,16 @@ internal static class OnlineUiKeyboardFacts
 	}
 
 	/// <summary>
-	/// Whether the settings menu is waiting for a key. The capture writes the literal <c>"..."</c> into the row it is
-	/// binding (<c>SettingsMenu.cs:198</c>, the only occurrence in that file) and keeps it there until a key arrives, so
-	/// an active settings menu carrying that text is the capture. Nothing else in the game writes that marker into a
-	/// settings row, and the scan is bounded to an OPEN settings menu.
+	/// Whether the settings menu is waiting for a key. The answer comes from the capture ITSELF: the patch on
+	/// <c>SettingsMenu.WaitForKeyPress</c> records the label the coroutine is writing, and that label still reading
+	/// <c>"..."</c> is the capture.
+	///
+	/// <para>
+	/// This replaced a scan for any <c>"..."</c> text in the menu, which cannot tell a running capture from an action
+	/// whose BIND is unset — that value is shown as "..." too, and the game never clears it. The scan answered true with
+	/// the settings menu merely open, so the console's Enter opener refused every press for a capture that was not
+	/// running (measured 2026-11-02 on the Video tab, with the label scan narrowed to active children and still wrong).
+	/// </para>
 	/// </summary>
-	private static bool IsAKeybindCaptureWaiting()
-	{
-		var menu = Object.FindObjectOfType<SettingsMenu>();
-		if (menu == null || !menu.gameObject.activeInHierarchy) // Unity object — ==
-		{
-			return false;
-		}
-
-		// ACTIVE texts only. The scan used to include inactive children, and the key-bind rows live on a tab that
-		// is deactivated while another tab is shown: with the menu open on Video, the Controls tab's rows still
-		// held their "..." labels and every Enter was refused as if a capture were running (measured 2026-11-02:
-		// the marker answered true on the Video tab with no capture started, and the console never opened).
-		var texts = menu.GetComponentsInChildren<TMP_Text>(false);
-		foreach (var text in texts)
-		{
-			if (text != null && text.text == "...") // Unity object — ==
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
+	private static bool IsAKeybindCaptureWaiting() => SettingsKeybindCapturePatch.IsWaiting;
 }

@@ -722,3 +722,14 @@ The contract a batch now starts from, written down before any input:
 
 A fixture is built from that table: the hand must move FAST and FOLLOW the band down. Our shake moved at ~0.7 units a frame against
 a player's ~40, which is why the run looked like "a ten-minute cut" — the number described the fixture, not the game.
+### The sound half needs a second dismember, and the selection will not leave the torso (2026-11-02, 09:35)
+
+After the first leg came off, the wound view's selection stopped moving: every leg image's point (608,200 / 672,251 / 672,200 -
+the mirrored y of limbs 11, 13 and 14) selects the CHEST, however many intermediate positions the pointer passes through.
+`WoundViewLimb.OnPointerEnter` ignores a dismembered limb (`if (PlayerCamera.main.body.limbs[this.limb].dismembered) return;`), so
+the pointer over a gone limb falls through to the torso image behind it, and the hover that moved the selection the first time no
+longer produces an enter on a leg.
+
+The way out is a fresh body per dismember (a reset run, or the other client as the patient), not another hover pattern. That is
+where this row stops: its local mechanism is fully read - gate, band, speed, completion - and only the peer's one-shot clip at the
+instant of the cut is unsampled, because sampling it needs a dismember to happen while the sampler runs.

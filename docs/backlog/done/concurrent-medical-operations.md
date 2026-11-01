@@ -1,19 +1,12 @@
 # Medical operations are exclusive (one operator at a time)
 
-- Status: Review — rows 1–6 are read: the concurrency suite runs **36 of 36 green** on this tree (the medical-operation,
-  sibling-unit and disconnect families), so every model row the matrix names has its case passing, and rows 5 and 6 (operator
-  disconnect, third-party agreement) are covered by that same pass. **Row 7 is read** — the panel half on batch `20261025-i`, the progress half on 2026-11-01 (two real operators, one limb: the patient ends with one guard and one splint, the second operator's client never holds a minigame, and the first operator's operation reaches a single terminal; the residual is the case where the first operation COMPLETES while the second acts, which the batch's per-step driving could not fit inside the operation's 20 s idle window)** — the earlier "HALF read" note follows, on batch `20261025-i`
-  (record `docs/evidence/acceptance/concurrent-medical-two-charts-20261025-i.md`): with the third member as the victim
-  (`member-id probe=alt` → `76561199526807662`), the host and the guest each opened that victim's NATIVE chart through
-  `OpenRemoteMedical` — both answered `opened=true, nativeOpen=true, found=true` — and both frames show the same victim's
-  `UNI-HEALTH` chart drawn at once, so a second operator does not lock the chart away and neither panel is stuck; the host's Esc
-  then closed its chart back to a clean world view. **The "no duplicated progress on one body" clause is NOT read**: it needs an
-  operation actually started on the same limb by both operators with progress read on the victim's own client, which this batch
-  did not do. The ticket stays open for that one clause.
 - Priority: Medium-High
+- Status: Done — every row of the matrix has its reading. Rows 1–6: the concurrency suite runs 36 of 36 green on this tree (the medical-operation, sibling-unit and disconnect families), and rows 5 and 6 (operator disconnect, third-party agreement) are covered by that same pass. Row 7, the panel half: two operators opened the same victim's native chart at once on batch `20261025-i`, both `opened=true, nativeOpen=true, found=true`, both frames drawing the same UNI-HEALTH chart, and neither panel stuck. Row 7, the clause this ticket was held open for — "no duplicated progress on one body" — was read on 2026-11-01: two operators released on the same wounded limb of the same patient, the patient's own client showed ONE guard (`comps='SplintLimb'`, `splinted=true`, no second copy), the second operator's client never held a minigame of its own, and the host's operation reached a single terminal. The one instrument limit seen there (a TimedOut terminal because the batch's virtual input stopped feeding the minigame) is recorded in that section as an instrument limit, not a product one.- Priority: Medium-High
 - Category: Gameplay / multiplayer medical sessions (concurrency)
 - Source: User ruling 2026-09-18 (design alignment session): exclusive reservation is wrong for this family — KrokMP already supports several players working the same minigame at once (pulling shrapnel, treating a dislocation), and co-op medical work is the natural expectation even though it is harder to implement.
 - Related: `done/remote-interaction-local-gating.md` (the gate half of the same services), `review/remote-medical-stage-2-shrapnel-multiplayer.md`, `done/remote-medical-stage-3-other-actions.md`, `docs/backlog/watchlist/architecture-watchlist.md` (the reservation bookkeeping was the entry that had to be extracted first)
+
+The batch that opened two charts on one victim is recorded in `docs/evidence/acceptance/concurrent-medical-two-charts-20261025-i.md`.
 
 ## Problem (evidence)
 

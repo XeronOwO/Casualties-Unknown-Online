@@ -208,7 +208,7 @@ checked for content that exists nowhere else, and there is none:
   MINOR-1 in substance (the budget correction and the honest row-4 reading).
 - `docs/handoff/medical-minigame-concurrency-audit.md` — its conclusion and per-kind evidence
   table are already the `Native per-kind semantics` table of
-  `docs/backlog/review/concurrent-medical-operations.md`; the remaining detail is a `reversing/`
+  `docs/backlog/done/concurrent-medical-operations.md`; the remaining detail is a `reversing/`
   line:line lookup anyone can repeat, which is the point of that tree never being edited.
 
 Keeping them would be a second, unmaintained home for facts that already have one — the failure

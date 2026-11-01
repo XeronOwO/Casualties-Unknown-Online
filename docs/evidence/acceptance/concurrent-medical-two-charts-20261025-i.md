@@ -1,6 +1,6 @@
 # Two operators hold the same victim's native chart at once
 
-- Ticket: `docs/backlog/review/concurrent-medical-operations.md` (its row 7, the native-UI half)
+- Ticket: `docs/backlog/done/concurrent-medical-operations.md` (its row 7, the native-UI half)
 - Batch: `20261025-i`, deployed build `0.1.0+7605a140` (both clients report it in the window's build line)
 - Instruments: `tools/acceptance/recipes/medical-open.cs` (`IRemoteMedicalPresentation.OpenRemoteMedical`, the same call the
   Online UI makes) and `tools/acceptance/recipes/capture-frame.cs`; the victim is the third member, whose own id came from

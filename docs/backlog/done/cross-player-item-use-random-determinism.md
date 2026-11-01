@@ -40,7 +40,7 @@
 - Related: `docs/backlog/review/mod-cross-player-native-semantics.md` (the entry census and the two anchors
   quoted below), `docs/backlog/review/remote-medical-treatment-operations.md`,
   `docs/backlog/review/remote-medical-stage-1-injection-session.md`,
-  `docs/backlog/review/concurrent-medical-operations.md`,
+  `docs/backlog/done/concurrent-medical-operations.md`,
   `docs/backlog/done/mod-authored-effects.md` (its census already counts the per-call rolls),
   `docs/backlog/done/mod-content-attribute-declarations.md` (a mod-authored effect is what would make this
   worse), decision 246 (the item-gesture mapping), `docs/en/internals/judgment-ownership.md`.

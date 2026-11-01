@@ -1,6 +1,6 @@
 # Self-check — medical operation concurrency (per-unit settlement)
 
-Ticket: `docs/backlog/review/concurrent-medical-operations.md`. Ruling under test: the user's
+Ticket: `docs/backlog/done/concurrent-medical-operations.md`. Ruling under test: the user's
 2026-09-19 answer A — two operators may both start the same unique unit, the first completion
 settles it, and the others are stopped at that moment with a precise answer.
 

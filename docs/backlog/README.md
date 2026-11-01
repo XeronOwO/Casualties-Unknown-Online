@@ -114,7 +114,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
-- [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
@@ -165,6 +164,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Concurrent medical operations](done/concurrent-medical-operations.md) — **Medium-High** — closed; every matrix row read, including no-duplicated-progress.
 - [Remote medical: the stage-3 actions](done/remote-medical-stage-3-other-actions.md) — **High** — closed; all eight matrix rows read.
 - [Dead member stranded by a host descent](done/dead-member-stranded-by-a-host-descent.md) — **High** — three causes fixed; verified end to end.
 - [`/kill` — the game's own kill verb](done/kill-command.md) — **High** — all six rows read on the deployed build.

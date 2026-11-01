@@ -5,7 +5,6 @@
 
 docs/backlog/review/cross-player-eat-skips-native-steps.md
 docs/backlog/review/adapter-capability-catalog.md
-docs/backlog/review/concurrent-medical-operations.md
 docs/backlog/review/cross-player-drag-use-feedback.md
 docs/backlog/review/cross-player-drag-use-model-bounds.md
 docs/backlog/review/dead-player-right-click-name-suffix.md
@@ -32,4 +31,5 @@ docs/backlog/review/trap-layout-crystal-rows-empty.md
 docs/backlog/review/unhooked-damage-block-callers.md
 docs/backlog/review/unhooked-item-and-body-sound-families.md
 docs/backlog/review/unified-remote-display-projection-rework.md
+
 

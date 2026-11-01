@@ -4,7 +4,7 @@
 
 `docs/design/surfaces/remote-inventory.md` owns what an item report carries and when one is sent; this ticket is about a report that is sent far too often, which that page''s cadence rule already forbids.
 
-- Status: Review — CORRECTED 2026-11-02: the flood is NOT the item move stream. The traffic line already prints a per-family breakdown and it names the real carriers; the item counter is CUMULATIVE over the session, so reading it as a rate was wrong. — found 2026-11-02 during a speech investigation. The host''s own traffic monitor shows `send ... 98-228 KB/s` against `recv ~9 KB/s` with nothing happening in the world, and the item service''s own counter explains it: `[ItemTraffic] total 7575; Spawn=0; Drop=0; Move=7575; Destroy=0; Pickup=0; top: bandage×2744, ...`. So the whole stream is MOVE reports, dominated by one carried stack.
+- Status: Review — the ENEMY stream half is fixed and measured (2026-11-02, 16:36): `Send EnemyStateStream` fell from a flat 4,005 B per frame to 157 B (p50 and p95), and the host's total send from ~213 KB/s to ~56 KB/s on a freshly launched session. The STATE stream half is still open and is now the largest payload (`p50=7,489 B, p95=12,791 B` per frame). CORRECTED 2026-11-02: the flood is NOT the item move stream. The traffic line already prints a per-family breakdown and it names the real carriers; the item counter is CUMULATIVE over the session, so reading it as a rate was wrong. — found 2026-11-02 during a speech investigation. The host''s own traffic monitor shows `send ... 98-228 KB/s` against `recv ~9 KB/s` with nothing happening in the world, and the item service''s own counter explains it: `[ItemTraffic] total 7575; Spawn=0; Drop=0; Move=7575; Destroy=0; Pickup=0; top: bandage×2744, ...`. So the whole stream is MOVE reports, dominated by one carried stack.
 - Priority: High (bandwidth: ~150-230 KB/s of a co-op session''s traffic, from one player standing still)
 - Category: Session / item replication
 - Source: user report about the trader, whose investigation surfaced this; measured in the same session.
@@ -43,3 +43,22 @@ So:
 1. Why `EnemyStateStream` is a flat 4,005 B every frame: how many enemies ride it and whether a full snapshot is sent each frame instead of a delta.
 2. Why `StateStream` is 5.5 KB median and 10.8 KB at p95 while the players stand still: which world entities are re-sent, and whether the cadence rule for unchanged state is enforced where the stream is built.
 3. Whether the two streams can share a delta base — they are already on the same adapter rate service, so the question is the payload, not the schedule.
+## The enemy half, fixed and measured (2026-11-02, 16:36)
+
+Two changes, each measured on the deployed build:
+
+1. The broadcast now sends only the enemies whose stream fields changed, with a full keyframe every twentieth tick. The first version still shipped a flat 4,005 B — a crawler's `SpiderLegTargets` are re-solved every tick, so every enemy read as changed.
+2. The change test now covers what a viewer sees of the BODY (position, velocity, rotation, health, stun flag, crystal line) and leaves the leg animation and windup amount to ride along whenever the enemy is sent for a real reason and on every keyframe.
+
+Read on the traffic line after both, on a freshly launched session:
+
+    send 987f/558078B(55719B/s)   (was 213462B/s)
+    Send EnemyStateStream=21986B/90f p50=157B p95=157B   (was p50=4005B p95=4005B)
+
+That is the enemy stream's payload down by a factor of ~25 and the session's send rate by ~4×, with the frame cadence unchanged.
+
+## What is left: the state stream
+
+    Send StateStream=298181B/37f p50=7489B p95=12791B
+
+`StateStream` is now the largest payload in the session — 7.5 KB median, 12.8 KB at p95, per frame, while the players stand still. It deserves the same treatment the enemy stream just got: find what the world stream carries per tick and whether change-based selection applies there.

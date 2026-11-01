@@ -593,3 +593,18 @@ starts its minigame). Reaching the minigame therefore needs the EventSystem to d
 which a staged pointer that is merely POSITIONED does not do: the pointer must move onto the element and stay there while the
 EventSystem's own hover pass runs. That is the fixture to build first, and it is what the two-batch limit on this row is waiting
 on — not the sound chain, which is already read for every step up to the dismember.
+### The window was the wall, and the hover works once it is gone (2026-11-02, 03:05)
+
+`ui-hits` at the limb point named the blocker in the first three hits: `Viewport > CUO Online UI Window > CUO Online Input
+Blocker > …` — the window was still open on the alt, so the EventSystem delivered the pointer to our blocker and never to
+`WoundViewLimb`. After `window.close` the same read answers `Torso (1) > Head (1) > ArmR > Head (1) > Thorax > Limbs`, and a
+staged move DOES move the selection: `limb-use` reports `limb=1` (chest) where it had reported `limb=0` (head) for every attempt
+before.
+
+What it does not do yet is move the selection a SECOND time: six further points all answer `limb=2` (abdomen), i.e. the enter
+event fires once and then the staged pointer stops producing new enters. That is a pointer-freshness problem in the fixture (the
+staged position persists between calls), not a game problem — and it is the last step before the machete can be aimed at an arm
+or a leg and the dismember sound read.
+
+So row 4b's blocker is now three facts, each measured: the window must be closed; one hover works; repeated hovers need a
+pointer that really moves between frames.

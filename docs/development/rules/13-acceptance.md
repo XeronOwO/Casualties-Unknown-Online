@@ -37,6 +37,13 @@ keyboard, mouse and focus are unaffected, so this can run while the user works.
   query; it never replaces the decision the game makes after reading it (the keybind capture binds the key it read, the
   recipe never binds it for the game).
 
+## Close the clients before touching `src/` — the batch channel is not exempt
+
+Every change under `src/` waits until the game processes read zero, and that includes the batch-only assembly. It is easy
+to think otherwise ("it is only the acceptance plug-in"), and doing it anyway leaves a running client holding the file the
+next deploy must overwrite — the deploy then refuses and the batch is dead. Measured 2026-11-02: a new recorder file was
+added to the acceptance project while two clients were mid-batch.
+
 **2. OS-level input — needs the user's authorisation, per batch.** `tools/acceptance/send-input.ps1` and anything like it
 (`SendInput`, cursor warps, synthetic key events) takes over the user's real keyboard and mouse: it steals focus, moves
 their cursor and types into whatever window is focused. Ask for it in the batch that uses it, only after in-process

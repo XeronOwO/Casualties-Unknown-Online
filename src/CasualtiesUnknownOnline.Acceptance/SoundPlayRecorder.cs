@@ -1,0 +1,116 @@
+using System;
+using System.Collections.Generic;
+using HarmonyLib;
+using UnityEngine;
+
+namespace CasualtiesUnknownOnline.Acceptance;
+
+/// <summary>
+/// Records the game's own one-shot sounds, so a batch can see a sound that has already finished.
+///
+/// <para>
+/// A one-shot is invisible to a sampler: <c>audio-recent</c> can only answer a clip that happens to be mid-play when it is
+/// asked, and an impact that lands between two driver round trips is missed no matter how long the fall is (measured
+/// 2026-11-02: a 20-unit fall sampled eight times answered nothing on either client). This records the CALL instead —
+/// <c>Sound.Play(string, …)</c> is the entry every native one-shot goes through, and its clip name is the same name the
+/// sound tickets judge by.
+/// </para>
+///
+/// <para>
+/// It lives in the batch-only assembly and records nothing unless a batch installed it: the ring buffer is bounded, the
+/// prefix does no work while <see cref="Enabled"/> is false, and the plugin is not deployed to a production install.
+/// </para>
+/// </summary>
+internal static class SoundPlayRecorder
+{
+	private const int Capacity = 256;
+
+	/// <summary>Newest last. A plain list with a cap: 256 entries is small and the oldest fall off the front.</summary>
+	private static readonly List<Entry> Entries = [];
+
+	private static readonly object Gate = new();
+
+	/// <summary>Turns recording on. A batch installs it explicitly, like the staged input channel.</summary>
+	internal static bool Enabled { get; private set; }
+
+	internal readonly struct Entry(string clip, float time, Vector2 position)
+	{
+		internal string Clip { get; } = clip;
+
+		internal float Time { get; } = time;
+
+		internal Vector2 Position { get; } = position;
+	}
+
+	internal static void Start()
+	{
+		lock (Gate)
+		{
+			Entries.Clear();
+			Enabled = true;
+		}
+	}
+
+	internal static void Stop()
+	{
+		lock (Gate)
+		{
+			Enabled = false;
+		}
+	}
+
+	/// <summary>The recorded entries whose clip contains <paramref name="match"/> (ordinal-ignore-case), newest last.</summary>
+	internal static List<Entry> Since(string match)
+	{
+		lock (Gate)
+		{
+			var matches = new List<Entry>(Entries.Count);
+			foreach (var entry in Entries)
+			{
+				if (match.Length == 0 || entry.Clip.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0)
+				{
+					matches.Add(entry);
+				}
+			}
+
+			return matches;
+		}
+	}
+
+	internal static void Clear()
+	{
+		lock (Gate)
+		{
+			Entries.Clear();
+		}
+	}
+
+	[HarmonyPatch(typeof(Sound), nameof(Sound.Play), [typeof(string), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform), typeof(float), typeof(float), typeof(bool), typeof(bool)])]
+	private static class PlayByClipName
+	{
+		private static void Prefix(string clip, Vector2 pos) => Record(clip, pos);
+	}
+
+	[HarmonyPatch(typeof(Sound), nameof(Sound.Play), [typeof(AudioClip), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform), typeof(float), typeof(float), typeof(bool), typeof(bool)])]
+	private static class PlayByClip
+	{
+		private static void Prefix(AudioClip clip, Vector2 pos) => Record(clip == null ? "" : clip.name, pos); // Unity object — ==
+	}
+
+	private static void Record(string clip, Vector2 position)
+	{
+		if (!Enabled || clip.Length == 0)
+		{
+			return;
+		}
+
+		lock (Gate)
+		{
+			Entries.Add(new Entry(clip, Time.time, position));
+			if (Entries.Count > Capacity)
+			{
+				Entries.RemoveRange(0, Entries.Count - Capacity);
+			}
+		}
+	}
+}

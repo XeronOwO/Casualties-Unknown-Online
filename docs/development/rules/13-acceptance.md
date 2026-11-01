@@ -13,6 +13,18 @@ problem is in the code, not in the batch.
 The clients stay up for the whole work item. They are stopped for exactly two reasons: a source change, or a deploy. A
 declaration or recipe change is re-declared under a new name and the same session continues.
 
+**A stuck fixture is not a third reason.** A UI state that will not re-open, a hover that stops moving the selection, a value
+that looks stale - none of them licenses killing the client, because the restart throws away the very session the reading was
+about and it hides the defect behind a fresh process. The game's own state paths are the way out (close and re-open the view
+through its own toggle, re-enter the world, run the fixture on another client that is still clean), and when none of them
+reaches it, the stuck state is what the batch RECORDS: "the fixture stopped at X for reason Y" is a reading, and it is the next
+batch's starting point.
+
+Measured 2026-11-02: a hover stopped moving the wound view's selection after a heal, and the clients were killed and relaunched
+twice to get a fresh view - no source change, no deploy, exactly the convenience restart this section forbids. The fresh view it
+bought was available from the game itself (the view's own close/open), and the two restarts cost the session that was being
+measured.
+
 ## Every row judged from its own evidence
 
 Machine rows from a reading, visual rows from a CROP that was actually opened and enlarged (a full-window capture is not evidence for a layout row: crop the region, and for a position or alignment read a measured number beside it — see step 8). The instrument is named in the batch

@@ -102,3 +102,15 @@ The other door is the menu interaction: `TraderScript.TryHug` ends with `if (thi
     after mode=hug          : hostility=100  hostile=true  reputation=12
 
 So the trader IS hostile now, and the swing row can be driven: stand inside its attack range and read the swing presentation on the client that did not run it. That read is the one thing this ticket still lacks, and it is now a matter of watching the right field rather than of reaching the state.
+### What "in place" means, measured (2026-11-02, 17:40)
+
+The user asked the right question and the first reading had not measured it. Repeated with the positions recorded:
+
+    trader at (-387.0, 380.0)
+    guest died at (-389.505, 381.147)
+    host clicks member.recruit -> ok
+    guest after: alive=true, brainHealth=75.008, at (-389.233, 382.616)
+
+So the body comes back **where it fell**, not at the trader: it is ~1.4 units from the death spot (a body settles a little as it dies) and ~3 units from the trader, which is simply where the dead body was lying. "In place" is the row's word for "the body does not move", and that is what the reading shows.
+
+One more gate, found the hard way between the two attempts: the OPERATOR must be alive and conscious — with the host dead, the coordinator answers `refused: 76561198281246659 is not alive/conscious.` and the click still returns ok on the sender's side (the request was sent; the host refused). A batch must read the host's own log for the verdict, not the click's answer.

@@ -5,6 +5,7 @@
   <Project Path="src/CasualtiesUnknownOnline.GameState/CasualtiesUnknownOnline.GameState.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.Application/CasualtiesUnknownOnline.Application.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.GameAdapter/CasualtiesUnknownOnline.GameAdapter.csproj" />
+  <Project Path="src/CasualtiesUnknownOnline.Acceptance/CasualtiesUnknownOnline.Acceptance.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.Plugin/CasualtiesUnknownOnline.Plugin.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.ModExample/CasualtiesUnknownOnline.ModExample.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.PinyinSearch.Core/CasualtiesUnknownOnline.PinyinSearch.Core.csproj" />

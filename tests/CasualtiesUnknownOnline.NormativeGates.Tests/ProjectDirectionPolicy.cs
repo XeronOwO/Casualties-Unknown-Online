@@ -87,6 +87,9 @@ internal static class ProjectDirectionPolicy
 		"CasualtiesUnknownOnline.Tests",
 		"CasualtiesUnknownOnline.NormativeGates.Tests",
 		"CasualtiesUnknownOnline.ContractTool",
+		// The acceptance channel is a satellite plug-in, not a layer: it binds the game's input types on purpose and is
+		// deployed only for a batch, so it is classified as a consumer rather than given a place in the layer table.
+		"CasualtiesUnknownOnline.Acceptance",
 	];
 
 	/// <summary>

@@ -31,7 +31,7 @@ internal static class DragUseCenter
 		}
 
 		// The REAL pointer, and nothing staged: a batch moves the pointer itself through the acceptance channel's virtual mouse
-		// (`GameAdapter/Acceptance/VirtualInput.cs`, which patches `Input.mousePosition`), so this guard needs no seam of its own. The staged-pointer
+		// (`src/CasualtiesUnknownOnline.Acceptance/VirtualInput.cs`, the batch-only assembly that patches `Input.mousePosition`), so this guard needs no seam of its own. The staged-pointer
 		// seam that used to live here was removed with `todo/the-acceptance-channel-replaces-its-staged-pointer.md`: a guard that answers a position the
 		// game never had is a weaker instrument than one that answers the game's own read.
 		var pointer = (Vector2)Input.mousePosition;

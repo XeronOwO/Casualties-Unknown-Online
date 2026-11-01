@@ -47,6 +47,9 @@ public class GameAssemblyReferenceGateTests
 		["CasualtiesUnknownOnline.GameAdapter"] = "the framework's only game-binding layer (architecture.md §4)",
 		["CasualtiesUnknownOnline.PinyinSearch"] = "the satellite mod's game-binding half (docs/en/contributing/repository-map-and-pitfalls.md, Where a new system belongs)",
 		["CasualtiesUnknownOnline.RecursiveCrafting"] = "the recursive-crafting satellite mod's game-binding half (reads the recipe table and the local body's items; the resolver stays game-free in its Core)",
+		// The batch-only channel binds the game's input types on purpose (it answers the game's own input queries from
+		// staged values) and is deployed only for an acceptance run — a production install does not contain it.
+		["CasualtiesUnknownOnline.Acceptance"] = "the acceptance channel plug-in: staged input answers the game's own queries and never ships in a production install",
 	};
 
 	/// <summary>The solution lists 13 projects; a scan that read fewer has broken, not improved.</summary>

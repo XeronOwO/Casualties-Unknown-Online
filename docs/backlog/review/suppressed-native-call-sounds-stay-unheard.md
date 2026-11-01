@@ -477,3 +477,12 @@ So the treatment''s sounds reach the patient''s client: the patient plays the dr
 That is also why `minigame-live` answered `kind=none` on both clients, and why the patient''s `bleedAmount` stayed at 63.1: a removal is not a treatment and does not open the bandage minigame. My earlier "started=true but nothing happened, a false success" reading was wrong for this reason and is corrected here.
 
 To judge the bandage row the fixture must first REMOVE whatever the limb carries (or use a limb that carries nothing), then let the operator hold the bandage and go through `PlayerCamera.TryPerformSpecialUIAction` — the native path — and only then read the `bandage` clip at the wrap''s completion.
+### The `bandage` row needs the panel drag; `Body.UseItem` never starts it (2026-11-02, 16:35)
+
+The accepted-items table asks about the clip a bandage plays when it is APPLIED. On the deployed build, with the host''s own limb genuinely wounded (`wound-seed limb=1 force=900` → `skinHealth=-170.6`, `bleedAmount=93.1`), a held bandage and the wound panel open:
+
+- `item-use type=bandage` through three different aims (`0,-2`, `0,-1`, `2,0`, which the recipe turns into `body.targetLookPos`) answered `usable=false` and left `minigame-live` at `kind=none` every time;
+- the item''s own `Stats.usable` is false for a bandage, which is the game saying the generic use entry is not its path;
+- the native chain for applying one to a limb is the wound panel''s special action (`PlayerCamera.TryPerformSpecialUIAction`, the same entry the remote treatment uses), not `Body.UseItem`.
+
+So this row is not blocked on a sound question at all: it needs the LOCAL panel drag fixture (hold the bandage, drag it onto the limb in the panel, release), which is still missing from the toolbox. Every row of this ticket that a fixture CAN reach has now been read — two refuted with both-sides recordings — and this one names the fixture it lacks.

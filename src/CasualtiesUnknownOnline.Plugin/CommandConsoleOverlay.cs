@@ -453,6 +453,8 @@ internal sealed class CommandConsoleOverlay
 			inputRect.y - height - 4f,
 			panel.width - (inputTextX - rowInk - panel.x) - 8f,
 			height);
+		LastSuggestionRect = rect;
+		LastSuggestionInkRect = new Rect(rect.x + 2f + rowInk, rect.y, rect.width - 4f, rect.height);
 		OnlineUiTheme.DrawOverlayBackground(rect);
 		GUILayout.BeginArea(new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, rect.height - 4f));
 		// The scroll view's own style decides where its content starts: the game's skin indents it, so the zero-padding style
@@ -496,9 +498,23 @@ internal sealed class CommandConsoleOverlay
 	private void DrawInput(Rect panel)
 	{
 		var rect = InputRect(panel);
-		GUI.Label(new Rect(rect.x, rect.y, 18f, rect.height), ">", _inputRenderer.PromptStyle());
-		_inputRenderer.Draw(new Rect(rect.x + 18f, rect.y, rect.width - 18f, rect.height), _session, _ime);
+		GUI.Label(new Rect(rect.x, rect.y, PromptWidth, rect.height), ">", _inputRenderer.PromptStyle());
+		LastPromptRect = new Rect(rect.x, rect.y, PromptWidth, rect.height);
+		LastInputTextRect = new Rect(rect.x + PromptWidth, rect.y, rect.width - PromptWidth, rect.height);
+		_inputRenderer.Draw(LastInputTextRect, _session, _ime);
 	}
+
+	/// <summary>
+	/// The rects the overlay drew this frame. A reading compares these NUMBERS instead of eyeballing a capture (user direction
+	/// 2026-11-02: align the rows with the caret, and prove it by measurement).
+	/// </summary>
+	internal static Rect LastPromptRect { get; private set; }
+
+	internal static Rect LastInputTextRect { get; private set; }
+
+	internal static Rect LastSuggestionRect { get; private set; }
+
+	internal static Rect LastSuggestionInkRect { get; private set; }
 
 	private static Rect InputRect(Rect panel) =>
 		new(panel.x + 10f, panel.y + panel.height - InputHeight - 8f, panel.width - 20f, InputHeight);

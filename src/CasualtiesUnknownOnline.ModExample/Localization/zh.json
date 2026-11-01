@@ -1,3 +1,6 @@
 {
-  "cuo.example.hostecho.answer": "主机回答 {0}：{1}"
+  "cuo.example.hostecho.answer": "主机回答 {0}：{1}",
+  "cuo.example.dress.usage": "用法：/exampledress red|green|blue <尺寸>",
+  "cuo.example.dress.refused_colour": "示例里没有'{0}'这种颜色——只有红、绿、蓝。",
+  "cuo.example.dress.ok": "给示例换上了 {0}（{1}）"
 }

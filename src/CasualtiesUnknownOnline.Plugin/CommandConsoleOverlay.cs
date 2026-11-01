@@ -19,6 +19,9 @@ internal sealed class CommandConsoleOverlay
 	private const float BottomMargin = 14f;
 	private const float InputHeight = 30f;
 	private const float SuggestionMaxHeight = 150f;
+
+	/// <summary>The prompt's own width: the input control starts here, and so does the suggestion list (one number, because the two must line up).</summary>
+	private const float PromptWidth = 18f;
 	private const int MaxNotificationLines = 5;
 	private const float NotificationHoldSeconds = 8f;
 	private const float NotificationFadeSeconds = 5f;
@@ -440,7 +443,11 @@ internal sealed class CommandConsoleOverlay
 			height = 22f;
 		}
 
-		var rect = new Rect(panel.x + 8f, inputRect.y - height - 4f, panel.width - 16f, height);
+		// The list belongs to the INPUT, so it starts where the typed text starts — after the `>` prompt — and not at the panel's
+		// own left edge (user direction 2026-11-02: the rows must line up with the caret, which is what the list is completing).
+		// `InputRect` is the prompt's own rect; the input control begins its width to the right of it.
+		var inputTextX = inputRect.x + PromptWidth;
+		var rect = new Rect(inputTextX, inputRect.y - height - 4f, panel.width - (inputTextX - panel.x) - 8f, height);
 		OnlineUiTheme.DrawOverlayBackground(rect);
 		GUILayout.BeginArea(new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, rect.height - 4f));
 		// The scroll view's own style decides where its content starts: the game's skin indents it, so the zero-padding style

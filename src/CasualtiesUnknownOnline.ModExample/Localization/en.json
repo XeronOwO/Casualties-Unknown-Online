@@ -1,3 +1,6 @@
 {
-  "cuo.example.hostecho.answer": "the host answered {0}: {1}"
+  "cuo.example.hostecho.answer": "the host answered {0}: {1}",
+  "cuo.example.dress.usage": "usage: /exampledress red|green|blue <size>",
+  "cuo.example.dress.refused_colour": "the example has no dressing colour '{0}' - it knows red, green and blue.",
+  "cuo.example.dress.ok": "dressed the example in {0} ({1})"
 }

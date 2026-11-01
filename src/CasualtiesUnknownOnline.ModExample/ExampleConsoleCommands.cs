@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -43,6 +46,66 @@ internal static class ExampleConsoleCommands
 			"exampleweight", "Set the weight the attribute-declared Example Dressing reports", SetDeclaredWeightFromConsole,
 			parameters: [new ConsoleCommandParameter("weight", new DelegateCompleter(_ => [new CommandCompletion("0.5"), new CommandCompletion("1")]))],
 			aliases: ["eweight"], usage: "/exampleweight <weight>"));
+
+		// The two-parameter form, and the reason a mod author copies this file: the SECOND argument's words depend on the FIRST.
+		// The completer is told the arguments already accepted (`ICompletionContext.Arguments`), so `red` offers only red's sizes.
+		context.ConsoleCommands.Register(new ConsoleCommandDefinition(
+			"exampledress", "Dress the example in a colour and a size - the sizes depend on the colour", DressFromConsole,
+			parameters:
+			[
+				new ConsoleCommandParameter("colour", new DelegateCompleter(_ =>
+					[new CommandCompletion("red"), new CommandCompletion("green"), new CommandCompletion("blue")])),
+				new ConsoleCommandParameter("size", new DelegateCompleter(context => DressSizes(context.Arguments))),
+			],
+			usage: "/exampledress <colour> <size>"));
+	}
+
+	/// <summary>The words the second parameter offers: a function of the first, which is the whole point of the context.</summary>
+	private static IReadOnlyList<CommandCompletion> DressSizes(IReadOnlyList<string> arguments)
+	{
+		var colour = arguments.Count > 0 ? arguments[0] : "";
+		return colour.ToLowerInvariant() switch
+		{
+			"red" => [new CommandCompletion("small"), new CommandCompletion("large")],
+			"green" => [new CommandCompletion("medium")],
+			"blue" => [new CommandCompletion("tiny"), new CommandCompletion("huge")],
+			_ => [],
+		};
+	}
+
+	/// <summary>
+	/// Answers with FREE TEXT on purpose: a refusal the catalogue does not own prints the command's own sentence, which is the
+	/// fallback the console contract's row 15 asks about.
+	/// </summary>
+	private static ConsoleAnswer DressFromConsole(ICommandInvocation ctx)
+	{
+		if (ctx.Arguments.Count < 2)
+		{
+			return ConsoleAnswer.Refused("usage: /exampledress <red|green|blue> <size>", "cuo.example.dress.usage");
+		}
+
+		var colour = ctx.Arguments[0].ToLowerInvariant();
+		var size = ctx.Arguments[1].ToLowerInvariant();
+		if (colour is not ("red" or "green" or "blue"))
+		{
+			return ConsoleAnswer.Refused(
+				$"the example has no dressing colour '{ctx.Arguments[0]}' - it knows red, green and blue.",
+				"cuo.example.dress.refused_colour",
+				ctx.Arguments[0]);
+		}
+
+		if (!DressSizes([colour]).Any(completion => string.Equals(completion.Text, size, StringComparison.OrdinalIgnoreCase)))
+		{
+			// A key the mod's catalogue does NOT declare: the console falls back to this text, which is the fallback the console
+			// contract's row 15 asks about, shown by a real mod instead of described.
+			return ConsoleAnswer.Refused(
+				$"'{colour}' has no size '{ctx.Arguments[1]}'.",
+				"cuo.example.dress.refused_size",
+				colour,
+				ctx.Arguments[1]);
+		}
+
+		return ConsoleAnswer.Ok($"dressed the example in {colour} ({size})", "cuo.example.dress.ok", colour, size);
 	}
 
 	private static ConsoleAnswer HostEchoFromConsole(ICommandInvocation ctx)

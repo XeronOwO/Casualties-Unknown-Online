@@ -90,3 +90,14 @@ But the guest stays on `LoadingImage` after the layer is generated, so the follo
 2. **The release exists but does not reach this member.** The host's log does show `Start gate released — everyone is in the world`, and the guest's own log carries a kernel baseline for a DIFFERENT layer than the host's, which would explain a member waiting on a layer the host has left.
 
 So the acceptance rows are still open, and the fixture that can judge them is a descent through the game's own sink rather than the direct regeneration this recipe performs.
+
+## The follow settles and then waits for a release that never arrives (2026-11-02, 16:10)
+
+Twenty-five seconds after the descent the guest is still on `LoadingImage` and its log ends at the same line, so this is a wait with no edge, not a slow generation. The state machine explains it:
+
+- `DescentFollowController.UpdateSettle` calls `follow.TryDecideSettle(..., out var startsPlaying)`; when the host had already released the gate while this member was generating, the settle sets `Playing` directly (the `ReleasedEarly` path). Otherwise it calls `WaitForReady()` and parks the member on the loading screen waiting for the host. Our guest took the second branch, so at settle time the host had not released.
+- The host is not waiting for anything: its own scene read answers `loading=False` and the same position as the guest. So the release is not blocked by the host being busy — it either already happened BEFORE the member was waiting (a missed edge), or it never happens on this descent at all.
+
+Both readings are actionable and they are told apart by one probe: the host's start-gate state at the moment the member settles. If the gate is already open, this is a **missed edge** — the member must ask for the CURRENT state on settle, not only catch the transition. If the gate is still closed on the host, the host's descent never entered the gate cycle and the fixture is the problem (the recipe regenerates the world directly rather than travelling through a sink).
+
+Until that probe runs, this ticket owns both halves: the classification fix (landed) and the release edge (open).

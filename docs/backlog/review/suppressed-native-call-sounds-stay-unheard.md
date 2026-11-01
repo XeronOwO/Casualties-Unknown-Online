@@ -259,3 +259,9 @@ The wound view does not select a limb by clicking it: `WoundViewLimb` is an `IPo
 A new read-only recipe now asks the game where its own targets are: `wound-limb-points` answers all fifteen `WoundViewLimb` anchors in GUI coordinates (origin top-left, the way a frame reads). On this build it answered `count=15` with `5:445:273`, `4:506:273`, `1:640:277` and so on — limb index to screen point. With that a batch can move the staged pointer onto the limb it means to treat and then use the item, which is the step rows 1 and 3 of this ticket need.
 
 Two frames record the attempt: with the window view open, the panel read the abdomen (its own label, quoted in the frame) after a pointer move to the drawn arm's position, and the anchor read above explains why. The next batch starts from `wound-limb-points`, not from a pixel guess.
+
+### The selection now works in-process; the item still answers "not usable" (2026-11-01, 12:05)
+
+A point dispatch lands on the parent image the raycast returns first (`target=Limbs`, no handler), so `ui-click` gained a `limb=n` form that addresses the widget the game itself keys by index and dispatches the same `OnPointerEnter`: `ui-click x=445 y=273 limb=5` answered `ok=true, target=Torso (5), enter=true`. The view's own panel then follows the selection, which is the entry this ticket's local rows need.
+
+What did NOT follow: `item-use type=bandage` still answers `usable=False` at every limb tried (3, 4, 5, 7, 8), so no minigame starts and nothing is heard. The next reading is the source of that flag — whether `usable` is the item's own `usableOnLimb`/condition gate, a bleed requirement the seeded wound does not satisfy, or the hand/active-slot state — before the rows can be judged; the wound the batch seeds is `skinHealth=60.4` with no bleeding, which is the first thing to vary.

@@ -38,4 +38,22 @@ public class ItemMotionStateTests
 
 	[Fact]
 	public void Settled_FastVelocity_NotSettled() => Assert.False(ItemMotionState.IsSettled(100f, 0f));
+
+	[Fact]
+	public void Settled_NonSimulatedRigidbody_IsAtRestWhateverItsStaleVelocity()
+	{
+		// Unity keeps a rigidbody's last velocity when simulation stops, so a placed world item can report a large one
+		// forever. Measured 2026-11-02: 355 standalone items in a generated world, only 12 simulated, and 200 of the
+		// rest reporting velocities up to 14.6 units/s — enough to keep the world-item stream at its full rate with
+		// everything lying still.
+		Assert.True(ItemMotionState.IsSettled(215f, 0f, simulated: false));
+		Assert.True(ItemMotionState.IsSettled(0.02f, 0.5f, simulated: false));
+	}
+
+	[Fact]
+	public void Settled_SimulatedRigidbody_StillUsesTheNoiseFloor()
+	{
+		Assert.True(ItemMotionState.IsSettled(0f, 0f, simulated: true));
+		Assert.False(ItemMotionState.IsSettled(0.02f, 0f, simulated: true));
+	}
 }

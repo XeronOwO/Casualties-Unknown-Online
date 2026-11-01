@@ -95,7 +95,7 @@ internal sealed class ItemPositionAuthority(
 			// only has to close the residual gap (and catch host-side nudges).
 			// The motion→rest edge forces one immediate tick (the throttle's
 			// first send for a settled id).
-			var settled = ItemMotionState.IsSettled(item.rb.velocity.sqrMagnitude, Mathf.Abs(item.rb.angularVelocity));
+			var settled = ItemMotionState.IsSettled(item.rb.velocity.sqrMagnitude, Mathf.Abs(item.rb.angularVelocity), item.rb.simulated);
 			if (!_throttle.ShouldSend(idComp.Id, settled))
 			{
 				continue;

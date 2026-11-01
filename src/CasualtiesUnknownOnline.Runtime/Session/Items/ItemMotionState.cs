@@ -46,6 +46,17 @@ internal static class ItemMotionState
 	/// <summary>The settled criterion: velocity below the noise floor AND no spin — used by
 	/// the host's throttle (decides the 1 Hz re-align round) and the guest's follow (decides
 	/// the ease-to-rest mode) alike.</summary>
-	internal static bool IsSettled(float velocitySqrMagnitude, float angularVelocityAbs) =>
-		velocitySqrMagnitude < SettledVelocitySqr && angularVelocityAbs < SettledAngularVelocity;
+	internal static bool IsSettled(float velocitySqrMagnitude, float angularVelocityAbs, bool simulated = true)
+	{
+		// A rigidbody that is NOT simulating is at rest by definition: Unity leaves its last velocity in place instead of
+		// zeroing it, so a placed item's stale value read as "moving" forever. Measured 2026-11-02 on a generated world:
+		// 355 standalone items, only 12 of them simulated, and 200 of the non-simulated ones reporting velocities up to
+		// 14.6 units/s — which kept the world-item stream at full rate (~7.5 KB every frame) with everything lying still.
+		if (!simulated)
+		{
+			return true;
+		}
+
+		return velocitySqrMagnitude < SettledVelocitySqr && angularVelocityAbs < SettledAngularVelocity;
+	}
 }

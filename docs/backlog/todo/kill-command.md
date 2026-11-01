@@ -99,3 +99,9 @@ The shape the refactor takes:
 4. The thirteen groups: `HostAdminCommands`, `CheatAdminCommands`, `SpectatorCommands`, `GamemodeCommands`, `WorldSaveCommands`, `HostRuleCommands`, `ItemDataCommands`, `ItemDataWriteCommands`, `ItemGiveCommands`, `WorldSummonCommands`, `HealResetCommands`, `KillCommands`, `AcceptanceCommands` (plus this class itself, which registers its own verbs).
 
 It is a separate commit from the verb itself: the refactor must land with the full suite and the gates green on its own, and the verb is already deployed and verified.
+
+## The registration rule is satisfied (2026-11-02, 12:38)
+
+`IConsoleCommandGroup` marks every verb group, the three helpers and the thirteen groups are container services, and `CommandConsoleService` registers whatever the container hands it — the only list left is the composition block, which is where a family is announced. Verified on the deployed build: `/kill @a` still answers and the guest's body reads dead, so discovery registers the same verbs the hard-coded list did.
+
+Rows left: 3 (a member runs the verb, which needs the host's cheat grant), 5 (refusal without the grant), 6 (a dead body killed again). Row 4 was read as the selector gap above rather than as a match.

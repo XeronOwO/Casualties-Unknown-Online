@@ -436,8 +436,15 @@ internal sealed class CommandConsoleOverlay
 		var rect = new Rect(panel.x + 8f, inputRect.y - height - 4f, panel.width - 16f, height);
 		OnlineUiTheme.DrawOverlayBackground(rect);
 		GUILayout.BeginArea(new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, rect.height - 4f));
+		// The scroll view's own style decides where its content starts: the game's skin indents it, so the zero-padding style
+		// (OnlineUiTheme.ScrollBackground) is what puts every row against the list's left edge, level with the prompt below it.
 		_suggestionScroll = GUILayout.BeginScrollView(
 			_suggestionScroll,
+			false,
+			true,
+			GUI.skin.horizontalScrollbar,
+			GUI.skin.verticalScrollbar,
+			OnlineUiTheme.ScrollBackground(),
 			GUILayout.ExpandWidth(true),
 			GUILayout.ExpandHeight(true));
 		var selected = _session.SelectedSuggestionIndex;

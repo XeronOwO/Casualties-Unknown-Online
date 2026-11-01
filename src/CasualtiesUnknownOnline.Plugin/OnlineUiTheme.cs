@@ -38,9 +38,33 @@ internal static class OnlineUiTheme
 
 	private static GUIStyle? _mutedLabel;
 
+	private static GUIStyle? _scrollBackground;
+
 	internal static GUIStyle Button() => _button ??= CreateButton();
 
 	internal static GUIStyle MutedLabel() => _mutedLabel ??= CreateMutedLabel();
+
+	/// <summary>
+	/// The suggestion list's scroll view background. The GAME's own <c>GUI.skin.scrollView</c> carries its UI's padding, and using
+	/// it indented every row by that padding (measured 2026-11-02: the list's buttons started a fifth of the panel's width to the
+	/// right of the input prompt below them). A zero-padding style puts the rows against the list's own left edge.
+	/// </summary>
+	internal static GUIStyle ScrollBackground()
+	{
+		if (_scrollBackground is not null)
+		{
+			return _scrollBackground;
+		}
+
+		_scrollBackground = new GUIStyle(GUI.skin.scrollView)
+		{
+			padding = new RectOffset(0, 0, 0, 0),
+			margin = new RectOffset(0, 0, 0, 0),
+			border = new RectOffset(0, 0, 0, 0),
+		};
+		_scrollBackground.normal.background = null;
+		return _scrollBackground;
+	}
 
 	/// <summary>
 	/// One theme colour as the plain value the window model and the game's own controls carry: the

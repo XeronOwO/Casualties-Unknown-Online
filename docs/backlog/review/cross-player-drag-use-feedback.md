@@ -716,3 +716,12 @@ The virtual channel does patch `Input.GetKeyDown(KeyCode)` and `virtual-key` acc
     drag-state:     paused=false minigame=false timeScale=1 dragItem=''
 
 So the staged key plus a pointer verifiably on the slot still does not produce a drag. What is left is the game''s own `UIUtil.GetEventSystemRaycastResults` list, which `HandleStartDragging` hands to `TryPickupFromUI` — the one input in this chain that our channel does not feed. That is the next read: how that helper builds its raycast results and whether it reads a pointer position our patch does not cover.
+### The raycast reaches the slot, so the wall is narrower still (2026-11-02, 20:10)
+
+`UIUtil.GetEventSystemRaycastResults` builds the list from `Input.mousePosition` and `EventSystem.current.RaycastAll`, and a new probe (`ui-hits`) runs exactly that at the pointer position the game reads:
+
+    ui-hits: pointer 519,569 -> count=1, hits=[MainMainHand <UI>]
+
+So the wheel''s main-hand slot IS a raycast target and the game''s own raycast finds it under our staged pointer; `inv-slots` had already listed a `bandage` widget at that same pixel. The chain is therefore correct up to and including the raycast, and what does not fire is `HandleDragging`''s `Input.GetKeyDown(KeyBinds.GetBind("iteminteract"))` — repeated fast reads after `virtual-key key=Mouse1 down=1` still answer `dragItem=''` on three consecutive frames.
+
+That is the last unknown in this chain and it is now a single question: whether the virtual key''s staged frame lands on a `PlayerCamera.Update` frame at all (the pointer''s staged value persists across frames, the key''s does not appear to).

@@ -75,3 +75,11 @@ The "lockable entity and a jammed lockpick" the rows wait on is a chain of five 
 5. **The listener reading.** The peer's frame-accurate counting watcher (`audio-watch3 match=gore2`) is the instrument; the clip's presence in this build is checkable first with `audio-resource clip=gore2`.
 
 So the next batch is: find an `Openable` in the world, give the host a `lockpickingkit` (and INT ≥ 10, which the `/data` write path can raise), start the minigame through the `Openable`'s own interaction, hold the pick off the lock past half a second, and read `gore2` on the peer — rows 1-3 in one session, with row 3 (third guest) needing the alt present.
+
+## The minigame is now reachable in-process; the picked angle is the last step (2026-11-01, 19:20)
+
+The first four facts of the chain are staged: a new fixture (`lockpick-open`) finds the nearest `Openable` that is NEITHER a keypad nor `instantOpen` (this world has 239 `Openable`s and its nearest one is a keypad — the first attempt started `KeypadMinigame` instead), stands the body beside it and calls `Openable.OnUse()`. With a `lockpickingkit` given and the skill gate satisfied, `minigame-live` answered **`LockpingMinigame`** — the row's own surface, reached through the game's entry rather than a fabricated swing.
+
+What the `gore2` still needs is the STUCK state, and `LockpingMinigame.Update` says exactly what it is: `clickingInside = HandAngle > 0f && HandAngle < 180f && HandDistance > 195f && HandDistance < 247f` is computed on the press frame, the stuck branch lives INSIDE `if (clickingInside)` (as the `else` of `lockProgress >= MaxTurnProgress()`), and `timeWasStuck > 0.5f` is what plays the clip. So the press has to land on the ring (195-247 px from the lock) with an angle that is inside the half-plane but not the lock's own — a press at the lock's centre is `clickingInside = false` and never accrues, which is why the batch's first presses produced nothing (`handClicking=true, mag=330` but no clip).
+
+The next pass presses ON the ring (about 220 px out) and holds; the peer's `audio-watch3 match=gore2` is the reading, and the third guest's view of the same event is row 3.

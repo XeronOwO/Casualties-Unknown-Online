@@ -55,8 +55,8 @@
 	if (cut != null) { body += ",\"cutProgress\":" + System.Convert.ToSingle(cut.GetValue(current)).ToString("0.####", inv); }
 
 	// The amputation minigame's cutting band: `cutting` is `handPos.y <= maxHandPos + 10f` (AmputationMinigame.cs:46-50), and
-	// `PhysicsUpdate` clamps the hand to at least `maxHandPos`, so the hand has to sit INSIDE a ten-unit band for the cut to advance.
-	var maxHand = current.GetType().GetField("maxHandPos", flags);
+	// The band is a PROPERTY (`AmputationMinigame.cs:34-40`), not a field: a reflected read that answers its default is a defect in the read.
+	var maxHand = current.GetType().GetProperty("maxHandPos", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
 	if (maxHand != null) { body += ",\"maxHandPos\":" + System.Convert.ToSingle(maxHand.GetValue(current)).ToString("0.###", inv); }
 	body += ",\"handPosY\":" + main.handPos.y.ToString("0.###", inv);
 

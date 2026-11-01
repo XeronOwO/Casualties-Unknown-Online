@@ -669,3 +669,24 @@ is when the plateau starts, which needs the flag itself in the probe (`MinigameB
 
 Two instruments came out of this and both are committed: `PointerShake` (a per-frame pointer, because a scripted sweep costs a
 round trip per position and the game's hand settles in between) and the `cutProgress` read in `minigame-live`.
+### The amputation COMPLETES: the band has to be followed down, and time can be scaled (2026-11-02, 08:35)
+
+Two things ended the plateau, both from the game's own code:
+
+1. **The band moves.** `maxHandPos` is `Lerp(120, -380, cutProgress)` (AmputationMinigame.cs:34-40) and `cutting` is
+   `handPos.y <= maxHandPos + 10` (46-50), with `PhysicsUpdate` raising the hand to `maxHandPos` when it falls below (99-101).
+   So as the cut deepens the hand must be dragged DOWN with it; a shake that holds one height leaves the band above the hand and
+   the progress stops exactly where this ticket's earlier batch stopped it (0.59).
+2. **`PointerShake` can drift**, one unit per toggle, and the probe now reads `handPosY` beside `maxHandPos`. With the drift on,
+   the reading is the hand tracking the band to within a hundredth:
+
+        t+20   cut=0.0305  handY=104.763  max=104.755
+        t+260  cut=0.4298  handY=-94.885  max=-94.894
+
+   and at six times the game's own clock (`Time.timeScale = 6`, the speed-up the game itself uses) the cut finished inside forty
+   seconds: `minigame-live` answered `kind=none` and `limb-read` answered **`dismembered=true`** for the right lower leg.
+
+So the limb DOES come off through the fixture, and every step up to it is read. What is still missing is the one-shot sound at
+that instant: `audio-recent` samples what is playing RIGHT NOW, and the clip had finished before the next call (the host answered
+`playing=0`). The row's remaining reading is a sampler running DURING the dismember — a loop over `audio-recent match=gore` while
+the cut finishes, which the recipe's own note already prescribes ("a batch that needs the whole window samples in a loop").

@@ -1,6 +1,7 @@
 # Sounds whose native call is suppressed never reach the peers
 
-- Status: Review - rows 1, 2, 3, 4, 5 and 6 are PASS with counted listener-side readings, and row 4b now has its own: the native AmputationMinigame was started on the alt (after three fixture blockers fell - the CUO window covering the game, /give needing an opped member, and the limb selection needing the new select-limb fixture), the cut was driven with the pointer, and the peer played the same drip* clip family over the same window (~34 clips each), so the acting client's minigame step sounds do reach every other client. What 4b does not yet cover is the FINAL dismember step: cutProgress advances only while the game's hand is really moving and a staged pointer moves in bursts, so the limb reached skin=0, muscle=0 with dismembered=false and the minigame still running. Rows 7 and 8 stay as they were.
+- Status: Judged - rows 1, 2, 3, 4, 5, 6 PASS with counted listener-side readings; rows 7 and 8 unchanged. Row 4b is now PASS too: the amputation minigame was driven to completion (`dismembered=true`) and the peer-side sound gap it exposed is fixed and read back (`gore1|gore|gore5` on the peer after the fix, nothing before it), with the native chain quoted from `Limb.Dismember` and `Body.DoGoreSound`. The fixture facts learned on the way (the infection gate, the moving cutting band, the wound view's top-left coordinates, the hover's per-client hittability) are on this ticket and on the mechanic page.
+
 - Acceptance (20261001-l): rows 4 and 5-8 judged (the world-item impact replayed 219:219 on each guest from the authority's 219 reports, the plush squeak 12:12, the suite rows); rows 1-4b stay unproven and the dust puff visual was not captured — record `docs/evidence/acceptance/suppressed-native-call-sounds-stay-unheard-20261001-l.md`
 - Priority: Low
 - Category: Audio sync / report coverage
@@ -771,3 +772,27 @@ never fires and `limbLookingAt` keeps its value. On the guest, with its view ope
 So the fixture must not assume two clients are alike: a hover row needs `ui-hits` to list the view's own images on THAT client
 first, and a client where it answers nothing is recorded as such (a named per-client state), not retried with more hover patterns.
 The two convenience restarts spent earlier were chasing this, and the rule that forbids them is now in step 13.
+## Row 4b closed: the peer plays the game's gore, and it did not before (2026-11-02, 10:40)
+
+The missing clip was a real defect in CUO's network handling of this event, not a property of the architecture.
+
+**What the game does.** `Limb.Dismember` (`Limb.cs:93-100`) plays `Sound.Play("gore", transform.position, …)` and then
+`body.DoGoreSound()`, which rolls `gore1`..`gore5` (`Body.cs`). Both run on the client that severs the limb.
+
+**What CUO did.** A remote body never runs that method: `CloneLimbRenderer` writes `limb.dismembered` from the owner's snapshot, so
+the patient's own client played the clips and every peer stayed silent. Measured, with the listener standing at the patient's feet
+and then 48 units away:
+
+    patient's own client   audio-watch-b   gore2|gore
+    peer, before the fix   audio-watch-b   (nothing medical across 240 frames, 191 audio sources scanned)
+
+**The fix.** `CloneLimbRenderer.ApplyLimb` makes the same two native calls on the FALSE-TO-TRUE transition of the flag, at the
+limb's position, so a repeated snapshot does not replay them.
+
+**Read back on the deployed build** (same fixture, same distances):
+
+    peer, after the fix    audio-watch-b   gore1|gore|gore5     (240-frame window, 194 sources scanned)
+
+So the row's 4b is judged: a limb that comes off is heard by every client, through the game's own clips and its own positions. The
+direct `Limb.Dismember` fixture is the same native call the amputation minigame makes when its cut completes
+(`AmputationMinigame.cs:73-82`), which is why it stands for the minigame's own completion sound.

@@ -124,3 +124,19 @@ The reading said "the body stands up where it fell", and the user's answer to th
 - Nobody else needs a teleport: the revived client owns its body's position and reports it, so the peer clones follow on the next body tick. The host's own view (the player page) already redraws the member alive.
 
 So the change is: the host sends the trader's position with the revive result, and the revived client places its body at that trader before the heal state lands, clearing the rigidbody's velocity so it does not inherit the fall. Both apply paths (the host reviving itself, and a guest receiving the result) go through the same placement so the two can never drift.
+### The revive lands at the trader, measured (2026-11-02, 17:40)
+
+The design above was wrong in the first implementation ("heal where the body lies") and the fix took three parts, each now read on the deployed build:
+
+- the result message carries the trader''s position, and the revived client places its body there before the heal state lands (both apply paths share one placement);
+- the player page no longer requires line of sight to the corpse, so the control is offered for a teammate dead anywhere;
+- the coordinator''s request path dropped the same sight check — it refused with "cannot see ... on this client" after the button had been offered, which is the same rule living in two places.
+
+Read end to end with the teammate killed **500 units away**:
+
+    trader                                             (-107.0, 270.0)
+    guest died at                                      ( 402.8, 393.4)
+    host clicks member.recruit at the trader           -> ok
+    guest after: alive=true, brainHealth=75.008, at    (-107.0, 272.6)
+
+So the teammate now stands up beside the operator at the trader they were brought back from — ~2.6 units away because the body settles onto the ground there — instead of at the spot they fell. The corpse''s dropped inventory stays where it fell; the recruit grants trader-stock items and does not gather loot.

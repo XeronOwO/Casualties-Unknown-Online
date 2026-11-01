@@ -265,3 +265,16 @@ Two frames record the attempt: with the window view open, the panel read the abd
 A point dispatch lands on the parent image the raycast returns first (`target=Limbs`, no handler), so `ui-click` gained a `limb=n` form that addresses the widget the game itself keys by index and dispatches the same `OnPointerEnter`: `ui-click x=445 y=273 limb=5` answered `ok=true, target=Torso (5), enter=true`. The view's own panel then follows the selection, which is the entry this ticket's local rows need.
 
 What did NOT follow: `item-use type=bandage` still answers `usable=False` at every limb tried (3, 4, 5, 7, 8), so no minigame starts and nothing is heard. The next reading is the source of that flag — whether `usable` is the item's own `usableOnLimb`/condition gate, a bleed requirement the seeded wound does not satisfy, or the hand/active-slot state — before the rows can be judged; the wound the batch seeds is `skinHealth=60.4` with no bleeding, which is the first thing to vary.
+
+## Rows 1 and 3 read: a LOCAL limb treatment, and the peer hears the clip exactly once (2026-11-01, 12:40)
+
+The missing entry was not a click at all — it was the wrong FUNCTION. `Body.UseItem(item)` runs `item.Stats.useAction` only when `item.Stats.usable` is true, and a bandage's stats answer false, so every local treatment attempted through the `item-use` recipe was a silent no-op. The game's own entry for a limb item is `PlayerCamera.ApplyWoundItem(item)` (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs`), which the wound view's use button runs: it reads `selectedLimb`, applies the medical cutoff and `ActuallyUsableOnLimb`, and calls `item.Stats.useLimbAction(this.selectedLimb, item)`. A new recipe (`limb-use type=<id>`) calls exactly that.
+
+The chain, on the deployed build, host and guest in one session:
+
+1. the host's own wound view opened (`open-own-wound` answering `open=True`) and the view's own limb widget selected through its `IPointerEnterHandler` (`ui-click limb=8` -> `target=Torso (8), enter=true`; the panel then reads the selected limb (the game's own label for the left hand));
+2. that limb wounded (`wound-seed limb=8 force=150` -> `skinHealth=60.4`);
+3. `limb-use type=bandage` -> the game started its own `BandageMinigame` on the host's body (`minigame-live` answering `kind=BandageMinigame`);
+4. the minigame driven to a completed wrap (`fill=1, lastActionAngle=160`) with the peer's frame-accurate watcher running (`audio-watch3 match=bandage`).
+
+The peer's answer, after the wrap: **`plays=1, names=[bandage]`**. One playback, and it is the game's own clip — so row 1 ("a player treats a limb -> every other client hears the exact clip") and row 3 ("a LOCAL bandage treatment is heard by peers") both read PASS from the listener side, with the same instrument that proved rows 2 and 5.

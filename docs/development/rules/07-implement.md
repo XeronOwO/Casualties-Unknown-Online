@@ -40,3 +40,11 @@ what a player is able to do (that is anti-cheat, out of MVP scope). Census:
 Reusable, generalisable knowledge is recorded where it loads next time — this file or its local sibling, not only in
 the conversation. A hook that reports a write reports only verified writes: re-read the state or pass the verdict
 explicitly.
+## Close the game before the first edit under `src/`
+
+Every project under `src/` counts — the shipped plugin, the adapter, and the batch-only acceptance assembly alike. The
+clients hold the built assemblies open, so an edit made while they run either fails the next deploy or gets silently
+verified against a stale file. The order is: stop the game, confirm zero processes, edit, build, gates, commit, deploy.
+
+Measured 2026-11-02: a recorder file was added to the acceptance project while two clients were mid-batch, and the deploy
+that followed refused because the file it had to overwrite was held open.

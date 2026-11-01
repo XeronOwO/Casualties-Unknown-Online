@@ -1,5 +1,9 @@
 # AGENTS.md
 
+**The first tool call of every round prints this round's step rules** (`rules/NN-*.md` + its `.local.md`, in full) before
+any other call touches the repository. No exception for a short round, a continued round, or "I already know this". If a
+round's first call was something else, the read is not done — stop and do it.
+
 Working rules for this repository. Each step below has one committed rule file and one local sibling; **read both in
 full at the start of the step, every round, even if the previous round read them**. The rules live there, not here —
 this page is the map.

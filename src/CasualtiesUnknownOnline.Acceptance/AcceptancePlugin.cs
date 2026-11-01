@@ -1,4 +1,5 @@
 using BepInEx;
+using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.Acceptance;
 
@@ -8,12 +9,20 @@ namespace CasualtiesUnknownOnline.Acceptance;
 /// assembly at all — the shipped mod never references it and the deploy script only copies it for a batch.
 ///
 /// <para>
-/// Nothing is patched on load: a batch installs the channel explicitly (<c>virtual-input mode=install</c>), so a client
-/// that happens to have this file keeps the real keyboard and mouse until a batch says otherwise.
+/// Only the passive recorder is patched on load: it records nothing until a batch arms it, so a client that happens to have
+/// this file pays nothing and keeps the real keyboard and mouse. The staged input channel is NOT installed here — a batch
+/// installs that one explicitly, because it answers the game's own input queries.
 /// </para>
 /// </summary>
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public sealed class AcceptancePlugin : BaseUnityPlugin
 {
-	private void Awake() => Logger.LogInfo("[Acceptance] channel plug-in loaded; nothing is patched until a batch installs it.");
+	private void Awake()
+	{
+		// The recorder's patches are attributes on the type and nothing applies them unless something asks. Without this
+		// the ring buffer stays empty and a batch reads zero for a sound the game really played (measured 2026-11-02: two
+		// clients answered count=0 for every Sound.Play of the batch).
+		new Harmony("CasualtiesUnknownOnline.Acceptance").PatchAll(typeof(SoundPlayRecorder));
+		Logger.LogInfo("[Acceptance] channel plug-in loaded; the recorder is armed, input is staged only when a batch installs it.");
+	}
 }

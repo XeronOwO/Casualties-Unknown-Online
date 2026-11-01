@@ -42,3 +42,13 @@ gets broken by someone who knows it.
 The unit of work is the thing the user asked for, not the smallest step that can be reported. A work item runs until it is
 judged, committed, deployed and verified — however many tool calls that takes. Re-reading a rule file costs seconds;
 stopping halfway costs the next round re-learning everything and is how the same defect gets discovered twice.
+## Two self-checks that catch the two ways this step is actually broken
+
+Both failures are measured, not hypothetical: a round that reported after two calls, and a round that worked from memory
+without reading its step files.
+
+1. **Before writing any message that is not one of the four end states, the next action must be a tool call.** The test is
+   mechanical: if the item is not finished and no tool call follows this sentence, the message IS the violation — delete it
+   and make the call. A "progress" message and a stop are the same act.
+2. **The round''s first call prints the current step''s two files.** Reading them is not a memory task: the call prints them,
+   so the transcript shows the read happened. A round whose first call did anything else has not started yet.

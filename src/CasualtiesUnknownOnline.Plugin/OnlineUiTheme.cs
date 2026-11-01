@@ -40,9 +40,50 @@ internal static class OnlineUiTheme
 
 	private static GUIStyle? _scrollBackground;
 
+	private static GUIStyle? _label;
+
+	private static GUIStyle? _textField;
+
 	internal static GUIStyle Button() => _button ??= CreateButton();
 
 	internal static GUIStyle MutedLabel() => _mutedLabel ??= CreateMutedLabel();
+
+	/// <summary>
+	/// The ordinary label this panel draws with. The game's <c>GUI.skin.label</c> brings its own font size and colour, which is
+	/// not this window's text; the mod UI's labels go through this, so a mod's window looks like the rest of the panel.
+	/// </summary>
+	internal static GUIStyle Label()
+	{
+		if (_label is not null)
+		{
+			return _label;
+		}
+
+		_label = new GUIStyle(GUI.skin.label)
+		{
+			fontSize = 13,
+			wordWrap = true,
+		};
+		_label.normal.textColor = Text;
+		return _label;
+	}
+
+	/// <summary>The same argument for text fields: the game's skin decides the box, this panel decides its text.</summary>
+	internal static GUIStyle TextField()
+	{
+		if (_textField is not null)
+		{
+			return _textField;
+		}
+
+		_textField = new GUIStyle(GUI.skin.textField)
+		{
+			fontSize = 13,
+			padding = new RectOffset(6, 6, 4, 4),
+		};
+		_textField.normal.textColor = Text;
+		return _textField;
+	}
 
 	/// <summary>
 	/// The suggestion list's scroll view background. The GAME's own <c>GUI.skin.scrollView</c> carries its UI's padding, and using
@@ -90,6 +131,10 @@ internal static class OnlineUiTheme
 			fontSize = 13,
 			alignment = TextAnchor.MiddleCenter,
 			padding = new RectOffset(10, 10, 5, 5),
+			// The game's button style carries a MARGIN, and a margin offsets every button inside the layout that draws it: the
+			// console's suggestion rows kept an indent after their scroll-view padding was removed, because this copy kept the
+			// margin (measured 2026-11-02). Zero here means the layout decides the edge, not the skin.
+			margin = new RectOffset(0, 0, 0, 0),
 		};
 		style.normal.textColor = Text;
 		style.hover.textColor = Accent;

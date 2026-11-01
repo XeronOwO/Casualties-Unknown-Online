@@ -11,12 +11,15 @@ namespace CasualtiesUnknownOnline;
 /// </summary>
 internal sealed class ModUiRenderer : IModUiWindow
 {
-	public void Label(string text) => GUILayout.Label(text ?? string.Empty);
+	// Every control here passes a style of its own: an un-styled GUILayout call inherits the GAME's skin, whose padding, font
+	// size and colours are not this panel's (measured 2026-11-02 on the console's list, which inherited the game's scroll-view
+	// padding and indented every row).
+	public void Label(string text) => GUILayout.Label(text ?? string.Empty, OnlineUiTheme.Label());
 
-	public bool Button(string text) => GUILayout.Button(text ?? string.Empty);
+	public bool Button(string text) => GUILayout.Button(text ?? string.Empty, OnlineUiTheme.Button());
 
 	public string TextField(string current, int maxLength = 64) =>
-		GUILayout.TextField(current ?? string.Empty, Math.Max(1, maxLength));
+		GUILayout.TextField(current ?? string.Empty, Math.Max(1, maxLength), OnlineUiTheme.TextField());
 
 	public void Separator() => GUILayout.Space(6f);
 }

@@ -36,3 +36,11 @@ What each row still needs, read from the scope page's own definitions:
     [AttackSwing:BSSwing4@<host>] [AttackSwing:BSSwing4@<host>]
 
 So the one-shot swing presentation IS reported and replayed on a client that did not run it — row 9's mechanism, read directly. What the row still needs is the HOSTILE half: hitting the trader until it turns hostile and reading that swing the same way, which is one more gesture after this instrument (the trader's own state is already exposed by `trade-open`'s `hostile` field).
+
+### What makes a trader hostile, read from its own script (2026-11-02, 00:45)
+
+Row 9's hostile half needs one specific state, and `TraderScript` says exactly which: `hostile` is `hostility >= 100f`, and `hostility` moves only two ways — the trader's own evaluation adds 50 when **the player is holding a weapon tagged `gun` in the HAND slot** (`if (this.body.HoldingItem(this.body.handSlot) && …HasTag("gun")) this.hostility += 50f;`), and the hug/refuse interaction sets it to 100 outright when `reputation < 30f`.
+
+Two attempts in this session show what is NOT enough: punching the trader (`body-call kind=attack`, six swings with the body aimed at it by `targetLookPos` and the trade menu closed) leaves its `buildHealth` at 1250 and the menu opening normally, and giving a `shotgun` (`/give @s shotgun` answering `placed in slot 0`) while standing beside the trader changes nothing either — the check reads the HAND slot, and the given weapon sits in a backpack slot.
+
+So the next pass is precise: put a gun-tagged weapon into the hand (the game's own switch/hand slot), stand at the trader, and read `hostility`/`hostile` until the menu refuses; then the swing is already covered by the replay reading above (`[AttackSwing:BSSwing4]` arriving on a peer).

@@ -71,3 +71,22 @@ own screen.
 | 2 | the same guest afterwards | it can be revived (by the team, at whatever place the chosen rule puts it) |
 | 3 | guest alive, host descends | unchanged from today: it follows and lands in the new layer |
 | 4 | the host's own descent | unchanged: no waiting, no gate |
+
+## First fix landed, and the next link in the chain (2026-11-02, 15:55)
+
+`LayerDescentPolicy.DecideFollow` now takes the body's own liveness: a dead body follows the same generation as a live one instead of being classified `NotPlaying` and handed to the ordinary entry. Three policy cases pin it, the full suite and the gates are green, and the build is deployed and identity-checked.
+
+On the running game the guest's own log changed exactly as intended — the stranded state is gone and the follow path runs:
+
+```
+[LayerDescent] host descent accepted (twice: False) — this member runs its own new-layer generation
+[LayerDescent] this member starts its own new-layer generation
+[LayerDescent] this member's new layer is generated — waiting for the host's release
+```
+
+But the guest stays on `LoadingImage` after the layer is generated, so the follow does not complete: the release it waits for does not arrive. Two candidates, and the next reading decides between them:
+
+1. **The release is a gate the host opens by ARRIVING.** This batch descended with the `layer-descend` recipe, which calls the game's `WorldGeneration.RegenerateWorld` directly — the host never travels through a sink, so the arrival-shaped release a real descent produces may simply not exist in this fixture.
+2. **The release exists but does not reach this member.** The host's log does show `Start gate released — everyone is in the world`, and the guest's own log carries a kernel baseline for a DIFFERENT layer than the host's, which would explain a member waiting on a layer the host has left.
+
+So the acceptance rows are still open, and the fixture that can judge them is a descent through the game's own sink rather than the direct regeneration this recipe performs.

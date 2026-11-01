@@ -43,6 +43,7 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IOnlineUiNativeFactsQuery), ["Capture"]),
 		(typeof(IOnlineUiSurface), ["Push", "TryDequeueIntent"]),
 		(typeof(ILocalBodyReset), ["Reset"]),
+	(typeof(ILocalBodyKill), ["Kill"]),
 		(typeof(ISpectatorControl), ["EnterSpectatorMode", "ExitSpectatorMode", "IsFreeFly", "IsSpectator", "IsWatching", "MirrorEffects", "StopWatching", "TrySetFreeFly", "TryWatch", "WatchingSteamId"]),
 	];
 
@@ -86,7 +87,7 @@ public class AdapterCapabilityPortShapeTests
 	/// </summary>
 	[Fact]
 	public void Composition_CarriesExactlyThePinnedMemberCount() =>
-		Assert.Equal(34, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+		Assert.Equal(35, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

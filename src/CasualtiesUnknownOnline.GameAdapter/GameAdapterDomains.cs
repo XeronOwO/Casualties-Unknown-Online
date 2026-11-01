@@ -82,6 +82,7 @@ internal sealed class GameAdapterDomains
 	/// <summary>The descent follow's one-shot saved-character handback fact — noted by the run, consumed by the character domain.</summary>
 	internal readonly DescentBodyPreservation DescentBody;
 	internal readonly LocalBodyReset LocalBodyReset;
+	internal readonly LocalBodyKill LocalBodyKill;
 	internal readonly StartingSupplyCoordinator StartingSupplies;
 	internal readonly RemotePlayerRenderer Renderer;
 
@@ -311,6 +312,9 @@ internal sealed class GameAdapterDomains
 		// re-reported. It is the adapter's port because only this side has the live Body and the
 		// character-snapshot capture; the Runtime's verb asks for it through ILocalBodyReset.
 		LocalBodyReset = new LocalBodyReset(CharacterDataSync, healResetReports, loggerFactory.CreateLogger<LocalBodyReset>());
+		// The console /kill verb's body half: zero brain health on this client's own body — the whole
+		// of the game's own kill verb — and the re-report that makes the host and the peers agree.
+		LocalBodyKill = new LocalBodyKill(CharacterDataSync, loggerFactory.CreateLogger<LocalBodyKill>());
 		// The starting-supplies grant (S4.3): a player the world has no character for gets
 		// the run's startingsupplies once per body. The shared restore queue above is its
 		// input — a queued character restore means this player is NOT new.

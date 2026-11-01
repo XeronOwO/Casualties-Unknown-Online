@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
@@ -56,6 +57,6 @@ internal sealed class HealResetCommands(
 			return ConsoleAnswer.Refused($"No players match selector '{args[1]}'.", "selector.answer.no_match", args[1]);
 		}
 
-		return _healReset.Reset(targets);
+		return _healReset.Apply(targets, BodyOperation.Heal);
 	}
 }

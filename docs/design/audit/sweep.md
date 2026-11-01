@@ -26,7 +26,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.BulkTransfer.Core/Audio` | 1 | read |
 | `CasualtiesUnknownOnline.GameAdapter` | 81 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 6 | read |
-| `CasualtiesUnknownOnline.GameAdapter/Character` | 98 | read |
+| `CasualtiesUnknownOnline.GameAdapter/Character` | 99 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Content` | 36 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Items` | 73 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | read |
@@ -64,7 +64,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Configuration` | 16 | read |
 | `CasualtiesUnknownOnline.Runtime/Data` | 18 | read |
 | `CasualtiesUnknownOnline.Runtime/Diagnostics` | 3 | read |
-| `CasualtiesUnknownOnline.Runtime/GameAdapter` | 54 | read |
+| `CasualtiesUnknownOnline.Runtime/GameAdapter` | 56 | read |
 | `CasualtiesUnknownOnline.Runtime/Localization` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Logging` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/Networking` | 14 | read |
@@ -72,12 +72,12 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Patching` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/Persistence` | 60 | read |
 | `CasualtiesUnknownOnline.Runtime/Protocol` | 10 | read |
-| `CasualtiesUnknownOnline.Runtime/Protocol/Messages` | 156 | read |
+| `CasualtiesUnknownOnline.Runtime/Protocol/Messages` | 157 | read |
 | `CasualtiesUnknownOnline.Runtime/Session` | 39 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync` | 12 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/CharacterData` | 34 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Chat` | 4 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/Commands` | 78 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/Commands` | 79 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Content` | 7 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/EntitySync` | 43 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/HandlerContexts` | 24 | read |
@@ -88,7 +88,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic` | 7 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Permissions` | 5 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Persistence` | 44 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction` | 122 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction` | 123 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Tutorial` | 2 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/World` | 125 | read |

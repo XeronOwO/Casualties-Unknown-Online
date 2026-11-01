@@ -157,6 +157,8 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	/// </summary>
 	LocalBodyResetOutcome ILocalBodyReset.Reset(ulong? instructionId) => _domains.LocalBodyReset.Reset(instructionId);
 
+	LocalBodyKillOutcome ILocalBodyKill.Kill() => _domains.LocalBodyKill.Kill();
+
 	/// <summary>
 	/// The startup gate <c>ICuoService.Initialize</c> drives: probe the loaded
 	/// game assembly (the four types and the report text live in the patch life

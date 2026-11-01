@@ -22,11 +22,12 @@ public interface IHealResetControl
 	event Action<HealResetResultMsg>? Answered;
 
 	/// <summary>
-	/// One <c>/heal</c> invocation on this client. The host resets its own body and instructs the
-	/// member targets, returning the answer line; a member sends the request and returns null,
-	/// because its answer arrives later through <see cref="Answered"/>.
+	/// One invocation of a body verb on this client — <c>/heal</c> (<see cref="BodyOperation.Heal"/>)
+	/// or <c>/kill</c> (<see cref="BodyOperation.Kill"/>). The host applies the operation to its own
+	/// body and instructs the member targets, returning the answer line; a member sends the request
+	/// and returns null, because its answer arrives later through <see cref="Answered"/>.
 	/// </summary>
-	ConsoleAnswer Reset(IReadOnlyList<ulong> targetSteamIds);
+	ConsoleAnswer Apply(IReadOnlyList<ulong> targetSteamIds, BodyOperation operation);
 
 	/// <summary>Host only: a member's heal request arrived — judge this host's cheat switch and roster, then carry the reset out.</summary>
 	void HandleRequest(ulong sender, HealResetRequestMsg msg);

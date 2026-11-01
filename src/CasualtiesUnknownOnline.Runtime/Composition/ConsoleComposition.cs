@@ -38,6 +38,11 @@ internal static class ConsoleComposition
 		// REPLACES this with the real one; without it the verb answers that this build cannot reset a
 		// body instead of resetting nothing and saying nothing.
 		services.AddSingleton<ILocalBodyReset>(new UnavailableLocalBodyReset());
+		// The one scene capability behind the console /kill cheat verb: zero brain health on THIS
+		// client's own body, which is the whole of the game's own kill verb. The Game Adapter
+		// REPLACES this with the real one; without it the verb answers that this build cannot kill a
+		// body instead of killing nothing and saying nothing.
+		services.AddSingleton<ILocalBodyKill>(new UnavailableLocalBodyKill());
 		services.AddSingleton<CommandRelayHub>();
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());

@@ -83,6 +83,13 @@ internal sealed class CharacterDataSync(
 
 	internal void ReportLimbStateEvent(Limb limb) => OwnerState.ReportLimbStateEvent(limb);
 
+	/// <summary>
+	/// Report the local owner's whole body state after a console verb wrote it — the same owner-state
+	/// event the limb latch uses, so the host and every peer converge on the change without a second
+	/// channel. The <c>/kill</c> cheat verb writes one field (brain health to zero) and calls this.
+	/// </summary>
+	internal void ReportBodyStateEvent(Body body, string reason) => OwnerState.ReportOwnerStateEvent(body, reason);
+
 	private OwnerStateEventReporter OwnerState =>
 		_ownerState ??= new(_session, _characterData, CaptureHealth, CaptureLimbs, _log);
 

@@ -66,6 +66,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 	private readonly ICharacterDataControl _characters;
 	private readonly PlayerCharacterAccess _access;
 	private readonly ILocalBodyReset _localReset;
+	private readonly ILocalBodyKill _localKill;
 	private readonly IMemberCommandRules _memberRules;
 	private readonly ITimeSource _time;
 	private readonly ILocalizationService _localization;
@@ -84,6 +85,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		PacketSender sender,
 		ICharacterDataControl characters,
 		ILocalBodyReset localReset,
+		ILocalBodyKill localKill,
 		IMemberCommandRules memberRules,
 		ITimeSource time,
 		ILocalizationService localization,
@@ -94,6 +96,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		_characters = characters;
 		_access = new PlayerCharacterAccess(session, characters);
 		_localReset = localReset;
+		_localKill = localKill;
 		_memberRules = memberRules;
 		_time = time;
 		_localization = localization;
@@ -110,26 +113,31 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 	public event Action<HealResetResultMsg>? Answered;
 
 	/// <inheritdoc />
-	public ConsoleAnswer Reset(IReadOnlyList<ulong> targetSteamIds)
+	public ConsoleAnswer Apply(IReadOnlyList<ulong> targetSteamIds, BodyOperation operation)
 	{
 		if (!_session.SessionActive)
 		{
 			return ConsoleAnswer.Refused(
 				"Refused: no active session — a cheat verb needs one: the host's own permission is the online switch, and a member's is the host's grant for the session.",
 				"cheat.refused.no_session",
-				"heal");
+				operation == BodyOperation.Kill ? "kill" : "heal");
+		}
+
+		if (operation == BodyOperation.None)
+		{
+			return ConsoleAnswer.Refused("Refused: the invocation names no body operation.", "cheat.refused.no_operation");
 		}
 
 		if (_session.Role == SessionRole.Guest)
 		{
-			var targets = DistinctTargets(targetSteamIds);
-			_sender.Send(_session.HostSteamId, NetMsg.HealResetRequest, new HealResetRequestMsg { TargetSteamIds = targets });
-			_log.LogInformation("[HealReset] {Actor} requested a full reset of {Count} player(s): {Targets}.",
-				_session.LocalSteamId, targets.Count, string.Join(", ", targets));
+			var requested = DistinctTargets(targetSteamIds);
+			_sender.Send(_session.HostSteamId, NetMsg.HealResetRequest, new HealResetRequestMsg { TargetSteamIds = requested, Operation = operation });
+			_log.LogInformation("[BodyVerb] {Actor} requested {Operation} of {Count} player(s): {Targets}.",
+				_session.LocalSteamId, operation, requested.Count, string.Join(", ", requested));
 			return ConsoleAnswer.Silent;
 		}
 
-		var result = Execute(_session.LocalSteamId, targetSteamIds);
+		var result = Execute(_session.LocalSteamId, targetSteamIds, operation);
 		var parts = new List<ConsoleAnswerPart>(result.Parts.Count);
 		foreach (var part in result.Parts)
 		{
@@ -171,7 +179,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 			return;
 		}
 
-		var outcome = Execute(sender, msg.TargetSteamIds);
+		var outcome = Execute(sender, msg.TargetSteamIds, msg.Operation);
 		_sender.Send(sender, NetMsg.HealResetResult, new HealResetResultMsg
 		{
 			Applied = outcome.Applied,
@@ -186,6 +194,23 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
 		{
 			_log.LogWarning("[HealReset] a reset instruction arrived while this process is {Role} — dropped.", _session.Role);
+			return;
+		}
+
+		if (msg.Operation == BodyOperation.Kill)
+		{
+			var killed = _localKill.Kill();
+			if (killed.Applied)
+			{
+				_log.LogInformation("[Kill] the host's instruction from {Operator} (instruction {InstructionId}) killed this body: brain health {Before:0.#} -> 0.",
+					msg.OperatorSteamId, msg.InstructionId, killed.BrainHealthBefore);
+			}
+			else
+			{
+				_log.LogWarning("[Kill] the host's instruction from {Operator} (instruction {InstructionId}) could not be applied here: {Reason}",
+					msg.OperatorSteamId, msg.InstructionId, killed.Refusal);
+			}
+
 			return;
 		}
 
@@ -271,7 +296,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 	/// The host's shared path for its own console and a member's request: reset the host's own body
 	/// when the host is named, instruct every named member's client, and answer in one sentence.
 	/// </summary>
-	private (bool Applied, string Answer, List<ConsoleAnswerPartMsg> Parts) Execute(ulong actor, IReadOnlyList<ulong> requested)
+	private (bool Applied, string Answer, List<ConsoleAnswerPartMsg> Parts) Execute(ulong actor, IReadOnlyList<ulong> requested, BodyOperation operation)
 	{
 		var targets = DistinctTargets(requested);
 		if (targets.Count == 0)
@@ -294,6 +319,26 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 					parts.Add(RefusedFor(target, "this client is not in a world, so there is no body to reset."));
 					keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
 					keyedParts.Add(AnswerPart("heal.answer.reason_host_not_in_world"));
+					continue;
+				}
+
+				if (operation == BodyOperation.Kill)
+				{
+					var killed = _localKill.Kill();
+					applied &= killed.Applied;
+					if (killed.Applied)
+					{
+						parts.Add($"Killed {target}: brain health {killed.BrainHealthBefore.ToString("0.#", CultureInfo.InvariantCulture)} -> 0.");
+						keyedParts.Add(AnswerPart("kill.answer.applied", target.ToString(CultureInfo.InvariantCulture)));
+					}
+					else
+					{
+						parts.Add(RefusedFor(target, killed.Refusal ?? "the body could not be killed."));
+						keyedParts.Add(AnswerPart("kill.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
+					}
+
+					_log.LogInformation("[Kill] {Actor} killed the host's own body (brainBefore={Before:0.#}, applied={Applied}).",
+						actor, killed.BrainHealthBefore, killed.Applied);
 					continue;
 				}
 
@@ -334,6 +379,7 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 			{
 				OperatorSteamId = actor,
 				InstructionId = instructionId,
+				Operation = operation,
 			}))
 			{
 				// The transport refused the frame locally: nothing was sent, so no result can answer

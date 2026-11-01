@@ -82,7 +82,10 @@ public class CommandConsolePermissionCompletionTests
 
 		Assert.Contains(completion.Suggest("/gi"), s => s.Text == "give");
 		Assert.Contains(completion.Suggest("/ga"), s => s.Text == "gamerule");
-		Assert.Empty(completion.Suggest("/k"));
+		// `kill` is a cheat verb like the two above, so a granted member IS offered it; `kick` is
+		// host-only and must stay out of the same prefix.
+		Assert.Contains(completion.Suggest("/ki"), s => s.Text == "kill");
+		Assert.DoesNotContain(completion.Suggest("/k"), s => s.Text == "kick");
 		Assert.Empty(completion.Suggest("/op"));
 	}
 

@@ -1286,3 +1286,4 @@ docs/backlog/done/no-compatibility-branches-before-the-first-release.md | keep |
 docs/backlog/review/guest-entity-dropped-by-third-client.md | keep | index | docs/backlog/README.md
 docs/backlog/done/bark-vocalization-reaches-no-peer.md | keep | index | docs/backlog/README.md
 docs/backlog/done/lockpick-pain-reaches-no-peer.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/kill-command.md | keep | index | docs/backlog/README.md

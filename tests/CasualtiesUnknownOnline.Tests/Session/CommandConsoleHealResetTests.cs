@@ -99,7 +99,7 @@ public class CommandConsoleHealResetTests
 	{
 		var (host, _, reset) = CreateHealSession();
 
-		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([9999]).Text;
+		var answer = host.Services.GetRequiredService<IHealResetControl>().Apply([9999], BodyOperation.Heal).Text;
 
 		Assert.Equal("Refused for 9999: not in this world (left, or no snapshot yet).", answer);
 		Assert.Equal(0, reset.Resets);
@@ -110,7 +110,7 @@ public class CommandConsoleHealResetTests
 	{
 		var (host, _, reset) = CreateHealSession();
 
-		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([]).Text;
+		var answer = host.Services.GetRequiredService<IHealResetControl>().Apply([], BodyOperation.Heal).Text;
 
 		Assert.Equal("Refused: the request names no player.", answer);
 		Assert.Equal(0, reset.Resets);
@@ -127,7 +127,7 @@ public class CommandConsoleHealResetTests
 		var (host, _, reset) = CreateHealSession();
 		SeedMember(host, conscious: true);
 
-		var answer = host.Services.GetRequiredService<IHealResetControl>().Reset([HostId, GuestId, GuestId]).Text;
+		var answer = host.Services.GetRequiredService<IHealResetControl>().Apply([HostId, GuestId, GuestId], BodyOperation.Heal).Text;
 
 		Assert.Contains("Reset 1001: full heal applied.", answer);
 		Assert.Contains("Reset 2001: sent to that player's own client", answer);

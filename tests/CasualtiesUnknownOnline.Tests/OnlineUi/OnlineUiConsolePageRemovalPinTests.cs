@@ -307,6 +307,8 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		"console.cmd.help.usage",
 		"console.cmd.kick.desc",
 		"console.cmd.kick.usage",
+		"console.cmd.kill.desc",
+		"console.cmd.kill.usage",
 		"console.cmd.op.desc",
 		"console.cmd.op.usage",
 		"console.cmd.players.desc",

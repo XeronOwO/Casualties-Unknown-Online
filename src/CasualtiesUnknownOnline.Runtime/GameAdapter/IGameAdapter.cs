@@ -53,6 +53,7 @@ public interface IGameAdapter :
 	IOnlineUiNativeFactsQuery,
 	IOnlineUiSurface,
 	ILocalBodyReset,
+	ILocalBodyKill,
 	IDisposable
 {
 }

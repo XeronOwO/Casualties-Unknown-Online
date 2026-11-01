@@ -83,6 +83,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		ItemStateSettlement itemStateSettlement,
 		IWorldSummonControl worldSummon,
 		IHealResetControl healReset,
+		ILocalBodyKill localBodyKill,
 		AnnouncedHostRules hostRules,
 		AnnouncedCheatPermissions cheatPermissions,
 		CheatPermissions cheatRoster,
@@ -159,6 +160,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_commands.AddBuiltIns(new ItemGiveCommands(_playerInteraction, _cheatVerbs, targets, log));
 		_commands.AddBuiltIns(new WorldSummonCommands(worldSummon, _cheatVerbs));
 		_commands.AddBuiltIns(new HealResetCommands(healReset, _cheatVerbs, session, entities));
+		_commands.AddBuiltIns(new KillCommands(healReset, _cheatVerbs, session, entities));
 		// A run's own levers: the acceptance-only verbs must be reachable from the console, and their
 		// owner registers itself through the same attribute scan as every other group above. The cheat
 		// gate is the permission: a lever that can move a trader's credit is not a player's shortcut.

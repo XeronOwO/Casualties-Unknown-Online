@@ -102,6 +102,11 @@ public static class GameAdapterComposition
 		// silently make the deployed verb answer "this build has no game scene".
 		services.Replace(ServiceDescriptor.Singleton<ILocalBodyReset>(
 			p => p.GetRequiredService<GameAdapter>()));
+		// The console /kill verb's body half: zero brain health on this client's own body plus the
+		// re-report. Replaced for the same reason as the reset seam above — two descriptors would let
+		// registration order decide whether the deployed verb kills or answers that it cannot.
+		services.Replace(ServiceDescriptor.Singleton<ILocalBodyKill>(
+			p => p.GetRequiredService<GameAdapter>()));
 		// The world library (decision 198): the worlds and backups the Online UI's Worlds page
 		// manages, and the restore that replaces one world's live snapshot with an archive the
 		// player picked. It is an ICuoService because an armed restore runs at a frame boundary

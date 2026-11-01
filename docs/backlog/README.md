@@ -62,6 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [`/kill` — the game's own kill verb, for every player](todo/kill-command.md) — **High** — zero brain health; the target's own client applies it.
 
 
 

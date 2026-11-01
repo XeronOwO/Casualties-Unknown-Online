@@ -1,3 +1,7 @@
 {
-
+  "CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.PlayerHealResetService": {
+    "Lines": 616,
+    "BoolFlags": 0,
+    "Ticket": "docs/backlog/todo/kill-command.md"
+  }
 }

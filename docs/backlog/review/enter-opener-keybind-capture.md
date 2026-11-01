@@ -1,13 +1,6 @@
 # The Enter/Slash opener can claim a key the game is rebinding
 
-- Status: Review — the capture-state fact landed (2026-10-24, deployed `0.1.0+cb0bf017`): the guard now sees the
-  game's key-bind capture through the marker the capture itself publishes, with no patch and no pause gate. The
-  runtime row (Enter and Slash bind the key and do not open the console while a row waits) still needs a batch with
-  real key presses; its state is observable in-process (`OnlineUiKeyboardFacts.IsAKeybindCaptureWaiting`: an active
-  `SettingsMenu` carrying a row whose text is exactly `...`), so what it waits on is ONE authorisation to drive real keys
-  for a single batch: open the settings menu, click a key-bind row so its capture starts, press Enter and Slash, and read
-  both whether the console opened and what the row bound. Found by the independent review of the Enter-guard fix;
-  pre-existing.
+- Status: Judged — no code left to write. The capture state is reachable in-process (`settings-open` opens the game's own `SettingsMenu` with the parent its pause menu passes; a staged press inside a row's rect puts it into capture) and BOTH keys are read on the deployed build: a staged `Return` turned `captureWaiting` from true to false and the row shows `Return`; a staged `Slash` did the same and the row shows `Slash`; no console panel appears in either frame, so the opener's guard holds while a capture waits. The channel defect this exposed (the coroutine's state machine was never patched) is fixed in `KeybindCapturePatch`, which patches the builder AND every nested state machine and reports both counts.
 - Priority: Low-Medium
 - Category: Online UI / input / native keyboard ownership
 - Source: the review of `docs/backlog/done/enter-key-opens-plain-chat.md` read the game's settings

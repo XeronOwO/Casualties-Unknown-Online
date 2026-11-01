@@ -468,3 +468,15 @@ What is actually known:
 So the honest state is: **the suggestion surface has not been read yet**, and the instruments disagree about which console instance they hold. The next step is instrument work, not a product change: make `console-suggest` prove which instance it holds (the console's own line count beside the suggestion list) and pass a leading `/` in a way the driver keeps, then read the real answer. The row stays unread until that happens.
 
 What this section replaces: the earlier paragraph that named `ConsoleCommandAuthority.TryRefusal` as the cause. It may still be the cause; it has not been shown.
+### Why the suggestion read cannot run at all right now: the eval host fails on this recipe (2026-11-02, 21:45)
+
+`console-suggest` does not answer — it fails before running: `eval 'recipe:console-suggest' failed: (1,1): InteractiveHost`. The client's own log shows where:
+
+    HotRepl.Control.Schema.SchemaCache.BuildCompiledSchema (System.Type type)
+    HotRepl.Control.Schema.SchemaCache.CompiledFor (System.Type type)
+
+So the HotRepl host cannot build a compiled schema for one of the types the recipe references, and the failure happens at submission, before any code runs — which is why the earlier readings (a `count=0` and an empty `received`) were the host's silence and not the completion source's answer. An identical copy under a second recipe name failed the same way, so it is the content's type surface, not a cached failure.
+
+`console-registry` — the same kind of probe, resolving the CONCRETE `CommandConsoleService` — runs fine and answers `commands=25`, which is the projection the UI and the completion share. So the console's command list is NOT empty, and the earlier "authority refuses everything" theory is dead twice over.
+
+The next step is instrument work with a named shape: read the completion through a type surface the eval host can compile — the console's own `Suggest` reached through the concrete `CommandConsoleService` (the same resolution `console-registry` proved), with no interface casts in the recipe.

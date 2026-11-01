@@ -80,15 +80,20 @@ internal sealed class CharacterSoundSync(
 
 		var pos = new Vector2(msg.Position.X, msg.Position.Y);
 		var hasBody = _renderer.TryGetRemoteBody(msg.OwnerSteamId, out var body);
+		// The clip is resolved the way the side that PLAYED it did: the resource path first, then the owner body's own PantSound arrays, because the bark
+		// and pain vocalizations are AudioClip picks whose names are not resource paths (measured 2026-11-01: a bark played `pain1` on the acting client and
+		// nothing on any peer, because `Sounds/pain1` does not exist while the clip sits in the owner's `barkSounds`).
+		var clip = CharacterSoundClipResolution.Resolve(msg.Clip, hasBody ? body : null);
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			if (msg.FollowOwner && hasBody && body != null) // Unity object — ==
+			var follow = msg.FollowOwner && hasBody && body != null ? body.transform : null; // Unity object — ==
+			if (clip != null) // Unity object — ==
 			{
-				Sound.Play(msg.Clip, pos, msg.TwoDimensional, true, body.transform, msg.Volume, 1f, false, false);
+				Sound.Play(clip, pos, msg.TwoDimensional, true, follow, msg.Volume, 1f, false, false);
 			}
 			else
 			{
-				Sound.Play(msg.Clip, pos, msg.TwoDimensional, true, null, msg.Volume, 1f, false, false);
+				Sound.Play(msg.Clip, pos, msg.TwoDimensional, true, follow, msg.Volume, 1f, false, false);
 			}
 		}
 

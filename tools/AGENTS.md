@@ -6,6 +6,10 @@
   outside the documented exemptions (`docs/zh/`, `zh.json`, the pinyin dictionary, fixtures that must contain non-English text).
 - `check-delivery.ps1` — the delivery checklist, run before a commit: validates every required box and its evidence, archives the
   cycle's record under `docs/evidence/checklists/`, resets the boxes for the next cycle.
+- `check-step-read.ps1` — the step-read gate, run before a commit: records which step rule files the round read
+  (`-Record '2,7,11,13'`, one SHA-256 per file so a stale record is detectable) and refuses while a step the change TOUCHES has no
+  record. A `src/` change touches step 7, a `tests/` change 7 and 8, `docs/design/` step 2, `tools/` step 13, `docs/backlog/`
+  step 12, and every commit step 11. It is a script and not a test because the record is per round, not per tree.
 - `check-goal-completion.ps1` — the completion gate for an autonomous run: reads every `- Status:` line in `docs/backlog/todo/`
   and `docs/backlog/review/` and exits 1 while any ticket is still actionable (an ordinary status, a missing status, or a status
   that still carries a residual row). Run it as the last action before `update_goal complete`; its output is the reading that

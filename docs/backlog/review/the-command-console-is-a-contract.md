@@ -610,3 +610,26 @@ They are a different mechanism from the console's (`ItemStateDocument` builds th
 are named here rather than half-fixed.
 
 The console contract's rows are now read except 13 (two languages, no channel switch).
+## The completion list's layout, from the user's three readings (2026-11-02, 06:10)
+
+Each of these came from a screenshot the user sent, and each is now in the product:
+
+1. **The marker was not centred on its row** — the glyph label sat on the row's top edge. It expands to the row's height now, so
+   its `MiddleCenter` alignment centres the glyph.
+2. **The usage line sat exactly where the list opens**, so the list covered it. The separate line is gone; the usage lives with
+   the command it belongs to.
+3. **Some rows had an empty right side** — the catalogue has no sentence for `craftchain` or a mod's verb. Such a row shows its
+   usage in that space now, and no row is blank.
+
+The layout rule the user then gave, and the shape it took: the row's right side is **progressive**, not one crammed line. A row
+says what the command IS; the row the player is ON adds how to call it, on its own line beneath, indented to the description.
+Cramming both into one line made the list wider than the panel and put a horizontal scrollbar under it — which is what the
+second screenshot reported.
+
+Two measurements behind the pixel work: the row's hint and usage labels get a COMPUTED width (`rect.width - marker - the
+button's own measured width`), because a label that expands lets the scroll view size its content to the longest hint and that
+is what re-introduced the scrollbar; and the rows stay anchored to the input field's TEXT ORIGIN (`rowRingX == inputTextX`,
+328 in the frame), never to a glyph position, so a command long enough to scroll the field keeps the same left edge.
+
+Still to read in a frame: the selected row's usage layer. The staged Tab did not move the selection in this batch, so the layer
+is code-complete and unphotographed — the next batch drives the selection through the console's own key path and captures it.

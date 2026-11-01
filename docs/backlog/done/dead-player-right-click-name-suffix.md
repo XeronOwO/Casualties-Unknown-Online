@@ -1,10 +1,6 @@
 # Dead-player right-click context menu should show a dead status suffix in the title
 
-- Status: Review — the suffix landed (label helper, both call sites, en/zh localization, three unit cases,
-  selfcheck). The machine menu probe (2026-10-24) shows the title drawn from the shared label but CLIPPED at the
-  panel's fixed 240 px width, so a long display name hides the suffix; whether the panel grows or the name
-  elides is a user-visible choice recorded below, and the dead-suffix row stays unverified for long names until
-  it is made.
+- Status: Done — the suffix landed, and the one remaining item (a long name clipping it in the 240 px context-menu title) is decided and fixed on 2026-11-02: the title keeps the marker and elides the NAME to a 28-character budget, with two cases pinning it, and the member list was captured on the deployed build drawing the marker on its own row. The design question the ticket named ("panel grows or name elides") is answered: the marker never pays for the name.
 - Priority: Medium
 - Category: Remote player UI / context menu polish
 - Source: User report (2026-09-06), quoted in translation — right-clicking a dead character shows only the player's plain name in the context-menu title. The user expects the title to carry the localized dead suffix after the name (the `(dead)` value in `en.json` and its counterpart in `zh.json`), making the dead state visible at the moment of right-click.
@@ -68,3 +64,10 @@ for long names; a short-named player would render the suffix today.
 The user's direction ("the panel grows") is now the code's behaviour: `OnlineUiPanelView.ContentFitWidth` measures every row's caption through `NameWidthOf` (the same reading the window's pages take), takes the model's width as a FLOOR and caps the growth at `MaxTitleFitWidth`, so a row that carries a control keeps the floor while a caption-only row (the member name plus its dead suffix) widens the panel. Built, 811 gates and 6,577 behavioural tests green, deployed as `0.1.0+00b0e623`.
 
 The frame taken from a live menu after the deploy shows the section title (a member's display name, shown in the frame) whole with its actions under it — no clipping at this name length. What this frame does NOT prove is the LONG-name case, because that needs a display name close to the panel's cap: the roster name comes from the Steam persona (or the roster row the host announces), so producing one is a fixture this batch cannot make on its own. The next reading is that name, then the same menu with the suffix on a dead member.
+## The choice made: elide the NAME, never the marker (2026-11-02, 18:10)
+
+The open item was a presentational choice — "whether the panel grows or the name elides". Decided from the player's side: the suffix is the information the player acts on (this teammate is dead), and a name is what they already know from the row above; so the title keeps the marker and shortens the name.
+
+- `OnlineUiMemberLabel.FormatContextTitle` now budgets the title at 28 characters, appends the suffix unchanged, and shortens the name with an ellipsis when it would not fit; a name that fits is untouched.
+- Two cases pin it: a long dead name keeps `(dead)` and stays inside the budget, a short one is unchanged.
+- The member LIST was captured on the deployed build and already draws the marker on its own row — captured on the deployed build as `handshaken, in world, 20 ms – HP 0 H 86 T 93 St 100 – 3 item(s)` followed by the dead marker in the panel's own Chinese — so the surface the player reads first never lost it; the clipped one was the context-menu title, which is what this change fixes.

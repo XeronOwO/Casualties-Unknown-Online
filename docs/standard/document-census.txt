@@ -221,7 +221,7 @@ docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/b
 docs/backlog/done/closing-a-teammates-backpack-teleports-the-ring.md | keep | index | docs/backlog/README.md
 docs/backlog/done/concurrent-medical-operations.md | keep | index | docs/backlog/README.md
 docs/backlog/done/cross-player-item-use-random-determinism.md | keep | index | docs/backlog/README.md
-docs/backlog/review/dead-player-right-click-name-suffix.md | keep | index | docs/backlog/README.md
+docs/backlog/done/dead-player-right-click-name-suffix.md | keep | index | docs/backlog/README.md
 docs/backlog/done/enemy-generation-pairing-late-join.md | keep | index | docs/backlog/README.md
 docs/backlog/done/enemy-hit-determination-local.md | keep | index | docs/backlog/README.md
 docs/backlog/done/entity-destruction-drop-guest-fresh-state-loss.md | keep | index | docs/backlog/README.md
@@ -1104,7 +1104,7 @@ docs/evidence/selfchecks/ui/building-destruction-presentation-selfcheck.md | kee
 docs/evidence/selfchecks/ui/chat-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/command-console-selfcheck.md | keep | claim | docs/backlog/done/in-game-command-console-interactive.md
 docs/evidence/selfchecks/ui/cuo-launcher-idle-fade-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/ui/dead-player-context-menu-title-selfcheck.md | keep | claim | docs/backlog/review/dead-player-right-click-name-suffix.md
+docs/evidence/selfchecks/ui/dead-player-context-menu-title-selfcheck.md | keep | claim | docs/backlog/done/dead-player-right-click-name-suffix.md
 docs/evidence/selfchecks/ui/i18n-framework-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/ui/location-ping-selfcheck.md | keep | claim | docs/backlog/done/middle-click-location-marker.md
 docs/evidence/selfchecks/ui/name-tag-ui-polish-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

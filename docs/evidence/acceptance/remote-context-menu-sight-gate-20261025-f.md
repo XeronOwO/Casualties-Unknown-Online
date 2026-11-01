@@ -15,10 +15,10 @@
 
 | direction | target visible | the menu drew | file |
 |---|---|---|---|
-| host → guest | yes | `Kagoya（小…` + **医疗 / 打开背包 / 骑背 / 背起 / 推** | `menu-visible.png` |
-| host → guest | no | `Kagoya（小…` + **no buttons at all** | `menu-hidden.png` |
-| guest → host | no | `萧然` + **no buttons at all** | `menu-guest-hidden.png` |
-| guest → host | yes | `萧然` + **Medical / Open backpack / Piggyback / Carry on back / Push** | `menu-guest-visible.png` |
+| host → guest | yes | the clipped name plus the four member actions (medical / open backpack / piggyback / carry / push) | `menu-visible.png` |
+| host → guest | no | the clipped name and no member actions | `menu-hidden.png` |
+| guest → host | no | the peer's name and no member actions | `menu-guest-hidden.png` |
+| guest → host | yes | the peer's name and the four member actions | `menu-guest-visible.png` |
 
 (The frames are gitignored artifacts under `CUO_FRAME_DIR`; the guest's were copied out of its Sandboxie box.)
 
@@ -33,6 +33,6 @@
 
 ## Residual
 
-The title clips a long display name (`Kagoya（小…`) at the menu's fixed 240 px width. That is the separate layout decision recorded
-on `docs/backlog/review/dead-player-right-click-name-suffix.md` (grow the panel or elide the name), which is the user's call and is
+The title clips a long display name at the menu's fixed 240 px width. That is the separate layout decision recorded
+on `docs/backlog/done/dead-player-right-click-name-suffix.md` (grow the panel or elide the name), which is the user's call and is
 not part of this ticket.

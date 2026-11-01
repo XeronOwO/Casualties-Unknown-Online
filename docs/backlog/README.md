@@ -123,7 +123,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
-- [Dead-player context-menu name suffix](review/dead-player-right-click-name-suffix.md) — **Medium** — the localized dead suffix.
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
 - [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
@@ -161,6 +160,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Dead suffix on the member menu](done/dead-player-right-click-name-suffix.md) — **Medium** — closed; the marker never pays for the name.
 - [A member dropped by a third client](done/guest-entity-dropped-by-third-client.md) — **High** — closed; both halves read.
 - [Markerless runtime binds](done/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — closed; row 9 read on both clients.
 - [Item and body sound families](done/unhooked-item-and-body-sound-families.md) — **Low-Medium** — closed; row 2 became decision 271.

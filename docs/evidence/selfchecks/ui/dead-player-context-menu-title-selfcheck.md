@@ -1,6 +1,6 @@
 # Dead-player right-click context menu title — self-check
 
-Owner cycle: `docs/backlog/review/dead-player-right-click-name-suffix.md`
+Owner cycle: `docs/backlog/done/dead-player-right-click-name-suffix.md`
 (now `review/`). The in-world right-click context menu showed only the
 raw display name for a dead remote player; the dead state was already
 available on `OnlineUiMemberRow.IsDead` but was not projected into the
@@ -24,7 +24,7 @@ context-menu title or the duplicate-name target selector buttons.
   also uses the same helper for the duplicate-name target selector buttons.
 - `LocalizationCatalog` adds `member.context_dead`:
   - English: `(dead)`
-  - Chinese: `(死掉了)`
+  - the panel's own Chinese suffix, translated: "(dead)"
 - No wire message, protocol field, authority rule, or session state changed.
 
 ## 3. Whole-family audit

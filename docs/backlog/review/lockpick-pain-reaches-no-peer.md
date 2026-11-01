@@ -29,3 +29,10 @@ The remaining difference between this path and the one that works (`Origin.Chara
 Read before touching this: [`docs/design/model/authority-and-judgement.md`](../../design/model/authority-and-judgement.md) and
 [`docs/design/mechanics/README.md`](../../design/mechanics/README.md). The rule it breaks: a one-shot presentation the acting client runs is reported through the character-sound
 family and replayed by every other member.
+
+## Two more readings the same day (2026-11-01, 20:10)
+
+- **Harmony has the patch applied.** A new probe (`harmony-info type=<T> method=<M>`, which asks `Harmony.GetPatchInfo` for the method this build actually declares) answers `found=true, prefixes=2, owners=CasualtiesUnknownOnline.GameAdapter` for `LockpingMinigame.Update`, and `prefixes=1` for `PantSound.Bark` and `PantSound.Update`. So "the catalogue lists it" is now a fact about the running process, not about a file.
+- **The same silence covers `PantSound.Update`.** A new fixture (`pant-sound kind=pain`) drives the game's own pain one-shot through that method; the acting client plays it, the peer's list gains neither a pain nor a yawn clip across the window. So the failing set is the two PER-FRAME scopes (`PantSound.Update`, `LockpingMinigame.Update`), while every ONE-SHOT scope read in this session arrives (`dogshake` from `Body.WaterShake`, `vomit2` from `Vomiter`, `stretch` from `NapCoroutine`, and `pain1` from `PantSound.Bark` after its own fix).
+
+That difference — per-frame `Update` scope versus one-shot coroutine scope — is now the shape of the bug, and it is narrower than "the lockpick path is broken": something about a scope that is OPENED AND CLOSED EVERY FRAME keeps the report from arriving, or keeps the peer from replaying it.

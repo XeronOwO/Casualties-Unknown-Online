@@ -409,7 +409,7 @@ internal sealed class GameAdapterDomains
 		FluidSync = new FluidWorldSync(world, session, entities, adaptiveRates, loggerFactory);
 		TradeSync = new TradeStateSync(world, session, new TradeExecutor(items, loggerFactory.CreateLogger<TradeExecutor>()), adaptiveRates, loggerFactory.CreateLogger<TradeStateSync>());
 		TraderSwingSync = new TraderSwingSync(world, session, loggerFactory.CreateLogger<TraderSwingSync>());
-		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, InteractionVisibility, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
+		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		Respawn = new RespawnCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());
 		LayerAdvance = new LayerAdvanceCoordinator(session, world, layerAdvance, loggerFactory.CreateLogger<LayerAdvanceCoordinator>());
 		LayerPanel = new LayerPanelGate(this, remoteVitals, loggerFactory.CreateLogger<LayerPanelGate>());

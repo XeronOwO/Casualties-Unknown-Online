@@ -7,7 +7,6 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
-using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -34,7 +33,6 @@ internal sealed class TraderRecruitCoordinator(
 	IOptionsMonitor<RespawnOptions> respawnOptions,
 	IItemControl items,
 	ItemIdAllocator itemIds,
-	IPlayerInteractionVisibility interactionVisibility,
 	ILogger<TraderRecruitCoordinator> log)
 {
 	private const float PositionTolerance = 2f;
@@ -46,7 +44,6 @@ internal sealed class TraderRecruitCoordinator(
 	private readonly IOptionsMonitor<RespawnOptions> _respawnOptions = respawnOptions;
 	private readonly IItemControl _items = items;
 	private readonly ItemIdAllocator _itemIds = itemIds;
-	private readonly IPlayerInteractionVisibility _interactionVisibility = interactionVisibility;
 	private readonly ILogger<TraderRecruitCoordinator> _log = log;
 
 	/// <summary>Host-side used-trader registry (one recruit per trader instance
@@ -100,11 +97,10 @@ internal sealed class TraderRecruitCoordinator(
 			TraderPosition = new NetVector2Msg(trader.transform.position.x, trader.transform.position.y),
 		};
 
-		if (!_interactionVisibility.HasLineOfSight(_session.LocalSteamId, targetSteamId))
-		{
-			_log.LogInformation("[TradeRecruit] refused locally: {Requester} cannot see {Target} on this client.", _session.LocalSteamId, targetSteamId);
-			return false;
-		}
+		// No line-of-sight test here ON PURPOSE. The recruit is a service bought AT the trader, and the teammate it
+		// brings back is by definition somewhere the operator is not looking: requiring sight of the corpse refused
+		// the request exactly when the player needed it (measured 2026-11-02: a teammate dead 70 units away was refused
+		// with "cannot see ... on this client" after the button had been offered). The trader is the gate, not the eyes.
 
 		if (_session.Role == SessionRole.Host)
 		{

@@ -518,3 +518,10 @@ Row 4b''s blocker is explained. `/give machete` on a body that already carries a
 Two probe fixes came out of it, both in `tools/acceptance/recipes/limb-use.cs`: the slot search now walks every slot the body owns instead of the six backpack indexes, and the `not-held` answer names what each slot holds so the next attempt is diagnosable in one call.
 
 The row itself still needs the tool in the HAND on an empty-slot body; the honest next fixture is give-then-select on a body with no container in its slots (the guest is the better target — its slots are nearly empty).
+### Row 4b: the tool reaches the limb, and the minigame still does not start (2026-11-02, 21:20)
+
+With the tool-in-a-container problem solved by using the guest (whose slots are nearly empty), `machete` is carried in slot 0 and `limb-use type=machete` answers `usableOnLimb=true, actuallyUsable=true, limb=0`. But `minigame-live` answers `kind=none` right after it, so `PlayerCamera.ApplyWoundItem` on a HEALTHY limb does not start the amputation minigame — which is the game behaving correctly, not a fixture failure: an amputation needs a limb that is already mangled or dismembered.
+
+`wound-seed limb=1 force=90` on the guest answered `null` (the recipe refuses on that body), and `limb-read` afterwards still shows `skin=100, bleed=0`, so the limb was not wounded and the amputation remains unstarted.
+
+So row 4b''s remaining need is exact and small: a limb state the amputation/suture minigame accepts (a mangled limb, or a bleeding wound the suture treats), produced through a call this channel can reach. `wound-seed` is the right instrument and its refusal on the guest body is the next thing to read.

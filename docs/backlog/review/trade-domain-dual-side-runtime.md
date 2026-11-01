@@ -1,7 +1,6 @@
 # Trade domain dual-side runtime pass
 
-- Status: Review (batch `20261003-e`: the row table written in the scope page was judged — rows 1–7 pass, the whole interactive trade family including the refused-purchase rollback and the 5 s fallback heal; rows 8 (recruit) and 9 (hostile swing) stay `unproven` with their fixtures named — the ticket stays open)
-- Acceptance record: `docs/evidence/acceptance/trade-domain-dual-side-runtime-20261003-e.md` (batch scope: `docs/evidence/acceptance/20261003-e-scope.md`)
+- Status: Review — row 8 is now PASS (`2026-11-02, 17:16`: the recruit control revives the dead teammate in place with `brainHealth=75.017`, grants three trader-stock items, and the host's own player page redraws the member as alive at HP 75; its saved-snapshot half still needs a save/load fixture). Row 9 is split: its swing-REPLAY half is read (a swing reaches the peers), its HOSTILE half needs a reputation below 30 at a trader — the only remaining way into `hostility = 100` since `MeetPlayer` re-arms `startedConvo` and the gun rule only adds +50 once per conversation.
 - Priority: High
 - Category: Final acceptance
 - Reference: original backlog #59 / #93

@@ -191,3 +191,8 @@ Row 1 needs a SLEEPING target, and the obvious fixture does not hold:
 So `Body.sleeping` is a derived state: the game reverts it while its own `canTakeNap` gate is closed, and that gate needs a nap-capable surface (a bed or a sleeping bag and the safety the game checks for). The forced value lasts less than a frame.
 
 What the fixture therefore needs is a nap surface, not another field: the readable half is that `canTakeNap` is the gate and `type-members` is the instrument that shows both it and `sleeping` in one call. The remote medical view DID open for the host while the guest was the target (`medical-open` answered `opened=true, nativeOpen=true, found=true`), so the treatment side of the row is ready and only the sleeping state is missing.
+### The bag exists, and using it is the next step (2026-11-02, 23:05)
+
+`item-census mode=all` lists **`sleepingbag`** (the nap surface the gate wants). A give-then-use attempt did not place it: `/give sleepingbag` on the opped guest answered its line, and `item-use type=sleepingbag aim-x,aim-y` answered null (the recipe refused — its own argument contract carries no `mode`, and the use itself returned nothing), while `type-members` a moment later still read `usingSleepingBag=False, canTakeNap=False, sleeping=False`.
+
+So the fixture is one call away from being readable and its shape is now exact: place a sleeping bag through the game's own use path (the `item-use` recipe's own contract), then read `canTakeNap` and `sleeping` in the same `type-members` call. Both fields are on the instrument already.

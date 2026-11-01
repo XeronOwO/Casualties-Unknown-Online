@@ -25,7 +25,6 @@ The instruments those two cycles produced are reusable and are named here so the
 
 | Ticket | What it waits on |
 |---|---|
-| `topical-limb-action-shape.md` | its saline half reads as its design decides (refused by name, no minigame); the syringe half needs a syringe FILLED with a liquid — an empty one does nothing — which is a container-fill fixture, not an instrument |
 | `remote-medical-cpr.md` | needs the CPR control on a downed patient: `cpr-rhythm` already drives the presses, and the missing piece is the downed fixture (`cpr-rhythm` was read working on 2026-10-28) |
 | the other `remote-medical-*` rows | the wound-view release path itself is proven (see the closed ticket); each now needs its own item/liquid fixture, and the give-line rule above decides whether a batch can even start |
 ## U — waits on a user decision, a user's own pass, or a user's own look

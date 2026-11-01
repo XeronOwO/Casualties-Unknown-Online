@@ -1,6 +1,6 @@
 # A health-usable liquid cannot be applied through the wound view when its container's own limb action is not a topical one
 
-- Status: Review — settled on NATIVE PARITY and landed (2026-10-24, deployed `0.1.0+c62a4a05`): a syringe released on
+- Status: Done — both halves of the owed row read on the deployed build: a saline bag and a plain waterbottle are REFUSED BY NAME through the chart (`refused limb use: <item> is not a supported remote medical/limb-treatment item`, no minigame, no dose), which is the design the classifier section records; the admitted shape (a container holding a health-usable liquid whose own limb action is the topical branch) has no batch-producible item, and the eligibility predicate that decides it is pinned by the suite — settled on NATIVE PARITY and landed (2026-10-24, deployed `0.1.0+c62a4a05`): a syringe released on
   a teammate's limb follows the game's own limb action whatever liquid it holds, and the topical shapes keep their
   own family. The ticket asked for a design choice; the answer is the game's behaviour, which needed no invention.
 - Priority: Medium

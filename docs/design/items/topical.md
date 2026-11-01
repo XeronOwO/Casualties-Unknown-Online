@@ -49,7 +49,7 @@ remaining dose is what both clients then show.
 ## Records
 
 Decisions 184 (the affected side judges), 246 (the entry decides the family). Open:
-`../../backlog/review/topical-limb-action-shape.md` records the shape this entry must keep.
+`../../backlog/done/topical-limb-action-shape.md` records the shape this entry must keep.
 
 ## Gaps
 

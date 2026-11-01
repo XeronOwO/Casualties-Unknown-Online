@@ -302,7 +302,7 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 277 | `review/save-system-mid-run-and-layer-end.md` | S1-S4 code-complete | `cross-cutting/saves-and-recovery.md` | `corpus page` | the whole save family's page |
 | 278 | `review/suppressed-native-call-sounds-stay-unheard.md` | rows 4 and 5-8 judged, 1-4b unread | `surfaces/remote-body-presentation.md` | `corpus page` (open rows) | a sound family with unread rows; the presentation page names it |
 | 279 | `review/sync-player-pain-vocalizations-and-bark.md` | rows 1-3 unproven | `surfaces/remote-body-presentation.md` | `corpus page` (open rows) | the one-shot character-sound relay the eating sound extended |
-| 280 | `review/topical-limb-action-shape.md` | open; the wound view's topical shape | `items/topical.md` | `corpus page` | the topical page states the limbed entry rule |
+| 280 | `done/topical-limb-action-shape.md` | open; the wound view's topical shape | `items/topical.md` | `corpus page` | the topical page states the limbed entry rule |
 | 281 | `review/trade-domain-dual-side-runtime.md` | the row table is the scope page's | `mechanics/give-and-take.md` | `corpus page` | a trade is a custody change; the give page's rules |
 | 282 | `review/trap-layout-crystal-rows-empty.md` | the crystal arm reads the effects | `mechanics/world-interaction.md` | `corpus page` | the trap family's layout rows |
 | 283 | `review/unhooked-damage-block-callers.md` | row 4 verified | `mechanics/world-interaction.md` | `corpus page` | ticket: "two native `DamageBlock` callers are not hooked" — the world page's note that the game's list holds damage CUO never observed |

@@ -49,5 +49,10 @@
 	if (correct != null) { body += ",\"correctAngle\":" + System.Convert.ToSingle(correct.GetValue(current)).ToString("0.#", inv); }
 	if (precision != null) { body += ",\"anglePrecision\":" + System.Convert.ToSingle(precision.GetValue(current)).ToString("0.###", inv); }
 
+	// The amputation minigame's own progress: it ends at `cutProgress >= 1` (AmputationMinigame.cs:73-75) and accumulates from the hand's
+	// frame-to-frame velocity, so a shake that never ends has to be told apart from one that is merely slow (measured 2026-11-02).
+	var cut = current.GetType().GetField("cutProgress", flags);
+	if (cut != null) { body += ",\"cutProgress\":" + System.Convert.ToSingle(cut.GetValue(current)).ToString("0.####", inv); }
+
 	return body + "}";
 }))()

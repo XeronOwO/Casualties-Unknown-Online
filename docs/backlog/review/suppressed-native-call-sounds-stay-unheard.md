@@ -650,3 +650,22 @@ The staged pointer moves the HAND to the position but the velocity the game read
 smoothly), so the progress bar fills far slower than the skin does. The row's remaining fixture step is a pointer whose *frame to
 frame* delta is large enough to fill `cutProgress` — a "shake" rather than a "move" — and that is the only thing between this
 batch's reading and the dismember sound.
+### The shake works and the cut PLATEAUS at 0.59 (2026-11-02, 07:45)
+
+`PointerShake` (a component in the acceptance assembly that toggles the staged pointer every frame) turned the cut from "does not
+move" into a measured climb. The probe gained the field the end condition reads:
+
+    minigame-live  ->  kind=AmputationMinigame  cutProgress=0.4698 … 0.5879 … 0.5910
+
+In the same minutes the limb went to `skin=0 muscle=0` and stayed `dismembered=false`. So the minigame is no longer slow — it is
+STUCK just under 0.6, and the plateau survived a second shake with a tighter amplitude (575..645 instead of 520..700), which rules
+out "the hand left the zone because the amplitude was too big".
+
+What the code says can stop the accumulation mid-way: `cutProgress` only moves inside `if (this.cutting)`
+(`AmputationMinigame.cs:103-106`), and `cutting` is the base class's flag for "the attack is held AND the hand is over the wound"
+— the same flag whose volume line is `Mathf.Clamp01(Abs(handVelocity.x * 0.1f))` (line 71). With the limb at zero health the
+game may well have stopped treating the limb as cuttable while the minigame stays up. That is the next reading: what `cutting`
+is when the plateau starts, which needs the flag itself in the probe (`MinigameBase` exposes it) rather than another sweep.
+
+Two instruments came out of this and both are committed: `PointerShake` (a per-frame pointer, because a scripted sweep costs a
+round trip per position and the game's hand settles in between) and the `cutProgress` read in `minigame-live`.

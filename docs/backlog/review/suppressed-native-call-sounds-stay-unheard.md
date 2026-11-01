@@ -550,3 +550,13 @@ With those in place the native `AmputationMinigame` started (`minigame-live`: `k
     peer (host)   : drip21, drip22, drip13, drip11, drip20, drip7, …  (~34 drip clips over the same window)
 
 The peer plays the same blood-drip family during the cut, at the patient''s position — which is the row''s claim: the acting client''s minigame step sounds reach every other client. `cutProgress` did not reach 1 in this window (the game advances it only while the hand is actually moving, and a staged pointer moves in bursts), so the final dismember step is the one thing this reading does not yet cover; the cutting itself does.
+## 4b, the final step: the hand uses the `attack` bind, and holding it cancels the minigame (2026-11-02, 23:10)
+
+`MinigameBase.UpdateHandVisuals` reads the hand''s click as `Input.GetKey(KeyBinds.GetBind("attack"))`, and `keybind-read` answers that binding as **Mouse0**. Two readings follow:
+
+- `virtual-input mode=press button=0` does NOT reach it: `minigame-live` answered `handClicking=false` with a press held at the ring, because the hand read asks the KEY API while the press stages the BUTTON state;
+- `virtual-key key=Mouse0 down=1` DOES: the same read then answers `handClicking=true`.
+
+With the hand clicking, the saw ran: `cutProgress` accumulates `|handVelocity.x| * 5E-05` per physics frame (`AmputationMinigame.PhysicsUpdate`), the limb went to `skin=0, muscle=0`, and the peer already had the drip family (previous section). But the minigame then ENDED with `kind=none` and `dismembered=false` on every one of the fifteen limbs, and no `gore` clip on either side — because holding `attack`, the very key the hand needs, also fires the body''s own attack, which is what closes the minigame in this fixture.
+
+So the last step needs a hand that clicks `attack` without the body attacking, which is a fixture question with one named candidate: stage `attack` only on the frames the hand reads it (a press/release cadence rather than a hold) and see whether the cut completes. Everything before that step is read and recorded.

@@ -741,3 +741,23 @@ The sampler exists now: `audio-watch` (the eval declaration) records every clip 
 `audio-watch-start` / `audio-watch-read` drive it, so a one-shot no longer has to be caught inside a polling interval. The first cut
 it watched ended with no `gore` in the hits - which is either a real gap in the peer's sound or a clip whose name does not carry
 "gore"; the next reading is the watcher's full hit list (unfiltered) around a dismember.
+## Two readings from the frame recorder (2026-11-02, 09:55)
+
+**The peer that watched the amputation heard no gore, and no drip either.** One cut (the patient at `Time.timeScale = 6`, the cut
+finishing in 10.4 s), the HOST recording EVERY clip it played (`audio-watch`, no filter):
+
+    seen=11   hits="pant|warningloop|shuttleAlarm|capsule|wind|Underwater|windLoop|brownian|rainloop|earthquakeLoop|firstcaveloop|"
+
+None of the medical family. That is not yet a verdict on the row: those are all AMBIENT clips the listener hears wherever it stands,
+and the host was standing far from the patient - a 3D clip at the patient's position is quiet from there. The next run puts the
+listener at the patient's feet before the cut.
+
+**The remote panel's blood volume fell in a straight line: zero reversals.** `blood-watch` sampled the display body's
+`bloodVolume` once a frame for 600 frames (10 s of the cut):
+
+    samples=600  min=98.358  max=100  reversals=0  maxDelta=0.4232
+
+`reversals=0` means the value never went back up: it steps DOWN as the host's snapshots arrive, which is what a 1 Hz authoritative
+snapshot with no interpolation looks like. So the "+/-0.01 bouncing" the user saw is not the underlying value oscillating - the
+next reading has to be the NUMBER THE PANEL PRINTS, because a display that rounds a value sitting near a boundary flickers between
+two printed numbers while the value itself moves monotonically.

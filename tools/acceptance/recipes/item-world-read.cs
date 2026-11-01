@@ -1,5 +1,5 @@
 // recipe: item-world-read
-// args: x=n y=n radius=n
+// args: x=n y=n radius=n   (x,y are WORLD positions; the recipe converts with WorldGeneration.WorldToBlockPos)
 // serves: item-creation-registration-first rows 2 and 4 (the refused drop ids, and the world item two senders contend for)
 // returns: ok, cellX, cellY, radius, count, items, error, detail
 //
@@ -14,7 +14,7 @@
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var world = WorldGeneration.world;
 	if (world == null) { return "{\"ok\":false,\"error\":\"no-world\",\"detail\":\"no world is loaded\"}"; }
-	var cell = new Vector2Int((int)({{n:x}}), (int)({{n:y}}));
+	var cell = world.WorldToBlockPos(new Vector2((float)({{n:x}}), (float)({{n:y}})));
 	var radius = (float)({{n:radius}});
 	if (radius <= 0f) { radius = 45f; }
 	var center = world.BlockToWorldPos(cell);

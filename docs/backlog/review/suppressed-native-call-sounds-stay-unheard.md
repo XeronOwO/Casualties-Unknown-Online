@@ -448,3 +448,15 @@ What the same batch does establish, with a reading that is valid:
 - The sound reading stands on its own: with both recorders armed and proven, a member''s drop (`held=true dropped=true`) produced no `Sound.Play` on the host in five seconds, while a host''s own drop produced eight.
 
 The next attempt must convert the drop''s world position to the cell the recipe expects (the game''s own conversion, not a guess) before it can answer whether the member''s item exists on the host.
+### The `drop` sound IS replicated when the item lands normally (2026-11-02, 15:58)
+
+With `item-world-read` fixed to take world positions (the recipe now converts through `WorldGeneration.WorldToBlockPos`), the same fixture that read as "no sound at all" gives the opposite answer at ground level:
+
+- the member is given a stick and drops it from the hand while standing: `held=true dropped=true`;
+- over the next three seconds the HOST records `drop@368.7;drop@368.7;2@368.7;drop@368.7;drop@368.7;3@368.7` and the GUEST records `drop@365.3;drop@365.3;9@365.3;drop@365.3;drop@365.3;11@365.3`.
+
+So the member''s impact sound reaches the other client, played repeatedly because the item bounces (one `drop` per collision above the velocity threshold, exactly as `Item.OnCollisionEnter2D` says). The row is NOT "the member''s drops are silent".
+
+The difference that produced the earlier silence is the HEIGHT: dropped from ~15-22 units in open air, the same call produced no `Sound.Play` on either client. Combined with the world-item reads (the two ground drops are present at the host as `stick@-1.3,495` and `stick@-1.8,495`), the shape is: a drop from height never lands anywhere, while a drop at ground level lands, bounces and is heard on both sides.
+
+That is a different ticket''s subject (a drop from height leaving the world), and for THIS ticket the row''s claim is refuted with a reading.

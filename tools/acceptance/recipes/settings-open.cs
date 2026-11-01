@@ -11,6 +11,7 @@
 	UnityEngine.Transform parent = null;
 	if (PauseHandler.main != null) { parent = PauseHandler.main.transform; }
 	if (parent == null && PreRunScript.instance != null && PreRunScript.instance.mainCanvas != null) { parent = PreRunScript.instance.mainCanvas.transform; }
+	if (parent == null) { var canvas = UnityEngine.Object.FindObjectOfType<UnityEngine.Canvas>(); if (canvas != null) { parent = canvas.transform; } }
 	if (parent == null) { return "{\"ok\":false,\"error\":\"no-parent-canvas\"}"; }
 	var reparented = false;
 	if (SettingsMenu.instance == null) { SettingsMenu.OpenMenu(parent); } else if (SettingsMenu.instance.transform.parent == null) { SettingsMenu.instance.transform.SetParent(parent, false); reparented = true; }

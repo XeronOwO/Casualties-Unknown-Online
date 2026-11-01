@@ -156,3 +156,23 @@ defect (or a mismatch between the patched overload and the loop's call), not a g
 
 The row's guard half stays as recorded: CUO's opener checks `OnlineUiKeyboardFacts.IsAKeybindCaptureWaiting`, and that marker
 answers `true` here — so the state the guard reads is reproducible in a batch.
+## The key half is fixed and the row is read (2026-11-02, 04:40)
+
+The gap named above had a cause worth writing down: `SettingsMenu.WaitForKeyPress` is a COROUTINE, so the method that runs each
+frame is the compiler-generated state machine's `MoveNext`, and the method the installer patched only BUILDS that machine. The
+patch moved into `src/CasualtiesUnknownOnline.Acceptance/KeybindCapturePatch.cs`, which patches both and reports the two counts
+separately, so a zero in either is visible in its own right.
+
+On the deployed build, one batch, all in-process:
+
+    settings-open tab=3                                     -> parent="Canvas", active=true
+    staged press inside the 投掷 row's rect                  -> keybind-capture-state: captureWaiting=true
+    virtual-key key=Return down=1 … down=0                   -> captureWaiting=false
+    capture (cropped)                                       -> the row that read `...` now reads `Return`
+    same frame                                              -> no CUO console panel anywhere on screen
+
+So the row is JUDGED: a staged Enter binds the waiting row through the game's own capture, and the console opener stays shut
+while a capture waits — the guard is real, and the fixture that was believed to need OS-level keys does not.
+
+What is not yet read is the SLASH half of the same row: the console's opener key through the capture. The instrument is the
+same four calls with `key=Slash` (or the bound opener), so it is one batch away.

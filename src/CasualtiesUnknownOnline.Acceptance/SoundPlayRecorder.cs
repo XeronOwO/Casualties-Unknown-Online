@@ -128,6 +128,34 @@ internal static class SoundPlayRecorder
 	/// <summary>How many calls the prefixes have seen, armed or not. A zero here means the patch never ran at all, which is a different fault from "the buffer was empty".</summary>
 	internal static long RawCalls { get; private set; }
 
+	/// <summary>
+	/// One plain-text answer for a batch: <c>raw=&lt;n&gt;|clip@time;clip@time;…</c>, newest last, filtered by
+	/// <paramref name="match"/>. The formatting lives here rather than in an eval expression, so a reading cannot fail on
+	/// reflection over the entry struct (measured 2026-11-02: the same read threw a NullReferenceException from the eval).
+	/// </summary>
+	internal static string Read(string match)
+	{
+		var builder = new System.Text.StringBuilder("raw=");
+		builder.Append(RawCalls.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('|');
+		var first = true;
+		foreach (var entry in Since(match))
+		{
+			if (!first)
+			{
+				builder.Append(';');
+			}
+
+			builder.Append(entry.Clip).Append('@').Append(entry.Time.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+			first = false;
+			if (builder.Length > 900)
+			{
+				break;
+			}
+		}
+
+		return builder.ToString();
+	}
+
 	private static void Record(string clip, Vector2 position)
 	{
 		if (!Enabled || clip.Length == 0)

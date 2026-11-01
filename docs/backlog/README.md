@@ -77,6 +77,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
+- [Bark reaches no peer](review/bark-vocalization-reaches-no-peer.md) — **High** — the acting client plays it, no other client ever does.
 - [Third client drops a member as left](review/guest-entity-dropped-by-third-client.md) — **High** — a member's view of another member dies on a spurious leave.
 
 

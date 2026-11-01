@@ -9,6 +9,7 @@
 //   nap    — Body.TakeANap (the ordinary nap routine the nap clip belongs to; it starts only when the
 //            body's own canTakeNap gate holds)
 //   vomit  — Vomiter.Vomit (the per-step coroutine scope that plays vomit1 / vomit2)
+//   bark   — PantSound.Bark (the B-key bark the Pain/Bark kinds were added for)
 ((System.Func<string>)(() => {
 	var kind = {{s:kind}};
 	var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
@@ -20,6 +21,12 @@
 	if (kind == "nap") {
 		body.TakeANap();
 		return "{\"ok\":true,\"kind\":\"nap\",\"applied\":true,\"note\":\"starts only when canTakeNap holds\"}";
+	}
+	if (kind == "bark") {
+		var pant = body.GetComponent<PantSound>();
+		if (pant == null) { return "{\"ok\":false,\"error\":\"no-pant-sound\"}"; }
+		pant.Bark();
+		return "{\"ok\":true,\"kind\":\"bark\",\"applied\":true}";
 	}
 	if (kind == "vomit") {
 		var vomiter = body.GetComponent<Vomiter>();

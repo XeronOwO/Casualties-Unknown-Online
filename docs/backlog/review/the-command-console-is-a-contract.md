@@ -424,5 +424,20 @@ halves hold: the refusal is local and localized, and nothing reached the host.
 So the first row (a mod's `OneOf` line offers exactly its words), the second (the completer sees the first argument and
 offers only the second parameter's allowed words) and the third (a built-in that used a `CommandArgumentKind` offers its
 list) all read from the overlay itself, not from a probe.
+## Row 14 read: the see-host-log line is gone and every refusal names its reason (2026-11-02, 20:55)
 
+Row 14 was the one place the console contract was still failing: `answer.refused_see_host_log` ("Refused — the host's log names the reason.") existed in both catalogues and was the answer for every free-text ground of `/give` and `/summon`.
 
+What changed, deployed and gated:
+
+- the give's target guards moved into a small enum (`CreatedItemTargetProblem`) so the RULES stay in the delivery service while the SENTENCES live at the console's own keyed helper; each branch answers `give.answer.refused_not_host` / `refused_malformed` / `refused_target_not_in_world` / `refused_no_snapshot` / `refused_bad_state` / `refused_target_dead`;
+- the summon's three free-text grounds answer `summon.answer.refused_stale_generation` / `refused_bad_position` / `refused_bad_state`;
+- both helpers that produced the generic line now `throw` instead of answering it, so a future caller cannot reintroduce it, and the key is deleted from `en.json` and `zh.json`.
+
+Read on the running game, three refusals, three reasons:
+
+    /give nobody{not-a-state}        -> "The state is not SNBT: at 13: expected ':' after the key 'not-a-state'"
+    /give @p[limit=1] notarealitem   -> 游戏里没有名为'notarealitem'的物品定义——指令要写游戏物品表里的定义。
+    /summon notarealprefab player    -> 无法实体化 prefab'notarealprefab'：它既不是本版本认识的物品定义，也没有同名的世界实体 prefab。
+
+So the row is PASS: the generic line does not exist, and what a player reads is the reason itself, in their own language where the catalogue owns the sentence.

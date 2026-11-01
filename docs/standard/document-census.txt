@@ -231,7 +231,7 @@ docs/backlog/done/guest-break-drops-recovery.md | keep | index | docs/backlog/RE
 docs/backlog/done/guest-frame-rate-lower-than-host.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-remote-pose-head-orientation-desync.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-report-fallback-first-resend.md | keep | index | docs/backlog/README.md
-docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md | keep | index | docs/backlog/README.md
+docs/backlog/done/host-entity-hit-red-flash-not-visible-on-guest.md | keep | index | docs/backlog/README.md
 docs/backlog/done/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
 docs/backlog/done/in-game-command-console-interactive.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-data-read-commands.md | keep | index | docs/backlog/README.md
@@ -1028,7 +1028,7 @@ docs/evidence/selfchecks/players/remove-legacy-view-items-remote-inventory-selfc
 docs/evidence/selfchecks/players/respawn-rules-selfcheck.md | keep | claim | docs/evidence/selfchecks/enemies/trader-recruit-selfcheck.md
 docs/evidence/selfchecks/players/topical-entry-and-named-limb-selfcheck.md | keep | claim | docs/backlog/done/limb-tool-family-protection-gaps.md
 docs/evidence/selfchecks/players/topical-live-stack-family-order-selfcheck.md | keep | claim | docs/backlog/done/topical-live-stack-family-order.md
-docs/evidence/selfchecks/presentation/building-entity-hit-flash-sync-selfcheck.md | keep | claim | docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md
+docs/evidence/selfchecks/presentation/building-entity-hit-flash-sync-selfcheck.md | keep | claim | docs/backlog/done/host-entity-hit-red-flash-not-visible-on-guest.md
 docs/evidence/selfchecks/presentation/clone-face-presentation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/direct-placeable-arm-swing-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/footstep-sound-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

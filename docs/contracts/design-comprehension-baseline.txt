@@ -9,7 +9,6 @@ docs/backlog/review/cross-player-drag-use-feedback.md
 docs/backlog/review/cross-player-drag-use-model-bounds.md
 docs/backlog/review/enter-opener-keybind-capture.md
 docs/backlog/review/guest-remote-pose-head-orientation-desync.md
-docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md
 docs/backlog/review/layer-complete-choice-for-members.md
 docs/backlog/review/mod-cross-player-native-semantics.md
 docs/backlog/review/pinyin-search-standalone-mod.md
@@ -28,6 +27,7 @@ docs/backlog/review/trade-domain-dual-side-runtime.md
 docs/backlog/review/trap-layout-crystal-rows-empty.md
 docs/backlog/review/unhooked-damage-block-callers.md
 docs/backlog/review/unified-remote-display-projection-rework.md
+
 
 
 

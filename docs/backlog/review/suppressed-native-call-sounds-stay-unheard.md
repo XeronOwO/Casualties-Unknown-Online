@@ -609,3 +609,18 @@ aimed at an arm or a leg and the dismember sound read.
 
 So row 4b's blocker is now three facts, each measured: the window must be closed; one hover works; repeated hovers need a
 pointer that really moves between frames.
+### The hover works: the wound view's points are top-left, the pointer is bottom-left (2026-11-02, 06:40)
+
+The wall named above is broken, and it was a coordinate space, not a freshness problem. `wound-limb-points` answers the limb
+images' positions in SCREEN coordinates with a TOP-LEFT origin, while a staged pointer must be in `Input.mousePosition`'s
+BOTTOM-LEFT space. Hovering the leg's point (608,469) selected the CHEST; hovering the mirrored point (608, 720-469 = 251)
+selected limb 10, the right lower leg, and `limb-use` reports it:
+
+    limb-use type=machete mode=apply   -> { limbo: 10, name: "right lower leg" }
+
+So the whole selection chain works with a staged pointer once the y is flipped — no click, no window juggling beyond keeping
+the CUO window closed (its blocker sits above the game's view and the EventSystem gives it the pointer).
+
+What still does not happen is the minigame: applying the machete to that leg answered `actuallyUsable=true` and
+`minigame-live` still says `kind=none`. That is the next thing to read in the game's own code (the machete's `useLimbAction`
+gate on the limb's state), not a fixture question any more.

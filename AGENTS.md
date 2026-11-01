@@ -15,7 +15,7 @@ this page is the map.
 Machine facts and personal working notes live in the gitignored `AGENTS.local.md` and in the `*.local.md` sibling of
 each step. Never let the instruction set outgrow the session's load budget.
 
-[REF] Docs standard `docs/AGENTS.md` · Architecture `docs/architecture/current.md` · Decisions `docs/decisions/active.md` ·
+[REF] Design corpus `docs/design/` (mechanics, surfaces, items — read it before building any acceptance fixture) · Docs standard `docs/AGENTS.md` · Architecture `docs/architecture/current.md` · Decisions `docs/decisions/active.md` ·
 Evidence `docs/evidence/verification.md` · Backlog `docs/backlog/README.md` · Acceptance `docs/acceptance/AGENTS.md` ·
 Agent detail `docs/development/agent-reference.md`
 

@@ -18,6 +18,18 @@ declaration or recipe change is re-declared under a new name and the same sessio
 Machine rows from a reading, visual rows from a CROP that was actually opened and enlarged (a full-window capture is not evidence for a layout row: crop the region, and for a position or alignment read a measured number beside it — see step 8). The instrument is named in the batch
 scope before it runs, so a row cannot be quietly judged by a weaker check afterwards.
 
+## A fixture is DERIVED from the corpus and the code, never discovered by trial
+
+Before staging anything for a game mechanic, read what the project already knows about it: `docs/design/mechanics/`,
+`docs/design/surfaces/` and `docs/design/items/` carry the mechanic, the UI it lives in and the item that drives it, each with the
+game's own file and line. Then read that code yourself. Only then write the fixture, and put the mechanic's input contract in the
+ticket before the first staged input: what the player's gesture is, which value it feeds, what gates it.
+
+Measured 2026-11-02: the amputation fixture was built by trial for hours — the infection gate, the coordinate flip, the moving
+cutting band and the "progress is the hand's SPEED" line were all rediscovered one experiment at a time, and every one of them was
+already written down at `docs/design/mechanics/medical-view.md:77-82`. A fixture that ignores the corpus does not just cost time;
+it reports numbers that mean nothing (a hand moving at 0.7 units a frame was described as "a ten-minute cut" for a gesture the
+game finishes in seconds).
 ## A blocked row never becomes the whole cycle
 
 At most two batches per row, then the next ticket. The block is recorded with its reading, not as a story.

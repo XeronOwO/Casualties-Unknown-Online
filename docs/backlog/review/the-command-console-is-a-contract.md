@@ -586,3 +586,27 @@ Rows 2 and 15 needed a mod command with TWO parameters and one with a refusal wh
     /exampledress red huge    -> 'red' has no size 'huge'.          (UNDECLARED key: the command's text, not a key name)
 
 Both rows PASS. The deploy also learned something it should have known: the example mod was NOT in `deploy.ps1`'s satellite list, so the game kept a day-old copy of it — the list now carries `CuoExample` beside the other satellites, and the deploy log names its timestamp like theirs.
+## Row 16: the four verb families, read on one session (2026-11-02, 02:05)
+
+One command per family, on the deployed build, in one session:
+
+    /give @a[limit=1] bandage   -> Gave ... (#1456314894275) in slot 0.        (keyed, Chinese)
+    /summon shadecrawler player -> Summoned shadecrawler at (0.0, 505.6).      (keyed, Chinese; `player` is a position, not a selector)
+    /heal @a                    -> three lines, one per player, each naming local or relayed (keyed, Chinese)
+    /data get @p[limit=1] ...   -> (translated) Items recorded for ... (N):     (WAS raw English)
+
+The first three already travelled as keys. `/data` did not: its header was the one family member printing a raw English
+sentence around the reader's own data, in BOTH shapes (with a path and without). It now travels as
+`data.answer.items_header` with the owner and the count, rendered by the client that prints it.
+
+**The fix took two commits because the family had two sites**: the no-path listing called the renderer (converted first) and
+the path listing built its own `StringBuilder` header (found only by the DEPLOYED reading — the tests exercise the no-path
+shape). Both now call one `Header(owner, count)`, so a third cannot appear without going through it.
+
+**Still raw English in the same answer, recorded as the next input**: the adapter's refusal notes under the header —
+`the item carries no '{component}' component — it carries: …`, `component '{type}' has no field '{field}' — …`,
+`{ComponentsKey} takes a compound keyed by component type …` (`src/CasualtiesUnknownOnline.GameAdapter/Items/ItemStateDocument.cs`).
+They are a different mechanism from the console's (`ItemStateDocument` builds them where no catalogue is available), so they
+are named here rather than half-fixed.
+
+The console contract's rows are now read except 13 (two languages, no channel switch).

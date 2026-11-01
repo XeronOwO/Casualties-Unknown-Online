@@ -31,7 +31,11 @@
 		var candidate = body.GetItem(i);
 		if (candidate != null && candidate.id == type) { item = candidate; slot = i; break; }
 	}
-	if (item == null) { return "{\"ok\":false,\"error\":\"not-held\",\"detail\":\"no body slot holds " + type + "\"}"; }
+	if (item == null) {
+		var held = "handSlot=" + body.handSlot.ToString(inv);
+		for (var j = 0; j < 6; j++) { held += ";s" + j.ToString(inv) + "=" + (body.HoldingItem(j) ? body.GetItem(j).id : "-"); }
+		return "{\"ok\":false,\"error\":\"not-held\",\"detail\":\"no body slot holds " + type + "\",\"held\":\"" + held + "\"}";
+	}
 
 	var skinBefore = limb.skinHealth;
 	var usableOnLimb = item.Stats != null && item.Stats.usableOnLimb;

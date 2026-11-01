@@ -282,3 +282,11 @@ The peer's answer, after the wrap: **`plays=1, names=[bandage]`**. One playback,
 ### Row 4b's amputation attempt, and where it stopped (2026-11-01, 13:00)
 
 The same entry should start an amputation — `limb-use type=machete` on a selected limb — and it answered `not-held` although `/give @s machete` reported "placed in slot 0". The census of the same body then listed the slots it does hold (`lantern@slot3, dogfood@slot4, waterbottle@slot5`) and no machete, so the item is not in any slot the body reports: either the give placed it somewhere the six-slot read cannot see (the HAND is a separate index, which `limb-use` now checks first), or that give did not land at all. The next reading is the give's own answer plus the body's hand slot; row 4b stays unproven until a machete is actually held when the limb is used.
+
+### Row 4b: where the given machete actually goes (2026-11-01, 13:35)
+
+The give is not the problem and neither is the search: with `machete` given (`placed in slot 0`) and the recipe reporting every slot it can see, the body answered
+
+    handSlot=0; s0=-; s1=-; s2=-; s3=lantern; s4=dogfood; s5=waterbottle
+
+so the machete is in NO slot the body indexes — including the hand slot the give named. A `plushie` given the same way DOES land in a slot (the drop recipe pulled it out of one immediately afterwards, twice). The difference is the item: a weapon is taken by the game's equip path, which is not a backpack slot, so a recipe that searches slots cannot see it. The next reading is that path (`Body.WeildItem`/the equipped-item field) and the fix is to read the equipped item as well — the same shape as the hand slot, one level further out.

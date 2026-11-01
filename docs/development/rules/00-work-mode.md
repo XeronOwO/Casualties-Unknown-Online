@@ -52,3 +52,10 @@ without reading its step files.
    and make the call. A "progress" message and a stop are the same act.
 2. **The round''s first call prints the current step''s two files.** Reading them is not a memory task: the call prints them,
    so the transcript shows the read happened. A round whose first call did anything else has not started yet.
+## The budget is never an input
+
+Do not name the budget, the context, the round count, or "running out" of anything — not in a report, not in a plan, not as
+the reason a step ended, not as a reason to record something quickly. There is no upper limit to spend, so a sentence about
+one is either false or a disguised stop, and it is the stop that is the violation: delete the sentence, and the next action
+is a tool call. Measured 2026-11-02: a batch narration said it was nearly out of context and then wrapped the work up on
+that basis; the wrap was the damage, the sentence was the evidence.

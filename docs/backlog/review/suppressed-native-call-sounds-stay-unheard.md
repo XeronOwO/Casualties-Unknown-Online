@@ -690,3 +690,15 @@ So the limb DOES come off through the fixture, and every step up to it is read. 
 that instant: `audio-recent` samples what is playing RIGHT NOW, and the clip had finished before the next call (the host answered
 `playing=0`). The row's remaining reading is a sampler running DURING the dismember — a loop over `audio-recent match=gore` while
 the cut finishes, which the recipe's own note already prescribes ("a batch that needs the whole window samples in a loop").
+### The speed-up is the game's OWN local clock, not a session setting (2026-11-02, 08:50)
+
+Checked before trusting it: the game changes `Time.timeScale` itself, per client, and nothing replicates it —
+
+    PlayerCamera.cs:663-696   Time.timeScale = 1 / 5 / 20 / 25 / 3.5 / 0.16 / 0      (its own speed control)
+    ConsoleScript.cs:815      Time.timeScale = this.ParseFloat(args[1])               (its own console verb)
+
+So a fixture that sets `Time.timeScale` on ONE client is doing exactly what the game's own speed control does on that client: it
+accelerates that client's simulation, not the session. For the amputation that is the right scope — the minigame, its hand and its
+`cutProgress` all live on the patient's client — and it leaves the peers on their normal clock, which is where the sound row has to
+be sampled anyway. What it deliberately does NOT do is make the peers hear the clip sooner; the clip plays on their clock when the
+dismember reaches them, exactly as it would in a real session.

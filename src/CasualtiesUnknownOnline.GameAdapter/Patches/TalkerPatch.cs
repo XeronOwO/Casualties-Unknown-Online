@@ -56,4 +56,25 @@ internal static class TalkerPatch
 			PatchBridge.Impl?.OnSpeechReported(__instance, current);
 		}
 	}
+
+	/// <summary>
+	/// A remote clone must not make the LOCAL trader answer. `Talker.PromptTraderResponse` forwards a body's own
+	/// condition line to `PlayerCamera.main.lastTrader.PromptResponse`, which starts a `DelayedTalk` coroutine per
+	/// call (TraderScript.cs: PromptResponse → DelayedTalk → `talker.Talk`), so a clone whose condition poll fires
+	/// repeatedly makes the trader speak over and over: measured 2026-11-02, a dead player's body next to a trader
+	/// produced 20-65 trader bubbles per second and the speech clip played continuously on both clients, while moving
+	/// that body away dropped it to 2 in five seconds.
+	///
+	/// <para>
+	/// The rule is the same one the talk patch already applies: a clone's speech is REPORTED, never performed — and
+	/// asking the local trader for an answer is performing it. The owning client drives its own trader interaction.
+	/// </para>
+	/// </summary>
+	[HarmonyPatch(typeof(Talker), nameof(Talker.PromptTraderResponse))]
+	internal static class PromptTraderResponsePatch
+	{
+		private static bool Prefix(Talker __instance) =>
+			__instance.body == null // Unity object — ==
+			|| __instance.body.GetComponentInParent<RemoteBodyDriver>() == null; // Unity object — ==
+	}
 }

@@ -19,3 +19,12 @@ That makes rows 8 and 9 reachable with the instruments that now exist: `ui-click
 The earlier note ("the frame showed the item wheel") explained the wheel but not whether the menu renders. It does: with the staged pointer's button released and `trade-open mode=open` answering `menuActive=True`, the frame shows the trader's panel — the seller's two lists (its normal stock with prices and weights, and its random stock below), the portrait action column (speech, heart, pen, a nap action, refuse, return), the player's money, the "give to the trader" drop area, and the player's own inventory on the right. The item wheel is drawn OVER the right half because the batch's own staged interaction key is still held; it is a different surface, not a replacement.
 
 So rows 8 and 9 have their surface: the recruit action belongs to that portrait column or the menu's own option list, and the hostile swing is a hit on the trader after the menu is closed. The next reading is which of those controls carries the recruit action (a click through `ui-click` at its rect, then the trader's own state) and the swing itself.
+
+## The menu, read on a frame with the staged input cleared (2026-11-02, 00:05)
+
+Clearing the staged pointer and buttons (`virtual-input mode=clear-buttons` then `mode=clear`) before opening the menu removes the item wheel that had been drawn over it, and the frame then shows the whole surface: the trader's two lists with prices and weights, the portrait action column (speech, heart, pen, a nap action, refuse, back), the player's money, the give-to-trader drop area, the trader's name, and the player's own inventory beside it. Rows 8 and 9 therefore have their surface confirmed by a frame, not only by the `menuActive` flag.
+
+What each row still needs, read from the scope page's own definitions:
+
+- **Row 8** is "a living player at a friendly trader revives a dead teammate in place and grants 1–3 trader-stock items; the peer view and the saved snapshot refresh" — so it needs a DEAD teammate beside a friendly trader, plus a snapshot read on the peer. That is a fixture this session did not build.
+- **Row 9** is "the one-shot swing presentation is replayed on the clients that did not run it" — it needs the player to swing at the trader and a peer-side reading of the swing message. The swing does not exist as a recipe yet (`body-call` has no attack kind; the game's own entry is `Body.UseItemInHand` with an empty hand, which falls through to `Attack`), so the next pass adds that kind and a count of the swing messages on the peer.

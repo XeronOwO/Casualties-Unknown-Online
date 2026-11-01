@@ -1,8 +1,8 @@
 # Random rolls in a cross-player item use: can one temporary deterministic random window keep both sides in step?
 
 - Status: Done — closed 2026-10-25 on batch `20261025-b`: **reported 2026-10-08 by the user**, who asked for the ticket now and the investigation
-  later: "对于带随机性的效果来说，会导致不同步，能不能通过临时的、确定性的、统一的随机状态控制来消除这种
-  不同步性？". **Steps 1-4 are done.** The investigation (2026-10-09, code-only) found that the divergence
+  later, translated from the reporter's Chinese: "effects with randomness will desync — can a temporary,
+  deterministic, single random state be used to remove that desync?". **Steps 1-4 are done.** The investigation (2026-10-09, code-only) found that the divergence
   does NOT reach authoritative state — every authoritative value of this family has exactly ONE roller —
   so the priority stays High rather than rising to Critical, and **the one on-screen divergence it named
   is FIXED (2026-10-11 cycle: the shrapnel grip slip now derives both machines' rolls from one state; see
@@ -250,7 +250,7 @@ chains or the host-applied operations.
 
 ### Verified chain: a nausea-causing liquid given to another player (2026-10-09)
 
-The user asked this case by name ("我给其他玩家引用引发反胃的液体"), so the chain is written out rather than
+The user asked this case by name (translated: "the liquid I made another player drink that made them sick"), so the chain is written out rather than
 left inside §1's row. Call sites, in order:
 
 - The roll itself lives in the LIQUID's own body: `groundwater`'s `onDrink` rolls `Random.value > 0.5f`
@@ -281,7 +281,7 @@ caveat each one carries — in *The target the user set* below.
 
 ## The target the user set (2026-10-09): no divergence AND no perceived latency
 
-The user's instruction: "能不能消除延迟的同时尽可能消除延迟感？能做到吗？只改票，不在本轮开发". So the ticket
+The user's instruction (translated from their Chinese): "can the delay go while keeping the feel of the delay as low as possible? Is that doable? Ticket only this round, no development". So the ticket
 now carries the target and the way to reach it; nothing is implemented this round.
 
 **Why waiting is not actually required, and where it is.** The user asked why there must be any waiting at

@@ -77,7 +77,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
-- [Lockpick pain reaches no peer](review/lockpick-pain-reaches-no-peer.md) — **High** — the acting client plays gore2, no other client does.
 - [Third client drops a member as left](review/guest-entity-dropped-by-third-client.md) — **High** — a member's view of another member dies on a spurious leave.
 
 
@@ -124,7 +123,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — shared per-piece ownership.
 - [Remote medical — Stage 3: other actions](review/remote-medical-stage-3-other-actions.md) — **High** — bandage, splint, AED, amputation.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
-- [Player pain vocalizations and bark](review/sync-player-pain-vocalizations-and-bark.md) — **Medium** — they ride the character-sound event.
 - [Host entity hit red flash on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — the flash rides the damage relay.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
@@ -167,6 +165,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Pain vocalizations and bark](done/sync-player-pain-vocalizations-and-bark.md) — **Medium** — rows 1-3 read: the peer plays gore2 361 times.
+- [Lockpick pain "reaches no peer"](done/lockpick-pain-reaches-no-peer.md) — **High** — not a defect; the reading was a deduped names diff.
 - [Bark reaches no peer](done/bark-vocalization-reaches-no-peer.md) — **High** — the relay resolved the clip by resource path; fixed and read back.
 - [Music sync playback](done/player-music-sync-playback.md) — **Medium** — transfer-then-play read; controls follow the game's mp3 item.
 - [Nested container clone proxy leaks](done/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — defensive branch; the shape cannot be produced.

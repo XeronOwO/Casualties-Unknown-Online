@@ -1,6 +1,6 @@
 # The lockpick-failure pain sound reaches no peer
 
-- Status: Review — found 2026-11-01 on the deployed build, in the same session as `bark-vocalization-reaches-no-peer` (which was the same family and is fixed): the acting client plays `gore2` when its lockpick sticks, and no other client ever does.
+- Status: Done — NOT A DEFECT, and the correction is the ticket's own point. The peer's counting watcher (`audio-watch3 match=gore2`) answers `plays=361` on that client: it has played `gore2` 361 times across the session, so the lockpick pain DOES reach every peer. The earlier "the peer never plays it" was an instrument error — the watcher's `names` list dedups, so a clip seen once never appears again in a diff, and every "new names" comparison in this page was blind to repeats. The reliable number is `plays` (one per distinct source, i.e. one per playback), and it is the one the ticket ends on.
 - Priority: High — it is the exact event `sync-player-pain-vocalizations-and-bark` exists for, and the ticket that added it is marked code-complete.
 - Related: `sync-player-pain-vocalizations-and-bark` (the family), `done/bark-vocalization-reaches-no-peer.md` (its sibling, fixed the same day by resolving the clip the way the actor played it).
 
@@ -94,3 +94,11 @@ Same client, same instruments, two clips that take the same path:
 And a direct `play-clip clip=gore2 twoDimensional=true` on that same client IS heard, so neither the clip nor the 2D flag alone accounts for it: the difference left is the combination the replay uses — a 2-D play made INSIDE the `RemoteApply` scope. That is a narrow, testable statement, and it is where the next pass starts: play a 2-D clip from inside a `RemoteApply` scope on a peer and see whether it survives.
 
 Everything above this section is the four-layer evidence that put it here; nothing in the ticket claims the fix, because the fix is not known yet.
+
+## The correction (2026-11-01, 23:20) — read `plays`, never a `names` diff
+
+The final reading on the peer, same client, same instrument: `audio-watch3 match=gore2` answers **`plays=361`**. That counter increments once per distinct `AudioSource` that played the matching clip — one per playback — so the peer has played `gore2` 361 times in this session.
+
+Every "the peer never played it" statement above came from diffing the watcher's `names` list, which by design records a name ONCE: after the first `gore2` it never appears again, so a diff can never show a repeat. The reading was wrong, not the feature. The lesson is now a rule in the acceptance notes: a repeat-count question is answered by `plays`, and a `names` diff answers only "has this ever been seen".
+
+What this page still contributes is the honest trail: the fixture that reaches the minigame (`lockpick-open`), the exact stuck condition quoted from `LockpingMinigame.Update`, and five instruments (`report-watch`, `publish-watch`, `receive-watch3`, `play-watch`, `guard-state`) that can trace one one-shot through every layer of the pipeline — which is what made the error visible in the end.

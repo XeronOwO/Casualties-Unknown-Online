@@ -29,7 +29,6 @@ docs/backlog/review/save-native-character-field-parity.md
 docs/backlog/review/save-native-run-field-parity.md
 docs/backlog/review/save-system-mid-run-and-layer-end.md
 docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md
-docs/backlog/review/sync-player-pain-vocalizations-and-bark.md
 docs/backlog/review/trade-domain-dual-side-runtime.md
 docs/backlog/review/trap-layout-crystal-rows-empty.md
 docs/backlog/review/unhooked-damage-block-callers.md

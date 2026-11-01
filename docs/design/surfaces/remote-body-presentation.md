@@ -88,7 +88,7 @@ A teammate's face, posture and pose matching their state, and the sounds their b
 Accepted: `../../backlog/done/high-sleepiness-squint-not-visible-remotely.md`,
 `done/host-severe-sleepiness-posture-desync.md`, `done/host-fall-injury-mouth-expression-desync.md`,
 `done/host-eating-sound-not-heard-on-guest.md`, `done/carried-player-idle-sit-suppression.md`. Open:
-`../../backlog/review/sync-player-pain-vocalizations-and-bark.md` (the one-shot relay the eating sound extended).
+`../../backlog/done/sync-player-pain-vocalizations-and-bark.md` (the one-shot relay the eating sound extended).
 
 ## Gaps
 

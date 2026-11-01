@@ -4,7 +4,7 @@
 - Priority: High
 - Category: Remote medical / native HUD / character speech subtitle
 - Source: User report (2026-10-19, during acceptance batch `20261023-b`), translated from the reporter's Chinese: "what a character says shows as text on the medical panel, and it is out of sync"; clarified by the user: what appears is the VIEWER's own spoken line, it shows only while the medical panel is open, and it disappears when the panel is closed.
-- Related: `review/sync-player-pain-vocalizations-and-bark.md` (the audio sibling), `done/remote-player-medical-panel.md`, `done/remote-medical-panel-header-shows-viewer-identity.md`, `done/remote-medical-panel-alarm-follows-viewed-player.md`
+- Related: `done/sync-player-pain-vocalizations-and-bark.md` (the audio sibling), `done/remote-player-medical-panel.md`, `done/remote-medical-panel-header-shows-viewer-identity.md`, `done/remote-medical-panel-alarm-follows-viewed-player.md`
 
 ## What the text is (final diagnosis, 2026-10-19)
 

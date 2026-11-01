@@ -486,3 +486,20 @@ The accepted-items table asks about the clip a bandage plays when it is APPLIED.
 - the native chain for applying one to a limb is the wound panel''s special action (`PlayerCamera.TryPerformSpecialUIAction`, the same entry the remote treatment uses), not `Body.UseItem`.
 
 So this row is not blocked on a sound question at all: it needs the LOCAL panel drag fixture (hold the bandage, drag it onto the limb in the panel, release), which is still missing from the toolbox. Every row of this ticket that a fixture CAN reach has now been read — two refuted with both-sides recordings — and this one names the fixture it lacks.
+## Rows 5 and 6 read on the deployed build, with the plush id found (2026-11-02, 20:35)
+
+Row 6 was blocked on "an item id the catalog does not hand a batch". The catalog does hand it: `item-census` gained a `mode=all` arm (288 registry entries) and the plush is **`plushie`** (weight 0.15, tags `belttool`).
+
+**Row 5 (a world item lands).** A stick dropped from height 4 on the host, both recorders armed:
+
+    host : drop@130.1 x4, drop@131.0 x4, drop@131.2 x2, drop@131.4 x2   (12 entries)
+    guest: drop@129.0 x4, drop@130.0 x4, drop@130.1 x2, drop@130.4 x2   (12 entries)
+
+Same clips at the same instants on both sides — the peer hears exactly what the acting side hears. The multiplicity is the item bouncing (each contact over the native `relativeVelocity.magnitude > 3f` gate plays it), and the quadruples are the recorder counting the `Play(string)` wrapper and the `Play(AudioClip)` it forwards to; both clients show the identical shape, which is what the row asks. A drop from height **0.5 plays nothing on either side**, which is the native gate behaving as read in `Item.OnCollisionEnter2D`.
+
+**Row 6 (a plush toy knocked into something).** A `plushie` dropped from height 5:
+
+    host : citrumeow@178.6, @178.8, @179.1, @179.2   (four impacts as it settles)
+    guest: citrumeow@177.5, @177.7, @178.1, @178.2   (the same four, mirrored)
+
+The plush's own squeak reaches the peer, once per impact, matching the host — row 6 PASS.

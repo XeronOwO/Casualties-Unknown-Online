@@ -167,6 +167,7 @@
 			if (info != null && info.combineable) { matches.Add(keys[i]); }
 		}
 	}
+	else if (mode == "all") { matches.AddRange(keys); }
 	else if (mode.StartsWith("tag:", System.StringComparison.Ordinal)) {
 		// `ItemInfo.HasTag` runs `Enumerable.Contains` over `actualTags`, which is NULL for an item
 		// that declares no tags — it throws instead of answering false. The scan reads the array and

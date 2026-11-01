@@ -104,7 +104,6 @@ internal sealed class CommandConsoleOverlay
 		OnlineUiTheme.DrawOverlayBackground(rect);
 
 		DrawHistory(ctx, rect);
-		DrawHint(ctx, rect);
 		DrawSuggestions(ctx, rect);
 		DrawInput(rect);
 		DrawTooltip();
@@ -419,17 +418,8 @@ internal sealed class CommandConsoleOverlay
 	/// localisation census reads the key space (`console.cmd.`) instead of an opaque string the Runtime half happened to build; any other hint carries
 	/// its own key. A caller-built description is the fallback only for a hint the catalogue cannot hold.
 	/// </summary>
-	private void DrawHint(OnlineUiContext ctx, Rect panel)
-	{
-		if (_session.Hint is not { } hint)
-		{
-			return;
-		}
-
-		var inputRect = InputRect(panel);
-		var rect = new Rect(panel.x + 8f, inputRect.y - 20f, panel.width - 16f, 18f);
-		GUI.Label(rect, ctx.F(hint.Key, hint.Args), OnlineUiTheme.MutedLabel());
-	}
+	// The usage line above the input is gone (user direction 2026-11-02): it sat exactly where the suggestion list opens, so the
+	// list covered it, and it repeated one line of what the rows beside it already say. Each command row carries its own usage now.
 
 	private void DrawSuggestions(OnlineUiContext ctx, Rect panel)
 	{
@@ -476,11 +466,20 @@ internal sealed class CommandConsoleOverlay
 			var suggestion = suggestions[index];
 			GUILayout.BeginHorizontal();
 			var hint = CommandSuggestionHintText.Of(ctx, suggestion);
+			// A command row carries its OWN usage (user direction 2026-11-02: the separate usage line sat where this list opens and was
+			// covered by it). The usage is syntax, so it reads the same in every language and needs no catalogue key; when the catalogue has
+			// no description for the command at all (a mod's own verb), the usage alone is the hint - an empty right side teaches nothing.
+			if (!string.IsNullOrWhiteSpace(suggestion.Usage))
+			{
+				hint = string.IsNullOrWhiteSpace(hint) ? suggestion.Usage : hint + " · " + suggestion.Usage;
+			}
+
 			// The highlighted row is the one the arrows and Enter act on, so it must be visibly the current one. The marker is
 			// its OWN column: padding the button's text with spaces pushed the label off-centre inside its box, which read as a
-			// large left inset (measured 2026-11-02 — the row's text sat 6px in on one side and 0 on the other).
+			// large left inset (measured 2026-11-02 — the row's text sat 6px in on one side and 0 on the other). ExpandHeight keeps
+			// the glyph centred on the row's own height instead of sitting on its top edge.
 			var marker = index == selected ? "▶" : "";
-			GUILayout.Label(marker, OnlineUiTheme.Marker(), GUILayout.Width(MarkerWidth));
+			GUILayout.Label(marker, OnlineUiTheme.Marker(), GUILayout.Width(MarkerWidth), GUILayout.ExpandHeight(true));
 			if (GUILayout.Button(suggestion.Text, OnlineUiTheme.Button(), GUILayout.ExpandWidth(false)))
 			{
 				_session.AcceptSuggestion(suggestion);

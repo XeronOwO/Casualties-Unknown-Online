@@ -27,4 +27,11 @@ public sealed record CommandSuggestion(
 	/// cycling the one the position used to have (user correction 2026-10-31: after the brace, Tab must complete the keys inside it, not walk the old ids again).
 	/// </summary>
 	public bool ResetCycle { get; init; }
+
+	/// <summary>
+	/// How the command is called, when this row offers a COMMAND: its own registered usage (`/give &lt;item&gt; [count]`). The console draws it in
+	/// the row''s hint, so a player reading a candidate never has to look for a separate usage line (user direction 2026-11-02: the usage line
+	/// sat where the list opens and was covered by it). Syntax, not prose: it is the same text in every language, so it is not a catalogue key.
+	/// </summary>
+	public string? Usage { get; init; }
 }

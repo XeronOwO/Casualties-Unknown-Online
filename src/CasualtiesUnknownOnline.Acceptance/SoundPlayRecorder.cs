@@ -85,17 +85,30 @@ internal static class SoundPlayRecorder
 		}
 	}
 
-	[HarmonyPatch(typeof(Sound), nameof(Sound.Play), [typeof(string), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform), typeof(float), typeof(float), typeof(bool), typeof(bool)])]
-	private static class PlayByClipName
+	/// <summary>
+	/// Applies both overload patches explicitly. Nested attribute classes are NOT reached by
+	/// <c>Harmony.PatchAll(typeof(...))</c> — it scans the type it is given, and a nested type is a different type — which is
+	/// why the first version logged "the recorder is armed" and recorded nothing (measured 2026-11-02: two clients answered
+	/// count=0 for a menu click that certainly plays a sound).
+	/// </summary>
+	internal static void Install(Harmony harmony)
 	{
-		private static void Prefix(string clip, Vector2 pos) => Record(clip, pos);
+		var byName = AccessTools.Method(typeof(Sound), nameof(Sound.Play),
+			[typeof(string), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform), typeof(float), typeof(float), typeof(bool), typeof(bool)]);
+		var byClip = AccessTools.Method(typeof(Sound), nameof(Sound.Play),
+			[typeof(AudioClip), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform), typeof(float), typeof(float), typeof(bool), typeof(bool)]);
+		if (byName == null || byClip == null)
+		{
+			throw new InvalidOperationException("Sound.Play's overloads are not on this build: name=" + (byName != null) + " clip=" + (byClip != null));
+		}
+
+		harmony.Patch(byName, prefix: new HarmonyMethod(typeof(SoundPlayRecorder), nameof(PrefixClipName)));
+		harmony.Patch(byClip, prefix: new HarmonyMethod(typeof(SoundPlayRecorder), nameof(PrefixClip)));
 	}
 
-	[HarmonyPatch(typeof(Sound), nameof(Sound.Play), [typeof(AudioClip), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform), typeof(float), typeof(float), typeof(bool), typeof(bool)])]
-	private static class PlayByClip
-	{
-		private static void Prefix(AudioClip clip, Vector2 pos) => Record(clip == null ? "" : clip.name, pos); // Unity object — ==
-	}
+	private static void PrefixClipName(string clip, Vector2 pos) => Record(clip, pos);
+
+	private static void PrefixClip(AudioClip clip, Vector2 pos) => Record(clip == null ? "" : clip.name, pos); // Unity object — ==
 
 	private static void Record(string clip, Vector2 position)
 	{

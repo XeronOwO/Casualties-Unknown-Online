@@ -22,7 +22,8 @@ public sealed class AcceptancePlugin : BaseUnityPlugin
 		// The recorder's patches are attributes on the type and nothing applies them unless something asks. Without this
 		// the ring buffer stays empty and a batch reads zero for a sound the game really played (measured 2026-11-02: two
 		// clients answered count=0 for every Sound.Play of the batch).
-		new Harmony("CasualtiesUnknownOnline.Acceptance").PatchAll(typeof(SoundPlayRecorder));
+		var harmony = new Harmony("CasualtiesUnknownOnline.Acceptance");
+		SoundPlayRecorder.Install(harmony);
 		Logger.LogInfo("[Acceptance] channel plug-in loaded; the recorder is armed, input is staged only when a batch installs it.");
 	}
 }

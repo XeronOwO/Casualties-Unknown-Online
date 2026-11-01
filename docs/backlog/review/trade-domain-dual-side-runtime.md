@@ -28,3 +28,11 @@ What each row still needs, read from the scope page's own definitions:
 
 - **Row 8** is "a living player at a friendly trader revives a dead teammate in place and grants 1–3 trader-stock items; the peer view and the saved snapshot refresh" — so it needs a DEAD teammate beside a friendly trader, plus a snapshot read on the peer. That is a fixture this session did not build.
 - **Row 9** is "the one-shot swing presentation is replayed on the clients that did not run it" — it needs the player to swing at the trader and a peer-side reading of the swing message. The swing does not exist as a recipe yet (`body-call` has no attack kind; the game's own entry is `Body.UseItemInHand` with an empty hand, which falls through to `Attack`), so the next pass adds that kind and a count of the swing messages on the peer.
+
+### Row 9's replay half read: a swing reaches the peers (2026-11-02, 00:20)
+
+`body-call` gained an `attack` kind that calls the game's own `Body.UseItemInHand` with an empty hand — the path a player's left-click takes, and the one `entity-attack` refuses to fabricate. With the peer's receive watcher running (`receive-watch3`, which records the kind, the clip and the owner of every character-sound message), one swing on the host produced on the peer:
+
+    [AttackSwing:BSSwing4@<host>] [AttackSwing:BSSwing4@<host>]
+
+So the one-shot swing presentation IS reported and replayed on a client that did not run it — row 9's mechanism, read directly. What the row still needs is the HOSTILE half: hitting the trader until it turns hostile and reading that swing the same way, which is one more gesture after this instrument (the trader's own state is already exposed by `trade-open`'s `hostile` field).

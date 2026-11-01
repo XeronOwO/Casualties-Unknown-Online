@@ -30,7 +30,9 @@ public static class AcceptanceAmpDrive
 		if (move == null) { Running = false; yield break; }
 
 		var centreX = Screen.width * 0.5f;
-		var centreY = Screen.height * 0.5f;
+		// `AmputationMinigame.cutting` is true only while `handPos.y <= maxHandPos + 10`, and `maxHandPos` starts at 120 and lerps to -380 with progress,
+		// so the sawing motion has to happen near the BOTTOM of the minigame surface: at the screen centre the cut never starts (measured 2026-11-01).
+		var centreY = 100f;
 		for (var frame = 0; frame < frames; frame++)
 		{
 			move.Invoke(null, new object[] { frame % 2 == 0 ? centreX + amplitude : centreX - amplitude, centreY });

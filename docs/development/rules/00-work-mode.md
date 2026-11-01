@@ -2,8 +2,18 @@
 
 ## No intermediate reporting. Ever.
 
-A turn ends in one of four states only: the item is finished, the user must decide something, a destructive action needs
-confirmation, or a subagent/background job is being waited on. Everything else is a tool call. A progress message, a
+A turn ends in one of three states only:
+
+1. **the item is finished**;
+2. **the user must decide** — a destructive action needing confirmation is one of these, not a separate state: it is still
+   a decision, put to the user through the question tool;
+3. **a subagent is running** — that is the only asynchronous thing a turn may end on, because its completion notice is the
+   result channel.
+
+A background JOB is not that: it is read back inside the same step with `job_output(wait: true)`. Ending a turn with a job
+still running leaves its result unread and makes the goal fire early, so waiting on it is the work, not a pause.
+
+Everything else is a tool call. A progress message, a
 "here is where I am", a summary of what was just read, a list of what remains — all of them are the same violation: they
 hand the work back unfinished. The reader does not want the middle, they want the result; an intermediate result is not a
 result. If a sentence would not change what the user does next, it must not be written — and after deleting it, the next

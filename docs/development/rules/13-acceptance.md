@@ -51,3 +51,11 @@ driving provably cannot reach the row, and say in the batch scope why.
 
 So the restriction is on the second kind alone, and it is a restriction on taking it without asking — never on
 automation. A batch that frees the user's hands by staying in-process is exactly what this channel is for.
+## Reading a job is the work, not a pause
+
+`run_in_background` is for a command that outlives a single call (a long build, a batch run), and the step that started it
+finishes by READING it: `job_output(wait: true)` on that job id before anything else. A turn that ends with the job still
+unread throws the result away and lets the goal fire on a step that was never finished.
+
+A subagent is the one thing a turn may end on: its completion notice is the result channel, and polling it is the
+violation, not waiting for it.

@@ -635,3 +635,15 @@ So nothing in the cue path is wrong, and nothing needs inventing: the batch has 
 With the guest confirmed at 1.5 units from the host (both positions read in the same command, before the drag), the same sequence still answered `isOpen=false, focused=0` and the cue stayed hidden. So the auto-open's target does not come from proximity: `AutoOpenFor` resolves it through `Observe(dragItem)`, the same resolution the cue uses, which is why the two agree — and why neither produces a target for a batch whose pointer is not on the teammate's DISPLAYED pack.
 
 That closes the loop this ticket has been chasing: the cue and the open are one question (what is under the pointer), and the answer needs a pointer on a surface that only appears once the question is answered. A player has the surface because the game draws the teammate's pack when they walk up and look at it; a batch can only draw it by pointing at it. The honest next step is therefore the one the ticket's own note already names: a REAL hand at the keyboard for this row — drag a bandage onto a teammate while they stand beside you, and read whether the cue names them.
+## Why the batch still cannot aim: `pointer-truth` carries no remote position (2026-11-02, 18:25)
+
+The ticket''s last note said a batch "can only draw the surface by pointing at it", and that the honest step was a real hand. There is an instrument for exactly that aim — `pointer-truth` reports `Camera.main.ScreenToWorldPoint` of the staged pointer AND every remote player''s streamed position with its screen point — so the aim is available in principle. Read on the deployed build with both clients in the world:
+
+    host at (0.0, 505.6), guest at (-0.75, 504.1) (dead, beside the host)
+    pointer-truth: mouse=1225,700 world=38.4,510.8
+                   remotes: 76561198863287957 -> world (0.0, 0.0), screen (610, 605)
+                            76561199526807662 -> world (0.0, 0.0), screen (610, 618)
+
+Both remotes read world **(0,0)**, so their "screen point" is simply the camera''s projection of the origin — a pointer moved there hovers nothing, and a drag released there can never name a teammate. That is the mechanical reason every earlier attempt at the auto-open answered `isOpen=false, focused=0` even with the guest 1.5 units away: the batch was aiming at the wrong place because the instrument feeding it had no position to give.
+
+So the next step is not a human hand: it is making `pointer-truth` carry the same streamed position the rest of the adapter uses for a remote body (the value `RemotePlayerRenderer` places the clone at). With that, the drag and its cue become drivable, and this ticket''s remaining two rows land the way every other row here has — by reading, not by asking someone to hold the mouse.

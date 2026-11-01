@@ -107,7 +107,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Drag-use aims at the model, not a fixed circle](review/cross-player-drag-use-model-bounds.md) — **Medium** — the model measures itself; rows need a mouse.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
 - [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
-- [The opener can claim a key the game is rebinding](review/enter-opener-keybind-capture.md) — **Low-Medium** — the guard sees the capture; a key batch is owed.
 
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
@@ -158,6 +157,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The opener can claim a key the game is rebinding](done/enter-opener-keybind-capture.md) — **Low-Medium** — judged by staged keys.
 - [Entity hit flash on the peer](done/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — closed; replayed 5× for 8 swings.
 - [A give degrades to a ground drop](done/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md) — **Critical** — closed.
 - [Dead suffix on the member menu](done/dead-player-right-click-name-suffix.md) — **Medium** — closed; the marker never pays for the name.

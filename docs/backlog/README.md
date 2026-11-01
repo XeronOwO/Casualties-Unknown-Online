@@ -80,7 +80,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 - [Third client drops a member as left](review/guest-entity-dropped-by-third-client.md) — **High** — a member's view of another member dies on a spurious leave.
-- [Item move stream floods the wire](review/item-move-stream-floods-the-wire.md) — **High** — 150 KB/s of MOVE reports, nothing moving.
+- [State streams flood the wire](review/item-move-stream-floods-the-wire.md) — **High** — ~9.5 KB every frame, 200 KB/s.
 - [The trader keeps talking beside a corpse](review/trader-mutters-forever-near-a-corpse.md) — **Medium** — 20-65 bubbles/s.
 
 

@@ -73,3 +73,11 @@ Four watchers on two clients, all live in the same windows, settle where the eve
 | the peer's audio | `audio-watch3` (no filter) on the same client | the window gained footstep and speech clips and **no `gore2`** |
 
 And the clip itself is fine on that client: a new `play-clip clip=gore2 twoDimensional=true` recipe — the same `Sound.Play(string, pos, true, true, null, 1, 1, false, false)` the replay makes — was recorded by the watcher (`plays 0 -> 1, names=[gore2]`). So the message arrives, the handler runs, the clip is playable, and the replay still produces no audible clip. That is the last gap, and it is inside `OnReceived` after the echo guard: the next instrument is a counter on `Sound.Play(AudioClip, …)` installed on the PEER, which says whether the replay reaches the play call at all.
+
+### The peer DOES call `Sound.Play` with `gore2` — and still nothing sounds (2026-11-01, 22:50)
+
+A `play-watch` declaration prefixes the game's `Sound.Play(AudioClip, …)` overload on the PEER and records each clip it is asked to play. Across one stuck window on the host, the peer's `play-watch` gained `[gore2]` entries — several of them — while `audio-watch3` on that same client, watching every `AudioSource` in the scene, recorded no `gore2` in any window so far.
+
+So the message arrives, the handler runs, the clip resolves and the engine call is made, and the sound still does not come out on the listener's side. What is left is the lifetime of the source the game creates for it: `Sound.Play` builds a `GameObject` with an `AudioSource`, calls `PlayOneShot(clip)` and attaches `PlayedSound`, whose `Update` destroys the object whenever `AudioSource.isPlaying` is false (`reversing/Assembly-CSharp/Assembly-CSharp/PlayedSound.cs`). `PlayOneShot` does not start the source the way `Play()` does, so whether a given call survives to be audible depends on state the report cannot see from here.
+
+The remaining reading is therefore one level below the replay: on the peer, read the created source's `isPlaying`/`time` on the frame after the replay, and compare a clip that IS heard remotely (`pain1` from the bark) with one that is not (`gore2`). That comparison names the difference instead of guessing at it.

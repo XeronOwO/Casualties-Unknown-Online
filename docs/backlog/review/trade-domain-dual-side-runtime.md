@@ -90,3 +90,6 @@ The surface was found last time (the CUO player page's `member.recruit.<steamId>
 So a living player standing at a trader with hostility 0 revived the dead teammate IN PLACE (the body is where it fell) and the teammate received **three** trader-stock items (11 -> 14, inside the row's 1-3? no: the row says 1-3, and three is inside it). The trader gates the service (`PromptResponse`'s own conditions and the coordinator's `CanRecruit`), and the earlier refusal that looked like a failure was the gate doing its job: a trader already at hostility 50 (the gun in hand) refuses.
 
 Row 8 is PASS on this reading. What is not re-read here is the "saved snapshot refresh" half — that needs a save/load cycle after a recruit, and no save fixture exists in the toolbox.
+### The peer view refreshes with the revived body (2026-11-02, 17:16)
+
+The host's own player page, captured after the recruit, draws the revived member's row as `world, 30 ms - HP 75 H87 T91 St 100 - 6 item(s)`: the HP the revive produced (75.017) and no death marker. So the row's "the peer view refreshes" half is read on the frame the host was already looking at; the saved-snapshot half still needs a save/load fixture.

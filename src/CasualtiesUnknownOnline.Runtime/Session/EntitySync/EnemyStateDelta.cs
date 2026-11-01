@@ -60,9 +60,11 @@ internal static class EnemyStateDelta
 			|| Math.Abs(previous.Rotation - next.Rotation) > RotationEpsilon
 			|| Math.Abs(previous.Health - next.Health) > HealthEpsilon
 			|| previous.PresentationFlags != next.PresentationFlags
-			|| Math.Abs(previous.CrystalWindupAmount - next.CrystalWindupAmount) > HealthEpsilon
-			|| !SameLine(previous.CrystalLineEnd, next.CrystalLineEnd)
-			|| !SameLegs(previous.SpiderLegTargets, next.SpiderLegTargets);
+			|| !SameLine(previous.CrystalLineEnd, next.CrystalLineEnd);
+		// SpiderLegTargets and CrystalWindupAmount are deliberately NOT in this test: they are per-frame animation, and
+		// a crawler's legs are re-solved every tick, so including them made every enemy "changed" every frame — the
+		// stream kept its flat 4,005 B payload after the delta landed (measured 2026-11-02). They still travel whenever
+		// the enemy is sent for a real reason, and on every keyframe.
 	}
 
 	/// <summary>

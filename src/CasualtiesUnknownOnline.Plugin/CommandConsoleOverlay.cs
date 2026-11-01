@@ -478,39 +478,23 @@ internal sealed class CommandConsoleOverlay
 				_session.AcceptSuggestion(suggestion);
 			}
 
-			// Two layers, not one line (user direction 2026-11-02): the row itself says what the command IS, and the row the player is
-			// ON adds how to call it underneath. Cramming both into one line made the list wide enough for a horizontal scrollbar and
-			// buried the description behind the usage.
+			// ONE option per line (user direction 2026-11-02): the row says what the command is and how to call it, and it never grows
+			// a second line - a break inside an option reads as a different option. The usage rides in the row's own hint, clipped to
+			// the width the button leaves, so a long usage can neither widen the list (that once put a horizontal scrollbar under it)
+			// nor wrap (that once made one row taller than its neighbours).
 			var buttonWidth = buttonStyle.CalcSize(new GUIContent(suggestion.Text)).x + buttonStyle.padding.horizontal;
 			var hintWidth = Mathf.Max(0f, rect.width - 4f - MarkerWidth - buttonWidth - 6f);
-			// A command the catalogue has no sentence for (the built-in craftchain, a mod's own verb) still explains itself: its usage IS
-			// the fact the player needs there, and a row with an empty right side teaches nothing.
-			var usageIsTheRow = string.IsNullOrWhiteSpace(hint) && !string.IsNullOrWhiteSpace(suggestion.Usage);
-			if (usageIsTheRow)
+			if (!string.IsNullOrWhiteSpace(suggestion.Usage))
 			{
-				hint = suggestion.Usage;
+				hint = string.IsNullOrWhiteSpace(hint) ? suggestion.Usage : hint + " · " + suggestion.Usage;
 			}
 
 			if (!string.IsNullOrWhiteSpace(hint))
 			{
-				// The width is COMPUTED rather than left to the layout: a label that expands lets the scroll view size its content to the
-				// longest hint, which is what put a scrollbar under the list. A fixed width keeps every row inside the view.
 				GUILayout.Label(hint, OnlineUiTheme.RowHint(), GUILayout.Width(hintWidth));
 			}
 
 			GUILayout.EndHorizontal();
-
-			if (!usageIsTheRow && index == selected && !string.IsNullOrWhiteSpace(suggestion.Usage))
-			{
-				// The usage layer: syntax, the same words in every language, under the description and indented to it.
-				GUILayout.BeginHorizontal();
-				GUILayout.Space(MarkerWidth + buttonWidth);
-				// The layer takes a little LESS than the description's width: the horizontal group adds its own spacing between the two
-				// elements, and that surplus is what made the scroll view show a horizontal bar (measured 2026-11-02 on the selected row).
-				hintWidth -= 10f;
-				GUILayout.Label(suggestion.Usage, OnlineUiTheme.RowHint(), GUILayout.Width(hintWidth));
-				GUILayout.EndHorizontal();
-			}
 		}
 
 		GUILayout.EndScrollView();

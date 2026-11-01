@@ -172,4 +172,15 @@ The wall is no longer the item: the host CAN equip another member with a name-sc
 
     [MedicalView] refused open for <guest>: not in-world.
 
-and the alt's own log explains it a few lines earlier: `Member <guest> left (PlayerLeave …)` for a guest that never left — the host kept treating that guest throughout. So row 7's fixture is blocked by a DEFECT, not by a missing capability: a third client drops another member's entity as gone while the host still simulates it, and `IsRemoteInWorld` then refuses every third-party gesture. That is filed as `review/guest-entity-dropped-by-third-client.md`, and row 7 stays open until it is fixed.
+and the alt's own log explains it a few lines earlier: `Member <guest> left (PlayerLeave …)` for a guest that never left — the host kept treating that guest throughout. That refusal was a DEFECT, not a missing capability: a third client dropped another member's entity as gone while the host still simulated it, filed as `review/guest-entity-dropped-by-third-client.md`. **A fresh session does not show it** — see the row 7 reading below, which ran before any leave/join noise — so the defect is an ordering case after a member's leave/rejoin, not a join-time gap.
+
+## Row 7 read: two operators on one limb, no stuck panel, no duplicated progress (2026-11-01, 10:35)
+
+A fresh three-client session, both operators equipped through the host (`/give @s bandage` and `/give @a[name=<alt>,limit=1] splint`, the latter answering `placed in slot 0`), the patient's limb wounded by the host (`skinHealth=65.68`), then both operators opened the chart on the SAME patient and released on the SAME limb:
+
+    host chart=True  release=4   [MedicalOps3] started Bandage operation 2: host -> patient, item bandage, limb 4.
+    alt  chart=True  release=4
+
+Outcome on the patient's own client after both gestures: **one** guard (`comps='SplintLimb'`), `splinted=true`, no second copy — and the alt's own client never held a minigame (`minigame=none` throughout), so the second operator's gesture neither opened a panel of its own nor duplicated the first one's progress on that body. The host's operation reached a single terminal (`operation 2 terminal TimedOut: progress 0.000` — the batch's own virtual-input driving stopped feeding the minigame, an instrument limit recorded rather than a product one), which is the "one operation, one terminal" half of the row.
+
+The same pair repeated on limb 2 earlier in that session produced the same shape (`SplintLimb` once, `splinted=true`, the alt's minigame `none`). What the row does NOT prove is the case where the first operator's operation COMPLETES while the second acts; that needs the minigame driven inside the operation's 20 s idle window, which the batch's per-step cost (~0.4 s) made impossible in this session. It is recorded as the row's residual rather than claimed.

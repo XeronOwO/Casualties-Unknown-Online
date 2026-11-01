@@ -370,8 +370,15 @@ internal sealed class CommandConsoleOverlay
 			_scroll.y = float.MaxValue;
 		}
 
+		// Same style rule as the suggestion list below: an un-styled scroll view inherits the GAME's skin padding and lays the
+		// history out inside it, which is a different left edge from the panel it is drawn in.
 		_scroll = GUILayout.BeginScrollView(
 			_scroll,
+			false,
+			true,
+			GUI.skin.horizontalScrollbar,
+			GUI.skin.verticalScrollbar,
+			OnlineUiTheme.ScrollBackground(),
 			GUILayout.ExpandWidth(true),
 			GUILayout.ExpandHeight(true));
 		foreach (var line in ctx.Commands.Lines)

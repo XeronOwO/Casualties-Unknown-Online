@@ -701,3 +701,18 @@ The sequence, read step by step:
 So the wall is exact: the game''s pointer is verifiably on the bandage slot''s own rect centre with the left button held, and `PlayerCamera.dragItem` stays null. Every earlier attempt failed one step earlier (wrong pixel, wrong button, wheel closed); this one fails at the game''s pickup itself, which is the only step that has never been crossed.
 
 That is the next code read, and it is narrow: what `PlayerCamera` requires before `TryPickupFromUI` sets `dragItem` (the `uiCasts` it builds, whether it needs an `ItemLabel` child rather than the button, and whether it runs only on the frame the button goes down relative to the wheel''s own open frame).
+## The gesture is bound to a KEY, not to a mouse button — and the key does not reach it either (2026-11-02, 19:55)
+
+`PlayerCamera.HandleDragging` (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:1380-1392`) starts a drag on
+
+    Input.GetKeyDown(KeyBinds.GetBind("iteminteract"))
+
+and not on any `GetMouseButtonDown`. `keybind-read` answers that binding on this build: **`iteminteract` = KeyCode 324 = `Mouse1`**. So every earlier attempt was pressing the wrong API: the game asks the key table, not the mouse-button API, which is why `dragItem` stayed null while the pointer sat on the slot.
+
+The virtual channel does patch `Input.GetKeyDown(KeyCode)` and `virtual-key` accepted `Mouse1`, and the read confirms the rest of the state is right:
+
+    pointer-truth:  Input.mousePosition = 519,569, and it PERSISTS (the same value two seconds later)
+    inv-slots:      bandage slot at (519,569), wheel open with 6 active slots
+    drag-state:     paused=false minigame=false timeScale=1 dragItem=''
+
+So the staged key plus a pointer verifiably on the slot still does not produce a drag. What is left is the game''s own `UIUtil.GetEventSystemRaycastResults` list, which `HandleStartDragging` hands to `TryPickupFromUI` — the one input in this chain that our channel does not feed. That is the next read: how that helper builds its raycast results and whether it reads a pointer position our patch does not cover.

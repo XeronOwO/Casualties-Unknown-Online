@@ -684,7 +684,11 @@ Two things ended the plateau, both from the game's own code:
         t+260  cut=0.4298  handY=-94.885  max=-94.894
 
    and at six times the game's own clock (`Time.timeScale = 6`, the speed-up the game itself uses) the cut finished inside forty
-   seconds: `minigame-live` answered `kind=none` and `limb-read` answered **`dismembered=true`** for the right lower leg.
+   seconds. The minutes were a FIXTURE artefact, not the game: `cutProgress` gains `|handVelocity.x| * 5E-05` per physics frame, and
+   the measured climb (0.43 in 260 s at 1x, ~50 physics frames a second) means the staged hand was moving at about 0.7 units a
+   frame - the band clamp held it still against the floor. A player sawing at a hand velocity of 40 fills the same bar in about ten
+   SECONDS; the fixture's hand was ~60x weaker than a player's, and the clock multiplier compensated for the fixture, not for the
+   game.: `minigame-live` answered `kind=none` and `limb-read` answered **`dismembered=true`** for the right lower leg.
 
 So the limb DOES come off through the fixture, and every step up to it is read. What is still missing is the one-shot sound at
 that instant: `audio-recent` samples what is playing RIGHT NOW, and the clip had finished before the next call (the host answered

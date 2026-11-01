@@ -38,3 +38,14 @@ sends, so they are already outside the build.
 | 2 | an acceptance launch | the batch channel answers: staged keys/pointer drive the game, and one input row (the keybind capture) is judged as before |
 | 3 | the console | the acceptance-only verbs are absent in production and present in the acceptance build |
 | 4 | the gates | the adapter no longer exceeds its line ceiling; the ledger no longer names this ticket |
+
+## Where it stands (2026-11-02, 14:45)
+
+The split landed and its first three rows read on the real install:
+
+- `src/CasualtiesUnknownOnline.Acceptance` holds `AcceptancePlugin` and `VirtualInput` (617 lines together) and the shipped mod no longer references it. The types keep their namespace, so every recipe and declaration that reaches them through HotRepl is unchanged.
+- **Production deploy:** `tools/deploy.ps1` without `-Acceptance` prints `removed the batch channel ... (production install)` and the plugin folder has no `CasualtiesUnknownOnline.Acceptance.dll` (read: `Test-Path` False).
+- **Batch deploy:** with `-Acceptance` the same file is present (`Test-Path` True), and the channel installs in a running client: `virtual-input mode=install` reports `PlayerCamera.HandleInput: patched, 26 call(s) replaced`, `MinigameBase.UpdateHandVisuals: patched, 3 call(s)`, the three mouse internals on the native backend and `mousePosition` on its managed body.
+- The stale-DLL sweep had to learn the new file name, or a batch deploy would copy it and then delete it in the same run (the first attempt did exactly that).
+
+One row is open, and it is a line-count question rather than a packaging one: the moved type is still 616 aggregate lines, so the debt ledger has to keep naming it until the type itself is split. That is this ticket's remaining work.

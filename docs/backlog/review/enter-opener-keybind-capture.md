@@ -92,3 +92,13 @@ A new probe (`keybind-capture-state`) reads the marker and whether the settings 
 2. **The staged key does not reach the capture loop.** With a real capture waiting, pressing Return through the in-process keyboard produced exactly one true `GetKeyDown` answer (`virtual-key-stats`: `keyDownAnswers=1`), and yet the row still showed `...` and `keybind-read action=jump` still answered `Space (32)`. So the coroutine did not act on it, and the console did not open either — the row's premise (Enter binds the key while the capture waits) is neither confirmed nor refuted by this channel yet.
 
 Two readings would finish the row and neither needs OS input: which frame the coroutine's `GetKeyDown` query lands on relative to the staged edge (the eval runs after Update, so the edge is stamped for the NEXT frame), and whether the game's capture loop runs while the pause handler holds the menu open. The `virtual-key-stats` counters answer the first directly.
+
+## The coroutine has no managed key read to replace (2026-11-02, 14:45)
+
+The staged channel now also patches `SettingsMenu.WaitForKeyPress` with the same call-site replacement the player camera and the minigame hand use, and the install report answers what the IL actually contains:
+
+```
+SettingsMenu.WaitForKeyPress: patched, 0 call(s) replaced
+```
+
+Zero. The coroutine patched cleanly and its body carries no `call Input.GetKeyDown(KeyCode)` at all, which is the same fact the channel's own note records for `Input`'s methods (a detour installs and is never invoked). So on this build the capture reads the keyboard through a path no in-process instrument can answer, and the row cannot be judged without one authorised batch of real keys — that is now a reading, not an assumption.

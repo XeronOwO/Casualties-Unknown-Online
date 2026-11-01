@@ -27,13 +27,18 @@ $env:CUO_GAME_DIR = "<game-dir>"
 #>
 param(
     [string]$GameDir = $env:CUO_GAME_DIR,
-    [switch]$Packed
+    [switch]$Packed,
+    # The batch-only acceptance channel is its own plug-in assembly and is NOT part of a production install: the shipped
+    # mod never references it. Pass this only for an acceptance run; without it the file is not deployed, and a stale copy
+    # from an earlier batch is removed so a "production" install really has none.
+    [switch]$Acceptance
 )
 
 $ErrorActionPreference = "Stop"
 # tools/deploy.ps1 — the repo root is one level up.
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $PluginOut = Join-Path $RepoRoot "src\CasualtiesUnknownOnline.Plugin\bin\Debug\net48"
+$AcceptanceOut = Join-Path $RepoRoot "src\CasualtiesUnknownOnline.Acceptance\bin\Debug\net48"
 
 if ([string]::IsNullOrWhiteSpace($GameDir)) {
     Write-Error "Game directory not specified. Pass -GameDir or set the CUO_GAME_DIR environment variable."
@@ -150,6 +155,22 @@ foreach ($dll in $dlls) {
     Write-Host "  deployed $($dll.Name)"
 }
 
+# The acceptance channel: one assembly, deployed only when this run asks for it. Production installs must not carry it —
+# it exists so a batch can answer the game's own input queries from staged values, and nothing the player sees uses it.
+$acceptanceDll = Join-Path $AcceptanceOut "CasualtiesUnknownOnline.Acceptance.dll"
+$acceptanceTarget = Join-Path $targetDir "CasualtiesUnknownOnline.Acceptance.dll"
+if ($Acceptance) {
+    if (-not (Test-Path -LiteralPath $acceptanceDll)) {
+        Write-Error "Acceptance channel not built: $acceptanceDll — build the solution first."
+        exit 1
+    }
+    Copy-Item -LiteralPath $acceptanceDll -Destination $acceptanceTarget -Force
+    Write-Host "  deployed CasualtiesUnknownOnline.Acceptance.dll (batch channel)"
+} elseif (Test-Path -LiteralPath $acceptanceTarget) {
+    Remove-Item -LiteralPath $acceptanceTarget -Force
+    Write-Host "  removed the batch channel CasualtiesUnknownOnline.Acceptance.dll (production install)"
+}
+
 # Steamworks.NET + steam_api64 are not NuGet packages — from references/.
 foreach ($name in @("Steamworks.NET.dll", "steam_api64.dll")) {
     $source = Join-Path $RepoRoot "references\$name"
@@ -165,7 +186,7 @@ foreach ($name in @("Steamworks.NET.dll", "steam_api64.dll")) {
 # from older dependency versions so the Mono loader can never accidentally bind
 # a file that is no longer part of the resolved graph (e.g. 10.x-era
 # Microsoft.Extensions leftovers after a 3.1.x rollback).
-$expectedNames = @($dlls.Name) + @("Steamworks.NET.dll", "steam_api64.dll")
+$expectedNames = @($dlls.Name) + @("Steamworks.NET.dll", "steam_api64.dll", "CasualtiesUnknownOnline.Acceptance.dll")
 $stale = Get-ChildItem -LiteralPath $targetDir -Filter *.dll -File |
     Where-Object { $expectedNames -notcontains $_.Name }
 foreach ($file in $stale) {

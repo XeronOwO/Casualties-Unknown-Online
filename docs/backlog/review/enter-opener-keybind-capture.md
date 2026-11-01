@@ -132,3 +132,27 @@ named for settings. Guessing a pixel is the thing that failed, not the channel.
 
 That is ordinary tooling work under this step's own rule (extending the in-process channel needs no authorisation), and it
 unblocks this row and row 4b of the sound ticket together.
+## The capture state is reachable, and the key staging does not reach it (2026-11-02, 03:55)
+
+The fixture exists now, entirely in-process:
+
+    settings-open tab=3            -> active=true, parent="Canvas"   (SettingsMenu.OpenMenu with the pause handler's transform)
+    virtual-input move/press/release at the row's own rect (910,170) -> keybind-capture-state: captureWaiting=true
+
+Two things were needed and both are now measured: `SettingsMenu.OpenMenu(null)` builds a menu NOTHING draws (it answered
+`active=true` with `parent="none"` and no frame showed it), so the parent must be the transform the game itself passes
+(`PauseHandler.cs:132 SettingsMenu.OpenMenu(base.transform)`), and the row's click is an ordinary staged press inside its rect
+(`AdaptiveButton.Update` reads `Input.GetMouseButtonDown(0)` and `Input.mousePosition` — the channel stages exactly that).
+
+What does NOT work is the key half. The game's own capture is:
+
+    SettingsMenu.WaitForKeyPress (SettingsMenu.cs:196)
+        while (!keySet) { foreach (KeyCode k in Enum.GetValues(typeof(KeyCode))) if (Input.GetKeyDown(k)) { keybind.SetValue(k); … } yield return null; }
+
+and with the capture waiting, both a staged `Return` and a staged `Space` left `captureWaiting=true` and the row's text still
+`...`. The acceptance channel reports `SettingsMenu.WaitForKeyPress: patched, N call(s) replaced`, so the transpiled call site
+is not the one this loop takes its answer from — that is the gap to close before this row can be judged, and it is a channel
+defect (or a mismatch between the patched overload and the loop's call), not a game or CUO behaviour.
+
+The row's guard half stays as recorded: CUO's opener checks `OnlineUiKeyboardFacts.IsAKeybindCaptureWaiting`, and that marker
+answers `true` here — so the state the guard reads is reproducible in a batch.

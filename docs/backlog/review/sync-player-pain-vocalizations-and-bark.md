@@ -83,3 +83,10 @@ The first four facts of the chain are staged: a new fixture (`lockpick-open`) fi
 What the `gore2` still needs is the STUCK state, and `LockpingMinigame.Update` says exactly what it is: `clickingInside = HandAngle > 0f && HandAngle < 180f && HandDistance > 195f && HandDistance < 247f` is computed on the press frame, the stuck branch lives INSIDE `if (clickingInside)` (as the `else` of `lockProgress >= MaxTurnProgress()`), and `timeWasStuck > 0.5f` is what plays the clip. So the press has to land on the ring (195-247 px from the lock) with an angle that is inside the half-plane but not the lock's own — a press at the lock's centre is `clickingInside = false` and never accrues, which is why the batch's first presses produced nothing (`handClicking=true, mag=330` but no clip).
 
 The next pass presses ON the ring (about 220 px out) and holds; the peer's `audio-watch3 match=gore2` is the reading, and the third guest's view of the same event is row 3.
+
+### Two things the frame and the code say about the press (2026-11-01, 19:40)
+
+- **The CUO window can sit on top of the minigame.** The frame captured with the minigame running shows the game's own instruction text ("click anywhere on the lock …") BEHIND the CUO window, and every staged press of the first sweep was delivered while that window was up — the presses were not reaching the minigame at all. Closing it (`window.close`) is a precondition of this fixture, the same way it is for the wound view.
+- **One press decides the whole stuck run.** `clickingInside` is written only on the frame where `Minigame.game.handStartedClicking` is true (`Input.GetKeyDown(attack)`), and the stuck accumulator lives in that same branch. So the press has to arrive on a frame where the HAND has already reached the ring — pressing immediately after a move decides on the hand's previous position. The next attempt waits for the hand to settle (a move, a pause, then the press) and holds; sweeping several presses in a row cannot help, because only the first one's `GetKeyDown` edge counts until the button is released.
+
+Rows 1-3 stay unproven with those two named; everything up to the press is staged and read.

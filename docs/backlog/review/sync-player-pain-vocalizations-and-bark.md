@@ -1,6 +1,6 @@
 # Sync player pain vocalizations and B-key bark to remote players
 
-- Status: Review — rows 1-3 stay unproven (a lockable entity and a jammed lockpick are the missing setup) — code complete
+- Status: Review — code complete, and rows 1-3 now have their whole fixture read and staged (`Openable` found and used through its own `OnUse`, the kit given, `LockpingMinigame` started, and the stuck condition quoted from `Update`); what they still lack is a press that delivers `Input.GetKeyDown(attack)` on the frame the hand is inside the ring band — the staged channel holds the key but does not deliver that edge, recorded on `lockpick-pain-reaches-no-peer` where the same fixture lives
 - Acceptance (20261001-l): rows 4-6 pass on the run's own suite and the bark/pain/yawn kinds were carried live; rows 1-3 stay unproven — the lockpick-failure setup is not reachable in that run — record `docs/evidence/acceptance/sync-player-pain-vocalizations-and-bark-20261001-l.md`
 - Priority: Medium
 - Category: Character audio / player presentation sync

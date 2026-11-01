@@ -1,6 +1,6 @@
 # Local-only item and body one-shot sounds outside the ingest family
 
-- Status: Review — rows 3-5 and 7-9 judged; rows 1-2 and the nap/shake half of row 6 stay unproven (the limb-treatment setups are missing)
+- Status: Review — rows 3-5, 7-9 and 6 are judged (row 6's three events each read as ONE playback on a non-acting client: `stretch` for the nap, `vomit2` for the vomit, `dogshake` for the water shake); row 1 is read too (a local bandage treatment through the game's own `ApplyWoundItem` entry, `plays=1 names=[bandage]` on the peer); what stays open is row 2's deliberately-local classification, which needs no further reading but a decision record, and row 1's other treatment families (a syringe holding a liquid, the minigame families beyond the bandage)
 - Acceptance (20261001-l): rows 3-5 and 7-9 judged (world-use medical clips, the water branch, the flashlight and the hand switch, the third peer, the suite rows); rows 1-2 and the nap/shake half of row 6 stay unproven — record `docs/evidence/acceptance/unhooked-item-and-body-sound-families-20261001-l.md`
 - Priority: Low-Medium
 - Category: Character/item audio sync / report coverage
@@ -175,3 +175,11 @@ Two readings settle what the nap half is waiting on, and neither is the relay:
 - **Its routine never started.** `Body.NapCoroutine` plays `stretch` 0.3 s in, and `Body.TakeANap` starts that coroutine only when the body's own `canTakeNap` gate holds (`reversing/Assembly-CSharp/Assembly-CSharp/Body.cs`). `body-call kind=nap` answered `applied=true` with the note that it starts only when `canTakeNap` holds, and the host's frame-accurate watcher stayed at `plays=0` across the whole window — on the acting client itself, which is where the clip would play first.
 
 So the nap half needs a body that CAN nap (the gate is the game's own, not the batch's), and the relay question for it is unasked until then. The clip's presence, which was the other candidate explanation, is now ruled out.
+
+## Row 6 CLOSED: the nap too, once, on the peer (2026-11-01, 18:10)
+
+`Body.canTakeNap` is `(energy < 35f && averagePain < 31f && sicknessAmount < 80f) || GetComponent<SleepingPills>() || WorldGeneration.GetRunSettingBool("nosleeprestrictions")` — so the nap the earlier pass could not start needed the pills the project already knows how to plant. Planted (`medication-component-probe mode=plant-sleepingpills,target=local`), the nap ran and the peer's watcher answered:
+
+    plays 220 -> 221, names gained [stretch]
+
+One playback of the game's own nap clip on a client that did not act. With that, all three events the row names are read as counts on the listener side: **the nap (`stretch`, once), the vomit (`vomit2`, once) and the water shake (`dogshake`, once, after the per-frame seeder held the game's own twelve-second condition)**.

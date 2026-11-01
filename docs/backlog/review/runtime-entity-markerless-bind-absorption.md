@@ -222,3 +222,14 @@ The ONE row that is not machine-covered is row 9 — the adapter stamping the ba
 ## Row 9's fixture, tried a second way (2026-11-01, 08:35)
 
 The live row needs a RUNTIME enemy spawn to stamp. This session's world had 46 generation enemies and no runtime spawn; a structural blast on the nearest live `BuildingEntity` (`entity-attack mode=place` then `blast-at` answering `ok=true, found=true`) removed three of them (46 -> 43) and the table still read **`runtimeSpawns=0`**. So killing/removing generation entities does not produce the backfill case either: the row waits on the game spawning a runtime enemy (the animal-spawn channel), which a batch cannot provoke on demand.
+
+## Row 9, third attempt: there is no animal in this world at all (2026-11-02, 15:30)
+
+The route the row needs is an animal the game spawns at runtime, so this attempt started by asking what the world actually contains. `enemy-table-read` on the host answers **49 entities, `runtimeSpawns=0`**, and every one of them is a `shadecrawler` (28) or a `trader` (21) — no animal prefab at all. That is the decisive part: the row cannot be staged in this world by any means, because the game has not produced an animal to kill.
+
+Two further readings, so the next attempt does not repeat them:
+
+- `runtime-entity-kill mode=explode sequence=<n>` locates its target by the STAMPED creation sequence, and with `runtimeSpawns=0` no entity carries one; the call answered nothing, which is consistent with "no marker to kill".
+- `layer-descend twice=0` answered `ok=true, worldY=0` and left the table unchanged (same 49, same `runtimeSpawns=0`), so this position has no sink to descend through and a descent is not a spawn source from here.
+
+The condition row 9 waits on is therefore exact and can be checked in one read next time: **a world in which `enemy-table-read` lists an animal prefab**. Until then the adapter's stamp-at-materialization half has no live input, and the row stays a named residual rather than a weaker check.

@@ -466,31 +466,40 @@ internal sealed class CommandConsoleOverlay
 			var suggestion = suggestions[index];
 			GUILayout.BeginHorizontal();
 			var hint = CommandSuggestionHintText.Of(ctx, suggestion);
-			// A command row carries its OWN usage (user direction 2026-11-02: the separate usage line sat where this list opens and was
-			// covered by it). The usage is syntax, so it reads the same in every language and needs no catalogue key; when the catalogue has
-			// no description for the command at all (a mod's own verb), the usage alone is the hint - an empty right side teaches nothing.
-			if (!string.IsNullOrWhiteSpace(suggestion.Usage))
-			{
-				hint = string.IsNullOrWhiteSpace(hint) ? suggestion.Usage : hint + " · " + suggestion.Usage;
-			}
-
 			// The highlighted row is the one the arrows and Enter act on, so it must be visibly the current one. The marker is
 			// its OWN column: padding the button's text with spaces pushed the label off-centre inside its box, which read as a
 			// large left inset (measured 2026-11-02 — the row's text sat 6px in on one side and 0 on the other). ExpandHeight keeps
 			// the glyph centred on the row's own height instead of sitting on its top edge.
 			var marker = index == selected ? "▶" : "";
 			GUILayout.Label(marker, OnlineUiTheme.Marker(), GUILayout.Width(MarkerWidth), GUILayout.ExpandHeight(true));
-			if (GUILayout.Button(suggestion.Text, OnlineUiTheme.Button(), GUILayout.ExpandWidth(false)))
+			var buttonStyle = OnlineUiTheme.Button();
+			if (GUILayout.Button(suggestion.Text, buttonStyle, GUILayout.ExpandWidth(false)))
 			{
 				_session.AcceptSuggestion(suggestion);
 			}
 
+			// Two layers, not one line (user direction 2026-11-02): the row itself says what the command IS, and the row the player is
+			// ON adds how to call it underneath. Cramming both into one line made the list wide enough for a horizontal scrollbar and
+			// buried the description behind the usage.
+			var buttonWidth = buttonStyle.CalcSize(new GUIContent(suggestion.Text)).x + buttonStyle.padding.horizontal;
+			var hintWidth = Mathf.Max(0f, rect.width - 4f - MarkerWidth - buttonWidth - 6f);
 			if (!string.IsNullOrWhiteSpace(hint))
 			{
-				GUILayout.Label(hint, OnlineUiTheme.RowHint(), GUILayout.ExpandWidth(true));
+				// The width is COMPUTED rather than left to the layout: a label that expands lets the scroll view size its content to the
+				// longest hint, which is what put a scrollbar under the list. A fixed width keeps every row inside the view.
+				GUILayout.Label(hint, OnlineUiTheme.RowHint(), GUILayout.Width(hintWidth));
 			}
 
 			GUILayout.EndHorizontal();
+
+			if (index == selected && !string.IsNullOrWhiteSpace(suggestion.Usage))
+			{
+				// The usage layer: syntax, the same words in every language, under the description and indented to it.
+				GUILayout.BeginHorizontal();
+				GUILayout.Space(MarkerWidth + buttonWidth);
+				GUILayout.Label(suggestion.Usage, OnlineUiTheme.RowHint(), GUILayout.Width(hintWidth));
+				GUILayout.EndHorizontal();
+			}
 		}
 
 		GUILayout.EndScrollView();

@@ -378,3 +378,11 @@ Then the two readings that stop the row again:
 - **The limb action ran but no minigame started.** The apply answered `ok=True, usableOnLimb` inside the same response, and `minigame-live` right after answered `none`; `bandage-rub` then had nothing to finish. Either `MinigameBase.main.StartMinigame` refused, or the minigame opened and closed inside the same frame.
 
 Two batches on this row without a verdict, so it stops here for now and the ticket moves to the next row: the anchor ambiguity and the minigame start are the two things to fix before the treatment-sound row can be judged at all.
+
+## The world-item row needs a faster sample, not a different fixture (2026-11-02, 14:47)
+
+The `item-drop` fixture works with a real item id — `type=stick` answers `{"created":true}` and drops it from the requested height; `type=rock` fails inside the game's factory (`Cannot instantiate a ScriptableObject with a position and rotation`), so the row's fixture is a stick, not a rock.
+
+With the item created 6 units up and sampled every ~220 ms through `audio-recent match=drop` on BOTH clients, neither side answered a playing `drop` clip in five samples. So this pair cannot yet tell "the guest's impact is suppressed" from "the host never played it in the sampled window": the clip is a one-shot, and both the sampling interval and the moment the item lands are uncontrolled.
+
+The next reading is the host's own `Sound.Play("drop", …)` call (a log line at the call, or a probe that counts drop plays) so the host side is a fact rather than a miss, and a sample loop that starts before the drop and runs through the landing.

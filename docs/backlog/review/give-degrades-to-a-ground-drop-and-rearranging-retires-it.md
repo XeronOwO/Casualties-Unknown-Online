@@ -259,3 +259,14 @@ Found while building a fixture (a tool in a real slot), and it is this ticket''s
 So all three of the answer, the pickup log and the placement log say "slot 0", the slot is verifiably empty, and the very same instance id exists as a world object at the body. That is the degradation this ticket was opened for — a give that ends up as a ground drop — and it is happening with three free slots (s0-s2) beside a body that is standing still.
 
 Two readings are owed and named here so the next pass starts from them rather than from the log lines again: whether the placement''s own verification (`body.GetItem(slot) != placed` in `LocalBodyPlacement.TryPlaceInBodySlot`) passed at the moment of the give and something dropped the item afterwards, or whether the world object is the give''s own spawn that the pickup did not consume (a duplicate). The distinguling evidence is a re-read immediately after the give in the same batch, which the next pass runs first.
+### The second reading: the slot is empty at every moment, and the instance id repeats (2026-11-02, 23:40)
+
+The immediate re-read rules out "placed and later dropped":
+
+    /give machete   -> "Gave machete (#1533624305603) to <alt> in slot 0."
+    immediately     -> handSlot=0; s0=-; s1=-; s2=-
+    400 ms later    -> identical
+
+Two facts worth carrying forward. The instance id in this answer (**1533624305603**) is the SAME id the previous attempt answered with, so the give is answering with an id that already existed rather than allocating a new one — or the answer is being replayed. And the slot is empty on the first frame the read can see, which means the placement either never happened on this client at all (the item stayed on the host''s copy of this body) or it was undone inside the same frame.
+
+That points the next read at the third-client path specifically: the alt''s body slot is the host''s copy, so a give to a member who did not request it has to arrive through inventory sync rather than through this client''s own placement — and the log line `placed machete ... in local slot 0` is emitted with a `local` word on a body whose slot this client does not own.

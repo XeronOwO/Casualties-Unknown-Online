@@ -503,3 +503,11 @@ Same clips at the same instants on both sides — the peer hears exactly what th
     guest: citrumeow@177.5, @177.7, @178.1, @178.2   (the same four, mirrored)
 
 The plush's own squeak reaches the peer, once per impact, matching the host — row 6 PASS.
+## Row 4 read: an injection plays on the patient''s own client only (2026-11-02, 20:50)
+
+A syringe used on the operator''s own head through the game''s own entry (`limb-use type=syringe`, answered `usableOnLimb=true, actuallyUsable=true, limb=0` (the head) starts the native `SyringeMinigame` (`minigame-live`: `kind=SyringeMinigame, hasMain=true, handMagnitude=60`). With both recorders armed for the same window:
+
+    host : heartthump x25 over ~4 s (its own body's cues, nothing else)
+    guest: (nothing — raw counter moved, zero staged entries)
+
+So the injection produces no clip on a peer, which is the row''s claim, and what the acting side does play is its own body''s cues rather than anything a peer would need. The `SyringeMinigame` needs no file, so the earlier "needs a syringe holding a liquid" note only applies to the families that read a liquid; a plain syringe is enough for this row.

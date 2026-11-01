@@ -81,3 +81,16 @@ A `play-watch` declaration prefixes the game's `Sound.Play(AudioClip, …)` over
 So the message arrives, the handler runs, the clip resolves and the engine call is made, and the sound still does not come out on the listener's side. What is left is the lifetime of the source the game creates for it: `Sound.Play` builds a `GameObject` with an `AudioSource`, calls `PlayOneShot(clip)` and attaches `PlayedSound`, whose `Update` destroys the object whenever `AudioSource.isPlaying` is false (`reversing/Assembly-CSharp/Assembly-CSharp/PlayedSound.cs`). `PlayOneShot` does not start the source the way `Play()` does, so whether a given call survives to be audible depends on state the report cannot see from here.
 
 The remaining reading is therefore one level below the replay: on the peer, read the created source's `isPlaying`/`time` on the frame after the replay, and compare a clip that IS heard remotely (`pain1` from the bark) with one that is not (`gore2`). That comparison names the difference instead of guessing at it.
+
+### The A/B that closes the reading (2026-11-01, 23:05)
+
+Same client, same instruments, two clips that take the same path:
+
+| clip | engine call (`play-watch`) | audible (`audio-watch3`) | report `TwoDimensional` |
+|---|---|---|---|
+| `pain1` (the bark, which reaches peers) | present in the same window | **heard** | `False` |
+| `gore2` (the lockpick pain, which does not) | present | **never heard** | `True` |
+
+And a direct `play-clip clip=gore2 twoDimensional=true` on that same client IS heard, so neither the clip nor the 2D flag alone accounts for it: the difference left is the combination the replay uses — a 2-D play made INSIDE the `RemoteApply` scope. That is a narrow, testable statement, and it is where the next pass starts: play a 2-D clip from inside a `RemoteApply` scope on a peer and see whether it survives.
+
+Everything above this section is the four-layer evidence that put it here; nothing in the ticket claims the fix, because the fix is not known yet.

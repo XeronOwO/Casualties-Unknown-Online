@@ -1,6 +1,6 @@
 # Self-check — the item and body one-shot sounds outside the ingest family
 
-- Ticket: `docs/backlog/review/unhooked-item-and-body-sound-families.md` (2026-09-26 cycle, HEAD started at `c76c3078`)
+- Ticket: `docs/backlog/done/unhooked-item-and-body-sound-families.md` (2026-09-26 cycle, HEAD started at `c76c3078`)
 - Change: five new call identities for the character-sound capture (the limb treatment, the world
   drink, the transfer gesture, the per-step coroutine scope) plus the classification of two origins
   that already existed, five new wire kinds with the protocol bump, and a census gate that pins which

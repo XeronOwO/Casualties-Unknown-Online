@@ -4,8 +4,8 @@
 - Acceptance (20261001-l): rows 4 and 5-8 judged (the world-item impact replayed 219:219 on each guest from the authority's 219 reports, the plush squeak 12:12, the suite rows); rows 1-4b stay unproven and the dust puff visual was not captured — record `docs/evidence/acceptance/suppressed-native-call-sounds-stay-unheard-20261001-l.md`
 - Priority: Low
 - Category: Audio sync / report coverage
-- Source: the 2026-09-26 census of `review/unhooked-item-and-body-sound-families.md` — closing that family's routing left two rows whose clip is not merely unreported: the native call that would play it is suppressed or blocked on every side.
-- Related: `review/unhooked-item-and-body-sound-families.md` (the census these rows come from), `done/remote-medical-treatment-operations.md`, `docs/architecture/remote-inventory-native-parity.md` (§3.4)
+- Source: the 2026-09-26 census of `done/unhooked-item-and-body-sound-families.md` — closing that family's routing left two rows whose clip is not merely unreported: the native call that would play it is suppressed or blocked on every side.
+- Related: `done/unhooked-item-and-body-sound-families.md` (the census these rows come from), `done/remote-medical-treatment-operations.md`, `docs/architecture/remote-inventory-native-parity.md` (§3.4)
 
 ## The gap
 
@@ -168,7 +168,7 @@ velocity > 3) and `PlushScript.OnCollisionEnter2D` (the plush's own squeak, velo
 
 ## Non-goals
 
-- Not re-deriving the capture chain: `review/unhooked-item-and-body-sound-families.md` landed the
+- Not re-deriving the capture chain: `done/unhooked-item-and-body-sound-families.md` landed the
   routing, the scope guards and the census gate.
 - Not a general "every game sound becomes a message" sweep: each row needs its own decision, and
   "the sound stays silent, because …" is a valid outcome that must be written down.

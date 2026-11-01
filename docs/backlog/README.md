@@ -112,7 +112,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The opener can claim a key the game is rebinding](review/enter-opener-keybind-capture.md) — **Low-Medium** — the guard sees the capture; a key batch is owed.
 
 - [Sounds whose native call is suppressed](review/suppressed-native-call-sounds-stay-unheard.md) — **Low** — blocked treatment and impact sounds.
-- [Local-only item and body sounds](review/unhooked-item-and-body-sound-families.md) — **Low-Medium** — the medical, drink, gesture and body clips are carried.
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
@@ -164,6 +163,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Item and body sound families](done/unhooked-item-and-body-sound-families.md) — **Low-Medium** — closed; row 2 became decision 271.
 - [The trader kept talking beside a corpse](done/trader-mutters-forever-near-a-corpse.md) — **Medium** — fixed; 329 in 5s -> 2 in 12s.
 - [State streams flooded the wire](done/item-move-stream-floods-the-wire.md) — **High** — closed; 213 -> 20 KB/s.
 - [Concurrent medical operations](done/concurrent-medical-operations.md) — **Medium-High** — closed; every matrix row read, including no-duplicated-progress.

@@ -1,11 +1,12 @@
 # Local-only item and body one-shot sounds outside the ingest family
 
-- Status: Review — rows 3-5, 7-9 and 6 are judged (row 6's three events each read as ONE playback on a non-acting client: `stretch` for the nap, `vomit2` for the vomit, `dogshake` for the water shake); row 1 is read too (a local bandage treatment through the game's own `ApplyWoundItem` entry, `plays=1 names=[bandage]` on the peer); what stays open is row 2's deliberately-local classification, which needs no further reading but a decision record, and row 1's other treatment families (a syringe holding a liquid, the minigame families beyond the bandage)
-- Acceptance (20261001-l): rows 3-5 and 7-9 judged (world-use medical clips, the water branch, the flashlight and the hand switch, the third peer, the suite rows); rows 1-2 and the nap/shake half of row 6 stay unproven — record `docs/evidence/acceptance/unhooked-item-and-body-sound-families-20261001-l.md`
+- Status: Done — every row of the matrix is judged or decided. Rows 3-5, 7-9 and 6 were read earlier (row 6's three events each as ONE playback on a non-acting client: `stretch`, `vomit2`, `dogshake`), row 1 with `plays=1 names=[bandage]` on the peer, and row 2's remaining item was not a reading but a decision record — it is now decision **271** in `docs/decisions/active.md`: a limb treated through the remote medical view plays no native clip on any side and none is invented, because the native call is the operator's own body's and the alternative would describe a body the operator is not standing next to. What this closes is the CLASSIFICATION the row asked for; the other treatment families that start their own minigame (the dislocation wrench, the amputation tools) are named as limits below rather than as open rows, because they need their own fixtures and their own ticket.
 - Priority: Low-Medium
 - Category: Character/item audio sync / report coverage
 - Source: the whole-family audit of `done/host-eating-sound-not-heard-on-guest.md` (2026-09-26): fixing the reported meal meant giving two native paths their own capture scopes, and the same census showed every other local-only one-shot clip of that family still reports nothing.
 - Related: `done/host-eating-sound-not-heard-on-guest.md` (the ingest half, landed), `done/sync-player-pain-vocalizations-and-bark.md` (the dedicated one-shot event family), `docs/architecture/remote-inventory-native-parity.md` (§3.4 and the stage-3 leave), `review/unhooked-damage-block-callers.md` (the same "the census found more callers than the fix covered" shape), `review/suppressed-native-call-sounds-stay-unheard.md` (the rows this cycle records as out of family), `docs/evidence/selfchecks/presentation/unhooked-item-and-body-sound-families-selfcheck.md`
+
+The acceptance record this ticket was judged from is `docs/evidence/acceptance/unhooked-item-and-body-sound-families-20261001-l.md`.
 
 ## The gap
 

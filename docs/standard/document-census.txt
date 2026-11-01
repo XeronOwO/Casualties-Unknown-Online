@@ -292,7 +292,7 @@ docs/backlog/review/trade-domain-dual-side-runtime.md | keep | index | docs/back
 docs/backlog/done/treatment-gore-presentation-carried.md | keep | index | docs/backlog/README.md
 docs/backlog/done/turret-stray-fire-after-reload.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unhooked-damage-block-callers.md | keep | index | docs/backlog/README.md
-docs/backlog/review/unhooked-item-and-body-sound-families.md | keep | index | docs/backlog/README.md
+docs/backlog/done/unhooked-item-and-body-sound-families.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unified-remote-display-projection-rework.md | keep | index | docs/backlog/README.md
 docs/backlog/done/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-content-event-gap-on-repick.md | keep | index | docs/backlog/README.md
@@ -782,7 +782,7 @@ docs/evidence/acceptance/unhooked-damage-block-callers-20261001-y.md | keep | cl
 docs/evidence/acceptance/unhooked-damage-block-callers-20261002-b.md | keep | claim | docs/backlog/review/unhooked-damage-block-callers.md
 docs/evidence/acceptance/unhooked-damage-block-callers-20261002-c.md | keep | claim | docs/backlog/review/unhooked-damage-block-callers.md
 docs/evidence/acceptance/unhooked-damage-block-callers-20261002-d.md | keep | claim | docs/backlog/review/unhooked-damage-block-callers.md
-docs/evidence/acceptance/unhooked-item-and-body-sound-families-20261001-l.md | keep | claim | docs/backlog/review/unhooked-item-and-body-sound-families.md
+docs/evidence/acceptance/unhooked-item-and-body-sound-families-20261001-l.md | keep | claim | docs/backlog/done/unhooked-item-and-body-sound-families.md
 docs/evidence/acceptance/validation-and-source-checks-20261014-a.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
 docs/evidence/acceptance/validation-and-source-checks-20261017-p.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
 docs/evidence/acceptance/validation-and-source-checks-s2a-20261016.md | keep | claim | docs/backlog/done/validation-and-source-checks.md
@@ -1048,7 +1048,7 @@ docs/evidence/selfchecks/presentation/speech-sound-frequency-selfcheck.md | keep
 docs/evidence/selfchecks/presentation/suppressed-native-call-sounds-stay-unheard-selfcheck.md | keep | claim | docs/backlog/review/suppressed-native-call-sounds-stay-unheard.md
 docs/evidence/selfchecks/presentation/treatment-gore-presentation-carried-selfcheck.md | keep | claim | docs/backlog/done/treatment-gore-presentation-carried.md
 docs/evidence/selfchecks/presentation/turret-light-sprite-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/presentation/unhooked-item-and-body-sound-families-selfcheck.md | keep | claim | docs/backlog/review/unhooked-item-and-body-sound-families.md
+docs/evidence/selfchecks/presentation/unhooked-item-and-body-sound-families-selfcheck.md | keep | claim | docs/backlog/done/unhooked-item-and-body-sound-families.md
 docs/evidence/selfchecks/presentation/unified-remote-display-projection-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/wall-slide-landing-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/weapon-fire-recoil-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

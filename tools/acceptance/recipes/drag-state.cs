@@ -1,35 +1,8 @@
 // recipe: drag-state
 // args: none
-// serves: cross-player-drag-use-model-bounds (whether an OS press engages the game's own drag bracket)
-// returns: ok, radialOpen, dragging, dragItem, dragType, mouseX, mouseY, error, detail
+// returns: ok, dragItem, wheelOpen, backpackOpen, focusedSteamId, error, detail
 //
-// Reads the game's own drag bracket: `PlayerCamera.dragItem` is what `HandleStartDragging` sets and `HandleReleaseDragging`
-// consumes, so a non-null value while a press is held is the proof that the OS gesture engaged the native path (and a null
-// value while the pointer is clearly pressed is the proof it did not). `raycastTargets` is not read: it changes every frame.
-((System.Func<string>)(() => {
-	var inv = System.Globalization.CultureInfo.InvariantCulture;
-	var camera = PlayerCamera.main;
-	if (camera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; }
-	var field = typeof(PlayerCamera).GetField("dragItem", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-	var drag = field == null ? null : field.GetValue(camera) as Item;
-	var mouse = UnityEngine.Input.mousePosition;
-	// The bracket's own gates, read beside the button state so a refused start can be attributed instead of guessed:
-	// HandleDragging needs the iteminteract press, no minigame, not paused, a conscious body and `allowUseItem`.
-	var body = camera.body;
-	var minigame = MinigameBase.main != null && MinigameBase.main.currentMinigame != null;
-	return "{\"ok\":true"
-		+ ",\"mouseHeld\":" + (UnityEngine.Input.GetMouseButton(0) ? "true" : "false")
-		+ ",\"mouseDown\":" + (UnityEngine.Input.GetMouseButtonDown(0) ? "true" : "false")
-		+ ",\"rightHeld\":" + (UnityEngine.Input.GetMouseButton(1) ? "true" : "false")
-		+ ",\"rightDown\":" + (UnityEngine.Input.GetMouseButtonDown(1) ? "true" : "false")
-		+ ",\"allowUseItem\":" + (body != null && body.allowUseItem ? "true" : "false")
-		+ ",\"conscious\":" + (body != null && body.conscious ? "true" : "false")
-		+ ",\"minigame\":" + (minigame ? "true" : "false")
-		+ ",\"paused\":" + (PauseHandler.paused ? "true" : "false")
-		+ ",\"radialOpen\":" + (camera.radialOpen ? "true" : "false")
-		+ ",\"dragging\":" + (drag != null ? "true" : "false")
-		+ ",\"dragItem\":\"" + (drag == null ? "none" : drag.id) + "\""
-		+ ",\"dragType\":\"" + (drag == null ? "none" : drag.GetType().Name) + "\""
-		+ ",\"mouseX\":" + ((int)mouse.x).ToString(inv)
-		+ ",\"mouseY\":" + ((int)mouse.y).ToString(inv) + "}";
-}))()
+// Reads the game's OWN dragged-item state (`PlayerCamera.main.dragItem`, set by its UI raycast over `ItemLabel`/`InvButton`)
+// plus the two CUO facts the cue depends on, so a fixture can tell "the press did not start a drag" apart from "the drag
+// started but the pointer is not on the displayed backpack". One line: the evaluator takes a single top-level expression.
+((System.Func<string>)(() => { var services = CasualtiesUnknownOnline.Runtime.CuoBootstrap.Services; if (services == null) { return "{\"ok\":false,\"error\":\"no-services\"}"; } var camera = PlayerCamera.main; if (camera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; } var item = camera.dragItem; var itemId = item == null ? "" : item.id; var viewType = (System.Type)null; var asms = System.AppDomain.CurrentDomain.GetAssemblies(); for (var i = 0; i < asms.Length; i++) { if (viewType == null) { try { viewType = asms[i].GetType("CasualtiesUnknownOnline.GameAdapter.Items.RemoteBackpackView", false); } catch { viewType = null; } } } var isOpen = false; var focused = "0"; if (viewType != null) { var openProperty = viewType.GetProperty("IsOpen", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static); if (openProperty != null) { isOpen = (bool)openProperty.GetValue(null); } var focusedProperty = viewType.GetProperty("FocusedSteamId", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static); if (focusedProperty != null) { focused = focusedProperty.GetValue(null).ToString(); } } return "{\"ok\":true,\"dragItem\":\"" + itemId + "\",\"backpackOpen\":" + (isOpen ? "true" : "false") + ",\"focusedSteamId\":\"" + focused + "\"}"; }))()

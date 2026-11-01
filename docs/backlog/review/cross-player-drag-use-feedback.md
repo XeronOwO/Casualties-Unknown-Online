@@ -685,3 +685,19 @@ Two more readings support that:
 - three staged presses were tried against that state — the held-item HUD at (45,680), the wheel''s centre grid at (610,475), and the main-hand circle at (515,560), each followed by a move onto the teammate''s clone at (642,618) — and `drag-cue` answered `showing=false, target=0` with the unsubstituted template every time.
 
 So the missing capability is not a screen coordinate: it is the game''s own "this item is being dragged" state, which the wheel sets through its own pointer handling. The honest fixture is one that puts the game into that state through the game''s own input (the wheel''s slot hit-test runs on the game''s pointer, which the staged channel already feeds) and then reads `drag-cue` — and the reason all three presses missed is therefore inside the wheel''s own hit-test, not in the aiming.
+## Two instruments and the exact wall: the pointer IS on the slot and the game still drags nothing (2026-11-02, 19:40)
+
+Two probes now make the whole chain auditable in one call each:
+
+- `inv-slots` lists the game''s own `InvButton` widgets with the SCREEN point their rect lands on (via `RectTransformUtility.WorldToScreenPoint`, which is what converts an overlay canvas rect to pixels) and the item each holds. With the wheel open the live set is: `bandage` at (519,569), `lantern` (519,404), `waterbottle` (759,407), `trashbag` (759,569), `dogfood` (640,345) and an empty slot at (640,627).
+- `drag-state` reads `PlayerCamera.main.dragItem` — the game''s own dragged item — plus `RemoteBackpackView.IsOpen`/`FocusedSteamId`.
+
+The sequence, read step by step:
+
+    pointer staged at (519,569)          -> pointer-truth: Input.mousePosition = 519,569   (the game sees it there)
+    left button down at (519,569)        -> drag-state: dragItem = ''                     (no drag)
+    wheel confirmed open in the same call -> inv-slots: 6 active slots
+
+So the wall is exact: the game''s pointer is verifiably on the bandage slot''s own rect centre with the left button held, and `PlayerCamera.dragItem` stays null. Every earlier attempt failed one step earlier (wrong pixel, wrong button, wheel closed); this one fails at the game''s pickup itself, which is the only step that has never been crossed.
+
+That is the next code read, and it is narrow: what `PlayerCamera` requires before `TryPickupFromUI` sets `dragItem` (the `uiCasts` it builds, whether it needs an `ItemLabel` child rather than the button, and whether it runs only on the frame the button goes down relative to the wheel''s own open frame).

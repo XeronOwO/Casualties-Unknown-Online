@@ -17,7 +17,7 @@
 	if (trail == "space") { input = input + " "; }
 	var escape = (System.Func<string, string>)(text => text == null ? "" : text.Replace("\\", "/").Replace("\"", "'").Replace("\r", " ").Replace("\n", " / "));
 	var services = CasualtiesUnknownOnline.Runtime.CuoBootstrap.Services;
-	var source = services == null ? null : services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Commands.ICommandCompletionSource));
+	var source = services == null ? null : services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService));
 	if (source == null) { return "{\"ok\":false,\"error\":\"no-completion-source\"}"; }
 	var completion = (CasualtiesUnknownOnline.Runtime.Session.Commands.ICommandCompletionSource)source;
 	if (mode == "hint") {
@@ -26,7 +26,7 @@
 
 	var suggestions = completion.Suggest(input);
 	var builder = new System.Text.StringBuilder();
-	builder.Append("{\"ok\":true,\"mode\":\"suggest\",\"count\":").Append(suggestions.Count).Append(",\"suggestions\":[");
+	builder.Append("{\"ok\":true,\"received\":\"").Append(escape(input)).Append("\",\"mode\":\"suggest\",\"count\":").Append(suggestions.Count).Append(",\"suggestions\":[");
 	for (var i = 0; i < suggestions.Count; i++) {
 		if (i > 0) { builder.Append(','); }
 		builder.Append("{\"text\":\"").Append(escape(suggestions[i].Text))

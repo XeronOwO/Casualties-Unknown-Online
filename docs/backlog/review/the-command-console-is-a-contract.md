@@ -455,3 +455,16 @@ Yet the same console is demonstrably alive, in the same session: `/help` printed
 `CommandConsoleService.Commands` is `[.. _commands.All.Where(_authority.MayRun)…]`, and the completion's command branch filters through the same `MayRun`. So a zero-length projection on a registry that `/help` enumerates means the AUTHORITY predicate refuses every command in this instance, and the player therefore gets neither a command list nor any suggestion — while typing a command in full still runs it.
 
 Two probes were added to pin that apart without guessing: `console-registry` (the projection's own count) and `console-authority` (asks the authority about one named command; its first version failed on reflection and needs the registry's `All` read through its real member). The next read is `ConsoleCommandAuthority.TryRefusal` against a command that `/help` just listed — one call, one answer, and then the fix.
+### Correction: the "completion answers nothing" reading is NOT established (2026-11-02, 21:35)
+
+The section above claimed the authority refuses every command. That claim does not survive its own instrument, so it is retracted here rather than left standing.
+
+What is actually known:
+
+- `console-suggest` answered `count=0` for every input — but an echo added to the recipe for the input it received answered `received=""`, i.e. the recipe saw an EMPTY string. A completion source asked for the completion of nothing returns nothing, so those zeros say nothing about the product.
+- `console-registry` resolved `ICommandControl` and read **0** commands, while the CONCRETE `CommandConsoleService` from the same container reads **25** (`help, clear, players, rtt, whoami, kick, ban, unban, …`). Two resolutions of one service disagreeing is a probe-level question first, not a product verdict.
+- `console-read` answered `count=7` for a console that had printed about thirty `/help` lines earlier in the same session, which points the same way: the probes are not all looking at the same console instance.
+
+So the honest state is: **the suggestion surface has not been read yet**, and the instruments disagree about which console instance they hold. The next step is instrument work, not a product change: make `console-suggest` prove which instance it holds (the console's own line count beside the suggestion list) and pass a leading `/` in a way the driver keeps, then read the real answer. The row stays unread until that happens.
+
+What this section replaces: the earlier paragraph that named `ConsoleCommandAuthority.TryRefusal` as the cause. It may still be the cause; it has not been shown.

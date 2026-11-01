@@ -62,3 +62,10 @@ That is the enemy stream's payload down by a factor of ~25 and the session's sen
     Send StateStream=298181B/37f p50=7489B p95=12791B
 
 `StateStream` is now the largest payload in the session — 7.5 KB median, 12.8 KB at p95, per frame, while the players stand still. It deserves the same treatment the enemy stream just got: find what the world stream carries per tick and whether change-based selection applies there.
+## The state stream IS the item move stream (2026-11-02, 16:40)
+
+The payload named `StateStream` is built in `ItemService.SendItemMove` as `new WireStateStream { ItemMoves = [.. items] }` and broadcast as `WirePayloadType.StateStream`. So the first reading was right about the CONTENT and wrong about the counter: the bytes are item moves, the `[ItemTraffic]` line that misled me is just cumulative.
+
+`ItemPositionAuthority` sends items every `AdaptiveStreamId.WorldItemMoveStream` tick (10 Hz) unless `ItemMotionState.IsSettled(velocity.sqrMagnitude, angularVelocity)` says otherwise, in which case a settled item drops to 1 Hz. At `p50=7,489 B` per frame and roughly 40 B per entry, that is ~190 items going out on every full-rate tick — which says almost nothing in that world is reading as settled.
+
+So the question the fix has to answer moved one step down: why ~190 lying items are not settled by `ItemMotionState`'s thresholds. The likely candidates are a velocity floor that ground contact never drops below (jitter), or items whose rigidbody is not simulated and whose velocity is stale rather than zero. The reading that decides it is a probe over a sample of world items: velocity, angular velocity, weight and the settled verdict side by side.

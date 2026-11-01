@@ -52,6 +52,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 	private IReadOnlyList<EnemySpawnEntryMsg> _runtimeSpawns = [];
 	private uint _nextEnemySeq; // host: EnemyState broadcast seq
 	private long _nextStateSendMs;
+
+	/// <summary>What the last tick actually put on the wire, per enemy — the delta base.</summary>
+	private readonly Dictionary<(ulong Epoch, uint Counter, byte Generation), WireEnemyStreamState> _lastSentState = [];
+
+	private long _stateTick;
 	private uint _lastEnemyStateSeq; // guest: last applied seq (the unreliable-stream gate)
 	private ulong _epoch; // host: the enemy-id epoch (set on Initialize)
 	private uint _nextEnemyCounter; // host: enemy-id allocation counter
@@ -324,11 +329,25 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl, ISessionR
 			return;
 		}
 
+		// Only what changed since the last tick, with a full keyframe every second: the stream used to carry every enemy
+		// every tick (a flat 4,005 B per frame against ~50 mostly idle crawlers — the host's largest single carrier of a
+		// ~200 KB/s send rate with nothing moving). The receiving side is update-only, so a subset is legal; the
+		// keyframe is what bounds a dropped unreliable packet's staleness to a second instead of "until it moves again".
+		var all = _enemies.Values.Select(e => e.ToWireEnemyStreamState()).ToList();
+		var selected = EnemyStateDelta.Select(all, _lastSentState, _stateTick++);
+		foreach (var state in selected)
+		{
+			_lastSentState[(state.EntityId.Epoch, state.EntityId.Counter, state.EntityId.Generation)] = state;
+		}
+
+		// The FRAME cadence is unchanged on purpose: the stream still goes out on every configured tick, carrying an
+		// empty list when nothing changed. The bandwidth win is the payload, and keeping the cadence keeps the contract
+		// the frequency tests and the guest's own pacing were built on.
 		var stream = new WireStateStream
 		{
 			Seq = ++_nextEnemySeq,
 			BaseGlobalRevision = _kernelAuthority.CurrentGlobalRevision,
-			EnemyStates = [.. _enemies.Values.Select(e => e.ToWireEnemyStreamState())],
+			EnemyStates = selected,
 		};
 		var targets = InWorldGuestSteamIds().ToList();
 		_kernelProtocol.BroadcastStateStreamTo(targets, stream, WirePayloadType.EnemyStateStream, reliable: false);

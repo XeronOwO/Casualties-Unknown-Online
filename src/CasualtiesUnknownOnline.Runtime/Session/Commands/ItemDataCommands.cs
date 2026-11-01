@@ -224,8 +224,7 @@ internal sealed class ItemDataCommands(
 			return ItemDataRenderer.List(Header(owner, held.Count), held, documents);
 		}
 
-		var builder = new StringBuilder();
-		builder.Append("Items recorded for ").Append(owner).Append(" (").Append(held.Count).Append("):");
+		var builder = new StringBuilder(Header(owner, held.Count));
 		foreach (var item in held)
 		{
 			var rendered = RenderItem(item, path, all);

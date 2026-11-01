@@ -72,3 +72,10 @@ So `MeetPlayer`''s `if (HoldingItem(handSlot) && GetItem(handSlot).Stats.HasTag(
 The other way in is the menu''s own interaction branch — `if (this.reputation < 30f) this.hostility = 100f;` after a haggle/hug — and that needs a reputation below 30, which the meet re-rolls (75–135 minus dirtyness/speech/disfigured penalties). That is the fixture row 9''s hostile half still lacks: a way to stand at reputation < 30 and interact.
 
 The replay half was already read (a swing reaches the peers). So row 9 is now split precisely: the swing replay is done, the hostile SWING needs the reputation fixture.
+### Row 8''s surface is the CUO player page, and that is where the fixture stops (2026-11-02, 17:10)
+
+Row 8 is not a native trader service: CUO's own `TraderRecruitCoordinator` implements it (the KrokMP-inspired co-op revive), and its only entry is the UI action `RecruitPlayerFromUi(targetSteamId)` — the button on the CUO player page beside a dead member. The trader itself offers nothing for it: the trade menu captured with a dead member in the session shows the stock columns, the radial and the give zone, and no revive option.
+
+So the fixture row 8 needs is a click on that CUO button, and the batch's control layer cannot reach it yet: `click -ControlId` takes an id from the UI's own offered controls, the window answers `windowVisible=False` / `controls=` when asked from the world view, and `window.open` was not accepted as an id. The next step is not a game question at all — it is one control id (or a `Page=Players` navigation plus the button id) added to the driver's known controls, and then the row is one click plus a reading of the revived state on the patient.
+
+The `reviveFromTrader` rule reads `True` and `permadeath` `False` on this session, so the feature is switched on; nothing about the run blocks the row.

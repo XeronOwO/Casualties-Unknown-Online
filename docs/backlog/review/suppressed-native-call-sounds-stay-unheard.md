@@ -410,3 +410,16 @@ The recorder is registered (Harmony reports a prefix owned by the acceptance ass
 - `/give stick` + teleport to open air + `item-drop-hand slot=0` (the player's own drop path, `Body.DropItem`), which answered `held=true dropped=true`.
 
 One copy of the assembly is loaded (a recursive look under the game's BepInEx tree returns exactly one file), so this is not two `Enabled` flags. The remaining explanation is the classic one for a registered patch that never fires: `Sound.Play` is a small method the runtime has already inlined or JIT-compiled into its callers before the plug-in loaded, so the patch sits in Harmony's table and no call reaches it. The next reading decides it — a probe that calls `Sound.Play` directly through reflection from inside the game (one call, expected to land in the buffer if the patch is live at all) — and if that also misses, the recorder has to move onto a method that is not inlined, or be installed before the game's first sound.
+### The recorder works, and it separates the two sides (2026-11-02, 15:22)
+
+The instrument is proven end to end in one session:
+
+- armed on both clients: `raw=582|` (host) and `raw=572|` (guest) — the prefixes see the game's calls, so this is not a dead patch;
+- a compiled probe call through the game's own `Sound.Play` lands in the buffer exactly as written: `raw=594|probe@31.4`.
+
+With that proven, the row's first honest reading on the deployed build: the host stands in open air, is given a stick, drops it from the hand (`item-drop-hand` → `dropped=true`) and the host records eight one-shots in the next four seconds — `9@41.3;10@41.3;6@41.4;6@41.7;3@46.0;5@46.0;9@46.2;7@46.4` — while the GUEST records nothing at all in the same window (`raw` unchanged from its arming value).
+
+Two things follow, and both are concrete:
+
+1. The clip names the game plays on this path are NUMERIC ids, not `drop`. So the row's fixture cannot assert on the literal name the ticket quotes from `Item.cs:238` (`Sound.Play("drop", …)`) — that call is one of the paths, and the impact that fired here went through a different entry.
+2. The guest's window is empty even though the host played eight sounds, which is the shape the ticket predicts (a member does not receive the host's native one-shots). What is still missing to call it judged is the matching pair — the SAME sound on both sides at the moment the listener should hear it — and the numeric ids have to be mapped to their source first.

@@ -134,7 +134,9 @@ internal sealed class WorldBuildingEntitySync(
 			entity.transform.rotation,
 			Color.red,
 			entity.transform);
-		_log.LogDebug("[BuildingHitFlash] replayed red hit flash at ({X:F1},{Y:F1}).",
+		// Information on the replay, Debug on everything else: this line is the only evidence that a client which did not swing
+		// actually replayed the attacker's red flash, and a melee hit is at most a few per second (the walk-in-the-way case).
+		_log.LogInformation("[BuildingHitFlash] replayed red hit flash at ({X:F1},{Y:F1}).",
 			entity.transform.position.x, entity.transform.position.y);
 	}
 

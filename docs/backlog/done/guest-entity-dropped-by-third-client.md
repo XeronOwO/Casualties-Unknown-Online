@@ -1,6 +1,6 @@
 # A third client drops another member's entity as "left" while the host still has it
 
-- Status: Review — the CAUSE is established and FIXED on 2026-11-01 (`SessionPeerMaintenance`: a member is removed only once `MemberMissingChecks = 3` consecutive lobby reads omit it, and a reading that names nobody is skipped), with four new tests, three updated ones, and a live reading on the deployed build (two "absent … not removing it yet" lines, then the removal when a client really was killed). What this ticket still holds is the remaining half: a member whose session row IS removed while its transport stays up has no path back except a fresh handshake.
+- Status: Done — both halves are read. The accidental-removal half was fixed on 2026-11-01 (a member is removed only after three consecutive lobby reads omit it, and a read naming nobody is skipped) with tests and a live reading; the deliberate-removal half is read on 2026-11-02: `/kick` ends the member's own session (guest log `session ended`, `InMenu (PreGen)`, traffic to 10 B/s) and it does not auto-rejoin, because the guest's handshake retry only runs while its role is Guest. What remains after a deliberate removal is a normal rejoin, which is the design.
 - Priority: High — it makes a third member invisible to another member's medical view and to any feature that gates on presence.
 - Related: `concurrent-medical-operations` (row 7 needs exactly this fixture), `remote-medical-stage-3-other-actions`.
 
@@ -70,3 +70,18 @@ The deployed build, three clients, then the alt killed on purpose (its own sandb
     Member 76561199526807662 removed: left the lobby.
 
 So the rule still removes a member who really left (a kill is exactly that), only later — and the two intermediate lines say why the earlier false removal cannot recur in one snapshot. A two-client session with all three present kept every row (`/players` answering all three `handshake=True inWorld=True`).
+## The remaining half read: a removal ends the member's session on purpose (2026-11-02, 18:15)
+
+The half this ticket still held was "a member whose session row IS removed while its transport stays up has no path back except a fresh handshake". Read on the deployed build by removing a member deliberately (`/kick 76561198863287957`):
+
+    host:   Host kicked member 76561198863287957: kicked via console.
+            [Example] player 76561198863287957 left.
+    guest:  [Example] session ended.
+            Scene state: InMenu (PreGen)
+            (its traffic drops to 10 B/s — it is out of the world, in the menu)
+
+So the removal is not a silent desync: the host tells the member, the member's own session ends and it lands in the menu, and it does NOT sneak back — the guest's periodic handshake retry only runs while its role is Guest, and after the end its role is None.
+
+For the ACCIDENTAL case this ticket was opened for, the presence fix already makes it unreachable through the lobby path (a member is removed only after three consecutive lobby reads omit it, and a read naming nobody is skipped), so the "transport up but row gone" state no longer arises from a glitch. What remains after a deliberate removal is the same as after any disconnect — join again — and that is the designed behaviour, not a missing path.
+
+Both halves are therefore read, and the ticket closes.

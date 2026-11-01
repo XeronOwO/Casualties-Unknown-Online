@@ -165,7 +165,7 @@ The wall is no longer the item: the host CAN equip another member with a name-sc
 
     [MedicalView] refused open for <guest>: not in-world.
 
-and the alt's own log explains it a few lines earlier: `Member <guest> left (PlayerLeave …)` for a guest that never left — the host kept treating that guest throughout. That refusal was a DEFECT, not a missing capability: a third client dropped another member's entity as gone while the host still simulated it, filed as `review/guest-entity-dropped-by-third-client.md`. **A fresh session does not show it** — see the row 7 reading below, which ran before any leave/join noise — so the defect is an ordering case after a member's leave/rejoin, not a join-time gap.
+and the alt's own log explains it a few lines earlier: `Member <guest> left (PlayerLeave …)` for a guest that never left — the host kept treating that guest throughout. That refusal was a DEFECT, not a missing capability: a third client dropped another member's entity as gone while the host still simulated it, filed as `done/guest-entity-dropped-by-third-client.md`. **A fresh session does not show it** — see the row 7 reading below, which ran before any leave/join noise — so the defect is an ordering case after a member's leave/rejoin, not a join-time gap.
 
 ## Row 7 read: two operators on one limb, no stuck panel, no duplicated progress (2026-11-01, 10:35)
 

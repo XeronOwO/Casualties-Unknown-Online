@@ -79,7 +79,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 ### Review
-- [Third client drops a member as left](review/guest-entity-dropped-by-third-client.md) — **High** — a member's view of another member dies on a spurious leave.
 
 
 
@@ -162,6 +161,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A member dropped by a third client](done/guest-entity-dropped-by-third-client.md) — **High** — closed; both halves read.
 - [Markerless runtime binds](done/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — closed; row 9 read on both clients.
 - [Item and body sound families](done/unhooked-item-and-body-sound-families.md) — **Low-Medium** — closed; row 2 became decision 271.
 - [The trader kept talking beside a corpse](done/trader-mutters-forever-near-a-corpse.md) — **Medium** — fixed; 329 in 5s -> 2 in 12s.

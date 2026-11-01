@@ -202,7 +202,19 @@ internal static class TraderPatches
 		private static bool Prefix(TraderScript __instance) =>
 			PatchBridge.Impl is not { } bridge || !bridge.IsSessionActive || bridge.IsHostMode;
 
-		private static void Postfix(TraderScript __instance) =>
-			PatchBridge.Impl?.OnTraderSwing(__instance);
+		/// <summary>
+		/// Harmony still runs a postfix when a prefix skipped the original, so the gate has to be repeated here: only the
+		/// client that actually performed the swing reports it. Without the repeat a guest suppressed the native call and
+		/// reported anyway — 494 reports in ten seconds from a copy swinging on its own timer.
+		/// </summary>
+		private static void Postfix(TraderScript __instance)
+		{
+			if (PatchBridge.Impl is not { } bridge || !bridge.IsSessionActive || !bridge.IsHostMode)
+			{
+				return;
+			}
+
+			bridge.OnTraderSwing(__instance);
+		}
 	}
 }

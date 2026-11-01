@@ -392,3 +392,12 @@ The next reading is the host's own `Sound.Play("drop", …)` call (a log line at
 A 20-unit fall (≈2 s of flight) sampled eight times from the drop call onwards answered no playing `drop` clip on EITHER client. That rules out "the sample started too late" as the explanation for the earlier miss and leaves the observer itself: `audio-recent` can only see a one-shot that happens to be mid-play when it is asked, and a landing that occurs between two round trips is invisible to it no matter how long the fall is.
 
 So the instrument that finishes this row is a RECORDER, not a sampler: a patch on the game's own sound entry (`Sound.Play`, the call the native impact path uses) that appends `(clip, frameTime, position)` to a ring buffer, plus a recipe that reads it. It belongs in `CasualtiesUnknownOnline.Acceptance` — the batch-only assembly — because it exists purely so a batch can see a one-shot after the fact. With it, "the host played `drop` at frame N" and "the guest played nothing within K frames of its clone landing" are both facts, and this row (and the other one-shot rows beside it) becomes judgeable instead of lucky.
+
+### The recorder is installed; the fixture never makes the sound (2026-11-02, 15:02)
+
+Two readings settle the instrument and move the question to the fixture:
+
+- `sound-patch-state` (new recipe) asks Harmony about the game's own `Sound.Play` overloads and answers `prefixes: 5`, the string overload carrying `CasualtiesUnknownOnline.GameRuntime…, CasualtiesUnknownOnline.Acceptance` — so the recorder really is on the method. The first version was not: `Harmony.PatchAll(typeof(SoundPlayRecorder))` never reaches a NESTED type, which is why "armed" recorded nothing; the two overloads are now patched explicitly.
+- With the recorder proven, `item-drop type=stick height=8` records NOTHING on either client — not even on the host, which is authoritative for that item. So `Item.OnCollisionEnter2D` (Item.cs:238-247) never ran its `Sound.Play("drop", …)`: the factory places the item without the fall this row needs, and the row's premise (a world item hitting the ground) is not what the fixture creates.
+
+The next step is therefore a fixture that actually drops from a hand at height (`Body.DropItem`, the path a player uses) or a created item whose rigidbody is left simulated above the ground — not another sampling window.

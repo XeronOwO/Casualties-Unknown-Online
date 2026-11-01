@@ -437,7 +437,21 @@ What changed, deployed and gated:
 Read on the running game, three refusals, three reasons:
 
     /give nobody{not-a-state}        -> "The state is not SNBT: at 13: expected ':' after the key 'not-a-state'"
-    /give @p[limit=1] notarealitem   -> 游戏里没有名为'notarealitem'的物品定义——指令要写游戏物品表里的定义。
-    /summon notarealprefab player    -> 无法实体化 prefab'notarealprefab'：它既不是本版本认识的物品定义，也没有同名的世界实体 prefab。
+    /give @p[limit=1] notarealitem   -> (translated) the game has no item definition named 'notarealitem' - the verb needs a definition from the game's own item table.
+    /summon notarealprefab player    -> (translated) cannot materialise prefab 'notarealprefab': it is neither an item definition this build knows nor a world-entity prefab of that name.
 
 So the row is PASS: the generic line does not exist, and what a player reads is the reason itself, in their own language where the catalogue owns the sentence.
+## The suggestion surface answers NOTHING on the running build (2026-11-02, 21:15)
+
+Rows 1-3 need the completion list; asking for it on the deployed artefact returns zero for every input, including inputs that must match:
+
+    console-suggest input=/gi,trail=none             -> count=0
+    console-suggest input=/give,mode=hint            -> value=""
+    console-suggest input=/exampleweight,trail=space -> count=0
+    console-registry (ICommandControl.Commands)      -> count=0
+
+Yet the same console is demonstrably alive, in the same session: `/help` printed its full list into the console buffer — `/give`, `/summon`, `/heal`, `/kill`, `/examplehost`, `/exampleecho`, `/exampleweight`, `/music`, `/craftchain` and the rest, about thirty lines — and `/exampleweight 1` answered `the declared dressing reports weight 1 from the next item-table rebuild`.
+
+`CommandConsoleService.Commands` is `[.. _commands.All.Where(_authority.MayRun)…]`, and the completion's command branch filters through the same `MayRun`. So a zero-length projection on a registry that `/help` enumerates means the AUTHORITY predicate refuses every command in this instance, and the player therefore gets neither a command list nor any suggestion — while typing a command in full still runs it.
+
+Two probes were added to pin that apart without guessing: `console-registry` (the projection's own count) and `console-authority` (asks the authority about one named command; its first version failed on reflection and needs the registry's `All` read through its real member). The next read is `ConsoleCommandAuthority.TryRefusal` against a command that `/help` just listed — one call, one answer, and then the fix.

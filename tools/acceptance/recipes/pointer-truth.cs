@@ -1,6 +1,6 @@
 // recipe: pointer-truth
 // args: none
-// returns: ok, mouseX, mouseY, worldX, worldY, remotes, error, detail
+// returns: ok, mouseX, mouseY, worldX, worldY, remotes, clones, error, detail
 //
 // The ground truth a drag-use hover needs: where the game's OWN `Input.mousePosition` reads (the virtual pointer is staged on it), the
 // world point `Camera.main.ScreenToWorldPoint` makes of it, and every remote player's streamed position with its screen point. One read,
@@ -34,7 +34,22 @@
 				+ ",\"screenX\":" + screen.x.ToString("0", inv) + ",\"screenY\":" + screen.y.ToString("0", inv) + "}");
 		}
 	}
+	// The DRAWN clones: the body a pointer must actually aim at. `RemotePlayerRenderer`'s own map is not reachable from
+	// here, so the clones are found the way they exist in the scene — a Body with a RemoteBodyDriver in its parents — and
+	// each one reports where it is DRAWN and where that lands on screen.
+	var clones = new System.Collections.Generic.List<string>();
+	var bodies = UnityEngine.Object.FindObjectsOfType(typeof(Body));
+	for (var b = 0; b < bodies.Length; b++) {
+		var cloneBody = bodies[b] as Body;
+		if (cloneBody == null) { continue; }
+		if (cloneBody.GetComponentInParent<CasualtiesUnknownOnline.GameAdapter.Character.RemoteBodyDriver>() == null) { continue; }
+
+		var clonePos = cloneBody.transform.position;
+		var cloneScreen = camera.WorldToScreenPoint(new UnityEngine.Vector3(clonePos.x, clonePos.y, 0f));
+		clones.Add("{\"name\":\"" + cloneBody.transform.name + "\",\"x\":" + clonePos.x.ToString("0.##", inv) + ",\"y\":" + clonePos.y.ToString("0.##", inv)
+			+ ",\"screenX\":" + cloneScreen.x.ToString("0", inv) + ",\"screenY\":" + cloneScreen.y.ToString("0", inv) + "}");
+	}
 	return "{\"ok\":true,\"mouseX\":" + mouse.x.ToString("0", inv) + ",\"mouseY\":" + mouse.y.ToString("0", inv)
 		+ ",\"worldX\":" + ((double)world.x).ToString("0.##", inv) + ",\"worldY\":" + ((double)world.y).ToString("0.##", inv)
-		+ ",\"remotes\":[" + string.Join(",", parts) + "]}";
+		+ ",\"remotes\":[" + string.Join(",", parts) + "],\"clones\":[" + string.Join(",", clones) + "]}";
 }))()

@@ -647,3 +647,14 @@ The ticket''s last note said a batch "can only draw the surface by pointing at i
 Both remotes read world **(0,0)**, so their "screen point" is simply the camera''s projection of the origin — a pointer moved there hovers nothing, and a drag released there can never name a teammate. That is the mechanical reason every earlier attempt at the auto-open answered `isOpen=false, focused=0` even with the guest 1.5 units away: the batch was aiming at the wrong place because the instrument feeding it had no position to give.
 
 So the next step is not a human hand: it is making `pointer-truth` carry the same streamed position the rest of the adapter uses for a remote body (the value `RemotePlayerRenderer` places the clone at). With that, the drag and its cue become drivable, and this ticket''s remaining two rows land the way every other row here has — by reading, not by asking someone to hold the mouse.
+## The aim exists now: `pointer-truth` reports the DRAWN clones (2026-11-02, 18:40)
+
+The instrument was extended to answer the question this ticket kept failing on — "where on screen is the teammate?" — and read on the deployed build:
+
+    remotes: 76561198863287957 at (0.01, 504.79), 76561199526807662 at (0.0, 505.62)
+    clones:  Body at (0.0,505.6) screen (610,618)
+             Body at (0.0,504.8) screen (610,605)
+
+Two things changed. The remote table now carries real positions (the earlier read answered (0,0) because the entities had not been given one yet at that moment), and the probe additionally lists the DRAWN clone bodies — a `Body` with a `RemoteBodyDriver` in its parents — with their world position and screen point. The second is what a pointer must aim at: the streamed position is a fact about the session, the clone's transform is where the game actually draws the teammate.
+
+With that, the drag is a fixture rather than a missing capability: press on the item's slot, move to the clone's screen point, release, and read `drag-cue`. What is left to find is the item slot's own screen position (the inventory surface draws it), which is the same kind of read this probe just made possible.

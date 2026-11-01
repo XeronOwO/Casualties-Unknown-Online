@@ -730,6 +730,14 @@ the mirrored y of limbs 11, 13 and 14) selects the CHEST, however many intermedi
 the pointer over a gone limb falls through to the torso image behind it, and the hover that moved the selection the first time no
 longer produces an enter on a leg.
 
-The way out is a fresh body per dismember (a reset run, or the other client as the patient), not another hover pattern. That is
-where this row stops: its local mechanism is fully read - gate, band, speed, completion - and only the peer's one-shot clip at the
-instant of the cut is unsampled, because sampling it needs a dismember to happen while the sampler runs.
+**Corrected the same day, by the user: a fresh body is NOT needed.** `/heal` RESTORES a dismembered limb - measured after this note:
+`limb-read` answered `dismembered=false, skin=100` for the limb that had just come off - so the same patient can be cut again. What
+does not come back is the wound view's SELECTION: after a heal the view's `limbLookingAt` is back on the torso and the staged
+pointer no longer moves it (every leg point answers the chest, on both clients, however the pointer is walked onto it). That is the
+state the row stops at: its local mechanism is fully read - gate, band, speed, completion - and the peer's one-shot clip needs one
+more dismember while a sampler runs.
+
+The sampler exists now: `audio-watch` (the eval declaration) records every clip it sees playing over N frames, and the two recipes
+`audio-watch-start` / `audio-watch-read` drive it, so a one-shot no longer has to be caught inside a polling interval. The first cut
+it watched ended with no `gore` in the hits - which is either a real gap in the peer's sound or a clip whose name does not carry
+"gore"; the next reading is the watcher's full hit list (unfiltered) around a dismember.

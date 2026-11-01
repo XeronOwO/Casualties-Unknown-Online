@@ -26,6 +26,9 @@ internal sealed class TraderSwingSync(
 	private readonly ISessionControl _session = session;
 	private readonly ILogger<TraderSwingSync> _log = log;
 
+	/// <summary>Whether the one Information-level replay line has been written this session.</summary>
+	private bool _replayReported;
+
 	internal void BindToSession() => _world.TraderSwingReceived += OnReceived;
 
 	internal void Unbind() => _world.TraderSwingReceived -= OnReceived;
@@ -78,7 +81,21 @@ internal sealed class TraderSwingSync(
 		}
 
 		TraderSwingReplay.Play(trader, msg);
-		_log.LogDebug("[TraderSwing] replayed swing at ({X:0.0},{Y:0.0}) from {Sender}.", msg.Position.X, msg.Position.Y, sender);
+
+		// The first replay of a session is Information on purpose: it is the line that proves a client which did not
+		// perform the swing actually replayed it. After that it is Debug, because a hostile trader swings about once a
+		// second and a session-long Information stream would bury everything else.
+		if (!_replayReported)
+		{
+			_replayReported = true;
+			_log.LogInformation(
+				"[TraderSwing] replayed swing at ({X:0.0},{Y:0.0}) from {Sender} (first replay of this session).",
+				msg.Position.X, msg.Position.Y, sender);
+		}
+		else
+		{
+			_log.LogDebug("[TraderSwing] replayed swing at ({X:0.0},{Y:0.0}) from {Sender}.", msg.Position.X, msg.Position.Y, sender);
+		}
 	}
 
 	private static TraderScript? FindTraderAt(NetVector2Msg position)

@@ -483,6 +483,14 @@ internal sealed class CommandConsoleOverlay
 			// buried the description behind the usage.
 			var buttonWidth = buttonStyle.CalcSize(new GUIContent(suggestion.Text)).x + buttonStyle.padding.horizontal;
 			var hintWidth = Mathf.Max(0f, rect.width - 4f - MarkerWidth - buttonWidth - 6f);
+			// A command the catalogue has no sentence for (the built-in craftchain, a mod's own verb) still explains itself: its usage IS
+			// the fact the player needs there, and a row with an empty right side teaches nothing.
+			var usageIsTheRow = string.IsNullOrWhiteSpace(hint) && !string.IsNullOrWhiteSpace(suggestion.Usage);
+			if (usageIsTheRow)
+			{
+				hint = suggestion.Usage;
+			}
+
 			if (!string.IsNullOrWhiteSpace(hint))
 			{
 				// The width is COMPUTED rather than left to the layout: a label that expands lets the scroll view size its content to the
@@ -492,7 +500,7 @@ internal sealed class CommandConsoleOverlay
 
 			GUILayout.EndHorizontal();
 
-			if (index == selected && !string.IsNullOrWhiteSpace(suggestion.Usage))
+			if (!usageIsTheRow && index == selected && !string.IsNullOrWhiteSpace(suggestion.Usage))
 			{
 				// The usage layer: syntax, the same words in every language, under the description and indented to it.
 				GUILayout.BeginHorizontal();

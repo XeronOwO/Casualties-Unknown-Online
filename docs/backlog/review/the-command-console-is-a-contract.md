@@ -632,7 +632,7 @@ is what re-introduced the scrollbar; and the rows stay anchored to the input fie
 328 in the frame), never to a glyph position, so a command long enough to scroll the field keeps the same left edge.
 
 **The selected row's layer is photographed** (the driver's `console-arrow` action moves the selection the way the arrows do). One
-crop of the deployed build shows the whole design at once: `▶ ban 仅主机：按 SteamID 或显示名封禁一名成员。` with the usage
+crop of the deployed build shows the whole design at once: `the marker, the ban row's description` with the usage
 `/ban <steamId|displayName>` on its own line beneath, indented to the description; `clear`/`data`/`deop` carry their description
 only; `craftchain` carries its usage only (no catalogue sentence); no horizontal scrollbar.
 

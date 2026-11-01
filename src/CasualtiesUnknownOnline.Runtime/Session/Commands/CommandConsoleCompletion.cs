@@ -88,9 +88,9 @@ internal sealed class CommandConsoleCompletion(
 			[
 				.. _commands.All
 					.Where(_authority.MayRun)
-					.SelectMany(command => command.Aliases.Prepend(command.Name).Select(word => (Word: word, command.Name, command.Usage)))
+					.SelectMany(command => command.Aliases.Prepend(command.Name).Select(word => (Word: word, command.Name, command.Description)))
 					.Where(candidate => candidate.Word.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
-					.Select(candidate => new CommandSuggestion(candidate.Word, CommandSuggestionHint.Command, Args: [candidate.Name]) { Usage = candidate.Usage })
+					.Select(candidate => new CommandSuggestion(candidate.Word, CommandSuggestionHint.Command, Args: [candidate.Name]) { Description = candidate.Description })
 					.OrderBy(suggestion => suggestion.Text, StringComparer.OrdinalIgnoreCase)
 			];
 		}

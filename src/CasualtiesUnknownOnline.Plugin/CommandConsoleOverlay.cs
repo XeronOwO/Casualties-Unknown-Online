@@ -478,17 +478,12 @@ internal sealed class CommandConsoleOverlay
 				_session.AcceptSuggestion(suggestion);
 			}
 
-			// ONE option per line (user direction 2026-11-02): the row says what the command is and how to call it, and it never grows
-			// a second line - a break inside an option reads as a different option. The usage rides in the row's own hint, clipped to
-			// the width the button leaves, so a long usage can neither widen the list (that once put a horizontal scrollbar under it)
-			// nor wrap (that once made one row taller than its neighbours).
+			// ONE option per line (user direction 2026-11-02), and the line carries the DESCRIPTION only: a usage template never fits beside
+			// a row - the more complex the command, the less of it a player could read - and the progressive explanation is the argument
+			// hints one level down, not the syntax (user direction 2026-11-02). The width is computed so a long sentence clips instead of
+			// widening the list (that once put a horizontal scrollbar under it) or wrapping (that once made one row taller than the rest).
 			var buttonWidth = buttonStyle.CalcSize(new GUIContent(suggestion.Text)).x + buttonStyle.padding.horizontal;
 			var hintWidth = Mathf.Max(0f, rect.width - 4f - MarkerWidth - buttonWidth - 6f);
-			if (!string.IsNullOrWhiteSpace(suggestion.Usage))
-			{
-				hint = string.IsNullOrWhiteSpace(hint) ? suggestion.Usage : hint + " · " + suggestion.Usage;
-			}
-
 			if (!string.IsNullOrWhiteSpace(hint))
 			{
 				GUILayout.Label(hint, OnlineUiTheme.RowHint(), GUILayout.Width(hintWidth));

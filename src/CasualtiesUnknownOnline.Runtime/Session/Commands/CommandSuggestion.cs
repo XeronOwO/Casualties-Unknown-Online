@@ -29,9 +29,13 @@ public sealed record CommandSuggestion(
 	public bool ResetCycle { get; init; }
 
 	/// <summary>
-	/// How the command is called, when this row offers a COMMAND: its own registered usage (`/give &lt;item&gt; [count]`). The console draws it in
-	/// the row''s hint, so a player reading a candidate never has to look for a separate usage line (user direction 2026-11-02: the usage line
-	/// sat where the list opens and was covered by it). Syntax, not prose: it is the same text in every language, so it is not a catalogue key.
+	/// The command's own one-line description and, when the author shipped one, its catalogue key. The console prefers a catalogue sentence
+	/// for the built-in verbs; for a mod's own verb these are what the row can show, and without them that row would be blank (user report
+	/// 2026-11-02). A usage line is deliberately NOT carried: it never fits beside a row (user direction 2026-11-02 - the argument-by-argument
+	/// hints are the progressive explanation, the syntax template is not).
 	/// </summary>
-	public string? Usage { get; init; }
+	public string? Description { get; init; }
+
+	/// <summary>The catalogue key for <see cref="Description"/>, when the command ships one in every language.</summary>
+	public string? DescriptionKey { get; init; }
 }

@@ -16,7 +16,7 @@ internal static class CommandSuggestionHintText
 	internal static string? Of(OnlineUiContext ctx, CommandSuggestion suggestion) => suggestion.Hint switch
 	{
 		CommandSuggestionHint.None => null,
-		CommandSuggestionHint.Command => Command(ctx, suggestion.Args[0] as string ?? string.Empty),
+		CommandSuggestionHint.Command => Command(ctx, suggestion),
 		CommandSuggestionHint.MemberName => ctx.T("console.suggest.member_name"),
 		CommandSuggestionHint.SteamId => ctx.T("console.suggest.steamid"),
 		CommandSuggestionHint.SteamIdHex => ctx.T("console.suggest.steamid_hex"),
@@ -94,9 +94,27 @@ internal static class CommandSuggestionHintText
 	}
 
 	/// <summary>
-	/// One command's one-line description in the reader's language, or null when the catalogue has no entry (a hint never shows a key).
+	/// One command's one-line description in the reader's language: the built-in catalogue sentence when there is one, else the author's own
+	/// sentence (a mod's verb), else null. A hint never shows a key, and a command row is never blank.
 	/// </summary>
-	private static string? Command(OnlineUiContext ctx, string command) => command switch
+	/// <remarks>
+	/// The author's sentence rather than the mod's own catalogue key, on purpose: a mod registers its key at BIND time, and every catalogue
+	/// access in this file must be a literal the localisation census can resolve (its unresolved-site budget is spent). A mod that wants its
+	/// own language ships it in the description text the row receives.
+	/// </remarks>
+	private static string? Command(OnlineUiContext ctx, CommandSuggestion suggestion)
+	{
+		var described = BuiltIn(ctx, suggestion.Args[0] as string ?? string.Empty);
+		if (described is not null)
+		{
+			return described;
+		}
+
+		return string.IsNullOrWhiteSpace(suggestion.Description) ? null : suggestion.Description;
+	}
+
+	/// <summary>The catalogue's sentence for a built-in verb, or null for a verb the console does not ship itself.</summary>
+	private static string? BuiltIn(OnlineUiContext ctx, string command) => command switch
 	{
 		"traderreport" => ctx.T("console.cmd.traderreport.desc"),
 		"op" => ctx.T("console.cmd.op.desc"),

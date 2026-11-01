@@ -69,6 +69,6 @@ internal static class CommandSuggestions
 	internal static IReadOnlyList<CommandSuggestion> CommandNames(IReadOnlyList<CommandDefinition> commands, string prefix) =>
 		[.. commands
 			.Where(c => c.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-			.Select(c => new CommandSuggestion(c.Name, CommandSuggestionHint.Command, Args: [c.Name]) { Usage = c.Usage })
+			.Select(c => new CommandSuggestion(c.Name, CommandSuggestionHint.Command, Args: [c.Name]) { Description = c.Description })
 			.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
 }

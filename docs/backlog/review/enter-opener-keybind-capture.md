@@ -3,7 +3,10 @@
 - Status: Review — the capture-state fact landed (2026-10-24, deployed `0.1.0+cb0bf017`): the guard now sees the
   game's key-bind capture through the marker the capture itself publishes, with no patch and no pause gate. The
   runtime row (Enter and Slash bind the key and do not open the console while a row waits) still needs a batch with
-  real key presses, which is named in the landed section. Found by the independent review of the Enter-guard fix;
+  real key presses; its state is observable in-process (`OnlineUiKeyboardFacts.IsAKeybindCaptureWaiting`: an active
+  `SettingsMenu` carrying a row whose text is exactly `...`), so what it waits on is ONE authorisation to drive real keys
+  for a single batch: open the settings menu, click a key-bind row so its capture starts, press Enter and Slash, and read
+  both whether the console opened and what the row bound. Found by the independent review of the Enter-guard fix;
   pre-existing.
 - Priority: Low-Medium
 - Category: Online UI / input / native keyboard ownership

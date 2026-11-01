@@ -460,3 +460,13 @@ So the member''s impact sound reaches the other client, played repeatedly becaus
 The difference that produced the earlier silence is the HEIGHT: dropped from ~15-22 units in open air, the same call produced no `Sound.Play` on either client. Combined with the world-item reads (the two ground drops are present at the host as `stick@-1.3,495` and `stick@-1.8,495`), the shape is: a drop from height never lands anywhere, while a drop at ground level lands, bounces and is heard on both sides.
 
 That is a different ticket''s subject (a drop from height leaving the world), and for THIS ticket the row''s claim is refuted with a reading.
+### Remote limb treatment is heard on BOTH sides (2026-11-02, 16:05)
+
+The row this ticket calls "Remote limb treatment" is the one the operator performs on another member''s limb. Read with the recorders armed on both clients, after the guest''s limb 0 was put into a real wounded state (`skinHealth=-105.6`, `bleedAmount=66.1`, `pain=225.9`):
+
+- `remote-wound-special mode=open` on the host: `opened=true`, `viewOpen=true`, `displayBodyName=MedicalDisplay_110000135D30695`, `hasSnapshot=true`, `hasHealth=true`;
+- `remote-wound-special mode=special`: `started=true` — the treatment ran;
+- over the next three seconds the HOST recorded `heartthump…` (its own panel) plus `drip24`, `drip22`, `drip2`, `drip13`, `drop@500.7` and its block sound `1@500.7`;
+- and the GUEST — the patient — recorded its OWN `drip19`, `drip15`, `drip13`, `drip8`, `drop@497.2` with block sound `2@497.2`, `drip18`, `drip17`, `drip1`, `drip2`, `drip7`, `drip24`.
+
+So the treatment''s sounds reach the patient''s client: the patient plays the drip/bleed family and a `drop` of the same shape the operator''s side plays, at its own timeline positions. The row''s claim — that the native call sounds are suppressed and nobody hears them — does not hold for remote limb treatment on this build.

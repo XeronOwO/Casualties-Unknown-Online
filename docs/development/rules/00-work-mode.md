@@ -108,6 +108,11 @@ to need another step reads that step when it gets there, and one that skips a st
 
 Measured 2026-11-02: a round read step 0 and then implemented, verified and gated without opening steps 2, 4, 6, 7, 8 or 11 -
 the violation is walking a step unread, not failing to walk the ones the round did not need.
+
+**How a step is entered, mechanically.** `tools/step.ps1 -Enter <n>` prints that step's two files in full and records them with
+their SHA-256 for the round; a local `pre-commit` hook runs `tools/check-step-read.ps1 -WorkingTree` and REFUSES a commit whose
+change touches a step with no record. The read is therefore the first act of the step, and skipping it no longer depends on
+remembering: the commit does not exist until the read has happened.
 ## One big thing, run to its end
 
 The unit of work is the thing the user asked for, not the smallest step that can be reported. A work item runs until it is

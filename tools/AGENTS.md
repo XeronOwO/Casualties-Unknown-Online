@@ -6,6 +6,9 @@
   outside the documented exemptions (`docs/zh/`, `zh.json`, the pinyin dictionary, fixtures that must contain non-English text).
 - `check-delivery.ps1` — the delivery checklist, run before a commit: validates every required box and its evidence, archives the
   cycle's record under `docs/evidence/checklists/`, resets the boxes for the next cycle.
+- `step.ps1` — how a step is ENTERED: `tools/step.ps1 -Enter <n>` prints that step's two rule files in full and records them for
+  the round. It exists because the read is the first act of a step, and a rule that only lived in prose lost to the work every
+  time (the gate below is the backstop).
 - `check-step-read.ps1` — the step-read gate, run before a commit: records which step rule files the round read
   (`-Record '2,7,11,13'`, one SHA-256 per file so a stale record is detectable) and refuses while a step the change TOUCHES has no
   record. A `src/` change touches step 7, a `tests/` change 7 and 8, `docs/design/` step 2, `tools/` step 13, `docs/backlog/`

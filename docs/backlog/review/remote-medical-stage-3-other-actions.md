@@ -168,3 +168,12 @@ The matrix's remaining directions were read on one three-client session, each th
 With the host-to-member column read earlier (bandage, splint, tourniquet, icepack, suture, clotting mush), the matrix now has all three directions proven for at least one treatment each, and two of them for a limb tool applied by a NON-host operator — which is the direction the star topology could most plausibly have broken.
 
 Still open in this ticket: row 4 (an observer's view of the same treatment reading identically — the patient and the operator already agree, the third client's view has not been compared) and the actions whose fixtures the batch cannot produce (a syringe holding a liquid, the amputation tools, a defibrillator's stopped heart).
+
+## Row 4 read: the observer's copy agrees with the patient's own limb (2026-11-01, 17:00)
+
+The third client's view was compared with the patient's own state on the treatment the alt had just applied to the guest's limb 5 — the same reading, from each side's own source:
+
+    patient  (guest, source=local)   comps=SplintLimb  splinted=true  skin=68.32
+    observer (alt,   source=display) comps=SplintLimb  splinted=true  skin=68.32
+
+So the observer's display body carries the same limb fact and the same numbers as the patient's authoritative limb — the row's "every peer agrees on the terminal state" half, read on the client that neither performed nor received the treatment. The operator side of the same treatment is in the row 1/3 table above.

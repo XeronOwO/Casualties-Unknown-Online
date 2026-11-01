@@ -18,6 +18,13 @@ enters the repository or its history; those live in the local rule files.
 Commit before deploying. Never deploy an uncommitted tree or one whose gates are red. A commit is signed; history is
 never rewritten to hide a mistake — a correction is its own commit with its reason.
 
+## Stage by path, never the whole tree
+
+`git add -A` is how a commit becomes a lie: it sweeps an unfinished change into a commit whose message describes something
+else. Stage the files the reviewed unit actually touched, by path, and read `git status` before the commit. Measured
+2026-11-02: a rules commit took three unfinished product files with it because the staging command was `add -A`, and its
+message said nothing about them. History is not rewritten to hide that; the correction is its own commit and says so.
+
 ## One commit per reviewed unit
 
 Implementation plus its affected tests, frozen, reviewed, fixed once, then one commit. Review never gets batched into a

@@ -532,3 +532,12 @@ So the keyed answer arrives and renders on the member that asked, and the text-o
 The deprecation window is real: the old form runs next to the new definitions in the same session. Row 7 PASS.
 
 **Row 12 — a technical refusal reads in the reader's language, judged from a frame.** The host's console overlay was captured after two technical refusals (`/give … notarealitem`, `/summon notarealprefab player`): the frame shows both refusal lines in the overlay, in Chinese, above the command list with its own descriptions. Row 12 PASS: the reason is translated, not an English sentence wrapped in Chinese, and it is on screen where the player typed the verb.
+## The suggestion list's left indent: the game's skin was laying out our list (2026-11-02, 23:30)
+
+The user reported it from a screenshot: the suggestion rows sat about a fifth of the panel's width to the right of the prompt below them, leaving a wide blank strip on the list's left.
+
+Cause: the list drew inside `GUILayout.BeginScrollView(_suggestionScroll, …)` with no style argument, so IMGUI used the GAME's `GUI.skin.scrollView` — and that style carries the game UI's padding. Every row was laid out inside that padding, while the history lines and the `>` prompt are drawn with our own rects and sat flush left.
+
+Fix: `OnlineUiTheme.ScrollBackground()` is a zero-padding, zero-margin, borderless copy of the scroll view style with no background, and the list begins its scroll view through the explicit-style overload with the game's own scrollbars. The frame after the deploy shows the rows (`ban`, `clear`, `craftchain`, `data`, `deop`) starting on the same left edge as the history text and the prompt.
+
+This is the family's rule as well: any IMGUI control we draw inherits the GAME's skin unless we pass a style, so the one list that forgot it was the one that looked wrong.

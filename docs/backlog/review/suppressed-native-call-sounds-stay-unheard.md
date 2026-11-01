@@ -470,3 +470,10 @@ The row this ticket calls "Remote limb treatment" is the one the operator perfor
 - and the GUEST — the patient — recorded its OWN `drip19`, `drip15`, `drip13`, `drip8`, `drop@497.2` with block sound `2@497.2`, `drip18`, `drip17`, `drip1`, `drip2`, `drip7`, `drip24`.
 
 So the treatment''s sounds reach the patient''s client: the patient plays the drip/bleed family and a `drop` of the same shape the operator''s side plays, at its own timeline positions. The row''s claim — that the native call sounds are suppressed and nobody hears them — does not hold for remote limb treatment on this build.
+### What the remote seam actually dispatches, and the trap in my own fixture (2026-11-02, 16:12)
+
+`TryStartRemoteWoundSpecial` does not start a bandage: it dispatches on the DISPLAY limb''s own condition — a `TourniquetScript` becomes a tourniquet removal, `hasShrapnel` a shrapnel special, a `SplintLimb` a splint removal, `dislocated` a dislocation use — and returns false for a plain bleeding wound. So `started=true` on a limb whose fields read `splinted=false, dislocated=false, shrapnel=0` means the limb carried one of those COMPONENTS (a tourniquet or a splint script) and the seam dispatched its removal, not a bandage.
+
+That is also why `minigame-live` answered `kind=none` on both clients, and why the patient''s `bleedAmount` stayed at 63.1: a removal is not a treatment and does not open the bandage minigame. My earlier "started=true but nothing happened, a false success" reading was wrong for this reason and is corrected here.
+
+To judge the bandage row the fixture must first REMOVE whatever the limb carries (or use a limb that carries nothing), then let the operator hold the bandage and go through `PlayerCamera.TryPerformSpecialUIAction` — the native path — and only then read the `bandage` clip at the wrap''s completion.

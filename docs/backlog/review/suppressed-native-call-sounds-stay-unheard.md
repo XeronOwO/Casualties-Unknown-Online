@@ -761,3 +761,13 @@ listener at the patient's feet before the cut.
 snapshot with no interpolation looks like. So the "+/-0.01 bouncing" the user saw is not the underlying value oscillating - the
 next reading has to be the NUMBER THE PANEL PRINTS, because a display that rounds a value sitting near a boundary flickers between
 two printed numbers while the value itself moves monotonically.
+### The hover's real cause: nothing is hittable on this client (2026-11-02, 10:15)
+
+The "selection will not move" reading had a cause one layer below it: `ui-hits` at the limb point answers an EMPTY list on the alt,
+with `open-own-wound` answering `open=true` — the EventSystem finds nothing under the pointer there, so `WoundViewLimb.OnPointerEnter`
+never fires and `limbLookingAt` keeps its value. On the guest, with its view open, the same call lists the view's images
+(`Torso / Head / ArmR / …`), which is why the hover moved that client's selection.
+
+So the fixture must not assume two clients are alike: a hover row needs `ui-hits` to list the view's own images on THAT client
+first, and a client where it answers nothing is recorded as such (a named per-client state), not retried with more hover patterns.
+The two convenience restarts spent earlier were chasing this, and the rule that forbids them is now in step 13.

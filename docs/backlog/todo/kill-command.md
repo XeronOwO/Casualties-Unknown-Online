@@ -78,3 +78,11 @@ may name any player, and the ownership rule is what keeps it honest.
 | 4 | `/kill <unknown name>` | refused with the selector's no-match answer, nothing killed |
 | 5 | without the cheat permission | refused before anything is looked up |
 | 6 | a dead body killed again | answered, no second death presentation, no error |
+
+## Read on the deployed build (2026-11-02, 12:25)
+
+- **Row 1 — self.** `/kill` on the host answered `已杀死 <id>：大脑健康归零。` and its body read `alive=False` immediately after. A peer's body read `alive=True`, so only the named body died.
+- **Row 2 — a member from the host.** `/kill @a` answered `已把杀死指令发给 <guest>：由他/她自己的客户端执行并回传身体状态。`; the guest's own body read `alive=False` while the host, revived with `/heal @s`, read `alive=True`. The operation therefore travels the request/instruction path and the target applies it.
+- **Selector forms.** `@a` and `@s` resolve; a bare SteamID and a partial display name answered `no players match` — a selector gap worth a row of its own rather than a silent behaviour (the roster names are the strings `/players` prints, and the id form was assumed, not read, when the command was written).
+
+Rows 3-6 stay open. The first defect this run found was the member answer reading like a reset; it was fixed in the same cycle (`kill.answer.sent`).

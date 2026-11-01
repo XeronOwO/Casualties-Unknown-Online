@@ -663,3 +663,15 @@ With that, the drag is a fixture rather than a missing capability: press on the 
 Attempting the drag itself: with a bandage given (`/give bandage`, "placed in slot 0"), the inventory wheel is open and captured — `radial.png` shows the two hand slots (main/off), the three back zones (upper/lower/central) and the item grid in the middle, with the tooltip of whatever the pointer is over. So the surface a drag starts on IS reachable through the staged pointer; what the batch still has to find is the exact screen point of the bandage's own slot inside that wheel, which the probe can now be told: the answer above already reports the wheel's own drawn geometry through the clone positions, and the slot is a fixed offset from the wheel's centre, which the frame gives.
 
 That is one more step of the same kind, not a new obstacle. The rows stay open, and the reason is now purely "which pixel holds the item", not "the batch cannot reach the surface".
+## The cue is readable at every stage, and it never leaves `showing=false` (2026-11-02, 19:05)
+
+`drag-cue` answers the cue''s own live state, which makes the sequence auditable step by step instead of inferred from a frame:
+
+    wheel closed, pointer on the held item:      showing=false target=0 text="use on 0"
+                                                 centreDistance=193.6 centreRadius=135 backpackOpen=false
+    wheel open, pointer inside the centre grid:   showing=false target=0 (same reading)
+    pointer moved onto the teammate''s clone at (642,618): showing=false target=0 (same reading)
+
+So the cue machinery runs (it carries the wheel''s centre radius, the leniency and a text template) and never picks a target from any of the three positions a batch can stage. Two facts fall out and both are worth keeping: the staged pointer''s world position (`mouseWorldX=0.125, mouseWorldY=505.6`) is correct — it sits on the local body — and the cue still answers no target, which means the hover test is not "pointer near the teammate" at all. The template reading `use on 0` is the unsubstituted form, another sign the cue never entered its focus branch.
+
+The next step is therefore a code read of the cue''s own hover test (`CrossPlayerDragUse`''s target resolution) rather than another pointer position: what does it actually ask the game for, and what does the game return while a staged pointer is over a clone.

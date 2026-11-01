@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -28,6 +29,19 @@ internal sealed class SpeechSync(IWorldControl world, ISessionControl session, I
 
 	internal void Unbind() => _world.SpeechReceived -= OnSpeechReceived;
 
+	/// <summary>
+	/// How long an identical trader bubble is suppressed after it was broadcast. A trader's line is
+	/// host-broadcast because the host's trader is authoritative, and the game can re-run the same speech
+	/// from state a descent, a menu or a hostility step leaves behind: measured 2026-11-02, one session
+	/// logged 22,288 trader-bubble broadcasts of the same text at the same position, and the receiving
+	/// member dropped every one of them. The wire must not carry a stuck game state.
+	/// </summary>
+	private const float TraderRepeatWindowSeconds = 2f;
+
+	private string _lastTraderText = "";
+	private Vector3 _lastTraderPosition;
+	private float _lastTraderAt = float.NegativeInfinity;
+
 	/// <summary>The patch-bridge entry: a bubble was spoken (the game method ran
 	/// in full — the text is final). A trader's bubble is host-broadcast (the
 	/// guests' traders are suppressed — this never fires there); a player's
@@ -49,6 +63,21 @@ internal sealed class SpeechSync(IWorldControl world, ISessionControl session, I
 			}
 
 			var pos = talker.trader.transform.position;
+			// The same line from the same trader inside the window is the game re-running a speech it
+			// already made (see TraderRepeatWindowSeconds); broadcasting it again only makes the receiving
+			// member drop it again.
+			var sameLine = string.Equals(text, _lastTraderText, StringComparison.Ordinal)
+				&& (pos - _lastTraderPosition).sqrMagnitude < 0.25f
+				&& Time.realtimeSinceStartup - _lastTraderAt < TraderRepeatWindowSeconds;
+			if (sameLine)
+			{
+				_log.LogDebug("[Speech] the trader repeated the same line at ({X:0.0},{Y:0.0}) — not broadcast again.", pos.x, pos.y);
+				return;
+			}
+
+			_lastTraderText = text;
+			_lastTraderPosition = pos;
+			_lastTraderAt = Time.realtimeSinceStartup;
 			_world.BroadcastSpeech(0, new SpeechMsg { SpeakerSteamId = 0, TraderPosition = new NetVector2Msg(pos.x, pos.y), Text = text });
 			_log.LogInformation("[Speech] host trader bubble at ({X:0.0},{Y:0.0}).", pos.x, pos.y);
 			return;

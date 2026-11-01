@@ -37,3 +37,8 @@ doc, or adding a tool is not progress on its own.
 At the start of each step, read that step's two files — `<step>.md` here and `<step>.local.md` beside it — in full.
 Not a skim, not from memory: the files, every round. This is the one mechanism that works; skipping it is how a rule
 gets broken by someone who knows it.
+## One big thing, run to its end
+
+The unit of work is the thing the user asked for, not the smallest step that can be reported. A work item runs until it is
+judged, committed, deployed and verified — however many tool calls that takes. Re-reading a rule file costs seconds;
+stopping halfway costs the next round re-learning everything and is how the same defect gets discovered twice.

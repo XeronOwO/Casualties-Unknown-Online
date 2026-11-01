@@ -79,3 +79,14 @@ Row 8 is not a native trader service: CUO's own `TraderRecruitCoordinator` imple
 So the fixture row 8 needs is a click on that CUO button, and the batch's control layer cannot reach it yet: `click -ControlId` takes an id from the UI's own offered controls, the window answers `windowVisible=False` / `controls=` when asked from the world view, and `window.open` was not accepted as an id. The next step is not a game question at all — it is one control id (or a `Page=Players` navigation plus the button id) added to the driver's known controls, and then the row is one click plus a reading of the revived state on the patient.
 
 The `reviveFromTrader` rule reads `True` and `permadeath` `False` on this session, so the feature is switched on; nothing about the run blocks the row.
+### Row 8 read: the recruit revives in place and grants three stock items (2026-11-02, 17:15)
+
+The surface was found last time (the CUO player page's `member.recruit.<steamId>` control, offered only while the dead body is in the host's line of sight). This pass drove it end to end:
+
+    guest, before:  dead (alive=false), 11 body items
+    host clicks member.recruit.110000135D30695  → ok=true
+    guest, after:   alive=true, brainHealth=75.017, 14 body items
+
+So a living player standing at a trader with hostility 0 revived the dead teammate IN PLACE (the body is where it fell) and the teammate received **three** trader-stock items (11 -> 14, inside the row's 1-3? no: the row says 1-3, and three is inside it). The trader gates the service (`PromptResponse`'s own conditions and the coordinator's `CanRecruit`), and the earlier refusal that looked like a failure was the gate doing its job: a trader already at hostility 50 (the gun in hand) refuses.
+
+Row 8 is PASS on this reading. What is not re-read here is the "saved snapshot refresh" half — that needs a save/load cycle after a recruit, and no save fixture exists in the toolbox.

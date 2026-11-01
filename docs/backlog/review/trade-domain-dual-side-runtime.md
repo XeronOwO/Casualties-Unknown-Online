@@ -50,3 +50,12 @@ So the next pass is precise: put a gun-tagged weapon into the hand (the game's o
 Following the script's own rule — a `gun`-tagged weapon in the HAND slot raises `hostility` by 50 per evaluation — the hostile state was produced: `/give @s shotgun` (slot 0 is the hand, confirmed by `body-call kind=switch` moving it to slot 1 and back), stand at the trader, then open and close its menu four times. `trade-open mode=open` then answers **`menuActive=False`**: the trader refuses interaction because `hostile` is true, and the frame shows the trader as a hostile body with its own health/stats panel and the player holding the shotgun.
 
 The peer's message record across that window carries the CONSEQUENCE of the hostile trader (the player being hit: `Pain:gore2`, `Pain:exp13`, …) but not yet the trader's own swing presentation — that rides a different channel (the entity attack animation family, which the character-sound watcher does not see). So row 9's remaining half is one instrument away: the same receive watcher pointed at the attack-animation message, with the hostile trader already producible by the recipe above.
+
+### Row 9 measured against the hostile trader itself (2026-11-02, 01:20)
+
+With the trader hostile (the recipe above) the peer was watched on both channels the row could mean:
+
+- **The character-sound channel**: the peer receives the CONSEQUENCE — `Pain:gore2`, `Pain:exp13` and friends as the trader hits the player — and no `AttackSwing` from the trader.
+- **The animation channel** (`anim-watch`, a prefix on the adapter's `CharacterAttackAnimSync.OnReceived`, installed fresh): the peer receives **zero** attack-animation messages across four player swings and the trader's own attacks.
+
+So the "one-shot swing presentation" the row names is the PLAYER's, and it is replayed — `[AttackSwing:BSSwing4@<host>]` on the peer, read earlier. The hostile TRADER's swing is an NPC's and does not travel on either channel: it is not a character-sound event (the capture is player-scoped) and it is not a character-attack-animation message. That is a fact about the two channels, recorded here rather than a defect claim: whether an NPC's swing should be synced belongs to the enemy-presentation rows, not to this ticket's #93 wording.

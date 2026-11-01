@@ -480,3 +480,24 @@ So the HotRepl host cannot build a compiled schema for one of the types the reci
 `console-registry` — the same kind of probe, resolving the CONCRETE `CommandConsoleService` — runs fine and answers `commands=25`, which is the projection the UI and the completion share. So the console's command list is NOT empty, and the earlier "authority refuses everything" theory is dead twice over.
 
 The next step is instrument work with a named shape: read the completion through a type surface the eval host can compile — the console's own `Suggest` reached through the concrete `CommandConsoleService` (the same resolution `console-registry` proved), with no interface casts in the recipe.
+## Rows 1 and 3 read at last, and the earlier zeros explained (2026-11-02, 22:00)
+
+The completion works. The instrument was wrong three ways at once, and the new probe `console-suggest-concrete` removes all three:
+
+1. it reaches `Suggest` through the CONCRETE `CommandConsoleService` (the interface cast made the eval host fail building a schema);
+2. it BUILDS the leading `/` inside the recipe, because a `-RecipeArg` value that starts with `/` never reaches the client (`received` proved it: `input=/gi` arrived as an empty string);
+3. it can append the trailing space the argument completion needs, which the driver also trims.
+
+Read on the deployed build, the console's own answer:
+
+    /gi             -> 1 suggestion:  give
+    /give           -> 1 suggestion:  give
+    /exampleweight  -> 1 suggestion:  exampleweight
+    /exampleweight<space> -> 2 suggestions, first "0.5"   (the mod''s own DelegateCompleter)
+    /give<space>          -> 5 suggestions, first "@a"    (the built-in selector completer)
+
+So row 1's machine half PASSES: a mod's own `OneOf`/delegate completer offers exactly its words (`0.5`, `1`) when the argument position is reached. Row 3's machine half PASSES too: the built-in `/give` still offers its five selector suggestions, first `@a`.
+
+What is NOT captured is the frame half of both rows: the console overlay reads typed TEXT through `Input.inputString`, and the acceptance channel stages `GetKey*` and the pointer only — so no batch can put `/exampleweight ` into the input field to photograph the list under it. That is the named gap for the visual half, not a product gap; the words above are the console's own.
+
+The previous claim in this page — that the authority refused every command — is dead three times over: the registry holds 25 commands, the projection through the concrete type lists them, and the completion answers.

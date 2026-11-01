@@ -1,0 +1,8 @@
+// recipe: console-suggest-concrete
+// args: input=s slash=n space=n
+// returns: ok, received, count, first, error, detail
+//
+// Reaches the console completion through the CONCRETE `CommandConsoleService` - the same resolution `console-registry` proves - with
+// no interface casts, because the eval host fails to build a compiled schema for `ICommandCompletionSource` in this build (the client
+// log shows SchemaCache.BuildCompiledSchema). What the player sees is what this answers.
+((System.Func<string>)(() => { var input = {{s:input}}; if ((int){{n:slash}} != 0) { input = "/" + input; } if ((int){{n:space}} != 0) { input = input + " "; } var services = CasualtiesUnknownOnline.Runtime.CuoBootstrap.Services; if (services == null) { return "{\"ok\":false,\"error\":\"no-services\"}"; } var console = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService)); if (console == null) { return "{\"ok\":false,\"error\":\"no-console-service\"}"; } var suggest = console.GetType().GetMethod("Suggest", new System.Type[] { typeof(string) }); if (suggest == null) { return "{\"ok\":false,\"error\":\"no-suggest\"}"; } var suggestions = suggest.Invoke(console, new object[] { input }) as System.Collections.IEnumerable; var count = 0; var first = ""; if (suggestions != null) { foreach (var item in suggestions) { if (count == 0) { var text = item.GetType().GetProperty("Text"); first = text == null ? "" : text.GetValue(item) as string; } count++; } } return "{\"ok\":true,\"received\":\"" + input.Replace("\"", "'") + "\",\"count\":" + count + ",\"first\":\"" + (first ?? "").Replace("\"", "'") + "\"}"; }))()

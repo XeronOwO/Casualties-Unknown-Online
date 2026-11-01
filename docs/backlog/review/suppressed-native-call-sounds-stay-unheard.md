@@ -511,3 +511,10 @@ A syringe used on the operator''s own head through the game''s own entry (`limb-
     guest: (nothing — raw counter moved, zero staged entries)
 
 So the injection produces no clip on a peer, which is the row''s claim, and what the acting side does play is its own body''s cues rather than anything a peer would need. The `SyringeMinigame` needs no file, so the earlier "needs a syringe holding a liquid" note only applies to the families that read a liquid; a plain syringe is enough for this row.
+## Why the machete "never appeared in a body slot" — it went into a container (2026-11-02, 21:05)
+
+Row 4b''s blocker is explained. `/give machete` on a body that already carries a trashbag does not put the tool in a body slot: `item-census mode=body` lists the machete among the body''s carried items, while every body slot answers empty to `HoldingItem`, and dropping the trashbags (three `item-provide mode=drop type=trashbag`) makes the machete disappear from the carried list with them. So the tool had been placed INSIDE a container, which is why the earlier batch could never see it in a slot and why `limb-use` answered `not-held`.
+
+Two probe fixes came out of it, both in `tools/acceptance/recipes/limb-use.cs`: the slot search now walks every slot the body owns instead of the six backpack indexes, and the `not-held` answer names what each slot holds so the next attempt is diagnosable in one call.
+
+The row itself still needs the tool in the HAND on an empty-slot body; the honest next fixture is give-then-select on a body with no container in its slots (the guest is the better target — its slots are nearly empty).

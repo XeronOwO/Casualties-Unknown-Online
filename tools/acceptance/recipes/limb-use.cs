@@ -27,7 +27,9 @@
 	// backpack slot (measured 2026-11-01: a given machete answered "placed in slot 0" and the six-slot search could not find it).
 	var handSlot = body.handSlot;
 	if (body.HoldingItem(handSlot) && body.GetItem(handSlot) != null && body.GetItem(handSlot).id == type) { item = body.GetItem(handSlot); slot = handSlot; }
-	for (var i = 0; i < 6 && item == null; i++) {
+	// Every slot the body owns, not just the six backpack indexes: a given tool can land past them (measured 2026-11-02: a machete
+	// provided through /give sat in a slot the six-slot search never read, so the row could not be driven).
+	for (var i = 0; i < body.slots.Length && item == null; i++) {
 		if (!body.HoldingItem(i)) { continue; }
 		var candidate = body.GetItem(i);
 		if (candidate != null && candidate.id == type) { item = candidate; slot = i; break; }

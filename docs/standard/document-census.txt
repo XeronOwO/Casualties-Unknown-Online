@@ -1284,4 +1284,4 @@ docs/backlog/review/the-command-console-is-a-contract.md | keep | index | docs/b
 docs/backlog/done/completion-list-keys-and-ids-disagree.md | keep | index | docs/backlog/README.md
 docs/backlog/done/no-compatibility-branches-before-the-first-release.md | keep | index | docs/backlog/README.md
 docs/backlog/review/guest-entity-dropped-by-third-client.md | keep | index | docs/backlog/README.md
-docs/backlog/review/bark-vocalization-reaches-no-peer.md | keep | index | docs/backlog/README.md
+docs/backlog/done/bark-vocalization-reaches-no-peer.md | keep | index | docs/backlog/README.md

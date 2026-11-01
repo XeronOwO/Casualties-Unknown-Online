@@ -1,6 +1,6 @@
 # The bark vocalization reaches no peer
 
-- Status: Review — found 2026-11-01 on the deployed build: the acting client plays its bark clip and no other client ever does. The ticket's own family (`sync-player-pain-vocalizations-and-bark`) is marked code-complete, so this is either a hole in its capture or in its relay; the three candidate points are named below.
+- Status: Done — found, explained, fixed and verified the same day on the deployed build (`0.1.0+60ea1c73`). The cause was the RELAY's clip resolution: the wire carries a clip NAME and the receiver loaded `Resources.Load<AudioClip>("Sounds/" + name)`, which is right for the clips the game plays through its string overload and wrong for the bark and pain vocalizations — those are `AudioClip` picks from the owner body's own `PantSound` arrays, and `Sounds/pain1` does not exist in this build. `CharacterSoundClipResolution` now resolves the way the acting side did (resource path first, then the owner's PantSound arrays by name), and the reading after the deploy is `plays 0 -> 1, names=[pain1]` on a peer that had never carried that clip.
 - Priority: High — the feature the family exists for is inaudible to every other player.
 - Related: `sync-player-pain-vocalizations-and-bark` (the family this belongs to), `unhooked-item-and-body-sound-families` (the listener-side instrument used here).
 
@@ -28,3 +28,7 @@ The host-side send path at the moment of the bark, then the peer's receive path 
 Read before touching this: [`docs/design/model/authority-and-judgement.md`](../../design/model/authority-and-judgement.md) (who judges, and what a one-shot presentation is) and
 [`docs/design/mechanics/README.md`](../../design/mechanics/README.md) (the mechanic taxonomy this family sits in). The rule the defect breaks: a one-shot presentation the acting client
 runs is reported through the character-sound family and replayed by every other member — a member left out of it is not a cosmetic gap.
+
+## Verification after the fix (2026-11-01, 18:55)
+
+Relaunched on the deployed build and repeated the same reading: the peer's counting watcher started at `plays=0` with `match=pain1`, `body-call kind=bark` answered `applied=true`, and five seconds later the peer answered **`plays=1, names=[pain1]`** — the clip it had never carried in the session before the fix. The instrument and the sequence are unchanged from the reading that found the defect, which is what makes the two comparable.

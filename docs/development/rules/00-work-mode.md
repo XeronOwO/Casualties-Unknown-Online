@@ -66,6 +66,25 @@ gets broken by someone who knows it.
 The unit of work is the thing the user asked for, not the smallest step that can be reported. A work item runs until it is
 judged, committed, deployed and verified — however many tool calls that takes. Re-reading a rule file costs seconds;
 stopping halfway costs the next round re-learning everything and is how the same defect gets discovered twice.
+## A correction is a rule change, and it lands in the whole family
+
+When the user points at a defect — in the work, or in how the work is being done — the round writes the RULE, not an
+acknowledgement. Two obligations, both in the same round:
+
+1. **Land it where it is read.** The rule goes into the file that decides the behaviour, in words that make it
+   checkable. "I understand", "I will be more careful", and an assurance with no diff are the same non-delivery.
+2. **Sweep the family.** The same discipline usually lives in several files (this step, the user-level instructions, the
+   step that owns the area, the ticket's own limits). Every one of them gets the sentence or a pointer to it. A rule that
+   exists in one place and is contradicted by another is worse than no rule, because the next round obeys whichever it
+   reads first.
+
+**Be proactive inside the rule, too.** When a correction names a pattern, fix the pattern everywhere it appears in the
+same round: the other tickets with the same shape, the other probes making the same assumption, the other step files
+saying the opposite. Waiting to be told a second time is the failure this section exists for.
+
+Measured 2026-11-02: the same correction ("do not stop between steps") was acknowledged in prose three times and each
+round still ended mid-item — because the rule had been written once, narrowly, in one section, and no round ever asked
+which files decide whether a round may end.
 ## Two self-checks that catch the two ways this step is actually broken
 
 Both failures are measured, not hypothetical: a round that reported after two calls, and a round that worked from memory

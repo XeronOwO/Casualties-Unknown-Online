@@ -1,5 +1,5 @@
 // recipe: trader-hostility
-// args: mode=s
+// args: mode=s index=n
 // returns: ok, mode, traderCount, x, y, hostility, hostile, reputation, buildHealth, handSlot, handItem, handHasGunTag, error, detail
 //
 // Reads and drives the nearest trader's OWN hostility state. `hostile` is `hostility >= 100` in TraderScript, and the script

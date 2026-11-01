@@ -79,7 +79,7 @@ internal sealed class SpeechSync(IWorldControl world, ISessionControl session, I
 			_lastTraderPosition = pos;
 			_lastTraderAt = Time.realtimeSinceStartup;
 			_world.BroadcastSpeech(0, new SpeechMsg { SpeakerSteamId = 0, TraderPosition = new NetVector2Msg(pos.x, pos.y), Text = text });
-			_log.LogInformation("[Speech] host trader bubble at ({X:0.0},{Y:0.0}).", pos.x, pos.y);
+			_log.LogInformation("[Speech] host trader bubble at ({X:0.0},{Y:0.0}) from {Owner} (body {Body}, {Length} chars): {Text}.", pos.x, pos.y, talker.gameObject.name, talker.body == null ? "none" : talker.body.name, text.Length, text);
 			return;
 		}
 

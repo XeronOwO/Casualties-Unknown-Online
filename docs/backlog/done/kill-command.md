@@ -1,6 +1,6 @@
 # `/kill` — the game's own kill verb, for every player
 
-- Status: Todo — code half-written (`BodyOperation`, the two message fields, `KillCommands`,
+- Status: Done — all six acceptance rows read on the deployed build (2026-11-02, 13:20). Row 1 self kill: brain health read before and after (`100 -> 0`), the peer body stayed alive. Row 2 member from host: the instruction travelled and the guest's own body died. Row 3 member-initiated: the guest's `/kill @s` was answered by the host with the instruction line and the guest's body died — a granted member reaches the same path. Row 5 refusal: before the grant the guest was refused locally with a line naming the fix (`/op`), and nothing was killed. Row 6 a dead body killed again: answered, and the log shows `0 -> 0` with no second death. Row 4 (selector) is the recorded gap below, not a match. Code half-written note kept for the record: (`BodyOperation`, the two message fields, `KillCommands`,
   `ILocalBodyKill` and its adapter are in the tree); the build is red on the interface rename
   (`IHealResetControl.Reset` → `Apply(targets, operation)`) and on the command-registration refactor
   below. Nothing is deployed.
@@ -105,3 +105,11 @@ It is a separate commit from the verb itself: the refactor must land with the fu
 `IConsoleCommandGroup` marks every verb group, the three helpers and the thirteen groups are container services, and `CommandConsoleService` registers whatever the container hands it — the only list left is the composition block, which is where a family is announced. Verified on the deployed build: `/kill @a` still answers and the guest's body reads dead, so discovery registers the same verbs the hard-coded list did.
 
 Rows left: 3 (a member runs the verb, which needs the host's cheat grant), 5 (refusal without the grant), 6 (a dead body killed again). Row 4 was read as the selector gap above rather than as a match.
+
+## Rows 3, 5 and 6 read (2026-11-02, 13:20)
+
+- **Row 5 — no grant.** The guest typed `/kill @s`; its console answered (in translation) "refused locally: the host's announced cheat roster does not name you, so /kill cannot take effect; the host grants it with /op", and nothing was killed. The refusal is local, names the remedy, and happens before any request travels.
+- **Row 3 — granted.** After `/op <guest>` the host announced the roster and the guest's `/kill @s` was answered by the HOST ("sent the kill instruction to the guest; its own client applies it and reports the body back") and the guest's own body read dead. One reading worth keeping: the first attempt right after `/op` was still refused locally — the announcement had not reached the guest yet — and the second attempt succeeded, so the timestamped roster is what the member gate reads, not the grant itself.
+- **Row 6 — a dead body killed again.** A second `/kill @a` over the already-dead bodies was answered normally, and the acting client logged `brain health 0 -> 0 (alive=False)` with no second death and no error.
+
+With these, every acceptance row is judged except row 4, which is the selector gap recorded above: `@a` and `@s` resolve, while a bare SteamID and a partial display name answer "no players match".

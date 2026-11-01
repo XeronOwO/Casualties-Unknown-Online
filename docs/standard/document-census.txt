@@ -1286,7 +1286,7 @@ docs/backlog/done/no-compatibility-branches-before-the-first-release.md | keep |
 docs/backlog/review/guest-entity-dropped-by-third-client.md | keep | index | docs/backlog/README.md
 docs/backlog/done/bark-vocalization-reaches-no-peer.md | keep | index | docs/backlog/README.md
 docs/backlog/done/lockpick-pain-reaches-no-peer.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/kill-command.md | keep | index | docs/backlog/README.md
+docs/backlog/done/kill-command.md | keep | index | docs/backlog/README.md
 docs/development/rules/README.md | keep | index | docs/development/rules/README.md
 docs/development/rules/00-work-mode.md | keep | index | docs/development/rules/README.md
 docs/development/rules/01-task-frame.md | keep | index | docs/development/rules/README.md
@@ -1302,3 +1302,4 @@ docs/development/rules/10-structure.md | keep | index | docs/development/rules/R
 docs/development/rules/11-commit.md | keep | index | docs/development/rules/README.md
 docs/development/rules/12-report.md | keep | index | docs/development/rules/README.md
 docs/development/rules/13-acceptance.md | keep | index | docs/development/rules/README.md
+docs/backlog/todo/split-the-body-verb-service.md | keep | index | docs/backlog/README.md

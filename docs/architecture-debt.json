@@ -2,6 +2,6 @@
   "CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.PlayerHealResetService": {
     "Lines": 619,
     "BoolFlags": 0,
-    "Ticket": "docs/backlog/todo/kill-command.md"
+    "Ticket": "docs/backlog/todo/split-the-body-verb-service.md"
   }
 }

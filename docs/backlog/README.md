@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [`/kill` — the game's own kill verb, for every player](todo/kill-command.md) — **High** — zero brain health; the target's own client applies it.
+- [Split the body-verb service](todo/split-the-body-verb-service.md) — **Medium** — 619 aggregate lines; the debt ledger names it.
 
 
 
@@ -165,6 +165,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [`/kill` — the game's own kill verb](done/kill-command.md) — **High** — all six rows read on the deployed build.
 - [Remote medical panel speech text desync](done/remote-medical-panel-speech-text-desync.md) — **High** — every row read.
 - [Pain vocalizations and bark](done/sync-player-pain-vocalizations-and-bark.md) — **Medium** — rows 1-3 read: the peer plays gore2 361 times.
 - [Lockpick pain "reaches no peer"](done/lockpick-pain-reaches-no-peer.md) — **High** — not a defect; the reading was a deduped names diff.

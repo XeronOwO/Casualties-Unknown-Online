@@ -55,7 +55,7 @@ internal sealed class ItemDataCommands(
 	/// The listing's one sentence, in the reader's language: the key carries the owner and the count, and every item line under
 	/// it is data. Two places print this header (a read with no path and a read with one), so both call this.
 	/// </summary>
-	private string Header(ulong owner, int count) => _localization.Format("console.data.items_header", owner, count);
+	private string Header(ulong owner, int count) => _localization.Format("data.answer.items_header", owner, count);
 	private readonly ItemDataWriteCommands _writes = writes;
 
 	[ConsoleCommand("data", "Read or write one item's recorded state as SNBT: get, merge, modify or remove.", CommandPermission.Anyone, ItemDataVerbParser.Usage, CommandArgumentKind.Text)]

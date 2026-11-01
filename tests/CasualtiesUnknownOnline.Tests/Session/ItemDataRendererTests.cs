@@ -141,7 +141,7 @@ public class ItemDataRendererTests
 		var applied = Item(4102, ItemLocation.Applied(new ActorId(Owner), 3));
 
 		var text = ItemDataRenderer.List(
-			Owner,
+			$"Items recorded for {Owner} (2):",
 			[carried, applied],
 			[FakeItemState.Describe(carried.Data), FakeItemState.Describe(applied.Data)]);
 

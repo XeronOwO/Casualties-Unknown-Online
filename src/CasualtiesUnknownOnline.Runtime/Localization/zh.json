@@ -108,6 +108,7 @@
   "give.answer.carried_container": "已给予 {2} {0}（#{1}），放进其携带的容器 {3}（#{4}）里。",
   "give.answer.dropped": "已给予 {2} {0}（#{1}），因为哪里都放不下，掉在该玩家所在位置。",
   "give.answer.state": "它的状态：{0}。",
+  "data.answer.items_header": "已记录在 {0} 名下的物品（{1} 件）：",
   "summon.answer.item_entity": "已在 ({2}, {3}) 生成 {0}（#{1}）。",
   "summon.answer.prefab": "已在 ({1}, {2}) 生成 {0}。",
   "summon.answer.state": "它的状态：{0}。",

@@ -260,6 +260,12 @@ internal sealed class OnlineUiPanelView
 			_textChanged = false;
 		}
 		ApplyRows(model.Rows);
+
+		// The panel is as wide as its WIDEST ROW needs, not only as wide as its title does: the context menu carries the member's name as a SECTION row (the
+		// title label does not render on this build), so a long display name plus the dead suffix was clipped at the model's fixed width (user direction
+		// 2026-11-01: the panel grows rather than the name being elided). The measurement is the same `NameWidthOf` reading the window's pages take, which is
+		// why this happens here and not in the model: the font lives in this layer.
+		ApplyWidth(ContentFitWidth(model));
 		if (_structureDirty)
 		{
 			// Only the ORDER is repaired here, for the same reason the window's page repairs nothing else:
@@ -476,6 +482,31 @@ internal sealed class OnlineUiPanelView
 		return needed <= available
 			? model.Width
 			: Mathf.Min(needed, Mathf.Max(model.Width, MaxTitleFitWidth));
+	}
+
+	/// <summary>
+	/// The panel's width: the model's own width as a FLOOR, raised to fit the widest row caption this panel can actually draw, capped by
+	/// <see cref="MaxTitleFitWidth"/> the way the title fit already is. A row whose caption is a plain label (the context menu's name section) reports its
+	/// text width through the same <see cref="NameWidth"/> reading the window's pages use; a row that carries a control keeps the model's floor, because
+	/// its own control was sized by the model's rule and widening the panel for it would grow every action button with it.
+	/// </summary>
+	private float ContentFitWidth(OnlineUiPanelModel model)
+	{
+		var widest = 0f;
+		for (var rowIndex = 0; rowIndex < model.Rows.Count && rowIndex < _rows.Count; rowIndex++)
+		{
+			var elements = model.Rows[rowIndex].Elements;
+			for (var index = 0; index < elements.Count; index++)
+			{
+				var nameWidth = NameWidth(rowIndex, index, elements[index]);
+				if (nameWidth > widest) { widest = nameWidth; }
+			}
+		}
+
+		var needed = widest + TitleInsets + TitleRightPadding;
+		return needed <= model.Width
+			? TitleFitWidth(model)
+			: Mathf.Max(TitleFitWidth(model), Mathf.Min(needed, MaxTitleFitWidth));
 	}
 
 	private void ApplyWidth(float width)

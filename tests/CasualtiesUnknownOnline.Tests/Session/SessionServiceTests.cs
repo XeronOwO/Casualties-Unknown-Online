@@ -95,7 +95,7 @@ public class SessionServiceTests
 		host.Session.SessionEnded += () => ended++;
 
 		host.Steam.LobbyMembers = [HostId]; // the guest vanished from the lobby
-		// One reading is not a verdict: the member is removed once the lobby has omitted it on consecutive checks.
+											// One reading is not a verdict: the member is removed once the lobby has omitted it on consecutive checks.
 		for (var check = 0; check < 3; check++)
 		{
 			host.Clock.Advance(2100);

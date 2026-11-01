@@ -34,7 +34,6 @@ The instruments those two cycles produced are reusable and are named here so the
 | `adapter-capability-catalog.md` | stage rows beyond stage 1 need the user's call on which capability levels ship |
 | `dead-player-right-click-name-suffix.md` | the row lands for a short name; the long-name case needs the panel-width decision (grow the panel or elide the name) |
 | `layer-complete-choice-for-members.md` | its premise is superseded by the ruling that only the host presses the choices; it wants the confirmation written |
-| `player-music-sync-playback.md` | built and read; the listener controls (mute, volume, "only during rest") are a design the user owns |
 | `plugin-host-shell.md` | every acceptance clause is read; what is left is the user's judgement of the Online UI's look |
 | `pinyin-search-standalone-mod.md` | every row machine-read; the native search box's own look is the user's |
 | `recursive-crafting-mod.md` | the resolver, the game half, the command and the panel's states are read; the panel's look is the user's |

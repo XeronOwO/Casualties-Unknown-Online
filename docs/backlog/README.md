@@ -115,7 +115,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Medical operations are exclusive (one operator at a time)](review/concurrent-medical-operations.md) — **Medium-High** — several operators, one victim.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
-- [A player's own music, heard by the group](review/player-music-sync-playback.md) — **Medium** — transfer, verify, sync start; listener controls pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Markerless runtime-entity bind absorption](review/runtime-entity-markerless-bind-absorption.md) — **Low-Medium** — positional bind deleted.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
@@ -167,6 +166,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Music sync playback](done/player-music-sync-playback.md) — **Medium** — transfer-then-play read; controls follow the game's mp3 item.
 - [Nested container clone proxy leaks](done/nested-container-clone-proxy-leaks-as-world-item.md) — **Medium** — defensive branch; the shape cannot be produced.
 - [Topical limb action shape](done/topical-limb-action-shape.md) — **Medium** — the classifier decides by the limb action; unfitting containers refuse by name.
 - [Guest background ghost item sounds](done/guest-background-ghost-item-ground-sounds.md) — **Medium** — ghost impacts suppressed by role.

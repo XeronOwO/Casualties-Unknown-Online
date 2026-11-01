@@ -1,8 +1,6 @@
 # A player's own music, heard by the group
 
-- Status: Review — the transfer capability, the local player, the sharing half and the late joiner are all read
-  on the machine (two and three clients, host and guest sharers). The one row left is the user's: the listener
-  controls (mute, volume, "only during rest"). See *Stage E* for the last reading.
+- Status: Done — the transfer capability, the local player, the sharing half and the late joiner are all read on the machine (two and three clients, host and guest sharers), and the listener-controls row is settled by the user's own answer of 2026-11-01: the shared music IS the game's own mp3 item, which carries no mute/volume/rest controls of its own, so CUO adds no parallel control surface — a listener's controls follow whatever that item gives them natively, and inventing a second set would be a parallel UI the project's rules refuse.
 - Priority: Medium
 - Category: Feature / audio / bulk transfer
 - Source: the user's 2026-10-07 backlog request — a music player (MP3 and the like) whose playback can be

@@ -15,7 +15,6 @@ docs/backlog/review/host-entity-hit-red-flash-not-visible-on-guest.md
 docs/backlog/review/layer-complete-choice-for-members.md
 docs/backlog/review/mod-cross-player-native-semantics.md
 docs/backlog/review/pinyin-search-standalone-mod.md
-docs/backlog/review/player-music-sync-playback.md
 docs/backlog/review/plugin-host-shell.md
 docs/backlog/review/recursive-crafting-mod.md
 docs/backlog/review/remote-medical-native-minigame-parity.md

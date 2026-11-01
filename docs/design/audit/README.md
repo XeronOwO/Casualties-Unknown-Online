@@ -285,7 +285,7 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 260 | `review/mod-cross-player-native-semantics.md` | every chain landed | `mechanics/item-use.md` | `corpus page` | the cross-player family's native semantics are the item-use page's subject |
 | 261 | `done/nested-container-clone-proxy-leaks-as-world-item.md` | fixed at the renderer door | `items/container.md` | `corpus page` | the container page's "contents never appear as world drops" rule is this ticket's |
 | 262 | `review/pinyin-search-standalone-mod.md` | every row but one read | `surfaces/command-overlay.md` | `corpus page` | ticket: "Pinyin search as a standalone mod"; decision 200 keeps it a pluggable stage |
-| 263 | `review/player-music-sync-playback.md` | the transfer capability and the sharing are landed | `surfaces/remote-body-presentation.md` | `corpus page` | a group audio surface; the presentation page's sound rules |
+| 263 | `done/player-music-sync-playback.md` | the transfer capability and the sharing are landed | `surfaces/remote-body-presentation.md` | `corpus page` | a group audio surface; the presentation page's sound rules |
 | 264 | `review/plugin-host-shell.md` | no agent work left | n/a | `out of corpus scope` | packaging/architecture |
 | 265 | `review/recursive-crafting-mod.md` | resolver, game half and command landed | `mechanics/crafting.md` | `corpus page` | the crafting page's report and product rules |
 | 266 | `review/remote-medical-native-minigame-parity.md` | roadmap parent of the medical stages | `mechanics/medical-view.md` | `corpus page` | the medical page's family with its open stages recorded |

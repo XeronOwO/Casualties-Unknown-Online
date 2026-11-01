@@ -69,6 +69,11 @@ internal static class VirtualInput
 	/// </summary>
 	private static int _handleInputReplacements;
 
+	/// <summary>The call-site count the last transpile replaced: an install reads it straight after its own patch, so a zero is honest.</summary>
+	internal static void ResetReplacementCount() => _handleInputReplacements = 0;
+
+	internal static int TakeReplacementCount() => _handleInputReplacements;
+
 	private static Harmony? _harmony;
 	private static Vector3? _pointer;
 	private static int _buttonCensus;
@@ -194,28 +199,9 @@ internal static class VirtualInput
 			}
 		}
 
-		// The game's key-bind capture. `SettingsMenu.WaitForKeyPress` enumerates every KeyCode and asks `Input.GetKeyDown` itself, outside every path
-		// replaced above, so a staged key can never bind a row and the acceptance row that needs it cannot be judged without OS-level input. The same
-		// call-site replacement applies: the coroutine still decides what the key means, only the ANSWER to its query is staged.
-		var waitForKeyPress = AccessTools.Method(typeof(SettingsMenu), "WaitForKeyPress")
-			?? FirstDeclaredMethod(typeof(SettingsMenu), "WaitForKeyPress");
-		if (waitForKeyPress == null)
-		{
-			report.Add("SettingsMenu.WaitForKeyPress: no method on this build (" + DescribeDeclaredMethods(typeof(SettingsMenu)) + ")");
-		}
-		else
-		{
-			try
-			{
-				_handleInputReplacements = 0;
-				harmony.Patch(waitForKeyPress, transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(TranspileHandleInput)));
-				report.Add("SettingsMenu.WaitForKeyPress: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
-			}
-			catch (Exception exception)
-			{
-				report.Add("SettingsMenu.WaitForKeyPress: FAILED " + DescribeFailure(exception));
-			}
-		}
+		// The game's key-bind capture is its own file: it needs TWO methods replaced (the coroutine's builder and its state machine),
+		// which is a different story from the three call sites above.
+		report.Add(KeybindCapturePatch.Install(harmony));
 
 		_harmony = harmony;
 		installed = failures == 0;
@@ -531,7 +517,7 @@ internal static class VirtualInput
 	/// instruction keeps its labels and exception-block markers (only the operand changes), so the game's control flow — <c>KeyBinds.GetBind</c>, the branch,
 	/// <c>HandleStartDragging</c>/<c>HandleReleaseDragging</c> — is the game's own; only the answer to the query is staged.
 	/// </summary>
-	private static IEnumerable<CodeInstruction> TranspileHandleInput(IEnumerable<CodeInstruction> instructions)
+	internal static IEnumerable<CodeInstruction> TranspileHandleInput(IEnumerable<CodeInstruction> instructions)
 	{
 		var get = AccessTools.Method(typeof(Input), nameof(Input.GetKey), [typeof(KeyCode)]);
 		var down = AccessTools.Method(typeof(Input), nameof(Input.GetKeyDown), [typeof(KeyCode)]);

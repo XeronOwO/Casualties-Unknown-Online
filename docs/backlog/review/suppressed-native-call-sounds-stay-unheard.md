@@ -423,3 +423,18 @@ Two things follow, and both are concrete:
 
 1. The clip names the game plays on this path are NUMERIC ids, not `drop`. So the row's fixture cannot assert on the literal name the ticket quotes from `Item.cs:238` (`Sound.Play("drop", …)`) — that call is one of the paths, and the impact that fired here went through a different entry.
 2. The guest's window is empty even though the host played eight sounds, which is the shape the ticket predicts (a member does not receive the host's native one-shots). What is still missing to call it judged is the matching pair — the SAME sound on both sides at the moment the listener should hear it — and the numeric ids have to be mapped to their source first.
+### A member''s own drop plays nothing on the HOST either (2026-11-02, 15:32)
+
+The fixture that matters for this row is a MEMBER''s drop, because that is the path the mod has to replicate. Read on the deployed build, both recorders armed and both proven (each side''s own compiled probe lands in its buffer):
+
+- the guest is given a stick (`/op`, then `/give stick` answering `Gave stick … in slot 0`), lifted ~22 units, and drops it: `item-drop-hand slot=0` answers `held=true dropped=true`;
+- over the next five seconds the HOST records **nothing at all** (`raw` unchanged) and the guest records nothing either.
+
+So on the authoritative side not one `Sound.Play` ran in the window — the item''s collision never happened there. That is not the ticket''s "the guest''s impact is suppressed"; it is one step earlier: **the member''s dropped item never becomes a simulated body on the host**, so no side can play its impact.
+
+Two smaller facts from the same batch, both worth keeping:
+
+- `/op` answers on the host immediately, but a member''s very next `/give` was still refused with "the host''s broadcast cheat list does not include you"; the next attempt a few seconds later succeeded. The grant reaches the member asynchronously, and a batch must re-try rather than conclude a failure.
+- A host''s own drop from open air records eight one-shots (`9@41.3;10@41.3;6@41.4;6@41.7;3@46.0;5@46.0;9@46.2;7@46.4`), so the host path does produce impact sounds — which is what makes the member''s silence a difference rather than a quiet world.
+
+The next reading is the one that separates the two remaining causes: read the host''s entity table (or a world-item census) immediately after a member''s drop to see whether the item exists at all, and if it exists, whether its rigidbody is simulated.

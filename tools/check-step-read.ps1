@@ -103,7 +103,32 @@ foreach ($step in $touched) {
 if ($missing.Count -gt 0) {
     Write-Host 'check-step-read: this change touches a step the round has not recorded as read:'
     $missing | ForEach-Object { Write-Host "  missing: $_" }
-    Write-Host 'Read the file(s), then run: tools/check-step-read.ps1 -Record <steps>'
+
+    # The instruction the user asked for: an interception is not a retry prompt, it is a STOP. The violation is logged so a
+    # pattern becomes visible across rounds instead of being felt as bad luck.
+    $log = Join-Path $repo '.acceptance/step-read-violations.txt'
+    $logDir = Split-Path -Parent $log
+    if (-not (Test-Path -LiteralPath $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
+    Add-Content -LiteralPath $log -Value ('{0}  missing: {1}  touched: {2}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), ($missing -join '; '), (($touched | ForEach-Object { '{0:D2}' -f $_ }) -join ',')) -Encoding utf8
+
+    Write-Host ''
+    Write-Host '================================================================================'
+    Write-Host 'STOP. Do not retry this commit.'
+    Write-Host ''
+    Write-Host 'A step was walked without its rules being read. That is the round failing, not a'
+    Write-Host 'gate being fussy. Before anything else:'
+    Write-Host ''
+    Write-Host '  1. Stop the work in hand. Do not "just record it and move on".'
+    Write-Host '  2. Ask WHY this step was entered unread - was it not planned, was the reading'
+    Write-Host '     skipped to save a call, or was the step reached by accident mid-item?'
+    Write-Host '  3. Strengthen the rule so the same entry cannot happen again: name the steps in'
+    Write-Host '     the plan before the first act, and enter each one with tools/step.ps1 -Enter'
+    Write-Host '     BEFORE its first action - not before its commit.'
+    Write-Host '  4. Only then read the file(s) above and re-run the commit.'
+    Write-Host ''
+    Write-Host 'This interception is appended to .acceptance/step-read-violations.txt so a pattern'
+    Write-Host 'across rounds stays visible.'
+    Write-Host '================================================================================'
     exit 1
 }
 

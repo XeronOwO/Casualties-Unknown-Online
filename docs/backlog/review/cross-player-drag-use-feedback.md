@@ -741,3 +741,21 @@ Three things this session learned that make the earlier "staged drag did nothing
 With those fixed the release still did not treat the sleeping teammate's arm (`limb-read` skin stayed 100), so the remaining gap is on
 the receive side: whether `TryPerformUIActions` reaches CUO's remote-limb drop for a `bandage`. That is where the next batch starts,
 and it is the same instrument `use-on-sleeping-target-refused` needs.
+### The staged input reaches the drag now - the patch, and what it exposed (2026-11-03, 00:20)
+
+The reason every staged drag "did nothing" is in the code, not in the fixture: `PlayerCamera.HandleInput` calls
+`HandleDragging(uiCasts, ref usableObject)` as a SEPARATE method, and the `iteminteract` binding is queried with
+`Input.GetKeyDown`/`Input.GetKeyUp` INSIDE that method (`PlayerCamera.cs`), so the call-site replacement on `HandleInput` never
+reached it.
+
+`DragInputPatch` now patches `PlayerCamera.HandleDragging` with the same replacement, and the install report proves it on the
+deployed build:
+
+    PlayerCamera.HandleDragging: patched, 2 call(s) replaced
+
+(the two reads the gesture needs). So a staged `iteminteract` press and release now reach the game's drag start and release.
+
+What that exposed is the next gap, and it is on the ARMING side: `drag-start` finds nothing to hand the drag.
+`PlayerCamera.main.body.GetAllItemsThorough()` (`Body.cs:532`) answered an EMPTY list on a body the console had just given four
+items to (`Gave bandage … in slot 0`), while an earlier call in the same session listed a `trashbag` - so the walk itself, not the
+drag, is what the next batch has to fix before a treatment row can be read.

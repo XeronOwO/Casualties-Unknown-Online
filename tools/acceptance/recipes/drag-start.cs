@@ -18,13 +18,15 @@
 	{
 		var candidate = items[i];
 		if (candidate == null) { continue; }
+		count++;
 		var itemId = candidate.id;
+		ids = ids + itemId + "|";
 		if (wanted.Length > 0 && itemId != wanted) { continue; }
 		hit = candidate;
 		break;
 	}
 
-	if (hit == null) { return "{\"ok\":false,\"error\":\"not-carried\",\"count\":" + count + "}"; }
+	if (hit == null) { return "{\"ok\":false,\"error\":\"not-carried\",\"count\":" + count + ",\"ids\":\"" + ids + "\"}"; }
 	camera.dragItem = hit;
 	return "{\"ok\":true,\"id\":\"" + hit.id + "\",\"name\":\"" + hit.gameObject.name + "\",\"count\":" + count + "}";
 }))()

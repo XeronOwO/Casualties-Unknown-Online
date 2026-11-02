@@ -779,3 +779,20 @@ What is left for the row is playing that minigame: `BandageMinigame.PhysicsUpdat
 and `holdingBandage` is true when the hand's direction is within ~25 degrees of the roll (`Vector2.Dot(GetVectorFromAngle(bandageAngle),
 handPos.normalized) > 0.9`), with `didWrap` at a full 360 degrees. That is a CIRCULAR pointer path, not the straight shake the
 amputation used - the next fixture.
+## The minigame is drivable, and the patient's own client shows the result (2026-11-03, 01:00)
+
+`PointerCircle` moves the staged pointer a fixed number of degrees per frame on a circle, which is the gesture the bandage minigame is
+written for. One run, all on the deployed build:
+
+    drag bandage onto the patient's limb image   -> minigame-live: BandageMinigame
+    hold attack + pointer-circle 640,360 r=300    angle 726 -> 1458 -> 2184 -> 2910 -> 3636 -> 4356 (twelve turns)
+    minigame end                                 kind=none
+    patient's own client, same limb              bleed 9.5 -> 0.46 on the first run
+
+So the chain is complete end to end: the operator's staged drag opens the game's own remote treatment, the minigame can be played by a
+staged hand, and the effect is visible on the patient's own client (the bleed read comes from ITS `limb-read`, not from the operator's
+copy).
+
+A second run (wound re-seeded at `skin=6.958` mid-session) ended with `skin=7.052, bleed=12.667` - the bandage's condition was spent
+over twelve turns without moving the skin, which is the game's own accounting (the minigame's `OnUse(0.0555)` spends the item, and a
+badly damaged limb needs more than one bandage). That is a row for the treatment-cost ticket, not a defect in the drag path.

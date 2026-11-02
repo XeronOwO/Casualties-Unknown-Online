@@ -37,16 +37,38 @@ if ($null -eq $committed) {
 
 $local = Join-Path $rules ($committed.BaseName + '.local.md')
 
-Write-Host "===== step $Enter — $($committed.Name) ($((Get-Content -LiteralPath $committed.FullName).Count) lines) ====="
-Get-Content -LiteralPath $committed.FullName -Encoding utf8 | ForEach-Object { Write-Host $_ }
+# THE TOKEN. It is printed in the MIDDLE of the file, and the recorder refuses a step without it: a caller who pipes this output
+# through `Select-Object -Last 2` sees the end marker and the record line, but never the token, so the step cannot be recorded and
+# the pre-commit hook refuses the change. That is the difference between a rule in a file nobody reads and a rule the command
+# enforces. Measured 2026-11-03, by the user: every round for more than a day piped this printer into a tail, so the step files were
+# printed and never seen.
+$content = Get-Content -LiteralPath $committed.FullName -Encoding utf8
+$tokenSource = [System.IO.File]::ReadAllText($committed.FullName) + "|" + $Enter
+$sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($tokenSource))
+$token = ([System.BitConverter]::ToString($sha) -replace '-', '').Substring(0, 10).ToLowerInvariant()
+$tokenLine = [int][Math]::Min([Math]::Max(3, [Math]::Floor($content.Count / 2)), $content.Count)
+
+Write-Host "===== step $Enter — $($committed.Name) ($($content.Count) lines) ====="
+for ($i = 0; $i -lt $content.Count; $i++) {
+    Write-Host $content[$i]
+    if ($i -eq ($tokenLine - 1)) {
+        Write-Host ""
+        Write-Host "STEP-TOKEN: $token   (required to record this step; it sits here, in the middle, so a tail cannot carry it)"
+        Write-Host ""
+    }
+}
+
 Write-Host "===== step $Enter — $(Split-Path -Leaf $local) ====="
 if (Test-Path -LiteralPath $local) {
     Get-Content -LiteralPath $local -Encoding utf8 | ForEach-Object { Write-Host $_ }
-    Write-Host "===== end of step $Enter ($((Get-Content -LiteralPath $committed.FullName).Count) + $((Get-Content -LiteralPath $local).Count) lines) ====="
+    Write-Host "===== end of step $Enter ($($content.Count) + $((Get-Content -LiteralPath $local).Count) lines) ====="
 }
 else {
     Write-Host '(no local sibling on this checkout)'
 }
 
-& (Join-Path $PSScriptRoot 'check-step-read.ps1') -Record "$Enter" | Out-Host
-exit 0
+# NOT recorded here on purpose. The record is a SECOND command, typed with the token the print put in the middle of its output:
+#   tools/check-step-read.ps1 -Record '<step>' -Token '<the STEP-TOKEN line above>'
+# A piped print never shows that line, so a piped print cannot be recorded, and the pre-commit hook refuses the change until it is.
+Write-Host ""
+Write-Host "Next, and only with the token above: tools/check-step-read.ps1 -Record '$Enter' -Token '<STEP-TOKEN>'"

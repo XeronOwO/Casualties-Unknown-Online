@@ -15,6 +15,7 @@
 
 param(
     [string]$Record,
+    [string]$Token,
     [switch]$WorkingTree,
     [switch]$NewRound,
     [string]$RecordPath = '.acceptance/step-reads.txt'
@@ -29,6 +30,14 @@ function Get-RuleFile([int]$Step) {
     $match = Get-ChildItem -LiteralPath $rules -Filter ('{0:D2}-*.md' -f $Step) | Where-Object { $_.Name -notlike '*.local.md' } | Select-Object -First 1
     if ($null -eq $match) { return $null }
     return $match.FullName
+}
+
+# The token `tools/step.ps1` prints in the MIDDLE of a step's output. Recording without it is refused, which is what makes the
+# reading portable to a command instead of a memory: a piped tail never carries the middle line, so a piped print cannot be recorded.
+function Get-StepToken([int]$Step, [string]$File) {
+    $source = [System.IO.File]::ReadAllText($File) + "|" + $Step
+    $sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($source))
+    return ([System.BitConverter]::ToString($sha) -replace '-', '').Substring(0, 10).ToLowerInvariant()
 }
 
 if ($NewRound) {
@@ -56,6 +65,15 @@ if ($recordSteps.Count -gt 0) {
         $file = Get-RuleFile $step
         if ($null -eq $file) {
             Write-Error "step-reads: step $step has no rule file under docs/development/rules"
+            exit 1
+        }
+
+        # The token is the proof the print was SEEN, not merely run: it lives in the middle of the output.
+        $expectedToken = Get-StepToken $step $file
+        if ($Token -ne $expectedToken) {
+            Write-Host "step-reads: REFUSED to record step $step - the token does not match."
+            Write-Host "  Run the printer BARE and copy the STEP-TOKEN line it prints in the middle:"
+            Write-Host "    powershell -ExecutionPolicy Bypass -File tools/step.ps1 -Enter $step"
             exit 1
         }
 

@@ -817,3 +817,19 @@ That is the same reason `ui-hits` (which raycasts with an explicit position) wor
 So rows 1, 5, 6 and 7 need one more instrument: a staged pointer that the game's EventSystem sees. Until then the drag path itself is
 read end to end (the release opens the real treatment, and the patient's client shows the effect), and the CUE half is blocked on that
 instrument rather than on the product.
+### The hover probe says the clone is not hoverable in this session (2026-11-03, 02:30)
+
+`hover-probe` answers what the game's own world hover would see at the staged pointer: `Input.mousePosition` as the game reads it, the
+game's camera conversion, and the physics overlap on a named layer. On the host, over the teammate's own position:
+
+    pointer (694,396) -> world (0.00, 491.75)   Body layer: 0 hits   default layers: Chunk(BlockGround), plasticchunk
+    five more probe rows up the same column      worldY 492.4 .. 495.5   still no body collider
+
+The teammate's clone IS there - `Character_110000135D30695/Body/` has limbs at world y 491.68..492.10 and slots at 492.0..492.7 - so the
+point is on the body and still nothing on the Body layer answers. Without that hover the game never sets the focused player, and
+`remote-backpack-open` answered `isOpen=false, focused=0` on the same drag, which is exactly what the cue needs.
+
+Two readings follow, and they separate the cases: either this session's clone carries no active colliders (everything here has been
+through revives and teleports), or the display clone is never hoverable and the cue's `focusedSteamId` has another source. The next
+batch settles it by reading the same probe on a FRESH session before any heal or teleport - that is a one-call check, not a new
+instrument.

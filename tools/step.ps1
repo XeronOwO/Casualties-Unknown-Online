@@ -37,11 +37,11 @@ if ($null -eq $committed) {
 
 $local = Join-Path $rules ($committed.BaseName + '.local.md')
 
-# THE TOKEN. It is printed in the MIDDLE of the file, and the recorder refuses a step without it: a caller who pipes this output
-# through `Select-Object -Last 2` sees the end marker and the record line, but never the token, so the step cannot be recorded and
-# the pre-commit hook refuses the change. That is the difference between a rule in a file nobody reads and a rule the command
-# enforces. Measured 2026-11-03, by the user: every round for more than a day piped this printer into a tail, so the step files were
-# printed and never seen.
+# THE TOKEN - friction, not proof. It is printed in the MIDDLE of the output so that a piped tail cannot carry it, and the
+# recorder refuses a step without it. The user named its limit the moment it landed: `... | Select-String STEP-TOKEN` returns the
+# token without the text, so the token proves the printer RAN, never that the file was READ. Nothing in this environment can prove
+# a reading - the transcript is the only evidence, and the obligation is the reader's. The token stays because it blocks the
+# accidental bypass (a tail that looks compliant), not because it makes the reading honest.
 $content = Get-Content -LiteralPath $committed.FullName -Encoding utf8
 $tokenSource = [System.IO.File]::ReadAllText($committed.FullName) + "|" + $Enter
 $sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($tokenSource))

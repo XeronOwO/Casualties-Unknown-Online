@@ -1,5 +1,5 @@
 // recipe: keybind-read
-// args: action=iteminteract
+// args: action=s
 // returns: ok, action, bind, error, detail
 //
 // Reads the CURRENT binding through the game's own table (`KeyBinds.GetBindName`, KeyBinds.cs: cache of the settings' bindings).

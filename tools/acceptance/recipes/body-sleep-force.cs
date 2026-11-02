@@ -1,5 +1,5 @@
 // recipe: body-sleep-force
-// args: hold=1
+// args: none
 // returns: ok, sleeping, consciousness, error, detail
 //
 // Writes `Body.sleeping` directly (a fixture write, like limb-infect writes an infection). It exists because the nap ROUTE does not

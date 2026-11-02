@@ -1,5 +1,5 @@
 // recipe: drag-start
-// args: type=bandage
+// args: type=s
 // returns: ok, id, name, count, error, detail
 //
 // Arms the game's drag gesture: `PlayerCamera.main.dragItem` is the field the mouse-down path fills (`TryPickupFromUI`), and the

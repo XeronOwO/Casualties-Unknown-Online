@@ -1,6 +1,6 @@
 # An item cannot be used on a sleeping teammate
 
-- Status: Review — the sleeping state itself is now readable (`SleepingPills` + `TakeANap` in ONE eval gives `sleeping=true`, and the panel opens on that target: `medical-open` `opened=true`, a bandage call `ok=true`), but the treatment rows still need a target that is asleep AND wounded inside one call sequence, and row 2's refusal line needs a target the panel actually refuses. Both are the next batch's fixture; the routes that do NOT produce a sleeping target are tabulated on the ticket with their numbers.
+- Status: Review — row 3 is PASS with numbers: a bandage drag onto a SLEEPING teammate started the game's own BandageMinigame, the patient's own client read `skin 74.171 -> 74.474` and `bleed 7.293 -> 6.794`, and the patient was still `sleeping=true` afterwards. Row 1 stays open per family: a heavy wound keeps the body awake by the game's own rule (`limb-break` gave pain 87 and the nap ended), so its rows must be built on a light wound or a painless condition; the bandage family is the one read so far. Row 2's refusal line still needs a target the panel actually refuses.
 
 - Priority: Medium
 - Category: Cross-player item use / target gate
@@ -255,3 +255,24 @@ Two combination facts that bound the remaining rows, each read rather than assum
 - **A shrapnel-only limb has nothing for a bandage to act on** (skin 100, bleed 0), so the bandage minigame runs to completion with the
   limb unchanged. The "patient's client shows the applied state" half therefore needs a wound the bandage treats and the body sleeps
   through - a bone break plus a splint is the obvious next candidate, and it is a fixture, not a capability.
+## Row 3 read end to end: a bandage treated a sleeping teammate and did not wake them (2026-11-03, 01:45)
+
+The missing piece was a wound the body sleeps through. A light one qualifies: `wound-seed limb=10 force=100` gave
+`skin=73.6, bleed=8.24, pain=32`, and the nap then held (`sleeping=true`).
+
+What one session then measured, every number read from the PATIENT's own client:
+
+    before the operator's drag   limb 10  skin=74.171  bleed=7.293
+    patient, on the panel        sleeping=true
+    operator: medical-open + drag a bandage onto the leg's image (608,251)   ui-hits: Torso (10) > Head (1) > CrusR > Limbs
+    minigame-live                BandageMinigame
+    patient, right after         sleeping=true
+    operator: hold attack + pointer-circle   (the minigame plays)
+    patient, after it ended      limb 10  skin=74.474  bleed=6.794   sleeping=true
+
+So a treatment applied to a sleeping teammate lands on the patient, the patient's own client shows the change, and the patient is
+still asleep afterwards - row 3, with the numbers above.
+
+The bound on row 1 is now precise as well: a HEAVY wound does not let the body sleep at all (`limb-break` on the same leg gave
+`skin=67, bleed=14.3, pain=87`, and a nap with `canTakeNap=true` still ended awake; a `force=200` cut did the same). Only a light
+wound or a painless condition (shrapnel) keeps the sleeper asleep, so the per-family rows have to be built on those.

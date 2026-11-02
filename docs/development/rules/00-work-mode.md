@@ -41,6 +41,12 @@ gates → full suite → commit → deploy → verify on the running game → ne
 There is no fifth state. Tiredness, length of the conversation, a red gate or a dirty tree are reasons to keep working,
 never to stop.
 
+**Answering the user does not end the turn.** A reply that answers a question - "yes, here is the state", "no, that reading was
+wrong" - is not one of the four states above, and the work continues in the same turn: the message goes out, and the next call is
+a tool call. Measured 2026-11-02 (the user's own observation): a reply followed by tool calls continued the session without
+interruption, while replies treated as an ending cost a whole round each time. So the honest shape of a turn that carries both an
+answer and work is: answer, then keep going - never answer and stop unless the answer IS the end state ("done" or "decide this").
+
 ## Budget
 
 The machine's budget is unlimited. "Out of budget" is not an ending, is never written into a rule, and is never

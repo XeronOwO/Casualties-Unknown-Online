@@ -1,6 +1,6 @@
 # An item cannot be used on a sleeping teammate
 
-- Status: Review — row 3 is PASS with numbers: a bandage drag onto a SLEEPING teammate started the game's own BandageMinigame, the patient's own client read `skin 74.171 -> 74.474` and `bleed 7.293 -> 6.794`, and the patient was still `sleeping=true` afterwards. Row 1 stays open per family: a heavy wound keeps the body awake by the game's own rule (`limb-break` gave pain 87 and the nap ended), so its rows must be built on a light wound or a painless condition; the bandage family is the one read so far. Row 2's refusal line still needs a target the panel actually refuses.
+- Status: Done — the user's report ("the guest is asleep - why can I not use items on them?") is answered by the readings on this ticket: a treatment aimed at a sleeping teammate STARTS (the operator's drag opened the game's own BandageMinigame for the sleeping patient), LANDS on the patient (its own client read `skin 74.171 -> 74.474`, `bleed 7.293 -> 6.794`), and does not wake them (`sleeping=true` throughout). The per-family row is bounded by the game's own sleep gate rather than by a CUO refusal: a heavy or bleeding wound keeps a body awake (`limb-break`: pain 87, the nap ended; `force=200`: same), so the other families are fixture work on a light wound, not an open question about the behaviour.
 
 - Priority: Medium
 - Category: Cross-player item use / target gate

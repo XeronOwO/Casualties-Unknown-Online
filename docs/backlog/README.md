@@ -93,7 +93,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [An item cannot be used on a sleeping teammate](review/use-on-sleeping-target-refused.md) — **Medium** — decision 270 implemented.
 - [The pre-run lobby can deadlock](review/the-pre-run-lobby-can-deadlock.md) — **High** — root cause fixed; three fresh sessions departed.
 - [A cross-player eat runs the game's own steps](review/cross-player-eat-skips-native-steps.md) — **High** — all four rows pass.
 
@@ -154,6 +153,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Use on a sleeping target](done/use-on-sleeping-target-refused.md) — **Medium** — judged; treatment lands without waking.
 - [Damage callers that skip the report](done/unhooked-damage-block-callers.md) — **Low-Medium** — judged; partial damage converges.
 - [Trade domain dual-side runtime](done/trade-domain-dual-side-runtime.md) — **High** — judged; the revive's snapshot carries it.
 - [Sounds whose native call is suppressed](done/suppressed-native-call-sounds-stay-unheard.md) — **Low** — judged; the peer now plays the native gore.

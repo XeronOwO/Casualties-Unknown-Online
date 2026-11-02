@@ -106,6 +106,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# The step gate: driving the game is step 13 work, and it does not run unless that step's rules were printed by tools/act.ps1 in this
+# window. `-ListActions` is exempt: it answers help, it touches no client.
+if (-not $ListActions) {
+	& (Join-Path (Split-Path -Parent $PSScriptRoot) 'require-active-step.ps1') -Steps 13
+	if ($LASTEXITCODE -ne 0) { exit 1 }
+}
+
 $ActionHelp = [ordered]@{
 	'ping' = 'connect and report the plugin, the overlay and the offered control count'
 	'state' = 'read the session/world/window facts and the offered control ids'

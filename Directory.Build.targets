@@ -1,0 +1,13 @@
+<Project>
+
+  <!--
+    The step gate, run by the build itself: no build and no test runs unless the step's rules were printed by tools/act.ps1 within
+    the last 45 minutes. It is the structural half of "work is forbidden in a step whose rules were not read" - the half that does not
+    rely on remembering, because the compiler does not start.
+    A source change is implemented (7) and verified (8); both are accepted here because the same build serves both.
+  -->
+  <Target Name="RequireStepRules" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)tools/require-active-step.ps1&quot; -Steps 7,8,13" ContinueOnError="false" />
+  </Target>
+
+</Project>

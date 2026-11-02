@@ -6,6 +6,16 @@
   outside the documented exemptions (`docs/zh/`, `zh.json`, the pinyin dictionary, fixtures that must contain non-English text).
 - `check-delivery.ps1` — the delivery checklist, run before a commit: validates every required box and its evidence, archives the
   cycle's record under `docs/evidence/checklists/`, resets the boxes for the next cycle.
+- `act.ps1` — **the only way to enter a step**: `tools/act.ps1 -Step <n>` prints the step's two rule files in full, writes the
+  active-step marker and records the step for the commit hook. It exists because printing the rules and then acting on them were two
+  separate acts, and the second one kept happening without the first.
+- `require-active-step.ps1` — the gate that makes work IMPOSSIBLE without its step rules. `Directory.Build.targets` runs it before
+  every build (so build and test refuse), and `deploy.ps1` and `acceptance/drive-in-process.ps1` run it before touching anything (so
+  a deploy and every driven row refuse). It demands a marker written by `act.ps1` in the last 45 minutes, for a step this action
+  belongs to, whose rule file still has the SHA that was printed.
+- `check-reading-evidence.ps1` — the gate against claiming without measuring: a ticket row marked pass must carry a digit or a
+  quoted value outside its number and verdict cells, and a ticket marked Done must carry a number somewhere. Run by the commit hook
+  beside the step gate.
 - `step.ps1` — how a step is ENTERED: `tools/step.ps1 -Enter <n>` prints that step's two rule files in full and records them for
   the round. It exists because the read is the first act of a step, and a rule that only lived in prose lost to the work every
   time (the gate below is the backstop).

@@ -37,6 +37,10 @@ param(
 $ErrorActionPreference = "Stop"
 # tools/deploy.ps1 — the repo root is one level up.
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+
+# The step gate: a deploy is step 13 work, and it does not run unless that step's rules were printed by tools/act.ps1 in this window.
+& (Join-Path $PSScriptRoot 'require-active-step.ps1') -Steps 13
+if ($LASTEXITCODE -ne 0) { exit 1 }
 $PluginOut = Join-Path $RepoRoot "src\CasualtiesUnknownOnline.Plugin\bin\Debug\net48"
 $AcceptanceOut = Join-Path $RepoRoot "src\CasualtiesUnknownOnline.Acceptance\bin\Debug\net48"
 

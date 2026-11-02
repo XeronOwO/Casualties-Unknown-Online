@@ -120,7 +120,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
 - [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
-- [Trade domain dual-side runtime](review/trade-domain-dual-side-runtime.md) — **High** — the dual-side trade pass.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
@@ -156,6 +155,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Trade domain dual-side runtime](done/trade-domain-dual-side-runtime.md) — **High** — judged; the revive's snapshot carries it.
 - [Sounds whose native call is suppressed](done/suppressed-native-call-sounds-stay-unheard.md) — **Low** — judged; the peer now plays the native gore.
 - [The opener can claim a key the game is rebinding](done/enter-opener-keybind-capture.md) — **Low-Medium** — judged by staged keys.
 - [Entity hit flash on the peer](done/host-entity-hit-red-flash-not-visible-on-guest.md) — **Medium** — closed; replayed 5× for 8 swings.

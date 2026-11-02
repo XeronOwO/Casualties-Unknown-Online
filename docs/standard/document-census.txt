@@ -288,7 +288,7 @@ docs/backlog/done/sync-cadence-review.md | keep | index | docs/backlog/README.md
 docs/backlog/done/sync-player-pain-vocalizations-and-bark.md | keep | index | docs/backlog/README.md
 docs/development/review-triage.md | keep | spec | docs/backlog/README.md
 docs/backlog/done/tab-backpack-open-close-immediately.md | keep | index | docs/backlog/README.md
-docs/backlog/review/trade-domain-dual-side-runtime.md | keep | index | docs/backlog/README.md
+docs/backlog/done/trade-domain-dual-side-runtime.md | keep | index | docs/backlog/README.md
 docs/backlog/done/treatment-gore-presentation-carried.md | keep | index | docs/backlog/README.md
 docs/backlog/done/turret-stray-fire-after-reload.md | keep | index | docs/backlog/README.md
 docs/backlog/review/unhooked-damage-block-callers.md | keep | index | docs/backlog/README.md
@@ -771,7 +771,7 @@ docs/evidence/acceptance/suppressed-native-call-sounds-stay-unheard-20261001-l.m
 docs/evidence/acceptance/sync-cadence-review-20261003-e.md | keep | claim | docs/backlog/done/sync-cadence-review.md
 docs/evidence/acceptance/sync-event-and-periodic-fallback-coverage-audit-20260927.md | keep | claim | docs/backlog/done/sync-event-and-periodic-fallback-coverage-audit.md
 docs/evidence/acceptance/sync-player-pain-vocalizations-and-bark-20261001-l.md | keep | claim | docs/backlog/done/sync-player-pain-vocalizations-and-bark.md
-docs/evidence/acceptance/trade-domain-dual-side-runtime-20261003-e.md | keep | claim | docs/backlog/review/trade-domain-dual-side-runtime.md
+docs/evidence/acceptance/trade-domain-dual-side-runtime-20261003-e.md | keep | claim | docs/backlog/done/trade-domain-dual-side-runtime.md
 docs/evidence/acceptance/trap-action-divergence-hardening-20261003-f.md | keep | claim | docs/backlog/done/trap-action-divergence-hardening.md
 docs/evidence/acceptance/trap-destruction-drop-quantity-desync-20261001-x.md | keep | claim | docs/backlog/done/trap-destruction-drop-quantity-desync.md
 docs/evidence/acceptance/trap-destruction-drop-quantity-desync-20261001-y.md | keep | claim | docs/backlog/done/trap-destruction-drop-quantity-desync.md

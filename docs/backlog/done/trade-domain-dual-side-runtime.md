@@ -1,6 +1,7 @@
 # Trade domain dual-side runtime pass
 
-- Status: Review — rows 8 and 9 are now PASS on the deployed build. Row 8: the recruit revives the teammate AT the trader that performed the service (killed 500 units away, revived at (-107.0, 272.6) against a trader at (-107.0, 270.0)), grants three trader-stock items, and the host's own page redraws the member alive at the revived HP; its "saved snapshot" half rests on `SaveCharacterData` running on the success path plus the peer view rendering from that same store — a full save/reload read needs a load fixture, and the toolbox has a `/save` verb but no load. Row 9: only the client that performed the swing reports it, the other replays it at the same trader (host 11 `reported`, guest 0 `reported` and 1 `replayed ... from 76561198281246659`); the hostile state is reachable with the reputation fixture (`mode=rep` + native `TryHug` -> `hostility=100`).
+- Status: Done — rows 8 and 9 PASS. Row 8 both halves: the recruit revives the teammate AT the trader (guest brain=75.012 at (-102,473.6) against the trader at (-102,471)), and the CUO cut's character record carries the same revive to disk (brain=75.03, pos=(-102.0,473.6)) — no load fixture needed, the snapshot is plain JSON. Row 9: only the swinging client reports the hostile hit and the other replays it at the same trader. The one reading that looked like a defect was a remembered coordinate: the trader is per-run (-102,471 here, not the (-107,270) of an older session) and the coordinator refuses with `no trader within 8` when the host is elsewhere.
+
 - Priority: High
 - Category: Final acceptance
 - Reference: original backlog #59 / #93
@@ -172,3 +173,25 @@ the same click revived the guest in place. So the action is accepted and does no
 explain (the earlier read had the DEAD BODY in the host's line of sight and this one has it 500 units away — the UI offered the
 control, the coordinator did not finish), or a defect in the coordinator's completion path. That is the next step, and it is
 named as such rather than as a missing capability.
+## Row 8's saved half, read from the cut itself (2026-11-02, 23:30)
+
+The half that was "needs a save/load cycle" needs no load: the CUO cut IS the saved side, and it is plain JSON.
+
+Sequence on one session: `trade-open mode=open` answered the trader at **(-102, 471)**; the host teleported there, `/heal @a`, `/kill @a`,
+`/heal @s` (host alive at the trader, the guest dead), then the player page's `member.recruit.110000135D30695`:
+
+    click applied=true
+    guest afterwards   alive=true  brain=75.012  at (-102, 473.6)
+
+then `/save`, which answered `cut written (world w-20261102-2e2c at revision 651 …)`, and the cut's own character records:
+
+    steam-76561198281246659.json   brain=100    alive=True   pos=(-101.6, 473.6)   (the host, at the trader)
+    steam-76561198863287957.json   brain=75.03  alive=True   pos=(-102.0, 473.6)   (the revived guest, AT THE TRADER)
+    steam-76561199526807662.json   brain=0      alive=False  pos=(2.0, 499.5)      (the client left untouched)
+
+So the saved snapshot carries the revive's own health and the trader's position — row 8's second half is PASS.
+
+The earlier "the click applies and the guest stays dead" reading had a cause worth recording: the host was standing at (-107, 270), a
+coordinate remembered from an older run, and the coordinator's own log says it plainly —
+`[TradeRecruit] no trader within 8 — request refused` (`TraderRecruitCoordinator.TryRequest`). The trader in THIS run is at (-102, 471);
+with the host there the same click revives. The coordinates are per-run and must be read from `trade-open`, never remembered.

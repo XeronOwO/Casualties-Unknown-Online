@@ -24,7 +24,7 @@ if ($Check) {
     exit 0
 }
 
-if ($Enter -le 0) {
+if (-not $PSBoundParameters.ContainsKey('Enter') -or $Enter -lt 0) {
     Write-Host 'usage: tools/step.ps1 -Enter <step>   |   tools/step.ps1 -Check'
     exit 2
 }

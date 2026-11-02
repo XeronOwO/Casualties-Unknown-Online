@@ -72,4 +72,15 @@ if (-not $matched) {
     exit 1
 }
 
+# Passing is not silent on purpose. The marker proves the printer RAN, never that anything was read - so every gated act re-prints the
+# step's opening lines into its own output. The rules then sit beside the act in the transcript whether or not anyone intended to read
+# them, which is the closest this environment can get: it can make the text unavoidable, and it cannot make attention happen.
+$activeRule = Get-ChildItem -LiteralPath (Join-Path $repo 'docs/development/rules') -Filter ('{0:D2}-*.md' -f [int]$step) |
+    Where-Object { $_.Name -notlike '*.local.md' } | Select-Object -First 1
+if ($null -ne $activeRule) {
+    $opening = @(Get-Content -LiteralPath $activeRule.FullName -Encoding utf8 | Where-Object { $_.Trim().Length -gt 0 } | Select-Object -First 12)
+    Write-Host ("require-active-step: step {0} is armed; the rules as printed ({1} lines, opening repeated here):" -f $step, (Get-Content -LiteralPath $activeRule.FullName).Count)
+    $opening | ForEach-Object { Write-Host "  | $_" }
+}
+
 exit 0

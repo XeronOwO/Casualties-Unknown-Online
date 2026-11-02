@@ -235,3 +235,23 @@ seeded through `wound-seed limb=5 force=60` (pain 19.2): `medical-open` answered
 sleeping teammate. The treatment itself needs the drag gesture, whose real shape is on
 `cross-player-drag-use-feedback`: `iteminteract` = Mouse1, `HandleStartDragging` clears `dragItem` before picking up, and a CUO window
 left open lays its input blocker over the limb images.
+## The row's core is read on a sleeping target (2026-11-03, 01:20)
+
+A target that stays asleep needed a wound that neither bleeds nor hurts: shrapnel does neither. Sequence, all read from the
+patient's own client:
+
+    body-force energy=15 + body-sleep        canTakeNap=true, sleeping=true, energy 15.5
+    seed-shrapnel limb=5 count=2             shrapnel=2, skin=100, bleed=0, pain=0   (sleeping stays true)
+    operator: medical-open + drag a bandage -> minigame-live: BandageMinigame
+    patient, right after the drag            sleeping=true
+
+So a treatment aimed at a sleeping teammate does NOT wake them and does start the game's own treatment - the row's claim, measured
+from both sides.
+
+Two combination facts that bound the remaining rows, each read rather than assumed:
+
+- **A bleeding wound wakes the body.** `wound-seed limb=10 force=200` gave `skin=14.2, bleed=12.3` and the patient's `sleeping`
+  flipped to false at the next read; a re-nap with `canTakeNap=true` still ended awake while the limb was bleeding 11.9/s.
+- **A shrapnel-only limb has nothing for a bandage to act on** (skin 100, bleed 0), so the bandage minigame runs to completion with the
+  limb unchanged. The "patient's client shows the applied state" half therefore needs a wound the bandage treats and the body sleeps
+  through - a bone break plus a splint is the obvious next candidate, and it is a fixture, not a capability.

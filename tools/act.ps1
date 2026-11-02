@@ -42,10 +42,14 @@ $sha = (Get-FileHash -LiteralPath $committed.FullName -Algorithm SHA256).Hash.Su
 $marker = Join-Path $repo $MarkerPath
 $dir = Split-Path -Parent $marker
 if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
-Set-Content -LiteralPath $marker -Encoding utf8 -Value @(
-    "# written by tools/act.ps1 - the marker require-active-step.ps1 demands"
-    ('{0}|{1}|{2}' -f $Step, $sha, [datetime]::UtcNow.ToString('o', [System.Globalization.CultureInfo]::InvariantCulture))
-)
+# The marker accumulates: a round walks several steps, and each one stays armed for the window. One entry per line, newest last.
+$entries = @()
+if (Test-Path -LiteralPath $marker) {
+    $entries = @(Get-Content -LiteralPath $marker -Encoding utf8 | Where-Object { $_ -and $_ -notmatch '^#' -and $_ -match '^\d+\|' })
+}
+$entries = @($entries | Where-Object { $_ -notmatch ('^{0}\|' -f $Step) })
+$entries += ('{0}|{1}|{2}' -f $Step, $sha, [datetime]::UtcNow.ToString('o', [System.Globalization.CultureInfo]::InvariantCulture))
+Set-Content -LiteralPath $marker -Encoding utf8 -Value (@('# written by tools/act.ps1 - the marker require-active-step.ps1 demands') + $entries)
 Write-Host "act: step $Step is armed ($sha); build, deploy and the acceptance driver accept it for 45 minutes."
 
 # The commit hook's record, written here because this is the command that printed the files: one entry point, two gates armed.

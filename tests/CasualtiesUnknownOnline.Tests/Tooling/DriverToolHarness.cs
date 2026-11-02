@@ -17,7 +17,7 @@ internal static class DriverToolHarness
 	internal static RunResult Run(params string[] arguments)
 	{
 		var script = FindScript();
-		var parts = new List<string> { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", Quote(script) };
+		var parts = new List<string> { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", Quote(script), "-NoStepGate" };
 		parts.AddRange(arguments);
 
 		var startInfo = new ProcessStartInfo("powershell.exe", string.Join(" ", parts))

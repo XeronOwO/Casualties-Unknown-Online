@@ -101,6 +101,9 @@ param(
 	[int]$TimeoutMs = 30000,
 	[int]$RetryDelayMs = 100,
 	[switch]$ListActions,
+	# The tool's own black-box tests pass this: they drive fake endpoints, never a game, and the step gate belongs to the act of
+	# driving one. Nothing else may pass it.
+	[switch]$NoStepGate,
 	[string]$JsonPath
 )
 
@@ -108,7 +111,7 @@ $ErrorActionPreference = 'Stop'
 
 # The step gate: driving the game is step 13 work, and it does not run unless that step's rules were printed by tools/act.ps1 in this
 # window. `-ListActions` is exempt: it answers help, it touches no client.
-if (-not $ListActions) {
+if (-not $ListActions -and -not $NoStepGate) {
 	& (Join-Path (Split-Path -Parent $PSScriptRoot) 'require-active-step.ps1') -Steps 13
 	if ($LASTEXITCODE -ne 0) { exit 1 }
 }

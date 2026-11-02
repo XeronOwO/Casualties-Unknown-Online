@@ -29,45 +29,46 @@ if (-not (Test-Path -LiteralPath $marker)) {
     exit 1
 }
 
-$line = (Get-Content -LiteralPath $marker -Encoding utf8 | Where-Object { $_ -and $_ -notmatch '^#' } | Select-Object -First 1)
-$parts = $line -split '\|'
-if ($parts.Count -lt 3) {
-    Write-Host "require-active-step: REFUSED - the active-step marker is malformed ($line)."
+$entries = @(Get-Content -LiteralPath $marker -Encoding utf8 | Where-Object { $_ -and $_ -notmatch '^#' -and $_ -match '^\d+\|' })
+if ($entries.Count -eq 0) {
+    Write-Host "require-active-step: REFUSED - the active-step marker carries no step entry."
     exit 1
 }
 
-$step = $parts[0]
-$sha = $parts[1]
-$stamp = [datetime]::Parse($parts[2], [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)
-$age = ([datetime]::UtcNow - $stamp.ToUniversalTime()).TotalMinutes
+# A round walks several steps, so the marker accumulates one entry per step: accept the first entry that names an accepted step, is
+# fresh, and still matches its rule file.
+$matched = $false
+$reason = ''
+foreach ($line in $entries) {
+    $parts = $line -split '\|'
+    if ($parts.Count -lt 3) { $reason = "malformed entry ($line)"; continue }
 
-if ($accepted -notcontains $step) {
-    Write-Host "require-active-step: REFUSED - step $step is active, this action belongs to step(s) $Steps."
+    $step = $parts[0]
+    $sha = $parts[1]
+    $stamp = [datetime]::Parse($parts[2], [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)
+    $age = ([datetime]::UtcNow - $stamp.ToUniversalTime()).TotalMinutes
+
+    if ($accepted -notcontains $step) { $reason = "step $step is armed, this action belongs to step(s) $Steps"; continue }
+    if ($age -gt $MaxAgeMinutes) { $reason = ("step {0} was printed {1:N0} minutes ago (limit {2})" -f $step, $age, $MaxAgeMinutes); continue }
+
+    $rule = Get-ChildItem -LiteralPath (Join-Path $repo 'docs/development/rules') -Filter ('{0:D2}-*.md' -f [int]$step) |
+        Where-Object { $_.Name -notlike '*.local.md' } | Select-Object -First 1
+    if ($null -eq $rule) { $reason = "step $step has no rule file"; continue }
+
+    # .NET hashing, not Get-FileHash: under MSBuild's `powershell` the cmdlet is absent and the gate failed for the wrong reason
+    # (measured 2026-11-03: the build reported MSB3073 with "Get-FileHash is not recognized").
+    $bytes = [System.IO.File]::ReadAllBytes($rule.FullName)
+    $sha256 = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+    $current = ([System.BitConverter]::ToString($sha256) -replace '-', '').Substring(0, 12)
+    if ($current -ne $sha) { $reason = "step $step rules changed after they were printed (printed $sha, now $current)"; continue }
+
+    $matched = $true
+    break
+}
+
+if (-not $matched) {
+    Write-Host "require-active-step: REFUSED - $reason"
     Write-Host "    powershell -ExecutionPolicy Bypass -File tools/act.ps1 -Step $($accepted[0])"
-    exit 1
-}
-
-if ($age -gt $MaxAgeMinutes) {
-    Write-Host ("require-active-step: REFUSED - the step {0} print is {1:N0} minutes old (limit {2})." -f $step, $age, $MaxAgeMinutes)
-    Write-Host "    powershell -ExecutionPolicy Bypass -File tools/act.ps1 -Step $step"
-    exit 1
-}
-
-$rule = Get-ChildItem -LiteralPath (Join-Path $repo 'docs/development/rules') -Filter ('{0:D2}-*.md' -f [int]$step) |
-    Where-Object { $_.Name -notlike '*.local.md' } | Select-Object -First 1
-if ($null -eq $rule) {
-    Write-Host "require-active-step: REFUSED - step $step has no rule file."
-    exit 1
-}
-
-# .NET hashing, not Get-FileHash: under MSBuild's `powershell` the cmdlet is absent and the gate failed for the wrong reason (measured
-# 2026-11-03: the build reported MSB3073 with "Get-FileHash is not recognized").
-$bytes = [System.IO.File]::ReadAllBytes($rule.FullName)
-$sha256 = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
-$current = ([System.BitConverter]::ToString($sha256) -replace '-', '').Substring(0, 12)
-if ($current -ne $sha) {
-    Write-Host "require-active-step: REFUSED - the step $step rules changed after they were printed (printed $sha, now $current)."
-    Write-Host "    powershell -ExecutionPolicy Bypass -File tools/act.ps1 -Step $step"
     exit 1
 }
 

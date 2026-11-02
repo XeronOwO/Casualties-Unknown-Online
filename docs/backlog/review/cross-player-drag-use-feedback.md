@@ -759,3 +759,23 @@ What that exposed is the next gap, and it is on the ARMING side: `drag-start` fi
 `PlayerCamera.main.body.GetAllItemsThorough()` (`Body.cs:532`) answered an EMPTY list on a body the console had just given four
 items to (`Gave bandage … in slot 0`), while an earlier call in the same session listed a `trashbag` - so the walk itself, not the
 drag, is what the next batch has to fix before a treatment row can be read.
+## The drag now reaches the game end to end (2026-11-03, 00:40)
+
+With `DragInputPatch` deployed, the arming recipe fixed, and the CUO window closed (its input blocker otherwise sits over the limb
+images), one staged gesture produced the game's own treatment:
+
+    pointer at the limb image   ui-hits: Torso (5) > Head (1) > ArmR (2) > Limbs
+    iteminteract down           (Mouse1)
+    drag-start type=bandage     armed, host carried bandage|trashbag|lantern|dogfood|waterbottle
+    iteminteract up             ->
+    host log                    [MedicalView] started remote Bandage minigame for 76561198863287957 limb 5 (item bandage).
+                                [MedicalOps3] started Bandage operation 1: 76561198281246659 -> 76561198863287957
+
+So the staged drag opens the real remote treatment: the release reached `ApplyWoundItem`, CUO routed it to the patient, and the
+game started its own bandage minigame (a minigame, not an instant apply - which is why the limb's `skinHealth` does not move at the
+release).
+
+What is left for the row is playing that minigame: `BandageMinigame.PhysicsUpdate` grows `bandageAngle` only while `holdingBandage`,
+and `holdingBandage` is true when the hand's direction is within ~25 degrees of the roll (`Vector2.Dot(GetVectorFromAngle(bandageAngle),
+handPos.normalized) > 0.9`), with `didWrap` at a full 360 degrees. That is a CIRCULAR pointer path, not the straight shake the
+amputation used - the next fixture.

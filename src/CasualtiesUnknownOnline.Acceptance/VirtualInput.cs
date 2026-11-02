@@ -199,8 +199,10 @@ internal static class VirtualInput
 			}
 		}
 
+		report.Add(DragInputPatch.Install(harmony));
+
 		// The game's key-bind capture is its own file: it needs TWO methods replaced (the coroutine's builder and its state machine),
-		// which is a different story from the three call sites above.
+		// which is a different story from the call sites above.
 		report.Add(KeybindCapturePatch.Install(harmony));
 
 		_harmony = harmony;

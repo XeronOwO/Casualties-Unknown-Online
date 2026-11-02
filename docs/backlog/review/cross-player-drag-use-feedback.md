@@ -796,3 +796,24 @@ copy).
 A second run (wound re-seeded at `skin=6.958` mid-session) ended with `skin=7.052, bleed=12.667` - the bandage's condition was spent
 over twelve turns without moving the skin, which is the game's own accounting (the minigame's `OnUse(0.0555)` spends the item, and a
 badly damaged limb needs more than one bandage). That is a row for the treatment-cost ticket, not a defect in the drag path.
+## The cue's own gate, and the wall in front of it (2026-11-03, 02:10)
+
+`DragUseCuePolicy.Decide` needs five facts before it names anybody: session active, a dragged item, the `iteminteract` bind HELD, the
+item's family eligible, and a target resolved from the DISPLAYED backpack (`DragUseCuePolicy.cs` - "the target here is the player whose
+backpack is DISPLAYED, passed only while the pointer is on its centre"). The reading tool reports every one of them:
+`drag-cue` answers `showing, targetSteamId, displayName, text, mouseWorldX/Y, backpackOpen, focusedSteamId, centreDistance,
+centreRadius`.
+
+One staged attempt had four of the five and read:
+
+    armed=bandage (bandage is an eligible family)   mouseWorldX=0, mouseWorldY=491.75   (the teammate's own position)
+    centreDistance=81.74   centreRadius=135         (inside the range)
+    showing=false   focusedSteamId=0   backpackOpen=False
+
+`focusedSteamId=0` is the wall: the game sets that focus from its own EventSystem raycast over the teammate's body/backpack, and a
+staged `Input.mousePosition` never reaches it - Unity's `EventSystem` reads the pointer through its input module, not through `Input`.
+That is the same reason `ui-hits` (which raycasts with an explicit position) works while the game's own hover does not fire.
+
+So rows 1, 5, 6 and 7 need one more instrument: a staged pointer that the game's EventSystem sees. Until then the drag path itself is
+read end to end (the release opens the real treatment, and the patient's client shows the effect), and the CUE half is blocked on that
+instrument rather than on the product.

@@ -1,6 +1,7 @@
 # An item cannot be used on a sleeping teammate
 
-- Status: Review — implemented 2026-10-26; the per-family rows need a live session — opened 2026-10-25 from the user's report (translated): "the guest is asleep — why can I not use items on them?".
+- Status: Review — the sleeping state itself is now readable (`SleepingPills` + `TakeANap` in ONE eval gives `sleeping=true`, and the panel opens on that target: `medical-open` `opened=true`, a bandage call `ok=true`), but the treatment rows still need a target that is asleep AND wounded inside one call sequence, and row 2's refusal line needs a target the panel actually refuses. Both are the next batch's fixture; the routes that do NOT produce a sleeping target are tabulated on the ticket with their numbers.
+
 - Priority: Medium
 - Category: Cross-player item use / target gate
 - Source: user report (2026-10-25). The measured refusal: `[ItemUse] refused: 76561198863287957 is unconscious and cannot …` and the
@@ -196,3 +197,25 @@ What the fixture therefore needs is a nap surface, not another field: the readab
 `item-census mode=all` lists **`sleepingbag`** (the nap surface the gate wants). A give-then-use attempt did not place it: `/give sleepingbag` on the opped guest answered its line, and `item-use type=sleepingbag aim-x,aim-y` answered null (the recipe refused — its own argument contract carries no `mode`, and the use itself returned nothing), while `type-members` a moment later still read `usingSleepingBag=False, canTakeNap=False, sleeping=False`.
 
 So the fixture is one call away from being readable and its shape is now exact: place a sleeping bag through the game's own use path (the `item-use` recipe's own contract), then read `canTakeNap` and `sleeping` in the same `type-members` call. Both fields are on the instrument already.
+## What a sleeping target costs to produce, measured (2026-11-02, 23:55)
+
+The rows need a target that is ASLEEP and WOUNDED at the same time. The second half is easy (`limb-infect`); the first half is where
+this session went, and the numbers are worth recording because every route to "asleep" behaves differently:
+
+| route | what happened |
+|---|---|
+| `energy < 35` | `Body.canTakeNap` is `energy < 35 && averagePain < 31 && sicknessAmount < 80` (`Body.cs`), but `energy` is host-authoritative here and regenerates faster than a call round trip: forcing `energy=8` read back `79` a second later |
+| `SleepingPills` + `TakeANap` in ONE eval | **works**: `canTakeNap=true`, `sleeping=true`, `consciousness=10` - the nap coroutine (`Body.cs`, `NapCoroutine`) sets it about 2 s after the call |
+| the same, in TWO calls | never starts: the host's apply removes the component between the calls |
+| the nap left running | does not HOLD: `consciousness` climbed 12.9 -> 20.5 -> 25.9 -> 31.3 across five one-second reads with `sleeping` false the whole time |
+| writing `sleeping = true` directly | reverted inside one frame - the game owns the state machine, not the field |
+| a `sleepingbag` (`item-use type=sleepingbag`) | `eval-error`: not a usable item through that path on this build |
+
+With the one working route, the panel half was read: while the target was asleep, `medical-open` answered `opened=true,
+nativeOpen=true` and `limb-use type=bandage mode=apply` answered `ok=true` with the limb field naming the head (the panel's own limb label is localized, so it is not quoted here) - the panel opens on a sleeping teammate. But the
+target's skin was 100 and it carried no wound, so the treatment rows had nothing to act on, and the refusal line this ticket is about
+never appeared.
+
+**What is missing, precisely**: a target that is asleep AND wounded in the window of one call sequence, plus the operator's refusal
+line of row 2 - which needs a target that the panel actually refuses. Neither is a user capability; both are the next batch's
+fixture, and the one-call nap above is the piece that works.

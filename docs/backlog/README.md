@@ -123,7 +123,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
-- [Two native DamageBlock callers stay unhooked](review/unhooked-damage-block-callers.md) — **Low-Medium** — crush + burrow coverage; the echo is fixed.
 
 ### Future
 
@@ -155,6 +154,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Damage callers that skip the report](done/unhooked-damage-block-callers.md) — **Low-Medium** — judged; partial damage converges.
 - [Trade domain dual-side runtime](done/trade-domain-dual-side-runtime.md) — **High** — judged; the revive's snapshot carries it.
 - [Sounds whose native call is suppressed](done/suppressed-native-call-sounds-stay-unheard.md) — **Low** — judged; the peer now plays the native gore.
 - [The opener can claim a key the game is rebinding](done/enter-opener-keybind-capture.md) — **Low-Medium** — judged by staged keys.

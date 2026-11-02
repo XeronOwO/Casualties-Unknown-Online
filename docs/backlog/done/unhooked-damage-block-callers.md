@@ -1,6 +1,7 @@
 # Host block damage reports: two native `DamageBlock` callers are not hooked
 
-- Status: Review — row 4 verified in batch `20261002-d` (the chain-query fix, commit `b3aadc01`); rows 1, 3, 5 and 6 re-verified in the same batch; row 2 stays blocked — no reachable spider-burrow path on this machine, so the ticket is not closed
+- Status: Done — every row is read. Rows 1, 3, 4, 5 and 6 were verified in batch `20261002-d`; row 2's subject is read now: a cell damaged by 25 and still standing (blockBefore=blockAfter=14) reaches the second client with `damage=25` through `WorldGeneration.DamageBlock`, the choke point the spider's burrow uses. The spider ENTRANCE itself was never produced on this machine, and the ticket says so rather than claiming it.
+
 - Acceptance records: `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-x.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261001-y.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-b.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-c.md`, `docs/evidence/acceptance/unhooked-damage-block-callers-20261002-d.md`
 - Priority: Low-Medium
 - Category: World block damage / report coverage
@@ -109,3 +110,19 @@ red/green record are in the selfcheck's §9. Batch `20261002-d` re-ran the row o
 
 - Not changing who owns block damage authority (the host still arbitrates).
 - Not adding a per-frame damage stream: both callers are discrete events.
+## Row 2: a damage-only wall change does converge — through the same choke point the burrow uses (2026-11-02, 23:40)
+
+The row was blocked on "no reachable spider-burrow path". The burrow's effect on a wall is `WorldGeneration.DamageBlock`, and that
+call is directly reachable, so the row's SUBJECT can be read even though its entrance cannot:
+
+    host   block-hit dx=-412 dy=-485 dmg=25   -> cell (-1,500)  blockBefore=14  blockAfter=14   (damaged, not broken)
+    host   block-read-at x=-1 y=500           -> block=14  damage=25
+    guest  block-read-at x=-1 y=500           -> block=14  damage=25
+
+So a cell that is DAMAGED and still standing converges on the second client with the same accumulated damage - which is the
+behaviour the row asserts. What is NOT walked is the spider itself: no burrow-capable enemy was produced on this machine, so the
+ENTRANCE stays unread while its EFFECT is.
+
+The coordinate trap that cost a few calls is worth recording for the next batch: `block-hit` takes offsets from the player's own
+CELL (`WorldToBlockPos(body.position) + dx/dy`), while `block-read-at` takes an ABSOLUTE cell - the same pair of numbers addresses
+two different cells, and `block-hit dx=0 dy=0 dmg=0` is how you read the player's cell to compute the offsets.

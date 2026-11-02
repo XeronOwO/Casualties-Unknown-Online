@@ -84,10 +84,12 @@ $touched = [System.Collections.Generic.SortedSet[int]]::new()
 $touched.Add(11) | Out-Null   # every commit is step 11
 foreach ($file in $changed) {
     $f = $file -replace '\\', '/'
-    if ($f -like 'src/*') { $touched.Add(7) | Out-Null }
+    # A source change is implemented AND verified on the real thing, so it walks both steps. Measured 2026-11-03: rounds that changed
+    # `src/` read step 7 and never step 8, while making deploy-and-run claims - the mapping, not the diligence, was the hole.
+    if ($f -like 'src/*') { $touched.Add(7) | Out-Null; $touched.Add(8) | Out-Null }
     if ($f -like 'tests/*') { $touched.Add(7) | Out-Null; $touched.Add(8) | Out-Null }
     if ($f -like 'docs/design/*') { $touched.Add(2) | Out-Null }
-    if ($f -like 'tools/*') { $touched.Add(13) | Out-Null }
+    if ($f -like 'tools/*') { $touched.Add(13) | Out-Null; $touched.Add(8) | Out-Null }
     if ($f -like 'docs/backlog/*') { $touched.Add(12) | Out-Null }
 }
 

@@ -1,15 +1,12 @@
 // recipe: keybind-read
-// args: action=s
-// serves: cross-player-drag-use-model-bounds (opening the bag the drag starts from, without guessing the bind)
-// returns: ok, action, keyCode, keyName, error, detail
+// args: action=iteminteract
+// returns: ok, action, bind, error, detail
 //
-// Answers what the game's OWN key-bind cache holds for a named action, so a batch presses the key the player's settings
-// actually bound instead of a guessed virtual-key code. The value is the game's: `KeyBinds.GetBind` reads the cache the
-// settings UI fills, and `KeyCode`'s integer is the value the in-process key bridge needs.
+// Reads the CURRENT binding through the game's own table (`KeyBinds.GetBindName`, KeyBinds.cs: cache of the settings' bindings).
+// Needed because the drag gesture is not a mouse button: `HandleDragging` (PlayerCamera.cs:1354-1363) reads
+// `Input.GetKeyDown/GetKeyUp(KeyBinds.GetBind("iteminteract"))`, so a staged drag has to press THAT key.
 ((System.Func<string>)(() => {
-	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var action = {{s:action}};
-	var code = KeyBinds.GetBind(action);
-	return "{\"ok\":true,\"action\":\"" + action + "\",\"keyCode\":" + ((int)code).ToString(inv)
-		+ ",\"keyName\":\"" + code.ToString() + "\"}";
+	var bind = KeyBinds.GetBindName(action);
+	return "{\"ok\":true,\"action\":\"" + action + "\",\"bind\":\"" + bind + "\"}";
 }))()

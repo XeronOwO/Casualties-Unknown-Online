@@ -219,3 +219,19 @@ never appeared.
 **What is missing, precisely**: a target that is asleep AND wounded in the window of one call sequence, plus the operator's refusal
 line of row 2 - which needs a target that the panel actually refuses. Neither is a user capability; both are the next batch's
 fixture, and the one-call nap above is the piece that works.
+### Correction and the working fixture, same hour (2026-11-03, 00:05)
+
+The table above said the nap "does not hold". **That was wrong, and the cause is worth keeping**: a nap ends when energy is full, and
+every `/heal` in this session had set energy to 100. With energy forced low FIRST, the nap holds:
+
+    body-force energy=20   ->  body-sleep (pills + TakeANap in one eval)
+    t+1 s  sleeping=False energy=19.8 consciousness=83.3
+    t+2 s  sleeping=True  energy=20.2 consciousness=10
+    t+3 s  sleeping=True  energy=20.7 consciousness=10
+    t+4 s  sleeping=True  energy=21.3 consciousness=10
+
+So a sleeping target is a two-step fixture (low energy, then the one-call nap), not an impossible one. On that target, with a wound
+seeded through `wound-seed limb=5 force=60` (pain 19.2): `medical-open` answered `opened=true, nativeOpen=true` - the panel opens on a
+sleeping teammate. The treatment itself needs the drag gesture, whose real shape is on
+`cross-player-drag-use-feedback`: `iteminteract` = Mouse1, `HandleStartDragging` clears `dragItem` before picking up, and a CUO window
+left open lays its input blocker over the limb images.

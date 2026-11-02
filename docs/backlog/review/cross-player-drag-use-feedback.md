@@ -725,3 +725,19 @@ So the staged key plus a pointer verifiably on the slot still does not produce a
 So the wheel''s main-hand slot IS a raycast target and the game''s own raycast finds it under our staged pointer; `inv-slots` had already listed a `bandage` widget at that same pixel. The chain is therefore correct up to and including the raycast, and what does not fire is `HandleDragging`''s `Input.GetKeyDown(KeyBinds.GetBind("iteminteract"))` — repeated fast reads after `virtual-key key=Mouse1 down=1` still answer `dragItem=''` on three consecutive frames.
 
 That is the last unknown in this chain and it is now a single question: whether the virtual key''s staged frame lands on a `PlayerCamera.Update` frame at all (the pointer''s staged value persists across frames, the key''s does not appear to).
+## The drag gesture, read from the code instead of guessed (2026-11-02, 23:45)
+
+Three things this session learned that make the earlier "staged drag did nothing" reading a fixture defect rather than a product one:
+
+1. **The drag is not a mouse button; it is the `iteminteract` binding** - `PlayerCamera.HandleDragging` (`PlayerCamera.cs:1354-1363`)
+   reads `Input.GetKeyDown`/`GetKeyUp(KeyBinds.GetBind("iteminteract"))`, and on this build that binding resolves to **Mouse1**
+   (`keybind-read action=iteminteract` answered `Mouse1`). Every earlier attempt staged the left button.
+2. **The start clears the drag**: `HandleStartDragging` (`:1363+`) sets `dragItem = null` and only then picks up from the UI under the
+   pointer, so arming `dragItem` BEFORE the key-down is wiped. The working order is: key down, then arm, then key up.
+3. **A CUO window over the game's wound view eats the pointer**: with the CUO window open, `ui-hits` listed
+   `CUO Online UI Window > CUO Online Input Blocker > Torso (5) > …`; closing the window left `Torso (5) > Head (1) > ArmR (2) > Limbs`.
+   So a remote-medical session that keeps the CUO window open cannot receive a drag onto a limb at all.
+
+With those fixed the release still did not treat the sleeping teammate's arm (`limb-read` skin stayed 100), so the remaining gap is on
+the receive side: whether `TryPerformUIActions` reaches CUO's remote-limb drop for a `bandage`. That is where the next batch starts,
+and it is the same instrument `use-on-sleeping-target-refused` needs.

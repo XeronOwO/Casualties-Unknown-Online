@@ -71,6 +71,10 @@ be faked:
 - a `Get-Content … | Select-Object -First N`, a head, a tail, or a grep of the headings is NOT a read — it is a quote of the
   rule, and a quote is what someone who already knows the rule writes. Measured 2026-11-02: many consecutive rounds printed
   three lines of a 104-line step file, then cited that file correctly. The read never happened.
+- **Piping the step printer is the same fake.** `tools/step.ps1 -Enter <n> | Select-Object -Last 2` prints the file and then
+  throws all of it away: the transcript shows two lines and the round looks compliant. Measured 2026-11-03, by the user: every
+  round for more than a day used that exact shape, so step 0 had not actually been read once. The command is called BARE -
+  `powershell -ExecutionPolicy Bypass -File tools/step.ps1 -Enter <n>` - and its whole output is the evidence.
 - if the first call did anything else, the round has not started: stop, make the read, and only then touch the repository.
 - if the read''s output does not reach the last line, it was truncated: repeat it before anything else.
 

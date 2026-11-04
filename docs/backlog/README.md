@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Move the acceptance input channel out](todo/move-acceptance-input-out-of-the-build.md) — **Medium-High** — its own plugin; production carries none.
 - [Split the body-verb service](todo/split-the-body-verb-service.md) — **Medium** — 619 aggregate lines; the debt ledger names it.
 
 
@@ -153,6 +152,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Move the acceptance input channel out](done/move-acceptance-input-out-of-the-build.md) — **Medium-High** — the type split; one install report.
 - [Use on a sleeping target](done/use-on-sleeping-target-refused.md) — **Medium** — judged; treatment lands without waking.
 - [Damage callers that skip the report](done/unhooked-damage-block-callers.md) — **Low-Medium** — judged; partial damage converges.
 - [Trade domain dual-side runtime](done/trade-domain-dual-side-runtime.md) — **High** — judged; the revive's snapshot carries it.

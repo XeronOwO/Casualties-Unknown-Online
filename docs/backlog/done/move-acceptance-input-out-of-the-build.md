@@ -1,8 +1,9 @@
 # Move the acceptance input channel out of the shipped mod
 
-- Status: Todo — decided by the user on 2026-11-02: the acceptance input channel is split into its own plugin and removed
-  from the game's production build. `VirtualInput` is 616 aggregate lines and sits in the shipped adapter today; the debt
-  ledger names this ticket until the extraction lands.
+- Status: Done — the extraction and the type split both landed, and every row was read on the deployed `0.1.0+e37af116`
+  (batches `20261104-a/b/c`, 2026-11-04): the production install carries no channel, the batch install's report is
+  byte-identical to the pre-change one (`identical=True`, 532 characters) with the two types at 290 + 394 lines, and
+  `docs/architecture-debt.json` no longer names this ticket. Decided by the user on 2026-11-02.
 - Priority: Medium-High (production cleanliness: release players currently carry a few hundred lines that only a batch uses)
 - Category: Build / packaging / acceptance tooling
 - Source: user direction, 2026-11-02 — "split it into a separate plugin and remove it from the game's production build".
@@ -34,16 +35,21 @@ split on the install.
   `docs/design/audit/sweep.md` reads 8 files for `CasualtiesUnknownOnline.Acceptance`.
 - [x] **Step 4 — build and the full suite.** Evidence: the build's summary and the suite's `Passed!` counts. — build
   0 warnings / 0 errors; `CasualtiesUnknownOnline.Tests` 6596 passed / 0 failed; the gates project 811 passed / 0 failed.
-- [ ] **Step 5 — the production install carries no channel.** `tools/deploy.ps1 -GameDir <dir>` prints its removal line
-  and the installed plugin folder answers `Test-Path` False for the channel's DLL.
-- [ ] **Step 6 — the batch install answers the same report.** `tools/deploy.ps1 -Acceptance`, one client launched, and
+- [x] **Step 5 — the production install carries no channel.** `tools/deploy.ps1 -GameDir <dir>` prints its removal line
+  and the installed plugin folder answers `Test-Path` False for the channel's DLL. — `removed the batch channel
+  CasualtiesUnknownOnline.Acceptance.dll (production install)` and `Test-Path` False; the production client answered
+  `ping` (`plugin=true, overlay=true`) and `state`.
+- [x] **Step 6 — the batch install answers the same report.** `tools/deploy.ps1 -Acceptance`, one client launched, and
   `drive-in-process -Action recipe -Recipe virtual-input -RecipeArg mode=install` printing the same segments with the
-  same replacement counts as the pre-change run.
-- [ ] **Step 7 — one input row, judged the same way.** A staged key drives the game's own key-bind capture
-  (`keybind-capture-state` / `keybind-read`), the row `done/enter-opener-keybind-capture.md` used.
-- [ ] **Step 8 — the record.** Rows 1-4 below filled with those readings, the ticket moved to `done/`, its index row
+  same replacement counts as the pre-change run. — byte-identical, 532 characters, `identical=True`; the pointer staged
+  at `(640,360)` read back as `(640,360)`.
+- [x] **Step 7 — one input row, judged the same way.** A staged key drives the game's own key-bind capture
+  (`keybind-capture-state` / `keybind-read`), the row `done/enter-opener-keybind-capture.md` used. — a staged click left
+  `captureWaiting=true` with the throw row reading `...`; a staged `F5` turned it `false` and the game's own table answered
+  `throw → F5`; the cropped frames carry both halves.
+- [x] **Step 8 — the record.** Rows 1-4 below filled with those readings, the ticket moved to `done/`, its index row
   moved, and the sweep and triage pages updated in the same commit. Fails = the ticket stays in `todo/` with the failing
-  row named.
+  row named. — done in this commit; the triage page lists `review/` tickets only and never carried this one.
 
 ## Design
 
@@ -119,3 +125,52 @@ The split landed and its first three rows read on the real install:
 - The stale-DLL sweep had to learn the new file name, or a batch deploy would copy it and then delete it in the same run (the first attempt did exactly that).
 
 One row is open, and it is a line-count question rather than a packaging one: the moved type is still 616 aggregate lines, so the debt ledger has to keep naming it until the type itself is split. That is this ticket's remaining work.
+
+## Where it stands (2026-11-04): the type is split, and every row read on the deployed artifact
+
+Batches `20261104-a` (pre-change baseline), `20261104-b` (production install) and `20261104-c` (acceptance install), on
+`0.1.0+e37af116`; `verify-deploy.ps1` confirmed the artifact before any row ran (`delivered artifact: 0.1.0+e37af116…`,
+exit 0).
+
+| # | Row | Verdict | The reading |
+|---|---|---|---|
+| 1 | a production deploy | pass | removal line printed, `Test-Path` False, the production client answered `ping` and `state` |
+| 2 | an acceptance launch | pass | install report byte-identical (532 characters), pointer `(640,360)` read back, capture `true` -> `false` on a staged `F5` |
+| 3 | the console | pass | `commands=14` and the same eight names on both installs |
+| 4 | the gates | pass | `604` lines before the split, `290 + 394` after; 811 gates and 6596 tests pass |
+
+### Row 2, in full
+
+The post-change install report is byte-identical to the pre-change one captured on `94345286`: 532 characters each,
+`identical=True`, and every segment present with its own count —
+
+    mousePosition: patched (managed body)
+    GetMouseButton / GetMouseButtonDown / GetMouseButtonUp: patched (no IL body — native backend)
+    PlayerCamera.HandleInput: patched, 26 call(s) replaced, target PlayerCamera#100665115, applied yes
+    MinigameBase.UpdateHandVisuals: patched, 3 call(s) replaced
+    PlayerCamera.HandleDragging: patched, 2 call(s) replaced
+    SettingsMenu.WaitForKeyPress: patched, 0 call(s) replaced in the builder, 1 in the state machine
+
+with `installed=True, buttonPatches=3`. The staged pointer at `(640,360)` read back as `Input.mousePosition (640,360)`
+(before and after the split), and the answering census after the run read `keyQueries=4668237, keyDownAnswers=2,
+handleInputReplacements=1, buttonQueries=1636599, buttonDownAnswers=16` — the counters a recipe reads still measure the
+game's own asks from the split's type.
+
+### The key-bind row, judged as before
+
+`settings-open` put the game's own `SettingsMenu` on its Controls tab (`parent="Canvas"`, `active=true`), a staged press
+inside the throw row's rect started the capture (`captureWaiting=true`, the row reading `...`), and a staged `F5` turned
+it `false` with the game's own binding table answering `throw -> F5`. The cropped frames carry the pair
+(`20261104-c/row-waiting-wide.png`, `20261104-c/row-f5-wide.png`), and no CUO console panel appears on either.
+
+**One side effect, checked rather than assumed.** The capture writes the bound key into the game's live settings, so the
+batch's two gestures changed the throw bind in that client's memory (first `Return`, then `F5`). The game's own
+`settings.json` was read afterwards: mtime still 2026-10-23 22:33 and `throw` still `116`, so nothing the batch staged
+persisted and the user's configuration is as it was.
+
+### Limits this stage leaves
+
+- The first `settings-open` on a client that has no menu throws (the working order is `tab=-1` first, then the tab call);
+  it is recorded in `docs/acceptance/lessons.md` rather than left for the next batch to rediscover.
+- `PlayerCamera.HandleInput` was entered 0 times in this batch, because it ran before any world: the call-site
+  replacement is proven by its own count (`26 call(s) replaced`) and by the key-bind capture, not by an in-world key.

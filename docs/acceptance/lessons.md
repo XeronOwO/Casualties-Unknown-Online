@@ -510,10 +510,6 @@ A row whose production path starts with a pointer-resolved target is not stageab
 
 One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:1042-1067`) and still emits four `[LayerReset]` lines — the item and world resets fire at the generation's START and again at its END — so a "second advance ~9 s later" read off a census of that prefix is the same advance counted twice; count the host's `[GenStream] done` lines, or read the decompiled command, before calling a change consecutive — `docs/evidence/acceptance/layer-change-member-recovery-20261025-a.md` (What this batch also corrected).
 
-## 2026-10-20 — A ticket's "the driver cannot drag" note is stale: the committed release recipe IS the lever
-
-`remote-gesture mode=release` stages `dragItem`, `clickPos` and one `uiCasts` entry and invokes the game's own `HandleReleaseDragging`, so a ring-slot release needs no OS pointer — read the recipe's modes before planning around a ticket's missing-mouse note, open the remote view first (`mode=open`), take the cast index from `mode=list`'s own button table (slot and occupant), then drive the release — `docs/evidence/acceptance/container-content-event-gap-on-repick-20261025-b.md`.
-
 ## 2026-10-20 — A per-row log excerpt is a time window, not mark-to-end
 
 `log.ps1`'s `read` returns everything after the mark, so one mark reused for several rows mixes their lines into an earlier row's absence claim — filter the excerpt by the row's own seconds and print its first and last timestamp before citing it (a first count read four divergences in a window that had none) — `docs/evidence/acceptance/container-content-event-gap-on-repick-20261025-b.md`.
@@ -521,5 +517,9 @@ One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:10
 ## 2026-10-21 — A layer-transition screen row needs the native scene probe, not only the frame
 
 `tools/acceptance/recipes/scene-read.cs` answers the native scene/world/generating/loading state a frame cannot separate from the menu — `docs/evidence/acceptance/layer-change-menu-round-trip-20261021-i.md`.
+
+## 2026-11-04 — The settings menu must exist before a tab is selected
+
+`settings-open tab=3` on a client that has no settings menu yet throws a null reference inside the same eval that builds it; call `settings-open tab=-1` first and select the tab in the next call, which then answers `active=true, parent="Canvas", tab=3` and leaves the key-bind rows clickable — `docs/backlog/done/move-acceptance-input-out-of-the-build.md`.
 
 

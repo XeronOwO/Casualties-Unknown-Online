@@ -23,7 +23,9 @@
 // the uiCasts list, then invokes the private PlayerCamera.HandleReleaseDragging the
 // mouse release itself calls (PlayerCamera.cs:1456). CUO's PlayerCameraDragUsePatch
 // brackets exactly that invocation, so a remote display proxy becomes a native intent
-// on the owner and a local item keeps the native local branch.
+// on the owner and a local item keeps the native local branch. A ticket's "the driver
+// cannot drag" note is therefore stale: open the remote view first (mode=open), take the
+// cast index from mode=list's own button table, then drive the release.
 //  - mode=list:    every rendered remote proxy (its RemoteInventoryItemId Id/OwnerSteamId)
 //                  and every InvButton in the scene, in the order cast=<index> names.
 //  - mode=open:    the registered remote-backpack entry for owner (auto = the only other

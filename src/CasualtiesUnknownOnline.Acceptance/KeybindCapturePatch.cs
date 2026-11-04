@@ -64,9 +64,9 @@ internal static class KeybindCapturePatch
 
 	private static int Patch(Harmony harmony, MethodBase target)
 	{
-		VirtualInput.ResetReplacementCount();
-		harmony.Patch(target, transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(VirtualInput.TranspileHandleInput)));
-		return VirtualInput.TakeReplacementCount();
+		InputQueryPatches.ResetReplacementCount();
+		harmony.Patch(target, transpiler: new HarmonyMethod(typeof(InputQueryPatches), nameof(InputQueryPatches.TranspileKeyReads)));
+		return InputQueryPatches.TakeReplacementCount();
 	}
 
 	/// <summary>The method the game declares under this name, when Harmony's lookup does not find it (a private or renamed member).</summary>

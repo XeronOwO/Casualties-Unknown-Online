@@ -58,20 +58,30 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
       change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
+      and the install report's eight segments as what must not alter
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism
+      the split landed, not before it — the ordering miss is recorded, not backdated)
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
       with every difference either fixed or named as a user decision
+      pre-change install report captured on the deployed artifact (`94345286`), compared after this commit by row 2
 - [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
+      `src/` callers (`DragInputPatch`, `KeybindCapturePatch`, `PointerCircle`/`PointerShake`), all preserved
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
+      native backend, `HandleInput` 26 call sites, `UpdateHandVisuals` 3, `HandleDragging` 2, `WaitForKeyPress` 0 + 1
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
+      (619) left recorded under its own open ticket; every other file of the channel is 29-177 lines
 - [ ] Self-check table: mechanism x change x evidence, every cell filled
 - [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
+      capture row; the readings live in the ticket's run sheet
 - [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+      production build
 - [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
+      and the old `TranspileHandleInput` name is gone with the move (`TranspileKeyReads`)
 - [ ] Build + dotnet format + dotnet test normative gates pass
+      suite 6596 passed
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
 
 

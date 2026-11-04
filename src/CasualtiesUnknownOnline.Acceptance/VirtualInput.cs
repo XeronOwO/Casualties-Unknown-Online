@@ -1,8 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 using UnityTime = UnityEngine.Time;
@@ -10,36 +6,46 @@ using UnityTime = UnityEngine.Time;
 namespace CasualtiesUnknownOnline.GameAdapter.Acceptance;
 
 /// <summary>
-/// The acceptance channel's VIRTUAL MOUSE: a Harmony postfix on <c>UnityEngine.Input.mousePosition</c> plus prefixes on the three mouse-button
-/// methods, answering a staged state while a batch has one and the real input otherwise. It exists because OS-level input costs the user a permission
-/// every batch, and because a row that must see a click or a drag the batch cannot produce with a real mouse has no other instrument.
+/// The acceptance channel's VIRTUAL MOUSE AND KEYBOARD: the staged state a batch writes, and the lifecycle that installs and removes
+/// the patches answering the game's own input queries from it.
+///
+/// <para>
+/// It exists because OS-level input costs the user a permission every batch, and because a row that must see a click, a key or a drag
+/// the batch cannot produce with a real device has no other instrument. The answering half lives in
+/// <see cref="InputQueryPatches"/> — the postfix on <c>UnityEngine.Input.mousePosition</c>, the prefixes on the three mouse-button
+/// methods, and the replacement of the game's <c>Input.GetKey*</c> call sites; this type is what a recipe reaches through HotRepl by
+/// the name <c>VirtualInput</c>, so every staged value and every counter a batch reads stays here even where the counter is kept by
+/// the answering side.
+/// </para>
 ///
 /// <para>
 /// WHAT IS PATCHABLE AND WHY (measured on this build's <c>UnityEngine.InputLegacyModule</c>):
-/// <c>mousePosition</c> is a MANAGED getter (<c>Input.get_mousePosition_Injected(out Vector3)</c>) — a body the ordinary managed patcher detours.
-/// <c>GetMouseButton</c>, <c>GetMouseButtonDown</c> and <c>GetMouseButtonUp</c> are <c>extern</c> + <c>[MethodImpl(InternalCall)]</c>: no IL body, which the
-/// managed patcher cannot detour. HarmonyX ships a NATIVE detour backend for exactly that shape, so "no IL" is not a verdict — it is a reason to try the
-/// native path and RECORD what the backend answers. <see cref="Install"/> therefore patches each entry separately and reports per method, so a refusal is
-/// named (which method, which exception) rather than guessed from the absence of a body.
+/// <c>mousePosition</c> is a MANAGED getter (<c>Input.get_mousePosition_Injected(out Vector3)</c>) — a body the ordinary managed patcher
+/// detours. <c>GetMouseButton</c>, <c>GetMouseButtonDown</c> and <c>GetMouseButtonUp</c> are <c>extern</c> +
+/// <c>[MethodImpl(InternalCall)]</c>: no IL body, which the managed patcher cannot detour. HarmonyX ships a NATIVE detour backend for
+/// exactly that shape, so "no IL" is not a verdict — it is a reason to try the native path and RECORD what the backend answers. The
+/// install therefore patches each entry separately and reports per method, so a refusal is named (which method, which exception)
+/// rather than guessed from the absence of a body.
 /// </para>
 ///
 /// <para>
-/// FRAME SEMANTICS: a press is DOWN for exactly the frame it is pressed in and HELD afterwards; a release is UP for exactly the frame it is released in and
-/// nothing afterwards. Every query in the same frame answers the same value (the state is stamped, never consumed), because a click that reports down to
-/// the game but not to the UI would be a defect the batch could never see. The batch advances the frame itself: <see cref="Press"/> and
-/// <see cref="Release"/> stamp the CURRENT <c>Time.frameCount</c>.
+/// FRAME SEMANTICS: a press is DOWN for exactly the frame it is pressed in and HELD afterwards; a release is UP for exactly the frame
+/// it is released in and nothing afterwards. Every query in the same frame answers the same value (the state is stamped, never
+/// consumed), because a click that reports down to the game but not to the UI would be a defect the batch could never see. The batch
+/// advances the frame itself: <see cref="Press"/> and <see cref="Release"/> stamp the CURRENT <c>Time.frameCount</c> plus one.
 /// </para>
 ///
 /// <para>
-/// OFF BY DEFAULT AND NEVER A PRODUCT FEATURE: nothing calls <see cref="Install"/> except the acceptance driver's recipe, <see cref="Uninstall"/> puts the
-/// real input back, and every prefix answers "not mine" whenever no batch staged a state. A player's session never reaches this type.
+/// OFF BY DEFAULT AND NEVER A PRODUCT FEATURE: nothing calls <see cref="Install"/> except the acceptance driver's recipe,
+/// <see cref="Uninstall"/> puts the real input back, and every prefix answers "not mine" whenever no batch staged a state. A player's
+/// session never reaches this type, and a production install does not carry the assembly at all.
 /// </para>
 /// </summary>
 internal static class VirtualInput
 {
 	private const string HarmonyId = "CasualtiesUnknownOnline.GameAdapter.VirtualInput";
 
-	/// <summary>One button's staged state, with the frame each transition happened in.</summary>
+	/// <summary>One button's or key's staged state, with the frame each transition happened in.</summary>
 	private sealed class ButtonState
 	{
 		internal bool Held;
@@ -55,41 +61,24 @@ internal static class VirtualInput
 	/// stages one: every other key is the real keyboard's.
 	/// </summary>
 	private static readonly Dictionary<KeyCode, ButtonState> Keys = [];
-	private static readonly (string Name, string PrefixName)[] ButtonEntries =
-	[
-		(nameof(Input.GetMouseButton), nameof(PrefixHeld)),
-		(nameof(Input.GetMouseButtonDown), nameof(PrefixDown)),
-		(nameof(Input.GetMouseButtonUp), nameof(PrefixUp)),
-	];
-
-	/// <summary>
-	/// The game's key read, replaced at its CALL SITE inside <c>PlayerCamera.HandleInput</c> (see <see cref="TranspileHandleInput"/>). The three questions are
-	/// answered from the staged state, and every query is counted whether or not a key is staged, so a zero count means "the game never asked", never "the
-	/// count looked at the wrong thing".
-	/// </summary>
-	private static int _handleInputReplacements;
-
-	/// <summary>The call-site count the last transpile replaced: an install reads it straight after its own patch, so a zero is honest.</summary>
-	internal static void ResetReplacementCount() => _handleInputReplacements = 0;
-
-	internal static int TakeReplacementCount() => _handleInputReplacements;
 
 	private static Harmony? _harmony;
 	private static Vector3? _pointer;
-	private static int _buttonCensus;
 
 	/// <summary>True while a staged pointer is in force.</summary>
 	internal static bool Enabled => _pointer.HasValue;
 
-	/// <summary>True once the pointer patch is installed.</summary>
+	/// <summary>True once the patches are installed.</summary>
 	internal static bool Installed => _harmony != null;
 
 	/// <summary>How many button methods the backend accepted (0 — the pointer still works — up to 3).</summary>
-	internal static int ButtonPatches => _buttonCensus;
+	internal static int ButtonPatches => InputQueryPatches.ButtonPatches;
 
 	/// <summary>
-	/// Installs the patches and answers one report line per target: the pointer's outcome and each button method's own. The report IS the result — a method
-	/// the backend refuses must be named with its exception, so the next step is decided on evidence.
+	/// Installs the patches and answers one report line per target: the pointer, each button method, every replaced call site, the drag
+	/// gesture's own key read and the key-bind capture. The report IS the result — a target the backend refuses must be named with its
+	/// exception, so the next step is decided on evidence. The answering targets belong to <see cref="InputQueryPatches"/>; this method
+	/// is the channel's lifecycle and its one place of assembly.
 	/// </summary>
 	internal static string Install(out bool installed)
 	{
@@ -100,114 +89,15 @@ internal static class VirtualInput
 			return "already installed";
 		}
 
-		var report = new List<string>();
 		var harmony = new Harmony(HarmonyId);
-		var failures = 0;
-
-		var getter = AccessTools.PropertyGetter(typeof(Input), nameof(Input.mousePosition));
-		if (getter == null)
-		{
-			report.Add("mousePosition: no getter on this build");
-			failures++;
-		}
-		else
-		{
-			try
-			{
-				harmony.Patch(getter, postfix: new HarmonyMethod(typeof(VirtualInput), nameof(PostfixPointer)));
-				report.Add("mousePosition: patched (" + Describe(getter) + ")");
-			}
-			catch (Exception exception)
-			{
-				report.Add("mousePosition: FAILED " + DescribeFailure(exception));
-				failures++;
-			}
-		}
-
-		_buttonCensus = 0;
-		foreach (var entry in ButtonEntries)
-		{
-			var method = AccessTools.Method(typeof(Input), entry.Name, [typeof(int)]);
-			if (method == null)
-			{
-				report.Add(entry.Name + ": no method on this build");
-				continue;
-			}
-
-			try
-			{
-				harmony.Patch(method, prefix: new HarmonyMethod(typeof(VirtualInput), entry.PrefixName));
-				_buttonCensus++;
-				report.Add(entry.Name + ": patched (" + Describe(method) + ")");
-			}
-			catch (Exception exception)
-			{
-				report.Add(entry.Name + ": FAILED " + DescribeFailure(exception));
-			}
-		}
-
-		// The game's own key path: the CALL SITES inside PlayerCamera.HandleInput, not UnityEngine.Input itself. A detour on Input's own methods was installed
-		// successfully and never invoked (0 queries in 300+ frames while the mouse internals answered 28), so the read is replaced where the game makes it:
-		// one `call Input.GetKey*(KeyCode)` becomes one call to the probe below, and every query is counted whether or not a key is staged. The game's own
-		// branch — GetBind → the query → HandleStartDragging/HandleReleaseDragging — still decides what happens; only the ANSWER to the query is staged.
-		var handleInput = AccessTools.Method(typeof(PlayerCamera), "HandleInput", Type.EmptyTypes);
-		if (handleInput == null)
-		{
-			report.Add("PlayerCamera.HandleInput: no method on this build");
-		}
-		else
-		{
-			try
-			{
-				_handleInputReplacements = 0;
-				harmony.Patch(
-					handleInput,
-					prefix: new HarmonyMethod(typeof(VirtualInput), nameof(PrefixHandleInput)),
-					transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(TranspileHandleInput)));
-				report.Add("PlayerCamera.HandleInput: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced, target "
-					+ handleInput.DeclaringType?.FullName + "#" + handleInput.MetadataToken.ToString(CultureInfo.InvariantCulture)
-					+ ", applied " + (Harmony.GetPatchInfo(handleInput) is null ? "no" : "yes"));
-			}
-			catch (Exception exception)
-			{
-				report.Add("PlayerCamera.HandleInput: FAILED " + DescribeFailure(exception));
-			}
-		}
-
-		// The minigame's own hand read. `MinigameBase.UpdateHandVisuals` asks `Input.GetKey(attack)` DIRECTLY — outside `PlayerCamera.HandleInput`, so the
-		// replacement above never reaches it — and a detour on Input's own methods is never invoked on this build (see the note above). The same call-site
-		// replacement therefore has to be applied to it as well: without this a staged press can hold a world gesture and never the hand of a minigame
-		// (measured 2026-11-01: `minigame-live` read handClicking=False with a press staged at the ring).
-		var updateHandVisuals = AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals", [typeof(bool)])
-			?? AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals")
-			?? FirstDeclaredMethod(typeof(MinigameBase), "UpdateHandVisuals");
-		if (updateHandVisuals == null)
-		{
-			report.Add("MinigameBase.UpdateHandVisuals: no method on this build (" + DescribeDeclaredMethods(typeof(MinigameBase)) + ")");
-		}
-		else
-		{
-			try
-			{
-				_handleInputReplacements = 0;
-				harmony.Patch(updateHandVisuals, transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(TranspileHandleInput)));
-				report.Add("MinigameBase.UpdateHandVisuals: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
-			}
-			catch (Exception exception)
-			{
-				report.Add("MinigameBase.UpdateHandVisuals: FAILED " + DescribeFailure(exception));
-			}
-		}
-
-		report.Add(DragInputPatch.Install(harmony));
-
-		// The game's key-bind capture is its own file: it needs TWO methods replaced (the coroutine's builder and its state machine),
-		// which is a different story from the call sites above.
-		report.Add(KeybindCapturePatch.Install(harmony));
-
+		var inputReport = InputQueryPatches.Install(harmony, out var failures);
 		_harmony = harmony;
+
+		// The drag gesture's own key read and the key-bind capture are their own files: each patches a different target family, and each
+		// reports what it did so this report names every patched site in one place.
+		var report = inputReport + " | " + DragInputPatch.Install(harmony) + " | " + KeybindCapturePatch.Install(harmony);
 		installed = failures == 0;
-		return string.Join(" | ", report);
+		return report;
 	}
 
 	/// <summary>Removes every patch and the staged state in one step; the real input answers again immediately.</summary>
@@ -215,7 +105,7 @@ internal static class VirtualInput
 	{
 		_pointer = null;
 		Buttons.Clear();
-		_buttonCensus = 0;
+		InputQueryPatches.ResetInstallCensus();
 		if (_harmony == null)
 		{
 			return;
@@ -280,9 +170,9 @@ internal static class VirtualInput
 	///
 	/// <para>
 	/// A press is a PRESS even when the key is already staged as held: the down frame is re-stamped every time. Keeping the original frame (so a repeated
-	/// call could not become two clicks) cost a batch — a press staged while the game was not reading (a CUO modal suppresses `PlayerCamera.HandleInput` by
-	/// design) left an ancient frame behind, so every later press answered "held" and never "down" (measured 2026-10-28: `keyDownAnswers: 0` across 23,738
-	/// queries, then `radialOpen: true` on the first press after a release).
+	/// call could not become two clicks) cost a batch — a press staged while the game was not reading (a CUO modal suppresses `PlayerCamera.HandleInput`
+	/// by design) left an ancient frame behind, so every later press answered "held" and never "down" (measured 2026-10-28: `keyDownAnswers: 0` across
+	/// 23,738 queries, then `radialOpen: true` on the first press after a release).
 	/// </para>
 	/// </summary>
 	internal static void PressKey(KeyCode key)
@@ -342,14 +232,20 @@ internal static class VirtualInput
 			return false;
 		}
 
-		var frame = UnityTime.frameCount;
-		value = query switch
+		value = AnswerFor(state, query);
+		return true;
+	}
+
+	/// <summary>The same question for a KEY: false when the key is not staged, so the real keyboard answers.</summary>
+	internal static bool TryAnswerKey(KeyCode key, ButtonQuery query, out bool value)
+	{
+		if (!Keys.TryGetValue(key, out var state))
 		{
-			ButtonQuery.Held => state.Held,
-			ButtonQuery.Down => state.DownFrame == frame,
-			ButtonQuery.Up => state.UpFrame == frame,
-			_ => false,
-		};
+			value = false;
+			return false;
+		}
+
+		value = AnswerFor(state, query);
 		return true;
 	}
 
@@ -361,244 +257,34 @@ internal static class VirtualInput
 		Up,
 	}
 
-	/// <summary>The postfix Harmony calls for the pointer: replaces the getter's answer while a batch has staged one.</summary>
-	private static void PostfixPointer(ref Vector3 __result)
-	{
-		if (_pointer is { } staged)
-		{
-			__result = staged;
-		}
-	}
-
-	private static bool PrefixHeld(int button, ref bool __result) => Answer(button, ButtonQuery.Held, ref __result);
-
-	private static bool PrefixDown(int button, ref bool __result) => Answer(button, ButtonQuery.Down, ref __result);
-
-	private static bool PrefixUp(int button, ref bool __result) => Answer(button, ButtonQuery.Up, ref __result);
-
-	private static bool PrefixKeyHeld(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Held, ref __result);
-
-	private static bool PrefixKeyDown(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Down, ref __result);
-
-	private static bool PrefixKeyUp(KeyCode key, ref bool __result) => AnswerKey(key, ButtonQuery.Up, ref __result);
-
-	/// <summary>The same three questions, called from the REPLACED call sites inside <c>PlayerCamera.HandleInput</c>; every query is counted.</summary>
-	private static bool PrefixWrapperHeld(KeyCode key, ref bool __result) => AnswerWrapperKey(key, ButtonQuery.Held, ref __result);
-
-	private static bool PrefixWrapperDown(KeyCode key, ref bool __result) => AnswerWrapperKey(key, ButtonQuery.Down, ref __result);
-
-	private static bool PrefixWrapperUp(KeyCode key, ref bool __result) => AnswerWrapperKey(key, ButtonQuery.Up, ref __result);
-
-	private static bool AnswerWrapperKey(KeyCode key, ButtonQuery query, ref bool __result)
-	{
-		WrapperKeyQueries++;
-		return AnswerKey(key, query, ref __result);
-	}
-
-	/// <summary>
-	/// How many KEY questions the GAME asked for a staged key, and how many of those were answered "down". A batch reads these to separate "my press
-	/// never reached the game" from "the game asked and the branch did nothing" — the two causes a single frame's state cannot tell apart
-	/// (2026-10-28: `Input.GetKey(Tab)` answered true while `PlayerCamera.radialOpen` stayed false, and only the census could say which half failed).
-	/// </summary>
-	internal static int KeyQueries { get; private set; }
+	/// <summary>How many KEY questions the game asked for a staged key (answered by <see cref="InputQueryPatches"/>).</summary>
+	internal static int KeyQueries => InputQueryPatches.KeyQueries;
 
 	/// <summary>How many of those KEY questions the staged state answered with "down".</summary>
-	internal static int KeyDownAnswers { get; private set; }
+	internal static int KeyDownAnswers => InputQueryPatches.KeyDownAnswers;
 
-	/// <summary>
-	/// How many MOUSE-BUTTON questions the game asked, and how many were answered "down": the same census for the mouse internals, because the two
-	/// families share one backend and a key patch that never runs next to a button patch that does is a fact about the TARGETS, not about the input
-	/// (read 2026-10-28, when the key detour answered nothing while the mouse one was believed live).
-	/// </summary>
-	internal static int ButtonQueries { get; private set; }
+	/// <summary>How many MOUSE-BUTTON questions the game asked.</summary>
+	internal static int ButtonQueries => InputQueryPatches.ButtonQueries;
 
 	/// <summary>How many of those button questions the staged state answered with "down".</summary>
-	internal static int ButtonDownAnswers { get; private set; }
+	internal static int ButtonDownAnswers => InputQueryPatches.ButtonDownAnswers;
 
-	/// <summary>How many KEY questions arrived through the PUBLIC <c>GetKey(KeyCode)</c> wrappers (the counters above belong to the <c>*Int</c> internals).</summary>
-	internal static int WrapperKeyQueries { get; private set; }
+	/// <summary>How many times <c>PlayerCamera.HandleInput</c> was entered.</summary>
+	internal static int HandleInputEntries => InputQueryPatches.HandleInputEntries;
 
-	/// <summary>
-	/// Answers a KEY question for a staged KEY first, then for a staged MOUSE button (Mouse0 = 323, the value the game's `attack` bind answers): any
-	/// other key is the real keyboard's, so a batch can never type for the game by accident.
-	/// </summary>
-	private static bool AnswerKey(KeyCode key, ButtonQuery query, ref bool __result)
+	/// <summary>The number of call sites the last replacement rewrote (0 means the install looked at the wrong method).</summary>
+	internal static int HandleInputReplacements => InputQueryPatches.HandleInputReplacements;
+
+	/// <summary>The one frame-stamped answer both staged families share: a press is DOWN for its own frame, held after it.</summary>
+	private static bool AnswerFor(ButtonState state, ButtonQuery query)
 	{
-		if (Keys.TryGetValue(key, out var state))
-		{
-			var frame = UnityTime.frameCount;
-			__result = query switch
-			{
-				ButtonQuery.Held => state.Held,
-				ButtonQuery.Down => state.DownFrame == frame,
-				ButtonQuery.Up => state.UpFrame == frame,
-				_ => false,
-			};
-
-			KeyQueries++;
-			if (query == ButtonQuery.Down && __result)
-			{
-				KeyDownAnswers++;
-			}
-
-			return false; // the real method is skipped for THIS key
-		}
-
-		var button = key switch
-		{
-			KeyCode.Mouse0 => 0,
-			KeyCode.Mouse1 => 1,
-			KeyCode.Mouse2 => 2,
-			_ => -1,
-		};
-
-		return button < 0 || Answer(button, query, ref __result);
-	}
-
-	private static bool Answer(int button, ButtonQuery query, ref bool __result)
-	{
-		ButtonQueries++;
-		if (!TryAnswer(button, query, out var value))
-		{
-			return true; // not staged: the real method answers
-		}
-
-		if (query == ButtonQuery.Down && value)
-		{
-			ButtonDownAnswers++;
-		}
-
-		__result = value;
-		return false; // the real method is skipped
-	}
-
-	/// <summary>
-	/// How many times <c>PlayerCamera.HandleInput</c> was entered, and how many <c>Input.GetKey*</c> call sites the transpiler replaced in it. The first
-	/// separates "the method never runs" from "the method runs and the query is never reached"; the second is a fact about the patch, not about a frame.
-	/// </summary>
-	internal static int HandleInputEntries { get; private set; }
-
-	/// <summary>The number of call sites the transpiler replaced when the patch was installed (0 means the install looked at the wrong method).</summary>
-	internal static int HandleInputReplacements => _handleInputReplacements;
-
-	private static void PrefixHandleInput() => HandleInputEntries++;
-
-	/// <summary>The first method declared on <paramref name="type"/> with this name, whatever its signature (the fallback when the exact one is not found).</summary>
-	private static MethodInfo? FirstDeclaredMethod(Type type, string name)
-	{
-		foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
-		{
-			if (method.Name == name)
-			{
-				return method;
-			}
-		}
-
-		return null;
-	}
-
-	/// <summary>The names the type declares, for a report that says what the install DID see instead of only what it missed.</summary>
-	private static string DescribeDeclaredMethods(Type type)
-	{
-		var names = new List<string>();
-		foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
-		{
-			names.Add(method.Name);
-			if (names.Count >= 24)
-			{
-				names.Add("…");
-				break;
-			}
-		}
-
-		return string.Join(", ", names);
-	}
-
-	/// <summary>
-	/// Replaces the game's own <c>Input.GetKey/GetKeyDown/GetKeyUp(KeyCode)</c> calls inside <c>PlayerCamera.HandleInput</c> with the probes below. The
-	/// instruction keeps its labels and exception-block markers (only the operand changes), so the game's control flow — <c>KeyBinds.GetBind</c>, the branch,
-	/// <c>HandleStartDragging</c>/<c>HandleReleaseDragging</c> — is the game's own; only the answer to the query is staged.
-	/// </summary>
-	internal static IEnumerable<CodeInstruction> TranspileHandleInput(IEnumerable<CodeInstruction> instructions)
-	{
-		var get = AccessTools.Method(typeof(Input), nameof(Input.GetKey), [typeof(KeyCode)]);
-		var down = AccessTools.Method(typeof(Input), nameof(Input.GetKeyDown), [typeof(KeyCode)]);
-		var up = AccessTools.Method(typeof(Input), nameof(Input.GetKeyUp), [typeof(KeyCode)]);
-		var probeGet = AccessTools.Method(typeof(VirtualInput), nameof(ProbeGetKey), [typeof(KeyCode)]);
-		var probeDown = AccessTools.Method(typeof(VirtualInput), nameof(ProbeGetKeyDown), [typeof(KeyCode)]);
-		var probeUp = AccessTools.Method(typeof(VirtualInput), nameof(ProbeGetKeyUp), [typeof(KeyCode)]);
-
-		var replaced = 0;
-		foreach (var instruction in instructions)
-		{
-			if (instruction.Calls(get))
-			{
-				instruction.operand = probeGet;
-				replaced++;
-			}
-			else if (instruction.Calls(down))
-			{
-				instruction.operand = probeDown;
-				replaced++;
-			}
-			else if (instruction.Calls(up))
-			{
-				instruction.operand = probeUp;
-				replaced++;
-			}
-
-			yield return instruction;
-		}
-
-		_handleInputReplacements = replaced;
-	}
-
-	[MethodImpl(MethodImplOptions.NoInlining)]
-	private static bool ProbeGetKey(KeyCode key) => Probe(key, ButtonQuery.Held);
-
-	[MethodImpl(MethodImplOptions.NoInlining)]
-	private static bool ProbeGetKeyDown(KeyCode key) => Probe(key, ButtonQuery.Down);
-
-	[MethodImpl(MethodImplOptions.NoInlining)]
-	private static bool ProbeGetKeyUp(KeyCode key) => Probe(key, ButtonQuery.Up);
-
-	/// <summary>
-	/// One query from the replaced call site: counted ALWAYS, answered from the staged state when that key is staged, and handed to the real
-	/// <c>UnityEngine.Input</c> otherwise. The count is what makes a zero honest.
-	/// </summary>
-	private static bool Probe(KeyCode key, ButtonQuery query)
-	{
-		KeyQueries++;
-		if (Keys.TryGetValue(key, out var state))
-		{
-			var frame = UnityTime.frameCount;
-			var value = query switch
-			{
-				ButtonQuery.Held => state.Held,
-				ButtonQuery.Down => state.DownFrame == frame,
-				ButtonQuery.Up => state.UpFrame == frame,
-				_ => false,
-			};
-
-			if (query == ButtonQuery.Down && value)
-			{
-				KeyDownAnswers++;
-			}
-
-			return value;
-		}
-
+		var frame = UnityTime.frameCount;
 		return query switch
 		{
-			ButtonQuery.Held => Input.GetKey(key),
-			ButtonQuery.Down => Input.GetKeyDown(key),
-			_ => Input.GetKeyUp(key),
+			ButtonQuery.Held => state.Held,
+			ButtonQuery.Down => state.DownFrame == frame,
+			ButtonQuery.Up => state.UpFrame == frame,
+			_ => false,
 		};
 	}
-
-	private static string Describe(MethodInfo method) =>
-		method.GetMethodBody() == null ? "no IL body — native backend" : "managed body";
-
-	private static string DescribeFailure(Exception exception) =>
-		exception.GetType().Name + ": " + exception.Message;
 }

@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Acceptance;
 /// The drag gesture's own key read, replaced at its call site.
 ///
 /// <para>
-/// Why it is a file of its own: <see cref="VirtualInput"/>'s replacement reaches the call sites INSIDE
+/// Why it is a file of its own: <see cref="InputQueryPatches"/>'s replacement reaches the call sites INSIDE
 /// <c>PlayerCamera.HandleInput</c> (and the minigame's hand read), and the drag is not one of them —
 /// <c>HandleInput</c> calls <c>HandleDragging(uiCasts, ref usableObject)</c> as a separate method, and THAT
 /// method is where the game asks for the binding:
@@ -42,10 +42,10 @@ internal static class DragInputPatch
 
 		try
 		{
-			VirtualInput.ResetReplacementCount();
-			harmony.Patch(handleDragging, transpiler: new HarmonyMethod(typeof(VirtualInput), nameof(VirtualInput.TranspileHandleInput)));
+			InputQueryPatches.ResetReplacementCount();
+			harmony.Patch(handleDragging, transpiler: new HarmonyMethod(typeof(InputQueryPatches), nameof(InputQueryPatches.TranspileKeyReads)));
 			return "PlayerCamera.HandleDragging: patched, "
-				+ VirtualInput.TakeReplacementCount().ToString(CultureInfo.InvariantCulture)
+				+ InputQueryPatches.TakeReplacementCount().ToString(CultureInfo.InvariantCulture)
 				+ " call(s) replaced";
 		}
 		catch (Exception exception)

@@ -27,6 +27,11 @@ $tickets = @()
 foreach ($line in $changed) {
     if ($line.Length -lt 4) { continue }
     $path = $line.Substring(3).Trim()
+    # A RENAME is one status line - "R  old -> new" - and moving a ticket between folders IS how its status changes, so the path this
+    # gate must inspect is the destination. Reading only the source let every ticket moved into `done/` escape exactly the check it
+    # should face (measured 2026-11-04: a judged ticket moved there answered "no ticket changed").
+    if ($path -match ' -> ') { $path = ($path -split ' -> ')[-1].Trim() }
+    $path = $path.Trim('"')
     if ($path -notmatch '^docs/backlog/(review|done)/.+\.md$') { continue }
     $full = Join-Path $repo $path
     if (Test-Path -LiteralPath $full) { $tickets += $full }

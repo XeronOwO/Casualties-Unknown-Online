@@ -137,15 +137,18 @@ $archive = Join-Path $archiveDir ("cycle-" + $stamp + ".md")
 [System.IO.File]::WriteAllText($archive, $text, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ("archived this cycle's record: docs/evidence/checklists/cycle-" + $stamp + ".md")
 
-# The reset drops the EVIDENCE with the checkmark, and it has to drop it from the box's whole BLOCK: an evidence suffix sits on its own
-# continuation line whenever the statement is longer than one line, and a reset that only stripped the first line left that suffix behind — which
-# is how a stale checklist certified the next cycle's commits (measured 2026-10-25: after a reset, five boxes still carried the previous cycle's
-# evidence on their continuation lines and the script answered green).
+# The reset drops the EVIDENCE with the checkmark, and it has to drop the box's whole evidence BLOCK: the suffix starts on its own
+# continuation line whenever the statement is longer than one line and it may run over several lines, and a reset that dropped only
+# the first line left the rest behind — which is how a stale checklist certified the next cycle's commits (measured 2026-10-25: after
+# a reset, five boxes still carried the previous cycle's evidence on their continuation lines and the script answered green; measured
+# again 2026-11-04, in the OTHER shape: the first line went and its wrapped tail stayed).
 $reset = [System.Collections.Generic.List[string]]::new()
 $inBox = $false
+$inEvidence = $false
 foreach ($line in $lines) {
 	if ($line -match '^- \[([ x])\] (.+)$') {
 		$inBox = $true
+		$inEvidence = $false
 		$name = $Matches[2]
 		$cut = $name.IndexOf(' ' + $emdash + ' evidence:', [System.StringComparison]::Ordinal)
 		if ($cut -ge 0) { $name = $name.Substring(0, $cut) }
@@ -154,6 +157,12 @@ foreach ($line in $lines) {
 	}
 
 	if ($inBox -and $line.TrimStart().StartsWith($emdash + ' evidence:', [System.StringComparison]::Ordinal)) {
+		$inEvidence = $true
+		continue
+	}
+
+	# Everything after the suffix belongs to the evidence — including its wrapped lines — so it goes with it.
+	if ($inEvidence) {
 		continue
 	}
 

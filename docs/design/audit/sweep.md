@@ -89,7 +89,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic` | 7 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Permissions` | 5 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Persistence` | 44 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction` | 124 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction` | 126 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Tutorial` | 2 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/World` | 125 | read |

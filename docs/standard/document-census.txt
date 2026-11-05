@@ -1302,7 +1302,7 @@ docs/development/rules/10-structure.md | keep | index | docs/development/rules/R
 docs/development/rules/11-commit.md | keep | index | docs/development/rules/README.md
 docs/development/rules/12-report.md | keep | index | docs/development/rules/README.md
 docs/development/rules/13-acceptance.md | keep | index | docs/development/rules/README.md
-docs/backlog/todo/split-the-body-verb-service.md | keep | index | docs/backlog/README.md
+docs/backlog/in-progress/split-the-body-verb-service.md | keep | index | docs/backlog/README.md
 docs/backlog/done/dead-member-stranded-by-a-host-descent.md | keep | index | docs/backlog/README.md
 docs/backlog/done/move-acceptance-input-out-of-the-build.md | keep | index | docs/backlog/README.md
 docs/backlog/done/trader-mutters-forever-near-a-corpse.md | keep | index | docs/backlog/README.md

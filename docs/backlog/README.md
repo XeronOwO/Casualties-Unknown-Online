@@ -62,8 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Split the body-verb service](todo/split-the-body-verb-service.md) — **Medium** — 619 aggregate lines; the debt ledger names it.
-
 
 
 
@@ -76,6 +74,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 ### In progress
+
+- [Split the body-verb service](in-progress/split-the-body-verb-service.md) — **Medium** — 619 aggregate lines; the split is in flight.
 
 ### Review
 

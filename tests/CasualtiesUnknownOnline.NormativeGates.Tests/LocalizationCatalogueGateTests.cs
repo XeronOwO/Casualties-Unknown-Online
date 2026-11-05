@@ -280,10 +280,10 @@ public sealed class LocalizationCatalogueGateTests
 		foreach (var method in methods)
 		{
 			var body = MethodBody(flattened, method);
-			Assert.True(body.Length > 0, $"the key-carrying helper {method} has no body in src/");
+			Assert.True(body.Length > 0, $"the key-carrying helper {method.Name} has no body in src/");
 			Assert.True(
 				Accessors.Any(accessor => body.Contains($".{accessor}({KeyParameterName}", StringComparison.Ordinal)),
-				$"{method} declares a `{KeyParameterName}` parameter but never resolves it through an accessor, so its call sites' literals are not reads");
+				$"{method.Name} declares a `{KeyParameterName}` parameter but never resolves it through an accessor, so its call sites' literals are not reads");
 		}
 	}
 
@@ -334,6 +334,27 @@ public sealed class LocalizationCatalogueGateTests
 	{
 		var source = "private static void DrawThing(OnlineUiContext ctx, string label) => GUILayout.Label(label);\nvar a = DrawThing(ctx, \"alpha.beta\");";
 		AssertSame([], Census(source).Keys, "a helper that takes a rendered label does not make its argument a read");
+	}
+
+	/// <summary>
+	/// A key-carrying helper whose name the tree already uses elsewhere is read from ITS OWN declaration.
+	/// The regression this pins: the body used to be located by the FIRST occurrence of the name in the
+	/// whole flattened tree, so an unrelated method earlier in the scan stood in for the helper and the
+	/// check judged the wrong text — a false failure here, and a false pass when the earlier body happens
+	/// to carry the accessor call (measured 2026-11-05, on a helper named <c>Line</c>).
+	/// </summary>
+	[Fact]
+	public void TheKeyCarryingHelperScan_ReadsItsOwnDeclarationNotAPreviousMatchOfTheName()
+	{
+		const string source = "private void Line(int value) { Console.WriteLine(value); }\ninternal string Line(string labelKey) { return ctx.Format(labelKey); }";
+		var flattened = SourceScan.Flatten(source);
+		var method = Assert.Single(KeyCarryingMethods(flattened));
+
+		var body = MethodBody(flattened, method);
+
+		Assert.Equal("Line", method.Name);
+		Assert.Contains($".Format({KeyParameterName}", body);
+		Assert.DoesNotContain("Console.WriteLine", body);
 	}
 
 	[Fact]
@@ -554,7 +575,7 @@ public sealed class LocalizationCatalogueGateTests
 
 		foreach (var method in KeyCarryingMethods(flattened))
 		{
-			foreach (var argument in SourceScan.MemberCallArguments(flattened, method))
+			foreach (var argument in SourceScan.MemberCallArguments(flattened, method.Name))
 			{
 				foreach (var key in PlainKeyLiterals(argument))
 				{
@@ -743,29 +764,68 @@ public sealed class LocalizationCatalogueGateTests
 		return PlainKeyLiterals(body);
 	}
 
+	/// <summary>One key-carrying helper: its name, and where its own declaration's parameter list sits in the flattened text.</summary>
+	private sealed record KeyCarryingMethod(string Name, int Index);
+
 	/// <summary>The helpers that declare a <c>labelKey</c> parameter, in ordinal order. An accessor
-	/// itself is not one of them: its own call sites are read sites already.</summary>
-	private static string[] KeyCarryingMethods(string flattened) =>
+	/// itself is not one of them: its own call sites are read sites already. The MATCH INDEX travels
+	/// with the name because a name alone is not a location: <see cref="MethodBody"/> used to search
+	/// from the top of the tree, so a helper whose name another class also used was read from the
+	/// OTHER declaration — the wrong body, and either a false failure or, worse, a false pass.</summary>
+	private static KeyCarryingMethod[] KeyCarryingMethods(string flattened) =>
 	[
 		.. KeyParameterPattern.Matches(flattened)
 			.Cast<Match>()
-			.Select(match => match.Groups[1].Value)
-			.Where(method => !Accessors.Contains(method, StringComparer.Ordinal))
-			.Distinct(StringComparer.Ordinal)
-			.OrderBy(method => method, StringComparer.Ordinal),
+			.Where(match => !Accessors.Contains(match.Groups[1].Value, StringComparer.Ordinal))
+			.GroupBy(match => match.Groups[1].Value, StringComparer.Ordinal)
+			.Select(group => new KeyCarryingMethod(group.Key, group.Min(match => match.Index)))
+			.OrderBy(method => method.Name, StringComparer.Ordinal),
 	];
 
-	/// <summary>A method's declaration through the closing brace at one tab.</summary>
-	private static string MethodBody(string flattened, string method)
+	/// <summary>
+	/// A method's body, located from the match that DECLARES the key parameter: the match sits inside
+	/// that method's own parameter list, so the next opening brace at that point is its own body and
+	/// a same-named method elsewhere in the tree can never be read in its place (the defect this
+	/// replaced: the search started at the first occurrence of the NAME in the whole flattened tree).
+	/// A signature whose body is an expression (<c>=&gt;</c> before any brace) falls back to the
+	/// closing-brace-at-one-tab cut the gate used before; no key-carrying helper in the tree takes
+	/// that shape, and the shapes are pinned by <see cref="TheKeyCarryingHelperScan_ReadsItsOwnDeclarationNotAPreviousMatchOfTheName"/>.
+	/// </summary>
+	private static string MethodBody(string flattened, KeyCarryingMethod method)
 	{
-		var start = flattened.IndexOf($" {method}(", StringComparison.Ordinal);
-		if (start < 0)
+		var open = flattened.IndexOf('{', method.Index);
+		var arrow = flattened.IndexOf("=>", method.Index, StringComparison.Ordinal);
+		if (open >= 0 && (arrow < 0 || open < arrow))
 		{
+			var depth = 0;
+			for (var i = open; i < flattened.Length; i++)
+			{
+				var current = flattened[i];
+				if (current == '"' || current == '\'')
+				{
+					i = SourceScan.LiteralEnd(flattened, i) - 1;
+					continue;
+				}
+
+				if (current == '{')
+				{
+					depth++;
+				}
+				else if (current == '}')
+				{
+					depth--;
+					if (depth == 0)
+					{
+						return flattened[method.Index..(i + 1)];
+					}
+				}
+			}
+
 			return string.Empty;
 		}
 
-		var end = flattened.IndexOf("\n\t}", start, StringComparison.Ordinal);
-		return end > start ? flattened.Substring(start, end - start) : flattened.Substring(start);
+		var end = flattened.IndexOf("\n\t}", method.Index, StringComparison.Ordinal);
+		return end > method.Index ? flattened[method.Index..end] : flattened[method.Index..];
 	}
 
 	private static string SyntheticCatalogue(string[] keys)

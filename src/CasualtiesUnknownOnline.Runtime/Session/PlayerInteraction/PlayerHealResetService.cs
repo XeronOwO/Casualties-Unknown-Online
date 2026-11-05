@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -15,38 +14,42 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// The console cheat verb <c>/heal</c>'s mechanics: an immediate, item-free FULL reset of the
-/// selected players' state, carried out on each target's OWN client.
+/// The console cheat verb family (<c>/heal</c>, <c>/kill</c>) as a control plane: one invocation from the local console,
+/// the host's judgement of a member's request, the target client's application of the host's instruction, and the answer
+/// each side prints where the operator reads. The operation is a PARAMETER of the family, never a second protocol.
 ///
 /// <para>
-/// A reset is a mutation of the target's body, so by the judgment-ownership rule the target's own
-/// client is where it runs and the host never writes another player's body
-/// (<c>docs/en/internals/judgment-ownership.md</c>). The host's job is the permission (its cheat
-/// switch and roster, judged for every request that arrives), the roster of targets it can place
-/// in this world, and the instruction: a HOST target resets locally at once, a MEMBER target
-/// receives <see cref="HealResetInstructionMsg"/> and applies the reset to its own live body. The
-/// member then reports the RESULT twice: the ordinary character snapshot, and the authority event
-/// <see cref="HealResetAppliedMsg"/> that carries the host-owned continuous values the snapshot may
-/// not state. The host writes that event through the character data's authority path, and this
-/// service is where the event is judged: its owner must be the sender, and it must answer an
-/// instruction the host really issued to that member.
+/// A reset or a kill is a mutation of the target's body, so by the judgment-ownership rule the target's own client is
+/// where it runs and the host never writes another player's body (<c>docs/en/internals/judgment-ownership.md</c>). The
+/// host's job is the permission (its cheat switch and roster, judged for every request that arrives), the roster of
+/// targets it can place in this world, and the instruction: a HOST target is applied locally at once, a MEMBER target
+/// receives <see cref="HealResetInstructionMsg"/> and applies the operation to its own live body. The member then reports a
+/// reset's RESULT twice: the ordinary character snapshot, and the authority event <see cref="HealResetAppliedMsg"/> that
+/// carries the host-owned continuous values the snapshot may not state. The host writes that event through the character
+/// data's authority path, and this service is where the event is judged: its owner must be the sender, and it must answer
+/// an instruction the host really issued to that member.
 /// </para>
 ///
 /// <para>
-/// The two-sided check is the cheat family's, verbatim: a member's own client refuses a closed
-/// switch or a roster that does not name it BEFORE anything is sent (the console's
-/// <c>CheatVerbGate</c>), and the host judges the same two rulings again for every request that
-/// arrives — the client's copy is a prediction, never the verdict. The answer names the target and
-/// the outcome (revived, limbs restored, hollow cleared) or the refusal and its ground; it never
-/// says a request was sent when the host already refused it.
+/// The two-sided check is the cheat family's, verbatim: a member's own client refuses a closed switch or a roster that does
+/// not name it BEFORE anything is sent (the console's <c>CheatVerbGate</c>), and the host judges the same two rulings again
+/// for every request that arrives — the client's copy is a prediction, never the verdict. The answer names the target and
+/// the outcome (revived, limbs restored, hollow cleared, killed) or the refusal and its ground; it never says a request was
+/// sent when the host already refused it.
 /// </para>
 ///
 /// <para>
-/// The outstanding-instruction table is the authority anchor of the applied event, not a latency
-/// judgement: every instruction gets an id, the target echoes it, and one instruction resolves at
-/// most one result. The liveness bound only abandons an instruction whose answer never arrives (a
-/// target with no body, a lost client), so a stale entry cannot accept a later or forged result;
-/// nothing measured about the network decides whether a reset is accepted.
+/// This class holds the CONTROL PLANE: the wire events, the permission ruling, the target roster, the pending-instruction
+/// table and the decision, per target, which application runs. The per-target application lives in
+/// <see cref="BodyVerbApplier"/> (the only part that touches the body seams) and the answer building in
+/// <see cref="BodyVerbAnswers"/>, so a new verb joins the family by naming its operation, not by growing this class.
+/// </para>
+///
+/// <para>
+/// The outstanding-instruction table is the authority anchor of the applied event, not a latency judgement: every
+/// instruction gets an id, the target echoes it, and one instruction resolves at most one result. The liveness bound only
+/// abandons an instruction whose answer never arrives (a target with no body, a lost client), so a stale entry cannot
+/// accept a later or forged result; nothing measured about the network decides whether a reset is accepted.
 /// </para>
 /// </summary>
 internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset, IDisposable
@@ -65,11 +68,10 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 	private readonly PacketSender _sender;
 	private readonly ICharacterDataControl _characters;
 	private readonly PlayerCharacterAccess _access;
-	private readonly ILocalBodyReset _localReset;
-	private readonly ILocalBodyKill _localKill;
 	private readonly IMemberCommandRules _memberRules;
 	private readonly ITimeSource _time;
-	private readonly ILocalizationService _localization;
+	private readonly BodyVerbAnswers _answers;
+	private readonly BodyVerbApplier _applier;
 	private readonly ILogger _log;
 
 	/// <summary>The instructions this host issued to members and has not seen a result for, keyed by target — one outstanding instruction per body.</summary>
@@ -95,11 +97,10 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		_sender = sender;
 		_characters = characters;
 		_access = new PlayerCharacterAccess(session, characters);
-		_localReset = localReset;
-		_localKill = localKill;
 		_memberRules = memberRules;
 		_time = time;
-		_localization = localization;
+		_answers = new BodyVerbAnswers(localization, log);
+		_applier = new BodyVerbApplier(sender, _access, localReset, localKill, _answers, log);
 		_log = log;
 		session.SessionEnded += ResetSessionState;
 	}
@@ -157,25 +158,25 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 
 		if (!_memberRules.CheatVerbsOpenToMembers)
 		{
-			RefuseRequest(sender, msg, RefusedAnswer(AnswerLine("heal.answer.refused_switch_off")));
+			RefuseRequest(sender, msg, _answers.Refused(_answers.AnswerLine("heal.answer.refused_switch_off")));
 			return;
 		}
 
 		if (!_memberRules.AllowsCheatVerb(sender))
 		{
-			RefuseRequest(sender, msg, RefusedAnswer(AnswerLine("heal.answer.refused_not_in_roster")));
+			RefuseRequest(sender, msg, _answers.Refused(_answers.AnswerLine("heal.answer.refused_not_in_roster")));
 			return;
 		}
 
 		if (msg.TargetSteamIds.Count > MaxTargets)
 		{
-			RefuseRequest(sender, msg, RefusedAnswer(AnswerLine("heal.answer.refused_too_many", msg.TargetSteamIds.Count.ToString(CultureInfo.InvariantCulture), MaxTargets.ToString(CultureInfo.InvariantCulture))));
+			RefuseRequest(sender, msg, _answers.Refused(_answers.AnswerLine("heal.answer.refused_too_many", msg.TargetSteamIds.Count.ToString(CultureInfo.InvariantCulture), MaxTargets.ToString(CultureInfo.InvariantCulture))));
 			return;
 		}
 
 		if (!_session.LocalInWorld)
 		{
-			RefuseRequest(sender, msg, RefusedAnswer(AnswerLine("heal.answer.refused_host_not_in_world")));
+			RefuseRequest(sender, msg, _answers.Refused(_answers.AnswerLine("heal.answer.refused_host_not_in_world")));
 			return;
 		}
 
@@ -197,37 +198,11 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 			return;
 		}
 
-		if (msg.Operation == BodyOperation.Kill)
+		var notice = _applier.ApplyInstruction(msg);
+		if (notice is { } applied)
 		{
-			var killed = _localKill.Kill();
-			if (killed.Applied)
-			{
-				_log.LogInformation("[Kill] the host's instruction from {Operator} (instruction {InstructionId}) killed this body: brain health {Before:0.#} -> 0.",
-					msg.OperatorSteamId, msg.InstructionId, killed.BrainHealthBefore);
-			}
-			else
-			{
-				_log.LogWarning("[Kill] the host's instruction from {Operator} (instruction {InstructionId}) could not be applied here: {Reason}",
-					msg.OperatorSteamId, msg.InstructionId, killed.Refusal);
-			}
-
-			return;
+			Applied?.Invoke(applied);
 		}
-
-		var outcome = _localReset.Reset(msg.InstructionId);
-		var text = DescribeNotice(msg.OperatorSteamId, outcome);
-		if (outcome.Applied)
-		{
-			_log.LogInformation("[HealReset] the host's instruction from {Operator} (instruction {InstructionId}) reset this body: wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}.",
-				msg.OperatorSteamId, msg.InstructionId, outcome.WasDead, outcome.RestoredLimbs, outcome.HollowCleared);
-		}
-		else
-		{
-			_log.LogWarning("[HealReset] the host's instruction from {Operator} (instruction {InstructionId}) could not be applied here: {Reason}",
-				msg.OperatorSteamId, msg.InstructionId, outcome.Refusal);
-		}
-
-		Applied?.Invoke(new HealResetNotice(msg.OperatorSteamId, outcome, text));
 	}
 
 	/// <inheritdoc />
@@ -293,15 +268,16 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 	}
 
 	/// <summary>
-	/// The host's shared path for its own console and a member's request: reset the host's own body
-	/// when the host is named, instruct every named member's client, and answer in one sentence.
+	/// The host's shared path for its own console and a member's request: apply the operation to the host's own body
+	/// when the host is named, instruct every named member's client, and answer in one sentence. The roster (dedupe and
+	/// in-world) is decided here; the application of one admitted target is <see cref="BodyVerbApplier"/>'s.
 	/// </summary>
 	private (bool Applied, string Answer, List<ConsoleAnswerPartMsg> Parts) Execute(ulong actor, IReadOnlyList<ulong> requested, BodyOperation operation)
 	{
 		var targets = DistinctTargets(requested);
 		if (targets.Count == 0)
 		{
-			return (false, "Refused: the request names no player.", [AnswerPart("heal.answer.refused_no_player")]);
+			return (false, "Refused: the request names no player.", [_answers.AnswerPart("heal.answer.refused_no_player")]);
 		}
 
 		var nowMs = _time.NowMs;
@@ -316,57 +292,25 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 				if (!_session.LocalInWorld)
 				{
 					applied = false;
-					parts.Add(RefusedFor(target, "this client is not in a world, so there is no body to reset."));
-					keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
-					keyedParts.Add(AnswerPart("heal.answer.reason_host_not_in_world"));
+					parts.Add(BodyVerbAnswers.RefusedFor(target, "this client is not in a world, so there is no body to reset."));
+					keyedParts.Add(_answers.AnswerPart("heal.answer.refused_for", BodyVerbAnswers.Argument(target)));
+					keyedParts.Add(_answers.AnswerPart("heal.answer.reason_host_not_in_world"));
 					continue;
 				}
 
-				if (operation == BodyOperation.Kill)
-				{
-					var killed = _localKill.Kill();
-					applied &= killed.Applied;
-					if (killed.Applied)
-					{
-						parts.Add($"Killed {target}: brain health {killed.BrainHealthBefore.ToString("0.#", CultureInfo.InvariantCulture)} -> 0.");
-						keyedParts.Add(AnswerPart("kill.answer.applied", target.ToString(CultureInfo.InvariantCulture)));
-					}
-					else
-					{
-						parts.Add(RefusedFor(target, killed.Refusal ?? "the body could not be killed."));
-						keyedParts.Add(AnswerPart("kill.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
-					}
-
-					_log.LogInformation("[Kill] {Actor} killed the host's own body (brainBefore={Before:0.#}, applied={Applied}).",
-						actor, killed.BrainHealthBefore, killed.Applied);
-					continue;
-				}
-
-				var outcome = _localReset.Reset(null);
-				applied &= outcome.Applied;
-				parts.Add(DescribeLocal(target, outcome));
-				if (outcome.Applied)
-				{
-					keyedParts.Add(AnswerPart("heal.answer.reset_applied", target.ToString(CultureInfo.InvariantCulture)));
-					AddClauseParts(keyedParts, outcome);
-				}
-				else
-				{
-					keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
-					keyedParts.Add(AnswerPart("heal.answer.reason_body_refused"));
-				}
-
-				_log.LogInformation("[HealReset] {Actor} reset the host's own body (wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}, applied={Applied}).",
-					actor, outcome.WasDead, outcome.RestoredLimbs, outcome.HollowCleared, outcome.Applied);
+				var local = _applier.ApplyLocally(actor, target, operation);
+				applied &= local.Ok;
+				parts.Add(local.Line);
+				keyedParts.AddRange(local.Parts);
 				continue;
 			}
 
 			if (!_access.IsInWorld(target))
 			{
 				applied = false;
-				parts.Add(RefusedFor(target, "not in this world (left, or no snapshot yet)."));
-				keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
-				keyedParts.Add(AnswerPart("heal.answer.reason_target_not_in_world"));
+				parts.Add(BodyVerbAnswers.RefusedFor(target, "not in this world (left, or no snapshot yet)."));
+				keyedParts.Add(_answers.AnswerPart("heal.answer.refused_for", BodyVerbAnswers.Argument(target)));
+				keyedParts.Add(_answers.AnswerPart("heal.answer.reason_target_not_in_world"));
 				_log.LogWarning("[HealReset] {Actor} named {Target}, which is not in this world — refused for that target.", actor, target);
 				continue;
 			}
@@ -374,57 +318,17 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 			// The instruction id is the host's ticket for the applied event: the target echoes it, and
 			// the write is accepted only while this is the outstanding instruction for that body.
 			var instructionId = ++_nextInstructionId;
-			var wasDead = _access.GetCharacterData(target)?.Health is { Alive: false };
-			if (!_sender.TrySend(target, NetMsg.HealResetInstruction, new HealResetInstructionMsg
+			var instructed = _applier.InstructMember(actor, target, operation, instructionId);
+			applied &= instructed.Ok;
+			parts.Add(instructed.Line);
+			keyedParts.AddRange(instructed.Parts);
+			if (instructed.Ok)
 			{
-				OperatorSteamId = actor,
-				InstructionId = instructionId,
-				Operation = operation,
-			}))
-			{
-				// The transport refused the frame locally: nothing was sent, so no result can answer
-				// this instruction and the operator must not read "sent".
-				applied = false;
-				parts.Add(RefusedFor(target, "the transport did not accept the reset instruction, so nothing was sent."));
-				keyedParts.Add(AnswerPart("heal.answer.refused_for", target.ToString(CultureInfo.InvariantCulture)));
-				keyedParts.Add(AnswerPart("heal.answer.reason_transport_refused"));
-				_log.LogWarning("[HealReset] {Actor}'s instruction to {Target} (instruction {InstructionId}) was not accepted by the transport; no reset is pending.",
-					actor, target, instructionId);
-				continue;
+				_pending[target] = new PendingReset(instructionId, nowMs);
 			}
-
-			_pending[target] = new PendingReset(instructionId, nowMs);
-			// The answer names the operation that was actually sent: a kill instruction must not read as a reset instruction.
-			parts.Add(operation == BodyOperation.Kill
-				? $"Sent the kill instruction to {target}; its own client applies it and reports the body back."
-				: DescribeRemote(target, wasDead));
-			keyedParts.Add(operation == BodyOperation.Kill
-				? AnswerPart("kill.answer.sent", target.ToString(CultureInfo.InvariantCulture))
-				: AnswerPart(wasDead ? "heal.answer.sent_dead" : "heal.answer.sent", target.ToString(CultureInfo.InvariantCulture)));
-			_log.LogInformation("[HealReset] {Actor} instructed {Target} to reset its own body (instruction {InstructionId}, wasDead={WasDead}).",
-				actor, target, instructionId, wasDead);
 		}
 
 		return (applied, string.Join(" ", parts), keyedParts);
-	}
-
-	/// <summary>The parenthetical facts a successful reset reports, each as its own catalogue part so both languages own them.</summary>
-	private void AddClauseParts(List<ConsoleAnswerPartMsg> keyedParts, LocalBodyResetOutcome outcome)
-	{
-		if (outcome.WasDead)
-		{
-			keyedParts.Add(AnswerPart("heal.answer.clause_revived"));
-		}
-
-		if (outcome.RestoredLimbs > 0)
-		{
-			keyedParts.Add(AnswerPart("heal.answer.clause_limbs_restored", outcome.RestoredLimbs.ToString(CultureInfo.InvariantCulture)));
-		}
-
-		if (outcome.HollowCleared)
-		{
-			keyedParts.Add(AnswerPart("heal.answer.clause_hollow_cleared"));
-		}
 	}
 
 	/// <summary>
@@ -495,125 +399,9 @@ internal sealed class PlayerHealResetService : IHealResetControl, ISessionReset,
 		return targets;
 	}
 
-	/// <summary>
-	/// One answer part and the text the same key renders to here: the part is what the member's console RENDERS in the member's
-	/// language, the text is what the host's log and a client without the entry fall back to. The Debug line is that rendering,
-	/// which is also what makes the census count the literal as a READ of the catalogue rather than an orphan.
-	/// </summary>
-	private (ConsoleAnswerPartMsg Part, string Line) AnswerLine(string labelKey, params string[] args)
-	{
-		var line = _localization.Format(labelKey, args);
-		_log.LogDebug("[HealReset] answer line: {Line}", line);
-		var key = labelKey;
-		return (new ConsoleAnswerPartMsg { Key = key, Args = [.. args] }, line);
-	}
-
-	private ConsoleAnswerPartMsg AnswerPart(string labelKey, params string[] args)
-	{
-		_log.LogDebug("[HealReset] answer part: {Line}", _localization.Format(labelKey, args));
-		var key = labelKey;
-		return new ConsoleAnswerPartMsg { Key = key, Args = [.. args] };
-	}
-
-	/// <summary>
-	/// One refused request, as the answer the member's console renders: the KEY plus its arguments, so the reader's own
-	/// language wins (the answer half of the localization rule). The text is the same key rendered here.
-	/// </summary>
-	private HealResetResultMsg RefusedAnswer((ConsoleAnswerPartMsg Part, string Line) answer)
-	{
-		_log.LogWarning("[HealReset] refused: {Reason}", answer.Line);
-		return new HealResetResultMsg
-		{
-			Applied = false,
-			Answer = answer.Line,
-			Parts = [answer.Part],
-		};
-	}
-
 	private void RefuseRequest(ulong requester, HealResetRequestMsg request, HealResetResultMsg answer)
 	{
 		_log.LogWarning("[HealReset] request from {Requester} for {Count} target(s) refused.", requester, request.TargetSteamIds.Count);
 		_sender.Send(requester, NetMsg.HealResetResult, answer);
-	}
-
-	private static string DescribeLocal(ulong target, LocalBodyResetOutcome outcome)
-	{
-		if (!outcome.Applied)
-		{
-			return RefusedFor(target, outcome.Refusal);
-		}
-
-		var clauses = new List<string>(3);
-		if (outcome.WasDead)
-		{
-			clauses.Add("revived from death");
-		}
-
-		if (outcome.RestoredLimbs > 0)
-		{
-			clauses.Add($"{outcome.RestoredLimbs} severed limb(s) restored");
-		}
-
-		if (outcome.HollowCleared)
-		{
-			clauses.Add("hollow cleared");
-		}
-
-		return $"Reset {target}: full heal applied{Clauses(clauses)}";
-	}
-
-	private static string DescribeRemote(ulong target, bool wasDead) =>
-		$"Reset {target}: sent to that player's own client, which applies the full reset and re-reports the state"
-		+ (wasDead ? " — it was dead, so it revives." : ".");
-
-	private static string DescribeNotice(ulong operatorSteamId, LocalBodyResetOutcome outcome)
-	{
-		if (!outcome.Applied)
-		{
-			return $"A full reset from {operatorSteamId} could not be applied here: {outcome.Refusal}";
-		}
-
-		var clauses = new List<string>(3);
-		if (outcome.WasDead)
-		{
-			clauses.Add("revived from death");
-		}
-
-		if (outcome.RestoredLimbs > 0)
-		{
-			clauses.Add($"{outcome.RestoredLimbs} severed limb(s) restored");
-		}
-
-		if (outcome.HollowCleared)
-		{
-			clauses.Add("hollow cleared");
-		}
-
-		return $"{operatorSteamId} fully reset your state{Clauses(clauses)}";
-	}
-
-	private static string RefusedFor(ulong target, string reason) => $"Refused for {target}: {reason}";
-
-	/// <summary>The parenthetical clause list both sentences use, so the target's line and the operator's answer read the same.</summary>
-	private static string Clauses(IReadOnlyList<string> clauses)
-	{
-		if (clauses.Count == 0)
-		{
-			return ".";
-		}
-
-		var builder = new StringBuilder(" (");
-		for (var i = 0; i < clauses.Count; i++)
-		{
-			if (i > 0)
-			{
-				builder.Append("; ");
-			}
-
-			builder.Append(clauses[i]);
-		}
-
-		builder.Append(").");
-		return builder.ToString();
 	}
 }

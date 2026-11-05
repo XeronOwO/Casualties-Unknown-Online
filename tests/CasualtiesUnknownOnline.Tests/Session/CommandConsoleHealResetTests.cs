@@ -198,6 +198,46 @@ public class CommandConsoleHealResetTests
 	}
 
 	/// <summary>
+	/// The second operation of the family: <c>/kill</c> puts the host's own body at zero brain health through the adapter
+	/// seam, exactly as the game's own console verb does, and the answer names the value it held. The reset seam is not
+	/// touched - the operation is a parameter, not a second protocol.
+	/// </summary>
+	[Fact]
+	public void Host_KillsItself_WritesZeroBrainHealthAndNamesTheValueItHeld()
+	{
+		var kill = new FakeLocalBodyKill { Outcome = LocalBodyKillOutcome.Killed(83.5f) };
+		var (host, _, reset) = CreateHealSession(kill: kill);
+
+		var answer = Run(host, "/kill @s");
+
+		Assert.Equal(1, kill.Kills);
+		Assert.Equal(0, reset.Resets);
+		Assert.Equal("Killed 1001: brain health set to 0.", answer);
+	}
+
+	/// <summary>
+	/// A member target is never written by the host: it receives the instruction carrying the operation, and that
+	/// client's own seam applies it. The shared fixture counting one kill is the target applying its own body, and the
+	/// member's console prints no reset line for a kill.
+	/// </summary>
+	[Fact]
+	public void Host_KillsAMember_InstructsThatClientsOwnBody()
+	{
+		var kill = new FakeLocalBodyKill();
+		var (host, guest, reset) = CreateHealSession(kill: kill);
+		SeedMember(host, conscious: true);
+
+		var answer = Run(host, "/kill @p[distance=1..]");
+
+		Assert.Contains("Sent the kill instruction to 2001", answer);
+		Assert.Contains("its own client applies it and reports the body back", answer);
+		Assert.Equal(1, kill.Kills);
+		Assert.Equal(0, reset.Resets);
+		Assert.DoesNotContain(guest.Services.GetRequiredService<ICommandControl>().Lines,
+			line => line.Text.Contains("reset"));
+	}
+
+	/// <summary>
 	/// The bug of batch <c>20261018-x</c>: the reset's blood volume/bleeds cannot ride the ordinary
 	/// character report (the store preserves the host's three continuous values), so the target's
 	/// client sends them as the applied event and the host stores them through the authority path.
@@ -399,7 +439,8 @@ public class CommandConsoleHealResetTests
 	private static (TestNode Host, TestNode Guest, FakeLocalBodyReset Reset) CreateHealSession(
 		bool memberCheatSwitch = false, bool announceRoster = true,
 		RecordingLogger<CharacterDataStore>? storeLog = null,
-		RecordingLogger<PlayerHealResetService>? serviceLog = null)
+		RecordingLogger<PlayerHealResetService>? serviceLog = null,
+		FakeLocalBodyKill? kill = null)
 	{
 		var reset = new FakeLocalBodyReset();
 		var rules = new MutableOptionsMonitor<HostRulesOptions>(
@@ -408,6 +449,7 @@ public class CommandConsoleHealResetTests
 			services =>
 			{
 				services.Replace(ServiceDescriptor.Singleton<ILocalBodyReset>(reset));
+				services.Replace(ServiceDescriptor.Singleton<ILocalBodyKill>(kill ?? new FakeLocalBodyKill()));
 				services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(rules));
 				if (storeLog is not null)
 				{

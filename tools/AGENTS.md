@@ -7,6 +7,7 @@
 - `check-delivery.ps1` — the delivery checklist, run before a commit: validates every required box and its evidence, archives the
   cycle's record under `docs/evidence/checklists/`, resets the boxes for the next cycle.
 - `act.ps1` — **the only way to enter a step**: `-Step <n>` prints that step's two rule files in full, arms the marker and records it.
+  `-Step 0` opens the round's record first; another step refuses while no round is open.
 - `require-active-step.ps1` — the gate that makes work IMPOSSIBLE without its step rules. `Directory.Build.targets` runs it before
   every build (so build and test refuse), and `deploy.ps1` and `acceptance/drive-in-process.ps1` run it before touching anything (so
   a deploy and every driven row refuse). It demands a marker written by `act.ps1` in the last 45 minutes, for a step this action
@@ -14,18 +15,18 @@
 - `check-reading-evidence.ps1` — the gate against claiming without measuring: a ticket row marked pass must carry a digit or a
   quoted value outside its number and verdict cells, and a ticket marked Done must carry a number somewhere. Run by the commit hook
   beside the step gate.
-- `step.ps1` — how a step is ENTERED: `tools/step.ps1 -Enter <n>` prints that step's two rule files in full and records them for
-  the round. It exists because the read is the first act of a step, and a rule that only lived in prose lost to the work every
-  time (the gate below is the backstop).
+- `step.ps1` — how a step is ENTERED: `tools/step.ps1 -Enter <n>` prints that step's two rule files in full and prints the STEP-TOKEN
+  line the recorder demands. It exists because a rule that only lived in prose lost to the work every time (the gate below is the
+  backstop).
 - `check-step-read.ps1` — the step-read gate, run before a commit: records which step rule files the round read
-  (`-Record '2,7,11,13'`, one SHA-256 per file so a stale record is detectable) and refuses while a step the change TOUCHES has no
-  record. A `src/` change touches step 7, a `tests/` change 7 and 8, `docs/design/` step 2, `tools/` step 13, `docs/backlog/`
-  step 12, and every commit step 11. It is a script and not a test because the record is per round, not per tree.
+  (`-Record '<step>' -Token '<STEP-TOKEN>'`, one SHA-256 per file) and refuses while a step the change TOUCHES has no record. The
+  record is one round's: `-NewRound` (called by `act.ps1`) starts it over, so an earlier round's line is void. A `src/` change touches
+  step 7, a `tests/` change 7 and 8, `docs/design/` step 2, `tools/` step 13, `docs/backlog/` step 12, and every commit step 11. It
+  is a script and not a test because the record is per round, not per tree.
 - `check-goal-completion.ps1` — the completion gate for an autonomous run: reads every `- Status:` line in `docs/backlog/todo/`
-  and `docs/backlog/review/` and exits 1 while any ticket is still actionable (an ordinary status, a missing status, or a status
-  that still carries a residual row). Run it as the last action before `update_goal complete`; its output is the reading that
-  claim has to carry. A ticket is "parked" only when its own status says why nobody can do it alone — blocked on the user, on a
-  human motion, on build capability, or on a fixture a batch cannot produce.
+  and `docs/backlog/review/` and exits 1 while any ticket is still actionable. Run it as the last action before
+  `update_goal complete`; its output is the reading that claim has to carry. A ticket is "parked" only when its own status says why
+  nobody can do it alone — blocked on the user, on a human motion, on build capability, or on a fixture a batch cannot produce.
 - `acceptance/preflight.ps1` — the read-only dependency preflight of an acceptance run
   ([`../docs/acceptance/dependencies.md`](../docs/acceptance/dependencies.md)); it changes nothing and its machine values come from
   the gitignored `docs/acceptance/AGENTS.local.md`.

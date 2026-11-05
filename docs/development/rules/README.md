@@ -9,6 +9,9 @@ At the start of a step, read **both** files of that step in full — the committ
 even when the previous round read them, even when the step looks routine. The whole point of this layout is that the
 rule is in front of the agent at the moment it acts, instead of being remembered from the top of a long conversation.
 
+A round starts when step 0 is printed: `tools/act.ps1 -Step 0` opens this round's record, and a step printed before it
+belongs to an earlier round and is void. That is why the commit hook can refuse a step this round never read.
+
 Step 0 is special: its local file points at the user-level rules, which are read first, before anything else in a
 round.
 
@@ -18,6 +21,7 @@ round.
 |---|---|
 | a committed `NN-*.md` | rules that are true for anyone working on this repository |
 | its `NN-*.local.md` | machine facts and personal working notes: paths, ports, accounts, sandbox names, device quirks |
+| `why.md` | what measured each rule; opened when a rule seems fussy or is about to change, never a second copy of a check |
 
 A rule that applies only to this machine never enters the committed file; a rule that applies to every checkout never
 enters the local one. When a topic genuinely has both halves, the committed file states the rule, the local file states
@@ -42,8 +46,13 @@ the values, and each names the other so the pair reads as one instruction.
 | 12 | `docs/development/rules/12-report.md` | `docs/development/rules/12-report.local.md` |
 | 13 | `docs/development/rules/13-acceptance.md` | `docs/development/rules/13-acceptance.local.md` |
 | index | `docs/development/rules/README.md` | — |
+| reasons | `docs/development/rules/why.md` | — |
 
 ## Editing
 
-One subject per file, and never above 3 KB (a step that carries a rule and its exceptions is the realistic size). A file that explains itself is a file that gets skipped. A new rule that does not fit
-here belongs in a different step's file — not duplicated into two.
+One subject per file, and **never above 3 KB**: `StepRulesBudgetGateTests` fails a committed step file over 3,072
+bytes, because a file that explains itself is a file that gets skipped — and the one printed every round (step 0) is the
+one where that costs most. Measured 2026-11-05: `00-work-mode.md` was 12,686 bytes and the round that read it still
+broke three of its rules. Keep the checkable rules here and move the measured history to `why.md`; a new rule that does
+not fit belongs in a different step's file — not duplicated into two.
+

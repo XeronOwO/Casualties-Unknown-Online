@@ -40,6 +40,13 @@ function Get-StepToken([int]$Step, [string]$File) {
     return ([System.BitConverter]::ToString($sha) -replace '-', '').Substring(0, 10).ToLowerInvariant()
 }
 
+# The round boundary. A record is only this round's if the header a round start writes is present; a file the printer kept
+# appending to across rounds used to satisfy the hook with lines from days earlier (measured 2026-11-05).
+$RoundHeader = '^# step-reads for the current round'
+function Test-CurrentRound($recordLines) {
+    return (@($recordLines | Where-Object { $_ -match $RoundHeader }).Count -gt 0)
+}
+
 if ($NewRound) {
     $dir = Split-Path -Parent (Join-Path $repo $RecordPath)
     if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
@@ -55,10 +62,17 @@ if (Test-Path -LiteralPath $path) { $lines = Get-Content -LiteralPath $path -Enc
 $recordSteps = @()
 if ($Record) { $recordSteps = @($Record -split ',' | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }) }
 if ($recordSteps.Count -gt 0) {
-    if (-not (Test-Path -LiteralPath $path)) {
+    if ($recordSteps -contains 0) {
+        # Printing step 0 IS the round boundary, so the record starts over here: earlier rounds' lines are void.
         $dir = Split-Path -Parent $path
         if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
-        $lines = @("# step-reads for the current round")
+        $lines = @("# step-reads for the current round ($(Get-Date -Format 'yyyy-MM-dd HH:mm'))")
+        Write-Host 'step-reads: step 0 opened a new round; earlier entries are void'
+    }
+    elseif (-not (Test-CurrentRound $lines)) {
+        Write-Host 'step-reads: REFUSED to record - no round is open, so this line would outlive the round it belongs to.'
+        Write-Host '  A round starts when step 0 is printed: powershell -ExecutionPolicy Bypass -File tools/act.ps1 -Step 0'
+        exit 2
     }
 
     foreach ($step in $recordSteps) {
@@ -94,6 +108,9 @@ if (-not $WorkingTree) {
     Write-Host 'check-step-read: nothing to do (pass -Record, -WorkingTree or -NewRound)'
     exit 0
 }
+
+# A record without a round header belongs to no round: it cannot satisfy this one, whatever it lists.
+if (-not (Test-CurrentRound $lines)) { $lines = @() }
 
 # Which steps does this change TOUCH? A staged diff decides; an unstaged one (a plain `git status`) counts too, so the check
 # runs before anything is staged.

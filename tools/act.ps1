@@ -17,6 +17,28 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $rules = Join-Path $repo 'docs/development/rules'
+$recordPath = Join-Path $repo '.acceptance/step-reads.txt'
+
+# THE ROUND BOUNDARY. A round starts when step 0 is printed: the record is truncated first, so a line left by an earlier
+# round can never open a gate (measured 2026-11-05: a commit moved backlog files on a record whose own header still said
+# two days earlier). Every other step refuses until the round is open - "read at the moment you enter" needs a "now".
+$roundHeader = '^# step-reads for the current round'
+$roundOpen = $false
+if (Test-Path -LiteralPath $recordPath) {
+    $roundOpen = [bool](@(Get-Content -LiteralPath $recordPath -Encoding utf8 | Where-Object { $_ -match $roundHeader }).Count)
+}
+
+if ($Step -eq 0) {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'check-step-read.ps1') -NewRound
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    Write-Host 'act: a NEW ROUND starts here - every earlier step record is void. Re-enter each step you will touch.'
+}
+elseif (-not $roundOpen) {
+    Write-Host 'act: REFUSED - no round is open, so this step would be recorded on a record that outlives its round.'
+    Write-Host '  A round starts when step 0 is printed:'
+    Write-Host '    powershell -ExecutionPolicy Bypass -File tools/act.ps1 -Step 0'
+    exit 2
+}
 
 $committed = Get-ChildItem -LiteralPath $rules -Filter ('{0:D2}-*.md' -f $Step) | Where-Object { $_.Name -notlike '*.local.md' } | Select-Object -First 1
 if ($null -eq $committed) {
@@ -53,7 +75,6 @@ Set-Content -LiteralPath $marker -Encoding utf8 -Value (@('# written by tools/ac
 Write-Host "act: step $Step is armed ($sha); build, deploy and the acceptance driver accept it for 45 minutes."
 
 # The commit hook's record, written here because this is the command that printed the files: one entry point, two gates armed.
-$recordPath = Join-Path $repo '.acceptance/step-reads.txt'
 $lines = @()
 if (Test-Path -LiteralPath $recordPath) { $lines = @(Get-Content -LiteralPath $recordPath -Encoding utf8) }
 $entry = '{0:D2}  {1}  {2}' -f $Step, $sha, $committed.Name

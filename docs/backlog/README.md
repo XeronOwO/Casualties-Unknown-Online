@@ -150,6 +150,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Make the round boundary mechanical](done/make-the-round-boundary-mechanical.md) — **Medium** — records expire per round; the step rules fit 3 KB.
 - [Split the body-verb service](done/split-the-body-verb-service.md) — **Medium** — 619 lines became 407 + 181 + 150; four rows judged.
 - [Move the acceptance input channel out](done/move-acceptance-input-out-of-the-build.md) — **Medium-High** — the type split; one install report.
 - [Use on a sleeping target](done/use-on-sleeping-target-refused.md) — **Medium** — judged; treatment lands without waking.

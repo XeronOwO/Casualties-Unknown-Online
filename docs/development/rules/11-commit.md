@@ -35,8 +35,9 @@ Run `tools/check-delivery.ps1` (the delivery checklist): it validates the cycle'
 the next cycle. Gates green in the same commit as the change; the language check reads the staged diff.
 
 Then run `tools/check-step-read.ps1 -WorkingTree`: it refuses while a step the change TOUCHES has no read recorded this round
-(`tools/check-step-read.ps1 -Record '2,7,11,13'` writes the record, one SHA per file so a stale line is detectable). It is the
-mechanical half of the rule that a step walked is read first - the half a round cannot talk itself out of.
+(the record is one round's - step 0 starts it over - and `-Record '<step>' -Token '<the printed STEP-TOKEN>'` is the other way
+to add one; one SHA per file, so a stale line is detectable). It is the mechanical half of the rule that a step walked is read
+first - the half a round cannot talk itself out of.
 
 ## Release discipline
 

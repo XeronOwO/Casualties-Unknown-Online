@@ -1288,7 +1288,9 @@ docs/backlog/done/guest-entity-dropped-by-third-client.md | keep | index | docs/
 docs/backlog/done/bark-vocalization-reaches-no-peer.md | keep | index | docs/backlog/README.md
 docs/backlog/done/lockpick-pain-reaches-no-peer.md | keep | index | docs/backlog/README.md
 docs/backlog/done/kill-command.md | keep | index | docs/backlog/README.md
+docs/backlog/done/make-the-round-boundary-mechanical.md | keep | index | docs/backlog/README.md
 docs/development/rules/README.md | keep | index | docs/development/rules/README.md
+docs/development/rules/why.md | keep | claim | docs/development/rules/00-work-mode.md
 docs/development/rules/00-work-mode.md | keep | index | docs/development/rules/README.md
 docs/development/rules/01-task-frame.md | keep | index | docs/development/rules/README.md
 docs/development/rules/02-design.md | keep | index | docs/development/rules/README.md

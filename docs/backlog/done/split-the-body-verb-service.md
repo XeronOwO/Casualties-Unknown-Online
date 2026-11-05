@@ -1,6 +1,6 @@
 # Split the body-verb service
 
-- Status: In progress — the split is designed below and being implemented; the recorded ceiling is the failing instrument until it lands.
+- Status: Done — the split landed on 2026-11-05 in commit `6308da4a`, and the four rows were judged on the deployed artifact in batch `20261105-a`.
 - Priority: Medium (it blocks nothing today, but the family grows one verb at a time and each one lands in the same class)
 - Category: Structure / console verb family
 - Source: the `/kill` work (2026-11-02). Threading the second operation through `Execute` pushed the class over the
@@ -130,27 +130,31 @@ stays in the service, so it is re-read rather than edited.
 
 ## Acceptance rows
 
-| # | Action | Expectation |
-|---|---|---|
-| 1 | `/heal @a` after the split | the same answers and the same bodies as before |
-| 2 | `/kill @a` after the split | the same answers and the same bodies as before |
-| 3 | a member's request, granted and not granted | the same local refusal and the same host answer as before |
-| 4 | the recorded ceiling | `docs/architecture-debt.json` no longer lists the class |
+Judged on the deployed artifact in batch `20261105-a`; the record is
+`docs/evidence/acceptance/split-the-body-verb-service-20261105-a.md`.
+
+| # | Action | Expectation | Verdict | Reading |
+|---|---|---|---|---|
+| 1 | `/heal @a` after the split | the same answers and the same bodies as before | pass | `heal.answer.reset_applied` then `heal.answer.clause_revived`; body `alive=true conscious=true brainHealth=100 consciousness=100 bloodVolume=100` after a kill had read `brainHealth=0` |
+| 2 | `/kill @a` after the split | the same answers and the same bodies as before | pass | `kill.answer.applied`; body `alive=false brainHealth=0` with `bloodVolume=100 heartRate=70.178` unchanged (the native one-field write) |
+| 3 | a member's request, granted and not granted | the same local refusal and the same host answer as before | pass | not granted: `/heal refused locally: the host's announced roster does not name <member>` and nothing sent; granted: after `/op`, the host's log records the member's reset at `22:52:57:542` and the guest's console reads `Reset <host-id>: full heal applied.` |
+| 4 | the recorded ceiling | `docs/architecture-debt.json` no longer lists the class | pass | the file reads `{}`; the source-shape gate ran green (812 gates) |
 
 ## Run sheet
 
-1. [x] Read the console design page and the two native call sites; write the comprehension and parity sections above —
-   evidence: `docs/design/mechanics/console.md`, `ConsoleScript.cs:530` (heal) and `:620` (kill).
-2. [x] Map the family's two entries and count the ceiling family — evidence: the Entries and Family sections; the ledger
-   held one entry.
-3. [x] Delete the ledger entry and run the source-shape gate to see it fail — evidence: exit 1, "619 aggregate lines
-   (max 600)".
-4. [x] Split the class into `BodyVerbAnswers` and `BodyVerbApplier`, keeping the control plane in the service — evidence:
-   407 + 181 + 150 lines, the same gate green with no entry.
-5. [x] Add the `/kill` behaviour cases with a fake kill seam — evidence: the two new cases plus the existing classes, 32
-   tests passed, 0 failed.
-6. [x] Build, format, then the full suite and the normative gates — evidence: build 0 warnings / 0 errors, `dotnet format`
-   exit 0, the gates project 812 passed, the behavioural suite 6598 passed.
-7. [ ] Commit, deploy, verify the artifact identity, then read acceptance rows 1, 2 and 4 in a one-client session; row 3 is
-   judged only if a member session forms, and is recorded blocked otherwise.
-8. [ ] Write the acceptance record, move the ticket to its final folder, and update the index row.
+- [x] 1. Read the console design page and the two native call sites; write the comprehension and parity sections above —
+  evidence: `docs/design/mechanics/console.md`, `ConsoleScript.cs:530` (heal) and `:620` (kill).
+- [x] 2. Map the family's two entries and count the ceiling family — evidence: the Entries and Family sections; the ledger
+  held one entry.
+- [x] 3. Delete the ledger entry and run the source-shape gate to see it fail — evidence: exit 1, "619 aggregate lines
+  (max 600)".
+- [x] 4. Split the class into `BodyVerbAnswers` and `BodyVerbApplier`, keeping the control plane in the service — evidence:
+  407 + 181 + 150 lines, the same gate green with no entry.
+- [x] 5. Add the `/kill` behaviour cases with a fake kill seam — evidence: the two new cases plus the existing classes, 32
+  tests passed, 0 failed.
+- [x] 6. Build, format, then the full suite and the normative gates — evidence: build 0 warnings / 0 errors, `dotnet format`
+  exit 0, the gates project 812 passed, the behavioural suite 6598 passed.
+- [x] 7. Commit, deploy, verify the artifact identity, then read the acceptance rows — evidence: commit `6308da4a`, deployed
+  artifact `0.1.0+6308da4a` verified exit 0, a host + guest session judged rows 1-3 and the ledger file judged row 4.
+- [x] 8. Write the acceptance record, move the ticket to its final folder, and update the index row — evidence:
+  `docs/evidence/acceptance/split-the-body-verb-service-20261105-a.md`, this file under `done/`, and the index row.

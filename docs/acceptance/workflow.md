@@ -247,6 +247,9 @@ collected while its scenario is up.
   are multi-line predate this and reach the evaluator through a buffering path — write new ones on one line. Two other shapes explain the same symptom and
   are worth ruling out first: a UTF-8 BOM (PowerShell's `[System.IO.File]::WriteAllText` adds one; the evaluator answers `(1,1)` for it) and a body
   whose last token is not the closing `}))()`.
+- **`settings-open` takes two calls.** `settings-open tab=-1` builds the settings menu; a single call that also selects a page throws a null
+  reference inside the same eval. Build it, then select the page (`tab=3` answers `active=true, parent="Canvas", tab=3`), and the key-bind rows
+  are clickable for the capture recipe.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
 
 ## A repeat-count question is answered by `plays`, never by a `names` diff

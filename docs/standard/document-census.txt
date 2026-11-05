@@ -1269,6 +1269,7 @@ docs/evidence/acceptance/remote-fentanyl-injection-and-medical-panel-desync-2026
 docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md | keep | claim | docs/backlog/done/remote-medical-panel-speech-text-desync.md
 docs/evidence/acceptance/remote-medical-panel-alarm-follows-viewed-player-20261023-c.md | keep | claim | docs/backlog/done/remote-medical-panel-alarm-follows-viewed-player.md
 docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | claim | docs/backlog/done/snapshot-overtakes-item-reports.md
+docs/evidence/acceptance/split-the-body-verb-service-20261105-a.md | keep | claim | docs/backlog/done/split-the-body-verb-service.md
 docs/backlog/done/item-custody-single-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
 tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/done/context-menu-does-not-block-the-pointer.md
@@ -1302,7 +1303,7 @@ docs/development/rules/10-structure.md | keep | index | docs/development/rules/R
 docs/development/rules/11-commit.md | keep | index | docs/development/rules/README.md
 docs/development/rules/12-report.md | keep | index | docs/development/rules/README.md
 docs/development/rules/13-acceptance.md | keep | index | docs/development/rules/README.md
-docs/backlog/in-progress/split-the-body-verb-service.md | keep | index | docs/backlog/README.md
+docs/backlog/done/split-the-body-verb-service.md | keep | index | docs/backlog/README.md
 docs/backlog/done/dead-member-stranded-by-a-host-descent.md | keep | index | docs/backlog/README.md
 docs/backlog/done/move-acceptance-input-out-of-the-build.md | keep | index | docs/backlog/README.md
 docs/backlog/done/trader-mutters-forever-near-a-corpse.md | keep | index | docs/backlog/README.md

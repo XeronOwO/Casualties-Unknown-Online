@@ -518,8 +518,9 @@ One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:10
 
 `tools/acceptance/recipes/scene-read.cs` answers the native scene/world/generating/loading state a frame cannot separate from the menu — `docs/evidence/acceptance/layer-change-menu-round-trip-20261021-i.md`.
 
-## 2026-11-04 — The settings menu must exist before a tab is selected
+## 2026-11-05 — A member that joins a world already running waits at the gate
 
-`settings-open tab=3` on a client that has no settings menu yet throws a null reference inside the same eval that builds it; call `settings-open tab=-1` first and select the tab in the next call, which then answers `active=true, parent="Canvas", tab=3` and leaves the key-bind rows clickable — `docs/backlog/done/move-acceptance-input-out-of-the-build.md`.
+Start the run with the member already in the lobby: a guest that joins while the host is in a world keeps an active session but never receives a body (`state` reads `inWorld=false`, `body-read` answers `no-local-body`), so leave the world through the game's own menu and start the run again — `docs/evidence/acceptance/split-the-body-verb-service-20261105-a.md`.
+
 
 

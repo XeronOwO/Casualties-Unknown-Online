@@ -75,8 +75,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
-- [Split the body-verb service](in-progress/split-the-body-verb-service.md) — **Medium** — 619 aggregate lines; the split is in flight.
-
 ### Review
 
 
@@ -152,6 +150,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Split the body-verb service](done/split-the-body-verb-service.md) — **Medium** — 619 lines became 407 + 181 + 150; four rows judged.
 - [Move the acceptance input channel out](done/move-acceptance-input-out-of-the-build.md) — **Medium-High** — the type split; one install report.
 - [Use on a sleeping target](done/use-on-sleeping-target-refused.md) — **Medium** — judged; treatment lands without waking.
 - [Damage callers that skip the report](done/unhooked-damage-block-callers.md) — **Low-Medium** — judged; partial damage converges.

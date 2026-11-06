@@ -1314,3 +1314,4 @@ docs/backlog/done/item-move-stream-floods-the-wire.md | keep | index | docs/back
 docs/evidence/acceptance/bandage-consumed-minigame-ends-20261106-e.md | keep | claim | docs/evidence/verification.md
 docs/evidence/acceptance/cross-player-eat-replacement-20261106-g.md | keep | claim | docs/evidence/verification.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md | keep | claim | docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md
+docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-k.md | keep | claim | docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md

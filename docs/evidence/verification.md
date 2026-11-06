@@ -93,7 +93,9 @@ For a mechanism, prefer this order:
    `cross-player-eat-replacement-20261106-g.md`: a replaced fruit lands in the
    owner's slot instead of dropping at their feet, and
    `remote-medical-stage-2-shrapnel-20261106-h.md`: the last shrapnel piece
-   ends the shared session `Completed` with the limb's final state).
+   ends the shared session `Completed` with the limb's final state, and
+   `remote-medical-stage-2-shrapnel-20261106-k.md`: two operators remove
+   different pieces inside one shared shrapnel session).
 
 ## Self-checks
 

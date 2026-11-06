@@ -57,13 +57,13 @@ by it. A box whose evidence names another cycle is not filled.
 
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
-      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing — evidence: `docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md` §Batch `20261106-i` (the shared session is host-side `CommitStart`; the client-side blocker is the one-native-minigame rule) and the change must not alter the native damage path or the first operator's session
+      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing — evidence: docs-only cycle; the shrapnel ticket's §Batch `20261106-k` adds the two-operator reading under the existing surface, and the cycle changes no behaviour so it must not alter any
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
-      edit, and no forbidden shape is used to fit a mechanism — evidence: native chain `reversing/Assembly-CSharp/Assembly-CSharp/ShrapnelMinigame.cs:125-140` (below y=35 counted, `EndMinigame()` at zero) against the host's `piece N removed` + `terminal Completed` on `0.1.0+39300598` (§Batch `20261106-h`)
+      edit, and no forbidden shape is used to fit a mechanism — evidence: the batch record repeats the native chain read for row 7 (`ShrapnelMinigame` counts pieces below y=35 and ends at zero) and adds no new mechanism
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
-      with every difference either fixed or named as a user decision — evidence: session `20261106-h` five break-grasps matched the host's committed skin/bleed/pain numbers; session `20261106-i` read the per-operator sessions and `no free native minigame host` on both clients
+      with every difference either fixed or named as a user decision — evidence: session 3 in batch `20261106-k`: both operators' break-grasps applied once each (skin -5.783/-5.911/-4.220), one shared session
 - [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)

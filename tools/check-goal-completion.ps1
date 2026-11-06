@@ -37,7 +37,7 @@ if (-not (Test-Path -LiteralPath $BacklogRoot)) {
     exit 2
 }
 
-$parkedPattern = '(?i)blocked\s+(on|by)\s+(the\s+)?(user|human|build|capability|fixture|hardware|machine)'
+$parkedPattern = '(?i)blocked\s+(on|by)\s+(a\s+|an\s+|the\s+)?(user|human|build|capability|fixture|hardware|machine)'
 $residualPattern = '(?i)\b(owed|unproven|residual|TODO|pending|not yet|still needs)\b'
 $statusPattern = '^\s*-\s*Status\s*:\s*(?<text>.+)$'
 

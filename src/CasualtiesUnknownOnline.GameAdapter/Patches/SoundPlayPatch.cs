@@ -36,6 +36,13 @@ internal static class SoundPlayPatch
 {
 	private static bool Prefix(string clip, Vector2 pos, bool twoDimensional, Transform follow, float volume)
 	{
+		// Temporary diagnostic (2026-11-07, chain in .acceptance/chain-eat-sound.md): the hand-fed eat clip is never
+		// relayed. This line names the scope it plays under, before any guard can drop it. Remove once the cause is read.
+		if (clip == "eatFlesh" || clip == "eatCrunch")
+		{
+			Debug.LogWarning($"[SoundProbe] {clip} origin={CallContext.Current} remoteApply={CallContext.IsWithin(CallContext.Origin.RemoteApply)} hostVitals={HostVitalsPass.IsActive} spectator={SpectatorPresentationGate.IsActive}");
+		}
+
 		// The host's simulated clone of a remote player runs the game's own vital stages; their
 		// heart thump, growl, speech and vomit warnings are the OWNER's sounds, not the host's.
 		// Refuse before the play and before the character-sound capture: a capture here would even

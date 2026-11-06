@@ -90,7 +90,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [A cross-player eat runs the game's own steps](review/cross-player-eat-skips-native-steps.md) — **High** — all four rows pass.
 
 
 - [Launcher starts all three together and fails only for real reasons](review/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — 25 s cold start.
@@ -149,6 +148,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A cross-player eat runs the game's own steps](done/cross-player-eat-skips-native-steps.md) — **High** — the replacement lands in the owner's slot.
 - [The pre-run lobby can deadlock](done/the-pre-run-lobby-can-deadlock.md) — **High** — rows 1-2 read; a dropped member is released at the 30 s bound.
 - [Make the round boundary mechanical](done/make-the-round-boundary-mechanical.md) — **Medium** — records expire per round; the step rules fit 3 KB.
 - [Split the body-verb service](done/split-the-body-verb-service.md) — **Medium** — 619 lines became 407 + 181 + 150; four rows judged.

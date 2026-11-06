@@ -385,7 +385,7 @@ docs/backlog/done/right-click-on-an-item-also-opens-the-menu.md | keep | index |
 docs/backlog/done/use-drag-out-of-a-backpack-drops-the-item.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-into-backpack-plays-no-sound.md | keep | index | docs/backlog/README.md
-docs/backlog/review/cross-player-eat-skips-native-steps.md | keep | index | docs/backlog/README.md
+docs/backlog/done/cross-player-eat-skips-native-steps.md | keep | index | docs/backlog/README.md
 docs/backlog/done/a-disconnected-member-leaves-his-arrow-on-the-hud.md | keep | index | docs/backlog/README.md
 docs/backlog/done/the-pre-run-lobby-can-deadlock.md | keep | index | docs/backlog/README.md
 docs/backlog/done/selectors-exclude-the-executor.md | keep | index | docs/backlog/README.md
@@ -1312,3 +1312,4 @@ docs/backlog/done/move-acceptance-input-out-of-the-build.md | keep | index | doc
 docs/backlog/done/trader-mutters-forever-near-a-corpse.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-move-stream-floods-the-wire.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/bandage-consumed-minigame-ends-20261106-e.md | keep | claim | docs/evidence/verification.md
+docs/evidence/acceptance/cross-player-eat-replacement-20261106-g.md | keep | claim | docs/evidence/verification.md

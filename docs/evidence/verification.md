@@ -89,7 +89,9 @@ For a mechanism, prefer this order:
 5. **Acceptance record** — a two-client reading on the deployed game under
    `docs/evidence/acceptance/`, used when the behaviour only exists in a live
    session (for example `bandage-consumed-minigame-ends-20261106-e.md`: the
-   remote bandage minigame closes when the item is spent).
+   remote bandage minigame closes when the item is spent, and
+   `cross-player-eat-replacement-20261106-g.md`: a replaced fruit lands in the
+   owner's slot instead of dropping at their feet).
 
 ## Self-checks
 

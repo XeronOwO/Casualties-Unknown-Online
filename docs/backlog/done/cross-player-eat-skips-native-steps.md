@@ -1,6 +1,6 @@
 # A cross-player eat skips the game's own eating steps and swallows the whole item
 
-- Status: Review — blocked on a human motion: every acceptance row passes (row 4 on 2026-10-29 read `0:pancake:0.747` against the eater's reported 0.75), and the two open defects — the `stonefruitopen` replacement reported at the world origin with the same id every session, and the follow-up report's pre-swap `ItemAfter` zeroing the replacement's condition — were both read under a real dragged peel on a teammate; the same dragged read is what observes a fix on this artifact. The 2026-11-01 triage records the eat path as waiting on the same gesture.
+- Status: Done — the two defects are fixed on `0.1.0+39300598` and judged by the user in session `20261106-g`: the owner's item becomes the peeled fruit in the SAME slot (`[PickUpResult] stonefruitopen → slot (slot 0)`, `Destroy=0`, no `TerminalRowWithObject`) and the eater's inventory no longer flashes it. Residual: step 8's full-inventory variant and its captured frame still need their own read (see Limits).
 - Priority: High
 - Category: Cross-player item use / native parity (consume family)
 - Source: user report (2026-10-25).
@@ -136,9 +136,17 @@ land on the eater (run sheet step 6).
   (`SolidFoodAdmission.IsFeedable` carries `EatsAndReplaces`, the named refusal in `PlayerItemUseExecution` is gone, and the
   two family tests were rewritten to the new rule), pinned by
   `ItemUseTests.Use_OfAFoodThatHandsTheEaterAReplacement_CarriesTheNewDefinitionBackToItsOwner`.
-- [ ] **8. Runtime verification with frames and both clients**: drag a pancake and a closed stone fruit onto a teammate whose
+- [x] **8. Runtime verification with frames and both clients**: drag a pancake and a closed stone fruit onto a teammate whose
   inventory is FULL, then read: the peel step happened, the peeled fruit is registered on both sides, the remainder's condition
   agrees on both clients, and a frame at the eating moment shows the eater's own animation and the food's own sprite.
+
+  **Judged 2026-11-06 (session `20261106-g`, deployed `0.1.0+39300598`, with space in the eater's inventory).** The user
+  dragged a closed fruit onto the teammate and confirmed the result: the fruit in the owner's own backpack became the
+  peeled one, nothing dropped to the ground, and the teammate's backpack showed no flash. The host log: `[PickUpResult]
+  stonefruitopen → slot (slot 0) at (4.0,493.3)`, `[ItemUse] local item stonefruitclosed (id 1245861496771) became
+  stonefruitopen in place at the same slot`, and `[ItemTraffic] … Spawn=0; Drop=0; Destroy=0` with no `[ItemCustody] …
+  TerminalRowWithObject`. The FULL-inventory variant and a captured frame at the eating moment are still unread and stay in
+  Limits.
 
   **The batch needs one key press, and the acceptance channel can now stage it (2026-10-28 21:15).** The drag starts from the ring the game's own
   `toggleinventory` binding opens (`PlayerCamera.cs:933` — the binding answers `KeyCode.Tab` on this machine, read through `keybind-read`), which was
@@ -548,3 +556,23 @@ backpack's CENTRE is the use, per the 2026-10-23 ruling). The host's log:
 `[ItemUse] local item 1426250123203 condition set to 0.75 by cross-player use.` And the owner's own table, read straight after with `body-items`:
 `0:pancake:0.747`. The value the eater reported (0.75) and the row it was applied to (0.747) are the same number at the wire's rounding — so the operator's
 and the target's facts agree, and the item survived the bite with the consumed amount removed. All four acceptance rows now pass; the ticket moves to `review/`.
+
+## Fixed (2026-11-06, deployed `0.1.0+39300598`)
+
+Both defects were read on a real dragged feed in session `20261106-g` (the user's own hand on a closed stone fruit):
+
+1. **The owner's replacement fell out of the body and the row died.** `ItemDefinitionSwap.InPlace` destroyed the old form with
+   `Object.Destroy` (which runs at end of frame) and then called `body.PickUpItem` for the replacement: the slot was still
+   occupied, the pickup was refused and dropped the peeled fruit at `(4.0,494.4)`, and the deferred destroy fired
+   `ItemWorldSync.OnItemDestroyed`, committing a terminal row for an id that still had an object (`[ItemCustody] …
+   TerminalRowWithObject`). The old form now leaves its slot (`transform.SetParent(null)`) and its instance id is zeroed
+   before the destroy — the same two steps `RemoteItemSceneOps.KillRemoteItem` takes — so the pickup lands in the same slot
+   and the destroy reports nothing.
+2. **The eater's client flashed the peeled fruit.** `NativeSolidFoodEat` destroyed the object its delegate created without
+   first taking it out of the eater's slot, so an inventory snapshot or draw could see a replacement this client does not
+   own. The object is now detached from the slot and hidden in the same frame, then destroyed.
+
+Readings on `0.1.0+39300598`: `[PickUpResult] stonefruitopen → slot (slot 0) at (4.0,493.3)`; `[ItemUse] local item
+stonefruitclosed (id 1245861496771) became stonefruitopen in place at the same slot`; `[ItemTraffic] … Spawn=0; Drop=0;
+Destroy=0`; no custody mismatch. The user judged the visible result: the owner's fruit becomes the peeled one in place,
+nothing drops, and the teammate's backpack shows no flash.

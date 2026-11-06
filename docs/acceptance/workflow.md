@@ -460,3 +460,9 @@ player does; and while any minigame runs, the game's own drag bracket refuses to
 
 The sequence is recorded here because a gesture is a call site and a claim about it must be falsifiable
 before the run: a step this list cannot perform is a design defect, not a batch failure.
+
+## A failed eval poisons its client
+
+A recipe is one expression, not a class: its first line is `// recipe: <name>`, arguments are declared as `// args: k=n` and read through `{{n:k}}`/`{{s:k}}` placeholders, and the whole file is compiled as a single C# expression. A declaration is a class whose first line is `// eval declaration: <file>` and whose second is `// declares: <Type>`. The in-process evaluator compiles at C# 7.3: `is not`, switch expressions and target-typed `new` do not load.
+
+When a declaration load or a recipe compile fails, the evaluator's compilation unit stays poisoned on that client: every later eval there, including `-Action state`, answers with the same stale `(line,col): Type.Member` error. The only recovery is a fresh client process, so a failed instrument costs a restart — write a new instrument against a known-good shape (a copy of a working file), delete the dead cut, and never re-declare a broken one under the same name. Measured 2026-11-06: three bystander restarts in batch `20261106-l`, each one a failed shape rather than a fixture.

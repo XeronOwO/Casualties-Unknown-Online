@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — row 4's first half passes on `0.1.0+f9bee6a1`: a bystander with the wound view open now shows the observer shrapnel screen, where before it showed nothing. The second half (the observer's authoritative piece positions) and row 9 (each operator's own tweezers condition) are still unread. Rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
+- Status: Review — row 4 passes in both halves on `0.1.0+f9bee6a1` (batch `20261106-l`): a bystander with the wound view open shows the observer shrapnel screen, and its piece rows follow the host's authority (the removed piece read `8000.0` where it had read `-316.9`, the live pieces unchanged). Row 9 (each operator's own tweezers condition) is still unread. Rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`, `-k.md` and `-l.md`.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -305,6 +305,21 @@ Reading on `0.1.0+f9bee6a1` (batch `20261106-l`): three clients in one world, gu
 `minigame-live` then read `{"hasMain":true,"kind":"ShrapnelMinigame"}` — the bystander's screen is the observer shrapnel
 minigame, where before the fix it had none. The second half of row 4 (the observer's piece positions moving with the
 authority) is still unread.
+
+## Row 4 second half: the observer's rows follow the authority (batch `20261106-l`, 2026-11-06)
+
+The bystander's own screen was read through its `objects` list while the host's session 6 ran with 3 pieces:
+
+```
+before: 0:-316.9, 1:-316.9, 2:-316.9, 3:8003.0, 4:8004.0
+after:  0:8000.0, 1:-316.9, 2:-316.9, 3:8003.0, 4:8004.0
+```
+
+The host removed piece 0 in between (`21:35:18.562 session 6 piece 0 removed by 76561198281246659.`). The watching
+client moved that piece to the host's removal marker (`8000 + index`) and left the live pieces and the constructor's
+hidden rows alone. Row 4 passes in both halves on `0.1.0+f9bee6a1`; the full record is
+`docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-l.md` (it also records the three bystander restarts
+the poisoned evaluator forced, and the batch's limits).
 
 ## Out of scope for Stage 2
 

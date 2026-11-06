@@ -56,14 +56,8 @@ carries evidence naming THIS cycle — a commit, a path under `.acceptance/`, or
 by it. A box whose evidence names another cycle is not filled.
 
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
-      (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
-      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing — evidence: docs-only; row 2's reading and the user's decision are recorded under the ticket's existing shrapnel surface
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
-      remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
-      edit, and no forbidden shape is used to fit a mechanism — evidence: the record restates the native chain (`ShrapnelMinigame` counts pieces below y=35, ends at zero); no new mechanism
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
-      players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
-      with every difference either fixed or named as a user decision — evidence: session 3 batch `20261106-k`: both operators' break-grasps applied once each (skin -5.783/-5.911/-4.220)
 - [ ] Entry mapping (a scope that crosses players or mirrors a native action only):
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)

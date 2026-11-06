@@ -292,10 +292,24 @@ internal sealed class RemoteShrapnelOperationHandler
 		}
 
 		var limb = display.limbs[msg.LimbIndex];
-		if (limb.dismembered || !limb.hasShrapnel)
+		var activePieces = 0;
+		foreach (var piece in msg.ShrapnelPieces)
+		{
+			if (!piece.Removed)
+			{
+				activePieces++;
+			}
+		}
+
+		if (limb.dismembered || activePieces <= 0)
 		{
 			return null;
 		}
+
+		// The display body's limb copy is filled from the 1 Hz character snapshot, which can predate the
+		// wound this session removes; the state message carries the authoritative piece list, so the
+		// native minigame must be built from that count or it would start with no pieces to watch.
+		limb.shrapnel = activePieces;
 
 		var minigame = new ShrapnelMinigame(limb, false);
 		MinigameBase.main.StartMinigame(minigame, null);

@@ -1,8 +1,6 @@
 # A cross-player eat skips the game's own eating steps and swallows the whole item
 
-- Status: Review — opened 2026-10-25 from the user's report (translated): "I dragged a pancake and a stone fruit into the guest's backpack, then
-  dragged them onto the guest to use, and it ate the WHOLE pancake in one go! Then it 'ate' the stone fruit! The stone fruit's eating has a
-  peeling step!".
+- Status: Review — blocked on a human motion: every acceptance row passes (row 4 on 2026-10-29 read `0:pancake:0.747` against the eater's reported 0.75), and the two open defects — the `stonefruitopen` replacement reported at the world origin with the same id every session, and the follow-up report's pre-swap `ItemAfter` zeroing the replacement's condition — were both read under a real dragged peel on a teammate; the same dragged read is what observes a fix on this artifact. The 2026-11-01 triage records the eat path as waiting on the same gesture.
 - Priority: High
 - Category: Cross-player item use / native parity (consume family)
 - Source: user report (2026-10-25).

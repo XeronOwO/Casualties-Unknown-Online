@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review
+- Status: Review — blocked on a fixture: row 7 needs the native shrapnel minigame, which this state does not create (`pieces` answered -1 twice and then `current=none`; starting and breaking in one call answered ok while the limb kept all five pieces and no damage appeared, `display shrapnel=5 skin=100`), and rows 1-6/9 inherit that window; the 2026-11-01 triage records the same fixture.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`

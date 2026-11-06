@@ -1,8 +1,6 @@
 # Recursive crafting as a standalone mod
 
-- Status: Review — the resolver, the game half, the console command and the recipe panel's third state
-  landed and are read on the machine (including the "two into one" merge); the one row left is the
-  on-screen look, which is the user's visual pass. See *Stage 4* below.
+- Status: Review — blocked on the user: the resolver, the game half, the console command and the recipe panel's third state landed and are read on the machine (including the "two into one" merge); the one row left is the on-screen look, which is the user's visual pass (see *Stage 4* below).
 - Priority: Low-Medium
 - Category: Mod / crafting / UI
 - Source: the user's 2026-10-07 backlog request — recursive crafting (a recipe whose ingredients are themselves
@@ -138,7 +136,7 @@ table for every row.
 **Measured on the real client** (the recipe's own patched getters read in-process, holdings made reachable by the
 console's `/give`): with scrapmetal, woodcube and two foliage held,
 
-- `Recipe.fullName` for `flimsyknife` reads `脆弱的刀 (+)` (`hasSteps` false for `rope`, which is craftable now);
+- `Recipe.fullName` for `flimsyknife` reads `the fragile knife (+)` (the item's Chinese display name, translated; `hasSteps` false for `rope`, which is craftable now);
 - `Recipe.description` ends `…\n\nReachable through other crafts: 1. rope`;
 - `/craftchain flimsyknife` agrees (`reachable through 1 step(s) — 1. rope.`), so the panel and the console read
   one judgement.
@@ -161,7 +159,7 @@ the mod's rule sums what the line consumes.
 | 0.5 again | reachable again |
 
 and the panel's own getter still carries the marker in that state
-(`Recipe.fullName` = `脆弱的刀 (+)`), so the merge and the third state read together.
+(`Recipe.fullName` = `the fragile knife (+)`), so the merge and the third state read together.
 
 **The favourite mark is MOOT in this design and is not built.** The game has no recipe-favourite concept
 (`Recipe` declares none, and the reference mod's "third state" list was a REPLACEMENT of the native list, so

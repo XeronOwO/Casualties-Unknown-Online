@@ -1,6 +1,6 @@
 # Compress the plugin into a host shell
 
-- Status: Review — **no agent work is left (2026-10-25)**: every acceptance clause is read against the deployed artifact (the plugin references no game assembly, `Plugin.cs` is off the watchlist for the right reason, startup and join behaviour are unchanged, the full suite and the gates are green) and the only remaining item is the user's own judgement of the Online UI's look and feel, which is a user-acceptance item by the ticket's own words and cannot be judged by any agent-run row. Parked for that decision and nothing else.
+- Status: Review — **no agent work is left (2026-10-25)**: every acceptance clause is read against the deployed artifact (the plugin references no game assembly, `Plugin.cs` is off the watchlist for the right reason, startup and join behaviour are unchanged, the full suite and the gates are green), and the only remaining item is the user's own judgement of the Online UI's look and feel, which no agent-run row can judge. Blocked on the user for that one look.
 - Priority: Medium
 - Category: Architecture / layering
 - Source: Loomi architecture review (2026-09-20), item 6
@@ -127,7 +127,7 @@ the compiler — instead of being carried as "probably needed":
 | `UnityEngine.SubsystemsModule`, `UnityEngine.SharedInternalsModule` | unused — removed, project still builds |
 | `UnityEngine`, `UnityEngine.CoreModule` | needed (BepInEx's `BaseUnityPlugin` derives from `MonoBehaviour`; `Application`, `Debug`, `LogType`) |
 | `UnityEngine.InputLegacyModule` | needed (`Input.GetKeyDown`, `KeyCode` for the hotkeys) |
-| `UnityEngine.IMGUIModule` | needed (the overlay's IMGUI pass) |
+| `UnityEngine.IMGUIModule` | needed (the overlay's IMGUI draw) |
 | `UnityEngine.TextRenderingModule` | needed (`GUIStyle` / text in that pass) |
 | `netstandard` | kept DEFENSIVELY, not as a measured requirement: removing it builds clean and leaves the plugin's reference table identical (measured 2026-09-22); it pins the game's own copy instead of a targeting-pack one if the compiler ever emits the reference |
 

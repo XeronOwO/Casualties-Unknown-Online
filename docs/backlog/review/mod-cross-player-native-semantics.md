@@ -1,12 +1,6 @@
 # Cross-player semantics from the game's own data
 
-- Status: Review — every chain the ticket named is landed and the code is complete; what is left is the
-  agent acceptance batch (the native halves need a game process). **Cut 2026-10-08** out of
-  `mod-content-ceiling.md` Part 2 stage 2, which required this stage to become its own architecture
-  ticket. Part A (the injection chain) landed in the same cycle; Part B's topical chain landed
-  2026-10-08 as well, and so did its consume (drink), wear and limb-tool chains — the last one is this
-  ticket's own final section. The solid-food branch was cut to its own ticket when the drink chain
-  landed.
+- Status: Review — blocked on a human motion: every chain the ticket named is landed and the code is complete (Part A and Part B's topical, drink, wear and limb-tool chains, cut 2026-10-08 out of `mod-content-ceiling.md`), and the local halves are green in the selfchecks; the remaining cross-player rows are the drag/medical entry, and the 2026-11-01 triage records that the drag rows wait on a player's own gesture (drag a bandage onto a teammate) while the 2026-11-03 batches show the staged pointer cannot answer the display question.
 - Priority: High
 - Category: Mod platform / remote medical / architecture
 - Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 2, stage 2)

@@ -1,13 +1,6 @@
 # Pinyin search as a standalone mod
 
-- Status: Review — **every acceptance row except one is machine-read, and the exception is the user's** (batch
-  `20261025-am`). The five rows the *Acceptance* section states are carried by named cases, and the six classes they live
-  in were re-run on this tree: `PinyinMatcherTests`, `NameSearchMatcherTests`, `RecipeSearchDecisionTests`,
-  `PinyinSearchContractTests`, `PinyinSearchStageTests` and `PinyinSearchModConsoleTests` — **78 cases, 0 failures** — so the
-  CUO-less crafting match, the console completion to the canonical id, the single mod-owned switch and CUO's discovery of the
-  mod's entry point all pass as written. The row that cannot be machine-read is the section's own statement that **the native
-  search box itself is user acceptance**: no test in this repository runs the game's UI, so that one row is the user's own look
-  and this ticket stays in `review/` for it alone.
+- Status: Review — blocked on the user: the native search box's own look is the ticket's user-acceptance row (no test in this repository runs the game's UI). Every other row is machine-read — batch `20261025-am` re-ran the six classes that carry them (`PinyinMatcherTests`, `NameSearchMatcherTests`, `RecipeSearchDecisionTests`, `PinyinSearchContractTests`, `PinyinSearchStageTests`, `PinyinSearchModConsoleTests`; 78 cases, 0 failures) — so the CUO-less crafting match, the console completion to the canonical id, the single mod-owned switch and CUO's discovery of the mod's entry point all pass as written.
 - Priority: Medium
 - Category: Mod / Tooling / UI / Pinyin
 - Depends on: [Native-binding mods declare it instead of hiding](../done/mod-native-binding-declaration.md)
@@ -148,13 +141,14 @@ rewrite.
 ## Acceptance
 
 - Crafting search matches pinyin with CUO absent (the mod alone), with the behaviour the moved tests
-  pin (`xianweisheng` / `xws` / `sheng` / `纤wei` / `xian维` → 纤维绳): `PinyinMatcherTests`,
+  pin (`xianweisheng` / `xws` / `sheng` / a mixed pinyin+CJK query / a CJK+pinyin query → the fibre-rope item;
+  the literal mixed forms are the tests' own cases): `PinyinMatcherTests`,
   `NameSearchMatcherTests` and `RecipeSearchDecisionTests` carry the rows, and
   `PinyinSearchContractTests.PluginAssembly_ReferencesNoCuoFrameworkAssembly` plus
   `...CoreAssembly_OnlyTheCuoFacingTypesNameAnAbstractionsType` make the CUO-less load path structural.
   **The native search box itself is user acceptance** — no automated test in this repository runs the
   game's UI.
-- With CUO present, `fent` / `ftn` / `芬太` / `cu:fent` complete the console to `cu:fentanyl` and the
+- With CUO present, `fent` / `ftn` / the item's Chinese name / `cu:fent` complete the console to `cu:fentanyl` and the
   accepted suggestion is the canonical id:
   `PinyinSearchModConsoleTests.Suggest_ReachesTheCanonicalId_FromPinyinInitialsChineseAndIdPrefixes`
   (the row ported from the removed `PinyinResourceLocationMatchStageTests`), with the stage-level

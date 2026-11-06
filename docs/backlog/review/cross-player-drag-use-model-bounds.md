@@ -1,12 +1,6 @@
 # Cross-player use by drag: aim at the player model, and say who it picked when two overlap
 
-- Status: Review — the detection shape is the model's own box (2026-10-24, deployed `0.1.0+620081fa`): the fixed
-  radius is gone, the clone's collider measures it with the native crouch rule, the pick is logged with its
-  candidate count, and three cases pin the difference. The behavioural rows 1–6 need a real mouse drag and are
-  named as unread in the landed section. **Re-scoped 2026-10-23**: the USE no longer lands by the detection range
-  (it is the displayed backpack's centre); this ticket's remaining question was the detection range's SHAPE as the
-  DISPLAY selector — which player's backpack opens (`done/give-gesture-own-ui-and-center-use.md`). The 2026-10-06
-  finding below is the original record.
+- Status: Review — blocked on a human motion: the detection shape landed 2026-10-24 on `0.1.0+620081fa` (the clone's own box, the native crouch rule, the pick logged with its candidate count, three pinning cases), and rows 1–6 are the DISPLAY-target half; a display target opens only from the same pointer answer — the staged release reached `CrossPlayerDragUse.TryHandleRelease` with `dragItem=bandage`, but a release at the teammate's projected pixel produced no drag-use line and no remote backpack, and the 2026-11-03 probe over the clone found no body collider (`focusedSteamId=0`). The 2026-11-01 triage records the same conclusion for the family.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / targeting geometry
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
@@ -104,7 +98,8 @@ The shape settled where the ticket said it should: the model measures itself.
 
 **Rows 1–6 are not read.** Every one of them needs a real mouse drag — the game's own drag bracket, which the
 repository has no in-process driver for, and the project's accepted rule forbids adding a cursor/mouse API to the
-acceptance tool mid-batch ("先走进程内函数调用;真走不通再向用户申请一次性的鼠标键盘授权"). The rows therefore
+acceptance tool mid-batch ("run in-process function calls first; only when that truly fails, ask the user once for
+mouse/keyboard authorization" — translated). The rows therefore
 stay unread and are named here rather than claimed: the batch that judges them starts from a one-time
 mouse/keyboard authorization for the two clients, or from a committed recipe that drives the native drag bracket.
 

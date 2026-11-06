@@ -1,9 +1,6 @@
 # Cross-player use by drag: the gesture has to announce itself (highlight, label, cue sound)
 
-- Status: Review — the cue's remaining half landed (2026-10-24, deployed `0.1.0+9510981e`): the REFUSAL now reads
-  on the operator's own screen as a localized line plus the game's deny sound, and the user ruled there is NO extra
-  success sound because the drag already has the game's own cloth rustle. Two runtime rows still need a real drag
-  (mouse input the acceptance tooling does not drive) and are named at the end of this page.
+- Status: Review — blocked on a human motion: the cue's refusal half landed (2026-10-24, deployed `0.1.0+9510981e`) and the remaining rows ask what is under the pointer; the 2026-11-03 `hover-probe` over the teammate hit only `Chunk(BlockGround)`/`plasticchunk` at world (0.00, 491.75) while the clone's limbs sat at y 491.68..492.10, and `remote-backpack-open` read `isOpen=false focused=0`, while the drag itself reached the game end to end (`DragInputPatch` + a closed CUO window + staged `iteminteract`). The 2026-11-01 triage records the same conclusion: the display question is a player's own gesture, not a reading the batch can stage.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / feedback and discoverability
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.

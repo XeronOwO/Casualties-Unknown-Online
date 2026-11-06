@@ -1,6 +1,6 @@
 # S3 — Mid-run consistent cut and world diff
 
-- Status: Review (landed 2026-09-17; awaiting the final unified acceptance pass; approved for implementation by the user on 2026-09-10).
+- Status: Review — blocked on the user: S3.1-S3.3 landed on 2026-09-17 and the independent adversarial passes' fixes sit on top of them; the in-game rows wait for the user's final unified acceptance pass, and one row's fixture (a save made with open lockables) has no drive path on this machine.
   Staging: S3.1 (payload skeleton) and S3.2 (world-diff capture and replay) landed; S3.2's
   independent adversarial pass then produced 1 blocker + 3 majors + 4 minors + 3 nits, all fixed on
   top of it (the replay was extracted into the Runtime so its order/caps are testable, the archive's
@@ -60,7 +60,7 @@
   restore ATTEMPT identity* below.
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 3 of `docs/backlog/review/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
+- Source: Stage 3 of `docs/backlog/review/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "the mid-run nature must be the focus, so content is not generated twice or under-generated" (translated)
 - Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `done/save-multiplayer-restore-and-backups.md` (S4), `done/restore-account-arm-release.md` (the restore-account residuals this ticket records)
 
 ## Approved decisions (2026-09-10)
@@ -941,7 +941,7 @@ Read this table as TWO claims per row, because they are proven in different plac
 
 ### The seven rows, condensed
 
-| Row | Machine coverage | User dual-client pass |
+| Row | Machine coverage | User dual-client check |
 |---|---|---|
 | 1 block diff + partial damage | row shapes round-trip, absolute apply, bounded-table refusals, support-loss verdict | the replayed block map and its sprites |
 | 2 items | identity/location round-trip, container tree, exactly-once dedup, reconcile contract | the four restings on screen, no duplicate, corpse loot |

@@ -1,14 +1,6 @@
 # Native run fields are not covered by the world archive
 
-- Status: Review — **S3.4a landed 2026-09-11** (the run-level fields: both rarity multipliers, the run
-  clock base and the recipe unlock table), **S3.4b landed 2026-09-11** as its own ticket
-  (`review/save-native-character-field-parity.md`): the character-level fields `lastHappiness`,
-  `caloriesConsumed` and `WoundView.cInfo` now ride `CharacterDataMsg.NativeFields` and are written
-  back on the local restore path, with the missing-field case named in the restore report. The
-  hardening cycle of 2026-09-17 closed the two recorded ENGINEERING gaps (the missing multiplier guard
-  and the concrete adapter dependency) and split the two that are each their own cycle into
-  `done/save-run-clock-not-sent.md` and `done/save-layer-time-not-carried.md`. Awaiting the final
-  unified acceptance pass; the per-field decided homes below are kept as the frozen record.
+- Status: Review — blocked on the user: S3.4a and S3.4b both landed on 2026-09-11 (the run-level fields ride `run.json`'s `run` and `native-run-fields` rows; the character-level fields ride `CharacterDataMsg.NativeFields`), and the 2026-09-17 hardening cycle closed the two recorded engineering gaps while splitting two into their own done cycles; the per-field decided homes below are the frozen record, and what remains is the user's final unified acceptance pass.
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: found by the S2 independent adversarial review (2026-09-10)

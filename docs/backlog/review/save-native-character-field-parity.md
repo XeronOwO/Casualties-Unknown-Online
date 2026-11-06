@@ -1,10 +1,6 @@
 # S3.4b — Native character fields (lastHappiness, caloriesConsumed, WoundView.cInfo)
 
-- Status: Review — implemented, tested, documented and independently reviewed on 2026-09-11. The
-  in-game read of the three values (the wound window's text, the death-stats calorie number, the
-  tooltip's happiness) is the user's dual-client acceptance, per the project's verification boundary.
-  **No agent work is left (2026-10-25)**: rows 1-3 are those three game UI displays and are the only open items; rows 4-5
-  and the whole Runtime/format/codec/policy layer are machine-verified. Parked for the user's in-game check.
+- Status: Review — blocked on the user: rows 1-3 are three game UI displays (the wound window's text, the death-stats calorie number, the tooltip's happiness) and the project's verification boundary makes them the user's dual-client acceptance; rows 4-5 and the whole Runtime/format/codec/policy layer are machine-verified. Implemented, tested, documented and independently reviewed on 2026-09-11.
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: Stage S3.4b of `review/save-system-mid-run-and-layer-end.md`, split out of

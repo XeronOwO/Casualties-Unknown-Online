@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 1: medical operation session + real-time injection
 
-- Status: Review
+- Status: Review — blocked on a fixture: row 20 (mixed CUO versions) needs an old-version artifact this machine does not have, and every other row passes on the deployed artifact — rows 1-7, 9, 12-19, 21 and 23 in batch 20261023-b, rows 8, 10 and 22 in batch 20261024-a (records under `docs/evidence/acceptance/`).
 - Acceptance (20261023-b): rows 1-7, 9, 12-19, 21 and 23 pass on the deployed artifact
   (`0.1.0+d960f05f…`); rows 8 (operator disconnect), 10 (target disconnect), 20 (mixed CUO versions) and
   22 (lobby close with a session in flight) stay `unproven` — the live staging was not reached, and the

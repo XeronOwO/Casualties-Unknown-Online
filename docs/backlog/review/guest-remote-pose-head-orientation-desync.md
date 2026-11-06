@@ -1,6 +1,8 @@
 # Guest remote pose / head-orientation desync on host view
 
-- Status: Review (code-complete) — batch `20261025-j` tried to read the facing pair as DATA and stopped at the instrument, not
+- Status: Review — blocked on a human motion: a live turned-body comparison needs the right mouse button held while aiming, and this station cannot deliver that hold (batch `20261025-aq`: moving the guest's own pointer from `(640,360)` to `(1180,360)` left `isRight=True` and `targetLookPos=(0,0,0)` unchanged on both sides). The fix's own regression (`RemoteCloneFacingNeutralizationTests`, red→green) and its self-check stand unchanged.
+
+  Batch `20261025-j` tried to read the facing pair as DATA and stopped at the instrument, not
   at the fix: a probe reading `Body.isRight` and `Body.targetLookPos` works on the LOCAL body (guest: `isRight=true`, look
   `(0,0)`; host: `isRight=true`, look `(2.12, 468.94)`), but **no remote clone exposed a `Body` component to the scan** — neither
   `FindObjectsOfType<Body>()` nor `Resources.FindObjectsOfTypeAll` returned one on either client, so the host's view of the guest

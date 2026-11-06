@@ -1,9 +1,9 @@
 # Save system: layer-end and mid-run saves
 
-- Status: Review (landed 2026-09-17 — S1-S4 are all code-complete and in `review/`; design frozen 2026-09-10)
+- Status: Review — blocked on the user: S1-S4 are all code-complete (landed 2026-09-17, design frozen 2026-09-10) and the umbrella carries no rows of its own — the child tickets carry them, and what remains is the user's dual-client acceptance passes (the layer-end cut and the mid-run cut) plus the children's own fixtures.
 - Priority: High
 - Category: Persistence / save system
-- Source: User request (2026-09-07) — "添加存档系统，包括层级末尾存档、游戏中途存档。考虑到游戏本体的存档格式不支持中途存档，需要你设计全新的存档格式，建议以常见存储格式为基准（例如 Json），辅以文件压缩。考虑到拓展性，推荐使用目录级压缩格式，而不是单文件压缩。开发时，需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
+- Source: User request (2026-09-07), translated: "add a save system, including a layer-end save and a mid-run save. Since the game's own save format cannot express a mid-run save, design a new format — base it on a common format (JSON) with file compression, and prefer a directory-level archive over a single compressed file. The mid-run nature must be the focus, so content is not generated twice or under-generated."
 - Related: `docs/architecture/save-archive-format.md` (normative format contract), stage tickets in the "Stages" table below, `done/systemic-save-backup-management.md` (backup/restore layer on this format), `done/world-determinism-world-fingerprint.md`, `done/application-layer-first-slice.md` (stage 3 — the relocation absorbed it)
 
 ## Functional intent

@@ -1,6 +1,6 @@
 # Remote medical native minigame/action parity — roadmap
 
-- Status: Review
+- Status: Review — blocked on a fixture: the umbrella carries no rows of its own — the stage tickets carry them, and the family's last driver-shaped gap is stage-1's row 20 (an old-version artifact this machine does not have; every other stage-1 row passed in `20261023-b`/`20261024-a`), while stage-2 keeps its own shrapnel rows.
 - Priority: High
 - Category: Remote medical / native medical minigame parity
 - Source: User follow-up (2026-09-06), translated from the reporter's Chinese: "injection is only one of the medical minigames — are the others implemented too, for example pulling out shrapnel? If not, why did you not consider it? Put the work on the backlog." Follow-up: "some medical actions can be performed by several players at once, shrapnel removal for example — KrokMP's implementation is a reference; multi-player operations need data sync, and a big change is fine if that is what it takes."

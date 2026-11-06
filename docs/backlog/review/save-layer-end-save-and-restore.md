@@ -1,9 +1,6 @@
 # S2 — Layer-end save and restore
 
-- Status: Review (code + machine verification complete; the in-game rows below need the user's
-  dual-client pass — see *Verification*. **Reopened and re-closed 2026-09-11**: a machine-level gap
-  in the host's own restore was found while scoping S3.4b and is fixed on top of this stage — see
-  *In-game gap found while scoping S3.4b* below)
+- Status: Review — blocked on the user: the in-game rows below need the user's dual-client pass, and one row additionally needs a live enemy staged on the layers, which no batch can produce; code and machine verification are complete (the 2026-09-11 host-restore gap was found while scoping S3.4b and fixed on top of this stage — see *In-game gap found while scoping S3.4b* below).
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 2 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)

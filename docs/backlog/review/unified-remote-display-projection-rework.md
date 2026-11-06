@@ -1,6 +1,6 @@
 # Unified remote display projection rework
 
-- Status: Review
+- Status: Review — blocked on the user: the umbrella is code-complete at the projection architecture level (the three per-field helpers and the inline derived-field code are gone), and what remains is the user's own final unified visual pass; the remote-backpack interaction half is tracked in `resolved/remote-backpack-item-projection-acceptance-issues.md`.
 - Priority: High
 - Category: Remote presentation / architecture / projection
 - Source: User direction (2026-09-07) after repeated acceptance failures across remote medical, pose/face/carry and backpack projection. The current per-field projection patch path has been judged not acceptable; this item is the architecture replacement, not another point patch.

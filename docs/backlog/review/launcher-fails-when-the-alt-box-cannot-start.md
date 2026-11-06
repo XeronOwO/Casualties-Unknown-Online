@@ -1,6 +1,8 @@
 # The launcher reports failure when the alt box cannot start, and takes the run with it
 
-- Status: Review — rebuilt and judged 2026-10-26 except the reboot path — opened 2026-10-26 from the batch that hit it: the host and the Steam1 guest came up and answered on their ports, the Steam2 alt box did not, and `launch-clients.ps1` exited non-zero, so the launcher read as "no session" when two usable clients were running.
+- Status: Review — blocked on a human motion: rows 1, 2 and 4 are judged (16 s reuse run, 25 s cold run, exit 0), and row 3's SbieSvc-after-reboot path needs a machine restart only a person can perform.
+
+  Rebuilt and judged 2026-10-26 except the reboot path — opened 2026-10-26 from the batch that hit it: the host and the Steam1 guest came up and answered on their ports, the Steam2 alt box did not, and `launch-clients.ps1` exited non-zero, so the launcher read as "no session" when two usable clients were running.
 - Priority: Low — the workaround is one command per client, and the run itself is unaffected once the clients are up.
 - Category: Acceptance tooling / launcher
 - Source: user report (2026-10-26, translated): "the script has a problem: Steam2's Steam starts slowly, the game started and exited several times, and then it just gave up".

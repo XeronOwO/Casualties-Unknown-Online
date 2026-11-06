@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — blocked on a fixture: rows 2-6/9 require two operators acting on the SAME piece in one session (lease owner moves, force-ungrab, cancel, disconnect, third-party observer, own tweezers). Row 7 passed on `0.1.0+39300598` (batch `20261106-h`); row 1 passed on `0.1.0+c93f074b` after the observer-screen fix (batch `20261106-k`: two operators removed three different pieces in one shared session). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
+- Status: Review — blocked on a fixture for rows 3-6/9 (two operators acting on the same piece: both directions, third-party observer, cancel, disconnect, own tweezers) and on a decision for row 2 (the second operator's grab is refused, not force-ungrabbed). Row 1 passed on `0.1.0+c93f074b` (batch `20261106-k`); row 7 passed on `0.1.0+39300598` (batch `20261106-h`). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`

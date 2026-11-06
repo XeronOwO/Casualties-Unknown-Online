@@ -27,6 +27,27 @@ Session 3:
 Before the fix the same sequence was refused on the second operator's client with
 `[MedicalView] refused shrapnel: no free native minigame host for 76561198863287957.` (batch `20261106-i`, 20:41:39.972).
 
+## Same-piece contention (row 2)
+
+The first attempt used `grip-slip-drive mode=break`, which grabs and breaks in one call, so ownership was released
+before a second client could contend. A dedicated instrument was added for this row:
+
+- `tools/acceptance/driver/eval-declarations/shrapnel-lease.cs` (`AcceptanceShrapnelLease`) sends one ownership report
+  and stops; modes are grab, hold, release and status.
+- `tools/acceptance/recipes/shrapnel-lease.cs` (`mode=s piece=n`) drives it and reports `ok` + `result`.
+
+Reading (session 4, host log):
+
+- 20:59:17.343 `[Shrapnel] session 4 created for 76561198863287957 limb 5 (3 pieces).` / `operator 76561199526807662 joined session 4.`
+- 20:59:18.186 `[MedicalView] releasing the observer shrapnel minigame to start the operator's own share for 76561198863287957.`
+- 20:59:18.218 `[Shrapnel] operator 76561198281246659 joined session 4.`
+- 20:59:19.904 `[Shrapnel] session 4 rejected non-owner move on piece 0 from 76561198281246659 (owner 76561199526807662).`
+- 20:59:38.299 the same refusal again after the first operator re-joined.
+
+The host refuses the second operator's grab and the piece keeps its owner. The ticket's row 2 wording expects the other
+operator to be "force-ungrabbed"; the implementation refuses the move instead. **This divergence needs a decision**
+(refusal is the shipped behaviour; a force-ungrab would be a new interaction) before row 2 can be marked pass.
+
 ## Verdict
 
 - Row 1 PASS: two operators removed three different pieces (0, 1, 2) in one shared session; each break-grasp applied

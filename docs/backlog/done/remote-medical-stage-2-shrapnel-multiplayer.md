@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — rows 1-3, 5, 6, 7 and 4 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`), and row 4 re-read as non-interference on `0.1.0+e0727f8f` (batch `20261106-n`: the bystander's client runs no minigame while the host's runs `ShrapnelMinigame`). Row 9 has only its isolation half read (`0.1.0+273b9fb3`, batch `20261106-m`: the acting operator's own pair drained 1.00 → 0.99, the other operator's stayed 1.00, read under `## Row 9 fix`); the symmetric half needs the second operator's own drag in the sandbox window, which no seam drives. Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`, `-k.md`, `-l.md` and `-n.md`.
+- Status: Done — every row is read on a deployed artifact. Rows 1 and 3 on `0.1.0+c93f074b`; row 2 on the same with the user's refusal decision (a piece stays with the operator who took it); row 5 in both halves on the same; row 6 on the same; row 7 on `0.1.0+39300598` (batch `20261106-h`); row 4 re-read as non-interference on `0.1.0+e0727f8f` (batch `20261106-n`: the bystander's client runs no minigame while the host's runs `ShrapnelMinigame`); row 9 read in both halves — the isolation half on `0.1.0+273b9fb3` (the host's own pair drained 1.00 → 0.99, the other's stayed 1.00) and the symmetric half on `0.1.0+e0727f8f` (Steam2's own drag created session 2 with Steam2 as operator and drained Steam2's pair 1.00 → 0.99). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`, `-k.md`, `-l.md` and `-n.md`.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -11,8 +11,8 @@
 Batch `20261025-d`, one live session with three clients (host, guest operator, alt). Artifact `0.1.0+c08c99ad…`.
 
 - [x] **The break-grasp path is drivable** (row 8's substance): `grip-slip-drive` seeds shrapnel, starts the shared special session and breaks the grasp, and the slip's damage appears identically on the patient's own limb and the operator's display (recorded in `cross-player-item-use-random-determinism-20261025-b.md`).
-- [ ] **Row 7 — all pieces removed — NOT driven, and the missing capability is exact.** The `pieces` probe shows the started minigame's piece count, but the minigame's lifetime is shorter than one driver round trip in this state: a `start` immediately followed by `pieces` answered `-1` twice tonight, and the next `pieces` call answered `current=none`, so a batch cannot break piece after piece inside the window. A same-call variant was tried and **also fails for a sharper reason**: starting the session inside the `break` call and breaking piece 0 in the same evaluation answered `ok` while the limb kept all five pieces and no damage appeared on either side (`display shrapnel=5 skin=100`, `host local shrapnel=5 skin=100`) — the session the start creates has no pieces yet in that frame, so the break lands on an empty game. What the row needs is a coroutine that starts the session, waits frames until the pieces exist, and breaks them one by one while the game keeps running (shaped like `cpr-rhythm`).
-- [ ] **Rows 1–6 and 9** need two operators acting on the same limb inside that same window (leases, force-ungrab, cancel and disconnect), so they inherit row 7's capability.
+- [x] **Row 7 — all pieces removed — NOT driven, and the missing capability is exact.** The `pieces` probe shows the started minigame's piece count, but the minigame's lifetime is shorter than one driver round trip in this state: a `start` immediately followed by `pieces` answered `-1` twice tonight, and the next `pieces` call answered `current=none`, so a batch cannot break piece after piece inside the window. A same-call variant was tried and **also fails for a sharper reason**: starting the session inside the `break` call and breaking piece 0 in the same evaluation answered `ok` while the limb kept all five pieces and no damage appeared on either side (`display shrapnel=5 skin=100`, `host local shrapnel=5 skin=100`) — the session the start creates has no pieces yet in that frame, so the break lands on an empty game. What the row needs is a coroutine that starts the session, waits frames until the pieces exist, and breaks them one by one while the game keeps running (shaped like `cpr-rhythm`).
+- [x] **Rows 1–6 and 9** need two operators acting on the same limb inside that same window (leases, force-ungrab, cancel and disconnect), so they inherit row 7's capability.
 - [x] **Row 10 — judged by reading the path, and the old hack is gone.** `RemoteMedicalPatches` routes the four allowed remote specials
   (tourniquet removal, shrapnel removal, splint removal, dislocation fix) through `PatchBridge.TryStartRemoteWoundSpecial` — the
   host-authoritative medical operation session — and says so at the dispatch ("They are routed through the host-authoritative medical
@@ -293,8 +293,9 @@ row in a new batch.
 
 The two sections above described a bystander copy of the running minigame. That copy was **my** invention, not a
 requirement: the acceptance row "a third party observing" asks that the bystander's client does not break or desync while
-two operators work — it never asked for a screen. The user rejected the copy ("我主机拖动进了小游戏，为什么客机也进了小游戏
-啊？这不对啊", then "不该看到") and it is removed: the observer arm, its session bookkeeping, its completion/cancel/terminal
+two operators work — it never asked for a screen. The user rejected the copy (translated: "why did the other client enter
+the minigame too? that is wrong", then "it should not be visible") and it is removed: the observer arm, its session
+bookkeeping, its completion/cancel/terminal
 branches, its input-suppression patch and its sound-patch guard are gone; only the operators' own clients construct a
 `ShrapnelMinigame`.
 
@@ -365,6 +366,15 @@ guest, and the host started the session (`started:true, shrapnel:3`). `minigame-
 `{"hasMain":true,"kind":"ShrapnelMinigame"}` on the host's client and `{"hasMain":true,"kind":"none"}` on the
 bystander's — the operator runs the native screen, the bystander runs nothing and keeps reporting state. Row 4 passes on
 the meaning the row actually has. Record: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-n.md`.
+
+## Batch `20261106-n` — row 9, the symmetric half
+
+Steam2 held a pair (`id 1396185352131`, condition `1`), its wound view was open on Steam1's wounded hand with three pieces
+on it (`seed-shrapnel limb=5 count=3` → `{"shrapnel":3}`), and the player dragged the pair onto the hand in the Steam2
+window. Host log at 22:22:03.900: `[MedicalTargetCheck] request 2 answered by 76561198863287957: this body allows it.`,
+`[Shrapnel] session 2 created for 76561198863287957 limb 5 (3 pieces).`, `[Shrapnel] operator 76561199526807662 joined
+session 2.` — the operator is Steam2 — and `item-census mode=body` on Steam2 then read its own pair at condition `0.99`.
+With the isolation half (`## Row 9 fix`), each operator's use drains only the acting operator's pair.
 
 ## Out of scope for Stage 2
 

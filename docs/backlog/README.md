@@ -107,7 +107,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Remote medical — Stage 1: injection](review/remote-medical-stage-1-injection-session.md) — **High** — rows 1-7/9/12-19/21/23 pass; 8/10/20/22 unproven.
-- [Remote medical — Stage 2: shrapnel](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — row 7 read; rows 1-6/9 need two operators.
 - [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
@@ -148,6 +147,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Remote medical — Stage 2: shrapnel](done/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — every row read; each operator drains only its own pair.
 - [A cross-player eat runs the game's own steps](done/cross-player-eat-skips-native-steps.md) — **High** — the replacement lands in the owner's slot.
 - [The pre-run lobby can deadlock](done/the-pre-run-lobby-can-deadlock.md) — **High** — rows 1-2 read; a dropped member is released at the 30 s bound.
 - [Make the round boundary mechanical](done/make-the-round-boundary-mechanical.md) — **Medium** — records expire per round; the step rules fit 3 KB.

@@ -2,7 +2,7 @@
 
 Artifact: `0.1.0+39300598` (acceptance build, deployed 2026-11-06 20:0x). Clients: host `ws://127.0.0.1:18590`,
 guest `ws://127.0.0.1:18591`, alt `ws://127.0.0.1:18592` (batch `20261106-h`; the alt was quit after launch).
-Ticket: `docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md`, row 7.
+Ticket: `docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md`, row 7.
 
 ## What was driven
 

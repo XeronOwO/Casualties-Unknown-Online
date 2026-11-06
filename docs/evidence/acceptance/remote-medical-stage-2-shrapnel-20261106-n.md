@@ -35,3 +35,18 @@ stayed `1.00`. An operator's use drains only that operator's pair.
 
 Unread: the symmetric half — the second operator's own drag draining its own pair. It needs the second operator's hand
 (the sandbox window), or a seam that drives the wound-view drag in-process; neither exists today.
+
+## Row 9, the symmetric half (batch `20261106-n`)
+
+Steam2's own drag closed the gap. Steam2 held a pair (`id 1396185352131`, condition `1`), its wound view was open on
+Steam1's wounded hand with three pieces on it (`seed-shrapnel limb=5 count=3` → `{"shrapnel":3}`), and the player dragged
+the pair onto the hand in the Steam2 window. Host log at 22:22:03.900: `[MedicalTargetCheck] request 2 answered by
+76561198863287957: this body allows it.`, `[Shrapnel] session 2 created for 76561198863287957 limb 5 (3 pieces).`,
+`[Shrapnel] operator 76561199526807662 joined session 2.` — the operator is Steam2, and `item-census mode=body` on
+Steam2 then read its own pair at condition `0.99`.
+
+Together with the isolation half above (host's drag drained only the host's pair, Steam2's stayed `1.00`), each operator's
+use drains only the acting operator's pair and starts/joins one shared session. Row 9 passes.
+
+Limits: the host held no pair in this world, so this half reads the acting operator's drain and the host's non-participation
+from the session record, not from a second unchanged pair; the reverse half is the batch-m reading.

@@ -291,7 +291,7 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 266 | `review/remote-medical-native-minigame-parity.md` | roadmap parent of the medical stages | `mechanics/medical-view.md` | `corpus page` | the medical page's family with its open stages recorded |
 | 267 | `done/remote-medical-panel-speech-text-desync.md` | code-complete | `surfaces/medical-panel.md` | `corpus page` | ticket: "The speech shown while a remote medical panel is open is not synchronized"; the panel page's state rules |
 | 268 | `review/remote-medical-stage-1-injection-session.md` | landed | `items/injection.md` | `corpus page` | the injection page's operation rules |
-| 269 | `review/remote-medical-stage-2-shrapnel-multiplayer.md` | landed; its rows are the page's open gap | `mechanics/medical-view.md` | `corpus page` (open rows) | the shrapnel flow's multiplayer rows are named on the page's `Gaps` |
+| 269 | `done/remote-medical-stage-2-shrapnel-multiplayer.md` | landed; its rows are the page's open gap | `mechanics/medical-view.md` | `corpus page` (open rows) | the shrapnel flow's multiplayer rows are named on the page's `Gaps` |
 | 270 | `done/remote-medical-stage-3-other-actions.md` | landed | `mechanics/medical-view.md` | `corpus page` | the remaining native actions are the medical page's family |
 | 271 | `done/remote-medical-treatment-operations.md` | landed | `mechanics/medical-view.md` | `corpus page` | the treatment operations are the page's subject |
 | 272 | `done/runtime-entity-markerless-bind-absorption.md` | open; a same-prefab copy absorbs a creation | `mechanics/enemy-combat.md` | `corpus page` (open) | the enemy page's spawn classification is the family |

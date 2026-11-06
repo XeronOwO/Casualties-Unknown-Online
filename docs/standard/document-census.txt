@@ -247,6 +247,7 @@ docs/backlog/done/mod-content-attribute-declarations.md | keep | index | docs/ba
 docs/backlog/done/mod-content-fingerprint.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-nested-member-contracts.md | keep | index | docs/backlog/README.md
 docs/backlog/review/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/joining-a-running-world-sticks-at-the-loading-screen.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/mod-item-wearable-declaration-20261024-a.md | keep | claim | docs/backlog/done/mod-item-wearable-declaration.md

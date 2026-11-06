@@ -241,6 +241,44 @@ public sealed class MedicalOperationOtherActionsSessionTests
 	}
 
 	[Fact]
+	public void Bandage_ReachingAFullUseConsumesTheItem()
+	{
+		var (host, guest) = CreatePair();
+		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, true, Limb(0), Limb(1), Limb(2)));
+		var bandage = Item(80, "bandage");
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, true, bandage));
+		items.AdoptTransferredItem(Guest1Id, 80, bandage);
+		MarkInWorld(host);
+		MarkInWorld(guest);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var states = new List<MedicalOperationStateMsg>();
+		var gOps = Ops(guest);
+		gOps.StartAckReceived += m => ack = m;
+		gOps.StateReceived += states.Add;
+
+		gOps.SendOtherStartRequest(HostId, 80, 1, MedicalOperationKind.Bandage);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+		// 18 wraps per turn, 12 turns for a bandage. The last wrap has to land even though the
+		// accumulated progress is a float and a whole step no longer fits — the old check rejected
+		// it, so the item sat just above zero and the minigame never ended.
+		for (var i = 0; i < 216; i++)
+		{
+			gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Wrap);
+		}
+
+		Assert.Equal(216, states.Count);
+		Assert.False(states[states.Count - 2].ItemDestroyed);
+		Assert.True(states[states.Count - 1].ItemDestroyed);
+		Assert.Null(states[states.Count - 1].ItemAfter);
+		var saved = characters.GetSavedCharacter(Guest1Id)!.Items;
+		Assert.DoesNotContain(saved, i => i.InstanceId == 80);
+	}
+
+	[Fact]
 	public void Bandage_CancelKeepsCommittedWraps()
 	{
 		var (host, guest) = CreatePair();

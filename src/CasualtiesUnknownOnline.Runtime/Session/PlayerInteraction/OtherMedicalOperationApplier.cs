@@ -92,17 +92,24 @@ internal sealed class OtherMedicalOperationApplier(
 
 		var wrapProgress = 1f / (18f * turns);
 		var remaining = session.Progress < 1f ? 1f - session.Progress : 0f;
-		if (remaining <= 0f || wrapProgress > remaining)
+		if (remaining <= 0f)
 		{
 			return false;
 		}
 
-		var applyScale = wrapProgress;
+		// The last wrap is whatever is left, not necessarily a whole one. Progress is a float, so
+		// the accumulated sum can sit a hair under 1 while one more full step no longer fits; the
+		// old check then rejected the very step that would have landed on 1, leaving the item alive
+		// just above zero condition. The game kept the minigame on screen with nothing left to give.
+		var last = remaining <= wrapProgress * 1.01f;
+		var applyScale = last ? remaining : wrapProgress;
 		ApplyScaled(newTarget.Health!, limb, profile, applyScale);
 		newItem.Condition = Math.Max(0f, newItem.Condition - profile.ConditionCost * applyScale);
-		session.Progress += wrapProgress;
+		session.Progress = last ? 1f : session.Progress + wrapProgress;
 
-		var destroyed = newItem.Condition <= 0f;
+		// A completed operation means a spent item: the native chain destroys the bandage at zero
+		// condition and the minigame ends because its currentItem is gone.
+		var destroyed = last || newItem.Condition <= 0f;
 		if (destroyed)
 		{
 			newOperator.Items.RemoveAll(i => i.InstanceId == session.ItemInstanceId);

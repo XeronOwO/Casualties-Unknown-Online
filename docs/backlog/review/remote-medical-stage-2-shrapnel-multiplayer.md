@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — blocked on a fixture for rows 4 and 9 (third-party observer; each operator's own tweezers condition). Rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same (an operator leaving ends its own participation with `Cancelled`, the session survives for the other operator, and a piece removed before the cancel stays removed), row 6 on the same (a disconnecting operator leaves with `Disconnected` and its lease no longer blocks the piece), row 7 on `0.1.0+39300598` (batch `20261106-h`). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
+- Status: Review — row 4 fails: a third client with the wound view open on the patient sees nothing of the shrapnel session (no observer screen, its display limb reads no shrapnel), while the host's session runs. Rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`). Row 9 (each operator's own tweezers condition) has no driver path yet. Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -274,6 +274,20 @@ session ends through the 15 s idle timeout instead of `Completed`; the Completed
 `shrapnel-break6` sends (row 7 already read that path). Rows 2-6/9 stay unread: same-piece lease/force-ungrab, both
 directions, third-party observer, cancel, disconnect and the tweezers condition each require driving a piece through a
 second operator's lease.
+
+## Row 4 defect: the third client sees nothing (batch `20261106-k`, 2026-11-06)
+
+The third client (alt, `76561199526807662`) opened the wound view on the patient with `remote-wound-special
+mode=open target=76561198863287957 limb=5` at 21:16:46.400 (`[MedicalView] opened native medical view … (target)`), and
+the host started session 14 at 21:16:59.768 (`session 14 created … (3 pieces)`). The alt's log then contains **no**
+shrapnel line at all — no observer session, no piece update — and its display read `shrapnel: 0, hasShrapnel: false`
+while the host's display carried the pieces. Row 4's "a third party sees authoritative piece positions" therefore fails
+on this artifact: the client renders nothing to watch.
+
+The code already has the observer arm (`RemoteShrapnelOperationHandler.ApplyShrapnelState` → `TryStartObserver` when
+`RemoteMedicalView.IsOpen` and the target matches), and `ShrapnelStatePublisher` sends the state to every handshaken
+member, so the open question is why the message never reaches that arm on a bystander. Fix at the root, then re-read this
+row in a new batch.
 
 ## Out of scope for Stage 2
 

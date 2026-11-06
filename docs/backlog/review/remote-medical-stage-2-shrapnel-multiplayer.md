@@ -216,6 +216,25 @@ Rows 1-6/9 remain: they need two operators on the same limb at once (leases, for
 second operator client (the alt) is the fixture that batch needs, and the `shrapnel-break6` instrument is the shape a
 two-operator case reuses.
 
+## Batch 20261106-i — two-operator fixture notes
+
+Artifact `0.1.0+39300598`, three clients in one world (host 18590, guest 18591 as the patient, alt 18592 as the second
+operator), lobby `109775243632123666`. Both operators opened the display wound view on the same limb and read
+`opened:true, viewOpen:true, displayBodyName:"MedicalDisplay_110000135D30695"`.
+
+Readings that shape the next cut: the host's first `mode=special` was refused (`[Shrapnel] refused start … No line of
+sight.`, 20:39:12.987) until the host was moved next to the patient (`teleport x=2.5 y=497.6`); a start creates a
+session PER OPERATOR rather than joining one — the alt's start made `session 4` (20:39:21.910, operator
+`76561199526807662`), which idled out after 15 s, and the host's later start made `session 5` (20:39:58.888, operator
+`76561198281246659`). A second `mode=special` from a client that already holds a shrapnel session answers
+`started:false` because its local `_activeShrapnel` is still set; re-entering needs the view closed or the session
+cancelled first.
+
+So rows 1-6/9 have two candidate shapes and the next batch must read which one the product intends: two live
+per-operator sessions on the same limb, with the host arbitrating piece leases across them; or one shared session that a
+second operator can join. Both need the second operator to be able to start while the first session is live, which the
+current client-side guard (`_activeShrapnel != null`) blocks for re-entry but not for a fresh client.
+
 ## Out of scope for Stage 2
 
 - Other multiplayer-capable minigames (amputation/CPR) are later stages or future.

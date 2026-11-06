@@ -117,6 +117,7 @@ internal sealed class OtherMedicalOperationApplier(
 		SyncOperatorItem(session.Operator, newItem, destroyed);
 
 		state = BuildState(session, newOperator, newTarget, destroyed ? null : newItem);
+		state.ItemDestroyed = destroyed;
 		return true;
 	}
 
@@ -327,6 +328,7 @@ internal sealed class OtherMedicalOperationApplier(
 
 		var targetData = _access.GetCharacterData(session.Target);
 		state = BuildState(session, newOperator, targetData, destroyed ? null : newItem);
+		state.ItemDestroyed = destroyed;
 		return true;
 	}
 
@@ -367,6 +369,7 @@ internal sealed class OtherMedicalOperationApplier(
 		ApplyDefibrillation(session, chance);
 
 		state = BuildState(session, newOperator, _access.GetCharacterData(session.Target), destroyed ? null : newItem);
+		state.ItemDestroyed = destroyed;
 		return true;
 	}
 

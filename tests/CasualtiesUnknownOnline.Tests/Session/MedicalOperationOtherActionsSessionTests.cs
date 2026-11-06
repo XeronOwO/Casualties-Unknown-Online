@@ -195,6 +195,7 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		var state = states.Last(m => m.ActionProgress > 0f);
 		Assert.True(state.ActionProgress > 0f);
 		Assert.True(state.ItemAfter!.Condition < 1f);
+		Assert.False(state.ItemDestroyed);
 
 		gOps.SendOtherEndRequest(ack.OperationId);
 		var end = Assert.Single(ends);
@@ -203,6 +204,40 @@ public sealed class MedicalOperationOtherActionsSessionTests
 		Assert.True(hostLimb.SkinHealAmount > 0f);
 		var savedGuest = characters.GetSavedCharacter(Guest1Id)!.Items.Single(i => i.InstanceId == 77);
 		Assert.True(savedGuest.Condition < 1f);
+	}
+
+	[Fact]
+	public void Bandage_LastWrapConsumesTheItemAndTheStateSaysSo()
+	{
+		var (host, guest) = CreatePair();
+		var characters = host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, true, Limb(0), Limb(1), Limb(2)));
+		var bandage = Item(79, "bandage", condition: 0.001f);
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, true, bandage));
+		items.AdoptTransferredItem(Guest1Id, 79, bandage);
+		MarkInWorld(host);
+		MarkInWorld(guest);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var states = new List<MedicalOperationStateMsg>();
+		var gOps = Ops(guest);
+		gOps.StartAckReceived += m => ack = m;
+		gOps.StateReceived += states.Add;
+
+		gOps.SendOtherStartRequest(HostId, 79, 1, MedicalOperationKind.Bandage);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+		gOps.SendOtherUpdate(ack.OperationId, MedicalOperationUpdateAction.Wrap);
+
+		// A null ItemAfter alone is indistinguishable from "no change" on the operator's side: the
+		// host has to say the item is gone, or the local Item object outlives the last wrap and the
+		// game's minigame never notices its currentItem disappeared.
+		var state = states.Last();
+		Assert.True(state.ItemDestroyed);
+		Assert.Null(state.ItemAfter);
+		var saved = characters.GetSavedCharacter(Guest1Id)!.Items;
+		Assert.DoesNotContain(saved, i => i.InstanceId == 79);
 	}
 
 	[Fact]

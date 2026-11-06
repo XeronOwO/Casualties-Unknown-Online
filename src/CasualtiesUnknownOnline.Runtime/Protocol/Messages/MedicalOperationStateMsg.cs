@@ -64,4 +64,12 @@ public sealed class MedicalOperationStateMsg
 	/// <summary>Shared shrapnel session piece state (empty for injection).</summary>
 	[ProtoMember(11)]
 	public List<ShrapnelPieceMsg> ShrapnelPieces { get; set; } = [];
+
+	/// <summary>
+	/// True when this delta consumed the operator's item. <see cref="ItemAfter"/> is then null, and
+	/// without this flag the operator cannot tell "no item change" from "the item is gone": its local
+	/// Item object would survive, holding the open minigame on screen after the last wrap.
+	/// </summary>
+	[ProtoMember(15)]
+	public bool ItemDestroyed { get; set; }
 }

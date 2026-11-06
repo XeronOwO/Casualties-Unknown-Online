@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -31,6 +32,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			msg.LimbIndex,
 			msg.Kind,
 			msg.ItemAfter,
+			msg.ItemDestroyed,
 			msg.TargetHealth,
 			msg.TargetLimbs,
 			msg.AppliedDose,
@@ -62,6 +64,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			msg.LimbIndex,
 			msg.Kind,
 			msg.ItemAfter,
+			false,
 			msg.TargetHealth,
 			msg.TargetLimbs,
 			msg.AppliedDose,
@@ -77,6 +80,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 		int limbIndex,
 		MedicalOperationKind kind,
 		CharacterItemMsg? itemAfter,
+		bool itemDestroyed,
 		CharacterHealthMsg? health,
 		IReadOnlyList<CharacterLimbMsg> limbs,
 		IReadOnlyList<LiquidStackMsg> appliedDose,
@@ -102,7 +106,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			RemoteOtherMedicalOperationHandler.OnHostTerminal(operationId);
 		}
 
-		if (health is null && itemAfter is null && appliedDose.Count == 0)
+		if (health is null && itemAfter is null && appliedDose.Count == 0 && !itemDestroyed)
 		{
 			return;
 		}
@@ -120,14 +124,26 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			if (operatorLocal && itemAfter is { } after)
+			if (operatorLocal && (itemAfter is not null || itemDestroyed))
 			{
 				var item = CarriedItemLocator.FindById(body, itemInstanceId);
 				if (item == null) // Unity object — ==
 				{
 					domains.Log.LogWarning("[MedicalOps] local operator item {ItemId} not found — authoritative item update skipped.", itemInstanceId);
 				}
-				else
+				else if (itemDestroyed)
+				{
+					// The game destroys an item at zero condition, and the open minigame
+					// notices its currentItem is gone (MinigameBase.ActiveMinigameUpdate ends
+					// it, whose postfix closes this operation). A null ItemAfter alone cannot
+					// say this — it also means "no change" — so the line stays on screen.
+					RemoteMedicalOperationHandler.MarkAuthoritativeItemApplied(itemInstanceId);
+					RemoteOtherMedicalItemRestore.MarkApplied(itemInstanceId);
+					Object.Destroy(item.gameObject);
+					domains.Log.LogInformation("[MedicalOps] local item {ItemId} consumed by the remote operation — destroyed.", itemInstanceId);
+					changed = true;
+				}
+				else if (itemAfter is { } after)
 				{
 					item.condition = after.Condition;
 					ItemStateCodec.RestoreLiquids(item, after.Liquids);

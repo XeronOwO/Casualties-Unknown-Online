@@ -106,6 +106,11 @@ internal static class LocalUseItemEligibility
 			return true;
 		}
 
+		if (RemoteOtherMedicalCatalog.IsShrapnelTweezers(item.id))
+		{
+			return true;
+		}
+
 		if (RemoteOtherMedicalCatalog.IsDefibrillator(item.id))
 		{
 			return true;

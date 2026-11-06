@@ -33,6 +33,11 @@ public static class RemoteOtherMedicalCatalog
 		"makeshiftwrench",
 	];
 
+	private static readonly HashSet<string> ShrapnelTweezers =
+	[
+		"tweezers",
+	];
+
 	public static bool IsAmputationTool(string itemId) => AmputationTools.Contains(itemId);
 
 	public static bool IsDefibrillator(string itemId) => Defibrillators.Contains(itemId);
@@ -42,4 +47,6 @@ public static class RemoteOtherMedicalCatalog
 	public static bool IsManualDefibrillator(string itemId) => itemId == "manualdefibrillator";
 
 	public static bool IsDislocationWrench(string itemId) => DislocationWrenches.Contains(itemId);
+
+	public static bool IsShrapnelTweezers(string itemId) => ShrapnelTweezers.Contains(itemId);
 }

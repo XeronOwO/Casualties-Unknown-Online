@@ -50,13 +50,16 @@ internal sealed class RemoteShrapnelOperationHandler
 			|| limbIndex < 0
 			|| limbIndex >= display.limbs.Length
 			|| display.limbs[limbIndex] == null // Unity object — ==
-			|| display.limbs[limbIndex].dismembered
-			|| !display.limbs[limbIndex].hasShrapnel)
+			|| display.limbs[limbIndex].dismembered)
 		{
 			_domains.Log.LogWarning("[MedicalView] refused shrapnel use: no valid shrapnel display limb {Limb}.", limbIndex);
 			return false;
 		}
 
+		// The display limb's own `hasShrapnel` is a 1 Hz snapshot fact, so it may
+		// say 0 while the target's limb still carries pieces. The authority decides:
+		// the host asks the target's own client for the piece count before a session
+		// opens, and refuses a limb with none.
 		return StartRemoteShrapnel(display.limbs[limbIndex], tweezers: true, item: dragItem, target, itemInstanceId);
 	}
 

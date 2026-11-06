@@ -321,6 +321,24 @@ hidden rows alone. Row 4 passes in both halves on `0.1.0+f9bee6a1`; the full rec
 `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-l.md` (it also records the three bystander restarts
 the poisoned evaluator forced, and the batch's limits).
 
+## Row 9 fix (2026-11-06, written; the in-game reading is the last open row)
+
+Dragging tweezers onto a displayed limb was refused with
+`[MedicalView] refused limb use: tweezers is not a supported remote medical/limb-treatment item.`
+(host log 21:44:45 and 21:45:33-37), so the dispatch branch that starts a tweezers session was
+unreachable. Root cause: `LocalUseItemEligibility.IsMedicalLimbUseItem` had no tweezers family, and
+the start arm additionally required the display limb's own `hasShrapnel`, a 1 Hz snapshot copy that
+reads 0 while the target's limb carries pieces.
+
+Fix: `RemoteOtherMedicalCatalog.IsShrapnelTweezers` owns the id; the eligibility admits it; the
+dispatch asks the catalog instead of a literal; and `TryStartRemoteShrapnelUse` no longer trusts the
+display limb's `hasShrapnel` — the host asks the target's own client for the piece count and refuses
+a limb that carries none.
+
+Reading still owed: the drag reaches the host as a start request with `tweezers=true` (host log
+`[MedicalView] started remote shrapnel minigame … (tweezers=True)`), then `item-census mode=body` on
+both operators shows only the acting operator's tweezers condition drop.
+
 ## Out of scope for Stage 2
 
 - Other multiplayer-capable minigames (amputation/CPR) are later stages or future.

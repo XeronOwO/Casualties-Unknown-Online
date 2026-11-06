@@ -186,7 +186,7 @@ internal sealed class RemoteMedicalOperationHandler
 				: LimbUseDispatch.Refused;
 		}
 
-		if (dragItem.id == "tweezers")
+		if (RemoteOtherMedicalCatalog.IsShrapnelTweezers(dragItem.id))
 		{
 			return Dispatch(_shrapnelOps.TryStartRemoteShrapnelUse(dragItem, limbIndex, target, itemInstanceId));
 		}

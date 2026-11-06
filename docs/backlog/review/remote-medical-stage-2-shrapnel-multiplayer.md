@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — blocked on a fixture for rows 4, 6 and 9 (third-party observer, disconnect while holding, each operator's own tweezers condition) and on the removed-piece half of row 5 (its cancel path is read: an operator leaving ends its own participation with `Cancelled`, and a session with another operator keeps running). Rows 1-3 and 7 pass on the deployed artifacts: row 1 and row 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 7 on `0.1.0+39300598` (batch `20261106-h`). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
+- Status: Review — blocked on a fixture for rows 4 and 9 (third-party observer; each operator's own tweezers condition) and on the removed-piece half of row 5 (its cancel path is read: an operator leaving ends its own participation with `Cancelled`, and a session with another operator keeps running). Rows 1-3, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 6 on the same (a disconnecting operator leaves with `Disconnected` and its lease no longer blocks the piece), row 7 on `0.1.0+39300598` (batch `20261106-h`). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`

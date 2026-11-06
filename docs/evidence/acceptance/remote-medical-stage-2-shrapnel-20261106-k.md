@@ -76,6 +76,20 @@ So the cancel path is real and the session survives a single operator leaving. W
 half of the row: no piece had been removed before the cancel (the break call did not land in this window), so "already
 removed pieces stay removed" is still unread.
 
+## Disconnect while holding (row 6)
+
+Session 8: the alt created the session and the host joined it, the alt grabbed piece 0, and then the alt's client quit
+(the driver's `quit`, the same path a player closing the game takes). Host log:
+
+- 21:09:05.802 `session 8 created … (3 pieces)` / `operator 76561199526807662 joined session 8.`
+- 21:09:08.091 `operator 76561198281246659 joined session 8.`
+- 21:09:17.659 `operator 76561199526807662 left session 8 (Disconnected).`
+
+The host released the departing operator's participation with the reason `Disconnected`; no terminal line followed, so
+the session stayed alive for the remaining operator. The host then grabbed the same piece 0 and **no**
+`rejected non-owner move` line appeared, which is the release: the departed operator's lease no longer blocks the piece.
+Row 6 passes.
+
 ## Verdict
 
 - Row 1 PASS: two operators removed three different pieces (0, 1, 2) in one shared session; each break-grasp applied

@@ -435,12 +435,44 @@ internal sealed class RemoteShrapnelOperationHandler
 		return false;
 	}
 
+	// One client hosts one native minigame at a time. The observer copy of the SAME
+	// remote limb is not a competitor: when an operator starts its own share of a
+	// shared session while it is only watching, the observer minigame is replaced by
+	// the operator's own. Any other occupant (a syringe, a CPR screen, a previous
+	// operator session) still refuses the start.
+	private bool TryFreeNativeMinigameHost(ulong target)
+	{
+		if (MinigameBase.main == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		if (MinigameBase.main.currentMinigame == null) // Unity object — ==
+		{
+			return true;
+		}
+
+		if (_observerShrapnel is { Minigame: { } observerMinigame }
+			&& ReferenceEquals(MinigameBase.main.currentMinigame, observerMinigame))
+		{
+			// Clear the observer FIRST: the EndMinigame postfix reads these statics, and a
+			// live observer entry would send the observer's own completion for a screen that
+			// is being replaced.
+			_observerShrapnel = null;
+			_domains.Log.LogInformation(
+				"[MedicalView] releasing the observer shrapnel minigame to start the operator's own share for {Target}.", target);
+			MinigameBase.main.EndMinigame();
+			return MinigameBase.main.currentMinigame == null; // Unity object — ==
+		}
+
+		_domains.Log.LogWarning("[MedicalView] refused shrapnel: no free native minigame host for {Target}.", target);
+		return false;
+	}
+
 	private bool StartRemoteShrapnel(Limb limb, bool tweezers, Item? item, ulong target, ulong itemInstanceId)
 	{
-		if (MinigameBase.main == null // Unity object — ==
-			|| MinigameBase.main.currentMinigame != null)
+		if (!TryFreeNativeMinigameHost(target))
 		{
-			_domains.Log.LogWarning("[MedicalView] refused shrapnel: no free native minigame host for {Target}.", target);
 			return false;
 		}
 

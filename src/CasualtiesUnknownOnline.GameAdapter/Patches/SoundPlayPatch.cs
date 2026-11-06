@@ -36,13 +36,6 @@ internal static class SoundPlayPatch
 {
 	private static bool Prefix(string clip, Vector2 pos, bool twoDimensional, Transform follow, float volume)
 	{
-		// Temporary diagnostic (2026-11-07, chain in .acceptance/chain-eat-sound.md): the hand-fed eat clip is never
-		// relayed. This line names the scope it plays under, before any guard can drop it. Remove once the cause is read.
-		if (clip == "eatFlesh" || clip == "eatCrunch")
-		{
-			Debug.LogWarning($"[SoundProbe] {clip} origin={CallContext.Current} remoteApply={CallContext.IsWithin(CallContext.Origin.RemoteApply)} hostVitals={HostVitalsPass.IsActive} spectator={SpectatorPresentationGate.IsActive}");
-		}
-
 		// The host's simulated clone of a remote player runs the game's own vital stages; their
 		// heart thump, growl, speech and vomit warnings are the OWNER's sounds, not the host's.
 		// Refuse before the play and before the character-sound capture: a capture here would even
@@ -98,6 +91,9 @@ internal static class SoundPlayPatch
 				// entered INSIDE CharacterItemUse, so it is the innermost origin and the eat clip would otherwise
 				// classify as None — the giver heard only the meal-end burp (2026-11-07).
 				CallContext.Origin.HandFeed => CharacterSoundPolicy.Origin.ItemUse,
+		// The game's own eat runs under the replacement-creation scope (read 2026-11-07: the hand-fed pancake's
+		// eatFlesh played with origin=ItemReplacementCreation and was dropped as None, so the giver never heard it).
+		CallContext.Origin.ItemReplacementCreation => CharacterSoundPolicy.Origin.ItemUse,
 				CallContext.Origin.CharacterBurp => CharacterSoundPolicy.Origin.Burp,
 				CallContext.Origin.CharacterMedicalUse => CharacterSoundPolicy.Origin.Medical,
 				CallContext.Origin.CharacterWorldDrink => CharacterSoundPolicy.Origin.WorldDrink,

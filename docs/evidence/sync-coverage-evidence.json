@@ -6510,7 +6510,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs",
 
-      "quote": "|| (active && Time.unscaledTime - _lastBroadcastTime >= BroadcastIntervalSeconds);"
+      "quote": "|| Time.unscaledTime - _lastBroadcastTime >= (active ? BroadcastIntervalSeconds : InactiveClockIntervalSeconds);"
 
     },
 

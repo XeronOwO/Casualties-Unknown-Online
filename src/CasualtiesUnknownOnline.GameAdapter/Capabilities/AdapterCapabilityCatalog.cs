@@ -70,6 +70,10 @@ internal static class AdapterCapabilityCatalog
 				// The host rule that parks the radiation line above the layer floor: the line is world state,
 				// and its clamp touches neither a damage rule nor layer progression.
 				typeof(RadiationLineFloorStopPatch),
+				// The member's own line activation is suppressed: the layer clock and its limit arrive from the
+				// host, so the member's native "the layer ran out" branch must not decide (it lowered the line
+				// alone on 2026-11-06). World state, same surface as the clamp above.
+				typeof(RadiationLineGuestActivationPatch),
 				// The layer-modifier determinism patch lives in the WorldGen namespace, not
 				// in Patches (it is a world-generation boundary, not a gameplay hook).
 				typeof(LayerModifierApplyPatch),

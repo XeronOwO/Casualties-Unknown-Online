@@ -34,6 +34,11 @@ internal sealed class RadiationLineSync(
 	/// within a small fraction of a unit while the wire cost stays tiny.</summary>
 	private const float BroadcastIntervalSeconds = 0.2f;
 
+	/// <summary>Host resend interval while the line is INACTIVE: nothing descends, but the layer clock has to
+	/// keep arriving so the member's copy never runs on its own. One second is well below the granularity the
+	/// native timer check can act on and keeps the wire cost negligible.</summary>
+	private const float InactiveClockIntervalSeconds = 1f;
+
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
 	private readonly IEntitySyncControl _entities = entities;
@@ -90,7 +95,7 @@ internal sealed class RadiationLineSync(
 
 		var due = !_hasPublished
 			|| active != _lastActive
-			|| (active && Time.unscaledTime - _lastBroadcastTime >= BroadcastIntervalSeconds);
+			|| Time.unscaledTime - _lastBroadcastTime >= (active ? BroadcastIntervalSeconds : InactiveClockIntervalSeconds);
 		if (!due)
 		{
 			return;
@@ -170,11 +175,14 @@ internal sealed class RadiationLineSync(
 
 	private void Publish(bool active, float timeGone)
 	{
+		var world = WorldGeneration.world; // Unity object — ==
 		_world.BroadcastRadiationLineState(new RadiationLineStateMsg
 		{
 			Active = active,
 			TimeGone = timeGone,
 			Rate = HostRate(),
+			LayerTimeSpent = world != null ? world.layerTimeSpent : 0f,
+			MaxTimePerLayer = world != null ? world.maxTimePerLayer : 0f,
 		});
 		_hasPublished = true;
 		_lastActive = active;

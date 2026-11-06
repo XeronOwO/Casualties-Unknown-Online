@@ -28,4 +28,21 @@ public sealed class RadiationLineStateMsg
 	/// <summary>The host line's descent rate in world units per second (the native `deltaTime * (conscious ? 1 : 0.2) * 1.5` per second).</summary>
 	[ProtoMember(3)]
 	public float Rate { get; set; }
+
+	/// <summary>
+	/// The host's own layer clock (<c>WorldGeneration.layerTimeSpent</c>). The member's copy of this clock is a
+	/// display value, not a second authority: writing the host's value onto it means the member never reaches a
+	/// "the layer ran out" conclusion of its own, which is how a member once lowered the radiation line alone
+	/// (2026-11-06: member 3600 s of a 3600 s limit, host 3808 s of 10800 s).
+	/// </summary>
+	[ProtoMember(4)]
+	public float LayerTimeSpent { get; set; }
+
+	/// <summary>
+	/// The host's layer limit (<c>WorldGeneration.maxTimePerLayer</c>). It travels with the clock because the two
+	/// together are what the native <c>Update</c> compares; a member reading the host's clock against its own
+	/// limit would compare two different runs.
+	/// </summary>
+	[ProtoMember(5)]
+	public float MaxTimePerLayer { get; set; }
 }

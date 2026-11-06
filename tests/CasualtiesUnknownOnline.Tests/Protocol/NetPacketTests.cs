@@ -239,13 +239,18 @@ public class NetPacketTests
 	[Fact]
 	public void RadiationLineState_RoundTripsActiveAndTimeGone()
 	{
-		var msg = new RadiationLineStateMsg { Active = true, TimeGone = 123.5f };
+		var msg = new RadiationLineStateMsg { Active = true, TimeGone = 123.5f, Rate = 1.5f, LayerTimeSpent = 3808.75f, MaxTimePerLayer = 10800f };
 
 		var decoded = NetPacket.DecodePayload<RadiationLineStateMsg>(
 			NetPacket.Encode(NetMsg.RadiationLineState, msg));
 
 		Assert.True(decoded.Active);
 		Assert.Equal(123.5f, decoded.TimeGone);
+		// The layer clock and its limit travel with the state so the member's copy is the host's: a decoded 0
+		// would put the member back on its own count, which is how it lowered the line alone (2026-11-06).
+		Assert.Equal(1.5f, decoded.Rate);
+		Assert.Equal(3808.75f, decoded.LayerTimeSpent);
+		Assert.Equal(10800f, decoded.MaxTimePerLayer);
 	}
 
 	[Fact]

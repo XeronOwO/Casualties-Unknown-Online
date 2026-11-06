@@ -1,5 +1,4 @@
 using HarmonyLib;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -37,14 +36,16 @@ internal static class WorldGenerationUpdatePatch
 		// the delay keeps the trigger from ever firing: the guest never starts
 		// a quake, only the host's broadcast does (OnEarthquakeStartReceived).
 		//
-		// The radiation line is the same host-authority world state: a guest's
-		// own layerTimeSpent must not Activate() its local line independently.
-		// layerTimeSpent is otherwise consumed only by the line condition
-		// (WorldGeneration.cs:859-863), so capping it is side-effect free.
+		// The radiation line is the same host-authority world state, and the member's copy of the layer clock is
+		// now written from the host's broadcast (RadiationLineSync publishes `layerTimeSpent`/`maxTimePerLayer`
+		// with every state, and RadiationLineTable.Apply writes both onto this client). The native check below
+		// still runs on the member with those host values, so its own `Activate()` is suppressed outright
+		// (RadiationLineGuestActivationPatch) rather than fought with a clamped clock: an earlier version capped
+		// the clock just under the limit, and because the Update body adds one frame BEFORE it tests
+		// `> maxTimePerLayer`, the member crossed on the next frame and lowered the line alone (2026-11-06).
 		if (PatchBridge.Impl is { IsSessionActive: true } bridge && bridge.IsHostMode == false)
 		{
 			__instance.earthquakeDelay = float.MaxValue;
-			__instance.layerTimeSpent = Mathf.Min(__instance.layerTimeSpent, __instance.maxTimePerLayer);
 		}
 	}
 

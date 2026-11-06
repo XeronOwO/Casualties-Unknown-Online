@@ -54,8 +54,11 @@ internal static class RadiationLineTable
 		{
 			line.active = true;
 			WriteTimeGone(line, state.TimeGone);
+			ApplyLayerClock(state);
 			return true;
 		}
+
+		ApplyLayerClock(state);
 
 		if (WorldGeneration.world != null) // Unity object — ==
 		{
@@ -71,5 +74,24 @@ internal static class RadiationLineTable
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// Write the host's layer clock and limit onto the member's world. The clock is what the native
+	/// <c>Update</c> compares, so the member's copy must never be an independent count: with the host's pair on
+	/// it, "the layer ran out" can only be the host's conclusion (a member that compared the host's clock with
+	/// its own limit once lowered the line alone — 2026-11-06). A message carrying no limit (an older sender,
+	/// or the solo snapshot before a world exists) leaves the local values alone.
+	/// </summary>
+	private static void ApplyLayerClock(RadiationLineStateMsg state)
+	{
+		var world = WorldGeneration.world;
+		if (world == null || state.MaxTimePerLayer <= 0f) // Unity object — ==
+		{
+			return;
+		}
+
+		world.maxTimePerLayer = state.MaxTimePerLayer;
+		world.layerTimeSpent = state.LayerTimeSpent;
 	}
 }

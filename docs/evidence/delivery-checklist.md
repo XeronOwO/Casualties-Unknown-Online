@@ -57,13 +57,13 @@ by it. A box whose evidence names another cycle is not filled.
 
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
-      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing
+      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing — evidence: documentation/acceptance cycle (no code path changed); the batch's surface and judging standard are `docs/backlog/done/the-pre-run-lobby-can-deadlock.md` rows 1-3 and `docs/evidence/acceptance/the-pre-run-lobby-can-deadlock-20261106-a.md`
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
-      edit, and no forbidden shape is used to fit a mechanism
+      edit, and no forbidden shape is used to fit a mechanism — evidence: no behaviour changed this cycle; the host's own start gate and the native run start (`start-run` → `PreRunScript.StartRun`) were read in batch `20261106-a`, both ends recorded in the batch evidence file
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
-      with every difference either fixed or named as a user decision
+      with every difference either fixed or named as a user decision — evidence: the join → leave → re-join → start → drop sequence ran across two clients in one session (batch `20261106-a`); both ends' `state` readings and the host log are in the batch evidence file
 - [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)

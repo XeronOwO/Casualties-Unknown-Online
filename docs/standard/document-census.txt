@@ -238,7 +238,7 @@ docs/backlog/done/item-data-read-commands.md | keep | index | docs/backlog/READM
 docs/backlog/done/item-data-write-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-id-counter-is-not-resumed-by-a-restore.md | keep | index | docs/backlog/README.md
 docs/backlog/done/item-identity-across-transforms.md | keep | index | docs/backlog/README.md
-docs/backlog/review/layer-complete-choice-for-members.md | keep | index | docs/backlog/README.md
+docs/backlog/resolved/layer-complete-choice-for-members.md | keep | index | docs/backlog/README.md
 docs/backlog/done/limb-tool-family-protection-gaps.md | keep | index | docs/backlog/README.md
 docs/backlog/done/middle-click-location-marker.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/middle-click-location-marker-20261024-a.md | keep | claim | docs/backlog/done/middle-click-location-marker.md
@@ -387,7 +387,7 @@ docs/backlog/done/give-degrades-to-a-ground-drop-and-rearranging-retires-it.md |
 docs/backlog/done/give-into-backpack-plays-no-sound.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cross-player-eat-skips-native-steps.md | keep | index | docs/backlog/README.md
 docs/backlog/done/a-disconnected-member-leaves-his-arrow-on-the-hud.md | keep | index | docs/backlog/README.md
-docs/backlog/review/the-pre-run-lobby-can-deadlock.md | keep | index | docs/backlog/README.md
+docs/backlog/done/the-pre-run-lobby-can-deadlock.md | keep | index | docs/backlog/README.md
 docs/backlog/done/selectors-exclude-the-executor.md | keep | index | docs/backlog/README.md
 docs/backlog/done/merge-remote-inventory-design-into-corpus.md | keep | index | docs/backlog/README.md
 docs/backlog/done/run-coordinator-over-the-class-line.md | keep | index | docs/backlog/README.md
@@ -1270,6 +1270,7 @@ docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md |
 docs/evidence/acceptance/remote-medical-panel-alarm-follows-viewed-player-20261023-c.md | keep | claim | docs/backlog/done/remote-medical-panel-alarm-follows-viewed-player.md
 docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | claim | docs/backlog/done/snapshot-overtakes-item-reports.md
 docs/evidence/acceptance/split-the-body-verb-service-20261105-a.md | keep | claim | docs/backlog/done/split-the-body-verb-service.md
+docs/evidence/acceptance/the-pre-run-lobby-can-deadlock-20261106-a.md | keep | claim | docs/backlog/done/the-pre-run-lobby-can-deadlock.md
 docs/backlog/done/item-custody-single-authority.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
 tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/done/context-menu-does-not-block-the-pointer.md

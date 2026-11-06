@@ -1,6 +1,6 @@
 # The command console is a contract, not a set of attribute-marked methods
 
-- Status: Review — every row is read except 13 (the same key in two languages: both sandboxed clients render Chinese and the channel has no language switch). Rows 1, 2, 3, 4, 5, 6, 7, 12, 14, 15 and 16 carry their readings above; row 16 also produced a fix (`/data`'s header now travels as a key, in both shapes) and one named residual (the adapter's item-state refusal notes are still raw English, `ItemStateDocument`).
+- Status: Review — blocked on a fixture: row 13 (the same key in two languages) needs a client whose game language is not Chinese — a fresh session on 2026-11-06 read the SAME Chinese labels on both clients with `/whoami` (batch `20261106-a`, artifact `0.1.0+ef9d9c34`). Every other row carries its reading above.
 - Priority: High — this is the mod-facing surface, and the localisation contract rides on it: a refusal must be a KEY at its origin, which is the only way a player reads a Chinese shell AND a Chinese reason (the user's ruling, 2026-10-28). Its shape is hard to change once third-party mods depend on it.
 - Category: Console / mod contract / architecture
 
@@ -643,3 +643,21 @@ for them; and no horizontal scrollbar.
 One correction came from that crop: the usage layer was as wide as the description plus the marker and the button, and the
 horizontal group's own spacing pushed it past the view, which put the scrollbar back. The layer now takes ten pixels less than
 the description's width, and the frame above is after that fix.
+
+## The two-language row: the fixture this machine cannot stage (2026-11-06, batch `20261106-a`)
+
+Row 13 asks the same refusal to read in the SAME language on the member it reaches — one key, two clients, two languages. Both
+clients were driven through `/whoami` in one session on artifact `0.1.0+ef9d9c34` (host on 18590 with the Chinese UI; guest on
+18591 in the Steam1 box with the English UI):
+
+- host (rendered in Chinese; translated here): `role=Host SteamID=76561198281246659 host=76561198281246659 session=true`
+- guest (rendered in Chinese; translated here): `role=None SteamID=76561198863287957 host=0 session=false`
+
+The two lines carry the SAME Chinese labels, so the guest's client renders the core catalogue in Chinese even though its UI is
+English: what language the console renders in is the game's own per-client setting, and this session has no second value to
+stage it with. `/exampleecho hi-there` answered in English on both ends (`broadcast "hi-there" to the other members` on the
+host, `the send was refused locally — see the log` on the guest), but that is the example mod's own untranslated key, not a
+language switch.
+
+So row 13 is blocked on a fixture — a client whose game language is not Chinese — and the ticket says so in its status. That is
+the ticket's own statement, now with the reading that proves it.

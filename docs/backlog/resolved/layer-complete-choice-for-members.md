@@ -1,12 +1,6 @@
 # The end-of-layer choice must be reachable by every member
 
-- Status: Review — **superseded in part (2026-10-24)**: this ticket's premise ("both the host and the guests can
-  see it and click it") was overturned by the user's later ruling recorded on
-  `done/layer-end-save-and-exit-native-write.md`: only the HOST presses these two choices, and on a member both
-  buttons are now HIDDEN (`LayerPanelChoicePolicy`, deployed `0.1.0+32acadd7`). What remains of this ticket is the
-  dead-host row, which that ruling also answers for the panel (a member cannot click, so a dead host cannot be
-  bypassed from here; the pod keeps its own producer). The development half had landed 2026-10-07; the static
-  attribution this ticket's first job asked for is taken above.
+- Status: Resolved — the user's 2026-10-24 ruling answers the only remaining row: only the HOST presses the end-of-layer choice and a member's buttons are hidden (`LayerPanelChoicePolicy`, deployed `0.1.0+32acadd7`), so a dead host cannot be bypassed from a member's panel and the pod keeps its own producer; the development half landed 2026-10-07.
 - Priority: High
 - Category: Layer progression / session flow
 - Source: the user's 2026-10-07 backlog request — finishing a layer offers a save-or-continue choice; they ask
@@ -168,9 +162,10 @@ Status after the 2026-10-07 development cycle:
 
 ## Limits
 
-1. **The runtime row this ticket exists for is NOT verified**: a dead host at the layer's end, two living
-   members, the group reaching the next layer — that needs three clients and a real machine (the batch is
-   named in the handoff). Nothing in this cycle was deployed or run in game.
+1. **The dead-host row was answered by the ruling, not verified in game**: a dead host at the layer's end
+   cannot be bypassed from a member's panel because the member has no buttons at all, and the session's
+   next layer is the pod's own producer. Nothing in the development cycle was deployed or run in game, and
+   the ruling makes that reading unnecessary instead of outstanding.
 2. **The member's click is the session's step, not its own descent**: the local regeneration is suppressed,
    so the member's screen shows the panel closing and then the session's own transition (the pull back to
    the menu and the world entry that re-invites it) — the same path every member takes when the host

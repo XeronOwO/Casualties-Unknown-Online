@@ -90,7 +90,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [The pre-run lobby can deadlock](review/the-pre-run-lobby-can-deadlock.md) — **High** — root cause fixed; three fresh sessions departed.
 - [A cross-player eat runs the game's own steps](review/cross-player-eat-skips-native-steps.md) — **High** — all four rows pass.
 
 
@@ -102,7 +101,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 - [Drag-use aims at the model, not a fixed circle](review/cross-player-drag-use-model-bounds.md) — **Medium** — the model measures itself; rows need a mouse.
 - [Cross-player semantics from the game's own data](review/mod-cross-player-native-semantics.md) — **High** — five chains native; the natives need a batch.
-- [The end-of-layer choice must reach every member](review/layer-complete-choice-for-members.md) — **High** — landed; the dead-host row needs a batch.
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
@@ -135,6 +133,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Resolved
 
+- [The end-of-layer choice must reach every member](resolved/layer-complete-choice-for-members.md) — **High** — the 2026-10-24 ruling: only the host presses.
 - [A dropped enemy attack is never re-issued](resolved/enemy-attack-delivery-recovery.md) — superseded: the victim judges its own hit.
 - [IP-direct duplicate names allowed](resolved/ip-direct-duplicate-names.md) — an accepted IP-direct property.
 - [check-architecture.ps1 performance](resolved/check-architecture-performance.md) — **Medium** — the script became C# gate tests.
@@ -150,6 +149,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The pre-run lobby can deadlock](done/the-pre-run-lobby-can-deadlock.md) — **High** — rows 1-2 read; a dropped member is released at the 30 s bound.
 - [Make the round boundary mechanical](done/make-the-round-boundary-mechanical.md) — **Medium** — records expire per round; the step rules fit 3 KB.
 - [Split the body-verb service](done/split-the-body-verb-service.md) — **Medium** — 619 lines became 407 + 181 + 150; four rows judged.
 - [Move the acceptance input channel out](done/move-acceptance-input-out-of-the-build.md) — **Medium-High** — the type split; one install report.

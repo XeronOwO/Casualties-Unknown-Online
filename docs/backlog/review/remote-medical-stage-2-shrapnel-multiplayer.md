@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — row 4 fails: a third client with the wound view open on the patient sees nothing of the shrapnel session (no observer screen, its display limb reads no shrapnel), while the host's session runs. Rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`). Row 9 (each operator's own tweezers condition) has no driver path yet. Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
+- Status: Review — row 4's first half passes on `0.1.0+f9bee6a1`: a bystander with the wound view open now shows the observer shrapnel screen, where before it showed nothing. The second half (the observer's authoritative piece positions) and row 9 (each operator's own tweezers condition) are still unread. Rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md` and `-k.md`.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -288,6 +288,23 @@ The code already has the observer arm (`RemoteShrapnelOperationHandler.ApplyShra
 `RemoteMedicalView.IsOpen` and the target matches), and `ShrapnelStatePublisher` sends the state to every handshaken
 member, so the open question is why the message never reaches that arm on a bystander. Fix at the root, then re-read this
 row in a new batch.
+
+## Row 4 fix: the observer screen is built from the state's pieces (batch `20261106-l`, 2026-11-06)
+
+Root cause: `TryStartObserver` refused when the display body's limb copy did not carry shrapnel
+(`if (limb.dismembered || !limb.hasShrapnel) return null;`). That copy is filled from the 1 Hz character snapshot, which
+can predate the wound the session is removing, so the bystander's display read `shrapnel: 0` and the observer screen was
+never constructed — silently.
+
+Fix `f9bee6a1`: the observer now counts the active pieces in the authoritative state message and writes that count onto
+the display limb (`limb.shrapnel = activePieces`) before the native minigame is constructed; the native constructor then
+builds the right number of pieces. Only the observer arm changed; the operator start paths keep their own gate.
+
+Reading on `0.1.0+f9bee6a1` (batch `20261106-l`): three clients in one world, guest seeded with
+`seed-shrapnel limb=5 count=3`, host and alt each opened the wound view on the guest, host started the session; the alt's
+`minigame-live` then read `{"hasMain":true,"kind":"ShrapnelMinigame"}` — the bystander's screen is the observer shrapnel
+minigame, where before the fix it had none. The second half of row 4 (the observer's piece positions moving with the
+authority) is still unread.
 
 ## Out of scope for Stage 2
 

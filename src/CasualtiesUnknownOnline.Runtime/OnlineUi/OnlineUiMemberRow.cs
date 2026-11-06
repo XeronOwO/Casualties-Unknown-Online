@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 
 namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
@@ -62,9 +61,6 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True for the remote carrier row when the local player is riding on this member and can request to get down.</summary>
 	public bool CanRequestDropFromCarrier { get; init; }
 
-	/// <summary>True when the local player can request a heal on this in-world member.</summary>
-	public bool CanHeal { get; init; }
-
 	/// <summary>True when this in-world member can be pushed/shoved by the local player (the host still validates distance/standing/cooldown).</summary>
 	public bool CanPush { get; init; }
 
@@ -116,7 +112,4 @@ public sealed class OnlineUiMemberRow
 
 	/// <summary>The concrete slot items that can be taken (empty unless <see cref="CanTake"/> is true).</summary>
 	public IReadOnlyList<RemoteInventoryEntry> TakeableItems { get; init; } = [];
-
-	/// <summary>The local player's medical items available for an explicit heal selector.</summary>
-	public IReadOnlyList<LocalHealItem> HealItems { get; init; } = [];
 }

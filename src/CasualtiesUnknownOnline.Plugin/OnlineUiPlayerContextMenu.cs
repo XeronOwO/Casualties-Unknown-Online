@@ -297,26 +297,21 @@ internal sealed class OnlineUiPlayerContextMenu
 			actions.Add(new MenuAction(ctx.T("member.get_down"), () => ctx.DropCarried?.Invoke(ctx.Session.LocalSteamId)));
 		}
 
-		if (row.CanHeal)
+		// The member list is not the only card a dead player can reach: the in-world right-click menu is
+		// built here, and a watch with no way to start it from the body being watched is the same gap.
+		if (row.IsWatched)
 		{
-			actions.Add(new MenuAction(ctx.T("member.heal"), () => ctx.HealRemote?.Invoke(row.SteamId)));
-
-			// The member list is not the only card a dead player can reach: the in-world right-click menu is
-			// built here, and a watch with no way to start it from the body being watched is the same gap.
-			if (row.IsWatched)
+			actions.Add(new MenuAction(ctx.T("member.watch.stop"), () => ctx.StopWatching?.Invoke()));
+		}
+		else if (row.CanSpectate)
+		{
+			actions.Add(new MenuAction(ctx.T("member.watch"), () =>
 			{
-				actions.Add(new MenuAction(ctx.T("member.watch.stop"), () => ctx.StopWatching?.Invoke()));
-			}
-			else if (row.CanSpectate)
-			{
-				actions.Add(new MenuAction(ctx.T("member.watch"), () =>
+				if (ctx.WatchMember?.Invoke(row.SteamId) == false)
 				{
-					if (ctx.WatchMember?.Invoke(row.SteamId) == false)
-					{
-						ctx.Notify?.Invoke(ctx.T("member.watch.refused"));
-					}
-				}));
-			}
+					ctx.Notify?.Invoke(ctx.T("member.watch.refused"));
+				}
+			}));
 		}
 
 		if (row.CanPush)
@@ -335,13 +330,6 @@ internal sealed class OnlineUiPlayerContextMenu
 			var slot = item.SlotIndex;
 			var instanceId = item.InstanceId;
 			actions.Add(new MenuAction(ctx.F("member.take", itemId, slot), () => ctx.TakeItem?.Invoke(row.SteamId, instanceId)));
-		}
-
-		foreach (var item in row.HealItems)
-		{
-			var itemId = item.ItemId;
-			var instanceId = item.InstanceId;
-			actions.Add(new MenuAction(ctx.F("member.heal_with", itemId), () => ctx.HealWithItem?.Invoke(row.SteamId, instanceId)));
 		}
 
 		return actions;

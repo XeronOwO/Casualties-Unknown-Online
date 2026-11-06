@@ -19,7 +19,6 @@ internal sealed class OnlineUiActions(
 	IRemoteInventoryPresentation? remoteInventory,
 	IRemoteMedicalPresentation? remoteMedical,
 	ITraderRecruitRequest? traderRecruit,
-	ILocalHealItemQuery? localHealItems,
 	ISpectatorControl? spectator)
 {
 	private readonly SessionService _session = session;
@@ -28,7 +27,6 @@ internal sealed class OnlineUiActions(
 	private readonly IRemoteInventoryPresentation? _remoteInventory = remoteInventory;
 	private readonly IRemoteMedicalPresentation? _remoteMedical = remoteMedical;
 	private readonly ITraderRecruitRequest? _traderRecruit = traderRecruit;
-	private readonly ILocalHealItemQuery? _localHealItems = localHealItems;
 	private readonly ISpectatorControl? _spectator = spectator;
 
 	/// <summary>The member this client is following, straight from the camera — the one owner of that fact.</summary>
@@ -171,28 +169,6 @@ internal sealed class OnlineUiActions(
 		return true;
 	}
 
-	public bool HealRemoteFromUi(ulong targetSteamId)
-	{
-		if (!_session.SessionActive)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendHealRequest(targetSteamId, 0);
-		return true;
-	}
-
-	public bool HealWithItemFromUi(ulong targetSteamId, ulong itemInstanceId)
-	{
-		if (!_session.SessionActive || itemInstanceId == 0)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendHealRequest(targetSteamId, itemInstanceId);
-		return true;
-	}
-
 	public bool PushRemoteFromUi(ulong targetSteamId)
 	{
 		if (!_session.SessionActive)
@@ -219,8 +195,4 @@ internal sealed class OnlineUiActions(
 	public bool BanMemberFromUi(ulong targetSteamId) => _hostBan.Ban(targetSteamId, "banned by host");
 
 	public bool UnbanMemberFromUi(ulong targetSteamId) => _hostBan.Unban(targetSteamId);
-
-	public bool HasLocalHealItem() => _localHealItems?.HasLocalHealItem() == true;
-
-	public IReadOnlyList<LocalHealItem> GetLocalHealItems() => _localHealItems?.GetLocalHealItems() ?? [];
 }

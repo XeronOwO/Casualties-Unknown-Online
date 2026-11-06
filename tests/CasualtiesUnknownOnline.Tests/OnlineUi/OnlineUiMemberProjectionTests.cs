@@ -2,7 +2,6 @@ using System.Linq;
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
-using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -26,8 +25,7 @@ public sealed class OnlineUiMemberProjectionTests
 			[],
 			null,
 			canAdmin: false,
-			localInWorld: false,
-			hasHealItem: false);
+			localInWorld: false);
 
 		Assert.Equal(3, rows.Count);
 		Assert.Equal(Remote, rows[0].SteamId);
@@ -45,8 +43,7 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Remote, handshaken: true, inWorld: false)],
 			null,
 			canAdmin: true,
-			localInWorld: false,
-			hasHealItem: false);
+			localInWorld: false);
 
 		Assert.True(rows[1].CanKick);
 		Assert.True(rows[1].CanBan);
@@ -62,8 +59,7 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Remote, handshaken: true, inWorld: false)],
 			null,
 			canAdmin: false,
-			localInWorld: false,
-			hasHealItem: false);
+			localInWorld: false);
 
 		Assert.False(rows[1].CanKick);
 		Assert.False(rows[1].CanBan);
@@ -95,7 +91,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
 			getInventory: id => inventory.TryGetValue(id, out var inv) ? inv : null);
 
@@ -103,7 +98,6 @@ public sealed class OnlineUiMemberProjectionTests
 		Assert.True(rows[1].CanTake);
 		Assert.Single(rows[1].TakeableItems);
 		Assert.Equal(42UL, rows[1].TakeableItems[0].InstanceId);
-		Assert.False(rows[1].CanHeal);
 		Assert.True(rows[1].CanRecruit);
 	}
 
@@ -160,7 +154,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
 			getInventory: id => inventory.TryGetValue(id, out var inv) ? inv : null,
 			remoteBackpackDenied: true);
@@ -209,31 +202,6 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
-	public void AliveRemoteCanBeHealedWhenLocalHasMedicalItem()
-	{
-		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
-		{
-			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
-		};
-		var healItems = new List<LocalHealItem> { new(11, "Medkit") };
-
-		var rows = Build(
-			[Local, Remote],
-			[Presence(Remote, handshaken: true, inWorld: true)],
-			new FakeInteraction(),
-			canAdmin: false,
-			localInWorld: true,
-			hasHealItem: true,
-			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
-			healItems: healItems);
-
-		Assert.True(rows[1].CanHeal);
-		Assert.Single(rows[1].HealItems);
-		Assert.False(rows[1].CanCarry);
-		Assert.False(rows[1].CanTake);
-	}
-
-	[Fact]
 	public void NoLineOfSight_HidesAllDirectInteractionActions()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
@@ -254,10 +222,8 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: true,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
 			getInventory: id => inventory.TryGetValue(id, out var inv) ? inv : null,
-			healItems: [new LocalHealItem(11, "Medkit")],
 			hasLineOfSight: _ => false);
 
 		Assert.False(rows[1].CanSee);
@@ -269,7 +235,6 @@ public sealed class OnlineUiMemberProjectionTests
 		// its whole point is a teammate who went down out of the operator's sight. Everything that acts on the BODY
 		// still hides here.
 		Assert.True(rows[1].CanRecruit);
-		Assert.False(rows[1].CanHeal);
 		Assert.False(rows[1].CanPush);
 		Assert.False(rows[1].CanViewMedical);
 	}
@@ -288,13 +253,10 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: true,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
-			healItems: [new LocalHealItem(11, "Medkit")],
 			hasLineOfSight: _ => false);
 
 		Assert.False(rows[1].CanSee);
-		Assert.False(rows[1].CanHeal);
 		Assert.False(rows[1].CanPush);
 		Assert.False(rows[1].CanPiggyback);
 		Assert.False(rows[1].CanCarryOnBack);
@@ -314,10 +276,8 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: true,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
-		Assert.False(rows[1].CanHeal);
 		Assert.True(rows[1].CanRecruit);
 	}
 
@@ -329,8 +289,7 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Remote, handshaken: true, inWorld: false)],
 			new FakeInteraction { CarriedByLocal = Remote },
 			canAdmin: false,
-			localInWorld: false,
-			hasHealItem: false);
+			localInWorld: false);
 
 		Assert.True(rows[1].CanDrop);
 		Assert.False(rows[1].CanCarry);
@@ -350,7 +309,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.True(rows[1].CanPiggyback);
@@ -371,7 +329,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.True(rows[1].CanCarryOnBack);
@@ -392,7 +349,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction { CarrierOfLocal = Remote },
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.False(rows[1].CanCarryOnBack);
@@ -413,7 +369,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction { CarrierOfLocal = Remote },
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.False(rows[1].CanPiggyback);
@@ -433,7 +388,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.True(rows[1].CanPush);
@@ -453,7 +407,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction { CarrierOfLocal = Remote },
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.False(rows[1].CanPush);
@@ -473,7 +426,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: false,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.False(rows[1].CanPiggyback);
@@ -488,8 +440,7 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Remote, handshaken: true, inWorld: true)],
 			interaction,
 			canAdmin: false,
-			localInWorld: true,
-			hasHealItem: false);
+			localInWorld: true);
 
 		Assert.True(rows[0].CanRequestDrop);
 		Assert.False(rows[1].CanRequestDrop);
@@ -504,8 +455,7 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Remote, handshaken: true, inWorld: true)],
 			interaction,
 			canAdmin: false,
-			localInWorld: true,
-			hasHealItem: false);
+			localInWorld: true);
 
 		Assert.True(rows[0].CanRequestDrop);
 		Assert.True(rows[1].CanRequestDropFromCarrier);
@@ -526,7 +476,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.True(rows[1].IsDead);
@@ -549,7 +498,6 @@ public sealed class OnlineUiMemberProjectionTests
 			new FakeInteraction(),
 			canAdmin: false,
 			localInWorld: true,
-			hasHealItem: false,
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
 
 		Assert.False(rows[1].IsDead);
@@ -570,8 +518,7 @@ public sealed class OnlineUiMemberProjectionTests
 			[Presence(Remote, handshaken: true, inWorld: false)],
 			interaction,
 			canAdmin: false,
-			localInWorld: false,
-			hasHealItem: false);
+			localInWorld: false);
 
 		Assert.True(rows[1].IsCarryingSomeone);
 		Assert.True(rows[1].IsCarried);
@@ -589,8 +536,7 @@ public sealed class OnlineUiMemberProjectionTests
 			null,
 			hostBan: banList,
 			canAdmin: true,
-			localInWorld: false,
-			hasHealItem: false);
+			localInWorld: false);
 
 		Assert.True(rows[1].IsBanned);
 	}
@@ -818,10 +764,8 @@ public sealed class OnlineUiMemberProjectionTests
 		IHostBanService? hostBan = null,
 		bool canAdmin = false,
 		bool localInWorld = false,
-		bool hasHealItem = false,
 		Func<ulong, RemoteVitalsSnapshot?>? getVitals = null,
 		Func<ulong, RemoteInventorySnapshot?>? getInventory = null,
-		IReadOnlyList<LocalHealItem>? healItems = null,
 		bool remoteBackpackDenied = false,
 		bool reviveFromTrader = true,
 		bool permadeath = false,
@@ -844,8 +788,6 @@ public sealed class OnlineUiMemberProjectionTests
 			hostBan: hostBan,
 			canAdmin: canAdmin,
 			localInWorld: localInWorld,
-			hasHealItem: hasHealItem,
-			healItems: healItems ?? [],
 			remoteBackpackDenied: remoteBackpackDenied,
 			reviveFromTrader: reviveFromTrader,
 			permadeath: permadeath,

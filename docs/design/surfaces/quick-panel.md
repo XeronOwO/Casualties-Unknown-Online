@@ -26,7 +26,7 @@ control of the window (or of the context menu) can never be the same intent".
   in-world remote; when the target is gone or no target was chosen yet, the nearest in-world remote wins (ties by SteamId for
   determinism)" — so the panel does not jump to whoever walked closer between two presses.
 - **The actions are the eligible ones, and that list is the surface's content.** It "shows the selected in-world remote
-  player's status and every eligible co-op interaction (carry/piggyback/drop/heal/use/push/recruit/take)". An action whose
+  player's status and every eligible co-op interaction (carry/piggyback/drop/use/push/recruit/take)". An action whose
   condition does not hold is not offered, which is the same rule the context menu follows (`member-menu.md`).
 - **It never opens the window.** "The panel never opens the full Online window; it can be toggled from a configurable session
   hotkey."
@@ -40,7 +40,7 @@ action itself produces is answered on the status line, like any other gesture.
 
 ## Who judges
 
-The same sides the actions have elsewhere: the panel is a launcher of the carry, heal, use, push, recruit and take families, and
+The same sides the actions have elsewhere: the panel is a launcher of the carry, use, push, recruit and take families, and
 each of those decides exactly as its own page says.
 
 ## What travels

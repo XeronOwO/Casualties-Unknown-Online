@@ -143,13 +143,14 @@ layer), and GameState keeps its own isolation gate.
 
 The Game Adapter boundary is the same rule on the game-facing side: the Runtime declares the contract,
 `CasualtiesUnknownOnline.GameAdapter` is its only implementation, and
-`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of sixteen capability ports with no member of
+`Runtime/GameAdapter/IGameAdapter.cs` is the COMPOSITION of seventeen capability ports with no member of
 its own — `IGameIntegrationLifecycle` (the quit broadcast), `IAdapterCapabilityQuery` (the startup
 capability report), `IWorldPresenceQuery`, `IStartGateState`, `IDragUseCueState` (the drag-use cue),
-`ILocalHealItemQuery`, `ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
+`ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
 `IRemoteMedicalPresentation`, `ISpectatorControl`, `IPlayerAnchorQuery`, `IJoinFlowPresentation` (the
 direct-join intent), `ICarryPresentationPump` (the late-frame carry pin), `IOnlineUiNativeFactsQuery` (the
-Online UI's native-facts probe) and `IOnlineUiSurface` (the Online UI's live surface) — so a consumer
+Online UI's native-facts probe), `IOnlineUiSurface` (the Online UI's live surface), `ILocalBodyReset` (the
+console's body heal) and `ILocalBodyKill` (the console's body kill) — so a consumer
 resolves the port whose capability it uses, a version adapter implements per capability, and a test double
 implements only the
 capability it stands in for. Every port resolves to the one adapter singleton, registered in the
@@ -161,8 +162,7 @@ port is left unregistered. A seam consumed INSIDE the adapter's own constructor 
 here: `GameAdapter` depends on `IPlayerInteractionControl`, so a seam that service (or anything resolved
 under it) consumes would be built from the adapter that is still being built — the console give's
 `IItemGrantSource`, the give ladder's container fit (`IItemContainerFit`) and the visibility oracle are
-standalone adapter services for that reason, and the local-body capture with them; the local item access is
-standalone for the simpler one, that it needs nothing the domain graph owns, and the console summon's scene seam
+standalone adapter services for that reason, and the local-body capture with them; the console summon's scene seam
 (`IWorldSummon`) because the console builds it at startup and it must not force the aggregate: it takes only the
 item control and the give creation port — container singletons that do not reach the aggregate — plus the game's
 own statics. The give seam allocates through the container's ONE `ItemIdAllocator` —

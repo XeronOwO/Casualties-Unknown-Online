@@ -301,10 +301,6 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	void IGameIntegrationLifecycle.OnApplicationQuit() => _domains.ItemWorldSync.SuppressDestroys();
 
-	bool ILocalHealItemQuery.HasLocalHealItem() => _playerInteraction.HasLocalHealItem();
-
-	IReadOnlyList<LocalHealItem> ILocalHealItemQuery.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
-
 	bool ITraderRecruitRequest.TryRequestTraderRecruit(ulong targetSteamId) => _domains.TraderRecruit.TryRequest(targetSteamId);
 
 	void INativeInputBlocker.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);

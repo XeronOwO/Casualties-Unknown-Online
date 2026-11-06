@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using CasualtiesUnknownOnline.Runtime.Configuration;
-using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.World;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -84,9 +83,6 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Drop on the currently carried remote player.</summary>
 	internal Func<ulong, bool>? DropCarried;
 
-	/// <summary>Invoked when the user clicks Heal on an in-world remote player.</summary>
-	internal Func<ulong, bool>? HealRemote;
-
 	internal Func<ulong, bool>? WatchMember;
 
 	internal Func<bool>? StopWatching;
@@ -103,15 +99,6 @@ internal sealed class OnlineUiOverlay
 	internal Func<int, bool>? CycleWatch;
 
 	internal Func<bool>? ToggleFreeFly;
-
-	/// <summary>Read-only UI check: does the local body currently carry a heal-profile medical item?</summary>
-	internal Func<bool>? HasHealItem;
-
-	/// <summary>Invoked when the user clicks one of the explicit local heal items (instance id must be non-zero).</summary>
-	internal Func<ulong, ulong, bool>? HealWithItem;
-
-	/// <summary>Explicit local heal items for the Online UI selector (slot items with wire ids only).</summary>
-	internal Func<IReadOnlyList<LocalHealItem>>? GetLocalHealItems;
 
 	/// <summary>Invoked when the user clicks Push on an in-world remote player.</summary>
 	internal Func<ulong, bool>? PushRemote;

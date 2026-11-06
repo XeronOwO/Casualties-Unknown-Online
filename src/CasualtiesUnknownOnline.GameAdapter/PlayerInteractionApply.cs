@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
@@ -508,10 +507,6 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains, IRemote
 			domains.CharacterDataSync.ReportInventoryChanged(body);
 		}
 	}
-
-	public bool HasLocalHealItem() => LocalHealItems.Any();
-
-	public IReadOnlyList<LocalHealItem> GetLocalHealItems() => LocalHealItems.List();
 
 	private void ApplyCarryStateToBody(Body body, PlayerCarryStateMsg msg)
 	{

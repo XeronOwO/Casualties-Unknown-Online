@@ -32,7 +32,6 @@ public class AdapterCapabilityPortShapeTests
 		(typeof(IWorldPresenceQuery), ["IsInWorldOrGenerating"]),
 		(typeof(IStartGateState), ["IsWaitingForReady", "WaitingText", "WaitingTextIsOnTheNativeScreen"]),
 		(typeof(IDragUseCueState), ["Showing", "TargetSteamId"]),
-		(typeof(ILocalHealItemQuery), ["GetLocalHealItems", "HasLocalHealItem"]),
 		(typeof(ITraderRecruitRequest), ["TryRequestTraderRecruit"]),
 		(typeof(INativeInputBlocker), ["IsTheGamesOwnTextInputFocused", "SetOnlineUiEscapeSurfaceVisible", "SetOnlineUiModal"]),
 		(typeof(IRemoteInventoryPresentation), ["OpenRemoteBackpack"]),
@@ -87,7 +86,7 @@ public class AdapterCapabilityPortShapeTests
 	/// </summary>
 	[Fact]
 	public void Composition_CarriesExactlyThePinnedMemberCount() =>
-		Assert.Equal(35, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+		Assert.Equal(33, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

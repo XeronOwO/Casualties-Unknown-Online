@@ -50,11 +50,9 @@ internal static class OnlineUiMemberListDrawer
 			hostBan: ctx.HostBan,
 			canAdmin: ctx.Session.Role == SessionRole.Host && ctx.Session.SessionActive,
 			localInWorld: ctx.Session.LocalInWorld,
-			hasHealItem: ctx.HasHealItem?.Invoke() ?? false,
 			sessionActive: ctx.Session.SessionActive,
 			watchingSteamId: ctx.WatchingSteamId,
 			spectatorMode: ctx.IsSpectator,
-			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],
 			// The card is a presentation of the rule in force: the host's own config on a host, and on
 			// a member ONLY the announced set — no announcement means no local refusal (decision 263).
 			remoteBackpackDenied: ctx.Session.Role == SessionRole.Host
@@ -240,11 +238,6 @@ internal static class OnlineUiMemberListDrawer
 				() => ctx.DropCarried?.Invoke(ctx.Session.LocalSteamId)));
 		}
 
-		if (row.CanHeal)
-		{
-			actions.Add(new OnlineUiMemberAction($"member.heal.{steamId:X}", ctx.T("member.heal"), 70f, () => ctx.HealRemote?.Invoke(steamId)));
-		}
-
 		if (row.CanPush)
 		{
 			actions.Add(new OnlineUiMemberAction($"member.push.{steamId:X}", ctx.T("member.push"), 70f, () => ctx.PushRemote?.Invoke(steamId)));
@@ -274,15 +267,6 @@ internal static class OnlineUiMemberListDrawer
 					ItemButtonWidth,
 					() => ctx.TakeItem?.Invoke(steamId, item.InstanceId)));
 			}
-		}
-
-		foreach (var item in row.HealItems)
-		{
-			actions.Add(new OnlineUiMemberAction(
-				$"member.heal_with.{steamId:X}.{item.InstanceId:X}",
-				ctx.F("member.heal_with", item.ItemId),
-				ItemButtonWidth,
-				() => ctx.HealWithItem?.Invoke(steamId, item.InstanceId)));
 		}
 
 		if (row.CanOpenBackpack && ctx.OpenRemoteBackpack is { } open)

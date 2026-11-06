@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Localization;
@@ -116,10 +115,6 @@ internal sealed class OnlineUiContext
 
 	internal Func<ulong, bool>? DropCarried;
 
-	internal Func<ulong, bool>? HealRemote;
-
-	internal Func<ulong, ulong, bool>? HealWithItem;
-
 	internal Func<ulong, bool>? PushRemote;
 
 	internal Func<ulong, bool>? RecruitPlayer;
@@ -163,10 +158,6 @@ internal sealed class OnlineUiContext
 	internal Func<ulong, bool>? BanMember;
 
 	internal Func<ulong, bool>? UnbanMember;
-
-	internal Func<IReadOnlyList<LocalHealItem>>? GetLocalHealItems;
-
-	internal Func<bool>? HasHealItem;
 
 	/// <summary>Opens the game's native radial backpack UI focused on a remote player's render clone.</summary>
 	internal Func<ulong, string, bool>? OpenRemoteBackpack;

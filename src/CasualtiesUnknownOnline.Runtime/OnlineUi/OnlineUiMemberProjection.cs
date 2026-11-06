@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -32,8 +31,6 @@ public static class OnlineUiMemberProjection
 		IHostBanService? hostBan,
 		bool canAdmin,
 		bool localInWorld,
-		bool hasHealItem,
-		IReadOnlyList<LocalHealItem> healItems,
 		bool remoteBackpackDenied = false, bool reviveFromTrader = true,
 		bool permadeath = false,
 		Func<ulong, bool>? hasLineOfSight = null,
@@ -108,12 +105,6 @@ public static class OnlineUiMemberProjection
 				&& localInWorld
 				&& playerInteraction?.TryGetCarrier(localSteamId, out var localCarrier) == true
 				&& localCarrier == memberId;
-			var canHeal = !isLocal
-				&& member is { InWorld: true }
-				&& localInWorld
-				&& canSee
-				&& vitals is { Alive: true }
-				&& hasHealItem;
 			var canPush = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
@@ -172,7 +163,6 @@ public static class OnlineUiMemberProjection
 				CanDrop = canDrop,
 				CanRequestDrop = canRequestDrop,
 				CanRequestDropFromCarrier = canRequestDropFromCarrier,
-				CanHeal = canHeal,
 				CanPush = canPush,
 				CanRecruit = canRecruit,
 				CanTake = takeable.Count > 0,
@@ -192,7 +182,6 @@ public static class OnlineUiMemberProjection
 				IsCarryingSomeone = isCarryingSomeone,
 				IsCarried = isAlreadyCarried,
 				TakeableItems = takeable,
-				HealItems = canHeal ? healItems : [],
 			});
 		}
 

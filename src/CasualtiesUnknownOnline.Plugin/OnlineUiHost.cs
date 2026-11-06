@@ -178,7 +178,6 @@ internal sealed class OnlineUiHost
 			services.GetService<IRemoteInventoryPresentation>(),
 			services.GetService<IRemoteMedicalPresentation>(),
 			services.GetService<ITraderRecruitRequest>(),
-			services.GetService<ILocalHealItemQuery>(),
 			_spectator);
 		_ipActions = new IpDirectActions(
 			_router,
@@ -220,15 +219,11 @@ internal sealed class OnlineUiHost
 			PiggybackRemote = uiActions.PiggybackRemoteFromUi,
 			CarryOnBackRemote = uiActions.CarryOnBackRemoteFromUi,
 			DropCarried = uiActions.DropCarryFromUi,
-			HealRemote = uiActions.HealRemoteFromUi,
 			WatchMember = uiActions.WatchMemberFromUi,
 			StopWatching = uiActions.StopWatchingFromUi,
 			CycleWatch = uiActions.CycleWatchFromUi,
 			ToggleFreeFly = uiActions.ToggleFreeFlyFromUi,
 
-			HasHealItem = uiActions.HasLocalHealItem,
-			HealWithItem = uiActions.HealWithItemFromUi,
-			GetLocalHealItems = uiActions.GetLocalHealItems,
 			PushRemote = uiActions.PushRemoteFromUi,
 			RecruitPlayer = uiActions.RecruitPlayerFromUi,
 			KickMember = uiActions.KickMemberFromUi,
@@ -410,7 +405,6 @@ internal sealed class OnlineUiHost
 		PiggybackRemote = _onlineUi.PiggybackRemote,
 		CarryOnBackRemote = _onlineUi.CarryOnBackRemote,
 		DropCarried = _onlineUi.DropCarried,
-		HealRemote = _onlineUi.HealRemote,
 		WatchMember = _onlineUi.WatchMember,
 		StopWatching = _onlineUi.StopWatching,
 		Notify = _onlineUi.Notify,
@@ -421,14 +415,11 @@ internal sealed class OnlineUiHost
 		IsFreeFly = _onlineUi.IsFreeFly,
 		CycleWatch = _onlineUi.CycleWatch,
 		ToggleFreeFly = _onlineUi.ToggleFreeFly,
-		HealWithItem = _onlineUi.HealWithItem,
 		PushRemote = _onlineUi.PushRemote,
 		RecruitPlayer = _onlineUi.RecruitPlayer,
 		KickMember = _onlineUi.KickMember,
 		BanMember = _onlineUi.BanMember,
 		UnbanMember = _onlineUi.UnbanMember,
-		GetLocalHealItems = _onlineUi.GetLocalHealItems,
-		HasHealItem = _onlineUi.HasHealItem,
 	};
 
 	/// <summary>

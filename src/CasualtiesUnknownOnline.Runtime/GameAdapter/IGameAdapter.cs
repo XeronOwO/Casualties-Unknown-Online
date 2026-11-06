@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 /// capability ports, and every consumer resolves the port whose capability it
 /// actually uses (<see cref="IGameIntegrationLifecycle"/>,
 /// <see cref="IAdapterCapabilityQuery"/>, <see cref="IWorldPresenceQuery"/>,
-/// <see cref="IStartGateState"/>, <see cref="IDragUseCueState"/>, <see cref="ILocalHealItemQuery"/>,
+/// <see cref="IStartGateState"/>, <see cref="IDragUseCueState"/>,
 /// <see cref="ITraderRecruitRequest"/>, <see cref="INativeInputBlocker"/>,
 /// <see cref="IRemoteInventoryPresentation"/>,
 /// <see cref="IRemoteMedicalPresentation"/>,
@@ -41,7 +41,6 @@ public interface IGameAdapter :
 	IWorldPresenceQuery,
 	IStartGateState,
 	IDragUseCueState,
-	ILocalHealItemQuery,
 	ITraderRecruitRequest,
 	INativeInputBlocker,
 	IRemoteInventoryPresentation,

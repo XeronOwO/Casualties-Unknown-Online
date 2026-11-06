@@ -235,6 +235,17 @@ per-operator sessions on the same limb, with the host arbitrating piece leases a
 second operator can join. Both need the second operator to be able to start while the first session is live, which the
 current client-side guard (`_activeShrapnel != null`) blocks for re-entry but not for a fresh client.
 
+Second reading (20:41): the alt started a fresh session (`session 6 created … operator 76561199526807662`,
+20:41:34.735), and the host's start in that same window was refused on its own client —
+`[MedicalView] refused shrapnel: no free native minigame host for 76561198863287957.` (20:41:39.972).
+`RemoteShrapnelOperationHandler.StartRemoteShrapnel` refuses while `MinigameBase.main.currentMinigame != null`; the
+host's display was already hosting a minigame for the alt's session (the observer path). The host side already supports
+the join — `ShrapnelOperationSessionService.CommitStart` keeps one session per `(Target, Limb)` and "this start JOINS it
+as a second operator" — so the missing piece is client-side arbitration: a second operator cannot start while its own
+display is hosting an observer/previous minigame. The next cut closes the wound view (dropping the observer minigame)
+and starts both operators inside the 15 s window, then reads which session id both ack and whether both clients report
+the same pieces.
+
 ## Out of scope for Stage 2
 
 - Other multiplayer-capable minigames (amputation/CPR) are later stages or future.

@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — blocked on a fixture: row 7 needs the native shrapnel minigame, which this state does not create (`pieces` answered -1 twice and then `current=none`; starting and breaking in one call answered ok while the limb kept all five pieces and no damage appeared, `display shrapnel=5 skin=100`), and rows 1-6/9 inherit that window; the 2026-11-01 triage records the same fixture.
+- Status: Review — row 7 PASS on `0.1.0+39300598` (batch `20261106-h`): five pieces removed, `session 3 terminal Completed`, the display screen closed itself; the reading is `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`. Rows 1-6/9 stay unread: they need two operators acting on the same limb in one session, and this batch had one operator and one patient.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -194,6 +194,27 @@ Add focused tests before implementation, e.g.:
 - A test proving cancellation releases ownership.
 
 The red must be observed on current code before implementation.
+
+## Batch `20261106-h` — row 7 read, and the missing link was the position report
+
+Artifact `0.1.0+39300598`, one session (`session 3`), host as operator and guest as patient. The instrument is
+`tools/acceptance/driver/eval-declarations/shrapnel-break6.cs` + `tools/acceptance/recipes/shrapnel-break6.cs`: a
+coroutine that, per piece, posts the ownership report, waits two frames, calls the native `BreakGrasp()`, lifts the piece
+above the game's y=35 line, and then posts one ordinary position report with `Y = 60`.
+
+What the previous cuts missed: the host marks `piece.Removed` only when a report carries `msg.Y >= RemoveThresholdY`
+(35), and `AllPiecesRemoved` is what terminates the session `Completed`. break3/4/5 posted grabs and breaks without a
+position, so the pieces left the display but the host's session never learned a piece was gone — run 1 in this batch
+idled out (`session 1 timed out after 15016 ms idle`, `terminal TimedOut`) even though five break-grasps had landed.
+
+The row-7 reading: `session 3 created … (5 pieces)`, five `grip slip` + `break-grasp applied` pairs, five
+`piece N removed`, then `session 3 terminal Completed` (20:31:08.399); the display limb reads `shrapnel 0` and
+`minigame-end` answers `before:"none"` — the screen closed itself. Record:
+`docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`.
+
+Rows 1-6/9 remain: they need two operators on the same limb at once (leases, force-ungrab, cancel, disconnect). A
+second operator client (the alt) is the fixture that batch needs, and the `shrapnel-break6` instrument is the shape a
+two-operator case reuses.
 
 ## Out of scope for Stage 2
 

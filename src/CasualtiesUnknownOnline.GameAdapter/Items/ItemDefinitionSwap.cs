@@ -70,6 +70,19 @@ internal static class ItemDefinitionSwap
 			return false;
 		}
 
+		// THE OLD FORM MUST RELEASE ITS SLOT BEFORE THE DEFERRED DESTROY RUNS. UnityEngine.Object.Destroy executes at
+		// end of frame, so the old object still occupied the slot when the pickup below ran: the game refused the
+		// replacement and dropped it into the world, then the destroy hook reported the item ended — committing a
+		// terminal row for an id that now had an object (measured 2026-11-06, session 20261106-f: `[PickUpResult]
+		// stonefruitopen → world (slot 0) at (4.0,494.4)` and `[ItemCustody] … TerminalRowWithObject`). Detaching and
+		// zeroing the id here makes the slot free for the pickup and keeps the destroy out of the item reports — the
+		// same two steps RemoteItemSceneOps.KillRemoteItem takes for a remote deletion.
+		item.transform.SetParent(null, worldPositionStays: true);
+		foreach (var oldId in item.GetComponentsInChildren<ItemInstanceId>(true))
+		{
+			oldId.Id = 0;
+		}
+
 		Object.Destroy(item.gameObject);
 
 		var go = Object.Instantiate(prefab, position, rotation);

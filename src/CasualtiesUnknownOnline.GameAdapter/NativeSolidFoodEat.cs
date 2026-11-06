@@ -203,6 +203,13 @@ internal static class NativeSolidFoodEat
 				itemInstanceId,
 				replacement.ItemId,
 				replacement.Condition);
+
+			// Take it out of the eater's slot and hide it in the SAME frame: the delegate's own PickUpItem already put
+			// it into one, and the deferred destroy alone left it visible for a frame — the flash the user saw in the
+			// other party's backpack (2026-11-06, session 20261106-f). An inventory snapshot or draw that runs before
+			// the destroy must not see a replacement this client does not own.
+			replacementObject.transform.SetParent(null, worldPositionStays: false);
+			replacementObject.gameObject.SetActive(false);
 			Object.Destroy(replacementObject.gameObject);
 		}
 

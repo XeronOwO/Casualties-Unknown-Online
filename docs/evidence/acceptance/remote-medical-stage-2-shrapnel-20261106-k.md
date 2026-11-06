@@ -44,9 +44,9 @@ Reading (session 4, host log):
 - 20:59:19.904 `[Shrapnel] session 4 rejected non-owner move on piece 0 from 76561198281246659 (owner 76561199526807662).`
 - 20:59:38.299 the same refusal again after the first operator re-joined.
 
-The host refuses the second operator's grab and the piece keeps its owner. The ticket's row 2 wording expects the other
-operator to be "force-ungrabbed"; the implementation refuses the move instead. **This divergence needs a decision**
-(refusal is the shipped behaviour; a force-ungrab would be a new interaction) before row 2 can be marked pass.
+The host refuses the second operator's grab and the piece keeps its owner. The user's decision (2026-11-06) keeps
+that behaviour: a piece stays with the operator who took it, and a second grab is refused rather than forcing the
+piece out of the owner's hand. Row 2 therefore passes as shipped, with this reading as its evidence.
 
 ## Verdict
 

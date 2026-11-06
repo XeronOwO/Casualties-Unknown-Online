@@ -57,7 +57,7 @@ by it. A box whose evidence names another cycle is not filled.
 
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
       (`docs/architecture/surfaces.md` row), what that row says the behaviour is judged against, the record quoted, and what the
-      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing — evidence: docs-only; the shrapnel ticket's §Batch `20261106-k` adds the two-operator reading under the existing surface
+      change must NOT alter; a `GAP` row is closed by reading and recording the authority first, never by guessing — evidence: docs-only; row 2's reading and the user's decision are recorded under the ticket's existing shrapnel surface
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the
       remote case reaches that same chain, or the named reason it cannot) are written in the ticket BEFORE the first code
       edit, and no forbidden shape is used to fit a mechanism — evidence: the record restates the native chain (`ShrapnelMinigame` counts pieces below y=35, ends at zero); no new mechanism

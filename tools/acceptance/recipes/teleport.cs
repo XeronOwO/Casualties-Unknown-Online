@@ -13,6 +13,10 @@
 	if (camera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; }
 	var body = camera.body;
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-body\"}"; }
+	var probe = UnityEngine.Physics2D.RaycastAll(new UnityEngine.Vector2(x, y + 200f), UnityEngine.Vector2.down, 400f);
+	var groundY = float.NaN;
+	foreach (var hit in probe) { if (hit.collider == null || hit.point.y < y) { continue; } groundY = float.IsNaN(groundY) ? hit.point.y : UnityEngine.Mathf.Min(groundY, hit.point.y); }
+	if (!float.IsNaN(groundY)) { y = groundY + 1.2f; }
 	var t = body.transform;
 	var fromX = t.position.x;
 	var fromY = t.position.y;

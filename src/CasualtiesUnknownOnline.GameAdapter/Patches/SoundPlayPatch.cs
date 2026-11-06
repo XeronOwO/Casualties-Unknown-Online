@@ -91,9 +91,9 @@ internal static class SoundPlayPatch
 				// entered INSIDE CharacterItemUse, so it is the innermost origin and the eat clip would otherwise
 				// classify as None — the giver heard only the meal-end burp (2026-11-07).
 				CallContext.Origin.HandFeed => CharacterSoundPolicy.Origin.ItemUse,
-		// The game's own eat runs under the replacement-creation scope (read 2026-11-07: the hand-fed pancake's
-		// eatFlesh played with origin=ItemReplacementCreation and was dropped as None, so the giver never heard it).
-		CallContext.Origin.ItemReplacementCreation => CharacterSoundPolicy.Origin.ItemUse,
+				// The game's own eat runs under the replacement-creation scope (read 2026-11-07: the hand-fed pancake's
+				// eatFlesh played with origin=ItemReplacementCreation and was dropped as None, so the giver never heard it).
+				CallContext.Origin.ItemReplacementCreation => CharacterSoundPolicy.Origin.ItemUse,
 				CallContext.Origin.CharacterBurp => CharacterSoundPolicy.Origin.Burp,
 				CallContext.Origin.CharacterMedicalUse => CharacterSoundPolicy.Origin.Medical,
 				CallContext.Origin.CharacterWorldDrink => CharacterSoundPolicy.Origin.WorldDrink,

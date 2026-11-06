@@ -90,6 +90,22 @@ the session stayed alive for the remaining operator. The host then grabbed the s
 `rejected non-owner move` line appeared, which is the release: the departed operator's lease no longer blocks the piece.
 Row 6 passes.
 
+## Cancel mid-removal, removed pieces stay removed (row 5, second half)
+
+With the guest at three pieces and the host alone in the session, one piece was removed and the session cancelled
+inside the 15 s idle window:
+
+- 21:11:19.665 `session 10 created … (3 pieces)`; 21:11:23.979 `session 10 piece 0 removed by 76561198281246659.`
+  (the limb's saved state then read `shrapnel=2 skin=78.553 bleed=4.128`).
+- Session 10 ended by the idle timeout before the cancel; session 11 started with `(2 pieces)` — the removed piece
+  stayed gone. Then, inside one driver round trip: 21:12:04.058 `session 11 created … (2 pieces)`,
+  21:12:04.836 `session 11 piece 0 removed`, 21:12:06.094 `session 11 terminal Cancelled.`
+- After that cancel the saved limb read `shrapnel=1 skin=78.553 bleed=4.92` — the piece removed during the cancelled
+  session did not return, and the health effect of the break stayed.
+
+Row 5 passes in both halves: an operator leaving ends its own participation (`Cancelled`), and pieces already removed
+stay removed.
+
 ## Verdict
 
 - Row 1 PASS: two operators removed three different pieces (0, 1, 2) in one shared session; each break-grasp applied

@@ -64,7 +64,7 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across
       players in one session, and the two effect lists (native call, frame, audio, both clients' state) were compared,
       with every difference either fixed or named as a user decision — evidence: session 3 batch `20261106-k`: both operators' break-grasps applied once each (skin -5.783/-5.911/-4.220)
-- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): every CUO entry names the native CALL SITE it mirrors; an action needing information its gesture cannot carry is refused or answered by the user, never given a fallback; the entries stay isolated instead of being arbitrated by order; and every user-visible behaviour change in the list is user-approved rather than recorded as a limit
+- [ ] Entry mapping (a scope that crosses players or mirrors a native action only):
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
 - [ ] Self-check table: mechanism x change x evidence, every cell filled

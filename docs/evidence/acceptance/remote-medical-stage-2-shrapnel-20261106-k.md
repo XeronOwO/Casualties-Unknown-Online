@@ -48,6 +48,19 @@ The host refuses the second operator's grab and the piece keeps its owner. The u
 that behaviour: a piece stays with the operator who took it, and a second grab is refused rather than forcing the
 piece out of the owner's hand. Row 2 therefore passes as shipped, with this reading as its evidence.
 
+## Both directions on one piece (row 3)
+
+Session 5 (host log, 21:06): the alt created the session and the host joined it, then the host grabbed piece 1 and the
+alt tried the same piece:
+
+- 21:06:10.877 `[Shrapnel] session 5 created for 76561198863287957 limb 5 (3 pieces).` / `operator 76561199526807662 joined session 5.`
+- 21:06:13.237 `operator 76561198281246659 joined session 5.`
+- 21:06:16.038 `session 5 rejected non-owner move on piece 1 from 76561199526807662 (owner 76561198281246659).`
+
+Together with session 4 (20:59:19.904, alt owned piece 0 and the host was refused), both directions are read: whichever
+operator takes a piece first keeps it, and the other operator's grab on that piece is refused on both clients' behalf.
+Row 3 passes; the refusal is the user's chosen behaviour (row 2's decision).
+
 ## Verdict
 
 - Row 1 PASS: two operators removed three different pieces (0, 1, 2) in one shared session; each break-grasp applied

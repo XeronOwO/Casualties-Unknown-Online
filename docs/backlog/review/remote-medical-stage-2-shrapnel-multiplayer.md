@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`). Row 4's earlier reading was withdrawn (2026-11-06): it was judged against a bystander copy of the minigame that no player ever asked for, and that copy has been removed — row 4 is re-read as non-interference (the bystander's client opens nothing and stays consistent while two operators work). Row 9's tweezers reading is still owed. Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`, `-k.md` and `-l.md`.
+- Status: Review — rows 1-3, 5, 6, 7 and 4 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`), and row 4 re-read as non-interference on `0.1.0+e0727f8f` (batch `20261106-n`: the bystander's client runs no minigame while the host's runs `ShrapnelMinigame`). Row 9 has only its isolation half read (`0.1.0+273b9fb3`, batch `20261106-m`: the acting operator's own pair drained 1.00 → 0.99, the other operator's stayed 1.00, read under `## Row 9 fix`); the symmetric half needs the second operator's own drag in the sandbox window, which no seam drives. Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`, `-k.md`, `-l.md` and `-n.md`.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -356,6 +356,15 @@ a limb that carries none.
 Reading still owed: the drag reaches the host as a start request with `tweezers=true` (host log
 `[MedicalView] started remote shrapnel minigame … (tweezers=True)`), then `item-census mode=body` on
 both operators shows only the acting operator's tweezers condition drop.
+
+## Batch `20261106-n` — the bystander opens nothing (row 4, corrected meaning)
+
+After `e0727f8f` removed the invented bystander copy: the guest's hand carried three pieces
+(`seed-shrapnel limb=5 count=3` → `{"shrapnel":3}`), the host and the bystander both held the wound view open on the
+guest, and the host started the session (`started:true, shrapnel:3`). `minigame-live` at the same moment read
+`{"hasMain":true,"kind":"ShrapnelMinigame"}` on the host's client and `{"hasMain":true,"kind":"none"}` on the
+bystander's — the operator runs the native screen, the bystander runs nothing and keeps reporting state. Row 4 passes on
+the meaning the row actually has. Record: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-n.md`.
 
 ## Out of scope for Stage 2
 

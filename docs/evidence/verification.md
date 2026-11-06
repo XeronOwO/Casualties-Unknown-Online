@@ -96,8 +96,8 @@ For a mechanism, prefer this order:
    ends the shared session `Completed` with the limb's final state, and
    `remote-medical-stage-2-shrapnel-20261106-k.md`: two operators remove
    different pieces inside one shared shrapnel session, and
-   `remote-medical-stage-2-shrapnel-20261106-l.md`: a bystander's observer
-   screen shows the host's piece positions, including a removed piece).
+   `remote-medical-stage-2-shrapnel-20261106-n.md`: a bystander's client runs no
+   minigame while the operators' clients do).
 
 ## Self-checks
 

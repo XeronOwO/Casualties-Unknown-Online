@@ -1316,3 +1316,4 @@ docs/evidence/acceptance/cross-player-eat-replacement-20261106-g.md | keep | cla
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md | keep | claim | docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-k.md | keep | claim | docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-l.md | keep | claim | docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md
+docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-n.md | keep | claim | docs/backlog/review/remote-medical-stage-2-shrapnel-multiplayer.md

@@ -64,6 +64,14 @@ if ($gameProc) {
     exit 1
 }
 
+# Commit before deploy: the artefact identity must name a commit that is already on record. A dirty tracked tree means the
+# DLLs about to be installed were built from code that exists nowhere in git, and the deployed identity would be a lie.
+$dirty = @(git -C $RepoRoot status --porcelain --untracked-files=no 2>$null)
+if ($dirty.Count -gt 0) {
+    Write-Error "The working tree has uncommitted changes; commit them before deploying. Changed: $($dirty -join '; ')"
+    exit 1
+}
+
 # Second line of defence: a loaded plugin DLL is held open by the game process,
 # so a locked file in the deploy target is the ground truth that a game
 # instance (possibly one the process check could not name) is still running.

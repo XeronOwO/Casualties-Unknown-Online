@@ -10,4 +10,13 @@
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)tools/require-active-step.ps1&quot; -Steps 7,8,13" ContinueOnError="false" />
   </Target>
 
+  <!--
+    The source guard, run by the build itself: `src/` dirty while a game process runs means the change was made with the
+    clients open, which the rule forbids and which makes any deploy untrustworthy. Clean trees and docs/tests/tools-only
+    changes pass even with the game running - only a source edit has to close it.
+  -->
+  <Target Name="RequireClosedGameForSourceEdits" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)tools/check-src-guard.ps1&quot; -Build" ContinueOnError="false" />
+  </Target>
+
 </Project>

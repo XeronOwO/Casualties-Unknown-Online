@@ -86,6 +86,10 @@ For a mechanism, prefer this order:
    convergence under delay/reorder/loss.
 4. **Self-check fact sheet** — a `docs/evidence/selfchecks/<topic>-selfcheck.md`
    recording the delivery cycle, verification design, and evidence.
+5. **Acceptance record** — a two-client reading on the deployed game under
+   `docs/evidence/acceptance/`, used when the behaviour only exists in a live
+   session (for example `bandage-consumed-minigame-ends-20261106-e.md`: the
+   remote bandage minigame closes when the item is spent).
 
 ## Self-checks
 

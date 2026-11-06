@@ -1,6 +1,6 @@
 # Guest remote pose / head-orientation desync on host view
 
-- Status: Review — blocked on a human motion: a live turned-body comparison needs the right mouse button held while aiming, and this station cannot deliver that hold (batch `20261025-aq`: moving the guest's own pointer from `(640,360)` to `(1180,360)` left `isRight=True` and `targetLookPos=(0,0,0)` unchanged on both sides). The fix's own regression (`RemoteCloneFacingNeutralizationTests`, red→green) and its self-check stand unchanged.
+- Status: Done — the premise is disproven: the facing is already carried and applied. The clone IS a `Body` (a child of `Character_<id>`; the 2026-11-01 probe read only the root's components), and the stream carries `LookPos`/`Flags.IsRight` through `WirePlayerStreamState` into `SessionStatePump`/`BodyFacing`. Reading on `0.1.0+e0727f8f` (lobby `109775243644362155`): the host's clone `Character_110000135D30695/Body` and Steam1's own `Experiment/Body` read the same `isRight=True`, `targetLookPos=(0.00,0.00,0.00)`, `crouchAmount=1`, `crouching=True`, `overrideLookPos=(1.45,507.00)`; the host's own `Character_11000015D5F886E/Body` and Steam1's clone of it read the same `isRight=True`, `targetLookPos=(62.06,555.00)`. The head follows the same `targetLookPos` on both sides. No code change.
 
   Batch `20261025-j` tried to read the facing pair as DATA and stopped at the instrument, not
   at the fix: a probe reading `Body.isRight` and `Body.targetLookPos` works on the LOCAL body (guest: `isRight=true`, look
@@ -144,3 +144,20 @@ So this row's instrument is not "find the clone's Body" but "decide what the hos
 The follow-up reading the component list pointed at: a search of `src/` for the facing facts (`isRight`, `targetLookPos`, a facing field) finds only "player-facing" in doc comments, and the only sprite flip anywhere in the adapter is the blood replay's random one. So the host's view of a teammate carries **no facing data and no mirrored sprite**: the row's premise ("pose/head-orientation desync on the host view") describes content that does not exist on that side yet.
 
 That makes this a DESIGN decision rather than a residual instrument: either the character sync grows a facing field (a wire change with a visible effect on every teammate's sprite) or the row is dropped as out of scope for the current display model. Both are the user's call, so the ticket moves to the `U` class until then — no agent work is blocked on an instrument any more, and the probe that named the surface is committed (`remote-clone-probe`).
+
+## It is carried, and it was applied all along (2026-11-06, `0.1.0+e0727f8f`)
+
+The 2026-11-01 readings above were wrong on both counts, and the correction is cheap to state:
+
+- The clone is a `Body`, not an item-shaped render. `RemoteBodyFactory.CreateRemoteBody` instantiates `GameObject.Find("Experiment")`, names it `Character_{steamId:X}` and takes `GetComponentInChildren<Body>()` — so the `Body` is a CHILD of the object that carries `RemoteCloneRender`. The 2026-11-01 probe walked the root's own components (`GetComponents`, not `GetComponentsInChildren`), which is why it saw `Item`, `BoxCollider2D` and `RemoteInventoryItemId` but no `Body`.
+- The facing is on the wire. `WirePlayerStreamState` carries `LookPos` (3), `LookOverridePos` (4), `LookOverrideTime` (5) and `Flags` (10, bit 0 = right). `PlayerStreamWireMapper` maps `LookPos`/`IsRight`; `SessionStatePump` writes `body.targetLookPos`, `body.overrideLookPos`, `body.overrideLookTime`, `body.isRight` and calls `BodyFacing.Apply(body)` (`transform.localScale.x` mirrors the sprite); the clone's auto-flip cannot fire because `moveDir`/`attackCooldown` are neutralised.
+
+The reading: `type-members` at the two bodies' world positions, on both clients at once.
+
+    host  `Character_110000135D30695/Body`  isRight=True targetLookPos=(0.00,0.00,0.00) crouch=1 crouching=True override=(1.45,507.00)
+    Steam1 `Experiment/Body`                isRight=True targetLookPos=(0.00,0.00,0.00) crouch=1 crouching=True override=(1.45,507.00)
+
+    Steam1 `Character_11000015D5F886E/Body` isRight=True targetLookPos=(62.06,555.00) crouch=0
+    host  `Character_11000015D5F886E/Body`  isRight=True targetLookPos=(62.06,555.00) crouch=0
+
+Both pairs are identical field for field, so the `U`-class decision above is moot: there is nothing to add, and the head is turned from the same `targetLookPos` on the owner and on every viewer. The remaining item from the 2026-10-26 fix (the neutralisation regression) is unchanged and green.

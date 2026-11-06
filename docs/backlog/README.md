@@ -111,7 +111,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
-- [Guest remote pose/head desync](review/guest-remote-pose-head-orientation-desync.md) — **Medium** — stale clone inputs are neutralized.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
@@ -147,6 +146,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Guest remote pose/head desync](done/guest-remote-pose-head-orientation-desync.md) — **Medium** — carried all along; the look and facing match.
 - [Remote medical — Stage 2: shrapnel](done/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — every row read; each operator drains only its own pair.
 - [A cross-player eat runs the game's own steps](done/cross-player-eat-skips-native-steps.md) — **High** — the replacement lands in the owner's slot.
 - [The pre-run lobby can deadlock](done/the-pre-run-lobby-can-deadlock.md) — **High** — rows 1-2 read; a dropped member is released at the 30 s bound.

@@ -229,7 +229,7 @@ docs/backlog/done/pickup-early-return-kernel-relocation.md | keep | index | docs
 docs/backlog/done/guest-background-ghost-item-ground-sounds.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-break-drops-recovery.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-frame-rate-lower-than-host.md | keep | index | docs/backlog/README.md
-docs/backlog/review/guest-remote-pose-head-orientation-desync.md | keep | index | docs/backlog/README.md
+docs/backlog/done/guest-remote-pose-head-orientation-desync.md | keep | index | docs/backlog/README.md
 docs/backlog/done/guest-report-fallback-first-resend.md | keep | index | docs/backlog/README.md
 docs/backlog/done/host-entity-hit-red-flash-not-visible-on-guest.md | keep | index | docs/backlog/README.md
 docs/backlog/done/id-resume-sources-still-unseeded.md | keep | index | docs/backlog/README.md
@@ -1041,7 +1041,7 @@ docs/evidence/selfchecks/presentation/muzzle-flash-sync-selfcheck.md | keep | cl
 docs/evidence/selfchecks/presentation/nap-and-dog-shake-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/owner-local-body-auto-events-selfcheck.md | keep | claim | docs/backlog/done/sync-player-pain-vocalizations-and-bark.md
 docs/evidence/selfchecks/presentation/remote-clone-face-vitals-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/presentation/remote-clone-facing-auto-flip-selfcheck.md | keep | claim | docs/backlog/review/guest-remote-pose-head-orientation-desync.md
+docs/evidence/selfchecks/presentation/remote-clone-facing-auto-flip-selfcheck.md | keep | claim | docs/backlog/done/guest-remote-pose-head-orientation-desync.md
 docs/evidence/selfchecks/presentation/remote-clone-head-mouth-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/remote-clone-legspeed-pose-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/presentation/speech-sound-frequency-selfcheck.md | keep | claim | docs/backlog/done/sync-player-pain-vocalizations-and-bark.md

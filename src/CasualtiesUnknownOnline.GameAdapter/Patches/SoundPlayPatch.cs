@@ -87,6 +87,10 @@ internal static class SoundPlayPatch
 				CallContext.Origin.CharacterGrowl => CharacterSoundPolicy.Origin.Growl,
 				CallContext.Origin.CharacterLockpickPain => CharacterSoundPolicy.Origin.LockpickPain,
 				CallContext.Origin.CharacterItemUse => CharacterSoundPolicy.Origin.ItemUse,
+				// The hand-feed scope wraps the eater's own use of the giver's item (NativeSolidFoodEat): it is
+				// entered INSIDE CharacterItemUse, so it is the innermost origin and the eat clip would otherwise
+				// classify as None — the giver heard only the meal-end burp (2026-11-07).
+				CallContext.Origin.HandFeed => CharacterSoundPolicy.Origin.ItemUse,
 				CallContext.Origin.CharacterBurp => CharacterSoundPolicy.Origin.Burp,
 				CallContext.Origin.CharacterMedicalUse => CharacterSoundPolicy.Origin.Medical,
 				CallContext.Origin.CharacterWorldDrink => CharacterSoundPolicy.Origin.WorldDrink,

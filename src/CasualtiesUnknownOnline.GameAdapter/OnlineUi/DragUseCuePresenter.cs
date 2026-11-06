@@ -2,15 +2,16 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 
 /// <summary>
 /// Draws the drag-use cue on the game's own typography: the row label's font, material and size, cloned from
 /// the game's own prefab (the same route every Online UI label takes — a programmatic TMP in this build parses
-/// its string into zero glyphs, measured 2026-10-25). The plugin decides WHEN and WHAT; this type only owns the
-/// surface, so the label looks like the game's own text instead of an IMGUI box.
+/// its string into zero glyphs, measured 2026-10-25). The label is parented under the game's MAIN canvas, the
+/// same parent every other Online UI surface uses, so it takes the canvas scaler's scale with it: a label of the
+/// game's own font size drawn on a plain overlay canvas comes out noticeably larger (reported 2026-11-07).
+/// The plugin decides WHEN and WHAT; this type only owns the surface.
 /// </summary>
 internal sealed class DragUseCuePresenter : IDragUseCuePresenter
 {
@@ -39,13 +40,16 @@ internal sealed class DragUseCuePresenter : IDragUseCuePresenter
 			_label.gameObject.SetActive(true);
 		}
 
-		// ScreenSpaceOverlay canvas coordinates are screen pixels with the origin at the BOTTOM-LEFT, which is
-		// Unity's own screen-point convention, so the point needs no flip here; the label sits up-right of the
-		// cursor and is clamped so a cursor at the edge still leaves it on screen.
-		var rect = _label.rectTransform;
-		var x = Mathf.Clamp(screenX + CursorOffset, 0f, Mathf.Max(0f, Screen.width - LabelWidth));
-		var y = Mathf.Clamp(screenY + CursorOffset, 0f, Mathf.Max(0f, Screen.height - LabelHeight));
-		rect.anchoredPosition = new Vector2(x, y);
+		// The canvas' own scale: screen pixels are canvas units times the scale factor, so the point is divided
+		// by it. Unity screen points have the origin at the BOTTOM-LEFT, the same convention as the canvas, so
+		// the point needs no flip; the label sits up-right of the cursor and is clamped so a cursor at the edge
+		// still leaves it on screen.
+		var scale = ParentCanvasScale();
+		var width = LabelWidth * scale;
+		var height = LabelHeight * scale;
+		var x = Mathf.Clamp(screenX + CursorOffset, 0f, Mathf.Max(0f, Screen.width - width));
+		var y = Mathf.Clamp(screenY + CursorOffset, 0f, Mathf.Max(0f, Screen.height - height));
+		_label.rectTransform.anchoredPosition = new Vector2(x / scale, y / scale);
 	}
 
 	public void Hide()
@@ -56,44 +60,30 @@ internal sealed class DragUseCuePresenter : IDragUseCuePresenter
 		}
 	}
 
+	private float ParentCanvasScale()
+	{
+		var canvas = _label != null ? _label.GetComponentInParent<Canvas>() : null;
+		return canvas != null && canvas.scaleFactor > 0f ? canvas.scaleFactor : 1f;
+	}
+
 	private bool Ensure()
 	{
-		if (_label != null)
+		if (_label != null && _label.transform.parent != null)
 		{
 			return true;
 		}
 
-		var canvasObject = new GameObject("CUO Drag Use Cue", typeof(Canvas))
+		// The game's own canvas, the parent every Online UI surface takes: it carries the CanvasScaler, the
+		// layer and the sorting order the player's eye already knows. A label under it is the same size as the
+		// game's own text by construction, not by copying numbers.
+		var parent = OnlineUiNativeSurfaceHost.FindMainCanvasTransform();
+		if (parent == null)
 		{
-			layer = LayerMask.NameToLayer("UI"),
-		};
-		var canvas = canvasObject.GetComponent<Canvas>();
-		canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-		canvas.sortingOrder = 32000;
-		Object.DontDestroyOnLoad(canvasObject);
-
-		// The game's own typography: the row prefab's font, material and size. The clone of its label object is
-		// what makes CJK actually render (see OnlineUiControlFactory's note).
-		OnlineUiControlFactory.ReadRowTemplate(canvasObject.transform, out var typography, out _, out _, out _);
-
-		// The game's own scale, not a plain overlay's: the game's UI canvas is a CanvasScaler (a reference
-		// resolution and a match), so a label of the game's own font size takes the same share of the screen
-		// there. A ScreenSpaceOverlay canvas without a scaler draws the same font size noticeably larger than
-		// the game's text — reported 2026-11-07 ("why is the font this large").
-		var scaler = canvasObject.AddComponent<CanvasScaler>();
-		var sourceCanvas = typography.LabelTemplate != null ? typography.LabelTemplate.GetComponentInParent<Canvas>() : null;
-		var sourceScaler = sourceCanvas != null ? sourceCanvas.GetComponent<CanvasScaler>() : null;
-		if (sourceScaler != null)
-		{
-			scaler.uiScaleMode = sourceScaler.uiScaleMode;
-			scaler.referenceResolution = sourceScaler.referenceResolution;
-			scaler.screenMatchMode = sourceScaler.screenMatchMode;
-			scaler.matchWidthOrHeight = sourceScaler.matchWidthOrHeight;
-			scaler.referencePixelsPerUnit = sourceScaler.referencePixelsPerUnit;
-			scaler.scaleFactor = sourceScaler.scaleFactor;
+			return false;
 		}
 
-		var label = OnlineUiSurfaceParts.CreateLabel("CUO Drag Use Cue Label", canvasObject.transform, typography, OnlineUiTextStyle.Default);
+		OnlineUiControlFactory.ReadRowTemplate(parent, out var typography, out _, out _, out _);
+		var label = OnlineUiSurfaceParts.CreateLabel("CUO Drag Use Cue Label", parent, typography, OnlineUiTextStyle.Default);
 		label.raycastTarget = false;
 		label.alignment = TextAlignmentOptions.BottomLeft;
 		var rect = label.rectTransform;

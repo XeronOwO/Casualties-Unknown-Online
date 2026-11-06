@@ -10,14 +10,15 @@ nothing left to fail on. Deployment and multiplayer acceptance are the agent's a
 `docs/acceptance/` and outside this script; feature development verification uses simulation/static evidence. The entry
 mapping box answers the standard in `../development/native-parity.md`.
 
-**Operating rule (user mandates 2026-08-10 / 2026-08-16)**: boxes are checked ONE LINE AT A
-TIME with the Edit tool as each step completes. The checkbox edits do NOT get
-their own commit per checkbox — fold the checklist changes into the normal
-work commits (implementation/docs/verification steps). The process record is
-the line-by-line Edit sequence, not one commit per box. BULK checking (sed / scripts / a single
-catch-up pass) is FORBIDDEN: it fabricates the process record and voids the
-gate (observed: the cycle was bulk-checked, never committed, then reset —
-the user called it out). Only a deliberate cycle reset may touch multiple lines.
+**Operating rule (user mandates 2026-08-10 / 2026-08-16 / 2026-11-07)**: a box is checked only after the item was
+CONFIRMED to be truly done in this cycle. The checkmark records an observation, not a decision and not an edit:
+verify the item against the thing itself (run the gate, read the log line, open the file, measure the number) and put
+that observation in the evidence suffix; if it cannot be confirmed, the box stays unchecked and the cycle says why.
+Ticking a line because it is its turn is a false record and voids the cycle (user, 2026-11-07: "checklist rules 的要求
+是你对每一条都确认下是否真正做到了，而不是让你每一次都只勾一条，用这种最蠢的行为掩盖自己不遵守规范"). The line-by-line
+Edit sequence is a mechanical consequence of working in order, never the point. BULK checking (sed / scripts / a single
+catch-up pass) is FORBIDDEN: it fabricates the process record and voids the gate (observed: the cycle was bulk-checked,
+never committed, then reset — the user called it out). Only a deliberate cycle reset may touch multiple lines.
 
 **Documentation-only cycles (added 2026-09-17)**: a cycle that changes no runtime or test behaviour
 (backlog moves, evidence/citation updates, workflow documentation) still fills EVERY box and still

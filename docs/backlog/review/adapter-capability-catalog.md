@@ -57,9 +57,11 @@ The catalog and the probe, with installation behaviour untouched. Self-check:
 `docs/evidence/selfchecks/tooling/adapter-capability-catalog-selfcheck.md`; decision 202.
 
 - **The catalog.** `src/CasualtiesUnknownOnline.GameAdapter/Capabilities/AdapterCapabilityCatalog.cs`
-  declares 14 capabilities with stable kebab-case ids, a title and a Required/Optional class:
+  declares 13 capabilities with stable kebab-case ids, a title and a Required/Optional class:
   `session`, `world`, `items`, `traps`, `medical`, `character`, `enemies`, `crafting`, `trading`,
-  `save`, `tutorial` (Required) and `mods`, `pinyin-search`, `diagnostics` (Optional). Each entry owns
+  `save`, `tutorial` (Required) and `mods`, `diagnostics` (Optional). (`pinyin-search` is a standalone
+  mod, not an adapter capability: its patches live in the mod assembly, so the catalog never claims
+  them.) Each entry owns
   its patch classes through compile-bound `typeof(...)` references — a container type brings its nested
   patch classes — plus, where they exist, the hand-declared dynamic rows (by `PatchInventory`'s
   `"(dynamic)"` pseudo name), the game types it reads and the game members it reads outside any

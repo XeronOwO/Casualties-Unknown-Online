@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 1: medical operation session + real-time injection
 
-- Status: Review — blocked on a fixture: row 20 (mixed CUO versions) needs an old-version artifact this machine does not have, and every other row passes on the deployed artifact — rows 1-7, 9, 12-19, 21 and 23 in batch 20261023-b, rows 8, 10 and 22 in batch 20261024-a (records under `docs/evidence/acceptance/`).
+- Status: Done — every row is read on the deployed artifact; row 20 now reads from the handshake the host rejects (batch 20261106-o on `0.1.0+e0727f8f`, record `remote-medical-stage-1-injection-session-20261106-o.md`)
 - Acceptance (20261023-b): rows 1-7, 9, 12-19, 21 and 23 pass on the deployed artifact
   (`0.1.0+d960f05f…`); rows 8 (operator disconnect), 10 (target disconnect), 20 (mixed CUO versions) and
   22 (lobby close with a session in flight) stay `unproven` — the live staging was not reached, and the
@@ -172,3 +172,28 @@ The focused regression test must fail on the current code and prove that injecti
 - Shrapnel multiplayer session (Stage 2).
 - Bandage, dislocation, AED, manual defib, amputation (Stage 3).
 - CPR (future).
+
+## Row 20 — the version gate, read without an old build (2026-11-06, batch 20261106-o)
+
+Row 20 asks for "strict handshake rejection after protocol-version bump; no old/new compatibility shim is provided".
+The protocol number is frozen at `1` since `c2eaa962` (pre-release: no wire change moves it), so an old client would
+announce a retired number — `c2eaa962^` declared `public const int Current = 45;`.
+
+Instead of building that old tree, `tools/acceptance/driver/eval-declarations/version-mismatch.cs` assembles the exact
+`HandshakeMsg` an old client sends (`Protocol = 45`, empty `SceneStateMsg`) and hands it to the live session's own
+`PacketSender`, addressed to the host. Declared on the guest as `eval-41`; the recipe answered
+`sent:45:true:host=76561198281246659`. The host log then read:
+
+```
+[2026-11-06 22:55:20.486] [WRN] [CasualtiesUnknownOnline.Runtime.Session.Handlers.HandshakeHandler] Peer 76561198863287957 speaks protocol 45; we speak 1. Rejecting.
+```
+
+The handler returns before touching any state: no ack, no world join, no shim (the only protocol branch is the equality
+check). Both clients were re-read after the rejection and still showed `inWorld=true`, the same lobby and
+`gateWaiting=false` — a rejected handshake from an already-connected peer does not disturb the running session.
+
+Limits: the frame travels over the guest's established transport, not a fresh connection, so this proves the gate where
+it lives (the handshake body) rather than a transport-level refusal at connection setup; and only the host side of the
+check was driven, though the guest-side mirror `HandshakeAckHandler` carries the same equality test.
+
+Record: `docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261106-o.md`.

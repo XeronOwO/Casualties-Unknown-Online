@@ -97,7 +97,10 @@ For a mechanism, prefer this order:
    `remote-medical-stage-2-shrapnel-20261106-k.md`: two operators remove
    different pieces inside one shared shrapnel session, and
    `remote-medical-stage-2-shrapnel-20261106-n.md`: a bystander's client runs no
-   minigame while the operators' clients do).
+   minigame while the operators' clients do, and
+   `remote-medical-stage-1-injection-session-20261106-o.md`: a handshake carrying a
+   retired protocol number is refused by the host's version gate and the running
+   session survives).
 
 ## Self-checks
 

@@ -1,7 +1,6 @@
 # Acceptance — remote medical Stage 1: the disconnect rows, read on the deployed artifact
 
-- Ticket: `docs/backlog/review/remote-medical-stage-1-injection-session.md` — verdict: **stays in `review/`**
-  (row 20, the mixed-version handshake, remains `unproven`; rows 8, 10 and 22 now pass)
+- Ticket: `docs/backlog/done/remote-medical-stage-1-injection-session.md` — at this batch the ticket stayed in `review/` because row 20 (the mixed-version handshake) remained `unproven`; rows 8, 10 and 22 now pass. (Row 20 was read on 2026-11-06, batch `20261106-o`.)
 - Batch: `.acceptance/20261024-c/` (local, gitignored; runs `md3` and `md4`)
 - Artifact: `0.1.0+9c350df3...` deployed and verified before launch
 - Date: 2026-10-24

@@ -26,6 +26,13 @@ releasing the start gate immediately` is the host's own release). A member that 
 `StartGateCoordinator` holds the loading screen indefinitely even though the world is running. The session state reader
 cannot see this: `state` reports the session's `inWorld`/`gateWaiting`, not the loading gate's.
 
+## Design
+
+Read from `docs/design/model/session-lifecycle.md` (the start gate holds the local player, its one forced release, the
+three freezes while it holds, and the rejoin repair that re-sends the entry-group marker and the start-gate release every
+5 s until both are in). The page's rule is that the release is part of the entry repair, not a one-shot broadcast at run
+start — which is exactly where the late joiner falls through.
+
 ## Fix direction
 
 - When a member's world join is confirmed after the run started, send that member the gate release (WorldReady)

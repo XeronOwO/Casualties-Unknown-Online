@@ -2,6 +2,7 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace CasualtiesUnknownOnline.GameAdapter.OnlineUi;
 
@@ -74,6 +75,24 @@ internal sealed class DragUseCuePresenter : IDragUseCuePresenter
 		// The game's own typography: the row prefab's font, material and size. The clone of its label object is
 		// what makes CJK actually render (see OnlineUiControlFactory's note).
 		OnlineUiControlFactory.ReadRowTemplate(canvasObject.transform, out var typography, out _, out _, out _);
+
+		// The game's own scale, not a plain overlay's: the game's UI canvas is a CanvasScaler (a reference
+		// resolution and a match), so a label of the game's own font size takes the same share of the screen
+		// there. A ScreenSpaceOverlay canvas without a scaler draws the same font size noticeably larger than
+		// the game's text — reported 2026-11-07 ("why is the font this large").
+		var scaler = canvasObject.AddComponent<CanvasScaler>();
+		var sourceCanvas = typography.LabelTemplate != null ? typography.LabelTemplate.GetComponentInParent<Canvas>() : null;
+		var sourceScaler = sourceCanvas != null ? sourceCanvas.GetComponent<CanvasScaler>() : null;
+		if (sourceScaler != null)
+		{
+			scaler.uiScaleMode = sourceScaler.uiScaleMode;
+			scaler.referenceResolution = sourceScaler.referenceResolution;
+			scaler.screenMatchMode = sourceScaler.screenMatchMode;
+			scaler.matchWidthOrHeight = sourceScaler.matchWidthOrHeight;
+			scaler.referencePixelsPerUnit = sourceScaler.referencePixelsPerUnit;
+			scaler.scaleFactor = sourceScaler.scaleFactor;
+		}
+
 		var label = OnlineUiSurfaceParts.CreateLabel("CUO Drag Use Cue Label", canvasObject.transform, typography, OnlineUiTextStyle.Default);
 		label.raycastTarget = false;
 		label.alignment = TextAlignmentOptions.BottomLeft;

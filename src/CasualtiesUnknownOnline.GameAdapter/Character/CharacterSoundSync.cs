@@ -49,6 +49,11 @@ internal sealed class CharacterSoundSync(
 			return;
 		}
 
+		if (kind == CharacterSoundKind.Consume)
+		{
+			_log.LogInformation("[CharacterSound] captured consume {Clip} at ({X},{Y}) — reporting to the peers.", clip, pos.x, pos.y);
+		}
+
 		_characterData.SendCharacterSound(new CharacterSoundMsg
 		{
 			OwnerSteamId = _session.LocalSteamId,
@@ -79,6 +84,11 @@ internal sealed class CharacterSoundSync(
 		}
 
 		var pos = new Vector2(msg.Position.X, msg.Position.Y);
+		if (msg.Kind == CharacterSoundKind.Consume)
+		{
+			_log.LogInformation("[CharacterSound] replay consume {Clip} at ({X},{Y}) from {Owner}.", msg.Clip, pos.x, pos.y, msg.OwnerSteamId);
+		}
+
 		var hasBody = _renderer.TryGetRemoteBody(msg.OwnerSteamId, out var body);
 		// The clip is resolved the way the side that PLAYED it did: the resource path first, then the owner body's own PantSound arrays, because the bark
 		// and pain vocalizations are AudioClip picks whose names are not resource paths (measured 2026-11-01: a bark played `pain1` on the acting client and

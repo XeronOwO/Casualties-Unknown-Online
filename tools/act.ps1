@@ -127,6 +127,15 @@ $intentLines += ('{0}|{1}|{2}|{3}' -f $Step, $sha, [datetime]::UtcNow.ToString('
 Set-Content -LiteralPath $intentPath -Encoding utf8 -Value (@('# written by tools/act.ps1 - the plan each step was entered with') + $intentLines)
 Write-Host "act: INTENT for step ${Step}: $($Intent.Trim())"
 
+# THE BEHAVIOUR DIGEST. The rules above are long; what the work will be held to is short. Printed last, after the rules
+# and the intent, so the first thing in view when the work starts is the action-level form (2026-11-07: the user asked
+# for the rules to carry weight during the work, not to be a dead letter).
+$behaviourPath = Join-Path $rules 'behaviour.md'
+if (Test-Path -LiteralPath $behaviourPath) {
+    Write-Host '===== the behaviours this step is judged by - behaviour.md ====='
+    Get-Content -LiteralPath $behaviourPath -Encoding utf8 | ForEach-Object { Write-Host $_ }
+}
+
 $marker = Join-Path $repo $MarkerPath
 $dir = Split-Path -Parent $marker
 if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }

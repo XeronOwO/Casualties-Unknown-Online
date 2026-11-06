@@ -12,6 +12,11 @@ Working rules for this repository. Each step below has one committed rule file a
 full at the start of the step, every round, even if the previous round read them**. The rules live there, not here —
 this page is the map.
 
+**While working, the short form is `rules/behaviour.md`** — the ten behaviours a step is judged by, printed by
+`tools/act.ps1` at every step entry after the rules and the stated intent. Hold that list in mind while acting: it is the
+same obligations as the step files, written for the moment of the action (2026-11-07: the rules must carry weight during
+the work, not be a dead letter).
+
 Machine facts and personal working notes live in the gitignored `AGENTS.local.md` and in the `*.local.md` sibling of
 each step. Never let the instruction set outgrow the session's load budget.
 

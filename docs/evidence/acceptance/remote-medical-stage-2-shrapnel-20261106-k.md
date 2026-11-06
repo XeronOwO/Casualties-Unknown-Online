@@ -61,6 +61,21 @@ Together with session 4 (20:59:19.904, alt owned piece 0 and the host was refuse
 operator takes a piece first keeps it, and the other operator's grab on that piece is refused on both clients' behalf.
 Row 3 passes; the refusal is the user's chosen behaviour (row 2's decision).
 
+## Cancel mid-removal (row 5, partial)
+
+Closing an operator's own wound view (re-opening it on the same client, which is how a player leaves the panel) is the
+cancel path. Host log:
+
+- 21:07:54.749 `session 6 created … (3 pieces)` / `operator 76561199526807662 joined session 6.`
+- 21:07:57.367 `operator 76561199526807662 left session 6 (Cancelled).` / `session 6 terminal Cancelled.` — the session
+  had no other operator, so it ended with the reason `Cancelled`.
+- 21:08:09.029 `session 7 created … (3 pieces)`; 21:08:11.287 the host joined; 21:08:17.173 the alt left
+  `session 7 (Cancelled)` and **no terminal line followed** — the host stayed in the session and it kept running.
+
+So the cancel path is real and the session survives a single operator leaving. What this run did NOT show is the other
+half of the row: no piece had been removed before the cancel (the break call did not land in this window), so "already
+removed pieces stay removed" is still unread.
+
 ## Verdict
 
 - Row 1 PASS: two operators removed three different pieces (0, 1, 2) in one shared session; each break-grasp applied

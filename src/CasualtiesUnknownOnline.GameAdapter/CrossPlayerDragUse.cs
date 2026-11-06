@@ -27,6 +27,10 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 
 	private bool _dragActive;
 	private ulong _openedFor;
+
+	// True when the backpack this drag opened was actually DISPLAYED (a view the player saw and closed), so the same
+	// drag may open it again. A target that was only attempted (access rule, line of sight) stays answered once.
+	private bool _openedForWasDisplayed;
 	private ulong? _lastLoggedTarget;
 
 	/// <summary>
@@ -176,14 +180,36 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 			return;
 		}
 
-		if (Observe(dragItem) is not { } target || !IsTargetInRange || target == _openedFor)
+		if (Observe(dragItem) is not { } target || !IsTargetInRange)
 		{
 			return;
 		}
 
-		if (RemoteBackpackView.IsOpen && RemoteBackpackView.FocusedSteamId == target)
+		var displayedHere = RemoteBackpackView.IsOpen && RemoteBackpackView.FocusedSteamId == target;
+		if (target == _openedFor)
+		{
+			if (displayedHere)
+			{
+				_openedForWasDisplayed = true;
+				return;
+			}
+
+			// The backpack this drag opened was closed again while the item is still in hand (the player
+			// toggled their own bag: user report 2026-11-07). A target that WAS displayed may be reopened by
+			// the same drag; a target that was only ATTEMPTED (access rule, line of sight) stays answered once.
+			if (!_openedForWasDisplayed)
+			{
+				return;
+			}
+
+			_openedFor = 0;
+			_openedForWasDisplayed = false;
+		}
+
+		if (displayedHere)
 		{
 			_openedFor = target;
+			_openedForWasDisplayed = true;
 			return;
 		}
 
@@ -234,6 +260,7 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 
 		_dragActive = false;
 		_openedFor = 0;
+		_openedForWasDisplayed = false;
 		_lastLoggedTarget = null;
 		_selection.Begin();
 

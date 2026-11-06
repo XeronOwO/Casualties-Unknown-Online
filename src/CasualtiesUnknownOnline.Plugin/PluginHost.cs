@@ -53,6 +53,7 @@ internal sealed class PluginHost : MonoBehaviour
 	private IJoinFlowPresentation? _joinFlow;
 	private IAdapterCapabilityQuery? _capabilityQuery;
 	private IDragUseCueState? _dragUseCue;
+	private IDragUseCuePresenter? _dragUseCuePresenter;
 	private ISessionControl? _session;
 	private ILocalizationService _localization = null!;
 	private ConfigEntry<string> _interactionPanelKey = null!;
@@ -102,6 +103,7 @@ internal sealed class PluginHost : MonoBehaviour
 			_joinFlow?.ConfigureIntroCoverPreference(() => _skipIntroCover.Value);
 			_capabilityQuery = _services.GetService<IAdapterCapabilityQuery>();
 			_dragUseCue = _services.GetService<IDragUseCueState>();
+			_dragUseCuePresenter = _services.GetService<IDragUseCuePresenter>();
 			_session = _services.GetService<ISessionControl>();
 			_localization = _services.GetRequiredService<ILocalizationService>();
 
@@ -299,21 +301,27 @@ internal sealed class PluginHost : MonoBehaviour
 	/// Draws the drag gesture's own label (WHO the item in hand would be used on) while the gesture says a
 	/// release would be a USE. The decision is the adapter's (<see cref="IDragUseCueState"/>), and it is what
 	/// keeps this label from promising a use where the release would give; this method only names the player,
-	/// localizes the sentence and draws. The name is the Online UI's own resolution (the one the member list
-	/// shows), and the decision is only trusted inside a live world with no modal CUO surface up: the tracker is
-	/// cleared on a scene load and a session end, and these guards mean a stale decision cannot draw over a
-	/// menu or over the modal that suspended the game's own drag frame.
+	/// localizes the sentence and hands it to the adapter's game-styled surface (<see cref="IDragUseCuePresenter"/>).
+	/// The name is the Online UI's own resolution (the one the member list shows), and the decision is only
+	/// trusted inside a live world with no modal CUO surface up: the tracker is cleared on a scene load and a
+	/// session end, and these guards mean a stale decision cannot draw over a menu or over the modal that
+	/// suspended the game's own drag frame.
 	/// </summary>
 	private void DrawDragUseCue()
 	{
 		if (_dragUseCue is not { Showing: true } cue
 			|| _session is not { SessionActive: true, LocalInWorld: true }
-			|| _onlineUi.IsModalSurfaceOpen)
+			|| _onlineUi.IsModalSurfaceOpen
+			|| _dragUseCuePresenter == null)
 		{
+			_dragUseCuePresenter?.Hide();
 			return;
 		}
 
-		DragUseCueOverlay.Draw(_localization.Format("cue.use_on", _onlineUi.DisplayName(cue.TargetSteamId)));
+		_dragUseCuePresenter.Show(
+			_localization.Format("cue.use_on", _onlineUi.DisplayName(cue.TargetSteamId)),
+			Input.mousePosition.x,
+			Input.mousePosition.y);
 	}
 
 	private void OnUnityLogMessage(string message, string stackTrace, LogType type)

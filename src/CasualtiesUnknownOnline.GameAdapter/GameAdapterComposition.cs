@@ -78,6 +78,10 @@ public static class GameAdapterComposition
 		services.AddSingleton<IWorldItemPointerQuery>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IStartGateState>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<IDragUseCueState>(p => p.GetRequiredService<GameAdapter>());
+		// The cue's SURFACE, not a capability: the plugin decides whether and what to draw, and this port carries
+		// the sentence onto the game's own typography (the 2026-11-07 ruling that a CUO surface must look like the
+		// game's UI, not an IMGUI box).
+		services.AddSingleton<IDragUseCuePresenter, OnlineUi.DragUseCuePresenter>();
 		services.AddSingleton<ITraderRecruitRequest>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<INativeInputBlocker>(p => p.GetRequiredService<GameAdapter>());
 		services.AddSingleton<ISpectatorControl>(p => p.GetRequiredService<GameAdapter>());

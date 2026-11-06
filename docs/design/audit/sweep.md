@@ -31,7 +31,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.GameAdapter/Items` | 73 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModStatus` | 3 | read |
-| `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 29 | read |
+| `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 30 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Patches` | 156 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Run` | 35 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Tutorial` | 3 | read |
@@ -53,7 +53,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | read |
 | `CasualtiesUnknownOnline.PinyinSearch.Core/Search` | 6 | read |
 | `CasualtiesUnknownOnline.PinyinSearch/Patches` | 2 | read |
-| `CasualtiesUnknownOnline.Plugin` | 44 | read |
+| `CasualtiesUnknownOnline.Plugin` | 43 | read |
 | `CasualtiesUnknownOnline.Protocol/Codecs` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Versioning` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Wire` | 55 | read |
@@ -65,7 +65,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Configuration` | 16 | read |
 | `CasualtiesUnknownOnline.Runtime/Data` | 18 | read |
 | `CasualtiesUnknownOnline.Runtime/Diagnostics` | 3 | read |
-| `CasualtiesUnknownOnline.Runtime/GameAdapter` | 54 | read |
+| `CasualtiesUnknownOnline.Runtime/GameAdapter` | 55 | read |
 | `CasualtiesUnknownOnline.Runtime/Localization` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Logging` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/Networking` | 14 | read |

@@ -376,13 +376,9 @@ public class ItemAndBodySoundCaptureGateTests
 		Assert.Contains("body.transform.position = new Vector3(x, y, previous.z);", capture, StringComparison.Ordinal);
 		Assert.Contains("_body.transform.position = _previous;", capture, StringComparison.Ordinal);
 
-		// The shared shrapnel session has an OBSERVER copy of the same minigame; the
-		// operator already reported the removal, so the observer's copy must never
-		// report a second play (the local-action guard alone cannot tell them apart).
-		Assert.Contains(
-			"IsObserverShrapnelMinigame(",
-			WithoutComments(shrapnel),
-			StringComparison.Ordinal);
+		// The shared shrapnel session runs only on the operators' own clients; a bystander
+		// opens no copy of the minigame, so there is no second play to keep out of the
+		// report (the local-action guard is the only test the step needs).
 
 		// The clips the steps produce are the medical set's own knowledge: without
 		// them both steps stay silent for every peer however the scope is bound.

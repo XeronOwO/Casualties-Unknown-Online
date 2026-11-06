@@ -1,5 +1,10 @@
 # Remote medical Stage 2 — shrapnel, batch `20261106-l`
 
+> Superseded for row 4 (2026-11-06): the bystander screen this record read was an invention of mine, not a requirement.
+> The user rejected it ("不该看到") and the copy is removed; row 4 is re-read as non-interference (the bystander opens
+> nothing and stays consistent). Everything else in this record — the two-operator fixture, the evaluator lesson, the
+> restarts — stands.
+
 Artifact `0.1.0+f9bee6a1f2fea72ab8b4278ed4b873f18cb00710` (acceptance build, verified against this tree).
 Three clients in one world: host `76561198281246659` on `18590`, guest (patient) `76561198863287957` on `18591`,
 bystander `76561199526807662` on `18592`.

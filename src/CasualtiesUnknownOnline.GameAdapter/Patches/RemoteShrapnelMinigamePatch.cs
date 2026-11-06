@@ -37,15 +37,6 @@ internal static class RemoteShrapnelMinigamePatch
 				return;
 			}
 
-			if (RemoteMedicalOperationHandler.IsObserverShrapnelMinigame(__instance))
-			{
-				// An observer watches the authoritative piece positions without
-				// participating; suppress the native grab/click input.
-				MinigameBase.main.handStartedClicking = false;
-				MinigameBase.main.handStoppedClicking = false;
-				return;
-			}
-
 			var traverse = Traverse.Create(__instance);
 			var objects = traverse.Field("objects").GetValue<List<RectTransform>>();
 			var held = traverse.Field("currentlyHeld").GetValue<RectTransform>();

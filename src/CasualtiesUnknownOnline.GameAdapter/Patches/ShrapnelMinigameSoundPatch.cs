@@ -33,8 +33,7 @@ internal static class ShrapnelMinigameSoundPatch
 	{
 		private static void Prefix(ShrapnelMinigame __instance, out IDisposable? __state)
 		{
-			if (!CaptureScopeGuard.IsLocalAction()
-				|| RemoteMedicalOperationHandler.IsObserverShrapnelMinigame(__instance))
+			if (!CaptureScopeGuard.IsLocalAction())
 			{
 				__state = null;
 				return;

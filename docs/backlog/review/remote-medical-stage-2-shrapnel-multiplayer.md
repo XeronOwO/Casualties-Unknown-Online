@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Review — row 4 passes in both halves on `0.1.0+f9bee6a1` (batch `20261106-l`): a bystander with the wound view open shows the observer shrapnel screen, and its piece rows follow the host's authority (the removed piece read `8000.0` where it had read `-316.9`, the live pieces unchanged). Row 9 (each operator's own tweezers condition) is still unread. Rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`). Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`, `-k.md` and `-l.md`.
+- Status: Review — rows 1-3, 5, 6 and 7 pass on the deployed artifacts: rows 1 and 3 on `0.1.0+c93f074b`, row 2 on the same with the user's refusal decision, row 5 in both halves on the same, row 6 on the same, row 7 on `0.1.0+39300598` (batch `20261106-h`). Row 4's earlier reading was withdrawn (2026-11-06): it was judged against a bystander copy of the minigame that no player ever asked for, and that copy has been removed — row 4 is re-read as non-interference (the bystander's client opens nothing and stays consistent while two operators work). Row 9's tweezers reading is still owed. Readings: `docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md`, `-k.md` and `-l.md`.
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -289,7 +289,25 @@ The code already has the observer arm (`RemoteShrapnelOperationHandler.ApplyShra
 member, so the open question is why the message never reaches that arm on a bystander. Fix at the root, then re-read this
 row in a new batch.
 
-## Row 4 fix: the observer screen is built from the state's pieces (batch `20261106-l`, 2026-11-06)
+## Row 4 corrected (2026-11-06): the bystander sees nothing, by design
+
+The two sections above described a bystander copy of the running minigame. That copy was **my** invention, not a
+requirement: the acceptance row "a third party observing" asks that the bystander's client does not break or desync while
+two operators work — it never asked for a screen. The user rejected the copy ("我主机拖动进了小游戏，为什么客机也进了小游戏
+啊？这不对啊", then "不该看到") and it is removed: the observer arm, its session bookkeeping, its completion/cancel/terminal
+branches, its input-suppression patch and its sound-patch guard are gone; only the operators' own clients construct a
+`ShrapnelMinigame`.
+
+The rule this produced is in `docs/development/rules/13-acceptance.md` §"A row never invents behaviour": a row is a
+question about behaviour that exists, and an addition a player would notice is a product question for the user, parked
+until they answer it.
+
+Row 4 now means: with two operators driving, the bystander's client (a) opens no minigame, (b) reports no error, and
+(c) keeps receiving the world state. The reading is owed on the build that removed the copy.
+
+
+
+## Row 4 fix — withdrawn (2026-11-06): the observer screen built from the state's pieces (batch `20261106-l`)
 
 Root cause: `TryStartObserver` refused when the display body's limb copy did not carry shrapnel
 (`if (limb.dismembered || !limb.hasShrapnel) return null;`). That copy is filled from the 1 Hz character snapshot, which
@@ -306,7 +324,7 @@ Reading on `0.1.0+f9bee6a1` (batch `20261106-l`): three clients in one world, gu
 minigame, where before the fix it had none. The second half of row 4 (the observer's piece positions moving with the
 authority) is still unread.
 
-## Row 4 second half: the observer's rows follow the authority (batch `20261106-l`, 2026-11-06)
+## Row 4 second half — withdrawn (2026-11-06): the observer's rows follow the authority (batch `20261106-l`)
 
 The bystander's own screen was read through its `objects` list while the host's session 6 ran with 3 pieces:
 

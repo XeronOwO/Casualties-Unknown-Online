@@ -20,7 +20,6 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class RemoteShrapnelOperationHandler
 {
 	private static RemoteShrapnelUseSession? _activeShrapnel;
-	private static RemoteShrapnelUseSession? _observerShrapnel;
 	private static Action<ulong>? _cancelRequestSender;
 	private static Action<ulong>? _shrapnelEndRequestSender;
 	private static Action<ulong, ShrapnelPieceUpdate>? _shrapnelUpdateSender;
@@ -85,13 +84,6 @@ internal sealed class RemoteShrapnelOperationHandler
 
 	internal static void CompleteActiveShrapnelUse()
 	{
-		if (_observerShrapnel is not null)
-		{
-			_observerShrapnel = null;
-			RemoteShrapnelMinigamePatch.ResetLastHeld();
-			return;
-		}
-
 		var session = _activeShrapnel;
 		if (session == null)
 		{
@@ -121,20 +113,6 @@ internal sealed class RemoteShrapnelOperationHandler
 
 	internal static bool CancelActiveShrapnelUse()
 	{
-		if (_observerShrapnel is { } observer)
-		{
-			_observerShrapnel = null;
-			RemoteShrapnelMinigamePatch.ResetLastHeld();
-			if (observer.Minigame != null
-				&& MinigameBase.main != null // Unity object — ==
-				&& ReferenceEquals(MinigameBase.main.currentMinigame, observer.Minigame))
-			{
-				MinigameBase.main.EndMinigame();
-			}
-
-			return true;
-		}
-
 		var session = _activeShrapnel;
 		if (session == null)
 		{
@@ -166,21 +144,6 @@ internal sealed class RemoteShrapnelOperationHandler
 
 	internal static void OnShrapnelHostTerminal(ulong operationId)
 	{
-		if (_observerShrapnel is { } observer
-			&& (observer.OperationId == 0 || observer.OperationId == operationId))
-		{
-			_observerShrapnel = null;
-			RemoteShrapnelMinigamePatch.ResetLastHeld();
-			if (observer.Minigame != null
-				&& MinigameBase.main != null // Unity object — ==
-				&& ReferenceEquals(MinigameBase.main.currentMinigame, observer.Minigame))
-			{
-				MinigameBase.main.EndMinigame();
-			}
-
-			return;
-		}
-
 		var session = _activeShrapnel;
 		if (session == null)
 		{
@@ -210,22 +173,6 @@ internal sealed class RemoteShrapnelOperationHandler
 		{
 			active.AuthoritativePieces = [.. msg.ShrapnelPieces];
 			ApplyStateToMinigame(active, msg);
-			return;
-		}
-
-		if (_observerShrapnel is { } observer
-			&& (observer.OperationId == 0 || observer.OperationId == msg.OperationId))
-		{
-			ApplyStateToMinigame(observer, msg);
-			return;
-		}
-
-		if (_activeShrapnel is null
-			&& RemoteMedicalView.IsOpen
-			&& RemoteMedicalView.TargetSteamId == msg.TargetSteamId
-			&& TryStartObserver(msg) is { } newObserver)
-		{
-			ApplyStateToMinigame(newObserver, msg);
 		}
 	}
 
@@ -274,61 +221,6 @@ internal sealed class RemoteShrapnelOperationHandler
 
 			rect.anchoredPosition = new Vector2(piece.X, piece.Y);
 		}
-	}
-
-	private static RemoteShrapnelUseSession? TryStartObserver(MedicalOperationStateMsg msg)
-	{
-		if (_observerShrapnel != null
-			|| MinigameBase.main == null // Unity object — ==
-			|| MinigameBase.main.currentMinigame != null)
-		{
-			return null;
-		}
-
-		var display = RemoteMedicalView.DisplayBody;
-		if (display == null
-			|| msg.LimbIndex < 0
-			|| msg.LimbIndex >= display.limbs.Length
-			|| display.limbs[msg.LimbIndex] == null) // Unity object — ==
-		{
-			return null;
-		}
-
-		var limb = display.limbs[msg.LimbIndex];
-		var activePieces = 0;
-		foreach (var piece in msg.ShrapnelPieces)
-		{
-			if (!piece.Removed)
-			{
-				activePieces++;
-			}
-		}
-
-		if (limb.dismembered || activePieces <= 0)
-		{
-			return null;
-		}
-
-		// The display body's limb copy is filled from the 1 Hz character snapshot, which can predate the
-		// wound this session removes; the state message carries the authoritative piece list, so the
-		// native minigame must be built from that count or it would start with no pieces to watch.
-		limb.shrapnel = activePieces;
-
-		var minigame = new ShrapnelMinigame(limb, false);
-		MinigameBase.main.StartMinigame(minigame, null);
-		if (!ReferenceEquals(MinigameBase.main.currentMinigame, minigame))
-		{
-			return null;
-		}
-
-		var observer = new RemoteShrapnelUseSession(msg.TargetSteamId, 0, 0)
-		{
-			Minigame = minigame,
-			OperationId = msg.OperationId,
-		};
-		_observerShrapnel = observer;
-		RemoteShrapnelMinigamePatch.ResetLastHeld();
-		return observer;
 	}
 
 	internal static void ReportShrapnelUpdate(ShrapnelPieceUpdate update)
@@ -427,11 +319,7 @@ internal sealed class RemoteShrapnelOperationHandler
 	}
 
 	internal static bool IsActiveShrapnelMinigame(ShrapnelMinigame minigame) =>
-		(_activeShrapnel?.Minigame is not null && ReferenceEquals(_activeShrapnel.Minigame, minigame))
-		|| (_observerShrapnel?.Minigame is not null && ReferenceEquals(_observerShrapnel.Minigame, minigame));
-
-	internal static bool IsObserverShrapnelMinigame(ShrapnelMinigame minigame) =>
-		_observerShrapnel?.Minigame is not null && ReferenceEquals(_observerShrapnel.Minigame, minigame);
+		_activeShrapnel?.Minigame is not null && ReferenceEquals(_activeShrapnel.Minigame, minigame);
 
 	internal static bool IsShrapnelPieceOwnedByOther(int pieceIndex)
 	{
@@ -452,11 +340,7 @@ internal sealed class RemoteShrapnelOperationHandler
 		return false;
 	}
 
-	// One client hosts one native minigame at a time. The observer copy of the SAME
-	// remote limb is not a competitor: when an operator starts its own share of a
-	// shared session while it is only watching, the observer minigame is replaced by
-	// the operator's own. Any other occupant (a syringe, a CPR screen, a previous
-	// operator session) still refuses the start.
+	// One client hosts one native minigame at a time; any occupant refuses the start.
 	private bool TryFreeNativeMinigameHost(ulong target)
 	{
 		if (MinigameBase.main == null) // Unity object — ==
@@ -467,19 +351,6 @@ internal sealed class RemoteShrapnelOperationHandler
 		if (MinigameBase.main.currentMinigame == null) // Unity object — ==
 		{
 			return true;
-		}
-
-		if (_observerShrapnel is { Minigame: { } observerMinigame }
-			&& ReferenceEquals(MinigameBase.main.currentMinigame, observerMinigame))
-		{
-			// Clear the observer FIRST: the EndMinigame postfix reads these statics, and a
-			// live observer entry would send the observer's own completion for a screen that
-			// is being replaced.
-			_observerShrapnel = null;
-			_domains.Log.LogInformation(
-				"[MedicalView] releasing the observer shrapnel minigame to start the operator's own share for {Target}.", target);
-			MinigameBase.main.EndMinigame();
-			return MinigameBase.main.currentMinigame == null; // Unity object — ==
 		}
 
 		_domains.Log.LogWarning("[MedicalView] refused shrapnel: no free native minigame host for {Target}.", target);

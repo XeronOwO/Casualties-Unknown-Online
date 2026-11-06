@@ -12,6 +12,12 @@ param(
     [int]$Step,
     [string]$Then,
     [string]$Confirm,
+    # THE INTENT. A step is entered with a one-line statement of what is about to be done and which of the step's rules
+    # binds it; the step refuses to arm without one. The failure this exists for (2026-11-07): the rules were printed,
+    # then the agent acted on a hypothesis whose chain it had never read (user, 2026-11-07: "you never read the code to
+    # lay out the full chain; you started from a hunch, so the edit was bound to be wrong", translated).
+    # Stating the intent before the rules print is not a promise; it is the plan the rules are read against.
+    [string]$Intent,
     [string]$MarkerPath = '.acceptance/active-step.txt'
 )
 
@@ -39,6 +45,18 @@ elseif (-not $roundOpen) {
     Write-Host '  A round starts when step 0 is printed:'
     Write-Host '    powershell -ExecutionPolicy Bypass -File tools/act.ps1 -Step 0'
     exit 2
+}
+
+# THE INTENT GATE (2026-11-07). A step is entered with the plan it is about to execute and the rule clause that binds
+# it; without that line the step neither prints nor arms. The failure it answers: the rules were printed, then the edit
+# was made from a hypothesis whose chain had never been read (user, 2026-11-07: "you never read the code to lay out the
+# full chain; you started from a hunch, so the edit was bound to be wrong", translated).
+if (-not $Confirm -and $Step -gt 0) {
+    if ([string]::IsNullOrWhiteSpace($Intent) -or $Intent.Trim().Length -lt 40) {
+        Write-Host 'act: REFUSED - state the intent first: -Intent "<what this step will do, and the rule that binds it>".'
+        Write-Host '  One line, at least 40 characters; the step will not print or arm without it.'
+        exit 5
+    }
 }
 
 $committed = Get-ChildItem -LiteralPath $rules -Filter ('{0:D2}-*.md' -f $Step) | Where-Object { $_.Name -notlike '*.local.md' } | Select-Object -First 1
@@ -84,7 +102,7 @@ if ($Confirm) {
 $token = -join (1..4 | ForEach-Object { '{0:x2}' -f (Get-Random -Minimum 0 -Maximum 256) })
 $tokenDir = Split-Path -Parent $tokenPath
 if (-not (Test-Path -LiteralPath $tokenDir)) { New-Item -ItemType Directory -Path $tokenDir | Out-Null }
-[pscustomobject]@{ step = $Step; sha = $sha; token = $token; at = [datetime]::UtcNow.ToString('o', [System.Globalization.CultureInfo]::InvariantCulture) } |
+[pscustomobject]@{ step = $Step; sha = $sha; token = $token; intent = $Intent.Trim(); at = [datetime]::UtcNow.ToString('o', [System.Globalization.CultureInfo]::InvariantCulture) } |
     ConvertTo-Json | Set-Content -LiteralPath $tokenPath -Encoding utf8
 
 Write-Host "===== step $Step [read-token $token] - $($committed.Name) ($($content.Count) lines) ====="
@@ -97,6 +115,17 @@ if (Test-Path -LiteralPath $local) {
 else {
     Write-Host '(no local sibling on this checkout)'
 }
+
+# The intent is recorded beside the rules it was written against, and printed after them so the transcript pairs the plan
+# with the rules that bind it. A gated build/deploy/driver can read .acceptance/step-intent.txt to echo what was planned.
+$intentPath = Join-Path $repo '.acceptance/step-intent.txt'
+$intentLines = @()
+if (Test-Path -LiteralPath $intentPath) {
+    $intentLines = @(Get-Content -LiteralPath $intentPath -Encoding utf8 | Where-Object { $_ -and $_ -notmatch '^#' -and $_ -notmatch ('^{0}\|' -f $Step) })
+}
+$intentLines += ('{0}|{1}|{2}|{3}' -f $Step, $sha, [datetime]::UtcNow.ToString('o', [System.Globalization.CultureInfo]::InvariantCulture), $Intent.Trim())
+Set-Content -LiteralPath $intentPath -Encoding utf8 -Value (@('# written by tools/act.ps1 - the plan each step was entered with') + $intentLines)
+Write-Host "act: INTENT for step ${Step}: $($Intent.Trim())"
 
 $marker = Join-Path $repo $MarkerPath
 $dir = Split-Path -Parent $marker

@@ -38,6 +38,9 @@ seems fussy or is about to change.
 - Read the step you are about to work in, both files, in full, at the moment you enter it - every round, however
   routine or well remembered. A head, a tail, a grep of headings or a piped print is not a read; a truncated print is
   repeated before anything else.
+- A step is entered with `-Intent "<the plan and the rule that binds it>"`; without it the printer refuses. The plan is
+  stated before the rules print and recorded with them - the 2026-11-07 failure was rules printed, then an edit from a
+  hypothesis whose chain was never read.
 - The printer records the file's SHA for the commit hook, and a commit whose change touches an unread step is refused.
   The record proves the printer ran, never that the file was read: the reading is the reader's.
 - A correction from the user is a rule change: land it where it is read, in words that make it checkable, and sweep

@@ -17,6 +17,7 @@ public class HostToGuestDirectionTests(DirectionProbe probe) : IClassFixture<Dir
 	public static TheoryData<NetMsg> HostToGuestMessages => new()
 	{
 		NetMsg.HandshakeAck,
+		NetMsg.HandshakeRefused,
 		NetMsg.WorldJoin,
 		NetMsg.WorldReady,
 		NetMsg.LayerDescent,

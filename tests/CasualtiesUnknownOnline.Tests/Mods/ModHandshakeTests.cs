@@ -322,7 +322,7 @@ public class ModHandshakeTests
 			message => message.Contains(ModId, StringComparison.Ordinal)
 				&& message.Contains("Game.Code.Bar", StringComparison.Ordinal)
 				&& message.Contains("Game.Code.Foo", StringComparison.Ordinal)
-				&& message.Contains("requires native-binding parity", StringComparison.Ordinal));
+				&& message.Contains("refused: ModSet", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -357,7 +357,9 @@ public class ModHandshakeTests
 		Assert.Contains(
 			recorder.Messages(LogLevel.Warning, "HandshakeHandler"),
 			message => message.Contains(ModId, StringComparison.Ordinal)
-				&& message.Contains("native binding none", StringComparison.Ordinal));
+				&& message.Contains("Game.Code.Foo", StringComparison.Ordinal)
+				&& message.Contains("vs none", StringComparison.Ordinal)
+				&& message.Contains("refused: ModSet", StringComparison.Ordinal));
 	}
 
 	[Fact]

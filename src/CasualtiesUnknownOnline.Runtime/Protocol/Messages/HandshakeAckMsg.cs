@@ -34,4 +34,18 @@ public sealed class HandshakeAckMsg
 	/// <see cref="HasColor"/> is true).</summary>
 	[ProtoMember(7)]
 	public NetColorRgbaMsg Color { get; set; } = new();
+
+	/// <summary>The host's game build (`UnityApplication.version`). With CuoBuild and
+	/// SaveSchema this makes the pair's identity visible on BOTH sides, not only to
+	/// the host that judged it (ticket `handshake-identity-and-refusal-report.md`).</summary>
+	[ProtoMember(8)]
+	public string GameBuild { get; set; } = "";
+
+	/// <summary>The host's CUO build identity (`BuildIdentity.Of` the plugin assembly).</summary>
+	[ProtoMember(9)]
+	public string CuoBuild { get; set; } = "";
+
+	/// <summary>The host's save/kernel archive schema (`SaveManifest.CurrentSchemaVersion`).</summary>
+	[ProtoMember(10)]
+	public int SaveSchema { get; set; }
 }

@@ -193,7 +193,7 @@ docs/backlog/done/world-time-manual-acceleration.md | keep | attribution | docs/
 docs/backlog/future/adapter-shell-verification-harness.md | keep | index | docs/backlog/README.md
 docs/backlog/future/enemy-combat-order-policy-kernel.md | keep | index | docs/backlog/README.md
 docs/backlog/future/generic-prediction-runtime.md | keep | index | docs/backlog/README.md
-docs/backlog/future/handshake-identity-and-refusal-report.md | keep | index | docs/backlog/README.md
+docs/backlog/in-progress/handshake-identity-and-refusal-report.md | keep | index | docs/backlog/README.md
 docs/backlog/future/krokmp-candidates.md | keep | index | docs/backlog/README.md
 docs/backlog/future/krokmp-compatibility-adapter.md | keep | index | docs/backlog/README.md
 docs/backlog/future/phase5-tooling-ecosystem.md | keep | index | docs/backlog/README.md

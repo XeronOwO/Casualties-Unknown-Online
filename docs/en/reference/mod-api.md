@@ -1258,6 +1258,17 @@ Versions are strict SemVer, and for state-bearing modes the comparison is **prec
 checked against is the stability levels in [The modification policy](modification-policy.md) and the reviewed
 public surface in `docs/contracts/abstractions-api-baseline.txt`, enforced by `ApiSurfaceGateTests`.
 
+**The identity block and its refusal.** Beside the mod list, every handshake declares the game build
+(`Application.version`), the CUO build (`<version>+<commit>`) and the save/kernel schema this client
+reads. Equality is the rule on all three, as it is on the wire protocol: a different game build changes
+the native calls behind the same bytes, a different CUO build changes the message handling, and a
+different save schema changes the archive layout. A mismatch is refused with the dimension named — the
+host's log and the guest's own status line both say which value differed and both values — and the
+member's session ends instead of retrying forever. A client-only mod difference never refuses; only the
+identity dimensions and the state-bearing mod rules above do. Capability negotiation is not part of this
+block yet: the future member is additive (an unknown capability is ignored by a peer that does not know
+it), and its degradation rules belong to the adapter capability catalog's stages 2-3.
+
 ## The layout of a mod
 
 ```text

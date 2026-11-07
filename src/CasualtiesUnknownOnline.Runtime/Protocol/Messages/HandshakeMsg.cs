@@ -40,4 +40,27 @@ public sealed class HandshakeMsg
 	/// <see cref="HasColor"/> is true).</summary>
 	[ProtoMember(6)]
 	public NetColorRgbaMsg Color { get; set; } = new();
+
+	/// <summary>
+	/// The game build the sender runs (Unity's own version string). A difference
+	/// means different native code, so the host refuses and names this dimension
+	/// (ticket `handshake-identity-and-refusal-report.md`).
+	/// </summary>
+	[ProtoMember(7)]
+	public string GameBuild { get; set; } = "";
+
+	/// <summary>
+	/// The CUO build identity the sender was deployed from
+	/// (`BuildIdentity.Of`, `&lt;version&gt;+&lt;commit&gt;[-dirty]`). A difference is a
+	/// different wire implementation, so the host refuses and names it.
+	/// </summary>
+	[ProtoMember(8)]
+	public string CuoBuild { get; set; } = "";
+
+	/// <summary>
+	/// The kernel/save archive schema the sender reads
+	/// (`SaveManifest.CurrentSchemaVersion`). The host refuses a different one.
+	/// </summary>
+	[ProtoMember(9)]
+	public int SaveSchema { get; set; }
 }

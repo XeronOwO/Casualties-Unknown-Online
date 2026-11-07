@@ -1,6 +1,8 @@
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Application.Kernel;
+using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.Localization;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Permissions;
@@ -18,8 +20,16 @@ namespace CasualtiesUnknownOnline.Runtime.Composition;
 internal static class SessionComposition
 {
 	/// <summary>Registers session control, host rules and localization.</summary>
-	internal static void AddSessionPolicy(IServiceCollection services)
+	internal static void AddSessionPolicy(IServiceCollection services, string? gameBuild)
 	{
+		// The identity block every handshake declares: the game version the
+		// bootstrap was told, this plugin assembly's own build identity and the
+		// save schema this build reads. It is a plain value, read once.
+		services.AddSingleton<ILocalPeerIdentity>(_ => new LocalPeerIdentity(
+			string.IsNullOrWhiteSpace(gameBuild) ? "unknown" : gameBuild!,
+			BuildIdentity.Of(typeof(CuoBootstrap).Assembly),
+			SaveManifest.CurrentSchemaVersion));
+
 		// Session owns its state (identity/flags/presence, created internally);
 		// consumers depend on the narrow ISessionControl surface, registered as
 		// a factory so it resolves after the session is built (acyclic graph).

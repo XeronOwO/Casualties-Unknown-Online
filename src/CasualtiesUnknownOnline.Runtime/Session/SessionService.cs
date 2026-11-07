@@ -56,7 +56,7 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 	private NetVector2? _lastScenePosition;
 
 	public SessionService(ISteamService steam, PacketSender sender, NetworkTrafficMonitor traffic, ITimeSource time,
-		IModListProvider modListProvider, ILogger<SessionService> log)
+		IModListProvider modListProvider, ILocalPeerIdentity peerIdentity, ILogger<SessionService> log)
 	{
 		_steam = steam;
 		_sender = sender;
@@ -64,7 +64,7 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 		_time = time;
 		_log = log;
 		_peerMaintenance = new SessionPeerMaintenance(
-			steam, sender, time, modListProvider, _identity, _state, _presence,
+			steam, sender, time, modListProvider, _identity, peerIdentity, _state, _presence,
 			new PeerWarmupBackoff(), RemoveMember, EndSession, log);
 		_hostKick = new HostKickService(this, _sender, _log);
 

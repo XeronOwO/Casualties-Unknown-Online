@@ -449,5 +449,12 @@
   "summon.answer.refused_not_in_world": "这个客户端不在世界里，所以没有可以放置任何东西的层。",
   "summon.answer.refused_no_camera": "这个客户端没有摄像机，指针无法读成世界坐标。",
   "summon.answer.refused_no_body": "这个客户端的身体现在读不到，所以 'player' 没有位置。",
-  "summon.answer.refused_unknown_anchor": "'{0}' 不是本版本认识的位置写法。"
+  "summon.answer.refused_unknown_anchor": "'{0}' 不是本版本认识的位置写法。",
+  "handshake.refused.protocol": "主机用的是协议 {0}，这台客户端用的是 {1}。两边必须用同一个协议版本的构建——把旧的那边更新。",
+  "handshake.refused.game_build": "主机运行的游戏版本是 {0}，这台客户端是 {1}。两边必须运行同一个游戏版本。",
+  "handshake.refused.cuo_build": "主机运行的 CUO 构建是 {0}，这台客户端是 {1}。两边要装同一个构建。",
+  "handshake.refused.save_schema": "主机读取的存档格式是 {0}，这台客户端是 {1}。两边必须读写同一种存档格式。",
+  "handshake.refused.mod_set": "主机的模组集合不接受这台客户端（{0}；主机：{1}，本客户端：{2}）。两边必须加载同一批会影响状态的模组。",
+  "handshake.refused.mod_version": "模组 {0} 的版本不同（主机：{1}，本客户端：{2}）。两边必须用同一个版本。",
+  "handshake.refused.unknown": "主机拒绝了这台客户端的加入（{0}）。"
 }

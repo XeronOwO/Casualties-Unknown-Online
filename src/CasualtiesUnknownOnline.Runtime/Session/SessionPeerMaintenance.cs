@@ -24,6 +24,7 @@ internal sealed class SessionPeerMaintenance(
 	ITimeSource time,
 	IModListProvider modListProvider,
 	SessionIdentity identity,
+	ILocalPeerIdentity peerIdentity,
 	SessionState state,
 	MemberPresenceTable presence,
 	PeerWarmupBackoff warmupBackoff,
@@ -59,6 +60,7 @@ internal sealed class SessionPeerMaintenance(
 	private readonly ITimeSource _time = time;
 	private readonly IModListProvider _modListProvider = modListProvider;
 	private readonly SessionIdentity _identity = identity;
+	private readonly ILocalPeerIdentity _peerIdentity = peerIdentity;
 	private readonly SessionState _state = state;
 	private readonly MemberPresenceTable _presence = presence;
 	private readonly PeerWarmupBackoff _warmupBackoff = warmupBackoff;
@@ -298,6 +300,11 @@ internal sealed class SessionPeerMaintenance(
 		return new HandshakeMsg
 		{
 			Protocol = ProtocolVersion.Current,
+			// The identity block: what this build is, so the host can name the one
+			// dimension that differs instead of a bare protocol mismatch.
+			GameBuild = _peerIdentity.GameBuild,
+			CuoBuild = _peerIdentity.CuoBuild,
+			SaveSchema = _peerIdentity.SaveSchema,
 			Scene = new SceneStateMsg { State = (byte)(_state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu) },
 			// The declared mod list (Phase 4 Mod API consistency check — the host
 			// validates it before admitting the guest). Empty while the first-frame

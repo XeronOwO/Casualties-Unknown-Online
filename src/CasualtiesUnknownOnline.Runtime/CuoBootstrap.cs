@@ -71,7 +71,7 @@ public static class CuoBootstrap
 		// before EntitySyncService/PacketDispatcher (they read the session control
 		// surface — resolved after the session is built).
 		NetworkingComposition.AddTransport(services);
-		SessionComposition.AddSessionPolicy(services);
+		SessionComposition.AddSessionPolicy(services, gameBuild);
 		NetworkingPacketPlaneComposition.AddPacketPlane(services, hostBanFile);
 		EntityReplicationComposition.AddEntityReplication(services);
 		WorldComposition.AddWorld(services);

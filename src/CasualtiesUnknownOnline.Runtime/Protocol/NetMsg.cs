@@ -69,7 +69,7 @@ public enum NetMsg : byte
 	// side routes by mod id to the locally-loaded mod, and by packet id to the
 	// declaration that mod registered — unknown mod ids and undeclared packet
 	// ids are dropped with a log). An EMPTY packet id is the anonymous tunnel
-	// form: report/定向 semantics, star topology, NO auto-relay — a guest's
+	// form: report/directed semantics, star topology, NO auto-relay — a guest's
 	// report reaches the host's copy of the mod only; broadcasting is the
 	// host-side mod's explicit call. A DECLARED packet carries its own policy,
 	// so the framework relays a member's report to the other members when the
@@ -494,5 +494,11 @@ public enum NetMsg : byte
 	// gesture had no answer at all before this, so a refusal the host made was indistinguishable from a gesture
 	// that silently did nothing (the user's 2026-10-24 ruling: label + deny sound on the operator's screen).
 	PlayerItemUseRefused = 165,
+
+	// The structured handshake refusal: the host names WHICH identity dimension a retiring member failed and both
+	// values, so the member's own client can say why it is not in the session, in the member's own language. Before
+	// this, every refusal was a line in the host's log — the member saw a timeout and nothing else. One refusal per
+	// handshake, and the member's client ends its session on it (its retry would fail the same way).
+	HandshakeRefused = 166,
 
 }

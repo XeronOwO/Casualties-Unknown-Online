@@ -73,6 +73,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
+- [Handshake identity and refusal reasons](in-progress/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names which dimension failed.
+
 ### Review
 
 
@@ -118,7 +120,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Strict validation / anti-cheat](future/strict-validation-anti-cheat.md) — **Low** — hardening beyond the MVP scope.
 - [Phase 5 tooling & ecosystem](future/phase5-tooling-ecosystem.md) — **Low** — the tooling/ecosystem phase.
 - [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md) — **Low** — the compatibility adapter.
-- [Handshake identity and refusal reasons](future/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names which dimension failed.
 - [Adapter-shell verification harness](future/adapter-shell-verification-harness.md) — **Low** — keeps the live-game half.
 
 ### Resolved

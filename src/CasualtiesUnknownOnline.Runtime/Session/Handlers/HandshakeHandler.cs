@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using CasualtiesUnknownOnline.Abstractions;
-using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -14,9 +10,9 @@ using CasualtiesUnknownOnline.Application.Kernel;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
-/// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
+/// <summary>Guest → host: identity negotiation (protocol, builds, save schema, mods) + member creation.</summary>
 [PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans, ISteamService steam, IKernelProtocolControl kernelProtocol, IModContentFingerprints contentFingerprints) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans, ISteamService steam, IKernelProtocolControl kernelProtocol, IModContentFingerprints contentFingerprints, ILocalPeerIdentity identity) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
@@ -26,6 +22,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	private readonly ISteamService _steam = steam;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly IModContentFingerprints _contentFingerprints = contentFingerprints;
+	private readonly ILocalPeerIdentity _identity = identity;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
@@ -35,12 +32,16 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			return;
 		}
 
-		var protocol = msg.Protocol;
 		var peerState = (SceneStateType)msg.Scene.State;
-		if (protocol != ProtocolVersion.Current)
+
+		// The identity gate: protocol, game build, CUO build and save schema. A
+		// mismatch is answered on the wire (HandshakeRefused) so the member's own
+		// client can say which dimension differs, in the member's own language —
+		// a member cannot read the host's log.
+		var refusal = HandshakeCompatibility.Evaluate(_identity, msg);
+		if (refusal is not null)
 		{
-			_log.LogWarning("Peer {Peer} speaks protocol {PeerProtocol}; we speak {Current}. Rejecting.",
-				sender, protocol, ProtocolVersion.Current);
+			SendRefusal(sender, refusal);
 			return;
 		}
 
@@ -80,8 +81,8 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		// retry is checked then; production handshakes take seconds anyway, the
 		// lazy Steam P2P session, so this window is practically unreachable)
 		// and an old client's null list (treated as empty — but cross-version
-		// sessions are refused by the protocol gate above anyway).
-		if (!CheckModConsistency(sender, msg, ctx))
+		// sessions are refused by the identity gate above anyway).
+		if (!CheckModAdmission(sender, msg, ctx))
 		{
 			return;
 		}
@@ -180,6 +181,9 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		var ack = new HandshakeAckMsg
 		{
 			Protocol = ProtocolVersion.Current,
+			GameBuild = _identity.GameBuild,
+			CuoBuild = _identity.CuoBuild,
+			SaveSchema = _identity.SaveSchema,
 			Scene = new SceneStateMsg { State = (byte)session.LocalSceneState },
 			HasWorldParams = ctx.World.WorldParams is not null,
 			// Always carry the sender's logical peer id / SteamID. It is a
@@ -225,23 +229,15 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	}
 
 	/// <summary>
-	/// The Phase 4 Mod API consistency check: the host's discovered mods vs the
-	/// member's declared list. Policy (mirroring architecture.md §6):
-	/// RequiresAllPlayers/Synchronized/Authoritative missing on either side, or
-	/// version-unequal, → reject (the host cannot arbitrate state the member
-	/// lacks or claims with a different version); HostOnly is host-side only (a
-	/// guest lacking it passes); ClientOnly/Cosmetic differences pass (local
-	/// surfaces). A malformed guest list (empty/duplicated id, Unspecified or unknown
-	/// NetworkMode, invalid permissions, unparseable state-bearing SemVer) is
-	/// rejected. Discovery pending → "not checked yet"
-	/// refusal (the guest's 1 s handshake retry is then checked properly).
-	/// The declared native binding is judged separately, per mod id, by the
-	/// host's parity policy (<see cref="CheckNativeBindingParity"/>) — it is
-	/// never part of the NetworkMode contract. What a mod MATERIALIZED is
-	/// compared too, and reported without a verdict
-	/// (<see cref="NoteContentParity"/>).
+	/// The mod half of the identity gate: the host's discovered manifests vs
+	/// the member's declared list, judged by the shared policy
+	/// (<see cref="HandshakeModAdmission"/>) so a test can read the same answer.
+	/// A refusal is answered on the wire with its dimension and the mod id; the
+	/// notes (content parity, warn-parity binding) are logged, never refused.
+	/// Discovery pending is still a local "not checked yet" (the guest's 1 s
+	/// retry is checked properly) — it is not an identity mismatch.
 	/// </summary>
-	private bool CheckModConsistency(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
+	private bool CheckModAdmission(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
 		var mods = ctx.Mods;
 		if (!mods.IsDiscoveryComplete)
@@ -250,186 +246,60 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			return false;
 		}
 
-		var host = mods.CurrentModManifests;
-		var guest = msg.Mods ?? []; // null = an old client's missing field — treated as an empty list
+		var result = HandshakeModAdmission.Evaluate(
+			mods.CurrentModManifests,
+			msg.Mods ?? [], // null = an old client's missing field — but the identity gate refuses cross-version peers
+			_contentFingerprints.ByMod,
+			_hostRules.NativeBindingParity);
 
-		// Shape: the member's list must be well-formed (empty/duplicated id,
-		// Unspecified or unknown NetworkMode are all garbage in).
-		var guestIds = new HashSet<string>(StringComparer.Ordinal);
-		foreach (var info in guest)
+		foreach (var note in result.Notes)
 		{
-			if (string.IsNullOrWhiteSpace(info.Id) || !guestIds.Add(info.Id))
-			{
-				_log.LogWarning("Handshake from {Peer} rejected: malformed mod list (empty or duplicated id).", sender);
-				return false;
-			}
-
-			if (info.NetworkMode == NetworkMode.Unspecified || !Enum.IsDefined(typeof(NetworkMode), info.NetworkMode))
-			{
-				_log.LogWarning("Handshake from {Peer} rejected: mod {Id} declares {Mode} — not a valid NetworkMode.", sender, info.Id, (int)info.NetworkMode);
-				return false;
-			}
-
-			if (!ModPermissionPolicy.IsValidFor(info.NetworkMode, info.Permissions))
-			{
-				_log.LogWarning("Handshake from {Peer} rejected: mod {Id} declares invalid permissions {Permissions} for {Mode}.",
-					sender, info.Id, info.Permissions, info.NetworkMode);
-				return false;
-			}
+			LogModNote(sender, note);
 		}
 
-		// Host has, member lacks or version-unequal: the state-bearing modes
-		// reject; local-surface modes pass (HostOnly is host-side only).
-		var hostContent = _contentFingerprints.ByMod;
-		foreach (var hostMod in host)
-		{
-			var guestInfo = guest.FirstOrDefault(g => g.Id == hostMod.Id);
-			if (guestInfo is null)
-			{
-				if (IsStateBearing(hostMod.NetworkMode))
-				{
-					_log.LogWarning("Handshake from {Peer} rejected: {Id} ({Mode}) is required and missing on the member.", sender, hostMod.Id, hostMod.NetworkMode);
-					return false;
-				}
-
-				continue;
-			}
-
-			var hostStateBearing = IsStateBearing(hostMod.NetworkMode);
-			var guestStateBearing = IsStateBearing(guestInfo.NetworkMode);
-			if ((hostStateBearing || guestStateBearing) && guestInfo.NetworkMode != hostMod.NetworkMode)
-			{
-				_log.LogWarning("Handshake from {Peer} rejected: {Id} declares {Member} but the host declares {Host} — the network contract must match.",
-					sender, hostMod.Id, guestInfo.NetworkMode, hostMod.NetworkMode);
-				return false;
-			}
-
-			if (hostStateBearing)
-			{
-				if (!SemanticVersion.TryParse(guestInfo.Version, out var guestVersion)
-					|| !SemanticVersion.TryParse(hostMod.Version, out var hostVersion)
-					|| !guestVersion!.PrecedenceEquals(hostVersion!))
-				{
-					_log.LogWarning("Handshake from {Peer} rejected: {Id} version {Member} ≠ host {Host} by SemVer precedence ({Mode}).",
-						sender, hostMod.Id, guestInfo.Version, hostMod.Version, hostMod.NetworkMode);
-					return false;
-				}
-
-				if (guestInfo.Permissions != hostMod.Permissions)
-				{
-					_log.LogWarning("Handshake from {Peer} rejected: {Id} permissions {Member} ≠ host {Host} ({Mode}).",
-						sender, hostMod.Id, guestInfo.Permissions, hostMod.Permissions, hostMod.NetworkMode);
-					return false;
-				}
-			}
-
-			// What the declaration PRODUCED, not only what it declared: an equal id and
-			// version says nothing about the entries a mod materialized, because a
-			// definition may compute its values (decision 251). REPORTED, never refused —
-			// see the method.
-			NoteContentParity(sender, hostMod, guestInfo, hostContent);
-
-			// The declared native binding is judged apart from the network
-			// contract: it is a declared fact, and only an explicit require policy
-			// turns a difference into a refusal (see the method).
-			if (!CheckNativeBindingParity(sender, hostMod, guestInfo))
-			{
-				return false;
-			}
-		}
-
-		// Member claims a state-bearing mod the host does not run — the host
-		// cannot arbitrate it, so it cannot be admitted.
-		foreach (var guestInfo in guest)
-		{
-			if (host.All(h => h.Id != guestInfo.Id)
-				&& guestInfo.NetworkMode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative)
-			{
-				_log.LogWarning("Handshake from {Peer} rejected: {Id} claims {Mode} but the host does not run it — the host cannot arbitrate it.",
-					sender, guestInfo.Id, guestInfo.NetworkMode);
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	/// <summary>
-	/// The materialized content of a mod BOTH sides list, compared as one fingerprint per
-	/// side: a definition may COMPUTE its members (decision 251), so two copies of the same
-	/// mod version can materialize different content, and nothing else in this check would
-	/// notice — id, version, mode and permissions can all be equal.
-	///
-	/// A difference is REPORTED and the member is admitted, never refused (user ruling
-	/// 2026-10-10). The comparison cannot be complete — it covers the ADDRESS of every entry
-	/// (the mod id, the content id, the kind, the schema version) and never a computed value,
-	/// so a benign difference such as a local configuration is indistinguishable from a
-	/// harmful one — and a check that cannot be complete must not gate entry: refused by
-	/// default it would lock players out over a cosmetic difference, silent it would be
-	/// worth nothing. The line names the mod, both fingerprints and the mode, which is what
-	/// makes a divergence diagnosable after the fact.
-	///
-	/// Null means "this mod registered no content" on either side and is compared as such —
-	/// never as "unknown" — so two content-less copies match, a mod that has content on one
-	/// side only is a difference like any other, and a peer too old to report fingerprints
-	/// reads as "none" (pre-release every client comes from this tree; decision 241).
-	/// </summary>
-	private void NoteContentParity(ulong sender, ModManifest hostMod, ModInfoMsg guestInfo, IReadOnlyDictionary<string, string> hostContent)
-	{
-		var hostFingerprint = hostContent.TryGetValue(hostMod.Id, out var fingerprint) ? fingerprint : null;
-		var guestFingerprint = guestInfo.ContentFingerprint;
-		if (string.Equals(hostFingerprint, guestFingerprint, StringComparison.Ordinal))
-		{
-			return;
-		}
-
-		_log.LogWarning(
-			"Handshake from {Peer}: {Id} ({Mode}) materializes different content than the host's copy ({Member} vs {Host}) — admitted; the comparison covers the address of every entry, never a computed member's value.",
-			sender, hostMod.Id, hostMod.NetworkMode, Declared(guestFingerprint), Declared(hostFingerprint));
-	}
-
-	/// <summary>
-	/// The declared native binding of a mod BOTH sides list, judged by the host's
-	/// parity policy: allow (silent), warn (the member is admitted and the host
-	/// records the mismatch — the default), require (the member is refused, naming
-	/// the mod and both declarations). A mod only one side lists has no counterpart
-	/// to compare and is not judged here — the NetworkMode rows above already
-	/// decide who may lack what, and a declaration is never a rejection cause of
-	/// its own. A blank declaration is "none", exactly as discovery normalizes it.
-	/// Parity stays visibility, never proof: an undeclared binding is invisible to
-	/// this check, and equal declarations do not prove equal behaviour.
-	/// </summary>
-	private bool CheckNativeBindingParity(ulong sender, ModManifest hostMod, ModInfoMsg guestInfo)
-	{
-		var hostBinding = NativeBindingDeclaration.Normalize(hostMod.NativeBinding);
-		var guestBinding = NativeBindingDeclaration.Normalize(guestInfo.NativeBinding);
-		if (NativeBindingDeclaration.Matches(hostBinding, guestBinding))
+		if (result.Refusal is null)
 		{
 			return true;
 		}
 
-		switch (_hostRules.NativeBindingParity)
+		// The mod answer carries the mod id as its detail and no host/member
+		// values of its own: the mod's declared version or mode is already in
+		// the guest's own list, so the line that matters is the id and what
+		// disagreed.
+		SendRefusal(sender, result.Refusal);
+		return false;
+	}
+
+	private void LogModNote(ulong sender, ModAdmissionNote note)
+	{
+		switch (note.Kind)
 		{
-			case NativeBindingParity.Allow:
-				return true;
-			case NativeBindingParity.Require:
+			case ModAdmissionNoteKind.ContentParity:
 				_log.LogWarning(
-					"Handshake from {Peer} rejected: {Id} declares native binding {Member} but the host declares {Host} — this host requires native-binding parity.",
-					sender, hostMod.Id, DeclaredBinding(guestBinding), DeclaredBinding(hostBinding));
-				return false;
-			default:
+					"Handshake from {Peer}: {Id} ({Mode}) materializes different content than the host's copy ({Member} vs {Host}) — admitted; the comparison covers the address of every entry, never a computed member's value.",
+					sender, note.ModId, note.Mode, note.MemberValue, note.HostValue);
+				break;
+			case ModAdmissionNoteKind.BindingWarn:
 				_log.LogWarning(
 					"Handshake from {Peer}: {Id} declares native binding {Member} but the host declares {Host} — admitted under the host's warn parity policy (visibility, not proof of identical behaviour).",
-					sender, hostMod.Id, DeclaredBinding(guestBinding), DeclaredBinding(hostBinding));
-				return true;
+					sender, note.ModId, note.MemberValue, note.HostValue);
+				break;
+			default:
+				throw new ArgumentOutOfRangeException(nameof(note), note.Kind, "Unknown mod admission note.");
 		}
 	}
 
-	private static string DeclaredBinding(string? binding) => binding ?? "none";
-
-	/// <summary>A fingerprint that is absent reads as "this mod registered no content", never as an unknown value.</summary>
-	private static string Declared(string? fingerprint) => fingerprint ?? "none";
-
-	private static bool IsStateBearing(NetworkMode mode) =>
-		mode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative;
+	private void SendRefusal(ulong sender, HandshakeRefusal refusal)
+	{
+		_log.LogWarning(
+			"Handshake from {Peer} refused: {Dimension} ({Host} vs {Member}); {Detail}.",
+			sender, refusal.Dimension, refusal.HostValue, refusal.GuestValue, refusal.Detail);
+		_sender.Send(sender, NetMsg.HandshakeRefused, new HandshakeRefusedMsg
+		{
+			Dimension = (byte)refusal.Dimension,
+			Detail = refusal.Detail,
+			HostValue = refusal.HostValue,
+			GuestValue = refusal.GuestValue,
+		});
+	}
 }

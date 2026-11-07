@@ -449,5 +449,12 @@
   "summon.answer.refused_not_in_world": "This client is not in a world, so there is no layer to create anything in.",
   "summon.answer.refused_no_camera": "This client has no camera, so the pointer cannot be read as a world point.",
   "summon.answer.refused_no_body": "This client's body cannot be read right now, so 'player' has no position.",
-  "summon.answer.refused_unknown_anchor": "'{0}' is not a position this build knows."
+  "summon.answer.refused_unknown_anchor": "'{0}' is not a position this build knows.",
+  "handshake.refused.protocol": "The host speaks protocol {0}; this client speaks {1}. Both sides must run a build with the same protocol version — update the older side.",
+  "handshake.refused.game_build": "The host runs game build {0}; this client runs {1}. Both sides must run the same version of the game.",
+  "handshake.refused.cuo_build": "The host runs CUO build {0}; this client runs {1}. Deploy the same build on both sides.",
+  "handshake.refused.save_schema": "The host reads save schema {0}; this client reads {1}. Both sides must read and write the same save format.",
+  "handshake.refused.mod_set": "The host's mod set does not admit this client ({0}; host: {1}, this client: {2}). Both sides must load the same state-bearing mods.",
+  "handshake.refused.mod_version": "Mod {0} differs in version (host: {1}, this client: {2}). Both sides must run the same version of it.",
+  "handshake.refused.unknown": "The host refused this client ({0})."
 }

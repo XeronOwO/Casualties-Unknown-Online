@@ -277,6 +277,7 @@ docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md | keep | index 
 docs/backlog/done/remote-medical-stage-3-other-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-medical-treatment-operations.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-player-medical-panel.md | keep | index | docs/backlog/README.md
+docs/backlog/review/restore-leaves-stale-carried-rows.md | keep | index | docs/backlog/README.md
 docs/backlog/done/runtime-entity-markerless-bind-absorption.md | keep | index | docs/backlog/README.md
 docs/backlog/done/save-guest-restore-claim-and-legacy-store-retirement.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-layer-end-save-and-restore.md | keep | index | docs/backlog/README.md
@@ -747,6 +748,7 @@ docs/evidence/acceptance/save-format-and-world-repository-20260927.md | keep | c
 docs/evidence/acceptance/save-guest-restore-claim-and-legacy-store-retirement-20261001-o.md | keep | claim | docs/backlog/done/save-guest-restore-claim-and-legacy-store-retirement.md
 docs/evidence/acceptance/save-guest-restore-claim-and-legacy-store-retirement-20261024-a.md | keep | claim | docs/backlog/done/save-guest-restore-claim-and-legacy-store-retirement.md
 docs/evidence/acceptance/save-interval-autosave-and-backup-recovery-20261001-p.md | keep | claim | docs/backlog/done/save-interval-autosave-and-backup-recovery.md
+docs/evidence/acceptance/save-layer-end-20261108-a.md | keep | claim | docs/backlog/review/save-layer-end-save-and-restore.md
 docs/evidence/acceptance/save-layer-end-save-and-restore-20261001.md | keep | claim | docs/backlog/review/save-layer-end-save-and-restore.md
 docs/evidence/acceptance/save-layer-time-not-carried-20261001.md | keep | claim | docs/evidence/acceptance/save-layer-end-save-and-restore-20261001.md
 docs/evidence/acceptance/save-layer-time-not-carried-20261001-n.md | keep | claim | docs/backlog/done/save-layer-time-not-carried.md

@@ -65,7 +65,7 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
 - [ ] Self-check table: mechanism x change x evidence, every cell filled
 - [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
-- [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
+- [ ] Plan approved by the user (before deployment; investigation excepted)
 - [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in docs/architecture-debt.json with its split plan; state bools; dead mechanisms deleted in the same round)
 - [ ] Build + dotnet format + dotnet test normative gates pass
 

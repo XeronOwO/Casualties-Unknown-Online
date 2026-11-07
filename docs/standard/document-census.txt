@@ -686,6 +686,7 @@ docs/evidence/acceptance/mod-command-request-timeout-20261012-c.md | keep | clai
 docs/evidence/acceptance/mod-content-kind-with-no-provider-20261012-c.md | keep | claim | docs/backlog/done/mod-content-kind-with-no-provider.md
 docs/evidence/acceptance/mod-content-typed-registration-20261012-c.md | keep | claim | docs/backlog/done/mod-content-typed-registration.md
 docs/evidence/acceptance/mod-crafting-quality-labels-20261012-c.md | keep | claim | docs/backlog/done/mod-crafting-quality-labels.md
+docs/evidence/acceptance/mod-cross-player-native-semantics-20261107-o.md | keep | claim | docs/backlog/review/mod-cross-player-native-semantics.md
 docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md | keep | claim | docs/evidence/acceptance/20261008-a-scope.md
 docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261011-i.md | keep | claim | docs/evidence/acceptance/20261011-i-scope.md
 docs/evidence/acceptance/mod-data-sync-model-20260927.md | keep | claim | docs/backlog/done/mod-data-sync-model.md

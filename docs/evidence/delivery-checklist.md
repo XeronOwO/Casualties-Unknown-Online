@@ -14,8 +14,9 @@ mapping box answers the standard in `../development/native-parity.md`.
 CONFIRMED to be truly done in this cycle. The checkmark records an observation, not a decision and not an edit:
 verify the item against the thing itself (run the gate, read the log line, open the file, measure the number) and put
 that observation in the evidence suffix; if it cannot be confirmed, the box stays unchecked and the cycle says why.
-Ticking a line because it is its turn is a false record and voids the cycle (user, 2026-11-07: "checklist rules 的要求
-是你对每一条都确认下是否真正做到了，而不是让你每一次都只勾一条，用这种最蠢的行为掩盖自己不遵守规范"). The line-by-line
+Ticking a line because it is its turn is a false record and voids the cycle (user, 2026-11-07, translated:
+"the checklist rules require confirming that each item was truly done, not ticking one box every time — that dumbest
+behaviour just covers up not following the rules"). The line-by-line
 Edit sequence is a mechanical consequence of working in order, never the point. BULK checking (sed / scripts / a single
 catch-up pass) is FORBIDDEN: it fabricates the process record and voids the gate (observed: the cycle was bulk-checked,
 never committed, then reset — the user called it out). Only a deliberate cycle reset may touch multiple lines.
@@ -65,7 +66,7 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Self-check table: mechanism x change x evidence, every cell filled
 - [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
 - [ ] Plan approved by the user (before deployment; investigation excepted) — a ticket whose design the user already froze counts as approved (a backlog decision, a recorded decision entry, a handoff instruction); re-asking a work-item choice is itself a process violation
-- [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in `docs/architecture-debt.json` with its split plan; state bools; dead mechanisms deleted in the same round)
+- [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in docs/architecture-debt.json with its split plan; state bools; dead mechanisms deleted in the same round)
 - [ ] Build + dotnet format + dotnet test normative gates pass
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the

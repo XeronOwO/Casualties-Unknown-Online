@@ -62,8 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Late joiner stuck at loading](done/joining-a-running-world-sticks-at-the-loading-screen.md) — **High** — the release now reaches a late joiner.
-
 
 
 
@@ -146,6 +144,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Late joiner stuck at loading](done/joining-a-running-world-sticks-at-the-loading-screen.md) — **High** — the release now reaches a late joiner.
 - [Remote medical — Stage 1: injection](done/remote-medical-stage-1-injection-session.md) — **High** — every row read; a stale handshake is rejected.
 - [Guest remote pose/head desync](done/guest-remote-pose-head-orientation-desync.md) — **Medium** — carried all along; the look and facing match.
 - [Remote medical — Stage 2: shrapnel](done/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — every row read; each operator drains only its own pair.

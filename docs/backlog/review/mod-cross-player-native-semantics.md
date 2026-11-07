@@ -1,6 +1,6 @@
 # Cross-player semantics from the game's own data
 
-- Status: Review — blocked on a human motion: every chain the ticket named is landed and the code is complete (Part A and Part B's topical, drink, wear and limb-tool chains, cut 2026-10-08 out of `mod-content-ceiling.md`), and the local halves are green in the selfchecks; the remaining cross-player rows are the drag/medical entry, and the 2026-11-01 triage records that the drag rows wait on a player's own gesture (drag a bandage onto a teammate) while the 2026-11-03 batches show the staged pointer cannot answer the display question.
+- Status: Review — the teammate-shaped release is measured (`20261107-o`): on the displayed backpack's USE centre the release casts `RadialCenter` and the item returns to the sender (no dose, no drop), while releases that miss the display drop natively (two `[ItemDropped]` lines). Row (a)'s drop half is open: decide whether the centre release should drop instead of returning, by reading `ItemUseFamilyClassifier` and `PlayerCamera.TryPerformRadialAction`; row (b), the wound-view release, is unmeasured (`remote-gesture mode=medical` answers `no-proxy`). Attempt `20261107-n`'s take is recorded in `docs/evidence/acceptance/mod-cross-player-native-semantics-20261107-o.md`; the patient's limb changes in both batches are natural healing, not doses.
 - Priority: High
 - Category: Mod platform / remote medical / architecture
 - Parent: `docs/backlog/done/mod-content-ceiling.md` (Part 2, stage 2)

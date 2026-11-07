@@ -31,11 +31,60 @@ Those four ids are the member's carried items from before the cut (its stored ch
 - The custody checker names them as mismatches, so any later session that starts from this restore starts with four pre-existing mismatches.
 - Nothing player-visible broke in this run; the defect is in the restored world's kernel state, which the next save inherits.
 
-## What to find
+## Chain
 
-- Which step allocates the restored items' instance ids: the character restore applies the stored ids (`[RestoredItems] apply instance <id> …` lines in the member's log) but the live body ends with new ids — the restore, the pickup/creation fallback, or the materialization path is the candidate.
-- Whether the old rows should be retired when the new ids replace them (the transfer table's retire path), or whether the restore should force the stored ids into the live body.
-- The fix must keep the layer-end row-1 state intact (a member's carried items come back as the same four items in the same slots) and must leave `[ItemCustody] mismatches=0` after the rejoin.
+Read from the batch's logs and the restore path:
+
+1. The continue decodes the archive and calls `WorldRestoreApplier.Apply`; `kernel.Restore(checkpoint)` at
+   `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRestoreApplier.cs:269` brings back **every**
+   item row the cut wrote, including the carried rows of characters no present peer claims.
+2. `characters.ClearSavedCharacters()` and `binder.Apply(decode.UsableCharacters)` at `:332-333`:
+   `WorldCharacterBinder.Apply` (`src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldCharacterBinder.cs:128-205`)
+   binds only the present claimants; the absent member's key stays unclaimed — log
+   `Character steam-76561198863287957 has no claimant in this session; decision 162: that player joins as a new character. The file stays in the archive for a later claim.`
+   and `Restored characters: 1 bound to present peers, 2 left unclaimed`.
+3. The in-memory character table has no entry for that member, so `HandshakeHandler`'s
+   `CharacterData.SendSavedCharacter` sends nothing (`CharacterDataStore.SendSavedCharacter` returns silently on
+   a missing entry, Debug only), and the member's client judges itself a NEW player:
+   `StartingSupplyCoordinator` grants the starting supplies — four generation items with **new** ids
+   (`ItemTrace op=0..3 origin=OnItemPickedUp events=[Pickup, GenerationItem]`).
+4. The kernel therefore keeps the archive character's four carried rows (old ids) forever —
+   `RowWithoutObject:Carried` in every custody read and in every later save.
+
+## Design
+
+The row belongs to a character the restore did NOT bind, so it must not enter the kernel at all. The claim
+decision is computable before the restore: `WorldCharacterBinder.Plan(decode.UsableCharacters)` resolves the key
+space and each stored character's claim against the present peers without touching the character table, and the
+restore then filters those characters' rows out of the checkpoint:
+
+- `checkpoint with { Items = checkpoint.Items.Where(row => !unclaimedIds.Contains(row.Identity.InstanceId)).ToList() }`
+  where `unclaimedIds` is the unclaimed characters' carried ids, recursively (`RestoredItemIds.Collect`'s rule).
+- The id seed stays over the **full** checkpoint and **all** decoded characters
+  (`RestoredItemIds.Of(checkpoint, decode.UsableCharacters)`, `WorldRestoreApplier.cs:282-289`): the counters must
+  resume above the archive's ids even for a character this session did not bind, or a later claim would collide.
+- `binder.Bind(plan)` performs today's saves on the claimed characters; the unclaimed ones stay in the archive for
+  a later claim (decision 162), with no rows in this session's world.
+
+Rejected alternatives: (a) a kernel command to remove a character's rows — the terminal vocabulary (`Consumed`,
+`Destroyed`, `ReplacedBy`) has no "never existed in this world", and a terminal row is still a row; (b) retiring the
+rows at the member's join — the join path has no row-removal program either, and the defect would already be in the
+restored table.
+
+## Family
+
+One seam, two cut kinds, two behaviours unchanged:
+
+| member | how it reaches the table | what keeps it honest | touched? |
+|---|---|---|---|
+| the restore's bind (`binder.Apply`, the only caller at `WorldRestoreApplier.cs:333`) | mid-run continue | the claim rules (`WorldCharacterBinder.Apply:128-205`) + this fix | yes |
+| the same seam | layer-end continue (the `w-20261107-1adb` batch) | `DropReplacedLayerKernelTables` drops world rows only; carried rows of unbound characters survive the same way | yes — fixed by the same filter |
+| the cut's write (`WorldCharacterBinder.Collect`, `WorldCutTrigger`) | the archive's character files | one file per present member; a shared key is carried by neither (`:85-101`) | no — the write side is correct |
+| the member's join (`HandshakeHandler` → `CharacterDataStore.SendSavedCharacter` → `StartingSupplyCoordinator`) | a new character with new ids | decision 162; the supplies are the game's own | no — a new character is the correct outcome, not the defect |
+| `AppliedItemArchive.Audit` (`WorldRestoreApplier.cs:339`) | the applied-items carrier | names a disagreement, moves nothing | no |
+
+The row filter is the root fix, not a guard at the custody checker: the custody line only NAMES the disagreement; the
+rows must never enter the table.
 
 ## Exit
 

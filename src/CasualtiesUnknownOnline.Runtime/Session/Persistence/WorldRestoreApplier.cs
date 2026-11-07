@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -266,7 +268,15 @@ internal sealed class WorldRestoreApplier(
 		nativeWorldFacts?.CancelPendingRestore();
 		_items?.CancelRestoredWorldItems("a new restore superseded the previous attempt's world items");
 
-		var restored = kernel.Restore(checkpoint);
+		// The rows of a character the archive carries but NO PRESENT PEER CLAIMS are not this
+		// session's world: decision 162 makes that player a NEW character, and its old carried
+		// rows would be answered by nothing (2026-11-08, batch 20261108-a: four
+		// RowWithoutObject:Carried rows in every custody read of the restored world). The claim
+		// is identity, not kernel state, so it is resolved BEFORE the kernel write and the
+		// checkpoint simply does not name those rows. The id seed below still reads the FULL
+		// checkpoint: a later claim must find those ids free.
+		var characterPlan = binder.Plan(decode.UsableCharacters);
+		var restored = kernel.Restore(WithoutUnclaimedCharacterRows(checkpoint, characterPlan));
 		if (!restored.Success)
 		{
 			var refusal = $"the kernel rejected the checkpoint: {restored.Error}";
@@ -330,7 +340,7 @@ internal sealed class WorldRestoreApplier(
 		// package omits cannot be resurrected from an earlier snapshot of this run,
 		// and the table then holds exactly the archive's claims (decisions 162/178).
 		characters.ClearSavedCharacters();
-		var bound = binder.Apply(decode.UsableCharacters);
+		var bound = binder.Bind(characterPlan);
 
 		// The applied family's two carriers are both known HERE and nowhere else at once:
 		// the kernel was restored above (the archive's item rows) and the characters were
@@ -443,6 +453,51 @@ internal sealed class WorldRestoreApplier(
 					character.PlayerKey, stale.X, stale.Y);
 			}
 		}
+	}
+
+	/// <summary>
+	/// The checkpoint without the carried rows of the characters no present peer claims. The
+	/// ids are collected recursively (a container's contents travel with it) by the same rule
+	/// <see cref="RestoredItemIds"/> applies when it seeds the id counters — the seed itself
+	/// stays over the FULL checkpoint, because a later claim must find those ids free.
+	/// </summary>
+	private GameCheckpoint WithoutUnclaimedCharacterRows(GameCheckpoint checkpoint, WorldCharacterClaimPlan plan)
+	{
+		if (plan.Unclaimed.Count == 0)
+		{
+			return checkpoint;
+		}
+
+		var ids = new List<ulong>();
+		foreach (var character in plan.Unclaimed)
+		{
+			RestoredItemIds.Collect(character.Character.Items, ids);
+		}
+
+		if (ids.Count == 0)
+		{
+			return checkpoint;
+		}
+
+		var unclaimed = new HashSet<ulong>(ids);
+		var kept = new List<ItemState>(checkpoint.Items.Count);
+		foreach (var row in checkpoint.Items)
+		{
+			if (!unclaimed.Contains(row.Identity.InstanceId))
+			{
+				kept.Add(row);
+			}
+		}
+
+		if (kept.Count == checkpoint.Items.Count)
+		{
+			return checkpoint;
+		}
+
+		log.LogInformation(
+			"The archive names {Rows} carried row(s) of {Characters} character(s) no present peer claims; they are not restored (decision 162: that player joins as a new character).",
+			checkpoint.Items.Count - kept.Count, plan.Unclaimed.Count);
+		return checkpoint with { Items = kept };
 	}
 
 	/// <summary>

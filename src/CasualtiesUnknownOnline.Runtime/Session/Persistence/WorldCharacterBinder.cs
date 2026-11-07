@@ -112,31 +112,23 @@ internal sealed class WorldCharacterBinder(
 	}
 
 	/// <summary>
-	/// Binds a restored snapshot's characters onto the peers that claim them (the
-	/// host's own through the host slot, everyone else through the saved-character
-	/// table the existing restore path reads). A key nobody claims is not an error
-	/// — decision 162: that player joins as a NEW player.
-	///
-	/// Returns the character bound to the LOCAL peer, which is the one the caller
-	/// has to apply to its own body: the store slot it was bound into is the same
-	/// slot the live 1 Hz snapshot writes, so nothing downstream can tell "the
-	/// archive's character, not yet on the body" from "the host's current state".
-	/// Null = no stored key is ours (a new character) — or the whole set was
-	/// refused, which is logged here. The result also carries WHICH keys were bound,
-	/// because only those describe what this restore actually did.
+	/// Resolves the stored characters' claims against the PRESENT peers WITHOUT touching the
+	/// character table: the restore needs the decision before it writes the kernel (a character
+	/// no present peer claims is carried by no body, so its item rows must not enter this
+	/// session's world).
 	/// </summary>
-	internal WorldCharacterBindResult Apply(IReadOnlyList<SavedCharacter> stored)
+	internal WorldCharacterClaimPlan Plan(IReadOnlyList<SavedCharacter> stored)
 	{
 		if (stored.Count == 0)
 		{
-			return new WorldCharacterBindResult(null, [], [], new Dictionary<ulong, CharacterDataMsg>());
+			return new WorldCharacterClaimPlan(PlayerKeySpace.Unknown, [], [], []);
 		}
 
 		var keys = stored.Select(character => character.PlayerKey).ToList();
 		if (!PlayerKeyResolution.TrySpaceOfSet(keys, out var space))
 		{
 			log.LogError("The snapshot's character files mix transport key spaces ({Keys}); no character was applied.", string.Join(", ", keys));
-			return new WorldCharacterBindResult(null, [], [$"the snapshot's character files mix transport key spaces ({string.Join(", ", keys)}), so not one of them was applied"], new Dictionary<ulong, CharacterDataMsg>());
+			return new WorldCharacterClaimPlan(PlayerKeySpace.Unknown, [], stored, [$"the snapshot's character files mix transport key spaces ({string.Join(", ", keys)}), so not one of them was applied"]);
 		}
 
 		var live = LiveKeySpace();
@@ -152,38 +144,55 @@ internal sealed class WorldCharacterBinder(
 			// character (decision 162), and the files stay for a later claim. It is a
 			// LOSS for this session, not a benign absence, so it is named as one.
 			log.LogWarning("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
-			return new WorldCharacterBindResult(null, [], [$"the snapshot was written in the {space} key space and this session runs {live}, so none of its {stored.Count} stored character(s) was claimed (decision 162)"], new Dictionary<ulong, CharacterDataMsg>());
+			return new WorldCharacterClaimPlan(space, [], stored, [$"the snapshot was written in the {space} key space and this session runs {live}, so none of its {stored.Count} stored character(s) was claimed (decision 162)"]);
 		}
 
 		var peers = PresentPeers();
-		var localPeerId = LocalPeerId;
-		var applied = 0;
-		var unclaimed = 0;
-		CharacterDataMsg? local = null;
-		var boundKeys = new List<string>(stored.Count);
-		var boundCharacters = new Dictionary<ulong, CharacterDataMsg>();
+		var claimed = new List<(SavedCharacter Character, ulong PeerId)>(stored.Count);
+		var unclaimed = new List<SavedCharacter>();
 		var refusals = new List<string>();
 		foreach (var character in stored)
 		{
 			var claim = PlayerKeyResolution.Claim(character.PlayerKey, space, peers, out var peerId);
-			if (claim != PlayerKeyClaim.Claimed)
+			if (claim == PlayerKeyClaim.Claimed)
 			{
-				if (claim == PlayerKeyClaim.Ambiguous)
-				{
-					// Two present players claim one stored character. IP-direct allows
-					// duplicate display names by design, so this is a real possibility and
-					// NOT a reason to pick one: whichever we picked could be handed another
-					// player's character. Nobody gets it, and the loss is named.
-					refusals.Add($"the stored character {character.PlayerKey} is claimed by more than one player present (duplicate display name in an IP-direct session), so it was handed to none of them");
-					log.LogWarning("Character {PlayerKey} has more than one claimant in this session; it was handed to nobody (IP-direct duplicate display name). The file stays in the archive for a later claim.", character.PlayerKey);
-					continue;
-				}
-
-				unclaimed++;
-				log.LogInformation("Character {PlayerKey} has no claimant in this session; decision 162: that player joins as a new character. The file stays in the archive for a later claim.", character.PlayerKey);
+				claimed.Add((character, peerId));
 				continue;
 			}
 
+			if (claim == PlayerKeyClaim.Ambiguous)
+			{
+				// Two present players claim one stored character. IP-direct allows
+				// duplicate display names by design, so this is a real possibility and
+				// NOT a reason to pick one: whichever we picked could be handed another
+				// player's character. Nobody gets it, and the loss is named.
+				refusals.Add($"the stored character {character.PlayerKey} is claimed by more than one player present (duplicate display name in an IP-direct session), so it was handed to none of them");
+				log.LogWarning("Character {PlayerKey} has more than one claimant in this session; it was handed to nobody (IP-direct duplicate display name). The file stays in the archive for a later claim.", character.PlayerKey);
+				continue;
+			}
+
+			unclaimed.Add(character);
+			log.LogInformation("Character {PlayerKey} has no claimant in this session; decision 162: that player joins as a new character. The file stays in the archive for a later claim.", character.PlayerKey);
+		}
+
+		return new WorldCharacterClaimPlan(space, claimed, unclaimed, refusals);
+	}
+
+	/// <summary>Binds a plan's claimed characters onto their peers (the host's own through the host slot, everyone else through the saved-character table the existing restore path reads).</summary>
+	internal WorldCharacterBindResult Bind(WorldCharacterClaimPlan plan)
+	{
+		if (plan.Claimed.Count == 0 && plan.Unclaimed.Count == 0 && plan.Refusals.Count == 0)
+		{
+			return new WorldCharacterBindResult(null, [], [], new Dictionary<ulong, CharacterDataMsg>());
+		}
+
+		var localPeerId = LocalPeerId;
+		var applied = 0;
+		CharacterDataMsg? local = null;
+		var boundKeys = new List<string>(plan.Claimed.Count);
+		var boundCharacters = new Dictionary<ulong, CharacterDataMsg>();
+		foreach (var (character, peerId) in plan.Claimed)
+		{
 			if (peerId == localPeerId)
 			{
 				characters.SaveHostCharacterData(character.Character);
@@ -200,9 +209,12 @@ internal sealed class WorldCharacterBinder(
 		}
 
 		log.LogInformation("Restored characters: {Applied} bound to present peers, {Unclaimed} left unclaimed, {Refused} refused (key space {Space}).",
-			applied, unclaimed, refusals.Count, space);
-		return new WorldCharacterBindResult(local, boundKeys, refusals, boundCharacters);
+			applied, plan.Unclaimed.Count, plan.Refusals.Count, plan.Space);
+		return new WorldCharacterBindResult(local, boundKeys, plan.Refusals, boundCharacters);
 	}
+
+	/// <summary>Resolve and bind in one call — the seam's pre-split form, kept for the callers that do not act on the rows.</summary>
+	internal WorldCharacterBindResult Apply(IReadOnlyList<SavedCharacter> stored) => Bind(Plan(stored));
 
 	/// <summary>
 	/// Every peer whose character a cut can carry: the local player plus every

@@ -49,8 +49,8 @@ internal static class RestoredItemIds
 		return (ids, itemRows, carried);
 	}
 
-	/// <summary>One character's carried ids, a container's contents included — recursively, because the restore's own re-stamp is recursive (<c>ItemStateCodec.RestoreContents</c>).</summary>
-	private static int Collect(IReadOnlyList<CharacterItemMsg> items, List<ulong> ids)
+	/// <summary>One character's carried ids, a container's contents included — recursively, because the restore's own re-stamp is recursive (<c>ItemStateCodec.RestoreContents</c>). Shared with the restore, which drops the rows of a character no present peer claims.</summary>
+	internal static int Collect(IReadOnlyList<CharacterItemMsg> items, List<ulong> ids)
 	{
 		var collected = 0;
 		foreach (var item in items)

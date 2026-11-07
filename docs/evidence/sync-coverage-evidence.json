@@ -8430,7 +8430,7 @@
 
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRestoreApplier.cs",
 
-      "quote": "var bound = binder.Apply(decode.UsableCharacters);"
+      "quote": "var bound = binder.Bind(characterPlan);"
 
     },
 

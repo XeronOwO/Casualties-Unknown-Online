@@ -26,7 +26,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly ILogger<ItemService> _log;
 	private readonly WorldItemTable _worldTable = new();
 	private readonly ItemArbitration _arbitration;
-	private readonly ItemCarriedSyncService _carriedSync;
+	private readonly ItemCarriedFacts _carriedFacts;
 	private readonly ItemActionSync _itemActionSync;
 	private readonly ItemSnapshotService _snapshots;
 	private readonly ItemIdCoordinator _idCoordinator;
@@ -40,7 +40,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	private readonly ItemKernelProjectionWiring _kernelProjectionWiring;
 	private readonly RestoredWorldItemSet _restoredWorldItems;
 	private readonly ItemCommandRejectionRouter _rejections;
-	private readonly ItemOwnCarriedRegistration _ownCarried;
 
 	public ItemService(ISessionControl session, ItemArbitration arbitration, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, RefusedItemCreations refusedCreations, ItemIdCoordinator idCoordinator, ItemStateSettlement itemStateSettlement, WorldRestoreAudit? audit = null)
 	{
@@ -52,6 +51,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_kernelProtocol = kernelProtocol;
 		_rejections = new ItemCommandRejectionRouter(session, idCoordinator, itemStateSettlement, log);
 		_restoredWorldItems = new RestoredWorldItemSet(kernelAuthority, audit, log);
+		_carriedFacts = new ItemCarriedFacts(session, idCoordinator, kernelAuthority, log);
 		_kernelProtocol.CommandRejected += OnCommandRejected;
 		_projection = new ItemProjection(kernelAuthority, _worldTable);
 		var kernelBatchProjection = new KernelBatchItemProjection(
@@ -65,11 +65,9 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 			(owner, item, _) => PublishCarriedSyncLocal(owner, item),
 			item => FireCorrectionLocal(item),
 			(sourceId, cooked) => ItemCookedReceived?.Invoke(sourceId, cooked));
-		_carriedSync = new ItemCarriedSyncService();
 		_itemActionSync = new(session, this, _kernelProtocol);
 		_snapshots = new(session, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, _kernelProtocol, log);
 		_idCoordinator = idCoordinator;
-		_ownCarried = new ItemOwnCarriedRegistration(session, SendItemCarriedSync, log);
 		_blockDrops = new BlockDropSync(session, this);
 		_kernelProjectionWiring = new ItemKernelProjectionWiring(
 			session,
@@ -101,7 +99,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	// ===== Item-id coordination =====
 
-	public void SendItemIdWatermark(ulong counter) => _idCoordinator.SendItemIdWatermark(counter);
+	public void SendItemIdWatermark(ulong counter) => _carriedFacts.SendItemIdWatermark(counter);
 
 	/// <summary>
 	/// Report this client's carried inventory with the ids it holds. A GUEST sends the absolute
@@ -109,16 +107,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	/// authority — nobody else can, and without it a host item the player has not used, moved or
 	/// dropped yet has neither a row nor an id for any verb (or any member's record) to name.
 	/// </summary>
-	public void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items)
-	{
-		if (_session.Role == SessionRole.Host)
-		{
-			_ownCarried.Register(items);
-			return;
-		}
-
-		_idCoordinator.SendCarriedInventory(items);
-	}
+	public void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items) =>
+		_carriedFacts.SendCarriedInventory(items);
 
 	/// <summary>
 	/// Open the carried-registration opportunity, whichever side this client is: a GUEST opens the
@@ -126,39 +116,28 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	/// above owns. The edges that arm it are the same fact on both sides — the local generation
 	/// finished, or the session (re)appeared on the world this client is already in.
 	/// </summary>
-	public void ArmCarriedInventoryRegistration(string reason)
-	{
-		if (_session.Role == SessionRole.Host && _session.SessionActive)
-		{
-			_ownCarried.Arm(reason);
-			return;
-		}
-
-		_idCoordinator.ArmCarriedInventoryRegistration(reason);
-	}
+	public void ArmCarriedInventoryRegistration(string reason) =>
+		_carriedFacts.ArmCarriedInventoryRegistration(reason);
 
 	/// <summary>Whether the adapter should capture this client's carried set now: the guest's report cadence, or the host's unspent one-shot.</summary>
-	public bool IsCarriedInventoryRegistrationDue() =>
-		_session.Role == SessionRole.Host
-			? _ownCarried.IsDue
-			: _idCoordinator.IsCarriedInventoryRegistrationDue();
+	public bool IsCarriedInventoryRegistrationDue() => _carriedFacts.IsCarriedInventoryRegistrationDue();
 
-	public void GrantItemIdWatermark(ulong targetSteamId, ulong counter) => _idCoordinator.GrantItemIdWatermark(targetSteamId, counter);
+	public void GrantItemIdWatermark(ulong targetSteamId, ulong counter) => _carriedFacts.GrantItemIdWatermark(targetSteamId, counter);
 
-	public void FireItemIdWatermarkReceived(ulong sender, ulong counter) => _idCoordinator.FireItemIdWatermarkReceived(sender, counter);
+	public void FireItemIdWatermarkReceived(ulong sender, ulong counter) => _carriedFacts.FireItemIdWatermarkReceived(sender, counter);
 
-	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.FireCarriedInventoryReceived(sender, items);
+	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items) => _carriedFacts.FireCarriedInventoryReceived(sender, items);
 
 	/// <summary>
 	/// The restore's id seed (<see cref="IRestoredItemIdSeed"/>): every id the applied archive
 	/// re-issued, handed to the one rule that resumes the counters above them.
 	/// </summary>
-	public void SeedRestoredItemIds(IReadOnlyList<ulong> instanceIds) => _idCoordinator.ResumeRestoredIds(instanceIds);
+	public void SeedRestoredItemIds(IReadOnlyList<ulong> instanceIds) => _carriedFacts.SeedRestoredItemIds(instanceIds);
 
 	public event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived
 	{
-		add => _idCoordinator.CarriedInventoryReceived += value;
-		remove => _idCoordinator.CarriedInventoryReceived -= value;
+		add => _carriedFacts.CarriedInventoryReceived += value;
+		remove => _carriedFacts.CarriedInventoryReceived -= value;
 	}
 
 	public event Action<WorldItem>? ItemSpawned;
@@ -201,14 +180,14 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	public event Action<ulong, CharacterItemMsg, bool>? ItemCarriedSyncReceived
 	{
-		add => _carriedSync.ItemCarriedSyncReceived += value;
-		remove => _carriedSync.ItemCarriedSyncReceived -= value;
+		add => _carriedFacts.ItemCarriedSyncReceived += value;
+		remove => _carriedFacts.ItemCarriedSyncReceived -= value;
 	}
 
 	public event Action<ulong>? ItemIdWatermarkReceived
 	{
-		add => _idCoordinator.ItemIdWatermarkReceived += value;
-		remove => _idCoordinator.ItemIdWatermarkReceived -= value;
+		add => _carriedFacts.ItemIdWatermarkReceived += value;
+		remove => _carriedFacts.ItemIdWatermarkReceived -= value;
 	}
 
 	// ===== Report/receive flow =====
@@ -317,39 +296,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 
 	// ===== Carried-item facts =====
 
-	public void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || item.InstanceId == 0)
-		{
-			return;
-		}
-
-		if (item.Contents.Count > 0)
-		{
-			// The report carries a container's contents, and a child's PLACE is part
-			// of that fact: the peers rebuild the carried fact from this batch's
-			// kernel locations, so a bare state update would reach them as an empty
-			// container with the moved child still top-level (TrySyncContainerFacts).
-			_kernelAuthority.TrySyncContainerFacts(ownerSteamId, item, out _, out _);
-		}
-		else
-		{
-			var current = _kernelAuthority.FindItem(item.InstanceId);
-			if (current is null)
-			{
-				_kernelAuthority.TrySpawnCarried(ownerSteamId, item.InstanceId, item.ItemId, item, out _, out _);
-			}
-			else
-			{
-				_kernelAuthority.TryUpdateState(ownerSteamId, item.InstanceId, item, out _, out _);
-			}
-		}
-
-		PublishCarriedSyncLocal(ownerSteamId, item);
-	}
+	public void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item) =>
+		_carriedFacts.SendItemCarriedSync(ownerSteamId, item);
 
 	public void FireItemCarriedSyncReceived(ulong sender, ulong ownerSteamId, CharacterItemMsg item, bool slotKnown)
-		=> _carriedSync.FireItemCarriedSyncReceived(sender, ownerSteamId, item, slotKnown);
+		=> _carriedFacts.FireItemCarriedSyncReceived(sender, ownerSteamId, item, slotKnown);
 
 	// ===== Host-only surface =====
 	public int LayerModifierIndex
@@ -445,7 +396,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 		_projection.Clear();
 		_arbitration.ResetSessionState();
 		_idCoordinator.ResetSessionState();
-		_ownCarried.Reset();
+		_carriedFacts.ResetOwnCarriedRegistration();
 		_snapshots.ResetSessionState();
 		_itemTraffic.Reset();
 		_kernelProjectionWiring.ResetStream();
@@ -523,7 +474,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	internal void UpdateWorldItemState(ulong itemId, CharacterItemMsg state) =>
 		_projection.ApplyUpdateState(_session.LocalSteamId, itemId, state);
 
-	internal void PublishCarriedSyncLocal(ulong owner, CharacterItemMsg item) => _carriedSync.PublishLocal(owner, item);
+	internal void PublishCarriedSyncLocal(ulong owner, CharacterItemMsg item) => _carriedFacts.PublishLocal(owner, item);
 
 	/// <summary>
 	/// The craft domain's retirement seam: a report's <c>Destroyed</c> entry is the destruction event for one

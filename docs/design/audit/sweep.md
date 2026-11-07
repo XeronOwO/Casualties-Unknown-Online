@@ -84,7 +84,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Session/HandlerContexts` | 24 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Handlers` | 112 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/HostRules` | 16 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/Items` | 64 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/Items` | 65 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Mods` | 90 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic` | 7 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Permissions` | 5 | read |

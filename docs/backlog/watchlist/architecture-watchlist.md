@@ -23,11 +23,6 @@ assembly), and its interface keeps growing with every feature (see
 
 ## At the limit (no headroom)
 
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` (600 measured 2026-11-07) — the
-  world-item domain facade: the world-item table, the sub-services and the message-flow wiring. The seam to
-  extract next is the carried-fact and id-coordination block (`SendCarriedInventory`'s role branch, the
-  watermark forwards, `PublishCarriedSyncLocal`) against the world-item table/projection half. Split BEFORE
-  the next change lands here.
 - `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (599 measured 2026-11-07) — the one
   implementation of the frozen `IPatchBridge` aggregate plus the per-domain patch ports the aggregate does
   not carry (`IFluidPatchPort` today). Every member is a one-line forwarder to a domain handle, so the file
@@ -67,6 +62,17 @@ assembly), and its interface keeps growing with every feature (see
 
 
 ## Split since the last revision
+
+- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` — split 2026-11-07 (before the next change could
+  land in it): the carried-inventory statement and the item-id coordination moved into `ItemCarriedFacts` (150) — the
+  guest's absolute statement and the host's one-shot registration, the watermark forwards, the restored-id seed, the
+  carried-sync event fan-out and the host's carried-fact publish. 600 → 551. The chain was read before the first edit
+  (the arming edges `CarriedInventoryReporter.cs:78/85`, the statement at `:112`, the wire handlers
+  `CarriedInventoryHandler.cs:20` / `ItemIdWatermarkHandler.cs:19`, the four carried-write callers
+  `PickupSync.cs:191/224`, `ItemUseSync.cs:125`, `ItemSlotSync.cs:124`, `ContainerItemSync.cs:164`, the local publish
+  `CraftSyncService.cs:237/287`, the clone re-render fan-out, the restore seed `WorldRestoreApplier.cs:288`). The facade
+  keeps every public member as a one-line forward, so no call site changed; the build, the gates (822) and the
+  6,617-test suite are the check.
 
 - `src/CasualtiesUnknownOnline.GameAdapter/RemoteOtherMedicalOperationHandler.cs` — split in the same round as this
   page's correction (2026-11-07, before the next Stage-3 change): the session lifecycle (the one active session,

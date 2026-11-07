@@ -78,6 +78,15 @@ internal static class PlayerCameraDragUsePatch
 						// item with no authoritative id) must not keep the drag-opened backpack open.
 						__state.Give = giveBridge.ReportLocalReleaseOntoProxy(dragItem, target.OwnerSteamId, target.Description, target.TargetItemInstanceId, target.TargetSlotIndex);
 
+						// The native drop's slot pop: `PlayerCamera.cs:1559-1569` writes `Vector3.one * 1.5f` on the hit
+						// slot when the container can hold the item. This branch returns before that body runs, so the
+						// slot the accepted intent landed in replays the same scale here.
+						if (__state.Give && target.Slot != null)
+						{
+							OnlineUi.SlotPop.Play(target.Slot);
+							RemoteBackpackView.Trace?.Invoke("[SlotPop] popped the given slot.");
+						}
+
 						// The release's own click, which the skipped native body would have played: `HandleReleaseDragging` ends with
 						// `this.PlayUISound(PlayerCamera.UISoundType.Click, 1f)` (`PlayerCamera.cs:1495`), and that tail is what the player hears when an
 						// item lands in a slot. The give branch returns before the native body runs, so without this call the placement is silent — the

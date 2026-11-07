@@ -50,8 +50,8 @@ internal static class DragGiveTargetResolver
 					// item is what left the host's ledger stating a location the receiver never used.
 					var container = item.GetComponent<Container>();
 					return container != null // Unity object — ==
-						? new DragGiveTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy container item {item.id}", TargetItemInstanceId: RemoteDragProxyQuery.InstanceId(item))
-						: new DragGiveTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy item {item.id} in slot {button.slot}", TargetSlotIndex: button.slot);
+						? new DragGiveTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy container item {item.id}", TargetItemInstanceId: RemoteDragProxyQuery.InstanceId(item), Slot: button.transform)
+						: new DragGiveTarget(RemoteDragProxyQuery.OwnerSteamId(item), $"display proxy item {item.id} in slot {button.slot}", TargetSlotIndex: button.slot, Slot: button.transform);
 				}
 
 				if (button.isBody && RemoteBackpackView.IsOpen)
@@ -59,7 +59,7 @@ internal static class DragGiveTargetResolver
 					// A body slot the ring reads from the clone: the item shown there is a proxy (handled
 					// above), and an EMPTY one still names the clone's slot index, which is what the native
 					// body would act on.
-					return new DragGiveTarget(RemoteBackpackView.FocusedSteamId, $"slot {button.slot} of the displayed inventory", TargetSlotIndex: button.slot);
+					return new DragGiveTarget(RemoteBackpackView.FocusedSteamId, $"slot {button.slot} of the displayed inventory", TargetSlotIndex: button.slot, Slot: button.transform);
 				}
 			}
 

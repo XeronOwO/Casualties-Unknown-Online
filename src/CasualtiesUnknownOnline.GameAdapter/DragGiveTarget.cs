@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
@@ -10,4 +12,5 @@ internal readonly record struct DragGiveTarget(
 	ulong OwnerSteamId,
 	string Description,
 	ulong TargetItemInstanceId = 0,
-	int TargetSlotIndex = -1);
+	int TargetSlotIndex = -1,
+	Transform? Slot = null);

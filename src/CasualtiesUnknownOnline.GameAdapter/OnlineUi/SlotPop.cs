@@ -12,8 +12,8 @@ internal sealed class SlotPop : MonoBehaviour
 {
 	private const float Peak = 1.5f;
 
-	/// <summary>How fast the slot returns to its normal size — the game's own rate (PlayerCamera.cs:1871).</summary>
-	private const float RestorePerSecond = 8f;
+	/// <summary>How fast the slot returns to its normal size — the slot's own native ease (InvButton.cs:161, 7.5/s).</summary>
+	private const float RestorePerSecond = 7.5f;
 
 	/// <summary>Slots this client has already drawn once — a first render is not a landing.</summary>
 	private static readonly HashSet<Transform> Seen = [];

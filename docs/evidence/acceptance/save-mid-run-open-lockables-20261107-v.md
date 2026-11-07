@@ -51,8 +51,12 @@ All coordinates are integers: the recipe arguments arrive as `Double` and a deci
   carries the same two `opened-entity` rows and the same two `building-health {health: 0}` rows at the
   same positions, plus one damaged-building row at `(-21,457)` (`health 95.32`).
 - `entity-probe-at` at `(-33,480)` and `(-37,476)` on the restored world: `found:false` — the opened
-  buildings are not live entities in the regenerated layer (an opened door is removed from the world;
+  buildings are not live entities in the regenerated layer (an opened lockable leaves the world;
   the row's "the scene shows it" half stays the user's in-game check).
+- What the lockable is: `openable-census` on this build's scene read 230 `Openable` components in five
+  container prefabs — `medcrate` 99, `dropcapsule` 49, `containercrate` 36, `foodbox` 30, `lifepodchest`
+  16 — and no door prefab. The picked lockables were containers, not doors; "door" in an earlier
+  phrasing of this note was wrong.
 
 ## What this settles
 
@@ -60,11 +64,11 @@ All coordinates are integers: the recipe arguments arrive as `Double` and a deci
   `unlock` sound and the `toDestroy.health = 0` fact.
 - A mid-run cut taken with opened lockables carries those facts in `world-entities.json`, and a
   Continue restores a kernel whose next cut carries the same facts — the restore does not lose the
-  opened lockables and does not resurrect them as closed buildings.
+  opened lockables and does not resurrect them as unopened containers.
 
 ## Limits
 
-- The live scene's visual (the open doorway as the player sees it) is not claimed here; the entity probe
-  only says the building entity is no longer present at the saved position.
+- The live scene's visual (the opened container as the player sees it) is not claimed here; the entity
+  probe only says the building entity is no longer present at the saved position.
 - The trap/fluid/enemy halves of row 3 were read in an earlier session (the ticket's own record); this
   batch adds only the opened-lockables half.

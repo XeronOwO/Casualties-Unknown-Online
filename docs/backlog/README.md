@@ -81,8 +81,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [The command console is a contract, not attribute methods](review/the-command-console-is-a-contract.md) — **High** — code-complete; residuals named.
-
 
 
 
@@ -142,6 +140,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The command console is a contract](done/the-command-console-is-a-contract.md) — **High** — one key, two languages; row 13 read.
 - [Cross-player semantics from the game's own data](done/mod-cross-player-native-semantics.md) — **High** — the cross rows are measured.
 - [Display proxy reports itself as a spawn](done/display-proxy-reported-its-own-spawn.md) — **High** — the storm's loop is gone.
 - [Give creates liquid containers](done/give-creates-empty-liquid-containers.md) — **Medium** — a given container arrives full.

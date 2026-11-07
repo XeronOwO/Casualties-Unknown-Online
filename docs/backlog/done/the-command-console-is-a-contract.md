@@ -1,6 +1,6 @@
 # The command console is a contract, not a set of attribute-marked methods
 
-- Status: Review — blocked on a fixture: row 13 (the same key in two languages) needs a client whose game language is not Chinese — a fresh session on 2026-11-06 read the SAME Chinese labels on both clients with `/whoami` (batch `20261106-a`, artifact `0.1.0+ef9d9c34`). Every other row carries its reading above.
+- Status: Done — row 13 read on batch `20261107-r` (artifact `0.1.0+8a440599`): the same key renders in each client's own language, and a host-decided refusal arrives at the member in the member's language (`docs/evidence/acceptance/the-command-console-is-a-contract-20261107-r.md`). Every row now carries its reading.
 - Priority: High — this is the mod-facing surface, and the localisation contract rides on it: a refusal must be a KEY at its origin, which is the only way a player reads a Chinese shell AND a Chinese reason (the user's ruling, 2026-10-28). Its shape is hard to change once third-party mods depend on it.
 - Category: Console / mod contract / architecture
 
@@ -661,3 +661,16 @@ language switch.
 
 So row 13 is blocked on a fixture — a client whose game language is not Chinese — and the ticket says so in its status. That is
 the ticket's own statement, now with the reading that proves it.
+
+## Row 13 read (2026-11-07, batch `20261107-r`)
+
+The fixture, the readings and the verdict are in
+`docs/evidence/acceptance/the-command-console-is-a-contract-20261107-r.md`. In brief: host `[UI] Language = zh`, guest
+`[UI] Language = en`; `/whoami` rendered the same `console.answer.session_facts` key in each language
+(host, translated: `role=Host … session=true`; guest: `Role=Guest … SessionActive=true`), and the guest's `/give @p zzz`
+was decided by the HOST (its log at 19:27:22.861 names the member and the refusal) and rendered on the guest in English —
+`Refused: No item definition 'zzz' is known to this game — …` — the same `item.answer.refused_unknown_definition` key the
+host rendered in Chinese. Row 13 PASS.
+
+The language fixture is the client's own config at startup; the in-game dropdown could not be driven by the driver's
+`click` action (a tool gap, recorded in the evidence file, not a product claim).

@@ -18,7 +18,8 @@ game's own band (`HandAngle` in `(0,180)`, `HandDistance` in `(195,247)`), cappe
 path is therefore three calls:
 
 1. `lockpick-open` — finds the nearest `Openable`, stands the body beside it and runs the game's own
-   `Openable.OnUse()`, which starts `LockpingMinigame` with the carried kit.
+   `Openable.OnUse()`, which starts `LockpingMinigame` with the carried kit. It now reports the picked
+   entity's prefab id (`prefab`), so a record can name the object instead of guessing from the class.
 2. `lockpick-aim` — reads `correctAngle`, `anglePrecision`, `pickLevel` and the minigame screen by
    reflection (the evaluator cannot name the game's private minigame type; a typed cast compiles to no
    value) and returns the screen point for the correct angle at distance 220.

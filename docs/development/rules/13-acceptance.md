@@ -28,8 +28,9 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
   gesture's input contract into the ticket before the first staged input.
 - Name the row's entry before the fixture: read the family table (`docs/design/items/README.md`) and the family's page,
   write the entry into the ticket; a row driven from a ruled-out entry is `not driven` and stays open.
-- A repeat of a caught mistake is a process failure: re-read the owning page before the next staged input and land the
-  rule here the same turn.
+- A repeat of a caught mistake is a process failure: land the rule here the same turn.
+- Name the object by the game's own prefab id, never the class or a guess: `Openable` is not a door
+  (2026-11-07).
 
 ## A row never invents behaviour
 

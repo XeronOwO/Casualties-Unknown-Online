@@ -1,6 +1,6 @@
 // recipe: lockpick-open
 // args: none
-// returns: ok, openables, distance, entityX, entityY, bodyX, bodyY, minigame, error, detail
+// returns: ok, openables, distance, entityX, entityY, prefab, bodyX, bodyY, minigame, error, detail
 //
 // Starts the game's own lockpick minigame the way its interaction does: it finds the nearest `Openable`, stands the body beside it, and calls
 // `Openable.OnUse()` — the exact method the player's interact runs (`reversing/Assembly-CSharp/Assembly-CSharp/Openable.cs`). That method resolves the
@@ -38,6 +38,7 @@
 		+ ",\"distance\":" + bestDistance.ToString("0.#", inv)
 		+ ",\"entityX\":" + best.transform.position.x.ToString("0.#", inv)
 		+ ",\"entityY\":" + best.transform.position.y.ToString("0.#", inv)
+		+ ",\"prefab\":\"" + (best.GetComponent<BuildingEntity>().id ?? "") + "\""
 		+ ",\"bodyX\":" + body.transform.position.x.ToString("0.#", inv)
 		+ ",\"bodyY\":" + body.transform.position.y.ToString("0.#", inv)
 		+ ",\"minigame\":\"" + before + "\"}";

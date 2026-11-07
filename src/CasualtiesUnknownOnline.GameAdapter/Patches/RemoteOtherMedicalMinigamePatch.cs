@@ -23,7 +23,7 @@ internal static class RemoteOtherMedicalMinigamePatch
 	{
 		private static void Prefix(DislocationMinigame __instance, List<RaycastResult> uiCasts)
 		{
-			if (!RemoteOtherMedicalOperationHandler.IsActiveDislocation(__instance))
+			if (!RemoteOtherUseSessions.IsActiveDislocation(__instance))
 			{
 				return;
 			}
@@ -51,7 +51,7 @@ internal static class RemoteOtherMedicalMinigamePatch
 			{
 				if (raycastResult.gameObject == bone.gameObject)
 				{
-					RemoteOtherMedicalOperationHandler.ReportDislocationHit(__instance.hasWrench);
+					RemoteOtherUseSessions.ReportDislocationHit(__instance.hasWrench);
 					break;
 				}
 			}
@@ -65,7 +65,7 @@ internal static class RemoteOtherMedicalMinigamePatch
 
 		private static void Prefix(AmputationMinigame __instance)
 		{
-			if (RemoteOtherMedicalOperationHandler.IsActiveAmputation(__instance) && LastCut < 0f)
+			if (RemoteOtherUseSessions.IsActiveAmputation(__instance) && LastCut < 0f)
 			{
 				LastCut = __instance.cutProgress;
 			}
@@ -73,7 +73,7 @@ internal static class RemoteOtherMedicalMinigamePatch
 
 		private static void Postfix(AmputationMinigame __instance)
 		{
-			if (!RemoteOtherMedicalOperationHandler.IsActiveAmputation(__instance) || LastCut < 0f)
+			if (!RemoteOtherUseSessions.IsActiveAmputation(__instance) || LastCut < 0f)
 			{
 				return;
 			}
@@ -81,7 +81,7 @@ internal static class RemoteOtherMedicalMinigamePatch
 			var delta = __instance.cutProgress - LastCut;
 			if (delta > 0.001f)
 			{
-				RemoteOtherMedicalOperationHandler.ReportAmputationCut(delta);
+				RemoteOtherUseSessions.ReportAmputationCut(delta);
 				LastCut = __instance.cutProgress;
 			}
 		}
@@ -94,7 +94,7 @@ internal static class RemoteOtherMedicalMinigamePatch
 
 		private static void Postfix(AEDMinigame __instance)
 		{
-			if (!RemoteOtherMedicalOperationHandler.IsActiveAed(__instance))
+			if (!RemoteOtherUseSessions.IsActiveAed(__instance))
 			{
 				return;
 			}
@@ -108,11 +108,11 @@ internal static class RemoteOtherMedicalMinigamePatch
 
 			if (state == 2 && LastState != 2)
 			{
-				RemoteOtherMedicalOperationHandler.ReportAedAnalyze();
+				RemoteOtherUseSessions.ReportAedAnalyze();
 			}
 			else if (state == 4 && LastState != 4)
 			{
-				RemoteOtherMedicalOperationHandler.ReportAedShock();
+				RemoteOtherUseSessions.ReportAedShock();
 			}
 
 			LastState = state;
@@ -124,7 +124,7 @@ internal static class RemoteOtherMedicalMinigamePatch
 	{
 		private static void Prefix(Item __instance, Item.DefibInfo info)
 		{
-			if (!RemoteOtherMedicalOperationHandler.IsActiveManualDefib()
+			if (!RemoteOtherUseSessions.IsActiveManualDefib()
 				|| MinigameBase.main == null // Unity object — ==
 				|| MinigameBase.main.currentMinigame is not ManualDefibMinigame manual)
 			{
@@ -132,7 +132,7 @@ internal static class RemoteOtherMedicalMinigamePatch
 			}
 
 			var charge = Traverse.Create(manual).Field("currentCharge").GetValue<float>();
-			RemoteOtherMedicalOperationHandler.ReportManualShock(charge);
+			RemoteOtherUseSessions.ReportManualShock(charge);
 		}
 	}
 }

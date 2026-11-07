@@ -303,7 +303,7 @@ internal static class RemoteMedicalPatches
 	{
 		private static void Postfix()
 		{
-			RemoteOtherMedicalOperationHandler.CompleteActiveUse();
+			RemoteOtherUseSessions.CompleteActiveUse();
 			RemoteMedicalOperationHandler.CompleteActiveShrapnelUse();
 			RemoteMedicalOperationHandler.CompleteActiveSyringeUse();
 		}

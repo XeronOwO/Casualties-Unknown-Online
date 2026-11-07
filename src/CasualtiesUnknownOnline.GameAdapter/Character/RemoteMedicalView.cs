@@ -80,7 +80,7 @@ internal static class RemoteMedicalView
 		// body can never later complete stale requests.
 		RemoteMedicalOperationHandler.CancelActiveSyringeUse();
 		RemoteMedicalOperationHandler.CancelActiveShrapnelUse();
-		RemoteOtherMedicalOperationHandler.CancelActiveUse();
+		RemoteOtherUseSessions.CancelActiveUse();
 
 		var display = DisplayBody;
 		var wasOpen = IsOpen;

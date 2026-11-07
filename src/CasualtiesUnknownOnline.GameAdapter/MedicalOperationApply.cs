@@ -103,7 +103,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 		if (terminal)
 		{
 			RemoteMedicalOperationHandler.OnHostTerminal(operationId);
-			RemoteOtherMedicalOperationHandler.OnHostTerminal(operationId);
+			RemoteOtherUseSessions.OnHostTerminal(operationId);
 		}
 
 		if (health is null && itemAfter is null && appliedDose.Count == 0 && !itemDestroyed)

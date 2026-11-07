@@ -23,32 +23,28 @@ assembly), and its interface keeps growing with every feature (see
 
 ## At the limit (no headroom)
 
-- `src/CasualtiesUnknownOnline.GameAdapter/RemoteOtherMedicalOperationHandler.cs` (599) — the
-  Stage-3 remote-medical adapter (the five native minigames, the operator session, the pending
-  reports, the host-terminal cleanup). It is the file that must be split BEFORE the next change
-  lands in it; the tempting seam is the update/terminal bookkeeping (`CompleteActiveUse` /
-  `OnHostTerminal` / `CancelActiveUse` plus the static `_active` session) against the per-kind
-  start/guard half (`TryStartRemote*`).
-
-- `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs` (608 — the only recorded entry in
-  `docs/architecture-debt.json`; it was already AT the 600 cap before the out-of-world item stream fix
-  added the one-line `IsEnteringWorld` fact on 2026-10-02, so the earlier ~582 reading on this page was
-  stale). The run-lifecycle phase machine plus the body-state publish path. A split is due BEFORE the
-  next change: the phase machine (join/start/generate/ready/gate transitions) against the entry and
-  publish seams it drives (`UpdateSceneState`, the gate anchors, the body-state publish).
+- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` (600 measured 2026-11-07) — the
+  world-item domain facade: the world-item table, the sub-services and the message-flow wiring. The seam to
+  extract next is the carried-fact and id-coordination block (`SendCarriedInventory`'s role branch, the
+  watermark forwards, `PublishCarriedSyncLocal`) against the world-item table/projection half. Split BEFORE
+  the next change lands here.
+- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (599 measured 2026-11-07) — the one
+  implementation of the frozen `IPatchBridge` aggregate plus the per-domain patch ports the aggregate does
+  not carry (`IFluidPatchPort` today). Every member is a one-line forwarder to a domain handle, so the file
+  grows with the SEAM SURFACE rather than with logic. The seam to split is a port's forwarding half into its
+  own object — the shape the earlier splits already use (`ModContentPatchBridge`, `CarriagePatchBridge`,
+  reached through aggregate properties). Nothing large should land here before that.
 
 ## Near the limit (watch)
 
 - `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/OtherMedicalOperationSessionService.cs`
-  (576 measured 2026-10-11, after `id-resume-sources-still-unseeded` threaded the id coordinator
-  through it — 570 before, after the per-unit settlement landed on 2026-09-19) — the host
-  registry/lifecycle of the
-  Stage-3 operations plus the unit settlement (`CompleteUnitOnTerminal`,
-  `StopOtherOperatorsOnTheUnit`) and the terminal path. The settlement half is the seam to
-  extract next (it is what pushed the file from 538 to 570): it needs only the appliers and the
-  sibling sessions, so it can become a collaborator that the service hands the winner.
+  (580 measured 2026-11-07) — the host registry/lifecycle of the Stage-3 operations plus the unit
+  settlement (`CompleteUnitOnTerminal`, `StopOtherOperatorsOnTheUnit`) and the terminal path. The
+  settlement half is the seam to extract next (it is what pushed the file from 538 to 570): it needs
+  only the appliers and the sibling sessions, so it can become a collaborator that the service hands
+  the winner.
 
-- `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (477 measured 2026-10-21) with
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (472 measured 2026-11-07) with
   `EnemyBindingTable.cs` (96), `EnemyRosterBinder.cs` (386) and `EnemyAnimalScan.cs` (52) — the enemy-roster
   rebuild split what was a 730-line coordinator (the 2026-10-07 measurement was 587; the rebuild's growth
   crossed the cap) into the identity table, the guest adoption applier, the host capture/lifecycle and the
@@ -56,11 +52,11 @@ assembly), and its interface keeps growing with every feature (see
   (`CaptureHostEnemies` / `EnsureMapping` / `BindHost`), the generation-finished edge pass
   (`MarkAnimalsCreatedByGeneration`, the runtime-spawn fact both roles read) and the lifecycle pump. No
   extraction is owed; re-measure if a new responsibility lands in it.
-- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (~573) — the pump order is the seam
+- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (573 measured 2026-11-07) — the pump order is the seam
   contract, so any further per-frame step should go into a domain, not into `Update`. (The Online UI's
   native-facts port added one field and one explicit member; the per-frame reading lives in its own
   `OnlineUi/` collaborator.)
-- `src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs` (~572) — the character
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs` (581 measured 2026-11-07) — the character
   domain's session-scoped coordinator (the 1 Hz report, the local clone fact table, and the wiring of
   an arriving restore into the queue). The S2 in-game gap fix moved its local restore queue to the
   role-neutral `QueueLocalRestore`/`CancelLocalRestore` pair and then sent the queue STATE itself to
@@ -68,33 +64,27 @@ assembly), and its interface keeps growing with every feature (see
   once the file crossed the gate at 606 lines. What is left to extract next is the APPLY half
   (`TryApplyCharacterRestore` / `ApplyRestoredStatsAndWipe` / `ApplyRestoredItems` / `RestoreWearable`
   ≈ 190 lines, with `PlayerInteractionApply` as the second caller of the last one).
-- `src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs` (600 measured 2026-10-18 — the
-  575 this page carried was stale. The item-data cursor target changed one construction argument on 2026-10-18 and
-  did NOT grow the file). Command groups register as their own owners (`HostAdminCommands`, `WorldSaveCommands`,
-  `ItemDataCommands`), and that rule held for the last three families, so what is left in this class is its own:
-  the command registry and execution on one side, and the console's line buffer plus the notifications it
-  subscribes to (save/restore reports, the item-data write refusal) on the other. That second half is the split
-  due BEFORE the next change lands here.
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` (578 measured 2026-10-18, from 548 before the
-  host's own carried registration landed; the registration lives in a new `ItemOwnCarriedRegistration` (85), so the
-  facade grew by the delegation only, +30 — the dead `PublishCarriedSync`/`PublishCarriedSyncFor` pair it carried
-  was deleted in the same change). The world-item domain facade: the world-item table, the sub-services and the
-  message-flow wiring. The seam to extract next is the carried-fact and id-coordination block
-  (`SendCarriedInventory`'s role branch, the watermark forwards, `PublishCarriedSyncLocal`) against the world-item
-  table/projection half.
-- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (598 measured 2026-10-19, after the
-  remote panel's heartbeat diagnostic forwarder added one member; it was 574 after the patch-bridge port
-  change on 2026-09-22, from 569) — the one implementation of the frozen `IPatchBridge` aggregate plus
-  the per-domain patch ports the aggregate does not carry (`IFluidPatchPort` today). Every member is a
-  one-line forwarder to a domain handle, so the file grows with the SEAM SURFACE rather than with
-  logic. The seam to split is a port's forwarding half into its own object — the shape the earlier
-  splits already use (`ModContentPatchBridge`, `CarriagePatchBridge`, reached through aggregate
-  properties) — which the port arrangement now makes possible without touching the aggregate; nothing
-  large should land here before that.
+
 
 ## Split since the last revision
 
+- `src/CasualtiesUnknownOnline.GameAdapter/RemoteOtherMedicalOperationHandler.cs` — split in the same round as this
+  page's correction (2026-11-07, before the next Stage-3 change): the session lifecycle (the one active session,
+  the update/end/cancel senders, the ack, the host terminal, the pending-report flush) moved to
+  `RemoteOtherUseSessions` (410), and the handler keeps the per-kind entry and the start send (600 → 218). The
+  patch/view/apply call sites now name the session class; behaviour is unchanged (the build, the gates and the
+  6,617-test suite are the check).
+
+- `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs` — split 2026-11-06 (`af085dd0`, "the descent
+  plumbing and the world join leave the coordinator, and the oversized-class queue is empty"): the phase machine
+  stays, the descent plumbing and the world join moved out; 608 → 549, and `docs/architecture-debt.json` is empty.
+
+- `src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs` — split 2026-11 (`5fe32a43`,
+  "the report half moves out, and the console drops under the line and out of the debt file"): the report
+  subscription half left the console; 600 → 539.
+
 - `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` — the demanded split happened
+
   (2026-10-06, with the container-move kernel-fact fix, before that change could land in it): 599 → 536.
   The kernel-batch half this page named as the seam moved into `ItemKernelProjectionWiring` (157): the
   two batch handlers (`OnExternalBatchCommitted` for the host's accepted peer batches, `OnBatchApplied`

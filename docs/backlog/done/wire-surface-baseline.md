@@ -1,6 +1,10 @@
 # The wire surface is recorded beside the protocol version
 
-- Status: In progress
+- Status: Done — the wire surface is derived and recorded (2026-11-07): 1,106 entries from 176 declaration
+  files (142 message types, 108 ids, 712 member lines, 144 enum lines); the focused gate 5/5 (red first: 5
+  failed on `NotImplementedException`), gates 822/0, suite 6598/0, format exit 0. The drift comparison is
+  inert until `ProtocolVersion.Current` stops naming `UnreleasedBaseline` (decision 241); both sides of the
+  switch are asserted.
 - Priority: Medium
 - Category: Protocol / gates (the wire surface and the version number)
 - Source: the user's design question of 2026-10-07 — could a gate hash the network protocol and fail when it
@@ -23,8 +27,8 @@
 - [x] 5. Implement — `WireSurfaceGate.cs` (Roslyn derivation, canonical render, comparison, emit-for-review,
   arming check) and the recorded `docs/contracts/wire-surface-baseline.txt`.
 - [x] 6. Verify — focused gate, full gates, full suite, format; the arming case on both sides of the switch.
-- [ ] 7. Commit — test + docs only; no deploy (the wire is unchanged by this ticket).
-- [ ] 8. Close — status with the readings, README row, census, delivery checklist; report to the player.
+- [x] 7. Commit — test + docs only; no deploy (the wire is unchanged by this ticket) — commit `22b63430`, 9 files.
+- [x] 8. Close — status with the readings, README row, census, delivery checklist; report to the player.
 
 ## What it is
 

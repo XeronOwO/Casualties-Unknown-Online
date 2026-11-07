@@ -199,7 +199,7 @@ docs/backlog/future/krokmp-compatibility-adapter.md | keep | index | docs/backlo
 docs/backlog/future/phase5-tooling-ecosystem.md | keep | index | docs/backlog/README.md
 docs/backlog/future/pvp.md | keep | index | docs/backlog/README.md
 docs/backlog/future/strict-validation-anti-cheat.md | keep | index | docs/backlog/README.md
-docs/backlog/in-progress/wire-surface-baseline.md | keep | index | docs/backlog/README.md
+docs/backlog/done/wire-surface-baseline.md | keep | index | docs/backlog/README.md
 docs/backlog/done/a-limb-component-applied-outside-a-world-throws-every-frame.md | keep | index | docs/backlog/README.md
 docs/backlog/done/escape-closing-the-console-also-opens-the-pause-menu.md | keep | index | docs/backlog/README.md
 docs/backlog/README.md | keep | index | -

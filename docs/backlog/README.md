@@ -73,8 +73,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
-- [The wire surface is recorded beside the protocol version](in-progress/wire-surface-baseline.md) — **Medium** — the schema moves without the number.
-
 ### Review
 
 
@@ -140,6 +138,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [The wire surface is recorded beside the protocol version](done/wire-surface-baseline.md) — **Medium** — the surface is recorded; the gate arms at release.
 
 - [The command console is a contract](done/the-command-console-is-a-contract.md) — **High** — one key, two languages; row 13 read.
 - [Cross-player semantics from the game's own data](done/mod-cross-player-native-semantics.md) — **High** — the cross rows are measured.

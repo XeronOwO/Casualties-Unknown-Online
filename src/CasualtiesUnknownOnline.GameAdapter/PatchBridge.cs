@@ -8,14 +8,16 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// Bind/Unbind are the only writes and happen at construction/disposal.
 /// <para>
 /// The bound bridge also serves the per-domain patch ports the frozen aggregate
-/// does not carry (<see cref="Fluid"/>): each accessor casts the one bound
-/// object, so a patch states which domain it depends on and cannot reach the
-/// rest through that reference (<c>done/patch-bridge-domain-ports.md</c>).
+/// does not carry (<see cref="Fluid"/>): the ports live in
+/// <see cref="PatchPortsBridge"/>, bound beside the aggregate, and each accessor
+/// casts that object, so a patch states which domain it depends on and cannot
+/// reach the rest through that reference (<c>done/patch-bridge-domain-ports.md</c>).
 /// </para>
 /// </summary>
 internal static class PatchBridge
 {
 	private static IPatchBridge? _bound;
+	private static PatchPortsBridge? _ports;
 
 	public static IPatchBridge? Impl => _bound;
 
@@ -26,39 +28,44 @@ internal static class PatchBridge
 	public static ISessionSurfacePatchBridge? SessionSurface => _bound?.SessionSurface;
 
 	/// <summary>The fluid domain's patch port (the simulation tick, the local drink report, the custom-liquid resolution and the tile-touch re-application). The aggregate does not declare those members any more, so this accessor is the only way a patch reaches the fluid domain.</summary>
-	public static IFluidPatchPort? Fluid => _bound as IFluidPatchPort;
+	public static IFluidPatchPort? Fluid => _ports as IFluidPatchPort;
 
 	/// <summary>The layer-transition domain's patch port (the member's own end-of-layer choice). The aggregate does not declare it, so this accessor is the only way that hook reaches the domain.</summary>
-	public static ILayerAdvancePatchPort? LayerAdvance => _bound as ILayerAdvancePatchPort;
+	public static ILayerAdvancePatchPort? LayerAdvance => _ports as ILayerAdvancePatchPort;
 
 	/// <summary>The item category's patch port (the data fact that tells a standing item object from a world item, plus the report for the one refusal the patch layer makes). The aggregate does not declare it, so this accessor is the only way the static patches reach the item data.</summary>
-	public static IItemCategoryPatchPort? ItemCategory => _bound as IItemCategoryPatchPort;
+	public static IItemCategoryPatchPort? ItemCategory => _ports as IItemCategoryPatchPort;
 
 	/// <summary>The wear placement's patch port (the report for the wear the game's own placement would dereference a missing limb in). The aggregate does not declare it, so this accessor is the only way the static patches reach that logger.</summary>
-	public static IWearablePatchPort? Wearable => _bound as IWearablePatchPort;
+	public static IWearablePatchPort? Wearable => _ports as IWearablePatchPort;
 
 	/// <summary>The drag gesture's cue port (the per-frame target the gesture would use the item on). The aggregate does not declare it, so this accessor is the only way the static patches keep the cue current.</summary>
-	public static IDragUseCuePatchPort? DragUseCue => _bound as IDragUseCuePatchPort;
+	public static IDragUseCuePatchPort? DragUseCue => _ports as IDragUseCuePatchPort;
 
 	/// <summary>The spectator mode's patch port (the death receipt's menu button entering the mode instead of leaving the run). The aggregate does not declare it, so this accessor is the only way the menu-return hook reaches the mode.</summary>
-	public static ISpectatorPatchPort? Spectator => _bound as ISpectatorPatchPort;
+	public static ISpectatorPatchPort? Spectator => _ports as ISpectatorPatchPort;
 
 	/// <summary>The save half's patch port (the panel's "Save and exit" taking a CUO cut instead of the native `save.sv`). The aggregate does not declare it, so this accessor is the only way that hook reaches the save system.</summary>
-	public static ISaveCutPatchPort? SaveCut => _bound as ISaveCutPatchPort;
+	public static ISaveCutPatchPort? SaveCut => _ports as ISaveCutPatchPort;
 
-	/// <summary>The end-of-layer panel's close port (the host rule closing what the game's own latch re-opens). Declared on the aggregate as well.</summary>
-	public static ILayerPanelPatchPort? LayerPanel => _bound as ILayerPanelPatchPort;
+	/// <summary>The end-of-layer panel's close port (the host rule closing what the game's own latch re-opens).</summary>
+	public static ILayerPanelPatchPort? LayerPanel => _ports as ILayerPanelPatchPort;
 
 	/// <summary>The world-generation patch port (the generation passes and the cell-keyed block writes). The aggregate does not declare it, so this accessor is the only way a patch reaches those hooks.</summary>
 	public static IWorldGenPatchBridge? WorldGen => _bound?.WorldGen;
 
-	public static void Bind(IPatchBridge impl) => _bound = impl;
+	public static void Bind(IPatchBridge impl, PatchPortsBridge ports)
+	{
+		_bound = impl;
+		_ports = ports;
+	}
 
 	public static void Unbind(IPatchBridge impl)
 	{
 		if (ReferenceEquals(_bound, impl))
 		{
 			_bound = null;
+			_ports = null;
 		}
 	}
 }

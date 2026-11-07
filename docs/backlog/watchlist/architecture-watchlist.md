@@ -23,12 +23,9 @@ assembly), and its interface keeps growing with every feature (see
 
 ## At the limit (no headroom)
 
-- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` (599 measured 2026-11-07) — the one
-  implementation of the frozen `IPatchBridge` aggregate plus the per-domain patch ports the aggregate does
-  not carry (`IFluidPatchPort` today). Every member is a one-line forwarder to a domain handle, so the file
-  grows with the SEAM SURFACE rather than with logic. The seam to split is a port's forwarding half into its
-  own object — the shape the earlier splits already use (`ModContentPatchBridge`, `CarriagePatchBridge`,
-  reached through aggregate properties). Nothing large should land here before that.
+Nothing is at the limit as of 2026-11-07: `GameAdapterBridge.cs` was the last one (599) and its port half left it
+in the patch-ports split below (516 + `PatchPortsBridge` 120). The 600-line gate still trips on any new file that
+reaches it — that is the tripwire, not a licence to grow to 599.
 
 ## Near the limit (watch)
 
@@ -62,6 +59,23 @@ assembly), and its interface keeps growing with every feature (see
 
 
 ## Split since the last revision
+
+- `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs` — split 2026-11-07 (before the next patch change could
+  land in it): the per-domain port half moved into `PatchPortsBridge` (120) — the eight port-shaped seams the frozen
+  aggregate does not carry (`IFluidPatchPort`, `ILayerAdvancePatchPort`, `IItemCategoryPatchPort`, `IWearablePatchPort`,
+  `IDragUseCuePatchPort`, `ISpectatorPatchPort`, `ISaveCutPatchPort`, `ILayerPanelPatchPort`) with their 17 members moved
+  verbatim. The aggregate keeps the frozen `IPatchBridge` surface plus one `Ports` reference (599 → 516); `PatchBridge`
+  binds both objects and resolves every port accessor through `_ports as X`. The shape gate pins both halves member by
+  member (`PatchBridgePortShapeGateTests`) and the compiled contract test reads the adapter the game actually loads
+  (`PatchBridgePortContractTests`); the build, the gates (824) and the 6,618-test suite are the check. The seam is the
+  forwarder shape this page names: a port's forwarding half in its own object, reached through the seam.
+
+  | mechanism | change | evidence |
+  | --- | --- | --- |
+  | the eight port seams | moved verbatim into `PatchPortsBridge` | `PatchBridgePortShapeGateTests` pins every member; build 0/0 |
+  | the seam | `PatchBridge.Bind(impl, ports)`; accessors read `_ports as X` | `PatchBridgePortContractTests.Seam_ExposesTheAggregateAndThePorts` |
+  | the aggregate | implements only `IPatchBridge` (516) | `PatchBridgePortContractTests.Aggregate_DoesNotImplementAnyPort` |
+  | the call sites | unchanged (one accessor cast) | build; suite 6,618/0 |
 
 - `src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs` — split 2026-11-07 (before the next change could
   land in it): the carried-inventory statement and the item-id coordination moved into `ItemCarriedFacts` (150) — the

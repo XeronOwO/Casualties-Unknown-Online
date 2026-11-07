@@ -35,6 +35,8 @@ public class PatchBridgePortContractTests
 
 	private static readonly Type BridgeImpl = Adapter("CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge");
 
+	private static readonly Type PortsImpl = Adapter("CasualtiesUnknownOnline.GameAdapter.PatchPortsBridge");
+
 	private static readonly Type Seam = Adapter("CasualtiesUnknownOnline.GameAdapter.PatchBridge");
 
 	/// <summary>The fluid domain's patch surface, as the port declares it.</summary>
@@ -81,12 +83,12 @@ public class PatchBridgePortContractTests
 		Assert.Empty(ItemCategoryMembers.Intersect(DeclaredMembers(Bridge), StringComparer.Ordinal));
 
 	[Fact]
-	public void Bridge_ImplementsTheItemCategoryPortAndDeclaresEveryMember()
+	public void PortsBridge_ImplementsTheItemCategoryPortAndDeclaresEveryMember()
 	{
-		Assert.True(ItemCategoryPort.IsAssignableFrom(BridgeImpl), "GameAdapterBridge does not implement IItemCategoryPatchPort");
+		Assert.True(ItemCategoryPort.IsAssignableFrom(PortsImpl), "PatchPortsBridge does not implement IItemCategoryPatchPort");
 
 		var missing = ItemCategoryMembers
-			.Where(member => BridgeImpl.GetMethod(member, Any) is null)
+			.Where(member => PortsImpl.GetMethod(member, Any) is null)
 			.ToArray();
 
 		Assert.Empty(missing);
@@ -107,12 +109,12 @@ public class PatchBridgePortContractTests
 		Assert.Empty(WearableMembers.Intersect(DeclaredMembers(Bridge), StringComparer.Ordinal));
 
 	[Fact]
-	public void Bridge_ImplementsTheWearablePortAndDeclaresEveryMember()
+	public void PortsBridge_ImplementsTheWearablePortAndDeclaresEveryMember()
 	{
-		Assert.True(WearablePort.IsAssignableFrom(BridgeImpl), "GameAdapterBridge does not implement IWearablePatchPort");
+		Assert.True(WearablePort.IsAssignableFrom(PortsImpl), "PatchPortsBridge does not implement IWearablePatchPort");
 
 		var missing = WearableMembers
-			.Where(member => BridgeImpl.GetMethod(member, Any) is null)
+			.Where(member => PortsImpl.GetMethod(member, Any) is null)
 			.ToArray();
 
 		Assert.Empty(missing);
@@ -127,25 +129,32 @@ public class PatchBridgePortContractTests
 	public void Aggregate_DoesNotDeclareAnyLayerAdvanceMember() =>
 		Assert.Empty(LayerAdvanceMembers.Intersect(DeclaredMembers(Bridge), StringComparer.Ordinal));
 
+	/// <summary>The watchlist split's guard: the aggregate implements none of the port-shaped seams any more — they live in `PatchPortsBridge`.</summary>
 	[Fact]
-	public void Bridge_ImplementsTheFluidPortAndDeclaresEveryMember()
+	public void Aggregate_DoesNotImplementAnyPort() =>
+		Assert.All(
+			[Port, LayerPort, ItemCategoryPort, WearablePort],
+			port => Assert.False(port.IsAssignableFrom(BridgeImpl), $"GameAdapterBridge must not implement {port.Name} any more"));
+
+	[Fact]
+	public void PortsBridge_ImplementsTheFluidPortAndDeclaresEveryMember()
 	{
-		Assert.True(Port.IsAssignableFrom(BridgeImpl), "GameAdapterBridge does not implement IFluidPatchPort");
+		Assert.True(Port.IsAssignableFrom(PortsImpl), "PatchPortsBridge does not implement IFluidPatchPort");
 
 		var missing = FluidMembers
-			.Where(member => BridgeImpl.GetMethod(member, Any) is null)
+			.Where(member => PortsImpl.GetMethod(member, Any) is null)
 			.ToArray();
 
 		Assert.Empty(missing);
 	}
 
 	[Fact]
-	public void Bridge_ImplementsTheLayerAdvancePortAndDeclaresEveryMember()
+	public void PortsBridge_ImplementsTheLayerAdvancePortAndDeclaresEveryMember()
 	{
-		Assert.True(LayerPort.IsAssignableFrom(BridgeImpl), "GameAdapterBridge does not implement ILayerAdvancePatchPort");
+		Assert.True(LayerPort.IsAssignableFrom(PortsImpl), "PatchPortsBridge does not implement ILayerAdvancePatchPort");
 
 		var missing = LayerAdvanceMembers
-			.Where(member => BridgeImpl.GetMethod(member, Any) is null)
+			.Where(member => PortsImpl.GetMethod(member, Any) is null)
 			.ToArray();
 
 		Assert.Empty(missing);

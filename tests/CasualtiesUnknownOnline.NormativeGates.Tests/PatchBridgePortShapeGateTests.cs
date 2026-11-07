@@ -54,6 +54,8 @@ public class PatchBridgePortShapeGateTests
 
 	private const string SeamFile = AdapterDir + "PatchBridge.cs";
 
+	private const string PortsBridgeFile = AdapterDir + "PatchPortsBridge.cs";
+
 	/// <summary>The frozen aggregate: every member IPatchBridge may declare. Adding one, or removing one without a port to carry it, fails the census.</summary>
 	private static readonly string[] AggregateMembers =
 	[
@@ -259,11 +261,13 @@ public class PatchBridgePortShapeGateTests
 		]),
 	];
 
-	/// <summary>What the one implementation adds to the seams: its domain handles and the one private helper. No other non-public member may appear.</summary>
+	/// <summary>What the one implementation adds to the seams: its domain handles, the ports object and its accessor, and the one private helper. No other non-public member may appear.</summary>
 	private static readonly string[] BridgeImplementationMembers =
 	[
+		"Ports",
 		"_carriage",
 		"_modContent",
+		"_ports",
 		"_remoteMedicalOps",
 		"_remoteDragIntents",
 		"_worldGen",
@@ -287,6 +291,7 @@ public class PatchBridgePortShapeGateTests
 		"Wearable",
 		"WorldGen",
 		"_bound",
+		"_ports",
 	];
 
 	/// <summary>The aggregate census floor — a pin emptied alongside its source would otherwise pass by checking nothing.</summary>
@@ -392,25 +397,46 @@ public class PatchBridgePortShapeGateTests
 		Assert.Empty(doors);
 	}
 
-	[Fact]
-	public void Bridge_ImplementsExactlyTheAggregateAndThePorts() =>
-		Assert.Equal(Census(BridgePorts.Append("IPatchBridge")), Census(BaseList(BridgeFile)));
-
 	/// <summary>
-	/// The class serves the seams and nothing else: its public surface is exactly
-	/// the aggregate's members plus the composed seams' plus the served ports', so
-	/// a new public member is a red whether it was declared on an interface or only
-	/// on the class, and a member removed from an interface but left here is caught
-	/// too (it would be an orphan surface no patch can reach by contract).
+	/// The class serves the aggregate and nothing else: the port-shaped seams live in
+	/// <see cref="PortsBridgeFile"/> since the watchlist split (2026-11-07), so a port
+	/// member reappearing here would be a second door.
 	/// </summary>
 	[Fact]
-	public void Bridge_PublicSurface_IsExactlyTheSeamsItServes()
+	public void Bridge_ImplementsExactlyTheAggregate() =>
+		Assert.Equal(Census(["IPatchBridge"]), Census(BaseList(BridgeFile)));
+
+	/// <summary>
+	/// The class serves the aggregate and its composed seams, nothing else: its public
+	/// surface is exactly the aggregate's members plus the composed seams', so a new
+	/// public member is a red whether it was declared on an interface or only on the
+	/// class, and a member removed from an interface but left here is caught too (it
+	/// would be an orphan surface no patch can reach by contract).
+	/// </summary>
+	[Fact]
+	public void Bridge_PublicSurface_IsExactlyTheAggregateAndItsComposedSeams()
 	{
 		var expected = AggregateMembers
-			.Concat(Seams.Where(seam => seam.Composed).SelectMany(seam => seam.Members))
-			.Concat(Seams.Where(seam => BridgePorts.Contains(seam.Interface, StringComparer.Ordinal)).SelectMany(seam => seam.Members));
+			.Concat(Seams.Where(seam => seam.Composed).SelectMany(seam => seam.Members));
 
 		Assert.Equal(Census(expected), Census(PublicMembers(BridgeFile)));
+	}
+
+	/// <summary>The ports bridge serves exactly the port-shaped seams the aggregate does not carry — one implementation object, bound beside the aggregate.</summary>
+	[Fact]
+	public void PortsBridge_ImplementsExactlyThePortsTheAggregateDoesNotCarry() =>
+		Assert.Equal(Census(BridgePorts), Census(BaseList(PortsBridgeFile)));
+
+	/// <summary>The ports bridge's public surface is exactly the ports' members, and it declares no implementation members of its own: a new member is a new door and fails here.</summary>
+	[Fact]
+	public void PortsBridge_PublicSurface_IsExactlyThePortSeamsItServes()
+	{
+		var expected = Seams
+			.Where(seam => BridgePorts.Contains(seam.Interface, StringComparer.Ordinal))
+			.SelectMany(seam => seam.Members);
+
+		Assert.Equal(Census(expected), Census(PublicMembers(PortsBridgeFile)));
+		Assert.Empty(NonPublicMembers(PortsBridgeFile));
 	}
 
 	[Fact]

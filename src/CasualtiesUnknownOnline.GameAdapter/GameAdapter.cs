@@ -145,7 +145,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction, _remoteInventoryApply, pushApply, medicalOperationApply);
 		_frameTick = new FrameTick(_domains, _playerInteraction, latency);
 
-		PatchBridge.Bind(_bridge); // the only static seam — Harmony patches read the narrow surface, never this instance
+		PatchBridge.Bind(_bridge, _bridge.Ports); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
 
 	public string CapabilityReport { get; private set; } = "Not probed";

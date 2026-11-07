@@ -73,6 +73,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
+- [The wire surface is recorded beside the protocol version](in-progress/wire-surface-baseline.md) — **Medium** — the schema moves without the number.
+
 ### Review
 
 
@@ -120,7 +122,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md) — **Low** — the compatibility adapter.
 - [Handshake identity and refusal reasons](future/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names which dimension failed.
 - [Adapter-shell verification harness](future/adapter-shell-verification-harness.md) — **Low** — keeps the live-game half.
-- [The wire surface is recorded beside the protocol version](future/wire-surface-baseline.md) — **Medium** — the schema moves without the number.
 
 ### Resolved
 

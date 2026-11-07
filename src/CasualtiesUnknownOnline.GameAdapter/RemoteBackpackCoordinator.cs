@@ -95,7 +95,7 @@ internal sealed class RemoteBackpackCoordinator(
 
 	internal void Update()
 	{
-		RemoteBackpackView.SeedPanelBaseline();
+		RemoteBackpackView.ObservePanelItems();
 		RemoteBackpackView.UpdatePendingContainerRefresh();
 		ApplyAccessRule();
 		RemoteBackpackView.ClearIfStale();

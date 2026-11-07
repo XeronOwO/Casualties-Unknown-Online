@@ -30,7 +30,7 @@ internal static class RemoteBackpackView
 	private static bool _autoOpened;
 	// The ids the open container window currently holds. The window rebuilds its
 	// buttons on every refresh, so the slot has no stable identity to remember; the
-	// item's authoritative instance id does — see PopNewlyArrivedPanelItem.
+	// item's authoritative instance id does — see ObservePanelItems.
 	private static readonly HashSet<ulong> _panelItemIds = [];
 	private static bool _panelSeeded;
 
@@ -331,7 +331,6 @@ internal static class RemoteBackpackView
 		}
 
 		PlayerCamera.main.RepopulateContainer();
-		PopNewlyArrivedPanelItem();
 	}
 
 	/// <summary>
@@ -342,10 +341,16 @@ internal static class RemoteBackpackView
 	/// replays the native drop's slot pop (1.5x, settle at 8/s) on that id's button.
 	/// More than one new id is not a landing this window caused, so it does not pop.
 	/// </summary>
-	private static void PopNewlyArrivedPanelItem()
+	internal static void ObservePanelItems()
 	{
 		var camera = PlayerCamera.main;
-		if (camera == null) // Unity object — ==
+		var focused = _focusedBody;
+		if (!IsOpen || camera == null || focused == null) // Unity objects — ==
+		{
+			return;
+		}
+
+		if (camera.currentContainer == null || camera.containerUnloadButtons.Count == 0)
 		{
 			return;
 		}
@@ -383,60 +388,18 @@ internal static class RemoteBackpackView
 		_panelItemIds.Clear();
 		_panelItemIds.UnionWith(seen);
 		_panelSeeded = true;
-		Debug.Log($"[SlotPop] refresh first={first} seen={seen.Count} arrived={arrived.Count}.");
+
+		if (first)
+		{
+			Debug.Log($"[SlotPop] seeded {seen.Count} id(s) for {FocusedSteamId}.");
+			return;
+		}
 
 		if (arrived.Count == 1)
 		{
 			OnlineUi.SlotPop.Play(arrived[0]);
+			Debug.Log("[SlotPop] popped the newly arrived panel slot.");
 		}
-	}
-
-	/// <summary>
-	/// The native window can open through the game's own `OpenContainer` path, which
-	/// calls `RepopulateContainer()` directly and never passes the deferred refresh
-	/// above. Record what the panel holds on the first frame it is actually showing the
-	/// focused clone's container — before that it holds nothing, or the previous
-	/// container's buttons, and seeding then would make the drop look like a baseline.
-	/// </summary>
-	internal static void SeedPanelBaseline()
-	{
-		if (_panelSeeded || !IsOpen)
-		{
-			return;
-		}
-
-		var camera = PlayerCamera.main;
-		var focused = _focusedBody;
-		if (camera == null || focused == null || // Unity objects — ==
-			camera.currentContainer == null || camera.containerUnloadButtons.Count == 0 ||
-			!camera.currentContainer.transform.IsChildOf(focused.transform))
-		{
-			return;
-		}
-
-		foreach (var button in camera.containerUnloadButtons)
-		{
-			if (button == null) // Unity object — ==
-			{
-				continue;
-			}
-
-			var inv = button.GetComponent<InvButton>();
-			var item = inv != null ? inv.refItem : null;
-			if (item == null) // Unity object — ==
-			{
-				continue;
-			}
-
-			var marker = item.GetComponent<RemoteInventoryItemId>();
-			if (marker != null && marker.Id != 0)
-			{
-				_panelItemIds.Add(marker.Id);
-			}
-		}
-
-		_panelSeeded = true;
-		Debug.Log($"[SlotPop] seeded {_panelItemIds.Count} id(s) for {FocusedSteamId}.");
 	}
 
 	private static Container? FindTrackedRemoteContainer()

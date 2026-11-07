@@ -32,6 +32,7 @@ internal static class RemoteBackpackView
 	// buttons on every refresh, so the slot has no stable identity to remember; the
 	// item's authoritative instance id does — see PopNewlyArrivedPanelItem.
 	private static readonly HashSet<ulong> _panelItemIds = [];
+	private static bool _panelSeeded;
 
 	internal static Body? FocusedBody
 	{
@@ -110,6 +111,8 @@ internal static class RemoteBackpackView
 		_readOnly = readOnly;
 		_readOnlyDrag = false;
 		_autoOpened = false;
+		_panelItemIds.Clear();
+		_panelSeeded = false;
 		PlayerCamera.main.radialOpen = true;
 	}
 
@@ -152,6 +155,8 @@ internal static class RemoteBackpackView
 		_containerRefreshDueFrame = -1;
 		_readOnly = false;
 		_autoOpened = false;
+		_panelItemIds.Clear();
+		_panelSeeded = false;
 
 		// Closing the focus also exits the native radial-open state. This keeps
 		// the remote backpack and remote medical views mutually exclusive: if the
@@ -345,7 +350,7 @@ internal static class RemoteBackpackView
 			return;
 		}
 
-		var first = _panelItemIds.Count == 0;
+		var first = !_panelSeeded;
 		var seen = new HashSet<ulong>();
 		var arrived = new List<Transform>();
 		foreach (var button in camera.containerUnloadButtons)
@@ -377,11 +382,55 @@ internal static class RemoteBackpackView
 
 		_panelItemIds.Clear();
 		_panelItemIds.UnionWith(seen);
+		_panelSeeded = true;
 
 		if (arrived.Count == 1)
 		{
 			OnlineUi.SlotPop.Play(arrived[0]);
 		}
+	}
+
+	/// <summary>
+	/// The native window can open through the game's own `OpenContainer` path, which
+	/// calls `RepopulateContainer()` directly and never passes the deferred refresh
+	/// above. Record what the panel holds on the first frame it is open, so the drop
+	/// that follows is the only new id and the pop lands on that slot.
+	/// </summary>
+	internal static void SeedPanelBaseline()
+	{
+		if (_panelSeeded || !IsOpen)
+		{
+			return;
+		}
+
+		var camera = PlayerCamera.main;
+		if (camera == null) // Unity object — ==
+		{
+			return;
+		}
+
+		foreach (var button in camera.containerUnloadButtons)
+		{
+			if (button == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var inv = button.GetComponent<InvButton>();
+			var item = inv != null ? inv.refItem : null;
+			if (item == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var marker = item.GetComponent<RemoteInventoryItemId>();
+			if (marker != null && marker.Id != 0)
+			{
+				_panelItemIds.Add(marker.Id);
+			}
+		}
+
+		_panelSeeded = true;
 	}
 
 	private static Container? FindTrackedRemoteContainer()

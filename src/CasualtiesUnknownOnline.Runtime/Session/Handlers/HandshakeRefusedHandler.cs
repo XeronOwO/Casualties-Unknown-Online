@@ -50,12 +50,14 @@ public sealed class HandshakeRefusedHandler(
 		}
 
 		// English log with the key, so the record is readable beside the host's own line; the player sees the
-		// same facts rendered from this client's catalogue.
+		// same facts rendered from this client's catalogue, and the rendered line is logged too because it is
+		// what the status line shows — the acceptance reads the line, not a claim about it.
+		var line = HandshakeRefusalText.Render(_localization, msg);
 		_log.LogWarning(
-			"[Handshake] the host refused this client: {Dimension} (host {Host}, member {Member}, detail {Detail}) — ending session.",
-			(HandshakeDimension)msg.Dimension, msg.HostValue, msg.GuestValue, msg.Detail);
+			"[Handshake] the host refused this client: {Dimension} (host {Host}, member {Member}, detail {Detail}) — status line: {Line}",
+			(HandshakeDimension)msg.Dimension, msg.HostValue, msg.GuestValue, msg.Detail, line);
 
-		_notices.Publish(HandshakeRefusalText.Render(_localization, msg));
+		_notices.Publish(line);
 		session.EndSession();
 	}
 }

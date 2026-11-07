@@ -297,7 +297,7 @@ classifies every ticket into one of: `corpus page` (a page exists and agrees), `
 | 272 | `done/runtime-entity-markerless-bind-absorption.md` | open; a same-prefab copy absorbs a creation | `mechanics/enemy-combat.md` | `corpus page` (open) | the enemy page's spawn classification is the family |
 | 273 | `review/save-layer-end-save-and-restore.md` | code and machine verification complete | `cross-cutting/saves-and-recovery.md` | `corpus page` | S2 of the save family |
 | 274 | `review/save-mid-run-consistent-cut.md` | landed 2026-09-17 | `cross-cutting/saves-and-recovery.md` | `corpus page` | S3 of the same family |
-| 275 | `review/save-native-character-field-parity.md` | implemented | `cross-cutting/saves-and-recovery.md` | `corpus page` | S3.4b: the native character fields are among the values the archive must carry |
+| 275 | `done/save-native-character-field-parity.md` | implemented | `cross-cutting/saves-and-recovery.md` | `corpus page` | S3.4b: the native character fields are among the values the archive must carry |
 | 276 | `review/save-native-run-field-parity.md` | S3.4a landed | `cross-cutting/saves-and-recovery.md` | `corpus page` | S3.4a: the native run fields are the same values family |
 | 277 | `review/save-system-mid-run-and-layer-end.md` | S1-S4 code-complete | `cross-cutting/saves-and-recovery.md` | `corpus page` | the whole save family's page |
 | 278 | `done/suppressed-native-call-sounds-stay-unheard.md` | rows 4 and 5-8 judged, 1-4b unread | `surfaces/remote-body-presentation.md` | `corpus page` (open rows) | a sound family with unread rows; the presentation page names it |

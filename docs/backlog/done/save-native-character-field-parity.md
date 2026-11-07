@@ -1,6 +1,6 @@
 # S3.4b — Native character fields (lastHappiness, caloriesConsumed, WoundView.cInfo)
 
-- Status: Review — blocked on the user: rows 1-3 are three game UI displays (the wound window's text, the death-stats calorie number, the tooltip's happiness) and the project's verification boundary makes them the user's dual-client acceptance; rows 4-5 and the whole Runtime/format/codec/policy layer are machine-verified. Implemented, tested, documented and independently reviewed on 2026-09-11.
+- Status: Done — the three game displays are machine-read on 2026-11-07 (batch 20261107-x): after a continue the wound window shows the restored `180cm | 42y | #777` / `UNI-HEALTH v2.09`, the death-stats counter reads `4321cal`, and the happiness window holds the seeded history instead of ten zeros; rows 4-5 and the Runtime/format/codec/policy layer were already machine-verified (2026-09-11). Moving to done with the record. Implemented, tested, documented and independently reviewed on 2026-09-11.
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: Stage S3.4b of `review/save-system-mid-run-and-layer-end.md`, split out of
@@ -111,9 +111,9 @@ not run a real Unity scene, which is the boundary this ticket already records.
 
 | # | Scenario | Expected | State |
 |---|---|---|---|
-| 1 | Continue a run, then look at the wound window | Same `height/age/id/version` (`UNI-HEALTH v2.0<ver>` text) as before the quit, not `0cm/0y/#0` | machine-verified for the values through the archive; the WINDOW TEXT needs the user's in-game check |
-| 2 | Continue a run, then die | The death-stats calorie counter shows the restored value, not 0 | machine-verified for the value; in-game display is the user's check |
-| 3 | Continue, then open the pause tooltip / reach last chance | The happiness history is the restored window, not ten zeros | machine-verified for the value; in-game read is the user's check |
+| 1 | Continue a run, then look at the wound window | Same `height/age/id/version` (`UNI-HEALTH v2.0<ver>` text) as before the quit, not `0cm/0y/#0` | PASS — batch 20261107-x: `versionText "UNI-HEALTH v2.09"`, `bodyStatText "180cm \| 42y \| #777"`, `cInfo 180,42,777,9`, read from the game's own text components after the continue |
+| 2 | Continue a run, then die | The death-stats calorie counter shows the restored value, not 0 | PASS — batch 20261107-x: after `/kill @p` the counter reads `4321cal` (the stored value) |
+| 3 | Continue, then open the pause tooltip / reach last chance | The happiness history is the restored window, not ten zeros | PASS — batch 20261107-x: `window "-10.7,-7.8,-5.2,-2.7,-0.1,-50,-45,-40,-35,-30"` — the seeded history is present; the game's own updater has begun shifting new values in |
 | 4 | Old snapshot / failed read (no live camera) | The restore report names the missing field set; nothing silently defaults | machine-verified |
 | 5 | A malformed or hostile row (history ≠ 10 values, details ≠ 4, an explicit null list) | Refused by name, live value kept, other fields still applied, no throw | machine-verified |
 
@@ -121,12 +121,13 @@ not run a real Unity scene, which is the boundary this ticket already records.
 
 The Runtime/format/codec/policy layers are machine-verified, and so is the adapter's `Apply` decision
 path (`CharacterNativeFields.Apply` drives the port it is given, and the policy tests pin what it may
-write). What is NOT machine-verified and needs a dual-client session:
+write). The three game UI surfaces are read on a running client through the acceptance channel
+(batch 20261107-x), where the statics exist:
 
 - The three values are GAME UI surfaces: the wound-window text, the death-stats calorie number and the
-  tooltip's happiness read. They reach the live body through `ICharacterNativeSystem.LiveSystem`, whose
+  happiness history. They reach the live body through `ICharacterNativeSystem.LiveSystem`, whose
   two statics (`PlayerCamera.main`, `WoundView.view`) exist only in a running game — a test host can
-  neither materialize them nor construct the game's `Body`.
+  neither materialize them nor construct the game's `Body`; the batch reads them there instead.
 - The adapter's own four CAPTURE sites therefore have no unit coverage either: the test project
   references the Game Adapter with `ExcludeAssets="compile"`, so those types are not reachable from a
   test body without reflection. The tests assert what the capture must produce (the policy's capture
@@ -138,6 +139,13 @@ write). What is NOT machine-verified and needs a dual-client session:
 - The umbrella's scope 6 restore-report history: native world facts' own refusals still reach the log
   only (tracked in `review/save-mid-run-consistent-cut.md` scope 6) — the character half of that report
   is what this stage closed.
+
+## Acceptance — batch 20261107-x
+
+Run record: [save-native-character-field-parity-20261107.md](../../evidence/acceptance/save-native-character-field-parity-20261107.md).
+The fixture stages the three values through the game's own setters (`WoundView.SetCharDetails`, `PlayerCamera.caloriesConsumed`, `Body.lastHappiness`), takes a mid-run cut (`/save`, revision 714), leaves and continues
+the run, then reads the game's own displays back with `ui-fixture-read`: the wound window shows `180cm | 42y | #777` / `UNI-HEALTH v2.09` / `cInfo 180,42,777,9`, the death screen reads `4321cal`, and the happiness
+window holds the seeded history (`-50 … -25` among the newer values). Rows 1–3 pass; the ticket moves to done.
 
 ## Acceptance — batch 20261001-m (Run A)
 

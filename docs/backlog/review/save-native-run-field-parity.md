@@ -76,7 +76,7 @@ does it (the generation boundary reads the live world, so both sides agree).
 ## Landed (S3.4b)
 
 The three character-level fields landed as their own ticket
-(`review/save-native-character-field-parity.md`): they ride `CharacterDataMsg.NativeFields` (read off
+(`done/save-native-character-field-parity.md`): they ride `CharacterDataMsg.NativeFields` (read off
 the live scene at the cut and at each 1 Hz report, all-or-nothing), are written back by the local
 restore path's second pass, and a snapshot that carries none of them — or a malformed one — is named as
 damage in the restore report (decision 171). They hook the seam described above rather than opening a

@@ -26,7 +26,7 @@
   at each 1 Hz report, all-or-nothing), are written back by the restore path's second pass, and a
   snapshot that carries none of them is named as damage in the restore report (decision 171); the same
   cycle split the restore's write half out of `CharacterDataSync`
-  (`review/save-native-character-field-parity.md`). An independent adversarial pass on S3.4b then found
+  (`done/save-native-character-field-parity.md`). An independent adversarial pass on S3.4b then found
   one blocker (the interaction services' `CloneCharacter` dropped the three fields from the snapshot it
   saves over the stored character), two majors (a 1–9 element happiness row was prefix-written into the
   ten-slot game window; the restore report both under-reported malformed fields and blamed characters

@@ -1,6 +1,6 @@
 # Restore leaves the member's pre-cut carried rows in the custody table
 
-- Status: Review — the reading is on record (2026-11-08, batch `20261108-a`); the open question is which restore step gives the member's carried items new instance ids without retiring the rows that named the old ones.
+- Status: Done — the restore no longer keeps a character no present peer claims (2026-11-08, batch `20261108-e`, deployed `0.1.0+9efb0f6c`): at the continue with the member absent it dropped `8 carried row(s) of 2 character(s) no present peer claims`, and after the member rejoined as a NEW character the host's custody line settled at `rows=316 objects=316 mismatches=0`; the claimed host's four carried items survived the filter. Readings: docs/evidence/acceptance/restore-stale-carried-rows-20261108-e.md
 - Priority: Medium
 - Category: Persistence / save system — the character restore's instance-id handling
 - Source: found while reading the layer-end continue with a member in the world (`review/save-layer-end-save-and-restore.md`, row 1)

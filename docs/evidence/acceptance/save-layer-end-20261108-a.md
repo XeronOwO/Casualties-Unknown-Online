@@ -40,7 +40,7 @@ Batches: `.acceptance/20261108-a` (lobby 109775243782489646), `.acceptance/20261
 [ItemCustody] rows=314 objects=306 mismatches=4 — the first ones: 5197989525:RowWithoutObject:Carried, 9492956821:RowWithoutObject:Carried, 13787924117:RowWithoutObject:Carried, 18082891413:RowWithoutObject:Carried
 ```
 
-- Those four ids are the member's pre-cut carried items; its restored items carry new instance ids (`35262760597@1:trashbag; 22377858709@3:lantern; 26672826005@4:dogfood; 30967793301@5:waterbottle` in the stored character). The player-visible items are correct on both clients, but the kernel table keeps four rows that no object answers. Filed as `docs/backlog/review/restore-leaves-stale-carried-rows.md`.
+- Those four ids are the member's pre-cut carried items; its restored items carry new instance ids (`35262760597@1:trashbag; 22377858709@3:lantern; 26672826005@4:dogfood; 30967793301@5:waterbottle` in the stored character). The player-visible items are correct on both clients, but the kernel table keeps four rows that no object answers. Filed as `docs/backlog/done/restore-leaves-stale-carried-rows.md` (fixed and read in batch `20261108-e`).
 
 ## What this settles, and what it does not
 

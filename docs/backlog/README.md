@@ -103,7 +103,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
-- [Restore leaves stale carried rows](review/restore-leaves-stale-carried-rows.md) — **Medium** — stale rows after a member rejoins.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
@@ -137,6 +136,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Restore drops unclaimed characters' carried rows](done/restore-leaves-stale-carried-rows.md) — **Medium** — no rows for a character the session never bound.
 - [S3.4b — Native character fields](done/save-native-character-field-parity.md) — **Medium-High** — the three displays read back after a continue.
 - [Handshake identity and refusal reasons](done/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names the dimension in the guest's own words.
 - [The wire surface is recorded beside the protocol version](done/wire-surface-baseline.md) — **Medium** — the surface is recorded; the gate arms at release.

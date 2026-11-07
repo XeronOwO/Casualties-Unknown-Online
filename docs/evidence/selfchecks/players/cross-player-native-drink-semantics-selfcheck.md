@@ -1,6 +1,6 @@
 # Cross-player drink semantics from the game's own data self-check
 
-Owner cycle: `todo/mod-cross-player-native-semantics.md` Part B, the consume
+Owner cycle: `done/mod-cross-player-native-semantics.md` Part B, the consume
 (drink) chain. Decision: drinking stops carrying a table — the game's own
 `ItemInfo.usable` flag answers WHO may be given a drink, the operator's client
 runs the item's own `useAction` and diverts the native

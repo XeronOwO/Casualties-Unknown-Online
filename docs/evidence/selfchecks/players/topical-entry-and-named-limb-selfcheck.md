@@ -1,6 +1,6 @@
 # The topical entry and its named limb self-check
 
-Owner cycle: the topical chain of `review/mod-cross-player-native-semantics.md`. A topical application is the
+Owner cycle: the topical chain of `done/mod-cross-player-native-semantics.md`. A topical application is the
 **medical view's** action — its native call site is the same wound-view release the limb tool uses — so the
 world drag (the inventory use: eat, drink, wear) must not carry it, and the limb it lands on is the one the
 operator picked (decision 246, the user's 2026-10-08 ruling applied to this family).

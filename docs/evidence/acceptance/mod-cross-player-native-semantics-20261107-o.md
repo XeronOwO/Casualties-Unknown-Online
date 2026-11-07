@@ -79,16 +79,50 @@ viewOpen=true, displayBodyName="MedicalDisplay_110000135D30695"`):
     [MedicalView] measured 10.00 ml from paincream's own native limb action for
     76561198863287957 limb 5 (id 1396185352131).
 
+### Row (b), second reading — the dose alone (17:47:41)
+
+The patient's limb was fully healed first (`skinHealth=100, bleedAmount=0, pain=0`), so no wound and
+no natural healing could move the marker:
+
+    remote-medical-release item=paincream limb=5
+    → ok=true, slot=0, viewWasOpen=true, dragAfter="none"
+    [MedicalView] measured 10.00 ml from paincream's own native limb action for
+    76561198863287957 limb 5 (id 1434840057795).
+    [ItemUse] local body received 1 topical stack(s) from 76561198281246659 (limb 5).
+    limb before: skinHealth=100, bleedAmount=0, pain=0, disinfectionTime=0
+    limb after:  skinHealth=100, bleedAmount=0, pain=0, disinfectionTime=299.593
+
+The marker's only source is reliefcream's `onHealthUse` on the patient's client
+(`Liquids.cs:1049-1075` → `Limb.SetDisinfect(300f * clamp01(ml * 0.1f))`, `Limb.cs:492-495`), and a
+10 ml dose sets it to 300. The limb's health fields did not move: the dose is the only cause.
+
+### Row (c) — the third-party view
+
+Steam2 joined the running lobby as a third peer while the batch was live (`inWorld=true`; the late-join
+gate released its loading screen). During the release its client logged:
+
+    [LimbEvent] applied 15 limbs to 76561198863287957.                         17:47:31.327
+    [CarriedSync] applied paincream (id 1434840057795) to 76561198281246659's
+      snapshot — re-rendering the clone.                                       17:47:41.116
+
+and its traffic line at 17:47:31.642 lists the ordinary streams (`CharacterData`, `PlayerVitals`,
+`LimbStateEvent`) with `loss=0.0% (26ok/0lost)` on the third peer's link. No `[ItemUse]` or
+`[MedicalView]` line appears on Steam2's client: the dose stays between the operator and the patient,
+and the third peer's view rides the ordinary character sync.
+
 ## What this settles
 
 - **Row (a):** the no-application half holds in both shapes — a world release drops the carrier
   natively (two `[ItemDropped]` lines), and a release on the displayed backpack's use centre returns
   it without applying anything. The row's "drops instead of applying" is observed; the return shape
   is the display's own affordance, not an application.
-- **Row (b):** the operator half is measured — the release measured `10.00` ml from the item's own
-  native limb action and the host put `limb 5` on the request. The patient half is open: the guest
-  log carries no application line, and the limb afterwards (`skinHealth=0, bleedAmount=48.99,
-  pain=90.112` against the seed's `-79.2/49.36/169.988`) is not attribution against natural healing.
+- **Row (b):** both halves are measured. The operator's release measured `10.00 ml` from the item's
+  own native limb action; the patient's client logged the applied stack and its limb's
+  `disinfectionTime` moved `0→299.54` and `0→299.593`, the second on a fully healed limb so the dose
+  is the only cause.
+- **Row (c):** the third peer stays on the ordinary character sync — it applied the patient's limb
+  state and the operator's carried-item change in the release's own second, with no error, no
+  misdirected use and no loss on its link.
 
 ## The give-path finding
 
@@ -96,12 +130,10 @@ viewOpen=true, displayBodyName="MedicalDisplay_110000135D30695"`):
 contents 0`), while `item-provide mode=create` creates condition 1; the guest materialized the give
 cream as `condition 1.00`. The host-side give item is unusable, and the native admission gate
 (`ItemInfo.ActuallyUsableOnLimb`) refuses it. This is a defect of the give path for liquid containers,
-not of the topical entry, and needs its own ticket.
+not of the topical entry; it is filed as `docs/backlog/todo/give-creates-empty-liquid-containers.md`.
 
 ## Open
 
-- Row (b)'s patient half: prove the patient's client ran the applied dose — a patient-side log line
-  or a controlled before/after that isolates the cream from natural healing.
-- The give-path condition-0 defect: file a ticket.
 - The display's use-centre return: decide whether "return to the sender" is the intended refusal
   shape, by reading `ItemUseFamilyClassifier` and `PlayerCamera.TryPerformRadialAction`.
+

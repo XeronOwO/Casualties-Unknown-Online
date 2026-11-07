@@ -246,7 +246,7 @@ docs/backlog/done/mod-api-no-opaque-envelopes.md | keep | index | docs/backlog/R
 docs/backlog/done/mod-content-attribute-declarations.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-fingerprint.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-nested-member-contracts.md | keep | index | docs/backlog/README.md
-docs/backlog/review/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
+docs/backlog/done/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
 docs/backlog/done/joining-a-running-world-sticks-at-the-loading-screen.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
@@ -686,7 +686,7 @@ docs/evidence/acceptance/mod-command-request-timeout-20261012-c.md | keep | clai
 docs/evidence/acceptance/mod-content-kind-with-no-provider-20261012-c.md | keep | claim | docs/backlog/done/mod-content-kind-with-no-provider.md
 docs/evidence/acceptance/mod-content-typed-registration-20261012-c.md | keep | claim | docs/backlog/done/mod-content-typed-registration.md
 docs/evidence/acceptance/mod-crafting-quality-labels-20261012-c.md | keep | claim | docs/backlog/done/mod-crafting-quality-labels.md
-docs/evidence/acceptance/mod-cross-player-native-semantics-20261107-o.md | keep | claim | docs/backlog/review/mod-cross-player-native-semantics.md
+docs/evidence/acceptance/mod-cross-player-native-semantics-20261107-o.md | keep | claim | docs/backlog/done/mod-cross-player-native-semantics.md
 docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261008-a.md | keep | claim | docs/evidence/acceptance/20261008-a-scope.md
 docs/evidence/acceptance/mod-cross-player-solid-food-semantics-20261011-i.md | keep | claim | docs/evidence/acceptance/20261011-i-scope.md
 docs/evidence/acceptance/mod-data-sync-model-20260927.md | keep | claim | docs/backlog/done/mod-data-sync-model.md
@@ -980,14 +980,14 @@ docs/evidence/selfchecks/players/cross-player-component-tool-use-selfcheck.md | 
 docs/evidence/selfchecks/players/cross-player-drinkable-medicine-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/cross-player-limb-tool-use-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/cross-player-medicine-use-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/players/cross-player-native-drink-semantics-selfcheck.md | keep | claim | docs/backlog/review/mod-cross-player-native-semantics.md
+docs/evidence/selfchecks/players/cross-player-native-drink-semantics-selfcheck.md | keep | claim | docs/backlog/done/mod-cross-player-native-semantics.md
 docs/evidence/selfchecks/players/cross-player-native-injection-semantics-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/cross-player-native-limb-tool-semantics-selfcheck.md | keep | claim | docs/backlog/done/limb-tool-family-protection-gaps.md
-docs/evidence/selfchecks/players/cross-player-native-topical-semantics-selfcheck.md | keep | claim | docs/backlog/review/mod-cross-player-native-semantics.md
-docs/evidence/selfchecks/players/cross-player-native-wear-semantics-selfcheck.md | keep | claim | docs/backlog/review/mod-cross-player-native-semantics.md
+docs/evidence/selfchecks/players/cross-player-native-topical-semantics-selfcheck.md | keep | claim | docs/backlog/done/mod-cross-player-native-semantics.md
+docs/evidence/selfchecks/players/cross-player-native-wear-semantics-selfcheck.md | keep | claim | docs/backlog/done/mod-cross-player-native-semantics.md
 docs/evidence/selfchecks/players/cross-player-opiate-use-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/cross-player-shrapnel-and-timed-tool-use-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/players/cross-player-solid-food-semantics-selfcheck.md | keep | claim | docs/backlog/review/mod-cross-player-native-semantics.md
+docs/evidence/selfchecks/players/cross-player-solid-food-semantics-selfcheck.md | keep | claim | docs/backlog/done/mod-cross-player-native-semantics.md
 docs/evidence/selfchecks/players/cross-player-timed-liquid-medicine-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/cross-player-topical-use-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/cross-player-wear-use-selfcheck.md | keep | claim | docs/backlog/review/cross-player-drag-use-model-bounds.md
@@ -1321,3 +1321,4 @@ docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md | keep | 
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-k.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-l.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-n.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
+docs/backlog/todo/give-creates-empty-liquid-containers.md | keep | index | docs/backlog/README.md

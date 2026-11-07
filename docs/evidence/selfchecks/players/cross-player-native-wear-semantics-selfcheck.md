@@ -1,6 +1,6 @@
 # Cross-player wear semantics from the game's own data self-check
 
-Owner cycle: `todo/mod-cross-player-native-semantics.md` Part B, the wearable
+Owner cycle: `done/mod-cross-player-native-semantics.md` Part B, the wearable
 (wear) chain. Decision: putting an item on another player stops carrying a table
 — the game's own item data answers whether the item is a wearable, which limb it
 goes on and which slot it occupies (`ItemInfo.wearable` / `desiredWearLimb` /

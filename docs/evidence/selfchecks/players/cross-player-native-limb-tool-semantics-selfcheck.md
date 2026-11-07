@@ -1,6 +1,6 @@
 # Cross-player limb-tool semantics from the game's own data self-check
 
-Owner cycle: `review/mod-cross-player-native-semantics.md` Part B, the limb-tool chain — the
+Owner cycle: `done/mod-cross-player-native-semantics.md` Part B, the limb-tool chain — the
 last table of the cross-player item-use family. Decision: applying a limb tool to another
 player stops carrying a table — the item's own `ItemInfo.usableOnLimb` plus an assigned
 `useLimbAction` decide the family and the treated player's own client runs that delegate —

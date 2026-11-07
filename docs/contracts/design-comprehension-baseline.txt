@@ -6,7 +6,6 @@
 docs/backlog/review/adapter-capability-catalog.md
 docs/backlog/review/cross-player-drag-use-feedback.md
 docs/backlog/review/cross-player-drag-use-model-bounds.md
-docs/backlog/review/mod-cross-player-native-semantics.md
 docs/backlog/review/pinyin-search-standalone-mod.md
 docs/backlog/review/plugin-host-shell.md
 docs/backlog/review/recursive-crafting-mod.md

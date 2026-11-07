@@ -1,6 +1,6 @@
 # Cross-player injection semantics from the game's own data self-check
 
-Owner cycle: `review/mod-cross-player-native-semantics.md` Part A (cut out of
+Owner cycle: `done/mod-cross-player-native-semantics.md` Part A (cut out of
 `done/mod-content-ceiling.md` Part 2 stage 2). Decision: the injection chain stops
 carrying an id/coefficient table — the game's own registries answer WHO may be
 injected, the operator's client runs the item's own native limb action for the

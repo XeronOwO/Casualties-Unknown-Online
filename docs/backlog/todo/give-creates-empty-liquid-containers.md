@@ -32,10 +32,47 @@ The item family table (`docs/design/items/README.md`) and the topical family pag
 a container is the same item on every client, and the game's own creation path is the only template a console
 grant may copy — the defect is that the grant path does not reproduce the template's condition and contents.
 
-## What has to be found
+## Chain
 
-Where `/give` builds its item: the console command's grant path versus `Utils.Create` — whether the grant path
-clears the template's condition and contents, or never copies them.
+1. Entry: the console `/give <definition> [state]` verb → `PlayerItemGiveService` (`src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemGiveService.cs:251`) → `_creation.TryCreate(definitionId, state, out item, out refusal)`.
+2. Grant: `src/CasualtiesUnknownOnline.GameAdapter/Items/ItemGrantSource.cs:35-46` → `ItemDefinitionTable.TryResolve` (`ItemDefinitionTable.cs:45` → `ItemPrefabResolver.Load(id)` = `Resources.Load<GameObject>(id)` → `prefab.GetComponent<Item>()`) → `ItemStateCodec.CaptureItem(template, slotIndex: -1)`.
+3. The capture (`ItemStateCodec.cs:84-110`) reads `item.condition` = 0 — the prefab ASSET's serialized field; the C# initializer `reversing/Assembly-CSharp/Assembly-CSharp/Item.cs:7174 public float condition = 1f;` only runs for editor-created components, never for the saved asset — and `CaptureLiquids(item)` reads `WaterContainerItem.stack`, which is null on the asset because `Awake` never ran (`WaterContainerItem.Awake` fills it from `LiquidItemInfo.defaultContents` only on an instance).
+4. Bind: `ItemStateDocument.TryBind(template, capture, document, …)` → `bound.InstanceId = _ids.AllocateId()` — the state document therefore carries condition 0 and no stacks; the receiving item is empty.
+5. Player-visible effect: the wound view's native gate `PlayerCamera.ApplyWoundItem` (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:739-763`) requires `body.conscious && item.Stats.ActuallyUsableOnLimb(item)`, and `ItemInfo.ActuallyUsableOnLimb` (`ItemInfo.cs:9-25`) asks any liquid stack `healthUsable` — with no stacks the cream is refused; the drop reads `container contents 0`.
+
+The game's own creation, for contrast: `/spawn` (`reversing/Assembly-CSharp/Assembly-CSharp/ConsoleScript.cs:635-670`) → `Utils.Create(id, pos, rot)` = `Object.Instantiate(Resources.Load(id), …)` (so `Awake` fills the default contents) → `item.SetCondition(num7)` with the default `1f` → the item is full and condition 1.
+
+## Entrances
+
+| Entrance | Input | Native call site it mirrors | Carries what the behaviour needs |
+|---|---|---|---|
+| `/give <definition> [state]` | console, host | the game's `/spawn` + `SetCondition(1f)` | yes — a blank asset state was never what a spawn produces |
+| `/summon` (item kind) | console, host | the game's `/spawn` at the anchor | yes — same seam (`WorldSummoner.cs:165`) |
+| `item-provide mode=create` | acceptance driver | `Utils.Create` directly — the control | n/a (control, not CUO's seam) |
+| trader stock | `TraderRecruitCoordinator.cs:319` captures a LIVE item | — | not this seam |
+
+## The fix (designed 2026-11-07)
+
+`ItemGrantSource.TryCreate` must create the item the way the game does, not copy the asset: instantiate the
+template (`ItemPrefabResolver.InstantiateResource(template.gameObject, Vector3.zero, Quaternion.identity)`), get
+its `Item`, `SetCondition(1f)` as the game's own spawn verb does, capture THAT instance, then deactivate
+(`SetActive(false)`) and destroy it before its `Start` runs — an item that never starts never reports itself to
+the item domain — and keep the existing describe/overlay/bind/allocate order. The class doc's "no temporary scene
+instance is created" sentence becomes "the instance never starts, so no spawn report fires".
+
+## Family (2026-11-07)
+
+The class is "a state copied from a prefab ASSET instead of a game-created instance". Member census:
+
+- `ItemGrantSource.cs:46` — the one member that becomes a player's item; fixed here.
+- `ItemStateDocument.DefinitionSchema` (`ItemStateDocument.cs:74-78`) — the only other template capture. It derives
+  the completion SCHEMA, and the schema builder (`:406-432`) reads component type names and fields only, never values,
+  so the blank asset values never reach a player. It stays as it is, and the gate pins it as the one remaining
+  template capture.
+- The acceptance recipe's `item-provide mode=create` is the game's own `Utils.Create` — the control, not a member.
+
+The structural point: the grant seam is the only place the item domain turns a definition into a fact, so fixing it
+there fixes both console verbs at once; no caller needs its own copy of the rule.
 
 ## Acceptance
 

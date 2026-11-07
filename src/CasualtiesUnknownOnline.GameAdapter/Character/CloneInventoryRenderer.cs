@@ -178,10 +178,6 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 
 		obj.SetActive(true);
 		obj.transform.localPosition = Vector3.zero;
-		if (wearLimb == null) // a first render is not a landing — see SlotPop
-		{
-			OnlineUi.SlotPop.PlayOnLanding(parent);
-		}
 		var item = obj.GetComponent<Item>();
 
 		// Apply the snapshot's authoritative condition/favourite/liquid state.

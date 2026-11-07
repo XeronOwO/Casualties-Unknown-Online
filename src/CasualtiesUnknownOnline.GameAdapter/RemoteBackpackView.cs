@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using UnityEngine;
 
@@ -27,6 +28,10 @@ internal static class RemoteBackpackView
 	private static bool _readOnly;
 	private static bool _readOnlyDrag;
 	private static bool _autoOpened;
+	// The ids the open container window currently holds. The window rebuilds its
+	// buttons on every refresh, so the slot has no stable identity to remember; the
+	// item's authoritative instance id does — see PopNewlyArrivedPanelItem.
+	private static readonly HashSet<ulong> _panelItemIds = [];
 
 	internal static Body? FocusedBody
 	{
@@ -321,6 +326,62 @@ internal static class RemoteBackpackView
 		}
 
 		PlayerCamera.main.RepopulateContainer();
+		PopNewlyArrivedPanelItem();
+	}
+
+	/// <summary>
+	/// The native container window rebuilds its slot buttons from the container's
+	/// children on every refresh, so a slot has no stable identity to remember. The
+	/// item's authoritative instance id does: the first refresh after the window opens
+	/// only records what it holds, and a later refresh that gains exactly one new id
+	/// replays the native drop's slot pop (1.5x, settle at 8/s) on that id's button.
+	/// More than one new id is not a landing this window caused, so it does not pop.
+	/// </summary>
+	private static void PopNewlyArrivedPanelItem()
+	{
+		var camera = PlayerCamera.main;
+		if (camera == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var first = _panelItemIds.Count == 0;
+		var seen = new HashSet<ulong>();
+		var arrived = new List<Transform>();
+		foreach (var button in camera.containerUnloadButtons)
+		{
+			if (button == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var inv = button.GetComponent<InvButton>();
+			var item = inv != null ? inv.refItem : null;
+			if (item == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var marker = item.GetComponent<RemoteInventoryItemId>();
+			if (marker == null || marker.Id == 0)
+			{
+				continue;
+			}
+
+			seen.Add(marker.Id);
+			if (!first && !_panelItemIds.Contains(marker.Id))
+			{
+				arrived.Add(button.transform);
+			}
+		}
+
+		_panelItemIds.Clear();
+		_panelItemIds.UnionWith(seen);
+
+		if (arrived.Count == 1)
+		{
+			OnlineUi.SlotPop.Play(arrived[0]);
+		}
 	}
 
 	private static Container? FindTrackedRemoteContainer()

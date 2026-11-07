@@ -37,17 +37,16 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 /// </para>
 ///
 /// <para>
-/// Reach, stated rather than implied: the scan surface is the four classifier bodies, the three domain-path
+/// Reach, stated rather than implied: the scan surface is the five classifier bodies, the three domain-path
 /// bodies (`FindWorldItem`, `OnItemDestroyed`, `BindToContainer`), the rule's own body and the display-proxy
-/// predicate's body, each resolved through Roslyn; the census floors (four classifiers, six domain-path tests)
+/// predicate's body, each resolved through Roslyn; the census floors (five classifiers, six domain-path tests)
 /// make a renamed type or an emptied scan fail loudly instead of checking nothing. The matchers are pinned with
 /// positive and negative samples. What is NOT reached: whether the runtime landing is right — a scene scan
 /// needs the game's own objects, so the three-client acceptance run reads the row (both ids in the host's world
 /// table, both materialized on the third peer, no <c>terminal</c> entry, no <c>InvalidTransition</c>), and the
-/// rule's behaviour on real objects is that run's, not this gate's. The one classifier in this family the gate
-/// does NOT cover is <c>ItemWorldSync.OnItemInstantiated</c>, which takes a root proxy that was never loaded
-/// into the item domain at its own <c>Start</c>; it is filed with its own fixture as
-/// <c>docs/backlog/review/nested-container-clone-proxy-leaks-as-world-item.md</c> rather than half-fixed here.
+/// rule's behaviour on real objects is that run's, not this gate's. <c>ItemWorldSync.OnItemInstantiated</c> is
+/// the fifth classifier: a display proxy that starts in the world never allocates an id and never reports
+/// itself as a spawn (batch 20261107-o's trashbag storm was exactly the proxy reporting its own <c>Start</c>).
 /// </para>
 /// </summary>
 public class AdoptTargetGateTests
@@ -79,7 +78,7 @@ public class AdoptTargetGateTests
 	private const string TreeMarker = "RemoteCloneRender";
 
 	/// <summary>The classifier census floor: one proxy test per classifier that may claim an id-less world object.</summary>
-	private const int MinimumProxyTestSites = 4;
+	private const int MinimumProxyTestSites = 5;
 
 	[Fact]
 	public void TheAdoptScan_RoutesEveryCandidateThroughTheNamedRule()
@@ -221,8 +220,10 @@ public class AdoptTargetGateTests
 	/// <summary>
 	/// The classifiers that decide over "an id-less standalone world item" and may therefore take authority over
 	/// one: the materialization adopt scan (stamps an id), the reconcile's late-local sweep and the restored-cut
-	/// leftover sweep (destroy), and the generation publish (allocates an id). Named rather than globbed — these
-	/// are the sites the item domain reaches for a scene object it did not create.
+	/// leftover sweep (destroy), the generation publish (allocates an id), and the spawn report (allocates an id
+	/// and announces it — a display proxy that reports its own `Start` is how batch 20261107-o filled the world
+	/// with trashbags). Named rather than globbed — these are the sites the item domain reaches for a scene
+	/// object it did not create.
 	/// </summary>
 	private static readonly (string File, string Type, string Method)[] Classifiers =
 	[
@@ -230,6 +231,7 @@ public class AdoptTargetGateTests
 		(ItemReconcileFile, "ItemReconcile", "OnRemoteItemSnapshot"),
 		(GeneratedItemAuthorityFile, "GeneratedItemAuthority", "Publish"),
 		(GeneratedItemReconcileFile, "GeneratedItemReconcile", "Apply"),
+		(ItemWorldSyncFile, "ItemWorldSync", "OnItemInstantiated"),
 	];
 
 	/// <summary>

@@ -218,6 +218,20 @@ internal sealed class ItemWorldSync(
 	/// </summary>
 	internal void OnItemInstantiated(Item item)
 	{
+		// A remote clone's DISPLAY proxy never becomes an item-domain object: it is
+		// presentation for another member's carried/contained/applied row, so its Start
+		// must not allocate an id and must not announce a spawn. A world-positioned proxy
+		// (a dropped display) passes IsStandaloneWorldItem — the marker is the only
+		// answer — and reporting it made the host materialize a real trashbag per render,
+		// whose broadcast rendered another proxy that reported again (batch 20261107-o:
+		// the trashbag storm). Same predicate, same reason as OnItemDestroyed below.
+		if (IsDisplayProxy(item))
+		{
+			_log.LogDebug("[ItemSpawn] {Type} (id {ItemId}) is a remote clone display proxy — spawn not reported.",
+				item.id, item.GetComponent<ItemInstanceId>()?.Id ?? 0);
+			return;
+		}
+
 		if (IsReplayedFact || HarmonyTraverse.IsGenerating() || !IsStandaloneWorldItem(item))
 		{
 			return;

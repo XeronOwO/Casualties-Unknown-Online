@@ -393,8 +393,9 @@ internal static class RemoteBackpackView
 	/// <summary>
 	/// The native window can open through the game's own `OpenContainer` path, which
 	/// calls `RepopulateContainer()` directly and never passes the deferred refresh
-	/// above. Record what the panel holds on the first frame it is open, so the drop
-	/// that follows is the only new id and the pop lands on that slot.
+	/// above. Record what the panel holds on the first frame it is actually showing the
+	/// focused clone's container — before that it holds nothing, or the previous
+	/// container's buttons, and seeding then would make the drop look like a baseline.
 	/// </summary>
 	internal static void SeedPanelBaseline()
 	{
@@ -404,7 +405,10 @@ internal static class RemoteBackpackView
 		}
 
 		var camera = PlayerCamera.main;
-		if (camera == null) // Unity object — ==
+		var focused = _focusedBody;
+		if (camera == null || focused == null || // Unity objects — ==
+			camera.currentContainer == null || camera.containerUnloadButtons.Count == 0 ||
+			!camera.currentContainer.transform.IsChildOf(focused.transform))
 		{
 			return;
 		}

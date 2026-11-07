@@ -60,7 +60,7 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
 - [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the clone reproduces it)
 - [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across clients
-- [ ] Entry mapping (a scope that crosses players or mirrors a native action only):
+- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): no player gesture changed; the entry is the item domain's spawn report at `Item.Start`, not a control.
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
 - [ ] Self-check table: mechanism x change x evidence, every cell filled

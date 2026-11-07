@@ -247,6 +247,8 @@ docs/backlog/done/mod-content-attribute-declarations.md | keep | index | docs/ba
 docs/backlog/done/mod-content-fingerprint.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-content-nested-member-contracts.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
+docs/backlog/done/display-proxy-reported-its-own-spawn.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/display-proxy-spawn-storm-20261107-p.md | keep | claim | docs/backlog/done/display-proxy-reported-its-own-spawn.md
 docs/backlog/done/joining-a-running-world-sticks-at-the-loading-screen.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md

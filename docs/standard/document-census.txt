@@ -249,6 +249,7 @@ docs/backlog/done/mod-content-nested-member-contracts.md | keep | index | docs/b
 docs/backlog/done/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
 docs/backlog/done/display-proxy-reported-its-own-spawn.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/display-proxy-spawn-storm-20261107-p.md | keep | claim | docs/backlog/done/display-proxy-reported-its-own-spawn.md
+docs/evidence/acceptance/give-creates-empty-liquid-containers-20261107-q.md | keep | claim | docs/backlog/done/give-creates-empty-liquid-containers.md
 docs/backlog/done/joining-a-running-world-sticks-at-the-loading-screen.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md
@@ -1323,4 +1324,4 @@ docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md | keep | 
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-k.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-l.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-n.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
-docs/backlog/todo/give-creates-empty-liquid-containers.md | keep | index | docs/backlog/README.md
+docs/backlog/done/give-creates-empty-liquid-containers.md | keep | index | docs/backlog/README.md

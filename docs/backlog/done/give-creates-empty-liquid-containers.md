@@ -1,6 +1,6 @@
 # /give creates liquid containers with no condition and no contents
 
-- Status: Todo
+- Status: Done — the grant now creates the item the game's own spawn does (batch `20261107-q`): a given cream reads condition 1 and the wound view accepts it (the release measured 10.00 ml, the patient's `disinfectionTime` went 0 → 299.445), and the guest's materialized copy agrees at condition 1.00.
 - Priority: Medium
 - Category: Console / item domain
 - Related: `docs/backlog/done/mod-cross-player-native-semantics.md` (found while judging its topical row),
@@ -8,6 +8,8 @@
 - Source: batch `20261107-o` (2026-11-07): `/give @p paincream` on the host produced an item whose own
   `condition` reads 0 and whose liquid contents are empty, while `item-provide mode=create` (the game's own
   `Utils.Create` path) produces `condition=1` with the default contents.
+- Evidence: `docs/evidence/acceptance/give-creates-empty-liquid-containers-20261107-q.md` (batch `20261107-q`, the
+  deployed `0.1.0+8a440599`).
 
 ## The reading
 
@@ -74,9 +76,30 @@ The class is "a state copied from a prefab ASSET instead of a game-created insta
 The structural point: the grant seam is the only place the item domain turns a definition into a fact, so fixing it
 there fixes both console verbs at once; no caller needs its own copy of the rule.
 
+## The reading on the fixed build (batch 20261107-q)
+
+```
+18:53:16.598 [ItemCreate] prepared paincream (id 1340350777283) from a fresh instance of its prefab.
+host use-eligibility type=paincream predicate=medical → condition=1, isEligible=true
+18:53:16.612 guest [StandingItem] materialized paincream (id 1340350777283) … condition 1.00
+18:55:37.512 host [MedicalView] measured 10.00 ml from paincream's own native limb action … (id 1340350777283)
+18:55:37 patient limb 5 disinfectionTime 0 → 299.445
+```
+
+## Self-check table
+
+| Mechanism | Change | Evidence |
+|---|---|---|
+| The grant's state capture (`ItemGrantSource.TryCreate`) | captures a game-created instance instead of the prefab asset | `[ItemCreate] prepared paincream … from a fresh instance of its prefab` (18:53:16.598) |
+| The game's own creation (`ConsoleScript` `/spawn`) | mirrored: instantiate, then `SetCondition(1f)` | `reversing/Assembly-CSharp/Assembly-CSharp/ConsoleScript.cs:635-670`; `ItemStateCodec` restore path unchanged |
+| The wound view's admission (`IsMedicalLimbUseItem`) | the given cream is accepted | `use-eligibility predicate=medical → isEligible=true`; the release measured 10.00 ml |
+| The patient's limb (`reliefcream.onHealthUse`) | the dose applied | `disinfectionTime` 0 → 299.445 (the game's own `SetDisinfect(300·clamp01(ml·0.1))`) |
+| The guest's copy (standing materialization) | agrees with the host | `[StandingItem] materialized … condition 1.00` (18:53:16.612) |
+| The temporary instance's lifecycle | never starts, never reports | `ItemGrantGateTests` pins the shape; the class doc states the rule |
+
 ## Acceptance
 
 | Row | The check |
 |---|---|
-| 1 | `/give @p paincream` on the host, then `use-eligibility mode=one` reads `condition=1` and the wound view accepts the item. |
-| 2 | The host's own copy and the guest's materialized copy agree on condition and contents (`[StandingItem] materialized … condition` line + `body-items`). |
+| 1 | `/give @p paincream` on the host, then `use-eligibility mode=one` reads `condition=1` and the wound view accepts the item. **PASS 20261107-q**: condition=1, `isEligible=true` (medical), and the release measured 10.00 ml. |
+| 2 | The host's own copy and the guest's materialized copy agree on condition and contents (`[StandingItem] materialized … condition` line + `body-items`). **PASS 20261107-q**: host condition 1; guest `condition 1.00`; the dose drained the cream's own contents. |

@@ -71,7 +71,7 @@ by it. A box whose evidence names another cycle is not filled.
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
       development commit gate; simulation/static evidence is the feature development
-      verification standard.
+      verification standard. — evidence: deployed 0.1.0+8a440599 (verify-deploy exit 0); batch 20261107-q judged both rows
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is
       exactly what the gate exists to catch)

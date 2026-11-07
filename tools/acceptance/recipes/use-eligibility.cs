@@ -1,16 +1,19 @@
 // recipe: use-eligibility
-// args: type=s mode=s
+// args: type=s mode=s predicate=s
 // returns: ok, mode, entries, count, error, detail
 //
-// mode=one (default, with type=<id>) asks the ADAPTER's classifier about one carried item: `LocalUseItemEligibility.IsUseItem`,
-// the exact predicate the drag cue and the release both call, fed with the same semantic services the adapter registers.
-// mode=scan walks every loaded Item prefab and reports the ids the classifier accepts, with the family it assigns, so a batch
-// picks the item for a cross-player use from the game's own data instead of guessing.
+// mode=one (default, with type=<id>) asks the ADAPTER's classifier about one carried item. `predicate=use` asks
+// `LocalUseItemEligibility.IsUseItem`, the exact predicate the drag cue and the release both call; `predicate=medical`
+// asks `LocalUseItemEligibility.IsMedicalLimbUseItem`, the wound view's own admission (a limb-use item is accepted here
+// and nowhere else). Both are fed with the same semantic services the adapter registers.
+// mode=scan walks every loaded Item prefab and reports the ids the classifier accepts (predicate=use), with the family it
+// assigns, so a batch picks the item for a cross-player use from the game's own data instead of guessing.
 ((System.Func<string>)(() => {
 	var services = CasualtiesUnknownOnline.Runtime.CuoBootstrap.Services;
 	if (services == null) { return "{\"ok\":false,\"error\":\"no-services\"}"; }
 	var wanted = {{s:type}};
 	var mode = {{s:mode}};
+	var predicate = {{s:predicate}};
 	var asms = System.AppDomain.CurrentDomain.GetAssemblies();
 	System.Type eligType = null, limbType = null, consumeType = null, wearType = null, solidType = null, familyType = null;
 	var ns = new string[] { "CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.", "CasualtiesUnknownOnline.Runtime.GameAdapter.", "CasualtiesUnknownOnline.GameAdapter." };
@@ -29,7 +32,8 @@
 	}
 	var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var useItem = eligType.GetMethod("IsUseItem", flags);
-	if (useItem == null) { return "{\"ok\":false,\"error\":\"no-IsUseItem\"}"; }
+	var medicalItem = eligType.GetMethod("IsMedicalLimbUseItem", flags);
+	if (useItem == null || medicalItem == null) { return "{\"ok\":false,\"error\":\"no-predicate\"}"; }
 	var limb = services.GetService(limbType);
 	var consume = services.GetService(consumeType);
 	var wear = services.GetService(wearType);
@@ -47,7 +51,7 @@
 			if (seen.ContainsKey(item.id)) { continue; }
 			seen[item.id] = "1";
 			string verdict;
-			try { verdict = useItem.Invoke(null, new object[] { item, limb, consume, wear, solid }).ToString(); } catch { verdict = "err"; }
+			try { verdict = (predicate == "medical" ? medicalItem.Invoke(null, new object[] { item, limb, solid }) : useItem.Invoke(null, new object[] { item, limb, consume, wear, solid })).ToString(); } catch { verdict = "err"; }
 			if (verdict != "True") { continue; }
 			count++;
 			if (count > 60) { continue; }
@@ -76,9 +80,9 @@
 	}
 	if (found == null) { return "{\"ok\":true,\"mode\":\"one\",\"type\":\"" + wanted + "\",\"found\":false}"; }
 	var answer = "err";
-	try { answer = useItem.Invoke(null, new object[] { found, limb, consume, wear, solid }).ToString(); } catch (System.Exception ex) { answer = "err:" + ex.GetType().Name; }
-	return "{\"ok\":true,\"mode\":\"one\",\"type\":\"" + wanted + "\",\"found\":true"
+	try { answer = (predicate == "medical" ? medicalItem.Invoke(null, new object[] { found, limb, solid }) : useItem.Invoke(null, new object[] { found, limb, consume, wear, solid })).ToString(); } catch (System.Exception ex) { answer = "err:" + ex.GetType().Name; }
+	return "{\"ok\":true,\"mode\":\"one\",\"type\":\"" + wanted + "\",\"predicate\":\"" + predicate + "\",\"found\":true"
 		+ ",\"condition\":" + found.condition.ToString("0.###", inv)
-		+ ",\"isUseItem\":" + (answer == "True" ? "true" : "false")
+		+ ",\"isEligible\":" + (answer == "True" ? "true" : "false")
 		+ ",\"verdict\":\"" + answer + "\"}";
 }))()

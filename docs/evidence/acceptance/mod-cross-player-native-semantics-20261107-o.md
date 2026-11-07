@@ -130,7 +130,7 @@ and the third peer's view rides the ordinary character sync.
 contents 0`), while `item-provide mode=create` creates condition 1; the guest materialized the give
 cream as `condition 1.00`. The host-side give item is unusable, and the native admission gate
 (`ItemInfo.ActuallyUsableOnLimb`) refuses it. This is a defect of the give path for liquid containers,
-not of the topical entry; it is filed as `docs/backlog/todo/give-creates-empty-liquid-containers.md`.
+not of the topical entry; it is filed as `docs/backlog/done/give-creates-empty-liquid-containers.md`.
 
 ## Open
 

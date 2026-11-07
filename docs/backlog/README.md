@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [/give creates liquid containers](todo/give-creates-empty-liquid-containers.md) — **Medium** — given containers arrive empty at condition 0.
 
 
 
@@ -145,6 +144,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Cross-player semantics from the game's own data](done/mod-cross-player-native-semantics.md) — **High** — the cross rows are measured.
 - [Display proxy reports itself as a spawn](done/display-proxy-reported-its-own-spawn.md) — **High** — the storm's loop is gone.
+- [Give creates liquid containers](done/give-creates-empty-liquid-containers.md) — **Medium** — a given container arrives full.
 - [Late joiner stuck at loading](done/joining-a-running-world-sticks-at-the-loading-screen.md) — **High** — the release now reaches a late joiner.
 - [Remote medical — Stage 1: injection](done/remote-medical-stage-1-injection-session.md) — **High** — every row read; a stale handshake is rejected.
 - [Guest remote pose/head desync](done/guest-remote-pose-head-orientation-desync.md) — **Medium** — carried all along; the look and facing match.

@@ -95,6 +95,8 @@ internal sealed class RemoteBackpackCoordinator(
 
 	internal void Update()
 	{
+		RemoteBackpackView.Trace ??= message => _log.LogInformation("{Message}", message);
+
 		RemoteBackpackView.ObservePanelItems();
 		RemoteBackpackView.UpdatePendingContainerRefresh();
 		ApplyAccessRule();

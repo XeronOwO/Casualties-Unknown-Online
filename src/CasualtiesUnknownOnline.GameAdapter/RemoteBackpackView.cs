@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using UnityEngine;
@@ -33,6 +34,12 @@ internal static class RemoteBackpackView
 	// item's authoritative instance id does — see ObservePanelItems.
 	private static readonly HashSet<ulong> _panelItemIds = [];
 	private static bool _panelSeeded;
+
+	/// <summary>
+	/// The adapter's own log sink, handed in by the coordinator. Unity's <c>Debug.Log</c> is not
+	/// visible in the BepInEx log, so a trace that must be read after a run goes through here.
+	/// </summary>
+	internal static Action<string>? Trace { get; set; }
 
 	internal static Body? FocusedBody
 	{
@@ -391,14 +398,14 @@ internal static class RemoteBackpackView
 
 		if (first)
 		{
-			Debug.Log($"[SlotPop] seeded {seen.Count} id(s) for {FocusedSteamId}.");
+			Trace?.Invoke($"[SlotPop] seeded {seen.Count} id(s) for {FocusedSteamId}.");
 			return;
 		}
 
 		if (arrived.Count == 1)
 		{
 			OnlineUi.SlotPop.Play(arrived[0]);
-			Debug.Log("[SlotPop] popped the newly arrived panel slot.");
+			Trace?.Invoke("[SlotPop] popped the newly arrived panel slot.");
 		}
 	}
 

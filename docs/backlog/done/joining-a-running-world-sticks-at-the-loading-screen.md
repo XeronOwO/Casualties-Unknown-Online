@@ -1,8 +1,8 @@
 # A member joining a world that is already running sticks at the loading screen
 
-- Status: Todo — a member that joins while the host's world is already running waits behind the start gate: its client
-  keeps the loading screen up and re-reports its scene state ("still missing the start-gate release (WorldReady)") until
-  the host leaves the world and starts the run again. The gate release is not delivered to a late joiner.
+- Status: Done — the late joiner's loading screen lifts on `0.1.0+3005409c`: the host logged `Start gate pass —
+  76561198863287957 enters directly (game already running).` at 16:13:48.920 and the member's own client logged
+  `[Gate] the loading text is handed back to the game` at 16:13:50.341, with no host `leave-world`/`start-run`.
 - Priority: High
 
 ## What happened

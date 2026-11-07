@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [Late joiner stuck at loading](todo/joining-a-running-world-sticks-at-the-loading-screen.md) — **High** — the gate release never reaches a late joiner.
+- [Late joiner stuck at loading](done/joining-a-running-world-sticks-at-the-loading-screen.md) — **High** — the release now reaches a late joiner.
 
 
 

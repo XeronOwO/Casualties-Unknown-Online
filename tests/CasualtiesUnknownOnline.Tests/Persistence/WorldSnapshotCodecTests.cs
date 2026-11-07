@@ -151,6 +151,32 @@ public class WorldSnapshotCodecTests
 		Assert.Equal(0.1f, Assert.Single(decoded.Items).Data.Condition);
 	}
 
+	/// <summary>
+	/// Row 5's byte comparability: the same checkpoint encoded twice produces the same files,
+	/// path for path and byte for byte. The cut must not stamp the clock, a run id or a counter
+	/// into a domain table — if it did, two saves of an unchanged world would differ and the
+	/// row's own comparison (save → load → save → load leaves the tables stable) would be
+	/// meaningless. The archive manifest's timestamp lives outside these files (§4).
+	/// </summary>
+	[Fact]
+	public void Encode_Twice_ProducesTheSameBytesPerPath()
+	{
+		var authority = StartedAuthority();
+		var payload = MidRunPayload(authority, ("steam-76561198000000001", Character(100, "bag")));
+
+		var first = Encoder().Encode(payload);
+		var second = Encoder().Encode(payload);
+
+		Assert.Equal(first.Select(file => file.Path), second.Select(file => file.Path));
+		Assert.Equal(first.Count, second.Count);
+		for (var i = 0; i < first.Count; i++)
+		{
+			Assert.True(
+				first[i].Content.SequenceEqual(second[i].Content),
+				$"{first[i].Path} differs between two encodes of the same checkpoint");
+		}
+	}
+
 	[Fact]
 	public void Encode_WithoutARunBaseline_IsRefused()
 	{

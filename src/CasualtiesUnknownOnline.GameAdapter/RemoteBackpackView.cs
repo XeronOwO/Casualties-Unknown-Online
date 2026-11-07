@@ -383,6 +383,7 @@ internal static class RemoteBackpackView
 		_panelItemIds.Clear();
 		_panelItemIds.UnionWith(seen);
 		_panelSeeded = true;
+		Debug.Log($"[SlotPop] refresh first={first} seen={seen.Count} arrived={arrived.Count}.");
 
 		if (arrived.Count == 1)
 		{
@@ -435,6 +436,7 @@ internal static class RemoteBackpackView
 		}
 
 		_panelSeeded = true;
+		Debug.Log($"[SlotPop] seeded {_panelItemIds.Count} id(s) for {FocusedSteamId}.");
 	}
 
 	private static Container? FindTrackedRemoteContainer()

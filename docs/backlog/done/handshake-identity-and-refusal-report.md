@@ -1,6 +1,6 @@
 # Handshake identity and structured refusal reasons
 
-- Status: In progress
+- Status: Done — the handshake declares the game build, the CUO build and the save schema, and a mismatch is refused by name (batch 20261107-s): the host logged `Handshake from 76561198863287957 refused: GameBuild (7.0.1 vs 0.0.0-crafted); .`, Steam1 rendered its own catalogue's line on the status line (translated: "the host runs game version 7.0.1; this client runs 0.0.0-crafted…") and ended its session one frame later, while the ordinary three-client join completed on the same artifact (`0.1.0+e36fc046`). The mod policy moved to a value with the same rules; the wire surface was regenerated (`HandshakeRefused = 166`) and indexed in matrix row R4. The capability negotiation stays deferred to the adapter capability catalog's stages 2-3. Readings: `docs/evidence/acceptance/handshake-identity-and-refusal-report-20261107-s.md`.
 - Priority: Medium
 - Category: Protocol / mod compatibility
 - Source: Loomi architecture review (2026-09-20), item 10
@@ -106,6 +106,18 @@ host's log line names the same dimension and values.
 - The capability negotiation is recorded as deferred on `review/adapter-capability-catalog.md` (its
   stages 2-3), and the mod-api table states the additive rule the future member must obey.
 
+## Self-check table
+
+| mechanism | change | evidence |
+|---|---|---|
+| `HandshakeMsg` / `HandshakeAckMsg` | three identity fields each (tags 7-9 / 8-10) | `docs/contracts/wire-surface-baseline.txt` regenerated: `member|HandshakeMsg|7|string|single` … `|9|int32|single` |
+| `HandshakeDimension` / `HandshakeRefusedMsg` | new enum and message, `NetMsg.HandshakeRefused = 166` | wire baseline lines `id|HandshakeRefused=166`, `msg|HandshakeRefusedMsg`, `enum|HandshakeDimension|…`; R4 row indexes it |
+| `HandshakeCompatibility` | equality on protocol, game build, CUO build, save schema | 6 facts in `HandshakeCompatibilityTests`; host log in batch 20261107-s names `GameBuild (7.0.1 vs 0.0.0-crafted)` |
+| `HandshakeModAdmission` | the old handler policy as a value, same rules | 12 facts in `HandshakeModAdmissionTests`; the old methods deleted with it |
+| `HandshakeHandler` | refusal send, ack carries the host's identity | host log line above; the three-client join completed (batch s) |
+| `HandshakeRefusedHandler` + `HandshakeRefusalText` | render in the guest's catalogue, publish, end | guest log: `status line: <the catalogue's line>` (translated: the host runs game version 7.0.1…); session ended one frame later; no retries after 20:58:52 |
+| composition (`SessionComposition`, `SessionPeerMaintenance`, `SessionService`) | one `ILocalPeerIdentity`, both legs read it | build green; the live handshakes carried the same values |
+
 ## Run sheet
 
 - [x] 2. Design — this section, from `docs/en/reference/mod-api.md` and the handshake code.
@@ -113,7 +125,7 @@ host's log line names the same dimension and values.
 - [x] 4. Family — every dimension's source and every refusal site.
 - [x] 6. Red — the policy and handler tests fail before the code exists (12 admission facts red; the identity facts and the sender wiring followed the red run).
 - [x] 7. Implement — messages, policy, handlers, composition.
-- [ ] 8. Verify — build, gates, suite, format; the live handshake still completes.
-- [ ] 11. Commit.
-- [ ] 12. Close — status with the readings, README, census, matrix, checklist.
-- [ ] 13. Acceptance — the crafted wrong-build refusal and a two-client join.
+- [x] 8. Verify — build, gates 822/0, suite 6617/0, format exit 0; the live three-client join completed on the deployed artifact.
+- [x] 11. Commit — `006ea173`, then the rendered-line log and the driving tooling in `e36fc046`; pushed.
+- [x] 12. Close — status with the readings, README, census, matrix, evidence file, checklist.
+- [x] 13. Acceptance — the crafted wrong-build refusal (batch 20261107-s: host line, guest status line, session ended, no retries) and the ordinary join.

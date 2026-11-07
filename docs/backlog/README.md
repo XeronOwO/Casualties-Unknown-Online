@@ -73,8 +73,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
-- [Handshake identity and refusal reasons](in-progress/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names which dimension failed.
-
 ### Review
 
 
@@ -140,6 +138,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Handshake identity and refusal reasons](done/handshake-identity-and-refusal-report.md) — **Medium** — a refusal names the dimension in the guest's own words.
 - [The wire surface is recorded beside the protocol version](done/wire-surface-baseline.md) — **Medium** — the surface is recorded; the gate arms at release.
 
 - [The command console is a contract](done/the-command-console-is-a-contract.md) — **High** — one key, two languages; row 13 read.

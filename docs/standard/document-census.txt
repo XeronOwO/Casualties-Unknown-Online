@@ -193,7 +193,7 @@ docs/backlog/done/world-time-manual-acceleration.md | keep | attribution | docs/
 docs/backlog/future/adapter-shell-verification-harness.md | keep | index | docs/backlog/README.md
 docs/backlog/future/enemy-combat-order-policy-kernel.md | keep | index | docs/backlog/README.md
 docs/backlog/future/generic-prediction-runtime.md | keep | index | docs/backlog/README.md
-docs/backlog/in-progress/handshake-identity-and-refusal-report.md | keep | index | docs/backlog/README.md
+docs/backlog/done/handshake-identity-and-refusal-report.md | keep | index | docs/backlog/README.md
 docs/backlog/future/krokmp-candidates.md | keep | index | docs/backlog/README.md
 docs/backlog/future/krokmp-compatibility-adapter.md | keep | index | docs/backlog/README.md
 docs/backlog/future/phase5-tooling-ecosystem.md | keep | index | docs/backlog/README.md
@@ -250,6 +250,7 @@ docs/backlog/done/mod-cross-player-native-semantics.md | keep | index | docs/bac
 docs/backlog/done/display-proxy-reported-its-own-spawn.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/display-proxy-spawn-storm-20261107-p.md | keep | claim | docs/backlog/done/display-proxy-reported-its-own-spawn.md
 docs/evidence/acceptance/give-creates-empty-liquid-containers-20261107-q.md | keep | claim | docs/backlog/done/give-creates-empty-liquid-containers.md
+docs/evidence/acceptance/handshake-identity-and-refusal-report-20261107-s.md | keep | claim | docs/backlog/done/handshake-identity-and-refusal-report.md
 docs/backlog/done/joining-a-running-world-sticks-at-the-loading-screen.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-defined-wire-packets.md | keep | index | docs/backlog/README.md
 docs/backlog/done/mod-item-wearable-declaration.md | keep | index | docs/backlog/README.md

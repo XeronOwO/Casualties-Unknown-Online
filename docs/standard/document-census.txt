@@ -269,7 +269,7 @@ docs/evidence/acceptance/concurrent-medical-two-charts-20261025-i.md | keep | cl
 docs/evidence/acceptance/remote-context-menu-sight-gate-20261025-f.md | keep | claim | docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md
 docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-interaction-local-gating.md | keep | index | docs/backlog/README.md
-docs/backlog/review/remote-medical-native-minigame-parity.md | keep | index | docs/backlog/README.md
+docs/backlog/done/remote-medical-native-minigame-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-medical-panel-acceptance-issues.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-medical-panel-hide-local-only-actions.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-medical-stage-1-injection-session.md | keep | index | docs/backlog/README.md
@@ -1272,6 +1272,7 @@ docs/backlog/done/remote-medical-panel-speech-text-desync.md | keep | index | do
 docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261023-b.md | keep | claim | docs/backlog/done/remote-medical-stage-1-injection-session.md
 docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261024-a.md | keep | claim | docs/backlog/done/remote-medical-stage-1-injection-session.md
 docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261106-o.md | keep | claim | docs/backlog/done/remote-medical-stage-1-injection-session.md
+docs/evidence/acceptance/remote-medical-mixed-version-20261107-w.md | keep | claim | docs/backlog/done/remote-medical-stage-1-injection-session.md
 docs/evidence/acceptance/remote-medical-panel-acceptance-issues-20261023-b.md | keep | claim | docs/backlog/done/remote-medical-panel-acceptance-issues.md
 docs/evidence/acceptance/remote-fentanyl-injection-and-medical-panel-desync-20261023-b.md | keep | claim | docs/backlog/done/remote-fentanyl-injection-and-medical-panel-desync.md
 docs/evidence/acceptance/remote-medical-panel-speech-text-desync-20261023-b.md | keep | claim | docs/backlog/done/remote-medical-panel-speech-text-desync.md

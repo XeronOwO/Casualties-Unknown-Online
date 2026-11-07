@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 1: medical operation session + real-time injection
 
-- Status: Done — every row is read on the deployed artifact; row 20 now reads from the handshake the host rejects (batch 20261106-o on `0.1.0+e0727f8f`, record `remote-medical-stage-1-injection-session-20261106-o.md`)
+- Status: Done — every row is read on the deployed artifact; row 20 now reads from the handshake the host rejects (batch 20261106-o on `0.1.0+e0727f8f`, record `remote-medical-stage-1-injection-session-20261106-o.md`), and a real old build launched in a box is refused by a named dimension (batch 20261107-w, record `remote-medical-mixed-version-20261107-w.md`)
 - Acceptance (20261023-b): rows 1-7, 9, 12-19, 21 and 23 pass on the deployed artifact
   (`0.1.0+d960f05f…`); rows 8 (operator disconnect), 10 (target disconnect), 20 (mixed CUO versions) and
   22 (lobby close with a session in flight) stay `unproven` — the live staging was not reached, and the
@@ -13,6 +13,12 @@
   flight (`Session ended`, registry cleared). Row 20 (mixed CUO versions) remains `unproven`: no old-version
   artifact exists on this machine to launch. Record:
   `docs/evidence/acceptance/remote-medical-stage-1-injection-session-20261024-a.md`.
+- Acceptance (20261107-w): row 20 PASSES with a REAL old build — commit `3005409c` exported and built in a scratch
+  tree, launched in the Steam2 box against the deployed `0.1.0+544bd87f…`. The host refused it on the first absent
+  identity dimension (`refused: GameBuild (7.0.1 vs );` once per retry from 23:33:10) and it never entered the world,
+  while the host and Steam1 did; the CUO-build dimension itself read `refused: CuoBuild (0.1.0+544bd87f… vs
+  0.0.0-crafted)` with the same line rendered on the guest's own status line in Chinese. Record:
+  `docs/evidence/acceptance/remote-medical-mixed-version-20261107-w.md`.
 - Priority: High
 - Category: Remote medical / medical operation session / real-time syringe
 - Parent: `remote-medical-native-minigame-parity.md`

@@ -101,7 +101,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
-- [Remote medical parity — roadmap](review/remote-medical-native-minigame-parity.md) — **High** — umbrella; CPR stays future.
 - [S2 — Layer-end save and restore](review/save-layer-end-save-and-restore.md) — **High** — the cut, Continue restore and `save.sv`.
 - [S3.4b — Native character fields](review/save-native-character-field-parity.md) — **Medium-High** — three fields ride the snapshot.
 - [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
@@ -147,6 +146,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Give creates liquid containers](done/give-creates-empty-liquid-containers.md) — **Medium** — a given container arrives full.
 - [Late joiner stuck at loading](done/joining-a-running-world-sticks-at-the-loading-screen.md) — **High** — the release now reaches a late joiner.
 - [Remote medical — Stage 1: injection](done/remote-medical-stage-1-injection-session.md) — **High** — every row read; a stale handshake is rejected.
+- [Remote medical parity — roadmap](done/remote-medical-native-minigame-parity.md) — **High** — native surfaces implemented or recorded.
 - [Guest remote pose/head desync](done/guest-remote-pose-head-orientation-desync.md) — **Medium** — carried all along; the look and facing match.
 - [Remote medical — Stage 2: shrapnel](done/remote-medical-stage-2-shrapnel-multiplayer.md) — **High** — every row read; each operator drains only its own pair.
 - [A cross-player eat runs the game's own steps](done/cross-player-eat-skips-native-steps.md) — **High** — the replacement lands in the owner's slot.

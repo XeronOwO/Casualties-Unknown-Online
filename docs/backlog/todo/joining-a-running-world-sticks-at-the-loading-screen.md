@@ -40,3 +40,23 @@ start — which is exactly where the late joiner falls through.
 - The host should not need a second `start-run` for a late joiner.
 - Acceptance row: a late joiner's own client reads the loading gate released, without a host `leave-world`/`start-run`,
   and the log carries the release line.
+
+## Chain, read to execution (2026-11-07)
+
+- Entry event: a member that joined after the run started reports `SceneStateType.InWorld`
+  (`SessionService.ReportSceneState`, `src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:245-258`).
+- Host edge: `SceneStateHandler.Handle` sees `wasInWorld != member.InWorld`
+  (`src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs:47-52`) and calls
+  `ctx.World.NotifyMemberInWorld(reporter)` (`:80`), which forwards to `WorldStartGate.NotifyMemberInWorld`
+  (`src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStartGate.cs:107-135`).
+- The gate: `_armed is null` (the run started with nobody handshaken, so `Arm` took its "No confirmed members waiting"
+  branch at `:88-97`) → the release is sent only when `LateJoinerPasses` (`:178`):
+  `_descentPending is null && (_released || (_armed is null && _session.LocalInWorld))`. The empty-waiting branch sets
+  `_armed = null` and broadcasts, but it never sets `_released = true`; and the host's own `LocalInWorld` flips only when
+  its own scene report runs (`SessionService.cs:247`), which can be after the member's InWorld edge.
+- Consequence: both the first arrival (`NotifyMemberInWorld`) and every re-asserted report (`AnswerRepeatInWorld`,
+  `:146-157`) return without sending `NetMsg.WorldReady`, so the guest's `StartGateCoordinator` holds the loading screen
+  until its 60 s valve returns it to the menu.
+- Fix: set `_released = true` in `Arm`'s empty-waiting branch (`WorldStartGate.cs:95`) — a gate that never armed over a
+  run is released by definition, so any member arriving later passes through the existing `SendWorldReadyTo` path.
+

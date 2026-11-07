@@ -93,6 +93,10 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 			}
 
 			_armed = null;
+			// A gate that never armed over a run is released by definition: a member that joins this
+			// already-running world afterwards must pass through LateJoinerPasses instead of waiting
+			// behind a release that was broadcast before it existed.
+			_released = true;
 			SendWorldReady();
 			return false;
 		}

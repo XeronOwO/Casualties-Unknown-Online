@@ -17,7 +17,7 @@
 
 | # | Row | Class | Verdict | Evidence |
 |---|---|---|---|---|
-| 9 | Cursor inside the target's range, on their body: the cue names that player | visual + machine | **pass** | `g1-guest-cue.png` and its zoom `g1-crop.png`: the label `Use on 萧稔` (the receiver's display name) is drawn beside the cursor, over the opened backpack; `guest-cue-state-2.json` reads `{"showing":true,"target":76561198281246659}` in the same moment, and `guest-in-range-3.json` places the pointer at game `(587,393)` against the receiver's clone at `(588,392)` — inside the 1.5-unit range; the giver's log at 23:21:18 carries `[BackpackView] opened 76561198281246659's backpack because the dragged item entered its detection range`. |
+| 9 | Cursor inside the target's range, on their body: the cue names that player | visual + machine | **pass** | `g1-guest-cue.png` and its zoom `g1-crop.png`: the label `Use on <the receiver's name>` (the receiver's display name) is drawn beside the cursor, over the opened backpack; `guest-cue-state-2.json` reads `{"showing":true,"target":76561198281246659}` in the same moment, and `guest-in-range-3.json` places the pointer at game `(587,393)` against the receiver's clone at `(588,392)` — inside the 1.5-unit range; the giver's log at 23:21:18 carries `[BackpackView] opened 76561198281246659's backpack because the dragged item entered its detection range`. |
 | 10 | Cursor on the displayed backpack: no use label | visual + machine | **pass** | `g2-guest-on-displayed.png` and `g2-crop.png`: no label while the pointer sits on the receiver's displayed slot-3 item button (`guest-on-displayed.json`: `pointerInside` slot 3, `itemOwner=76561198281246659`, `proxy=true`). The same drag's state read `showing:true` a moment earlier in the range (`guest-cue-state-2.json`), so the drawer was live and the absence on the backpack is the give resolution's hide; moving back into the range re-read `showing:true` and the release then landed as a use (`[DragUse] dropped bread on 76561198281246659` at 23:21:42, the receiver's own client ate it), with the drag-opened backpack closed on the next read (`guest-after-release.json`: `viewOpen=false`, `radialOpen=false`, `dragItem=none`). |
 
 ## The run's own course
@@ -43,11 +43,11 @@ size, exact offset) is the design the ticket already fixed; a frame cannot make 
 
 ## Limits
 
-- The label renders in CUO's own language setting, which on this client is English (`Use on 萧稔`) while the game's
-  own UI is Chinese; the localization key `cue.use_on` carries the Chinese form (`对{0}使用`) for a Chinese CUO
+- The label renders in CUO's own language setting, which on this client is English (`Use on <the receiver's name>`) while the game's
+  own UI is Chinese; the localization key `cue.use_on` carries the Chinese form (translated: "use on {0}") for a Chinese CUO
   locale, and this run did not switch that setting to read it.
 - The pixels are judged from a captured frame, not measured.
 - Rows 1, 2, 5, 7 and 8 remain batch `20261022-f`'s readings and were not re-run; rows 3, 4 and 6 are unit 2's.
 - The two limits the fix itself leaves (two players with the same display name still read one label; a CUO modal
   that swallows the release leaves the game's own drag stuck) are recorded on
-  `docs/backlog/review/cross-player-drag-use-feedback.md`, not judged here.
+  `docs/backlog/done/cross-player-drag-use-feedback.md`, not judged here.

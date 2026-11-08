@@ -14,7 +14,7 @@
   range only chooses whose backpack is displayed.
 - Related: `done/give-item-to-another-player.md` (the gesture's rows, re-based here),
   `todo/placement-failure-report-anchor.md` (the receive side; unaffected by this entry change),
-  `review/cross-player-drag-use-feedback.md` (the cue this ticket re-points at the centre), decisions 217/218 (the
+  `done/cross-player-drag-use-feedback.md` (the cue this ticket re-points at the centre), decisions 217/218 (the
   native intent, the viewer never mutates a proxy) and the 2026-10-22 selection ruling this refines.
 
 ## Problem (evidence)
@@ -32,7 +32,7 @@ batch `20261022-f` records read the same behaviour as the intended entry.
 
 - Inside the player's own UI — own ring, own wound/medical panel, container panel, crafting panel, trade menu — a
   LOCAL-item drag means the LOCAL body only: no detection range is read, no other backpack opens, no cross-player
-  give/use exists. "自己背包中拖动就应该是对自己的语义". (The TAKE direction — a proxy dragged from a displayed
+  give/use exists. (translated: "dragging inside your own backpack can only mean yourself"). (The TAKE direction — a proxy dragged from a displayed
   backpack, view closed, released into the own ring — is its own shipped path and is unchanged; see Limits.)
 - Closing the own backpack during the drag enters the world. The game's own toggle is used; one press means one
   thing (closing the displayed backpack and opening the own one is two presses, never one combined action).
@@ -153,16 +153,16 @@ lines and artifacts.
 
 | # | Row | Verdict |
 |---|---|---|
-| 1 | Own ring open, cursor through a teammate's range — their backpack stays closed, the release stays local | pass |
-| 2 | Tab during the drag enters the world; a slot gives, off the ring drops | pass |
-| 3 | Centre use of a usable item on the displayed player — the target executes it, the bag stays open | pass |
+| 1 | Own ring open, cursor through a teammate's range — their backpack stays closed, the release stays local | pass — pointer world point `(0, 490.625)` against the member's own; their bag stayed closed, the release kept the local action (batch `20261023-f`, row 1) |
+| 2 | Tab during the drag enters the world; a slot gives, off the ring drops | pass — one real Tab press with the button held: `radialOpen=false`, then the range opened the bag and the slot release gave (batch `20261023-f`, row 2) |
+| 3 | Centre use of a usable item on the displayed player — the target executes it, the bag stays open | pass — centre release of `painkillers`: `[ItemUse] measured 10.000 ml from painkillers's own native use`, bag stayed open (batch `20261023-f`, row 3) |
 | 4 | Centre wear of a wearable on the displayed player | pass — re-read on `b232be74`, batch `20261023-g` |
-| 5 | Centre with an item that has no use/wear action — nothing happens, the item stays in hand | pass |
+| 5 | Centre with an item that has no use/wear action — nothing happens, the item stays in hand | pass — centre release of a `bandage` wrote no `[DragUse]`/`[ItemUse]` line; the cue hid, the item stayed in hand (batch `20261023-f`, row 5) |
 | 6 | A centre release is a USE/WEAR (`[DragUse] used …`), and the cue names the displayed player | pass |
 | 7 | View-only displayed backpack — the centre use/wear is refused with one line | pass — batch `20261023-j` (record `give-gesture-own-ui-and-center-use-20261023-j.md`) |
-| 8 | B → C — the last entered range displays | pass |
-| 9 | The local wound panel open — no remote backpack | pass |
-| 10 | One press closes the displayed bag, the second opens the own ring | pass |
+| 8 | B → C — the last entered range displays | pass — member B at `(3, 491.615)`, C at `(-3, 491.615)`; dragging into C's range displayed C's bag at 22:47:45.497 (batch `20261023-f`, row 8) |
+| 9 | The local wound panel open — no remote backpack | pass — own wound view open (`woundViewOpen:true`) and no remote bag opened during the drag (batch `20261023-f`, row 9) |
+| 10 | One press closes the displayed bag, the second opens the own ring | pass — one Tab press answered `viewOpen=false radialOpen=false buttonCount=0`, the second opened the own ring (batch `20261023-f`, row 10) |
 
 **Row 4 was a product defect, not a fixture gap — fixed and read.** `GameWearPlacement.TryResolve`
 (`src/CasualtiesUnknownOnline.GameAdapter/Content/GameWearFacts.cs`) resolved the limb layout with

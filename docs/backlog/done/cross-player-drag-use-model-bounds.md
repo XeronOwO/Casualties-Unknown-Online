@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Player interaction / cross-player item use / targeting geometry
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
-- Related: `review/cross-player-drag-use-feedback.md` (the other half of the same finding: the gesture shows
+- Related: `done/cross-player-drag-use-feedback.md` (the other half of the same finding: the gesture shows
   nothing), `src/CasualtiesUnknownOnline.GameAdapter/CrossPlayerDragUse.cs`,
   `src/CasualtiesUnknownOnline.GameAdapter/LocalUseItemEligibility.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs`,
@@ -106,7 +106,7 @@ mouse/keyboard authorization for the two clients, or from a committed recipe tha
 
 ## Non-goals now
 
-- Not the gesture's presentation: `review/cross-player-drag-use-feedback.md` owns the highlight, the label and
+- Not the gesture's presentation: `done/cross-player-drag-use-feedback.md` owns the highlight, the label and
   the cue sound; this ticket only decides where the release counts.
 - Not a new picking mechanism for other surfaces (the medical view and the Online UI member list keep their
   own entry points).

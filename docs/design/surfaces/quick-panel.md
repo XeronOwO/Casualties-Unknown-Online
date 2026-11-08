@@ -56,7 +56,7 @@ candidates do not fit one line, and one button per applicable action.
 ## Records
 
 Accepted and open work: `../audit/code.md` row 168 (the panel's own code path) and
-`../../backlog/review/cross-player-drag-use-feedback.md` for the cue family the panel shares. Decision 190 records the native
+`../../backlog/done/cross-player-drag-use-feedback.md` for the cue family the panel shares. Decision 190 records the native
 UI reuse rule the panel follows.
 
 ## Gaps

@@ -92,7 +92,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
@@ -129,6 +128,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Cross-player use by drag shows nothing](done/cross-player-drag-use-feedback.md) — **Medium** — every row read: the cue names the target and hides on release.
 - [Save system: layer-end and mid-run saves](done/save-system-mid-run-and-layer-end.md) — **High** — every criterion carried by a reading.
 - [Plugin as a host shell](done/plugin-host-shell.md) — **Medium** — the overlay's layout is read: fits, no clipping, every control named.
 - [Remote clone trails a nap transition](done/remote-clone-trails-the-nap-transition.md) — **Medium** — a far jump lands the replica; fixed and read.

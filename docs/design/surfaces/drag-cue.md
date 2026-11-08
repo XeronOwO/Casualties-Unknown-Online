@@ -68,7 +68,7 @@ do before releasing.
 ## Records
 
 `../../architecture/surfaces.md` (world drag row). Open:
-`../../backlog/review/cross-player-drag-use-feedback.md` (the cue's own acceptance rows).
+`../../backlog/done/cross-player-drag-use-feedback.md` (the cue's own acceptance rows).
 
 ## Gaps
 

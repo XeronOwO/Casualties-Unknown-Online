@@ -4,7 +4,6 @@
 # exists has to name the corpus page it was designed from.
 
 docs/backlog/review/adapter-capability-catalog.md
-docs/backlog/review/cross-player-drag-use-feedback.md
 docs/backlog/review/trap-layout-crystal-rows-empty.md
 
 

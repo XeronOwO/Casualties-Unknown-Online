@@ -757,6 +757,7 @@ docs/evidence/acceptance/save-layer-time-not-carried-20261001-n.md | keep | clai
 docs/evidence/acceptance/save-mid-run-consistent-cut-20261001.md | keep | claim | docs/backlog/review/save-mid-run-consistent-cut.md
 docs/evidence/acceptance/save-mid-run-consistent-cut-20261001-q.md | keep | claim | docs/backlog/review/save-mid-run-consistent-cut.md
 docs/evidence/acceptance/save-mid-run-open-lockables-20261107-v.md | keep | claim | docs/backlog/review/save-mid-run-consistent-cut.md
+docs/evidence/acceptance/save-mid-run-consistent-cut-20261108-n.md | keep | claim | docs/backlog/review/save-mid-run-consistent-cut.md
 docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261001-o.md | keep | claim | docs/backlog/done/save-multiplayer-restore-and-backups.md
 docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261001-p.md | keep | claim | docs/backlog/done/save-multiplayer-restore-and-backups.md
 docs/evidence/acceptance/save-multiplayer-restore-and-backups-20261024-a.md | keep | claim | docs/backlog/done/save-multiplayer-restore-and-backups.md

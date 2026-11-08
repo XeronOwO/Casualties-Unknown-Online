@@ -178,7 +178,7 @@
   "worlds.continue_target": "Continue target",
   "worlds.select": "Use for Continue",
   "worlds.no_snapshot": "no snapshot yet",
-  "worlds.show_backups": "Backups",
+  "worlds.show_backups": "Save points ({0})",
   "worlds.hide_backups": "Hide",
   "worlds.backups_empty": "This world has no backups yet.",
   "worlds.backup_row": "{0} · {1} · {2} MB",

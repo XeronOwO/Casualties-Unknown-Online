@@ -179,7 +179,7 @@ internal static class OnlineUiWorldsDrawer
 		var expanded = string.Equals(state.BackupRowsWorldId, row.World.WorldId, StringComparison.Ordinal);
 		elements.Add(page.ButtonElement(
 			$"worlds.backups.{row.World.WorldId}",
-			ctx.T(expanded ? "worlds.hide_backups" : "worlds.show_backups"),
+			expanded ? ctx.T("worlds.hide_backups") : ctx.F("worlds.show_backups", row.BackupCount),
 			() =>
 			{
 				if (string.Equals(state.BackupRowsWorldId, row.World.WorldId, StringComparison.Ordinal))
@@ -223,7 +223,9 @@ internal static class OnlineUiWorldsDrawer
 	private static void BuildBackupRow(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library, WorldBackup backup)
 	{
 		var state = ctx.State;
-		page.Label(ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup)));
+		// One step in from the run's own name: the save points belong to the run above them, and the
+		// indent is what says so when both levels are the same pixel font.
+		page.Label("    " + ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup)));
 
 		if (string.Equals(state.PendingRestoreFile, backup.FileName, StringComparison.Ordinal))
 		{

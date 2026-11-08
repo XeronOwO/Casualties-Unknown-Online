@@ -178,7 +178,7 @@
   "worlds.continue_target": "继续目标",
   "worlds.select": "设为继续目标",
   "worlds.no_snapshot": "尚无快照",
-  "worlds.show_backups": "备份",
+  "worlds.show_backups": "存档点（{0}）",
   "worlds.hide_backups": "收起",
   "worlds.backups_empty": "该世界还没有备份。",
   "worlds.backup_row": "{0} · {1} · {2} MB",

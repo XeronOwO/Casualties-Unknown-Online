@@ -60,6 +60,24 @@ The 2026-11-08 change (this ticket's first slice) fixes 1 and 2:
 What remains for this ticket: an in-window editor for the ceiling (the config section exists; the window does not write
 it yet), and paging for a long world list.
 
+## Design pass (2026-11-08, the user's second look)
+
+The user read the first slice and named two visual problems: the list has no container, so a long page reads as
+undifferentiated text, and the expanded save points start at the same left edge as the run names, so the two levels look
+alike. The design for the next slice:
+
+- **The list is a box.** The runs sit inside the window's own frame style: a one-pixel border with the page's dark fill,
+  the header line inside the box's top edge, and the "show older" control on the box's bottom edge. The box is the
+  scroll viewport's own child, so it grows with the list and the window scrolls it, never the window.
+- **Two levels, two margins.** A run row sits at the box's left margin with its own name; the expanded save points sit one
+  step in (a leading indent the width of a character cell), under a thin vertical rule that runs from the run's name
+  down the length of its save points. The save-point rows carry the rule on their left, the run rows do not, so the eye
+  reads "run → its saves" without labels.
+- **The control is a noun.** The button says what it reveals and how many there are ("Save points (3)") — never a bare
+  verb that could read as "make a backup" (2026-11-08: the user read "Backups" as an action).
+- The counts in the detail line stay: "surface · 3 player(s) · 3 save point(s) · last saved …" — the noun in both places
+  comes from the same key, so they cannot drift apart.
+
 ## What it affects
 
 - The disk: unbounded growth (each cut is a full archive).

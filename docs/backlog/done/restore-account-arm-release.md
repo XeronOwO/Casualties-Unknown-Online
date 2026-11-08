@@ -7,9 +7,9 @@
 - Priority: Low
 - Category: Persistence / save system (the restore account)
 - Source: recorded by the restore-ATTEMPT-identity cycle of
-  `review/save-mid-run-consistent-cut.md` (2026-09-12), re-verified against the tree on 2026-09-17
+  `done/save-mid-run-consistent-cut.md` (2026-09-12), re-verified against the tree on 2026-09-17
   when that ticket moved to `review/`, and landed 2026-09-19
-- Related: `review/save-mid-run-consistent-cut.md` (the pass that recorded them), decisions
+- Related: `done/save-mid-run-consistent-cut.md` (the pass that recorded them), decisions
   172/179/182/195 in `docs/decisions/active.md`,
   `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRestoreAudit.cs`,
   `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRestoreHalf.cs`,

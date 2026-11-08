@@ -1,7 +1,7 @@
 # Save — the mid-run cut's block diff after a Continue (batch 20261108-n)
 
 - Batch: `20261108-n`, host desktop client, deployed `0.1.0+99ed67d6`.
-- Ticket: `docs/backlog/review/save-mid-run-consistent-cut.md`, acceptance row 1 (mid-run save with mined/placed/quaked blocks + partial damage).
+- Ticket: `docs/backlog/done/save-mid-run-consistent-cut.md`, acceptance row 1 (mid-run save with mined/placed/quaked blocks + partial damage).
 
 ## What the row claimed only the player could see
 

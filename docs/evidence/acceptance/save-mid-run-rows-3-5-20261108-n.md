@@ -1,6 +1,6 @@
 # Acceptance — the mid-run cut's entity, in-flight and fingerprint rows (batch 20261108-n)
 
-Ticket: `docs/backlog/review/save-mid-run-consistent-cut.md`, rows 3, 4 and 5.
+Ticket: `docs/backlog/done/save-mid-run-consistent-cut.md`, rows 3, 4 and 5.
 Session: the row-1/row-2 batch (`20261108-n`), host in world `w-20261108-9711`; the host quit and
 relaunched (`20261108-n2`, host started 11:32:46) for row 5's second entry. The clients were left running.
 
@@ -79,3 +79,32 @@ re-capture.
 
 Limit: one in-game save/load cycle was read (the machine test
 `WorldSaveContinueTests.TryContinue_Twice_KeepsTheSameFingerprintAndFacts` is the two-load half).
+
+Row 4 — the in-flight window, read three ways (2026-11-08, the same session).
+
+The wait is unit-proven: `tests/CasualtiesUnknownOnline.Tests/Persistence/WorldSaveCutSeamTests.cs`
+covers it directly — `BreakWindow_Resolved_TakesTheCutOnTheNextFrame` (a live `TrapDropHoldKey` value 1
+answers `WorldCutResult.Deferred` and the next frame takes the cut), `BreakWindow_OutlastingTheDeadline_IsNamedInTheReport`
+(a stuck `DropFlushKey` defers to `WorldCutDeferral.MaxFrames` and the cut then names the drop report(s) it
+could not take) and `ReArmingTheSameTrigger_KeepsItsDeferralWindow` (a re-arm does not restart the wait).
+
+Three live instruments asked the product's own `IWorldSaveControl.TryRequestCut(WorldCutReason.Command)` and
+read the answer plus the host log:
+
+1. `cut-during-drop type=dogfood` — the game's own release path (`PlayerCamera.HandleReleaseDragging`) drops a
+   carried item and the cut is requested in the SAME frame: `{"ok":true,"item":"dogfood","dropped":true,
+   "asked":true,"refusal":null}`; the host log carries the drop trace
+   (`[ItemTrace] op=67 begin item=1434840057795 origin=OnItemDropped event=Drop`) and the cut commits
+   (`Cut Command committed … revision 2252`) — no waiting line.
+2. `trap-stage x=0 y=493 dx=2 crate=foodbox` → `mineX 0, mineY 493.5`, `trap-trigger` → the mine explodes
+   natively 0.8 s later; `cut-request` ~900 ms after the press → `asked:true, refusal:null`; the log carries
+   `[TrapDropPending] kind=MineExploded pos=(0.0,493.5) held for drop collection.` and
+   `[TrapDropFlush] … drops=1.`, and the cut commits (`revision 2235`) — the hold had already flushed when the
+   request arrived.
+3. `cut-during-trap` (press + request in one call) — the explosion lands after the press, so the request precedes
+   the pending state; the cut commits.
+
+Limit: at the console's frame boundary every transient resolves inside the frame it is created (the drop's
+flush registers in that frame; the trap's hold is shorter than one driver round trip), so the deferral LINE is
+observable only through the seam test. The live half reads that each attempted in-flight state resolved
+without loss: no `[TrapDropPending]` record survived to a cut, and the dropped item is in the cut's rows.

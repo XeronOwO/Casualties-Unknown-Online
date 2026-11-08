@@ -3,7 +3,7 @@
 - Status: Done
 - Priority: Low
 - Category: Architecture / maintenance
-- Source: recorded while landing S3.2 of `review/save-mid-run-consistent-cut.md` (the
+- Source: recorded while landing S3.2 of `done/save-mid-run-consistent-cut.md` (the
   return-value change of `ApplyBlockState` pushed the type from 595 to 601 aggregate lines)
 - Related: `docs/architecture-debt.json` (the recorded baseline), `AGENTS.md` hard thresholds
 - Acceptance record: `docs/evidence/acceptance/world-state-message-service-split-20260927.md`

@@ -3,7 +3,7 @@
 - Date: 2026-11-07
 - Build: `0.1.0+7f3c5cfe` (acceptance package; the plain deploy's production package carries the same
   code, the acceptance channel only adds the driver)
-- Ticket: `docs/backlog/review/save-mid-run-consistent-cut.md`, row 3's opened-lockables half
+- Ticket: `docs/backlog/done/save-mid-run-consistent-cut.md`, row 3's opened-lockables half
 - Why: the ticket's status line said "one row's fixture (a save made with open lockables) has no drive
   path on this machine (the lockpick minigame cannot be completed in-process)". This batch built that
   drive path and took the reading.

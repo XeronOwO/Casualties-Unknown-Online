@@ -10,8 +10,8 @@
   `done/save-new-player-starting-supplies.md`, now done; the 2026-10-24 batch closed row 2.
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 4 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (the backup half is the user's Q3/Q6 answer: "可配置的定时备份")
-- Related: `docs/architecture/save-archive-format.md` §6/§7, `review/save-layer-end-save-and-restore.md` (S2), `review/save-mid-run-consistent-cut.md` (S3), `done/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1), `done/save-restore-account-surface.md` (S4.2), `done/save-new-player-starting-supplies.md` (S4.3), `done/systemic-save-backup-management.md` (owns the broader backup/restore product surface)
+- Source: Stage 4 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (the backup half is the user's Q3/Q6 answer, translated: "configurable scheduled backups")
+- Related: `docs/architecture/save-archive-format.md` §6/§7, `review/save-layer-end-save-and-restore.md` (S2), `done/save-mid-run-consistent-cut.md` (S3), `done/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1), `done/save-restore-account-surface.md` (S4.2), `done/save-new-player-starting-supplies.md` (S4.3), `done/systemic-save-backup-management.md` (owns the broader backup/restore product surface)
 
 ## Stage split
 
@@ -70,7 +70,7 @@ begins. This file stays the roadmap and holds no implementation work of its own.
    DTO, its composition-root parameter, its `PluginDeps`/deploy references and its tests), and the
    in-memory table (`CharacterDataStore`) is fed from the archive instead — a reconnecting guest is
    restored by the claim in Scope 1, not by a stale local cache.
-   Decided by the user on 2026-09-10 ("模组尚未发布, 无需考虑破坏性更新风险").
+   Decided by the user on 2026-09-10 (translated: "the mod is not released yet, so no breaking-update risk has to be considered").
 
 ## Acceptance
 

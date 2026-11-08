@@ -6,9 +6,7 @@
   reader kind and a reach page).
 - Priority: Critical
 - Category: Documentation / process
-- Source: the user's 2026-10-12 directive, in their own words: "压根不会去读的文档,你写它有什么意义?…必须有意义,
-  确定自己未来会读,或者用索引指向,否则不要落地…然后加一条最高优先级 todo,梳理本项目所有文档,找出类似于 lessons
-  的文档,要么直接干掉,要么完全推翻重新整理" — and the rule it produced (`~/.dsh/AGENTS.md`, the landing
+- Source: the user's 2026-10-12 directive, translated: "a document you will never read — why write it at all? It must be meaningful; confirm you will read it in the future, or point to it from an index, otherwise do not land it… then add a top-priority todo to go through every document of this project and find the ones like `lessons`, and either delete them outright or completely rework them" — and the rule it produced (`~/.dsh/AGENTS.md`, the landing
   threshold; `docs/AGENTS.md` §6; the review prompt's check G).
 - Related: `docs/AGENTS.md`, `docs/en/contributing/documentation-standard.md` (+ its Chinese pair),
   `docs/development/review-prompt.md`, `done/delivery-checklist-gate-census.md` (the same rot in a gate)
@@ -311,14 +309,14 @@ opens, and the file is not created.
    first (the sections above). The queue that is left is measured, not guessed:
    `docs/evidence/sync-coverage-matrix.md` 244,792 bytes and `docs/evidence/selfchecks/MANIFEST.md`
    111,705, the two largest documents in the tree that are still logs. The largest ticket body,
-   `docs/backlog/review/save-mid-run-consistent-cut.md` at 107,575 bytes, is the first candidate of the
+   `docs/backlog/done/save-mid-run-consistent-cut.md` at 107,575 bytes, is the first candidate of the
    cycle-narrative class and has not been judged yet. — **Three of the four are rewritten and off the rework
    list: the coverage matrix followed the register and the ledger (see *The coverage matrix's row audit*
    below), which leaves `docs/evidence/selfchecks/MANIFEST.md` as the last log in the queue.** — **All four
    are rewritten and off the rework list**: the self-check register followed the other three (see *The
    self-check register's row audit* above) and the census now carries **969 keep, 0 rework, 0 delete**. What
    the queue still holds is the cycle-narrative class rather than a log: the largest ticket body,
-   `docs/backlog/review/save-mid-run-consistent-cut.md` at 107,575 bytes, has not been judged yet.
+   `docs/backlog/done/save-mid-run-consistent-cut.md` at 107,575 bytes, has not been judged yet.
 3. **A ledger shape for what stays a list.** — **Landed for the lessons ledger, open for the register.**
    An entry is bounded, names what its reader can open, and an entry whose conclusion has landed
    elsewhere is deleted in the same change — `AcceptanceLessonsGateTests` now fails on a two-line entry,

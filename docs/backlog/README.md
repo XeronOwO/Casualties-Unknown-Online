@@ -96,7 +96,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
-- [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
 - [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
@@ -133,6 +132,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [S3 — Mid-run consistent cut and world diff](done/save-mid-run-consistent-cut.md) — **High** — every in-game row is machine-read.
 
 - [Drag-use aims at the model, not a fixed circle](done/cross-player-drag-use-model-bounds.md) — **Medium** — the pointer opens the teammate it is on.
 - [A guest keeps a dead lobby](done/a-guest-keeps-a-dead-lobby.md) — **High** — the guest leaves the dead lobby and joins the next one.

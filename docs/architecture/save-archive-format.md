@@ -186,7 +186,7 @@ chunk both describe the layer being replaced, so a `layer-end` restore drops the
 the world-rooted item rows and the per-entity facts (the enemy TOMBSTONES are terminal facts and stay —
 a killed enemy never comes back). A `layer-end` restore therefore also runs the two host-local kernel
 resets; the mechanism and its red/green pair for the live path are in
-`docs/backlog/review/save-mid-run-consistent-cut.md`, and decision 174 records the rule.
+`docs/backlog/done/save-mid-run-consistent-cut.md`, and decision 174 records the rule.
 
 The game's own `WorldGeneration.world.blockDamages` list is the ONLY partial-damage table there is:
 CUO keeps no registry beside it, and the partial block damage has no Runtime half in the fact port

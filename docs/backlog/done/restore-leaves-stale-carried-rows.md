@@ -4,7 +4,7 @@
 - Priority: Medium
 - Category: Persistence / save system — the character restore's instance-id handling
 - Source: found while reading the layer-end continue with a member in the world (`review/save-layer-end-save-and-restore.md`, row 1)
-- Related: `review/save-layer-end-save-and-restore.md`, `review/save-mid-run-consistent-cut.md` (S3), `done/save-multiplayer-restore-and-backups.md` (S4)
+- Related: `review/save-layer-end-save-and-restore.md`, `done/save-mid-run-consistent-cut.md` (S3), `done/save-multiplayer-restore-and-backups.md` (S4)
 
 ## Design
 

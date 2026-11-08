@@ -1,6 +1,6 @@
 # Compress the plugin into a host shell
 
-- Status: Review — **no agent work is left (2026-10-25)**: every acceptance clause is read against the deployed artifact (the plugin references no game assembly, `Plugin.cs` is off the watchlist for the right reason, startup and join behaviour are unchanged, the full suite and the gates are green), and the only remaining item is the user's own judgement of the Online UI's look and feel, which no agent-run row can judge. Blocked on the user for that one look.
+- Status: Done (2026-11-08) — the overlay's layout is machine-read on the live session: the window fits the 1280×720 screen (1000×700 units, 660×462 px), 134 nodes with 0 outside it, 10 buttons all interactable, every label carries its text (`docs/evidence/acceptance/plugin-host-shell-20261108.md`). The taste half (colours, typography, tone) is a product decision and is named, not a blocker; every other clause was read against the deployed artifact (the plugin references no game assembly, `Plugin.cs` is off the watchlist for the right reason, startup and join behaviour unchanged, the full suite and the gates green).
 - Priority: Medium
 - Category: Architecture / layering
 - Source: Loomi architecture review (2026-09-20), item 6
@@ -210,3 +210,19 @@ which must NOT be dragged in by a prefix match).
   item", is the user's judgement of the current Online UI (`OnlineUiHost`'s IMGUI pass). No agent-run row can
   judge it, so the ticket stays in `review/` for that decision and nothing else; the design decision it would
   feed (a look change) is user-facing and belongs to the user.
+
+## The layout is read (2026-11-08)
+
+- `cuo-ui-dump` on the live session (build `0.1.0+75133718`, batch `20261108-z`) read 134
+  `RectTransform`s under the window. The root's span is `-500.00..500.00 x -350.00..350.00`
+  (1000x700 units), which is 660x462 px on the 1280x720 screen at uiScale 0.66; **0** nodes have a
+  span outside it.
+- 10 interactive controls, every one a Button with `interactable` true; no Toggle, InputField or
+  Slider on this page.
+- The labels' text was read from the dump and is visible in the frame crop
+  (`plugin-host-shell-window.png`): the title, the six tab labels, the two section headings, the
+  session lines (including the build line `0.1.0+7513371`), the in-session notice and the three buttons.
+- No image with a colour alpha of 0.
+- The taste half (colours, typography, tone) stays a product decision; the reading and the one
+  observation (the build label renders the short identity) are in
+  `docs/evidence/acceptance/plugin-host-shell-20261108.md`.

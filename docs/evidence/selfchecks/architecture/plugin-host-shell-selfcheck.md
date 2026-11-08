@@ -1,7 +1,7 @@
 # Plugin host shell — the entry stops owning four jobs
 
 Date: 2026-09-22
-Scope: `review/plugin-host-shell.md`, all four stages. The plugin project stops being the
+Scope: `done/plugin-host-shell.md`, all four stages. The plugin project stops being the
 registration root, the UI compositor, the lobby policy and a game-assembly consumer; the adapter's
 composition moves next to the adapter, the presentation and the policy become their own units, and
 the layout rule becomes a gate (decision 213).

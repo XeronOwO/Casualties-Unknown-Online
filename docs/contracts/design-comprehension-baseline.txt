@@ -5,7 +5,6 @@
 
 docs/backlog/review/adapter-capability-catalog.md
 docs/backlog/review/cross-player-drag-use-feedback.md
-docs/backlog/review/plugin-host-shell.md
 docs/backlog/review/save-system-mid-run-and-layer-end.md
 docs/backlog/review/trap-layout-crystal-rows-empty.md
 

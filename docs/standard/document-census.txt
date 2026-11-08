@@ -262,7 +262,7 @@ docs/backlog/done/online-ui-layout-and-input-detail-pass.md | keep | index | doc
 docs/backlog/done/heal-cheat-command-state-reset.md | keep | index | docs/backlog/README.md
 docs/backlog/done/pinyin-search-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/done/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
-docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
+docs/backlog/done/plugin-host-shell.md | keep | index | docs/backlog/README.md
 docs/backlog/done/recipe-unlock-fallback.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/recipe-unlock-two-process-20261025-h.md | keep | claim | docs/backlog/done/recipe-unlock-fallback.md
 docs/backlog/done/remote-context-menu-medical-visible-when-target-not-visible.md | keep | index | docs/backlog/README.md
@@ -1349,3 +1349,5 @@ docs/evidence/acceptance/save-native-run-field-parity-20261108-row2.md | keep | 
 docs/evidence/acceptance/save-native-run-field-parity-20261108-rows1-3.md | keep | claim | docs/backlog/done/save-native-run-field-parity.md
 
 docs/evidence/acceptance/recursive-crafting-mod-20261108.md | keep | claim | docs/backlog/done/recursive-crafting-mod.md
+
+docs/evidence/acceptance/plugin-host-shell-20261108.md | keep | claim | docs/backlog/done/plugin-host-shell.md

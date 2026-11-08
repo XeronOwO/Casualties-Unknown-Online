@@ -16,7 +16,7 @@
   questions the user names — `AssemblyLoadContext` and resource-file streams — answered in the design.
 - Related: `tools/deploy.ps1` (what a deployment ships today), `review/pinyin-search-standalone-mod.md` and
   `src/CasualtiesUnknownOnline.ModExample` (the extensions that stay out of the core package),
-  `future/phase5-tooling-ecosystem.md` (packaging/install tooling), `review/plugin-host-shell.md` (the entry's
+  `future/phase5-tooling-ecosystem.md` (packaging/install tooling), `done/plugin-host-shell.md` (the entry's
   own layering work), `tools/verify-deploy.ps1` (the identity story that must keep working)
 
 ## What is observed
@@ -61,7 +61,7 @@ One artifact a user can drop in and start from, containing the CUO core only:
 
 - Not an installer, not an auto-updater and not a mod manager: those are
   `future/phase5-tooling-ecosystem.md`.
-- Not the entry's own refactor (`review/plugin-host-shell.md`); this ticket consumes it rather than replacing
+- Not the entry's own refactor (`done/plugin-host-shell.md`); this ticket consumes it rather than replacing
   it.
 ## Cost, read from the ticket's own requirements (2026-10-18)
 
@@ -111,7 +111,7 @@ The probe also names what remains open, which is the design half: whether CUO's 
 into one (type identity across a merge, not just an embedded side-assembly), whether the Game Adapter's
 references to the game's own assemblies survive (they are the game's, not ours, and stay external), how the
 ~30 loose dependencies are embedded, and how `verify-deploy.ps1`'s one-build-one-artifact check follows a packed
-file (the plugin already logs `build 0.1.0+<commit>`, so the identity itself is not the unknown 鈥?the artifact
+file (the plugin already logs `build 0.1.0+<commit>`, so the identity itself is not the unknown —the artifact
 comparison is). No package work is started in this cycle; this section is the reading the design starts from.
 
 ## The CUO-scale packed artifact, and the shape it proves wrong (2026-10-24)
@@ -138,7 +138,7 @@ compiled, not when the type loads.
 
 So the single-file package needs the entry split first: a tiny `[BepInPlugin]` type with NO packed-type
 signatures (its static constructor installs the resolver, its `Awake` adds the real component by name), and the
-real plugin class loading only afterwards. That is the `review/plugin-host-shell.md` refactor's own shape, and
+real plugin class loading only afterwards. That is the `done/plugin-host-shell.md` refactor's own shape, and
 this ticket consumes it, so the packaging work is BLOCKED on that refactor, not on anything the packer lacks.
 
 The deployment was restored (the packed directory was a temporary replacement) and `verify-deploy.ps1` passes
@@ -150,11 +150,11 @@ same reading after the entry split.
 Before accepting the entry split, a second attempt tried to make the packed artifact work WITHOUT touching the
 plugin's shape: a `PackedAssemblyResolver` (register the `AssemblyResolve` handler, then eagerly
 `Assembly.Load` every embedded assembly) plus a packer step that injects a `<Module>` static constructor
-calling it 閳?the one hook that would run before any type of the assembly loads.
+calling it —the one hook that would run before any type of the assembly loads.
 
 The client gave the same answer as before, with one new fact: the packed assembly is accepted
 (`Loading [Casualties Unknown: Online 0.1.0]`), the injected module initializer does NOT run early enough on
-this runtime, and the plugin type still fails to instantiate 閳?`Player.log` again says only
+this runtime, and the plugin type still fails to instantiate —`Player.log` again says only
 `The script 'CasualtiesUnknownOnline.Plugin' could not be instantiated!` while BepInEx logs nothing else. So
 Unity's Mono does not give a module initializer the "before every type" position this design needs, and the entry
 split is the ONLY route: it is a real prerequisite, not a preference. The resolver source and the packer's
@@ -170,16 +170,16 @@ anything it carries; in the normal deployment it is inert.
 
 Verified on the real client:
 
-- **Normal deployment** (the full loose set, deployed): the client starts as before 閳?`Plugin
-  CasualtiesUnknownOnline is loaded 閳?build 0.1.0+074a92bd...-dirty`, the capability report is OK, the Online UI's
+- **Normal deployment** (the full loose set, deployed): the client starts as before —`Plugin
+  CasualtiesUnknownOnline is loaded —build 0.1.0+074a92bd...-dirty`, the capability report is OK, the Online UI's
   lobby controls are available, and an agent-driven session ran (ping, create-lobby, start-run, role Host).
 - **Packed deployment** (ONE `CasualtiesUnknownOnline.dll` with 30 embedded managed assemblies plus the native
-  `steam_api64.dll`): BepInEx loads it and CUO STARTS 閳?the same `is loaded 閳?build ...`, the capability report,
+  `steam_api64.dll`): BepInEx loads it and CUO STARTS —the same `is loaded —build ...`, the capability report,
   the Online UI line, the Pinyin Search mod beside it (its `Abstractions` dependency served by the resolver), and
   the driver's ping / create-lobby / state all work against the packed client.
 
 That answers the ticket's feasibility question completely: a single managed file carrying CUO and its
-dependencies loads and runs on this BepInEx/Unity. What remains is the package's own work 閳?its contents and
+dependencies loads and runs on this BepInEx/Unity. What remains is the package's own work —its contents and
 boundary with the extension mods, the release-identity rule for `verify-deploy.ps1` (one packed file versus a
 recursive build-output comparison), the native `steam_api64.dll` staying loose and being named for the user, and
 the one-file-versus-deployment page in both language blocks. The ticket stays `todo` for that work; it is no
@@ -195,8 +195,8 @@ entry's GameObject first.
 `steam_api64.dll` in the plugin folder, removing the loose files one level deep; the normal deployment is
 unchanged without the switch. `tools/verify-deploy.ps1 -Packed` keeps the one-build-one-artifact rule on the
 packed shape: it opens the deployed assembly, requires at least twenty `Packed.<name>.dll` resources, and
-requires EVERY resource's SHA-256 to be one of this tree's build-output hashes 鈥?so a packed file can only pass
-if it was packed from the build in THIS tree 鈥?and it still prints the artifact's `ProductVersion` (the commit)
+requires EVERY resource's SHA-256 to be one of this tree's build-output hashes —so a packed file can only pass
+if it was packed from the build in THIS tree —and it still prints the artifact's `ProductVersion` (the commit)
 exactly as the loose path does.
 
 Measured: `deploy.ps1 -Packed` left two files, `verify-deploy.ps1 -Packed` reported

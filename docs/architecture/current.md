@@ -188,7 +188,7 @@ world/run, interaction and mod-content domains keep using the aggregate and migr
 their own work touches them; `PatchBridgePortShapeGateTests` pins the census of every seam and
 `PatchBridgePortContractTests` asserts the same facts on the built adapter.
 
-The entry above it is a host shell (decision 213, `review/plugin-host-shell.md`): `Plugin.cs` is
+The entry above it is a host shell (decision 213, `done/plugin-host-shell.md`): `Plugin.cs` is
 BepInEx configuration, Unity lifecycle forwarding and the Steam callbacks, the presentation is
 `OnlineUiHost` (overlay composition, the frame-time input/modal rules, the IMGUI pass), the lobby
 policy is `LobbySwitchActions` (one policy for the Steam callbacks and the UI buttons), registration

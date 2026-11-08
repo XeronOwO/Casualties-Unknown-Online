@@ -90,7 +90,7 @@ composition root — nothing in the tree resolves the whole adapter any more (th
 ports plus the concrete adapter), and a registration no consumer resolves would be exactly the dead
 surface this change removes elsewhere. `Plugin` keeps the concrete adapter for exactly one call,
 `LateUpdateCarryPresentation`, an adapter Update-pump detail rather than a consumer capability
-(`review/plugin-host-shell.md` took that coupling and landed it on 2026-09-22: the call is now the
+(`done/plugin-host-shell.md` took that coupling and landed it on 2026-09-22: the call is now the
 `ICarryPresentationPump` port, the composition is `GameAdapterComposition` in the adapter project,
 and the aggregate composes twelve ports).
 
@@ -111,7 +111,7 @@ exactly the pinned ports plus `IDisposable`; the composition carries exactly 14 
 registered EXACTLY ONCE from the one adapter singleton in `PluginDependencyRegistrar` (counted, so an
 unwired port and a duplicate whose last descriptor wins both fail; read as source, because the tests
 project does not reference the plugin project) — that pin moved to `GameAdapterComposition` on
-2026-09-22 (`review/plugin-host-shell.md`); and a synthetic composition that declares a method, a
+2026-09-22 (`done/plugin-host-shell.md`); and a synthetic composition that declares a method, a
 property and an event is flagged (the matcher's own contract). Two mutation controls were run on the
 real tree: declaring `ProbeRegrowth()` back on the aggregate and deleting one port registration each
 turned the gate red; restoring them turned it green.

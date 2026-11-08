@@ -12,7 +12,7 @@ transient-state number, and one over-general census sentence).
 
 ## What landed
 
-- **The boundary is ten ports here** (`review/plugin-host-shell.md` added two more — the join-flow
+- **The boundary is ten ports here** (`done/plugin-host-shell.md` added two more — the join-flow
   intent and the carry pump — bringing it to twelve on 2026-09-22). `IGameAdapter` is now a composition (`IGameIntegrationLifecycle`,
   `IAdapterCapabilityQuery`, `IWorldPresenceQuery`, `IStartGateState`, `ILocalHealItemQuery`,
   `ITraderRecruitRequest`, `INativeInputBlocker`, `IRemoteInventoryPresentation`,
@@ -108,5 +108,5 @@ decision 212 rather than reduced.
   project.
 - The adapter's read of Runtime internals is recorded with its census, not reduced (above).
 - `Plugin.cs` keeps no concrete-adapter call any more: the carry pump is the `ICarryPresentationPump`
-  port and the composition moved to the adapter project (`review/plugin-host-shell.md`, landed
+  port and the composition moved to the adapter project (`done/plugin-host-shell.md`, landed
   2026-09-22).

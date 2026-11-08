@@ -15,7 +15,7 @@
 - Related: `src/CasualtiesUnknownOnline.GameAdapter/Patches/PreRunScriptIntroSkipPatch.cs` (the patch that
   sets the native `didIntro` field), `src/CasualtiesUnknownOnline.Runtime/GameAdapter/IJoinFlowPresentation.cs`
   (the intent the shell declares), `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs` (the
-  `_skipIntro` static behind it), `review/plugin-host-shell.md` (the stage that wants that intent on a port),
+  `_skipIntro` static behind it), `done/plugin-host-shell.md` (the stage that wants that intent on a port),
   `docs/en/reference/configuration.md`
 
 ## Run sheet (cycle 2026-10-25: close the ticket)
@@ -59,7 +59,7 @@ nothing clears, so the cover stays gone for the rest of the process.
 
 1. Replace the process-wide static with an explicit, named decision that says what is skipping and why, so
    "skipped once" and "skipped always" cannot be confused by the next reader. The shape is already wanted by
-   `review/plugin-host-shell.md` (the intent on a port, not a static write from the shell).
+   `done/plugin-host-shell.md` (the intent on a port, not a static write from the shell).
 2. Put the choice on the configuration surface, and make every launch path read that same decision instead of
    a second flag, with the join path's own rule (show the cover) stated where the decision is made. The
    preference's default is not stated in so many words: "turn it on to skip permanently" reads as off by

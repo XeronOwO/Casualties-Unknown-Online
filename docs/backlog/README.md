@@ -97,7 +97,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
-- [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
+
 
 
 ### Future
@@ -129,6 +129,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Plugin as a host shell](done/plugin-host-shell.md) — **Medium** — the overlay's layout is read: fits, no clipping, every control named.
 - [Remote clone trails a nap transition](done/remote-clone-trails-the-nap-transition.md) — **Medium** — a far jump lands the replica; fixed and read.
 - [Unified remote display projection](done/unified-remote-display-projection-rework.md) — **High** — the clone stands and poses where the member does.
 - [Pinyin search as a standalone mod](done/pinyin-search-standalone-mod.md) — **Medium** — the native search box typed with pinyin, read on the live client.

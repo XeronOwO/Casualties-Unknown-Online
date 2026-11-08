@@ -154,7 +154,7 @@ restoring them turns it green. The aggregate itself is not registered in the com
 nothing resolves the whole adapter, and the compile-time proof that one object implements the
 composition is the class declaration (`docs/backlog/done/adapter-capability-ports.md`; the
 composition moved from the plugin into the adapter project with
-`docs/backlog/review/plugin-host-shell.md`, decision 213).
+`docs/backlog/done/plugin-host-shell.md`, decision 213).
 
 Game-assembly addendum:
 `GameAssemblyReferenceGateTests` enforces the layout rule that only a declared game-binding project

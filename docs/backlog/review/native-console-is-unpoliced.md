@@ -1,10 +1,8 @@
 # The native console is an unpoliced authority hole
 
-- Status: Done — user-reported (2026-11-08): running the game's own `heal` on Steam2 reset every state; the host now
-  refuses a limb report that carries a change the game's own rates cannot produce (2026-11-08). Batch `20261108-t2`:
-  Steam2 ran the game's own `heal` (its local limb read 100/100 after a seeded -12.2); the host refused the report
-  (`[LimbEvent] refused SkinJumped … the host's record stays.`) and kept its record. The console-side half (refusing a
-  state-mutating native command on a client in a session) remains the second lever named below.
+- Status: Review — the host refuses a limb report the game cannot produce (2026-11-08, batch `20261108-t2`), but the
+  member is NOT yet pushed back to the host's value: the user's rule is that after the periodic report the host corrects
+  the guest's state, so the guest's screen ends at the host's numbers. That push-back is the open half.
 - Priority: High (a member can rewrite its own authoritative facts)
 - Category: Session authority / console
 - Source: the user, 2026-11-08 (translated: "the native console commands have no permission check, right? I ran heal on
@@ -53,6 +51,20 @@ the item and block commands. The set is larger than `heal`.
    the console's convenience; a console command that only the host's roster may run (the CUO `/op` list) is a third
    option.
 3. The CUO console's own gate stays where it is; the two surfaces must agree.
+
+## The push-back (open, 2026-11-08)
+
+The refusal keeps the host's record, but the member's own screen stays at its local numbers: the guest's local body is
+its own simulation, and the refusal path currently only logs. The rule the user stated: after the periodic report the
+host corrects the guest's state. The pieces to build:
+
+1. The host's refusal carries the authoritative limb frame back to the reporter (a directed send, not a broadcast; the
+   offending peer is the only target).
+2. On the member's own client the frame is written onto the local body (the native limb fields and the refresh the heal
+   and treatment paths already use), not only onto the fact table's clone — `CharacterDataSync.OnLimbStateEventReceived`
+   currently forwards to `_factTable` only, so a frame naming the local body changes nothing on screen.
+3. Verification: the same batch (Steam2's own `heal`), reading the guest's limbs after the host's reply — they must end at
+   the host's values, not 100.
 
 ## Acceptance
 

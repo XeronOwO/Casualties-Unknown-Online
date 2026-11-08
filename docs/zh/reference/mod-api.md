@@ -613,7 +613,7 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
 
 ```csharp
 [CuoMod("cuo.pinyinsearch", "Pinyin Search", "0.1.0", NetworkMode = NetworkMode.ClientOnly,
-    NativeBinding = "PlayerCamera.RefreshRecipeList + string.Contains(string, StringComparison)")]
+    NativeBinding = "PlayerCamera.RefreshRecipeList")]
 public sealed class PinyinSearchMod : ICuoMod
 {
     public void Bind(IModContext context) =>

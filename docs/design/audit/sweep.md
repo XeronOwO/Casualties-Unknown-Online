@@ -52,7 +52,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.PinyinSearch` | 1 | read |
 | `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | read |
 | `CasualtiesUnknownOnline.PinyinSearch.Core/Search` | 6 | read |
-| `CasualtiesUnknownOnline.PinyinSearch/Patches` | 2 | read |
+| `CasualtiesUnknownOnline.PinyinSearch/Patches` | 3 | read |
 | `CasualtiesUnknownOnline.Plugin` | 43 | read |
 | `CasualtiesUnknownOnline.Protocol/Codecs` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Versioning` | 1 | read |

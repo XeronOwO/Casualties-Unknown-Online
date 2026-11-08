@@ -19,7 +19,7 @@ namespace CasualtiesUnknownOnline.PinyinSearch.Core;
 /// (<c>[Mods] discovered … binds …</c>).
 /// </summary>
 [CuoMod("cuo.pinyinsearch", "Pinyin Search", "0.1.0", NetworkMode = NetworkMode.ClientOnly,
-	NativeBinding = "PlayerCamera.RefreshRecipeList + string.Contains(string, StringComparison)",
+	NativeBinding = "PlayerCamera.RefreshRecipeList",
 	Description = "Pinyin matching for the game's crafting search box, and for the console's "
 		+ "resource-id completion when CUO is installed.")]
 public sealed class PinyinSearchMod : ICuoMod

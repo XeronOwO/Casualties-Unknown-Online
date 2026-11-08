@@ -1,5 +1,7 @@
 using System;
-using CasualtiesUnknownOnline.PinyinSearch.Core.Search;
+using System.Collections.Generic;
+using System.Reflection.Emit;
+using CasualtiesUnknownOnline.PinyinSearch.Core;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.PinyinSearch.Patches;
@@ -11,20 +13,21 @@ namespace CasualtiesUnknownOnline.PinyinSearch.Patches;
 /// mod's switch is on.
 ///
 /// The native filter is <c>simpleName.Contains(recipeFilter, OrdinalIgnoreCase)</c>
-/// evaluated inside a compiler-generated lambda. A name hook cannot ADD a match
-/// — the predicate still runs its own <c>Contains</c> on whatever name the hook
-/// returns, so a pinyin-only hit would be dropped again. The extension
-/// therefore lands on the COMPARISON: while one refresh is being filtered, the
-/// <c>string.Contains(string, StringComparison)</c> overload answers the pinyin
-/// question first and falls back to the native comparison otherwise. Outside
-/// the scope the overload is untouched, so every other <c>Contains</c> in the
-/// game keeps its exact behavior.
+/// inside a compiler-generated lambda. A name hook cannot ADD a match — the
+/// predicate still runs its own <c>Contains</c> on whatever name the hook
+/// returns — and a patch on the BCL comparison is not reliable either (the
+/// call site may already be inlined by the JIT). The extension therefore
+/// rewrites the call instruction itself: the one
+/// <c>string.Contains(string, StringComparison)</c> call inside
+/// <c>PlayerCamera.RefreshRecipeList</c> becomes a call to
+/// <see cref="PinyinContains"/>, which answers the pinyin question first while
+/// a refresh scope holds a query and defers to the native comparison otherwise.
 /// </summary>
 internal static class PinyinSearchPatches
 {
 	/// <summary>
-	/// Opens and closes the query scope around exactly one native refresh, so
-	/// the comparison hook below is inert everywhere else.
+	/// Opens and closes the query scope around exactly one native refresh, and
+	/// rewrites the filter's comparison so the scope can extend it.
 	/// </summary>
 	[HarmonyPatch(typeof(PlayerCamera), "RefreshRecipeList")]
 	internal static class RefreshRecipeListPatch
@@ -35,30 +38,43 @@ internal static class PinyinSearchPatches
 
 		/// <summary>Runs even when the native body throws, so a failed refresh cannot leave the borrowed scope open into the next frame.</summary>
 		private static void Finalizer() => RecipeSearchScope.End();
-	}
 
-	/// <summary>
-	/// The extended comparison: inside the scope, a name that matches by literal
-	/// substring or by pinyin answers true; anything else (and every call
-	/// outside the scope) runs the native comparison unchanged.
-	/// </summary>
-	[HarmonyPatch(typeof(string), nameof(string.Contains), [typeof(string), typeof(StringComparison)])]
-	internal static class StringContainsPatch
-	{
-		private static bool Prefix(string __instance, string value, StringComparison comparisonType, ref bool __result)
+		/// <summary>
+		/// Swaps the native filter's comparison for <see cref="PinyinContains"/>.
+		/// The rewrite is what makes a pinyin-only match possible: a hook on the
+		/// name (or on the BCL method) answers too late or never.
+		/// </summary>
+		private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
 		{
-			if (!RecipeSearchScope.IsFiltering || string.IsNullOrEmpty(value) || string.IsNullOrEmpty(__instance))
+			var native = AccessTools.Method(
+				typeof(string),
+				nameof(string.Contains),
+				[typeof(string), typeof(StringComparison)]);
+			var extended = AccessTools.Method(typeof(PinyinContains), nameof(PinyinContains.Contains));
+			var replaced = 0;
+
+			foreach (var instruction in instructions)
 			{
-				return true;
+				if (instruction.opcode == OpCodes.Call && Equals(instruction.operand, native))
+				{
+					yield return new CodeInstruction(OpCodes.Call, extended);
+					replaced++;
+					continue;
+				}
+
+				yield return instruction;
 			}
 
-			if (NameSearchMatcher.Matches(__instance, value))
+			if (replaced == 0)
 			{
-				__result = true;
-				return false;
+				PinyinSearchGate.Log?.LogWarning(
+					"[Pinyin] PlayerCamera.RefreshRecipeList no longer calls string.Contains(string, StringComparison) — "
+					+ "pinyin search keeps the native filter. The predicate changed; the transpiler is stale, not clean.");
 			}
-
-			return true;
+			else
+			{
+				PinyinSearchGate.Log?.LogDebug($"[Pinyin] recipe filter comparison extended ({replaced} call site(s)).");
+			}
 		}
 	}
 }

@@ -89,7 +89,7 @@ public class PinyinSearchContractTests
 		Assert.Equal("0.1.0", mod.Manifest.Version);
 		Assert.Equal(NetworkMode.ClientOnly, mod.Manifest.NetworkMode);
 		Assert.Equal(ModPermission.None, mod.Manifest.Permissions);
-		Assert.Equal("PlayerCamera.RefreshRecipeList + string.Contains(string, StringComparison)", mod.Manifest.NativeBinding);
+		Assert.Equal("PlayerCamera.RefreshRecipeList", mod.Manifest.NativeBinding);
 		Assert.Equal(typeof(PinyinSearchMod), mod.Type);
 	}
 
@@ -101,7 +101,7 @@ public class PinyinSearchContractTests
 		Assert.NotNull(declaration);
 		Assert.Equal(NetworkMode.ClientOnly, declaration!.NetworkMode);
 		Assert.Contains("PlayerCamera.RefreshRecipeList", declaration.NativeBinding, StringComparison.Ordinal);
-		Assert.Contains("string.Contains(string, StringComparison)", declaration.NativeBinding, StringComparison.Ordinal);
+		Assert.DoesNotContain("simpleName", declaration.NativeBinding, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -118,12 +118,12 @@ public class PinyinSearchContractTests
 	}
 
 	/// <summary>
-	/// The extended comparison, pinned as the patch shape: the plugin binds the
-	/// native refresh and the `string.Contains(string, StringComparison)`
-	/// overload, and it no longer patches `Recipe.simpleName` — the name hook
-	/// could only remove rows, because the native predicate still ran its own
-	/// `Contains` on whatever name the hook returned (batch 20261108: `刀` → 3
-	/// rows, `cui` → 0).
+	/// The comparison hook, pinned as the patch shape: the plugin binds the
+	/// native refresh and rewrites the filter's call instruction, and it no
+	/// longer patches `Recipe.simpleName` or the BCL comparison directly. Both
+	/// failed on the live client for opposite reasons — a name hook can only
+	/// REMOVE rows, and a BCL patch never fires when the call site is inlined
+	/// (batch 20261108: literal query 3 rows, `cui` 0).
 	/// </summary>
 	[Fact]
 	public void CraftingPatch_BindsTheComparisonAndNotTheNameGetter()
@@ -131,10 +131,13 @@ public class PinyinSearchContractTests
 		using var assembly = AssemblyDefinition.ReadAssembly(OutputPath(PluginAssemblyFile));
 		var patches = assembly.MainModule.Types.Single(type => type.Name == "PinyinSearchPatches");
 		var nested = patches.NestedTypes.Select(type => type.Name).ToList();
+		var refresh = patches.NestedTypes.Single(type => type.Name == "RefreshRecipeListPatch");
+		var methods = refresh.Methods.Select(method => method.Name).ToList();
 
-		Assert.Contains("RefreshRecipeListPatch", nested);
-		Assert.Contains("StringContainsPatch", nested);
+		Assert.Contains("Transpiler", methods);
+		Assert.DoesNotContain("StringContainsPatch", nested);
 		Assert.DoesNotContain("RecipeSimpleNamePatch", nested);
+		Assert.Contains(assembly.MainModule.Types.Select(type => type.Name), name => name == "PinyinContains");
 	}
 
 	private static string OutputPath(string fileName) =>

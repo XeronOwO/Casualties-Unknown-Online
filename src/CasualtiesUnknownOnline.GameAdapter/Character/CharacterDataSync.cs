@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -8,7 +7,6 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -40,8 +38,6 @@ internal sealed class CharacterDataSync(
 	private readonly IMapper _mapper = mapper;
 	private readonly CloneInventoryRenderer _inventoryRenderer = inventoryRenderer;
 	private readonly CloneFactTable _factTable = factTable;
-	private readonly CharacterRestoreApplier _restoreApplier = restoreApplier;
-	private readonly WearableRestorer _wearables = wearables;
 	private readonly ILogger<CharacterDataSync> _log = log;
 
 	/// <summary>The descent follow's one-shot handback fact, shared with the run coordinator that notes the body.</summary>
@@ -64,16 +60,19 @@ internal sealed class CharacterDataSync(
 	}
 
 	/// <summary>
-	/// The local body's pending restore (which snapshot, whose run, which apply phase).
-	/// Injected rather than owned: it is also the world's answer to "does this world have
-	/// a character for me?", which the starting-supplies decision reads at the moment a
-	/// body appears (<see cref="StartingSupplyCoordinator"/>). One queue, two readers — a
-	/// second instance would let the two disagree about whether this player is new, which
-	/// is exactly the confusion a grant must not have.
+	/// The restore's WHEN: the queue, the position gate, the two-frame rhythm, the
+	/// native-field report and the wearable forward. The queue is injected rather than
+	/// owned — it is also the world's answer to "does this world have a character for
+	/// me?", which the starting-supplies decision reads at the moment a body appears
+	/// (<see cref="StartingSupplyCoordinator"/>). One queue, two readers — a second
+	/// instance would let the two disagree about whether this player is new, which is
+	/// exactly the confusion a grant must not have. Built on first use: it needs the
+	/// favourite-mark sync this class creates for itself.
 	/// </summary>
-	private readonly LocalCharacterRestoreQueue _restore = restore;
+	private LocalCharacterRestore? _restoreRunner;
 
-	private readonly RestorePositionGate _positionGate = new(); // the restore's position lands ONCE per body (a re-sent restore must not teleport it again)
+	private LocalCharacterRestore RestoreRunner =>
+		_restoreRunner ??= new(_world, restoreApplier, wearables, _favouriteMarks, restore, _log);
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
 
 	/// <summary>The owner-state event: the limb latch, the injury rise, and the payload both send. Built on first use</summary>
@@ -105,7 +104,7 @@ internal sealed class CharacterDataSync(
 	/// the slots a frame later, so an extra grant would be created, announced and then
 	/// destroyed.
 	/// </summary>
-	internal bool RestorePending => _restore.HasPending || _restore.WipePending;
+	internal bool RestorePending => RestoreRunner.RestorePending;
 
 	/// <summary>Carried-fact event (the owner's fact-table entry updates and the clone re-renders immediately) — the fact table lives in CloneFactTable.</summary>
 	internal void ApplyCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown) => _factTable.ApplyCarriedSync(owner, item, slotKnown);
@@ -207,7 +206,7 @@ internal sealed class CharacterDataSync(
 			return;
 		}
 
-		_restore.Queue(data, ownRun: false);
+		RestoreRunner.QueuePeerHandover(data);
 		// The position applies on the body's first frame (TryApplyCharacterRestore)
 		// — the gate is NOT reset here: a re-sent restore (the handshake and the
 		// InWorld edge both send the saved character) must not reapply the position
@@ -246,7 +245,7 @@ internal sealed class CharacterDataSync(
 		// of waiting for the next frame's capture.
 		_vitals.TrackLocalBody(localBody);
 
-		if (_restore.HasPending || _restore.WipePending)
+		if (RestoreRunner.RestorePending)
 		{
 			// Restoring: a fresh-run snapshot would overwrite the host's saved character data. The
 			// injury baseline is dropped too — the restore writes limb state, and a rise it causes is
@@ -274,7 +273,7 @@ internal sealed class CharacterDataSync(
 	/// <summary>An inventory-internal move finished (SwapSlots/SwitchHands) — re-report right away (the 1 Hz throttle alone reads as a 1-2 s delay on the peer's clone).</summary>
 	internal void ReportInventoryChanged(Body? localBody)
 	{
-		if (localBody != null && _session.SessionActive && !_restore.HasPending && !_restore.WipePending) // Unity object — ==
+		if (localBody != null && _session.SessionActive && !RestoreRunner.RestorePending) // Unity object — ==
 		{
 			_log.LogInformation("[CloneRender] local body changed — immediate re-report.");
 			Reports.Send(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: false, nativeFailure);
@@ -313,7 +312,7 @@ internal sealed class CharacterDataSync(
 	internal void ResetSessionState()
 	{
 		_healResetReports.Clear();
-		_restore.Clear();
+		RestoreRunner.Clear();
 		_factTable.Clear();
 		_favouriteMarks.Reset();
 	}
@@ -325,212 +324,32 @@ internal sealed class CharacterDataSync(
 		// stale health/limb set onto the new one.
 		_healResetReports.Clear();
 		_localBodyId = 0; // the descent's preserved-body compare must not survive the body itself
-		if (_restore.WipePending)
-		{
-			// The body that took the restore's FIRST pass is leaving: the second pass can never
-			// complete on it, and a later body must not receive HALF a restore (its items without
-			// the wipe, or its stats without its items). The respawn path queues its own restore
-			// when a respawn is what this is.
-			_restore.Clear();
-			_log.LogInformation("Dropped a local character restore whose first pass had already run: the body it belonged to left the world.");
-		}
-		else if (!_restore.HasPending)
+
+		// A body that took the restore's first pass is leaving: the second pass can never complete
+		// on it, and a later body must not receive HALF a restore. When nothing was dropped and
+		// nothing is waiting, the body's own final state is what the host needs.
+		if (!RestoreRunner.DropHalfRunRestore() && !RestoreRunner.RestorePending)
 		{
 			Reports.Send(_favouriteMarks.Capture(prevBody, out _), throttled: false);
 		}
 
-		// The body left the world — the next body's restore position applies
-		// again (the gate reset lives HERE, not on restore arrival).
-		_positionGate.OnBodyLeft();
+		RestoreRunner.OnBodyLeft();
 	}
 
-	private void TryApplyCharacterRestore(Body body)
-	{
-		if (_restore.Pending is not { } pending)
-		{
-			return;
-		}
+	/// <summary>Pump entry used by the run coordinator: applies a pending host restore once the local body exists (the rhythm lives in <see cref="LocalCharacterRestore"/>).</summary>
+	internal void UpdateRestore(Body localBody) => RestoreRunner.UpdateRestore(localBody);
 
-		// The position applies on the body's FIRST frame — before the
-		// generation guard, so a fresh spawn never visibly sits at the landing
-		// spot and then jumps (observed: rejoin spawned at the landing spot,
-		// then teleported to the disconnect spot when the full restore ran).
-		ApplyPendingPosition(body, pending);
+	/// <summary>Queue a full restore for the LOCAL body from a run THIS client owns (its continue or its own respawn); the queue, the position gate and the two-frame rhythm live in <see cref="LocalCharacterRestore.QueueOwnRun"/>.</summary>
+	internal void QueueLocalRestore(CharacterDataMsg data) => RestoreRunner.QueueOwnRun(data);
 
-		// The ITEMS apply only once world generation finished: the game hands
-		// out the starting supplies inside generation (WorldPlacePlayer), and
-		// the restore wipes the slots first — applying during generation would
-		// race that handout (observed: the default lantern ending up on the
-		// ground instead of in the restored inventory).
-		if (HarmonyTraverse.IsGenerating())
-		{
-			return;
-		}
+	/// <summary>A run THIS client starts on its own is taking over: everything queued from an earlier one goes (see <see cref="LocalCharacterRestore.CancelAllLocalRestores"/>).</summary>
+	internal void CancelAllLocalRestores() => RestoreRunner.CancelAllLocalRestores();
 
-		if (_restore.WipePending)
-		{
-			// Second pass (next frame): the wipe's Destroy ran at the end of
-			// the previous frame, so the slots are actually empty now and
-			// PickUpItem succeeds — it silently refuses a non-empty slot
-			// (Body.cs:1388), which stranded the restored items on the ground.
-			_restoreApplier.ApplyItems(body, pending);
+	/// <summary>This client follows a run someone else announced: only the restore its OWN run queued goes (see <see cref="LocalCharacterRestore.CancelOwnRunRestore"/>).</summary>
+	internal void CancelOwnRunRestore() => RestoreRunner.CancelOwnRunRestore();
 
-			// The native character fields are the LAST step, and they have to be: a
-			// snapshot that carries none of them is reported here — by name — because
-			// the game skips its own fresh roll when a run is continued
-			// (PlayerCamera.cs:726-729), so those fields would otherwise stay at the
-			// defaults the fresh body was created with and the player would never be
-			// told (§6/§6.1).
-			ReportNativeFields(pending, _restoreApplier.ApplyNativeFields(body, pending));
-
-			// The character's local favourite marks come back with it, on the same pass
-			// the native fields land on.
-			_favouriteMarks.SeedFrom(pending);
-
-			_restore.Clear();
-			return;
-		}
-
-		_restoreApplier.ApplyStatsAndWipe(body, pending);
-		_restore.MarkWipePending();
-	}
-
-	/// <summary>
-	/// The local account of a restore's native-field half: a snapshot without them
-	/// is named here (the archive half of the same absence is named by the Runtime's
-	/// restore summary — <c>CharacterNativeFieldPolicy.Missing</c>), and every value
-	/// the live game refused to take is named too. Information, not a warning: both
-	/// cases are expected for an old snapshot, and the loud half belongs to the
-	/// restore report (§6).
-	/// </summary>
-	private void ReportNativeFields(CharacterDataMsg pending, IReadOnlyList<NativeFieldWrite> writes)
-	{
-		if (pending.NativeFields is null)
-		{
-			_log.LogInformation(
-				"Character restore carries no native character fields (lastHappiness, caloriesConsumed, WoundView.cInfo): this body keeps the live defaults for them.");
-		}
-
-		foreach (var write in writes.Where(write => !write.Applied))
-		{
-			_log.LogWarning("Character restore did not write {Field}: {Refusal}.", write.Description, write.Refusal);
-		}
-	}
-
-	/// <summary>Pump entry used by the run coordinator: applies a pending host restore once the local body exists.</summary>
-	internal void UpdateRestore(Body localBody)
-	{
-		if (_restore.HasPending)
-		{
-			TryApplyCharacterRestore(localBody);
-		}
-	}
-
-	/// <summary>
-	/// Queue a full restore for the LOCAL body from a run THIS client owns: its own CUO
-	/// continue, or its own next-level auto-respawn. Both use the same two-frame
-	/// wipe/restore path as a guest reconnect restore, so a role never gets a different
-	/// flavour of "my character came back". The caller prepares <paramref name="data"/>
-	/// with <c>Position = null</c> when the body must stay where the world placed it;
-	/// this method deliberately does not reset the position gate (that only resets when
-	/// the body leaves the world), so an in-world body is never teleported by this queue.
-	///
-	/// Queue it BEFORE the local body exists: while a restore is queued, <see cref="Update"/>
-	/// suppresses the 1 Hz report, which is what keeps the fresh body's live snapshot
-	/// from overwriting the character being restored. Solo play has no session, so this
-	/// is deliberately not session-gated — the callers own that decision.
-	/// </summary>
-	internal void QueueLocalRestore(CharacterDataMsg data)
-	{
-		_restore.Queue(data, ownRun: true);
-		_log.LogInformation("Queued this run's local character restore ({Items} items, position {Position}).",
-			data.Items.Count, data.Position is { } pos ? $"({pos.X:F1},{pos.Y:F1})" : "<none>");
-	}
-
-	/// <summary>
-	/// A run THIS client starts on its own (its start click, its own continue) is taking over:
-	/// nothing that waited here can belong to it, so everything goes — including a peer's
-	/// hand-over this client never followed. A silent cancel is what would make a lost restore
-	/// look like a working one, so the drop is logged.
-	/// </summary>
-	internal void CancelAllLocalRestores()
-	{
-		if (!_restore.CancelAll())
-		{
-			return;
-		}
-
-		_log.LogInformation("Dropped the character restore waiting from an earlier run: this client is starting its own run.");
-	}
-
-	/// <summary>
-	/// This client is FOLLOWING a run someone else announced: the restore its OWN run queued
-	/// cannot reach a body any more and goes; a PEER's hand-over is exactly the restore this
-	/// follow is for and stays (the host sends it before the announce, on the same reliable
-	/// ordered channel). See <see cref="LocalCharacterRestoreQueue"/>.
-	/// </summary>
-	internal void CancelOwnRunRestore()
-	{
-		if (!_restore.CancelOwnRun())
-		{
-			return;
-		}
-
-		_log.LogInformation("Cancelled the character restore queued by this client's own run: that run never reached a body.");
-	}
-
-	/// <summary>
-	/// Apply only the pending restore's position — the run coordinator calls this
-	/// on the body's first frame, BEFORE reporting the scene state, so the host
-	/// spawns the clone at the restored spot (ReportedSpawnPos) instead of the
-	/// landing spot and then teleporting it (observed: the host saw the
-	/// reconnecting guest's clone jump). The stats wipe + items stay on their own
-	/// two-frame rhythm (TryApplyCharacterRestore); the position gate keeps this
-	/// idempotent.
-	/// </summary>
-	internal void ApplyPendingPositionOnly(Body body)
-	{
-		if (_restore.Pending is { } pending)
-		{
-			ApplyPendingPosition(body, pending);
-		}
-	}
-
-	/// <summary>
-	/// Write the snapshot's position once per body. Zero velocity: the body must not
-	/// keep the fresh spawn's momentum into the restored spot.
-	/// </summary>
-	private bool ApplyPendingPosition(Body body, CharacterDataMsg pending)
-	{
-		if (!_positionGate.ShouldApplyPosition || pending.Position is not { } pos)
-		{
-			return false;
-		}
-
-		_positionGate.MarkPositionApplied();
-
-		// The comparison belongs HERE, not in OnCharacterDataReceived: a reconnecting member's saved
-		// character is sent BEFORE the run-baseline checkpoint (the handshake's own order), so at arrival
-		// this side has no current generation and the comparison would answer "unknown". By the time the
-		// body exists, the baseline names the layer this body was generated in.
-		if (CharacterRestorePositionPolicy.IsFromAnotherLayer(pending.Generation, _world.CurrentGeneration))
-		{
-			// The snapshot's position belongs to the layer it was captured in, and this client has
-			// generated a new one since: those coordinates now describe terrain nobody stood on, so
-			// applying them would land the member away from the group. The body stays where its own
-			// generation placed it; the snapshot's other facts still restore.
-			_log.LogInformation(
-				"[Character] the restore's saved position belongs to layer {Saved} while this client is in layer {Current} — it is not applied; the body stays at this layer's own spawn.",
-				pending.Generation?.LayerIndex,
-				_world.CurrentGeneration?.LayerIndex);
-			return false;
-		}
-
-		body.transform.position = new Vector3(pos.X, pos.Y, 0f);
-		body.rb.velocity = Vector2.zero;
-		_log.LogInformation("Character restore position applied at spawn: ({X:F1},{Y:F1}).", pos.X, pos.Y);
-		return true;
-	}
+	/// <summary>Apply only the pending restore's position — the body's first frame, before the scene report (see <see cref="LocalCharacterRestore.ApplyPendingPositionOnly"/>).</summary>
+	internal void ApplyPendingPositionOnly(Body body) => RestoreRunner.ApplyPendingPositionOnly(body);
 
 	/// <summary>
 	/// Store an authoritative medical-operation progress/terminal snapshot in
@@ -568,7 +387,7 @@ internal sealed class CharacterDataSync(
 	/// local player a wearable. The implementation lives in
 	/// <see cref="WearableRestorer"/>, which both callers share.
 	/// </summary>
-	internal void RestoreWearable(CharacterItemMsg itemData, Body body) => _wearables.RestoreWearable(itemData, body);
+	internal void RestoreWearable(CharacterItemMsg itemData, Body body) => RestoreRunner.RestoreWearable(itemData, body);
 
 	/// <summary>The host-computed vitals row's apply target (its own logic lives in <see cref="LocalVitalsApplier"/>).</summary>
 	private readonly LocalVitalsApplier _vitals = new(session);

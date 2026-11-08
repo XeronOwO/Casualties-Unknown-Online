@@ -852,9 +852,10 @@ public class SourceShapeGateTests
 	[Fact]
 	public void CharacterRestoreLayer_IsDecidedWhenThePositionIsApplied()
 	{
-		const string check = "CharacterRestorePositionPolicy.IsFromAnotherLayer(pending.Generation, _world.CurrentGeneration)";
+		const string check = "CharacterRestorePositionPolicy.IsFromAnotherLayer(pending.Generation, world.CurrentGeneration)";
+		var restore = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/LocalCharacterRestore.cs"));
 		var sync = File.ReadAllText(RepositoryPaths.File("src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs"));
-		var apply = MethodBody(sync, "private bool ApplyPendingPosition");
+		var apply = MethodBody(restore, "private bool ApplyPendingPosition");
 		var receive = MethodBody(sync, "private void OnCharacterDataReceived");
 
 		Assert.False(string.IsNullOrEmpty(apply), "ApplyPendingPosition is gone — the position write has no pinned home");

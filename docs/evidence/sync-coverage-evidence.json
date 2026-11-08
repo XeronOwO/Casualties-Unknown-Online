@@ -3532,9 +3532,9 @@
 
       "row": "P3",
 
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/LocalCharacterRestore.cs",
 
-      "quote": "CharacterRestorePositionPolicy.IsFromAnotherLayer(pending.Generation, _world.CurrentGeneration)"
+      "quote": "CharacterRestorePositionPolicy.IsFromAnotherLayer(pending.Generation, world.CurrentGeneration)"
 
     },
 

@@ -1,7 +1,6 @@
 using System;
 using BepInEx;
 using CasualtiesUnknownOnline.PinyinSearch.Core;
-using CasualtiesUnknownOnline.PinyinSearch.Patches;
 using HarmonyLib;
 using UnityEngine;
 

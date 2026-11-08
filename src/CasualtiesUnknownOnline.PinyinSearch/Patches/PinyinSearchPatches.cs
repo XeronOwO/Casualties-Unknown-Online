@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.PinyinSearch.Core;
 using CasualtiesUnknownOnline.PinyinSearch.Core.Search;
 using HarmonyLib;

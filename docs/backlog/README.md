@@ -92,6 +92,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
+- [A continue can refuse every world-entity row](review/world-entity-restore-refuses-every-row.md) — **Medium** — a restore drops entity facts at error level.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.

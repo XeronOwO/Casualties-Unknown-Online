@@ -421,7 +421,7 @@ docs/backlog/done/topical-live-stack-family-order.md | keep | index | docs/backl
 docs/backlog/done/topical-limb-action-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/done/drink-measurement-destructive-use-action.md | keep | index | docs/backlog/README.md
 docs/backlog/review/trap-layout-crystal-rows-empty.md | keep | index | docs/backlog/README.md
-docs/backlog/review/world-entity-restore-refuses-every-row.md | keep | index | docs/backlog/README.md
+docs/backlog/done/world-entity-restore-refuses-every-row.md | keep | index | docs/backlog/README.md
 docs/backlog/done/version-string-build-suffix.md | keep | index | docs/backlog/README.md
 docs/backlog/watchlist/architecture-watchlist.md | keep | index | docs/backlog/README.md
 docs/contracts/README.md | keep | spec | docs/en/contributing/documentation-standard.md
@@ -1347,7 +1347,7 @@ docs/evidence/acceptance/a-guest-keeps-a-dead-lobby-20261108-o.md | keep | claim
 docs/evidence/acceptance/save-mid-run-corpse-20261108-r.md | keep | claim | docs/backlog/done/save-mid-run-consistent-cut.md
 
 docs/evidence/acceptance/save-native-run-field-parity-20261108-row2.md | keep | claim | docs/backlog/done/save-native-run-field-parity.md
-docs/evidence/acceptance/world-entity-restore-20261108-s2.md | keep | claim | docs/backlog/review/world-entity-restore-refuses-every-row.md
+docs/evidence/acceptance/world-entity-restore-20261108-s2.md | keep | claim | docs/backlog/done/world-entity-restore-refuses-every-row.md
 docs/evidence/acceptance/save-native-run-field-parity-20261108-rows1-3.md | keep | claim | docs/backlog/done/save-native-run-field-parity.md
 
 docs/evidence/acceptance/recursive-crafting-mod-20261108.md | keep | claim | docs/backlog/done/recursive-crafting-mod.md

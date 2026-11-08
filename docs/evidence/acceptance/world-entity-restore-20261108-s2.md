@@ -27,3 +27,11 @@ Batch `20261108-s2` on `0.1.0+75133718` (the live session, world `w-20261108-8cb
 ## Next
 
 Find why `WorldEntityKernelProjection` turns a cut's world-entity rows into consumptions only: read the projection's kind switch against the row kinds the cut writes, then make a health row arm (and fail loudly when it cannot) before the restore completes.
+
+## Post-fix verification (batch `20261108-s3`, `0.1.0+7b77a39a`)
+
+- The base was blasted again through the game's own mine (`trap-stage` at `(0,490)`, `trap-trigger` → `mines: 1`); the Command cut carried `10 world-entity row(s)`.
+- The continue armed `1 consumption(s), 0 opened entit(ies), 7 health row(s)`.
+- The restore then reported `the live world did not take 2 world-entity row(s)` — down from 6 of the same shape. The four that flipped are destroyed buildings the regenerated layer does not have; the two still refused are LIVE-health facts (damaged but standing) whose buildings the layer no longer has, which is a real divergence and stays refused on purpose.
+
+Before the fix the same blast refused six rows and reported INCOMPLETE for a world state that was exactly right; after it, the destroyed facts are satisfied and only genuine divergence is reported.

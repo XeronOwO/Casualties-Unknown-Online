@@ -4,7 +4,7 @@
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: found by the S2 independent adversarial review (2026-09-10)
-- Related: `docs/architecture/save-archive-format.md`, `review/save-layer-end-save-and-restore.md` (S2), `docs/decisions/active.md` 166, 169, 171
+- Related: `docs/architecture/save-archive-format.md`, `done/save-layer-end-save-and-restore.md` (S2), `docs/decisions/active.md` 166, 169, 171
 
 ## Landed (S3.4a, 2026-09-11)
 

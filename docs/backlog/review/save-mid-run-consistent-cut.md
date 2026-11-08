@@ -36,7 +36,7 @@
   mid-run trigger is enabled, so a build produces both the S2
   layer-end cut and the frame-end mid-run cut. **2026-09-11 (before S3.4b started)**: the S2 continue path was found not to
   apply the host's own restored character to its own body at all; that gap is fixed first and
-  independently (`review/save-layer-end-save-and-restore.md` → *In-game gap found while scoping
+  independently (`done/save-layer-end-save-and-restore.md` → *In-game gap found while scoping
   S3.4b*, decision 170), which is also the seam S3.4b's three fields will write back through —
   `CharacterDataSync`'s local restore apply.
   **S3.5 increment (2026-09-12) — scope 8 (the host side of a restored world-entity table) and F3
@@ -61,7 +61,7 @@
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/review/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "the mid-run nature must be the focus, so content is not generated twice or under-generated" (translated)
-- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `review/save-layer-end-save-and-restore.md` (S2), `done/save-multiplayer-restore-and-backups.md` (S4), `done/restore-account-arm-release.md` (the restore-account residuals this ticket records)
+- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `done/save-layer-end-save-and-restore.md` (S2), `done/save-multiplayer-restore-and-backups.md` (S4), `done/restore-account-arm-release.md` (the restore-account residuals this ticket records)
 
 ## Approved decisions (2026-09-10)
 

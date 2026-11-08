@@ -10,7 +10,7 @@
   limit in the window and paging remain. The 2026-11-08 redesign makes the page a list of runs — newest first,
   five shown, older behind one button — with a run's save points folded under it, and the place named the way the
   player sees it ("surface" / "N levels down", translated from the catalogue) instead of the raw layer index (batch
-  `20261108-x`).
+  `20261108-x`; readings: `docs/evidence/acceptance/save-backups-runs-page-20261108-x.md`).
 - Priority: High
 - Category: Persistence / UX
 - Source: the user, 2026-11-08 (translated: "the save system — too many backups, badly organized, unpleasant to use;

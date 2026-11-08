@@ -266,11 +266,9 @@ internal static class OnlineUiWorldsDrawer
 		page.Space();
 	}
 
-	/// <summary>The step a run's save points sit in from the run's own row (canvas units, one character cell of the window's font).</summary>
-	private const float NestedIndent = 26f;
-
+	/// <summary>The step a run's save points sit in from the run's own row: two character cells of the window's font.</summary>
 	private static OnlineUiElementModel Indent() =>
-		OnlineUiElementModel.Label("", OnlineUiTextStyle.Muted, null, NestedIndent);
+		OnlineUiElementModel.Label("  ", OnlineUiTextStyle.Muted);
 
 	/// <summary>Re-reads what the page shows. Cheap enough to run on demand, far too costly to run per frame.</summary>
 	private static void Reload(OnlineUiContext ctx, IWorldLibrary library)

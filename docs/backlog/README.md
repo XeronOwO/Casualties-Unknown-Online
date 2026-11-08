@@ -94,7 +94,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Cross-player use by drag shows nothing](review/cross-player-drag-use-feedback.md) — **Medium** — refusal line landed; the drag rows need a mouse batch.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
-- [Drag-use aims at the model, not a fixed circle](review/cross-player-drag-use-model-bounds.md) — **Medium** — the model measures itself; rows need a mouse.
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [S3 — Mid-run consistent cut and world diff](review/save-mid-run-consistent-cut.md) — **High** — the cut seam and exactly-once restore.
@@ -135,6 +134,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Drag-use aims at the model, not a fixed circle](done/cross-player-drag-use-model-bounds.md) — **Medium** — the pointer opens the teammate it is on.
 - [A guest keeps a dead lobby](done/a-guest-keeps-a-dead-lobby.md) — **High** — the guest leaves the dead lobby and joins the next one.
 - [S2 — Layer-end save and restore](done/save-layer-end-save-and-restore.md) — **High** — six rows read; Continue stays lit without the native save.
 - [Restore drops unclaimed characters' carried rows](done/restore-leaves-stale-carried-rows.md) — **Medium** — no rows for a character the session never bound.

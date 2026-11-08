@@ -21,13 +21,20 @@ does not close it — the last target is kept (`isOpen true, focused 76561198863
 opens" therefore holds for a fresh gesture, not for one already open, which is the ticket's own wording ("when the cursor leaves every
 range the last target is kept, so the displayed backpack continues").
 
-## Row 3 — two overlapping boxes: the pick names exactly one (partial)
+## Row 3 — two overlapping boxes: the pick names exactly one, and the last entered replaces the first
 
-Both members stood on one spot and the pointer sat on their common box. The pick resolved to exactly one member, and the two stacked
-readings picked different members (`focused 76561199526807662` on one, `focused 76561198863287957` on another) — i.e. the tie is
-resolved to one target, never both. Two halves of the row are NOT read: the candidate-count line
-(`[DragUse] display target … picked among N candidate(s) at (x,y)`) did not fire for this instrument even with the log level at debug,
-and the "last entered replaces the first" sweep needs both boxes separated on screen, which the teleports did not hold long enough to stage.
+Both members stood on one spot (Steam1 `(5.7, 505.615)`, Steam2 `(6.302, 505.615)`), their boxes overlapping on screen
+(Steam1's centre `673,617`, Steam2's `682,617`).
+
+- The pointer in Steam1's own side of the overlap (`670,617`) → `remote-backpack-open` → `focused 76561198863287957` (Steam1).
+- The pointer moved into Steam2's own side (`688,617`) while the drag stayed held → the next call → `focused
+  76561199526807662` (Steam2): the second range's backpack replaces the first, the row's "last entered wins".
+- The pointer back on Steam1's side (`670,617`) → Steam1 again.
+- With both boxes holding the pointer exactly (the earlier stacked read), the pick resolved to exactly one member, never both.
+
+Limit: the pick's own line (`[DragUse] display target … picked among N candidate(s) at (x,y)`) is a Debug line; this build's log
+channel wrote `[Info]` lines only even with the CUO config's `MinimumLevel` set to Debug before the launch, so the candidate
+count is unread and the row's target is read from the view's own state instead.
 
 ## Rows 4 and 5 — read by the cue batch on the same session
 
@@ -37,8 +44,10 @@ to 76561198863287957 — the eat runs on the eater's own client`, and Steam1's o
 Row 5: releases off the display's centre took the game's world path (`mode World`, `[ItemDropped]` lines, no use), as the cue batch's
 two drops recorded.
 
-## Row 6 — solo: not read
+## Row 6 — solo: read
 
+Both members quit; the host stayed in its world alone (`role Host, inWorld true`). A staged drag with the pointer on an empty spot →
+`remote-backpack-open` → `isOpen false, focused 0`: no display opens with no other player, which is the row's "unchanged".
 The session never left the world; the solo check is a separate short batch.
 
 ## Limits

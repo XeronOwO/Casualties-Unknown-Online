@@ -47,7 +47,7 @@ None: both rows are value rows judged from the deployed artifact.
   position the release resolves. The row therefore drives the three production facts the release itself
   calls — `IsUseItem`, `FamilyOf(Inventory)` and `RemoteDrinkUseHandler.TryMeasure` — plus the production
   request entry (`SendUseRequest`), which is the call the release makes once its target resolves. The
-  fixed 1.5-unit target circle is `review/cross-player-drag-use-model-bounds.md`'s, not this ticket's (that ticket
+  fixed 1.5-unit target circle is `done/cross-player-drag-use-model-bounds.md`'s, not this ticket's (that ticket
   has since replaced the circle with the model's own box).
 - The rows are judged on values read in-process, not pixels; no frame was captured (both rows are
   `machine`).

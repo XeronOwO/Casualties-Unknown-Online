@@ -304,7 +304,7 @@ docs/backlog/review/unified-remote-display-projection-rework.md | keep | index |
 docs/backlog/done/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-content-event-gap-on-repick.md | keep | index | docs/backlog/README.md
 docs/backlog/review/cross-player-drag-use-feedback.md | keep | index | docs/backlog/README.md
-docs/backlog/review/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
+docs/backlog/done/cross-player-drag-use-model-bounds.md | keep | index | docs/backlog/README.md
 docs/backlog/done/docs-mojibake-cleanup.md | keep | index | docs/backlog/README.md
 docs/backlog/done/dead-player-spectating.md | keep | index | docs/backlog/README.md
 docs/backlog/done/spectator-superseded-host-rules.md | keep | index | docs/backlog/README.md
@@ -1002,7 +1002,7 @@ docs/evidence/selfchecks/players/cross-player-shrapnel-and-timed-tool-use-selfch
 docs/evidence/selfchecks/players/cross-player-solid-food-semantics-selfcheck.md | keep | claim | docs/backlog/done/mod-cross-player-native-semantics.md
 docs/evidence/selfchecks/players/cross-player-timed-liquid-medicine-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/cross-player-topical-use-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/players/cross-player-wear-use-selfcheck.md | keep | claim | docs/backlog/review/cross-player-drag-use-model-bounds.md
+docs/evidence/selfchecks/players/cross-player-wear-use-selfcheck.md | keep | claim | docs/backlog/done/cross-player-drag-use-model-bounds.md
 docs/evidence/selfchecks/players/heal-interaction-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/interaction-gate-authority-selfcheck.md | keep | claim | docs/development/agent-reference.md
 docs/evidence/selfchecks/players/limb-presentation-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
@@ -1332,7 +1332,7 @@ docs/backlog/done/item-move-stream-floods-the-wire.md | keep | index | docs/back
 docs/evidence/acceptance/bandage-consumed-minigame-ends-20261106-e.md | keep | claim | docs/evidence/verification.md
 docs/evidence/acceptance/cross-player-eat-replacement-20261106-g.md | keep | claim | docs/evidence/verification.md
 docs/evidence/acceptance/cross-player-drag-use-feedback-20261108-p.md | keep | claim | docs/backlog/review/cross-player-drag-use-feedback.md
-docs/evidence/acceptance/cross-player-drag-use-model-bounds-20261108-p.md | keep | claim | docs/backlog/review/cross-player-drag-use-model-bounds.md
+docs/evidence/acceptance/cross-player-drag-use-model-bounds-20261108-p.md | keep | claim | docs/backlog/done/cross-player-drag-use-model-bounds.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-h.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-k.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-l.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md

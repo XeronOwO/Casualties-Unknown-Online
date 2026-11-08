@@ -57,18 +57,15 @@ reaches it — that is the tripwire, not a licence to grow to 599.
   (`TryApplyCharacterRestore` / `ApplyRestoredStatsAndWipe` / `ApplyRestoredItems` / `RestoreWearable`
   ≈ 190 lines, with `PlayerInteractionApply` as the second caller of the last one).
 
-  Split in progress (2026-11-08): the restore's WHEN moves into
-  `Character/LocalCharacterRestore.cs` — the queue, the position gate, the two-frame
-  rhythm, the native-field report, the favourite seed and the wearable forward. The chain:
-  a restore arrives either from the host (`OnHostCharacterDataReceived` queues it) or from
-  this client's own run (`RunSaveCoordinator.cs:188` `QueueLocalRestore`,
-  `RespawnCoordinator.cs:127`), `RunCoordinator.cs:210` `UpdateRestore` pumps it,
-  `RunCoordinator.cs:347` applies the position on the body's first frame, the second pass
-  applies items + native fields, and `NotifyBodyLeft` drops a first-pass-only restore and
-  resets the gate. `CharacterDataSync` keeps the 1 Hz report, the capture, the clone table
-  and the medical apply, and forwards the restore API to the new class. The position-policy
-  gate moves with `ApplyPendingPosition` to the new file (it pins the check against the
-  receive path).
+  The split happened (2026-11-08): the restore's WHEN moved into
+  `Character/LocalCharacterRestore.cs` (256 lines) — the queue, the position gate, the two-frame
+  rhythm, the native-field report, the favourite seed and the wearable forward. `CharacterDataSync`
+  is 400 lines and keeps the 1 Hz report, the capture, the clone table and the medical apply, and
+  forwards the restore API to the new class. Both halves were read on the deployed artifact
+  `0.1.0+1d45929d`: the host's own continue ran `Character restore position applied at spawn` →
+  `Applying character restore (4 items)` → the favourite seed, and a member's rejoin ran the same
+  three lines through the peer hand-over. The position-policy gate now reads the new file (it pins
+  the check against the receive path).
 
 
 ## Split since the last revision

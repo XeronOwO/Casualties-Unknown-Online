@@ -1,6 +1,6 @@
 # Cross-player use by drag: aim at the player model, and say who it picked when two overlap
 
-- Status: Review — blocked on a human motion: the detection shape landed 2026-10-24 on `0.1.0+620081fa` (the clone's own box, the native crouch rule, the pick logged with its candidate count, three pinning cases), and rows 1–6 are the DISPLAY-target half; a display target opens only from the same pointer answer — the staged release reached `CrossPlayerDragUse.TryHandleRelease` with `dragItem=bandage`, but a release at the teammate's projected pixel produced no drag-use line and no remote backpack, and the 2026-11-03 probe over the clone found no body collider (`focusedSteamId=0`). The 2026-11-01 triage records the same conclusion for the family.
+- Status: Review — the display-target rows are read on a live session (batch `20261108-p`, `0.1.0+9869d734`): the pointer on a teammate's model box opens their displayed backpack (`remote-backpack-open` → `isOpen true, focused <the teammate>`), one unit outside leaves it closed for a fresh drag (`isOpen false, focused 0`), a release on the display's centre lands the use on the displayed player, and a release off it takes the native world path. Row 3 is partial (with two overlapping boxes the pick resolves to exactly one member, but the candidate-count debug line did not fire through this instrument and the last-entered sweep was not staged); row 6 (solo) is unread. The reading is `docs/evidence/acceptance/cross-player-drag-use-model-bounds-20261108-p.md`.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / targeting geometry
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
@@ -110,3 +110,23 @@ mouse/keyboard authorization for the two clients, or from a committed recipe tha
   the cue sound; this ticket only decides where the release counts.
 - Not a new picking mechanism for other surfaces (the medical view and the Online UI member list keep their
   own entry points).
+
+## Batch 20261108-p: the display-target rows read with the in-process drag
+
+The 2026-10-24 shape (the clone's own box, the crouch rule) was read through the adapter's own entry rather than a human mouse:
+`remote-backpack-open` drives `AutoOpenRemoteBackpackForDrag` for the held drag and reports the view's own state.
+
+- Row 1: Steam1 at `(5.721, 505.615)`, a held drag, the pointer on its projected point (`677,617`) → `isOpen true, focused
+  76561198863287957`. Repeated with a fresh drag: same.
+- Row 2: display closed, a fresh drag, the pointer one unit outside the model (`628,617`) → `isOpen false, focused 0`. The
+  complementary fact: while the display is already open for a target, leaving the box keeps it (`isOpen true` at `698,617`),
+  which is the ticket's own "the last target is kept" wording.
+- Row 3 (partial): both members on one spot, the pointer on their common box → the pick resolved to exactly one member (two
+  stacked readings picked different members), never both. The candidate-count debug line did not fire through this instrument,
+  and the last-entered sweep was not staged because the teleports did not hold.
+- Row 4: a release on the display's centre landed the use on the displayed player (the cue batch's dogfood offer + Steam1's own
+  eat).
+- Row 5: releases off the centre took the game's world path (`mode World`, `[ItemDropped]`), no use.
+- Row 6 (solo): unread.
+
+The reading lives in `docs/evidence/acceptance/cross-player-drag-use-model-bounds-20261108-p.md`.

@@ -279,8 +279,14 @@ internal sealed class SessionPeerMaintenance(
 				return;
 			}
 
-			// The host is gone — no host migration in the MVP.
-			_log.LogWarning("Host left the lobby — ending session (save kept) after {Checks} consecutive checks named it absent.", _hostMissingChecks);
+			// The host is gone — no host migration in the MVP. Leave the lobby too: keeping it left the
+			// guest bound to a room whose host had left (measured 2026-11-08: `active false`, the old lobby id
+			// and the role kept, so the overlay still showed the room and the next join was refused with
+			// "already-in-lobby" until the player clicked Leave). The leave reports through `LobbyLeft` and
+			// tears the identity down with `leaveLobby: true`; the session end below is the fallback for a
+			// client Steam no longer lists in a lobby.
+			_log.LogWarning("Host left the lobby — leaving it and ending the session (save kept) after {Checks} consecutive checks named it absent.", _hostMissingChecks);
+			_steam.LeaveLobby();
 			_endSession();
 		}
 		else

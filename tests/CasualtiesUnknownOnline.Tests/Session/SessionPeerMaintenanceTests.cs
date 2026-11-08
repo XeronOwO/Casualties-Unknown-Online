@@ -66,6 +66,22 @@ public sealed class SessionPeerMaintenanceTests
 	}
 
 	[Fact]
+	public void AGuest_LeavesTheDeadLobbyTheHostLeftBehind()
+	{
+		var (maintenance, clock, steam, ended) = Create();
+
+		steam.LobbyMembers = [GuestId];
+		for (var check = 0; check < 3; check++)
+		{
+			clock.Advance(2000);
+			maintenance.CheckPeerPresence();
+		}
+
+		Assert.Equal(1, steam.LeaveLobbyCalls);
+		Assert.Single(ended);
+	}
+
+	[Fact]
 	public void AGuest_ForgetsTheAbsenceWhenTheHostComesBackInBetween()
 	{
 		var (maintenance, clock, steam, ended) = Create();

@@ -85,6 +85,19 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 	public PlayerColorValue? LocalPlayerColor =>
 		_ipDirectActive ? _ipDirectSteam.LocalPlayerColor : _steamService.LocalPlayerColor;
 
+	/// <summary>The active transport's lobby is the one being left.</summary>
+	public void LeaveLobby()
+	{
+		if (_ipDirectActive)
+		{
+			_ipDirectSteam.LeaveLobby();
+		}
+		else
+		{
+			_steamService.LeaveLobby();
+		}
+	}
+
 	public void SetLocalPlayerColor(PlayerColorValue? color)
 	{
 		_steamService.SetLocalPlayerColor(color);

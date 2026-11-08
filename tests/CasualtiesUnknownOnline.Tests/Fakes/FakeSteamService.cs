@@ -40,6 +40,10 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 
 	public PlayerColorValue? LocalPlayerColor { get; internal set; }
 
+	internal int LeaveLobbyCalls { get; private set; }
+
+	public void LeaveLobby() => LeaveLobbyCalls++;
+
 	public void SetLocalPlayerColor(PlayerColorValue? color) => LocalPlayerColor = color;
 
 	internal void FireLobbyCreated(ulong lobbyId) => LobbyCreated?.Invoke(lobbyId);

@@ -39,6 +39,13 @@ public interface ISteamService
 	/// and survives a transport mode switch.</summary>
 	void SetLocalPlayerColor(PlayerColorValue? color);
 
+	/// <summary>
+	/// Leave the current lobby (Online UI's Leave, or the session's own dead-lobby exit). The leave is
+	/// reported through <see cref="LobbyLeft"/>, so the session layer tears down with the identity cleared.
+	/// A client that is not in a lobby ignores the request.
+	/// </summary>
+	void LeaveLobby();
+
 	event Action<ulong>? LobbyCreated;
 
 	event Action<ulong>? LobbyEntered;

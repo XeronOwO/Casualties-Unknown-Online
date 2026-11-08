@@ -128,6 +128,9 @@ public sealed class IpDirectSteamService(IpDirectTransport transport, ILogger<Ip
 		return true;
 	}
 
+	/// <summary>Leaving the IP-direct lobby is ending the transport: the roster is the connection.</summary>
+	public void LeaveLobby() => Disconnect();
+
 	public void Disconnect()
 	{
 		if (!_isActive)

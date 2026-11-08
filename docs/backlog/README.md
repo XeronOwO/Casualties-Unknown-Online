@@ -73,6 +73,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
+- [A guest keeps a dead lobby](in-progress/a-guest-keeps-a-dead-lobby.md) — **High** — the guest leaves the dead lobby instead of waiting.
+
 ### Review
 
 

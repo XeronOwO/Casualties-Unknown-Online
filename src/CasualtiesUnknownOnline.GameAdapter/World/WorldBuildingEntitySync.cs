@@ -176,8 +176,13 @@ internal sealed class WorldBuildingEntitySync(
 			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
 			if (entity == null)
 			{
-				_log.LogWarning("Building entity open at {Pos} — no entity there (moved or already gone).", pos);
-				return false;
+				// An opened fact whose lockable the regenerated layer does not have is
+				// satisfied, not refused: an opened lockable leaves the live layer (batch
+				// 20261107-v read `entity-probe-at` found:false at the opened position), so
+				// "gone" IS the opened state. The live relay ignores this return; the
+				// restore's account reads it.
+				_log.LogInformation("Building entity open at {Pos} — no entity there (already gone); the opened fact is satisfied.", pos);
+				return true;
 			}
 
 			entity.health = 0f;
@@ -242,6 +247,18 @@ internal sealed class WorldBuildingEntitySync(
 			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
 			if (entity == null)
 			{
+				// A DESTROYED fact whose building the regenerated layer does not have is satisfied,
+				// not refused: the damage the player did was that the building is gone (batch
+				// 20261108-s2: a blast destroyed buildings, the cut carried their health-0 rows, and
+				// each was counted as a refused row — the restore then reported INCOMPLETE at error
+				// level for a world state that was exactly right). A LIVE-health fact with no entity
+				// is a real loss and stays refused.
+				if (health < 0.5f)
+				{
+					_log.LogInformation("Building-entity health at ({X}, {Y}) is {Health} and no entity stands there; the destroyed fact is satisfied.", x, y, health);
+					return true;
+				}
+
 				_log.LogWarning("Building-entity health snapshot at ({X}, {Y}) — no entity there (moved or already gone).", x, y);
 				return false;
 			}

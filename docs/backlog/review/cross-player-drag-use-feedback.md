@@ -1,6 +1,6 @@
 # Cross-player use by drag: the gesture has to announce itself (highlight, label, cue sound)
 
-- Status: Review — the cue's decision is read on a live session (batch `20261108-p`, `0.1.0+9869d734`): with an eligible item held, the `iteminteract` read held through the acceptance channel, the teammate's displayed backpack open and the pointer on its centre, `drag-cue` answered `showing=true` naming the teammate; it hides on release and on an ineligible item. Row 5 is read in the same batch with the two members stacked on one spot: the cue named Steam1 and the release offered the item to Steam1, Steam2 untouched. Rows 2-7 stay as recorded below (row 2's data half read 20261025-bb; row 4 read 20261025-ay; the success-sound half is the user's "no extra sound" ruling). The reading is `docs/evidence/acceptance/cross-player-drag-use-feedback-20261108-p.md`.
+- Status: Review — blocked on a fixture: row 6 needs a member whose display name is empty; the name is the Steam persona (`ITransportIdentity.LocalDisplayName` → `GetPersonaName`), which neither Steam nor the harness can blank, and the fallback (`player-{steamId}`) is covered at the unit level instead. Every other row is read on a live session (batch `20261108-p`, `0.1.0+9869d734`): with an eligible item held, the `iteminteract` read held through the acceptance channel, the teammate's displayed backpack open and the pointer on its centre, `drag-cue` answered `showing=true` naming the teammate; it hides on release and on an ineligible item; the two stacked members' cue name and the release's pick agree; and a solo host shows no cue. The reading is `docs/evidence/acceptance/cross-player-drag-use-feedback-20261108-p.md`.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / feedback and discoverability
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
@@ -66,8 +66,8 @@
 | 3 | Drag an INELIGIBLE item onto a teammate and release | No positive cue, no item movement, and one cue/line distinguishable from a successful use |
 | 4 | Release on a target the host refuses (unconscious, empty container in the catalog) | The refusal reaches the operator's screen (cue and one line), not only the log |
 | 5 | Drag an eligible item with the cursor on two players standing on each other | The label NAMES the player the release will pick, and the release picks that same player — the named cue and the sibling ticket's resolution rule agree |
-| 6 | Drag an eligible item onto a teammate the session has no display name for | The label still names the target, with the `player-{steamId}` fallback |
-| 7 | Solo / no session | Unchanged, no cue |
+| 6 | Drag an eligible item onto a teammate the session has no display name for | The label still names the target, with the `player-{steamId}` fallback — **blocked on a fixture** (a blank Steam persona cannot be staged); the formatting is unit-covered. |
+| 7 | Solo / no session | Unchanged, no cue — read 20261108-p: `showing false, targetSteamId "0"` with an eligible item held and no teammate. |
 
 ## Non-goals now
 

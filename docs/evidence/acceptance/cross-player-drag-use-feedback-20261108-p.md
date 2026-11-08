@@ -29,6 +29,20 @@ The cue's decision (`DragUseCuePolicy.Decide`) takes five inputs: a live session
 - The frame captured at that moment does not show the label: the CUO Example window sat over the cursor area, and the overlay draws beneath it. The state reading above is the evidence the overlay paints from.
 - The "cursor leaves the centre while the gesture is still held" half was not read on its own this batch; the gesture-end reading covers the clearing, and the ineligible-item reading covers the hidden shape.
 
+## Row 7 — solo: no cue (batch `20261108-p`, same session)
+
+Both members quit; the host stayed in its world alone (`role Host, inWorld true`). With an eligible item held (`drag-start type=dogfood` →
+`id dogfood`) and the pointer on an empty spot (`600,500`), `drag-cue` read `showing false, targetSteamId "0", backpackOpen "False"` — no
+cue with no target, which is the row's "unchanged, no cue".
+
+## Row 6 — the nameless member: a named fixture gap
+
+The label's fallback is `player-{steamId}`, reached when the presentation resolves a target with no display name. The name a client has
+is its Steam persona (`ITransportIdentity.LocalDisplayName` → `GetPersonaName`), and a batch cannot make a Steam persona empty: the host
+would have to be handed a member whose persona is blank, which neither Steam nor the harness can produce. The fallback's formatting is
+covered at the unit level (`OnlineUiMemberLabel` and the drag cue's own text builder), and the backpack view already uses the same
+fallback; the game-level row needs such a member, so it is recorded as blocked on that fixture rather than claimed.
+
 ## The stacked pair: the cue's name and the release's pick agree
 
 Both members were teleported onto the same spot beside the host (`(1.085, 505.615)` each; the host at `(0, 511.331)`), so the

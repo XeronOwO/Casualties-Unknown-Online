@@ -223,15 +223,13 @@ internal static class OnlineUiWorldsDrawer
 	private static void BuildBackupRow(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library, WorldBackup backup)
 	{
 		var state = ctx.State;
-		// The whole block steps in from the run's own row: the save points belong to the run above them,
-		// and the step is the row's own left edge (a fixed floor), not spaces inside one label.
-		page.Row(Indent(), page.LabelElement(ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup))));
+		// The whole block steps in from the run's own row: the save points belong to the run above them.
+		page.Label(IndentText() + ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup)));
 
 		if (string.Equals(state.PendingRestoreFile, backup.FileName, StringComparison.Ordinal))
 		{
-			page.Row(Indent(), page.LabelElement(ctx.F("worlds.restore_confirm", backup.FileName), OnlineUiTextStyle.Muted));
+			page.Muted(IndentText() + ctx.F("worlds.restore_confirm", ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup))));
 			page.Row(
-				Indent(),
 				page.ButtonElement(
 					$"worlds.restore_yes.{backup.FileName}",
 					ctx.T("worlds.restore_confirm_yes"),
@@ -255,7 +253,6 @@ internal static class OnlineUiWorldsDrawer
 		else
 		{
 			page.Row(
-				Indent(),
 				page.ButtonElement(
 					$"worlds.restore.{backup.FileName}",
 					ctx.T("worlds.restore"),
@@ -266,9 +263,8 @@ internal static class OnlineUiWorldsDrawer
 		page.Space();
 	}
 
-	/// <summary>The step a run's save points sit in from the run's own row: two character cells of the window's font.</summary>
-	private static OnlineUiElementModel Indent() =>
-		OnlineUiElementModel.Label("  ", OnlineUiTextStyle.Muted);
+	/// <summary>Spaces that step the line in; a row-level indent is the model change this needs (a label takes the row's width).</summary>
+	private static string IndentText() => "    ";
 
 	/// <summary>Re-reads what the page shows. Cheap enough to run on demand, far too costly to run per frame.</summary>
 	private static void Reload(OnlineUiContext ctx, IWorldLibrary library)

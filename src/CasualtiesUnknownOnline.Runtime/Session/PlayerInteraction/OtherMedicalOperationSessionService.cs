@@ -48,14 +48,25 @@ internal sealed class OtherMedicalOperationSessionService(
 	private readonly OtherMedicalRemovalApplier _removal = new(access, items, kernelAuthority, session, log);
 
 	private readonly Dictionary<ulong, OtherMedicalOperationSession> _sessions = [];
+	private OtherMedicalOperationSettlement? _settlement;
 	private bool _disposed;
+
+	/// <summary>The one owner of a session's end; built lazily because a field initializer cannot reference the siblings.</summary>
+	private OtherMedicalOperationSettlement Settlement =>
+		_settlement ??= new(_session, _sender, _claims, _time, _applier, _removal, _log);
 
 	/// <summary>The cut policy's read-only probe (WorldTransientPolicy.OtherMedicalSessionKey): open Stage-3 sessions.</summary>
 	internal int PendingCutSessions => _sessions.Count;
 
 	public event Action<MedicalOperationStartAckMsg>? StartAckReceived;
 	public event Action<MedicalOperationStateMsg>? StateReceived;
-	public event Action<MedicalOperationEndCommittedMsg>? EndCommittedReceived;
+
+	/// <summary>The settled session's one terminal — forwarded from the settlement, which owns the end.</summary>
+	public event Action<MedicalOperationEndCommittedMsg>? EndCommittedReceived
+	{
+		add => Settlement.EndCommitted += value;
+		remove => Settlement.EndCommitted -= value;
+	}
 
 	// ---- Client send surface ----
 
@@ -353,11 +364,11 @@ internal sealed class OtherMedicalOperationSessionService(
 			_applier.ApplyAmputationCut(session, msg.TotalMl - session.Progress, out _);
 		}
 
-		PrepareTerminal(session);
+		Settlement.PrepareTerminal(session);
 		var dislocateSucceeded = session.Kind == MedicalOperationKind.Dislocation && msg.TotalMl > 0.5f;
 		_log.LogInformation("[MedicalOps3] operation {OperationId} ({Kind}) ended with progress {Progress:F3}.",
 			session.OperationId, session.Kind, session.Progress);
-		Terminate(session, MedicalOperationTerminalReason.Completed, dislocateSucceeded);
+		Settlement.Terminate(_sessions, session, MedicalOperationTerminalReason.Completed, dislocateSucceeded);
 	}
 
 	public void HandleCancelRequest(ulong sender, MedicalOperationCancelMsg msg)
@@ -372,10 +383,10 @@ internal sealed class OtherMedicalOperationSessionService(
 			return;
 		}
 
-		PrepareTerminal(session);
+		Settlement.PrepareTerminal(session);
 		_log.LogInformation("[MedicalOps3] operation {OperationId} ({Kind}) cancelled with progress {Progress:F3}.",
 			session.OperationId, session.Kind, session.Progress);
-		Terminate(session, MedicalOperationTerminalReason.Cancelled);
+		Settlement.Terminate(_sessions, session, MedicalOperationTerminalReason.Cancelled);
 	}
 
 	// ---- Lifecycle ----
@@ -394,8 +405,8 @@ internal sealed class OtherMedicalOperationSessionService(
 			{
 				_log.LogWarning("[MedicalOps3] operation {OperationId} timed out after {Idle} ms idle.",
 					session.OperationId, now - session.LastUpdateMs);
-				PrepareTerminal(session);
-				Terminate(session, MedicalOperationTerminalReason.TimedOut);
+				Settlement.PrepareTerminal(session);
+				Settlement.Terminate(_sessions, session, MedicalOperationTerminalReason.TimedOut);
 			}
 		}
 	}
@@ -411,8 +422,8 @@ internal sealed class OtherMedicalOperationSessionService(
 		{
 			if (session.Operator == steamId || session.Target == steamId)
 			{
-				PrepareTerminal(session);
-				Terminate(session, MedicalOperationTerminalReason.Disconnected);
+				Settlement.PrepareTerminal(session);
+				Settlement.Terminate(_sessions, session, MedicalOperationTerminalReason.Disconnected);
 			}
 		}
 	}
@@ -421,7 +432,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	{
 		foreach (var session in _sessions.Values)
 		{
-			ReleaseSession(session);
+			Settlement.ReleaseSession(session);
 		}
 
 		_sessions.Clear();
@@ -442,90 +453,6 @@ internal sealed class OtherMedicalOperationSessionService(
 	}
 
 	// ---- Internals ----
-
-	private void PrepareTerminal(OtherMedicalOperationSession session)
-	{
-		if (session.Kind == MedicalOperationKind.ManualDefib)
-		{
-			_applier.DrainManualDefibTime(session, _time.NowMs);
-		}
-	}
-
-	private void Terminate(OtherMedicalOperationSession session, MedicalOperationTerminalReason reason, bool dislocateSucceeded = false)
-	{
-		if (!_sessions.Remove(session.OperationId))
-		{
-			return;
-		}
-
-		ReleaseSession(session);
-		var settled = CompleteUnitOnTerminal(session, reason, dislocateSucceeded);
-		var end = _applier.BuildTerminal(session, reason);
-		_log.LogInformation("[MedicalOps3] operation {OperationId} terminal {Reason}: progress {Progress:F3}.",
-			session.OperationId, reason, session.Progress);
-		EndCommittedReceived?.Invoke(end);
-		_sender.SendToAll(
-			_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-			NetMsg.MedicalOperationEndCommitted,
-			end);
-
-		if (settled && MedicalOperationUnitRules.ResolvesOnce(session.Kind))
-		{
-			StopOtherOperatorsOnTheUnit(session);
-		}
-	}
-
-	/// <summary>
-	/// The effect that SETTLES the unit, in one place: the two removal kinds remove
-	/// only on a completed end (a cancel or a timeout leaves the splint on the limb),
-	/// while an amputation or a relocation finishes at its terminal whatever the
-	/// reason, because its progress was already committed. The result is what makes
-	/// the unit's single outcome visible to the sweep.
-	/// </summary>
-	private bool CompleteUnitOnTerminal(OtherMedicalOperationSession session, MedicalOperationTerminalReason reason, bool dislocateSucceeded) =>
-		session.Kind switch
-		{
-			MedicalOperationKind.SplintRemoval or MedicalOperationKind.TourniquetRemoval
-				when reason == MedicalOperationTerminalReason.Completed => _removal.Remove(session),
-			MedicalOperationKind.Amputation => session.Progress >= 1f && _applier.CompleteAmputation(session),
-			MedicalOperationKind.Dislocation => _applier.CompleteDislocation(session, dislocateSucceeded),
-			_ => false,
-		};
-
-	/// <summary>
-	/// A unit that resolves once has now been settled by this operation, so every
-	/// OTHER operation still open on the same (target, limb, kind) is answered and
-	/// stopped: its operator gets the precise "already handled" terminal carrying the
-	/// authoritative state this completion produced, and its minigame ends there
-	/// instead of working a limb that is already treated.
-	/// </summary>
-	private void StopOtherOperatorsOnTheUnit(OtherMedicalOperationSession winner)
-	{
-		var reason = MedicalOperationUnitRules.HandledReason(winner.Kind);
-		var others = _sessions.Values
-			.Where(s => s.OperationId != winner.OperationId
-				&& s.Target == winner.Target
-				&& s.LimbIndex == winner.LimbIndex
-				&& s.Kind == winner.Kind)
-			.ToList();
-		foreach (var other in others)
-		{
-			_log.LogInformation(
-				"[MedicalOps3] stopping operation {OperationId} ({Kind}) on {Target} limb {Limb}: {Reason}",
-				other.OperationId, other.Kind, other.Target, other.LimbIndex, reason);
-			PrepareTerminal(other);
-			Terminate(other, MedicalOperationTerminalReason.AlreadyHandled);
-		}
-	}
-
-	private void ReleaseSession(OtherMedicalOperationSession session)
-	{
-		_claims.ReleaseOperator(session.Operator);
-		if (session.ItemInstanceId != 0)
-		{
-			_claims.ReleaseItem(session.ItemInstanceId);
-		}
-	}
 
 	private void PublishState(MedicalOperationStateMsg msg)
 	{

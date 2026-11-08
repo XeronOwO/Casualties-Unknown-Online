@@ -36,6 +36,24 @@ reaches it — that is the tripwire, not a licence to grow to 599.
   only the appliers and the sibling sessions, so it can become a collaborator that the service hands
   the winner.
 
+  Split in progress (2026-11-08): the terminal path moves into
+  `PlayerInteraction/OtherMedicalOperationSettlement.cs` — `PrepareTerminal`, `CompleteUnitOnTerminal`,
+  `StopOtherOperatorsOnTheUnit`, `Terminate` and `ReleaseSession`. The chain: the operator's minigame
+  ends on its own client and sends `MedicalOperationEndRequestMsg` (`MedicalOperationEndRequestHandler.cs:10`)
+  or `MedicalOperationCancelMsg` (`MedicalOperationCancelHandler.cs:10`) through the facade
+  (`MedicalOperationSessionService.HandleEndRequest:331` / `HandleCancelRequest:370`), which routes by id to
+  `_other.HandleEndRequest:348` / `_other.HandleCancelRequest:387`; a timeout arrives through the service's
+  `Update:383`, a departure through `MedicalOperationSessionService.OnMemberRemoved:484` →
+  `_other.OnMemberRemoved:492`. Each of those calls `PrepareTerminal` then `Terminate`
+  (`HandleEndRequest:356-360`, `HandleCancelRequest:375-378`, `Update:397-398`, `OnMemberRemoved:414-415`).
+  `Terminate:454-476` removes the session, releases its claims, settles the unit
+  (`CompleteUnitOnTerminal:485-493` — removal, amputation, dislocation), builds and broadcasts the
+  committed terminal (`BuildTerminal`, `NetMsg.MedicalOperationEndCommitted`), then stops the other
+  operators on a resolve-once unit (`StopOtherOperatorsOnTheUnit:502-519`). The visible effect: the
+  operator's minigame ends with its committed result, the limb changes, and a second operator working
+  the same limb is answered "already handled". The service keeps the registry, the start/update paths
+  and the client send surface, and hands the settlement the session table.
+
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (472 measured 2026-11-07) with
   `EnemyBindingTable.cs` (96), `EnemyRosterBinder.cs` (386) and `EnemyAnimalScan.cs` (52) — the enemy-roster
   rebuild split what was a 730-line coordinator (the 2026-10-07 measurement was 587; the rebuild's growth

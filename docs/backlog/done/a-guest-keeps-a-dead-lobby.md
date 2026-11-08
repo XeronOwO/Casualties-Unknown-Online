@@ -1,8 +1,6 @@
 # A guest keeps a dead lobby after the host leaves
 
-- Status: In progress — found while driving an acceptance fixture (2026-11-08): a guest whose host quit stayed
-  bound to the host's lobby, with the overlay still showing the room and a "waiting for the host" line. The
-  session itself ended; the lobby membership did not.
+- Status: Done — the guest now leaves the dead lobby and joins the next one without a manual Leave (batch `20261108-o`: the guest's log line "Host left the lobby — leaving it and ending the session (save kept) after 3 consecutive checks named it absent.", its state `lobby "0", role "None", active false`; the fresh host's lobby accepted the join and the guest entered its world, `inWorld true, gateWaiting false`).
 - Priority: High (a player sitting in a dead room sees "connected" and never gets a way out except the Leave control)
 - Category: Session / lobby lifecycle
 - Source: the batch `20261108-n` fixture; the user's report (translated: "this connected-but-not-in-world has happened before; it may be a bug").
@@ -47,3 +45,14 @@ in that branch (`src/CasualtiesUnknownOnline.Runtime/Steam/SteamService.cs:171`)
    service to leave the lobby (a fake counts `LeaveLobby`) and does not merely end the session.
 2. Live: host + guest in a world, the host quits; the guest's state reads `role None`, `lobby 0` within
    the check window, and a fresh `join-lobby` to a new host succeeds without a manual Leave.
+
+## The acceptance reading (batch `20261108-o`, deployed `0.1.0+b350e821`)
+
+- The host quit with the guest in its world at 12:12:56; the guest's log: `Host left the lobby — leaving it
+  and ending the session (save kept) after 3 consecutive checks named it absent.` (12:12:56.278) and
+  `Session ended (role Guest kept).` (12:12:56.281).
+- The guest's state after it: `lobby "0"`, `role "None"`, `active false` — the identity was cleared (the
+  earlier defect left the lobby id and the role behind).
+- The fresh host created lobby `109775243848404297`; the guest ran `join-lobby` with no manual Leave and
+  read `role Guest`; `start-run` then put it back in the world (`inWorld true`, `gateWaiting false`).
+- Limits: one machine, one lobby pair; the leave is Steam's own and is not observable on the host side.

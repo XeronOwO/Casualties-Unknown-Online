@@ -1353,3 +1353,6 @@ docs/evidence/acceptance/save-native-run-field-parity-20261108-rows1-3.md | keep
 docs/evidence/acceptance/recursive-crafting-mod-20261108.md | keep | claim | docs/backlog/done/recursive-crafting-mod.md
 
 docs/evidence/acceptance/plugin-host-shell-20261108.md | keep | claim | docs/backlog/done/plugin-host-shell.md
+docs/backlog/review/overlay-buttons-are-silent.md | keep | index | docs/backlog/README.md
+docs/backlog/review/save-backups-overwhelm-the-archive.md | keep | index | docs/backlog/README.md
+docs/backlog/review/native-console-is-unpoliced.md | keep | index | docs/backlog/README.md

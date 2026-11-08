@@ -90,6 +90,9 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
+- [The overlay's buttons are silent](review/overlay-buttons-are-silent.md) — **Medium** — the game's click sound for every CUO button.
+- [Save backups are too many and disorganized](review/save-backups-overwhelm-the-archive.md) — **High** — retention, a readable archive, a restore surface.
+- [The native console is an unpoliced authority hole](review/native-console-is-unpoliced.md) — **High** — a member can rewrite its own health; the host must validate.
 
 
 

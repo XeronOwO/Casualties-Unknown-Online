@@ -4,7 +4,10 @@
   interaction is unfriendly; the user asks for a proper design and UI. Corrected 2026-11-08: the retention rule already
   exists and holds (every world keeps exactly 10 backups; `[Save] BackupRetentionCount`); what the report hit is the
   surface — empty rows with nothing to show, a ceiling the window never states, and a list with no paging. The 2026-11-08
-  change removes the empty rows and states the ceiling (batch below); editing the limit in the window and paging remain.
+  change removes the empty rows and states the ceiling, and the live window reading shows it (batch `20261108-w`: the
+  page prints "Every world keeps the newest 10 backups; the older ones are pruned when a save is committed." and lists
+  only rows that carry content; `docs/evidence/acceptance/save-backups-overwhelm-the-archive-20261108.md`); editing the
+  limit in the window and paging remain.
 - Priority: High
 - Category: Persistence / UX
 - Source: the user, 2026-11-08 (translated: "the save system — too many backups, badly organized, unpleasant to use;

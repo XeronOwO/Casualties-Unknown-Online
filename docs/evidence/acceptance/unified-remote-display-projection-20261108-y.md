@@ -19,7 +19,7 @@ readings (the second clone stayed at `(0, 493.615)` throughout, leg speed `0.975
 - The projected clone stands exactly where the member stands and carries the same leg-speed pose: the static
   projection (position and leg-speed presentation) is read, not looked at.
 - The nap transition is the one shape where the two clients disagreed while it ran: the clone led the body in x and sat
-  lower in y, and its leg-speed field moved ahead of the body's. Filed as `docs/backlog/review/remote-clone-trails-the-nap-transition.md`
+  lower in y, and its leg-speed field moved ahead of the body's. Filed as `docs/backlog/done/remote-clone-trails-the-nap-transition.md`
   rather than judged here — the umbrella's own row is the static projection.
 
 ## Limits

@@ -302,7 +302,7 @@ docs/backlog/done/turret-stray-fire-after-reload.md | keep | index | docs/backlo
 docs/backlog/done/unhooked-damage-block-callers.md | keep | index | docs/backlog/README.md
 docs/backlog/done/unhooked-item-and-body-sound-families.md | keep | index | docs/backlog/README.md
 docs/backlog/done/unified-remote-display-projection-rework.md | keep | index | docs/backlog/README.md
-docs/backlog/review/remote-clone-trails-the-nap-transition.md | keep | index | docs/backlog/README.md
+docs/backlog/done/remote-clone-trails-the-nap-transition.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/unified-remote-display-projection-20261108-y.md | keep | claim | docs/backlog/done/unified-remote-display-projection-rework.md
 docs/backlog/done/block-break-log-names-the-wrong-shape.md | keep | index | docs/backlog/README.md
 docs/backlog/done/container-content-event-gap-on-repick.md | keep | index | docs/backlog/README.md

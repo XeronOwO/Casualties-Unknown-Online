@@ -97,7 +97,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
-- [Remote clone trails a nap transition](review/remote-clone-trails-the-nap-transition.md) — **Medium** — the clone's position diverges while a nap starts.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
 
@@ -130,6 +129,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Remote clone trails a nap transition](done/remote-clone-trails-the-nap-transition.md) — **Medium** — a far jump lands the replica; fixed and read.
 - [Unified remote display projection](done/unified-remote-display-projection-rework.md) — **High** — the clone stands and poses where the member does.
 - [Pinyin search as a standalone mod](done/pinyin-search-standalone-mod.md) — **Medium** — the native search box typed with pinyin, read on the live client.
 - [Recursive crafting as a standalone mod](done/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge and the look read.

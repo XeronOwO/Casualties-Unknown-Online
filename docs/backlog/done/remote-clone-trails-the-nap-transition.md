@@ -1,6 +1,6 @@
 # The remote clone trails a nap transition
 
-- Status: Review — the divergence is the display glide, read on 2026-11-08: `SessionStatePump.cs:52-64` writes the clone as `Vector2.Lerp(PrevPosition, Position, alpha)` over the averaged snapshot window, so a fast body move (a nap's placement) leaves the clone trailing by up to one window; the reading is `docs/evidence/acceptance/unified-remote-display-projection-20261108-y.md` (the same pair agreed to 0.001 at rest and exactly after a teleport). The fix direction is a snap threshold on that glide; no code is written yet.
+- Status: Done — fixed 2026-11-08 (`72a7ebb9`): the replica's position now writes a jump beyond two units outright and keeps the glide only for ordinary movement; the post-fix trace (`0.1.0+75133718`, batch `20261108-z`) reads the body and the clone at the same spot before and after a nap start (`(0, 485.615)` both), against the pre-fix reading's 2.4-unit divergence. Limit: the driver's call latency cannot sample inside the glide window, so the trace's before/after pair is the evidence, not a frame-level ramp.
 - Priority: Medium
 - Category: Remote presentation / projection / transient pose
 - Source: The unified remote display projection umbrella's machine reading (2026-11-08).

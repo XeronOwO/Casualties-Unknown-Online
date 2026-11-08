@@ -88,9 +88,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [Launcher starts all three together and fails only for real reasons](review/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — 25 s cold start.
-
-
 
 - [A continue can refuse every world-entity row](review/world-entity-restore-refuses-every-row.md) — **Medium** — a restore drops entity facts at error level.
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
@@ -129,6 +126,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Launcher fails only for real reasons](done/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — every row read.
 - [Cross-player use by drag shows nothing](done/cross-player-drag-use-feedback.md) — **Medium** — every row read: the cue names the target and hides on release.
 - [Save system: layer-end and mid-run saves](done/save-system-mid-run-and-layer-end.md) — **High** — every criterion carried by a reading.
 - [Plugin as a host shell](done/plugin-host-shell.md) — **Medium** — the overlay's layout is read: fits, no clipping, every control named.

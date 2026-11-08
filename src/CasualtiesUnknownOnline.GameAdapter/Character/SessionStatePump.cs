@@ -59,7 +59,15 @@ internal static class SessionStatePump
 
 		var window = driver != null && driver.AvgIntervalSec > 0f ? driver.AvgIntervalSec : 0.05f;
 		var alpha = Mathf.Clamp01(elapsed / window);
-		var position = Vector2.Lerp(ToVector2(entity.PrevPosition), ToVector2(entity.Position), alpha);
+		var previousPosition = ToVector2(entity.PrevPosition);
+		var targetPosition = ToVector2(entity.Position);
+		// A body can move farther in one snapshot than the glide can follow — a teleport, or the placement a nap
+		// start performs. Gliding across that jump reads as the replica sliding a body-length behind its owner, so a
+		// jump beyond a body's own step is written outright; ordinary movement keeps the interpolation that hides the
+		// network cadence.
+		var position = Vector2.Distance(previousPosition, targetPosition) > 2f
+			? targetPosition
+			: Vector2.Lerp(previousPosition, targetPosition, alpha);
 		var lookPos = Vector2.Lerp(ToVector2(entity.PrevLookPos), ToVector2(entity.LookPos), alpha);
 		var velocity = Vector2.Lerp(ToVector2(entity.PrevVelocity), ToVector2(entity.Velocity), alpha);
 

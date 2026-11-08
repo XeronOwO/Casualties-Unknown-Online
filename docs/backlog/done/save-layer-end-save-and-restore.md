@@ -3,7 +3,7 @@
 - Status: Done — all six rows judged (2026-11-08). Rows 1 and 5 read in batch 20261108-a: a host and a member advanced a layer, the cut committed at the boundary, every client quit, Continue restored the world, and the member rejoined with the same items; the native save file stayed untouched. Row 6 read in batch 20261108-f: with the native save renamed away, the Continue entry was still lit (`hasSave=false, hasRestorableWorld=true, interactable=true`). Row 3's enemy half belongs to the mid-run cut (S3) by design; the member's stale pre-cut rows are closed in `done/restore-leaves-stale-carried-rows.md`. Readings: `docs/evidence/acceptance/save-layer-end-20261108-a.md`, `docs/evidence/acceptance/save-layer-end-row6-20261108-f.md`. Code and machine verification are complete (the 2026-09-11 host-restore gap was found while scoping S3.4b and fixed on top of this stage — see *In-game gap found while scoping S3.4b* below).
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 2 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
+- Source: Stage 2 of `docs/backlog/done/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
 - Related: `docs/architecture/save-archive-format.md`, `done/save-format-and-world-repository.md` (S1), `done/save-mid-run-consistent-cut.md` (S3), `done/save-multiplayer-restore-and-backups.md` (S4)
 
 ## Scope

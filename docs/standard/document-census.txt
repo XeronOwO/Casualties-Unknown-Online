@@ -288,7 +288,7 @@ docs/backlog/done/save-multiplayer-restore-and-backups.md | keep | index | docs/
 docs/backlog/done/save-native-character-field-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/save-native-run-field-parity.md | keep | index | docs/backlog/README.md
 docs/backlog/done/save-restore-account-surface.md | keep | index | docs/backlog/README.md
-docs/backlog/review/save-system-mid-run-and-layer-end.md | keep | index | docs/backlog/README.md
+docs/backlog/done/save-system-mid-run-and-layer-end.md | keep | index | docs/backlog/README.md
 docs/backlog/done/snapshot-overtakes-item-reports.md | keep | index | docs/backlog/README.md
 docs/backlog/done/steam-transport-send-limit-runaway.md | keep | index | docs/backlog/README.md
 docs/backlog/done/suppressed-native-call-sounds-stay-unheard.md | keep | index | docs/backlog/README.md
@@ -987,7 +987,7 @@ docs/evidence/selfchecks/players/carry-interaction-selfcheck.md | keep | claim |
 docs/evidence/selfchecks/players/carry-rider-acceptance-readiness-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/players/carry-rider-limb-anchor-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/players/character-attack-anim-and-player-context-menu-selfcheck.md | keep | claim | docs/evidence/acceptance/remove-legacy-view-items-remote-inventory-detail-20260927.md
-docs/evidence/selfchecks/players/character-data-persistence-selfcheck.md | keep | claim | docs/backlog/review/save-system-mid-run-and-layer-end.md
+docs/evidence/selfchecks/players/character-data-persistence-selfcheck.md | keep | claim | docs/backlog/done/save-system-mid-run-and-layer-end.md
 docs/evidence/selfchecks/players/character-ragdoll-toggle-sync-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/players/character-sound-selfcheck.md | keep | claim | docs/backlog/done/sync-player-pain-vocalizations-and-bark.md
 docs/evidence/selfchecks/players/cross-player-component-medicine-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

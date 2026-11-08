@@ -3,7 +3,7 @@
 - Status: Done
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 1 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
+- Source: Stage 1 of `docs/backlog/done/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
 - Related: `docs/architecture/save-archive-format.md` (normative format contract), decisions 162–166 in `docs/decisions/active.md`, `review/save-layer-end-save-and-restore.md` (S2), `done/save-mid-run-consistent-cut.md` (S3)
 - Acceptance record: `docs/evidence/acceptance/save-format-and-world-repository-20260927.md`
 

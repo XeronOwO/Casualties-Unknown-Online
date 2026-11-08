@@ -3,7 +3,7 @@
 - Status: Done — the three game displays are machine-read on 2026-11-07 (batch 20261107-x): after a continue the wound window shows the restored `180cm | 42y | #777` / `UNI-HEALTH v2.09`, the death-stats counter reads `4321cal`, and the happiness window holds the seeded history instead of ten zeros; rows 4-5 and the Runtime/format/codec/policy layer were already machine-verified (2026-09-11). Moving to done with the record. Implemented, tested, documented and independently reviewed on 2026-09-11.
 - Priority: Medium-High
 - Category: Persistence / save system
-- Source: Stage S3.4b of `review/save-system-mid-run-and-layer-end.md`, split out of
+- Source: Stage S3.4b of `done/save-system-mid-run-and-layer-end.md`, split out of
   `review/save-native-run-field-parity.md` (S3.4a landed the run-level fields there).
 - Related: `docs/architecture/save-archive-format.md` §3.4/§6.1, `docs/decisions/active.md` 165/166/170/171,
   `done/save-mid-run-consistent-cut.md` (S3 umbrella), `review/save-native-run-field-parity.md` (S3.4a)

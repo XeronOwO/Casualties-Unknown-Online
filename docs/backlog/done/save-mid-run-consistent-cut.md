@@ -60,7 +60,7 @@
   restore ATTEMPT identity* below.
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 3 of `docs/backlog/review/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "the mid-run nature must be the focus, so content is not generated twice or under-generated" (translated)
+- Source: Stage 3 of `docs/backlog/done/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "the mid-run nature must be the focus, so content is not generated twice or under-generated" (translated)
 - Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `done/save-layer-end-save-and-restore.md` (S2), `done/save-multiplayer-restore-and-backups.md` (S4), `done/restore-account-arm-release.md` (the restore-account residuals this ticket records)
 
 ## Approved decisions (2026-09-10)
@@ -1040,7 +1040,7 @@ in-game rows open.
       the automated version of it is already deferred by decision
       (`future/adapter-shell-verification-harness.md`) — evidence: this commit moves this ticket from
       `todo/` to `review/` together with its acceptance table, its umbrella
-      (`review/save-system-mid-run-and-layer-end.md`) and both README index lines, and the in-game half
+      (`done/save-system-mid-run-and-layer-end.md`) and both README index lines, and the in-game half
       is stated as the user's pass rather than as observed.
 
 ## Acceptance — batch 20261001-m (Run A)

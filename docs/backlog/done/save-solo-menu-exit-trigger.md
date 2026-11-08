@@ -5,7 +5,7 @@
 - Category: Persistence / save system
 - Source: `docs/backlog/done/save-mid-run-consistent-cut.md` → scope 9 ("solo menu-exit trigger")
 - Related: `docs/architecture/save-archive-format.md` §4 (cut phases), decision 167 (the cut seam),
-  decision 176 (this trigger), `docs/backlog/review/save-system-mid-run-and-layer-end.md` (stage table)
+  decision 176 (this trigger), `docs/backlog/done/save-system-mid-run-and-layer-end.md` (stage table)
 
 ## The gap (as reported)
 

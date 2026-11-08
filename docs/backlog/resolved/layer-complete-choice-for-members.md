@@ -7,7 +7,7 @@
   whether both the host and the guests can see it and click it, so that a dead host cannot leave the guests
   unable to reach the next layer.
 - Related: `review/save-layer-end-save-and-restore.md` (S2 — the layer-end save itself),
-  `review/save-system-mid-run-and-layer-end.md`, `done/save-mid-run-consistent-cut.md`,
+  `done/save-system-mid-run-and-layer-end.md`, `done/save-mid-run-consistent-cut.md`,
   `done/layer-change-member-recovery.md` (a member out of the world at the boundary),
   `done/pod-descent-on-a-member-regenerates-locally.md` and `done/layer-end-save-and-exit-native-write.md`
   (this cycle's two family siblings),

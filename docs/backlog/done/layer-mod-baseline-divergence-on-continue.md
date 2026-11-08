@@ -14,7 +14,7 @@
 - Related: `docs/evidence/acceptance/enemy-snapshot-binding-recovery-20261002-k.md`,
   `docs/evidence/acceptance/world-determinism-world-fingerprint-20261002-k.md`,
   `done/reenter-baseline-adoption.md` (the follow-up: a member that never left the session still generates
-  before the host's restored baseline arrives), `review/save-system-mid-run-and-layer-end.md`
+  before the host's restored baseline arrives), `done/save-system-mid-run-and-layer-end.md`
 
 ## Symptom (evidence)
 

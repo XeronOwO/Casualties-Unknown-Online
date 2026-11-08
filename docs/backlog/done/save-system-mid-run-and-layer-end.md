@@ -1,6 +1,6 @@
 # Save system: layer-end and mid-run saves
 
-- Status: Review — blocked on the user: S1-S4 are all code-complete (landed 2026-09-17, design frozen 2026-09-10) and the umbrella carries no rows of its own — the child tickets carry them, and what remains is the user's dual-client acceptance passes (the layer-end cut and the mid-run cut) plus the children's own fixtures.
+- Status: Done (2026-11-08) — every acceptance criterion below is carried by a child's reading or an archive test (the matrix at the end of this file); the children closed between 2026-10-24 and 2026-11-08, and the two dual-client passes (the layer-end cut and the mid-run cut) were driven on the deployed artifact with a member in the world.
 - Priority: High
 - Category: Persistence / save system
 - Source: User request (2026-09-07), translated: "add a save system, including a layer-end save and a mid-run save. Since the game's own save format cannot express a mid-run save, design a new format — base it on a common format (JSON) with file compression, and prefer a directory-level archive over a single compressed file. The mid-run nature must be the focus, so content is not generated twice or under-generated."
@@ -161,3 +161,24 @@ A mid-run save is a **consistent cut** of an actively simulating world; a restor
 - Cloud saves, cross-machine save sharing, anti-cheat on save contents, host migration.
 - A second archive format for backups (reuse this package).
 - Any wire-protocol change; this is a local disk/persistence surface.
+
+## Where the umbrella stands (2026-11-08)
+
+Every criterion in the table above is carried by a child's reading or an archive test; the umbrella has no rows
+of its own.
+
+| # | Criterion | What carries it |
+|---|---|---|
+| 1 | Layer-end save, quit, continue | `docs/evidence/acceptance/save-layer-end-20261108-a.md`: one player descends, the cut lands at the boundary (11 files, 12 item rows, 3 characters), every client quits, Continue restores the world, and a member rejoins on the new layer with the same items |
+| 2 | Mid-run save with mutated terrain | `docs/evidence/acceptance/save-mid-run-consistent-cut-20261108-n.md`: the chipped cell reads damage 20 and the broken cell block 0 before and after the Continue |
+| 3 | World items (ground, containers, carried, worn) | `docs/evidence/acceptance/save-mid-run-corpse-20261108-r.md`: the ground item, the carried slots, the worn pack and the nested container's child read the same after the cut and the Continue |
+| 4 | Opened/damaged entities, traps, fluids, enemies | `docs/evidence/acceptance/save-mid-run-rows-3-5-20261108-n.md`: the trap stays consumed, the entity counts agree, the enemy table is unchanged |
+| 5 | In-flight policy | the same file, plus `tests/CasualtiesUnknownOnline.Tests/Persistence/WorldSaveCutSeamTests.cs`: a live hold answers Deferred and the next frame takes the cut; a stuck one defers to `WorldCutDeferral.MaxFrames` and is named |
+| 6 | Multiple players | `save-layer-end-20261108-a.md` (a member stays through the cut and the continue) and `docs/evidence/acceptance/restore-stale-carried-rows-20261108-e.md` (an absent member's character stays unclaimed, the member rejoins as a new character, and custody returns to 0 mismatches) |
+| 7 | Crash during save | `tests/CasualtiesUnknownOnline.Tests/Persistence/SaveArchiveContractFixesTests.cs`: a failed backup step leaves no staging folder; a crashed archive rename leaves no abandoned temporary file |
+| 8 | Corrupt or foreign-build save | `tests/CasualtiesUnknownOnline.Tests/Persistence/SaveArchiveDamageTests.cs`: a corrupt manifest falls back to the newest readable backup loudly; a damaged domain file loads the rest and names the path; a protocol mismatch opens repair mode |
+| 9 | Load twice, load, save, load | `save-mid-run-rows-3-5-20261108-n.md`: the world-entry fingerprint is identical across the quit, the relaunch and the continue |
+| 10 | Content removed by a mod update | `tests/CasualtiesUnknownOnline.Tests/Persistence/SaveArchiveSalvageTests.cs`: an unknown entry is skipped and reported while the rest of the domain applies; `WorldSnapshotCodecTests.Decode_UnknownDomainFiles_AreReportedNotGuessed` |
+
+Limits: each reading above is one session on one deployed build; criterion 4's fluid row is the cut report's
+own count (0 chunks at a layer-end cut by design), not a live fluid body.

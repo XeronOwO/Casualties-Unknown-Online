@@ -10,7 +10,7 @@
   `done/save-new-player-starting-supplies.md`, now done; the 2026-10-24 batch closed row 2.
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 4 of `docs/backlog/review/save-system-mid-run-and-layer-end.md` (the backup half is the user's Q3/Q6 answer, translated: "configurable scheduled backups")
+- Source: Stage 4 of `docs/backlog/done/save-system-mid-run-and-layer-end.md` (the backup half is the user's Q3/Q6 answer, translated: "configurable scheduled backups")
 - Related: `docs/architecture/save-archive-format.md` §6/§7, `review/save-layer-end-save-and-restore.md` (S2), `done/save-mid-run-consistent-cut.md` (S3), `done/save-guest-restore-claim-and-legacy-store-retirement.md` (S4.1), `done/save-restore-account-surface.md` (S4.2), `done/save-new-player-starting-supplies.md` (S4.3), `done/systemic-save-backup-management.md` (owns the broader backup/restore product surface)
 
 ## Stage split

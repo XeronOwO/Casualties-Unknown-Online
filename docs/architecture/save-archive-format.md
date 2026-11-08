@@ -3,7 +3,7 @@
 Normative format contract for the CUO save system. It defines the on-disk shape only;
 the code that produces and consumes it lives in
 `src/CasualtiesUnknownOnline.Runtime/Persistence/` and is staged by the tickets listed in
-`docs/backlog/review/save-system-mid-run-and-layer-end.md`.
+`docs/backlog/done/save-system-mid-run-and-layer-end.md`.
 
 Decisions 162–166 in `docs/decisions/active.md` record the user's choices that this document
 implements. Where this document and the implementation disagree, the implementation is wrong.

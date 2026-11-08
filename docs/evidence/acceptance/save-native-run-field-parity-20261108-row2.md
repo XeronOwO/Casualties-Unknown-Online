@@ -1,6 +1,6 @@
 # The crafted recipe's flag survives a mid-run cut (2026-11-08)
 
-- Ticket: `docs/backlog/review/save-native-run-field-parity.md`, acceptance row 2 (continue after crafting a recipe → the recipe stays unlocked)
+- Ticket: `docs/backlog/done/save-native-run-field-parity.md`, acceptance row 2 (continue after crafting a recipe → the recipe stays unlocked)
 - Batch: `20261108-s` (the three clients already up from batch `20261108-r`; host at `(0, 505.615)`)
 - Build: the deployed `0.1.0+9869d734` (acceptance channel)
 - World: `w-20261108-d1cf`

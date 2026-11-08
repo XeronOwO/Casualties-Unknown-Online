@@ -99,7 +99,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
-- [Native run field parity](review/save-native-run-field-parity.md) — **Medium-High** — the frozen per-field record.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
@@ -133,6 +132,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Native run field parity](done/save-native-run-field-parity.md) — **Medium-High** — all three rows read: the multipliers, the crafting flag, the named field.
 - [S3 — Mid-run consistent cut and world diff](done/save-mid-run-consistent-cut.md) — **High** — every in-game row is machine-read.
 
 - [Drag-use aims at the model, not a fixed circle](done/cross-player-drag-use-model-bounds.md) — **Medium** — the pointer opens the teammate it is on.
@@ -493,3 +493,4 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Watchlist
 
 - [Architecture watchlist](watchlist/architecture-watchlist.md) — files near the 600-line gate.
+

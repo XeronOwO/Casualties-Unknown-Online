@@ -1,6 +1,6 @@
 # Native run fields are not covered by the world archive
 
-- Status: Review — row 2 is machine-read and PASSES on `0.1.0+9869d734` (batch `20261108-s`: a recipe crafted before a mid-run cut keeps `hasMadeBefore` and `INT` after the continue; evidence `docs/evidence/acceptance/save-native-run-field-parity-20261108-row2.md`). S3.4a and S3.4b landed 2026-09-11 (the run-level fields ride `run.json`'s `run` and `native-run-fields` rows; the character-level fields ride `CharacterDataMsg.NativeFields`), and the 2026-09-17 hardening cycle closed the two recorded engineering gaps. What remains is row 1's generation-count run (the game's own loot/trap distribution over a layer, with non-default multipliers) and row 3's presentation-only field named in the restore report; the per-field decided homes below are the frozen record.
+- Status: Done — all three rows are machine-read on `0.1.0+9869d734`. Row 2 (batch `20261108-s`: a recipe crafted before a mid-run cut keeps `hasMadeBefore` and `INT` after the continue; evidence `docs/evidence/acceptance/save-native-run-field-parity-20261108-row2.md`). Rows 1 and 3 (batch `20261108-s`: the cut stamps the live multipliers 4/3 at layer 3, the Continue restores them, the next layer generates with 8/4; the presentation-only `WoundView.cInfo` is named and its restored value is read back; evidence `docs/evidence/acceptance/save-native-run-field-parity-20261108-rows1-3.md`). S3.4a and S3.4b landed 2026-09-11 (the run-level fields ride `run.json`'s `run` and `native-run-fields` rows; the character-level fields ride `CharacterDataMsg.NativeFields`), and the 2026-09-17 hardening cycle closed the two recorded engineering gaps. The per-field decided homes below are the frozen record.
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: found by the S2 independent adversarial review (2026-09-10)
@@ -152,9 +152,9 @@ Evidence for the decision:
 
 | # | Scenario | Expected |
 |---|---|---|
-| 1 | Continue a run at layer 3 whose `trapincrease`/`lootmultiplier` settings were non-default | The next layer's trap/loot distribution matches the interrupted run's |
+| 1 | Continue a run at layer 3 whose `trapincrease`/`lootmultiplier` settings were non-default | The next layer's trap/loot distribution matches the interrupted run's — read 2026-11-08: the cut stamps the live 4/3 (layer 3), the Continue restores 4/3, the next layer generates 8/4 from the same settings (batch `20261108-s`) |
 | 2 | Continue after crafting a recipe in an earlier layer | The recipe stays unlocked |
-| 3 | A field decided as presentation-only | The report names it; nothing else changes silently |
+| 3 | A field decided as presentation-only | The report names it; nothing else changes silently — read 2026-11-08: `WoundView.cInfo` is named (see §Decision) and its restored value reads back `180,42,777,9` after a Continue (character batch) |
 
 ## Verification limits
 

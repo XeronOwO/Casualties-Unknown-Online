@@ -48,8 +48,12 @@ carries the transient rows it took.
 Not driven: the `ResolveBeforeSave` deferral window is one to two frames, and the driver's per-call
 latency (about a second) cannot land a `/save` inside it; the deferral line exists in the product
 (`the … cut is waiting for in-flight state to resolve`), and the seam's tests pin both the deferral and
-the deadline. A `DropWithLog` class needs a live medical session or craft batch on the host, and neither
-was staged this round.
+the deadline. A `DropWithLog` class needs a live medical session or craft batch on the host: the craft
+drive ran `rippeddressing` to completion in its own call (the craft coroutine finishes inside `TryMake`,
+so the save that followed took a quiescent world), and the member-side path was blocked — Steam1 sat in
+the host's lobby (`already-in-lobby`) while `inWorld` stayed false after `leave-world` and a fresh
+`join-lobby`, so no patient existed to open a remote medical session on. Restarting a client for the
+fixture is forbidden (the stuck state is the reading), so row 4's in-game half stays partial.
 
 ## Row 5 — save → load → save → load, the fingerprint
 

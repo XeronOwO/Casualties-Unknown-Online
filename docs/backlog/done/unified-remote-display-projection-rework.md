@@ -1,6 +1,6 @@
 # Unified remote display projection rework
 
-- Status: Review — blocked on the user: the umbrella is code-complete at the projection architecture level (the three per-field helpers and the inline derived-field code are gone), and what remains is the user's own final unified visual pass; the remote-backpack interaction half is tracked in `resolved/remote-backpack-item-projection-acceptance-issues.md`.
+- Status: Done — the final pass is machine-read (2026-11-08, batch `20261108-y`): the clone stands where the member stands and carries the same leg-speed pose (0.001 units apart at rest, identical after a teleport), and the one transient disagreement (the nap start) is filed as `docs/backlog/review/remote-clone-trails-the-nap-transition.md` — see `docs/evidence/acceptance/unified-remote-display-projection-20261108-y.md`.
 - Priority: High
 - Category: Remote presentation / architecture / projection
 - Source: User direction (2026-09-07) after repeated acceptance failures across remote medical, pose/face/carry and backpack projection. The current per-field projection patch path has been judged not acceptable; this item is the architecture replacement, not another point patch.
@@ -110,6 +110,16 @@ assemblies (`CasualtiesUnknownOnline.dll`,
 `CasualtiesUnknownOnline.GameState.dll`,
 `CasualtiesUnknownOnline.Protocol.dll`,
 `CasualtiesUnknownOnline.Runtime.dll`).
+
+## Machine reading of the display projection (batch `20261108-y`, 2026-11-08)
+
+The final unified acceptance pass is read as a machine comparison instead of a look:
+
+1. **The player's action and expectation** — a member stands, walks and lies down; on the other client's screen that member appears at the same place, in the same posture, with the same leg-speed pose and lying state, and the two screens do not disagree.
+2. **What the game itself runs for the same action** — the local player's `Body` is simulated and rendered by the game itself: `Body.Update` drives the pose/animator from the body's own velocity, leg speed, crouching and sleeping state, and the local camera reads that live body (`PlayerCamera.body`).
+3. **How the remote case reaches the same display** — the member's own `WirePlayerStreamState` (position, look, velocity, flags, nap variant, `WirePlayerStreamState.cs` members 2/9/10/14) is applied by `RemoteBodyDriver` onto the clone `Body`, whose animator then renders the same native clips; the visible effect is the clone's position and pose matching the member's own body.
+
+The fixture: host and Steam1 in one world; Steam1's `body-read` (position, leg speed, crouching, sleeping, animator clip) against the host's `carry-read` clone entry (position, leg speed, ragdoll-pose flag), then Steam1 forced to lie down and the clone re-read. The row passes when the clone's position matches the member's within the stream's tolerance and its pose fields follow the same state.
 
 ## Non-goals
 

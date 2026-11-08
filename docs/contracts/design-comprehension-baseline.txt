@@ -8,7 +8,6 @@ docs/backlog/review/cross-player-drag-use-feedback.md
 docs/backlog/review/plugin-host-shell.md
 docs/backlog/review/save-system-mid-run-and-layer-end.md
 docs/backlog/review/trap-layout-crystal-rows-empty.md
-docs/backlog/review/unified-remote-display-projection-rework.md
 
 
 

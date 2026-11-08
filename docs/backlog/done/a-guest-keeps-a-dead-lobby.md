@@ -1,6 +1,6 @@
 # A guest keeps a dead lobby after the host leaves
 
-- Status: Done — the guest now leaves the dead lobby and joins the next one without a manual Leave (batch `20261108-o`: the guest's log line "Host left the lobby — leaving it and ending the session (save kept) after 3 consecutive checks named it absent.", its state `lobby "0", role "None", active false`; the fresh host's lobby accepted the join and the guest entered its world, `inWorld true, gateWaiting false`).
+- Status: Done — the guest now leaves the dead lobby and joins the next one without a manual Leave (batch `20261108-o`: the guest's log line "Host left the lobby — leaving it and ending the session (save kept) after 3 consecutive checks named it absent.", its state `lobby "0", role "None", active false`; the fresh host's lobby accepted the join and the guest entered its world, `inWorld true, gateWaiting false`). Readings: docs/evidence/acceptance/a-guest-keeps-a-dead-lobby-20261108-o.md
 - Priority: High (a player sitting in a dead room sees "connected" and never gets a way out except the Leave control)
 - Category: Session / lobby lifecycle
 - Source: the batch `20261108-n` fixture; the user's report (translated: "this connected-but-not-in-world has happened before; it may be a bug").

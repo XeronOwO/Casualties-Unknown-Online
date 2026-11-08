@@ -76,9 +76,9 @@ internal static class VirtualInput
 
 	/// <summary>
 	/// Installs the patches and answers one report line per target: the pointer, each button method, every replaced call site, the drag
-	/// gesture's own key read and the key-bind capture. The report IS the result — a target the backend refuses must be named with its
-	/// exception, so the next step is decided on evidence. The answering targets belong to <see cref="InputQueryPatches"/>; this method
-	/// is the channel's lifecycle and its one place of assembly.
+	/// gesture's own key read, the drag-use cue tracker's read and the key-bind capture. The report IS the result — a target the backend
+	/// refuses must be named with its exception, so the next step is decided on evidence. The answering targets belong to
+	/// <see cref="InputQueryPatches"/>; this method is the channel's lifecycle and its one place of assembly.
 	/// </summary>
 	internal static string Install(out bool installed)
 	{
@@ -93,9 +93,9 @@ internal static class VirtualInput
 		var inputReport = InputQueryPatches.Install(harmony, out var failures);
 		_harmony = harmony;
 
-		// The drag gesture's own key read and the key-bind capture are their own files: each patches a different target family, and each
-		// reports what it did so this report names every patched site in one place.
-		var report = inputReport + " | " + DragInputPatch.Install(harmony) + " | " + KeybindCapturePatch.Install(harmony);
+		// The drag gesture's own key read, the cue tracker's read and the key-bind capture are their own files: each patches a different
+		// target family, and each reports what it did so this report names every patched site in one place.
+		var report = inputReport + " | " + DragInputPatch.Install(harmony) + " | " + CueInputPatch.Install(harmony) + " | " + KeybindCapturePatch.Install(harmony);
 		installed = failures == 0;
 		return report;
 	}

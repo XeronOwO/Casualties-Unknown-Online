@@ -1,7 +1,11 @@
 # The overlay's buttons are silent
 
-- Status: Review — user-reported (2026-11-08): "CUO's UI has no sound on many buttons; add the sounds." The game's own
-  buttons click; CUO's window does not.
+- Status: Review — the sound is wired and deployed (2026-11-08): every control reports through
+  `OnlineUiSurfaceHost.ReportIntent`, which plays the game's own `"click"` for a button and `"miniClick"` for a toggle or
+  dropdown pick (`PlayerCamera.PlayUISound`, the entry the game's own buttons use). The mapping is machine-read (4 facts,
+  `OnlineUiSoundTests`); the audible row is a named limit: the uGUI button's click cannot be staged through the virtual
+  input (the game's EventSystem reads the real mouse), so the next machine attempt is a drive that reports the intent
+  through the surface itself and reads `sound-log`.
 - Priority: Medium
 - Category: UI / audio
 - Source: the user, 2026-11-08 (translated: "CUO's UI sounds — many buttons have none, add them")

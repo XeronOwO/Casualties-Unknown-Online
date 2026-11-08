@@ -55,6 +55,9 @@ internal sealed class OnlineUiWindowState
 	/// </summary>
 	internal List<WorldLibraryEntry> WorldRows = [];
 
+	/// <summary>True once the player asked for the older runs too; the page shows the newest few otherwise, so one long archive does not fill the window.</summary>
+	internal bool WorldsShowAll;
+
 	/// <summary>The <see cref="IWorldLibrary.Revision"/> the rows were read at; -1 = never read.</summary>
 	internal int SeenRevision = -1;
 

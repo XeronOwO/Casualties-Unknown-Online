@@ -7,7 +7,10 @@
   change removes the empty rows and states the ceiling, and the live window reading shows it (batch `20261108-w`: the
   page prints "Every world keeps the newest 10 backups; the older ones are pruned when a save is committed." and lists
   only rows that carry content; `docs/evidence/acceptance/save-backups-overwhelm-the-archive-20261108.md`); editing the
-  limit in the window and paging remain.
+  limit in the window and paging remain. The 2026-11-08 redesign makes the page a list of runs — newest first,
+  five shown, older behind one button — with a run's save points folded under it, and the place named the way the
+  player sees it ("surface" / "N levels down", translated from the catalogue) instead of the raw layer index (batch
+  `20261108-x`).
 - Priority: High
 - Category: Persistence / UX
 - Source: the user, 2026-11-08 (translated: "the save system — too many backups, badly organized, unpleasant to use;

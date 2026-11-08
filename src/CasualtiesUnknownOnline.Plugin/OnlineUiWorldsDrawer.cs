@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -101,32 +102,48 @@ internal static class OnlineUiWorldsDrawer
 
 	private static void BuildWorlds(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library)
 	{
-		if (ctx.State.WorldRows.Count == 0)
+		var state = ctx.State;
+		// Newest first: the player's own ordering is "the run I played last", not the folder name.
+		var rows = state.WorldRows
+			.Where(row => row.HasSnapshot || row.BackupCount > 0)
+			.OrderByDescending(row => row.World.LastSavedUtc)
+			.ToList();
+		if (rows.Count == 0)
 		{
 			page.Muted(ctx.T("worlds.empty"));
 			return;
 		}
 
-		var shown = 0;
-		foreach (var row in ctx.State.WorldRows)
+		// Five runs fit the window; the rest are one click away, so a long archive does not turn
+		// the page into a scroll bar with a list attached.
+		const int newestShown = 5;
+		var older = state.WorldsShowAll ? 0 : Math.Max(0, rows.Count - newestShown);
+		foreach (var row in state.WorldsShowAll ? rows : rows.Take(newestShown))
 		{
-			// A row with nothing to continue and nothing to restore is noise: the folder exists
-			// because a run started there, but the player has nothing to do with it. The page is
-			// the player's view of the archive, so it lists the worlds that carry something.
-			if (!row.HasSnapshot && row.BackupCount == 0)
-			{
-				continue;
-			}
-
 			BuildWorldRow(ctx, page, library, row);
-			shown++;
+
+			// A run's save points stay folded under it until the player asks: the list is runs,
+			// and the backups of the expanded run are the only ones on the page.
+			if (string.Equals(state.BackupRowsWorldId, row.World.WorldId, StringComparison.Ordinal))
+			{
+				BuildBackups(ctx, page, library);
+			}
 		}
 
-		if (shown == 0)
+		if (older > 0)
 		{
-			page.Muted(ctx.T("worlds.empty"));
+			page.Row(
+				page.ButtonElement(
+					"worlds.show_older",
+					ctx.F("worlds.show_older", older),
+					() => state.WorldsShowAll = true,
+					width: 260f));
+			page.Space();
 		}
 	}
+
+	private static string LayerText(OnlineUiContext ctx, int layerIndex) =>
+		layerIndex <= 0 ? ctx.T("worlds.layer_surface") : ctx.F("worlds.layer_depth", layerIndex);
 
 	private static void BuildWorldRow(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library, WorldLibraryEntry row)
 	{
@@ -134,7 +151,7 @@ internal static class OnlineUiWorldsDrawer
 		page.Label(row.World.DisplayName);
 		page.Muted(ctx.F(
 			"worlds.row_detail",
-			row.World.LayerIndex,
+			LayerText(ctx, row.World.LayerIndex),
 			row.World.PlayerCount,
 			row.BackupCount,
 			LocalTime(row.World.LastSavedUtc)));
@@ -159,11 +176,19 @@ internal static class OnlineUiWorldsDrawer
 				width: 180f));
 		}
 
+		var expanded = string.Equals(state.BackupRowsWorldId, row.World.WorldId, StringComparison.Ordinal);
 		elements.Add(page.ButtonElement(
 			$"worlds.backups.{row.World.WorldId}",
-			ctx.T("worlds.show_backups"),
+			ctx.T(expanded ? "worlds.hide_backups" : "worlds.show_backups"),
 			() =>
 			{
+				if (string.Equals(state.BackupRowsWorldId, row.World.WorldId, StringComparison.Ordinal))
+				{
+					state.BackupRowsWorldId = "";
+					state.BackupRows = [];
+					return;
+				}
+
 				state.BackupRowsWorldId = row.World.WorldId;
 				state.BackupRows = [.. library.ListBackups(row.World.WorldId)];
 				state.PendingRestoreFile = "";
@@ -182,7 +207,7 @@ internal static class OnlineUiWorldsDrawer
 			return;
 		}
 
-		page.Section(ctx.F("worlds.backups_section", DisplayNameOf(state, state.BackupRowsWorldId)));
+		page.Muted(ctx.T("worlds.save_points"));
 		if (state.BackupRows.Count == 0)
 		{
 			page.Muted(ctx.T("worlds.backups_empty"));

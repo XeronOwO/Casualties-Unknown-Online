@@ -23,6 +23,10 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 	private bool _open;
 	private string _draft = "";
 	private int _historyIndex = -1;
+
+	// True while the input shows a line reached with the history keys: the live list stays out of the way,
+	// so the next arrow walks history instead of a list the player never asked for (2026-11-08).
+	private bool _historyJump;
 	private IReadOnlyList<CommandSuggestion> _completionCandidates = [];
 	private int _completionIndex = -1;
 
@@ -50,14 +54,13 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		? _completion.Suggest(_editor.Input)
 		: [];
 
-	/// <summary>
-	/// The list the overlay DRAWS and the keys WALK. It is the cycle's own list while a Tab/arrow cycle is in progress, and the live list otherwise — the two
-	/// used to be different objects, so after a completion the screen could show one candidate while Tab went on to another (the user's 2026-10-30 report: the
-	/// list showed `waterbottle`, Tab reached `waterjug`). One list, one truth.
-	/// </summary>
-	public IReadOnlyList<CommandSuggestion> DisplaySuggestions => _completionCandidates.Count > 0
-		? _completionCandidates
-		: LiveSuggestions;
+	/// <summary>The list the overlay draws and the arrows walk: the explicit completion list, never the live
+	/// list a history line would produce — otherwise a history jump puts a list under the arrows (2026-11-08).</summary>
+	public IReadOnlyList<CommandSuggestion> DisplaySuggestions => _historyJump
+		? []
+		: _completionCandidates.Count > 0
+			? _completionCandidates
+			: LiveSuggestions;
 
 	/// <summary>Which row of <see cref="DisplaySuggestions"/> the keys are on, or <c>-1</c> when nothing is selected yet.</summary>
 	public int SelectedSuggestionIndex => _completionCandidates.Count > 0 ? _completionIndex : -1;
@@ -122,6 +125,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		_open = true;
 		_editor.SetInput(plainChat ? string.Empty : OpenPrefix);
 		_historyIndex = -1;
+		_historyJump = false;
 		_draft = "";
 		ClearUndoRedo();
 		ResetCompletions();
@@ -137,6 +141,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		_open = false;
 		_editor.SetInput("");
 		_historyIndex = -1;
+		_historyJump = false;
 		_draft = "";
 		ClearUndoRedo();
 		ResetCompletions();
@@ -145,6 +150,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 	public void SetInput(string value, int? cursor = null)
 	{
 		_editor.SetInput(value, cursor);
+		_historyJump = false;
 		ResetCompletions();
 	}
 
@@ -194,6 +200,8 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		{
 			return;
 		}
+
+		_historyJump = false;
 
 		CaptureUndo();
 		_editor.InsertChar(c);
@@ -411,6 +419,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_editor.SetInput(_history[_historyIndex]);
+		_historyJump = true;
 		ResetCompletions();
 		return true;
 	}
@@ -428,10 +437,12 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			_historyIndex = -1;
 			_editor.SetInput(_draft);
 			_draft = "";
+			_historyJump = false;
 		}
 		else
 		{
 			_editor.SetInput(_history[_historyIndex]);
+			_historyJump = true;
 		}
 
 		ResetCompletions();

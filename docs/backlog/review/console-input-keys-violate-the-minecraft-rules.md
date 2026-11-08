@@ -1,6 +1,8 @@
 # The console's input keys do not follow the Minecraft rules
 
-- Status: Review — user-reported (2026-11-08): two input-key defects in CUO's own console window.
+- Status: Review — user-reported (2026-11-08): two input-key defects in CUO's own console window. Defect 2 is fixed in
+  the tree (`_historyJump` suppresses the live completion list while a history line is shown); defect 1's code path is
+  in place and its live reading is the next step (a batch that opens the console and injects a synthetic Return).
 - Priority: Medium (an input habit the window claims to copy, broken in two places)
 - Category: UI / console input
 - Source: the user, 2026-11-08 (translated): "the console has more to polish; first, when the input box is empty,
@@ -38,6 +40,11 @@ must always do.
 The rule to land: a history jump never opens or feeds the completion list; the arrows stay on the history until the
 player changes the text by typing (or the player explicitly asks for completion with Tab). Minecraft's chat does this:
 history browsing is unaffected by the suggestion list, and the list is only on screen when a completion was requested.
+
+Fix (2026-11-08): `ConsoleInputSession` carries `_historyJump`, set by `PreviousHistory`/`NextHistory` and cleared by
+typing, `SetInput`, open and close; `DisplaySuggestions` answers empty while it is set, so the overlay's arrow branch
+(unchanged) falls through to the history. The live reading is the next batch: two history lines, three up arrows, no
+list between them; Tab still opens the list.
 
 ## Acceptance
 

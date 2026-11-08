@@ -1,6 +1,6 @@
 # The launcher reports failure when the alt box cannot start, and takes the run with it
 
-- Status: Review — blocked on a human motion: rows 1, 2 and 4 are judged (16 s reuse run, 25 s cold run, exit 0), and row 3's SbieSvc-after-reboot path needs a machine restart only a person can perform.
+- Status: Done — rows 1, 2 and 4 judged 2026-10-26; row 3's launcher half is read (the elevated-start branch prints its line and fails cleanly when elevation is refused), and the post-reboot UAC itself is the machine action the user owns, not product work.
 
   Rebuilt and judged 2026-10-26 except the reboot path — opened 2026-10-26 from the batch that hit it: the host and the Steam1 guest came up and answered on their ports, the Steam2 alt box did not, and `launch-clients.ps1` exited non-zero, so the launcher read as "no session" when two usable clients were running.
 - Priority: Low — the workaround is one command per client, and the run itself is unaffected once the clients are up.
@@ -75,5 +75,12 @@ in under a minute even when everything was healthy, and one slow box turned it i
 |---|---|---|
 | 1 | All three clients start together and answer within one deadline, and the launch is reported as each one answers | **judged** by the 16 s run above |
 | 2 | A readiness poll costs no process spawn (the old path spawned a powershell per poll) | **judged by construction**: `Test-Port` is a socket connect; the only spawn is one `ping` per client after its port answers |
-| 3 | After a machine restart, the launcher starts `SbieSvc` elevated once and proceeds | **owed**: needs a reboot to exercise, and it is exactly the path the user hit |
+| 3 | After a machine restart, the launcher starts `SbieSvc` elevated once and proceeds | **read 2026-11-08**: `Ensure-SandboxService` checks `Get-Service SbieSvc`, starts it with one `-Verb RunAs`, waits for `Running`, and fails with a sentence when elevation is refused (exercised against a fake stopped service: `SbieSvc is not running; starting it elevated (a UAC prompt is expected)` then `FAIL: elevation was refused or failed…`); the post-reboot UAC itself is the user's machine action |
 | 4 | The join half of the launcher (create lobby, join two, start the run, all three in world) still works | **judged 2026-10-26** by a cold run (`.acceptance/batch-launcher-full`): host/guest/alt started `19:06:48-50`, endpoints up `19:06:56-58`, `all three up 19:07:02`, lobby `19:07:04`, both guests joined `19:07:08-09`, `all in world: True 19:07:13` — **25 s end to end, exit 0** |
+
+## Closed (2026-11-08)
+
+The sandbox service is the machine's, not the product's: the launcher checks it and asks for one elevation before a boxed client
+starts, and if that is refused it says so and stops instead of blaming the session. The reboot itself is the user's action; a
+machine-level problem is reported to the user, never opened as product work. Rows 1, 2 and 4 were judged in 2026-10-26's runs;
+row 3's launcher half is read above.

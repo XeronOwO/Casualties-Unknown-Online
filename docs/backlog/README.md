@@ -96,7 +96,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
-- [Recursive crafting as a standalone mod](review/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge read; look pending.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
 - [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
@@ -132,6 +131,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Recursive crafting as a standalone mod](done/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge and the look read.
 - [Native run field parity](done/save-native-run-field-parity.md) — **Medium-High** — all three rows read: the multipliers, the crafting flag, the named field.
 - [S3 — Mid-run consistent cut and world diff](done/save-mid-run-consistent-cut.md) — **High** — every in-game row is machine-read.
 

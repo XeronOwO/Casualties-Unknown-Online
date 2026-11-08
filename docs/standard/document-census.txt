@@ -371,7 +371,7 @@ docs/backlog/done/offscreen-arrow-label-clipping.md | keep | index | docs/backlo
 docs/backlog/done/player-music-sync-playback.md | keep | index | docs/backlog/README.md
 docs/backlog/done/pod-descent-on-a-member-regenerates-locally.md | keep | index | docs/backlog/README.md
 docs/backlog/done/radiation-line-floor-stop.md | keep | index | docs/backlog/README.md
-docs/backlog/review/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
+docs/backlog/done/recursive-crafting-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/done/remote-backpack-access-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/item-identity-bridge.md | keep | index | docs/backlog/README.md
 docs/backlog/done/member-report-bounds.md | keep | index | docs/backlog/README.md
@@ -1345,3 +1345,4 @@ docs/evidence/acceptance/save-mid-run-corpse-20261108-r.md | keep | claim | docs
 docs/evidence/acceptance/save-native-run-field-parity-20261108-row2.md | keep | claim | docs/backlog/done/save-native-run-field-parity.md
 docs/evidence/acceptance/save-native-run-field-parity-20261108-rows1-3.md | keep | claim | docs/backlog/done/save-native-run-field-parity.md
 
+docs/evidence/acceptance/recursive-crafting-mod-20261108.md | keep | claim | docs/backlog/done/recursive-crafting-mod.md

@@ -1,6 +1,6 @@
 # Recursive crafting as a standalone mod
 
-- Status: Review — blocked on the user: the resolver, the game half, the console command and the recipe panel's third state landed and are read on the machine (including the "two into one" merge); the one row left is the on-screen look, which is the user's visual pass (see *Stage 4* below).
+- Status: Done — the resolver, the game half, the console command and the recipe panel's third state landed and are read on the machine (including the "two into one" merge); the on-screen look is read too (2026-11-08): the panel's name line renders the marker and the description carries the steps, with the native rendering kept (see *Stage 4*). Evidence: `docs/evidence/acceptance/recursive-crafting-mod-20261108.md`.
 - Priority: Low-Medium
 - Category: Mod / crafting / UI
 - Source: the user's 2026-10-07 backlog request — recursive crafting (a recipe whose ingredients are themselves
@@ -169,7 +169,11 @@ tooltip line, so there is no filtered view for a favourite to survive. Building 
 new player-facing gesture and a new store — a feature the user has not asked for — so the ticket records the
 reason instead.
 
-**What the ticket still leaves to the user:** the on-screen look. The marker and the tooltip line are read from
-the same getters the panel calls (the mechanism under test), but the panel was never opened on screen, so
-whether ` (+)` and the amber-free native grey read well is the user's visual pass. That is the one residual;
-everything else the ticket asked for is judged above.
+**Read on the panel itself (2026-11-08, batch 20261108):** with the recursive entry selected in the game's own
+craft screen (two scrapmetal stacks at condition 0.5, a woodcube, two foliage and no rope — `/craftchain
+flimsyknife` answered `reachable through 1 step(s) — 1. rope.`), the panel's name line rendered `the fragile
+knife (+)` and the recipe's description ended `Reachable through other crafts: 1. rope` — the two surfaces the
+stage-3 design named, read from the panel's own rendered text and a frame crop
+(`docs/evidence/acceptance/recursive-crafting-mod-20261108.md`). With the rope held the same entry read
+`craftable now` and the name carried no marker, so the third state fires only for a recursively reachable entry.
+The row keeps the panel's native rendering: the mod adds no colour. That closes the last residual.

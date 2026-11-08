@@ -128,7 +128,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 		{ nameof(TheWindowsControlsAreTheGamesOwnRowPrefabs), "adapter/OnlineUiWindowView.cs", "OnlineUiControlFactory.ReadRowTemplate(root.transform, out var typography", "OnlineUiControlFactory.ReadNoTemplate(out var typography", "a frame whose art and typography are guessed" },
 		{ nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel), "adapter/OnlineUiSurfaceHost.cs", "_window.SetVisible(frame.Window is not null);", "_window.SetVisible(true);", "a window that never closes" },
 		{ nameof(TheWindowIsShownOnlyWhileTheFrameCarriesAModel), "adapter/OnlineUiSurfaceHost.cs", "_window.PollPointer(_intents);", "// poll removed", "a window whose pointer fact never reaches the plugin" },
-		{ nameof(TheWindowHangsOnTheSameCanvasAsTheLauncher), "adapter/OnlineUiSurfaceHost.cs", "_window = OnlineUiWindowView.Create(root.transform, _log, _intents.Enqueue);", "_window = null;", "a window that is never built on CUO's canvas" },
+		{ nameof(TheWindowHangsOnTheSameCanvasAsTheLauncher), "adapter/OnlineUiSurfaceHost.cs", "_window = OnlineUiWindowView.Create(root.transform, _log, ReportIntent);", "_window = null;", "a window that is never built on CUO's canvas" },
 		{ nameof(TheRowsAreWrappedByTheRuntimesOwnRule), "adapter/OnlineUiWindowView.cs", "var lines = OnlineUiRowLayout.LineOf(widths, breaks, ContentWidth, LineSpacing);", "new int[widths.Length]", "rows wrapped by no rule at all" },
 		{ nameof(AControlIsWrittenOnlyWhereItChanged), "adapter/OnlineUiControlFields.cs", "if (kindChanged || _text != element.Text)", "if (true)", "a control rewritten every frame" },
 		{ nameof(ATextFieldIsNotOverwrittenWhileThePlayerTypes), "adapter/OnlineUiControlFields.cs", "if (!input.isFocused && _value != element.Value)", "if (_value != element.Value)", "a field that overwrites the caret while the player types" },
@@ -225,7 +225,7 @@ public sealed class OnlineUiWindowSurfacePinTests
 
 	private static bool CreatedUnderCuosCanvas(string hostSource) =>
 		Flatten(hostSource).Contains(
-			"_window = OnlineUiWindowView.Create(root.transform, _log, _intents.Enqueue);",
+			"_window = OnlineUiWindowView.Create(root.transform, _log, ReportIntent);",
 			StringComparison.Ordinal);
 
 	/// <summary>The wrap is the Runtime's rule — the fit and the model's own breaks together — against the

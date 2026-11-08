@@ -143,6 +143,36 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 		return true;
 	}
 
+	/// <summary>
+	/// Every view reports through here, so the surface sounds like the game's own UI: a button press is the
+	/// game's "click" and a toggle or dropdown pick is its "miniClick", both played through
+	/// `PlayerCamera.PlayUISound` — the entry the game's own buttons use (`AdaptiveButton.Clicked` and
+	/// `SettingsMenu`). Typing, dragging and a committed number are not clicks and stay silent.
+	/// </summary>
+	private void ReportIntent(OnlineUiIntent intent)
+	{
+		switch (intent.Kind)
+		{
+			case OnlineUiIntentKind.ControlInvoked:
+				PlayUiSound("click");
+				break;
+			case OnlineUiIntentKind.ControlToggled:
+			case OnlineUiIntentKind.ControlSelected:
+				PlayUiSound("miniClick");
+				break;
+		}
+
+		_intents.Enqueue(intent);
+	}
+
+	private static void PlayUiSound(string sound)
+	{
+		if (PlayerCamera.main != null)
+		{
+			PlayerCamera.PlayUISound(sound, 1f);
+		}
+	}
+
 	private void EnsureSurface()
 	{
 		// Unity object — == (a scene change destroys the canvas this was parented under, and takes this
@@ -209,21 +239,21 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 		_launcher = launcher;
 		// The window family rides on the same surface (S2b): one shell built once with the launcher, shown
 		// and hidden by the frames that carry a window model.
-		_window = OnlineUiWindowView.Create(root.transform, _log, _intents.Enqueue);
+		_window = OnlineUiWindowView.Create(root.transform, _log, ReportIntent);
 		// The last two IMGUI panels became panels of this surface (S5): the quick panel docked in the
 		// canvas's bottom-right corner, and the in-world player context menu where the player clicked.
 		_quickPanel = OnlineUiPanelView.Create(
 			QuickPanelName,
 			root.transform,
 			_log,
-			_intents.Enqueue,
+			ReportIntent,
 			OnlineUiIntentKind.QuickPanelHoverEntered,
 			OnlineUiIntentKind.QuickPanelHoverLeft);
 		_contextMenu = OnlineUiPanelView.Create(
 			ContextMenuName,
 			root.transform,
 			_log,
-			_intents.Enqueue,
+			ReportIntent,
 			OnlineUiIntentKind.ContextMenuHoverEntered,
 			OnlineUiIntentKind.ContextMenuHoverLeft);
 		// The world-space overlays are the LAST view built and the FIRST child drawn: the layer puts itself

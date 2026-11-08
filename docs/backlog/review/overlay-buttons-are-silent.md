@@ -27,6 +27,30 @@ screen-space; a UI sound is usually 2D — the game may call `Sound.Play` with a
 Every clickable row in the window: the six tabs, the session buttons (copy lobby id, close room, leave, open player
 page), the join/leave flows, the save panel's buttons when they land, and the drag-use cue's own confirm.
 
+## The chain (read 2026-11-08)
+
+1. The game's own menu buttons play `PlayerCamera.PlayUISound("click", 1f)` on their click —
+   `reversing/Assembly-CSharp/Assembly-CSharp/AdaptiveButton.cs:51/61/65`, and its small controls play
+   `PlayerCamera.PlayUISound("miniClick", 1f)` (`SettingsMenu.cs:192`).
+2. `PlayerCamera.PlayUISound(string, float)` is the game's own static entry:
+   `reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:38` → `Sound.Play(sound, Vector2.zero, true, false, null, 1f,
+   pitch, true, true)` — a 2D UI sound, no listener position needed.
+3. CUO's window is uGUI built from the game's own row prefab: `src/CasualtiesUnknownOnline.GameAdapter/OnlineUi/OnlineUiControlView.cs`
+   wires the `Button.onClick`, `Toggle.onValueChanged` and `Dropdown.onValueChanged` listeners that report
+   `OnlineUiIntent`s; `OnlineUiSurfaceHost.cs` owns the queue the views report into and hands each view
+   `_intents.Enqueue`.
+4. Every intent reaches the surface as a fact, then the plugin drains it (`OnlineUiHost.DrainSurfaceIntents`) and runs the
+   action registered under the control's id. So the click is known in exactly two places: the control's listener and the
+   surface's report path.
+
+## The fix (2026-11-08)
+
+`OnlineUiSurfaceHost` passes `ReportIntent` to every view instead of `_intents.Enqueue`; `ReportIntent` plays the game's
+own sound for the click-shaped intents and then enqueues the intent unchanged: a button press (`ControlInvoked`) plays
+`"click"`, a toggle or dropdown pick (`ControlToggled`/`ControlSelected`) plays `"miniClick"`; typing, dragging a slider
+and a committed number stay silent. Both are `PlayerCamera.PlayUISound`, guarded by `PlayerCamera.main != null` so a
+control that fires before the player exists has nothing to play.
+
 ## Acceptance
 
 - Press each CUO button → the game's own click sound plays (read from the acceptance channel's `sound-log`).

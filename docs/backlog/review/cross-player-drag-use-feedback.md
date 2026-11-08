@@ -1,6 +1,6 @@
 # Cross-player use by drag: the gesture has to announce itself (highlight, label, cue sound)
 
-- Status: Review — the cue's machinery is now machine-read on a live session (batch `20261108-p`): the teammate was teleported into the host's view, its displayed backpack opened (`backpackOpen` true, focus the teammate), the virtual pointer reached that panel's centre (93 < 135) and its item is eligible — but the cue stays hidden because the drag-active state is not held: a virtual press on the ring button does not start the game's own drag (`dragItem` stays empty), and the bracket a recipe arms directly does not satisfy the tracker's hold test. The rows are therefore blocked on the acceptance channel's drag/hold capability (a key or button the game reads as held), not on a human motion; the next change is to extend `VirtualInput` to the query the hold reads, deploy, and re-read the cue.
+- Status: Review — the cue's decision is read on a live session (batch `20261108-p`, `0.1.0+9869d734`): with an eligible item held, the `iteminteract` read held through the acceptance channel, the teammate's displayed backpack open and the pointer on its centre, `drag-cue` answered `showing=true` naming the teammate; it hides on release and on an ineligible item. Rows 2-7 stay as recorded below (row 2's data half read 20261025-bb; row 4 read 20261025-ay; the success-sound half is the user's "no extra sound" ruling). The reading is `docs/evidence/acceptance/cross-player-drag-use-feedback-20261108-p.md`.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / feedback and discoverability
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
@@ -830,3 +830,23 @@ Two readings follow, and they separate the cases: either this session's clone ca
 through revives and teleports), or the display clone is never hoverable and the cue's `focusedSteamId` has another source. The next
 batch settles it by reading the same probe on a FRESH session before any heal or teleport - that is a one-call check, not a new
 instrument.
+
+## Batch 20261108-p: the cue read on the deployed build, and the channel change that made the hold readable
+
+The cue's fifth input is the held `iteminteract` key, which `DragUseCueTracker.Update` reads through `Input.GetKey`. The acceptance
+channel did not transpile that method, so no staged press could ever satisfy it; `src/CasualtiesUnknownOnline.Acceptance/CueInputPatch.cs`
+now patches the tracker's own `Update` with the same `InputQueryPatches.TranspileKeyReads` the other two input methods use (committed
+`9869d734`), and the reading below is on the deployed artifact of that change.
+
+With the teammate teleported into view, its displayed backpack open (`backpackOpen` true, focus the teammate) and the pointer on that
+panel's centre (`pointerDistanceOverScale 17.628`, radius 135), an eligible item held (`drag-start type=paincream`) and the key held
+(`virtual-input mode=press-key button=1`), `drag-cue` answered `{"showing":true,"targetSteamId":"76561198863287957","text":"<the localized use-on sentence>","backpackOpen":"True"}` — the text field read "use on 76561198863287957" in the Chinese catalogue (translated).
+A lantern held on the same centre answered `showing false` (the item's family is the cue's own gate), and after release the cue read
+`showing false`.
+
+The five clauses are therefore all read true in one live session, and row 1's substance — the cue names the teammate the release would
+act on, and only while the pointer is on the use centre — is read. The limits: the drag was staged with `drag-start` (a field write;
+the game's own bracket sets the same field and the tracker reads the field), and the frame captured at that moment does not show the
+label because the CUO Example window sat over the cursor area.
+
+The reading lives in `docs/evidence/acceptance/cross-player-drag-use-feedback-20261108-p.md`.

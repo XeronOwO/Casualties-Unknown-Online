@@ -50,6 +50,9 @@ public sealed class WorldLibraryService(
 
 	public bool IsEnabled => repository is not null;
 
+	/// <summary>The configured backup ceiling the page shows and the cut's retention applies.</summary>
+	public int BackupRetention => Options.Retention;
+
 	public string? SelectedWorldId => saves.ContinueWorldId;
 
 	public WorldMaintenanceReport? LastReport => _last;

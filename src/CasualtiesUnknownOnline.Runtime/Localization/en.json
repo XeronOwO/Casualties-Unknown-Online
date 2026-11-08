@@ -167,6 +167,7 @@
   "tab.worlds": "Worlds",
   "worlds.unavailable": "This build has no world repository, so there is nothing to manage here.",
   "worlds.section": "WORLDS",
+  "worlds.retention": "Keeps the newest {0} backup(s) per world; the oldest are pruned when a cut is committed.",
   "worlds.refresh": "Refresh",
   "worlds.empty": "No worlds yet. A run writes its own world folder, and every save adds a backup to it.",
   "worlds.row_detail": "Layer {0} · {1} player(s) · {2} backup(s) · last saved {3}",

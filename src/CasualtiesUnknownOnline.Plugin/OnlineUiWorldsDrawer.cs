@@ -69,10 +69,13 @@ internal static class OnlineUiWorldsDrawer
 	/// <summary>The page's heading and the Reload control that belongs on its line: built through
 	/// <see cref="OnlineUiPageBuilder.Section(string, OnlineUiElementModel[])"/>, so the heading keeps the room
 	/// every other heading on every page owns (the acceptance pass found one heading without it).</summary>
-	private static void BuildHeader(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library) =>
+	private static void BuildHeader(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library)
+	{
 		page.Section(
 			ctx.T("worlds.section"),
 			page.ButtonElement("worlds.refresh", ctx.T("worlds.refresh"), () => Reload(ctx, library), width: 110f));
+		page.Muted(ctx.F("worlds.retention", library.BackupRetention));
+	}
 
 	/// <summary>The one line that says what the last action did — or why it did nothing.</summary>
 	private static void BuildStatus(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library)
@@ -104,9 +107,24 @@ internal static class OnlineUiWorldsDrawer
 			return;
 		}
 
+		var shown = 0;
 		foreach (var row in ctx.State.WorldRows)
 		{
+			// A row with nothing to continue and nothing to restore is noise: the folder exists
+			// because a run started there, but the player has nothing to do with it. The page is
+			// the player's view of the archive, so it lists the worlds that carry something.
+			if (!row.HasSnapshot && row.BackupCount == 0)
+			{
+				continue;
+			}
+
 			BuildWorldRow(ctx, page, library, row);
+			shown++;
+		}
+
+		if (shown == 0)
+		{
+			page.Muted(ctx.T("worlds.empty"));
 		}
 	}
 

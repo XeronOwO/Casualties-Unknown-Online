@@ -1,7 +1,10 @@
 # Save backups are too many and the archive is disorganized
 
 - Status: Review — user-reported (2026-11-08): the save system keeps too many backups, they are not organized, and the
-  interaction is unfriendly; the user asks for a proper design and UI.
+  interaction is unfriendly; the user asks for a proper design and UI. Corrected 2026-11-08: the retention rule already
+  exists and holds (every world keeps exactly 10 backups; `[Save] BackupRetentionCount`); what the report hit is the
+  surface — empty rows with nothing to show, a ceiling the window never states, and a list with no paging. The 2026-11-08
+  change removes the empty rows and states the ceiling (batch below); editing the limit in the window and paging remain.
 - Priority: High
 - Category: Persistence / UX
 - Source: the user, 2026-11-08 (translated: "the save system — too many backups, badly organized, unpleasant to use;
@@ -12,12 +15,44 @@
 
 ## The defect
 
-Every cut writes a backup under the world's `backups/` folder, and nothing prunes or groups them. A world accumulates
-`mid-run-<date>-<time>.cuoz`, `layer-end-…`, `quit-…` files with no retention rule, no naming a player can read, and no
-surface to inspect, restore or delete one. The player sees a flat folder and a growing count.
+Every cut writes a backup under the world's `backups/` folder. A world accumulates
+`mid-run-<date>-<time>.cuoz`, `layer-end-…`, `quit-…` files; the retention rule keeps the newest 10 and prunes the
+rest (read 2026-11-08, corrected below — this paragraph first said nothing prunes, and the measurement disproved it).
 
-Measured on this machine (2026-11-08): `saves/w-<id>/backups/` holds dozens of `.cuoz` files across the sessions of one
-day; the manual names (`w-<id>`, `mid-run-…`) are the format's, not the player's.
+Measured on this machine (2026-11-08): every world's `backups/` folder holds exactly 10 `.cuoz` files. The manual names
+(`w-<id>`, `mid-run-…`) are the format's, not the player's.
+
+## The retention is not the gap (read 2026-11-08)
+
+The chain, read from the code and then measured on the machine:
+
+- `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/SaveOptions.cs` — `BackupRetentionCount`, default 10, clamped
+  to 1..1000.
+- `src/CasualtiesUnknownOnline.Plugin/PluginDependencyRegistrar.cs:160` binds it under the config section `[Save]`, key
+  `BackupRetentionCount`.
+- Every committed cut passes `Options.Retention` into `WorldRepository.PruneBackups(worldId, keep)`
+  (`src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldRepository.cs:342-382`): it keeps the newest `keep`
+  files, never deletes the newest, and reports failures instead of swallowing them.
+- Measured: `saves/w-*/backups/` — every folder holds exactly 10 `.cuoz` files.
+
+So the count the user saw is the ceiling doing its job. What the report actually hit:
+
+1. Rows with no snapshot and no backups stayed in the Worlds list — they carry nothing and cannot be continued or
+   backed up, so they read as noise.
+2. The ceiling was invisible: the window never said that 10 is the limit or that older cuts are dropped. The player
+   sees a count appear to grow the first ten times.
+3. The list has no paging, so many worlds make a long scroll (the window itself redraws on every revision).
+
+The 2026-11-08 change (this ticket's first slice) fixes 1 and 2:
+
+- `IWorldLibrary` gained `BackupRetention`; `WorldLibraryService` answers it from `Options.Retention`.
+- `OnlineUiWorldsDrawer.BuildWorlds` drops a row when `!row.HasSnapshot && row.BackupCount == 0`; nothing to show prints
+  `worlds.empty`.
+- `OnlineUiWorldsDrawer.BuildHeader` prints `worlds.retention` with the ceiling (both catalogues: "Keeps the newest {0}
+  backup(s) per world; the oldest are pruned when a cut is committed.").
+
+What remains for this ticket: an in-window editor for the ceiling (the config section exists; the window does not write
+it yet), and paging for a long world list.
 
 ## What it affects
 

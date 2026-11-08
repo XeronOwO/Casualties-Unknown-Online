@@ -27,6 +27,12 @@ public interface IWorldLibrary
 	bool IsEnabled { get; }
 
 	/// <summary>
+	/// The configured backup ceiling: how many backup archives a world keeps. The page shows it
+	/// so the player never has to read the config file to know what the retention does.
+	/// </summary>
+	int BackupRetention { get; }
+
+	/// <summary>
 	/// The world the Continue entry opens, as the entry itself resolves it (null = nothing
 	/// is openable). The page marks this row, so a player never sees one world selected and
 	/// gets another.

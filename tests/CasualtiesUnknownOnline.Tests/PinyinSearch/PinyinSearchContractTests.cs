@@ -89,7 +89,7 @@ public class PinyinSearchContractTests
 		Assert.Equal("0.1.0", mod.Manifest.Version);
 		Assert.Equal(NetworkMode.ClientOnly, mod.Manifest.NetworkMode);
 		Assert.Equal(ModPermission.None, mod.Manifest.Permissions);
-		Assert.Equal("PlayerCamera.RefreshRecipeList + Recipe.simpleName getter", mod.Manifest.NativeBinding);
+		Assert.Equal("PlayerCamera.RefreshRecipeList + string.Contains(string, StringComparison)", mod.Manifest.NativeBinding);
 		Assert.Equal(typeof(PinyinSearchMod), mod.Type);
 	}
 
@@ -101,23 +101,40 @@ public class PinyinSearchContractTests
 		Assert.NotNull(declaration);
 		Assert.Equal(NetworkMode.ClientOnly, declaration!.NetworkMode);
 		Assert.Contains("PlayerCamera.RefreshRecipeList", declaration.NativeBinding, StringComparison.Ordinal);
-		Assert.Contains("Recipe.simpleName", declaration.NativeBinding, StringComparison.Ordinal);
+		Assert.Contains("string.Contains(string, StringComparison)", declaration.NativeBinding, StringComparison.Ordinal);
 	}
 
 	[Fact]
 	public void CraftingPatchTargets_StillResolveInTheGameAssembly()
 	{
 		var camera = GameAssemblyHost.ResolveType("PlayerCamera");
-		var recipe = GameAssemblyHost.ResolveType("Recipe");
 		const BindingFlags Any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
 		Assert.NotNull(camera);
-		Assert.NotNull(recipe);
 		Assert.NotNull(camera!.GetMethod("RefreshRecipeList", Any));
-		Assert.NotNull(recipe!.GetProperty("simpleName", Any));
 		Assert.True(
 			camera.GetField("recipeItemFilter", Any) is not null || camera.GetProperty("recipeItemFilter", Any) is not null,
 			"PlayerCamera.recipeItemFilter is gone — the item-filter guard can no longer be evaluated");
+	}
+
+	/// <summary>
+	/// The extended comparison, pinned as the patch shape: the plugin binds the
+	/// native refresh and the `string.Contains(string, StringComparison)`
+	/// overload, and it no longer patches `Recipe.simpleName` — the name hook
+	/// could only remove rows, because the native predicate still ran its own
+	/// `Contains` on whatever name the hook returned (batch 20261108: `刀` → 3
+	/// rows, `cui` → 0).
+	/// </summary>
+	[Fact]
+	public void CraftingPatch_BindsTheComparisonAndNotTheNameGetter()
+	{
+		using var assembly = AssemblyDefinition.ReadAssembly(OutputPath(PluginAssemblyFile));
+		var patches = assembly.MainModule.Types.Single(type => type.Name == "PinyinSearchPatches");
+		var nested = patches.NestedTypes.Select(type => type.Name).ToList();
+
+		Assert.Contains("RefreshRecipeListPatch", nested);
+		Assert.Contains("StringContainsPatch", nested);
+		Assert.DoesNotContain("RecipeSimpleNamePatch", nested);
 	}
 
 	private static string OutputPath(string fileName) =>

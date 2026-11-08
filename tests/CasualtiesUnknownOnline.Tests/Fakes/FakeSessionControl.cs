@@ -107,6 +107,11 @@ internal sealed class FakeSessionControl : ISessionControl
 
 	public void BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload) => throw new NotSupportedException("the save tests never broadcast");
 
+	/// <summary>The directed frames a handler sent (the limb push-back answers one peer, not a broadcast).</summary>
+	public List<(ulong Peer, NetMsg Msg, object Payload)> SentTo { get; } = [];
+
+	public void SendTo(ulong peerSteamId, NetMsg msg, object payload) => SentTo.Add((peerSteamId, msg, payload));
+
 	public bool KickMember(ulong steamId, string reason) => throw new NotSupportedException("the save tests never kick");
 
 	public void EndSession() => throw new NotSupportedException("the save tests never end a session");

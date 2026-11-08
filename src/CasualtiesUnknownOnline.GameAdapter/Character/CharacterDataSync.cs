@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -144,8 +145,59 @@ internal sealed class CharacterDataSync(
 	}
 
 	/// <summary>A limb-latch event arrived (report or relay) — update the owner's fact-table entry and re-render its clone (the dedicated event is the trigger; the 1 Hz snapshot is the fallback).</summary>
-	private void OnLimbStateEventReceived(ulong sender, LimbStateEventMsg msg) =>
+	private void OnLimbStateEventReceived(ulong sender, LimbStateEventMsg msg)
+	{
 		_factTable.ApplyLimbStateEvent(msg.OwnerSteamId, msg);
+
+		// The host's record answers a refused report (the push-back): the member's own client
+		// writes the authoritative values onto its local body, not only onto the clone others see.
+		if (msg.OwnerSteamId == _session.LocalSteamId && sender == _session.HostSteamId)
+		{
+			ApplyHostLimbCorrection(msg);
+		}
+	}
+
+	/// <summary>
+	/// Write a host-originated limb frame onto the local body — the correction a refused report
+	/// earns (the member's screen ends at the host's values, not at its local simulation's).
+	/// </summary>
+	private void ApplyHostLimbCorrection(LimbStateEventMsg msg)
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
+		if (body == null || body.limbs == null)
+		{
+			return;
+		}
+
+		for (var i = 0; i < body.limbs.Length; i++)
+		{
+			var limb = body.limbs[i];
+			var match = msg.Limbs.FirstOrDefault(entry => entry.Index == i);
+			if (match == null)
+			{
+				continue;
+			}
+
+			limb.splinted = match.Splinted;
+			limb.dislocated = match.Dislocated;
+			limb.infected = match.Infected;
+			limb.blockedBleeding = match.BlockedBleeding;
+			limb.skinHealth = match.SkinHealth;
+			limb.muscleHealth = match.MuscleHealth;
+			limb.infectionAmount = match.InfectionAmount;
+			limb.bleedAmount = match.BleedAmount;
+			limb.furBloodAmount = match.FurBloodAmount;
+			limb.pain = match.Pain;
+			limb.dislocationTimer = match.DislocationTimer;
+			limb.boneHealTimer = match.BoneHealTimer;
+			limb.disinfectionTime = match.DisinfectionTime;
+			limb.shrapnel = match.Shrapnel;
+			limb.bandageSlowAmount = match.BandageSlowAmount;
+			limb.skinHealAmount = match.SkinHealAmount;
+		}
+
+		_log.LogInformation("[LimbEvent] applied the host's record to the local body ({Limbs} limbs).", msg.Limbs.Count);
+	}
 
 
 	/// <summary>

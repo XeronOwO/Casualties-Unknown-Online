@@ -52,6 +52,7 @@ public sealed class LimbStateEventHandler(ILogger<LimbStateEventHandler> log) : 
 			if (!ctx.CharacterData.ApplyLimbStateEvent(msg))
 			{
 				_log.LogWarning("[LimbEvent] refused an implausible owner event from {Sender} for {Owner}; the host's record stays.", sender, msg.OwnerSteamId);
+				PushBackTheRecord(sender, msg.OwnerSteamId, ctx);
 				return;
 			}
 		}
@@ -69,5 +70,28 @@ public sealed class LimbStateEventHandler(ILogger<LimbStateEventHandler> log) : 
 		}
 
 		_log.LogInformation("[LimbEvent] owner {Owner} ({Limbs} limbs) from {Sender}.", msg.OwnerSteamId, msg.Limbs.Count, sender);
+	}
+
+	/// <summary>
+	/// The refusal's answer: the host's own record of the owner goes back to the reporter, so the
+	/// member's client can write the authoritative values onto its own body — the push-back the
+	/// user's rule requires ("after the periodic report the host corrects the guest's state").
+	/// Directed, not broadcast: only the reporter's screen is wrong.
+	/// </summary>
+	private void PushBackTheRecord(ulong sender, ulong owner, ICharacterSessionHandlerContext ctx)
+	{
+		if (ctx.CharacterData.GetSavedCharacter(owner) is not { } record)
+		{
+			return;
+		}
+
+		var correction = new LimbStateEventMsg
+		{
+			OwnerSteamId = owner,
+			Health = record.Health,
+			Limbs = record.Limbs,
+		};
+		ctx.Session.SendTo(sender, NetMsg.LimbStateEvent, correction);
+		_log.LogInformation("[LimbEvent] sent the host's record back to {Peer} ({Limbs} limbs).", sender, correction.Limbs.Count);
 	}
 }

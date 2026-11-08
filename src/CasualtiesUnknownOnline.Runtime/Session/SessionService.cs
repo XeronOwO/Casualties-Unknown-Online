@@ -151,6 +151,9 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 	void ISessionControl.BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload) =>
 		_sender.SendToAll(_presence.Members.Select(m => m.SteamId), msg, payload, excludeSteamId: excludeSteamId);
 
+	void ISessionControl.SendTo(ulong peerSteamId, NetMsg msg, object payload) =>
+		_sender.SendToAll([peerSteamId], msg, payload);
+
 	void ISessionControl.RemoveGuestMember(ulong steamId)
 	{
 		_presence.Remove(steamId);

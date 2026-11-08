@@ -72,6 +72,10 @@ public interface ISessionControl
 
 	void BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload);
 
+	/// <summary>Host only: send one frame to one member. Used where a member's own client must
+	/// receive the host's answer (a refused report's correction), never as a broadcast.</summary>
+	void SendTo(ulong peerSteamId, NetMsg msg, object payload);
+
 	void RemoveGuestMember(ulong steamId);
 
 	/// <summary>Host only: kick a guest from the session. The target receives the

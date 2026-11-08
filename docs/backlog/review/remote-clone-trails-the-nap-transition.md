@@ -1,6 +1,6 @@
 # The remote clone trails a nap transition
 
-- Status: Review — read on batch `20261108-y`: while Steam1's nap started, its clone led the body by 0.9 units in x, sat 2.2 units lower in y, and carried leg speed `0.275` when the body read `0.747`; the same pair agreed exactly at rest and after a teleport (0.001 / 0.000). Reading: `docs/evidence/acceptance/unified-remote-display-projection-20261108-y.md`.
+- Status: Review — the divergence is the display glide, read on 2026-11-08: `SessionStatePump.cs:52-64` writes the clone as `Vector2.Lerp(PrevPosition, Position, alpha)` over the averaged snapshot window, so a fast body move (a nap's placement) leaves the clone trailing by up to one window; the reading is `docs/evidence/acceptance/unified-remote-display-projection-20261108-y.md` (the same pair agreed to 0.001 at rest and exactly after a teleport). The fix direction is a snap threshold on that glide; no code is written yet.
 - Priority: Medium
 - Category: Remote presentation / projection / transient pose
 - Source: The unified remote display projection umbrella's machine reading (2026-11-08).
@@ -18,13 +18,18 @@ At rest and after a teleport, the host's clone of Steam1 matched Steam1's own bo
 flag). During the nap start (`body-sleep` → `canTakeNap true, called true`) the two disagreed while the transition ran:
 the clone at `(-1.065, 491.41)` leg speed `0.275` against the body at `(-1.959, 493.616)` leg speed `0.747`.
 
-## Why it may happen (to verify, not to assume)
+## Why it happens (read, not assumed)
 
-- The nap's start animation moves the body natively; the clone follows the streamed `WirePlayerStreamState.Position` and
-  the `RemoteBodyDriver`'s smoothing, so a transient lead/lag is expected — the 2.2-unit vertical difference is larger
-  than a stream period's smoothing should produce, so it is either a driver smoothing artefact or a fall-through.
-- The clone's leg-speed field moving ahead of the body's suggests the driver's pose input is derived from the stream's
-  velocity, not from the body's own transition.
+`src/CasualtiesUnknownOnline.GameAdapter/Character/SessionStatePump.cs:52-64` is the chain: every 20 Hz snapshot updates
+`driver.LastStateMs` and the averaged interval (`AvgIntervalSec`, clamped 0.02-0.5 s, line 54); each frame the clone's
+transform is set to `Vector2.Lerp(PrevPosition, Position, alpha)` with `alpha = clamp01(elapsed / window)` (lines 60-64).
+A body that moves fast — a teleport, or the nap's own placement — therefore glides the clone across the window instead of
+arriving with it, and the leg speed comes from the separate 1 Hz character snapshot (`RemoteBodyDriver.LegSpeedMult`), so
+the pose field moves on yet another cadence.
+
+That makes the reading a smoothing lag, not a fall-through: the clone has no collider and never leaves the ground plane;
+it trails the last two streamed positions. The fix direction is a snap threshold on the glide (when the target is farther
+than a body's own step can be, write the target instead of interpolating), with the window's normal case unchanged.
 
 ## What to read next
 

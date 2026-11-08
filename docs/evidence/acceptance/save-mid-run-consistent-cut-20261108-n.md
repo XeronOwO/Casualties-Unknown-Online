@@ -34,3 +34,23 @@ In one mid-run world (host at `(3.652, 497.615)`, body cell `(515, 1009)`):
 - This is the host's own scene after a solo Continue; a member's client receiving the restored diff is the same writer path (`WorldEventSync.OnRemoteBlockState`) and stays a dual-client reading.
 - The sprite bucket is derived from the value; a rendering fault with an identical damage row is outside this row (it would be a sprite bug, not a restore bug).
 - The world-block rows do not carry damage; the partial-damage row is the domain that does — the restore log names both counts separately, which is why the two are read separately here.
+
+## Row 2 — the four item restings (same session, later cut)
+
+The ticket's row 2 in-game half said "the four restings as the player sees them". Staged on the same host after row 1's Continue, in world `w-20261108-9711` at body `(3.085, 497.615)`:
+
+- **Ground** — `item-provide mode=create type=bandage` (`#1323170908099`), then `mode=drop`: `dropped: true`, at `(0.277, 493.505)`.
+- **Carried** — the hand slots: `lantern #1318875940803` slot 0, `trashbag #1301696071619` slot 1, `lantern #1305991038915` slot 3, `waterbottle #1314580973507` slot 5.
+- **Worn** — `smallpack #1327465875395` created in slot 2, then `item-wear slot=2` → `worn: true` (the game's own `Body.WearWearable`, read back through `Body.GetWearable`).
+- **Nested** — `dogfood #1310286006211` loaded into the carried `trashbag #1301696071619` through `Container.LoadItem` (`container-fill` → `contentsBefore 0, contentsAfter 1`).
+
+`/save` took `Cut Command … mid-run cut taken at frame-end, revision 3085 … 322 item row(s), 117 world-block row(s)`; `leave-world` took the `MenuReturn` cut at revision 3088; `continue-run` restored the live snapshot (`Continue restored world w-20261108-9711 … revision 3088 … 322 item row(s)`).
+
+After the Continue (`container-read mode=local`, `item-world-read`):
+
+- ground: `bandage #1323170908099` still in the world at `(0.364, 493.505)` — the same id; x drifted 0.087 (the game's own settlement);
+- carried: the same four ids in the same slots;
+- worn: `smallpack #1327465875395` present with `slot: -1` (worn, not in a hand slot);
+- nested: `dogfood #1310286006211` with `parentType: "trashbag"` under `#1301696071619` — exactly one parent, no duplicate; `localCount 6` = the four hand slots + the worn item + the nested child.
+
+Limits: the pixels are not judged (the tree is the game's own item table); the corpse-loot bind (`CorpseScript.Start`) was not staged — no corpse in this fixture, named as a residual; the ground item's x drift is settlement, not restore loss.

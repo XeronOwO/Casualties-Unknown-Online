@@ -1,6 +1,6 @@
 # Native run fields are not covered by the world archive
 
-- Status: Review — blocked on the user: S3.4a and S3.4b both landed on 2026-09-11 (the run-level fields ride `run.json`'s `run` and `native-run-fields` rows; the character-level fields ride `CharacterDataMsg.NativeFields`), and the 2026-09-17 hardening cycle closed the two recorded engineering gaps while splitting two into their own done cycles; the per-field decided homes below are the frozen record, and what remains is the user's final unified acceptance pass.
+- Status: Review — row 2 is machine-read and PASSES on `0.1.0+9869d734` (batch `20261108-s`: a recipe crafted before a mid-run cut keeps `hasMadeBefore` and `INT` after the continue; evidence `docs/evidence/acceptance/save-native-run-field-parity-20261108-row2.md`). S3.4a and S3.4b landed 2026-09-11 (the run-level fields ride `run.json`'s `run` and `native-run-fields` rows; the character-level fields ride `CharacterDataMsg.NativeFields`), and the 2026-09-17 hardening cycle closed the two recorded engineering gaps. What remains is row 1's generation-count run (the game's own loot/trap distribution over a layer, with non-default multipliers) and row 3's presentation-only field named in the restore report; the per-field decided homes below are the frozen record.
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: found by the S2 independent adversarial review (2026-09-10)
@@ -237,3 +237,15 @@ character, and yet the same read answered `hasMadeBefore=false`. That narrows ro
 question: **inventory state persists across a mid-run cut, the recipe's "made before" flag does not.** Whether that flag is a
 field CUO must persist (the ticket's subject) or a native behaviour the game never saves is the decision the row now needs, and it
 is not one this batch can take.
+
+**Batch `20261108-s` — row 2 PASSES on the current build; the 20261025-s line does not reproduce.** The fixture ran end to end on
+`0.1.0+9869d734`: craft recipe 7 (`item-provide type=glowplantfruit`, `craft-drive mode=make,index=7` → `ok, result: biochem`) with
+`recipe-unlock-read index=7` reading `INT=4, hasMadeBefore=true`; `/save` (queued → `Cut MenuReturn committed … native run fields
+present (133 recipe row(s))`, backup `mid-run-20261108-064739.cuoz`); `leave-world` → `continue-run`; the same read after the
+continue answered `INT=4, hasMadeBefore=true`. The archive's `run.json` carries `index 7 { madeBefore: true, intValue: 4 }`, and
+the host log shows the whole chain: `Handed … run fields (clock 3921.3, 133 recipe row(s)) to the native applier.`,
+`[SaveFacts] committed the restored native world facts (… 133 recipe unlock row(s)): the live world has them.`,
+`[SaveFacts] restored the live world: … 133 recipe unlock row(s) applied (the archive carried 133)`. Evidence:
+`docs/evidence/acceptance/save-native-run-field-parity-20261108-row2.md`. One caveat found in the same log and NOT part of this row:
+the restore reported `restore INCOMPLETE (… 7 applied / 7 refused world-entity row(s), 7 row(s) not taken)` — a world-entity
+restore gap, filed separately.

@@ -10,9 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// apply → fan-out): the host merges the post-event full limb/body state into
 /// its record of the owner and relays to the other members (the source
 /// excluded — it already applied locally). Guest: the host's relay — apply it.
-/// Accept-first: the host adopts the reported state unconditionally (the body
-/// belongs to the reporter's own local simulation); the 1 Hz
-/// character snapshot stays the fallback. Mirror of the <c>EnemyBiteMsg</c> path.
+/// Accept-first within a plausibility bound: the body belongs to the reporter's own local
+/// simulation, so the host adopts the reported state — while the transition is one the game's own rates can produce
+/// between the host's previous record and the report (a dismembered limb never returns; skin and muscle heal slowly;
+/// infection clears slowly). A report outside that bound is refused whole, the host keeps its own record, and the
+/// refusal is logged by name; the 1 Hz character snapshot stays the fallback. Mirror of the <c>EnemyBiteMsg</c> path.
 ///
 /// <para>
 /// The one thing accept-first may not accept is WHOSE body this is: the payload's
@@ -49,7 +51,7 @@ public sealed class LimbStateEventHandler(ILogger<LimbStateEventHandler> log) : 
 			// reporter's clone and the relay would push them to every guest.
 			if (!ctx.CharacterData.ApplyLimbStateEvent(msg))
 			{
-				_log.LogWarning("[LimbEvent] refused a non-finite owner event from {Sender} for {Owner}.", sender, msg.OwnerSteamId);
+				_log.LogWarning("[LimbEvent] refused an implausible owner event from {Sender} for {Owner}; the host's record stays.", sender, msg.OwnerSteamId);
 				return;
 			}
 		}

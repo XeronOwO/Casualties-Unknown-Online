@@ -155,8 +155,8 @@ public class LimbStateSyncTests
 			Health = new CharacterHealthMsg { Happiness = 1f },
 			Limbs =
 			[
-				new CharacterLimbMsg { Index = 0, Pain = 1f },
-				new CharacterLimbMsg { Index = 3, Broken = true },
+				new CharacterLimbMsg { Index = 0, SkinHealth = 80f, MuscleHealth = 90f, Pain = 1f },
+				new CharacterLimbMsg { Index = 3, SkinHealth = 100f, MuscleHealth = 100f, Broken = true },
 			],
 		});
 

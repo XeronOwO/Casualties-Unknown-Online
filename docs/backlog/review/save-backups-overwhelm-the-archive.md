@@ -25,7 +25,10 @@ day; the manual names (`w-<id>`, `mid-run-…`) are the format's, not the player
 - The player's trust: a restore surface that lists raw filenames is not a product.
 - The future: the save panel ("saves" tab in the window) has no backup list today.
 
-## Design direction (to be confirmed before the first edit)
+## Design
+
+The surface is the archive: `docs/design/cross-cutting/saves-and-recovery.md` (what a cut is, what the player may
+recover). The design direction below is a proposal to confirm against that page before the first edit.
 
 1. **Retention policy**: keep the last N cuts per world (N configurable, default e.g. 10), always keep the newest
    layer-end and the newest quit cut, prune the rest oldest-first at the cut's own end (never mid-write). A policy the
@@ -65,3 +68,12 @@ day; the manual names (`w-<id>`, `mid-run-…`) are the format's, not the player
 - The count itself is a defect: with enough backups the window lags while it lists them, so the surface must page or
   virtualize (render a window of rows, not the whole list), load a row's details lazily, and never build a full DOM of
   hundreds of rows per frame. The retention rule above is the first fix; the list's rendering is the second.
+
+## Configuration (the user's addition, 2026-11-08)
+
+The retention and the panel are settings, not constants: a `[Saves]` section in the CUO config
+(`BepInEx/config/CasualtiesUnknownOnline.cfg`) with at least `MaxBackups` (the automatic ceiling per world), `KeepKinds`
+(which kinds are never pruned — layer-end and quit), and `PruneOnCut` (on/off). Defaults must be a sensible product
+choice (e.g. 10 backups per world, layer-end and quit always kept), the window's saves tab shows the current limits,
+and the panel can change them without editing the file by hand. The retention rule and the config are one design: the
+ceiling is the player's, the pruning is the product's.

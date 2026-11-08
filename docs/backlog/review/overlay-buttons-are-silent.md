@@ -5,8 +5,13 @@
 - Priority: Medium
 - Category: UI / audio
 - Source: the user, 2026-11-08 (translated: "CUO's UI sounds — many buttons have none, add them")
-- Related: `done/drag-use-cue-presenter-rework.md` (the cue's own typography, the same "the overlay must feel like the
-  game" family), `done/plugin-host-shell.md` (the window's layout)
+- Related: `done/plugin-host-shell.md` (the window's layout), `docs/design/surfaces/online-window.md` (the surface's own page)
+
+## Design
+
+The surface is the overlay window: `docs/design/surfaces/online-window.md` (its tabs and buttons) and
+`docs/design/surfaces/world-overlays.md` (the drag-use cue). The sound must be the game's own click, played through the
+game's own audio entry, so the overlay hears what the rest of the game hears.
 
 ## The defect
 

@@ -8,8 +8,15 @@
   Steam2 and it reset all states — neither the client frontend nor the host arbitration validates, and there is no
   automatic data correction?")
 - Related: `docs/decisions/active.md` decision 162 (a member's copy of an authoritative fact is synced, never trusted),
-  `done/restore-leaves-stale-carried-rows.md` (the same trust boundary), `done/character-sync-divergence-report.md`
-  (the divergence line this hole did not trip)
+  `done/restore-leaves-stale-carried-rows.md` (the same trust boundary), `docs/architecture/member-report-validation.md`
+  (the report-bound census the fix must extend)
+
+## Design
+
+The surface is the member's body report and the host's record of it: `docs/design/mechanics/heal-and-reset.md` (what a
+heal is and who owns it), `docs/design/mechanics/medical-view.md` (the treatment facts that change a limb) and
+`docs/design/surfaces/command-overlay.md` (the console surface). The fix lives on the report bound the census already
+names, not in a new anti-cheat model.
 
 ## The defect
 
@@ -50,3 +57,35 @@ the item and block commands. The set is larger than `heal`.
   correction), and every other client's copy of that member stays as it was.
 - A legitimate heal (the host's own `/heal`, or the game's own treatment) still lands.
 - The correction is visible on the member's own screen (status line or the corrected limbs), not just in the host's log.
+
+## The chain (read 2026-11-08)
+
+The hole is explicit in the code. `src/CasualtiesUnknownOnline.Runtime/Session/Handlers/LimbStateEventHandler.cs`
+says, in its own doc: "Accept-first: the host adopts the reported state unconditionally (the body belongs to the
+reporter's own local simulation)". The handler checks exactly two things: the reporter may not name another owner
+(`msg.OwnerSteamId != sender` → dropped) and the numbers must be finite
+(`CharacterDataStore.ApplyLimbStateEvent` refuses non-finite events). Then the host stores the reported limbs, fires
+the adapter event (the reporter's clone gets the new state) and relays the frame to every guest.
+
+So a guest's native `heal` becomes a full-stamina limb report, the host adopts it as the owner's truth and fans it
+out: the member rewrote the world's idea of its own body, and nothing names the cause. The same accept-first shape
+carries every field the report holds (health, each limb's condition, blood, infection, statuses).
+
+## The design to confirm
+
+The host validates the transition against its own last record of that owner, using the game's own rules as the
+allowed set:
+
+1. **A value may not jump beyond what the game can produce in the elapsed time**: healing, bleeding, infection and
+   pain have native rates; a step larger than the rate × elapsed frames (plus a margin) is refused as unexplained.
+2. **A limb state may not appear or disappear without the fact that causes it**: a severed limb cannot reappear, a
+   fracture cannot vanish, an infection cannot clear, a new wound status cannot appear — unless the host itself
+   applied the treatment fact (the bandage splint tourniquet amputation paths already publish their own facts).
+3. **Refusal is a correction, not silence**: the host keeps its own value, tells the reporter (a status line naming
+   the unexplained change), and relays the corrected state, so every client's copy ends at the host's value.
+4. The legitimate case stays: the owner's own simulation produces ordinary deltas (bleeding, healing, the game's own
+   treatments), which pass rule 1; the host's own `/heal` and the game's own treatment facts are host-originated and
+   carry their cause.
+
+The native console half (refusing state commands on a client in a session, or correcting them) is the second lever;
+the validator above is the one that must exist regardless, because the console is not the only writer.

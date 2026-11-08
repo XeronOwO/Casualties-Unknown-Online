@@ -102,6 +102,19 @@ internal sealed class CharacterEventMerges
 			return false;
 		}
 
+		if (_saved(msg.OwnerSteamId) is { } current)
+		{
+			var refusal = LimbStatePlausibility.Check(current.Limbs, msg.Limbs);
+			if (refusal != LimbStateRefusalReason.None)
+			{
+				_log.LogWarning(
+					"[LimbEvent] refused {Reason} from {Owner}: the report carries a change the game's own rates cannot produce in one event; the host's record stays.",
+					refusal,
+					msg.OwnerSteamId);
+				return false;
+			}
+		}
+
 		if (_saved(msg.OwnerSteamId) is { } data)
 		{
 			EnemyTerminalStateApplier.ApplyLimbState(data, msg);

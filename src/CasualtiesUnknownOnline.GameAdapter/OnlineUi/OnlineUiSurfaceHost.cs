@@ -151,15 +151,9 @@ internal sealed class OnlineUiSurfaceHost : IDisposable
 	/// </summary>
 	private void ReportIntent(OnlineUiIntent intent)
 	{
-		switch (intent.Kind)
+		if (OnlineUiSound.For(intent.Kind) is { } sound)
 		{
-			case OnlineUiIntentKind.ControlInvoked:
-				PlayUiSound("click");
-				break;
-			case OnlineUiIntentKind.ControlToggled:
-			case OnlineUiIntentKind.ControlSelected:
-				PlayUiSound("miniClick");
-				break;
+			PlayUiSound(sound);
 		}
 
 		_intents.Enqueue(intent);

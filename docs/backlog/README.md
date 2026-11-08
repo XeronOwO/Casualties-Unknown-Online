@@ -75,7 +75,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Review
 
-- [The native console is an unpoliced authority hole](review/native-console-is-unpoliced.md) — **High** — refuses the report; the member is not pushed back yet.
 
 
 
@@ -127,6 +126,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The native console is an unpoliced authority hole](done/native-console-is-unpoliced.md) — **High** — refuses the report and pushes the host's record back.
 - [The trap layout never carries a crystal row](done/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the crystal row read on a live crystal.
 - [A continue refuses and loses world-entity rows](done/world-entity-restore-refuses-every-row.md) — **Medium** — destroyed facts satisfied.
 - [Launcher fails only for real reasons](done/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — every row read.

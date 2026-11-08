@@ -36,7 +36,12 @@ public sealed class PinyinSearchPlugin : BaseUnityPlugin
 
 		try
 		{
-			new Harmony(HarmonyId).PatchAll(typeof(PinyinSearchPatches));
+			// PatchAll(Type) patches only that type's own methods; the patch
+			// classes are NESTED containers with [HarmonyPatch] attributes, so
+			// the whole assembly is what has to be scanned. Measured 2026-11-08:
+			// the Type overload reported success while applying no patch at all,
+			// and the search box kept the native filter.
+			new Harmony(HarmonyId).PatchAll(typeof(PinyinSearchPlugin).Assembly);
 			Logger.LogInfo($"[Pinyin] crafting search patches applied (enabled: {PinyinSearchConfig.IsEnabled}).");
 		}
 		catch (Exception ex)

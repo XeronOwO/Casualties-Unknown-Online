@@ -98,7 +98,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [Save system: layer-end and mid-run saves](review/save-system-mid-run-and-layer-end.md) — **High** — umbrella + design record.
 - [Unified remote display projection](review/unified-remote-display-projection-rework.md) — **High** — three helpers become one seam.
-- [Pinyin search as a standalone mod](review/pinyin-search-standalone-mod.md) — **Medium** — its own in-repo mod; CUO keeps the seam.
 - [Plugin as a host shell](review/plugin-host-shell.md) — **Medium** — the adapter's own composition, a presentation host, and no game assembly.
 
 
@@ -132,6 +131,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Done
 
 - [Recursive crafting as a standalone mod](done/recursive-crafting-mod.md) — **Low-Medium** — resolver, panel third state, merge and the look read.
+- [Pinyin search as a standalone mod](done/pinyin-search-standalone-mod.md) — **Medium** — the native search box typed with pinyin, read on the live client.
 - [Native run field parity](done/save-native-run-field-parity.md) — **Medium-High** — all three rows read: the multipliers, the crafting flag, the named field.
 - [S3 — Mid-run consistent cut and world diff](done/save-mid-run-consistent-cut.md) — **High** — every in-game row is machine-read.
 

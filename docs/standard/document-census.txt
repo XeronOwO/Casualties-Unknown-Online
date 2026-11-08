@@ -249,6 +249,7 @@ docs/backlog/done/mod-content-nested-member-contracts.md | keep | index | docs/b
 docs/backlog/done/mod-cross-player-native-semantics.md | keep | index | docs/backlog/README.md
 docs/backlog/done/display-proxy-reported-its-own-spawn.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/display-proxy-spawn-storm-20261107-p.md | keep | claim | docs/backlog/done/display-proxy-reported-its-own-spawn.md
+docs/evidence/acceptance/pinyin-search-standalone-mod-20261108.md | keep | claim | docs/backlog/done/pinyin-search-standalone-mod.md
 docs/evidence/acceptance/give-creates-empty-liquid-containers-20261107-q.md | keep | claim | docs/backlog/done/give-creates-empty-liquid-containers.md
 docs/evidence/acceptance/handshake-identity-and-refusal-report-20261107-s.md | keep | claim | docs/backlog/done/handshake-identity-and-refusal-report.md
 docs/backlog/done/joining-a-running-world-sticks-at-the-loading-screen.md | keep | index | docs/backlog/README.md
@@ -260,7 +261,7 @@ docs/backlog/done/online-ui-art-and-controls-overhaul.md | keep | index | docs/b
 docs/backlog/done/online-ui-layout-and-input-detail-pass.md | keep | index | docs/backlog/README.md
 docs/backlog/done/heal-cheat-command-state-reset.md | keep | index | docs/backlog/README.md
 docs/backlog/done/pinyin-search-mod.md | keep | index | docs/backlog/README.md
-docs/backlog/review/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
+docs/backlog/done/pinyin-search-standalone-mod.md | keep | index | docs/backlog/README.md
 docs/backlog/review/plugin-host-shell.md | keep | index | docs/backlog/README.md
 docs/backlog/done/recipe-unlock-fallback.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/recipe-unlock-two-process-20261025-h.md | keep | claim | docs/backlog/done/recipe-unlock-fallback.md

@@ -119,11 +119,13 @@ public class PinyinSearchContractTests
 
 	/// <summary>
 	/// The comparison hook, pinned as the patch shape: the plugin binds the
-	/// native refresh and rewrites the filter's call instruction, and it no
-	/// longer patches `Recipe.simpleName` or the BCL comparison directly. Both
-	/// failed on the live client for opposite reasons — a name hook can only
-	/// REMOVE rows, and a BCL patch never fires when the call site is inlined
-	/// (batch 20261108: literal query 3 rows, `cui` 0).
+	/// native refresh and the `string.Contains(string, StringComparison)`
+	/// overload, and it patches neither `Recipe.simpleName` nor the refresh's IL.
+	/// Both failed on the live client for opposite reasons — a name hook can only
+	/// REMOVE rows, and the comparison call lives in a compiler-generated lambda,
+	/// outside `RefreshRecipeList`'s own IL (batch 20261108: literal query 3
+	/// rows, `cui` 0). The install call scans the ASSEMBLY, because a
+	/// `PatchAll(Type)` covered no nested patch at all.
 	/// </summary>
 	[Fact]
 	public void CraftingPatch_BindsTheComparisonAndNotTheNameGetter()
@@ -134,10 +136,11 @@ public class PinyinSearchContractTests
 		var refresh = patches.NestedTypes.Single(type => type.Name == "RefreshRecipeListPatch");
 		var methods = refresh.Methods.Select(method => method.Name).ToList();
 
-		Assert.Contains("Transpiler", methods);
-		Assert.DoesNotContain("StringContainsPatch", nested);
+		Assert.Contains("Prefix", methods);
+		Assert.Contains("StringContainsPatch", nested);
 		Assert.DoesNotContain("RecipeSimpleNamePatch", nested);
-		Assert.Contains(assembly.MainModule.Types.Select(type => type.Name), name => name == "PinyinContains");
+		Assert.DoesNotContain("Transpiler", methods);
+		Assert.DoesNotContain(assembly.MainModule.Types.Select(type => type.Name), name => name == "PinyinContains");
 	}
 
 	private static string OutputPath(string fileName) =>

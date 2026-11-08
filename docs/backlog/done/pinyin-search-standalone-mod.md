@@ -1,6 +1,6 @@
 # Pinyin search as a standalone mod
 
-- Status: Review — blocked on the user: the native search box's own look is the ticket's user-acceptance row (no test in this repository runs the game's UI). Every other row is machine-read — batch `20261025-am` re-ran the six classes that carry them (`PinyinMatcherTests`, `NameSearchMatcherTests`, `RecipeSearchDecisionTests`, `PinyinSearchContractTests`, `PinyinSearchStageTests`, `PinyinSearchModConsoleTests`; 78 cases, 0 failures) — so the CUO-less crafting match, the console completion to the canonical id, the single mod-owned switch and CUO's discovery of the mod's entry point all pass as written.
+- Status: Done — the last row was machine-read on 2026-11-08 (batch `20261108-x`): the native crafting search box typed `cuiruo` narrowed to 1 row (log: `[Pinyin] extended match: 'cuiruo' matched '<the fragile knife>'`, translated), `cui` to 2, the literal `knife` to 2, and `flimsy` to 0 — see `docs/evidence/acceptance/pinyin-search-standalone-mod-20261108.md`. The reading also retired three dead shapes on the way: an install call that applied no patch, a name hook that could only remove rows, and a transpiler that found no call site. Every other row is machine-read — batch `20261025-am` re-ran the six classes that carry them (`PinyinMatcherTests`, `NameSearchMatcherTests`, `RecipeSearchDecisionTests`, `PinyinSearchContractTests`, `PinyinSearchStageTests`, `PinyinSearchModConsoleTests`; 78 cases, 0 failures) — so the CUO-less crafting match, the console completion to the canonical id, the single mod-owned switch and CUO's discovery of the mod's entry point all pass as written.
 - Priority: Medium
 - Category: Mod / Tooling / UI / Pinyin
 - Depends on: [Native-binding mods declare it instead of hiding](../done/mod-native-binding-declaration.md)
@@ -146,8 +146,10 @@ rewrite.
   `NameSearchMatcherTests` and `RecipeSearchDecisionTests` carry the rows, and
   `PinyinSearchContractTests.PluginAssembly_ReferencesNoCuoFrameworkAssembly` plus
   `...CoreAssembly_OnlyTheCuoFacingTypesNameAnAbstractionsType` make the CUO-less load path structural.
-  **The native search box itself is user acceptance** — no automated test in this repository runs the
-  game's UI.
+  **The native search box itself was read on 2026-11-08** (batch `20261108-x`): `crafting-search` typed `cuiruo` into
+  the game's own field and the native list narrowed to the fragile knife (1 row), `cui` to 2 rows, the literal `knife` to
+  the two knife recipes, and `flimsy` to 0; the mod's own log lines name the matched recipes, and the field crop shows
+  the query in the native box — `docs/evidence/acceptance/pinyin-search-standalone-mod-20261108.md`.
 - With CUO present, `fent` / `ftn` / the item's Chinese name / `cu:fent` complete the console to `cu:fentanyl` and the
   accepted suggestion is the canonical id:
   `PinyinSearchModConsoleTests.Suggest_ReachesTheCanonicalId_FromPinyinInitialsChineseAndIdPrefixes`

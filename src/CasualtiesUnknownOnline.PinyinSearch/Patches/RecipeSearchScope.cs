@@ -51,7 +51,7 @@ internal static class RecipeSearchScope
 		}
 
 		PinyinSearchGate.ReportTableOnce();
-		PinyinSearchGate.Log?.LogDebug($"[Pinyin] recipe list filtered by '{filter}'.");
+		PinyinSearchGate.Log?.LogInfo($"[Pinyin] recipe list filtered by '{filter}'.");
 	}
 
 	internal static void End() => _query = null;

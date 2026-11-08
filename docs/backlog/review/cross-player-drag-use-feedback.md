@@ -1,6 +1,6 @@
 # Cross-player use by drag: the gesture has to announce itself (highlight, label, cue sound)
 
-- Status: Review — the cue's decision is read on a live session (batch `20261108-p`, `0.1.0+9869d734`): with an eligible item held, the `iteminteract` read held through the acceptance channel, the teammate's displayed backpack open and the pointer on its centre, `drag-cue` answered `showing=true` naming the teammate; it hides on release and on an ineligible item. Rows 2-7 stay as recorded below (row 2's data half read 20261025-bb; row 4 read 20261025-ay; the success-sound half is the user's "no extra sound" ruling). The reading is `docs/evidence/acceptance/cross-player-drag-use-feedback-20261108-p.md`.
+- Status: Review — the cue's decision is read on a live session (batch `20261108-p`, `0.1.0+9869d734`): with an eligible item held, the `iteminteract` read held through the acceptance channel, the teammate's displayed backpack open and the pointer on its centre, `drag-cue` answered `showing=true` naming the teammate; it hides on release and on an ineligible item. Row 5 is read in the same batch with the two members stacked on one spot: the cue named Steam1 and the release offered the item to Steam1, Steam2 untouched. Rows 2-7 stay as recorded below (row 2's data half read 20261025-bb; row 4 read 20261025-ay; the success-sound half is the user's "no extra sound" ruling). The reading is `docs/evidence/acceptance/cross-player-drag-use-feedback-20261108-p.md`.
 - Priority: Medium
 - Category: Player interaction / cross-player item use / feedback and discoverability
 - Source: User message (2026-10-06), reviewing the landed cross-player use-by-drag gesture.
@@ -850,3 +850,19 @@ the game's own bracket sets the same field and the tracker reads the field), and
 label because the CUO Example window sat over the cursor area.
 
 The reading lives in `docs/evidence/acceptance/cross-player-drag-use-feedback-20261108-p.md`.
+
+## Batch 20261108-p, second half: the stacked pair
+
+Row 5's scenario — two players standing on each other — was staged in the same session: both members were teleported onto one spot
+(`(1.085, 505.615)` each), the display was opened for Steam1, the pointer placed on its ring centre (`pointerDistanceOverScale 4.38`),
+the key held first and the drag started after it (`press-key` then `drag-start type=dogfood` — the order matters, because the game's
+frame clears a drag the key does not hold).
+
+- `drag-cue` → `showing true, targetSteamId 76561198863287957` (Steam1).
+- `drag-release` on the centre → `mode DisplayedBackpack, hadItem dogfood(Clone), after none`; the host offered the dogfood to
+  `76561198863287957` (`[ItemUse] … offers dogfood … to 76561198863287957 — the eat runs on the eater's own client.`) and Steam1's
+  client ran the game's own eat; Steam2's client carried the item only as a clone render.
+
+So the label's target and the release's pick are the same member, while both stand on one spot. The remaining limit: the display was
+opened explicitly for Steam1, so the auto-open path (which chooses whose display opens from the cursor's entry order) was not exercised
+in this reading.

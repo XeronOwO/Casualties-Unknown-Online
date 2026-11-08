@@ -91,7 +91,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [The overlay's buttons are silent](review/overlay-buttons-are-silent.md) — **Medium** — the game's click sound for every CUO button.
-- [Console input keys break Minecraft's rules](review/console-input-keys-violate-the-minecraft-rules.md) — **Medium** — empty Enter closes; up walks history.
 - [Save backups are too many and disorganized](review/save-backups-overwhelm-the-archive.md) — **High** — retention, a readable archive, a restore surface.
 
 
@@ -126,6 +125,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Console input keys break Minecraft's rules](done/console-input-keys-violate-the-minecraft-rules.md) — **Medium** — empty Enter closes; up walks history.
 - [The native console is an unpoliced authority hole](done/native-console-is-unpoliced.md) — **High** — refuses the report and pushes the host's record back.
 - [The trap layout never carries a crystal row](done/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the crystal row read on a live crystal.
 - [A continue refuses and loses world-entity rows](done/world-entity-restore-refuses-every-row.md) — **Medium** — destroyed facts satisfied.

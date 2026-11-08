@@ -1,8 +1,8 @@
 # The console's input keys do not follow the Minecraft rules
 
-- Status: Review — user-reported (2026-11-08): two input-key defects in CUO's own console window. Defect 2 is fixed in
-  the tree (`_historyJump` suppresses the live completion list while a history line is shown); defect 1's code path is
-  in place and its live reading is the next step (a batch that opens the console and injects a synthetic Return).
+- Status: Done — both defects fixed and read on the running client (2026-11-08): the history keys keep the completion
+  list away (`listAfterFirstUp=0;listAfterSecondUp=0` — two up presses walk the history with no list between them), and an
+  empty line's Enter closes the window (`emptyEnterClosed=true`).
 - Priority: Medium (an input habit the window claims to copy, broken in two places)
 - Category: UI / console input
 - Source: the user, 2026-11-08 (translated): "the console has more to polish; first, when the input box is empty,
@@ -43,8 +43,8 @@ history browsing is unaffected by the suggestion list, and the list is only on s
 
 Fix (2026-11-08): `ConsoleInputSession` carries `_historyJump`, set by `PreviousHistory`/`NextHistory` and cleared by
 typing, `SetInput`, open and close; `DisplaySuggestions` answers empty while it is set, so the overlay's arrow branch
-(unchanged) falls through to the history. The live reading is the next batch: two history lines, three up arrows, no
-list between them; Tab still opens the list.
+(unchanged) falls through to the history. Live reading on the running host (`console-history-b`): two submitted lines,
+then two up presses, `listAfterFirstUp=0;listAfterSecondUp=0`; an empty line's Enter then read `emptyEnterClosed=true`.
 
 ## Acceptance
 

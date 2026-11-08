@@ -36,7 +36,7 @@ reaches it — that is the tripwire, not a licence to grow to 599.
   only the appliers and the sibling sessions, so it can become a collaborator that the service hands
   the winner.
 
-  Split in progress (2026-11-08): the terminal path moves into
+  The split happened (2026-11-08): the terminal path moved into
   `PlayerInteraction/OtherMedicalOperationSettlement.cs` — `PrepareTerminal`, `CompleteUnitOnTerminal`,
   `StopOtherOperatorsOnTheUnit`, `Terminate` and `ReleaseSession`. The chain: the operator's minigame
   ends on its own client and sends `MedicalOperationEndRequestMsg` (`MedicalOperationEndRequestHandler.cs:10`)
@@ -53,6 +53,12 @@ reaches it — that is the tripwire, not a licence to grow to 599.
   operator's minigame ends with its committed result, the limb changes, and a second operator working
   the same limb is answered "already handled". The service keeps the registry, the start/update paths
   and the client send surface, and hands the settlement the session table.
+
+  Result (2026-11-08): `OtherMedicalOperationSessionService.cs` 580 → 507 lines and
+  `OtherMedicalOperationSettlement.cs` 133; the shape gate pins the five members on the settlement and
+  their absence from the service; the deployed build smoke-joined in batch `20261108-m` (all three
+  clients in world, both peers' carried inventories synced, no exceptions after boot). The file is
+  under the near-limit watch and the settlement carries the next terminal rule.
 
 - `src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.cs` (472 measured 2026-11-07) with
   `EnemyBindingTable.cs` (96), `EnemyRosterBinder.cs` (386) and `EnemyAnimalScan.cs` (52) — the enemy-roster

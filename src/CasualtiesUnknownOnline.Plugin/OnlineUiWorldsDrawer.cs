@@ -223,14 +223,15 @@ internal static class OnlineUiWorldsDrawer
 	private static void BuildBackupRow(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library, WorldBackup backup)
 	{
 		var state = ctx.State;
-		// One step in from the run's own name: the save points belong to the run above them, and the
-		// indent is what says so when both levels are the same pixel font.
-		page.Label("    " + ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup)));
+		// The whole block steps in from the run's own row: the save points belong to the run above them,
+		// and the step is the row's own left edge (a fixed floor), not spaces inside one label.
+		page.Row(Indent(), page.LabelElement(ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup))));
 
 		if (string.Equals(state.PendingRestoreFile, backup.FileName, StringComparison.Ordinal))
 		{
-			page.Muted(ctx.F("worlds.restore_confirm", backup.FileName));
+			page.Row(Indent(), page.LabelElement(ctx.F("worlds.restore_confirm", backup.FileName), OnlineUiTextStyle.Muted));
 			page.Row(
+				Indent(),
 				page.ButtonElement(
 					$"worlds.restore_yes.{backup.FileName}",
 					ctx.T("worlds.restore_confirm_yes"),
@@ -253,15 +254,23 @@ internal static class OnlineUiWorldsDrawer
 		}
 		else
 		{
-			page.Button(
-				$"worlds.restore.{backup.FileName}",
-				ctx.T("worlds.restore"),
-				() => state.PendingRestoreFile = backup.FileName,
-				width: 120f);
+			page.Row(
+				Indent(),
+				page.ButtonElement(
+					$"worlds.restore.{backup.FileName}",
+					ctx.T("worlds.restore"),
+					() => state.PendingRestoreFile = backup.FileName,
+					width: 120f));
 		}
 
 		page.Space();
 	}
+
+	/// <summary>The step a run's save points sit in from the run's own row (canvas units, one character cell of the window's font).</summary>
+	private const float NestedIndent = 26f;
+
+	private static OnlineUiElementModel Indent() =>
+		OnlineUiElementModel.Label("", OnlineUiTextStyle.Muted, null, NestedIndent);
 
 	/// <summary>Re-reads what the page shows. Cheap enough to run on demand, far too costly to run per frame.</summary>
 	private static void Reload(OnlineUiContext ctx, IWorldLibrary library)

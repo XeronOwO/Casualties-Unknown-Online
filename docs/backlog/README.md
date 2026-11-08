@@ -89,8 +89,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [The trap layout never carries a crystal row](review/trap-layout-crystal-rows-empty.md) — **Low-Medium** — kinds read from effects; rows unobservable here.
-
 - [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 
 
@@ -125,7 +123,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
-- [A continue refuses and loses world-entity rows](done/world-entity-restore-refuses-every-row.md) — **Medium** — destroyed facts satisfied; genuine divergence reported.
+- [The trap layout never carries a crystal row](done/trap-layout-crystal-rows-empty.md) — **Low-Medium** — the crystal row read on a live crystal.
+- [A continue refuses and loses world-entity rows](done/world-entity-restore-refuses-every-row.md) — **Medium** — destroyed facts satisfied.
 - [Launcher fails only for real reasons](done/launcher-fails-when-the-alt-box-cannot-start.md) — **Low** — every row read.
 - [Cross-player use by drag shows nothing](done/cross-player-drag-use-feedback.md) — **Medium** — every row read: the cue names the target and hides on release.
 - [Save system: layer-end and mid-run saves](done/save-system-mid-run-and-layer-end.md) — **High** — every criterion carried by a reading.

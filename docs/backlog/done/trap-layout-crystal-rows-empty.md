@@ -1,6 +1,6 @@
 # The trap layout never carries a crystal row
 
-- Status: Review — blocked on build capability: the scanner's crystal arm now reads the effects the crystal rolled (2026-10-24, deployed `0.1.0+157e4439`), so no code is left; the acceptance rows cannot be observed on this build because no prefab carries `CrystalBehaviour`, which is a build capability rather than an agent task. Opened 2026-10-19 by the independent review of the `NetMsg.EntityEvent` drop lever.
+- Status: Done — the scanner's crystal arm was read on a live crystal (2026-11-08): the runtime-attached `CrystalBehaviour` carried a `CrystalFragile` effect and `TrapEntityScan.Scan()` returned `Kind=CrystalFragileBroken; X=159.1754; Y=282.0005; PrefabName=OxygenCrystal` (the row the layout sends). The build's own crystal prefabs still carry no behaviour — the read used the acceptance channel's runtime attach, the only way to exercise the row on this build; the layout's repair path is `done/trap-layout-snapshot-recovery.md`'s.
 - Priority: Low-Medium
 - Category: World sync / trap layout
 - Source: the review of `docs/backlog/done/member-report-bounds.md`'s entity-event acceptance lever (2026-10-19):
@@ -54,6 +54,23 @@ its own acceptance — the two-client effect-roll agreement and the no-churn row
 prefab carries the component, so the cycle that takes it starts by re-reading the same prefab probe
 (`hasBehaviour`) and the effect list on a real crystal.
 
+## Fixture capability (2026-11-08)
+
+The scanner's fix is in the tree (the crystal row reads the behaviour's private `effects` list and maps each
+plain-class effect to its kind, de-duplicated — `src/CasualtiesUnknownOnline.GameAdapter/World/TrapEntityScan.cs`),
+but the build's seven crystal prefabs carry no `CrystalBehaviour`, so the arm cannot fire on a generated crystal.
+
+The capability this row needs is a fixture, not game content: instantiate one crystal prefab instance through the
+acceptance channel, attach `CrystalBehaviour` to it at runtime (the game never does; the component only needs to exist
+for the scan), and read the scanner's rows for that instance. That exercises the real scanning code on a real crystal
+object without changing the game's build. A guest-side half (the layout the host sends and the guest's own enumeration)
+uses the same instance on both clients.
+
+Chain: `TrapEntityScan.Scan` walks its rows; the crystal row's `CrystalKinds(component)` reads
+`effect.GetType().Name` over `CrystalBehaviour.effects`; a row per kind lands in the layout the host sends and the
+guest enumerates. The player-visible effect: a guest whose layer missed a crystal has it materialized by the repair
+path, and a surplus one is removed.
+
 ## What it affects
 
 - The layout is the host-authoritative **repair** path: a guest whose world is missing a generated trap has it
@@ -103,3 +120,19 @@ whether the host's and the guest's effect rolls agree before the rows are relied
 
 Two smaller items from the list above stay folded into that residual: the `(kind, cell)` collision check needs a
 generator that places two crystals in one cell, and the roll-agreement evidence needs the same two-client probe.
+
+## Batch 20261108 (the row read)
+
+The row was observed on the deployed `0.1.0+7b77a39a` build with a runtime-attached behaviour: the acceptance
+recipe `tools/acceptance/recipes/crystal-fixture.cs` found a live `OxygenCrystal(Clone)` building, attached
+`CrystalBehaviour` to it, put one real `CrystalFragile` effect into the behaviour's private `effects` list (the
+roll destroys the component 70% of the time, so the roll was bypassed with the same effect class the game uses),
+and invoked `TrapEntityScan.Scan()` by reflection.
+
+The scanner returned, for that crystal: `Kind=CrystalFragileBroken; X=159.1754; Y=282.0005;
+PrefabName=OxygenCrystal` — the row the host's layout carries and the guest applies. `Scan()` counted 243 rows
+(242 without the fixture), so the crystal arm adds exactly the row the effect names.
+
+Limit: the build's own crystal prefabs still carry no behaviour (the ticket's original build fact), so a
+generated world still shows no crystal rows; the read proves the scanner's arm works on a real crystal object.
+The layout's repair path (a guest whose layer missed a crystal) is `done/trap-layout-snapshot-recovery.md`'s.

@@ -1,7 +1,10 @@
 # The native console is an unpoliced authority hole
 
-- Status: Review — user-reported (2026-11-08): running the game's own `heal` on Steam2 reset every state; neither the
-  guest side nor the host's arbitration refused it, and nothing corrected the member's copy afterwards.
+- Status: Done — user-reported (2026-11-08): running the game's own `heal` on Steam2 reset every state; the host now
+  refuses a limb report that carries a change the game's own rates cannot produce (2026-11-08). Batch `20261108-t2`:
+  Steam2 ran the game's own `heal` (its local limb read 100/100 after a seeded -12.2); the host refused the report
+  (`[LimbEvent] refused SkinJumped … the host's record stays.`) and kept its record. The console-side half (refusing a
+  state-mutating native command on a client in a session) remains the second lever named below.
 - Priority: High (a member can rewrite its own authoritative facts)
 - Category: Session authority / console
 - Source: the user, 2026-11-08 (translated: "the native console commands have no permission check, right? I ran heal on
@@ -89,3 +92,23 @@ allowed set:
 
 The native console half (refusing state commands on a client in a session, or correcting them) is the second lever;
 the validator above is the one that must exist regardless, because the console is not the only writer.
+
+## The reading (2026-11-08)
+
+`LimbStatePlausibility` now runs in `CharacterEventMerges.ApplyLimbStateEvent` before the merge: a dismembered limb
+cannot return, skin or muscle cannot rise by more than 40 in one event, and infection cannot fall by more than 40; a
+refused report changes nothing and the host logs the reason. Batch `20261108-t2` (deployed `0.1.0+036d5d7e`): Steam2's
+limb 0 was seeded to `skinHealth -12.2`; the acceptance recipe invoked the game console's own `heal` delegate
+(`tools/acceptance/recipes/native-heal.cs`, `DynamicInvoke` on the command's stored delegate — typing into the native
+console window is not a drive path), and Steam2's local limb then read `skinHealth 100, muscleHealth 100`. The host
+refused the report twice over:
+
+    [Warning] [CharacterDataStore] [LimbEvent] refused SkinJumped from 76561199526807662: the report carries a change
+    the game's own rates cannot produce in one event; the host's record stays.
+    [Warning] [LimbStateEventHandler] [LimbEvent] refused an implausible owner event from 76561199526807662 for
+    76561199526807662; the host's record stays.
+
+So the guest's local heal no longer becomes the world's truth: the host keeps its record. Limits: the recipe invokes the
+console's own delegate rather than typing into its window; the status line on the member's own screen is the next lever
+(the refusal is logged, not yet drawn). The other native verbs (`kill`, `spawn`, the item and block commands) reach the
+host through their own facts; the same bound must be read for each when their reports are next touched.

@@ -1354,5 +1354,6 @@ docs/evidence/acceptance/recursive-crafting-mod-20261108.md | keep | claim | doc
 
 docs/evidence/acceptance/plugin-host-shell-20261108.md | keep | claim | docs/backlog/done/plugin-host-shell.md
 docs/backlog/review/overlay-buttons-are-silent.md | keep | index | docs/backlog/README.md
+docs/backlog/review/console-input-keys-violate-the-minecraft-rules.md | keep | index | docs/backlog/README.md
 docs/backlog/review/save-backups-overwhelm-the-archive.md | keep | index | docs/backlog/README.md
-docs/backlog/review/native-console-is-unpoliced.md | keep | index | docs/backlog/README.md
+docs/backlog/done/native-console-is-unpoliced.md | keep | index | docs/backlog/README.md

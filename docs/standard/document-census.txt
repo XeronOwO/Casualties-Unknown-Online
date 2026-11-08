@@ -1340,3 +1340,4 @@ docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-n.md | keep | 
 docs/backlog/done/give-creates-empty-liquid-containers.md | keep | index | docs/backlog/README.md
 docs/backlog/done/a-guest-keeps-a-dead-lobby.md | keep | index | docs/backlog/README.md
 docs/evidence/acceptance/a-guest-keeps-a-dead-lobby-20261108-o.md | keep | claim | docs/backlog/done/a-guest-keeps-a-dead-lobby.md
+docs/evidence/acceptance/save-mid-run-corpse-20261108-r.md | keep | claim | docs/backlog/review/save-mid-run-consistent-cut.md

@@ -1336,4 +1336,5 @@ docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-k.md | keep | 
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-l.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/evidence/acceptance/remote-medical-stage-2-shrapnel-20261106-n.md | keep | claim | docs/backlog/done/remote-medical-stage-2-shrapnel-multiplayer.md
 docs/backlog/done/give-creates-empty-liquid-containers.md | keep | index | docs/backlog/README.md
-docs/backlog/in-progress/a-guest-keeps-a-dead-lobby.md | keep | index | docs/backlog/README.md
+docs/backlog/done/a-guest-keeps-a-dead-lobby.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/a-guest-keeps-a-dead-lobby-20261108-o.md | keep | claim | docs/backlog/done/a-guest-keeps-a-dead-lobby.md

@@ -73,8 +73,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
-- [A guest keeps a dead lobby](in-progress/a-guest-keeps-a-dead-lobby.md) — **High** — the guest leaves the dead lobby instead of waiting.
-
 ### Review
 
 
@@ -137,6 +135,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A guest keeps a dead lobby](done/a-guest-keeps-a-dead-lobby.md) — **High** — the guest leaves the dead lobby and joins the next one.
 - [S2 — Layer-end save and restore](done/save-layer-end-save-and-restore.md) — **High** — six rows read; Continue stays lit without the native save.
 - [Restore drops unclaimed characters' carried rows](done/restore-leaves-stale-carried-rows.md) — **Medium** — no rows for a character the session never bound.
 - [S3.4b — Native character fields](done/save-native-character-field-parity.md) — **Medium-High** — the three displays read back after a continue.

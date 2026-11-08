@@ -170,7 +170,7 @@
   "worlds.retention": "Keeps the newest {0} backup(s) per world; the oldest are pruned when a cut is committed.",
   "worlds.refresh": "Refresh",
   "worlds.empty": "No worlds yet. A run writes its own world folder, and every save adds a backup to it.",
-  "worlds.row_detail": "{0} · {1} player(s) · {2} backup(s) · last saved {3}",
+  "worlds.row_detail": "{0} · {1} player(s) · {2} save point(s) · last saved {3}",
 "worlds.layer_surface": "Surface",
 "worlds.layer_depth": "{0} level(s) down",
 "worlds.show_older": "Show {0} older run(s)",

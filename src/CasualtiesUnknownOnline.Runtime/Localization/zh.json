@@ -170,7 +170,7 @@
   "worlds.retention": "每个世界保留最新 {0} 份备份；更旧的会在存档提交时清理。",
   "worlds.refresh": "刷新",
   "worlds.empty": "还没有世界。每次开局会建立自己的世界文件夹，每次保存都会在其中新增一个备份。",
-  "worlds.row_detail": "{0} · {1} 名玩家 · {2} 个备份 · 最近保存 {3}",
+  "worlds.row_detail": "{0} · {1} 名玩家 · {2} 个存档点 · 最近保存 {3}",
 "worlds.layer_surface": "地表",
 "worlds.layer_depth": "地下 {0} 层",
 "worlds.show_older": "展开更早的 {0} 局",

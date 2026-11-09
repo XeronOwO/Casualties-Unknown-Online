@@ -31,6 +31,7 @@ public static class KernelDomainWireMapper
 			RunSettings = [.. (run.RunSettings ?? []).Select(ToWireRunSetting)],
 			LootRarityMultiplier = run.LootRarityMultiplier,
 			TrapRarityMultiplier = run.TrapRarityMultiplier,
+			Ending = (byte)run.Ending,
 		};
 
 	public static RunState FromWireRun(WireRunState run) =>
@@ -46,7 +47,10 @@ public static class KernelDomainWireMapper
 			// A sender that predates the field means the game's own starting
 			// multiplier, which is exactly the value it generated with.
 			run.LootRarityMultiplier ?? RunRarityMultipliers.Neutral,
-			run.TrapRarityMultiplier ?? RunRarityMultipliers.Neutral);
+			run.TrapRarityMultiplier ?? RunRarityMultipliers.Neutral,
+			// A sender that predates the ending sends 0, which is RunEnding.None —
+			// the same state the run row would carry before an ending resolved.
+			(RunEnding)run.Ending);
 
 	private static WireRunSetting ToWireRunSetting(RunSetting setting) =>
 		new()

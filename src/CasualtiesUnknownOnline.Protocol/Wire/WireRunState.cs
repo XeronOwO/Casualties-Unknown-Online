@@ -46,4 +46,13 @@ public sealed class WireRunState
 	/// <summary>The same for the trap multiplier (see <see cref="LootRarityMultiplier"/>).</summary>
 	[ProtoMember(10)]
 	public float? TrapRarityMultiplier { get; set; }
+
+	/// <summary>
+	/// The ending the run resolved to, as <c>RunEnding</c>'s byte value (0 = none).
+	/// The run row has to carry it so a member that restores the archive plays the
+	/// host's ending, and a sender that predates the field sends 0 — no ending yet,
+	/// the same value the field defaults to.
+	/// </summary>
+	[ProtoMember(11)]
+	public byte Ending { get; set; }
 }

@@ -31,6 +31,13 @@ internal static class OnlineUiHomeDrawer
 		var steam = ctx.Steam;
 		var session = ctx.Session;
 
+		// The adapter's refusal is the first thing a player must know: the mod's window
+		// says which system this game update broke, instead of the plugin failing silently.
+		if (ctx.CapabilityQuery is { RefusedCapabilities.Count: > 0 } capabilityQuery)
+		{
+			page.Label($"<color=#E6615A>{ctx.F("home.adapter_refused", string.Join(", ", capabilityQuery.RefusedCapabilities))}</color>");
+		}
+
 		page.Section(ctx.T("home.steam_status"));
 		var steamStatus = steam.IsInitialized
 			? $"<color=#70D28F>{ctx.T("home.steam_initialized")}</color>"

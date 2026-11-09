@@ -79,6 +79,9 @@ internal sealed class OnlineUiContext
 	/// <summary>The world library the Worlds page manages worlds and backups through (decision 198); null when the composition has none.</summary>
 	internal IWorldLibrary? WorldLibrary;
 
+	/// <summary>The adapter's capability facts — what the window says when the install refused; null when the composition has no adapter.</summary>
+	internal IAdapterCapabilityQuery? CapabilityQuery;
+
 	internal string? LastJoinError;
 
 	internal OnlineUiWindowState State = null!;

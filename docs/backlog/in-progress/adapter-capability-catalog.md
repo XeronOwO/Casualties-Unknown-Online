@@ -109,6 +109,7 @@ feature the game has must never be silently dropped from a session.
 - `AdapterCapabilityReport.RefusesSession` — Required failures plus unmapped ones refuse; `Degraded` names the Optional rows; `Render` prints "session available — {n} OPTIONAL capability(ies) installed off: …".
 - Pinned by `tests/CasualtiesUnknownOnline.Tests/Capabilities/AdapterCapabilityReportTests.cs` (`Render_AnOptionalBlockingFailureDegradesWithoutRefusing` and the existing Required/refusal facts).
 - Not yet: the player-visible refusal notice (stage 2's user-acceptance half) and stage 3's per-capability install units.
+- The notice's machine half LANDED (2026-11-10): `IAdapterCapabilityQuery.RefusedCapabilities` carries the failing REQUIRED capabilities' player-facing titles (`PatchInstallLifecycle.RefusedCapabilities` via `AdapterCapabilityCatalog.TitleOfPatchClass`), the Home page renders `home.adapter_refused` in red above the Steam block, and the port shape pins were updated (`AdapterCapabilityPortShapeTests`: the port's members and the composition's 34). A healthy install answers empty, so the line never shows. What stays open: the frame at the menu with a forced broken Required capability — the wording/placement row the ticket names — and stage 3.
 
 ## The refusal notice (design, 2026-11-10)
 

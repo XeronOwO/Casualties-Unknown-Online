@@ -28,7 +28,7 @@ public class AdapterCapabilityPortShapeTests
 	private static readonly (Type Port, string[] Members)[] Ports =
 	[
 		(typeof(IGameIntegrationLifecycle), ["OnApplicationQuit"]),
-		(typeof(IAdapterCapabilityQuery), ["CapabilityReport"]),
+		(typeof(IAdapterCapabilityQuery), ["CapabilityReport", "RefusedCapabilities"]),
 		(typeof(IWorldPresenceQuery), ["IsInWorldOrGenerating"]),
 		(typeof(IStartGateState), ["IsWaitingForReady", "WaitingText", "WaitingTextIsOnTheNativeScreen"]),
 		(typeof(IDragUseCueState), ["Showing", "TargetSteamId"]),
@@ -86,7 +86,7 @@ public class AdapterCapabilityPortShapeTests
 	/// </summary>
 	[Fact]
 	public void Composition_CarriesExactlyThePinnedMemberCount() =>
-		Assert.Equal(33, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
+		Assert.Equal(34, Ports.Sum(entry => DeclaredMembers(entry.Port).Length));
 
 	[Fact]
 	public void NoMemberName_IsSharedByTwoPorts()

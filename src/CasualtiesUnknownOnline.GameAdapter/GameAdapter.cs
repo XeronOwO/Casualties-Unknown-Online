@@ -151,6 +151,13 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 	public string CapabilityReport { get; private set; } = "Not probed";
 
 	/// <summary>
+	/// The REQUIRED capabilities whose hooks did not land in the last install
+	/// attempt, by their player-facing titles — what the mod's own window tells
+	/// the player. Empty when the install succeeded.
+	/// </summary>
+	public IReadOnlyList<string> RefusedCapabilities => _patches.RefusedCapabilities;
+
+	/// <summary>
 	/// The console <c>/heal</c> cheat verb's body half: the full reset of THIS client's own body,
 	/// with its severed-limb restore, hollow clear and re-report. The host instructs (with the
 	/// instruction id the applied event echoes), this client applies — the body is its owner's.

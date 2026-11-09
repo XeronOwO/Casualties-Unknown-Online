@@ -6,6 +6,7 @@
   "tab.network": "Network",
   "tab.admin": "Admin",
   "home.steam_status": "STEAM STATUS",
+  "home.adapter_refused": "CUO cannot start multiplayer: this game update broke {0}. Everything else in the game still runs.",
   "home.steam_initialized": "Steam: initialized",
   "home.steam_not_initialized": "Steam: not initialized",
   "home.persona": "Persona: {0}",

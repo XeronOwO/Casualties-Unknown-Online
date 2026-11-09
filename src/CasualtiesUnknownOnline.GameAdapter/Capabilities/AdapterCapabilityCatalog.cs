@@ -293,6 +293,13 @@ internal static class AdapterCapabilityCatalog
 	internal static string? OwnerOfDynamicPatchClass(string dynamicPatchClass) =>
 		DynamicClassOwners.Value.TryGetValue(dynamicPatchClass, out var id) ? id : null;
 
+	/// <summary>The owning capability's player-facing title for a patch class, or null when nothing claims it.</summary>
+	internal static string? TitleOfPatchClass(string patchClassType)
+	{
+		var owner = OwnerOfPatchClass(patchClassType);
+		return owner is null ? null : Find(owner)?.Title;
+	}
+
 	/// <summary>Every <c>[HarmonyPatch]</c> class a definition owns, nested patch classes included.</summary>
 	internal static IEnumerable<Type> PatchClassesOf(AdapterCapabilityDefinition definition) =>
 		definition.PatchOwners.SelectMany(Expand);

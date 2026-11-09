@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Capabilities;
 using CasualtiesUnknownOnline.Runtime.Patching;
@@ -21,6 +22,13 @@ internal sealed class PatchInstallLifecycle
 	private readonly ILogger _log;
 	private readonly AdapterCapabilityReporter _capabilities;
 	private Harmony? _harmony;
+
+	/// <summary>
+	/// The REQUIRED capabilities whose hooks did not land in the last attempt,
+	/// by their player-facing titles — what the mod's own window tells the player.
+	/// Empty when the install succeeded (an Optional degradation is not a refusal).
+	/// </summary>
+	internal IReadOnlyList<string> RefusedCapabilities { get; private set; } = [];
 
 	internal PatchInstallLifecycle(ILogger log)
 	{
@@ -71,12 +79,19 @@ internal sealed class PatchInstallLifecycle
 			var blocking = missing.Where(failure => AdapterCapabilityCatalog.IsRequiredOwner(failure.PatchClass)).ToList();
 			if (blocking.Count > 0)
 			{
+				RefusedCapabilities = [.. blocking
+					.Select(failure => AdapterCapabilityCatalog.TitleOfPatchClass(failure.PatchClassType))
+					.Where(title => title is not null)
+					.Select(title => title!)
+					.Distinct(StringComparer.Ordinal)];
 				_log.LogError("Game Adapter patch verification FAILED — {Count} required target(s) not applied: {Missing}",
 					blocking.Count, string.Join(", ", blocking.Select(failure => failure.Detail)));
 				_harmony.UnpatchSelf();
 				_harmony = null;
 				return false;
 			}
+
+			RefusedCapabilities = [];
 
 			if (missing.Count > 0)
 			{

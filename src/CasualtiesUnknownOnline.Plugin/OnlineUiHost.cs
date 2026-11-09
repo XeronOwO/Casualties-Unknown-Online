@@ -66,6 +66,7 @@ internal sealed class OnlineUiHost
 	private readonly IWorldPresenceQuery? _worldPresence;
 	private readonly IWorldItemPointerQuery? _worldItemPointer;
 	private readonly IWorldLibrary? _worldLibrary;
+	private readonly IAdapterCapabilityQuery? _capabilityQuery;
 	private readonly IStartGateState? _gateState;
 	private readonly CuoEscCloseSuppression _escCloseSuppression = new();
 	// The one-shot read-only probe of the game's own UI (S1 of the Online UI overhaul) — the adapter
@@ -150,6 +151,7 @@ internal sealed class OnlineUiHost
 		// adapter — a composition without a world repository has nothing to manage, and the
 		// page says so instead of throwing.
 		_worldLibrary = services.GetService<IWorldLibrary>();
+		_capabilityQuery = services.GetService<IAdapterCapabilityQuery>();
 		_gateState = services.GetService<IStartGateState>();
 		_surface = services.GetService<IOnlineUiSurface>();
 		_spectator = services.GetService<ISpectatorControl>();
@@ -384,6 +386,7 @@ internal sealed class OnlineUiHost
 		Profiles = _profiles,
 		AnchorQuery = _anchorQuery,
 		WorldPresence = _worldPresence,
+		CapabilityQuery = _capabilityQuery,
 		WorldItemPointer = _worldItemPointer,
 		WorldLibrary = _worldLibrary,
 		LastJoinError = _lobby.LastError,

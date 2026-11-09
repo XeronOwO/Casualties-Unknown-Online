@@ -6,6 +6,7 @@
   "tab.network": "网络",
   "tab.admin": "管理",
   "home.steam_status": "STEAM 状态",
+  "home.adapter_refused": "CUO 暂时无法联机：这次游戏更新破坏了{0}。游戏其它部分照常。",
   "home.steam_initialized": "Steam：已初始化",
   "home.steam_not_initialized": "Steam：未初始化",
   "home.persona": "昵称：{0}",

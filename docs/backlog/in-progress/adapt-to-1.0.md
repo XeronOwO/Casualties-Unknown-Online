@@ -1,8 +1,9 @@
 # Adapt the mod to the game's 1.0 release
 
-- Status: In progress — the first 1.0 launch (2026-11-09) loads the plugin and the adapter's capability report passes
-  (`session available — no blocking hook failure`) after one patch target was pinned; three runtime differences are
-  known and two still fail per frame.
+- Status: In progress — the 1.0 adapter is reconciled and read on a live session (2026-11-09): the capability report
+  passes, two 1.0 clients met in one world over the IP-direct transport (the Steam lobby path needs a second owning
+  account), and the two runtime differences (`SetBlock`'s overload, the removed `following` field) are fixed. What
+  remains: the system map's later pages, the principles layer, and the backlog.
 - Priority: Highest
 - Category: Adapter / release
 - Source: the user (2026-11-09): the project targets 1.0 only, the demo is no longer a supported target.
@@ -45,3 +46,17 @@ memory.
 - The adapter's `Update` completes a frame with no exception (today every frame throws at `following`).
 - The language catalogue loads (`Language missing!` gone).
 - Three Steam-launched clients join one world and a run starts, on 1.0.
+
+## Two clients in one world over IP direct (2026-11-09)
+
+The Steam lobby path needs a second account that owns 1.0, which the user does not have; the sanctioned substitute is the
+IP-direct transport with two local instances. The reading:
+
+- Host: the release install, launched through Steam; transport `IpDirect`, role `Host`, a run started.
+- Guest: a byte copy of the install (`E:\cuo-instance-b`, own driver port 18591), launched directly; its driver answered
+  `steamInit: true`; transport `IpDirect`, joined `127.0.0.1:7777`, role `Guest`.
+- Both read `inWorld: true, gateWaiting: false` — one world, two players, on 1.0.
+
+Evidence: `docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md`. The same batch closed the two runtime
+differences (`SetBlock`'s overload pinned; the camera no longer reads the removed `following` field). What this does not
+read: the Steam lobby path (needs a second owning account) and a real network hop (both instances are loopback).

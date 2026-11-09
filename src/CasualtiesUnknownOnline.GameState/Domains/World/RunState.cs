@@ -27,7 +27,8 @@ public sealed record RunState(
 	IReadOnlyList<RunSetting>? RunSettings = null,
 	int LayerIndex = 0,
 	float LootRarityMultiplier = RunRarityMultipliers.Neutral,
-	float TrapRarityMultiplier = RunRarityMultipliers.Neutral)
+	float TrapRarityMultiplier = RunRarityMultipliers.Neutral,
+	RunEnding Ending = RunEnding.None)
 {
 	public bool IsTutorial => BiomeOverride == 1;
 }

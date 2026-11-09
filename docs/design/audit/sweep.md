@@ -32,7 +32,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.GameAdapter/ModEffects` | 7 | read |
 | `CasualtiesUnknownOnline.GameAdapter/ModStatus` | 3 | read |
 | `CasualtiesUnknownOnline.GameAdapter/OnlineUi` | 32 | read |
-| `CasualtiesUnknownOnline.GameAdapter/Patches` | 157 | read |
+| `CasualtiesUnknownOnline.GameAdapter/Patches` | 160 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Run` | 35 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Tutorial` | 3 | read |
 | `CasualtiesUnknownOnline.GameAdapter/World` | 70 | read |
@@ -42,7 +42,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.GameState/Domains/Fluids` | 8 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Items` | 32 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Players` | 24 | read |
-| `CasualtiesUnknownOnline.GameState/Domains/World` | 10 | read |
+| `CasualtiesUnknownOnline.GameState/Domains/World` | 11 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/WorldEntities` | 19 | read |
 | `CasualtiesUnknownOnline.GameState/Kernel` | 6 | read |
 | `CasualtiesUnknownOnline.GameState/Projections` | 2 | read |
@@ -92,7 +92,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction` | 127 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Tutorial` | 2 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/World` | 125 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/World` | 126 | read |
 | `CasualtiesUnknownOnline.Runtime/Steam` | 5 | read |
 | `CasualtiesUnknownOnline.Runtime/Time` | 2 | read |
 | `CasualtiesUnknownOnline.Runtime/World` | 1 | read |

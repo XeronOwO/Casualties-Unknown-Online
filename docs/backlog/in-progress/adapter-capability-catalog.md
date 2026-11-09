@@ -109,3 +109,12 @@ feature the game has must never be silently dropped from a session.
 - `AdapterCapabilityReport.RefusesSession` — Required failures plus unmapped ones refuse; `Degraded` names the Optional rows; `Render` prints "session available — {n} OPTIONAL capability(ies) installed off: …".
 - Pinned by `tests/CasualtiesUnknownOnline.Tests/Capabilities/AdapterCapabilityReportTests.cs` (`Render_AnOptionalBlockingFailureDegradesWithoutRefusing` and the existing Required/refusal facts).
 - Not yet: the player-visible refusal notice (stage 2's user-acceptance half) and stage 3's per-capability install units.
+
+## The refusal notice (design, 2026-11-10)
+
+What the player must see when a REQUIRED capability's hook is missing: the CUO window's own session area says, in their language, that CUO cannot start multiplayer because this game update broke a system the vanilla game has, names the systems, and says the rest of the game still runs. No dialog box, no silent BepInEx "did not load" — the mod's own window, at the menu.
+
+- The fact: `PatchInstallLifecycle.Install`'s refusal already holds the blocking failures. It publishes a small record — the failing capabilities' titles in the player's order (session first, then the rest) plus the first failure detail for the log — as `GameAdapter.Refusal` (empty when the install succeeded).
+- The seam: the bridge the plugin already holds (`IGameAdapter` through `CuoBootstrap.Services`) answers it; the Online UI's Home page renders one line when it is non-empty (`home.adapter_refused` = "CUO cannot start this session: this game update broke {0}. The rest of the game runs without multiplayer." / zh sibling), and the line's detail goes to the log with the same text the report prints.
+- The machine half: a unit test formats the record from synthetic failures (Required refused → named systems; Optional only → empty), pinned beside `AdapterCapabilityReportTests`.
+- The user half: a frame at the menu with a forced broken Required capability — the wording and the placement are the player-visible acceptance row the ticket names.

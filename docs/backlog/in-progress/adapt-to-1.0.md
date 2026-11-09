@@ -73,3 +73,24 @@ Reading: the release client, launched from the deployed `0.1.0+1ead765c` build, 
 over its first 45 seconds and answered the driver (`steamInit: true`); the earlier build wrote it once per frame.
 `BuildingEntity`'s per-frame `Update` is the game's own, so the frame rate returns with the field access gone. The
 checked-in `references/` were replaced in the same change (`1ead765c`).
+
+## Night mode split (2026-11-09)
+
+The user is away; this ticket is worked as a queue of small tickets. Each one is self-contained: a chain read from the
+1.0 code, a machine-readable acceptance row, implement → build → gates → suite → deploy → reading → commit. A ticket
+that needs a product decision is parked with the question written into its own status, and the next one starts.
+
+1. `1.0-item-customization-truth` — a customized item's label, colour and favourite mark reach the other clients
+   (`PlayerCamera.cs:841/851/861` are the three writes; the wire's item facts today carry condition only).
+2. `1.0-prosthetics` — a prosthetic replaces a limb through the game's own alert path (`Item.cs:749-830`); the host's
+   record and the member's body agree afterwards.
+3. `1.0-run-settings-extended` — the run settings 1.0 added reach the host-authoritative baseline and the save's
+   `run.json`.
+4. `1.0-endings` — the two endings (`MercEnding()`, `SurfaceBreachCutscene()`) are host events; members see the same
+   ending and the save takes its final cut.
+5. `1.0-dune-mode` — `DuneMode`'s 20-second object/material shuffle is host-authoritative.
+6. `1.0-layers-6-11` — the deeper layers: the descent trigger `position.y < -halfHeight + 3.1f` (`:1138`), the layer-end
+   cut on the layer 10 exit, and a run that visits them.
+7. `capability-catalog-required-refusal` — the existing `review/adapter-capability-catalog.md` stage 2: a required patch
+   that fails refuses the install with a visible notice; an optional one degrades off.
+8. `ip-direct-shows-the-purchase-notice` — the filed `todo/` ticket.

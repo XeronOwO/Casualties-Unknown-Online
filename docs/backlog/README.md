@@ -62,6 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
+- [1.0: a customized item reaches the other clients](todo/1.0-item-customization-truth.md) — **Highest** — the wire misses label, colour, favourite.
 - [IP direct shows the purchase notice when Steam is not ready](todo/ip-direct-shows-the-purchase-notice.md) — **High** — asks for a copy, once per run.
 
 

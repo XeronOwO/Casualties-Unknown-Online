@@ -27,3 +27,5 @@ does not cover are named.
 
 Order of work: the pages the mod touches first (worldgen, items, medical, crafting), then combat/traps, then the rest.
 `principles.md` is written last, from the finished pages — never before them.
+
+Written so far: `worldgen-and-layers.md`, `items.md`, `medical.md`.

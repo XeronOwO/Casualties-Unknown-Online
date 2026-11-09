@@ -1365,3 +1365,4 @@ docs/design/game/README.md | keep | spec | docs/design/INDEX.md
 docs/design/game/items.md | keep | spec | docs/design/game/README.md
 docs/design/game/worldgen-and-layers.md | keep | spec | docs/design/game/README.md
 docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md | keep | claim | docs/backlog/in-progress/adapt-to-1.0.md
+docs/design/game/medical.md | keep | claim | docs/design/game/README.md

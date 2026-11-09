@@ -46,7 +46,13 @@ internal static class RemoteBodyFactory
 	public static Body? CreateRemoteBody(PlayerEntity remote, Vector2 anchor, LogRepetitionGuard failures, ILogger log,
 		bool hostSimulated = false)
 	{
-		var template = GameObject.Find("Experiment");
+		// 1.0 renamed the player object: the demo's scene object was "Experiment", and in the
+		// release the local player's own body object is the template (measured 2026-11-10: the
+		// demo name resolves to null in a 1.0 world and every remote body logged "not found",
+		// so no teammate was ever rendered). The live player object is preferred; the old name
+		// stays as the fallback for a scene that still carries it.
+		var camera = PlayerCamera.main;
+		var template = camera != null && camera.body != null ? camera.body.gameObject : GameObject.Find("Experiment");
 		if (template == null) // Unity object — == (is null misses destroyed)
 		{
 			// Asked per frame per member: the line is written INSIDE the ask, so one

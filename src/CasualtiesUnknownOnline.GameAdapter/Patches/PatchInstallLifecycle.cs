@@ -56,7 +56,7 @@ internal sealed class PatchInstallLifecycle
 	/// the failure facts are recorded for the report either way, and a refusal
 	/// unpatches before returning false so a half-applied set never runs.
 	/// </summary>
-	internal bool Install()
+	internal bool Install(IReadOnlyCollection<string>? disabledCapabilities = null)
 	{
 		try
 		{
@@ -65,10 +65,45 @@ internal sealed class PatchInstallLifecycle
 			_harmony.PatchAll(typeof(PatchInventory).Assembly);
 			_capabilities.Record(DynamicPatchInstaller.Install(_harmony, _log));
 
+			// Stage 3: an OPTIONAL capability can be left out as a whole unit; a
+			// Required one (or an unknown id) is refused loudly and installs.
+			var selection = AdapterCapabilitySelection.Resolve(disabledCapabilities);
+			if (selection.Refused.Count > 0)
+			{
+				_log.LogWarning("Game Adapter ignores disabled capability request(s) that are unknown or Required: {Ids}",
+					string.Join(", ", selection.Refused));
+			}
+
+			var disabledClasses = new HashSet<Type>(selection.Disabled.SelectMany(AdapterCapabilityCatalog.ClassesOf));
+			if (disabledClasses.Count > 0)
+			{
+				foreach (var method in _harmony.GetPatchedMethods().ToList())
+				{
+					var info = Harmony.GetPatchInfo(method);
+					if (info is null)
+					{
+						continue;
+					}
+
+					var touches = info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers)
+						.Any(patch => patch.PatchMethod.DeclaringType is { } owner && disabledClasses.Contains(owner));
+					if (touches)
+					{
+						_harmony.Unpatch(method, HarmonyPatchType.All, _harmony.Id);
+					}
+				}
+
+				_log.LogInformation("Game Adapter installed with {Count} capability unit(s) off by configuration: {Ids}",
+					selection.Disabled.Count, string.Join(", ", selection.Disabled));
+			}
+
 			// Never let a failed patch silently run: verify every patch class
 			// actually landed on its target (a game update that breaks a target
 			// must fail loud — a silently missing hook is how sync bugs hide).
-			var missing = PatchInventory.VerifyMissing(_harmony);
+			var disabledNames = new HashSet<string>(disabledClasses.Select(container => container.Name), StringComparer.Ordinal);
+			var missing = PatchInventory.VerifyMissing(_harmony)
+				.Where(failure => !disabledNames.Contains(failure.PatchClass))
+				.ToList();
 			_capabilities.Record(missing);
 
 			// Stage 2: an OPTIONAL capability's missing hook installs as off — the
@@ -127,3 +162,5 @@ internal sealed class PatchInstallLifecycle
 	/// <summary>Publish the attempt's aggregated capability report; the caller passes the game probe's own line.</summary>
 	internal void Publish(string gameProbeLine) => _capabilities.Publish(gameProbeLine);
 }
+
+

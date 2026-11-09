@@ -25,7 +25,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.BulkTransfer.Core` | 7 | read |
 | `CasualtiesUnknownOnline.BulkTransfer.Core/Audio` | 1 | read |
 | `CasualtiesUnknownOnline.GameAdapter` | 81 | read |
-| `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 6 | read |
+| `CasualtiesUnknownOnline.GameAdapter/Capabilities` | 7 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Character` | 100 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Content` | 36 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Items` | 73 | read |
@@ -107,3 +107,5 @@ cannot drift away from the tree.
 Progress: **all 76 blocks read, 2,289 production files in scope**, with the findings in `code.md`. A second pass (every block
 `swept`: each behaviour it holds traced to a page or a ticket) is the next stage, and the native audit (`native.md`) runs
 beside it once the user opens that scope.
+
+

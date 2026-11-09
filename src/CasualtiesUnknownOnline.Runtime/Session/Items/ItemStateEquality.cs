@@ -23,6 +23,8 @@ internal static class ItemStateEquality
 	internal static bool TopLevelMatches(CharacterItemMsg a, CharacterItemMsg b, float conditionTolerance = 0.01f)
 		=> Math.Abs(a.Condition - b.Condition) < conditionTolerance
 			&& a.Favourited == b.Favourited
+			&& string.Equals(a.Label ?? "", b.Label ?? "", StringComparison.Ordinal)
+			&& a.ColorSwatch == b.ColorSwatch
 			&& LiquidsMatch(a.Liquids, b.Liquids)
 			&& ComponentsMatch(a.Components, b.Components);
 

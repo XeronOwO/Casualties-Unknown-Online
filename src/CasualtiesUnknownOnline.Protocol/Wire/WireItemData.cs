@@ -23,4 +23,12 @@ public sealed class WireItemData
 
 	[ProtoMember(5)]
 	public List<WireComponentState> Components { get; set; } = [];
+
+	/// <summary>The player's own label; null means nobody set one (the wire writes nothing).</summary>
+	[ProtoMember(6)]
+	public string? Label { get; set; }
+
+	/// <summary>The player's colour swatch index (the game's own <c>colorSwatch</c>); 0 is the default swatch.</summary>
+	[ProtoMember(7)]
+	public int ColorSwatch { get; set; }
 }

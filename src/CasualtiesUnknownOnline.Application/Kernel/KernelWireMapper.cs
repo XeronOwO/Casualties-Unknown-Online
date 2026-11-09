@@ -74,6 +74,8 @@ public static class KernelWireMapper
 			Condition = data.Condition,
 			Favourited = data.Favourited,
 			SlotIndex = data.SlotIndex,
+			Label = string.IsNullOrEmpty(data.Label) ? null : data.Label,
+			ColorSwatch = data.ColorSwatch,
 			Liquids = [.. data.Liquids.Select(l => new WireLiquidStack { LiquidId = l.LiquidId, Amount = l.Amount })],
 			Components = [.. data.Components.Select(KernelComponentWireMapper.ToWire)],
 		};
@@ -284,7 +286,9 @@ public static class KernelWireMapper
 			data.Favourited,
 			data.SlotIndex,
 			[.. data.Liquids.Select(l => new ItemLiquidStack(l.LiquidId, l.Amount))],
-			[.. data.Components.Select(KernelComponentWireMapper.FromWire)]);
+			[.. data.Components.Select(KernelComponentWireMapper.FromWire)],
+			data.Label ?? "",
+			data.ColorSwatch);
 
 	public static CommittedBatch FromWireBatch(WireCommittedBatch batch, RunEpoch fallbackEpoch) =>
 		new(

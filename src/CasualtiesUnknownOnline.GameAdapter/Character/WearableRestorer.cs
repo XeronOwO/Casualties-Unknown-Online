@@ -62,6 +62,8 @@ internal sealed class WearableRestorer(ILogger<WearableRestorer> log)
 
 		item.condition = itemData.Condition;
 		item.favourited = itemData.Favourited;
+		item.label = itemData.Label ?? "";
+		item.colorSwatch = itemData.ColorSwatch;
 		ItemStateCodec.RestoreLiquids(item, itemData.Liquids);
 		ItemStateCodec.RestoreComponentStates(item, itemData.Components);
 		ItemStateCodec.RestoreContents(item, itemData.Contents);

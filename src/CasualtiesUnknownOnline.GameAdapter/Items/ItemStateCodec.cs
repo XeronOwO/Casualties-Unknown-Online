@@ -90,6 +90,8 @@ internal static class ItemStateCodec
 			Condition = item.condition,
 			SlotIndex = slotIndex,
 			Favourited = item.favourited,
+			Label = string.IsNullOrEmpty(item.label) ? null : item.label,
+			ColorSwatch = item.colorSwatch,
 			Liquids = CaptureLiquids(item),
 			Components = CaptureSaveableComponents(item),
 		};
@@ -129,6 +131,8 @@ internal static class ItemStateCodec
 			Condition = item.condition,
 			SlotIndex = slotIndex,
 			Favourited = item.favourited,
+			Label = string.IsNullOrEmpty(item.label) ? null : item.label,
+			ColorSwatch = item.colorSwatch,
 			Liquids = CaptureLiquids(item),
 			Components = CaptureSaveableComponents(item),
 		};
@@ -356,6 +360,8 @@ internal static class ItemStateCodec
 
 		item.condition = itemData.Condition;
 		item.favourited = itemData.Favourited;
+		item.label = itemData.Label ?? "";
+		item.colorSwatch = itemData.ColorSwatch;
 		RestoreLiquids(item, itemData.Liquids);
 		RestoreComponentStates(item, itemData.Components);
 		RestoreContents(item, itemData.Contents);
@@ -514,6 +520,8 @@ internal static class ItemStateCodec
 
 		child.condition = childData.Condition;
 		child.favourited = childData.Favourited;
+		child.label = childData.Label ?? "";
+		child.colorSwatch = childData.ColorSwatch;
 		if (childData.InstanceId != 0)
 		{
 			child.gameObject.AddComponent<ItemInstanceId>().Id = childData.InstanceId;

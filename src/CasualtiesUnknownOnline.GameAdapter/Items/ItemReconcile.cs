@@ -191,6 +191,8 @@ internal sealed class ItemReconcile(
 				{
 					item.condition = w.Item.Condition;
 					item.favourited = w.Item.Favourited;
+					item.label = w.Item.Label ?? "";
+					item.colorSwatch = w.Item.ColorSwatch;
 					ItemStateCodec.RestoreLiquids(item, w.Item.Liquids);
 					ItemStateCodec.RestoreComponentStates(item, w.Item.Components);
 					aligned++;

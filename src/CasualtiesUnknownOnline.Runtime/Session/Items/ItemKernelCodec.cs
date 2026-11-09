@@ -19,6 +19,8 @@ public static class ItemKernelCodec
 			Condition = state.Data.Condition,
 			SlotIndex = state.Data.SlotIndex,
 			Favourited = state.Data.Favourited,
+			Label = string.IsNullOrEmpty(state.Data.Label) ? null : state.Data.Label,
+			ColorSwatch = state.Data.ColorSwatch,
 			Liquids = [.. state.Data.Liquids.Select(l => new LiquidStackMsg { LiquidId = l.LiquidId, Amount = l.Amount })],
 			Components = [.. state.Data.Components.Select(ToWireComponent)],
 		};
@@ -29,7 +31,9 @@ public static class ItemKernelCodec
 			item.Favourited,
 			item.SlotIndex,
 			[.. item.Liquids.Select(l => new ItemLiquidStack(l.LiquidId, l.Amount))],
-			[.. item.Components.Select(ToKernelComponent)]);
+			[.. item.Components.Select(ToKernelComponent)],
+			item.Label ?? "",
+			item.ColorSwatch);
 
 	private static ComponentStateMsg ToWireComponent(ItemComponentState state) =>
 		new()

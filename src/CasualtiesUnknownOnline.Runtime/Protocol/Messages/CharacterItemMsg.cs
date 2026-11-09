@@ -39,4 +39,12 @@ public sealed class CharacterItemMsg
 
 	[ProtoMember(8)]
 	public List<LiquidStackMsg> Liquids { get; set; } = []; // WaterContainerItem stacks
+
+	/// <summary>The player's own label; null means nobody set one (the wire writes nothing).</summary>
+	[ProtoMember(9)]
+	public string? Label { get; set; }
+
+	/// <summary>The player's colour swatch index (the game's own <c>colorSwatch</c>); 0 is the default swatch.</summary>
+	[ProtoMember(10)]
+	public int ColorSwatch { get; set; }
 }

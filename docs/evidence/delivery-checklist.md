@@ -5,15 +5,15 @@ that cannot be confirmed stays empty and the cycle stops. Documentation-only cyc
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
 - [ ] Design comprehension — before the first code edit the ticket states, in its own section, the surface being changed
-- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the clone reproduces it) — `docs/development/native-parity.md`
-- [ ] Native parity probe — for a behaviour that mirrors a native action, the SAME action was run locally and across clients
-- [ ] Entry mapping (a scope that crosses players or mirrors a native action only): the entry is every control of the CUO window
-- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled file:line or runtime log) or is explicitly marked unverified
-- [ ] Whole-family audit: fixing one mechanism, the whole family was aligned one by one (no piecemeal fixes — the turret-fire/geyser lesson)
-- [ ] Self-check table: mechanism x change x evidence, every cell filled
-- [ ] Verification design: how the runtime proves it (diagnostic traces, peer log comparison, hotrepl assertions) is decided
-- [ ] Plan approved by the user (before deployment; investigation excepted)
-- [ ] Structure review done (touched classes <= 600 lines OR the size is recorded in docs/architecture-debt.json with its split plan; state bools; dead mechanisms deleted in the same round)
+- [ ] Native parity — the three lines (player's action and expectation / the native chain the game itself runs / how the clone reproduces it)
+- [ ] Native parity probe
+- [ ] Entry mapping — the entry is the game's own item customizer; the wire path is the carried-inventory message, not a CUO control
+- [ ] Mechanism inventory — every touched mechanism has evidence
+- [ ] Whole-family audit: the two aliases of one item state — `CharacterItemMsg` (carried sync/digest) and `WireItemData` (kernel checkpoint) — both carry the pair, and every mapper between them (`KernelWireMapper`, `KernelPlayerInteractionWireMapper`, `ItemKernelCodec`) maps both directions; `ItemStateEquality.TopLevelMatches` compares both
+- [ ] Self-check table: mechanism x change x evidence
+- [ ] Verification design
+- [ ] Plan approved by the user
+- [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

@@ -469,4 +469,38 @@ public class KernelWireMapperTests
 		Assert.Equal(RejectionReason.InvalidTransition, decision.Rejection!.Reason);
 		Assert.Null(kernel.FindItem(10));
 	}
+
+	[Fact]
+	public void ItemData_LabelAndSwatch_RoundTripThroughTheWire()
+	{
+		// 1.0's item surface lets a player set a label and a colour swatch; both are
+		// part of the save-shaped item state, so the wire row must carry them and the
+		// kernel must read them back unchanged. The swatch's 0 is the game's default
+		// swatch, never "absent".
+		var data = new ItemData(3.5f, true, 2, [], [], "the fragile knife", 4);
+
+		var back = KernelWireMapper.FromWireData(KernelWireMapper.ToWireData(data));
+
+		Assert.Equal("the fragile knife", back.Label);
+		Assert.Equal(4, back.ColorSwatch);
+		Assert.True(back.Favourited);
+		Assert.Equal(3.5f, back.Condition);
+	}
+
+	[Fact]
+	public void ItemData_UntouchedItem_KeepsTheDefaultLabelAndSwatch()
+	{
+		// An item nobody customized must not pay for the two new fields: the wire
+		// row's defaults are the game's defaults (empty label, swatch 0), and the
+		// kernel's empty state round-trips to them.
+		var wire = KernelWireMapper.ToWireData(ItemData.Empty);
+		var back = KernelWireMapper.FromWireData(wire);
+
+		Assert.Null(wire.Label);
+		Assert.Equal(0, wire.ColorSwatch);
+		Assert.Equal("", back.Label);
+		Assert.Equal(0, back.ColorSwatch);
+		Assert.Empty(back.Liquids);
+		Assert.Empty(back.Components);
+	}
 }

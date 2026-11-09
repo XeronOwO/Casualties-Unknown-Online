@@ -7,16 +7,20 @@ namespace CasualtiesUnknownOnline.GameState.Domains.Items;
 /// The kernel-owned persistent state of one item, independent of any wire DTO.
 /// It covers the save-shaped item facts that must travel with identity and
 /// location: condition, favourited flag, the owner-local slot, liquid stacks,
-/// and the typed component-state payload. Container contents are not embedded
-/// here; each contained item is its own <see cref="ItemState"/> with a
-/// Contained location so the container graph is authoritative and acyclic.
+/// the typed component-state payload, and the two customization values the
+/// 1.0 item surface added (the player's own label and colour swatch).
+/// Container contents are not embedded here; each contained item is its own
+/// <see cref="ItemState"/> with a Contained location so the container graph is
+/// authoritative and acyclic.
 /// </summary>
 public readonly record struct ItemData(
 	float Condition,
 	bool Favourited,
 	int SlotIndex,
 	IReadOnlyList<ItemLiquidStack> Liquids,
-	IReadOnlyList<ItemComponentState> Components)
+	IReadOnlyList<ItemComponentState> Components,
+	string Label = "",
+	int ColorSwatch = 0)
 {
 	/// <summary>Neutral empty state for an item that carries no save-shaped payload.</summary>
 	public static ItemData Empty { get; } = new(
@@ -24,7 +28,9 @@ public readonly record struct ItemData(
 		false,
 		-1,
 		[],
-		[]);
+		[],
+		"",
+		0);
 
 	public bool IsEmpty =>
 		Condition == 0f

@@ -1866,7 +1866,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameState/Domains/Items/ItemData.cs",
 
-      "quote": "/// and the typed component-state payload. Container contents are not embedded"
+      "quote": "/// Container contents are not embedded here; each contained item is its own"
 
     },
 

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using BepInEx.Configuration;
 using CasualtiesUnknownOnline.GameAdapter;
+using AdapterType = CasualtiesUnknownOnline.GameAdapter.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -277,6 +278,21 @@ internal static class PluginDependencyRegistrar
 		// never names an adapter type.
 		GameAdapterComposition.Register(services);
 
+		// Stage 3: an optional capability can be left out as a whole unit; an unknown
+		// or Required id is refused by the installer and installs anyway.
+		var disabledCapabilities = config.Bind(
+			"Adapter",
+			"DisabledCapabilities",
+			string.Empty,
+			"Comma-separated optional capability ids to leave out at install (empty = all installed).");
+		var disabledIds = disabledCapabilities.Value.Split([','], StringSplitOptions.RemoveEmptyEntries);
+		for (var i = 0; i < disabledIds.Length; i++)
+		{
+			disabledIds[i] = disabledIds[i].Trim();
+		}
+
+		AdapterType.DisabledCapabilities = disabledIds;
+
 		// Full-configuration templates: a named snapshot of every bound BepInEx
 		// entry, stored beside the live config. The store is plugin-side because
 		// it needs the concrete ConfigFile; the Runtime owns the mechanics.
@@ -336,3 +352,7 @@ internal static class PluginDependencyRegistrar
 			: throw new InvalidOperationException($"host rule '{row.Name}' has no parseable fallback value");
 	}
 }
+
+
+
+

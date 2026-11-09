@@ -76,6 +76,11 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	private readonly FrameTick _frameTick;
 
+	/// <summary>
+	/// The optional capability ids a configuration leaves out at install (stage 3), set once at boot before Start.
+	/// </summary>
+	public static IReadOnlyCollection<string> DisabledCapabilities { get; set; } = [];
+
 	public GameAdapter(
 		ISessionControl session,
 		AdaptiveStreamRateService adaptiveRates,
@@ -181,7 +186,7 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		return ok;
 	}
 
-	private bool Install() => _patches.Install();
+	private bool Install() => _patches.Install(DisabledCapabilities);
 
 	private void Uninstall() => _patches.Uninstall();
 
@@ -578,3 +583,5 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 		public bool Conscious { get; } = conscious;
 	}
 }
+
+

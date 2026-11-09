@@ -63,7 +63,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Todo
 
 - [1.0: a customized item reaches the other clients](todo/1.0-item-customization-truth.md) — **Highest** — the wire misses label, colour, favourite.
-- [1.0: a prosthetic limb reaches the other clients](todo/1.0-prosthetics.md) — **High** — the limb wire carries no prosthetic block.
+- [1.0: a prosthetic limb reaches the other clients](done/1.0-prosthetics.md) — **High** — the wire carries the block; the clone reads `3=pegl`.
 - [IP direct shows the purchase notice when Steam is not ready](todo/ip-direct-shows-the-purchase-notice.md) — **High** — asks for a copy, once per run.
 
 

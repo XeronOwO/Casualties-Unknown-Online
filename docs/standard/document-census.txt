@@ -1368,3 +1368,4 @@ docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md | keep | claim | doc
 docs/design/game/medical.md | keep | claim | docs/design/game/README.md
 docs/design/game/crafting.md | keep | claim | docs/design/game/README.md
 docs/design/game/combat.md | keep | claim | docs/design/game/README.md
+docs/design/game/traps-and-events.md | keep | claim | docs/design/game/README.md

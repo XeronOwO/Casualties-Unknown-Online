@@ -13,4 +13,13 @@ public enum WorldMaintenanceKind
 
 	/// <summary>Replace a world's live snapshot with a chosen backup archive (§6).</summary>
 	Restore,
+
+	/// <summary>Delete one save point of a world; the world's live snapshot stays.</summary>
+	DeleteBackup,
+
+	/// <summary>Delete a whole world: its folder, archives and lease.</summary>
+	DeleteWorld,
+
+	/// <summary>Change the number of save points a world keeps; the cut's retention applies it.</summary>
+	SetRetention,
 }

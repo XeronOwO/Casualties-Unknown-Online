@@ -192,8 +192,46 @@ internal static class OnlineUiWorldsDrawer
 				state.BackupRowsWorldId = row.World.WorldId;
 				state.BackupRows = [.. library.ListBackups(row.World.WorldId)];
 				state.PendingRestoreFile = "";
+				state.PendingDeleteBackupFile = "";
 			},
 			width: 120f));
+
+		// Deleting a run takes its folder with every save point inside it, so it asks twice and
+		// says what goes: the row's name, on the line that confirms it.
+		if (string.Equals(state.PendingDeleteWorldId, row.World.WorldId, StringComparison.Ordinal))
+		{
+			elements.Add(page.LabelElement(
+				ctx.F("worlds.delete_run_confirm", row.World.DisplayName),
+				OnlineUiTextStyle.Muted,
+				OnlineUiTheme.Muted));
+			elements.Add(page.ButtonElement(
+				$"worlds.delete_run_yes.{row.World.WorldId}",
+				ctx.T("worlds.delete_yes"),
+				() =>
+				{
+					state.PendingDeleteWorldId = "";
+					state.BackupRowsWorldId = "";
+					state.BackupRows = [];
+					library.TryDeleteWorld(
+						row.World.WorldId,
+						ctx.WorldPresence?.IsInWorldOrGenerating ?? false,
+						out _);
+				},
+				width: 120f));
+			elements.Add(page.ButtonElement(
+				$"worlds.delete_run_cancel.{row.World.WorldId}",
+				ctx.T("worlds.delete_cancel"),
+				() => state.PendingDeleteWorldId = "",
+				width: 110f));
+		}
+		else
+		{
+			elements.Add(page.ButtonElement(
+				$"worlds.delete_run.{row.World.WorldId}",
+				ctx.T("worlds.delete_run"),
+				() => state.PendingDeleteWorldId = row.World.WorldId,
+				width: 110f));
+		}
 
 		page.Row([.. elements]);
 		page.Space();
@@ -220,16 +258,23 @@ internal static class OnlineUiWorldsDrawer
 		}
 	}
 
+	/// <summary>How far a run's save points step in from the run's own row, in canvas units.</summary>
+	private const float BlockIndent = 26f;
+
 	private static void BuildBackupRow(OnlineUiContext ctx, OnlineUiPageBuilder page, IWorldLibrary library, WorldBackup backup)
 	{
 		var state = ctx.State;
-		// The whole block steps in from the run's own row: the save points belong to the run above them.
-		page.Label(IndentText() + ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup)));
+		var label = ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup));
+
+		// The whole block steps in from the run's own row: the save points belong to the run above them,
+		// and the step is the ROW's, so the line and its buttons share one left edge.
+		page.IndentedRow(BlockIndent, page.LabelElement(label));
 
 		if (string.Equals(state.PendingRestoreFile, backup.FileName, StringComparison.Ordinal))
 		{
-			page.Muted(IndentText() + ctx.F("worlds.restore_confirm", ctx.F("worlds.backup_row", ctx.T(KindKeyOf(backup.Kind)), LocalTime(backup.Stamp), SizeMb(backup))));
-			page.Row(
+			page.IndentedRow(BlockIndent, page.LabelElement(ctx.F("worlds.restore_confirm", label), OnlineUiTextStyle.Muted, OnlineUiTheme.Muted));
+			page.IndentedRow(
+				BlockIndent,
 				page.ButtonElement(
 					$"worlds.restore_yes.{backup.FileName}",
 					ctx.T("worlds.restore_confirm_yes"),
@@ -252,7 +297,8 @@ internal static class OnlineUiWorldsDrawer
 		}
 		else
 		{
-			page.Row(
+			page.IndentedRow(
+				BlockIndent,
 				page.ButtonElement(
 					$"worlds.restore.{backup.FileName}",
 					ctx.T("worlds.restore"),
@@ -260,11 +306,41 @@ internal static class OnlineUiWorldsDrawer
 					width: 120f));
 		}
 
+		// One save point, named by what it holds: the confirm line says when it was taken, never its file name.
+		if (string.Equals(state.PendingDeleteBackupFile, backup.FileName, StringComparison.Ordinal))
+		{
+			page.IndentedRow(BlockIndent, page.LabelElement(ctx.F("worlds.delete_backup_confirm", label), OnlineUiTextStyle.Muted, OnlineUiTheme.Muted));
+			page.IndentedRow(
+				BlockIndent,
+				page.ButtonElement(
+					$"worlds.delete_backup_yes.{backup.FileName}",
+					ctx.T("worlds.delete_yes"),
+					() =>
+					{
+						state.PendingDeleteBackupFile = "";
+						library.TryDeleteBackup(state.BackupRowsWorldId, backup.FileName, out _);
+						state.BackupRows = [.. library.ListBackups(state.BackupRowsWorldId)];
+					},
+					width: 110f),
+				page.ButtonElement(
+					$"worlds.delete_backup_cancel.{backup.FileName}",
+					ctx.T("worlds.delete_cancel"),
+					() => state.PendingDeleteBackupFile = "",
+					width: 110f));
+		}
+		else
+		{
+			page.IndentedRow(
+				BlockIndent,
+				page.ButtonElement(
+					$"worlds.delete_backup.{backup.FileName}",
+					ctx.T("worlds.delete_backup"),
+					() => state.PendingDeleteBackupFile = backup.FileName,
+					width: 140f));
+		}
+
 		page.Space();
 	}
-
-	/// <summary>Spaces that step the line in; a row-level indent is the model change this needs (a label takes the row's width).</summary>
-	private static string IndentText() => "    ";
 
 	/// <summary>Re-reads what the page shows. Cheap enough to run on demand, far too costly to run per frame.</summary>
 	private static void Reload(OnlineUiContext ctx, IWorldLibrary library)

@@ -16,10 +16,18 @@ namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 /// owns (<see cref="OnlineUiWindowLayout.SectionGap"/> and its neighbours).
 /// </para>
 /// </summary>
-public readonly record struct OnlineUiRowModel(IReadOnlyList<OnlineUiElementModel> Elements, float Gap = 0f)
+public readonly record struct OnlineUiRowModel(IReadOnlyList<OnlineUiElementModel> Elements, float Gap = 0f, float Indent = 0f)
 {
 	/// <summary>One row holding <paramref name="elements"/>, in order.</summary>
 	public static OnlineUiRowModel Of(params OnlineUiElementModel[] elements) => new(elements);
+
+	/// <summary>
+	/// The same row stepped in from its line's left edge by <paramref name="indent"/> canvas units —
+	/// a block's rows sit under the block's own heading, and the step is the row's, not a run of
+	/// spaces inside a label (a label takes the row's remaining width and would push its neighbours
+	/// to the right edge, measured 2026-11-08).
+	/// </summary>
+	public OnlineUiRowModel WithIndent(float indent) => this with { Indent = indent };
 
 	/// <summary>A row holding nothing but room: <paramref name="gap"/> canvas units of it. The page's vertical
 	/// rhythm is written with these, from the layout's own scale rather than from a drawer's taste.</summary>

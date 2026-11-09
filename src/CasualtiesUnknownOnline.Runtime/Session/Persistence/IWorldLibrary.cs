@@ -83,4 +83,19 @@ public interface IWorldLibrary
 	/// one archive, one restore.
 	/// </summary>
 	bool TryRequestRestore(string worldId, string backupFileName, bool worldActive, out string? refusal);
+
+	/// <summary>
+	/// Delete one save point of <paramref name="worldId"/>. The newest archive and the last
+	/// remaining one are refused: the newest is the restore's own fallback.
+	/// </summary>
+	bool TryDeleteBackup(string worldId, string backupFileName, out string? refusal);
+
+	/// <summary>
+	/// Delete a whole world — its folder and every archive inside it. Refused while that world
+	/// is loaded or being generated: the files are the running world's.
+	/// </summary>
+	bool TryDeleteWorld(string worldId, bool worldActive, out string? refusal);
+
+	/// <summary>Change how many save points a world keeps, for the cuts committed from now on.</summary>
+	bool TrySetBackupRetention(int keep, out string? refusal);
 }

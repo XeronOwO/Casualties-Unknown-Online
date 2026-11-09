@@ -38,6 +38,15 @@ not one of those six is a different surface, not a new tab.
   a page needs one at all, how much of the track its handle fills, where the handle stands … and what position a click on the
   track asks for" — the answer to the user's report that a page "has a part that goes p[ast what is] shown, and I don't see
   [a scrollbar] on the right".
+- **The world pages own the archive's two destructive verbs, and they ask twice.** "Delete this save point" and "Delete this
+  run" are the player's, not a console's: the first click arms, the second confirms with the thing named (kind · time · size,
+  never a file name); the newest save point and the run in play are refused, and the refusal is shown on the status line.
+  The library's verbs are `IWorldLibrary.TryDeleteBackup` / `TryDeleteWorld`; the repository resolves a save point by name
+  inside that world's own folder and a run by its validated id — a caller string never becomes a path.
+- **A page's nested block steps in as a row fact, not as spaces in a label.** `OnlineUiRowModel.Indent` is the model's own
+  field and the adapter draws it as one layout spacer at the head of the row's first line: a label takes the row's
+  remaining width, so a label-as-spacer pushes the line's neighbours to the right edge (measured 2026-11-08 on the save
+  points).
 - An action taken from the window is host-validated where it acts on the session, exactly as the same action from a
   command would be.
 

@@ -385,6 +385,87 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	/// <summary>A world id in the format's shape, drawn from a timestamp and a random suffix (<see cref="WorldCatalog.GenerateWorldId"/>).</summary>
 	internal static string GenerateWorldId(DateTime utc) => WorldCatalog.GenerateWorldId(utc);
 
+	/// <summary>
+	/// Deletes ONE backup archive of a world — the player's "this save point is not worth keeping".
+	/// The file is named inside that world's own backups folder and nowhere else; a name that does not
+	/// belong to a listed archive is refused rather than resolved. The newest archive is refused too:
+	/// it is the one a failed restore falls back to, and the retention pass never deletes it either.
+	/// </summary>
+	public bool DeleteBackup(string worldId, string fileName, out string? refusal)
+	{
+		refusal = null;
+		var problem = DescribeWorldIdProblem(worldId);
+		if (problem.Length > 0)
+		{
+			refusal = problem;
+			return false;
+		}
+
+		var backups = ListBackups(worldId);
+		var backup = backups.FirstOrDefault(candidate => string.Equals(candidate.FileName, fileName, StringComparison.Ordinal));
+		if (backup is null)
+		{
+			refusal = $"{fileName} is not a save point of world {worldId}";
+			return false;
+		}
+
+		if (backups.Count <= 1)
+		{
+			refusal = "the last save point of a world cannot be deleted";
+			return false;
+		}
+
+		try
+		{
+			File.Delete(backup.FullPath);
+			_log.LogInformation("Deleted save point {Backup} of world {WorldId}.", fileName, worldId);
+			return true;
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			refusal = ex.Message;
+			_log.LogWarning(ex, "Save point {Backup} of world {WorldId} could not be deleted.", fileName, worldId);
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Deletes a whole world — its folder, archives and lease — the player's "this run is gone".
+	/// The path comes from the validated id under the saves root, never from a caller string.
+	/// </summary>
+	public bool DeleteWorld(string worldId, out string? refusal)
+	{
+		refusal = null;
+		var problem = DescribeWorldIdProblem(worldId);
+		if (problem.Length > 0)
+		{
+			refusal = problem;
+			return false;
+		}
+
+		var directory = PathOfWorld(worldId);
+		if (!Directory.Exists(directory))
+		{
+			refusal = "the world folder does not exist";
+			return false;
+		}
+
+		try
+		{
+			WorldLease.Release(directory, _log);
+			Directory.Delete(directory, recursive: true);
+			_catalog.RefreshIndex();
+			_log.LogInformation("Deleted world {WorldId} and everything under {Directory}.", worldId, directory);
+			return true;
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			refusal = ex.Message;
+			_log.LogWarning(ex, "World {WorldId} could not be deleted.", worldId);
+			return false;
+		}
+	}
+
 	private static SaveManifestMeta WithDisplayName(SaveManifestMeta meta, string displayName) => new()
 	{
 		DisplayName = displayName,

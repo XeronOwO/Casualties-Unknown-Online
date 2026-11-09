@@ -515,6 +515,7 @@ internal sealed class OnlineUiWindowView
 		_widths[rowIndex] = widths;
 		var lineCount = lines[lines.Length - 1] + 1;
 		_structureDirty |= row.EnsureLines(_content, lineCount);
+		row.SetIndent(model.Indent);
 		for (var index = 0; index < lineCount; index++)
 		{
 			row.SetGap(index, -1f);

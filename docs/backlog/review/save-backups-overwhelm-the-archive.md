@@ -10,7 +10,10 @@
   limit in the window and paging remain. The 2026-11-08 redesign makes the page a list of runs — newest first,
   five shown, older behind one button — with a run's save points folded under it, and the place named the way the
   player sees it ("surface" / "N levels down", translated from the catalogue) instead of the raw layer index (batch
-  `20261108-x`; readings: `docs/evidence/acceptance/save-backups-runs-page-20261108-x.md`).
+  `20261108-x`; readings: `docs/evidence/acceptance/save-backups-runs-page-20261108-x.md`). The 2026-11-09 change adds the
+  DELETE surface (one save point, or the whole run, both two-step and both refusals visible) and the block indent as a
+  ROW fact (`OnlineUiRowModel.Indent`, a layout spacer in the adapter, never spaces inside a label). The list's frame and
+  the in-window editor for the ceiling remain.
 - Priority: High
 - Category: Persistence / UX
 - Source: the user, 2026-11-08 (translated: "the save system — too many backups, badly organized, unpleasant to use;
@@ -136,3 +139,23 @@ The retention and the panel are settings, not constants: a `[Saves]` section in 
 choice (e.g. 10 backups per world, layer-end and quit always kept), the window's saves tab shows the current limits,
 and the panel can change them without editing the file by hand. The retention rule and the config are one design: the
 ceiling is the player's, the pruning is the product's.
+
+## The delete surface (2026-11-09)
+
+The player's complaint was the missing half: "the page only ever grows". Two verbs now exist, each behind a second click
+that names what goes, and each with its refusals visible on the status line:
+
+- **Delete this save point** — `IWorldLibrary.TryDeleteBackup` → `WorldRepository.DeleteBackup(worldId, fileName)`. The
+  file is resolved by NAME among the world's own listed archives (a caller string is never turned into a path); the last
+  save point and the newest one are refused, because the newest is the restore's own fallback.
+- **Delete this run** — `IWorldLibrary.TryDeleteWorld` → `WorldRepository.DeleteWorld(worldId)`. The path comes from the
+  validated world id under the saves root; a world that is loaded or being generated is refused (its files are in use);
+  the folder and every archive in it go.
+- The confirmation lines name the run or the save point (kind · time · size), never a file name (a `const float
+  BlockIndent = 26f` in the drawer and `OnlineUiRowModel.Indent` in the model).
+- The block indent is the model's: a row carries `Indent`, the adapter puts one `LayoutElement` spacer at the head of
+  its first line. A label cannot do it — a label takes the row's remaining width and pushes its neighbours to the right
+  edge (measured twice, 2026-11-08).
+
+Focused tests: `tests/CasualtiesUnknownOnline.Tests/Persistence/SaveArchiveDeleteTests.cs` (5 facts: an unknown name, the
+last save point, the one-file delete, the whole-run delete, an invalid id).

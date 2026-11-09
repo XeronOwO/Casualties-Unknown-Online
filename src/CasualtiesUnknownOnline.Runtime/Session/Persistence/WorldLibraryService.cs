@@ -158,6 +158,81 @@ public sealed class WorldLibraryService(
 		return true;
 	}
 
+	public bool TryDeleteBackup(string worldId, string backupFileName, out string? refusal)
+	{
+		if (repository is not { } worlds)
+		{
+			return Refuse(WorldMaintenanceKind.DeleteBackup, worldId, null, "this build has no world repository", out refusal);
+		}
+
+		if (ExistingWorldDirectory(worlds, worldId) is null)
+		{
+			return Refuse(WorldMaintenanceKind.DeleteBackup, worldId, null, $"world {worldId} does not exist", out refusal);
+		}
+
+		if (!worlds.DeleteBackup(worldId, backupFileName, out var problem))
+		{
+			return Refuse(WorldMaintenanceKind.DeleteBackup, worldId, null, problem ?? "the save point could not be deleted", out refusal);
+		}
+
+		Report(WorldMaintenanceReport.Completed(WorldMaintenanceKind.DeleteBackup, worldId, null,
+			$"deleted the save point {backupFileName}", []));
+		refusal = null;
+		return true;
+	}
+
+	public bool TryDeleteWorld(string worldId, bool worldActive, out string? refusal)
+	{
+		if (repository is not { } worlds)
+		{
+			return Refuse(WorldMaintenanceKind.DeleteWorld, worldId, null, "this build has no world repository", out refusal);
+		}
+
+		if (worldActive || _worldActive())
+		{
+			return Refuse(WorldMaintenanceKind.DeleteWorld, worldId, null,
+				"a world is loaded: leave it first, because the running world's files are in use", out refusal);
+		}
+
+		if (!worlds.DeleteWorld(worldId, out var problem))
+		{
+			return Refuse(WorldMaintenanceKind.DeleteWorld, worldId, null, problem ?? "the world could not be deleted", out refusal);
+		}
+
+		Report(WorldMaintenanceReport.Completed(WorldMaintenanceKind.DeleteWorld, worldId, null, $"deleted world {worldId}", []));
+		refusal = null;
+		return true;
+	}
+
+	public bool TrySetBackupRetention(int keep, out string? refusal)
+	{
+		if (keep < SaveOptions.MinBackupRetentionCount || keep > SaveOptions.MaxBackupRetentionCount)
+		{
+			return Refuse(WorldMaintenanceKind.SetRetention, "", null, $"a retention of {keep} is outside 1..1000", out refusal);
+		}
+
+		// Only a monitor that can take a value is written: the bound one reads the config file and
+		// answers a write by reloading that file, so the change would be undone on the next read.
+		if (_options is not MutableOptionsMonitor<SaveOptions> mutable)
+		{
+			return Refuse(WorldMaintenanceKind.SetRetention, "", null,
+				"this build's save policy is read from its config file; change BackupRetentionCount there", out refusal);
+		}
+
+		var current = _options.CurrentValue;
+		mutable.Set(new SaveOptions
+		{
+			AutosaveEnabled = current.AutosaveEnabled,
+			AutosaveIntervalMinutes = current.AutosaveIntervalMinutes,
+			BackupRetentionCount = keep,
+		});
+
+		Report(WorldMaintenanceReport.Completed(WorldMaintenanceKind.SetRetention, "", null,
+			$"the save points kept per world are now {keep}", []));
+		refusal = null;
+		return true;
+	}
+
 	// The ICuoService lifecycle, implemented explicitly: the interface exists so the plugin's
 	// frame pump can drive this type, and nothing else in the tree needs those four names.
 	//

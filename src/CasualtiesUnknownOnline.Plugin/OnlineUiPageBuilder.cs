@@ -81,6 +81,10 @@ internal sealed class OnlineUiPageBuilder
 	/// <summary>One row holding <paramref name="elements"/>, in order.</summary>
 	internal void Row(params OnlineUiElementModel[] elements) => _rows.Add(OnlineUiRowModel.Of(elements));
 
+	/// <summary>A row stepped in from the page's left edge by <paramref name="indent"/> canvas units (a block's rows under its own heading).</summary>
+	internal void IndentedRow(float indent, params OnlineUiElementModel[] elements) =>
+		_rows.Add(OnlineUiRowModel.Of(elements).WithIndent(indent));
+
 	/// <summary>
 	/// A vertical gap with no meaning of its own: the room between two blocks that carry no heading. A HEADING
 	/// does not need this — <see cref="Section"/> brings the room it owns.

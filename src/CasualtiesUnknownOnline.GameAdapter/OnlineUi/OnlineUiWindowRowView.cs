@@ -34,6 +34,9 @@ internal sealed class OnlineUiWindowRowView
 
 	private readonly float _lineSpacing;
 
+	/// <summary>The row's indent spacer, when it has one (see <see cref="SetIndent"/>).</summary>
+	private LayoutElement? _indent;
+
 	internal OnlineUiWindowRowView(float lineSpacing)
 	{
 		_lineSpacing = lineSpacing;
@@ -86,6 +89,43 @@ internal sealed class OnlineUiWindowRowView
 		{
 			element.preferredHeight = height;
 		}
+	}
+
+	/// <summary>
+	/// The line-0 spacer that steps the whole row in from its line's left edge: a row's indent is a
+	/// layout fact, so it is one empty LayoutElement at the head of the first line, never a run of
+	/// spaces inside the first label (a label takes the remaining width and pushes its neighbours to
+	/// the right edge — measured 2026-11-08 on the save-point block).
+	/// </summary>
+	internal void SetIndent(float indent)
+	{
+		if (indent <= 0f)
+		{
+			if (_indent is { } leftover)
+			{
+				Object.Destroy(leftover.gameObject);
+				_indent = null;
+			}
+
+			return;
+		}
+
+		if (Lines.Count == 0)
+		{
+			return;
+		}
+
+		if (_indent is null)
+		{
+			var go = new GameObject("Indent", typeof(RectTransform), typeof(LayoutElement));
+			go.transform.SetParent(Lines[0].transform, worldPositionStays: false);
+			go.transform.SetAsFirstSibling();
+			_indent = go.GetComponent<LayoutElement>();
+		}
+
+		_indent.minWidth = indent;
+		_indent.preferredWidth = indent;
+		_indent.flexibleWidth = 0f;
 	}
 
 	/// <summary>

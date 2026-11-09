@@ -68,4 +68,10 @@ internal sealed class OnlineUiWindowState
 
 	/// <summary>The archive a first click picked, waiting for the confirming second click (empty = no confirmation pending).</summary>
 	internal string PendingRestoreFile = "";
+
+	/// <summary>The save point a first delete click picked, waiting for the confirming second click (empty = none).</summary>
+	internal string PendingDeleteBackupFile = "";
+
+	/// <summary>The run a first delete click picked, waiting for the confirming second click (empty = none).</summary>
+	internal string PendingDeleteWorldId = "";
 }

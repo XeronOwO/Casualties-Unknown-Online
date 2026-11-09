@@ -213,8 +213,8 @@ docs/backlog/resolved/remote-backpack-native-interaction-parity.md | keep | inde
 docs/backlog/resolved/runtime-di-feature-registration-lifecycle.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/runtime-log-errors-2026-08-30.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/README.md
-docs/backlog/review/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
-docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim | docs/backlog/review/adapter-capability-catalog.md
+docs/backlog/in-progress/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
+docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim | docs/backlog/in-progress/adapter-capability-catalog.md
 docs/backlog/resolved/bilingual-human-docs.md | keep | index | docs/backlog/README.md
 docs/backlog/done/cheat-permission-and-op-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/backlog/README.md
@@ -1099,7 +1099,7 @@ docs/evidence/selfchecks/session/run-settings-range-selfcheck.md | keep | claim 
 docs/evidence/selfchecks/session/warmup-backoff-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/tooling/acceptance-key-hold-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/tooling/acceptance-recipe-layer-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/tooling/adapter-capability-catalog-selfcheck.md | keep | claim | docs/backlog/review/adapter-capability-catalog.md
+docs/evidence/selfchecks/tooling/adapter-capability-catalog-selfcheck.md | keep | claim | docs/backlog/in-progress/adapter-capability-catalog.md
 docs/evidence/selfchecks/tooling/adapter-control-surfaces-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/tooling/catalogue-and-manifest-census-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/tooling/check-architecture-performance-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
@@ -1381,4 +1381,5 @@ docs/backlog/done/1.0-run-settings-extended.md | keep | claim | docs/backlog/REA
 docs/evidence/acceptance/1.0-run-settings-20261110-a.md | keep | claim | docs/backlog/done/1.0-run-settings-extended.md
 docs/evidence/acceptance/1.0-prosthetics-20261110-a.md | keep | claim | docs/backlog/done/1.0-prosthetics.md
 docs/backlog/done/1.0-endings-authority.md | keep | claim | docs/backlog/README.md
+docs/backlog/done/1.0-dune-mode.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/1.0-run-ending-20261110-a.md | keep | claim | docs/backlog/done/1.0-endings-authority.md

@@ -75,6 +75,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### In progress
 
 - [Adapt the mod to the game's 1.0 release](in-progress/adapt-to-1.0.md) — **Highest** — the release changed the patch targets and removed the spectator field.
+- [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 ### Review
 
 
@@ -91,7 +92,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [Adapter capability catalog](review/adapter-capability-catalog.md) — **High** — capability ids, Required/Optional classes, probe reasons.
 - [The overlay's buttons are silent](review/overlay-buttons-are-silent.md) — **Medium** — the game's click sound for every CUO button.
 
 
@@ -126,6 +126,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [1.0: dune mode needs no sync](done/1.0-dune-mode.md) — **Low** — presentation-only, read from the release code.
 - [1.0: the final layer's ending is the host's state](done/1.0-endings-authority.md) — **High** — the ending is the host's, in the run row and the save.
 - [1.0: a prosthetic limb reaches the other clients](done/1.0-prosthetics.md) — **High** — the clone carries the peg limb.
 - [1.0: the release's run settings reach the baseline and the save](done/1.0-run-settings-extended.md) — **High** — 50 keys ride the run row.

@@ -91,6 +91,6 @@ that needs a product decision is parked with the question written into its own s
 5. `1.0-dune-mode` — `DuneMode`'s 20-second object/material shuffle is host-authoritative.
 6. `1.0-layers-6-11` — the deeper layers: the descent trigger `position.y < -halfHeight + 3.1f` (`:1138`), the layer-end
    cut on the layer 10 exit, and a run that visits them.
-7. `capability-catalog-required-refusal` — the existing `review/adapter-capability-catalog.md` stage 2: a required patch
+7. `capability-catalog-required-refusal` — the existing `in-progress/adapter-capability-catalog.md` stage 2: a required patch
    that fails refuses the install with a visible notice; an optional one degrades off.
 8. `ip-direct-shows-the-purchase-notice` — the filed `todo/` ticket.

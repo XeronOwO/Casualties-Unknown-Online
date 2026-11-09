@@ -1,6 +1,6 @@
 # Acceptance — the adapter capability catalog, stage 1: every capability printed on the deployed artifact
 
-- Ticket: `docs/backlog/review/adapter-capability-catalog.md` — verdict: **stage 1's acceptance row passes; the
+- Ticket: `docs/backlog/in-progress/adapter-capability-catalog.md` — verdict: **stage 1's acceptance row passes; the
   ticket stays in `review/`** because stages 2 (degradation) and 3 (install units) are gated on the game update
   that has not landed, exactly as the ticket's own staging says
 - Batch: `.acceptance/` (local, gitignored; this run is the `wex*` staging's client, started 2026-10-24)

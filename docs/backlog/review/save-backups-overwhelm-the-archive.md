@@ -12,8 +12,11 @@
   player sees it ("surface" / "N levels down", translated from the catalogue) instead of the raw layer index (batch
   `20261108-x`; readings: `docs/evidence/acceptance/save-backups-runs-page-20261108-x.md`). The 2026-11-09 change adds the
   DELETE surface (one save point, or the whole run, both two-step and both refusals visible) and the block indent as a
-  ROW fact (`OnlineUiRowModel.Indent`, a layout spacer in the adapter, never spaces inside a label). The list's frame and
-  the in-window editor for the ceiling remain.
+  ROW fact (`OnlineUiRowModel.Indent`, a layout spacer in the adapter, never spaces inside a label). Live reading batch
+  `20261109-a`: every run row carries "Delete this run", the expanded run carries "Delete this save point" beside its
+  restore control, and the save points step in from the run's left edge (frame + crop:
+  `docs/evidence/acceptance/save-backups-delete-and-indent-20261109.md`). The list's frame and the in-window editor for the
+  ceiling remain.
 - Priority: High
 - Category: Persistence / UX
 - Source: the user, 2026-11-08 (translated: "the save system — too many backups, badly organized, unpleasant to use;

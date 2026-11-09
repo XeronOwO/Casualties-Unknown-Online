@@ -1360,3 +1360,7 @@ docs/backlog/review/overlay-buttons-are-silent.md | keep | index | docs/backlog/
 docs/backlog/done/console-input-keys-violate-the-minecraft-rules.md | keep | index | docs/backlog/README.md
 docs/backlog/done/save-backups-overwhelm-the-archive.md | keep | index | docs/backlog/README.md
 docs/backlog/done/native-console-is-unpoliced.md | keep | index | docs/backlog/README.md
+docs/backlog/in-progress/adapt-to-1.0.md | keep | index | docs/backlog/README.md
+docs/design/game/README.md | keep | spec | docs/design/INDEX.md
+docs/design/game/items.md | keep | spec | docs/design/game/README.md
+docs/design/game/worldgen-and-layers.md | keep | spec | docs/design/game/README.md

@@ -242,4 +242,24 @@ foreach ($mod in $satelliteMods) {
     }
 }
 
+# The game reads its Steam app id from `steam_appid.txt` in its own folder; without it
+# `SteamAPI.InitEx` fails ("No appID found") and the mod cannot initialize Steam, so a
+# release install that never shipped the file has a working game but a dead multiplayer
+# path. Deploy writes the id for the 1.0 release install and leaves it alone when it
+# already matches. The project targets 1.0 only (2026-11-09); the demo's install is not a
+# supported target and gets no file from this script.
+$releaseInstall = "Casualties Unknown"
+$releaseAppId = "4576490"
+$installName = Split-Path -Leaf $GameDir
+$appIdFile = Join-Path $GameDir "steam_appid.txt"
+if ($installName -eq $releaseInstall) {
+    $current = if (Test-Path -LiteralPath $appIdFile) { (Get-Content -LiteralPath $appIdFile -Raw).Trim() } else { $null }
+    if ($current -ne $releaseAppId) {
+        Set-Content -LiteralPath $appIdFile -Value $releaseAppId -Encoding ASCII -NoNewline
+        Write-Host "  wrote steam_appid.txt ($releaseAppId) — the game needs it to initialize Steam"
+    }
+} else {
+    Write-Host "  steam_appid.txt: '$installName' is not the 1.0 release install; left alone (SteamAPI.InitEx needs it in the game folder)"
+}
+
 Write-Host "Deployed CUO to $targetDir"

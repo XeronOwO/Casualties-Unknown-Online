@@ -116,6 +116,17 @@ internal sealed class SpectatorCameraService(
 
 	private ulong _watchingSteamId;
 
+	/// <summary>
+	/// The watched body's transform, read by <c>PlayerCameraHandleCameraPositionPatch</c>. 1.0 has no
+	/// <c>PlayerCamera.following</c> field any more (the camera computes its position from
+	/// <c>body.transform.position</c> directly, <c>PlayerCamera.cs:2144</c>), so the follow target is carried here
+	/// and the patch skips the game's own computation while it is set.
+	/// </summary>
+	internal static Transform? WatchTarget { get; private set; }
+
+	/// <summary>Points the camera at a watched body (null returns it to the game's own computation).</summary>
+	internal static void SetWatchTarget(Transform? target) => WatchTarget = target;
+
 	/// <summary>Whether this client's camera is currently carrying CUO's follow state. Released only after it was taken: the free-camera field has a second owner in the game itself.</summary>
 	private bool _touchedCamera;
 
@@ -244,7 +255,7 @@ internal sealed class SpectatorCameraService(
 			return;
 		}
 
-		camera.following = target.transform;
+		SetWatchTarget(target.transform);
 		// The game's own status icons read this field: point them at the WATCHED body while the mode is on, so the
 		// HUD presents the player being watched (the ruling's "looks like I am playing them").
 		SpectatorPresentationGate.SetHudBody(target);
@@ -472,10 +483,7 @@ internal sealed class SpectatorCameraService(
 		_touchedCamera = false;
 		SpectatorPresentationGate.ClearWatched();
 		SpectatorPresentationGate.ClearHudBody();
-		if (camera.following != null) // Unity object — ==
-		{
-			camera.following = null;
-		}
+		SetWatchTarget(null);
 
 		camera.isFreecam = false;
 		if (camera.endScreen != null // Unity object — ==

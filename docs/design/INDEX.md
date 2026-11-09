@@ -10,6 +10,12 @@ Every page of the corpus, one line each. `AGENTS.md` states the rules the pages 
 | `model/item-custody.md` | item identity, custody, incarnations, what travels |
 | `model/session-lifecycle.md` | lobby, run, cut, continue, rejoin |
 
+## The game itself
+
+| Page | Holds |
+|---|---|
+| `game/README.md` | the 1.0 system map: what the game runs, the rules, the lines that say so |
+
 ## Mechanics
 
 | Page | Holds |

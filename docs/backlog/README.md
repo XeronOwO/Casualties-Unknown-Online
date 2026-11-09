@@ -73,6 +73,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
+- [Adapt the mod to the game's 1.0 release](in-progress/adapt-to-1.0.md) — **Highest** — the release changed the patch targets and removed the spectator field.
 ### Review
 
 

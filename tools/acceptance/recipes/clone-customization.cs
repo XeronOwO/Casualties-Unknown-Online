@@ -10,7 +10,7 @@
 ((System.Func<string>)(() => {
 	var cloneType = System.Type.GetType("CasualtiesUnknownOnline.GameAdapter.Character.RemoteCloneRender, CasualtiesUnknownOnline.GameAdapter", false);
 	if (cloneType == null) { return "{\"ok\":false,\"error\":\"no-clone-type\"}"; }
-	var clones = UnityEngine.Object.FindObjectsOfType(cloneType);
+	var clones = UnityEngine.Object.FindObjectsOfType(cloneType, true);
 	var rows = new System.Collections.Generic.List<string>();
 	foreach (var clone in clones) {
 		var item = ((UnityEngine.Component)clone).GetComponent(typeof(Item)) as Item;
@@ -19,3 +19,4 @@
 	}
 	return "{\"ok\":true,\"count\":" + rows.Count + ",\"items\":[" + string.Join(",", rows) + "]}";
 }))()
+

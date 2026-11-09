@@ -47,11 +47,9 @@ memory.
 ## Two clients in one world over IP direct (2026-11-09)
 
 The Steam lobby path needs a second account that owns 1.0, which the user does not have; the sanctioned substitute is the
-IP-direct transport with two local instances. The reading:
-
-- Host: the release install, launched through Steam; transport `IpDirect`, role `Host`, a run started.
-- Guest: a byte copy of the install (`E:\cuo-instance-b`, own driver port 18591), launched directly; its driver answered
-  `steamInit: true`; transport `IpDirect`, joined `127.0.0.1:7777`, role `Guest`.
+IP-direct transport with two local instances. - Host: the release install, launched through Steam; transport `IpDirect`, role `Host`, a run started.
+- Guest: a byte copy of the install in a sibling folder (its own driver port and display name), launched directly; its
+  driver answered `steamInit: true`; transport `IpDirect`, joined the host's address, role `Guest`.
 - Both read `inWorld: true, gateWaiting: false` — one world, two players, on 1.0.
 
 Evidence: `docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md`. The same batch closed the two runtime

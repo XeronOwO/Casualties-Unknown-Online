@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// purpose: the framework reads the interface, and a future data-driven loader
 /// (a JSON content pack) would deserialize into this concrete type.
 /// </summary>
-public sealed class ModItemDefinition : IModItemDefinition
+public sealed class ModItemDefinition : IModItemDefinition, IModItemFlags
 {
 	/// <inheritdoc />
 	public string Id { get; set; } = "";
@@ -136,4 +136,10 @@ public sealed class ModItemDefinition : IModItemDefinition
 		get;
 		set => field = value ?? [];
 	} = [];
+
+	/// <inheritdoc />
+	public bool Secret { get; set; }
+
+	/// <inheritdoc />
+	public bool Untradeable { get; set; }
 }

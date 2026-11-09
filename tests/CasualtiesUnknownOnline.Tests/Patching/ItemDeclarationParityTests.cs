@@ -82,6 +82,8 @@ public class ItemDeclarationParityTests
 			DestroyAtZeroCondition = true,
 			Tags = "tool,medicine",
 			RecognitionMinimum = 3,
+			Secret = true,
+			Untradeable = true,
 			OnlyHoldInHands = true,
 			Combineable = true,
 			IgnoreDepression = true,

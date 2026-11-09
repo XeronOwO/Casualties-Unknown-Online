@@ -67,7 +67,9 @@ internal static class ModItemInfoFactory
 			scaleWeightWithCondition = definition.ScaleWeightWithCondition,
 			autoAttack = definition.AutoAttack,
 			jumpHeightMultChange = definition.JumpHeightMultiplierChange,
-			slotRotation = definition.SlotRotation
+			slotRotation = definition.SlotRotation,
+			secret = (definition as IModItemFlags)?.Secret ?? false,
+			untradeable = (definition as IModItemFlags)?.Untradeable ?? false
 		};
 
 		// The three condition bits of the item's decay byte are the declaration's own;

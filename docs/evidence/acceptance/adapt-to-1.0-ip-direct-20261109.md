@@ -11,15 +11,14 @@ sanctioned while the second and third Steam accounts do not own the game.
 
 ## The fixture
 
-- Host: the release install `…\steamapps\common\Casualties Unknown`, launched through Steam (`steam://rungameid/4576490`),
-  driver port 18590. The plugin's capability report read
-  `Game Adapter capability report … verdict: session available — no blocking hook failure`.
-- Guest: a byte copy of the install at `E:\cuo-instance-b` (682.8 MB), its own driver port 18591 (`hotrepl.bepinex.cfg`
-  `Port = 18591`), its CUO config carrying `[IpDirect] DisplayName = Guest`, `JoinAddress = 127.0.0.1`,
-  `ListenPort = 7778`. Launched directly (`CasualtiesUnknown.exe`); its driver answered `steamInit: true`.
+- Host: the release install, launched through Steam, on the acceptance driver's host port. The plugin's capability
+  report read `Game Adapter capability report … verdict: session available — no blocking hook failure`.
+- Guest: a byte copy of the install in a sibling folder, its own acceptance driver port and its own CUO config carrying
+  `[IpDirect] DisplayName = Guest`, `JoinAddress = 127.0.0.1`. Launched directly (`CasualtiesUnknown.exe`); its driver
+  answered `steamInit: true`.
 - The host's IP host was created from the Online UI: transport switched to `IpDirect` (`home.transport.ip`), display name
-  `Host`, listen port `7777`, then `ip.create_host`.
-- The guest joined: transport `IpDirect`, address `127.0.0.1`, port `7777`, then `ip.join`.
+  `Host`, a listen port, then `ip.create_host`.
+- The guest joined the host's address and port, then `ip.join`.
 
 ## The readings
 

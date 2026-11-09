@@ -169,11 +169,13 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 	}
 
 	/// <summary>
-	/// The owner's prosthetic, applied to the clone through the game's own entry. The native
-	/// <c>Limb.AttachProsthetic(prosthetic, isLoad)</c> skips the reattach and the sound when
-	/// <paramref name="isLoad"/> is true — the same path the game's save load uses — so a repeated
-	/// snapshot does not replay either. A limb that lost its prosthetic has the struct cleared,
-	/// which is what the save load writes.
+	/// The owner's prosthetic, applied to the clone the way the game's own save load applies it:
+	/// <c>SaveSystem</c> deserializes <c>Limb.ProstheticInfo</c> straight into the field
+	/// (<c>SaveSystem.cs:305-307</c>) — not through <c>Limb.AttachProsthetic</c>, whose first line
+	/// touches the Steam achievement manager and whose <c>isLoad: false</c> branch reattaches and
+	/// plays the apply sound. The clone is not installing anything; it is showing the owner's limb,
+	/// so the struct write is the load-time entry. A limb that lost its prosthetic has the struct
+	/// cleared, which is what the save load writes for a limb without one.
 	/// </summary>
 	private static void ApplyProsthetic(Limb limb, CharacterLimbMsg data)
 	{
@@ -185,18 +187,16 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 				return; // the same prosthetic — the apply is idempotent
 			}
 
-			limb.AttachProsthetic(
-				new Limb.ProstheticInfo
-				{
-					hasProsthetic = true,
-					itemId = data.ProstheticItemId ?? string.Empty,
-					forceChange = data.ProstheticForceChange,
-					armorChange = data.ProstheticArmorChange,
-					r = data.ProstheticR,
-					g = data.ProstheticG,
-					b = data.ProstheticB,
-				},
-				true);
+			limb.prostheticInfo = new Limb.ProstheticInfo
+			{
+				hasProsthetic = true,
+				itemId = data.ProstheticItemId ?? string.Empty,
+				forceChange = data.ProstheticForceChange,
+				armorChange = data.ProstheticArmorChange,
+				r = data.ProstheticR,
+				g = data.ProstheticG,
+				b = data.ProstheticB,
+			};
 			return;
 		}
 

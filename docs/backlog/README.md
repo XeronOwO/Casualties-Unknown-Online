@@ -126,6 +126,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [1.0: layers beyond the fifth need no adapter change](done/1.0-layers-beyond-the-fifth.md) — **Medium** — the depth is data; nothing caps it.
 - [1.0: dune mode needs no sync](done/1.0-dune-mode.md) — **Low** — presentation-only, read from the release code.
 - [1.0: the final layer's ending is the host's state](done/1.0-endings-authority.md) — **High** — the ending is the host's, in the run row and the save.
 - [1.0: a prosthetic limb reaches the other clients](done/1.0-prosthetics.md) — **High** — the clone carries the peg limb.

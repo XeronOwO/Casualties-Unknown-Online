@@ -1380,3 +1380,4 @@ docs/backlog/done/1.0-prosthetics.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-run-settings-extended.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/1.0-run-settings-20261110-a.md | keep | claim | docs/backlog/done/1.0-run-settings-extended.md
 docs/evidence/acceptance/1.0-prosthetics-20261110-a.md | keep | claim | docs/backlog/done/1.0-prosthetics.md
+docs/backlog/todo/1.0-endings-authority.md | keep | claim | docs/backlog/README.md

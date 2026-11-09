@@ -63,7 +63,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Todo
 
 - [1.0: a customized item reaches the other clients](todo/1.0-item-customization-truth.md) — **Highest** — the wire misses label, colour, favourite.
-- [1.0: a prosthetic limb reaches the other clients](done/1.0-prosthetics.md) — **High** — the wire carries the block; the clone reads `3=pegl`.
 - [IP direct shows the purchase notice when Steam is not ready](todo/ip-direct-shows-the-purchase-notice.md) — **High** — asks for a copy, once per run.
 
 
@@ -126,6 +125,9 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [1.0: a prosthetic limb reaches the other clients](done/1.0-prosthetics.md) — **High** — the clone carries the peg limb.
+- [1.0: the release's run settings reach the baseline and the save](done/1.0-run-settings-extended.md) — **High** — 50 keys ride the run row.
 
 - [Save backups are too many and disorganized](done/save-backups-overwhelm-the-archive.md) — **High** — deletes, an editable ceiling, runs not folders.
 - [Console input keys break Minecraft's rules](done/console-input-keys-violate-the-minecraft-rules.md) — **Medium** — empty Enter closes; up walks history.

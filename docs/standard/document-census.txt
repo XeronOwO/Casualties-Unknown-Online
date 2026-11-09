@@ -1367,3 +1367,4 @@ docs/design/game/worldgen-and-layers.md | keep | spec | docs/design/game/README.
 docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md | keep | claim | docs/backlog/in-progress/adapt-to-1.0.md
 docs/design/game/medical.md | keep | claim | docs/design/game/README.md
 docs/design/game/crafting.md | keep | claim | docs/design/game/README.md
+docs/design/game/combat.md | keep | claim | docs/design/game/README.md

@@ -1,9 +1,6 @@
 # Adapt the mod to the game's 1.0 release
 
-- Status: In progress — the 1.0 adapter is reconciled and read on a live session (2026-11-09): the capability report
-  passes, two 1.0 clients met in one world over the IP-direct transport (the Steam lobby path needs a second owning
-  account), and the two runtime differences (`SetBlock`'s overload, the removed `following` field) are fixed. What
-  remains: the system map's later pages, the principles layer, and the backlog.
+- Status: In progress — the 1.0 adapter is reconciled and read on a live session (2026-11-09): the capability report passes, two 1.0 clients met in one world over the IP-direct transport, and the two runtime differences are fixed. The system map is complete (ten domain pages + `principles.md`, `docs/design/game/`). What remains: the backlog's release pass.
 - Priority: Highest
 - Category: Adapter / release
 - Source: the user (2026-11-09): the project targets 1.0 only, the demo is no longer a supported target.

@@ -103,4 +103,28 @@ internal static class OnlineUiSurfaceParts
 		rect.offsetMin = new Vector2(left, bottom);
 		rect.offsetMax = new Vector2(-right, -top);
 	}
+
+	/// <summary>
+	/// The game's own frame drawn as a page's box: the window's sprite for its border with the dark fill
+	/// inside, stretched under the page's rows and kept out of their layout group, so a list reads as one
+	/// block instead of loose lines. Chrome, never a row — the design page's "the list is a box".
+	/// </summary>
+	internal static RectTransform CreatePageBox(
+		RectTransform content,
+		Sprite? sprite,
+		Image.Type imageType,
+		float pixelsPerUnit,
+		Color fill)
+	{
+		var box = CreateRect("Page Box", content, typeof(Image), typeof(LayoutElement));
+		box.anchorMin = Vector2.zero;
+		box.anchorMax = Vector2.one;
+		box.offsetMin = Vector2.zero;
+		box.offsetMax = Vector2.zero;
+		box.SetAsFirstSibling();
+		box.GetComponent<LayoutElement>().ignoreLayout = true;
+		OnlineUiControlFactory.MakeFrame(box.gameObject, sprite, imageType, pixelsPerUnit, fill);
+		box.GetComponent<Image>().raycastTarget = false;
+		return box;
+	}
 }

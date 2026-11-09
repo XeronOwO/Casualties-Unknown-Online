@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -76,6 +77,17 @@ internal static class OnlineUiWorldsDrawer
 			ctx.T("worlds.section"),
 			page.ButtonElement("worlds.refresh", ctx.T("worlds.refresh"), () => Reload(ctx, library), width: 110f));
 		page.Muted(ctx.F("worlds.retention", library.BackupRetention));
+		// The ceiling is the player's: the same number the line names, typed here and written to the config
+		// file, so the page and the file cannot disagree.
+		page.Row(
+			page.LabelElement(ctx.T("worlds.retention_edit"), OnlineUiTextStyle.Muted, OnlineUiTheme.Muted),
+			page.NumberFieldElement(
+				"worlds.retention.number",
+				library.BackupRetention,
+				SaveOptions.MinBackupRetentionCount,
+				SaveOptions.MaxBackupRetentionCount,
+				keep => library.TrySetBackupRetention((int)keep, out _),
+				width: 90f));
 	}
 
 	/// <summary>The one line that says what the last action did — or why it did nothing.</summary>

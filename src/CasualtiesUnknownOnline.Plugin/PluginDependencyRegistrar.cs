@@ -172,6 +172,11 @@ internal static class PluginDependencyRegistrar
 				},
 				autosaveEnabled.Definition, autosaveIntervalMinutes.Definition, backupRetentionCount.Definition)));
 
+		// The ceiling the window edits is this entry, read back after the write so the page never
+		// shows a number the file does not hold.
+		services.Replace(ServiceDescriptor.Singleton<IBackupRetentionWriter>(
+			new SaveConfigRetentionWriter(backupRetentionCount)));
+
 		// UI language: en or zh. The localization service normalizes anything
 		// starting with "zh" to zh and everything else to English.
 		var language = config.Bind("UI", "Language", "en",

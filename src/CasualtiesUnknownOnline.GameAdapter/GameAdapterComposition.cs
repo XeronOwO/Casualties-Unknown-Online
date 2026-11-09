@@ -121,7 +121,8 @@ public static class GameAdapterComposition
 			p.GetRequiredService<ISessionControl>(),
 			p.GetRequiredService<ILogger<WorldLibraryService>>(),
 			p.GetService<IOptionsMonitor<SaveOptions>>(),
-			worldActive: () => p.GetRequiredService<IWorldPresenceQuery>().IsInWorldOrGenerating));
+			worldActive: () => p.GetRequiredService<IWorldPresenceQuery>().IsInWorldOrGenerating,
+			retentionWriter: p.GetService<IBackupRetentionWriter>()));
 		services.AddSingleton<IWorldLibrary>(p => p.GetRequiredService<WorldLibraryService>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<WorldLibraryService>());
 		// The native world-fact reader/writer of the CUO world archive: the

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using UnityEngine;
 
@@ -162,6 +163,14 @@ internal sealed class OnlineUiPageBuilder
 		var key = Key(id);
 		_actions[key] = intent => edited(intent.Text);
 		return OnlineUiElementModel.TextField(key, label, value, width, maxLength);
+	}
+
+	/// <summary>A number the player types, judged against its own range: the ceiling the save page edits.</summary>
+	internal OnlineUiElementModel NumberFieldElement(string id, float number, float minimum, float maximum, Action<float> edited, float width = 0f)
+	{
+		var key = Key(id);
+		_actions[key] = intent => edited(intent.Number);
+		return OnlineUiElementModel.NumberField(key, number.ToString(CultureInfo.InvariantCulture), number, minimum, maximum, width);
 	}
 
 	/// <summary>

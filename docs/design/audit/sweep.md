@@ -53,7 +53,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.PinyinSearch.Core` | 5 | read |
 | `CasualtiesUnknownOnline.PinyinSearch.Core/Search` | 6 | read |
 | `CasualtiesUnknownOnline.PinyinSearch/Patches` | 2 | read |
-| `CasualtiesUnknownOnline.Plugin` | 43 | read |
+| `CasualtiesUnknownOnline.Plugin` | 44 | read |
 | `CasualtiesUnknownOnline.Protocol/Codecs` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Versioning` | 1 | read |
 | `CasualtiesUnknownOnline.Protocol/Wire` | 55 | read |
@@ -62,7 +62,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.RecursiveCrafting.Core/Crafting` | 8 | read |
 | `CasualtiesUnknownOnline.Runtime` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/Composition` | 12 | read |
-| `CasualtiesUnknownOnline.Runtime/Configuration` | 16 | read |
+| `CasualtiesUnknownOnline.Runtime/Configuration` | 17 | read |
 | `CasualtiesUnknownOnline.Runtime/Data` | 18 | read |
 | `CasualtiesUnknownOnline.Runtime/Diagnostics` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/GameAdapter` | 55 | read |

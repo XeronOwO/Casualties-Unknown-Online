@@ -33,7 +33,8 @@ public sealed class WorldLibraryService(
 	ISessionControl session,
 	ILogger<WorldLibraryService> log,
 	IOptionsMonitor<SaveOptions>? options = null,
-	Func<bool>? worldActive = null) : IWorldLibrary, ICuoService
+	Func<bool>? worldActive = null,
+	IBackupRetentionWriter? retentionWriter = null) : IWorldLibrary, ICuoService
 {
 	/// <summary>The save policy a composition with no options monitor runs with (the frozen defaults of §7).</summary>
 	private static readonly SaveOptions FallbackOptions = new();
@@ -209,6 +210,23 @@ public sealed class WorldLibraryService(
 		if (keep < SaveOptions.MinBackupRetentionCount || keep > SaveOptions.MaxBackupRetentionCount)
 		{
 			return Refuse(WorldMaintenanceKind.SetRetention, "", null, $"a retention of {keep} is outside 1..1000", out refusal);
+		}
+
+		// The config entry is the policy's own home: a writer writes it down and the monitor reloads
+		// it, so the value survives a restart. A composition without a writer falls back to a mutable
+		// monitor (tests), and refuses when neither can take the value.
+		if (retentionWriter is not null)
+		{
+			if (!retentionWriter.TryWrite(keep, out var writeRefusal))
+			{
+				return Refuse(WorldMaintenanceKind.SetRetention, "", null,
+					writeRefusal ?? "the save policy could not be written", out refusal);
+			}
+
+			Report(WorldMaintenanceReport.Completed(WorldMaintenanceKind.SetRetention, "", null,
+				$"the save points kept per world are now {keep}", []));
+			refusal = null;
+			return true;
 		}
 
 		// Only a monitor that can take a value is written: the bound one reads the config file and

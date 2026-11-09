@@ -254,6 +254,8 @@ internal sealed class OnlineUiWindowView
 		var fitter = content.GetComponent<ContentSizeFitter>();
 		fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+		OnlineUiSurfaceParts.CreatePageBox(content, sprite, imageType, pixelsPerUnit, PanelTint);
+
 		// The page's own place in the shell is the engine's now (a flexible band under the tab strip, spaced by
 		// the shell group): the arithmetic that once put its top edge inside the tab strip is gone, and with it
 		// the class of defect the acceptance pass found there.

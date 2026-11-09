@@ -1372,3 +1372,4 @@ docs/design/game/traps-and-events.md | keep | claim | docs/design/game/README.md
 docs/design/game/world-objects.md | keep | claim | docs/design/game/README.md
 docs/design/game/fluids-and-climate.md | keep | claim | docs/design/game/README.md
 docs/design/game/ui-and-settings.md | keep | claim | docs/design/game/README.md
+docs/design/game/console-and-save.md | keep | claim | docs/design/game/README.md

@@ -263,6 +263,16 @@ internal static class AdapterCapabilityCatalog
 
 	internal static IReadOnlyList<AdapterCapabilityDefinition> All => Declared;
 
+	/// <summary>The patch containers one capability owns, or an empty list for an unknown id — the stage-3 install unit.</summary>
+	internal static IReadOnlyList<Type> ClassesOf(string capabilityId) =>
+		Declared.FirstOrDefault(definition => string.Equals(definition.Id, capabilityId, StringComparison.Ordinal)) is { } definition
+			? [.. PatchClassesOf(definition)]
+			: [];
+
+	/// <summary>The optional capability ids, in declaration order: these are the ids a configuration may turn off as a unit.</summary>
+	internal static IReadOnlyList<string> OptionalCapabilityIds =>
+		[.. Declared.Where(definition => definition.Kind == AdapterCapabilityKind.Optional).Select(definition => definition.Id)];
+
 	/// <summary>The type list <c>ProbeGame</c> reads — declared here so the probe and the report cannot disagree.</summary>
 	internal static IReadOnlyList<Type> GameProbeTypes =>
 		Declared.Single(definition => definition.Id == AdapterCapabilityIds.Session).GameTypes;
@@ -362,3 +372,4 @@ internal static class AdapterCapabilityCatalog
 		return owners;
 	}
 }
+

@@ -8,11 +8,9 @@ namespace CasualtiesUnknownOnline.Tests.Capabilities;
 /// <summary>
 /// The capability report's own contract: every capability appears with its
 /// Required/Optional class and its contract count, every failure reason is
-/// printed under the capability it belongs to, and stage 1's verdict stays
-/// all-or-nothing — an Optional capability that fails is reported but does not
-/// yet degrade alone, which is stage 2's job. The last point is the pin this
-/// cycle owes the ticket: when stage 2 lands, THIS is the expectation that
-/// changes, and nothing else in the report has to.
+/// printed under the capability it belongs to, and stage 2's verdict decides by
+/// that class — a REQUIRED capability's blocking failure refuses the session,
+/// an OPTIONAL one degrades alone and the report names it.
 /// </summary>
 public class AdapterCapabilityReportTests
 {
@@ -110,11 +108,32 @@ public class AdapterCapabilityReportTests
 	}
 
 	[Fact]
-	public void RefusesInstall_IsAllOrNothingForBlockingFailures()
+	public void RefusesInstall_CountsEveryBlockingFailureTheCallerHandsIt()
 	{
 		Assert.True(AdapterCapabilityReport.RefusesInstall([Blocking()]));
 		Assert.False(AdapterCapabilityReport.RefusesInstall([ProbeOnly()]));
 		Assert.False(AdapterCapabilityReport.RefusesInstall([]));
+	}
+
+	[Fact]
+	public void Render_AnOptionalBlockingFailureDegradesWithoutRefusing()
+	{
+		var report = new AdapterCapabilityReport(
+			ProbeLine,
+			2,
+			0,
+			[
+				Status("items", AdapterCapabilityKind.Required, 1),
+				Status("diagnostics", AdapterCapabilityKind.Optional, 1, Blocking()),
+			],
+			[]);
+
+		var text = report.Render();
+
+		Assert.False(report.RefusesSession);
+		Assert.Single(report.Degraded);
+		Assert.Equal("diagnostics", report.Degraded[0].Id);
+		Assert.Contains("verdict: session available — 1 OPTIONAL capability(ies) installed off: diagnostics", text, StringComparison.Ordinal);
 	}
 
 	[Fact]

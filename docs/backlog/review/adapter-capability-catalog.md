@@ -1,6 +1,6 @@
 # Adapter capability catalog and probe aggregation
 
-- Status: Review — blocked on build capability: stage 1's acceptance row passed 2026-10-24 on the deployed artifact (the startup probe prints all 13 capabilities with their class and contract count, its report text is the one `ProbeGame_KeepsItsVerdictAndReportText` pins, both suites are green; record `docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md`), and stages 2 (degradation, with its player-visible notice) and 3 (install units) wait on the game update landing, as the staging below says.
+- Status: In progress — stage 1's acceptance row passed 2026-10-24 on the deployed artifact (the startup probe prints all 13 capabilities with their class and contract count, its report text is the one `ProbeGame_KeepsItsVerdictAndReportText` pins, both suites are green; record `docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md`). Stage 2's RULE landed on the 1.0 build (2026-11-10): a blocking hook failure refuses the session only when its owning capability is Required (a class no capability claims keeps the as-a-whole rule — a catalog gap is a bug), an Optional capability's failure installs as off and the report names it (`AdapterCapabilityCatalog.IsRequiredOwner`, `PatchInstallLifecycle.Install`, `AdapterCapabilityReport.RefusesSession`/`Degraded`; pinned by `AdapterCapabilityReportTests`, gates 834/0, suite 6640/0). Still open: the player-visible refusal notice (the refusal's reason rendered in the game's own window at the menu — the one user-acceptance item stage 2 names) and stage 3's install units.
 - Priority: High
 - Category: Architecture / game-update adaptation
 - Source: Loomi architecture review (2026-09-20), item 1; degradation ruling by the user, 2026-09-20
@@ -102,3 +102,10 @@ The catalog and the probe, with installation behaviour untouched. Self-check:
 
 The Required/Optional split is decided by the rule above, not by how hard a capability is to fix: a
 feature the game has must never be silently dropped from a session.
+## Stage 2's rule (landed 2026-11-10)
+
+- `AdapterCapabilityCatalog.IsRequiredOwner(patchClass)` — the owning capability's class decides; an unclaimed class answers true (a catalog gap keeps the as-a-whole rule).
+- `PatchInstallLifecycle.Install` — the missing set is split by that rule: a Required (or unclaimed) miss unpatch and refuses; an Optional miss logs "installed with {n} optional capability hook(s) off" and the session continues.
+- `AdapterCapabilityReport.RefusesSession` — Required failures plus unmapped ones refuse; `Degraded` names the Optional rows; `Render` prints "session available — {n} OPTIONAL capability(ies) installed off: …".
+- Pinned by `tests/CasualtiesUnknownOnline.Tests/Capabilities/AdapterCapabilityReportTests.cs` (`Render_AnOptionalBlockingFailureDegradesWithoutRefusing` and the existing Required/refusal facts).
+- Not yet: the player-visible refusal notice (stage 2's user-acceptance half) and stage 3's per-capability install units.

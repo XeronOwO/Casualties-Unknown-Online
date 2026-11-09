@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Capabilities;
-using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Patching;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
@@ -63,13 +62,26 @@ internal sealed class PatchInstallLifecycle
 			// must fail loud — a silently missing hook is how sync bugs hide).
 			var missing = PatchInventory.VerifyMissing(_harmony);
 			_capabilities.Record(missing);
-			if (AdapterCapabilityReport.RefusesInstall(missing))
+
+			// Stage 2: an OPTIONAL capability's missing hook installs as off — the
+			// report names it, the session runs without it. A REQUIRED capability's
+			// missing hook still refuses the whole session (and unpatches), and a
+			// failure no capability claims keeps that rule too, because a catalog
+			// gap must never turn a broken hook into a silent degradation.
+			var blocking = missing.Where(failure => AdapterCapabilityCatalog.IsRequiredOwner(failure.PatchClass)).ToList();
+			if (blocking.Count > 0)
 			{
-				_log.LogError("Game Adapter patch verification FAILED — {Count} targets not applied: {Missing}",
-					missing.Count, string.Join(", ", missing.Select(failure => failure.Detail)));
+				_log.LogError("Game Adapter patch verification FAILED — {Count} required target(s) not applied: {Missing}",
+					blocking.Count, string.Join(", ", blocking.Select(failure => failure.Detail)));
 				_harmony.UnpatchSelf();
 				_harmony = null;
 				return false;
+			}
+
+			if (missing.Count > 0)
+			{
+				_log.LogWarning("Game Adapter installed with {Count} optional capability hook(s) off: {Missing}",
+					missing.Count, string.Join(", ", missing.Select(failure => failure.Detail)));
 			}
 
 			_log.LogInformation("Game Adapter patches installed and verified ({Count} targets).", PatchInventory.CountTargets());

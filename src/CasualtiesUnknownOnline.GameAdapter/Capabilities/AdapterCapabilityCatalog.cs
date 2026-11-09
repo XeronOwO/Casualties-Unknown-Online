@@ -271,6 +271,24 @@ internal static class AdapterCapabilityCatalog
 	internal static string? OwnerOfPatchClass(string patchClassType) =>
 		PatchClassOwners.Value.TryGetValue(patchClassType, out var id) ? id : null;
 
+	/// <summary>
+	/// Stage 2's install rule: a missing hook refuses the session only when its
+	/// owning capability is REQUIRED — an OPTIONAL capability's failure installs
+	/// it as off and the rest keeps running. A class no capability claims keeps
+	/// the all-or-nothing rule: a catalog gap is a bug, not a degradation.
+	/// </summary>
+	internal static bool IsRequiredOwner(string patchClassType)
+	{
+		var owner = OwnerOfPatchClass(patchClassType);
+		if (owner is null)
+		{
+			return true;
+		}
+
+		var definition = Find(owner);
+		return definition is null || definition.Kind != AdapterCapabilityKind.Optional;
+	}
+
 	/// <summary>The capability owning a hand-declared dynamic contract row, by pseudo patch-class name.</summary>
 	internal static string? OwnerOfDynamicPatchClass(string dynamicPatchClass) =>
 		DynamicClassOwners.Value.TryGetValue(dynamicPatchClass, out var id) ? id : null;

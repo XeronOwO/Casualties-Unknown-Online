@@ -51,14 +51,20 @@ internal sealed class AdapterCapabilityReport
 	internal int ContractCount => PatchContracts + DynamicContracts;
 
 	/// <summary>
-	/// Stage 1's verdict: ANY blocking hook failure refuses the session, which
-	/// is the rule the adapter already applied — a capability's Required/Optional
-	/// class is recorded and printed but does not yet change the decision. It is
-	/// computed by the SAME rule the install gate calls
-	/// (<see cref="RefusesInstall"/>), so the printed verdict and the gate's
-	/// decision cannot diverge.
+	/// Stage 2's verdict: a REQUIRED capability's blocking hook failure refuses
+	/// the session; an OPTIONAL one degrades alone (the report names it and the
+	/// session runs without it). A failure no capability claims keeps the
+	/// as-a-whole rule — a catalog gap is a bug, not a degradation. Computed by
+	/// the same rule the install gate applies through the catalog's owner lookup,
+	/// so the printed verdict and the gate's decision cannot diverge.
 	/// </summary>
-	internal bool RefusesSession => RefusesInstall([.. AllFailures]);
+	internal bool RefusesSession =>
+		RefusesInstall([.. RequiredFailures]) || UnmappedFailures.Any(failure => failure.BlocksInstall);
+
+	/// <summary>The capabilities that installed as off: OPTIONAL rows with a blocking failure.</summary>
+	internal IReadOnlyList<AdapterCapabilityStatus> Degraded =>
+		[.. Statuses.Where(status => status.Kind == AdapterCapabilityKind.Optional
+			&& status.Failures.Any(failure => failure.BlocksInstall))];
 
 	/// <summary>
 	/// The install gate's decision in one place: called with the contract
@@ -78,8 +84,10 @@ internal sealed class AdapterCapabilityReport
 		};
 		lines.AddRange(Statuses.Select(status => status.Describe()));
 		lines.Add(RefusesSession
-			? "verdict: session REFUSED — stage 1 counts every blocking hook failure, whatever a capability's Required/Optional class says"
-			: "verdict: session available — no blocking hook failure");
+			? "verdict: session REFUSED — a REQUIRED capability's hook failed (stage 2: an OPTIONAL failure degrades alone)"
+			: Degraded.Count > 0
+				? $"verdict: session available — {Degraded.Count} OPTIONAL capability(ies) installed off: {string.Join(", ", Degraded.Select(status => status.Id))}"
+				: "verdict: session available — no blocking hook failure");
 		if (UnmappedFailures.Count > 0)
 		{
 			lines.Add($"failures no capability claims ({UnmappedFailures.Count}) — a catalog gap, or a failure that belongs to no single capability:");
@@ -89,6 +97,7 @@ internal sealed class AdapterCapabilityReport
 		return string.Join("\n", lines);
 	}
 
-	private IEnumerable<PatchVerificationFailure> AllFailures =>
-		Statuses.SelectMany(status => status.Failures).Concat(UnmappedFailures);
+	private IEnumerable<PatchVerificationFailure> RequiredFailures =>
+		Statuses.Where(status => status.Kind != AdapterCapabilityKind.Optional)
+			.SelectMany(status => status.Failures);
 }

@@ -20,7 +20,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// gates quake breaks by the numbering-distance rule so overlapping players
 /// do not double the total break rate (see ShouldApplyQuakeBreak).
 /// </summary>
-[HarmonyPatch(typeof(WorldGeneration), "SetBlock")]
+[HarmonyPatch(typeof(WorldGeneration), "SetBlock", [typeof(Vector2Int), typeof(ushort)])]
 internal static class WorldGenerationSetBlockPatch
 {
 	private static bool Prefix(Vector2Int pos, ushort block)

@@ -3,7 +3,7 @@
 - Date: 2026-11-08
 - Batch: `20261108-x` (host desktop only)
 - Deployed artifact: `0.1.0+a0ae5b84`, `tools/verify-deploy.ps1` — "Deployment matches this tree's build output"
-- Ticket: `docs/backlog/review/save-backups-overwhelm-the-archive.md`
+- Ticket: `docs/backlog/done/save-backups-overwhelm-the-archive.md`
 
 ## What the player saw before
 

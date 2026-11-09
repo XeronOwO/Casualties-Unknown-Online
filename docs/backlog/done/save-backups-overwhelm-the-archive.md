@@ -1,6 +1,6 @@
 # Save backups are too many and the archive is disorganized
 
-- Status: Review — user-reported (2026-11-08): the save system keeps too many backups, they are not organized, and the
+- Status: Done — user-reported (2026-11-08): the save system keeps too many backups, they are not organized, and the
   interaction is unfriendly; the user asks for a proper design and UI. Corrected 2026-11-08: the retention rule already
   exists and holds (every world keeps exactly 10 backups; `[Save] BackupRetentionCount`); what the report hit is the
   surface — empty rows with nothing to show, a ceiling the window never states, and a list with no paging. The 2026-11-08
@@ -15,8 +15,10 @@
   ROW fact (`OnlineUiRowModel.Indent`, a layout spacer in the adapter, never spaces inside a label). Live reading batch
   `20261109-a`: every run row carries "Delete this run", the expanded run carries "Delete this save point" beside its
   restore control, and the save points step in from the run's left edge (frame + crop:
-  `docs/evidence/acceptance/save-backups-delete-and-indent-20261109.md`). The list's frame and the in-window editor for the
-  ceiling remain.
+  `docs/evidence/acceptance/save-backups-delete-and-indent-20261109.md`). The in-window editor for the ceiling landed
+  (2026-11-09: the row "Every world keeps:" is a number field that writes the BepInEx config entry and reads it back;
+  batch `20261109-b`), and the user waived the list's frame as a product decision ("the indent is enough; the game is out;
+  the frame does not matter — consider it passed", 2026-11-09, translated).
 - Priority: High
 - Category: Persistence / UX
 - Source: the user, 2026-11-08 (translated: "the save system — too many backups, badly organized, unpleasant to use;

@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-
+- [IP direct shows the purchase notice when Steam is not ready](todo/ip-direct-shows-the-purchase-notice.md) — **High** — asks for a copy, once per run.
 
 
 

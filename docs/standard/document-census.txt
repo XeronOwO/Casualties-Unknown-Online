@@ -1374,3 +1374,4 @@ docs/design/game/fluids-and-climate.md | keep | claim | docs/design/game/README.
 docs/design/game/ui-and-settings.md | keep | claim | docs/design/game/README.md
 docs/design/game/console-and-save.md | keep | claim | docs/design/game/README.md
 docs/design/game/principles.md | keep | claim | docs/design/game/README.md
+docs/backlog/todo/ip-direct-shows-the-purchase-notice.md | keep | claim | docs/backlog/README.md

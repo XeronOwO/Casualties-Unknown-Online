@@ -61,6 +61,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
+- [1.0: a capability installs and comes off as a unit](todo/1.0-capability-install-units.md) — **High** — an optional capability turned off leaves it off.
 
 - [IP direct shows the purchase notice when Steam is not ready](todo/ip-direct-shows-the-purchase-notice.md) — **High** — asks for a copy, once per run.
 

@@ -37,6 +37,8 @@ internal static class RemoteItemPresentation
 	internal static void ApplySourceValues(Item item, CharacterItemMsg data)
 	{
 		item.condition = data.Condition;
+		item.label = data.Label ?? "";
+		item.colorSwatch = data.ColorSwatch;
 		ItemStateCodec.RestoreLiquids(item, data.Liquids);
 	}
 

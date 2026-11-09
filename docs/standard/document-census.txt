@@ -430,7 +430,7 @@ docs/decisions/decisions-1-137.md | keep | spec | docs/decisions/active.md
 docs/decisions/archive.md | keep | spec | docs/backlog/done/mod-content-ceiling.md
 docs/decisions/index.md | keep | spec | docs/evidence/selfchecks/mod-api/mod-content-fingerprint-review.md
 docs/development/agent-reference.md | keep | spec | docs/backlog/resolved/bilingual-human-docs.md
-docs/development/native-parity.md | keep | spec | docs/evidence/delivery-checklist.md
+docs/development/native-parity.md | keep | spec | docs/architecture/surfaces.md
 docs/architecture/surfaces.md | keep | spec | docs/architecture/README.md
 docs/design/AGENTS.md | keep | spec | docs/architecture/surfaces.md
 docs/contracts/design-comprehension-baseline.txt | keep | loaded | tests/CasualtiesUnknownOnline.NormativeGates.Tests/DesignComprehensionGateTests.cs

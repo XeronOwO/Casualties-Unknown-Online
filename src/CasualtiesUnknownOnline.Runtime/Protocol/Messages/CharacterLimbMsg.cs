@@ -105,4 +105,40 @@ public sealed class CharacterLimbMsg
 	/// </summary>
 	[ProtoMember(24)]
 	public int DistanceToHeart { get; set; }
+
+	/// <summary>
+	/// The native <c>Limb.ProstheticInfo.hasProsthetic</c> of the owner's limb
+	/// (Item.cs:749-830 installs it through <c>Limb.AttachProsthetic</c>). The
+	/// host records it with the limb state; a remote client reattaches it through
+	/// the game's own <c>AttachProsthetic(info, isLoad: true)</c>.
+	/// </summary>
+	[ProtoMember(25)]
+	public bool HasProsthetic { get; set; }
+
+	/// <summary>
+	/// The prosthetic's native item id (<c>"steelprosthesis"</c>, <c>"peo"</c>, …).
+	/// Null when the limb carries none, so an ordinary limb pays nothing on the wire.
+	/// </summary>
+	[ProtoMember(26)]
+	public string? ProstheticItemId { get; set; }
+
+	/// <summary>The prosthetic's <c>forceChange</c> (native <c>ProstheticInfo</c>).</summary>
+	[ProtoMember(27)]
+	public float ProstheticForceChange { get; set; }
+
+	/// <summary>The prosthetic's <c>armorChange</c> (native <c>ProstheticInfo</c>).</summary>
+	[ProtoMember(28)]
+	public float ProstheticArmorChange { get; set; }
+
+	/// <summary>The prosthetic's red colour channel (native <c>ProstheticInfo.r</c>).</summary>
+	[ProtoMember(29)]
+	public float ProstheticR { get; set; }
+
+	/// <summary>The prosthetic's green colour channel (native <c>ProstheticInfo.g</c>).</summary>
+	[ProtoMember(30)]
+	public float ProstheticG { get; set; }
+
+	/// <summary>The prosthetic's blue colour channel (native <c>ProstheticInfo.b</c>).</summary>
+	[ProtoMember(31)]
+	public float ProstheticB { get; set; }
 }

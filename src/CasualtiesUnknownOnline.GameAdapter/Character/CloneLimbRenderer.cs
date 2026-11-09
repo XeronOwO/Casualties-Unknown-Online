@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -92,6 +93,12 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 			limb.gameObject.SetActive(!limbData.Dismembered);
 		}
 
+		// Prosthetic (native Limb.ProstheticInfo): the owner's wound-view release calls
+		// Limb.AttachProsthetic(info, isLoad: false) from the item's useLimbAction
+		// (Item.cs:749-830); a clone never runs that method, so the report's block
+		// reattaches it through the game's load-time entry (no sound, no reattach roll).
+		ApplyProsthetic(limb, limbData);
+
 		// Broken: the brokenBone sprite child (Limb.MakeBoneSprite replica —
 		// private in the game, so the renderer owns its own copy, marked so a
 		// later apply destroys exactly ours, never the game's children).
@@ -158,6 +165,44 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 		{
 			var emission = bleed.GetComponent<ParticleSystem>().emission;
 			emission.rateOverTime = LimbPresentation.BloodEmissionRate(limbData.FurBloodAmount);
+		}
+	}
+
+	/// <summary>
+	/// The owner's prosthetic, applied to the clone through the game's own entry. The native
+	/// <c>Limb.AttachProsthetic(prosthetic, isLoad)</c> skips the reattach and the sound when
+	/// <paramref name="isLoad"/> is true — the same path the game's save load uses — so a repeated
+	/// snapshot does not replay either. A limb that lost its prosthetic has the struct cleared,
+	/// which is what the save load writes.
+	/// </summary>
+	private static void ApplyProsthetic(Limb limb, CharacterLimbMsg data)
+	{
+		if (data.HasProsthetic)
+		{
+			if (limb.prostheticInfo.hasProsthetic
+				&& string.Equals(limb.prostheticInfo.itemId, data.ProstheticItemId, StringComparison.Ordinal))
+			{
+				return; // the same prosthetic — the apply is idempotent
+			}
+
+			limb.AttachProsthetic(
+				new Limb.ProstheticInfo
+				{
+					hasProsthetic = true,
+					itemId = data.ProstheticItemId ?? string.Empty,
+					forceChange = data.ProstheticForceChange,
+					armorChange = data.ProstheticArmorChange,
+					r = data.ProstheticR,
+					g = data.ProstheticG,
+					b = data.ProstheticB,
+				},
+				true);
+			return;
+		}
+
+		if (limb.prostheticInfo.hasProsthetic)
+		{
+			limb.prostheticInfo = default;
 		}
 	}
 

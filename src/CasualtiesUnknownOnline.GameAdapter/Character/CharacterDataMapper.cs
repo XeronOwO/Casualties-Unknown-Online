@@ -44,6 +44,13 @@ internal static class CharacterDataMapper
 		// LimbComponentStateCodec, and Index/IsHead/IsVital are assigned by
 		// the character-data capture loop after the map.
 		TypeAdapterConfig<Limb, CharacterLimbMsg>.NewConfig()
+			.Map(d => d.HasProsthetic, s => s.prostheticInfo.hasProsthetic)
+			.Map(d => d.ProstheticItemId, s => string.IsNullOrEmpty(s.prostheticInfo.itemId) ? null : s.prostheticInfo.itemId)
+			.Map(d => d.ProstheticForceChange, s => s.prostheticInfo.forceChange)
+			.Map(d => d.ProstheticArmorChange, s => s.prostheticInfo.armorChange)
+			.Map(d => d.ProstheticR, s => s.prostheticInfo.r)
+			.Map(d => d.ProstheticG, s => s.prostheticInfo.g)
+			.Map(d => d.ProstheticB, s => s.prostheticInfo.b)
 			.Ignore(d => d.Components)
 			.Ignore(d => d.Index)
 			.Ignore(d => d.IsHead)

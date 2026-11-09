@@ -1375,7 +1375,7 @@ docs/design/game/ui-and-settings.md | keep | claim | docs/design/game/README.md
 docs/design/game/console-and-save.md | keep | claim | docs/design/game/README.md
 docs/design/game/principles.md | keep | claim | docs/design/game/README.md
 docs/backlog/todo/ip-direct-shows-the-purchase-notice.md | keep | claim | docs/backlog/README.md
-docs/backlog/todo/1.0-item-customization-truth.md | keep | claim | docs/backlog/README.md
+docs/backlog/done/1.0-item-customization-truth.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-prosthetics.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-run-settings-extended.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/1.0-run-settings-20261110-a.md | keep | claim | docs/backlog/done/1.0-run-settings-extended.md

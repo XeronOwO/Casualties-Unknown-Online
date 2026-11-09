@@ -2,7 +2,7 @@
 
 ## What was read
 
-The deployed build `0.1.0+93e92dde`, one host client, the Worlds page (`存档`) opened through the window's own tab.
+The deployed build `0.1.0+93e92dde`, one host client, the Worlds page (the save tab, translated from the catalogue) opened through the window's own tab.
 
 ## The reading
 

@@ -1,15 +1,12 @@
 # The overlay's buttons are silent
 
-- Status: Review — blocked on a fixture: the sound is wired and deployed (2026-11-08): every control reports through
+- Status: Done — the click is wired and played on the release client (2026-11-10): every control reports through
   `OnlineUiSurfaceHost.ReportIntent`, which plays the game's own `"click"` for a button and `"miniClick"` for a toggle or
-  dropdown pick (`PlayerCamera.PlayUISound`, the entry the game's own buttons use). The mapping is machine-read (4 facts,
-  `OnlineUiSoundTests`); the call itself is recorded on the release client (2026-11-10, `ui-sound-probe` → the recorder
-  read `raw=568|click@803.1;click@803.1`, so the game's click entry runs and the batch can see it). The audible row still
-  needs a staged uGUI click, which the virtual input cannot produce: the game's EventSystem reads the real mouse, the
-  driver's `click` applies the intent directly and skips the view's own sound, and the window's buttons are polled (an
-  `onClick.Invoke()` through `cuo-button-click` matched and invoked 46 captions with no click recorded — the uGUI
-  listener is not the door this window uses), so the fixture needs a drive that reports the intent through the surface
-  itself and reads `sound-log`.
+  dropdown pick (`PlayerCamera.PlayUISound`). The mapping is machine-pinned (4 facts, `OnlineUiSoundTests`); the call
+  plays and records on the release build (`ui-sound-probe` → `raw=568|click@803.1;click@803.1`) and so does an intent
+  reported through the surface's own door (`ui-intent-probe-a control=home.refresh` → `raw=630|click@1003.7;click@1003.7`).
+  The uGUI `onClick` is not the window's door — 46 invoked captions produced no click, because the views poll the pointer
+  — named as a fixture limit, not a sound defect. Readings: `docs/evidence/acceptance/overlay-buttons-are-silent-20261110.md`.
 - Priority: Medium
 - Category: UI / audio
 - Source: the user, 2026-11-08 (translated: "CUO's UI sounds — many buttons have none, add them")

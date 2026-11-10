@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-- [IP direct shows the purchase notice when Steam is not ready](todo/ip-direct-shows-the-purchase-notice.md) — **High** — asks for a copy, once per run.
 
 
 
@@ -76,6 +75,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Adapt the mod to the game's 1.0 release](in-progress/adapt-to-1.0.md) — **Highest** — the release changed the patch targets and removed the spectator field.
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 ### Review
+- [IP direct shows the purchase notice when Steam is not ready](review/ip-direct-shows-the-purchase-notice.md) — **High** — the notice every IP run shows.
 
 
 
@@ -91,7 +91,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 
-- [The overlay's buttons are silent](review/overlay-buttons-are-silent.md) — **Medium** — the game's click sound for every CUO button.
 
 
 
@@ -124,6 +123,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The overlay's buttons are silent](done/overlay-buttons-are-silent.md) — **Medium** — every control plays the game's own click.
 - [1.0: a capability installs and comes off as a unit](done/1.0-capability-install-units.md) — **High** — an optional capability turned off is gone.
 
 - [1.0: a customized item reaches the other clients](done/1.0-item-customization-truth.md) — **Highest** — the display shows the owner's label and colour.

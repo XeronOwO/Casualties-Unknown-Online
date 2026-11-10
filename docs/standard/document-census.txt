@@ -1356,7 +1356,7 @@ docs/evidence/acceptance/save-backups-delete-and-indent-20261109.md | keep | cla
 docs/evidence/acceptance/recursive-crafting-mod-20261108.md | keep | claim | docs/backlog/done/recursive-crafting-mod.md
 
 docs/evidence/acceptance/plugin-host-shell-20261108.md | keep | claim | docs/backlog/done/plugin-host-shell.md
-docs/backlog/review/overlay-buttons-are-silent.md | keep | index | docs/backlog/README.md
+docs/backlog/done/overlay-buttons-are-silent.md | keep | index | docs/backlog/README.md
 docs/backlog/done/console-input-keys-violate-the-minecraft-rules.md | keep | index | docs/backlog/README.md
 docs/backlog/done/save-backups-overwhelm-the-archive.md | keep | index | docs/backlog/README.md
 docs/backlog/done/native-console-is-unpoliced.md | keep | index | docs/backlog/README.md
@@ -1374,7 +1374,7 @@ docs/design/game/fluids-and-climate.md | keep | claim | docs/design/game/README.
 docs/design/game/ui-and-settings.md | keep | claim | docs/design/game/README.md
 docs/design/game/console-and-save.md | keep | claim | docs/design/game/README.md
 docs/design/game/principles.md | keep | claim | docs/design/game/README.md
-docs/backlog/todo/ip-direct-shows-the-purchase-notice.md | keep | claim | docs/backlog/README.md
+docs/backlog/review/ip-direct-shows-the-purchase-notice.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-item-customization-truth.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-prosthetics.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-run-settings-extended.md | keep | claim | docs/backlog/README.md
@@ -1385,3 +1385,4 @@ docs/backlog/done/1.0-dune-mode.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-layers-beyond-the-fifth.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/1.0-run-ending-20261110-a.md | keep | claim | docs/backlog/done/1.0-endings-authority.md
 docs/backlog/done/1.0-capability-install-units.md | keep | claim | docs/backlog/README.md
+docs/evidence/acceptance/overlay-buttons-are-silent-20261110.md | keep | claim | docs/backlog/done/overlay-buttons-are-silent.md

@@ -46,6 +46,9 @@ internal static partial class Program
         var outputDirectory = Path.GetFullPath(options.OutputDirectory ?? Path.Combine(RepositoryPaths.Root, ".acceptance", "suite"));
         Directory.CreateDirectory(outputDirectory);
         var results = new List<CaseResult>();
+        var session = new SessionDriver(options);
+        var sessionNote = await session.EnsureInWorldAsync(CancellationToken.None).ConfigureAwait(false);
+        Console.WriteLine($"session\t{sessionNote}");
         foreach (var acceptanceCase in selected)
         {
             results.Add(await RunAsync(acceptanceCase, options, outputDirectory).ConfigureAwait(false));

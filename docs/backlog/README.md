@@ -77,6 +77,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 ### Review
+- [1.0: remote limb operations carry no limb](review/1.0-remote-limb-operations-carry-no-limb.md) — silent; the limb never changes.
 - [IP direct shows the purchase notice when Steam is not ready](review/ip-direct-shows-the-purchase-notice.md) — **High** — the notice every IP run shows.
 - [Host cannot host after a continue](review/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 

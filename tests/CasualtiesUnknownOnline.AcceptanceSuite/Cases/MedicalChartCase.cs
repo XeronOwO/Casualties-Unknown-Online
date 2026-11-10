@@ -4,8 +4,9 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
 /// The remote medical panel draws the MEMBER, not the host: it opens on the member's body, its
-/// header is the member's identity, and the three local-only surfaces (nap, workout, hand swap) are
-/// not offered for a remote focus. The row came from `remote-medical-panel-hide-local-only-actions`.
+/// header is the member's identity, and the three local-only surfaces (nap, workout, HUD hand swap)
+/// are not presented for a remote focus. The row came from
+/// `remote-medical-panel-hide-local-only-actions`.
 /// </summary>
 internal sealed class MedicalChartCase : AcceptanceCase
 {
@@ -29,13 +30,18 @@ internal sealed class MedicalChartCase : AcceptanceCase
         Require(Boolean(opened, "opened"), "the remote medical view did not open");
         Require(Boolean(opened, "nativeOpen"), "the game's own wound view did not open");
 
+        // The local-only surfaces are hidden by the adapter's per-frame pass; the first frame after
+        // the open may still show them, so the panel is read after it has had a frame to settle.
+        await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+
         var panel = await context.RecipeAsync("panel-controls", cancellationToken);
         context.Read("panel-controls", panel);
         Require(Boolean(panel, "viewOpen"), "the panel is not open");
         Require(Boolean(panel, "remoteFocus"), "the panel is not focused on the member");
-        Require(!Boolean(panel, "napActive"), "the member's panel offers the local-only nap control");
-        Require(!Boolean(panel, "workoutActive"), "the member's panel offers the local-only workout control");
-        Require(!Boolean(panel, "napFound") || !Boolean(panel, "napActive"), "the member's panel keeps the nap control live");
+        Require(!Boolean(panel, "napActive"), "the member's panel presents the local-only nap control");
+        Require(!Boolean(panel, "sleepImageActive"), "the member's panel presents the local-only sleep icon");
+        Require(!Boolean(panel, "workoutActive"), "the member's panel presents the local-only workout list");
+        Require(!Boolean(panel, "handSwapGraphicEnabled"), "the HUD hand-swap graphic stays drawn for the member's chart");
     }
 
     private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

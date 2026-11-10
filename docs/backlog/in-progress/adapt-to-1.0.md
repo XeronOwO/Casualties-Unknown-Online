@@ -94,3 +94,18 @@ that needs a product decision is parked with the question written into its own s
 7. `capability-catalog-required-refusal` — the existing `in-progress/adapter-capability-catalog.md` stage 2: a required patch
    that fails refuses the install with a visible notice; an optional one degrades off.
 8. `ip-direct-shows-the-purchase-notice` — the filed `todo/` ticket.
+
+## Two clients in one world on the release build (2026-11-10, smoke)
+
+Host and a second local instance (its own install copy, the same plugin) met over the IP-direct transport on
+`0.1.0+7f74641db`-era code: host `IpDirect/Host`, guest `IpDirect/Guest`, both `inWorld: true, gateWaiting: false`
+within six seconds of `start-run`.
+
+- Host log: `Game Adapter patches installed and verified (282 targets)`, the capability report passes, and
+  `[ItemCustody] rows=340 objects=340 mismatches=0`.
+- Guest log: the capability report passes and `[ItemCustody] rows=340 objects=340 mismatches=0`.
+- The only exception in either log is the known third-party one (HotRepl's NJsonSchema `TypeLoadException` for
+  `System.ComponentModel.DataAnnotations.RequiredAttribute`), not the mod's.
+
+That is the release-build smoke: the 1.0 install runs, both clients join over IP direct, and the world's item rows and
+objects agree on both sides.

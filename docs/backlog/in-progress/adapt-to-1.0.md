@@ -208,3 +208,21 @@ none before.
 
 The give path therefore works on 1.0 under the required protocol: the item leaves the host's hand and lands in the
 guest's inventory through the game's own release mechanics.
+
+## The medical view on 1.0 (2026-11-10)
+
+The host could not open a teammate's medical view on 1.0: `[MedicalView] cannot create display body for <id>: no
+"Experiment" template.` — the coordinator cloned the demo's scene object, which the release build does not carry.
+
+The fix (`77687d9ad`) mirrors the remote clones' template source: the local player body
+(`PlayerCamera.main.body.gameObject`), with the demo name kept only as a fallback. The deploy and a fresh sandboxed
+offline IP-direct session then read:
+
+- `remote-wound-special mode=open target=15015695280591198704 limb=5` → `opened true, viewOpen true,
+  displayBodyName "MedicalDisplay_D062774D1725D9F0"`.
+- The patient's limb seeded to `skinHealth -12.2` before the session's treatment row; the host released its paincream
+  through the view (`remote-medical-release item=paincream limb=5` → `ok true, slot 0, limb 5`), and the patient's own
+  client read `skinHealth 1.397, disinfectionTime 298.602` — a 10 ml dose of reliefcream sets ~300 s of disinfection,
+  so the dose landed on the patient's own body.
+
+The teammate treatment path therefore works on the release build under the required protocol.

@@ -1,6 +1,6 @@
 // recipe: remote-hand
 // args: none
-// serves: remote-medical-panel-hide-local-only-actions row 6 (a hand switch on either side of a blocked window still reaches the peer)
+// serves: the hand-switch half of the deleted local-only-controls ticket (a hand switch on either side of a blocked window still reaches the peer)
 // returns: ok, localHand, clones (name:handSlot:itemId, comma separated), count, error, detail
 //
 // Reads every Body in the scene that is NOT this client's own body - the remote clones a peer's hand switch has to move - with

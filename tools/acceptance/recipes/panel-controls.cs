@@ -1,6 +1,6 @@
 // recipe: panel-controls
 // args: none
-// serves: remote-medical-panel-hide-local-only-actions (rows 1, 2 and 5: what the panel presents while a remote focus is open)
+// serves: the acceptance-suite case medical-chart (what the panel presents while a remote focus is open)
 // returns: ok, viewOpen, remoteFocus, napFound, napActive, sleepImageActive, workoutFound, workoutActive, handSwapFound, handSwapActive, error, detail
 //
 // Reads the three local-only surfaces the ticket hides - the nap control (`WoundView.napbutton`) with its sleep-state icon, the

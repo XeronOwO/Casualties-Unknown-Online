@@ -1,6 +1,6 @@
 # The remote focus hides the local-only panel surfaces, read on both panels
 
-- Ticket: `docs/backlog/done/remote-medical-panel-hide-local-only-actions.md` (rows 1–5 read; row 6 still open)
+- Ticket: the row now lives as the acceptance-suite case `medical-chart` (the ticket left the tree when the case passed).
 - Batch: `20261025-c` — one live two-client session, artifact `0.1.0+c08c99ad…` (both clients' own load line)
 - Instrument: `panel-controls` (reads the four surfaces the hide set names, plus the remote-focus state and the displayed body)
 

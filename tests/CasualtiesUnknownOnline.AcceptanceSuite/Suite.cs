@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite;
 
@@ -144,7 +146,7 @@ internal static class SuiteReport
 {
     public static string Render(Options options, IReadOnlyList<CaseResult> results)
     {
-        var builder = new System.Text.StringBuilder();
+        var builder = new StringBuilder();
         builder.AppendLine("# Acceptance suite report");
         builder.AppendLine();
         builder.AppendLine($"- Host: `{options.HostUrl}`");
@@ -234,7 +236,7 @@ internal static class CaseRegistry
 {
     public static IReadOnlyList<AcceptanceCase> All { get; } =
     [
-        new CasualtiesUnknownOnline.AcceptanceSuite.Cases.MedicalChartCase(),
+        new MedicalChartCase(),
     ];
 }
 

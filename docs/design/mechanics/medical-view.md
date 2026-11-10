@@ -150,7 +150,7 @@ splint and the game's own sounds; the patient sees their own body react to the t
 
 `../../architecture/surfaces.md` (medical view row), decisions 184 and 246. Accepted:
 `../../backlog/done/remote-player-medical-panel.md`, `done/remote-medical-panel-alarm-follows-viewed-player.md`,
-`done/remote-medical-panel-header-shows-viewer-identity.md`, `done/remote-medical-panel-hide-local-only-actions.md`,
+`done/remote-medical-panel-header-shows-viewer-identity.md`,
 `done/remote-fentanyl-injection-and-medical-panel-desync.md`.
 
 ## Gaps

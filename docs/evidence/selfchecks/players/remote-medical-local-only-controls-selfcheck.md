@@ -1,6 +1,6 @@
-# Self-check — a remote medical focus presents no local-only control (`remote-medical-panel-hide-local-only-actions`)
+# Self-check — a remote medical focus presents no local-only control (the suite case `medical-chart`)
 
-Ticket: `docs/backlog/done/remote-medical-panel-hide-local-only-actions.md` (Medium).
+Ticket: `docs/backlog/in-progress/1.0-acceptance-suite.md` (the row lives as the case; the old ticket left the tree).
 Cycle: 2026-09-25. No wire change (a purely local presentation/input gate: nothing about the shared
 state, the protocol or the saves moves).
 

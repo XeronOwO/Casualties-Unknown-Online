@@ -69,7 +69,6 @@ The patient's limbs with their wounds, the offered treatments, and the game's ow
 
 Accepted: `../../backlog/done/remote-player-medical-panel.md`,
 `done/remote-medical-panel-alarm-follows-viewed-player.md`, `done/remote-medical-panel-header-shows-viewer-identity.md`,
-`done/remote-medical-panel-hide-local-only-actions.md`,
 `done/remote-medical-panel-acceptance-issues.md`.
 
 ## Gaps

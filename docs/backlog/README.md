@@ -273,7 +273,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [UI text moves to embedded JSON, mods add languages](done/localization-json-resources-and-mod-languages.md) — **Medium-High** — data, not C#; read live.
 - [The console's own replies are English only](done/console-command-replies-bilingual.md) — **Medium** — keyed lines; read live.
 - [Steam send-limit refusal floods the log and wedges the host](done/steam-transport-send-limit-runaway.md) — **High** — gated; row 5 is the platform residual.
-- [Remote medical panel hides actions](done/remote-medical-panel-hide-local-only-actions.md) — **Medium** — all six rows read.
 - [Random rolls in a cross-player item use](done/cross-player-item-use-random-determinism.md) — **High** — rows 1–2 read, 3–5 settled, 8 a user residual.
 - [Remote medical CPR (KrokMP custom)](done/remote-medical-cpr.md) — **Medium** — four stages; every row read, `Good` included.
 - [A member's drill-pod descent regenerates a layer of its own](done/pod-descent-on-a-member-regenerates-locally.md) — **Medium** — routed, answered, ruled.

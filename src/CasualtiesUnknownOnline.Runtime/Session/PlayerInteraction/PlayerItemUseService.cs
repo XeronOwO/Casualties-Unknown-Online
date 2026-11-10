@@ -117,6 +117,10 @@ internal sealed class PlayerItemUseService : ISessionReset, IDisposable
 			return;
 		}
 
+		_log.LogInformation(
+			"[ItemUse] host received a use request from {Sender} for {Target} (item {Item}, limb {Limb}, dose {Dose:F2}).",
+			sender, msg.TargetSteamId, msg.ItemInstanceId, msg.LimbIndex, msg.DoseMl);
+
 		var user = sender;
 		var target = msg.TargetSteamId;
 		if (user == target || user == 0 || target == 0)

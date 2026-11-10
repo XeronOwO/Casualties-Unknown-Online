@@ -24,6 +24,8 @@ internal sealed class SessionDriver(Options options)
 	/// </summary>
 	public string MemberUrl => _options.MemberUrl;
 
+	public string HostUrl => _options.HostUrl;
+
 	public async Task<string> RestartRunAsync(CancellationToken cancellationToken)
 	{
 		await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);

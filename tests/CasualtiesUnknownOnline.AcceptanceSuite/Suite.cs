@@ -287,6 +287,7 @@ internal static class CaseRegistry
         new ItemRestingsCase(),
 		new OverlaySoundCase(),
 		new LockpickCase(),
+		new WorldsPageCase(),
 			new TopicalDoseCase(), // restarts the run, so it goes last
     ];
 }

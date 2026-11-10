@@ -39,6 +39,9 @@ param(
 	[string]$GuestUrl,
 	[string]$AltUrl,
 	[switch]$NoJoin,
+	# An IP-direct session does not initialize Steam on a box whose account does not own the game; this switch accepts
+	# such a client instead of failing the launch on the Steam readiness line. It is the caller's claim, never inferred.
+	[switch]$AllowOfflineSteam,
 	# One client only, by name. Every row that is the CLIENT's own (an input patch, a UI frame, a console line) needs one client and no lobby, so
 	# a single-client launch is the cheap shape for those — and it never touches the other boxes.
 	[ValidateSet('host', 'guest', 'alt')]
@@ -324,7 +327,7 @@ if ($missing.Count -gt 0) {
 
 foreach ($client in @($clients | Where-Object { $_ -ne 'host' })) {
 	$root = $roots[$client]
-	if (-not (Test-SteamInitialized $root)) {
+	if (-not $AllowOfflineSteam -and -not (Test-SteamInitialized $root)) {
 		Write-Run "FAIL: $client answered without Steam initialized (its log says so); this box needs its Steam up before a session"
 		if ($client -eq 'guest') { exit 7 }
 		exit 8

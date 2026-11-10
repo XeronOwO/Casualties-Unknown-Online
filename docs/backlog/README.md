@@ -76,6 +76,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 ### Review
 - [IP direct shows the purchase notice when Steam is not ready](review/ip-direct-shows-the-purchase-notice.md) — **High** — the notice every IP run shows.
+- [Host cannot host after a continue](review/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 
 
 

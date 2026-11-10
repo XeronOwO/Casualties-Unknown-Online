@@ -278,6 +278,7 @@ internal static class CaseRegistry
         new MedicalChartCase(),
         new TopicalDoseCase(),
         new ItemRestingsCase(),
+        new OverlaySoundCase(),
     ];
 }
 

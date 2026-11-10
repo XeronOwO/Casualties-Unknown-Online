@@ -48,7 +48,9 @@ internal static partial class Program
         var results = new List<CaseResult>();
         var session = new SessionDriver(options);
         var sessionNote = await session.EnsureInWorldAsync(CancellationToken.None).ConfigureAwait(false);
+        var memberNote = await session.EnsureMemberAsync(CancellationToken.None).ConfigureAwait(false);
         Console.WriteLine($"session\t{sessionNote}");
+        Console.WriteLine($"member\t{memberNote}");
         foreach (var acceptanceCase in selected)
         {
             results.Add(await RunAsync(acceptanceCase, options, outputDirectory).ConfigureAwait(false));

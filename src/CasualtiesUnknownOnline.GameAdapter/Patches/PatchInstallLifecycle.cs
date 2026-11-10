@@ -77,6 +77,8 @@ internal sealed class PatchInstallLifecycle
 			var disabledClasses = new HashSet<Type>(selection.Disabled.SelectMany(AdapterCapabilityCatalog.ClassesOf));
 			if (disabledClasses.Count > 0)
 			{
+				var removedClasses = new SortedSet<string>(StringComparer.Ordinal);
+				var removedPatches = 0;
 				foreach (var method in _harmony.GetPatchedMethods().ToList())
 				{
 					var info = Harmony.GetPatchInfo(method);
@@ -95,12 +97,16 @@ internal sealed class PatchInstallLifecycle
 						if (patch.PatchMethod.DeclaringType is { } owner && disabledClasses.Contains(owner))
 						{
 							_harmony.Unpatch(method, patch.PatchMethod);
+							removedPatches++;
+							removedClasses.Add(owner.Name);
 						}
 					}
 				}
 
 				_log.LogInformation("Game Adapter installed with {Count} capability unit(s) off by configuration: {Ids}",
 					selection.Disabled.Count, string.Join(", ", selection.Disabled));
+				_log.LogInformation("Game Adapter removed {Patches} patch method(s) of {Classes} class(es) from the registry: {Names}",
+					removedPatches, removedClasses.Count, string.Join(", ", removedClasses));
 			}
 
 			// Never let a failed patch silently run: verify every patch class

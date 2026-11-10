@@ -154,3 +154,16 @@ HotRepl/NJsonSchema `TypeLoadException`, not the mod's.
 
 The install's `[Adapter] DisabledCapabilities` was still `diagnostics` from the stage-3 readings; it was restored to
 empty (the production default) after the reading.
+
+## The bundled mods on the release build (2026-11-10)
+
+The package's mods were read on the release client (single host, a fresh run):
+
+- `RecursiveCrafting`: `/craftchain flimsyknife` answered `[Recursive] flimsyknife: cannot be crafted — nothing here provides "scrapmetal".` —
+  the console command, the recipe lookup and the chain walk all run on 1.0.
+- `PinyinSearch`: the crafting panel opened (`crafting-panel mode=open` → `detailName "<sprite index=25>rope"`), the literal query
+  `flimsy` narrowed the list to `rowCount 1`, and the pinyin query `cuiruo` narrowed it to `0`. The zero is correct for this client:
+  it runs the game in English, so the recipe names are English and the pinyin matcher has no Chinese name to match. The pinyin path
+  needs a Chinese-language client; that is a named limit of this reading, not a defect.
+
+The literal half and the console half are machine-read on the release build; the pinyin half stays open on a Chinese-language client.

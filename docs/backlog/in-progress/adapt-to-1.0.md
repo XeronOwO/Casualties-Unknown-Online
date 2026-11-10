@@ -167,3 +167,21 @@ The package's mods were read on the release client (single host, a fresh run):
   needs a Chinese-language client; that is a named limit of this reading, not a defect.
 
 The literal half and the console half are machine-read on the release build. The pinyin mapping itself is Core logic with unit coverage (`PinyinSearch.Core` tests in the suite), and the live half that matters on 1.0 is the hook: the mod registry reported `binds PlayerCamera.RefreshRecipeList`, and the filter ran (the row count changed with the query). A Chinese-language live client would read the same hook with Chinese names; the game's language on this install is English and has no settings entry, so that variant is a named fixture gap, not an unread product row.
+
+## The sandboxed offline session on the release build (2026-11-10)
+
+The acceptance protocol the user requires — the host on this desktop, the guests inside the Sandboxie boxes, no Steam
+client inside a box, the two ends joined over IP direct — now runs on 1.0:
+
+- The Steam1 box's release tree received the deployed BepInEx tree (core, patchers, plugins, config) and its
+  `hotrepl.bepinex.cfg` port moved to the guest's own driver port; its CUO config names it `Guest` with
+  `JoinAddress 127.0.0.1` and `JoinPort 7777`.
+- The desktop host switched its transport to IP direct (`home.transport.ip` then `ip.create_host`) and became
+  `transport IpDirect, role Host`.
+- The boxed guest clicked the same transport toggle and `ip.join`, and read `transport IpDirect, role Guest`
+  (`steamInit false`: the box account does not own the game, and the IP-direct path does not need Steam).
+- The host's `start-run` put both clients in the world: host `role Host, inWorld true, gateWaiting false`, guest
+  `role Guest, inWorld true, gateWaiting false`.
+
+The two-client rows can now be run under the required protocol; the per-box BepInEx tree and port are machine facts of
+this machine and stay in the local acceptance rule file.

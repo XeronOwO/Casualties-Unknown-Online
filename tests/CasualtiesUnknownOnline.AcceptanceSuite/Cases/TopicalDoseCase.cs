@@ -28,6 +28,18 @@ internal sealed class TopicalDoseCase : AcceptanceCase
         // defect on the demo is gone on 1.0: either path now hands a full bottle, but create is the
         // one the case can assert without a slot scan).
         var cream = await context.RecipeAsync("item-provide", cancellationToken, ("type", "paincream"), ("mode", "create"));
+        if (!Boolean(cream, "ok"))
+        {
+            // A full inventory cannot take a new item: drop the last carried item through the game's own release.
+            var grabbed = await context.RecipeAsync("drag-from-slot", cancellationToken, ("slot", "4"));
+            context.Note("make-room grab: " + Raw(grabbed));
+            await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+            var dropped = await context.RecipeAsync("drag-release", cancellationToken, ("x", "640"), ("y", "360"));
+            context.Note("make-room release: " + Raw(dropped));
+            await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+            cream = await context.RecipeAsync("item-provide", cancellationToken, ("type", "paincream"), ("mode", "create"));
+        }
+
         context.Read("paincream", cream);
         Require(Boolean(cream, "ok"), "the host could not take a paincream");
 

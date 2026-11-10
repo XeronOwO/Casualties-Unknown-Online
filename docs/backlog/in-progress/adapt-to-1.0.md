@@ -124,3 +124,17 @@ own step:
 - Read on this machine: the release install reports `BepInEx layer already installed (BepInEx 5.4.23.4)`; a scratch
   folder holding only `CasualtiesUnknown.exe` gets the full layer (18 core files, `winhttp.dll`,
   `doorstop_config.ini`) and the script prints the deploy command for it.
+
+## The release artifact (2026-11-10)
+
+`tools/package-release.ps1` builds the solution in Release, stages the plugin folder the deploy writes into a game
+(the assemblies the game's Mono runtime needs, minus the BepInEx-owned ones, plus the native `steam_api64.dll`),
+writes `install.txt` and zips the two under `artifacts/release/casualties-unknown-online-<sha>.zip`.
+
+Read on this machine: `Packaged 34 file(s) + the install note`, `2868232 bytes, 35 archive entries`; the verifier
+found `CasualtiesUnknownOnline/CasualtiesUnknownOnline.dll`, `CasualtiesUnknownOnline/steam_api64.dll` and
+`install.txt` inside, and no BepInEx-owned assembly.
+
+The note is the player's three steps: install BepInEx 5.4.23.4 x64 into the game folder, copy the plugin folder into
+`BepInEx/plugins`, create `steam_appid.txt` with `4576490` beside the exe. It names the native DLL's reason (Steamworks
+loads it from disk).

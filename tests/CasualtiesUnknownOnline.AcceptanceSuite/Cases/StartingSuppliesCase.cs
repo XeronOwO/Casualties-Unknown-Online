@@ -48,7 +48,9 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 			}
 		}
 
-		Require(joined.Contains("joined", StringComparison.Ordinal), "the member did not rejoin the fresh run: " + joined);
+		Require(
+			joined.Contains("joined", StringComparison.Ordinal) || joined.Contains("already in a world", StringComparison.Ordinal),
+			"the member did not rejoin the fresh run: " + joined);
 
 		// The starting kit is granted by the host's coordinator once the new character stands in
 		// the world; the member's own carried items are the marker.

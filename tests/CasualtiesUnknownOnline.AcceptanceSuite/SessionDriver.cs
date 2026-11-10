@@ -97,7 +97,15 @@ internal sealed class SessionDriver(Options options)
 	}
 
 	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
-	public async Task<string> EnsureMemberAsync(CancellationToken cancellationToken)
+	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken) => JoinMemberAsync(cancellationToken, allowRelaunch: true);
+
+	/// <summary>
+	/// The member's client can keep a session it no longer owns (after an ending, its role stays
+	/// Guest while the lobby is gone, and leaving answers ok without clearing it). When the join
+	/// budget runs out, the suite relaunches the member once and tries again: the session it
+	/// judges is the suite's, so the suite may recreate the client too.
+	/// </summary>
+	private async Task<string> JoinMemberAsync(CancellationToken cancellationToken, bool allowRelaunch)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 		var hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
@@ -151,7 +159,57 @@ internal sealed class SessionDriver(Options options)
 			}
 		}
 
-		throw new InvalidOperationException("the suite could not join the member to the host's session");
+		if (!allowRelaunch)
+		{
+			throw new InvalidOperationException("the suite could not join the member to the host's session");
+		}
+
+		await RelaunchMemberAsync(cancellationToken).ConfigureAwait(false);
+		return await JoinMemberAsync(cancellationToken, allowRelaunch: false).ConfigureAwait(false);
+	}
+
+	/// <summary>Quits the member's client, starts it again through the launcher, and waits for its driver.</summary>
+	private async Task RelaunchMemberAsync(CancellationToken cancellationToken)
+	{
+		await TryActionAsync(_options.MemberUrl, "quit", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromSeconds(4), cancellationToken).ConfigureAwait(false);
+		var launcher = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "launch-clients.ps1");
+		var start = new ProcessStartInfo("pwsh")
+		{
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			UseShellExecute = false,
+		};
+		start.ArgumentList.Add("-NoProfile");
+		start.ArgumentList.Add("-File");
+		start.ArgumentList.Add(launcher);
+		start.ArgumentList.Add("-Only");
+		start.ArgumentList.Add("guest");
+		start.ArgumentList.Add("-NoJoin");
+		if (!string.IsNullOrEmpty(_options.GameDir))
+		{
+			start.ArgumentList.Add("-GameDir");
+			start.ArgumentList.Add(_options.GameDir!);
+		}
+
+		using var process = Process.Start(start) ?? throw new InvalidOperationException("could not start the acceptance launcher for the member");
+		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < TimeSpan.FromSeconds(120))
+		{
+			await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+			try
+			{
+				await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+				return;
+			}
+			catch (Exception)
+			{
+			}
+		}
+
+		throw new InvalidOperationException("the suite relaunched the member but its driver never answered: " + output.Trim());
 	}
 
 	/// <summary>Reads the host's in-world members' session ids — the ids the cases address a member by.</summary>

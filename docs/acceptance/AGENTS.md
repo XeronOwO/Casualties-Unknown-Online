@@ -37,10 +37,6 @@ gitignored [AGENTS.local.md](AGENTS.local.md): read it first, and never copy a m
 9. `[RULE]` **Every run leaves this area better**: fold a reusable lesson into [lessons.md](lessons.md), a machine value into
    `AGENTS.local.md`, a wrong or missing rule into this file — and into `docs/AGENTS.md` or the root `AGENTS.md` when it binds the
    repository. Closing an acceptance conversation runs this harvest unprompted.
-10. `[CRITICAL]` **Every acceptance client runs inside the sandbox boxes, offline.** A bare desktop client is not a run, and no
-   Steam client is started inside a box either: the boxed game runs from the box root with its own `steam_appid.txt`, so the two
-   ends stay isolated from the host's Steam session. The box names and roots are machine facts in `AGENTS.local.md`; a missing
-   one is a preflight failure, never a silent fallback to the demo install.
 
 ## Related
 

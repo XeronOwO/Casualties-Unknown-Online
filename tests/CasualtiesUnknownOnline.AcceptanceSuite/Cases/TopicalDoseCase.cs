@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -79,9 +80,26 @@ internal sealed class TopicalDoseCase : AcceptanceCase
             throw new AssertionException("the host body reading has no localBody: " + Raw(host));
         }
 
+        // The session can say in-world before the host body spawns; the body is the truth.
+        for (var wait = 0; wait < 40; wait++) { var probe = await context.RecipeAsync("body-read", cancellationToken); if (probe is { } value && value.ValueKind == JsonValueKind.Object && value.TryGetProperty("localBody", out var b) && b.ValueKind == JsonValueKind.Object && Number(b, "positionY") > 0) { localBody = b; break; } await Task.Delay(500, cancellationToken); }
+
+        // The host can spawn inside the shelter cave while the member lands on the surface; bring the
+        // host up to the member level (a point the member already stands on) before the dose.
+        var memberRead = await context.MemberRecipeAsync("body-read", cancellationToken);
+        if (memberRead is { } memberValue && memberValue.ValueKind == JsonValueKind.Object && memberValue.TryGetProperty("localBody", out var surfaceBody) && surfaceBody.ValueKind == JsonValueKind.Object)
+        {
+            var targetY = Number(surfaceBody, "positionY");
+            if (Number(localBody, "positionY") < targetY - 2)
+            {
+                var rise = await context.RecipeAsync("teleport", cancellationToken, ("x", Number(surfaceBody, "positionX").ToString("0.###", CultureInfo.InvariantCulture)), ("y", targetY.ToString("0.###", CultureInfo.InvariantCulture)));
+                context.Note("host rose to the member level: " + Raw(rise));
+                await Task.Delay(1500, cancellationToken);
+            }
+        }
+
         var hostX = Number(localBody, "positionX");
         var hostY = Number(localBody, "positionY");
-        var moved = await context.MemberRecipeAsync("teleport", cancellationToken, ("x", (hostX + 1).ToString("0.###", CultureInfo.InvariantCulture)), ("y", hostY.ToString("0.###", CultureInfo.InvariantCulture)));
+        var moved = await context.MemberRecipeAsync("teleport", cancellationToken, ("x", hostX.ToString("0.###", CultureInfo.InvariantCulture)), ("y", hostY.ToString("0.###", CultureInfo.InvariantCulture)));
         context.Note("member teleport: " + Raw(moved));
         for (var settle = 0; settle < 12; settle++)
         {

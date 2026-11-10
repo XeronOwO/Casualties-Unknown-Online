@@ -42,11 +42,6 @@ internal sealed class SessionDriver
             }
         }
 
-        // A bare start-run does not open the IP session: select the transport and open the host side first,
-        // then the run enters a world the member can join.
-        await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
-        await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
-
         var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
         var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
         return "fresh run: " + started + "; " + joined;

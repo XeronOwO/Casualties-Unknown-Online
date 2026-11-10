@@ -72,7 +72,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 ### In progress
-- [1.0: a capability installs and comes off as a unit](in-progress/1.0-capability-install-units.md) — **High** — an optional capability turned off stays off.
 
 - [Adapt the mod to the game's 1.0 release](in-progress/adapt-to-1.0.md) — **Highest** — the release changed the patch targets and removed the spectator field.
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
@@ -125,6 +124,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [1.0: a capability installs and comes off as a unit](done/1.0-capability-install-units.md) — **High** — an optional capability turned off is gone.
 
 - [1.0: a customized item reaches the other clients](done/1.0-item-customization-truth.md) — **Highest** — the display shows the owner's label and colour.
 - [1.0: layers beyond the fifth need no adapter change](done/1.0-layers-beyond-the-fifth.md) — **Medium** — the depth is data; nothing caps it.

@@ -196,3 +196,15 @@ guest (IP-direct guest) in one world, the guest given a bandage and customized (
 
 The row therefore holds under the sandboxed offline IP-direct session, not only under the desktop second-instance
 protocol it was first read on.
+
+## The cross-player give under the sandboxed protocol (2026-11-10)
+
+In the same desktop-host + boxed-offline-guest session: the host gave itself a paincream (`/give @p paincream` →
+`#2937757630465`, slot 0), held it (`drag-start type=paincream`), put the pointer on the guest's body and opened the
+guest's displayed backpack (`remote-backpack-open` → `isOpen true, focused 3202834456994919442`), then released into it
+(`remote-gesture mode=release item=local0 cast=0 moved=1` → `dragAfter "none"`). The guest's inventory read
+`0:bandage|1:trashbag|2:paincream|3:lantern|4:dogfood|5:waterbottle` — the paincream arrived in its slot 2, and it had
+none before.
+
+The give path therefore works on 1.0 under the required protocol: the item leaves the host's hand and lands in the
+guest's inventory through the game's own release mechanics.

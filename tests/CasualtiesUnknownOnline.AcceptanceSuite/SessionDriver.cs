@@ -58,6 +58,8 @@ internal sealed class SessionDriver(Options options)
 		// client loading a scene can refuse the first click, so it retries with a fresh open.
 		await ActionAsync(_options.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		// The window reopens on the tab it last showed; the transport controls live on Home.
+		await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 		try
 		{
 			// A host that still holds an IP session offers no transport switch; the run starts
@@ -117,6 +119,8 @@ internal sealed class SessionDriver(Options options)
 		// first click retries with a fresh open instead of failing the case.
 		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		// The window reopens on the tab it last showed; the join controls live on Home.
+		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 		// A member that still holds a session shows its leave control instead of the join fields;
 		// leaving first is best-effort, because a member at the menu has nothing to leave.
 		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);

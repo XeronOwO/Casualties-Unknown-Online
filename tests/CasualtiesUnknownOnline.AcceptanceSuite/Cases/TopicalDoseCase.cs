@@ -116,7 +116,7 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 
 		var hostX = Number(localBody, "positionX");
 		var hostY = Number(localBody, "positionY");
-		var moved = await context.MemberRecipeAsync("teleport", cancellationToken, ("x", hostX.ToString("0.###", CultureInfo.InvariantCulture)), ("y", hostY.ToString("0.###", CultureInfo.InvariantCulture)));
+		var moved = await context.MemberRecipeAsync("teleport", cancellationToken, ("x", (hostX + 1).ToString("0.###", CultureInfo.InvariantCulture)), ("y", hostY.ToString("0.###", CultureInfo.InvariantCulture)));
 		context.Note("member teleport: " + Raw(moved));
 		for (var settle = 0; settle < 12; settle++)
 		{

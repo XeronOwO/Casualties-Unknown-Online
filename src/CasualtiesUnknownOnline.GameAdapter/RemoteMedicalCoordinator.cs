@@ -228,11 +228,16 @@ internal sealed class RemoteMedicalCoordinator(
 
 	private bool TryCreateDisplayBody(ulong steamId, CharacterDataMsg data, out Body displayBody)
 	{
-		var template = GameObject.Find("Experiment");
+		// The 1.0 build carries no scene object named "Experiment" (the demo's template), so the
+		// display body clones the local player body — the same source RemoteBodyFactory uses for
+		// its remote clones. The clone is inactive and moved out of the world below, so nothing of
+		// the live body runs on it.
+		var camera = PlayerCamera.main;
+		var template = camera != null && camera.body != null ? camera.body.gameObject : GameObject.Find("Experiment");
 		if (template == null) // Unity object — ==
 		{
 			displayBody = null!;
-			_log.LogWarning("[MedicalView] cannot create display body for {SteamId}: no \"Experiment\" template.", steamId);
+			_log.LogWarning("[MedicalView] cannot create display body for {SteamId}: no player body and no \"Experiment\" template.", steamId);
 			return false;
 		}
 

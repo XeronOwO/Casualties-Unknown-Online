@@ -85,12 +85,6 @@ if (Test-Layer $game) {
 }
 
 $source = $SourceDir
-if ([string]::IsNullOrWhiteSpace($source)) {
-    $demo = 'E:\SteamLibrary\steamapps\common\Casualties Unknown Demo'
-    if (Test-Layer $demo) {
-        $source = $demo
-    }
-}
 
 if ([string]::IsNullOrWhiteSpace($source) -and $Download) {
     $temp = Join-Path ([System.IO.Path]::GetTempPath()) ("bepinex-$pinnedVersion")

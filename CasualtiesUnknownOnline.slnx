@@ -17,4 +17,5 @@
   <Project Path="tools/CasualtiesUnknownOnline.ContractTool/CasualtiesUnknownOnline.ContractTool.csproj" />
   <Project Path="tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.csproj" />
   <Project Path="tests/CasualtiesUnknownOnline.NormativeGates.Tests/CasualtiesUnknownOnline.NormativeGates.Tests.csproj" />
+  <Project Path="tests/CasualtiesUnknownOnline.AcceptanceSuite/CasualtiesUnknownOnline.AcceptanceSuite.csproj" />
 </Solution>

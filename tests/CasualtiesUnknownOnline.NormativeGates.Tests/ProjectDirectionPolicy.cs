@@ -90,6 +90,8 @@ internal static class ProjectDirectionPolicy
 		// The acceptance channel is a satellite plug-in, not a layer: it binds the game's input types on purpose and is
 		// deployed only for a batch, so it is classified as a consumer rather than given a place in the layer table.
 		"CasualtiesUnknownOnline.Acceptance",
+		// The acceptance suite drives the real game from outside; it owns no production types and decides no layer.
+		"CasualtiesUnknownOnline.AcceptanceSuite",
 	];
 
 	/// <summary>

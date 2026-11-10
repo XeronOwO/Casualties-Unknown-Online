@@ -77,6 +77,9 @@ internal sealed class LockpickCase : AcceptanceCase
 		// The game reads the pointer every frame, and a separate move/press leaves a frame in which
 		// the hand falls back to the real mouse. One eval stages the pointer and presses in the same
 		// frame; keep pressing until the game's own turn progress reaches its completion value.
+		// The recorder only keeps what it saw from a start, so the unlock sound is recorded from
+		// the first press.
+		await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start")).ConfigureAwait(false);
 		var progress = 0.0;
 		for (var attempt = 0; attempt < 30 && progress < 0.99; attempt++)
 		{

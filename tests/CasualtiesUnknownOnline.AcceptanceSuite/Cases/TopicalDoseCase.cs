@@ -22,7 +22,15 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		// A long-lived world can leave the surface a pit over a cave; the pair then stands inside
 		// terrain and the interaction gate blocks every use. The case starts from a fresh run so
 		// the two bodies spawn where the game puts them.
-		var memberLeft = await context.Session.ActionAsync(context.Session.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+		JsonElement? memberLeft = null;
+		try
+		{
+			memberLeft = await context.Session.ActionAsync(context.Session.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			// A member already at the menu has nothing to leave; the restart below is the reset.
+		}
 		context.Note("member left its old world: " + Raw(memberLeft));
 		var restarted = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
 		context.Note("session: " + restarted);

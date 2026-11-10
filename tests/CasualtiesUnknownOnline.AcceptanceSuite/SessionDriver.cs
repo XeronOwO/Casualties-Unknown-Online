@@ -109,8 +109,9 @@ internal sealed class SessionDriver(Options options)
 		if (IsTrue(state, "inWorld"))
 		{
 			// The member still sits in an earlier session; the host's fresh run does not list it,
-			// so it leaves and joins the host's current one.
-			await ActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+			// so it leaves and joins the host's current one. The leave races the scene, so a
+			// refusal here is not the join: the poll below is the judge.
+			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
 		}
 

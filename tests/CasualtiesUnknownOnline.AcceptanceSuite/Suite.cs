@@ -296,7 +296,7 @@ internal static class CaseRegistry
 		// reads the 1.0 hand as unmoved; the reading and the next probe are on
 		// docs/backlog/in-progress/1.0-acceptance-suite.md. It stays out of the all-suite run
 		// until the hand read lands, so a red case does not mask the rest.
-		// new LockpickCase(),
+		// new LockpickCase(), // parked: the calibration probe reads the hand unmoved on some opens; the sound start is fixed
 		new WorldsPageCase(),
 			new TopicalDoseCase(), // restarts the run, so it goes last
     ];

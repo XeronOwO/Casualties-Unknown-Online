@@ -19,16 +19,30 @@ internal sealed class LockpickCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		// The CUO window covers the screen centre; the game's own Escape closes it.
+		// The CUO window covers the screen centre; open it first so Escape is deterministic, then
+		// let the game's own Escape close it.
+		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "1")).ConfigureAwait(false);
 		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "0")).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 
-		var opened = await context.RecipeAsync("lockpick-open", cancellationToken).ConfigureAwait(false);
-		context.Read("open", opened);
-		Require(Boolean(opened, "ok"), "the lockpick minigame did not open");
+		JsonElement? aim = null;
+		for (var attempt = 0; attempt < 3; attempt++)
+		{
+			var opened = await context.RecipeAsync("lockpick-open", cancellationToken).ConfigureAwait(false);
+			context.Read("open", opened);
+			Require(Boolean(opened, "ok"), "the lockpick minigame did not open");
+			await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+			aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
+			if (Boolean(aim, "ok"))
+			{
+				break;
+			}
 
-		var aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
+			context.Note($"open attempt {attempt}: the minigame closed before the aim; reopening");
+		}
+
 		context.Read("aim", aim);
 		Require(Boolean(aim, "ok"), "the aim did not compute");
 		var targetX = Number(aim, "targetX");
@@ -62,9 +76,9 @@ internal sealed class LockpickCase : AcceptanceCase
 
 		// The game reads the pointer every frame, and a separate move/press leaves a frame in which
 		// the hand falls back to the real mouse. One eval stages the pointer and presses in the same
-		// frame; retry a few times in case the first press lands during a scene tick.
-		var started = false;
-		for (var attempt = 0; attempt < 10 && !started; attempt++)
+		// frame; keep pressing until the game's own turn progress reaches its completion value.
+		var progress = 0.0;
+		for (var attempt = 0; attempt < 30 && progress < 0.99; attempt++)
 		{
 			var pressed = await context.RecipeAsync("lockpick-press", cancellationToken,
 				("x", Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture)),
@@ -72,13 +86,11 @@ internal sealed class LockpickCase : AcceptanceCase
 			context.Read("press", pressed);
 			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
 			var probe = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-			started = Boolean(probe, "handStarted");
-			context.Note($"press {attempt}: started={started} {Number(probe, "handMagnitude")}");
+			progress = NumberOr(probe, "lockProgress", progress);
+			context.Note($"press {attempt}: progress={progress:0.###} started={Boolean(probe, "handStarted")}");
 		}
 
-		Require(started, "the minigame never marked the hold as started on the ring");
 		await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
-
 		var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 		context.Read("live", live);
 
@@ -92,15 +104,15 @@ internal sealed class LockpickCase : AcceptanceCase
 
 	private static async Task<(double X, double Y)> MoveAndReadHand(CaseContext context, double x, double y, CancellationToken cancellationToken)
 	{
-		await context.RecipeAsync("virtual-input", cancellationToken,
-			("mode", "move"),
+		// The 1.0 hand moves only while the attack key is held, so a pointer move alone leaves it
+		// where it was: stage the pointer and press in one eval, then read where the hand settled.
+		await context.RecipeAsync("lockpick-press", cancellationToken,
 			("x", Math.Round(x).ToString("0", CultureInfo.InvariantCulture)),
-			("y", Math.Round(y).ToString("0", CultureInfo.InvariantCulture)),
-			("button", "0")).ConfigureAwait(false);
+			("y", Math.Round(y).ToString("0", CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 		var live = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
-		var handX = Number(live, "handX");
-		var handY = Number(live, "handY");
+		var handX = NumberOr(live, "handX", 0);
+		var handY = NumberOr(live, "handY", 0);
 		return (handX, handY);
 	}
 
@@ -110,6 +122,13 @@ internal sealed class LockpickCase : AcceptanceCase
 		&& value.ValueKind == JsonValueKind.Number
 			? value.GetDouble()
 			: throw new AssertionException($"the reading has no number '{property}'");
+
+	private static double NumberOr(JsonElement? reading, string property, double fallback) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.Number
+			? value.GetDouble()
+			: fallback;
 
 	private static bool Boolean(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element

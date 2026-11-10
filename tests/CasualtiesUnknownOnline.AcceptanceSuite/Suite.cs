@@ -279,6 +279,7 @@ internal static class CaseRegistry
         new TopicalDoseCase(),
         new ItemRestingsCase(),
         new OverlaySoundCase(),
+        new LockpickCase(),
     ];
 }
 

@@ -51,6 +51,40 @@ internal sealed class TopicalDoseCase : AcceptanceCase
         context.Read("paincream", cream);
         Require(Boolean(cream, "ok"), "the host could not take a paincream");
 
+        // The interaction gate is a Ground linecast: the member joins at its own spawn and a floor
+        // between the pair blocks the use. The fixture moves the member beside the doctor first.
+        var host = await context.RecipeAsync("body-read", cancellationToken);
+        context.Read("host-body", host);
+        JsonElement localBody = default;
+        if (host is { ValueKind: JsonValueKind.Object } hostElement && hostElement.TryGetProperty("localBody", out var bodyElement))
+        {
+            localBody = bodyElement;
+        }
+        else
+        {
+            throw new AssertionException("the host body reading has no localBody: " + Raw(host));
+        }
+
+        var hostX = Number(localBody, "positionX");
+        var hostY = Number(localBody, "positionY");
+        var moved = await context.MemberRecipeAsync("teleport", cancellationToken, ("x", (hostX + 1).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)), ("y", hostY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)));
+        context.Note("member teleport: " + Raw(moved));
+        for (var settle = 0; settle < 12; settle++)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+            var memberBody = await context.MemberRecipeAsync("body-read", cancellationToken);
+            if (memberBody is { ValueKind: JsonValueKind.Object } memberElement
+                && memberElement.TryGetProperty("localBody", out var memberLocal)
+                && memberLocal.TryGetProperty("positionX", out var memberX)
+                && memberLocal.TryGetProperty("positionY", out var memberY)
+                && Math.Abs(memberX.GetDouble() - (hostX + 1)) < 2
+                && Math.Abs(memberY.GetDouble() - hostY) < 2)
+            {
+                context.Note("member settled beside the doctor after " + ((settle + 1) * 500) + " ms");
+                break;
+            }
+        }
+
         // A freshly created container is filled by its own Awake on the next frame; a use request in
         // the same frame finds an empty bottle and is refused as "no usable consumable".
         await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);

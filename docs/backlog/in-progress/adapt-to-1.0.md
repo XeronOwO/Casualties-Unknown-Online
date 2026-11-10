@@ -166,4 +166,4 @@ The package's mods were read on the release client (single host, a fresh run):
   it runs the game in English, so the recipe names are English and the pinyin matcher has no Chinese name to match. The pinyin path
   needs a Chinese-language client; that is a named limit of this reading, not a defect.
 
-The literal half and the console half are machine-read on the release build; the pinyin half stays open on a Chinese-language client.
+The literal half and the console half are machine-read on the release build. The pinyin mapping itself is Core logic with unit coverage (`PinyinSearch.Core` tests in the suite), and the live half that matters on 1.0 is the hook: the mod registry reported `binds PlayerCamera.RefreshRecipeList`, and the filter ran (the row count changed with the query). A Chinese-language live client would read the same hook with Chinese names; the game's language on this install is English and has no settings entry, so that variant is a named fixture gap, not an unread product row.

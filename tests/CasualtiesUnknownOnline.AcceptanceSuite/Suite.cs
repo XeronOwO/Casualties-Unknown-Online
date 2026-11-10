@@ -49,6 +49,12 @@ internal static partial class Program
         var session = new SessionDriver(options);
         var sessionNote = await session.EnsureInWorldAsync(CancellationToken.None).ConfigureAwait(false);
         var memberNote = await session.EnsureMemberAsync(CancellationToken.None).ConfigureAwait(false);
+        var members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
+        if (members.Length > 0)
+        {
+            options = options with { MemberId = members[0] };
+        }
+
         Console.WriteLine($"session\t{sessionNote}");
         Console.WriteLine($"member\t{memberNote}");
         foreach (var acceptanceCase in selected)

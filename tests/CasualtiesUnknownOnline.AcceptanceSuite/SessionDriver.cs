@@ -74,6 +74,21 @@ internal sealed class SessionDriver
         throw new InvalidOperationException("the suite could not join the member to the host's session");
     }
 
+    /// <summary>Reads the host's in-world members' session ids — the ids the cases address a member by.</summary>
+    public async Task<string[]> ReadMembersAsync(CancellationToken cancellationToken)
+    {
+        var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+        if (state.ValueKind != JsonValueKind.Object
+            || !state.TryGetProperty("result", out var result)
+            || !result.TryGetProperty("members", out var members)
+            || members.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return [.. members.EnumerateArray().Select(member => member.ValueKind == JsonValueKind.String ? member.GetString() ?? string.Empty : member.ToString())];
+    }
+
     /// <summary>Runs one driver action against one client and returns its JSON answer.</summary>
     public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
     {

@@ -27,19 +27,27 @@ internal sealed class TopicalDoseCase : AcceptanceCase
         // The doctor carries the cream; the create path gives it a filled container (the give verb's
         // defect on the demo is gone on 1.0: either path now hands a full bottle, but create is the
         // one the case can assert without a slot scan).
-        var cream = await context.RecipeAsync("item-provide", cancellationToken, ("type", "paincream"), ("mode", "create"));
-        if (!Boolean(cream, "ok"))
+        // The release path picks a carried item by slot; the case makes the cream the FIRST free
+        // slot by emptying the bag through the player's own drop entry, so the item the release
+        // carries is the cream and not a leftover from an earlier case.
+        var bag = await context.RecipeAsync("body-items", cancellationToken);
+        context.Read("body-items", bag);
+        if (bag is { ValueKind: JsonValueKind.Object } bagElement
+            && bagElement.TryGetProperty("ids", out var idsElement)
+            && idsElement.ValueKind == JsonValueKind.String)
         {
-            // A full inventory cannot take a new item: drop the last carried item through the game's own release.
-            var grabbed = await context.RecipeAsync("drag-from-slot", cancellationToken, ("slot", "4"));
-            context.Note("make-room grab: " + Raw(grabbed));
-            await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
-            var dropped = await context.RecipeAsync("drag-release", cancellationToken, ("x", "640"), ("y", "360"));
-            context.Note("make-room release: " + Raw(dropped));
-            await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
-            cream = await context.RecipeAsync("item-provide", cancellationToken, ("type", "paincream"), ("mode", "create"));
+            foreach (var entry in (idsElement.GetString() ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var slot = entry.Split(':', 2)[0];
+                if (int.TryParse(slot, out var slotIndex))
+                {
+                    await context.RecipeAsync("item-drop-hand", cancellationToken, ("slot", slot));
+                    await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+                }
+            }
         }
 
+        var cream = await context.RecipeAsync("item-provide", cancellationToken, ("type", "paincream"), ("mode", "create"));
         context.Read("paincream", cream);
         Require(Boolean(cream, "ok"), "the host could not take a paincream");
 
@@ -52,18 +60,18 @@ internal sealed class TopicalDoseCase : AcceptanceCase
         Require(Boolean(opened, "opened"), "the member's medical view did not open");
 
         // The member's own limb 0, before the dose.
-        var before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId));
+        var before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
         context.Read("member-limb-before", before);
         var beforeDisinfection = Number(before, "disinfectionTime");
 
         // The release on the displayed limb; the case reads the adapter's own answer and then the
         // member's limb — the dose is the member's marker, not the host's rendering.
-        var released = await context.RecipeAsync("remote-medical-release", cancellationToken, ("item", "paincream"), ("limb", "0"));
+        var released = await context.RecipeAsync("remote-medical-release", cancellationToken, ("item", "paincream"), ("limb", "3"));
         context.Read("release", released);
         Require(Boolean(released, "ok"), "the release answered not-ok");
 
         await Task.Delay(TimeSpan.FromMilliseconds(900), cancellationToken).ConfigureAwait(false);
-        var after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId));
+        var after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
         context.Read("member-limb-after", after);
         var afterDisinfection = Number(after, "disinfectionTime");
 

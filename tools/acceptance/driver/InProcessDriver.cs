@@ -182,6 +182,8 @@
 		putRaw(fields, escape, "gateWaiting", gate != null && gate.IsWaitingForReady ? "true" : "false");
 		putText(fields, escape, "gateText", gate == null ? "" : gate.WaitingText);
 		putRaw(fields, escape, "controls", quoteList(escape, controlIds(actions)));
+		var memberIds = session == null ? new System.Collections.Generic.List<ulong>() : new System.Collections.Generic.List<ulong>(((CasualtiesUnknownOnline.Runtime.Session.ISessionControl)session).InWorldRemoteSteamIds());
+		putRaw(fields, escape, "members", "[" + string.Join(",", System.Array.ConvertAll(memberIds.ToArray(), (id) => id.ToString())) + "]");
 		return finish(fields);
 	}
 

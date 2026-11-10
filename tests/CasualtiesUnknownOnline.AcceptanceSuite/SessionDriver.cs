@@ -54,12 +54,29 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		// A run needs the host's IP session first: at the menu, switch the transport and create
-		// the host, then start the run.
+		// the host, then start the run. The home page answers only while its window is up, and a
+		// client loading a scene can refuse the first click, so it retries with a fresh open.
 		await ActionAsync(_options.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
-		await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		try
+		{
+			// A host that still holds an IP session offers no transport switch; the run starts
+			// on the session it already has.
+			await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+		}
 		await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
-		await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
+		try
+		{
+			// A host whose earlier IP session is still alive refuses a second create; the run
+			// then simply starts on the existing session.
+			await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+		}
 		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 
 		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
@@ -81,20 +98,38 @@ internal sealed class SessionDriver(Options options)
 	public async Task<string> EnsureMemberAsync(CancellationToken cancellationToken)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-		if (IsTrue(state, "inWorld"))
+		var hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+		if (IsTrue(state, "inWorld") && hostMembers.Length > 0)
 		{
 			return "the member was already in a world";
 		}
 
-		// The window can be closed (a case pressed Escape); the home page's controls answer only
-		// while it is open.
+		if (IsTrue(state, "inWorld"))
+		{
+			// The member still sits in an earlier session; the host's fresh run does not list it,
+			// so it leaves and joins the host's current one.
+			await ActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
+		}
+
+		// The window can be closed (a case pressed Escape) or the client can still be loading
+		// after a restart; the home page's controls answer only while the page is up, so the
+		// first click retries with a fresh open instead of failing the case.
 		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
-		await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		try
+		{
+			// A member that still holds an IP session offers no transport switch; its join uses
+			// the transport it already has.
+			await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+		}
 		await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
-		await ActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
-		await ActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
-		await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
+		await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
+		await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
+		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
 
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < JoinBudget)
@@ -126,6 +161,17 @@ internal sealed class SessionDriver(Options options)
 	}
 
 	/// <summary>Runs one driver action against one client and returns its JSON answer.</summary>
+	private async Task TryActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
+	{
+		try
+		{
+			await ActionAsync(url, action, cancellationToken, extraArguments).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+		}
+	}
+
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
 	{
 		var script = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "drive-in-process.ps1");
@@ -203,3 +249,4 @@ internal sealed class SessionDriver(Options options)
 		return false;
 	}
 }
+

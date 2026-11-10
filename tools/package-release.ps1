@@ -24,7 +24,8 @@
 param(
     [string] $Configuration = 'Release',
     [string] $OutputDir,
-    [string] $Version
+    [string] $Version,
+    [switch] $WithMods = $true
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,6 +77,29 @@ if ($copied -eq 0) {
     exit 1
 }
 
+# The bundled mod plugins: their own assembly and any ".Core" assembly they load from disk. Their shared
+# dependencies (Abstractions, Microsoft.Extensions.*, System.*) are already in the core set above, so a mod
+# DLL that duplicates one is skipped by name - one copy of an assembly per folder.
+$mods = @('RecursiveCrafting', 'PinyinSearch', 'Music')
+$modDlls = 0
+foreach ($mod in $mods) {
+    if (-not $WithMods) { break }
+    $modOut = Join-Path $repo "src\CasualtiesUnknownOnline.$mod\bin\$Configuration\net48"
+    if (-not (Test-Path -LiteralPath $modOut)) {
+        Write-Host "  $mod has no $Configuration output; left out of the package"
+        continue
+    }
+    foreach ($name in @("CasualtiesUnknownOnline.$mod.dll", "CasualtiesUnknownOnline.$mod.Core.dll")) {
+        $source = Join-Path $modOut $name
+        if (-not (Test-Path -LiteralPath $source)) { continue }
+        $target = Join-Path $stagePlugin $name
+        if (Test-Path -LiteralPath $target) { continue }
+        Copy-Item -LiteralPath $source -Destination $target -Force
+        $copied++
+        $modDlls++
+    }
+}
+
 $steamApi = Join-Path $repo 'references\steam_api64.dll'
 if (-not (Test-Path -LiteralPath $steamApi)) {
     Write-Error "Missing the native Steam runtime: $steamApi"
@@ -94,6 +118,9 @@ $note = @(
     '  4. Start the game; the CUO button appears at the top right of the main menu.'
     ''
     'The native steam_api64.dll ships beside the plugin assemblies on purpose: Steamworks loads it from disk.'
+    ''
+    'The folder also carries the bundled mod plugins (RecursiveCrafting, PinyinSearch and Music). Each one is optional:'
+    'delete its assembly (and its .Core assembly when present) to run without it.'
 )
 Set-Content -LiteralPath (Join-Path $stageRoot 'install.txt') -Value $note -Encoding UTF8
 

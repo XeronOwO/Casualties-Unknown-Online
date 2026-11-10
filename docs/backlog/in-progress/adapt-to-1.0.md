@@ -138,3 +138,19 @@ found `CasualtiesUnknownOnline/CasualtiesUnknownOnline.dll`, `CasualtiesUnknownO
 The note is the player's three steps: install BepInEx 5.4.23.4 x64 into the game folder, copy the plugin folder into
 `BepInEx/plugins`, create `steam_appid.txt` with `4576490` beside the exe. It names the native DLL's reason (Steamworks
 loads it from disk).
+
+The package also carries the bundled mod plugins when their Release output exists: `RecursiveCrafting`,
+`PinyinSearch` and `Music` ship their plugin assembly plus the `.Core` assembly they load from disk; a DLL that
+duplicates one the core set already ships is skipped by name (one copy of an assembly per folder).
+
+Read on this machine (installed from the staged folder, release client): the package holds 39 files + the note
+(3,043,938 bytes, 40 entries); the log discovered and loaded all three mods —
+`[Mods] discovered cuo.music 0.1.0 (ClientOnly, permissions SendNetworkMessage, RegisterLocalCommand …)`,
+`cuo.pinyinsearch 0.1.0 (ClientOnly, permissions None, binds PlayerCamera.RefreshRecipeList)`,
+`cuo.recursivecrafting 0.1.0 (ClientOnly, permissions RegisterLocalCommand, binds Recipe.fullName + Recipe.description getters)` —
+and each answered `loaded (bind + initialize + start in the discovery frame)`. The adapter line in the same log read
+`Game Adapter patches installed and verified (282 targets)`; the only exception is the known third-party
+HotRepl/NJsonSchema `TypeLoadException`, not the mod's.
+
+The install's `[Adapter] DisabledCapabilities` was still `diagnostics` from the stage-3 readings; it was restored to
+empty (the production default) after the reading.

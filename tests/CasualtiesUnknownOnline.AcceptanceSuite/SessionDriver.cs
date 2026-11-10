@@ -22,6 +22,35 @@ internal sealed class SessionDriver
         _options = options;
     }
 
+    /// <summary>
+    /// Restarts the run from scratch: the host leaves the world, starts a fresh one, and the
+    /// member rejoins it. A long-lived world's surface can be a pit over a cave (the pair ends up
+    /// inside terrain and the interaction gate blocks every use), so a case that needs the pair
+    /// side by side asks for a fresh run instead of trusting where the old one left the bodies.
+    /// </summary>
+    public async Task<string> RestartRunAsync(CancellationToken cancellationToken)
+    {
+        await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+        var deadline = Stopwatch.StartNew();
+        while (deadline.Elapsed < TimeSpan.FromSeconds(20))
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+            var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+            if (!IsTrue(state, "inWorld"))
+            {
+                break;
+            }
+        }
+
+        // A bare start-run does not open the IP session: select the transport and open the host side first,
+        // then the run enters a world the member can join.
+        await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+        await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
+
+        var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+        var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+        return "fresh run: " + started + "; " + joined;
+    }
     /// <summary>Starts a run when no world is up and returns the note for the report.</summary>
     public async Task<string> EnsureInWorldAsync(CancellationToken cancellationToken)
     {

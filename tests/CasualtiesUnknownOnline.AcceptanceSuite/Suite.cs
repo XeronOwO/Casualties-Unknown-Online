@@ -76,7 +76,7 @@ internal static partial class Program
         try
         {
             await host.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
-            context = new CaseContext(options, outputDirectory, host);
+            context = new CaseContext(options, outputDirectory, host, new SessionDriver(options));
             await acceptanceCase.RunAsync(context, CancellationToken.None).ConfigureAwait(false);
             return new CaseResult(acceptanceCase.Name, acceptanceCase.Launch, true, "ok", context.Readings, context.Notes);
         }
@@ -104,15 +104,19 @@ internal sealed class CaseContext : IAsyncDisposable
 {
     private readonly Options _options;
     private DriverClient? _member;
+    private string? _memberId;
 
-    public CaseContext(Options options, string outputDirectory, DriverClient host)
+    public CaseContext(Options options, string outputDirectory, DriverClient host, SessionDriver session)
     {
         _options = options;
         OutputDirectory = outputDirectory;
         Host = host;
+        Session = session;
+        _memberId = options.MemberId;
     }
 
     public DriverClient Host { get; }
+    public SessionDriver Session { get; }
 
     public string OutputDirectory { get; }
 
@@ -121,7 +125,10 @@ internal sealed class CaseContext : IAsyncDisposable
     public Dictionary<string, string> Readings { get; } = new(StringComparer.Ordinal);
 
     public string MemberId =>
-        _options.MemberId ?? throw new InvalidOperationException("the case needs --member (the id the host shows for the member)");
+        _memberId ?? throw new InvalidOperationException("the case needs --member (the id the host shows for the member)");
+
+    /// <summary>Takes the member the host currently reports (a restart gives it a new session id).</summary>
+    public void UseMember(string memberId) => _memberId = memberId;
 
     public async Task<DriverClient> MemberAsync(CancellationToken cancellationToken)
     {

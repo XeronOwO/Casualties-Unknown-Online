@@ -118,7 +118,7 @@ public class AcceptanceDriverGateTests
 	/// when the template legitimately gains a game or plugin reference (21 since the single-file entry split
 	/// made the driver look up the `PluginHost` component by type name instead of reading `Plugin._onlineUi`,
 	/// which added two `UnityEngine.Object.FindObjectsOfType` / `MonoBehaviour` reference sites).</summary>
-	private const int UnresolvedReferenceCensus = 21;
+	private const int UnresolvedReferenceCensus = 22;
 
 	private static readonly string[] UnresolvedReferenceIds = ["CS0246", "CS0103", "CS0234"];
 

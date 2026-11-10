@@ -182,8 +182,9 @@
 		putRaw(fields, escape, "gateWaiting", gate != null && gate.IsWaitingForReady ? "true" : "false");
 		putText(fields, escape, "gateText", gate == null ? "" : gate.WaitingText);
 		putRaw(fields, escape, "controls", quoteList(escape, controlIds(actions)));
-		var memberIds = session == null ? new System.Collections.Generic.List<ulong>() : new System.Collections.Generic.List<ulong>(((CasualtiesUnknownOnline.Runtime.Session.ISessionControl)session).InWorldRemoteSteamIds());
-		putRaw(fields, escape, "members", "[" + string.Join(",", System.Array.ConvertAll(memberIds.ToArray(), (id) => id.ToString())) + "]");
+		var memberIds = new System.Text.StringBuilder();
+		if (session != null) { foreach (var memberId in ((CasualtiesUnknownOnline.Runtime.Session.ISessionControl)session).InWorldRemoteSteamIds()) { if (memberIds.Length > 0) { memberIds.Append(","); } memberIds.Append("" + memberId.ToString() + ""); } }
+		putRaw(fields, escape, "members", "[" + memberIds.ToString() + "]");
 		return finish(fields);
 	}
 

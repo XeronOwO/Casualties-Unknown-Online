@@ -18,6 +18,20 @@ internal sealed class TopicalDoseCase : AcceptanceCase
         var member = await context.MemberAsync(cancellationToken).ConfigureAwait(false);
         _ = member;
 
+        // A long-lived world can leave the surface a pit over a cave; the pair then stands inside
+        // terrain and the interaction gate blocks every use. The case starts from a fresh run so
+        // the two bodies spawn where the game puts them.
+        var restarted = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
+        context.Note("session: " + restarted);
+        var members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+        if (members.Length == 0)
+        {
+            throw new AssertionException("the fresh run names no member to treat");
+        }
+
+        context.UseMember(members[0]);
+        context.Note("member: " + members[0]);
+
         // The chart opens on a closed view from a living viewer.
         var closed = await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
         context.Note("pre-close: " + Raw(closed));
@@ -67,7 +81,7 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 
         var hostX = Number(localBody, "positionX");
         var hostY = Number(localBody, "positionY");
-        var moved = await context.MemberRecipeAsync("teleport", cancellationToken, ("x", (hostX + 1).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)), ("y", hostY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)));
+        var moved = await context.MemberRecipeAsync("teleport", cancellationToken, ("x", (hostX + 1).ToString("0.###", CultureInfo.InvariantCulture)), ("y", hostY.ToString("0.###", CultureInfo.InvariantCulture)));
         context.Note("member teleport: " + Raw(moved));
         for (var settle = 0; settle < 12; settle++)
         {

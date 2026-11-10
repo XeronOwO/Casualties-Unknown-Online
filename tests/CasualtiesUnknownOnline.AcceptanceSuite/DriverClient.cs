@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite;
 /// </summary>
 internal sealed partial class DriverClient : IAsyncDisposable
 {
-    private readonly ClientWebSocket _socket = new();
+    private ClientWebSocket _socket = new();
     private readonly int _evalTimeoutMs;
 
     public DriverClient(string url, int evalTimeoutMs = 60_000)
@@ -30,7 +30,23 @@ internal sealed partial class DriverClient : IAsyncDisposable
         await _socket.ConnectAsync(new Uri(Url), cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Reconnects after the game closed the socket (a scene change does this): one retry, then the case fails.</summary>
     public async Task<JsonElement?> EvalAsync(string code, string label, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await EvalOnceAsync(code, label, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is WebSocketException or IOException)
+        {
+            _socket.Dispose();
+            _socket = new ClientWebSocket();
+            await ConnectAsync(cancellationToken).ConfigureAwait(false);
+            return await EvalOnceAsync(code, label, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<JsonElement?> EvalOnceAsync(string code, string label, CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString("N");
         var frame = JsonSerializer.Serialize(new { type = "eval", id, code, timeoutMs = _evalTimeoutMs });

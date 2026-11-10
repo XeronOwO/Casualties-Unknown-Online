@@ -54,7 +54,7 @@ internal sealed class LockpickCase : AcceptanceCase
         reading is { ValueKind: JsonValueKind.Object } element
         && element.TryGetProperty(property, out var value)
         && value.ValueKind == JsonValueKind.Number
-            ? ((int)Math.Round(value.GetDouble())).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            ? ((int)Math.Round(value.GetDouble())).ToString(CultureInfo.InvariantCulture)
             : throw new AssertionException($"the reading has no number '{property}'");
 
     private static bool Boolean(JsonElement? reading, string property) =>

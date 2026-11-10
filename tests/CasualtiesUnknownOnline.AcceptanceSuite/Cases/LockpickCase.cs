@@ -13,6 +13,11 @@ internal sealed class LockpickCase : AcceptanceCase
 
     public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
     {
+        // The CUO window covers the screen centre; the game's own Escape closes it.
+        await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "1")).ConfigureAwait(false);
+        await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "0")).ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+
         var opened = await context.RecipeAsync("lockpick-open", cancellationToken).ConfigureAwait(false);
         context.Read("open", opened);
         Require(Boolean(opened, "ok"), "the lockpick minigame did not open");

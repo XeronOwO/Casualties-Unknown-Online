@@ -109,3 +109,18 @@ within six seconds of `start-run`.
 
 That is the release-build smoke: the 1.0 install runs, both clients join over IP direct, and the world's item rows and
 objects agree on both sides.
+
+## The install surface: BepInEx on a fresh install (2026-11-10)
+
+The release ships no BepInEx and no `steam_appid.txt`; without both the mod cannot load (Steam init fails, and the
+plugin folder has no loader). `tools/deploy.ps1` writes the app id into a release install; the loader layer is now its
+own step:
+
+- `tools/install-bepinex.ps1 -GameDir <install>` copies a BepInEx 5.4.23.4 x64 layer (`winhttp.dll`,
+  `doorstop_config.ini`, `BepInEx/{core,patchers,plugins}`) into the install, verifies the five files the preloader
+  needs, and is idempotent (a complete layer is reported and left alone).
+- Source order: `-SourceDir <a layer>` → the demo install's layer when it exists on this machine → `-Download` (the
+  pinned GitHub release) when asked. It never downloads silently and never touches the game's own files.
+- Read on this machine: the release install reports `BepInEx layer already installed (BepInEx 5.4.23.4)`; a scratch
+  folder holding only `CasualtiesUnknown.exe` gets the full layer (18 core files, `winhttp.dll`,
+  `doorstop_config.ini`) and the script prints the deploy command for it.

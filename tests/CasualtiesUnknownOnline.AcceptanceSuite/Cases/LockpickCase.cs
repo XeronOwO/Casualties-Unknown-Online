@@ -60,20 +60,16 @@ internal sealed class LockpickCase : AcceptanceCase
 			context.Note($"corrected at ({correctedX:0.#}, {correctedY:0.#}); hand ({handX:0.#}, {handY:0.#}) magnitude {magnitude:0.#}");
 		}
 
-		// The game reads the pointer every frame, and a staged pointer can fall back to the real
-		// mouse after a moment; the press lands on the ring only when the pointer is re-staged in
-		// the same breath. Re-stage and press until the minigame marks the hold as started.
+		// The game reads the pointer every frame, and a separate move/press leaves a frame in which
+		// the hand falls back to the real mouse. One eval stages the pointer and presses in the same
+		// frame; retry a few times in case the first press lands during a scene tick.
 		var started = false;
 		for (var attempt = 0; attempt < 10 && !started; attempt++)
 		{
-			await context.RecipeAsync("virtual-input", cancellationToken,
-				("mode", "move"),
+			var pressed = await context.RecipeAsync("lockpick-press", cancellationToken,
 				("x", Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture)),
-				("y", Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture)),
-				("button", "0")).ConfigureAwait(false);
-			await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
-			await context.RecipeAsync("virtual-input", cancellationToken,
-				("mode", "press-key"), ("x", "0"), ("y", "0"), ("button", "0")).ConfigureAwait(false);
+				("y", Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("press", pressed);
 			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
 			var probe = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 			started = Boolean(probe, "handStarted");

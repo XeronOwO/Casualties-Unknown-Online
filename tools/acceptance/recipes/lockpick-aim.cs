@@ -32,7 +32,7 @@
 	var target = new UnityEngine.Vector2(UnityEngine.Mathf.Cos(rad), UnityEngine.Mathf.Sin(rad)) * 220f;
 	var scale = PlayerCamera.uiScale;
 	var basePos = (UnityEngine.Vector2)screenRect.transform.position;
-	var screen = basePos + target * scale;
+	var screen = new UnityEngine.Vector2(basePos.x + target.x * scale, basePos.y - target.y * scale);
 	var hand = main.handPos;
 	var handAngle = UnityEngine.Mathf.Atan2(hand.y, hand.x) * UnityEngine.Mathf.Rad2Deg;
 	if (handAngle < 0f) { handAngle += 360f; }

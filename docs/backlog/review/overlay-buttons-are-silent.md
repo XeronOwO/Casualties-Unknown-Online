@@ -3,9 +3,13 @@
 - Status: Review — blocked on a fixture: the sound is wired and deployed (2026-11-08): every control reports through
   `OnlineUiSurfaceHost.ReportIntent`, which plays the game's own `"click"` for a button and `"miniClick"` for a toggle or
   dropdown pick (`PlayerCamera.PlayUISound`, the entry the game's own buttons use). The mapping is machine-read (4 facts,
-  `OnlineUiSoundTests`); the audible row needs a staged uGUI click, which the virtual input cannot produce (the game's
-  EventSystem reads the real mouse; the driver's `click` applies the intent directly and skips the view's own sound), so
-  the fixture needs a different door — a drive that reports the intent through the surface itself and reads `sound-log`.
+  `OnlineUiSoundTests`); the call itself is recorded on the release client (2026-11-10, `ui-sound-probe` → the recorder
+  read `raw=568|click@803.1;click@803.1`, so the game's click entry runs and the batch can see it). The audible row still
+  needs a staged uGUI click, which the virtual input cannot produce: the game's EventSystem reads the real mouse, the
+  driver's `click` applies the intent directly and skips the view's own sound, and the window's buttons are polled (an
+  `onClick.Invoke()` through `cuo-button-click` matched and invoked 46 captions with no click recorded — the uGUI
+  listener is not the door this window uses), so the fixture needs a drive that reports the intent through the surface
+  itself and reads `sound-log`.
 - Priority: Medium
 - Category: UI / audio
 - Source: the user, 2026-11-08 (translated: "CUO's UI sounds — many buttons have none, add them")

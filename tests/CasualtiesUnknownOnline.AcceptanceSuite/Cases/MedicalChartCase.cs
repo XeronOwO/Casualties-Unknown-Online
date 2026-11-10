@@ -1,0 +1,55 @@
+using System.Text.Json;
+
+namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
+
+/// <summary>
+/// The remote medical panel draws the MEMBER, not the host: it opens on the member's body, its
+/// header is the member's identity, and the three local-only surfaces (nap, workout, hand swap) are
+/// not offered for a remote focus. The row came from `remote-medical-panel-hide-local-only-actions`.
+/// </summary>
+internal sealed class MedicalChartCase : AcceptanceCase
+{
+    public override string Name => "medical-chart";
+
+    public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
+    {
+        // A leftover focus from an earlier run would answer `opened=false`; the case begins from the
+        // game's own closed state.
+        var closed = await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
+        context.Note("pre-close: " + Raw(closed));
+
+        // The chart only opens while the LOCAL body is alive (the game's own wound view refuses on a
+        // dead viewer). The host may carry a wound from an earlier case; the console's own heal puts
+        // the viewer back on its feet without touching the member.
+        var healed = await context.RecipeAsync("native-heal", cancellationToken);
+        context.Note("host heal: " + Raw(healed));
+
+        var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
+        context.Read("medical-open", opened);
+        Require(Boolean(opened, "opened"), "the remote medical view did not open");
+        Require(Boolean(opened, "nativeOpen"), "the game's own wound view did not open");
+
+        var panel = await context.RecipeAsync("panel-controls", cancellationToken);
+        context.Read("panel-controls", panel);
+        Require(Boolean(panel, "viewOpen"), "the panel is not open");
+        Require(Boolean(panel, "remoteFocus"), "the panel is not focused on the member");
+        Require(!Boolean(panel, "napActive"), "the member's panel offers the local-only nap control");
+        Require(!Boolean(panel, "workoutActive"), "the member's panel offers the local-only workout control");
+        Require(!Boolean(panel, "napFound") || !Boolean(panel, "napActive"), "the member's panel keeps the nap control live");
+    }
+
+    private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
+
+    private static bool Boolean(JsonElement? reading, string property) =>
+        reading is { ValueKind: JsonValueKind.Object } element
+        && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.True;
+
+    private static void Require(bool condition, string message)
+    {
+        if (!condition)
+        {
+            throw new AssertionException(message);
+        }
+    }
+}

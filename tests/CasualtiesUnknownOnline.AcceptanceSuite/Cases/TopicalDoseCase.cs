@@ -155,10 +155,22 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("release", released);
 		Require(Boolean(released, "ok"), "the release answered not-ok");
 
-		await Task.Delay(TimeSpan.FromMilliseconds(900), cancellationToken).ConfigureAwait(false);
-		var after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
+		// The dose lands on the member's own client; under the all-suite load the apply can
+		// trail the release by more than a second, so the marker is polled instead of read once.
+		JsonElement? after = null;
+		var afterDisinfection = beforeDisinfection;
+		for (var settle = 0; settle < 12; settle++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
+			afterDisinfection = Number(after, "disinfectionTime");
+			if (afterDisinfection - beforeDisinfection >= 200)
+			{
+				break;
+			}
+		}
+
 		context.Read("member-limb-after", after);
-		var afterDisinfection = Number(after, "disinfectionTime");
 
 		// A 10 ml relief cream sets SetDisinfect(300 * clamp01(ml * 0.1)) — the marker jumps to
 		// about 300 from zero. The case accepts a rise of at least 200, so a partly-consumed bottle

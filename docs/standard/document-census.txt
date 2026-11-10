@@ -1360,11 +1360,11 @@ docs/backlog/done/overlay-buttons-are-silent.md | keep | index | docs/backlog/RE
 docs/backlog/done/console-input-keys-violate-the-minecraft-rules.md | keep | index | docs/backlog/README.md
 docs/backlog/done/save-backups-overwhelm-the-archive.md | keep | index | docs/backlog/README.md
 docs/backlog/done/native-console-is-unpoliced.md | keep | index | docs/backlog/README.md
-docs/backlog/in-progress/adapt-to-1.0.md | keep | index | docs/backlog/README.md
+docs/backlog/done/adapt-to-1.0.md | keep | index | docs/backlog/README.md
 docs/design/game/README.md | keep | spec | docs/design/INDEX.md
 docs/design/game/items.md | keep | spec | docs/design/game/README.md
 docs/design/game/worldgen-and-layers.md | keep | spec | docs/design/game/README.md
-docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md | keep | claim | docs/backlog/in-progress/adapt-to-1.0.md
+docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md | keep | claim | docs/backlog/done/adapt-to-1.0.md
 docs/design/game/medical.md | keep | claim | docs/design/game/README.md
 docs/design/game/crafting.md | keep | claim | docs/design/game/README.md
 docs/design/game/combat.md | keep | claim | docs/design/game/README.md

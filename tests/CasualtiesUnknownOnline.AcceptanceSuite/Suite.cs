@@ -48,6 +48,12 @@ internal static partial class Program
 		var sessionNote = await session.EnsureInWorldAsync(CancellationToken.None).ConfigureAwait(false);
 		var memberNote = await session.EnsureMemberAsync(CancellationToken.None).ConfigureAwait(false);
 		var members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
+		for (var attempt = 0; attempt < 20 && members.Length == 0; attempt++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(500), CancellationToken.None).ConfigureAwait(false);
+			members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
+		}
+
 		if (members.Length > 0)
 		{
 			options = options with { MemberId = members[0] };

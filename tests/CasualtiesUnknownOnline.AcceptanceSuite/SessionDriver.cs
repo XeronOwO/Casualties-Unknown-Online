@@ -117,6 +117,10 @@ internal sealed class SessionDriver(Options options)
 		// first click retries with a fresh open instead of failing the case.
 		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		// A member that still holds a session shows its leave control instead of the join fields;
+		// leaving first is best-effort, because a member at the menu has nothing to leave.
+		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
 		try
 		{
 			// A member that still holds an IP session offers no transport switch; its join uses

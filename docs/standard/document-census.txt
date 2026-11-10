@@ -1390,3 +1390,4 @@ docs/backlog/done/1.0-capability-install-units.md | keep | claim | docs/backlog/
 docs/evidence/acceptance/overlay-buttons-are-silent-20261110.md | keep | claim | docs/backlog/done/overlay-buttons-are-silent.md
 docs/backlog/review/host-cannot-host-after-continue.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-remote-limb-operations-carry-no-limb.md | keep | claim | docs/backlog/README.md
+docs/backlog/review/1.0-ip-direct-guest-disconnects.md | keep | claim | docs/backlog/README.md

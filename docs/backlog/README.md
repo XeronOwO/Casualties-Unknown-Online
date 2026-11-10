@@ -78,6 +78,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 ### Review
 - [1.0: remote limb operations carry no limb](review/1.0-remote-limb-operations-carry-no-limb.md) — silent; the limb never changes.
+- [1.0: the IP-direct guest drops out](review/1.0-ip-direct-guest-disconnects.md) — **High** — the guest joins, the world join reaches nobody, the link drops.
 - [IP direct shows the purchase notice when Steam is not ready](review/ip-direct-shows-the-purchase-notice.md) — **High** — the notice every IP run shows.
 - [Host cannot host after a continue](review/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 

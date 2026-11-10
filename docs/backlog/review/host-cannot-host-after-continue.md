@@ -1,6 +1,6 @@
 # A host cannot start a session after entering a world
 
-- Status: Review — blocked on a product decision. A host who continues a world first and hosts second is refused
+- Status: Review — blocked on user — a product decision. A host who continues a world first and hosts second is refused
   on 1.0 IP direct (`IP-direct start refused: a world is running or generating`), and the world has already loaded in
   the host's own key space, so a later session cannot adopt the restored characters (`Continue restored world … with
   damage: the snapshot was written in the IpDirect key space and this session runs Steam, so none of its 2 stored

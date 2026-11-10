@@ -53,6 +53,15 @@ internal sealed class SessionDriver(Options options)
 			return "the host was already in a world";
 		}
 
+		// A run needs the host's IP session first: at the menu, switch the transport and create
+		// the host, then start the run.
+		await ActionAsync(_options.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+		await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+
 		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < StartBudget)
@@ -77,7 +86,12 @@ internal sealed class SessionDriver(Options options)
 			return "the member was already in a world";
 		}
 
+		// The window can be closed (a case pressed Escape); the home page's controls answer only
+		// while it is open.
+		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 		await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
 		await ActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
 		await ActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
 		await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);

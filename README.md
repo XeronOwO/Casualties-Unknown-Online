@@ -1,14 +1,14 @@
 # Casualties Unknown: Online (CUO)
 
-**English** | [中文](README.zh.md)
+**English** | [Chinese](README.zh.md)
 
-A multiplayer mod framework for [*Casualties: Unknown*](https://store.steampowered.com/app/4576510) (currently in Demo), built on [BepInEx](https://github.com/BepInEx/BepInEx).
+A multiplayer mod framework for [*Casualties: Unknown*](https://store.steampowered.com/app/4576490), built on [BepInEx](https://github.com/BepInEx/BepInEx). The adapter targets the 1.0 release; the earlier demo build is no longer a compatibility target.
 
 The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** co-op (LAN / friends) by injecting a new multiplayer runtime and reorganizing the local-only game state into a **host-authoritative simulation with guest input/state sync** — in the spirit of Minecraft Forge, but starting with a solid multiplayer core rather than a full mod ecosystem.
 
 ## Status
 
-**Active development — architecture evolution complete.** Phases 0–4 (feasibility, single-player entity sync, entity lifecycle, game core loop, public Mod API) are complete and runtime-verified; the typed deterministic game-state kernel migration (Phases A–E) is also complete. See [`docs/README.md`](docs/README.md) for the full documentation map, [`docs/architecture/README.md`](docs/architecture/README.md) for the active architecture, [`docs/decisions/active.md`](docs/decisions/active.md) for landed decisions, and [`docs/en/reference/mod-api.md`](docs/en/reference/mod-api.md) for the binding Mod API contract.
+**Active development — adapted to the 1.0 release.** Phases 0–4 (feasibility, single-player entity sync, entity lifecycle, game core loop, public Mod API) are complete and runtime-verified; the typed deterministic game-state kernel migration (Phases A–E) is also complete. The game adapter now builds against the 1.0 assemblies: a teammate's body renders, item names and colours, prosthetic limbs, the run's settings and the ending all travel between clients, and two clients met in one world on the release build. See [`docs/README.md`](docs/README.md) for the full documentation map, [`docs/architecture/README.md`](docs/architecture/README.md) for the active architecture, [`docs/decisions/active.md`](docs/decisions/active.md) for landed decisions, and [`docs/en/reference/mod-api.md`](docs/en/reference/mod-api.md) for the binding Mod API contract.
 
 ## Architecture in Brief
 
@@ -18,7 +18,7 @@ Mods → Mod Framework API → Multiplayer Runtime → Game Adapter → BepInEx 
 
 - **Stable CUO Runtime**: network protocol, host/guest state machine, mod loading, serialization, tick/snapshot, logging, version negotiation.
 - **Replaceable Game Adapter**: the only layer that knows the game's private types; one adapter per game build, with startup capability detection and safe degradation when a game update breaks compatibility.
-- **Accept-first sync arbitration**: the host trusts each guest's reports first (adopt and relay, never blocking the player's action) and corrects only on obvious conflicts such as races; strict validation and anti-cheat are deliberately low priority until the feature set is complete.
+- **Accept-first sync arbitration**: the host trusts each guest's reports first (adopt and relay, never blocking the player's action) and corrects only on obvious conflicts such as races. One bound is in place: a limb report that no game rate could produce (a dismembered limb returning, a large health jump in one event) is refused, the host's record stays, and the offending client is sent the host's limbs. Strict validation and anti-cheat remain low priority until the feature set is complete.
 
 ## Build
 
@@ -28,7 +28,16 @@ Requires .NET SDK (see [`AGENTS.md`](AGENTS.md)).
 dotnet build CasualtiesUnknownOnline.slnx
 ```
 
-All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment into the game's `BepInEx/plugins/CasualtiesUnknownOnline/` folder is handled by `deploy.ps1`.
+All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment into the game's `BepInEx/plugins/CasualtiesUnknownOnline/` folder is handled by `deploy.ps1`; `tools/package-release.ps1` builds the player zip.
+
+## Install (players)
+
+1. Install BepInEx 5.4.23.4 (x64) into the game folder — `winhttp.dll`, `doorstop_config.ini` and the `BepInEx` folder sit next to `CasualtiesUnknown.exe`.
+2. Copy the `CasualtiesUnknownOnline` folder from the release zip into `<game>\BepInEx\plugins\`.
+3. Keep `steam_appid.txt` (containing `4576490`) next to `CasualtiesUnknown.exe` — the game needs it to initialise Steam.
+4. Start the game; the CUO button sits at the top right of the main menu.
+
+Two players meet either through a Steam lobby (one hosts, the other joins from the Online UI) or by IP: one hosts on a port and the other joins by address. The IP path skips Steam lobbies; the game itself still initialises Steam on each side.
 
 ## Documentation
 

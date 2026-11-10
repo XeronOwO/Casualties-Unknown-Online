@@ -2,13 +2,13 @@
 
 **中文** | [English](README.md)
 
-一款为 [*Casualties: Unknown*](https://store.steampowered.com/app/4576510)（目前为 Demo）打造的多人联机模组框架，构建在 [BepInEx](https://github.com/BepInEx/BepInEx) 之上。
+一款为 [*Casualties: Unknown*](https://store.steampowered.com/app/4576490)打造的多人联机模组框架，构建在 [BepInEx](https://github.com/BepInEx/BepInEx) 之上。适配层面向 1.0 正式版；此前的 demo 构建不再是兼容目标。
 
 游戏本体不带联机。CUO 注入一套新的多人运行时，把原本只在本机成立的游戏状态重组为**主机权威模拟 + 客机输入与状态同步**，从而加上基于 Steam 的**主机 + 客机**合作（局域网／好友之间）—— 思路接近 Minecraft Forge，但先做扎实的联机内核，而不是一整套模组生态。
 
 ## 状态
 
-**积极开发中 —— 架构演进已完成。** 阶段 0–4（可行性、单人实体同步、实体生命周期、游戏主循环、公开 Mod API）已完成并通过运行时验证；类型化确定性游戏状态内核的迁移（阶段 A–E）也已完成。完整文档地图见 [`docs/README.md`](docs/README.md)，当前架构见 [`docs/architecture/README.md`](docs/architecture/README.md)，已落地的决策见 [`docs/decisions/active.md`](docs/decisions/active.md)，具有约束力的 Mod API 契约见 [`docs/en/reference/mod-api.md`](docs/en/reference/mod-api.md)。
+**积极开发中 —— 已适配 1.0 正式版。** 阶段 0–4（可行性、单人实体同步、实体生命周期、游戏主循环、公开 Mod API）已完成并通过运行时验证；类型化确定性游戏状态内核的迁移（阶段 A–E）也已完成。适配层现在按 1.0 程序集构建：队友的身体能渲染出来，物品名称与颜色、假肢、本局的设置和结局都能在客户端之间传递，两个客户端已经在正式版的同一个世界里会合过。完整文档地图见 [`docs/README.md`](docs/README.md)，当前架构见 [`docs/architecture/README.md`](docs/architecture/README.md)，已落地的决策见 [`docs/decisions/active.md`](docs/decisions/active.md)，具有约束力的 Mod API 契约见 [`docs/en/reference/mod-api.md`](docs/en/reference/mod-api.md)。
 
 ## 架构速览
 
@@ -18,7 +18,7 @@
 
 - **稳定的 CUO 运行时**：网络协议、主机/客机状态机、模组加载、序列化、tick/快照、日志、版本协商。
 - **可替换的游戏适配层**：唯一认识游戏私有类型的层；每个游戏构建对应一个适配层，启动时做能力探测，游戏更新破坏兼容时安全降级。
-- **先接受再仲裁的同步策略**：主机先信任每个客机的上报（先采纳并转发，绝不阻塞玩家的操作），只在明显冲突（例如竞态）时才纠正；严格校验与反作弊在功能补齐之前刻意保持低优先级。
+- **先接受再仲裁的同步策略**：主机先信任每个客机的上报（先采纳并转发，绝不阻塞玩家的操作），只在明显冲突（例如竞态）时才纠正。已经有一条边界：任何游戏速率不可能产生的肢体上报（已截断的肢体复原、一次事件里跳变过大）会被拒绝，主机保留自己的记录，并把记录发回给客户端；严格校验与反作弊在功能补齐之前仍保持低优先级。
 
 ## 构建
 
@@ -28,7 +28,16 @@
 dotnet build CasualtiesUnknownOnline.slnx
 ```
 
-所有项目都面向 `net48`（BepInEx 5 加游戏的 Mono 运行时）。把插件部署进游戏的 `BepInEx/plugins/CasualtiesUnknownOnline/` 目录由 `deploy.ps1` 完成。
+所有项目都面向 `net48`（BepInEx 5 加游戏的 Mono 运行时）。把插件部署进游戏的 `BepInEx/plugins/CasualtiesUnknownOnline/` 目录由 `deploy.ps1` 完成；面向玩家的发布包由 `tools/package-release.ps1` 生成。
+
+## 安装（玩家）
+
+1. 在游戏目录里安装 BepInEx 5.4.23.4（x64）——`winhttp.dll`、`doorstop_config.ini` 和 `BepInEx` 文件夹与 `CasualtiesUnknown.exe` 同级。
+2. 把发布包里的 `CasualtiesUnknownOnline` 文件夹复制到 `<游戏目录>\BepInEx\plugins\`。
+3. 让 `steam_appid.txt`（内容为 `4576490`）留在 `CasualtiesUnknown.exe` 旁边——游戏要靠它初始化 Steam。
+4. 启动游戏，主菜单右上角就是 CUO 的按钮。
+
+两名玩家可以走 Steam 大厅（一人建房、另一人从联机界面加入），也可以走 IP：一方监听端口，另一方按地址加入。IP 方式不经过 Steam 大厅；游戏本身在两端仍会初始化 Steam。
 
 ## 文档
 

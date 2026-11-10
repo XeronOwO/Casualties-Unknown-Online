@@ -6,68 +6,125 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// <summary>
 /// The lockpick minigame completes through the game's own entry: the host opens the nearest lockable,
 /// aims the hand at the picked angle, holds the attack key, and the game's own completion sound is the
-/// reading.
+/// reading. The pointer-to-hand mapping depends on the window's scale, so the case calibrates the
+/// mapping with two probes before it aims.
 /// </summary>
 internal sealed class LockpickCase : AcceptanceCase
 {
-    public override string Name => "lockpick";
+	private const double ProbeX = 640;
+	private const double ProbeY = 360;
+	private const double ProbeStep = 100;
 
-    public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
-    {
-        // The CUO window covers the screen centre; the game's own Escape closes it.
-        await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "1")).ConfigureAwait(false);
-        await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "0")).ConfigureAwait(false);
-        await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+	public override string Name => "lockpick";
 
-        var opened = await context.RecipeAsync("lockpick-open", cancellationToken).ConfigureAwait(false);
-        context.Read("open", opened);
-        Require(Boolean(opened, "ok"), "the lockpick minigame did not open");
+	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		// The CUO window covers the screen centre; the game's own Escape closes it.
+		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "1")).ConfigureAwait(false);
+		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "0")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 
-        var aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
-        context.Read("aim", aim);
-        Require(Boolean(aim, "ok"), "the aim did not compute");
+		var opened = await context.RecipeAsync("lockpick-open", cancellationToken).ConfigureAwait(false);
+		context.Read("open", opened);
+		Require(Boolean(opened, "ok"), "the lockpick minigame did not open");
 
-        var x = NumberText(aim, "screenX");
-        var y = NumberText(aim, "screenY");
-        var moved = await context.RecipeAsync("virtual-input", cancellationToken,
-            ("mode", "move"), ("x", x), ("y", y), ("button", "0")).ConfigureAwait(false);
-        context.Read("moved", moved);
-        // The minigame's hand springs toward the pointer over frames; let it settle on the ring.
-        await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
+		var aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
+		context.Read("aim", aim);
+		Require(Boolean(aim, "ok"), "the aim did not compute");
+		var targetX = Number(aim, "targetX");
+		var targetY = Number(aim, "targetY");
 
-        var pressed = await context.RecipeAsync("virtual-input", cancellationToken,
-            ("mode", "press-key"), ("x", "0"), ("y", "0"), ("button", "0")).ConfigureAwait(false);
-        context.Read("pressed", pressed);
-        await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
+		// Calibrate: the hand follows the pointer linearly per axis, but the scale and the y sign
+		// belong to the window, not to the recipe. Two probes give both.
+		var (originX, originY) = await MoveAndReadHand(context, ProbeX, ProbeY, cancellationToken).ConfigureAwait(false);
+		var (eastX, _) = await MoveAndReadHand(context, ProbeX + ProbeStep, ProbeY, cancellationToken).ConfigureAwait(false);
+		var (_, northY) = await MoveAndReadHand(context, ProbeX, ProbeY + ProbeStep, cancellationToken).ConfigureAwait(false);
+		var scaleX = (eastX - originX) / ProbeStep;
+		var scaleY = (northY - originY) / ProbeStep;
+		context.Note($"hand mapping: origin ({originX:0.#}, {originY:0.#}) scale ({scaleX:0.####}, {scaleY:0.####})");
+		Require(Math.Abs(scaleX) > 1e-4 && Math.Abs(scaleY) > 1e-4, "the pointer does not move the minigame hand");
 
-        var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-        context.Read("live", live);
+		var aimX = ProbeX + (targetX - originX) / scaleX;
+		var aimY = ProbeY + (targetY - originY) / scaleY;
+		var (handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
+		var magnitude = Math.Sqrt((handX * handX) + (handY * handY));
+		context.Note($"aimed at ({aimX:0.#}, {aimY:0.#}); hand ({handX:0.#}, {handY:0.#}) magnitude {magnitude:0.#}");
+		if (magnitude is < 195 or > 247)
+		{
+			var correctedX = aimX + (targetX - handX) / scaleX;
+			var correctedY = aimY + (targetY - handY) / scaleY;
+			aimX = correctedX;
+			aimY = correctedY;
+			(handX, handY) = await MoveAndReadHand(context, correctedX, correctedY, cancellationToken).ConfigureAwait(false);
+			magnitude = Math.Sqrt((handX * handX) + (handY * handY));
+			context.Note($"corrected at ({correctedX:0.#}, {correctedY:0.#}); hand ({handX:0.#}, {handY:0.#}) magnitude {magnitude:0.#}");
+		}
 
-        var sounds = await context.RecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "unlock")).ConfigureAwait(false);
-        context.Read("sounds", sounds);
-        var line = sounds is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty("line", out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString() ?? ""
-            : "";
-        Require(line.Contains("unlock@", StringComparison.Ordinal), $"the game did not play its unlock sound: {line}");
-    }
+		// The game reads the pointer every frame, and a staged pointer can fall back to the real
+		// mouse after a moment; the press lands on the ring only when the pointer is re-staged in
+		// the same breath. Re-stage and press until the minigame marks the hold as started.
+		var started = false;
+		for (var attempt = 0; attempt < 10 && !started; attempt++)
+		{
+			await context.RecipeAsync("virtual-input", cancellationToken,
+				("mode", "move"),
+				("x", Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture)),
+				("y", Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture)),
+				("button", "0")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
+			await context.RecipeAsync("virtual-input", cancellationToken,
+				("mode", "press-key"), ("x", "0"), ("y", "0"), ("button", "0")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
+			var probe = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+			started = Boolean(probe, "handStarted");
+			context.Note($"press {attempt}: started={started} {Number(probe, "handMagnitude")}");
+		}
 
-    private static string NumberText(JsonElement? reading, string property) =>
-        reading is { ValueKind: JsonValueKind.Object } element
-        && element.TryGetProperty(property, out var value)
-        && value.ValueKind == JsonValueKind.Number
-            ? ((int)Math.Round(value.GetDouble())).ToString(CultureInfo.InvariantCulture)
-            : throw new AssertionException($"the reading has no number '{property}'");
+		Require(started, "the minigame never marked the hold as started on the ring");
+		await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
 
-    private static bool Boolean(JsonElement? reading, string property) =>
-        reading is { ValueKind: JsonValueKind.Object } element
-        && element.TryGetProperty(property, out var value)
-        && value.ValueKind == JsonValueKind.True;
+		var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+		context.Read("live", live);
 
-    private static void Require(bool condition, string message)
-    {
-        if (!condition)
-        {
-            throw new AssertionException(message);
-        }
-    }
+		var sounds = await context.RecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "unlock")).ConfigureAwait(false);
+		context.Read("sounds", sounds);
+		var line = sounds is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty("line", out var value) && value.ValueKind == JsonValueKind.String
+			? value.GetString() ?? ""
+			: "";
+		Require(line.Contains("unlock@", StringComparison.Ordinal), $"the game did not play its unlock sound: {line}");
+	}
+
+	private static async Task<(double X, double Y)> MoveAndReadHand(CaseContext context, double x, double y, CancellationToken cancellationToken)
+	{
+		await context.RecipeAsync("virtual-input", cancellationToken,
+			("mode", "move"),
+			("x", Math.Round(x).ToString("0", CultureInfo.InvariantCulture)),
+			("y", Math.Round(y).ToString("0", CultureInfo.InvariantCulture)),
+			("button", "0")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		var live = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
+		var handX = Number(live, "handX");
+		var handY = Number(live, "handY");
+		return (handX, handY);
+	}
+
+	private static double Number(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.Number
+			? value.GetDouble()
+			: throw new AssertionException($"the reading has no number '{property}'");
+
+	private static bool Boolean(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.True;
+
+	private static void Require(bool condition, string message)
+	{
+		if (!condition)
+		{
+			throw new AssertionException(message);
+		}
+	}
 }

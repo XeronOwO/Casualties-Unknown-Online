@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -10,186 +9,181 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite;
 /// member, starts a run when no world is up, and joins the member to the host's IP session,
 /// instead of judging whatever happened to be running.
 /// </summary>
-internal sealed class SessionDriver
+internal sealed class SessionDriver(Options options)
 {
-    private static readonly TimeSpan StartBudget = TimeSpan.FromSeconds(60);
-    private static readonly TimeSpan JoinBudget = TimeSpan.FromSeconds(30);
+	private static readonly TimeSpan StartBudget = TimeSpan.FromSeconds(60);
+	private static readonly TimeSpan JoinBudget = TimeSpan.FromSeconds(30);
 
-    private readonly Options _options;
+	private readonly Options _options = options;
 
-    public SessionDriver(Options options)
-    {
-        _options = options;
-    }
+	/// <summary>
+	/// Restarts the run from scratch: the host leaves the world, starts a fresh one, and the
+	/// member rejoins it. A long-lived world's surface can be a pit over a cave (the pair ends up
+	/// inside terrain and the interaction gate blocks every use), so a case that needs the pair
+	/// side by side asks for a fresh run instead of trusting where the old one left the bodies.
+	/// </summary>
+	public string MemberUrl => _options.MemberUrl;
 
-    /// <summary>
-    /// Restarts the run from scratch: the host leaves the world, starts a fresh one, and the
-    /// member rejoins it. A long-lived world's surface can be a pit over a cave (the pair ends up
-    /// inside terrain and the interaction gate blocks every use), so a case that needs the pair
-    /// side by side asks for a fresh run instead of trusting where the old one left the bodies.
-    /// </summary>
-    public string MemberUrl => _options.MemberUrl;
+	public async Task<string> RestartRunAsync(CancellationToken cancellationToken)
+	{
+		await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < TimeSpan.FromSeconds(20))
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+			var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (!IsTrue(state, "inWorld"))
+			{
+				break;
+			}
+		}
 
-    public async Task<string> RestartRunAsync(CancellationToken cancellationToken)
-    {
-        await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-        var deadline = Stopwatch.StartNew();
-        while (deadline.Elapsed < TimeSpan.FromSeconds(20))
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
-            var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-            if (!IsTrue(state, "inWorld"))
-            {
-                break;
-            }
-        }
+		var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+		var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+		return "fresh run: " + started + "; " + joined;
+	}
+	/// <summary>Starts a run when no world is up and returns the note for the report.</summary>
+	public async Task<string> EnsureInWorldAsync(CancellationToken cancellationToken)
+	{
+		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (IsTrue(state, "inWorld"))
+		{
+			return "the host was already in a world";
+		}
 
-        var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
-        var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
-        return "fresh run: " + started + "; " + joined;
-    }
-    /// <summary>Starts a run when no world is up and returns the note for the report.</summary>
-    public async Task<string> EnsureInWorldAsync(CancellationToken cancellationToken)
-    {
-        var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-        if (IsTrue(state, "inWorld"))
-        {
-            return "the host was already in a world";
-        }
+		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < StartBudget)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+			state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (IsTrue(state, "inWorld"))
+			{
+				return "the suite started a fresh run";
+			}
+		}
 
-        await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
-        var deadline = Stopwatch.StartNew();
-        while (deadline.Elapsed < StartBudget)
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
-            state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-            if (IsTrue(state, "inWorld"))
-            {
-                return "the suite started a fresh run";
-            }
-        }
+		throw new InvalidOperationException("the suite could not start a world for the cases");
+	}
 
-        throw new InvalidOperationException("the suite could not start a world for the cases");
-    }
+	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
+	public async Task<string> EnsureMemberAsync(CancellationToken cancellationToken)
+	{
+		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (IsTrue(state, "inWorld"))
+		{
+			return "the member was already in a world";
+		}
 
-    /// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
-    public async Task<string> EnsureMemberAsync(CancellationToken cancellationToken)
-    {
-        var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-        if (IsTrue(state, "inWorld"))
-        {
-            return "the member was already in a world";
-        }
+		await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+		await ActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
+		await ActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
+		await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
 
-        await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
-        await ActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
-        await ActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
-        await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < JoinBudget)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (IsTrue(state, "inWorld"))
+			{
+				return "the suite joined the member to the host's session";
+			}
+		}
 
-        var deadline = Stopwatch.StartNew();
-        while (deadline.Elapsed < JoinBudget)
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
-            state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-            if (IsTrue(state, "inWorld"))
-            {
-                return "the suite joined the member to the host's session";
-            }
-        }
+		throw new InvalidOperationException("the suite could not join the member to the host's session");
+	}
 
-        throw new InvalidOperationException("the suite could not join the member to the host's session");
-    }
+	/// <summary>Reads the host's in-world members' session ids — the ids the cases address a member by.</summary>
+	public async Task<string[]> ReadMembersAsync(CancellationToken cancellationToken)
+	{
+		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (state.ValueKind != JsonValueKind.Object
+			|| !state.TryGetProperty("result", out var result)
+			|| !result.TryGetProperty("members", out var members)
+			|| members.ValueKind != JsonValueKind.Array)
+		{
+			return [];
+		}
 
-    /// <summary>Reads the host's in-world members' session ids — the ids the cases address a member by.</summary>
-    public async Task<string[]> ReadMembersAsync(CancellationToken cancellationToken)
-    {
-        var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-        if (state.ValueKind != JsonValueKind.Object
-            || !state.TryGetProperty("result", out var result)
-            || !result.TryGetProperty("members", out var members)
-            || members.ValueKind != JsonValueKind.Array)
-        {
-            return [];
-        }
+		return [.. members.EnumerateArray().Select(member => member.ValueKind == JsonValueKind.String ? member.GetString() ?? string.Empty : member.ToString())];
+	}
 
-        return [.. members.EnumerateArray().Select(member => member.ValueKind == JsonValueKind.String ? member.GetString() ?? string.Empty : member.ToString())];
-    }
+	/// <summary>Runs one driver action against one client and returns its JSON answer.</summary>
+	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
+	{
+		var script = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "drive-in-process.ps1");
+		var start = new ProcessStartInfo("pwsh")
+		{
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			UseShellExecute = false,
+		};
+		start.ArgumentList.Add("-NoProfile");
+		start.ArgumentList.Add("-File");
+		start.ArgumentList.Add(script);
+		start.ArgumentList.Add("-Url");
+		start.ArgumentList.Add(url);
+		start.ArgumentList.Add("-Action");
+		start.ArgumentList.Add(action);
+		foreach (var (name, value) in extraArguments)
+		{
+			start.ArgumentList.Add(name);
+			start.ArgumentList.Add(value);
+		}
 
-    /// <summary>Runs one driver action against one client and returns its JSON answer.</summary>
-    public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
-    {
-        var script = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "drive-in-process.ps1");
-        var start = new ProcessStartInfo("pwsh")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        start.ArgumentList.Add("-NoProfile");
-        start.ArgumentList.Add("-File");
-        start.ArgumentList.Add(script);
-        start.ArgumentList.Add("-Url");
-        start.ArgumentList.Add(url);
-        start.ArgumentList.Add("-Action");
-        start.ArgumentList.Add(action);
-        foreach (var (name, value) in extraArguments)
-        {
-            start.ArgumentList.Add(name);
-            start.ArgumentList.Add(value);
-        }
+		using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance driver for '{action}'");
+		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+		var error = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+		if (process.ExitCode != 0)
+		{
+			throw new InvalidOperationException($"the acceptance driver answered '{action}' with exit {process.ExitCode}: {error.Trim()}");
+		}
 
-        using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance driver for '{action}'");
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-        var error = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException($"the acceptance driver answered '{action}' with exit {process.ExitCode}: {error.Trim()}");
-        }
+		var startIndex = output.IndexOf('{', StringComparison.Ordinal);
+		if (startIndex < 0)
+		{
+			throw new InvalidOperationException($"the acceptance driver answered '{action}' without a JSON body: {output.Trim()}");
+		}
 
-        var startIndex = output.IndexOf('{', StringComparison.Ordinal);
-        if (startIndex < 0)
-        {
-            throw new InvalidOperationException($"the acceptance driver answered '{action}' without a JSON body: {output.Trim()}");
-        }
+		using var document = JsonDocument.Parse(output[startIndex..]);
+		return document.RootElement.Clone();
+	}
 
-        using var document = JsonDocument.Parse(output[startIndex..]);
-        return document.RootElement.Clone();
-    }
+	private static bool IsTrue(JsonElement answer, string property)
+	{
+		if (answer.ValueKind == JsonValueKind.Object)
+		{
+			if (answer.TryGetProperty(property, out var value))
+			{
+				return value.ValueKind switch
+				{
+					JsonValueKind.True => true,
+					JsonValueKind.String => string.Equals(value.GetString(), "true", StringComparison.OrdinalIgnoreCase),
+					_ => false,
+				};
+			}
 
-    private static bool IsTrue(JsonElement answer, string property)
-    {
-        if (answer.ValueKind == JsonValueKind.Object)
-        {
-            if (answer.TryGetProperty(property, out var value))
-            {
-                return value.ValueKind switch
-                {
-                    JsonValueKind.True => true,
-                    JsonValueKind.String => string.Equals(value.GetString(), "true", StringComparison.OrdinalIgnoreCase),
-                    _ => false,
-                };
-            }
+			foreach (var child in answer.EnumerateObject())
+			{
+				if (child.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array && IsTrue(child.Value, property))
+				{
+					return true;
+				}
+			}
+		}
+		else if (answer.ValueKind == JsonValueKind.Array)
+		{
+			foreach (var child in answer.EnumerateArray())
+			{
+				if (IsTrue(child, property))
+				{
+					return true;
+				}
+			}
+		}
 
-            foreach (var child in answer.EnumerateObject())
-            {
-                if (child.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array && IsTrue(child.Value, property))
-                {
-                    return true;
-                }
-            }
-        }
-        else if (answer.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var child in answer.EnumerateArray())
-            {
-                if (IsTrue(child, property))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
+		return false;
+	}
 }

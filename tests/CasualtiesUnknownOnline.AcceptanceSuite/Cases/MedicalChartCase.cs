@@ -10,52 +10,52 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// </summary>
 internal sealed class MedicalChartCase : AcceptanceCase
 {
-    public override string Name => "medical-chart";
+	public override string Name => "medical-chart";
 
-    public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
-    {
-        // A leftover focus from an earlier run would answer `opened=false`; the case begins from the
-        // game's own closed state.
-        var closed = await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
-        context.Note("pre-close: " + Raw(closed));
+	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		// A leftover focus from an earlier run would answer `opened=false`; the case begins from the
+		// game's own closed state.
+		var closed = await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
+		context.Note("pre-close: " + Raw(closed));
 
-        // The chart only opens while the LOCAL body is alive (the game's own wound view refuses on a
-        // dead viewer). The host may carry a wound from an earlier case; the console's own heal puts
-        // the viewer back on its feet without touching the member.
-        var healed = await context.RecipeAsync("native-heal", cancellationToken);
-        context.Note("host heal: " + Raw(healed));
+		// The chart only opens while the LOCAL body is alive (the game's own wound view refuses on a
+		// dead viewer). The host may carry a wound from an earlier case; the console's own heal puts
+		// the viewer back on its feet without touching the member.
+		var healed = await context.RecipeAsync("native-heal", cancellationToken);
+		context.Note("host heal: " + Raw(healed));
 
-        var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
-        context.Read("medical-open", opened);
-        Require(Boolean(opened, "opened"), "the remote medical view did not open");
-        Require(Boolean(opened, "nativeOpen"), "the game's own wound view did not open");
+		var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
+		context.Read("medical-open", opened);
+		Require(Boolean(opened, "opened"), "the remote medical view did not open");
+		Require(Boolean(opened, "nativeOpen"), "the game's own wound view did not open");
 
-        // The local-only surfaces are hidden by the adapter's per-frame pass; the first frame after
-        // the open may still show them, so the panel is read after it has had a frame to settle.
-        await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+		// The local-only surfaces are hidden by the adapter's per-frame pass; the first frame after
+		// the open may still show them, so the panel is read after it has had a frame to settle.
+		await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
 
-        var panel = await context.RecipeAsync("panel-controls", cancellationToken);
-        context.Read("panel-controls", panel);
-        Require(Boolean(panel, "viewOpen"), "the panel is not open");
-        Require(Boolean(panel, "remoteFocus"), "the panel is not focused on the member");
-        Require(!Boolean(panel, "napActive"), "the member's panel presents the local-only nap control");
-        Require(!Boolean(panel, "sleepImageActive"), "the member's panel presents the local-only sleep icon");
-        Require(!Boolean(panel, "workoutActive"), "the member's panel presents the local-only workout list");
-        Require(!Boolean(panel, "handSwapGraphicEnabled"), "the HUD hand-swap graphic stays drawn for the member's chart");
-    }
+		var panel = await context.RecipeAsync("panel-controls", cancellationToken);
+		context.Read("panel-controls", panel);
+		Require(Boolean(panel, "viewOpen"), "the panel is not open");
+		Require(Boolean(panel, "remoteFocus"), "the panel is not focused on the member");
+		Require(!Boolean(panel, "napActive"), "the member's panel presents the local-only nap control");
+		Require(!Boolean(panel, "sleepImageActive"), "the member's panel presents the local-only sleep icon");
+		Require(!Boolean(panel, "workoutActive"), "the member's panel presents the local-only workout list");
+		Require(!Boolean(panel, "handSwapGraphicEnabled"), "the HUD hand-swap graphic stays drawn for the member's chart");
+	}
 
-    private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
+	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
-    private static bool Boolean(JsonElement? reading, string property) =>
-        reading is { ValueKind: JsonValueKind.Object } element
-        && element.TryGetProperty(property, out var value)
-        && value.ValueKind == JsonValueKind.True;
+	private static bool Boolean(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.True;
 
-    private static void Require(bool condition, string message)
-    {
-        if (!condition)
-        {
-            throw new AssertionException(message);
-        }
-    }
+	private static void Require(bool condition, string message)
+	{
+		if (!condition)
+		{
+			throw new AssertionException(message);
+		}
+	}
 }

@@ -75,6 +75,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
+- [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 ### Review
 - [IP direct shows the purchase notice when Steam is not ready](review/ip-direct-shows-the-purchase-notice.md) — **High** — the notice every IP run shows.
 - [Host cannot host after a continue](review/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.

@@ -31,7 +31,8 @@ internal sealed class LockpickCase : AcceptanceCase
         var moved = await context.RecipeAsync("virtual-input", cancellationToken,
             ("mode", "move"), ("x", x), ("y", y), ("button", "0")).ConfigureAwait(false);
         context.Read("moved", moved);
-        await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+        // The minigame's hand springs toward the pointer over frames; let it settle on the ring.
+        await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
 
         var pressed = await context.RecipeAsync("virtual-input", cancellationToken,
             ("mode", "press-key"), ("x", "0"), ("y", "0"), ("button", "0")).ConfigureAwait(false);

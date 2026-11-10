@@ -79,12 +79,20 @@ internal static partial class Program
                 context?.Readings ?? new Dictionary<string, string>(StringComparer.Ordinal),
                 context?.Notes ?? []);
         }
+        finally
+        {
+            if (context is not null)
+            {
+                await context.DisposeAsync().ConfigureAwait(false);
+            }
+        }
     }
 }
 
-internal sealed class CaseContext
+internal sealed class CaseContext : IAsyncDisposable
 {
     private readonly Options _options;
+    private DriverClient? _member;
 
     public CaseContext(Options options, string outputDirectory, DriverClient host)
     {
@@ -104,6 +112,24 @@ internal sealed class CaseContext
     public string MemberId =>
         _options.MemberId ?? throw new InvalidOperationException("the case needs --member (the id the host shows for the member)");
 
+    public async Task<DriverClient> MemberAsync(CancellationToken cancellationToken)
+    {
+        if (_member is null)
+        {
+            _member = new DriverClient(_options.MemberUrl);
+            await _member.ConnectAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return _member;
+    }
+
+    public async Task<JsonElement?> MemberRecipeAsync(string name, CancellationToken cancellationToken, params (string Key, string Value)[] args)
+    {
+        var member = await MemberAsync(cancellationToken).ConfigureAwait(false);
+        var dictionary = args.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        return await member.RecipeAsync(name, dictionary, cancellationToken).ConfigureAwait(false);
+    }
+
     public string HostLogPath =>
         _options.GameDir is { } gameDir
             ? Path.Combine(gameDir, "BepInEx", "LogOutput.log")
@@ -122,6 +148,14 @@ internal sealed class CaseContext
     }
 
     public void Note(string text) => Notes.Add(text);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_member is not null)
+        {
+            await _member.DisposeAsync().ConfigureAwait(false);
+        }
+    }
 }
 
 internal abstract class AcceptanceCase
@@ -190,6 +224,8 @@ internal sealed record Options
 
     public string HostUrl { get; init; } = "ws://127.0.0.1:18590";
 
+    public string MemberUrl { get; init; } = "ws://127.0.0.1:18591";
+
     public string? OutputDirectory { get; init; }
 
     public string? GameDir { get; init; }
@@ -217,6 +253,9 @@ internal sealed record Options
                 case "--host" when index + 1 < args.Length:
                     options = options with { HostUrl = args[++index] };
                     break;
+                case "--member-host" when index + 1 < args.Length:
+                    options = options with { MemberUrl = args[++index] };
+                    break;
                 case "--game-dir" when index + 1 < args.Length:
                     options = options with { GameDir = args[++index] };
                     break;
@@ -237,6 +276,7 @@ internal static class CaseRegistry
     public static IReadOnlyList<AcceptanceCase> All { get; } =
     [
         new MedicalChartCase(),
+        new TopicalDoseCase(),
     ];
 }
 

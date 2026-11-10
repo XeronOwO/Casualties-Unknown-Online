@@ -226,3 +226,25 @@ offline IP-direct session then read:
   so the dose landed on the patient's own body.
 
 The teammate treatment path therefore works on the release build under the required protocol.
+
+## The layer-end continue on 1.0 under the sandboxed protocol (2026-11-10)
+
+In the desktop-host (IP-direct host) + boxed-offline-guest session: the host advanced a layer with the guest present
+(`layer-descend twice=0`), and the cut read `Cut LayerAdvance committed for world w-20261110-5938: layer-end cut taken at
+layer-boundary, revision 845, layer 1, 10 file(s) … 8 item row(s), 2 player row(s), 0 enemy row(s), 0 fluid chunk(s), 0
+world-entity row(s), 2 character(s), 0 world-block row(s), 0 transient row(s), native run fields present (138 recipe
+row(s))`.
+
+Both clients quit; the host relaunched, created the IP session at the menu (`home.transport.ip` + `ip.create_host` →
+`role Host, transport IpDirect`) and only then ran the continue. The restore read `Restored characters: 1 bound to
+present peers, 1 left unclaimed, 0 refused (key space IpDirect)` and `Continue restored world w-20261110-5938: … 8 item
+row(s), 2 character(s), … native run fields present (138 recipe row(s)); world w-20261110-5938 restored from the live
+snapshot`. The host's body came back at the layer-1 position `(2.085, 488.891)` with its carried `paincream` and the
+starting items; the boxed guest joined (`role Guest, inWorld true, steamInit false`) at the same spot as a new character
+with its four starting supplies.
+
+**Finding (a real trap):** the same continue run in a Steam-key-space session (the host launched without the IP session)
+restored the world "with damage": `the snapshot was written in the IpDirect key space and this session runs Steam, so
+none of its 2 stored character(s) was claimed (decision 162)`. The IP-direct start also refuses while a world is
+running (`IP-direct start refused: a world is running or generating`), so the session must be created at the menu
+BEFORE the continue — the order is a protocol rule, not a fixture detail.

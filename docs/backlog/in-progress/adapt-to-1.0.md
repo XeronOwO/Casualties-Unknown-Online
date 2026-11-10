@@ -185,3 +185,14 @@ client inside a box, the two ends joined over IP direct — now runs on 1.0:
 
 The two-client rows can now be run under the required protocol; the per-box BepInEx tree and port are machine facts of
 this machine and stay in the local acceptance rule file.
+
+## The displayed copy under the sandboxed protocol (2026-11-10)
+
+The same row was re-read with the required protocol in place: the desktop host (IP-direct host) and the boxed offline
+guest (IP-direct guest) in one world, the guest given a bandage and customized (`item-provide` → `#22071489554` slot 0;
+`item-customize slot=0 label=Hermes swatch=3`), the host holding a drag with its pointer on the guest's body
+(`remote-backpack-open` → `isOpen true, focused 3202834456994919442`), and the host's displayed copy read
+`{"id":"bandage","label":"Hermes","swatch":3}` while the guest's other four items read empty labels.
+
+The row therefore holds under the sandboxed offline IP-direct session, not only under the desktop second-instance
+protocol it was first read on.

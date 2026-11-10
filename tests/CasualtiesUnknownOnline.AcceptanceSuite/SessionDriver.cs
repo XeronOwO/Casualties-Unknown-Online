@@ -28,6 +28,8 @@ internal sealed class SessionDriver
     /// inside terrain and the interaction gate blocks every use), so a case that needs the pair
     /// side by side asks for a fresh run instead of trusting where the old one left the bodies.
     /// </summary>
+    public string MemberUrl => _options.MemberUrl;
+
     public async Task<string> RestartRunAsync(CancellationToken cancellationToken)
     {
         await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);

@@ -22,7 +22,13 @@ internal sealed class TopicalDoseCase : AcceptanceCase
         // A long-lived world can leave the surface a pit over a cave; the pair then stands inside
         // terrain and the interaction gate blocks every use. The case starts from a fresh run so
         // the two bodies spawn where the game puts them.
+        var memberLeft = await context.Session.ActionAsync(context.Session.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+        context.Note("member left its old world: " + Raw(memberLeft));
         var restarted = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
+        var rejoined = await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+        context.Note("member rejoined the new run: " + rejoined);
+        var freshMembers = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+        if (freshMembers.Length > 0) { context.UseMember(freshMembers[0]); context.Note("fresh member id: " + freshMembers[0]); }
         context.Note("session: " + restarted);
         var members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
         if (members.Length == 0)
@@ -89,7 +95,7 @@ internal sealed class TopicalDoseCase : AcceptanceCase
         if (memberRead is { } memberValue && memberValue.ValueKind == JsonValueKind.Object && memberValue.TryGetProperty("localBody", out var surfaceBody) && surfaceBody.ValueKind == JsonValueKind.Object)
         {
             var targetY = Number(surfaceBody, "positionY");
-            if (Number(localBody, "positionY") < targetY - 2)
+            if (targetY is > 0 and < 600 && Number(localBody, "positionY") < targetY - 2)
             {
                 var rise = await context.RecipeAsync("teleport", cancellationToken, ("x", Number(surfaceBody, "positionX").ToString("0.###", CultureInfo.InvariantCulture)), ("y", targetY.ToString("0.###", CultureInfo.InvariantCulture)));
                 context.Note("host rose to the member level: " + Raw(rise));
@@ -121,6 +127,8 @@ internal sealed class TopicalDoseCase : AcceptanceCase
         // the same frame finds an empty bottle and is refused as "no usable consumable".
         await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 
+        var creamAgain = await context.RecipeAsync("item-provide", cancellationToken, ("type", "paincream"), ("mode", "create"));
+        context.Note("cream after the pair settled: " + Raw(creamAgain));
         var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
         context.Read("medical-open", opened);
         Require(Boolean(opened, "opened"), "the member's medical view did not open");

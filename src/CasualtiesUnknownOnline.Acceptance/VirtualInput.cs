@@ -49,6 +49,7 @@ internal static class VirtualInput
 	private sealed class ButtonState
 	{
 		internal bool Held;
+		internal bool DownPending;
 		internal int DownFrame = -1;
 		internal int UpFrame = -1;
 	}
@@ -184,6 +185,7 @@ internal static class VirtualInput
 		}
 
 		state.Held = true;
+		state.DownPending = true;
 		state.DownFrame = UnityTime.frameCount + 1;
 		state.UpFrame = -1;
 	}
@@ -243,6 +245,17 @@ internal static class VirtualInput
 		{
 			value = false;
 			return false;
+		}
+
+		// A DOWN edge survives until a reader consumes it: a minigame's hand update runs in a
+		// physics tick that a one-frame stamp never covers (measured 2026-11-11: the lockpick's
+		// hand held the ring and `handStartedClicking` stayed false while keyDownAnswers grew by
+		// one per press).
+		if (query == ButtonQuery.Down && state.DownPending)
+		{
+			state.DownPending = false;
+			value = true;
+			return true;
 		}
 
 		value = AnswerFor(state, query);

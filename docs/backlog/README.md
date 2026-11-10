@@ -61,7 +61,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [1.0: a capability installs and comes off as a unit](todo/1.0-capability-install-units.md) — **High** — an optional capability turned off leaves it off.
 
 - [IP direct shows the purchase notice when Steam is not ready](todo/ip-direct-shows-the-purchase-notice.md) — **High** — asks for a copy, once per run.
 
@@ -73,6 +72,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 ### In progress
+- [1.0: a capability installs and comes off as a unit](in-progress/1.0-capability-install-units.md) — **High** — an optional capability turned off stays off.
 
 - [Adapt the mod to the game's 1.0 release](in-progress/adapt-to-1.0.md) — **Highest** — the release changed the patch targets and removed the spectator field.
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.

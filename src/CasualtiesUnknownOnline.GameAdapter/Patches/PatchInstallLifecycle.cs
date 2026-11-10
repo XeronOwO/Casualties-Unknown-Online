@@ -85,11 +85,17 @@ internal sealed class PatchInstallLifecycle
 						continue;
 					}
 
-					var touches = info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers)
-						.Any(patch => patch.PatchMethod.DeclaringType is { } owner && disabledClasses.Contains(owner));
-					if (touches)
+					// Unpatch the disabled unit's OWN patch methods only. Removing every
+					// patch on a touched method also took a sibling capability's hook that
+					// shares the target (2026-11-10: the diagnostics unit's pick-up hook
+					// shares Body.PickUpItem with a required drag hook, and the wholesale
+					// unpatch made the required hook report as not applied).
+					foreach (var patch in info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers))
 					{
-						_harmony.Unpatch(method, HarmonyPatchType.All, _harmony.Id);
+						if (patch.PatchMethod.DeclaringType is { } owner && disabledClasses.Contains(owner))
+						{
+							_harmony.Unpatch(method, patch.PatchMethod);
+						}
 					}
 				}
 

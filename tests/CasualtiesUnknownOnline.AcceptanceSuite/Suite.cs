@@ -300,6 +300,7 @@ internal static class CaseRegistry
 		// new LockpickCase(), // parked: the calibration probe reads the hand unmoved on some opens; the sound start is fixed
 		new WorldsPageCase(),
 			new TopicalDoseCase(), // restarts the run, so it goes last
+		new SaveContinueCase(),
 		// The ending ends the run; it goes after every case that needs a world.
 		new EndingCase(),
     ];

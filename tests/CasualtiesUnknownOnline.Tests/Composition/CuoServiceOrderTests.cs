@@ -42,6 +42,7 @@ public class CuoServiceOrderTests
 		// transport's stall edge, so they sit right after the session and before
 		// the observers they query (the transport itself already polled this frame).
 		"PeerSendStallWatchdog",
+		"PeerDisconnectWatchdog",
 		"GuestHostSilenceWatchdog",
 		"SpectatorNoticeService",
 		"NetworkTrafficMonitor",

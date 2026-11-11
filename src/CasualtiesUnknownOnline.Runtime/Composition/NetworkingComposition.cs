@@ -51,6 +51,7 @@ internal static class NetworkingComposition
 		// The save layer asks the ACTIVE transport who "we" are (§2); the router is the
 		// only object that knows which transport is live, so it is the implementation.
 		services.AddSingleton<ITransportIdentity>(p => p.GetRequiredService<CuoNetworkRouter>());
+		services.AddSingleton<IPeerDisconnectSource>(p => p.GetRequiredService<CuoNetworkRouter>());
 		services.AddSingleton<ISteamService>(p => p.GetRequiredService<CuoNetworkRouter>());
 	}
 }

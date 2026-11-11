@@ -67,6 +67,7 @@
   "hud.steam_guest_joined": "Steam lobby joined.",
   "hud.session_ended": "Session ended.",
   "hud.peer_send_stalled": "{0} was dropped: Steam kept refusing every send to them.",
+  "hud.peer_link_lost": "{0} was dropped: the connection to them ended.",
   "hud.send_stalled": "Session ended: messages to the host kept being refused.",
   "hud.host_silent": "Session ended: the host stopped sending.",
   "refusal.not_in_world": "One of the two players is not in the world.",

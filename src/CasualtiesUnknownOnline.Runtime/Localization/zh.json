@@ -67,6 +67,7 @@
   "hud.steam_guest_joined": "已加入 Steam 大厅。",
   "hud.session_ended": "会话已结束。",
   "hud.peer_send_stalled": "已移出 {0}：Steam 一直拒绝向其发送数据。",
+  "hud.peer_link_lost": "已移出 {0}：与他的连接断开了。",
   "hud.send_stalled": "会话已结束：发往主机的数据一直被拒绝。",
   "hud.host_silent": "会话已结束：主机长时间没有发送数据。",
   "refusal.not_in_world": "两个玩家中有一个不在这个世界里。",

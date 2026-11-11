@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Networking;
 /// the normal Steam lobby paths); IP-direct and Steam sessions are deliberately
 /// not interconnected.
 /// </summary>
-public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransportIdentity, IDisposable
+public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransportIdentity, IPeerDisconnectSource, IDisposable
 {
 	private readonly SteamService _steamService;
 	private readonly SteamTransport _steamTransport;
@@ -144,6 +144,11 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 		_ipDirectTransport.MessageReceived -= OnIpMessage;
 	}
 
+	/// <summary>The active IP-direct connection to one peer ended: the transport stopped reading
+	/// and writing it. Raised on the main thread; the Steam path has no equivalent edge here
+	/// (the Steam link's loss arrives as a session failure of its own).</summary>
+	public event Action<ulong>? PeerDisconnected;
+
 	private void WireEvents()
 	{
 		_steamService.LobbyCreated += OnSteamLobbyCreated;
@@ -154,6 +159,15 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 		_ipDirectSteam.LobbyEntered += OnIpLobbyEntered;
 		_ipDirectSteam.LobbyLeft += OnIpLobbyLeft;
 		_ipDirectTransport.MessageReceived += OnIpMessage;
+		_ipDirectTransport.PeerDisconnected += OnIpPeerDisconnected;
+	}
+
+	private void OnIpPeerDisconnected(ulong peer)
+	{
+		if (_ipDirectActive)
+		{
+			PeerDisconnected?.Invoke(peer);
+		}
 	}
 
 	private void OnSteamMessage(ulong sender, byte[] data)

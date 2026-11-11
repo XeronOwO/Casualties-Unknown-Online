@@ -100,6 +100,11 @@ internal static class SessionComposition
 		services.AddSingleton<ISessionNotices, SessionNotices>();
 		services.AddSingleton<PeerSendStallWatchdog>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PeerSendStallWatchdog>());
+		// The transport's other link-loss edge: a peer whose connection ended must leave the
+		// session, or the host keeps sending into a dead socket and the start gate waits for a
+		// member that will never load (found 2026-11-11 on the IP-direct path).
+		services.AddSingleton<PeerDisconnectWatchdog>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PeerDisconnectWatchdog>());
 		services.AddSingleton<GuestHostSilenceWatchdog>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GuestHostSilenceWatchdog>());
 		// The ruled courtesy line: the watched player is told, resolved here so the world it listens to is the one

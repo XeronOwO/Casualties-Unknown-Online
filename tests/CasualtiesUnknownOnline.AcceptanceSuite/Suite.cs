@@ -311,7 +311,7 @@ internal static class CaseRegistry
 			new TopicalDoseCase(), // restarts the run, so it goes last
 		new SaveContinueCase(),
 		// The ending ends the run; it goes after every case that needs a world.
-		new EndingCase(),
+		new ConsoleHealCase(), new EndingCase(),
 	];
 }
 

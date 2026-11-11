@@ -200,6 +200,40 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 		return null;
 	}
 
+	/// <summary>
+	/// A scene that has just loaded projects the item rows before the objects exist; a give or a dose
+	/// sent during that window answers ok and never reaches the body (measured: the custody line read
+	/// `objects=0 mismatches=407`, then `objects=407 mismatches=0` seconds later). The case waits for
+	/// the host's own custody line to report convergence AFTER the case started reading the log.
+	/// </summary>
+	public async Task WaitForCustodyAsync(CancellationToken cancellationToken)
+	{
+		var path = HostLogPath;
+		var offset = File.Exists(path) ? new FileInfo(path).Length : 0;
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < TimeSpan.FromSeconds(25))
+		{
+			if (File.Exists(path) && new FileInfo(path).Length > offset)
+			{
+				var text = ReadFrom(path, offset);
+				if (text.Contains("mismatches=0", StringComparison.Ordinal) && text.Contains("[ItemCustody]", StringComparison.Ordinal))
+				{
+					return;
+				}
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private static string ReadFrom(string path, long offset)
+	{
+		using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+		stream.Seek(offset, SeekOrigin.Begin);
+		using var reader = new StreamReader(stream);
+		return reader.ReadToEnd();
+	}
+
 	public void Read(string key, JsonElement? reading)
 	{
 		Readings[key] = reading is { } value ? value.GetRawText() : "null";
@@ -399,10 +433,7 @@ internal static class CaseRegistry
 		new MedicalChartCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
-		// new GiveItemCase(), // intermittent: the give answers ok and the member's own bag stays empty
-		// (3 attempts, each re-placing the pair); the delivery on the receiver's client is the open
-		// question — reading on the suite ticket.
-		
+		new GiveItemCase(),
 		new OverlaySoundCase(),
 		new WorldsPageCase(),
 		new SettingsPageCase(),
@@ -412,10 +443,7 @@ internal static class CaseRegistry
 		// new RadiationLineCase(), // parked: the line activates only when layerTimeSpent exceeds
 		// timelimit * 60 (WorldGeneration.cs:986-988), and the fixture cannot switch it off again;
 		// the reading is on the suite ticket.
-		// new TopicalDoseCase(), // intermittent: the member's own limb can carry a marker from an
-		// earlier session and the display limb is not always the body limb the marker lives on; the
-		// green runs read 299.777 / 299.745 on both copies. Reading on the suite ticket.
-		
+		new TopicalDoseCase(),
 		// new ConsoleHealCase(), // parked: the relayed reset is answered as applied while the member's
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		// save-continue leaves the world and restores it: it goes after every case that only needs

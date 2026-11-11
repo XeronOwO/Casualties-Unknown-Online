@@ -18,6 +18,7 @@ internal sealed class GiveItemCase : AcceptanceCase
 		// The receiver's own client runs the pickup, so it must stand within reach of the dropped
 		// object AND have room: a full bag refuses the pickup, and the member keeps whatever earlier
 		// cases left in it.
+		await context.WaitForCustodyAsync(cancellationToken).ConfigureAwait(false);
 		await context.ClearMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
 		var emptyBag = await context.MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);

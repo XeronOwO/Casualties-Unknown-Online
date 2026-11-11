@@ -48,6 +48,7 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		// The member's own body carries whatever an earlier session left in it (a treated limb reads
 		// a non-zero marker), and the game's own heal resets every limb's marker to zero — the dose
 		// then sets an absolute value the case can name.
+		await context.WaitForCustodyAsync(cancellationToken).ConfigureAwait(false);
 		var memberHeal = await context.MemberRecipeAsync("native-heal", cancellationToken);
 		context.Note("member heal: " + Raw(memberHeal));
 

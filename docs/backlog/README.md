@@ -77,8 +77,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 ### Review
-- [1.0: remote limb operations carry no limb](review/1.0-remote-limb-operations-carry-no-limb.md) — silent; the limb never changes.
-- [1.0: the IP-direct guest drops out](review/1.0-ip-direct-guest-disconnects.md) — **High** — the guest joins, the world join reaches nobody, the link drops.
 - [Host cannot host after a continue](review/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 - [The member waits for a host that waits for it](review/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the pre-run join closes both gates.
@@ -130,6 +128,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 - [Adapt the mod to the game's 1.0 release](done/adapt-to-1.0.md) — **Highest** — the release build is read end to end; the rest is user decisions.
+- [1.0: remote limb operations carry no limb](done/1.0-remote-limb-operations-carry-no-limb.md) — the dose lands on the patient, read on both clients.
+- [1.0: the IP-direct guest drops out](done/1.0-ip-direct-guest-disconnects.md) — **High** — a stale box build, synced by the suite.
 - [The overlay's buttons are silent](done/overlay-buttons-are-silent.md) — **Medium** — every control plays the game's own click.
 - [1.0: a capability installs and comes off as a unit](done/1.0-capability-install-units.md) — **High** — an optional capability turned off is gone.
 - [IP direct shows the purchase notice when Steam is not ready](done/ip-direct-shows-the-purchase-notice.md) — **High** — IP runs ask first.

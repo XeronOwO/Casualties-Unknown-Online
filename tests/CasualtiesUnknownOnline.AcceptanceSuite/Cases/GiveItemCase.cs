@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -14,6 +15,19 @@ internal sealed class GiveItemCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
+		// The receiver's own client runs the pickup, so it must stand within reach of the dropped
+		// object: the member is placed on the host's own point (both are in-world and idle). An
+		// offset would be enough for the line of sight, but a pickup is a reach, not a look.
+		var hostBody = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		context.Read("host-body", hostBody);
+		var (hostX, hostY) = Position(hostBody);
+		Require(hostX != 0 || hostY > 0, "the host's body has no position yet: " + Raw(hostBody));
+		var placed = await context.MemberRecipeAsync("teleport", cancellationToken,
+			("x", hostX.ToString(CultureInfo.InvariantCulture)),
+			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		context.Note("member placed: " + Raw(placed));
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+
 		// A real world copy: the game's own factory creates it and its physics lands it, so the
 		// custody row is `World` and the give is the gesture the drag patch makes.
 		var dropped = await context.RecipeAsync("item-drop", cancellationToken, ("type", "bandage"), ("height", "1")).ConfigureAwait(false);
@@ -44,6 +58,22 @@ internal sealed class GiveItemCase : AcceptanceCase
 
 		context.Read("member-bag", memberBag);
 		Require(listed, "the member's inventory does not list the given bandage: " + Raw(memberBag));
+	}
+
+	private static (double X, double Y) Position(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("localBody", out var body)
+			|| body.ValueKind != JsonValueKind.Object
+			|| !body.TryGetProperty("positionX", out var x)
+			|| !body.TryGetProperty("positionY", out var y)
+			|| x.ValueKind != JsonValueKind.Number
+			|| y.ValueKind != JsonValueKind.Number)
+		{
+			return (0, 0);
+		}
+
+		return (x.GetDouble(), y.GetDouble());
 	}
 
 	private static bool HasType(JsonElement? reading, string type)
@@ -82,3 +112,4 @@ internal sealed class GiveItemCase : AcceptanceCase
 		}
 	}
 }
+

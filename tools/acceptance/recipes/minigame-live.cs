@@ -21,7 +21,18 @@
 	var body = "{\"ok\":true,\"hasMain\":true,\"kind\":\"" + kind + "\""
 		+ ",\"handClicking\":" + (clicking ? "true" : "false")
 		+ ",\"handStarted\":" + (started ? "true" : "false")
-		+ ",\"handMagnitude\":" + magnitude.ToString("0.###", inv);
+		+ ",\"handMagnitude\":" + magnitude.ToString("0.###", inv)
+		// The hand's own inputs: `UpdateHandVisuals` bails when the body is unconscious
+		// (`MinigameBase.cs:206`), and the physics step scales both rates by it (`:147-154`), so a
+		// hand that never moves is told apart from one that moves slowly by reading these.
+		+ ",\"conscious\":" + (main.body != null && main.body.conscious ? "true" : "false")
+		+ ",\"averagePain\":" + (main.body != null ? main.body.averagePain.ToString("0.###", inv) : "null")
+		+ ",\"handX\":" + main.handPos.x.ToString("0.###", inv)
+		+ ",\"handY\":" + main.handPos.y.ToString("0.###", inv)
+		+ ",\"pointerX\":" + UnityEngine.Input.mousePosition.x.ToString("0.###", inv)
+		+ ",\"pointerY\":" + UnityEngine.Input.mousePosition.y.ToString("0.###", inv)
+		+ ",\"uiScale\":" + PlayerCamera.uiScale.ToString("0.###", inv)
+		+ ",\"screenPos\":\"" + (main.minigameScreen != null ? main.minigameScreen.transform.position.x.ToString("0.###", inv) + "," + main.minigameScreen.transform.position.y.ToString("0.###", inv) : "") + "\"";
 
 	// The bandage minigame's own fields: the ring angle it tracks, whether it wrapped, the action counter, and the sprite's fill.
 	var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;

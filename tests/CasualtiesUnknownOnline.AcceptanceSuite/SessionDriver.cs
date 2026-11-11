@@ -51,7 +51,15 @@ internal sealed class SessionDriver(Options options)
 		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		if (IsTrue(state, "inWorld"))
 		{
-			return "the host was already in a world";
+			// A world left over from a dead session has no host to join: the menu says so by
+			// naming no role. Leave it and start the suite's own.
+			if (string.Equals(StringValue(state, "role"), "Host", StringComparison.Ordinal))
+			{
+				return "the host was already in a world";
+			}
+
+			await TryActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+			await WaitUntilAsync(_options.HostUrl, candidate => !IsTrue(candidate, "inWorld"), TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
 		}
 
 		// A run needs the host's IP session first: at the menu, switch the transport and create
@@ -125,40 +133,41 @@ internal sealed class SessionDriver(Options options)
 			await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
 		}
 
-		// The window can be closed (a case pressed Escape) or the client can still be loading
-		// after a restart; the home page's controls answer only while the page is up, so the
-		// first click retries with a fresh open instead of failing the case.
+		// The window can be closed (a case pressed Escape) or the client can still be loading after
+		// a restart; the home page's controls answer only while the page is up. A fresh offline
+		// client shows the notice INSTEAD of the join controls, so the loop acts on what the state
+		// offers instead of clicking a control that may not be built yet.
 		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
-		// The window reopens on the tab it last showed; the join controls live on Home.
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
-		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
-		// Never click the session's leave control here: leaving the IP session tears the transport
-		// down (the game disconnects on purpose), so the member would rejoin through a fresh
-		// connection on every run. Leaving the world is enough — the session survives it.
-		try
-		{
-			// A member that still holds an IP session offers no transport switch; its join uses
-			// the transport it already has.
-			await ActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
-		}
-		catch (Exception)
-		{
-		}
-		await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
-		await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
-		await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
-		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
 
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < JoinBudget)
 		{
-			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
 			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 			if (IsTrue(state, "inWorld"))
 			{
 				return "the suite joined the member to the host's session";
 			}
+
+			var controls = Controls(state);
+			if (controls.Contains("ip.notice_confirm"))
+			{
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
+			}
+			else if (controls.Contains("ip.join"))
+			{
+				if (controls.Contains("home.transport.ip"))
+				{
+					await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+				}
+
+				await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
+				await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
 		}
 
 		if (!allowRelaunch)
@@ -293,6 +302,41 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		return state;
+	}
+
+	/// <summary>One string of a state answer, at the top level or under the older result wrapper.</summary>
+	private static string StringValue(JsonElement state, string name)
+	{
+		if (state.ValueKind != JsonValueKind.Object)
+		{
+			return string.Empty;
+		}
+
+		if (state.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String)
+		{
+			return value.GetString() ?? string.Empty;
+		}
+
+		return state.TryGetProperty("result", out var result)
+			&& result.TryGetProperty(name, out value)
+			&& value.ValueKind == JsonValueKind.String
+			? value.GetString() ?? string.Empty
+			: string.Empty;
+	}
+
+	/// <summary>The control ids the window's current page offers, as the state reports them.</summary>
+	private static IReadOnlyList<string> Controls(JsonElement state)
+	{
+		if (state.ValueKind == JsonValueKind.Object
+			&& state.TryGetProperty("controls", out var controls)
+			&& controls.ValueKind == JsonValueKind.Array)
+		{
+			return [.. controls.EnumerateArray()
+				.Where(item => item.ValueKind == JsonValueKind.String)
+				.Select(item => item.GetString() ?? string.Empty)];
+		}
+
+		return [];
 	}
 
 	/// <summary>One boolean of a state answer, at the top level or under the older result wrapper.</summary>

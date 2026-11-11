@@ -206,6 +206,18 @@ internal static class OnlineUiHomeDrawer
 		}
 
 		var steam = ctx.Steam;
+		if (!steam.IsInitialized && !ctx.State.IpNoticeAcknowledged)
+		{
+			page.Section(ctx.T("ip.section"));
+			page.Muted(ctx.T("ip.notice_body"));
+			page.Button(
+				"ip.notice_confirm",
+				ctx.T("ip.notice_confirm"),
+				() => ctx.State.IpNoticeAcknowledged = true);
+			BuildError(ctx, page);
+			return;
+		}
+
 		page.Section(ctx.T("ip.section"));
 		page.Muted(ctx.T("ip.hint"));
 
@@ -240,15 +252,6 @@ internal static class OnlineUiHomeDrawer
 					}
 				},
 				width: NameFieldWidth));
-
-		if (!steam.IsInitialized && !ctx.State.IpNoticeAcknowledged)
-		{
-			page.Muted(ctx.T("ip.notice_body"));
-			page.Button(
-				"ip.notice_confirm",
-				ctx.T("ip.notice_confirm"),
-				() => ctx.State.IpNoticeAcknowledged = true);
-		}
 
 		page.Button(
 			"ip.create_host",

@@ -239,46 +239,68 @@ internal sealed class SessionDriver(Options options)
 		}
 	}
 
+	private readonly Dictionary<string, DriverClient> _drivers = new(StringComparer.OrdinalIgnoreCase);
+
+	/// <summary>
+	/// One Online UI action, answered in-process over the client's own socket: the driver template that
+	/// <c>drive-in-process.ps1</c> used to send is expanded here and evaluated by the game's own evaluator.
+	/// No process is started per action.
+	/// </summary>
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
 	{
-		var script = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "drive-in-process.ps1");
-		var start = new ProcessStartInfo("pwsh")
-		{
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-			UseShellExecute = false,
-		};
-		start.ArgumentList.Add("-NoProfile");
-		start.ArgumentList.Add("-File");
-		start.ArgumentList.Add(script);
-		start.ArgumentList.Add("-Url");
-		start.ArgumentList.Add(url);
-		start.ArgumentList.Add("-Action");
-		start.ArgumentList.Add(action);
+		var argument = string.Empty;
+		var text = string.Empty;
 		foreach (var (name, value) in extraArguments)
 		{
-			start.ArgumentList.Add(name);
-			start.ArgumentList.Add(value);
+			if (string.Equals(name, "-Text", StringComparison.OrdinalIgnoreCase))
+			{
+				text = value;
+			}
+			else
+			{
+				argument = value;
+			}
 		}
 
-		using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance driver for '{action}'");
-		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-		var error = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-		if (process.ExitCode != 0)
+		if (!_drivers.TryGetValue(url, out var driver))
 		{
-			throw new InvalidOperationException($"the acceptance driver answered '{action}' with exit {process.ExitCode}: {error.Trim()}");
+			driver = new DriverClient(url);
+			await driver.ConnectAsync(cancellationToken).ConfigureAwait(false);
+			_drivers[url] = driver;
 		}
 
-		var startIndex = output.IndexOf('{', StringComparison.Ordinal);
-		if (startIndex < 0)
+		var answer = await driver.EvalAsync(DriverSnippet(action, argument, text), action, cancellationToken).ConfigureAwait(false);
+		if (answer is null)
 		{
-			throw new InvalidOperationException($"the acceptance driver answered '{action}' without a JSON body: {output.Trim()}");
+			throw new InvalidOperationException($"the acceptance driver answered '{action}' without a value");
 		}
 
-		using var document = JsonDocument.Parse(output[startIndex..]);
-		return document.RootElement.Clone();
+		var answerValue = answer.Value;
+		if (answerValue.ValueKind == JsonValueKind.String)
+		{
+			using var parsed = JsonDocument.Parse(answerValue.GetString() ?? throw new InvalidOperationException($"the acceptance driver answered '{action}' with no text"));
+			return parsed.RootElement.Clone();
+		}
+
+		if (answerValue.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+		{
+			return answerValue.Clone();
+		}
+
+		throw new InvalidOperationException($"the acceptance driver answered '{action}' with {answerValue.ValueKind}, not a JSON object or string");
 	}
+
+	private static string DriverSnippet(string action, string argument, string text)
+	{
+		var template = File.ReadAllText(Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "driver", "InProcessDriver.cs"));
+		return template
+			.Replace("\"{{COMMAND}}\"", Literal(action), StringComparison.Ordinal)
+			.Replace("\"{{ARGUMENT}}\"", Literal(argument), StringComparison.Ordinal)
+			.Replace("\"{{TEXT}}\"", Literal(text), StringComparison.Ordinal);
+	}
+
+	private static string Literal(string value) =>
+		"\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal).Replace("\r", "\\r", StringComparison.Ordinal).Replace("\n", "\\n", StringComparison.Ordinal) + "\"";
 
 	private static bool IsTrue(JsonElement answer, string property)
 	{

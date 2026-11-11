@@ -93,7 +93,26 @@ internal sealed class SessionDriver(Options options)
 		catch (Exception)
 		{
 		}
-		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		// The member can only join a session that EXISTS: wait for the host's own role before the
+		// join is attempted. Without this read the member joined nothing, kept a world waiting for a
+		// host, and the run's start gate then waited for a member the host never had (the reading is
+		// on `docs/backlog/review/1.0-member-waits-for-a-host-that-waits-for-it.md`).
+		var hostReady = false;
+		for (var wait = 0; wait < 40 && !hostReady; wait++)
+		{
+			var hostState = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			hostReady = string.Equals(StringValue(hostState, "role"), "Host", StringComparison.Ordinal);
+			if (!hostReady)
+			{
+				await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			}
+		}
+
+		if (!hostReady)
+		{
+			throw new InvalidOperationException("the suite could not create the host's IP session");
+		}
 
 		// Join the member to the session BEFORE the run starts: both players then enter the world
 		// together. A member that joins a running world spawns at its own pod, which is how a later

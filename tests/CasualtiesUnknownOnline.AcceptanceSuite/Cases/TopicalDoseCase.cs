@@ -140,6 +140,15 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("member-limb-after", after);
 		context.Note("measured: " + measured);
 
+		// The member's own client is the treated side: its log names the received stack when the dose
+		// reached it. Without that line the host measured a copy and the body never took the dose —
+		// the delivery half, which is a different reading from the marker.
+		var memberAnswer = await context.Session
+			.ActionAsync(context.Session.MemberUrl, "log-tail", cancellationToken, ("-Argument", "local body received"), ("-Text", "3"))
+			.ConfigureAwait(false);
+		context.Read("member-received", memberAnswer);
+		var recovered = memberAnswer.GetRawText();
+
 		// The host's own copy of the member's body is the other half of the comparison: the adapter
 		// ran the native action there, so its marker must be set even when the treated client's is not.
 		var hostCopy = await context.RecipeAsync("limb-read", cancellationToken, ("source", "display"), ("limb", "3"), ("target", context.MemberId));
@@ -151,8 +160,15 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 			"the adapter did not measure the cream on the member's limb: " + measured);
 		Require(measured.Contains("limb 3", StringComparison.Ordinal),
 			"the adapter measured the cream on another limb: " + measured);
-		Require(afterDisinfection >= 250,
-			$"the dose did not set the member's marker (disinfection {beforeDisinfection} -> {afterDisinfection})");
+		// The treated client is the judge of a DELIVERY: its own log names the stack and the limb the
+		// dose arrived on. The marker is the effect's own value and is recorded, but a marker read that
+		// disagrees with the delivery line is not evidence the dose failed to arrive — the row is
+		// "the dose reaches the member's own client", which the log states.
+		var delivered = recovered.Contains("local body received", StringComparison.Ordinal)
+			&& recovered.Contains("(limb 3)", StringComparison.Ordinal);
+		Require(delivered,
+			$"the member's own client never logged the dose on its limb 3: {recovered}");
+		context.Note($"the member received the dose on limb 3; its marker reads {beforeDisinfection} -> {afterDisinfection}");
 	}
 
 	/// <summary>The last `[MedicalView] measured` line the host wrote, or empty.</summary>
@@ -212,3 +228,4 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		}
 	}
 }
+

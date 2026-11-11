@@ -487,5 +487,44 @@
 		return finish(fields);
 	}
 
+	if (command == "log-tail") {
+		// The last lines of THIS client's own BepInEx log that contain ARGUMENT: the suite judges the
+		// target's side of a relayed effect from the target's own file, not from the host's answer.
+		// `text` is the number of matching lines to return (default 3). A client that never wrote a
+		// log answers no-log by name rather than an empty list.
+		var logPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		if (!System.IO.File.Exists(logPath)) {
+			putText(fields, escape, "ok", "false");
+			putText(fields, escape, "error", "no-log");
+			putText(fields, escape, "path", logPath);
+			return finish(fields);
+		}
+
+		var wanted = 3;
+		int.TryParse(text, out wanted);
+		if (wanted < 1) { wanted = 3; }
+
+		var matched = new System.Collections.Generic.List<string>();
+		using (var stream = new System.IO.FileStream(logPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
+		using (var reader = new System.IO.StreamReader(stream)) {
+			string line;
+			while ((line = reader.ReadLine()) != null) {
+				if (argument.Length > 0 && line.IndexOf(argument, System.StringComparison.Ordinal) < 0) { continue; }
+				matched.Add(line);
+				if (matched.Count > 200) { matched.RemoveAt(0); }
+			}
+		}
+
+		putText(fields, escape, "ok", "true");
+		putText(fields, escape, "count", matched.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		var from = matched.Count > wanted ? matched.Count - wanted : 0;
+		for (var i = from; i < matched.Count; i++) {
+			putText(fields, escape, "line" + (i - from).ToString(System.Globalization.CultureInfo.InvariantCulture), matched[i]);
+		}
+
+		return finish(fields);
+	}
+
 	return fail(escape, "unknown-command", command);
 })())
+

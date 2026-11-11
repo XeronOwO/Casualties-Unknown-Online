@@ -20,6 +20,20 @@ internal sealed class ItemRestingsCase : AcceptanceCase
 		context.Read("dropped", dropped);
 		Require(Boolean(dropped, "ok"), "the ground item was not created");
 
+		// The carried container is this case's own: an earlier case may have emptied the bag, so the
+		// case frees its slots and takes a trashbag before the child goes inside it.
+		await context.ClearBodyAsync(cancellationToken).ConfigureAwait(false);
+		var trashbag = await context.RecipeAsync("item-provide", cancellationToken,
+			("type", "trashbag"),
+			("mode", "create")).ConfigureAwait(false);
+		context.Read("trashbag", trashbag);
+		Require(Boolean(trashbag, "ok"), "the host could not take a trashbag");
+		var dogfood = await context.RecipeAsync("item-provide", cancellationToken,
+			("type", "dogfood"),
+			("mode", "create")).ConfigureAwait(false);
+		context.Read("dogfood", dogfood);
+		Require(Boolean(dogfood, "ok"), "the host could not take a dogfood");
+
 		// A carried container with a child: the game's own LoadItem puts the dogfood inside the trashbag.
 		var filled = await context.RecipeAsync("container-fill", cancellationToken,
 			("container", "trashbag"),

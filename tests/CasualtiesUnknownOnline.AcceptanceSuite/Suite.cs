@@ -171,6 +171,34 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 
 	public void Note(string text) => Notes.Add(text);
 
+	/// <summary>
+	/// Empties the player's body slots through the game's own drop entry, so a case that needs a
+	/// fresh item has somewhere to put it. Every case that provides an item owns its own room.
+	/// </summary>
+	public async Task ClearBodyAsync(CancellationToken cancellationToken)
+	{
+		var bag = await RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+		Read("body-items", bag);
+		if (bag is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("ids", out var ids)
+			|| ids.ValueKind != JsonValueKind.String)
+		{
+			return;
+		}
+
+		foreach (var entry in (ids.GetString() ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries))
+		{
+			var slot = entry.Split(':', 2)[0];
+			if (!int.TryParse(slot, out _))
+			{
+				continue;
+			}
+
+			await RecipeAsync("item-drop-hand", cancellationToken, ("slot", slot)).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+	}
+
 	public async ValueTask DisposeAsync()
 	{
 		if (_member is not null)
@@ -305,6 +333,7 @@ internal static class CaseRegistry
 		// new StartingSuppliesCase(),
 		new MedicalChartCase(),
 		new ItemRestingsCase(),
+		new ItemCustomizationCase(),
 		new OverlaySoundCase(),
 		new WorldsPageCase(),
 		new TopicalDoseCase(),

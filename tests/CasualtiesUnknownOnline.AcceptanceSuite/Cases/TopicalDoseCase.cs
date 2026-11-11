@@ -46,24 +46,7 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 
 		// The doctor carries the cream; the release path picks a carried item by slot, so the bag is
 		// emptied through the player's own drop entry and the cream becomes the item the release finds.
-		var bag = await context.RecipeAsync("body-items", cancellationToken);
-		context.Read("body-items", bag);
-		if (bag is { ValueKind: JsonValueKind.Object } bagElement
-			&& bagElement.TryGetProperty("ids", out var idsElement)
-			&& idsElement.ValueKind == JsonValueKind.String)
-		{
-			foreach (var entry in (idsElement.GetString() ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries))
-			{
-				var slot = entry.Split(':', 2)[0];
-				if (!int.TryParse(slot, out _))
-				{
-					continue;
-				}
-
-				await context.RecipeAsync("item-drop-hand", cancellationToken, ("slot", slot)).ConfigureAwait(false);
-				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-			}
-		}
+		await context.ClearBodyAsync(cancellationToken).ConfigureAwait(false);
 
 		var cream = await context.RecipeAsync("item-provide", cancellationToken, ("type", "paincream"), ("mode", "create"));
 		context.Read("paincream", cream);

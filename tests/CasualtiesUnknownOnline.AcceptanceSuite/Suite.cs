@@ -437,6 +437,7 @@ internal static class CaseRegistry
 		new OverlaySoundCase(),
 		new WorldsPageCase(),
 		new SettingsPageCase(),
+		new CloneProbeCase(),
 		new TraderCase(),
 		new ProstheticCase(),
 		new RunSettingsCase(),

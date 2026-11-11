@@ -46,6 +46,10 @@ param(
 	# a single-client launch is the cheap shape for those — and it never touches the other boxes.
 	[ValidateSet('host', 'guest', 'alt')]
 	[string]$Only,
+	# Replace the named clients instead of reusing a running one. A stuck client (a world that never
+	# finishes generating) answers no action at all, so the reuse check would hide it; -Restart stops
+	# exactly the clients this run names and starts them again.
+	[switch]$Restart,
 	[int]$SteamGraceSeconds = 60,
 	[int]$ReadyTimeoutSeconds = 300
 )
@@ -287,6 +291,45 @@ function Restart-BoxGame([string]$Box, [string]$Client, [string]$GameRoot) {
 $clients = if ($Only) { @($Only) } else { @('host', 'guest', 'alt') }
 $needsSandbox = @($clients | Where-Object { $_ -ne 'host' }).Count -gt 0
 if ($needsSandbox -and -not (Ensure-SandboxService)) { Write-Run 'FAIL: the sandbox cannot start, so no boxed client can come up'; exit 7 }
+
+if ($Restart) {
+	# A client whose main thread is stuck answers neither the driver nor a quit, and the reuse check
+	# below would hand the caller the SAME process back ("already running (reused)"). -Restart stops
+	# exactly the clients this run names — the box's own game by its box pids, the host by the game
+	# processes that belong to no box — and never touches Steam.
+	foreach ($client in $clients) {
+		if ($client -eq 'guest') { Stop-BoxGame $GuestBox }
+		elseif ($client -eq 'alt') { Stop-BoxGame $AltBox }
+	}
+	$boxPids = @()
+	foreach ($url in @($GuestUrl, $AltUrl)) {
+		if ([string]::IsNullOrWhiteSpace($url)) { continue }
+		$port = ([uri]$url).Port
+		$owners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | ForEach-Object { $_.OwningProcess })
+		$boxPids += $owners
+	}
+	$boxPids += @(Get-BoxProcesses $GuestBox 'CasualtiesUnknown' | ForEach-Object { $_.Id })
+	$boxPids += @(Get-BoxProcesses $AltBox 'CasualtiesUnknown' | ForEach-Object { $_.Id })
+	$boxPids = @($boxPids | Sort-Object -Unique)
+	if ($clients -contains 'host') {
+		# The host is the process listening on the HOST's driver port. A member that is still booting
+		# owns no listener yet, and a path-based guess would stop it too (measured: the member was
+		# killed during the host restart and the suite then met "connection refused" at 18591).
+		$hostPid = $null
+		if (-not [string]::IsNullOrWhiteSpace($HostUrl)) {
+			$hostPid = @(Get-NetTCPConnection -LocalPort ([uri]$HostUrl).Port -State Listen -ErrorAction SilentlyContinue | ForEach-Object { $_.OwningProcess } | Select-Object -First 1)
+		}
+
+		if ($hostPid) {
+			Stop-Process -Id $hostPid -Force -ErrorAction SilentlyContinue
+		}
+		# With no listener on the host port the host is already gone; nothing is killed by guess. A
+		# process-name sweep once took the member with it while it was still booting (measured: the
+		# suite then met "connection refused" at 18591 and lost the pair).
+	}
+	Start-Sleep -Seconds 3
+	Write-Run ("restarted: " + ($clients -join ', '))
+}
 
 foreach ($client in $clients) { Start-ClientProcess $client }
 

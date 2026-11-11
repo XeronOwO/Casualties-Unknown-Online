@@ -334,6 +334,7 @@ internal sealed class SessionDriver(Options options)
 		start.ArgumentList.Add("-Only");
 		start.ArgumentList.Add(only);
 		start.ArgumentList.Add("-NoJoin");
+		start.ArgumentList.Add("-Restart");
 		if (!string.IsNullOrEmpty(_options.GameDir))
 		{
 			start.ArgumentList.Add("-GameDir");
@@ -602,6 +603,26 @@ using var process = Process.Start(start) ?? throw new InvalidOperationException(
 			_drivers[url] = driver;
 		}
 
+		try
+		{
+			return await SendActionAsync(driver, url, action, argument, text, cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			// The client was restarted under the suite: its socket died with the old process, and the
+			// cached connection answers nothing. One fresh connection is the difference between "the
+			// driver never answered" and the action being judged.
+			if (!await ReconnectAsync(url, driver).ConfigureAwait(false))
+			{
+				throw;
+			}
+
+			return await SendActionAsync(_drivers[url], url, action, argument, text, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async Task<JsonElement> SendActionAsync(DriverClient driver, string url, string action, string argument, string text, CancellationToken cancellationToken)
+	{
 		// A declaration is not a driver command: it is the source the evaluator must be given, then
 		// probed. The PowerShell driver composed these two frames; the suite composes them here.
 		if (string.Equals(action, "declare", StringComparison.OrdinalIgnoreCase))
@@ -628,6 +649,32 @@ using var process = Process.Start(start) ?? throw new InvalidOperationException(
 		}
 
 		throw new InvalidOperationException($"the acceptance driver answered '{action}' with {answerValue.ValueKind}, not a JSON object or string");
+	}
+
+	private async Task<bool> ReconnectAsync(string url, DriverClient driver)
+	{
+		_drivers.Remove(url);
+		try
+		{
+			await driver.DisposeAsync().ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+		}
+
+		var fresh = new DriverClient(url);
+		try
+		{
+			await fresh.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			await fresh.DisposeAsync().ConfigureAwait(false);
+			return false;
+		}
+
+		_drivers[url] = fresh;
+		return true;
 	}
 
 	private static string DriverSnippet(string action, string argument, string text)

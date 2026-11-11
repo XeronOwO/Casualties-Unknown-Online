@@ -19,7 +19,15 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 
 	public string Url { get; } = url;
 
-	public async Task ConnectAsync(CancellationToken cancellationToken) => await _socket.ConnectAsync(new Uri(Url), cancellationToken).ConfigureAwait(false);
+	public async Task ConnectAsync(CancellationToken cancellationToken)
+	{
+		// The driver is a loopback socket, and this machine's system proxy (a local Clash) answers a
+		// CONNECT for 127.0.0.1 with a refusal: the socket then fails before the game is ever asked.
+		// A loopback endpoint must never go through a proxy (measured: the suite refused 18591 while
+		// a direct ClientWebSocket to the same URL answered).
+		_socket.Options.Proxy = null;
+		await _socket.ConnectAsync(new Uri(Url), cancellationToken).ConfigureAwait(false);
+	}
 
 	/// <summary>Reconnects after the game closed the socket (a scene change does this): one retry, then the case fails.</summary>
 	public async Task<JsonElement?> EvalAsync(string code, string label, CancellationToken cancellationToken)

@@ -32,7 +32,11 @@
 	var target = new UnityEngine.Vector2(UnityEngine.Mathf.Cos(rad), UnityEngine.Mathf.Sin(rad)) * 220f;
 	var scale = PlayerCamera.uiScale;
 	var basePos = (UnityEngine.Vector2)screenRect.transform.position;
-	var screen = new UnityEngine.Vector2(basePos.x + target.x * scale, basePos.y - target.y * scale);
+	// The game's own map is `handPos = (mousePosition - screen) / uiScale`, so the staged point is
+	// `screen + target * uiScale` — the same sign on both axes. The y used to be negated here, which
+	// put the hand at -angle: the distance read right (220) while the angle was 31 degrees off, and
+	// the game refused every press on a hand that looked correctly placed.
+	var screen = new UnityEngine.Vector2(basePos.x + target.x * scale, basePos.y + target.y * scale);
 	var hand = main.handPos;
 	var handAngle = UnityEngine.Mathf.Atan2(hand.y, hand.x) * UnityEngine.Mathf.Rad2Deg;
 	if (handAngle < 0f) { handAngle += 360f; }

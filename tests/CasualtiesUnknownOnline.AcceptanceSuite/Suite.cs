@@ -403,6 +403,8 @@ internal static class CaseRegistry
 		new OverlaySoundCase(),
 		new WorldsPageCase(),
 		new TraderCase(),
+		new ProstheticCase(),
+		new RunSettingsCase(),
 		new TopicalDoseCase(),
 		// new ConsoleHealCase(), // parked: the relayed reset is answered as applied while the member's
 		// own limb stays partial in an aged session; the reading is on the suite ticket.

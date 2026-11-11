@@ -45,6 +45,12 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		var healed = await context.RecipeAsync("native-heal", cancellationToken);
 		context.Note("host heal: " + Raw(healed));
 
+		// The member's own body carries whatever an earlier session left in it (a treated limb reads
+		// a non-zero marker), and the game's own heal resets every limb's marker to zero — the dose
+		// then sets an absolute value the case can name.
+		var memberHeal = await context.MemberRecipeAsync("native-heal", cancellationToken);
+		context.Note("member heal: " + Raw(memberHeal));
+
 		// The doctor carries the cream; the release path picks a carried item by slot, so the bag is
 		// emptied through the player's own drop entry and the cream becomes the item the release finds.
 		await context.ClearBodyAsync(cancellationToken).ConfigureAwait(false);

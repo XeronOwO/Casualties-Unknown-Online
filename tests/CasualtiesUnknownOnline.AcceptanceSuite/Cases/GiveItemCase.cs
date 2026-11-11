@@ -46,30 +46,40 @@ internal sealed class GiveItemCase : AcceptanceCase
 			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 
-		var give = await context.RecipeAsync("give-probe", cancellationToken,
-			("mode", "give-world"),
-			("target", context.MemberId),
-			("slot", "0"),
-			("container", "0"),
-			("type", "bandage")).ConfigureAwait(false);
-		context.Read("give", give);
-		Require(Boolean(give, "ok"), "the give was refused: " + Raw(give));
-
-		// The member's own inventory is the reading; the pickup runs on the receiver's client.
-		var listed = false;
+		// The give is a gesture the receiver's client applies; a lost delivery is retried with the
+		// pair re-placed, because the drop's physics and the member's own step can separate them.
+		var landed = false;
+		JsonElement? give = null;
 		JsonElement? memberBag = null;
-		for (var wait = 0; wait < 40 && !listed; wait++)
+		for (var attempt = 0; attempt < 3 && !landed; attempt++)
 		{
-			memberBag = await context.MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
-			listed = HasType(memberBag, "bandage");
-			if (!listed)
+			await context.MemberRecipeAsync("teleport", cancellationToken,
+				("x", hostX.ToString(CultureInfo.InvariantCulture)),
+				("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+
+			give = await context.RecipeAsync("give-probe", cancellationToken,
+				("mode", "give-world"),
+				("target", context.MemberId),
+				("slot", "0"),
+				("container", "0"),
+				("type", "bandage")).ConfigureAwait(false);
+			context.Read($"give-{attempt}", give);
+			Require(Boolean(give, "ok"), "the give was refused: " + Raw(give));
+
+			for (var wait = 0; wait < 12 && !landed; wait++)
 			{
-				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+				memberBag = await context.MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+				landed = HasType(memberBag, "bandage");
+				if (!landed)
+				{
+					await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+				}
 			}
 		}
 
 		context.Read("member-bag", memberBag);
-		Require(listed, "the member's inventory does not list the given bandage: " + Raw(memberBag));
+		Require(landed, "the member's inventory does not list the given bandage: " + Raw(memberBag));
 	}
 
 	private static (double X, double Y) Position(JsonElement? reading)

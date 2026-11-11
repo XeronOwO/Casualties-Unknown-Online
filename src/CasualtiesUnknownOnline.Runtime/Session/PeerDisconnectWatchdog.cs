@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Networking;
@@ -23,11 +25,23 @@ internal sealed class PeerDisconnectWatchdog : ICuoService, ISessionReset
 	/// <summary>The reason a member whose connection ended is removed with (log + Kicked message).</summary>
 	internal const string LinkLostReason = "the transport lost this peer's connection";
 
+	/// <summary>
+	/// How long a lost host link may stay down before the member is dropped. The IP transport raises
+	/// the edge when an OLD connection closes (a retry, a scene change) and opens a new one right
+	/// after; acting on the edge alone kicked a member that had just finished its handshake
+	/// (measured 2026-11-12: `Dropping <peer> (Guest) … the transport lost this peer's connection`
+	/// three lines after `Handshake confirmed end-to-end`). The edge is a fact; the member is only
+	/// removed when the link is still down after the grace.
+	/// </summary>
+	internal static readonly TimeSpan DropGrace = TimeSpan.FromSeconds(10);
+
 	private readonly IPeerDisconnectSource _router;
 	private readonly ISessionControl _session;
 	private readonly ISessionNotices _notices;
 	private readonly ILocalizationService _localization;
 	private readonly ILogger<PeerDisconnectWatchdog> _log;
+	private readonly Dictionary<ulong, long> _pendingDrops = [];
+	private long _nowMs;
 
 	public PeerDisconnectWatchdog(
 		IPeerDisconnectSource router,
@@ -53,9 +67,43 @@ internal sealed class PeerDisconnectWatchdog : ICuoService, ISessionReset
 	{
 	}
 
-	/// <summary>Nothing per frame: the transport raises the edge on its own tick, this class only answers it.</summary>
+	/// <summary>The grace: the edge is acted on only when the link is still down after it.</summary>
 	void ICuoService.Update()
 	{
+		_nowMs = NowMs();
+		if (_pendingDrops.Count == 0)
+		{
+			return;
+		}
+
+		var due = new List<ulong>();
+		foreach (var entry in _pendingDrops)
+		{
+			if (_nowMs >= entry.Value)
+			{
+				due.Add(entry.Key);
+			}
+		}
+
+		ulong? drop = null;
+		foreach (var peer in due)
+		{
+			if (_router.IsConnected(peer))
+			{
+				// The link came back inside the grace (a retry, a reconnect): the member stays.
+				_pendingDrops.Remove(peer);
+				_log.LogInformation("The link to {Peer} came back inside the drop grace; the member stays.", peer);
+				continue;
+			}
+
+			drop ??= peer;
+		}
+
+		if (drop is { } victim)
+		{
+			_pendingDrops.Remove(victim);
+			DecideAndAct(victim);
+		}
 	}
 
 	void ICuoService.Stop()
@@ -87,6 +135,21 @@ internal sealed class PeerDisconnectWatchdog : ICuoService, ISessionReset
 	}
 
 	private void OnPeerDisconnected(ulong peer)
+	{
+		var known = _session.TryGetMember(peer, out _);
+		if (Decide(_session.Role, _session.LocalSteamId, _session.HostSteamId, peer, known) == PeerLossAction.None)
+		{
+			return;
+		}
+
+		// The edge says the connection ended; whether the member is gone is decided after the grace,
+		// because a retry opens a new connection to the same peer within it.
+		_pendingDrops[peer] = NowMs() + (long)DropGrace.TotalMilliseconds;
+	}
+
+	private static long NowMs() => DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
+
+	private void DecideAndAct(ulong peer)
 	{
 		var known = _session.TryGetMember(peer, out var member);
 		switch (Decide(_session.Role, _session.LocalSteamId, _session.HostSteamId, peer, known))

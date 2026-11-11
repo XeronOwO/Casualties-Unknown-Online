@@ -170,6 +170,12 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 		}
 	}
 
+	/// <summary>
+	/// The link state the session's watchdog may consult: IP direct answers from its own connection
+	/// table; a Steam link has no per-peer table here, so the edge alone is the fact.
+	/// </summary>
+	public bool IsConnected(ulong peer) => !_ipDirectActive || _ipDirectTransport.IsConnected(peer);
+
 	private void OnSteamMessage(ulong sender, byte[] data)
 	{
 		if (!_ipDirectActive)

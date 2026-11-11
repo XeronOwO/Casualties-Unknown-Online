@@ -382,6 +382,15 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 		}
 	}
 
+	/// <summary>Whether a live connection to <paramref name="peerId"/> is held right now.</summary>
+	public bool IsConnected(ulong peerId)
+	{
+		lock (_sync)
+		{
+			return _connections.ContainsKey(peerId);
+		}
+	}
+
 	private void DisconnectPeer(ulong peerId)
 	{
 		lock (_sync)

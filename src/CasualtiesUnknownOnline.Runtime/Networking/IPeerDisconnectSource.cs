@@ -11,4 +11,11 @@ internal interface IPeerDisconnectSource
 {
 	/// <summary>Raised when the transport stopped reading and writing one peer's connection.</summary>
 	event Action<ulong>? PeerDisconnected;
+
+	/// <summary>
+	/// Whether the transport currently holds a live connection to <paramref name="peer"/>. A lost link
+	/// that came back before the session acted on it must not drop the member: the IP transport
+	/// raises the edge when an old connection closes, and a retry opens a new one immediately after.
+	/// </summary>
+	bool IsConnected(ulong peer);
 }

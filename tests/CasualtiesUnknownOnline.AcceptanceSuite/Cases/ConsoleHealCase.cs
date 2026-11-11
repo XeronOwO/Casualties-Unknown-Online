@@ -78,11 +78,28 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		}
 
 		// The member must be wounded for the heal to have something to restore: a cut on a limb is
-		// the game's own wound seed, and the member's own client reads the limb it carries.
+		// the game's own wound seed, and the member's own client reads the limb it carries. The seed
+		// is applied by the target's own frame, and a heal sent in the same frame lands FIRST (the
+		// wound then reopens over the healed body — measured: a heal answered applied and stored while
+		// the member's limb read 0.309). The case waits for the wound before it heals.
 		var seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "0"), ("force", "300"), ("infection", "0")).ConfigureAwait(false);
 		context.Read("member-wound", seeded);
-		var wounded = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId)).ConfigureAwait(false);
+		JsonElement? wounded = null;
+		var woundLanded = false;
+		for (var wait = 0; wait < 40; wait++)
+		{
+			wounded = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId)).ConfigureAwait(false);
+			woundLanded = Number(wounded, "skinHealth") < 80 || Number(wounded, "bleedAmount") > 0.5 || Boolean(wounded, "dislocated") == true;
+			if (woundLanded)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
 		context.Read("member-limb-wounded", wounded);
+		Require(woundLanded, "the wound seed did not land on the member's limb: " + Raw(wounded));
 
 		// The host runs the console verb; its answer is the reading that the command was accepted.
 		var answer = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);

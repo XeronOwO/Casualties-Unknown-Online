@@ -444,7 +444,7 @@ internal static class CaseRegistry
 		// timelimit * 60 (WorldGeneration.cs:986-988), and the fixture cannot switch it off again;
 		// the reading is on the suite ticket.
 		new TopicalDoseCase(),
-		// new ConsoleHealCase(), // parked: the relayed reset is answered as applied while the member's
+		// new ConsoleHealCase(), // parked: the reset is applied and stored, then the wound's parts read back (2026-11-12)
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		// save-continue leaves the world and restores it: it goes after every case that only needs
 		// the world the suite already owns.
